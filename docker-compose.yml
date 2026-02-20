@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  lal-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lal-app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data.json:/app/data.json
+      - ./static/uploads:/app/static/uploads
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - NETBOX_URL=${NETBOX_URL:-}
+      - NETBOX_TOKEN=${NETBOX_TOKEN:-}
+      - NETBOX_DEVICE_ROLE=${NETBOX_DEVICE_ROLE:-access-switch}
+      - NETBOX_VERIFY_SSL=${NETBOX_VERIFY_SSL:-true}
+      - LIBRENMS_URL=${LIBRENMS_URL:-}
+      - LIBRENMS_TOKEN=${LIBRENMS_TOKEN:-}
+      - LIBRENMS_VERIFY_SSL=${LIBRENMS_VERIFY_SSL:-true}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

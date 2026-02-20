@@ -1,0 +1,56 @@
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  LATEST_TAG: latest
+
+stages:
+  - build
+  - test
+  - push
+
+build:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker info
+  script:
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$LATEST_TAG
+  artifacts:
+    when: on_success
+    expire_in: 1 hour
+
+test:
+  stage: test
+  image: $IMAGE_NAME:$IMAGE_TAG
+  dependencies:
+    - build
+  script:
+    - python -c "import flask; print('Flask version:', flask.__version__)"
+    - python -c "import requests; print('Requests version:', requests.__version__)"
+    - python -c "import dotenv; print('python-dotenv installed')"
+    - echo "All dependencies are installed successfully"
+  allow_failure: true
+
+push:
+  stage: push
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_USER"
+    - echo "$CI_REGISTRY"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker pull $IMAGE_NAME:$IMAGE_TAG || docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$LATEST_TAG
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:$LATEST_TAG
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+  after_script:
+    - docker logout $CI_REGISTRY
