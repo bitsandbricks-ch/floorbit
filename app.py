@@ -140,7 +140,13 @@ def fetch_librenms_details(hostname):
 
     # ── Extract device info ───────────────────────────────────────────────────
     result['status'] = 'online' if device.get('status', 0) == 1 else 'offline'
-    result['ip']     = device.get('ip') or ''
+    # Try multiple possible IP field names from LibreNMS
+    result['ip'] = (
+        device.get('ip') or
+        device.get('hostname') or
+        device.get('sysName') or
+        ''
+    )
 
     # ── CPU from processor health ─────────────────────────────────────────────
     device_id = device.get('device_id') or device.get('hostname')

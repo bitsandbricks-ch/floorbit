@@ -113,6 +113,7 @@ const zoomLevelEl  = document.getElementById('zoom-level');
 const btnCenter    = document.getElementById('btn-center');
 const btnHeatmap   = document.getElementById('btn-heatmap');
 const heatCanvas   = document.getElementById('heatmap-canvas');
+const heatLegend   = document.getElementById('heatmap-legend');
 
 // Hero bar
 const heroTotal    = document.getElementById('hero-total');
@@ -480,13 +481,51 @@ function selectSwitch(id) {
   }
 
   detailLibrenms.style.display = config.librenms_enabled ? '' : 'none';
-  populateLnmsFields({ hostname: sw.name, status: sw.status });
+
+  // Check if we have cached stats, otherwise show loading state
+  const cachedStats = portStats[id];
+  if (cachedStats) {
+    populateLnmsFields({ hostname: sw.name, status: sw.status, ...cachedStats });
+  } else {
+    populateLnmsFields({ hostname: sw.name, status: sw.status });
+  }
+
+  // Fetch fresh status data immediately
+  if (config.librenms_enabled) {
+    fetchSwitchStatus(id);
+  }
 
   // Device settings
   settingExcludeHeatmap.checked = getDeviceSetting(id, 'excludeHeatmap');
   settingHideLabel.checked      = getDeviceSetting(id, 'hideLabel');
 
   detailPanel.classList.remove('hidden');
+}
+
+async function fetchSwitchStatus(id) {
+  try {
+    const data = await api('GET', `/api/switches/${id}/status`);
+    const sw = switches.find(s => s.id === id);
+    if (sw) sw.status = data.status;
+    if (data.up_ports != null) {
+      portStats[id] = {
+        up_ports:          data.up_ports,
+        total_ports:       data.total_ports,
+        traffic_util:      data.traffic_util      ?? null,
+        total_traffic_bps: data.total_traffic_bps ?? null,
+      };
+    }
+    // Update detail panel if this switch is still selected
+    if (selectedId === id) {
+      detailStatusBadge.textContent = data.status;
+      detailStatusBadge.className = `detail-status-badge status-${data.status}`;
+      populateLnmsFields(data);
+    }
+    // Update sidebar items
+    renderAll();
+  } catch (e) {
+    console.error('Failed to fetch switch status:', e);
+  }
 }
 
 function deselectSwitch() { selectSwitch(null); }
@@ -800,6 +839,7 @@ btnHeatmap.addEventListener('click', () => {
   heatmapVisible = !heatmapVisible;
   btnHeatmap.classList.toggle('heatmap-on', heatmapVisible);
   heatCanvas.style.display = heatmapVisible ? 'block' : 'none';
+  heatLegend.classList.toggle('hidden', !heatmapVisible);
   if (heatmapVisible) renderHeatmap();
 });
 
