@@ -122,6 +122,8 @@
             Switches
             <span class="switch-count" id="switch-count">0</span>
           </h3>
+          <input class="search-input" type="text" id="switch-search"
+                 placeholder="Search switches…" autocomplete="off" />
           <div id="switch-list">
             <p class="empty-hint">No switches placed yet.</p>
           </div>
@@ -292,6 +294,11 @@
     </aside>
   </div>
 
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <span class="footer-text">Building View</span>
+  </footer>
+
   <!-- ── Add-Switch Modal ───────────────────────────────────────────────── -->
   <div class="modal-backdrop hidden" id="modal-backdrop">
     <div class="modal modal-lg" role="dialog" aria-modal="true">
@@ -305,6 +312,16 @@
 
       <!-- NetBox device picker -->
       <div id="modal-netbox" class="hidden">
+        <div class="multiselect-controls">
+          <label class="setting-row">
+            <span class="setting-label">Select multiple devices</span>
+            <span class="toggle-switch">
+              <input type="checkbox" id="multiselect-toggle" />
+              <span class="toggle-track"></span>
+            </span>
+          </label>
+          <span class="multiselect-count" id="multiselect-count" style="display:none">0 selected</span>
+        </div>
         <input class="modal-input" type="text" id="device-filter"
                placeholder="Filter devices…" autocomplete="off" />
         <div class="device-list" id="device-list"></div>

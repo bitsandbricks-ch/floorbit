@@ -17,6 +17,7 @@ let currentTool    = 'select';
 let selectedId     = null;
 let pendingCoords  = null;
 let pendingPickerDeviceId = null;   // selected device in the NetBox picker tab
+let selectedDeviceIds = new Set();   // selected device IDs in multiselect mode
 let contextId      = null;
 let dragState      = null;
 let zoom           = 1;
@@ -27,6 +28,48 @@ const deviceSettings = JSON.parse(localStorage.getItem('deviceSettings') || '{}'
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.15;
+
+// Cache configuration
+const CACHE_KEY = 'switchStatusCache';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// ── Cache helpers ──────────────────────────────────────────────────────────────
+function getCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    // Check if cache has expired
+    if (Date.now() - cache.timestamp > CACHE_TTL) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    return cache.data;
+  } catch (e) {
+    console.error('Error reading cache:', e);
+    return null;
+  }
+}
+
+function setCache(data) {
+  try {
+    const cache = {
+      timestamp: Date.now(),
+      data: data
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.error('Error writing cache:', e);
+  }
+}
+
+function clearCache() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch (e) {
+    console.error('Error clearing cache:', e);
+  }
+}
 
 // ── Per-device settings helpers ───────────────────────────────────────────────
 function getDeviceSetting(id, key, def = false) {
@@ -47,6 +90,7 @@ const emptyState       = document.getElementById('empty-state');
 const wrapper          = document.getElementById('floorplan-wrapper');
 const overlay          = document.getElementById('switches-overlay');
 const switchList       = document.getElementById('switch-list');
+const switchSearch     = document.getElementById('switch-search');
 const switchCount      = document.getElementById('switch-count');
 const addCursor        = document.getElementById('add-cursor');
 
@@ -69,6 +113,8 @@ const deviceList       = document.getElementById('device-list');
 const switchNameInput  = document.getElementById('switch-name-input');
 const modalCancel      = document.getElementById('modal-cancel');
 const modalConfirm     = document.getElementById('modal-confirm');
+const multiselectToggle = document.getElementById('multiselect-toggle');
+const multiselectCount = document.getElementById('multiselect-count');
 
 // Rename modal
 const renameBackdrop   = document.getElementById('rename-backdrop');
@@ -142,8 +188,32 @@ async function init() {
   ]);
   config = cfg;
   applyConfig();
-  // Populate real statuses immediately so the sidebar shows live data on load.
+
+  // Load cached status if available for immediate display
+  const cachedStatus = getCache();
+  if (cachedStatus) {
+    applyCachedStatus(cachedStatus);
+  }
+
+  // Fetch fresh status in background
   doRefreshAll().catch(console.error);
+}
+
+function applyCachedStatus(cache) {
+  // Apply cached port statistics
+  for (const [id, stats] of Object.entries(cache.portStats || {})) {
+    portStats[id] = stats;
+  }
+
+  // Apply cached status to switches
+  for (const sw of switches) {
+    if (cache.statuses && cache.statuses[sw.id]) {
+      sw.status = cache.statuses[sw.id];
+    }
+  }
+
+  // Update UI with cached data
+  renderAll();
 }
 
 function applyConfig() {
@@ -254,9 +324,14 @@ wrapper.addEventListener('mousedown', (e) => {
 
 // ── Add Modal ────────────────────────────────────────────────────────────────
 let activeModalTab = 'manual'; // 'netbox' | 'manual'
+let isMultiselectMode = false;
 
 function openAddModal() {
   pendingPickerDeviceId = null;
+  selectedDeviceIds.clear();
+  isMultiselectMode = false;
+  multiselectToggle.checked = false;
+  updateMultiselectCount();
 
   if (config.netbox_enabled) {
     modalTabs.classList.remove('hidden');
@@ -320,18 +395,48 @@ function renderDevicePicker(filter) {
   deviceList.innerHTML = '';
   for (const dev of unplaced) {
     const item = document.createElement('div');
-    item.className = 'device-item' + (dev.id === pendingPickerDeviceId ? ' selected' : '');
+    const isSelected = selectedDeviceIds.has(dev.id);
+    item.className = 'device-item' + (isMultiselectMode ? ' multiselect-mode' : '') + (dev.id === pendingPickerDeviceId || isSelected ? ' selected' : '');
     item.dataset.id = dev.id;
-    item.innerHTML = `
-      <span class="device-item-name">${escHtml(dev.name)}</span>
-      <span class="device-item-badge">${escHtml(dev.netbox_status || '')}</span>
-    `;
+
+    if (isMultiselectMode) {
+      item.innerHTML = `
+        <span class="device-item-checkbox ${isSelected ? 'checked' : ''}"></span>
+        <span class="device-item-name">${escHtml(dev.name)}</span>
+        <span class="device-item-badge">${escHtml(dev.netbox_status || '')}</span>
+      `;
+    } else {
+      item.innerHTML = `
+        <span class="device-item-name">${escHtml(dev.name)}</span>
+        <span class="device-item-badge">${escHtml(dev.netbox_status || '')}</span>
+      `;
+    }
     item.addEventListener('click', () => {
-      pendingPickerDeviceId = dev.id;
-      for (const el of deviceList.querySelectorAll('.device-item'))
-        el.classList.toggle('selected', el.dataset.id === dev.id);
+      if (isMultiselectMode) {
+        if (selectedDeviceIds.has(dev.id)) {
+          selectedDeviceIds.delete(dev.id);
+        } else {
+          selectedDeviceIds.add(dev.id);
+        }
+        updateMultiselectCount();
+        renderDevicePicker(filter);
+      } else {
+        pendingPickerDeviceId = dev.id;
+        for (const el of deviceList.querySelectorAll('.device-item'))
+          el.classList.toggle('selected', el.dataset.id === dev.id);
+      }
     });
     deviceList.appendChild(item);
+  }
+}
+
+function updateMultiselectCount() {
+  const count = selectedDeviceIds.size;
+  if (count > 0) {
+    multiselectCount.textContent = `${count} selected`;
+    multiselectCount.style.display = 'block';
+  } else {
+    multiselectCount.style.display = 'none';
   }
 }
 
@@ -341,10 +446,28 @@ deviceFilter.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeAddModal();
 });
 
+multiselectToggle.addEventListener('change', () => {
+  isMultiselectMode = multiselectToggle.checked;
+  if (isMultiselectMode) {
+    // Convert single selection to multiselect
+    if (pendingPickerDeviceId) {
+      selectedDeviceIds.add(pendingPickerDeviceId);
+      pendingPickerDeviceId = null;
+    }
+  } else {
+    // Clear multiselect when turning off
+    selectedDeviceIds.clear();
+  }
+  updateMultiselectCount();
+  renderDevicePicker(deviceFilter.value);
+});
+
 function closeAddModal() {
   modalBackdrop.classList.add('hidden');
   pendingCoords = null;
   pendingPickerDeviceId = null;
+  selectedDeviceIds.clear();
+  isMultiselectMode = false;
 }
 
 modalCancel.addEventListener('click', closeAddModal);
@@ -358,10 +481,36 @@ modalConfirm.addEventListener('click', async () => {
   if (!pendingCoords) return;
 
   if (activeModalTab === 'netbox' && config.netbox_enabled) {
-    if (!pendingPickerDeviceId) { deviceFilter.focus(); return; }
-    await placeNetboxDevice(pendingPickerDeviceId, pendingCoords.x, pendingCoords.y);
-    closeAddModal();
-    setTool('select');
+    if (isMultiselectMode) {
+      // Place multiple devices in a grid pattern
+      if (selectedDeviceIds.size === 0) { deviceFilter.focus(); return; }
+      const ids = Array.from(selectedDeviceIds);
+      const baseX = pendingCoords.x;
+      const baseY = pendingCoords.y;
+
+      // Calculate grid dimensions
+      const cols = Math.ceil(Math.sqrt(ids.length));
+      const spacing = 8; // percentage spacing
+
+      for (let i = 0; i < ids.length; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const offsetX = (col - (cols - 1) / 2) * spacing;
+        const offsetY = (row - (Math.ceil(ids.length / cols) - 1) / 2) * spacing;
+
+        const newX = Math.max(0, Math.min(100, baseX + offsetX));
+        const newY = Math.max(0, Math.min(100, baseY + offsetY));
+
+        await placeNetboxDevice(ids[i], newX, newY);
+      }
+      closeAddModal();
+      setTool('select');
+    } else {
+      if (!pendingPickerDeviceId) { deviceFilter.focus(); return; }
+      await placeNetboxDevice(pendingPickerDeviceId, pendingCoords.x, pendingCoords.y);
+      closeAddModal();
+      setTool('select');
+    }
   } else {
     const name = switchNameInput.value.trim();
     if (!name) { switchNameInput.focus(); return; }
@@ -380,7 +529,10 @@ async function placeNetboxDevice(id, x, y) {
     const idx = switches.findIndex(s => s.id === id);
     if (idx >= 0) switches[idx] = { ...switches[idx], ...sw };
     renderAll();
-    selectSwitch(id);
+    // Only select if this is a single placement or the last one in multiselect
+    if (!isMultiselectMode || !selectedDeviceIds.has(id)) {
+      selectSwitch(id);
+    }
   } catch (e) {
     alert('Failed to place device: ' + e.message);
   }
@@ -406,11 +558,21 @@ function renderSidebar() {
 
   switchCount.textContent = placed.length;
 
-  if (placed.length === 0) {
-    switchList.innerHTML = '<p class="empty-hint">No switches placed yet.</p>';
+  // Apply search filter
+  const searchTerm = switchSearch.value.trim().toLowerCase();
+  const filtered = placed.filter(s =>
+    s.name.toLowerCase().includes(searchTerm)
+  );
+
+  if (filtered.length === 0) {
+    if (placed.length === 0) {
+      switchList.innerHTML = '<p class="empty-hint">No switches placed yet.</p>';
+    } else {
+      switchList.innerHTML = '<p class="empty-hint">No switches match your search.</p>';
+    }
   } else {
     switchList.innerHTML = '';
-    for (const sw of placed) {
+    for (const sw of filtered) {
       const item = document.createElement('div');
       item.className = 'switch-item' + (sw.id === selectedId ? ' active' : '');
       item.dataset.id = sw.id;
@@ -436,25 +598,52 @@ function renderSidebar() {
 
 function createMarker(sw) {
   const el = document.createElement('div');
-  el.className = 'switch-marker' + (sw.id === selectedId ? ' selected' : '');
+  const isSelected = sw.id === selectedId;
+  el.className = 'switch-marker' + (isSelected ? ' selected' : '');
   el.dataset.id = sw.id;
   el.style.left = sw.x + '%';
   el.style.top  = sw.y + '%';
   const hideLabel = getDeviceSetting(sw.id, 'hideLabel');
+  // Show label when selected or on hover
   el.innerHTML = `
     <div class="switch-pin status-${sw.status}">${pinSVG()}</div>
-    ${hideLabel ? '' : `<div class="switch-label">${escHtml(sw.name)}</div>`}
+    ${hideLabel ? '' : `<div class="switch-label" style="opacity:${isSelected ? '1' : '0'}; transition: opacity 0.2s">${escHtml(sw.name)}</div>`}
   `;
   el.addEventListener('mousedown', onMarkerMouseDown);
   el.addEventListener('contextmenu', onMarkerContextMenu);
+
+  // Show label on hover (unless already shown due to selection)
+  el.addEventListener('mouseenter', () => {
+    if (!isSelected) {
+      const label = el.querySelector('.switch-label');
+      if (label) label.style.opacity = '1';
+    }
+  });
+  el.addEventListener('mouseleave', () => {
+    if (!isSelected) {
+      const label = el.querySelector('.switch-label');
+      if (label) label.style.opacity = '0';
+    }
+  });
+
   return el;
 }
 
 // ── Selection & detail panel ──────────────────────────────────────────────────
 function selectSwitch(id) {
   selectedId = id;
-  for (const m of overlay.querySelectorAll('.switch-marker'))
-    m.classList.toggle('selected', m.dataset.id === id);
+
+  // Update marker selection state and label visibility
+  for (const m of overlay.querySelectorAll('.switch-marker')) {
+    const isSelected = m.dataset.id === id;
+    m.classList.toggle('selected', isSelected);
+    // Show/hide label based on selection
+    const label = m.querySelector('.switch-label');
+    if (label && !getDeviceSetting(m.dataset.id, 'hideLabel')) {
+      label.style.opacity = isSelected ? '1' : '0';
+    }
+  }
+
   for (const item of switchList.querySelectorAll('.switch-item'))
     item.classList.toggle('active', item.dataset.id === id);
 
@@ -523,6 +712,9 @@ async function fetchSwitchStatus(id) {
     }
     // Update sidebar items
     renderAll();
+
+    // Save to cache
+    saveStatusCache();
   } catch (e) {
     console.error('Failed to fetch switch status:', e);
   }
@@ -756,6 +948,9 @@ document.addEventListener('keydown', async (e) => {
   if (e.key === 'Escape') { deselectSwitch(); setTool('select'); }
 });
 
+// ── Switch search ─────────────────────────────────────────────────────────────
+switchSearch.addEventListener('input', () => renderSidebar());
+
 // ── Refresh status ───────────────────────────────────────────────────────────
 async function doRefreshAll() {
   if (isRefreshing) return;
@@ -777,9 +972,28 @@ async function doRefreshAll() {
       }
     }));
     renderAll();
+
+    // Save to cache after successful refresh
+    saveStatusCache();
   } finally {
     isRefreshing = false;
   }
+}
+
+function saveStatusCache() {
+  const cacheData = {
+    portStats: { ...portStats },
+    statuses: {}
+  };
+
+  // Store current status for each switch
+  for (const sw of switches) {
+    if (sw.status) {
+      cacheData.statuses[sw.id] = sw.status;
+    }
+  }
+
+  setCache(cacheData);
 }
 
 btnRefreshAll.addEventListener('click', async () => {

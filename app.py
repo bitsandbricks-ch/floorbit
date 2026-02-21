@@ -148,34 +148,78 @@ def fetch_librenms_details(hostname):
         ''
     )
 
-    # ── CPU from processor health ─────────────────────────────────────────────
-    device_id = device.get('device_id') or device.get('hostname')
+    # ── CPU and Memory from device endpoint ───────────────────────────────────
+    device_id = device.get('hostname') or device.get('device_id')
     try:
         resp = requests.get(
-            f'{LIBRENMS_URL}/api/v0/devices/{device_id}/health/processor',
+            f'{LIBRENMS_URL}/api/v0/devices/{device_id}',
             headers=headers, timeout=10, verify=LIBRENMS_VERIFY_SSL,
         )
         if resp.ok:
-            sensors = resp.json().get('health', [])
-            values = [s.get('sensor_current') for s in sensors if s.get('sensor_current') is not None]
-            if values:
-                result['cpu_load'] = round(sum(values) / len(values))
+            device_data = resp.json().get('devices', [{}])[0] if resp.json().get('devices') else {}
+            # Try to get CPU from device stats
+            if 'processor_usage' in device_data:
+                result['cpu_load'] = round(float(device_data['processor_usage']))
+            elif 'cpu_usage' in device_data:
+                result['cpu_load'] = round(float(device_data['cpu_usage']))
+            elif 'stats' in device_data:
+                stats = device_data['stats']
+                if 'processor' in stats:
+                    result['cpu_load'] = round(float(stats['processor']))
+            # Try to get memory from device stats
+            if 'mempool' in device_data:
+                result['mem_percent'] = round(float(device_data['mempool']))
+            elif 'memory_usage' in device_data:
+                result['mem_percent'] = round(float(device_data['memory_usage']))
+            elif 'stats' in device_data:
+                stats = device_data['stats']
+                if 'mempool' in stats:
+                    result['mem_percent'] = round(float(stats['mempool']))
     except requests.RequestException:
         pass
 
-    # ── Memory from mempool health ────────────────────────────────────────────
-    try:
-        resp = requests.get(
-            f'{LIBRENMS_URL}/api/v0/devices/{device_id}/health/mempool',
-            headers=headers, timeout=10, verify=LIBRENMS_VERIFY_SSL,
-        )
-        if resp.ok:
-            pools = resp.json().get('health', [])
-            values = [p.get('mempool_perc') for p in pools if p.get('mempool_perc') is not None]
-            if values:
-                result['mem_percent'] = round(sum(values) / len(values))
-    except requests.RequestException:
-        pass
+    # # ── Fallback: CPU from processor health ───────────────────────────────────
+    # if 'cpu_load' not in result:
+    #     try:
+    #         resp = requests.get(
+    #             f'{LIBRENMS_URL}/api/v0/devices/{device_id}/graphs',
+    #             headers=headers, timeout=10, verify=LIBRENMS_VERIFY_SSL,
+    #         )
+    #         print(f"Processor health response for {hostname}: {resp.status_code}")
+    #         if resp.ok:
+    #             print(f"Processor health response: {resp.json()}")
+    #             graphs = resp.json().get('graphs', [])
+    #             for graph in graphs:
+    #                 print(graph)
+    #                 resp = requests.get(
+    #                     f'{LIBRENMS_URL}/api/v0/devices/{device_id}/health/{graph.get("name")}',
+    #                     headers=headers, timeout=10, verify=LIBRENMS_VERIFY_SSL,
+    #                 )
+    #                 print(resp.status_code)
+    #                 if resp.ok:
+    #                     print(f"Health graph data for {graph.get('name')}: {resp.json()}")
+    #                     data = resp.json().get('data', [])
+    #                     print(f"Data for graph {graph.get('name')}: {data}")
+
+
+
+    #     except requests.RequestException:
+    #         pass
+
+    # # ── Fallback: Memory from mempool health ──────────────────────────────────
+    # if 'mem_percent' not in result:
+    #     try:
+    #         resp = requests.get(
+    #             f'{LIBRENMS_URL}/api/v0/devices/{device_id}/health/mempool',
+    #             headers=headers, timeout=10, verify=LIBRENMS_VERIFY_SSL,
+    #         )
+    #         if resp.ok:
+    #             pools = resp.json().get('health', [])
+    #             values = [p.get('mempool_perc') for p in pools if p.get('mempool_perc') is not None]
+    #             if values:
+    #                 result['mem_percent'] = round(sum(values) / len(values))
+    #     except requests.RequestException:
+    #         pass
 
     # ── Port summary + traffic ────────────────────────────────────────────────
     try:
@@ -209,6 +253,7 @@ def fetch_librenms_details(hostname):
     except requests.RequestException:
         pass
 
+    print(f"LibreNMS details for {hostname}: {result}")
     return result
 
 
@@ -217,6 +262,11 @@ def fetch_librenms_details(hostname):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
@@ -228,6 +278,29 @@ def get_config():
         'librenms_enabled':  LIBRENMS_ENABLED,
         'netbox_device_roles': NETBOX_ROLES,
     })
+
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """Get default settings for switches."""
+    data = load_data()
+    return jsonify(data.get('default_settings', {
+        'hide_labels': False,
+        'exclude_heatmap': False,
+    }))
+
+
+@app.route('/api/settings', methods=['PUT'])
+def update_settings():
+    """Update default settings."""
+    body = request.get_json(force=True)
+    data = load_data()
+    data.setdefault('default_settings', {})
+    for key in ('hide_labels', 'exclude_heatmap'):
+        if key in body:
+            data['default_settings'][key] = bool(body[key])
+    save_data(data)
+    return jsonify(data['default_settings'])
 
 
 # ── Floor Plan ─────────────────────────────────────────────────────────────────
