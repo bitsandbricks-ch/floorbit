@@ -71,61 +71,93 @@
       <!-- ── Sidebar ───────────────────────────────────────────────────── -->
       <aside class="sidebar">
 
+        <!-- Universal Search -->
         <section class="sidebar-section">
-          <h3 class="section-title">Floor Plan</h3>
-          <label class="upload-area" id="upload-label" title="Click or drag an image to upload">
-            <input type="file" id="floorplan-upload" accept="image/*" hidden />
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            <span id="upload-label-text">Upload Floor Plan</span>
-          </label>
+          <h3 class="section-title">Search</h3>
+          <input class="search-input" type="text" id="universal-search"
+                 placeholder="Search switches and seats…" autocomplete="off" />
+          <div id="search-results"></div>
         </section>
 
         <!-- NetBox sync – shown only when NetBox is configured -->
-        <section class="sidebar-section hidden" id="sync-section">
-          <h3 class="section-title">NetBox</h3>
-          <button class="btn btn-ghost btn-full" id="btn-sync">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-            Sync Devices
-          </button>
-          <p class="sync-info hidden" id="sync-info"></p>
-        </section>
-
-        <section class="sidebar-section">
-          <h3 class="section-title">Tools</h3>
-          <div class="tool-group">
-            <button class="tool-btn active" id="tool-select" title="Select and drag switches">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 3l14 9-7 1-4 7z"/>
+        <section class="sidebar-section collapsible-section" data-section="netbox" id="sync-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              NetBox
+              <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
               </svg>
-              Select / Move
-            </button>
-            <button class="tool-btn" id="tool-add" title="Click on the floor plan to place a switch">
+            </h3>
+          </div>
+          <div class="section-content">
+            <button class="btn btn-ghost btn-full" id="btn-sync">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="16"/>
-                <line x1="8"  y1="12" x2="16" y2="12"/>
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
               </svg>
-              Add Switch
+              Sync Devices
             </button>
+            <p class="sync-info hidden" id="sync-info"></p>
           </div>
         </section>
 
-        <section class="sidebar-section sidebar-switches">
-          <h3 class="section-title">
-            Switches
-            <span class="switch-count" id="switch-count">0</span>
-          </h3>
-          <input class="search-input" type="text" id="switch-search"
-                 placeholder="Search switches…" autocomplete="off" />
-          <div id="switch-list">
-            <p class="empty-hint">No switches placed yet.</p>
+        <section class="sidebar-section collapsible-section" data-section="tools">
+          <div class="section-header">
+            <h3 class="section-title">
+              Tools
+              <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </h3>
+          </div>
+          <div class="section-content">
+            <div class="tool-group">
+              <button class="tool-btn active" id="tool-select" title="Select and drag items">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 3l14 9-7 1-4 7z"/>
+                </svg>
+                Select / Move
+              </button>
+              <button class="tool-btn" id="tool-add-switch" title="Click on the floor plan to place a switch">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="7" width="20" height="10" rx="2"/>
+                  <line x1="6"  y1="11" x2="6"  y2="13"/>
+                  <line x1="9"  y1="11" x2="9"  y2="13"/>
+                  <line x1="12" y1="11" x2="12" y2="13"/>
+                </svg>
+                Add Switch
+              </button>
+              <button class="tool-btn" id="tool-add-block" title="Click to place a seating block/row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="2" width="7" height="7" rx="1"/>
+                  <rect x="9" y="2" width="7" height="7" rx="1"/>
+                  <rect x="16" y="2" width="7" height="7" rx="1"/>
+                  <rect x="2" y="9" width="7" height="7" rx="1"/>
+                  <rect x="9" y="9" width="7" height="7" rx="1"/>
+                  <rect x="16" y="9" width="7" height="7" rx="1"/>
+                </svg>
+                Add Block
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="sidebar-section collapsible-section sidebar-switches collapsed" data-section="switches">
+          <div class="section-header">
+            <h3 class="section-title">
+              Switches
+              <span class="switch-count" id="switch-count">0</span>
+              <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </h3>
+          </div>
+          <div class="section-content">
+            <input class="search-input" type="text" id="switch-search"
+                   placeholder="Filter switches…" autocomplete="off" />
+            <div id="switch-list">
+              <p class="empty-hint">No switches placed yet.</p>
+            </div>
           </div>
         </section>
 
@@ -158,19 +190,44 @@
           </div>
         </div>
 
+        <!-- Seat Heatmap legend -->
+        <div class="heatmap-legend hidden" id="seat-heatmap-legend" style="bottom: 60px;">
+          <div class="legend-item">
+            <span class="legend-color" style="background: #6e7681"></span>
+            <span class="legend-label">Unknown/Offline</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #388bfd"></span>
+            <span class="legend-label">&lt; 10 Mbps</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #3fb950"></span>
+            <span class="legend-label">10 - 100 Mbps</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #d29922"></span>
+            <span class="legend-label">100 - 500 Mbps</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #f85149"></span>
+            <span class="legend-label">500+ Mbps</span>
+          </div>
+        </div>
+
         <div class="floorplan-wrapper" id="floorplan-wrapper">
 
-          <div class="empty-state" id="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <path d="M3 9h18M9 21V9"/>
-            </svg>
-            <p>Upload a floor plan to get started</p>
-          </div>
-
-          <img id="floorplan-img" alt="Floor plan" />
           <canvas id="heatmap-canvas"></canvas>
+          <canvas id="seat-heatmap-canvas"></canvas>
           <div id="switches-overlay"></div>
+          <div id="seats-overlay"></div>
+          <div id="blocks-overlay"></div>
+
+          <div class="position-display" id="position-display">
+            <span class="position-label">X:</span>
+            <span class="position-value" id="pos-x">0.00</span>
+            <span class="position-label">Y:</span>
+            <span class="position-value" id="pos-y">0.00</span>
+          </div>
 
           <div class="add-cursor" id="add-cursor">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -202,6 +259,14 @@
               <circle cx="12" cy="12" r="9"/>
               <circle cx="12" cy="12" r="5" opacity="0.7"/>
               <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            </svg>
+          </button>
+          <button class="zoom-btn" id="btn-seat-heatmap" title="Toggle seat port usage heatmap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px">
+              <rect x="4" y="4" width="6" height="6" rx="1"/>
+              <rect x="14" y="4" width="6" height="6" rx="1"/>
+              <rect x="4" y="14" width="6" height="6" rx="1"/>
+              <rect x="14" y="14" width="6" height="6" rx="1"/>
             </svg>
           </button>
         </div>
@@ -237,6 +302,7 @@
             <dt>Status</dt>    <dd id="dd-lnms-status">—</dd>
             <dt>IP</dt>        <dd id="dd-ip">—</dd>
             <dt>Up Ports</dt>  <dd id="dd-ports">—</dd>
+            <dt>Temperature</dt> <dd id="dd-temperature">—</dd>
           </dl>
 
           <div class="resource-bars">
@@ -359,6 +425,154 @@
       </div>
     </div>
   </div>
+
+
+  <!-- ── Seat Block Modal ─────────────────────────────────────────────────── -->
+  <div class="modal-backdrop hidden" id="block-backdrop">
+    <div class="modal modal-lg" role="dialog" aria-modal="true">
+      <h3 class="modal-title">Create Seating Block</h3>
+      <label class="modal-label" for="block-name">Block Name (optional)</label>
+      <input class="modal-input" type="text" id="block-name" placeholder="e.g. A, B, C, Front Row" maxlength="48" autocomplete="off" />
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <label class="modal-label" for="block-cols">Columns (width)</label>
+          <input class="modal-input" type="number" id="block-cols" value="8" min="1" max="50" />
+        </div>
+        <div>
+          <label class="modal-label" for="block-rows">Rows (depth)</label>
+          <input class="modal-input" type="number" id="block-rows" value="1" min="1" max="20" />
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <label class="modal-label" for="block-spacing-x">Spacing X (%)</label>
+          <input class="modal-input" type="number" id="block-spacing-x" value="0.5" min="0" max="5" step="0.1" />
+        </div>
+        <div>
+          <label class="modal-label" for="block-spacing-y">Spacing Y (%)</label>
+          <input class="modal-input" type="number" id="block-spacing-y" value="1" min="0" max="5" step="0.1" />
+        </div>
+      </div>
+
+      <label class="modal-label">Numbering</label>
+      <label class="setting-row">
+        <span class="setting-label">Reverse numbers</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="block-reverse-numbers-modal" />
+          <span class="toggle-track"></span>
+        </span>
+      </label>
+
+      <label class="modal-label" style="margin-top: 8px;">Rotation (degrees)</label>
+      <input class="modal-input" type="number" id="block-rotation" value="0" min="0" max="360" step="45" />
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="block-cancel">Cancel</button>
+        <button class="btn btn-primary" id="block-confirm">Create Block</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Seat Block Seat Detail Panel ───────────────────────────────────────────────────── -->
+  <aside class="detail-panel hidden" id="block-seat-detail-panel">
+    <div class="detail-header">
+      <div>
+        <div class="detail-name" id="block-seat-detail-number">—</div>
+        <span class="detail-status-badge">Seat</span>
+      </div>
+      <button class="detail-close" id="block-seat-detail-close" title="Close">✕</button>
+    </div>
+
+    <div class="detail-body">
+      <section class="detail-section">
+        <h4 class="detail-section-title">Seat Information</h4>
+        <dl class="detail-list">
+          <dt>Seat Number</dt> <dd id="block-seat-dd-number">—</dd>
+          <dt>Username</dt>    <dd id="block-seat-dd-username">—</dd>
+          <dt>Position</dt>      <dd id="block-seat-dd-position">—</dd>
+        </dl>
+      </section>
+
+      <section class="detail-section">
+        <h4 class="detail-section-title">Network Information</h4>
+        <dl class="detail-list">
+          <dt>IP Address</dt>  <dd id="block-seat-dd-ip">—</dd>
+          <dt>MAC Address</dt> <dd id="block-seat-dd-mac">—</dd>
+          <dt>Switch</dt>     <dd id="block-seat-dd-switch">—</dd>
+          <dt>Port</dt>       <dd id="block-seat-dd-port">—</dd>
+          <dt>VLAN</dt>       <dd id="block-seat-dd-vlan">—</dd>
+        </dl>
+      </section>
+
+      <section class="detail-section">
+        <h4 class="detail-section-title">Port Usage</h4>
+        <dl class="detail-list">
+          <dt>Status</dt>     <dd id="block-seat-dd-port-status">—</dd>
+          <dt>Total Traffic</dt> <dd id="block-seat-dd-total-traffic">—</dd>
+          <dt>Download</dt>   <dd id="block-seat-dd-download">—</dd>
+          <dt>Upload</dt>     <dd id="block-seat-dd-upload">—</dd>
+          <dt>Port Speed</dt>  <dd id="block-seat-dd-port-speed">—</dd>
+        </dl>
+      </section>
+
+      <section class="detail-section" id="block-seat-resolution-section">
+        <h4 class="detail-section-title">Resolution Status</h4>
+        <p id="block-seat-resolution-status" style="color: var(--text-primary); font-size: 12px; line-height: 1.5;">—</p>
+      </section>
+    </div>
+  </aside>
+
+  <!-- ── Seat Block Detail Panel ───────────────────────────────────────────────── -->
+  <aside class="detail-panel hidden" id="block-detail-panel">
+    <div class="detail-header">
+      <div>
+        <div class="detail-name" id="block-detail-name">—</div>
+        <span class="detail-status-badge">Seat Block</span>
+      </div>
+      <button class="detail-close" id="block-detail-close" title="Close">✕</button>
+    </div>
+
+    <div class="detail-body">
+      <section class="detail-section">
+        <h4 class="detail-section-title">Block Details</h4>
+        <dl class="detail-list">
+          <dt>Name</dt>      <dd id="block-dd-name">—</dd>
+          <dt>Position</dt>  <dd id="block-dd-position">—</dd>
+          <dt>Size</dt>      <dd id="block-dd-size">—</dd>
+          <dt>Rotation</dt>  <dd id="block-dd-rotation">—</dd>
+        </dl>
+      </section>
+
+      <section class="detail-section">
+        <h4 class="detail-section-title">Edit Block</h4>
+        <label class="modal-label">Name</label>
+        <input class="modal-input" type="text" id="block-edit-name" maxlength="48" />
+
+        <label class="modal-label" style="margin-top: 8px;">Rotation (degrees)</label>
+        <input class="modal-input" type="number" id="block-edit-rotation" min="0" max="360" step="45" />
+
+        <label class="modal-label" style="margin-top: 8px;">Numbering</label>
+        <label class="setting-row" style="margin-top: 4px;">
+          <span class="setting-label">Reverse numbers</span>
+          <span class="toggle-switch">
+            <input type="checkbox" id="block-edit-reverse-numbers" />
+            <span class="toggle-track"></span>
+          </span>
+        </label>
+      </section>
+
+      <section class="detail-section">
+        <h4 class="detail-section-title">Actions</h4>
+        <div class="detail-actions">
+          <button class="btn btn-ghost" id="block-detail-duplicate">Duplicate</button>
+          <button class="btn btn-primary" id="block-detail-save">Save Changes</button>
+          <button class="btn btn-danger"  id="block-detail-delete">Delete Block</button>
+        </div>
+      </section>
+    </div>
+  </aside>
 
   <script src="/static/js/app.js"></script>
 </body>

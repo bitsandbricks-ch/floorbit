@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npm run build:css:prod:*)"
+      "Bash(npm run build:css:prod:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ]
   }
 }

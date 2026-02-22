@@ -1,13 +1,28 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: lal-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   lal-app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: lal-app
     ports:
-      - "5000:5000"
+      - "5002:5000"
     volumes:
       - ./data.json:/app/data.json
       - ./static/uploads:/app/static/uploads
@@ -21,6 +36,15 @@ services:
       - LIBRENMS_URL=${LIBRENMS_URL:-}
       - LIBRENMS_TOKEN=${LIBRENMS_TOKEN:-}
       - LIBRENMS_VERIFY_SSL=${LIBRENMS_VERIFY_SSL:-true}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - CACHE_TTL_ARP=${CACHE_TTL_ARP:-300}
+      - CACHE_TTL_MAC=${CACHE_TTL_MAC:-300}
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/')"]
@@ -28,3 +52,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+volumes:
+  redis_data:

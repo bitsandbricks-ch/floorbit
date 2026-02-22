@@ -13,8 +13,11 @@ function pinSVG() {
 // ── State ────────────────────────────────────────────────────────────────────
 let config         = { netbox_enabled: false, librenms_enabled: false };
 let switches       = [];
+let seats          = [];
+let seatBlocks     = [];
 let currentTool    = 'select';
 let selectedId     = null;
+let selectedType   = null; // 'switch', 'block'
 let pendingCoords  = null;
 let pendingPickerDeviceId = null;   // selected device in the NetBox picker tab
 let selectedDeviceIds = new Set();   // selected device IDs in multiselect mode
@@ -22,12 +25,16 @@ let contextId      = null;
 let dragState      = null;
 let zoom           = 1;
 let heatmapVisible = false;
+let seatHeatmapVisible = false;
 let isRefreshing   = false;
+let planningMode   = true;          // always in planning/editing mode
 const portStats    = {};             // { switchId: { up_ports, total_ports } }
+const seatHeatmapData = {};         // { seatNumber: { port_usage, ... } }
 const deviceSettings = JSON.parse(localStorage.getItem('deviceSettings') || '{}');
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.15;
+const GRID_SNAP = 0.5; // Grid snap interval
 
 // Cache configuration
 const CACHE_KEY = 'switchStatusCache';
@@ -82,20 +89,23 @@ function setDeviceSetting(id, key, val) {
 }
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
-const floorplanUpload  = document.getElementById('floorplan-upload');
-const uploadLabel      = document.getElementById('upload-label');
-const uploadLabelText  = document.getElementById('upload-label-text');
-const floorplanImg     = document.getElementById('floorplan-img');
-const emptyState       = document.getElementById('empty-state');
 const wrapper          = document.getElementById('floorplan-wrapper');
 const overlay          = document.getElementById('switches-overlay');
+const seatsOverlay     = document.getElementById('seats-overlay');
+const blocksOverlay    = document.getElementById('blocks-overlay');
 const switchList       = document.getElementById('switch-list');
 const switchSearch     = document.getElementById('switch-search');
 const switchCount      = document.getElementById('switch-count');
 const addCursor        = document.getElementById('add-cursor');
+const positionDisplay  = document.getElementById('position-display');
+const posX            = document.getElementById('pos-x');
+const posY            = document.getElementById('pos-y');
+const universalSearch  = document.getElementById('universal-search');
+const searchResults    = document.getElementById('search-results');
 
 const toolSelect       = document.getElementById('tool-select');
-const toolAdd          = document.getElementById('tool-add');
+const toolAddSwitch    = document.getElementById('tool-add-switch');
+const toolAddBlock     = document.getElementById('tool-add-block');
 const btnRefreshAll    = document.getElementById('btn-refresh-all');
 const syncSection      = document.getElementById('sync-section');
 const btnSync          = document.getElementById('btn-sync');
@@ -140,6 +150,7 @@ const ddHostname        = document.getElementById('dd-hostname');
 const ddLnmsStatus      = document.getElementById('dd-lnms-status');
 const ddIp              = document.getElementById('dd-ip');
 const ddPorts           = document.getElementById('dd-ports');
+const ddTemperature      = document.getElementById('dd-temperature');
 const ddCpu             = document.getElementById('dd-cpu');
 const ddMem             = document.getElementById('dd-mem');
 const barCpu            = document.getElementById('bar-cpu');
@@ -158,8 +169,49 @@ const btnZoomReset = document.getElementById('btn-zoom-reset');
 const zoomLevelEl  = document.getElementById('zoom-level');
 const btnCenter    = document.getElementById('btn-center');
 const btnHeatmap   = document.getElementById('btn-heatmap');
+const btnSeatHeatmap = document.getElementById('btn-seat-heatmap');
 const heatCanvas   = document.getElementById('heatmap-canvas');
+const seatHeatCanvas = document.getElementById('seat-heatmap-canvas');
 const heatLegend   = document.getElementById('heatmap-legend');
+const seatHeatLegend = document.getElementById('seat-heatmap-legend');
+// Removed: view toggle (always in planning mode)
+
+// Seat block detail panel
+const blockDetailPanel     = document.getElementById('block-detail-panel');
+const blockDetailName      = document.getElementById('block-detail-name');
+const blockDdName          = document.getElementById('block-dd-name');
+const blockDdPosition      = document.getElementById('block-dd-position');
+const blockDdSize          = document.getElementById('block-dd-size');
+const blockDdRotation      = document.getElementById('block-dd-rotation');
+const blockEditName        = document.getElementById('block-edit-name');
+const blockEditRotation    = document.getElementById('block-edit-rotation');
+const blockReverseNumbers  = document.getElementById('block-edit-reverse-numbers');
+const blockDetailClose     = document.getElementById('block-detail-close');
+const blockDetailSave      = document.getElementById('block-detail-save');
+const blockDetailDuplicate = document.getElementById('block-detail-duplicate');
+const blockDetailDelete    = document.getElementById('block-detail-delete');
+
+// Block seat detail panel
+const blockSeatDetailPanel     = document.getElementById('block-seat-detail-panel');
+const blockSeatDetailNumber    = document.getElementById('block-seat-detail-number');
+const blockSeatDdNumber       = document.getElementById('block-seat-dd-number');
+const blockSeatDdUsername     = document.getElementById('block-seat-dd-username');
+const blockSeatDdPosition     = document.getElementById('block-seat-dd-position');
+const blockSeatDdIp          = document.getElementById('block-seat-dd-ip');
+const blockSeatDdMac         = document.getElementById('block-seat-dd-mac');
+const blockSeatDdSwitch       = document.getElementById('block-seat-dd-switch');
+const blockSeatDdPort        = document.getElementById('block-seat-dd-port');
+const blockSeatDdVlan        = document.getElementById('block-seat-dd-vlan');
+const blockSeatResolutionStatus = document.getElementById('block-seat-resolution-status');
+const blockSeatDetailClose    = document.getElementById('block-seat-detail-close');
+const blockSeatDdPortStatus  = document.getElementById('block-seat-dd-port-status');
+const blockSeatDdTotalTraffic = document.getElementById('block-seat-dd-total-traffic');
+const blockSeatDdDownload    = document.getElementById('block-seat-dd-download');
+const blockSeatDdUpload      = document.getElementById('block-seat-dd-upload');
+const blockSeatDdPortSpeed   = document.getElementById('block-seat-dd-port-speed');
+
+// Seat mapping data from seats.json
+let seatMappings = {};
 
 // Hero bar
 const heroTotal    = document.getElementById('hero-total');
@@ -179,15 +231,34 @@ async function api(method, path, body) {
   return res.json();
 }
 
+// ── Load seat mappings ─────────────────────────────────────────────────────
+async function loadSeatMappings() {
+  try {
+    const data = await api('GET', '/api/seats/info');
+    seatMappings = data.seats || {};
+  } catch (e) {
+    console.error('Failed to load seat mappings:', e);
+    seatMappings = {};
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
+  // Always use planning mode
+  document.getElementById('canvas-area').classList.add('planning-mode');
+
   const [cfg] = await Promise.all([
     api('GET', '/api/config'),
-    loadFloorplan(),
     loadSwitches(),
+    loadSeats(),
+    loadSeatMappings(),
+    loadSeatBlocks(),
   ]);
   config = cfg;
   applyConfig();
+
+  // Initialize collapsible sections
+  initCollapsibleSections();
 
   // Load cached status if available for immediate display
   const cachedStatus = getCache();
@@ -224,7 +295,12 @@ function applyConfig() {
 
 async function loadFloorplan() {
   const data = await api('GET', '/api/floorplan');
-  if (data.url) applyFloorplan(data.url);
+  if (data.url) {
+    applyFloorplan(data.url);
+  } else {
+    // No floorplan loaded - remove has-image class to allow full canvas placement
+    wrapper.classList.remove('has-image');
+  }
 }
 
 async function loadSwitches() {
@@ -232,42 +308,202 @@ async function loadSwitches() {
   renderAll();
 }
 
-// ── Floorplan ────────────────────────────────────────────────────────────────
-function applyFloorplan(url) {
-  floorplanImg.src = url;
-  floorplanImg.style.display = 'block';
-  emptyState.style.display   = 'none';
-  uploadLabel.classList.add('has-file');
-  uploadLabelText.textContent = 'Replace Floor Plan';
+async function loadSeats() {
+  seats = await api('GET', '/api/seats');
+  renderAll();
 }
 
-floorplanUpload.addEventListener('change', async () => {
-  const file = floorplanUpload.files[0];
-  if (!file) return;
-  const form = new FormData();
-  form.append('file', file);
-  try {
-    const res = await fetch('/api/floorplan', { method: 'POST', body: form });
-    const data = await res.json();
-    if (data.url) applyFloorplan(data.url);
-    else alert('Upload failed: ' + (data.error || 'Unknown error'));
-  } catch (e) {
-    alert('Upload error: ' + e.message);
+async function loadSeatBlocks() {
+  seatBlocks = await api('GET', '/api/seat-blocks');
+  renderAll();
+}
+
+// ── Collapsible sections ─────────────────────────────────────────────────────
+function initCollapsibleSections() {
+  const sections = document.querySelectorAll('.collapsible-section');
+
+  sections.forEach(section => {
+    const sectionName = section.dataset.section;
+    const header = section.querySelector('.section-header');
+
+    // Load saved state from localStorage
+    const savedState = localStorage.getItem(`section-${sectionName}`);
+    if (savedState === 'collapsed') {
+      section.classList.add('collapsed');
+    } else if (savedState === 'expanded') {
+      section.classList.remove('collapsed');
+    }
+
+    // Add click handler
+    header.addEventListener('click', () => {
+      const isCollapsed = section.classList.toggle('collapsed');
+      // Save state to localStorage
+      localStorage.setItem(`section-${sectionName}`, isCollapsed ? 'collapsed' : 'expanded');
+    });
+  });
+}
+
+// ── Universal search ─────────────────────────────────────────────────────
+let searchDebounceTimer = null;
+
+function renderUniversalSearchResults() {
+  const query = universalSearch.value.trim().toLowerCase();
+
+  if (!query) {
+    searchResults.innerHTML = '';
+    return;
   }
-  floorplanUpload.value = '';
+
+  let html = '';
+
+  // Search switches by name
+  const switchMatches = switches
+    .filter(s => s.placed !== false && s.name.toLowerCase().includes(query))
+    .slice(0, 10); // Limit to 10 results
+
+  if (switchMatches.length > 0) {
+    html += '<div class="search-result-group">';
+    html += '<div class="search-result-group-title">Switches</div>';
+    for (const sw of switchMatches) {
+      html += `
+        <div class="search-result-item" data-type="switch" data-id="${escHtml(sw.id)}">
+          <span class="search-result-item-type">SW</span>
+          <span class="search-result-item-name">${escHtml(sw.name)}</span>
+          <span class="search-result-item-sub">${escHtml(sw.status)}</span>
+        </div>
+      `;
+    }
+    html += '</div>';
+  }
+
+  // Search seats by number and username
+  const seatMatches = [];
+
+  // Individual seats
+  for (const seat of seats) {
+    if (seat.number && seat.number.toLowerCase().includes(query)) {
+      seatMatches.push({
+        type: 'seat',
+        id: seat.id,
+        name: seat.number,
+        sub: seat.username || '',
+      });
+    }
+  }
+
+  // Seat blocks
+  for (const block of seatBlocks) {
+    const blockPrefix = block.name ? block.name.toUpperCase() + '-' : '';
+    const totalSeats = block.cols * block.rows;
+
+    for (let i = 1; i <= totalSeats; i++) {
+      const seatNumber = `${blockPrefix}${i}`;
+
+      if (seatNumber.toLowerCase().includes(query)) {
+        seatMatches.push({
+          type: 'seat-block',
+          blockId: block.id,
+          seatNumber: seatNumber,
+          name: seatNumber,
+          sub: block.name || 'block',
+        });
+      }
+
+      const seatData = seatMappings[seatNumber];
+      if (seatData && seatData.username && seatData.username.toLowerCase().includes(query)) {
+        seatMatches.push({
+          type: 'seat-block',
+          blockId: block.id,
+          seatNumber: seatNumber,
+          name: seatData.username,
+          sub: `${seatNumber} (${block.name || 'block'})`,
+        });
+      }
+    }
+  }
+
+  // Deduplicate and limit seat results
+  const uniqueSeatMatches = seatMatches
+    .filter((item, index, self) =>
+      index === self.findIndex(t =>
+        t.type === item.type &&
+        t.name === item.name &&
+        t.sub === item.sub
+      )
+    )
+    .slice(0, 10);
+
+  if (uniqueSeatMatches.length > 0) {
+    html += '<div class="search-result-group">';
+    html += '<div class="search-result-group-title">Seats</div>';
+    for (const seat of uniqueSeatMatches) {
+      html += `
+        <div class="search-result-item" data-type="${escHtml(seat.type)}" data-id="${escHtml(seat.id)}" data-block-id="${escHtml(seat.blockId || '')}" data-seat-number="${escHtml(seat.seatNumber || '')}">
+          <span class="search-result-item-type">${seat.type === 'seat' ? 'SEAT' : 'SEAT'}</span>
+          <span class="search-result-item-name">${escHtml(seat.name)}</span>
+          <span class="search-result-item-sub">${escHtml(seat.sub)}</span>
+        </div>
+      `;
+    }
+    html += '</div>';
+  }
+
+  if (!html) {
+    html = '<div class="search-no-results">No matches found</div>';
+  }
+
+  searchResults.innerHTML = html;
+
+  // Add click handlers
+  searchResults.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('click', () => handleSearchResultClick(item));
+  });
+}
+
+function handleSearchResultClick(item) {
+  const type = item.dataset.type;
+  const id = item.dataset.id;
+  const blockId = item.dataset.blockId;
+  const seatNumber = item.dataset.seatNumber;
+
+  if (type === 'switch') {
+    selectSwitch(id);
+  } else if (type === 'seat') {
+    selectSeat(id);
+  } else if (type === 'seat-block') {
+    // Find the seat block and click on the specific seat
+    const block = seatBlocks.find(b => b.id === blockId);
+    if (block) {
+      selectBlock(blockId);
+      // Trigger the seat detail panel
+      showBlockSeatDetail(seatNumber);
+    }
+  }
+
+  // Clear search
+  universalSearch.value = '';
+  searchResults.innerHTML = '';
+}
+
+universalSearch.addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(renderUniversalSearchResults, 300);
 });
 
 // ── Tool selection ───────────────────────────────────────────────────────────
 function setTool(tool) {
   currentTool = tool;
   toolSelect.classList.toggle('active', tool === 'select');
-  toolAdd.classList.toggle('active',    tool === 'add');
-  wrapper.classList.toggle('tool-add',  tool === 'add');
-  if (tool !== 'select') deselectSwitch();
+  toolAddSwitch.classList.toggle('active', tool === 'add-switch');
+  toolAddSeat.classList.toggle('active',   tool === 'add-seat');
+  toolAddBlock.classList.toggle('active',  tool === 'add-block');
+  wrapper.dataset.tool = tool;
+  deselectAll();
 }
 
 toolSelect.addEventListener('click', () => setTool('select'));
-toolAdd.addEventListener('click',    () => setTool('add'));
+toolAddSwitch.addEventListener('click', () => setTool('add-switch'));
+toolAddBlock.addEventListener('click', () => setTool('add-block'));
 
 // ── NetBox sync ──────────────────────────────────────────────────────────────
 btnSync.addEventListener('click', async () => {
@@ -287,39 +523,77 @@ btnSync.addEventListener('click', async () => {
   }
 });
 
-// ── Floor plan click (place switch) ─────────────────────────────────────────
+// ── Floor plan click (place items) ────────────────────────────────────────
 wrapper.addEventListener('click', (e) => {
-  if (currentTool !== 'add') return;
-  if (e.target.closest('.switch-marker')) return;
-
-  if (!floorplanImg.naturalWidth) {
-    alert('Upload a floor plan first.');
+  if (currentTool === 'select') {
+    // Handle clicking on individual seats within blocks
+    const seatEl = e.target.closest('.seat-block-seat');
+    if (seatEl && seatEl.dataset.seatNumber) {
+      e.stopPropagation();
+      showBlockSeatDetail(seatEl.dataset.seatNumber);
+      return;
+    }
     return;
   }
+  if (e.target.closest('.switch-marker') || e.target.closest('.seat-marker') || e.target.closest('.seat-block') ||
+      e.target.closest('.seat-block-seat') || e.target.closest('.detail-panel')) return;
 
-  const imgRect = floorplanImg.getBoundingClientRect();
-  if (!imgRect.width || !imgRect.height) return;
+  const wrapperRect = wrapper.getBoundingClientRect();
+  if (!wrapperRect.width || !wrapperRect.height) return;
 
-  const x = parseFloat(((e.clientX - imgRect.left) / imgRect.width  * 100).toFixed(2));
-  const y = parseFloat(((e.clientY - imgRect.top)  / imgRect.height * 100).toFixed(2));
+  // Use wrapper as coordinate system (0-100% range)
+  const x = parseFloat(((e.clientX - wrapperRect.left) / wrapperRect.width * 100).toFixed(2));
+  const y = parseFloat(((e.clientY - wrapperRect.top) / wrapperRect.height * 100).toFixed(2));
   if (!isFinite(x) || !isFinite(y)) return;
 
-  pendingCoords = { x, y };
+  // Snap to grid
+  const snappedX = snapToGrid(x);
+  const snappedY = snapToGrid(y);
 
-  openAddModal();
+  pendingCoords = { x: snappedX, y: snappedY };
+
+  if (currentTool === 'add-switch') {
+    openAddModal();
+  } else if (currentTool === 'add-block') {
+    openBlockModal();
+  }
 });
+
+// ── Planning mode toggle ─────────────────────────────────────────────────────
+// Removed: always in planning mode
+
+// ── Grid snapping ─────────────────────────────────────────────────────────────
+function snapToGrid(value) {
+  return Math.round(value / GRID_SNAP) * GRID_SNAP;
+}
+
+function updatePositionDisplay(x, y) {
+  const snappedX = snapToGrid(x).toFixed(2);
+  const snappedY = snapToGrid(y).toFixed(2);
+  posX.textContent = snappedX;
+  posY.textContent = snappedY;
+}
 
 // Cursor follow in add mode
 wrapper.addEventListener('mousemove', (e) => {
-  if (currentTool !== 'add') return;
   const rect = wrapper.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  // Update cursor position
   addCursor.style.left = (e.clientX - rect.left) + 'px';
   addCursor.style.top  = (e.clientY - rect.top)  + 'px';
+
+  // Update position display
+  const x = ((e.clientX - rect.left) / rect.width * 100);
+  const y = ((e.clientY - rect.top) / rect.height * 100);
+  if (isFinite(x) && isFinite(y)) {
+    updatePositionDisplay(x, y);
+  }
 });
 
 // Click on canvas background → deselect
 wrapper.addEventListener('mousedown', (e) => {
-  if (e.target === wrapper || e.target === floorplanImg) deselectSwitch();
+  if (e.target === wrapper || e.target === floorplanImg) deselectAll();
 });
 
 // ── Add Modal ────────────────────────────────────────────────────────────────
@@ -538,18 +812,89 @@ async function placeNetboxDevice(id, x, y) {
   }
 }
 
+// ── Seat Block Modal ───────────────────────────────────────────────────────────
+const blockBackdrop    = document.getElementById('block-backdrop');
+const blockName        = document.getElementById('block-name');
+const blockCols        = document.getElementById('block-cols');
+const blockRows        = document.getElementById('block-rows');
+const blockSpacingX    = document.getElementById('block-spacing-x');
+const blockSpacingY    = document.getElementById('block-spacing-y');
+const blockRotation    = document.getElementById('block-rotation');
+const blockReverseNumbersModal = document.getElementById('block-reverse-numbers-modal');
+const blockCancel      = document.getElementById('block-cancel');
+const blockConfirm     = document.getElementById('block-confirm');
+
+function openBlockModal() {
+  blockName.value = '';
+  blockCols.value = '8';
+  blockRows.value = '1';
+  blockSpacingX.value = '0.5';
+  blockSpacingY.value = '1';
+  blockRotation.value = '0';
+  blockReverseNumbersModal.checked = false;
+  blockBackdrop.classList.remove('hidden');
+  blockName.focus();
+}
+
+function closeBlockModal() {
+  blockBackdrop.classList.add('hidden');
+  pendingCoords = null;
+}
+
+blockCancel.addEventListener('click', closeBlockModal);
+blockBackdrop.addEventListener('click', (e) => { if (e.target === blockBackdrop) closeBlockModal(); });
+blockConfirm.addEventListener('click', async () => {
+  if (!pendingCoords) return;
+
+  const block = await api('POST', '/api/seat-blocks', {
+    name: blockName.value.trim(),
+    cols: parseInt(blockCols.value) || 1,
+    rows: parseInt(blockRows.value) || 1,
+    seat_width: 1.5,
+    seat_height: 1.5,
+    spacing_x: parseFloat(blockSpacingX.value) || 0.5,
+    spacing_y: parseFloat(blockSpacingY.value) || 1,
+    numbering_pattern: 'blockname_number',
+    reverse_numbers: blockReverseNumbersModal.checked,
+    rotation: parseInt(blockRotation.value) || 0,
+    ...pendingCoords,
+  });
+  seatBlocks.push(block);
+  renderAll();
+  closeBlockModal();
+  setTool('select');
+  selectBlock(block.id);
+});
+
 // ── Rendering ────────────────────────────────────────────────────────────────
 function renderAll() {
   renderOverlay();
+  renderSeats();
+  renderBlocks();
   renderSidebar();
   updateHeroStats();
   if (heatmapVisible) renderHeatmap();
+  // Seat heatmap is rendered inside renderBlocks() with delay for DOM settling
 }
 
 function renderOverlay() {
   overlay.innerHTML = '';
   for (const sw of switches) {
     if (sw.placed !== false) overlay.appendChild(createMarker(sw));
+  }
+}
+
+function renderSeats() {
+  seatsOverlay.innerHTML = '';
+  for (const seat of seats) {
+    seatsOverlay.appendChild(createSeatMarker(seat));
+  }
+}
+
+function renderBlocks() {
+  blocksOverlay.innerHTML = '';
+  for (const block of seatBlocks) {
+    blocksOverlay.appendChild(createBlockMarker(block));
   }
 }
 
@@ -583,6 +928,9 @@ function renderSidebar() {
       if (stats && stats.total_traffic_bps != null) {
         const rate = fmtBps(stats.total_traffic_bps);
         trafficText = sw.status + ' · ' + rate;
+      }
+      if (stats && stats.temperature != null) {
+        trafficText += ' · ' + stats.temperature + '°C';
       }
 
       item.innerHTML = `
@@ -625,6 +973,125 @@ function createMarker(sw) {
       if (label) label.style.opacity = '0';
     }
   });
+
+  return el;
+}
+
+function createSeatMarker(seat) {
+  const el = document.createElement('div');
+  const isSelected = selectedId === seat.id && selectedType === 'seat';
+  el.className = 'seat-marker' + (isSelected ? ' selected' : '');
+  el.dataset.id = seat.id;
+  el.dataset.type = 'seat';
+  // Add data-seat-number attribute for heatmap rendering
+  if (seat.number) {
+    el.dataset.seatNumber = seat.number;
+  }
+  el.style.left = seat.x + '%';
+  el.style.top = seat.y + '%';
+  el.style.transform = `translate(-50%, -50%) rotate(${seat.rotation || 0}deg)`;
+
+  const typeChar = {
+    chair: '☐',
+    desk: '▭',
+    booth: '▢',
+    vip: '★'
+  }[seat.type] || '☐';
+
+  el.innerHTML = `
+    <div class="seat-icon seat-status-${seat.status}">
+      ${typeChar}
+    </div>
+    ${seat.number ? `<div class="seat-number">${escHtml(seat.number)}</div>` : ''}
+  `;
+  el.addEventListener('mousedown', onSeatMouseDown);
+  el.addEventListener('contextmenu', onSeatContextMenu);
+
+  return el;
+}
+
+function createBlockMarker(block) {
+  const el = document.createElement('div');
+  const isSelected = selectedId === block.id && selectedType === 'block';
+  el.className = 'seat-block' + (isSelected ? ' selected' : '');
+  el.dataset.id = block.id;
+  el.dataset.type = 'block';
+  el.style.left = block.x + '%';
+  el.style.top = block.y + '%';
+  el.style.transform = `translate(-50%, -50%) rotate(${block.rotation || 0}deg)`;
+
+  // Calculate total height
+  const totalHeight = block.rows * block.seat_height + (block.rows - 1) * block.spacing_y;
+
+  let html = '';
+  if (block.name) {
+    html += `<div class="seat-block-label">${escHtml(block.name)}</div>`;
+  }
+
+  // Generate seat numbers using "Block Name-Number" scheme with rotation support
+  let seatNum = 1;
+  const totalSeats = block.cols * block.rows;
+  // Use block name as prefix (format: "A-1", "B-2", etc.)
+  const blockPrefix = block.name ? block.name.toUpperCase() + '-' : '';
+
+  // Calculate rotation offset (90°, 180°, 270° rotations change numbering direction)
+  const rotation = (block.rotation || 0) % 360;
+  let seatNumbers = [];
+  for (let i = 0; i < totalSeats; i++) {
+    seatNumbers.push(seatNum++);
+  }
+
+  // Apply rotation offset - different rotation directions change number order
+  let rotatedNumbers = [];
+  if (rotation >= 0 && rotation < 90) {
+    // 0°: left to right, top to bottom (normal order)
+    rotatedNumbers = [...seatNumbers];
+  } else if (rotation >= 90 && rotation < 180) {
+    // 90°: top to bottom, right to left (reverse columns)
+    for (let row = 0; row < block.rows; row++) {
+      const rowStart = row * block.cols;
+      const rowEnd = rowStart + block.cols;
+      const rowNumbers = seatNumbers.slice(rowStart, rowEnd).reverse();
+      rotatedNumbers.push(...rowNumbers);
+    }
+  } else if (rotation >= 180 && rotation < 270) {
+    // 180°: right to left, bottom to top (reverse all)
+    rotatedNumbers = [...seatNumbers].reverse();
+  } else {
+    // 270°: bottom to top, left to right (reverse rows)
+    for (let row = block.rows - 1; row >= 0; row--) {
+      const rowStart = row * block.cols;
+      const rowEnd = rowStart + block.cols;
+      const rowNumbers = seatNumbers.slice(rowStart, rowEnd);
+      rotatedNumbers.push(...rowNumbers);
+    }
+  }
+
+  // Handle reverse numbers after rotation
+  if (block.reverse_numbers) {
+    rotatedNumbers.reverse();
+  }
+
+  let numIndex = 0;
+  for (let row = 0; row < block.rows; row++) {
+    html += '<div class="seat-block-row">';
+    for (let col = 0; col < block.cols; col++) {
+      const number = `${blockPrefix}${rotatedNumbers[numIndex]}`;
+      const displayNum = rotatedNumbers[numIndex];
+      const counterRotation = rotation ? `transform: rotate(${-rotation}deg);` : '';
+
+      html += `<div class="seat-block-seat status-available" style="${counterRotation}" data-seat-number="${escHtml(number)}" title="${escHtml(number)}">${escHtml(displayNum)}</div>`;
+      numIndex++;
+    }
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+  el.style.height = totalHeight + '%';
+  el.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+  el.addEventListener('mousedown', onBlockMouseDown);
+  el.addEventListener('contextmenu', onBlockContextMenu);
 
   return el;
 }
@@ -702,6 +1169,7 @@ async function fetchSwitchStatus(id) {
         total_ports:       data.total_ports,
         traffic_util:      data.traffic_util      ?? null,
         total_traffic_bps: data.total_traffic_bps ?? null,
+        temperature:       data.temperature       ?? null,
       };
     }
     // Update detail panel if this switch is still selected
@@ -721,6 +1189,202 @@ async function fetchSwitchStatus(id) {
 }
 
 function deselectSwitch() { selectSwitch(null); }
+
+function selectSeat(id) {
+  deselectAll();
+  selectedId = id;
+  selectedType = 'seat';
+
+  const seat = seats.find(s => s.id === id);
+  if (!seat) return;
+
+  const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
+  if (marker) marker.classList.add('selected');
+
+  // For individual seats, we could show a detail panel similar to switches
+  // For now, we'll just highlight the marker
+}
+function deselectAll() {
+  selectedId = null;
+  selectedType = null;
+  currentBlockSeatNumber = null;
+  currentBlockSeatResolution = null;
+  // Update switch markers
+  for (const m of overlay.querySelectorAll('.switch-marker')) {
+    m.classList.remove('selected');
+    const label = m.querySelector('.switch-label');
+    if (label && !getDeviceSetting(m.dataset.id, 'hideLabel')) {
+      label.style.opacity = '0';
+    }
+  }
+  for (const item of switchList.querySelectorAll('.switch-item'))
+    item.classList.remove('active');
+
+  // Hide detail panels
+  detailPanel.classList.add('hidden');
+  blockDetailPanel.classList.add('hidden');
+  blockSeatDetailPanel.classList.add('hidden');
+
+  // Update block markers
+  for (const m of blocksOverlay.querySelectorAll('.seat-block'))
+    m.classList.remove('selected');
+
+  detailPanel.classList.add('hidden');
+  blockDetailPanel.classList.add('hidden');
+}
+
+// ── Block seat detail panel ─────────────────────────────────────────────────────
+let currentBlockSeatNumber = null;
+let currentBlockSeatResolution = null;
+
+async function showBlockSeatDetail(seatNumber) {
+  deselectAll();
+  currentBlockSeatNumber = seatNumber;
+  currentBlockSeatResolution = null;
+
+  const seatData = seatMappings[seatNumber];
+  if (!seatData) {
+    blockSeatDetailNumber.textContent = seatNumber;
+    blockSeatDdUsername.textContent = '—';
+    blockSeatDdPosition.textContent = '—';
+    blockSeatDdIp.textContent = '—';
+    blockSeatDdMac.textContent = '—';
+    blockSeatDdSwitch.textContent = '—';
+    blockSeatDdPort.textContent = '—';
+    blockSeatDdVlan.textContent = '—';
+    blockSeatResolutionStatus.textContent = 'No seat mapping found in seats.json';
+    blockSeatResolutionStatus.style.color = 'var(--warning)';
+    blockSeatDetailPanel.classList.remove('hidden');
+    return;
+  }
+
+  blockSeatDetailNumber.textContent = seatNumber;
+  blockSeatDdUsername.textContent = seatData.username || '—';
+  blockSeatDdIp.textContent = seatData.ip_address || '—';
+  blockSeatDdPosition.textContent = seatNumber;
+  blockSeatDdMac.textContent = '—';
+  blockSeatDdSwitch.textContent = '—';
+  blockSeatDdPort.textContent = '—';
+  blockSeatDdVlan.textContent = '—';
+  blockSeatDdPortStatus.textContent = '—';
+  blockSeatDdTotalTraffic.textContent = '—';
+  blockSeatDdDownload.textContent = '—';
+  blockSeatDdUpload.textContent = '—';
+  blockSeatDdPortSpeed.textContent = '—';
+  blockSeatResolutionStatus.textContent = 'Resolving...';
+  blockSeatResolutionStatus.style.color = 'var(--text-tertiary)';
+
+  blockSeatDetailPanel.classList.remove('hidden');
+
+  // Resolve IP to get MAC, switch, and port info
+  if (seatData.ip_address) {
+    try {
+      const result = await api('GET', `/api/resolve/${seatData.ip_address}`);
+      currentBlockSeatResolution = result;
+      blockSeatDdMac.textContent = result.mac || '—';
+      blockSeatDdSwitch.textContent = result.device_name || result.hostname || '—';
+      blockSeatDdPort.textContent = result.port || '—';
+      blockSeatDdVlan.textContent = result.vlan || '—';
+
+      // Populate port usage statistics
+      if (result.stats) {
+        const stats = result.stats;
+        blockSeatDdPortStatus.textContent = stats.ifOperStatus || '—';
+        blockSeatDdPortStatus.style.color = stats.ifOperStatus === 'up' ? 'var(--success)' : 'var(--danger)';
+
+        const inRate = (parseFloat(stats.ifInOctets_rate) || 0) * 8;
+        const outRate = (parseFloat(stats.ifOutOctets_rate) || 0) * 8;
+        const totalBps = inRate + outRate;
+        const speedBps = parseFloat(stats.ifSpeed) || 0;
+
+        blockSeatDdTotalTraffic.textContent = fmtBps(totalBps);
+        blockSeatDdDownload.textContent = fmtBps(inRate);
+        blockSeatDdUpload.textContent = fmtBps(outRate);
+        blockSeatDdPortSpeed.textContent = fmtBps(speedBps);
+      }
+
+      blockSeatResolutionStatus.textContent = `Resolved via ${result.arp_source || 'LibreNMS ARP table'}`;
+      blockSeatResolutionStatus.style.color = 'var(--success)';
+
+      // Update seat heatmap with this resolved data
+      if (seatHeatmapVisible) {
+        seatHeatmapData.seats = seatHeatmapData.seats || {};
+        seatHeatmapData.seats[seatNumber] = {
+          'username': seatData.username,
+          'ip_address': seatData.ip_address,
+          'resolved': true,
+          'port_usage': result.stats ? {
+            'total_bps': ((parseFloat(result.stats.ifInOctets_rate) || 0) + (parseFloat(result.stats.ifOutOctets_rate) || 0)) * 8,
+            'in_rate_bps': (parseFloat(result.stats.ifInOctets_rate) || 0) * 8,
+            'out_rate_bps': (parseFloat(result.stats.ifOutOctets_rate) || 0) * 8,
+            'status': result.stats.ifOperStatus,
+            'speed_bps': parseFloat(result.stats.ifSpeed) || 0,
+          } : null,
+          'device_name': result.device_name,
+          'port': result.port,
+          'vlan': result.vlan,
+          'mac': result.mac,
+        };
+        renderSeatHeatmap();
+      }
+    } catch (e) {
+      blockSeatDdMac.textContent = '—';
+      blockSeatDdSwitch.textContent = '—';
+      blockSeatDdPort.textContent = '—';
+      blockSeatDdVlan.textContent = '—';
+      blockSeatDdPortStatus.textContent = '—';
+      blockSeatDdTotalTraffic.textContent = '—';
+      blockSeatDdDownload.textContent = '—';
+      blockSeatDdUpload.textContent = '—';
+      blockSeatDdPortSpeed.textContent = '—';
+      blockSeatResolutionStatus.textContent = `Failed to resolve: ${e.message}`;
+      blockSeatResolutionStatus.style.color = 'var(--danger)';
+
+      // Update seat heatmap with unresolved state
+      if (seatHeatmapVisible) {
+        seatHeatmapData.seats = seatHeatmapData.seats || {};
+        seatHeatmapData.seats[seatNumber] = {
+          'username': seatData.username,
+          'ip_address': seatData.ip_address,
+          'resolved': false,
+          'port_usage': null,
+          'error': e.message || 'Could not resolve',
+        };
+        renderSeatHeatmap();
+      }
+    }
+  } else {
+    blockSeatResolutionStatus.textContent = 'No IP address configured';
+    blockSeatResolutionStatus.style.color = 'var(--warning)';
+  }
+}
+
+function selectBlock(id) {
+  deselectAll();
+  selectedId = id;
+  selectedType = 'block';
+
+  for (const m of blocksOverlay.querySelectorAll('.seat-block')) {
+    m.classList.toggle('selected', m.dataset.id === id);
+  }
+
+  if (!id) { blockDetailPanel.classList.add('hidden'); return; }
+
+  const block = seatBlocks.find(b => b.id === id);
+  if (!block) { blockDetailPanel.classList.add('hidden'); return; }
+
+  blockDetailName.textContent = block.name || 'Unnamed Block';
+  blockDdName.textContent = block.name || '—';
+  blockDdPosition.textContent = `${block.x.toFixed(1)}% / ${block.y.toFixed(1)}%`;
+  blockDdSize.textContent = `${block.cols}×${block.rows}`;
+  blockDdRotation.textContent = `${block.rotation || 0}°`;
+
+  blockEditName.value = block.name || '';
+  blockEditRotation.value = block.rotation || 0;
+  blockReverseNumbers.checked = block.reverse_numbers || false;
+
+  blockDetailPanel.classList.remove('hidden');
+}
 
 function setBar(barEl, valueEl, pct) {
   const p = pct != null ? Math.min(100, Math.max(0, pct)) : null;
@@ -757,6 +1421,8 @@ function populateLnmsFields(data) {
     }
   }
   ddPorts.textContent = portsText;
+
+  ddTemperature.textContent = data.temperature != null ? `${data.temperature}°C` : '—';
 
   setBar(barCpu, ddCpu, data.cpu_load    != null ? data.cpu_load    : null);
   setBar(barMem, ddMem, data.mem_percent != null ? data.mem_percent : null);
@@ -798,6 +1464,7 @@ detailBtnRefresh.addEventListener('click', async () => {
         total_ports:       data.total_ports,
         traffic_util:      data.traffic_util      ?? null,
         total_traffic_bps: data.total_traffic_bps ?? null,
+        temperature:       data.temperature       ?? null,
       };
     }
     detailStatusBadge.textContent = data.status;
@@ -823,11 +1490,12 @@ function onMarkerMouseDown(e) {
 
   dragState = {
     id,
+    type: 'switch',
     startX: e.clientX,
     startY: e.clientY,
     origX:  sw.x,
     origY:  sw.y,
-    imgRect: floorplanImg.getBoundingClientRect(),
+    wrapperRect: wrapper.getBoundingClientRect(),
     moved: false,
   };
   marker.classList.add('dragging');
@@ -837,20 +1505,37 @@ function onMarkerMouseDown(e) {
 
 function onDocMouseMove(e) {
   if (!dragState) return;
-  const { id, startX, startY, origX, origY, imgRect } = dragState;
+  const { id, type, startX, startY, origX, origY, wrapperRect } = dragState;
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
   if (!dragState.moved && Math.hypot(dx, dy) < 3) return;
   dragState.moved = true;
 
-  const newX = Math.min(100, Math.max(0, origX + (dx / imgRect.width  * 100)));
-  const newY = Math.min(100, Math.max(0, origY + (dy / imgRect.height * 100)));
+  // Always use wrapperRect for coordinate calculation
+  const rect = wrapperRect || wrapper.getBoundingClientRect();
+  const newX = Math.min(100, Math.max(0, snapToGrid(origX + (dx / rect.width * 100))));
+  const newY = Math.min(100, Math.max(0, snapToGrid(origY + (dy / rect.height * 100))));
 
-  const marker = overlay.querySelector(`[data-id="${id}"]`);
-  if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
+  if (type === 'seat') {
+    const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
+    if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
+    const seat = seats.find(s => s.id === id);
+    if (seat) { seat.x = newX; seat.y = newY; }
+  } else if (type === 'block') {
+    const marker = blocksOverlay.querySelector(`[data-id="${id}"]`);
+    if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
+    const block = seatBlocks.find(b => b.id === id);
+    if (block) { block.x = newX; block.y = newY; }
+  } else {
+    // Switch handling
+    const marker = overlay.querySelector(`[data-id="${id}"]`);
+    if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
+    const sw = switches.find(s => s.id === id);
+    if (sw) { sw.x = newX; sw.y = newY; }
+  }
 
-  const sw = switches.find(s => s.id === id);
-  if (sw) { sw.x = newX; sw.y = newY; }
+  // Update position display during drag
+  updatePositionDisplay(newX, newY);
 
   if (heatmapVisible) renderHeatmap();
 }
@@ -858,18 +1543,104 @@ function onDocMouseMove(e) {
 async function onDocMouseUp() {
   if (!dragState) return;
   document.removeEventListener('mousemove', onDocMouseMove);
-  document.removeEventListener('mouseup',   onDocMouseUp);
+  document.removeEventListener('mouseup', onDocMouseUp);
 
-  const { id, moved } = dragState;
-  const marker = overlay.querySelector(`[data-id="${id}"]`);
-  if (marker) marker.classList.remove('dragging');
+  const { id, type, moved } = dragState;
 
-  if (moved) {
-    const sw = switches.find(s => s.id === id);
-    if (sw) await api('PUT', `/api/switches/${id}`, { x: sw.x, y: sw.y }).catch(console.error);
+  if (type === 'seat') {
+    const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
+    if (marker) marker.classList.remove('dragging');
+    if (moved) {
+      const seat = seats.find(s => s.id === id);
+      if (seat) await api('PUT', `/api/seats/${id}`, { x: seat.x, y: seat.y }).catch(console.error);
+    }
+  } else if (type === 'block') {
+    const marker = blocksOverlay.querySelector(`[data-id="${id}"]`);
+    if (marker) marker.classList.remove('dragging');
+    if (moved) {
+      const block = seatBlocks.find(b => b.id === id);
+      if (block) await api('PUT', `/api/seat-blocks/${id}`, { x: block.x, y: block.y }).catch(console.error);
+    }
+  } else {
+    // Switch handling (original behavior)
+    const marker = overlay.querySelector(`[data-id="${id}"]`);
+    if (marker) marker.classList.remove('dragging');
+    if (moved) {
+      const sw = switches.find(s => s.id === id);
+      if (sw) await api('PUT', `/api/switches/${id}`, { x: sw.x, y: sw.y }).catch(console.error);
+    }
   }
   dragState = null;
 }
+
+// ── Seat Drag Handlers ───────────────────────────────────────────────────────
+function onSeatMouseDown(e) {
+  if (e.button !== 0 || currentTool !== 'select') return;
+  e.stopPropagation();
+
+  const marker = e.currentTarget;
+  const id = marker.dataset.id;
+  const seat = seats.find(s => s.id === id);
+  if (!seat) return;
+
+  selectSeat(id);
+
+  const wrapperRect = wrapper.getBoundingClientRect();
+  dragState = {
+    id,
+    type: 'seat',
+    startX: e.clientX,
+    startY: e.clientY,
+    origX: seat.x,
+    origY: seat.y,
+    wrapperRect: wrapperRect,
+    moved: false,
+  };
+  marker.classList.add('dragging');
+  document.addEventListener('mousemove', onDocMouseMove);
+  document.addEventListener('mouseup',   onDocMouseUp);
+}
+
+function onSeatContextMenu(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const id = e.currentTarget.dataset.id;
+  selectSeat(id);
+}
+
+function onBlockMouseDown(e) {
+  if (e.button !== 0 || currentTool !== 'select') return;
+  e.stopPropagation();
+
+  const marker = e.currentTarget;
+  const id = marker.dataset.id;
+  const block = seatBlocks.find(b => b.id === id);
+  if (!block) return;
+
+  selectBlock(id);
+
+  dragState = {
+    id,
+    type: 'block',
+    startX: e.clientX,
+    startY: e.clientY,
+    origX: block.x,
+    origY: block.y,
+    wrapperRect: wrapper.getBoundingClientRect(),
+    moved: false,
+  };
+  marker.classList.add('dragging');
+  document.addEventListener('mousemove', onDocMouseMove);
+  document.addEventListener('mouseup', onDocMouseUp);
+}
+
+function onBlockContextMenu(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const id = e.currentTarget.dataset.id;
+  selectBlock(id);
+}
+
 
 // ── Context menu ─────────────────────────────────────────────────────────────
 function onMarkerContextMenu(e) {
@@ -925,6 +1696,65 @@ renameConfirm.addEventListener('click', async () => {
   renameBackdrop.classList.add('hidden');
 });
 
+// ── Seat block detail panel handlers ───────────────────────────────────────
+blockDetailClose.addEventListener('click', deselectAll);
+blockSeatDetailClose.addEventListener('click', deselectAll);
+
+blockDetailSave.addEventListener('click', async () => {
+  if (!selectedId || selectedType !== 'block') return;
+  const updated = await api('PUT', `/api/seat-blocks/${selectedId}`, {
+    name: blockEditName.value.trim(),
+    rotation: parseInt(blockEditRotation.value) || 0,
+    reverse_numbers: blockReverseNumbers.checked,
+  });
+  const block = seatBlocks.find(b => b.id === selectedId);
+  if (block) {
+    block.name = updated.name;
+    block.rotation = updated.rotation;
+    block.reverse_numbers = updated.reverse_numbers;
+  }
+  selectBlock(selectedId);
+  renderAll();
+});
+
+blockDetailDuplicate.addEventListener('click', async () => {
+  if (!selectedId || selectedType !== 'block') return;
+  const originalBlock = seatBlocks.find(b => b.id === selectedId);
+  if (!originalBlock) return;
+
+  // Calculate new position (offset by 10% to the right)
+  const newX = Math.min(90, originalBlock.x + 10);
+  const newY = Math.min(90, originalBlock.y + 10);
+
+  // Create duplicate with modified name
+  const duplicate = await api('POST', '/api/seat-blocks', {
+    name: `${originalBlock.name || 'Block'} (Copy)`,
+    cols: originalBlock.cols,
+    rows: originalBlock.rows,
+    seat_width: originalBlock.seat_width,
+    seat_height: originalBlock.seat_height,
+    spacing_x: originalBlock.spacing_x,
+    spacing_y: originalBlock.spacing_y,
+    numbering_pattern: 'blockname_number',
+    rotation: originalBlock.rotation,
+    x: newX,
+    y: newY,
+  });
+  seatBlocks.push(duplicate);
+  renderAll();
+  selectBlock(duplicate.id);
+});
+
+blockDetailDelete.addEventListener('click', async () => {
+  if (!selectedId || selectedType !== 'block') return;
+  if (confirm('Delete this seat block?')) {
+    await api('DELETE', `/api/seat-blocks/${selectedId}`);
+    seatBlocks = seatBlocks.filter(b => b.id !== selectedId);
+    deselectAll();
+    renderAll();
+  }
+});
+
 // ── Delete ────────────────────────────────────────────────────────────────────
 async function doDelete(id) {
   await api('DELETE', `/api/switches/${id}`);
@@ -943,9 +1773,29 @@ async function doDelete(id) {
 }
 
 document.addEventListener('keydown', async (e) => {
-  if (e.target.tagName === 'INPUT') return;
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) await doDelete(selectedId);
-  if (e.key === 'Escape') { deselectSwitch(); setTool('select'); }
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+    if (selectedType === 'seat') {
+      // Handle seat deletion
+      if (confirm('Delete this seat?')) {
+        await api('DELETE', `/api/seats/${selectedId}`);
+        seats = seats.filter(s => s.id !== selectedId);
+        deselectAll();
+        renderAll();
+      }
+    } else if (selectedType === 'block') {
+      // Handle seat block deletion
+      if (confirm('Delete this seat block?')) {
+        await api('DELETE', `/api/seat-blocks/${selectedId}`);
+        seatBlocks = seatBlocks.filter(b => b.id !== selectedId);
+        deselectAll();
+        renderAll();
+      }
+    } else {
+      await doDelete(selectedId);
+    }
+  }
+  if (e.key === 'Escape') { deselectAll(); setTool('select'); }
 });
 
 // ── Switch search ─────────────────────────────────────────────────────────────
@@ -967,6 +1817,7 @@ async function doRefreshAll() {
             total_ports:       data.total_ports,
             traffic_util:      data.traffic_util      ?? null,
             total_traffic_bps: data.total_traffic_bps ?? null,
+            temperature:       data.temperature       ?? null,
           };
         }
       }
@@ -975,6 +1826,12 @@ async function doRefreshAll() {
 
     // Save to cache after successful refresh
     saveStatusCache();
+
+    // Also refresh seat heatmap data if visible
+    if (seatHeatmapVisible) {
+      await fetchSeatHeatmapData();
+      renderSeatHeatmap();
+    }
   } finally {
     isRefreshing = false;
   }
@@ -1022,7 +1879,6 @@ btnZoomReset.addEventListener('click', () => { zoom = 1; applyZoom(); });
 
 // Mouse wheel zoom (Ctrl optional – works either way)
 document.getElementById('canvas-area').addEventListener('wheel', (e) => {
-  if (!floorplanImg.naturalWidth) return;
   e.preventDefault();
   changeZoom(e.deltaY < 0 ? +ZOOM_STEP : -ZOOM_STEP);
 }, { passive: false });
@@ -1057,13 +1913,159 @@ btnHeatmap.addEventListener('click', () => {
   if (heatmapVisible) renderHeatmap();
 });
 
-floorplanImg.addEventListener('load', () => { if (heatmapVisible) renderHeatmap(); });
+// ── Seat Heatmap ───────────────────────────────────────────────────────
+btnSeatHeatmap.addEventListener('click', async () => {
+  seatHeatmapVisible = !seatHeatmapVisible;
+  btnSeatHeatmap.classList.toggle('heatmap-on', seatHeatmapVisible);
+  seatHeatCanvas.style.display = seatHeatmapVisible ? 'block' : 'none';
+  seatHeatLegend.classList.toggle('hidden', !seatHeatmapVisible);
+  if (seatHeatmapVisible) {
+    await fetchSeatHeatmapData();
+    renderSeatHeatmap();
+  } else {
+    // Clear seat heatmap canvas
+    const ctx = seatHeatCanvas.getContext('2d');
+    ctx.clearRect(0, 0, seatHeatCanvas.width, seatHeatCanvas.height);
+  }
+});
+
+async function fetchSeatHeatmapData() {
+  try {
+    const data = await api('GET', '/api/seats/heatmap');
+    console.log('Seat heatmap API response status:', data.status ? data.status : 'No status field');
+    console.log('Seat heatmap data keys:', Object.keys(data));
+    console.log('Seats count:', data.seats ? Object.keys(data.seats).length : 0);
+    seatHeatmapData.seats = data.seats || {};
+  } catch (e) {
+    console.error('Failed to fetch seat heatmap data:', e);
+    console.error('Error details:', e.message);
+    seatHeatmapData.seats = {};
+  }
+}
+
+function renderSeatHeatmap() {
+  console.log('renderSeatHeatmap called');
+  console.log('seatHeatmapData.seats:', seatHeatmapData.seats);
+
+  if (!seatHeatmapData.seats) {
+    console.log('No seat heatmap data, returning');
+    return;
+  }
+
+  // Check if canvas exists and has dimensions
+  if (!seatHeatCanvas) {
+    console.error('Seat heatmap canvas not found');
+    return;
+  }
+
+  // Set canvas size to match wrapper
+  const cw = seatHeatCanvas.offsetWidth || wrapper.offsetWidth;
+  const ch = seatHeatCanvas.offsetHeight || wrapper.offsetHeight;
+
+  console.log('Canvas dimensions:', { cw, ch });
+
+  if (cw === 0 || ch === 0) {
+    console.log('Canvas has zero dimensions, returning');
+    return;
+  }
+
+  seatHeatCanvas.width = cw;
+  seatHeatCanvas.height = ch;
+
+  const ctx = seatHeatCanvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Count how many seat elements actually exist in the DOM
+  const seatElements = document.querySelectorAll('[data-seat-number]');
+  console.log(`Found ${seatElements.length} seat elements for heatmap rendering`);
+  console.log('Seat elements:', Array.from(seatElements).map(el => ({
+    number: el.dataset.seatNumber,
+    rect: el.getBoundingClientRect()
+  })));
+
+  if (seatElements.length === 0) {
+    console.log('No seat elements found, skipping heatmap render');
+    return;
+  }
+
+  // Convert from visual (screen) pixels → canvas buffer pixels
+  const canvasRect = seatHeatCanvas.getBoundingClientRect();
+  const scale = canvasRect.width > 0 ? cw / canvasRect.width : 1;
+
+  console.log('Canvas rect:', canvasRect);
+  console.log('Scale factor:', scale);
+
+  // Get canvas rect for proper coordinate mapping
+  const wrapperRect = wrapper.getBoundingClientRect();
+  if (!wrapperRect) return;
+
+  console.log('Wrapper rect:', wrapperRect);
+  console.log('Total seats in heatmap data:', Object.keys(seatHeatmapData.seats).length);
+
+  // Draw heat map for each seat
+  for (const [seatNumber, seatData] of Object.entries(seatHeatmapData.seats)) {
+    const seatEl = document.querySelector(`[data-seat-number="${seatNumber}"]`);
+    if (!seatEl) {
+      console.log(`Seat element not found for: ${seatNumber}`);
+      continue;
+    }
+
+    // Get seat position on canvas
+    const seatRect = seatEl.getBoundingClientRect();
+    const cx = (seatRect.left + seatRect.width / 2 - wrapperRect.left) * scale;
+    const cy = (seatRect.top + seatRect.height / 2 - wrapperRect.top) * scale;
+
+    // Determine color based on resolution status and port usage
+    let rgb;
+    if (!seatData.resolved || !seatData.port_usage) {
+      // Unresolved or no port stats - show as gray (unknown)
+      rgb = [110, 118, 129]; // Gray - unknown/unresolved
+    } else {
+      const usage = seatData.port_usage;
+      const totalBps = usage.total_bps || 0;
+      const status = usage.status;
+
+      // Color based on throughput
+      const mbps = totalBps / 1e6;
+
+      if (!status || status !== 'up') {
+        rgb = [110, 118, 129]; // Gray - unknown/offline
+      } else if (mbps >= 500) {
+        rgb = [248, 81, 73]; // Red - high usage (500+ Mbps)
+      } else if (mbps >= 100) {
+        rgb = [210, 153, 34]; // Orange - medium-high (100-500 Mbps)
+      } else if (mbps >= 10) {
+        rgb = [63, 185, 80]; // Green - medium (10-100 Mbps)
+      } else {
+        rgb = [56, 139, 253]; // Blue - low (<10 Mbps)
+      }
+    }
+
+    // Draw filled circle for seat
+    console.log(`Drawing seat ${seatNumber} with color: rgb(${rgb.join(',')})`);
+    const radius = Math.min(seatRect.width, seatRect.height) / 2 * scale * 0.9;
+
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`);
+    grad.addColorStop(0.6, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)`);
+    grad.addColorStop(1,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.3)`);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  console.log('Finished drawing seat heatmap, total circles drawn:', Object.keys(seatHeatmapData.seats).length);
+  }
 
 function renderHeatmap() {
-  if (!floorplanImg.offsetWidth) return;
+  if (!wrapper.offsetWidth) return;
 
-  const cw = heatCanvas.offsetWidth  || floorplanImg.offsetWidth;
-  const ch = heatCanvas.offsetHeight || floorplanImg.offsetHeight;
+  const cw = heatCanvas.offsetWidth  || wrapper.offsetWidth;
+  const ch = heatCanvas.offsetHeight || wrapper.offsetHeight;
   heatCanvas.width  = cw;
   heatCanvas.height = ch;
 
@@ -1076,7 +2078,7 @@ function renderHeatmap() {
   const canvasRect = heatCanvas.getBoundingClientRect();
   const scale = canvasRect.width > 0 ? cw / canvasRect.width : 1;
 
-  const baseR = Math.min(cw, ch) * 0.12;
+  const baseR = Math.min(cw, ch) * 0.18;
 
   // Find maximum throughput for normalizing the color scale
   let maxThroughput = 0;
@@ -1137,8 +2139,9 @@ function renderHeatmap() {
     else                    rgb = [ 56, 139, 253];   // <100 Mbps - blue
 
     const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.55)`);
-    grad.addColorStop(0.45,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.25)`);
+    grad.addColorStop(0,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.95)`);
+    grad.addColorStop(0.5, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)`);
+    grad.addColorStop(0.75,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.3)`);
     grad.addColorStop(1,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
 
     ctx.fillStyle = grad;
