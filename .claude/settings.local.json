@@ -4,7 +4,8 @@
       "Bash(npm install:*)",
       "Bash(npm run build:css:prod:*)",
       "Bash(python:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python3:*)"
     ]
   }
 }
