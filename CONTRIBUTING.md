@@ -1,6 +1,6 @@
-# Contributing to LAL Floor Plan
+# Contributing to Floorbit
 
-Thanks for helping! A short issue or merge request is always welcome: bug reports, ideas, docs
+Thanks for helping! A short issue or pull request is always welcome: bug reports, ideas, docs
 fixes and code.
 
 ## Before you start
@@ -11,12 +11,12 @@ fixes and code.
 
 ## Making changes
 
-1. Make a branch from `master` and keep one topic per merge request.
+1. Make a branch from `master` and keep one topic per pull request.
 2. Run the checks from the README's [Develop](README.md#develop) section before you push.
 3. Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for anything users notice.
-4. Open the merge request as a **draft** and fill in the template. Every merge request has
-   **screenshots** (the pipeline's `screenshots` job takes them). The pipeline must be green before
-   it can be merged.
+4. Open the pull request as a **draft** and fill in the template. Every pull request has
+   **screenshots** (the CI `screenshots` job takes them). CI must be green before it can be
+   merged.
 
 ## Code style
 

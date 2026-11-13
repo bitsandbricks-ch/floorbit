@@ -1,7 +1,7 @@
 #!/bin/sh
 # Check that a release tag matches VERSION and write that version's CHANGELOG.md section to
-# the file given (for the release job in .gitlab-ci.yml).
-#   sh .gitlab/scripts/release-notes.sh v1.2.0 notes.md
+# the file given (for the release job in .github/workflows/ci.yml).
+#   sh scripts/release-notes.sh v1.2.0 notes.md
 set -eu
 tag=${1:?tag}
 out=${2:?output file}

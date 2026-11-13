@@ -1,0 +1,153 @@
+# Lint and test every pull request and master, with screenshots for the pull request.
+# The Docker image is built every time and pushed to GHCR from master (latest) and from
+# v* tags (the version). A v* tag that matches VERSION also becomes a GitHub release with
+# its CHANGELOG.md section:
+#
+#     mason bump floorbit minor     PR that sets VERSION and adds the changelog section
+#     mason release tag floorbit    pushes v<version>; the release job below does the rest
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+    tags: ["v*"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"          # the Dockerfile's Python
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  ruff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install --quiet -r requirements-dev.txt
+      # The github format puts findings inline on the pull request's diff.
+      - run: ruff check --output-format=github .
+
+  javascript:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: for f in $(find static -name '*.js'); do echo "$f"; node --check "$f"; done
+
+  pytest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: pip install --quiet -r requirements.txt -r requirements-dev.txt
+      - run: pytest -q --junitxml=report.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pytest-report
+          path: report.xml
+
+  screenshots:
+    # Every pull request has screenshots: this takes them, desktop and phone, of every page.
+    # Download the "screenshots" artifact from the run's summary and drag them into the PR.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright/python:v1.49.0-noble
+    services:
+      redis:
+        image: redis:7-alpine
+    env:
+      REDIS_HOST: redis
+      APP_URL: http://127.0.0.1:5000
+      # Throwaway demo account for this job's empty app; the script signs in with it.
+      AUTH_ADMIN_USER: demo
+      AUTH_ADMIN_PASSWORD: demo-screenshots
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet -r requirements.txt playwright==1.49.0
+      - run: |
+          python -m flask --app app run --port 5000 > flask.log 2>&1 &
+          python scripts/screenshots.py screenshots
+      - if: always()
+        run: cat flask.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/
+          retention-days: 30
+
+  docker-image:
+    needs: [ruff, javascript, pytest]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - id: tags
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          IMAGE: ghcr.io/${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          image=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          tags=""
+          if [ "$EVENT" = push ] && [ "$REF_TYPE" = branch ]; then tags="$image:latest"; fi
+          if [ "$REF_TYPE" = tag ]; then tags="$image:${REF_NAME#v}"; fi
+          if [ -n "$tags" ]; then tags="$tags,$image:sha-${SHA::8}"; fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "push=$([ -n "$tags" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.tags.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Built every time; pushed from master and v* tags only.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          pull: true
+          push: ${{ steps.tags.outputs.push == 'true' }}
+          tags: ${{ steps.tags.outputs.tags || 'floorbit:ci' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    needs: [docker-image]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sh scripts/release-notes.sh "$TAG" notes.md
+          cat notes.md
+          gh release create "$TAG" --title "$TAG" --notes-file notes.md --verify-tag

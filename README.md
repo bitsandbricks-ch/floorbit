@@ -1,15 +1,16 @@
-# LAL Floor Plan
+# Floorbit
 
-[![pipeline](https://gitlab.com/reykime-private/reykime-lal/lal-floorplan/badges/master/pipeline.svg)](https://gitlab.com/reykime-private/reykime-lal/lal-floorplan/-/pipelines?ref=master)
-[![release](https://gitlab.com/reykime-private/reykime-lal/lal-floorplan/-/badges/release.svg)](https://gitlab.com/reykime-private/reykime-lal/lal-floorplan/-/releases)
+[![CI](https://github.com/bitsandbricks-ch/floorbit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/bitsandbricks-ch/floorbit/actions/workflows/ci.yml?query=branch%3Amaster)
+[![release](https://img.shields.io/github/v/release/bitsandbricks-ch/floorbit?labelColor=1a1a1a)](https://github.com/bitsandbricks-ch/floorbit/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-43a868?labelColor=1a1a1a)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-bitsandbricks-2ee59d?logo=buymeacoffee&logoColor=white)](https://buymeacoffee.com/bitsandbricks)
 
 The event's network on a floor plan. Place switches and seat blocks on a map of the hall, pull the
 switches from NetBox, see their live status and ports from LibreNMS, and find which switch port
 each seat is plugged into.
 
 <!-- TODO: screenshots of the new frontend (desktop and phone) once the shell rework is merged.
-     The pipeline's `screenshots` job takes them; save them as docs/screenshots/*.png and show them here:
+     The CI `screenshots` job takes them; save them as docs/screenshots/*.png and show them here:
 
 ![Floor plan](docs/screenshots/floorplan-desktop.png)
 -->
@@ -43,9 +44,8 @@ docker compose up -d
 docker compose exec lal-app flask users add <name>     # your first account
 ```
 
-Open <http://localhost:5002> and sign in. The image is also built by CI and pushed to this project's container
-registry: `registry.gitlab.com/reykime-private/reykime-lal/lal-floorplan:latest` (from `master`) and
-`:<version>` (from a release).
+Open <http://localhost:5002> and sign in. The image is also built by CI and pushed to the GitHub container
+registry: `ghcr.io/bitsandbricks-ch/floorbit:latest` (from `master`) and `:<version>` (from a release).
 
 ## Configuration
 
@@ -91,29 +91,38 @@ docker build .
 | `templates/`, `static/` | The pages and the browser app (plain JavaScript and CSS, no build step). |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |
-| `scripts/screenshots.py` | Desktop and phone screenshots for merge requests. |
+| `scripts/screenshots.py` | Desktop and phone screenshots for pull requests. |
 | `docs/` | Design notes and plans. |
 
-### Pipeline
+### CI
+
+GitHub Actions, in [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 
 | Job | When | What it does |
 | --- | --- | --- |
-| `ruff` | always | Python lint; findings show inline in the merge request. |
+| `ruff` | always | Python lint; findings show inline on the pull request. |
 | `javascript` | always | Syntax check of `static/js`. |
-| `pytest` | always | Smoke tests; results show in the merge request. |
-| `screenshots` | merge requests | Runs the app with demo data and screenshots every page, desktop and phone. |
-| `docker-image` | always | Builds the Docker image; pushes it from `master` and `v*` tags. |
-| `release` | `v*` tags | Checks the tag against `VERSION` and publishes the release with its changelog section. |
+| `pytest` | always | Smoke tests. |
+| `screenshots` | pull requests | Runs the app with demo data and screenshots every page, desktop and phone (artifact). |
+| `docker-image` | always | Builds the Docker image; pushes it to GHCR from `master` and `v*` tags. |
+| `release` | `v*` tags | Checks the tag against `VERSION` and publishes the GitHub release with its changelog section. |
 
-Merge requests follow [CONTRIBUTING.md](CONTRIBUTING.md) and always include screenshots. Coding
-agents follow [AGENTS.md](AGENTS.md). Security problems go through a confidential issue, see
+Pull requests follow [CONTRIBUTING.md](CONTRIBUTING.md) and always include screenshots. Coding
+agents follow [AGENTS.md](AGENTS.md). Security problems go through a private vulnerability report, see
 [SECURITY.md](SECURITY.md).
 
 ## Releases
 
-`mason bump lal-floorplan minor` opens the version merge request, `mason release tag lal-floorplan`
-pushes the tag, and the pipeline builds the image and publishes the release. See
+`mason bump floorbit minor` opens the version pull request, `mason release tag floorbit`
+pushes the tag, and CI builds the image and publishes the release. See
 [CHANGELOG.md](CHANGELOG.md).
+
+## History
+
+Floorbit was called LAL Floor Plan and started on GitLab as
+[reykime-private/reykime-lal/lal-floorplan](https://gitlab.com/reykime-private/reykime-lal/lal-floorplan)
+(private) and moved here in November 2026. The commit history came along; the merge request
+discussions (!1 to !16) and the first issue stay on GitLab.
 
 ## License
 

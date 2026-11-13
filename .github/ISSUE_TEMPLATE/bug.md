@@ -1,3 +1,9 @@
+---
+name: Bug
+about: Something does not work as expected.
+labels: [bug]
+---
+
 <!-- Security problem? Don't open an issue: see SECURITY.md. -->
 
 ## What happened?
@@ -16,5 +22,3 @@
 ## Screenshots or logs
 
 <!-- Remove personal data (names, IPs, tokens) first. -->
-
-/label ~bug

@@ -1,3 +1,9 @@
+---
+name: Feature
+about: An idea for the floor plan.
+labels: [enhancement]
+---
+
 ## What problem would this solve?
 
 <!-- Describe the situation you are in. -->
@@ -9,5 +15,3 @@
 ## Alternatives
 
 <!-- Anything you do today to work around it. -->
-
-/label ~enhancement
