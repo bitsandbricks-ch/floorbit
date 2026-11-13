@@ -67,19 +67,21 @@ def app_module(tmp_path, monkeypatch):
     monkeypatch.setattr(redis, "Redis", FakeRedis)
 
     import app
+    from floorbit import cache, runtime, store
 
     data_file = str(tmp_path / "data.json")
-    monkeypatch.setattr(app, "DATA_FILE", data_file)
+    monkeypatch.setattr(store, "DATA_FILE", data_file)
     # The settings store was built at import time with the real data.json: point it at the temp file.
-    monkeypatch.setattr(app.settings_store, "data_file", data_file)
-    app.settings_store.reload()
-    app.apply_runtime_settings()
-    monkeypatch.setattr(app, "redis_client", None)
-    monkeypatch.setattr(app, "NETBOX_ENABLED", False)
-    monkeypatch.setattr(app, "LIBRENMS_ENABLED", False)
+    settings = app.app.extensions["floorbit_settings"]
+    monkeypatch.setattr(settings, "data_file", data_file)
+    settings.reload()
+    runtime.apply(settings)
+    monkeypatch.setattr(cache, "redis_client", None)
+    monkeypatch.setattr(runtime.rt, "netbox_enabled", False)
+    monkeypatch.setattr(runtime.rt, "librenms_enabled", False)
     auth = app.app.extensions["auth"]
     # Accounts share the throwaway data file with the floor plan.
-    monkeypatch.setattr(auth.users, "path", app.DATA_FILE)
+    monkeypatch.setattr(auth.users, "path", data_file)
     monkeypatch.setattr(auth, "enabled", True)
     monkeypatch.setattr(auth, "public_read", True)
     monkeypatch.setattr(auth, "_failures", {})

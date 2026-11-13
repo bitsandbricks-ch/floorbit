@@ -1,0 +1,36 @@
+/* "Buy me a coffee" and "Powered by bitsandbricks.ch" pills (templates/_attribution.html).
+   Self-contained colours, styled like Seatbit's footer, so they read on every page and theme. */
+.fb-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  font: 500 12px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.fb-attribution--compact { padding: 8px 0 0; gap: 6px; font-size: 11px; justify-content: flex-start; }
+.fb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s;
+}
+.fb-attribution--compact .fb-pill { padding: 2px 8px; }
+.fb-pill strong { font-weight: 700; }
+.fb-pill:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.fb-pill--coffee { color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1); }
+.fb-pill--coffee:hover { background: rgba(251, 191, 36, 0.2); }
+.fb-pill--bnb { color: #2ee59d; border-color: rgba(46, 229, 157, 0.4); background: rgba(46, 229, 157, 0.1); }
+.fb-pill--bnb:hover { background: rgba(46, 229, 157, 0.2); }
+
+/* Light backgrounds: the deeper shades keep the text readable (WCAG AA). */
+:root[data-theme="light"] .fb-pill--coffee, .fb-light .fb-pill--coffee { color: #92400e; border-color: rgba(146, 64, 14, 0.35); background: rgba(251, 191, 36, 0.14); }
+:root[data-theme="light"] .fb-pill--bnb, .fb-light .fb-pill--bnb { color: #047857; border-color: rgba(4, 120, 87, 0.35); background: rgba(46, 229, 157, 0.14); }
+
+/* Kiosk: one small pill at the end of the legend bar, out of the floor plan's way. */
+.fb-pill--legend { font: inherit; font-size: 0.85em; padding: 1px 8px; }

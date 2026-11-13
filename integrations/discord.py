@@ -135,7 +135,7 @@ class DiscordNotifier:
             content += f' (+{len(selected) - MAX_EMBEDS} more)'
 
         payload = {
-            'username': config.get('DISCORD_USERNAME', 'LAL Floor Plan'),
+            'username': config.get('DISCORD_USERNAME', 'Floorbit'),
             'embeds': embeds,
             'allowed_mentions': {'parse': ['roles', 'everyone', 'users']},
         }
@@ -155,7 +155,7 @@ class DiscordNotifier:
         if public_url:
             embed['url'] = public_url
         return {
-            'username': config.get('DISCORD_USERNAME', 'LAL Floor Plan'),
+            'username': config.get('DISCORD_USERNAME', 'Floorbit'),
             'embeds': [embed],
             'allowed_mentions': {'parse': []},
         }

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from seat_traffic import collect_seat_heatmap, seat_port_usage
+from floorbit.seat_traffic import collect_seat_heatmap, seat_port_usage
 
 PORT = {'ifOperStatus': 'up', 'ifInOctets_rate': '1250000', 'ifOutOctets_rate': '250000',
         'ifSpeed': '1000000000'}

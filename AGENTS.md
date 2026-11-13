@@ -12,10 +12,13 @@ users: [README.md](README.md).
 
 | Path | What lives there |
 | --- | --- |
-| `app.py` | The Flask app: pages, JSON API, NetBox and LibreNMS clients, Redis cache. |
+| `app.py` | Entry point only: `app = create_app()`. |
+| `floorbit/` | The Flask app. `blueprints/` has one module per area of the API; `sources/` is the only code that talks to NetBox and LibreNMS. See `docs/architecture.md`. |
+| `integrations/` | Live updates, status monitor, Discord, seat sources, check-in. See `docs/integrations.md`. |
 | `auth/` | Sign-in: accounts in `data.json`, the request guard, login providers. See `docs/auth.md`. |
 | `templates/` | Jinja pages. |
-| `static/js/`, `static/css/` | The browser app (plain JavaScript and CSS, no build step). |
+| `static/js/`, `static/css/` | The browser app (plain JavaScript and CSS, no build step). The editor is split by feature in `static/js/editor/` (load order in its README). |
+| `changelog.d/` | Changelog fragments, one per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests against the Flask test client, with a fake Redis. |
 | `scripts/screenshots.py` | Takes the pull request screenshots (the `screenshots` CI job runs it). |
@@ -29,7 +32,7 @@ users: [README.md](README.md).
    - `pip install -r requirements.txt -r requirements-dev.txt`
    - `ruff check .`
    - `pytest -q`
-   - `for f in static/js/*.js; do node --check "$f"; done`
+   - `find static -name '*.js' -exec node --check {} \;`
    - `docker build .`
 3. **Pull request:** open it as a **draft** and fill in the template
    (`.github/pull_request_template.md`). Link the issue.
@@ -53,7 +56,8 @@ users: [README.md](README.md).
   Real seat names, usernames and IPs are personal data: keep them out of screenshots and fixtures.
 - **Names:** the brand is written "BitsAndBricks". Public text names the author as "Mike" only.
 - **Releases:** don't edit `VERSION` or the changelog headings by hand; `mason bump` does that.
-  Add your change under `## [Unreleased]` in `CHANGELOG.md`.
+  Describe your change in a new `changelog.d/<topic>.md` fragment, not in `CHANGELOG.md`
+  (see `changelog.d/README.md`).
 - **Tests never talk to NetBox, LibreNMS or a real Redis:** they use the fakes in `tests/conftest.py`.
   Keep it that way.
 - **User to IP mapping** goes through providers that can be swapped. Don't integrate the Lock and
@@ -62,5 +66,9 @@ users: [README.md](README.md).
   `${{ github.* }}` text that users control (branch names, PR titles) through `env:`, never pasted into
   a `run:` script. Pin actions to a major version tag (`actions/checkout@v4`).
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
+- **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new editor
+  feature is a new file in `static/js/editor/`. NetBox and LibreNMS calls go through
+  `floorbit.sources`, never straight from a blueprint. Nothing names one particular event:
+  event names, branding and hosts are settings.
 - Write short comments that explain why, not what.
 - Stay inside the repository. Ask before deleting files you didn't create.
