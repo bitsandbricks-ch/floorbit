@@ -199,7 +199,8 @@ const gridEl         = $('canvas-grid');
 const btnTraffic     = $('btn-traffic');
 const trafficOptions = $('traffic-options');
 const trafficLevelSeg = $('traffic-level');
-const trafficTicks   = $('traffic-ticks');
+const trafficLegendSeat   = $('traffic-legend-seat');
+const trafficLegendSwitch = $('traffic-legend-switch');
 const trafficSummary = $('traffic-summary');
 const trafficNodataLabel = $('traffic-nodata-label');
 const heatCanvas     = $('heatmap-canvas');
@@ -1305,6 +1306,7 @@ function renderOverlay() {
   for (const sw of switches) {
     if (sw.placed !== false && sw.x != null) overlay.appendChild(createMarker(sw));
   }
+  scheduleHeatRender(); // re-tint the new switch cards
 }
 
 function renderSeats() {
@@ -1383,7 +1385,8 @@ function createMarker(sw) {
   const hideLabel = getDeviceSetting(sw.id, 'hideLabel');
   el.innerHTML = `
     <div class="switch-pin status-${escHtml(sw.status || 'unknown')}">${pinSVG(sw.status)}</div>
-    ${hideLabel ? '' : `<div class="switch-label">${escHtml(sw.name)}</div>`}`;
+    ${hideLabel ? '' : `<div class="switch-label">${escHtml(sw.name)}</div>`}
+    <div class="switch-heat-card"><span class="switch-heat-name">${escHtml(sw.name)}</span><span class="switch-heat-rate"></span></div>`;
   el.addEventListener('mousedown', onMarkerMouseDown);
   el.addEventListener('contextmenu', onMarkerContextMenu);
   return el;
@@ -2150,17 +2153,18 @@ function setLayerButton(btn, on) {
   btn.setAttribute('aria-pressed', String(on));
 }
 
-// Traffic heatmap: one layer, shown per seat (the seat's switch port) or per
-// switch (all its ports). heatmapVisible / seatHeatmapVisible say which canvas
-// is live, so the rest of the file can keep checking them.
+// Traffic heatmap: one layer, shown per seat (the seat's switch port), per
+// switch (all its ports) or both at once. heatmapVisible / seatHeatmapVisible
+// say which canvas is live, so the rest of the file can keep checking them.
 let trafficOn = false;
-let trafficLevel = 'seat';   // 'seat' | 'switch'
+let trafficLevel = 'seat';   // 'seat' | 'switch' | 'both'
+const TRAFFIC_LEVELS = ['seat', 'switch', 'both'];
 
 function setTrafficLayer(on, level = trafficLevel) {
   trafficOn = on;
-  trafficLevel = level === 'switch' ? 'switch' : 'seat';
-  heatmapVisible = on && trafficLevel === 'switch';
-  seatHeatmapVisible = on && trafficLevel === 'seat';
+  trafficLevel = TRAFFIC_LEVELS.includes(level) ? level : 'seat';
+  heatmapVisible = on && trafficLevel !== 'seat';
+  seatHeatmapVisible = on && trafficLevel !== 'switch';
 
   setLayerButton(btnTraffic, on);
   trafficOptions.classList.toggle('hidden', !on);
@@ -2169,14 +2173,19 @@ function setTrafficLayer(on, level = trafficLevel) {
     b.classList.toggle('active', active);
     b.setAttribute('aria-pressed', String(active));
   }
-  trafficTicks.innerHTML = TRAFFIC_SCALES[trafficLevel].ticks.map(t => `<span>${escHtml(t)}</span>`).join('');
-  trafficNodataLabel.textContent = trafficLevel === 'seat' ? 'No data or port down' : 'Offline or no data';
+  trafficLegendSeat.classList.toggle('hidden', trafficLevel === 'switch');
+  trafficLegendSwitch.classList.toggle('hidden', trafficLevel === 'seat');
+  trafficNodataLabel.textContent = { seat: 'No data or port down', switch: 'Offline or no data',
+                                     both: 'Offline, no data or port down' }[trafficLevel];
+  trafficSummaryParts.seat = trafficSummaryParts.switch = '';
   trafficSummary.textContent = '';
   writeJSON('layer-traffic', { on, level: trafficLevel });
 
   heatCanvas.style.display = heatmapVisible ? 'block' : 'none';
   seatHeatCanvas.style.display = seatHeatmapVisible ? 'block' : 'none';
   wrapper.classList.toggle('heat-seat', seatHeatmapVisible);
+  wrapper.classList.toggle('heat-switch', heatmapVisible);
+  wrapper.classList.toggle('heat-both', heatmapVisible && seatHeatmapVisible);
   if (!seatHeatmapVisible) clearSeatTints();
 
   if (heatmapVisible) renderHeatmap();
@@ -2262,8 +2271,8 @@ if (window.ResizeObserver) {
 // same step along the ramp. Seats and switches use different ranges because a
 // switch carries many seats' traffic.
 const TRAFFIC_SCALES = {
-  seat:   { min: 1e5, max: 1e9,  ticks: ['100k', '1M', '10M', '100M', '1G'] },
-  switch: { min: 1e7, max: 1e10, ticks: ['10M', '100M', '1G', '10G'] },
+  seat:   { min: 1e5, max: 1e9 },   // 100 kbps – 1 Gbps (ticks in index.html)
+  switch: { min: 1e7, max: 1e10 },  // 10 Mbps – 10 Gbps
 };
 // Colour-blind-friendly ramp (blue → teal → yellow → orange → crimson); the
 // .heat-scale bar in style.css uses the same stops.
@@ -2296,6 +2305,13 @@ function heatLevel(bps, scale) {
 function heatColor(level) {
   const i = Math.round(Math.min(1, Math.max(0, level)) * 255) * 3;
   return `rgb(${HEAT_LUT[i]}, ${HEAT_LUT[i + 1]}, ${HEAT_LUT[i + 2]})`;
+}
+
+// Each level writes its own line of the summary under the legend.
+const trafficSummaryParts = { seat: '', switch: '' };
+function setTrafficSummary(level, text) {
+  trafficSummaryParts[level] = text;
+  trafficSummary.textContent = [trafficSummaryParts.seat, trafficSummaryParts.switch].filter(Boolean).join('\n');
 }
 
 let heatRenderQueued = false;
@@ -2433,9 +2449,9 @@ function renderSeatHeatmap() {
   }
 
   drawHeatField(ctx, cw, ch, points, Math.max(14, seatSize * 1.7));
-  trafficSummary.textContent = measured
+  setTrafficSummary('seat', measured
     ? `${measured} seat${measured === 1 ? '' : 's'} with traffic data · busiest ${busiest.name} at ${fmtBps(busiest.bps)}`
-    : 'No seat has traffic data yet. Seats need an IP in the seat mapping and LibreNMS must find their port.';
+    : 'No seat has traffic data yet. Seats need an IP in the seat mapping and LibreNMS must find their port.');
 }
 
 function renderHeatmap() {
@@ -2444,9 +2460,27 @@ function renderHeatmap() {
   const { ctx, cw, ch, rect, scale } = c;
   const range = TRAFFIC_SCALES.switch;
 
+  const hasTraffic = sw => sw.status !== 'offline' && portStats[sw.id] && portStats[sw.id].total_traffic_bps != null;
   const visible = switches.filter(sw =>
-    sw.placed !== false && sw.x != null && !getDeviceSetting(sw.id, 'excludeHeatmap') &&
-    sw.status !== 'offline' && portStats[sw.id] && portStats[sw.id].total_traffic_bps != null);
+    sw.placed !== false && sw.x != null && !getDeviceSetting(sw.id, 'excludeHeatmap') && hasTraffic(sw));
+
+  // Tint each switch's card with its level and show its throughput.
+  for (const el of overlay.querySelectorAll('.switch-marker')) {
+    const sw = switches.find(s => s.id === el.dataset.id);
+    const excluded = !sw || getDeviceSetting(sw.id, 'excludeHeatmap');
+    const live = !excluded && hasTraffic(sw);
+    el.classList.toggle('no-heat', !!excluded);
+    el.classList.toggle('heat-none', !excluded && !live);
+    const rate = el.querySelector('.switch-heat-rate');
+    if (live) {
+      const bps = portStats[sw.id].total_traffic_bps;
+      el.style.setProperty('--heat', heatColor(heatLevel(bps, range)));
+      if (rate) rate.textContent = fmtBps(bps);
+    } else {
+      el.style.removeProperty('--heat');
+      if (rate) rate.textContent = sw && sw.status === 'offline' ? 'offline' : 'no data';
+    }
+  }
 
   const points = visible.map(sw => {
     let x, y;
@@ -2461,13 +2495,14 @@ function renderHeatmap() {
     }
     return { x, y, level: heatLevel(portStats[sw.id].total_traffic_bps, range) };
   });
-  drawHeatField(ctx, cw, ch, points, Math.min(cw, ch) * 0.13);
+  // With seats on as well, keep the switch glow smaller so the seat tiles stay readable.
+  drawHeatField(ctx, cw, ch, points, Math.min(cw, ch) * (seatHeatmapVisible ? 0.09 : 0.13));
 
   const busiest = visible.reduce((a, sw) =>
     (!a || portStats[sw.id].total_traffic_bps > portStats[a.id].total_traffic_bps ? sw : a), null);
-  trafficSummary.textContent = busiest
+  setTrafficSummary('switch', busiest
     ? `${visible.length} switch${visible.length === 1 ? '' : 'es'} reporting · busiest ${busiest.name} at ${fmtBps(portStats[busiest.id].total_traffic_bps)}`
-    : 'No switch has reported traffic yet. Switches need to be online in LibreNMS.';
+    : 'No switch has reported traffic yet. Switches need to be online in LibreNMS.');
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────────────

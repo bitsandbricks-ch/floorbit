@@ -105,9 +105,18 @@
               <span class="segmented segmented-sm" id="traffic-level" role="group" aria-label="Heatmap level">
                 <button type="button" data-level="seat" title="Each seat's switch port (download + upload)">Seats</button>
                 <button type="button" data-level="switch" title="Total throughput of each switch">Switches</button>
+                <button type="button" data-level="both" title="Seats and switches together">Both</button>
               </span>
-              <div class="heat-scale" aria-hidden="true"></div>
-              <div class="heat-ticks" id="traffic-ticks"></div>
+              <div class="heat-legend" id="traffic-legend-seat">
+                <span class="heat-legend-title">Seat port</span>
+                <div class="heat-scale" aria-hidden="true"></div>
+                <div class="heat-ticks"><span>100k</span><span>1M</span><span>10M</span><span>100M</span><span>1G</span></div>
+              </div>
+              <div class="heat-legend" id="traffic-legend-switch">
+                <span class="heat-legend-title">Switch total</span>
+                <div class="heat-scale" aria-hidden="true"></div>
+                <div class="heat-ticks"><span>10M</span><span>100M</span><span>1G</span><span>10G</span></div>
+              </div>
               <div class="legend-item"><span class="legend-swatch legend-nodata"></span><span class="legend-label" id="traffic-nodata-label">No data or port down</span></div>
               <p class="heat-summary" id="traffic-summary"></p>
             </div>
