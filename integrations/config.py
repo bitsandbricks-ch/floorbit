@@ -117,6 +117,10 @@ SCHEMA = [
      'label': 'Admin token', 'help': 'If set, listing or deleting check-ins needs this token (X-Admin-Token header).'},
     {'key': 'CHECKIN_FILE', 'group': 'checkin', 'type': 'string', 'default': 'checkins.json',
      'label': 'Check-in data file', 'help': 'Where check-ins are stored.'},
+    {'key': 'CHECKIN_HISTORY_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': True,
+     'label': 'Keep check-in history', 'help': 'Log every check-in, seat move, removal and DHCP IP change, for /checkins/history and CSV export.'},
+    {'key': 'CHECKIN_HISTORY_FILE', 'group': 'checkin', 'type': 'string', 'default': '',
+     'label': 'Check-in history file', 'help': 'Append-only JSON Lines log. Empty means next to the check-in data file (checkins-history.jsonl).'},
 
     # General
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',
