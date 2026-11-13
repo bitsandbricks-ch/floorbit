@@ -441,6 +441,7 @@
       const data = parse(e);
       if (data.resource === 'switches' || data.resource === 'seat-blocks') scheduleLayout();
       else if (data.resource === 'settings') loadConfig();
+      else if (data.resource === 'all') { loadConfig(); scheduleLayout(); }   // a restored backup
     });
     for (const type of ['checkin', 'checkin.removed', 'checkin.refreshed']) {
       es.addEventListener(type, scheduleSeatInfo);

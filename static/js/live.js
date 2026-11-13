@@ -64,14 +64,14 @@
     if (typeof dragState !== 'undefined' && dragState) { reloadTimer = setTimeout(runReload, 500); return; }
     const todo = Array.from(pending); pending.clear();
     try {
-      if (todo.includes('switches') && typeof loadSwitches !== 'undefined') {
+      if ((todo.includes('switches') || todo.includes('all')) && typeof loadSwitches !== 'undefined') {
         // keep statuses we already know across the reload
         const known = {};
         if (typeof switches !== 'undefined') for (const s of switches) known[s.id] = s.status;
         await loadSwitches();
         applyStatuses(known);
       }
-      if (todo.includes('seat-blocks') && typeof loadSeatBlocks !== 'undefined') await loadSeatBlocks();
+      if ((todo.includes('seat-blocks') || todo.includes('all')) && typeof loadSeatBlocks !== 'undefined') await loadSeatBlocks();
       // app.js's load* functions only fetch, so draw the new data
       if (typeof renderAll !== 'undefined') renderAll();
     } catch (e) {

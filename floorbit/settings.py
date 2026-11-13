@@ -162,6 +162,17 @@ def _check_image(field, data_url):
         raise SettingsError(f"{field['label']} must be {LOGO_MAX_BYTES // 1024} KB or smaller")
 
 
+def check_changes(changes):
+    """Validate {key: value} the way a save does, without saving. Returns the coerced values."""
+    out = {}
+    for key, raw in changes.items():
+        field = FIELDS_BY_KEY.get(key)
+        if field is None:
+            raise SettingsError(f'Unknown setting: {key}')
+        out[key] = None if raw is None else _coerce(field, raw)
+    return out
+
+
 # ── Store ──────────────────────────────────────────────────────────────────────
 
 class SettingsStore:
