@@ -16,7 +16,38 @@
   --warning:      #d29922;
   --radius-sm:    4px;
   --radius:       8px;
+  color-scheme: dark;
 }
+
+/* Light theme: set on <html data-theme="light"> by static/js/theme.js */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-primary:   #f6f8fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary:  #eef1f4;
+  --bg-hover:     #e4e8ec;
+  --border:       #d0d7de;
+  --text-primary: #1f2328;
+  --text-secondary: #59636e;
+  --text-muted:   #6e7781;
+  --accent:       #c2560c;
+  --accent-hover: #a8480a;
+  --accent-dim:   rgba(234, 108, 10, 0.12);
+  --success:      #1a7f37;
+  --danger:       #cf222e;
+  --warning:      #9a6700;
+}
+
+.st-theme {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  background: none; border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer;
+}
+.st-theme:hover { background: var(--bg-hover); color: var(--text-primary); }
+.st-theme svg { width: 16px; height: 16px; }
+.st-theme .theme-icon-light { display: none; }
+:root[data-theme="dark"] .st-theme .theme-icon-light { display: block; }
+:root[data-theme="dark"] .st-theme .theme-icon-dark { display: none; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
