@@ -1,460 +1,716 @@
 'use strict';
 
-// ── Pin icon (replaces bulky switch SVG) ──────────────────────────────────────
-function pinSVG() {
-  // Teardrop pin – colour comes from the .switch-pin CSS class
+// ── Pin icon ─────────────────────────────────────────────────────────────────────────
+// Teardrop pin – colour comes from the .switch-pin CSS class. The glyph in the
+// head repeats the status as a shape, so it doesn't rely on colour alone.
+function pinSVG(status) {
+  let glyph;
+  if (status === 'offline') {
+    glyph = '<path d="M5.4 3.4l3.2 3.2M8.6 3.4L5.4 6.6" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>';
+  } else if (status === 'online') {
+    glyph = '<circle cx="7" cy="5" r="2.2" fill="rgba(255,255,255,0.85)"/>';
+  } else {
+    glyph = '<circle cx="7" cy="5" r="2.2" fill="rgba(255,255,255,0.30)"/>';
+  }
   return `<svg viewBox="0 0 14 18" xmlns="http://www.w3.org/2000/svg">
     <path d="M7 0C4.24 0 2 2.24 2 5c0 4.5 5 13 5 13s5-8.5 5-13C12 2.24 9.76 0 7 0z"
-          fill="currentColor" stroke="rgba(0,0,0,0.35)" stroke-width="0.6"/>
-    <circle cx="7" cy="5" r="2.4" fill="rgba(255,255,255,0.30)"/>
+          fill="currentColor" stroke="rgba(0,0,0,0.4)" stroke-width="0.6"/>
+    ${glyph}
   </svg>`;
 }
 
-// ── State ────────────────────────────────────────────────────────────────────
+const STATUS_GLYPH = { online: '●', offline: '✕', warning: '!', unknown: '?' };
+function statusGlyph(status) { return STATUS_GLYPH[status] || '?'; }
+function statusBucket(status) {
+  return status === 'online' || status === 'offline' ? status : 'unknown';
+}
+
+// ── State ───────────────────────────────────────────────────────────────────────────
 let config         = { netbox_enabled: false, librenms_enabled: false };
 let switches       = [];
 let seats          = [];
 let seatBlocks     = [];
 let currentTool    = 'select';
 let selectedId     = null;
-let selectedType   = null; // 'switch', 'block'
+let selectedType   = null; // 'switch' | 'block' | 'seat'
 let pendingCoords  = null;
 let pendingPickerDeviceId = null;   // selected device in the NetBox picker tab
-let selectedDeviceIds = new Set();   // selected device IDs in multiselect mode
-let contextId      = null;
+let selectedDeviceIds = new Set();  // selected device IDs in multiselect mode
+let contextTarget  = null;          // { type: 'switch'|'block', id }
 let dragState      = null;
-let zoom           = 1;
+let panState       = null;
+let suppressNextClick = false;
 let heatmapVisible = false;
 let seatHeatmapVisible = false;
 let isRefreshing   = false;
-let planningMode   = true;          // always in planning/editing mode
-const portStats    = {};             // { switchId: { up_ports, total_ports } }
-const seatHeatmapData = {};         // { seatNumber: { port_usage, ... } }
-const deviceSettings = JSON.parse(localStorage.getItem('deviceSettings') || '{}');
+let statusFilter   = 'all';
+let snapEnabled    = true;
+let lastRefreshAt  = null;
+let lastRefreshFailed = false;
+const view         = { x: 0, y: 0, k: 1 };   // pan (px) and zoom of the floor plan
+const portStats    = {};             // { switchId: { up_ports, total_ports, ... } }
+const seatHeatmapData = {};          // { seats: { seatNumber: { port_usage, ... } } }
+const deviceSettings = readJSON('deviceSettings', {});
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 4;
-const ZOOM_STEP = 0.15;
-const GRID_SNAP = 0.5; // Grid snap interval
+const ZOOM_STEP = 1.2;
+const GRID_SNAP = 0.5; // Grid snap interval (% of the floor plan)
+const REFRESH_INTERVAL = 10_000;
 
 // Cache configuration
 const CACHE_KEY = 'switchStatusCache';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// ── Cache helpers ──────────────────────────────────────────────────────────────
+// ── localStorage helpers (never throw) ─────────────────────────────────────────
+function readJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function writeJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
 function getCache() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const cache = JSON.parse(raw);
-    // Check if cache has expired
-    if (Date.now() - cache.timestamp > CACHE_TTL) {
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-    return cache.data;
-  } catch (e) {
-    console.error('Error reading cache:', e);
-    return null;
-  }
+  const cache = readJSON(CACHE_KEY, null);
+  if (!cache || Date.now() - cache.timestamp > CACHE_TTL) return null;
+  return cache.data;
 }
+function setCache(data) { writeJSON(CACHE_KEY, { timestamp: Date.now(), data }); }
 
-function setCache(data) {
-  try {
-    const cache = {
-      timestamp: Date.now(),
-      data: data
-    };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch (e) {
-    console.error('Error writing cache:', e);
-  }
-}
-
-function clearCache() {
-  try {
-    localStorage.removeItem(CACHE_KEY);
-  } catch (e) {
-    console.error('Error clearing cache:', e);
-  }
-}
-
-// ── Per-device settings helpers ───────────────────────────────────────────────
-function getDeviceSetting(id, key, def = false) {
+// ── Per-device settings ────────────────────────────────────────────────────────
+// Server-wide defaults from Settings > Display defaults (sent in /api/config).
+const DISPLAY_DEFAULT_KEYS = { hideLabel: 'hide_labels', excludeHeatmap: 'exclude_heatmap' };
+function getDeviceSetting(id, key, def) {
+  if (def === undefined) def = config.display_defaults?.[DISPLAY_DEFAULT_KEYS[key]] ?? false;
   return deviceSettings[id]?.[key] ?? def;
 }
 function setDeviceSetting(id, key, val) {
   if (!deviceSettings[id]) deviceSettings[id] = {};
   deviceSettings[id][key] = val;
-  localStorage.setItem('deviceSettings', JSON.stringify(deviceSettings));
+  writeJSON('deviceSettings', deviceSettings);
 }
 
-// ── DOM refs ─────────────────────────────────────────────────────────────────
-const wrapper          = document.getElementById('floorplan-wrapper');
-const overlay          = document.getElementById('switches-overlay');
-const seatsOverlay     = document.getElementById('seats-overlay');
-const blocksOverlay    = document.getElementById('blocks-overlay');
-const switchList       = document.getElementById('switch-list');
-const switchSearch     = document.getElementById('switch-search');
-const switchCount      = document.getElementById('switch-count');
-const addCursor        = document.getElementById('add-cursor');
-const positionDisplay  = document.getElementById('position-display');
-const posX            = document.getElementById('pos-x');
-const posY            = document.getElementById('pos-y');
-const universalSearch  = document.getElementById('universal-search');
-const searchResults    = document.getElementById('search-results');
+// ── DOM refs ────────────────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
 
-const toolSelect       = document.getElementById('tool-select');
-const toolAddSwitch    = document.getElementById('tool-add-switch');
-const toolAddBlock     = document.getElementById('tool-add-block');
-const btnRefreshAll    = document.getElementById('btn-refresh-all');
-const syncSection      = document.getElementById('sync-section');
-const btnSync          = document.getElementById('btn-sync');
-const syncInfo         = document.getElementById('sync-info');
+const canvasArea       = $('canvas-area');
+const wrapper          = $('floorplan-wrapper');
+const overlay          = $('switches-overlay');
+const seatsOverlay     = $('seats-overlay');
+const blocksOverlay    = $('blocks-overlay');
+const switchList       = $('switch-list');
+const switchSearch     = $('switch-search');
+const switchCount      = $('switch-count');
+const listFilter       = $('list-filter');
+const listFilterText   = $('list-filter-text');
+const listFilterClear  = $('list-filter-clear');
+const addCursor        = $('add-cursor');
+const posX             = $('pos-x');
+const posY             = $('pos-y');
+const universalSearch  = $('universal-search');
+const searchResults    = $('search-results');
+const emptyCanvas      = $('empty-canvas');
+const toolHint         = $('tool-hint');
+const lastUpdatedEl    = $('last-updated');
 
-// Modal (add switch)
-const modalBackdrop    = document.getElementById('modal-backdrop');
-const modalTabs        = document.getElementById('modal-tabs');
-const tabNetbox        = document.getElementById('tab-netbox');
-const tabManual        = document.getElementById('tab-manual');
-const modalNetbox      = document.getElementById('modal-netbox');
-const modalManual      = document.getElementById('modal-manual');
-const deviceFilter     = document.getElementById('device-filter');
-const deviceList       = document.getElementById('device-list');
-const switchNameInput  = document.getElementById('switch-name-input');
-const modalCancel      = document.getElementById('modal-cancel');
-const modalConfirm     = document.getElementById('modal-confirm');
-const multiselectToggle = document.getElementById('multiselect-toggle');
-const multiselectCount = document.getElementById('multiselect-count');
+const toolSelect       = $('tool-select');
+const toolAddSwitch    = $('tool-add-switch');
+const toolAddBlock     = $('tool-add-block');
+const btnUndo          = $('btn-undo');
+const btnRedo          = $('btn-redo');
+const btnSnap          = $('btn-snap');
+const btnRefreshAll    = $('btn-refresh-all');
+const syncSection      = $('sync-section');
+const btnSync          = $('btn-sync');
+const syncInfo         = $('sync-info');
+const btnLabels        = $('btn-labels');
+const btnShortcuts     = $('btn-shortcuts');
+
+// Add-switch modal
+const modalBackdrop    = $('modal-backdrop');
+const modalTabs        = $('modal-tabs');
+const tabNetbox        = $('tab-netbox');
+const tabManual        = $('tab-manual');
+const modalNetbox      = $('modal-netbox');
+const modalManual      = $('modal-manual');
+const deviceFilter     = $('device-filter');
+const deviceList       = $('device-list');
+const switchNameInput  = $('switch-name-input');
+const modalCancel      = $('modal-cancel');
+const modalConfirm     = $('modal-confirm');
+const multiselectToggle = $('multiselect-toggle');
+const multiselectCount = $('multiselect-count');
 
 // Rename modal
-const renameBackdrop   = document.getElementById('rename-backdrop');
-const renameInput      = document.getElementById('rename-input');
-const renameCancel     = document.getElementById('rename-cancel');
-const renameConfirm    = document.getElementById('rename-confirm');
+const renameBackdrop   = $('rename-backdrop');
+const renameInput      = $('rename-input');
+const renameCancel     = $('rename-cancel');
+const renameConfirm    = $('rename-confirm');
+
+// Confirm + shortcuts dialogs
+const confirmBackdrop  = $('confirm-backdrop');
+const confirmTitle     = $('confirm-title');
+const confirmText      = $('confirm-text');
+const confirmOk        = $('confirm-ok');
+const confirmCancel    = $('confirm-cancel');
+const shortcutsBackdrop = $('shortcuts-backdrop');
+const shortcutsClose   = $('shortcuts-close');
 
 // Context menu
-const contextMenu      = document.getElementById('context-menu');
-const ctxRename        = document.getElementById('ctx-rename');
-const ctxDelete        = document.getElementById('ctx-delete');
+const contextMenu      = $('context-menu');
+const ctxRename        = $('ctx-rename');
+const ctxDelete        = $('ctx-delete');
 
-// Detail panel
-const detailPanel       = document.getElementById('detail-panel');
-const detailName        = document.getElementById('detail-name');
-const detailStatusBadge = document.getElementById('detail-status-badge');
-const ddSource          = document.getElementById('dd-source');
-const ddPosition        = document.getElementById('dd-position');
-const dtNetboxStatus    = document.getElementById('dt-netbox-status');
-const ddNetboxStatus    = document.getElementById('dd-netbox-status');
-const detailLibrenms    = document.getElementById('detail-librenms');
-const ddHostname        = document.getElementById('dd-hostname');
-const ddLnmsStatus      = document.getElementById('dd-lnms-status');
-const ddIp              = document.getElementById('dd-ip');
-const ddPorts           = document.getElementById('dd-ports');
-const ddTemperature      = document.getElementById('dd-temperature');
-const ddCpu             = document.getElementById('dd-cpu');
-const ddMem             = document.getElementById('dd-mem');
-const barCpu            = document.getElementById('bar-cpu');
-const barMem            = document.getElementById('bar-mem');
-const detailBtnRefresh  = document.getElementById('detail-btn-refresh');
-const detailBtnRename   = document.getElementById('detail-btn-rename');
-const detailBtnDelete   = document.getElementById('detail-btn-delete');
-const detailClose       = document.getElementById('detail-close');
-const settingExcludeHeatmap = document.getElementById('setting-exclude-heatmap');
-const settingHideLabel      = document.getElementById('setting-hide-label');
+// Switch inspector
+const detailPanel       = $('detail-panel');
+const detailName        = $('detail-name');
+const detailStatusBadge = $('detail-status-badge');
+const ddSource          = $('dd-source');
+const ddPosition        = $('dd-position');
+const dtNetboxStatus    = $('dt-netbox-status');
+const ddNetboxStatus    = $('dd-netbox-status');
+const detailLibrenms    = $('detail-librenms');
+const ddHostname        = $('dd-hostname');
+const ddLnmsStatus      = $('dd-lnms-status');
+const ddIp              = $('dd-ip');
+const ddPorts           = $('dd-ports');
+const ddTemperature     = $('dd-temperature');
+const ddCpu             = $('dd-cpu');
+const ddMem             = $('dd-mem');
+const barCpu            = $('bar-cpu');
+const barMem            = $('bar-mem');
+const detailBtnRefresh  = $('detail-btn-refresh');
+const detailBtnRename   = $('detail-btn-rename');
+const detailBtnDelete   = $('detail-btn-delete');
+const detailClose       = $('detail-close');
+const settingExcludeHeatmap = $('setting-exclude-heatmap');
+const settingHideLabel      = $('setting-hide-label');
 
-// Zoom
-const btnZoomIn    = document.getElementById('btn-zoom-in');
-const btnZoomOut   = document.getElementById('btn-zoom-out');
-const btnZoomReset = document.getElementById('btn-zoom-reset');
-const zoomLevelEl  = document.getElementById('zoom-level');
-const btnCenter    = document.getElementById('btn-center');
-const btnHeatmap   = document.getElementById('btn-heatmap');
-const btnSeatHeatmap = document.getElementById('btn-seat-heatmap');
-const heatCanvas   = document.getElementById('heatmap-canvas');
-const seatHeatCanvas = document.getElementById('seat-heatmap-canvas');
-const heatLegend   = document.getElementById('heatmap-legend');
-const seatHeatLegend = document.getElementById('seat-heatmap-legend');
-// Removed: view toggle (always in planning mode)
+// Zoom & layers
+const btnZoomIn      = $('btn-zoom-in');
+const btnZoomOut     = $('btn-zoom-out');
+const btnZoomReset   = $('btn-zoom-reset');
+const zoomLevelEl    = $('zoom-level');
+const btnCenter      = $('btn-center');
+const btnHeatmap     = $('btn-heatmap');
+const btnSeatHeatmap = $('btn-seat-heatmap');
+const heatCanvas     = $('heatmap-canvas');
+const seatHeatCanvas = $('seat-heatmap-canvas');
+const heatLegend     = $('heatmap-legend');
+const seatHeatLegend = $('seat-heatmap-legend');
 
-// Seat block detail panel
-const blockDetailPanel     = document.getElementById('block-detail-panel');
-const blockDetailName      = document.getElementById('block-detail-name');
-const blockDdName          = document.getElementById('block-dd-name');
-const blockDdPosition      = document.getElementById('block-dd-position');
-const blockDdSize          = document.getElementById('block-dd-size');
-const blockDdRotation      = document.getElementById('block-dd-rotation');
-const blockEditName        = document.getElementById('block-edit-name');
-const blockEditRotation    = document.getElementById('block-edit-rotation');
-const blockReverseNumbers  = document.getElementById('block-edit-reverse-numbers');
-const blockDetailClose     = document.getElementById('block-detail-close');
-const blockDetailSave      = document.getElementById('block-detail-save');
-const blockDetailDuplicate = document.getElementById('block-detail-duplicate');
-const blockDetailDelete    = document.getElementById('block-detail-delete');
+// Seat block inspector
+const blockDetailPanel     = $('block-detail-panel');
+const blockDetailName      = $('block-detail-name');
+const blockDdName          = $('block-dd-name');
+const blockDdPosition      = $('block-dd-position');
+const blockDdSize          = $('block-dd-size');
+const blockDdRotation      = $('block-dd-rotation');
+const blockEditForm        = $('block-edit-form');
+const blockEditName        = $('block-edit-name');
+const blockEditCols        = $('block-edit-cols');
+const blockEditRows        = $('block-edit-rows');
+const blockEditRotation    = $('block-edit-rotation');
+const blockEditRotationSeg = $('block-edit-rotation-seg');
+const blockReverseNumbers  = $('block-edit-reverse-numbers');
+const blockDetailClose     = $('block-detail-close');
+const blockDetailDuplicate = $('block-detail-duplicate');
+const blockDetailDelete    = $('block-detail-delete');
 
-// Block seat detail panel
-const blockSeatDetailPanel     = document.getElementById('block-seat-detail-panel');
-const blockSeatDetailNumber    = document.getElementById('block-seat-detail-number');
-const blockSeatDdNumber       = document.getElementById('block-seat-dd-number');
-const blockSeatDdUsername     = document.getElementById('block-seat-dd-username');
-const blockSeatDdPosition     = document.getElementById('block-seat-dd-position');
-const blockSeatDdIp          = document.getElementById('block-seat-dd-ip');
-const blockSeatDdMac         = document.getElementById('block-seat-dd-mac');
-const blockSeatDdSwitch       = document.getElementById('block-seat-dd-switch');
-const blockSeatDdPort        = document.getElementById('block-seat-dd-port');
-const blockSeatDdVlan        = document.getElementById('block-seat-dd-vlan');
-const blockSeatResolutionStatus = document.getElementById('block-seat-resolution-status');
-const blockSeatDetailClose    = document.getElementById('block-seat-detail-close');
-const blockSeatDdPortStatus  = document.getElementById('block-seat-dd-port-status');
-const blockSeatDdTotalTraffic = document.getElementById('block-seat-dd-total-traffic');
-const blockSeatDdDownload    = document.getElementById('block-seat-dd-download');
-const blockSeatDdUpload      = document.getElementById('block-seat-dd-upload');
-const blockSeatDdPortSpeed   = document.getElementById('block-seat-dd-port-speed');
+// Seat inspector
+const blockSeatDetailPanel      = $('block-seat-detail-panel');
+const blockSeatDetailNumber     = $('block-seat-detail-number');
+const blockSeatUserBadge        = $('block-seat-user-badge');
+const blockSeatDdNumber         = $('block-seat-dd-number');
+const blockSeatDdUsername       = $('block-seat-dd-username');
+const blockSeatDdPosition       = $('block-seat-dd-position');
+const blockSeatDdIp             = $('block-seat-dd-ip');
+const blockSeatDdMac            = $('block-seat-dd-mac');
+const blockSeatDdSwitch         = $('block-seat-dd-switch');
+const blockSeatDdPort           = $('block-seat-dd-port');
+const blockSeatDdVlan           = $('block-seat-dd-vlan');
+const blockSeatResolutionStatus = $('block-seat-resolution-status');
+const blockSeatDetailClose      = $('block-seat-detail-close');
+const blockSeatDdPortStatus     = $('block-seat-dd-port-status');
+const blockSeatDdTotalTraffic   = $('block-seat-dd-total-traffic');
+const blockSeatDdDownload       = $('block-seat-dd-download');
+const blockSeatDdUpload         = $('block-seat-dd-upload');
+const blockSeatDdPortSpeed      = $('block-seat-dd-port-speed');
+
+// Top bar stats
+const heroTotal    = $('hero-total');
+const heroOnline   = $('hero-online');
+const heroOffline  = $('hero-offline');
+const heroUnknown  = $('hero-unknown');
+const statusChips  = document.querySelectorAll('.status-chip');
 
 // Seat mapping data from seats.json
 let seatMappings = {};
 
-// Hero bar
-const heroTotal    = document.getElementById('hero-total');
-const heroOnline   = document.getElementById('hero-online');
-const heroOffline  = document.getElementById('hero-offline');
-const heroUnknown  = document.getElementById('hero-unknown');
-
-// ── API helpers ──────────────────────────────────────────────────────────────
+// ── API helper ───────────────────────────────────────────────────────────────────────
 async function api(method, path, body) {
   const opts = { method, headers: {} };
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
   }
-  const res = await fetch(path, opts);
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch (e) {
+    throw new Error('Cannot reach the server');
+  }
+  if (!res.ok) {
+    let msg = `${method} ${path} failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data && data.error) msg = data.error;
+    } catch { /* not JSON */ }
+    throw new Error(msg);
+  }
   return res.json();
 }
 
-// ── Load seat mappings ─────────────────────────────────────────────────────
+// ── Toasts ──────────────────────────────────────────────────────────────────────────
+const toastStack = $('toast-stack');
+
+function toast(message, { type = 'info', action = null, duration = 5000 } = {}) {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  const msg = document.createElement('span');
+  msg.className = 'toast-msg';
+  msg.textContent = message;
+  el.appendChild(msg);
+
+  let timer = null;
+  const dismiss = () => {
+    clearTimeout(timer);
+    if (!el.isConnected) return;
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 180);
+  };
+
+  if (action) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => { dismiss(); action.onClick(); });
+    el.appendChild(btn);
+  }
+  const close = document.createElement('button');
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Dismiss');
+  close.textContent = '✕';
+  close.addEventListener('click', dismiss);
+  el.appendChild(close);
+
+  toastStack.appendChild(el);
+  while (toastStack.children.length > 4) toastStack.firstElementChild.remove();
+  if (duration) timer = setTimeout(dismiss, duration);
+  el.addEventListener('mouseenter', () => clearTimeout(timer));
+  el.addEventListener('mouseleave', () => { if (duration) timer = setTimeout(dismiss, duration); });
+  return dismiss;
+}
+
+function toastError(prefix, err) {
+  toast(`${prefix}: ${err && err.message ? err.message : err}`, { type: 'error', duration: 8000 });
+}
+
+window.addEventListener('unhandledrejection', (e) => {
+  toastError('Something went wrong', e.reason);
+});
+
+// ── Dialog helpers ─────────────────────────────────────────────────────────────
+let confirmResolver = null;
+
+function confirmDialog({ title, text, okLabel = 'Delete' }) {
+  confirmTitle.textContent = title;
+  confirmText.textContent = text;
+  confirmOk.textContent = okLabel;
+  confirmBackdrop.classList.remove('hidden');
+  confirmOk.focus();
+  return new Promise((resolve) => { confirmResolver = resolve; });
+}
+function closeConfirm(result) {
+  confirmBackdrop.classList.add('hidden');
+  if (confirmResolver) { confirmResolver(result); confirmResolver = null; }
+}
+confirmOk.addEventListener('click', () => closeConfirm(true));
+confirmCancel.addEventListener('click', () => closeConfirm(false));
+confirmBackdrop.addEventListener('click', (e) => { if (e.target === confirmBackdrop) closeConfirm(false); });
+
+btnShortcuts.addEventListener('click', () => shortcutsBackdrop.classList.remove('hidden'));
+shortcutsClose.addEventListener('click', () => shortcutsBackdrop.classList.add('hidden'));
+shortcutsBackdrop.addEventListener('click', (e) => { if (e.target === shortcutsBackdrop) shortcutsBackdrop.classList.add('hidden'); });
+
+function anyModalOpen() {
+  return [modalBackdrop, renameBackdrop, blockBackdropEl(), confirmBackdrop, shortcutsBackdrop]
+    .some(el => el && !el.classList.contains('hidden'));
+}
+function closeAllModals() {
+  if (!confirmBackdrop.classList.contains('hidden')) { closeConfirm(false); return; }
+  if (!shortcutsBackdrop.classList.contains('hidden')) { shortcutsBackdrop.classList.add('hidden'); return; }
+  if (!renameBackdrop.classList.contains('hidden')) { renameBackdrop.classList.add('hidden'); return; }
+  if (!modalBackdrop.classList.contains('hidden')) { closeAddModal(); return; }
+  if (!blockBackdropEl().classList.contains('hidden')) { closeBlockModal(); }
+}
+function blockBackdropEl() { return $('block-backdrop'); }
+
+// ── Undo / redo ──────────────────────────────────────────────────────────────────────
+// Each entry is { label, undo: async fn, redo: async fn }. Deleting and then
+// restoring an item gives it a new server id, so ids are resolved through
+// idAlias to keep older history entries pointing at the right item.
+const history = [];
+const future = [];
+const idAlias = {};
+const HISTORY_LIMIT = 100;
+let historyBusy = false;
+let undoToastDismiss = null;   // the latest "Deleted … · Undo" toast
+
+function undoToast(message) {
+  if (undoToastDismiss) undoToastDismiss();
+  undoToastDismiss = toast(message, { action: { label: 'Undo', onClick: undo }, duration: 8000 });
+}
+
+function resolveId(id) {
+  let cur = id;
+  const seen = new Set();
+  while (idAlias[cur] && !seen.has(cur)) { seen.add(cur); cur = idAlias[cur]; }
+  return cur;
+}
+function aliasId(oldId, newId) { if (oldId !== newId) idAlias[oldId] = newId; }
+
+function pushHistory(entry) {
+  history.push(entry);
+  if (history.length > HISTORY_LIMIT) history.shift();
+  future.length = 0;
+  updateHistoryButtons();
+}
+function updateHistoryButtons() {
+  btnUndo.disabled = history.length === 0 || historyBusy;
+  btnRedo.disabled = future.length === 0 || historyBusy;
+  btnUndo.title = history.length ? `Undo ${history[history.length - 1].label} (Ctrl+Z)` : 'Undo (Ctrl+Z)';
+  btnRedo.title = future.length ? `Redo ${future[future.length - 1].label} (Ctrl+Shift+Z)` : 'Redo (Ctrl+Shift+Z)';
+}
+async function undo() {
+  if (historyBusy || !history.length) return;
+  const entry = history.pop();
+  if (undoToastDismiss) { undoToastDismiss(); undoToastDismiss = null; }
+  historyBusy = true; updateHistoryButtons();
+  try {
+    await entry.undo();
+    future.push(entry);
+    toast(`Undid ${entry.label}`, { duration: 2500 });
+  } catch (e) {
+    toastError(`Could not undo ${entry.label}`, e);
+  } finally {
+    historyBusy = false; updateHistoryButtons();
+    renderAll();
+  }
+}
+async function redo() {
+  if (historyBusy || !future.length) return;
+  const entry = future.pop();
+  historyBusy = true; updateHistoryButtons();
+  try {
+    await entry.redo();
+    history.push(entry);
+    toast(`Redid ${entry.label}`, { duration: 2500 });
+  } catch (e) {
+    toastError(`Could not redo ${entry.label}`, e);
+  } finally {
+    historyBusy = false; updateHistoryButtons();
+    renderAll();
+  }
+}
+btnUndo.addEventListener('click', undo);
+btnRedo.addEventListener('click', redo);
+
+// ── Data operations (server + local state) ──────────────────────────────────────
+async function createManualSwitch(data) {
+  const sw = await api('POST', '/api/switches', data);
+  switches.push(sw);
+  return sw;
+}
+async function updateSwitch(id, patch) {
+  const updated = await api('PUT', `/api/switches/${id}`, patch);
+  const idx = switches.findIndex(s => s.id === id);
+  if (idx >= 0) {
+    const keep = switches[idx].status;
+    switches[idx] = { ...switches[idx], ...updated, placed: true };
+    if (updated.status === 'unknown' && keep) switches[idx].status = keep;
+  }
+  return updated;
+}
+async function deleteSwitch(id) {
+  await api('DELETE', `/api/switches/${id}`);
+  // NetBox devices become unplaced; manual devices are fully removed
+  const sw = switches.find(s => s.id === id);
+  if (sw && sw.source !== 'manual') {
+    sw.placed = false;
+    sw.x = null;
+    sw.y = null;
+  } else {
+    switches = switches.filter(s => s.id !== id);
+  }
+  if (selectedId === id) deselectAll();
+}
+async function createBlock(data) {
+  const block = await api('POST', '/api/seat-blocks', data);
+  seatBlocks.push(block);
+  return block;
+}
+async function updateBlock(id, patch) {
+  const updated = await api('PUT', `/api/seat-blocks/${id}`, patch);
+  const block = seatBlocks.find(b => b.id === id);
+  if (block) Object.assign(block, updated);
+  return updated;
+}
+async function deleteBlock(id) {
+  await api('DELETE', `/api/seat-blocks/${id}`);
+  seatBlocks = seatBlocks.filter(b => b.id !== id);
+  if (selectedId === id) deselectAll();
+}
+
+const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height',
+                      'spacing_x', 'spacing_y', 'rotation', 'reverse_numbers'];
+function blockPayload(block) {
+  const out = {};
+  for (const k of BLOCK_FIELDS) if (block[k] !== undefined) out[k] = block[k];
+  return out;
+}
+
+// High-level actions that record history
+async function actionDeleteSwitch(id) {
+  const sw = switches.find(s => s.id === id);
+  if (!sw) return;
+  const snapshot = { name: sw.name, x: sw.x, y: sw.y, source: sw.source };
+  const ref = { id };
+  await deleteSwitch(id);
+  renderAll();
+  const label = `delete ${snapshot.name}`;
+  const restore = async () => {
+    if (snapshot.source === 'manual') {
+      const created = await createManualSwitch({ name: snapshot.name, x: snapshot.x, y: snapshot.y });
+      aliasId(resolveId(ref.id), created.id);
+      ref.id = created.id;
+    } else {
+      await updateSwitch(resolveId(ref.id), { x: snapshot.x, y: snapshot.y });
+    }
+  };
+  pushHistory({ label, undo: restore, redo: () => deleteSwitch(resolveId(ref.id)) });
+  undoToast(snapshot.source === 'manual' ? `Deleted ${snapshot.name}` : `Removed ${snapshot.name} from the map`);
+}
+
+async function actionDeleteBlock(id, { ask = true } = {}) {
+  const block = seatBlocks.find(b => b.id === id);
+  if (!block) return;
+  const name = block.name || 'Unnamed block';
+  if (ask) {
+    const ok = await confirmDialog({
+      title: 'Delete seat block?',
+      text: `“${name}” and its ${block.cols * block.rows} seats will be removed from the map. You can undo this.`,
+    });
+    if (!ok) return;
+  }
+  const snapshot = blockPayload(block);
+  const ref = { id };
+  await deleteBlock(id);
+  renderAll();
+  pushHistory({
+    label: `delete ${name}`,
+    undo: async () => {
+      const created = await createBlock(snapshot);
+      aliasId(resolveId(ref.id), created.id);
+      ref.id = created.id;
+    },
+    redo: () => deleteBlock(resolveId(ref.id)),
+  });
+  undoToast(`Deleted ${name}`);
+}
+
+function recordMove(type, id, from, to) {
+  const label = type === 'block' ? 'move seat block' : 'move switch';
+  const apply = (pos) => async () => {
+    const rid = resolveId(id);
+    if (type === 'block') await updateBlock(rid, pos);
+    else await updateSwitch(rid, pos);
+  };
+  pushHistory({ label, undo: apply(from), redo: apply(to) });
+}
+
+async function deleteSelection() {
+  if (!selectedId) return;
+  if (selectedType === 'block') await actionDeleteBlock(selectedId);
+  else if (selectedType === 'switch') await actionDeleteSwitch(selectedId);
+}
+
+// ── Load data ──────────────────────────────────────────────────────────────────────
 async function loadSeatMappings() {
   try {
     const data = await api('GET', '/api/seats/info');
     seatMappings = data.seats || {};
   } catch (e) {
-    console.error('Failed to load seat mappings:', e);
     seatMappings = {};
   }
 }
+async function loadSwitches()   { switches   = await api('GET', '/api/switches'); }
+async function loadSeats()      { seats      = await api('GET', '/api/seats'); }
+async function loadSeatBlocks() { seatBlocks = await api('GET', '/api/seat-blocks'); }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────────────
 async function init() {
-  // Always use planning mode
-  document.getElementById('canvas-area').classList.add('planning-mode');
+  restoreView();
+  restoreLayerPrefs();
+  initCollapsibleSections();
 
-  const [cfg] = await Promise.all([
+  const results = await Promise.allSettled([
     api('GET', '/api/config'),
     loadSwitches(),
     loadSeats(),
     loadSeatMappings(),
     loadSeatBlocks(),
   ]);
-  config = cfg;
+  if (results[0].status === 'fulfilled') config = results[0].value;
+  const failed = results.filter(r => r.status === 'rejected');
+  if (failed.length) toastError('Could not load all data', failed[0].reason);
+
   applyConfig();
 
-  // Initialize collapsible sections
-  initCollapsibleSections();
-
-  // Load cached status if available for immediate display
   const cachedStatus = getCache();
-  if (cachedStatus) {
-    applyCachedStatus(cachedStatus);
-  }
+  if (cachedStatus) applyCachedStatus(cachedStatus);
 
-  // Fetch fresh status in background
-  doRefreshAll().catch(console.error);
+  renderAll();
+  doRefreshAll().catch(() => {});
 }
 
 function applyCachedStatus(cache) {
-  // Apply cached port statistics
-  for (const [id, stats] of Object.entries(cache.portStats || {})) {
-    portStats[id] = stats;
-  }
-
-  // Apply cached status to switches
+  for (const [id, stats] of Object.entries(cache.portStats || {})) portStats[id] = stats;
   for (const sw of switches) {
-    if (cache.statuses && cache.statuses[sw.id]) {
-      sw.status = cache.statuses[sw.id];
-    }
+    if (cache.statuses && cache.statuses[sw.id]) sw.status = cache.statuses[sw.id];
   }
-
-  // Update UI with cached data
-  renderAll();
 }
 
 function applyConfig() {
-  if (config.netbox_enabled) {
-    syncSection.classList.remove('hidden');
+  syncSection.classList.toggle('hidden', !config.netbox_enabled);
+  if (!config.librenms_enabled) {
+    lastUpdatedEl.textContent = 'LibreNMS not configured';
+    lastUpdatedEl.title = 'Set LIBRENMS_URL and LIBRENMS_TOKEN to see live switch status';
   }
 }
 
-async function loadFloorplan() {
-  const data = await api('GET', '/api/floorplan');
-  if (data.url) {
-    applyFloorplan(data.url);
-  } else {
-    // No floorplan loaded - remove has-image class to allow full canvas placement
-    wrapper.classList.remove('has-image');
-  }
-}
-
-async function loadSwitches() {
-  switches = await api('GET', '/api/switches');
-  renderAll();
-}
-
-async function loadSeats() {
-  seats = await api('GET', '/api/seats');
-  renderAll();
-}
-
-async function loadSeatBlocks() {
-  seatBlocks = await api('GET', '/api/seat-blocks');
-  renderAll();
-}
-
-// ── Collapsible sections ─────────────────────────────────────────────────────
+// ── Collapsible sections ───────────────────────────────────────────────────────
 function initCollapsibleSections() {
-  const sections = document.querySelectorAll('.collapsible-section');
-
-  sections.forEach(section => {
-    const sectionName = section.dataset.section;
+  document.querySelectorAll('.collapsible-section').forEach(section => {
+    const name = section.dataset.section;
     const header = section.querySelector('.section-header');
+    let saved = null;
+    try { saved = localStorage.getItem(`section-${name}`); } catch { /* ignore */ }
+    if (saved === 'collapsed') section.classList.add('collapsed');
+    else if (saved === 'expanded') section.classList.remove('collapsed');
 
-    // Load saved state from localStorage
-    const savedState = localStorage.getItem(`section-${sectionName}`);
-    if (savedState === 'collapsed') {
-      section.classList.add('collapsed');
-    } else if (savedState === 'expanded') {
-      section.classList.remove('collapsed');
-    }
-
-    // Add click handler
-    header.addEventListener('click', () => {
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+    const toggle = () => {
       const isCollapsed = section.classList.toggle('collapsed');
-      // Save state to localStorage
-      localStorage.setItem(`section-${sectionName}`, isCollapsed ? 'collapsed' : 'expanded');
+      header.setAttribute('aria-expanded', String(!isCollapsed));
+      try { localStorage.setItem(`section-${name}`, isCollapsed ? 'collapsed' : 'expanded'); } catch { /* ignore */ }
+    };
+    header.setAttribute('aria-expanded', String(!section.classList.contains('collapsed')));
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
     });
   });
 }
 
-// ── Universal search ─────────────────────────────────────────────────────
+// ── Seat numbering ─────────────────────────────────────────────────────────────────
+// Returns the seat numbers of a block in render order (row by row).
+function blockSeatNumbers(block) {
+  const totalSeats = block.cols * block.rows;
+  const prefix = block.name ? block.name.toUpperCase() + '-' : '';
+  const rotation = (block.rotation || 0) % 360;
+  const base = Array.from({ length: totalSeats }, (_, i) => i + 1);
+
+  let ordered = [];
+  if (rotation >= 0 && rotation < 90) {
+    ordered = [...base];
+  } else if (rotation >= 90 && rotation < 180) {
+    for (let row = 0; row < block.rows; row++) {
+      ordered.push(...base.slice(row * block.cols, (row + 1) * block.cols).reverse());
+    }
+  } else if (rotation >= 180 && rotation < 270) {
+    ordered = [...base].reverse();
+  } else {
+    for (let row = block.rows - 1; row >= 0; row--) {
+      ordered.push(...base.slice(row * block.cols, (row + 1) * block.cols));
+    }
+  }
+  if (block.reverse_numbers) ordered.reverse();
+  return ordered.map(n => ({ number: `${prefix}${n}`, display: n }));
+}
+
+// ── Universal search ───────────────────────────────────────────────────────────────
 let searchDebounceTimer = null;
+let searchActiveIndex = -1;
 
 function renderUniversalSearchResults() {
   const query = universalSearch.value.trim().toLowerCase();
-
-  if (!query) {
-    searchResults.innerHTML = '';
-    return;
-  }
+  searchActiveIndex = -1;
+  if (!query) { searchResults.innerHTML = ''; return; }
 
   let html = '';
-
-  // Search switches by name
   const switchMatches = switches
     .filter(s => s.placed !== false && s.name.toLowerCase().includes(query))
-    .slice(0, 10); // Limit to 10 results
+    .slice(0, 10);
 
-  if (switchMatches.length > 0) {
-    html += '<div class="search-result-group">';
-    html += '<div class="search-result-group-title">Switches</div>';
+  if (switchMatches.length) {
+    html += '<div class="search-result-group"><div class="search-result-group-title">Switches</div>';
     for (const sw of switchMatches) {
       html += `
         <div class="search-result-item" data-type="switch" data-id="${escHtml(sw.id)}">
-          <span class="search-result-item-type">SW</span>
+          <span class="switch-item-glyph status-${escHtml(statusBucket(sw.status))}">${statusGlyph(sw.status)}</span>
           <span class="search-result-item-name">${escHtml(sw.name)}</span>
-          <span class="search-result-item-sub">${escHtml(sw.status)}</span>
-        </div>
-      `;
+          <span class="search-result-item-sub">${escHtml(sw.status || '')}</span>
+        </div>`;
     }
     html += '</div>';
   }
 
-  // Search seats by number and username
   const seatMatches = [];
-
-  // Individual seats
-  for (const seat of seats) {
-    if (seat.number && seat.number.toLowerCase().includes(query)) {
-      seatMatches.push({
-        type: 'seat',
-        id: seat.id,
-        name: seat.number,
-        sub: seat.username || '',
-      });
-    }
-  }
-
-  // Seat blocks
   for (const block of seatBlocks) {
-    const blockPrefix = block.name ? block.name.toUpperCase() + '-' : '';
-    const totalSeats = block.cols * block.rows;
-
-    for (let i = 1; i <= totalSeats; i++) {
-      const seatNumber = `${blockPrefix}${i}`;
-
-      if (seatNumber.toLowerCase().includes(query)) {
-        seatMatches.push({
-          type: 'seat-block',
-          blockId: block.id,
-          seatNumber: seatNumber,
-          name: seatNumber,
-          sub: block.name || 'block',
-        });
+    for (const { number } of blockSeatNumbers(block)) {
+      if (number.toLowerCase().includes(query)) {
+        const user = seatMappings[number]?.username || '';
+        seatMatches.push({ blockId: block.id, seatNumber: number, name: number, sub: user || block.name || 'block' });
       }
-
-      const seatData = seatMappings[seatNumber];
+      const seatData = seatMappings[number];
       if (seatData && seatData.username && seatData.username.toLowerCase().includes(query)) {
-        seatMatches.push({
-          type: 'seat-block',
-          blockId: block.id,
-          seatNumber: seatNumber,
-          name: seatData.username,
-          sub: `${seatNumber} (${block.name || 'block'})`,
-        });
+        seatMatches.push({ blockId: block.id, seatNumber: number, name: seatData.username, sub: number });
       }
     }
   }
-
-  // Deduplicate and limit seat results
   const uniqueSeatMatches = seatMatches
-    .filter((item, index, self) =>
-      index === self.findIndex(t =>
-        t.type === item.type &&
-        t.name === item.name &&
-        t.sub === item.sub
-      )
-    )
+    .filter((item, index, self) => index === self.findIndex(t => t.seatNumber === item.seatNumber && t.name === item.name))
     .slice(0, 10);
 
-  if (uniqueSeatMatches.length > 0) {
-    html += '<div class="search-result-group">';
-    html += '<div class="search-result-group-title">Seats</div>';
+  if (uniqueSeatMatches.length) {
+    html += '<div class="search-result-group"><div class="search-result-group-title">Seats</div>';
     for (const seat of uniqueSeatMatches) {
       html += `
-        <div class="search-result-item" data-type="${escHtml(seat.type)}" data-id="${escHtml(seat.id)}" data-block-id="${escHtml(seat.blockId || '')}" data-seat-number="${escHtml(seat.seatNumber || '')}">
-          <span class="search-result-item-type">${seat.type === 'seat' ? 'SEAT' : 'SEAT'}</span>
+        <div class="search-result-item" data-type="seat-block" data-block-id="${escHtml(seat.blockId)}" data-seat-number="${escHtml(seat.seatNumber)}">
+          <span class="search-result-item-type">Seat</span>
           <span class="search-result-item-name">${escHtml(seat.name)}</span>
           <span class="search-result-item-sub">${escHtml(seat.sub)}</span>
-        </div>
-      `;
+        </div>`;
     }
     html += '</div>';
   }
 
-  if (!html) {
-    html = '<div class="search-no-results">No matches found</div>';
-  }
-
-  searchResults.innerHTML = html;
-
-  // Add click handlers
+  searchResults.innerHTML = html || '<div class="search-no-results">No matches</div>';
   searchResults.querySelectorAll('.search-result-item').forEach(item => {
     item.addEventListener('click', () => handleSearchResultClick(item));
   });
@@ -462,141 +718,278 @@ function renderUniversalSearchResults() {
 
 function handleSearchResultClick(item) {
   const type = item.dataset.type;
-  const id = item.dataset.id;
-  const blockId = item.dataset.blockId;
-  const seatNumber = item.dataset.seatNumber;
-
   if (type === 'switch') {
-    selectSwitch(id);
-  } else if (type === 'seat') {
-    selectSeat(id);
+    selectSwitch(item.dataset.id);
+    focusOnItem(overlay.querySelector(`[data-id="${CSS.escape(item.dataset.id)}"]`));
   } else if (type === 'seat-block') {
-    // Find the seat block and click on the specific seat
-    const block = seatBlocks.find(b => b.id === blockId);
-    if (block) {
-      selectBlock(blockId);
-      // Trigger the seat detail panel
-      showBlockSeatDetail(seatNumber);
-    }
+    showBlockSeatDetail(item.dataset.seatNumber);
+    focusOnItem(blocksOverlay.querySelector(`[data-seat-number="${CSS.escape(item.dataset.seatNumber)}"]`));
   }
-
-  // Clear search
   universalSearch.value = '';
   searchResults.innerHTML = '';
+  universalSearch.blur();
 }
 
 universalSearch.addEventListener('input', () => {
   clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(renderUniversalSearchResults, 300);
+  searchDebounceTimer = setTimeout(renderUniversalSearchResults, 150);
+});
+universalSearch.addEventListener('keydown', (e) => {
+  const items = [...searchResults.querySelectorAll('.search-result-item')];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!items.length) return;
+    e.preventDefault();
+    searchActiveIndex = (searchActiveIndex + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items.forEach((el, i) => el.classList.toggle('kbd-active', i === searchActiveIndex));
+    items[searchActiveIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    const target = items[searchActiveIndex] || items[0];
+    if (target) handleSearchResultClick(target);
+  } else if (e.key === 'Escape') {
+    universalSearch.value = '';
+    searchResults.innerHTML = '';
+    universalSearch.blur();
+  }
 });
 
-// ── Tool selection ───────────────────────────────────────────────────────────
+// ── Tool selection ───────────────────────────────────────────────────────────────────
+const TOOL_HINTS = {
+  'add-switch': 'Click on the map to place a switch · Esc to cancel',
+  'add-block':  'Click on the map to place a seat block · Esc to cancel',
+};
+
 function setTool(tool) {
   currentTool = tool;
   toolSelect.classList.toggle('active', tool === 'select');
   toolAddSwitch.classList.toggle('active', tool === 'add-switch');
-  toolAddSeat.classList.toggle('active',   tool === 'add-seat');
-  toolAddBlock.classList.toggle('active',  tool === 'add-block');
+  toolAddBlock.classList.toggle('active', tool === 'add-block');
   wrapper.dataset.tool = tool;
-  deselectAll();
+  toolHint.textContent = TOOL_HINTS[tool] || '';
+  toolHint.classList.toggle('hidden', !TOOL_HINTS[tool]);
+  if (tool !== 'select') deselectAll();
 }
 
 toolSelect.addEventListener('click', () => setTool('select'));
 toolAddSwitch.addEventListener('click', () => setTool('add-switch'));
 toolAddBlock.addEventListener('click', () => setTool('add-block'));
 
-// ── NetBox sync ──────────────────────────────────────────────────────────────
+function setSnap(on) {
+  snapEnabled = on;
+  btnSnap.classList.toggle('active', on);
+  btnSnap.setAttribute('aria-pressed', String(on));
+  writeJSON('snapEnabled', on);
+}
+btnSnap.addEventListener('click', () => setSnap(!snapEnabled));
+
+// ── NetBox sync ──────────────────────────────────────────────────────────────────────
 btnSync.addEventListener('click', async () => {
   btnSync.disabled = true;
+  btnSync.classList.add('is-busy');
   syncInfo.classList.add('hidden');
   try {
-    switches = await api('POST', '/api/switches/sync');
+    const synced = await api('POST', '/api/switches/sync');
+    // Keep the live status we already know about
+    const statusById = Object.fromEntries(switches.map(s => [s.id, s.status]));
+    const manual = switches.filter(s => s.source === 'manual');
+    switches = [...synced.map(s => ({ ...s, status: statusById[s.id] || s.status })), ...manual];
     renderAll();
-    const count = switches.filter(s => !s.placed && s.source !== 'manual').length;
-    syncInfo.textContent = `Synced – ${switches.length} device(s), ${count} unplaced`;
+    const unplaced = switches.filter(s => !s.placed && s.source !== 'manual').length;
+    syncInfo.textContent = `Synced ${synced.length} device(s), ${unplaced} not on the map yet`;
     syncInfo.classList.remove('hidden');
+    toast(`NetBox sync done: ${synced.length} device(s)`, { type: 'success' });
   } catch (e) {
     syncInfo.textContent = 'Sync failed: ' + e.message;
     syncInfo.classList.remove('hidden');
+    toastError('NetBox sync failed', e);
   } finally {
     btnSync.disabled = false;
+    btnSync.classList.remove('is-busy');
   }
 });
 
-// ── Floor plan click (place items) ────────────────────────────────────────
+// ── Coordinates ──────────────────────────────────────────────────────────────────────
+function snapToGrid(value) {
+  return snapEnabled ? Math.round(value / GRID_SNAP) * GRID_SNAP : Math.round(value * 100) / 100;
+}
+function clientToPercent(clientX, clientY) {
+  const rect = wrapper.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const x = (clientX - rect.left) / rect.width * 100;
+  const y = (clientY - rect.top) / rect.height * 100;
+  return isFinite(x) && isFinite(y) ? { x, y } : null;
+}
+function updatePositionDisplay(x, y) {
+  posX.textContent = snapToGrid(x).toFixed(2);
+  posY.textContent = snapToGrid(y).toFixed(2);
+}
+
+// ── Floor plan click (place items, pick seats) ──────────────────────────────────
 wrapper.addEventListener('click', (e) => {
+  if (suppressNextClick) { suppressNextClick = false; return; }
+
   if (currentTool === 'select') {
-    // Handle clicking on individual seats within blocks
     const seatEl = e.target.closest('.seat-block-seat');
     if (seatEl && seatEl.dataset.seatNumber) {
       e.stopPropagation();
       showBlockSeatDetail(seatEl.dataset.seatNumber);
-      return;
     }
     return;
   }
-  if (e.target.closest('.switch-marker') || e.target.closest('.seat-marker') || e.target.closest('.seat-block') ||
-      e.target.closest('.seat-block-seat') || e.target.closest('.detail-panel')) return;
+  if (e.target.closest('.switch-marker, .seat-marker, .seat-block, .seat-block-seat')) return;
 
-  const wrapperRect = wrapper.getBoundingClientRect();
-  if (!wrapperRect.width || !wrapperRect.height) return;
+  const p = clientToPercent(e.clientX, e.clientY);
+  if (!p) return;
+  pendingCoords = {
+    x: Math.min(100, Math.max(0, snapToGrid(p.x))),
+    y: Math.min(100, Math.max(0, snapToGrid(p.y))),
+  };
 
-  // Use wrapper as coordinate system (0-100% range)
-  const x = parseFloat(((e.clientX - wrapperRect.left) / wrapperRect.width * 100).toFixed(2));
-  const y = parseFloat(((e.clientY - wrapperRect.top) / wrapperRect.height * 100).toFixed(2));
-  if (!isFinite(x) || !isFinite(y)) return;
-
-  // Snap to grid
-  const snappedX = snapToGrid(x);
-  const snappedY = snapToGrid(y);
-
-  pendingCoords = { x: snappedX, y: snappedY };
-
-  if (currentTool === 'add-switch') {
-    openAddModal();
-  } else if (currentTool === 'add-block') {
-    openBlockModal();
-  }
+  if (currentTool === 'add-switch') openAddModal();
+  else if (currentTool === 'add-block') openBlockModal();
 });
 
-// ── Planning mode toggle ─────────────────────────────────────────────────────
-// Removed: always in planning mode
-
-// ── Grid snapping ─────────────────────────────────────────────────────────────
-function snapToGrid(value) {
-  return Math.round(value / GRID_SNAP) * GRID_SNAP;
-}
-
-function updatePositionDisplay(x, y) {
-  const snappedX = snapToGrid(x).toFixed(2);
-  const snappedY = snapToGrid(y).toFixed(2);
-  posX.textContent = snappedX;
-  posY.textContent = snappedY;
-}
-
-// Cursor follow in add mode
 wrapper.addEventListener('mousemove', (e) => {
   const rect = wrapper.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
+  addCursor.style.left = ((e.clientX - rect.left) / view.k) + 'px';
+  addCursor.style.top  = ((e.clientY - rect.top) / view.k) + 'px';
+  const p = clientToPercent(e.clientX, e.clientY);
+  if (p) updatePositionDisplay(p.x, p.y);
+});
 
-  // Update cursor position
-  addCursor.style.left = (e.clientX - rect.left) + 'px';
-  addCursor.style.top  = (e.clientY - rect.top)  + 'px';
-
-  // Update position display
-  const x = ((e.clientX - rect.left) / rect.width * 100);
-  const y = ((e.clientY - rect.top) / rect.height * 100);
-  if (isFinite(x) && isFinite(y)) {
-    updatePositionDisplay(x, y);
+// ── Pan & zoom ───────────────────────────────────────────────────────────────────────
+function applyView() {
+  wrapper.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
+  addCursor.style.transform = `translate(-50%, -50%) scale(${1 / view.k})`;
+  zoomLevelEl.textContent = Math.round(view.k * 100) + '%';
+}
+let saveViewTimer = null;
+function saveView() {
+  clearTimeout(saveViewTimer);
+  saveViewTimer = setTimeout(() => writeJSON('floorplanView', view), 300);
+}
+function restoreView() {
+  const saved = readJSON('floorplanView', null);
+  if (saved && isFinite(saved.x) && isFinite(saved.y) && isFinite(saved.k)) {
+    view.x = saved.x; view.y = saved.y;
+    view.k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, saved.k));
   }
+  applyView();
+}
+function setView(x, y, k) {
+  view.k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, k));
+  view.x = x; view.y = y;
+  applyView();
+  saveView();
+}
+function zoomAt(clientX, clientY, factor) {
+  const area = canvasArea.getBoundingClientRect();
+  const cx = clientX - area.left;
+  const cy = clientY - area.top;
+  const newK = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, view.k * factor));
+  const wx = (cx - view.x) / view.k;
+  const wy = (cy - view.y) / view.k;
+  setView(cx - wx * newK, cy - wy * newK, newK);
+}
+function zoomCentered(factor) {
+  const area = canvasArea.getBoundingClientRect();
+  zoomAt(area.left + area.width / 2, area.top + area.height / 2, factor);
+}
+function resetView() { setView(0, 0, 1); }
+
+// Fit all placed items in view
+function fitToContent() {
+  const els = [
+    ...overlay.querySelectorAll('.switch-marker'),
+    ...blocksOverlay.querySelectorAll('.seat-block'),
+    ...seatsOverlay.querySelectorAll('.seat-marker'),
+  ];
+  if (!els.length) { resetView(); return; }
+  const wr = wrapper.getBoundingClientRect();
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of els) {
+    const r = el.getBoundingClientRect();
+    minX = Math.min(minX, (r.left - wr.left) / view.k);
+    minY = Math.min(minY, (r.top - wr.top) / view.k);
+    maxX = Math.max(maxX, (r.right - wr.left) / view.k);
+    maxY = Math.max(maxY, (r.bottom - wr.top) / view.k);
+  }
+  const area = canvasArea.getBoundingClientRect();
+  const pad = 80;
+  const w = Math.max(maxX - minX, 40);
+  const h = Math.max(maxY - minY, 40);
+  const k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min((area.width - pad * 2) / w, (area.height - pad * 2) / h)));
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  setView(area.width / 2 - cx * k, area.height / 2 - cy * k, k);
+}
+
+// Pan so an element is visible (used after search)
+function focusOnItem(el) {
+  if (!el) return;
+  const area = canvasArea.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const margin = 60;
+  if (r.left >= area.left + margin && r.right <= area.right - margin &&
+      r.top >= area.top + margin && r.bottom <= area.bottom - margin) return;
+  const dx = area.left + area.width / 2 - (r.left + r.width / 2);
+  const dy = area.top + area.height / 2 - (r.top + r.height / 2);
+  setView(view.x + dx, view.y + dy, view.k);
+}
+
+btnZoomIn.addEventListener('click',    () => zoomCentered(ZOOM_STEP));
+btnZoomOut.addEventListener('click',   () => zoomCentered(1 / ZOOM_STEP));
+btnZoomReset.addEventListener('click', resetView);
+zoomLevelEl.addEventListener('click',  resetView);
+btnCenter.addEventListener('click',    fitToContent);
+
+// Wheel / trackpad pinch zooms toward the cursor
+canvasArea.addEventListener('wheel', (e) => {
+  if (e.target.closest('.toolbar, .zoom-bar')) return;
+  e.preventDefault();
+  const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+  zoomAt(e.clientX, e.clientY, Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015)));
+}, { passive: false });
+
+// Drag on empty space pans (left button in Select, middle button or Space anywhere)
+let spaceHeld = false;
+canvasArea.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.toolbar, .zoom-bar, .switch-marker, .seat-marker, .seat-block')) return;
+  const canPan = e.button === 1 || (e.button === 0 && (currentTool === 'select' || spaceHeld));
+  if (!canPan) return;
+  e.preventDefault();
+  panState = { startX: e.clientX, startY: e.clientY, origX: view.x, origY: view.y, moved: false };
+  document.addEventListener('mousemove', onPanMove);
+  document.addEventListener('mouseup', onPanUp);
+});
+function onPanMove(e) {
+  if (!panState) return;
+  const dx = e.clientX - panState.startX;
+  const dy = e.clientY - panState.startY;
+  if (!panState.moved && Math.hypot(dx, dy) < 3) return;
+  if (!panState.moved) canvasArea.classList.add('panning');
+  panState.moved = true;
+  setView(panState.origX + dx, panState.origY + dy, view.k);
+}
+function onPanUp() {
+  document.removeEventListener('mousemove', onPanMove);
+  document.removeEventListener('mouseup', onPanUp);
+  canvasArea.classList.remove('panning');
+  if (panState && panState.moved) {
+    suppressNextClick = true;
+    setTimeout(() => { suppressNextClick = false; }, 0);
+  } else if (panState && currentTool === 'select') {
+    deselectAll(); // plain click on empty space
+  }
+  panState = null;
+}
+
+window.addEventListener('resize', () => {
+  if (heatmapVisible) renderHeatmap();
+  if (seatHeatmapVisible) renderSeatHeatmap();
 });
 
-// Click on canvas background → deselect
-wrapper.addEventListener('mousedown', (e) => {
-  if (e.target === wrapper || e.target === floorplanImg) deselectAll();
-});
-
-// ── Add Modal ────────────────────────────────────────────────────────────────
+// ── Add-switch modal ─────────────────────────────────────────────────────────────────
 let activeModalTab = 'manual'; // 'netbox' | 'manual'
 let isMultiselectMode = false;
 
@@ -609,7 +1002,6 @@ function openAddModal() {
 
   if (config.netbox_enabled) {
     modalTabs.classList.remove('hidden');
-    // Default to netbox tab if devices available, else manual
     const unplaced = switches.filter(s => !s.placed && s.source !== 'manual');
     setModalTab(unplaced.length > 0 ? 'netbox' : 'manual');
   } else {
@@ -617,7 +1009,6 @@ function openAddModal() {
     setModalTab('manual');
   }
 
-  // Set default name for manual tab
   let n = switches.filter(s => s.source === 'manual').length + 1;
   let def = `SW-${String(n).padStart(2, '0')}`;
   const names = switches.map(s => s.name);
@@ -658,40 +1049,26 @@ tabManual.addEventListener('click', () => {
 
 function renderDevicePicker(filter) {
   const unplaced = switches.filter(s =>
-    !s.placed &&
-    s.source !== 'manual' &&
-    s.name.toLowerCase().includes(filter.toLowerCase())
-  );
-  if (unplaced.length === 0) {
-    deviceList.innerHTML = `<div class="device-empty">No unplaced devices${filter ? ' matching filter' : ''}</div>`;
+    !s.placed && s.source !== 'manual' && s.name.toLowerCase().includes(filter.toLowerCase()));
+  if (!unplaced.length) {
+    deviceList.innerHTML = `<div class="device-empty">No devices left to place${filter ? ' matching the filter' : ''}</div>`;
     return;
   }
   deviceList.innerHTML = '';
   for (const dev of unplaced) {
     const item = document.createElement('div');
     const isSelected = selectedDeviceIds.has(dev.id);
-    item.className = 'device-item' + (isMultiselectMode ? ' multiselect-mode' : '') + (dev.id === pendingPickerDeviceId || isSelected ? ' selected' : '');
+    item.className = 'device-item' + (isMultiselectMode ? ' multiselect-mode' : '') +
+      (dev.id === pendingPickerDeviceId || isSelected ? ' selected' : '');
     item.dataset.id = dev.id;
-
-    if (isMultiselectMode) {
-      item.innerHTML = `
-        <span class="device-item-checkbox ${isSelected ? 'checked' : ''}"></span>
-        <span class="device-item-name">${escHtml(dev.name)}</span>
-        <span class="device-item-badge">${escHtml(dev.netbox_status || '')}</span>
-      `;
-    } else {
-      item.innerHTML = `
-        <span class="device-item-name">${escHtml(dev.name)}</span>
-        <span class="device-item-badge">${escHtml(dev.netbox_status || '')}</span>
-      `;
-    }
+    item.innerHTML = `
+      ${isMultiselectMode ? `<span class="device-item-checkbox ${isSelected ? 'checked' : ''}"></span>` : ''}
+      <span class="device-item-name">${escHtml(dev.name)}</span>
+      <span class="device-item-badge">${escHtml(dev.netbox_status || '')}</span>`;
     item.addEventListener('click', () => {
       if (isMultiselectMode) {
-        if (selectedDeviceIds.has(dev.id)) {
-          selectedDeviceIds.delete(dev.id);
-        } else {
-          selectedDeviceIds.add(dev.id);
-        }
+        if (selectedDeviceIds.has(dev.id)) selectedDeviceIds.delete(dev.id);
+        else selectedDeviceIds.add(dev.id);
         updateMultiselectCount();
         renderDevicePicker(filter);
       } else {
@@ -700,18 +1077,15 @@ function renderDevicePicker(filter) {
           el.classList.toggle('selected', el.dataset.id === dev.id);
       }
     });
+    item.addEventListener('dblclick', () => { if (!isMultiselectMode) modalConfirm.click(); });
     deviceList.appendChild(item);
   }
 }
 
 function updateMultiselectCount() {
   const count = selectedDeviceIds.size;
-  if (count > 0) {
-    multiselectCount.textContent = `${count} selected`;
-    multiselectCount.style.display = 'block';
-  } else {
-    multiselectCount.style.display = 'none';
-  }
+  multiselectCount.textContent = `${count} selected`;
+  multiselectCount.style.display = count > 0 ? 'block' : 'none';
 }
 
 deviceFilter.addEventListener('input', () => renderDevicePicker(deviceFilter.value));
@@ -723,13 +1097,8 @@ deviceFilter.addEventListener('keydown', (e) => {
 multiselectToggle.addEventListener('change', () => {
   isMultiselectMode = multiselectToggle.checked;
   if (isMultiselectMode) {
-    // Convert single selection to multiselect
-    if (pendingPickerDeviceId) {
-      selectedDeviceIds.add(pendingPickerDeviceId);
-      pendingPickerDeviceId = null;
-    }
+    if (pendingPickerDeviceId) { selectedDeviceIds.add(pendingPickerDeviceId); pendingPickerDeviceId = null; }
   } else {
-    // Clear multiselect when turning off
     selectedDeviceIds.clear();
   }
   updateMultiselectCount();
@@ -753,76 +1122,112 @@ switchNameInput.addEventListener('keydown', (e) => {
 
 modalConfirm.addEventListener('click', async () => {
   if (!pendingCoords) return;
+  modalConfirm.disabled = true;
+  try {
+    if (activeModalTab === 'netbox' && config.netbox_enabled) {
+      const ids = isMultiselectMode ? Array.from(selectedDeviceIds)
+                                    : (pendingPickerDeviceId ? [pendingPickerDeviceId] : []);
+      if (!ids.length) { deviceFilter.focus(); return; }
 
-  if (activeModalTab === 'netbox' && config.netbox_enabled) {
-    if (isMultiselectMode) {
-      // Place multiple devices in a grid pattern
-      if (selectedDeviceIds.size === 0) { deviceFilter.focus(); return; }
-      const ids = Array.from(selectedDeviceIds);
-      const baseX = pendingCoords.x;
-      const baseY = pendingCoords.y;
-
-      // Calculate grid dimensions
+      // Place several devices in a grid around the click point
       const cols = Math.ceil(Math.sqrt(ids.length));
-      const spacing = 8; // percentage spacing
-
-      for (let i = 0; i < ids.length; i++) {
+      const rowsCount = Math.ceil(ids.length / cols);
+      const spacing = 8; // % of the floor plan
+      const placements = ids.map((id, i) => {
         const row = Math.floor(i / cols);
         const col = i % cols;
-        const offsetX = (col - (cols - 1) / 2) * spacing;
-        const offsetY = (row - (Math.ceil(ids.length / cols) - 1) / 2) * spacing;
+        return {
+          id,
+          x: Math.max(0, Math.min(100, pendingCoords.x + (col - (cols - 1) / 2) * spacing)),
+          y: Math.max(0, Math.min(100, pendingCoords.y + (row - (rowsCount - 1) / 2) * spacing)),
+        };
+      });
 
-        const newX = Math.max(0, Math.min(100, baseX + offsetX));
-        const newY = Math.max(0, Math.min(100, baseY + offsetY));
-
-        await placeNetboxDevice(ids[i], newX, newY);
+      const placed = [];
+      for (const p of placements) {
+        try {
+          await updateSwitch(p.id, { x: p.x, y: p.y });
+          placed.push(p);
+        } catch (e) {
+          const name = switches.find(s => s.id === p.id)?.name || p.id;
+          toastError(`Could not place ${name}`, e);
+        }
       }
       closeAddModal();
       setTool('select');
+      renderAll();
+      if (placed.length) {
+        if (placed.length === 1) selectSwitch(placed[0].id);
+        pushHistory({
+          label: placed.length === 1 ? 'place switch' : `place ${placed.length} switches`,
+          undo: async () => { for (const p of placed) await deleteSwitch(resolveId(p.id)); },
+          redo: async () => { for (const p of placed) await updateSwitch(resolveId(p.id), { x: p.x, y: p.y }); },
+        });
+      }
     } else {
-      if (!pendingPickerDeviceId) { deviceFilter.focus(); return; }
-      await placeNetboxDevice(pendingPickerDeviceId, pendingCoords.x, pendingCoords.y);
+      const name = switchNameInput.value.trim();
+      if (!name) { switchNameInput.focus(); return; }
+      const data = { name, ...pendingCoords };
+      const sw = await createManualSwitch(data);
+      const ref = { id: sw.id };
       closeAddModal();
       setTool('select');
+      renderAll();
+      selectSwitch(sw.id);
+      pushHistory({
+        label: `add ${name}`,
+        undo: () => deleteSwitch(resolveId(ref.id)),
+        redo: async () => {
+          const created = await createManualSwitch(data);
+          aliasId(resolveId(ref.id), created.id);
+          ref.id = created.id;
+        },
+      });
     }
-  } else {
-    const name = switchNameInput.value.trim();
-    if (!name) { switchNameInput.focus(); return; }
-    const sw = await api('POST', '/api/switches', { name, ...pendingCoords });
-    switches.push(sw);
-    renderAll();
-    closeAddModal();
-    setTool('select');
-    selectSwitch(sw.id);
+  } catch (e) {
+    toastError('Could not place switch', e);
+  } finally {
+    modalConfirm.disabled = false;
   }
 });
 
-async function placeNetboxDevice(id, x, y) {
-  try {
-    const sw = await api('PUT', `/api/switches/${id}`, { x, y });
-    const idx = switches.findIndex(s => s.id === id);
-    if (idx >= 0) switches[idx] = { ...switches[idx], ...sw };
-    renderAll();
-    // Only select if this is a single placement or the last one in multiselect
-    if (!isMultiselectMode || !selectedDeviceIds.has(id)) {
-      selectSwitch(id);
-    }
-  } catch (e) {
-    alert('Failed to place device: ' + e.message);
-  }
-}
+// ── Seat block modal ─────────────────────────────────────────────────────────────────
+const blockBackdrop    = $('block-backdrop');
+const blockName        = $('block-name');
+const blockCols        = $('block-cols');
+const blockRows        = $('block-rows');
+const blockSpacingX    = $('block-spacing-x');
+const blockSpacingY    = $('block-spacing-y');
+const blockRotation    = $('block-rotation');
+const blockReverseNumbersModal = $('block-reverse-numbers-modal');
+const blockCancel      = $('block-cancel');
+const blockConfirm     = $('block-confirm');
+const blockPreview     = $('block-preview');
 
-// ── Seat Block Modal ───────────────────────────────────────────────────────────
-const blockBackdrop    = document.getElementById('block-backdrop');
-const blockName        = document.getElementById('block-name');
-const blockCols        = document.getElementById('block-cols');
-const blockRows        = document.getElementById('block-rows');
-const blockSpacingX    = document.getElementById('block-spacing-x');
-const blockSpacingY    = document.getElementById('block-spacing-y');
-const blockRotation    = document.getElementById('block-rotation');
-const blockReverseNumbersModal = document.getElementById('block-reverse-numbers-modal');
-const blockCancel      = document.getElementById('block-cancel');
-const blockConfirm     = document.getElementById('block-confirm');
+function blockModalValues() {
+  return {
+    name: blockName.value.trim(),
+    cols: Math.max(1, parseInt(blockCols.value) || 1),
+    rows: Math.max(1, parseInt(blockRows.value) || 1),
+    seat_width: 1.5,
+    seat_height: 1.5,
+    spacing_x: parseFloat(blockSpacingX.value) || 0.5,
+    spacing_y: parseFloat(blockSpacingY.value) || 1,
+    numbering_pattern: 'blockname_number',
+    reverse_numbers: blockReverseNumbersModal.checked,
+    rotation: parseInt(blockRotation.value) || 0,
+  };
+}
+function updateBlockPreview() {
+  const v = blockModalValues();
+  const nums = blockSeatNumbers(v);
+  const first = nums[0]?.number;
+  const last = nums[nums.length - 1]?.number;
+  blockPreview.textContent = `${nums.length} seat${nums.length === 1 ? '' : 's'}` +
+    (first ? ` · numbered ${first}${nums.length > 1 ? ` to ${last}` : ''}` : '');
+}
+[blockName, blockCols, blockRows, blockRotation].forEach(el => el.addEventListener('input', updateBlockPreview));
+blockReverseNumbersModal.addEventListener('change', updateBlockPreview);
 
 function openBlockModal() {
   blockName.value = '';
@@ -832,6 +1237,7 @@ function openBlockModal() {
   blockSpacingY.value = '1';
   blockRotation.value = '0';
   blockReverseNumbersModal.checked = false;
+  updateBlockPreview();
   blockBackdrop.classList.remove('hidden');
   blockName.focus();
 }
@@ -843,137 +1249,138 @@ function closeBlockModal() {
 
 blockCancel.addEventListener('click', closeBlockModal);
 blockBackdrop.addEventListener('click', (e) => { if (e.target === blockBackdrop) closeBlockModal(); });
+blockBackdrop.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') blockConfirm.click();
+});
 blockConfirm.addEventListener('click', async () => {
   if (!pendingCoords) return;
-
-  const block = await api('POST', '/api/seat-blocks', {
-    name: blockName.value.trim(),
-    cols: parseInt(blockCols.value) || 1,
-    rows: parseInt(blockRows.value) || 1,
-    seat_width: 1.5,
-    seat_height: 1.5,
-    spacing_x: parseFloat(blockSpacingX.value) || 0.5,
-    spacing_y: parseFloat(blockSpacingY.value) || 1,
-    numbering_pattern: 'blockname_number',
-    reverse_numbers: blockReverseNumbersModal.checked,
-    rotation: parseInt(blockRotation.value) || 0,
-    ...pendingCoords,
-  });
-  seatBlocks.push(block);
-  renderAll();
-  closeBlockModal();
-  setTool('select');
-  selectBlock(block.id);
+  blockConfirm.disabled = true;
+  try {
+    const data = { ...blockModalValues(), ...pendingCoords };
+    const block = await createBlock(data);
+    const ref = { id: block.id };
+    closeBlockModal();
+    setTool('select');
+    renderAll();
+    selectBlock(block.id);
+    pushHistory({
+      label: `add ${data.name || 'seat block'}`,
+      undo: () => deleteBlock(resolveId(ref.id)),
+      redo: async () => {
+        const created = await createBlock(data);
+        aliasId(resolveId(ref.id), created.id);
+        ref.id = created.id;
+      },
+    });
+  } catch (e) {
+    toastError('Could not create seat block', e);
+  } finally {
+    blockConfirm.disabled = false;
+  }
 });
 
-// ── Rendering ────────────────────────────────────────────────────────────────
+// ── Rendering ──────────────────────────────────────────────────────────────────────
 function renderAll() {
   renderOverlay();
   renderSeats();
   renderBlocks();
   renderSidebar();
   updateHeroStats();
+  updateEmptyState();
   if (heatmapVisible) renderHeatmap();
-  // Seat heatmap is rendered inside renderBlocks() with delay for DOM settling
+  if (seatHeatmapVisible) renderSeatHeatmap();
+}
+
+function matchesStatusFilter(sw) {
+  return statusFilter === 'all' || statusBucket(sw.status) === statusFilter;
 }
 
 function renderOverlay() {
   overlay.innerHTML = '';
   for (const sw of switches) {
-    if (sw.placed !== false) overlay.appendChild(createMarker(sw));
+    if (sw.placed !== false && sw.x != null) overlay.appendChild(createMarker(sw));
   }
 }
 
 function renderSeats() {
   seatsOverlay.innerHTML = '';
-  for (const seat of seats) {
-    seatsOverlay.appendChild(createSeatMarker(seat));
-  }
+  for (const seat of seats) seatsOverlay.appendChild(createSeatMarker(seat));
 }
 
 function renderBlocks() {
   blocksOverlay.innerHTML = '';
-  for (const block of seatBlocks) {
-    blocksOverlay.appendChild(createBlockMarker(block));
-  }
+  for (const block of seatBlocks) blocksOverlay.appendChild(createBlockMarker(block));
+}
+
+function updateEmptyState() {
+  const placed = switches.some(s => s.placed !== false && s.x != null);
+  emptyCanvas.classList.toggle('hidden', placed || seatBlocks.length > 0 || seats.length > 0);
 }
 
 function renderSidebar() {
   const placed = switches.filter(s => s.placed !== false);
-
   switchCount.textContent = placed.length;
 
-  // Apply search filter
   const searchTerm = switchSearch.value.trim().toLowerCase();
-  const filtered = placed.filter(s =>
-    s.name.toLowerCase().includes(searchTerm)
-  );
+  const filtered = placed.filter(s => s.name.toLowerCase().includes(searchTerm) && matchesStatusFilter(s));
 
-  if (filtered.length === 0) {
-    if (placed.length === 0) {
-      switchList.innerHTML = '<p class="empty-hint">No switches placed yet.</p>';
-    } else {
-      switchList.innerHTML = '<p class="empty-hint">No switches match your search.</p>';
-    }
-  } else {
-    switchList.innerHTML = '';
-    for (const sw of filtered) {
-      const item = document.createElement('div');
-      item.className = 'switch-item' + (sw.id === selectedId ? ' active' : '');
-      item.dataset.id = sw.id;
+  listFilter.classList.toggle('hidden', statusFilter === 'all');
+  listFilterText.textContent = statusFilter === 'all' ? '' : `Showing ${statusFilter} switches only`;
 
-      // Get traffic stats for display
-      const stats = portStats[sw.id];
-      let trafficText = sw.status;
-      if (stats && stats.total_traffic_bps != null) {
-        const rate = fmtBps(stats.total_traffic_bps);
-        trafficText = sw.status + ' · ' + rate;
-      }
-      if (stats && stats.temperature != null) {
-        trafficText += ' · ' + stats.temperature + '°C';
-      }
-
-      item.innerHTML = `
-        <span class="switch-item-dot status-${sw.status}" style="background:currentColor"></span>
-        <span class="switch-item-name">${escHtml(sw.name)}</span>
-        <span class="switch-item-status">${trafficText}</span>
-      `;
-      item.addEventListener('click', () => selectSwitch(sw.id));
-      switchList.appendChild(item);
-    }
+  if (!filtered.length) {
+    switchList.innerHTML = placed.length
+      ? '<p class="empty-hint">No switches match.</p>'
+      : '<p class="empty-hint">No switches placed yet. Press <kbd>S</kbd> and click on the map.</p>';
+    return;
   }
+
+  // Offline first, then by name, so problems surface at the top
+  const order = { offline: 0, warning: 1, unknown: 2, online: 3 };
+  filtered.sort((a, b) => (order[a.status] ?? 2) - (order[b.status] ?? 2) || a.name.localeCompare(b.name));
+
+  const frag = document.createDocumentFragment();
+  for (const sw of filtered) {
+    const item = document.createElement('div');
+    item.className = 'switch-item' + (sw.id === selectedId && selectedType === 'switch' ? ' active' : '');
+    item.dataset.id = sw.id;
+    item.tabIndex = 0;
+
+    const stats = portStats[sw.id];
+    const parts = [];
+    if (stats && stats.total_traffic_bps != null) parts.push(fmtBps(stats.total_traffic_bps));
+    if (stats && stats.temperature != null) parts.push(stats.temperature + '°C');
+    const detail = parts.length ? parts.join(' · ') : (sw.status || 'unknown');
+
+    item.innerHTML = `
+      <span class="switch-item-glyph status-${escHtml(statusBucket(sw.status))}" title="${escHtml(sw.status || 'unknown')}">${statusGlyph(sw.status)}</span>
+      <span class="switch-item-name">${escHtml(sw.name)}</span>
+      <span class="switch-item-status">${escHtml(detail)}</span>`;
+    const activate = () => {
+      selectSwitch(sw.id);
+      focusOnItem(overlay.querySelector(`[data-id="${CSS.escape(sw.id)}"]`));
+    };
+    item.addEventListener('click', activate);
+    item.addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(); });
+    frag.appendChild(item);
+  }
+  switchList.innerHTML = '';
+  switchList.appendChild(frag);
 }
 
 function createMarker(sw) {
   const el = document.createElement('div');
-  const isSelected = sw.id === selectedId;
-  el.className = 'switch-marker' + (isSelected ? ' selected' : '');
+  const isSelected = sw.id === selectedId && selectedType === 'switch';
+  el.className = 'switch-marker' + (isSelected ? ' selected' : '') + (matchesStatusFilter(sw) ? '' : ' dimmed');
   el.dataset.id = sw.id;
   el.style.left = sw.x + '%';
   el.style.top  = sw.y + '%';
+  el.title = `${sw.name} · ${sw.status || 'unknown'}`;
   const hideLabel = getDeviceSetting(sw.id, 'hideLabel');
-  // Show label when selected or on hover
   el.innerHTML = `
-    <div class="switch-pin status-${sw.status}">${pinSVG()}</div>
-    ${hideLabel ? '' : `<div class="switch-label" style="opacity:${isSelected ? '1' : '0'}; transition: opacity 0.2s">${escHtml(sw.name)}</div>`}
-  `;
+    <div class="switch-pin status-${escHtml(sw.status || 'unknown')}">${pinSVG(sw.status)}</div>
+    ${hideLabel ? '' : `<div class="switch-label">${escHtml(sw.name)}</div>`}`;
   el.addEventListener('mousedown', onMarkerMouseDown);
   el.addEventListener('contextmenu', onMarkerContextMenu);
-
-  // Show label on hover (unless already shown due to selection)
-  el.addEventListener('mouseenter', () => {
-    if (!isSelected) {
-      const label = el.querySelector('.switch-label');
-      if (label) label.style.opacity = '1';
-    }
-  });
-  el.addEventListener('mouseleave', () => {
-    if (!isSelected) {
-      const label = el.querySelector('.switch-label');
-      if (label) label.style.opacity = '0';
-    }
-  });
-
   return el;
 }
 
@@ -983,30 +1390,14 @@ function createSeatMarker(seat) {
   el.className = 'seat-marker' + (isSelected ? ' selected' : '');
   el.dataset.id = seat.id;
   el.dataset.type = 'seat';
-  // Add data-seat-number attribute for heatmap rendering
-  if (seat.number) {
-    el.dataset.seatNumber = seat.number;
-  }
+  if (seat.number) el.dataset.seatNumber = seat.number;
   el.style.left = seat.x + '%';
   el.style.top = seat.y + '%';
   el.style.transform = `translate(-50%, -50%) rotate(${seat.rotation || 0}deg)`;
-
-  const typeChar = {
-    chair: '☐',
-    desk: '▭',
-    booth: '▢',
-    vip: '★'
-  }[seat.type] || '☐';
-
+  const typeChar = { chair: '☐', desk: '▭', booth: '▢', vip: '★' }[seat.type] || '☐';
   el.innerHTML = `
-    <div class="seat-icon seat-status-${seat.status}">
-      ${typeChar}
-    </div>
-    ${seat.number ? `<div class="seat-number">${escHtml(seat.number)}</div>` : ''}
-  `;
-  el.addEventListener('mousedown', onSeatMouseDown);
-  el.addEventListener('contextmenu', onSeatContextMenu);
-
+    <div class="seat-icon">${typeChar}</div>
+    ${seat.number ? `<div class="seat-number">${escHtml(seat.number)}</div>` : ''}`;
   return el;
 }
 
@@ -1018,144 +1409,96 @@ function createBlockMarker(block) {
   el.dataset.type = 'block';
   el.style.left = block.x + '%';
   el.style.top = block.y + '%';
-  el.style.transform = `translate(-50%, -50%) rotate(${block.rotation || 0}deg)`;
-
-  // Calculate total height
-  const totalHeight = block.rows * block.seat_height + (block.rows - 1) * block.spacing_y;
-
-  let html = '';
-  if (block.name) {
-    html += `<div class="seat-block-label">${escHtml(block.name)}</div>`;
-  }
-
-  // Generate seat numbers using "Block Name-Number" scheme with rotation support
-  let seatNum = 1;
-  const totalSeats = block.cols * block.rows;
-  // Use block name as prefix (format: "A-1", "B-2", etc.)
-  const blockPrefix = block.name ? block.name.toUpperCase() + '-' : '';
-
-  // Calculate rotation offset (90°, 180°, 270° rotations change numbering direction)
   const rotation = (block.rotation || 0) % 360;
-  let seatNumbers = [];
-  for (let i = 0; i < totalSeats; i++) {
-    seatNumbers.push(seatNum++);
-  }
+  el.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
 
-  // Apply rotation offset - different rotation directions change number order
-  let rotatedNumbers = [];
-  if (rotation >= 0 && rotation < 90) {
-    // 0°: left to right, top to bottom (normal order)
-    rotatedNumbers = [...seatNumbers];
-  } else if (rotation >= 90 && rotation < 180) {
-    // 90°: top to bottom, right to left (reverse columns)
-    for (let row = 0; row < block.rows; row++) {
-      const rowStart = row * block.cols;
-      const rowEnd = rowStart + block.cols;
-      const rowNumbers = seatNumbers.slice(rowStart, rowEnd).reverse();
-      rotatedNumbers.push(...rowNumbers);
-    }
-  } else if (rotation >= 180 && rotation < 270) {
-    // 180°: right to left, bottom to top (reverse all)
-    rotatedNumbers = [...seatNumbers].reverse();
-  } else {
-    // 270°: bottom to top, left to right (reverse rows)
-    for (let row = block.rows - 1; row >= 0; row--) {
-      const rowStart = row * block.cols;
-      const rowEnd = rowStart + block.cols;
-      const rowNumbers = seatNumbers.slice(rowStart, rowEnd);
-      rotatedNumbers.push(...rowNumbers);
-    }
-  }
-
-  // Handle reverse numbers after rotation
-  if (block.reverse_numbers) {
-    rotatedNumbers.reverse();
-  }
-
-  let numIndex = 0;
+  let html = block.name ? `<div class="seat-block-label">${escHtml(block.name)}</div>` : '';
+  const numbers = blockSeatNumbers(block);
+  const counterRotation = rotation ? `transform: rotate(${-rotation}deg);` : '';
+  let i = 0;
   for (let row = 0; row < block.rows; row++) {
     html += '<div class="seat-block-row">';
     for (let col = 0; col < block.cols; col++) {
-      const number = `${blockPrefix}${rotatedNumbers[numIndex]}`;
-      const displayNum = rotatedNumbers[numIndex];
-      const counterRotation = rotation ? `transform: rotate(${-rotation}deg);` : '';
-
-      html += `<div class="seat-block-seat status-available" style="${counterRotation}" data-seat-number="${escHtml(number)}" title="${escHtml(number)}">${escHtml(displayNum)}</div>`;
-      numIndex++;
+      const { number, display } = numbers[i++];
+      const user = seatMappings[number]?.username;
+      const cls = 'seat-block-seat' + (user ? ' has-user' : '') +
+                  (selectedType === 'seat' && currentBlockSeatNumber === number ? ' selected' : '');
+      const title = user ? `${number} · ${user}` : number;
+      html += `<div class="${cls}" style="${counterRotation}" data-seat-number="${escHtml(number)}" title="${escHtml(title)}">${escHtml(display)}</div>`;
     }
     html += '</div>';
   }
-
   el.innerHTML = html;
-  el.style.height = totalHeight + '%';
-  el.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
 
   el.addEventListener('mousedown', onBlockMouseDown);
   el.addEventListener('contextmenu', onBlockContextMenu);
-
   return el;
 }
 
-// ── Selection & detail panel ──────────────────────────────────────────────────
-function selectSwitch(id) {
-  selectedId = id;
+// ── Selection & inspector ────────────────────────────────────────────────────────────────
+function hideInspectors() {
+  detailPanel.classList.add('hidden');
+  blockDetailPanel.classList.add('hidden');
+  blockSeatDetailPanel.classList.add('hidden');
+}
 
-  // Update marker selection state and label visibility
-  for (const m of overlay.querySelectorAll('.switch-marker')) {
-    const isSelected = m.dataset.id === id;
-    m.classList.toggle('selected', isSelected);
-    // Show/hide label based on selection
-    const label = m.querySelector('.switch-label');
-    if (label && !getDeviceSetting(m.dataset.id, 'hideLabel')) {
-      label.style.opacity = isSelected ? '1' : '0';
-    }
-  }
-
+function markSelection() {
+  for (const m of overlay.querySelectorAll('.switch-marker'))
+    m.classList.toggle('selected', selectedType === 'switch' && m.dataset.id === selectedId);
+  for (const m of blocksOverlay.querySelectorAll('.seat-block'))
+    m.classList.toggle('selected', selectedType === 'block' && m.dataset.id === selectedId);
+  for (const s of blocksOverlay.querySelectorAll('.seat-block-seat'))
+    s.classList.toggle('selected', selectedType === 'seat' && s.dataset.seatNumber === currentBlockSeatNumber);
   for (const item of switchList.querySelectorAll('.switch-item'))
-    item.classList.toggle('active', item.dataset.id === id);
+    item.classList.toggle('active', selectedType === 'switch' && item.dataset.id === selectedId);
+}
 
-  if (!id) { detailPanel.classList.add('hidden'); return; }
-
+function selectSwitch(id) {
+  if (!id) { deselectAll(); return; }
   const sw = switches.find(s => s.id === id);
-  if (!sw) { detailPanel.classList.add('hidden'); return; }
+  if (!sw) { deselectAll(); return; }
 
-  // Populate
+  selectedId = id;
+  selectedType = 'switch';
+  currentBlockSeatNumber = null;
+  markSelection();
+  hideInspectors();
+
   detailName.textContent = sw.name;
-  detailStatusBadge.textContent = sw.status;
-  detailStatusBadge.className = `detail-status-badge status-${sw.status}`;
-
+  setStatusBadge(sw.status);
   ddSource.textContent   = sw.source === 'manual' ? 'Manual' : 'NetBox';
-  ddPosition.textContent = sw.x != null ? `${sw.x.toFixed(1)}% / ${sw.y.toFixed(1)}%` : '—';
+  ddPosition.textContent = sw.x != null ? `${Number(sw.x).toFixed(1)}% / ${Number(sw.y).toFixed(1)}%` : '—';
 
-  if (sw.netbox_status !== undefined) {
-    dtNetboxStatus.classList.remove('hidden');
-    ddNetboxStatus.classList.remove('hidden');
-    ddNetboxStatus.textContent = sw.netbox_status;
-  } else {
-    dtNetboxStatus.classList.add('hidden');
-    ddNetboxStatus.classList.add('hidden');
-  }
+  const hasNetbox = sw.netbox_status !== undefined;
+  dtNetboxStatus.classList.toggle('hidden', !hasNetbox);
+  ddNetboxStatus.classList.toggle('hidden', !hasNetbox);
+  if (hasNetbox) ddNetboxStatus.textContent = sw.netbox_status;
 
   detailLibrenms.style.display = config.librenms_enabled ? '' : 'none';
+  populateLnmsFields({ hostname: sw.name, status: sw.status, ...(portStats[id] || {}) });
+  if (config.librenms_enabled) fetchSwitchStatus(id);
 
-  // Check if we have cached stats, otherwise show loading state
-  const cachedStats = portStats[id];
-  if (cachedStats) {
-    populateLnmsFields({ hostname: sw.name, status: sw.status, ...cachedStats });
-  } else {
-    populateLnmsFields({ hostname: sw.name, status: sw.status });
-  }
-
-  // Fetch fresh status data immediately
-  if (config.librenms_enabled) {
-    fetchSwitchStatus(id);
-  }
-
-  // Device settings
   settingExcludeHeatmap.checked = getDeviceSetting(id, 'excludeHeatmap');
   settingHideLabel.checked      = getDeviceSetting(id, 'hideLabel');
 
   detailPanel.classList.remove('hidden');
+}
+
+function setStatusBadge(status) {
+  detailStatusBadge.textContent = status || 'unknown';
+  detailStatusBadge.className = `detail-status-badge status-${status || 'unknown'}`;
+}
+
+function storePortStats(id, data) {
+  if (data.up_ports != null) {
+    portStats[id] = {
+      up_ports:          data.up_ports,
+      total_ports:       data.total_ports,
+      traffic_util:      data.traffic_util      ?? null,
+      total_traffic_bps: data.total_traffic_bps ?? null,
+      temperature:       data.temperature       ?? null,
+    };
+  }
 }
 
 async function fetchSwitchStatus(id) {
@@ -1163,469 +1506,316 @@ async function fetchSwitchStatus(id) {
     const data = await api('GET', `/api/switches/${id}/status`);
     const sw = switches.find(s => s.id === id);
     if (sw) sw.status = data.status;
-    if (data.up_ports != null) {
-      portStats[id] = {
-        up_ports:          data.up_ports,
-        total_ports:       data.total_ports,
-        traffic_util:      data.traffic_util      ?? null,
-        total_traffic_bps: data.total_traffic_bps ?? null,
-        temperature:       data.temperature       ?? null,
-      };
-    }
-    // Update detail panel if this switch is still selected
-    if (selectedId === id) {
-      detailStatusBadge.textContent = data.status;
-      detailStatusBadge.className = `detail-status-badge status-${data.status}`;
+    storePortStats(id, data);
+    if (selectedId === id && selectedType === 'switch') {
+      setStatusBadge(data.status);
       populateLnmsFields(data);
     }
-    // Update sidebar items
-    renderAll();
-
-    // Save to cache
+    renderOverlay();
+    renderSidebar();
+    markSelection();
+    updateHeroStats();
     saveStatusCache();
   } catch (e) {
-    console.error('Failed to fetch switch status:', e);
+    if (selectedId === id) ddLnmsStatus.textContent = 'Lookup failed';
   }
 }
 
-function deselectSwitch() { selectSwitch(null); }
-
-function selectSeat(id) {
-  deselectAll();
-  selectedId = id;
-  selectedType = 'seat';
-
-  const seat = seats.find(s => s.id === id);
-  if (!seat) return;
-
-  const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
-  if (marker) marker.classList.add('selected');
-
-  // For individual seats, we could show a detail panel similar to switches
-  // For now, we'll just highlight the marker
-}
 function deselectAll() {
   selectedId = null;
   selectedType = null;
   currentBlockSeatNumber = null;
   currentBlockSeatResolution = null;
-  // Update switch markers
-  for (const m of overlay.querySelectorAll('.switch-marker')) {
-    m.classList.remove('selected');
-    const label = m.querySelector('.switch-label');
-    if (label && !getDeviceSetting(m.dataset.id, 'hideLabel')) {
-      label.style.opacity = '0';
-    }
-  }
-  for (const item of switchList.querySelectorAll('.switch-item'))
-    item.classList.remove('active');
-
-  // Hide detail panels
-  detailPanel.classList.add('hidden');
-  blockDetailPanel.classList.add('hidden');
-  blockSeatDetailPanel.classList.add('hidden');
-
-  // Update block markers
-  for (const m of blocksOverlay.querySelectorAll('.seat-block'))
-    m.classList.remove('selected');
-
-  detailPanel.classList.add('hidden');
-  blockDetailPanel.classList.add('hidden');
+  hideInspectors();
+  markSelection();
 }
 
-// ── Block seat detail panel ─────────────────────────────────────────────────────
+// ── Seat inspector ───────────────────────────────────────────────────────────────────
 let currentBlockSeatNumber = null;
 let currentBlockSeatResolution = null;
 
+function resetSeatNetworkFields() {
+  for (const el of [blockSeatDdMac, blockSeatDdSwitch, blockSeatDdPort, blockSeatDdVlan,
+                    blockSeatDdPortStatus, blockSeatDdTotalTraffic, blockSeatDdDownload,
+                    blockSeatDdUpload, blockSeatDdPortSpeed]) {
+    el.textContent = '—';
+    el.style.color = '';
+  }
+}
+function setResolution(text, tone) {
+  blockSeatResolutionStatus.textContent = text;
+  blockSeatResolutionStatus.style.color = tone ? `var(--${tone})` : '';
+}
+
 async function showBlockSeatDetail(seatNumber) {
   deselectAll();
+  selectedType = 'seat';
   currentBlockSeatNumber = seatNumber;
   currentBlockSeatResolution = null;
+  markSelection();
 
   const seatData = seatMappings[seatNumber];
+  blockSeatDetailNumber.textContent = seatNumber;
+  blockSeatDdNumber.textContent = seatNumber;
+  blockSeatDdPosition.textContent = seatNumber;
+  resetSeatNetworkFields();
+
   if (!seatData) {
-    blockSeatDetailNumber.textContent = seatNumber;
+    blockSeatUserBadge.textContent = 'Not mapped';
+    blockSeatUserBadge.className = 'detail-status-badge badge-plain';
     blockSeatDdUsername.textContent = '—';
-    blockSeatDdPosition.textContent = '—';
     blockSeatDdIp.textContent = '—';
-    blockSeatDdMac.textContent = '—';
-    blockSeatDdSwitch.textContent = '—';
-    blockSeatDdPort.textContent = '—';
-    blockSeatDdVlan.textContent = '—';
-    blockSeatResolutionStatus.textContent = 'No seat mapping found in seats.json';
-    blockSeatResolutionStatus.style.color = 'var(--warning)';
+    setResolution('This seat has no entry in seats.json.', 'warning');
     blockSeatDetailPanel.classList.remove('hidden');
     return;
   }
 
-  blockSeatDetailNumber.textContent = seatNumber;
+  blockSeatUserBadge.textContent = seatData.username || 'No user';
+  blockSeatUserBadge.className = 'detail-status-badge badge-plain' + (seatData.username ? ' status-online' : '');
   blockSeatDdUsername.textContent = seatData.username || '—';
   blockSeatDdIp.textContent = seatData.ip_address || '—';
-  blockSeatDdPosition.textContent = seatNumber;
-  blockSeatDdMac.textContent = '—';
-  blockSeatDdSwitch.textContent = '—';
-  blockSeatDdPort.textContent = '—';
-  blockSeatDdVlan.textContent = '—';
-  blockSeatDdPortStatus.textContent = '—';
-  blockSeatDdTotalTraffic.textContent = '—';
-  blockSeatDdDownload.textContent = '—';
-  blockSeatDdUpload.textContent = '—';
-  blockSeatDdPortSpeed.textContent = '—';
-  blockSeatResolutionStatus.textContent = 'Resolving...';
-  blockSeatResolutionStatus.style.color = 'var(--text-tertiary)';
-
   blockSeatDetailPanel.classList.remove('hidden');
 
-  // Resolve IP to get MAC, switch, and port info
-  if (seatData.ip_address) {
-    try {
-      const result = await api('GET', `/api/resolve/${seatData.ip_address}`);
-      currentBlockSeatResolution = result;
-      blockSeatDdMac.textContent = result.mac || '—';
-      blockSeatDdSwitch.textContent = result.device_name || result.hostname || '—';
-      blockSeatDdPort.textContent = result.port || '—';
-      blockSeatDdVlan.textContent = result.vlan || '—';
+  if (!seatData.ip_address) {
+    setResolution('No IP address configured for this seat.', 'warning');
+    return;
+  }
 
-      // Populate port usage statistics
-      if (result.stats) {
-        const stats = result.stats;
-        blockSeatDdPortStatus.textContent = stats.ifOperStatus || '—';
-        blockSeatDdPortStatus.style.color = stats.ifOperStatus === 'up' ? 'var(--success)' : 'var(--danger)';
+  setResolution('Looking up switch port…');
+  try {
+    const result = await api('GET', `/api/resolve/${encodeURIComponent(seatData.ip_address)}`);
+    if (currentBlockSeatNumber !== seatNumber) return; // user moved on
+    currentBlockSeatResolution = result;
+    blockSeatDdMac.textContent = result.mac || '—';
+    blockSeatDdSwitch.textContent = result.device_name || result.hostname || '—';
+    blockSeatDdPort.textContent = result.port || '—';
+    blockSeatDdVlan.textContent = result.vlan || '—';
 
-        const inRate = (parseFloat(stats.ifInOctets_rate) || 0) * 8;
-        const outRate = (parseFloat(stats.ifOutOctets_rate) || 0) * 8;
-        const totalBps = inRate + outRate;
-        const speedBps = parseFloat(stats.ifSpeed) || 0;
-
-        blockSeatDdTotalTraffic.textContent = fmtBps(totalBps);
-        blockSeatDdDownload.textContent = fmtBps(inRate);
-        blockSeatDdUpload.textContent = fmtBps(outRate);
-        blockSeatDdPortSpeed.textContent = fmtBps(speedBps);
-      }
-
-      blockSeatResolutionStatus.textContent = `Resolved via ${result.arp_source || 'LibreNMS ARP table'}`;
-      blockSeatResolutionStatus.style.color = 'var(--success)';
-
-      // Update seat heatmap with this resolved data
-      if (seatHeatmapVisible) {
-        seatHeatmapData.seats = seatHeatmapData.seats || {};
-        seatHeatmapData.seats[seatNumber] = {
-          'username': seatData.username,
-          'ip_address': seatData.ip_address,
-          'resolved': true,
-          'port_usage': result.stats ? {
-            'total_bps': ((parseFloat(result.stats.ifInOctets_rate) || 0) + (parseFloat(result.stats.ifOutOctets_rate) || 0)) * 8,
-            'in_rate_bps': (parseFloat(result.stats.ifInOctets_rate) || 0) * 8,
-            'out_rate_bps': (parseFloat(result.stats.ifOutOctets_rate) || 0) * 8,
-            'status': result.stats.ifOperStatus,
-            'speed_bps': parseFloat(result.stats.ifSpeed) || 0,
-          } : null,
-          'device_name': result.device_name,
-          'port': result.port,
-          'vlan': result.vlan,
-          'mac': result.mac,
-        };
-        renderSeatHeatmap();
-      }
-    } catch (e) {
-      blockSeatDdMac.textContent = '—';
-      blockSeatDdSwitch.textContent = '—';
-      blockSeatDdPort.textContent = '—';
-      blockSeatDdVlan.textContent = '—';
-      blockSeatDdPortStatus.textContent = '—';
-      blockSeatDdTotalTraffic.textContent = '—';
-      blockSeatDdDownload.textContent = '—';
-      blockSeatDdUpload.textContent = '—';
-      blockSeatDdPortSpeed.textContent = '—';
-      blockSeatResolutionStatus.textContent = `Failed to resolve: ${e.message}`;
-      blockSeatResolutionStatus.style.color = 'var(--danger)';
-
-      // Update seat heatmap with unresolved state
-      if (seatHeatmapVisible) {
-        seatHeatmapData.seats = seatHeatmapData.seats || {};
-        seatHeatmapData.seats[seatNumber] = {
-          'username': seatData.username,
-          'ip_address': seatData.ip_address,
-          'resolved': false,
-          'port_usage': null,
-          'error': e.message || 'Could not resolve',
-        };
-        renderSeatHeatmap();
-      }
+    let portUsage = null;
+    if (result.stats) {
+      const stats = result.stats;
+      blockSeatDdPortStatus.textContent = stats.ifOperStatus || '—';
+      blockSeatDdPortStatus.style.color = stats.ifOperStatus === 'up' ? 'var(--success)' : 'var(--danger)';
+      const inRate = (parseFloat(stats.ifInOctets_rate) || 0) * 8;
+      const outRate = (parseFloat(stats.ifOutOctets_rate) || 0) * 8;
+      const speedBps = parseFloat(stats.ifSpeed) || 0;
+      blockSeatDdTotalTraffic.textContent = fmtBps(inRate + outRate);
+      blockSeatDdDownload.textContent = fmtBps(inRate);
+      blockSeatDdUpload.textContent = fmtBps(outRate);
+      blockSeatDdPortSpeed.textContent = fmtBps(speedBps);
+      portUsage = { total_bps: inRate + outRate, in_rate_bps: inRate, out_rate_bps: outRate,
+                    status: stats.ifOperStatus, speed_bps: speedBps };
     }
-  } else {
-    blockSeatResolutionStatus.textContent = 'No IP address configured';
-    blockSeatResolutionStatus.style.color = 'var(--warning)';
+    setResolution(`Found via ${result.arp_source || 'the LibreNMS ARP table'}.`, 'success');
+
+    if (seatHeatmapVisible) {
+      seatHeatmapData.seats = seatHeatmapData.seats || {};
+      seatHeatmapData.seats[seatNumber] = {
+        username: seatData.username, ip_address: seatData.ip_address, resolved: true,
+        port_usage: portUsage, device_name: result.device_name, port: result.port,
+        vlan: result.vlan, mac: result.mac,
+      };
+      renderSeatHeatmap();
+    }
+  } catch (e) {
+    if (currentBlockSeatNumber !== seatNumber) return;
+    resetSeatNetworkFields();
+    setResolution(`Lookup failed: ${e.message}`, 'danger');
+    if (seatHeatmapVisible) {
+      seatHeatmapData.seats = seatHeatmapData.seats || {};
+      seatHeatmapData.seats[seatNumber] = {
+        username: seatData.username, ip_address: seatData.ip_address,
+        resolved: false, port_usage: null, error: e.message || 'Could not resolve',
+      };
+      renderSeatHeatmap();
+    }
   }
 }
 
+// ── Block inspector ──────────────────────────────────────────────────────────────────
 function selectBlock(id) {
-  deselectAll();
+  if (!id) { deselectAll(); return; }
+  const block = seatBlocks.find(b => b.id === id);
+  if (!block) { deselectAll(); return; }
+
   selectedId = id;
   selectedType = 'block';
-
-  for (const m of blocksOverlay.querySelectorAll('.seat-block')) {
-    m.classList.toggle('selected', m.dataset.id === id);
-  }
-
-  if (!id) { blockDetailPanel.classList.add('hidden'); return; }
-
-  const block = seatBlocks.find(b => b.id === id);
-  if (!block) { blockDetailPanel.classList.add('hidden'); return; }
-
-  blockDetailName.textContent = block.name || 'Unnamed Block';
-  blockDdName.textContent = block.name || '—';
-  blockDdPosition.textContent = `${block.x.toFixed(1)}% / ${block.y.toFixed(1)}%`;
-  blockDdSize.textContent = `${block.cols}×${block.rows}`;
-  blockDdRotation.textContent = `${block.rotation || 0}°`;
-
-  blockEditName.value = block.name || '';
-  blockEditRotation.value = block.rotation || 0;
-  blockReverseNumbers.checked = block.reverse_numbers || false;
-
+  currentBlockSeatNumber = null;
+  markSelection();
+  hideInspectors();
+  fillBlockInspector(block);
   blockDetailPanel.classList.remove('hidden');
 }
 
+function fillBlockInspector(block) {
+  blockDetailName.textContent = block.name || 'Unnamed block';
+  blockDdName.textContent = block.name || '—';
+  blockDdPosition.textContent = `${Number(block.x).toFixed(1)}% / ${Number(block.y).toFixed(1)}%`;
+  blockDdSize.textContent = `${block.cols} × ${block.rows} · ${block.cols * block.rows} seats`;
+  blockDdRotation.textContent = `${block.rotation || 0}°`;
+
+  blockEditName.value = block.name || '';
+  blockEditCols.value = block.cols;
+  blockEditRows.value = block.rows;
+  setRotationInput(block.rotation || 0);
+  blockReverseNumbers.checked = !!block.reverse_numbers;
+}
+
+function setRotationInput(deg) {
+  blockEditRotation.value = deg;
+  for (const b of blockEditRotationSeg.querySelectorAll('button'))
+    b.classList.toggle('active', Number(b.dataset.rot) === Number(deg));
+}
+blockEditRotationSeg.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-rot]');
+  if (b) setRotationInput(Number(b.dataset.rot));
+});
+blockEditRotation.addEventListener('input', () => setRotationInput(parseInt(blockEditRotation.value) || 0));
+
+blockEditForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!selectedId || selectedType !== 'block') return;
+  const block = seatBlocks.find(b => b.id === selectedId);
+  if (!block) return;
+  const patch = {
+    name: blockEditName.value.trim(),
+    cols: Math.min(50, Math.max(1, parseInt(blockEditCols.value) || block.cols)),
+    rows: Math.min(20, Math.max(1, parseInt(blockEditRows.value) || block.rows)),
+    rotation: parseInt(blockEditRotation.value) || 0,
+    reverse_numbers: blockReverseNumbers.checked,
+  };
+  const before = Object.fromEntries(Object.keys(patch).map(k => [k, block[k]]));
+  const id = block.id;
+  try {
+    await updateBlock(id, patch);
+    pushHistory({
+      label: 'edit seat block',
+      undo: () => updateBlock(resolveId(id), before),
+      redo: () => updateBlock(resolveId(id), patch),
+    });
+    renderAll();
+    selectBlock(id);
+    toast('Seat block saved', { type: 'success', duration: 2500 });
+  } catch (err) {
+    toastError('Could not save seat block', err);
+  }
+});
+
+blockDetailDuplicate.addEventListener('click', async () => {
+  if (!selectedId || selectedType !== 'block') return;
+  const original = seatBlocks.find(b => b.id === selectedId);
+  if (!original) return;
+  const data = {
+    ...blockPayload(original),
+    name: `${original.name || 'Block'} (copy)`,
+    numbering_pattern: 'blockname_number',
+    x: Math.min(95, original.x + 5),
+    y: Math.min(95, original.y + 5),
+  };
+  try {
+    const dup = await createBlock(data);
+    const ref = { id: dup.id };
+    renderAll();
+    selectBlock(dup.id);
+    pushHistory({
+      label: 'duplicate seat block',
+      undo: () => deleteBlock(resolveId(ref.id)),
+      redo: async () => {
+        const created = await createBlock(data);
+        aliasId(resolveId(ref.id), created.id);
+        ref.id = created.id;
+      },
+    });
+  } catch (e) {
+    toastError('Could not duplicate seat block', e);
+  }
+});
+
+blockDetailDelete.addEventListener('click', () => {
+  if (selectedId && selectedType === 'block') actionDeleteBlock(selectedId);
+});
+blockDetailClose.addEventListener('click', deselectAll);
+blockSeatDetailClose.addEventListener('click', deselectAll);
+
+// ── Switch inspector wiring ────────────────────────────────────────────────────────────────
 function setBar(barEl, valueEl, pct) {
   const p = pct != null ? Math.min(100, Math.max(0, pct)) : null;
   if (p == null) {
     barEl.style.width = '0%';
-    barEl.className   = 'resource-bar';
+    barEl.className = 'resource-bar';
     valueEl.textContent = '—';
     return;
   }
-  barEl.style.width   = p + '%';
-  barEl.className     = 'resource-bar' + (p >= 90 ? ' crit' : p >= 70 ? ' warn' : '');
+  barEl.style.width = p + '%';
+  barEl.className = 'resource-bar' + (p >= 90 ? ' crit' : p >= 70 ? ' warn' : '');
   valueEl.textContent = p + '%';
 }
 
 function fmtBps(bps) {
   if (bps == null) return null;
-  if (bps >= 1e9)  return (bps / 1e9).toFixed(1) + ' Gbps';
-  if (bps >= 1e6)  return (bps / 1e6).toFixed(1) + ' Mbps';
-  if (bps >= 1e3)  return (bps / 1e3).toFixed(1) + ' Kbps';
-  return bps + ' bps';
+  if (bps >= 1e9) return (bps / 1e9).toFixed(1) + ' Gbps';
+  if (bps >= 1e6) return (bps / 1e6).toFixed(1) + ' Mbps';
+  if (bps >= 1e3) return (bps / 1e3).toFixed(1) + ' Kbps';
+  return Math.round(bps) + ' bps';
 }
 
 function populateLnmsFields(data) {
-  ddHostname.textContent   = data.hostname  || '—';
-  ddLnmsStatus.textContent = data.status    || '—';
-  ddIp.textContent         = data.ip        || '—';
+  ddHostname.textContent   = data.hostname || '—';
+  ddLnmsStatus.textContent = data.status   || '—';
+  ddIp.textContent         = data.ip       || '—';
 
   let portsText = '—';
   if (data.up_ports != null) {
     portsText = `${data.up_ports} / ${data.total_ports ?? '?'}`;
     const rate = fmtBps(data.total_traffic_bps);
-    if (rate) {
-      portsText += ` · ${rate}`;
-    }
+    if (rate) portsText += ` · ${rate}`;
   }
   ddPorts.textContent = portsText;
-
   ddTemperature.textContent = data.temperature != null ? `${data.temperature}°C` : '—';
-
-  setBar(barCpu, ddCpu, data.cpu_load    != null ? data.cpu_load    : null);
-  setBar(barMem, ddMem, data.mem_percent != null ? data.mem_percent : null);
+  setBar(barCpu, ddCpu, data.cpu_load ?? null);
+  setBar(barMem, ddMem, data.mem_percent ?? null);
 }
 
-// Detail panel wiring
-detailClose.addEventListener('click', deselectSwitch);
+detailClose.addEventListener('click', deselectAll);
 
 settingExcludeHeatmap.addEventListener('change', () => {
   if (!selectedId) return;
   setDeviceSetting(selectedId, 'excludeHeatmap', settingExcludeHeatmap.checked);
   if (heatmapVisible) renderHeatmap();
 });
-
 settingHideLabel.addEventListener('change', () => {
   if (!selectedId) return;
   setDeviceSetting(selectedId, 'hideLabel', settingHideLabel.checked);
   renderOverlay();
+  markSelection();
 });
 
 detailBtnRename.addEventListener('click', () => {
-  if (selectedId) { contextId = selectedId; openRenameModal(selectedId); }
+  if (selectedId && selectedType === 'switch') openRenameModal(selectedId);
 });
-
-detailBtnDelete.addEventListener('click', async () => {
-  if (selectedId) await doDelete(selectedId);
+detailBtnDelete.addEventListener('click', () => {
+  if (selectedId && selectedType === 'switch') actionDeleteSwitch(selectedId);
 });
-
 detailBtnRefresh.addEventListener('click', async () => {
   if (!selectedId) return;
   detailBtnRefresh.disabled = true;
-  try {
-    const data = await api('GET', `/api/switches/${selectedId}/status`);
-    const sw = switches.find(s => s.id === selectedId);
-    if (sw) sw.status = data.status;
-    if (data.up_ports != null) {
-      portStats[selectedId] = {
-        up_ports:          data.up_ports,
-        total_ports:       data.total_ports,
-        traffic_util:      data.traffic_util      ?? null,
-        total_traffic_bps: data.total_traffic_bps ?? null,
-        temperature:       data.temperature       ?? null,
-      };
-    }
-    detailStatusBadge.textContent = data.status;
-    detailStatusBadge.className   = `detail-status-badge status-${data.status}`;
-    populateLnmsFields(data);
-    renderAll();
-  } finally {
+  detailBtnRefresh.classList.add('is-busy');
+  try { await fetchSwitchStatus(selectedId); }
+  finally {
     detailBtnRefresh.disabled = false;
+    detailBtnRefresh.classList.remove('is-busy');
   }
 });
 
-// ── Drag ─────────────────────────────────────────────────────────────────────
-function onMarkerMouseDown(e) {
-  if (e.button !== 0 || currentTool !== 'select') return;
-  e.stopPropagation();
-
-  const marker = e.currentTarget;
-  const id = marker.dataset.id;
-  const sw = switches.find(s => s.id === id);
-  if (!sw) return;
-
-  selectSwitch(id);
-
+// ── Drag ─────────────────────────────────────────────────────────────────────────────
+function startDrag(e, type, item, marker) {
   dragState = {
-    id,
-    type: 'switch',
+    id: item.id,
+    type,
     startX: e.clientX,
     startY: e.clientY,
-    origX:  sw.x,
-    origY:  sw.y,
-    wrapperRect: wrapper.getBoundingClientRect(),
-    moved: false,
-  };
-  marker.classList.add('dragging');
-  document.addEventListener('mousemove', onDocMouseMove);
-  document.addEventListener('mouseup',   onDocMouseUp);
-}
-
-function onDocMouseMove(e) {
-  if (!dragState) return;
-  const { id, type, startX, startY, origX, origY, wrapperRect } = dragState;
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
-  if (!dragState.moved && Math.hypot(dx, dy) < 3) return;
-  dragState.moved = true;
-
-  // Always use wrapperRect for coordinate calculation
-  const rect = wrapperRect || wrapper.getBoundingClientRect();
-  const newX = Math.min(100, Math.max(0, snapToGrid(origX + (dx / rect.width * 100))));
-  const newY = Math.min(100, Math.max(0, snapToGrid(origY + (dy / rect.height * 100))));
-
-  if (type === 'seat') {
-    const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
-    if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
-    const seat = seats.find(s => s.id === id);
-    if (seat) { seat.x = newX; seat.y = newY; }
-  } else if (type === 'block') {
-    const marker = blocksOverlay.querySelector(`[data-id="${id}"]`);
-    if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
-    const block = seatBlocks.find(b => b.id === id);
-    if (block) { block.x = newX; block.y = newY; }
-  } else {
-    // Switch handling
-    const marker = overlay.querySelector(`[data-id="${id}"]`);
-    if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
-    const sw = switches.find(s => s.id === id);
-    if (sw) { sw.x = newX; sw.y = newY; }
-  }
-
-  // Update position display during drag
-  updatePositionDisplay(newX, newY);
-
-  if (heatmapVisible) renderHeatmap();
-}
-
-async function onDocMouseUp() {
-  if (!dragState) return;
-  document.removeEventListener('mousemove', onDocMouseMove);
-  document.removeEventListener('mouseup', onDocMouseUp);
-
-  const { id, type, moved } = dragState;
-
-  if (type === 'seat') {
-    const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
-    if (marker) marker.classList.remove('dragging');
-    if (moved) {
-      const seat = seats.find(s => s.id === id);
-      if (seat) await api('PUT', `/api/seats/${id}`, { x: seat.x, y: seat.y }).catch(console.error);
-    }
-  } else if (type === 'block') {
-    const marker = blocksOverlay.querySelector(`[data-id="${id}"]`);
-    if (marker) marker.classList.remove('dragging');
-    if (moved) {
-      const block = seatBlocks.find(b => b.id === id);
-      if (block) await api('PUT', `/api/seat-blocks/${id}`, { x: block.x, y: block.y }).catch(console.error);
-    }
-  } else {
-    // Switch handling (original behavior)
-    const marker = overlay.querySelector(`[data-id="${id}"]`);
-    if (marker) marker.classList.remove('dragging');
-    if (moved) {
-      const sw = switches.find(s => s.id === id);
-      if (sw) await api('PUT', `/api/switches/${id}`, { x: sw.x, y: sw.y }).catch(console.error);
-    }
-  }
-  dragState = null;
-}
-
-// ── Seat Drag Handlers ───────────────────────────────────────────────────────
-function onSeatMouseDown(e) {
-  if (e.button !== 0 || currentTool !== 'select') return;
-  e.stopPropagation();
-
-  const marker = e.currentTarget;
-  const id = marker.dataset.id;
-  const seat = seats.find(s => s.id === id);
-  if (!seat) return;
-
-  selectSeat(id);
-
-  const wrapperRect = wrapper.getBoundingClientRect();
-  dragState = {
-    id,
-    type: 'seat',
-    startX: e.clientX,
-    startY: e.clientY,
-    origX: seat.x,
-    origY: seat.y,
-    wrapperRect: wrapperRect,
-    moved: false,
-  };
-  marker.classList.add('dragging');
-  document.addEventListener('mousemove', onDocMouseMove);
-  document.addEventListener('mouseup',   onDocMouseUp);
-}
-
-function onSeatContextMenu(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  const id = e.currentTarget.dataset.id;
-  selectSeat(id);
-}
-
-function onBlockMouseDown(e) {
-  if (e.button !== 0 || currentTool !== 'select') return;
-  e.stopPropagation();
-
-  const marker = e.currentTarget;
-  const id = marker.dataset.id;
-  const block = seatBlocks.find(b => b.id === id);
-  if (!block) return;
-
-  selectBlock(id);
-
-  dragState = {
-    id,
-    type: 'block',
-    startX: e.clientX,
-    startY: e.clientY,
-    origX: block.x,
-    origY: block.y,
+    origX: item.x,
+    origY: item.y,
     wrapperRect: wrapper.getBoundingClientRect(),
     moved: false,
   };
@@ -1634,43 +1824,135 @@ function onBlockMouseDown(e) {
   document.addEventListener('mouseup', onDocMouseUp);
 }
 
+function onMarkerMouseDown(e) {
+  if (e.button !== 0 || currentTool !== 'select') return;
+  e.stopPropagation();
+  const marker = e.currentTarget;
+  const sw = switches.find(s => s.id === marker.dataset.id);
+  if (!sw) return;
+  selectSwitch(sw.id);
+  startDrag(e, 'switch', sw, marker);
+}
+
+function onBlockMouseDown(e) {
+  if (e.button !== 0 || currentTool !== 'select') return;
+  e.stopPropagation();
+  const marker = e.currentTarget;
+  const block = seatBlocks.find(b => b.id === marker.dataset.id);
+  if (!block) return;
+  // Clicking a seat selects the seat (on click); dragging moves the whole block
+  if (!e.target.closest('.seat-block-seat')) selectBlock(block.id);
+  startDrag(e, 'block', block, marker);
+}
+
+function onDocMouseMove(e) {
+  if (!dragState) return;
+  const { id, type, startX, startY, origX, origY, wrapperRect } = dragState;
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  if (!dragState.moved && Math.hypot(dx, dy) < 3) return;
+  if (!dragState.moved && type === 'block' && selectedId !== id) selectBlock(id);
+  dragState.moved = true;
+
+  const newX = Math.min(100, Math.max(0, snapToGrid(origX + (dx / wrapperRect.width * 100))));
+  const newY = Math.min(100, Math.max(0, snapToGrid(origY + (dy / wrapperRect.height * 100))));
+
+  const container = type === 'block' ? blocksOverlay : overlay;
+  const marker = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (marker) { marker.style.left = newX + '%'; marker.style.top = newY + '%'; }
+  const item = type === 'block' ? seatBlocks.find(b => b.id === id) : switches.find(s => s.id === id);
+  if (item) { item.x = newX; item.y = newY; }
+
+  updatePositionDisplay(newX, newY);
+  if (heatmapVisible) renderHeatmap();
+}
+
+async function onDocMouseUp() {
+  if (!dragState) return;
+  document.removeEventListener('mousemove', onDocMouseMove);
+  document.removeEventListener('mouseup', onDocMouseUp);
+
+  const { id, type, moved, origX, origY } = dragState;
+  dragState = null;
+  const container = type === 'block' ? blocksOverlay : overlay;
+  const marker = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (marker) marker.classList.remove('dragging');
+  if (!moved) return;
+
+  suppressNextClick = true;
+  setTimeout(() => { suppressNextClick = false; }, 0);
+
+  const item = type === 'block' ? seatBlocks.find(b => b.id === id) : switches.find(s => s.id === id);
+  if (!item) return;
+  const to = { x: item.x, y: item.y };
+  const from = { x: origX, y: origY };
+  if (from.x === to.x && from.y === to.y) return;
+  try {
+    if (type === 'block') await api('PUT', `/api/seat-blocks/${id}`, to);
+    else await api('PUT', `/api/switches/${id}`, to);
+    recordMove(type, id, from, to);
+    if (selectedId === id) {
+      if (type === 'block') fillBlockInspector(item);
+      else ddPosition.textContent = `${to.x.toFixed(1)}% / ${to.y.toFixed(1)}%`;
+    }
+  } catch (e) {
+    item.x = from.x; item.y = from.y;
+    renderAll();
+    markSelection();
+    toastError('Could not save the new position', e);
+  }
+}
+
+// ── Context menu ───────────────────────────────────────────────────────────────────────
+function openContextMenu(e, target) {
+  contextTarget = target;
+  ctxRename.textContent = target.type === 'block' ? 'Edit…' : 'Rename…';
+  contextMenu.classList.remove('hidden');
+  const { innerWidth, innerHeight } = window;
+  const w = contextMenu.offsetWidth, h = contextMenu.offsetHeight;
+  contextMenu.style.left = Math.min(e.clientX, innerWidth - w - 8) + 'px';
+  contextMenu.style.top  = Math.min(e.clientY, innerHeight - h - 8) + 'px';
+}
+function onMarkerContextMenu(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const id = e.currentTarget.dataset.id;
+  selectSwitch(id);
+  openContextMenu(e, { type: 'switch', id });
+}
 function onBlockContextMenu(e) {
   e.preventDefault();
   e.stopPropagation();
   const id = e.currentTarget.dataset.id;
   selectBlock(id);
-}
-
-
-// ── Context menu ─────────────────────────────────────────────────────────────
-function onMarkerContextMenu(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  contextId = e.currentTarget.dataset.id;
-  selectSwitch(contextId);
-  contextMenu.style.left = e.clientX + 'px';
-  contextMenu.style.top  = e.clientY  + 'px';
-  contextMenu.classList.remove('hidden');
+  openContextMenu(e, { type: 'block', id });
 }
 
 document.addEventListener('click', () => contextMenu.classList.add('hidden'));
+document.addEventListener('scroll', () => contextMenu.classList.add('hidden'), true);
 
 ctxRename.addEventListener('click', (e) => {
   e.stopPropagation();
   contextMenu.classList.add('hidden');
-  openRenameModal(contextId);
+  if (!contextTarget) return;
+  if (contextTarget.type === 'switch') openRenameModal(contextTarget.id);
+  else { selectBlock(contextTarget.id); blockEditName.focus(); blockEditName.select(); }
 });
-
-ctxDelete.addEventListener('click', async (e) => {
+ctxDelete.addEventListener('click', (e) => {
   e.stopPropagation();
   contextMenu.classList.add('hidden');
-  if (contextId) await doDelete(contextId);
+  if (!contextTarget) return;
+  if (contextTarget.type === 'switch') actionDeleteSwitch(contextTarget.id);
+  else actionDeleteBlock(contextTarget.id);
 });
 
-// ── Rename Modal ─────────────────────────────────────────────────────────────
+// ── Rename modal ───────────────────────────────────────────────────────────────────────
+let renameTargetId = null;
+
 function openRenameModal(id) {
   const sw = switches.find(s => s.id === id);
   if (!sw) return;
+  renameTargetId = id;
   renameInput.value = sw.name;
   renameBackdrop.classList.remove('hidden');
   renameInput.focus();
@@ -1688,169 +1970,150 @@ renameInput.addEventListener('keydown', (e) => {
 
 renameConfirm.addEventListener('click', async () => {
   const name = renameInput.value.trim();
-  if (!name || !contextId) { renameInput.focus(); return; }
-  const updated = await api('PUT', `/api/switches/${contextId}`, { name });
-  const sw = switches.find(s => s.id === contextId);
-  if (sw) sw.name = updated.name;
-  renderAll();
-  renameBackdrop.classList.add('hidden');
-});
-
-// ── Seat block detail panel handlers ───────────────────────────────────────
-blockDetailClose.addEventListener('click', deselectAll);
-blockSeatDetailClose.addEventListener('click', deselectAll);
-
-blockDetailSave.addEventListener('click', async () => {
-  if (!selectedId || selectedType !== 'block') return;
-  const updated = await api('PUT', `/api/seat-blocks/${selectedId}`, {
-    name: blockEditName.value.trim(),
-    rotation: parseInt(blockEditRotation.value) || 0,
-    reverse_numbers: blockReverseNumbers.checked,
-  });
-  const block = seatBlocks.find(b => b.id === selectedId);
-  if (block) {
-    block.name = updated.name;
-    block.rotation = updated.rotation;
-    block.reverse_numbers = updated.reverse_numbers;
-  }
-  selectBlock(selectedId);
-  renderAll();
-});
-
-blockDetailDuplicate.addEventListener('click', async () => {
-  if (!selectedId || selectedType !== 'block') return;
-  const originalBlock = seatBlocks.find(b => b.id === selectedId);
-  if (!originalBlock) return;
-
-  // Calculate new position (offset by 10% to the right)
-  const newX = Math.min(90, originalBlock.x + 10);
-  const newY = Math.min(90, originalBlock.y + 10);
-
-  // Create duplicate with modified name
-  const duplicate = await api('POST', '/api/seat-blocks', {
-    name: `${originalBlock.name || 'Block'} (Copy)`,
-    cols: originalBlock.cols,
-    rows: originalBlock.rows,
-    seat_width: originalBlock.seat_width,
-    seat_height: originalBlock.seat_height,
-    spacing_x: originalBlock.spacing_x,
-    spacing_y: originalBlock.spacing_y,
-    numbering_pattern: 'blockname_number',
-    rotation: originalBlock.rotation,
-    x: newX,
-    y: newY,
-  });
-  seatBlocks.push(duplicate);
-  renderAll();
-  selectBlock(duplicate.id);
-});
-
-blockDetailDelete.addEventListener('click', async () => {
-  if (!selectedId || selectedType !== 'block') return;
-  if (confirm('Delete this seat block?')) {
-    await api('DELETE', `/api/seat-blocks/${selectedId}`);
-    seatBlocks = seatBlocks.filter(b => b.id !== selectedId);
-    deselectAll();
-    renderAll();
-  }
-});
-
-// ── Delete ────────────────────────────────────────────────────────────────────
-async function doDelete(id) {
-  await api('DELETE', `/api/switches/${id}`);
-  // NetBox devices become unplaced; manual devices are fully removed
+  if (!name || !renameTargetId) { renameInput.focus(); return; }
+  const id = renameTargetId;
   const sw = switches.find(s => s.id === id);
-  if (sw && sw.source !== 'manual') {
-    sw.placed = false;
-    sw.x = null;
-    sw.y = null;
-  } else {
-    switches = switches.filter(s => s.id !== id);
+  const oldName = sw ? sw.name : '';
+  if (name === oldName) { renameBackdrop.classList.add('hidden'); return; }
+  try {
+    await updateSwitch(id, { name });
+    renameBackdrop.classList.add('hidden');
+    pushHistory({
+      label: `rename ${oldName}`,
+      undo: () => updateSwitch(resolveId(id), { name: oldName }),
+      redo: () => updateSwitch(resolveId(id), { name }),
+    });
+    renderAll();
+    if (selectedId === id) selectSwitch(id);
+  } catch (e) {
+    toastError('Could not rename switch', e);
   }
-  if (selectedId === id) selectedId = null;
-  if (contextId  === id) contextId  = null;
-  renderAll();
+});
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────────────────
+function isTyping(e) {
+  const t = e.target;
+  return t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable;
 }
 
-document.addEventListener('keydown', async (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-    if (selectedType === 'seat') {
-      // Handle seat deletion
-      if (confirm('Delete this seat?')) {
-        await api('DELETE', `/api/seats/${selectedId}`);
-        seats = seats.filter(s => s.id !== selectedId);
-        deselectAll();
-        renderAll();
-      }
-    } else if (selectedType === 'block') {
-      // Handle seat block deletion
-      if (confirm('Delete this seat block?')) {
-        await api('DELETE', `/api/seat-blocks/${selectedId}`);
-        seatBlocks = seatBlocks.filter(b => b.id !== selectedId);
-        deselectAll();
-        renderAll();
-      }
-    } else {
-      await doDelete(selectedId);
-    }
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (anyModalOpen()) { closeAllModals(); return; }
+    if (!contextMenu.classList.contains('hidden')) { contextMenu.classList.add('hidden'); return; }
+    if (isTyping(e)) { e.target.blur(); return; }
+    deselectAll();
+    setTool('select');
+    return;
   }
-  if (e.key === 'Escape') { deselectAll(); setTool('select'); }
+  if (isTyping(e) || anyModalOpen()) return;
+
+  const mod = e.ctrlKey || e.metaKey;
+  const key = e.key.toLowerCase();
+
+  if (mod && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+  if (mod && key === 'y') { e.preventDefault(); redo(); return; }
+  if (mod) return;
+
+  if (e.key === ' ' && !spaceHeld) { spaceHeld = true; canvasArea.classList.add('panning'); e.preventDefault(); return; }
+
+  switch (e.key) {
+    case 'Delete':
+    case 'Backspace':
+      if (selectedId) { e.preventDefault(); deleteSelection(); }
+      break;
+    case 'v': case 'V': setTool('select'); break;
+    case 's': case 'S': setTool('add-switch'); break;
+    case 'b': case 'B': setTool('add-block'); break;
+    case 'g': case 'G': setSnap(!snapEnabled); break;
+    case 'f': case 'F': fitToContent(); break;
+    case '+': case '=': zoomCentered(ZOOM_STEP); break;
+    case '-': case '_': zoomCentered(1 / ZOOM_STEP); break;
+    case '0': resetView(); break;
+    case '/': e.preventDefault(); universalSearch.focus(); break;
+    case '?': shortcutsBackdrop.classList.remove('hidden'); break;
+  }
+});
+document.addEventListener('keyup', (e) => {
+  if (e.key === ' ') { spaceHeld = false; canvasArea.classList.remove('panning'); }
 });
 
-// ── Switch search ─────────────────────────────────────────────────────────────
+// ── Switch list filter & status chips ────────────────────────────────────────────────────
 switchSearch.addEventListener('input', () => renderSidebar());
 
-// ── Refresh status ───────────────────────────────────────────────────────────
+function setStatusFilter(status) {
+  statusFilter = status;
+  statusChips.forEach(c => c.classList.toggle('active', status !== 'all' && c.dataset.status === status));
+  renderOverlay();
+  renderSidebar();
+  markSelection();
+}
+statusChips.forEach(chip => chip.addEventListener('click', () => {
+  const s = chip.dataset.status;
+  setStatusFilter(s === statusFilter ? 'all' : s);
+}));
+listFilterClear.addEventListener('click', () => setStatusFilter('all'));
+
+// ── Refresh status ─────────────────────────────────────────────────────────────────────
 async function doRefreshAll() {
   if (isRefreshing) return;
   isRefreshing = true;
+  btnRefreshAll.classList.add('is-busy');
   try {
     const placed = switches.filter(s => s.placed !== false);
+    let failures = 0;
     await Promise.all(placed.map(async (sw) => {
-      const data = await api('GET', `/api/switches/${sw.id}/status`).catch(() => null);
-      if (data) {
+      try {
+        const data = await api('GET', `/api/switches/${sw.id}/status`);
         sw.status = data.status;
-        if (data.up_ports != null) {
-          portStats[sw.id] = {
-            up_ports:          data.up_ports,
-            total_ports:       data.total_ports,
-            traffic_util:      data.traffic_util      ?? null,
-            total_traffic_bps: data.total_traffic_bps ?? null,
-            temperature:       data.temperature       ?? null,
-          };
-        }
+        storePortStats(sw.id, data);
+      } catch {
+        failures++;
       }
     }));
-    renderAll();
 
-    // Save to cache after successful refresh
+    const allFailed = placed.length > 0 && failures === placed.length;
+    if (allFailed && !lastRefreshFailed) toast('Status refresh failed. Is the server reachable?', { type: 'error' });
+    lastRefreshFailed = allFailed;
+    if (!allFailed) lastRefreshAt = Date.now();
+    updateLastUpdated();
+
+    renderOverlay();
+    renderSidebar();
+    markSelection();
+    updateHeroStats();
+    if (heatmapVisible) renderHeatmap();
     saveStatusCache();
 
-    // Also refresh seat heatmap data if visible
     if (seatHeatmapVisible) {
       await fetchSeatHeatmapData();
       renderSeatHeatmap();
     }
   } finally {
     isRefreshing = false;
+    btnRefreshAll.classList.remove('is-busy');
   }
 }
 
-function saveStatusCache() {
-  const cacheData = {
-    portStats: { ...portStats },
-    statuses: {}
-  };
-
-  // Store current status for each switch
-  for (const sw of switches) {
-    if (sw.status) {
-      cacheData.statuses[sw.id] = sw.status;
-    }
+function updateLastUpdated() {
+  if (!config.librenms_enabled) return;
+  if (lastRefreshFailed) {
+    lastUpdatedEl.textContent = 'Refresh failed';
+    lastUpdatedEl.className = 'last-updated error';
+    return;
   }
+  if (!lastRefreshAt) return;
+  const secs = Math.round((Date.now() - lastRefreshAt) / 1000);
+  lastUpdatedEl.textContent = secs < 5 ? 'Updated just now'
+    : secs < 60 ? `Updated ${secs}s ago`
+    : `Updated ${Math.round(secs / 60)} min ago`;
+  lastUpdatedEl.className = 'last-updated' + (secs > 60 ? ' stale' : '');
+}
+setInterval(updateLastUpdated, 1000);
 
-  setCache(cacheData);
+function saveStatusCache() {
+  const statuses = {};
+  for (const sw of switches) if (sw.status) statuses[sw.id] = sw.status;
+  setCache({ portStats: { ...portStats }, statuses });
 }
 
 btnRefreshAll.addEventListener('click', async () => {
@@ -1859,41 +2122,12 @@ btnRefreshAll.addEventListener('click', async () => {
   try { await doRefreshAll(); } finally { btnRefreshAll.disabled = false; }
 });
 
-// Auto-refresh every 10 seconds
-setInterval(() => doRefreshAll().catch(console.error), 10_000);
+// Auto-refresh (skipped while the tab is hidden)
+setInterval(() => {
+  if (!document.hidden) doRefreshAll().catch(() => {});
+}, REFRESH_INTERVAL);
 
-// ── Zoom ──────────────────────────────────────────────────────────────────────
-function applyZoom() {
-  wrapper.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
-  zoomLevelEl.textContent = Math.round(zoom * 100) + '%';
-}
-
-function changeZoom(delta) {
-  zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom + delta));
-  applyZoom();
-}
-
-btnZoomIn.addEventListener('click',    () => changeZoom(+ZOOM_STEP));
-btnZoomOut.addEventListener('click',   () => changeZoom(-ZOOM_STEP));
-btnZoomReset.addEventListener('click', () => { zoom = 1; applyZoom(); });
-
-// Mouse wheel zoom (Ctrl optional – works either way)
-document.getElementById('canvas-area').addEventListener('wheel', (e) => {
-  e.preventDefault();
-  changeZoom(e.deltaY < 0 ? +ZOOM_STEP : -ZOOM_STEP);
-}, { passive: false });
-
-// ── Center map ───────────────────────────────────────────────────────────
-btnCenter.addEventListener('click', () => {
-  const canvasArea = document.getElementById('canvas-area');
-  canvasArea.scrollTo({
-    left: (canvasArea.scrollWidth - canvasArea.clientWidth) / 2,
-    top:  (canvasArea.scrollHeight - canvasArea.clientHeight) / 2,
-    behavior: 'smooth',
-  });
-});
-
-// ── Hero stats ───────────────────────────────────────────────────────────
+// ── Top bar stats ──────────────────────────────────────────────────────────────────────
 function updateHeroStats() {
   const placed  = switches.filter(s => s.placed !== false);
   const online  = placed.filter(s => s.status === 'online').length;
@@ -1902,248 +2136,157 @@ function updateHeroStats() {
   heroOnline.textContent  = online;
   heroOffline.textContent = offline;
   heroUnknown.textContent = placed.length - online - offline;
+  document.querySelector('.chip-offline').classList.toggle('has-items', offline > 0);
 }
 
-// ── Heatmap ──────────────────────────────────────────────────────────────
-btnHeatmap.addEventListener('click', () => {
-  heatmapVisible = !heatmapVisible;
-  btnHeatmap.classList.toggle('heatmap-on', heatmapVisible);
-  heatCanvas.style.display = heatmapVisible ? 'block' : 'none';
-  heatLegend.classList.toggle('hidden', !heatmapVisible);
-  if (heatmapVisible) renderHeatmap();
-});
+// ── Layers ────────────────────────────────────────────────────────────────────────────
+function setLayerButton(btn, on) {
+  btn.classList.toggle('heatmap-on', on);
+  btn.setAttribute('aria-pressed', String(on));
+}
 
-// ── Seat Heatmap ───────────────────────────────────────────────────────
-btnSeatHeatmap.addEventListener('click', async () => {
-  seatHeatmapVisible = !seatHeatmapVisible;
-  btnSeatHeatmap.classList.toggle('heatmap-on', seatHeatmapVisible);
-  seatHeatCanvas.style.display = seatHeatmapVisible ? 'block' : 'none';
-  seatHeatLegend.classList.toggle('hidden', !seatHeatmapVisible);
-  if (seatHeatmapVisible) {
+function setHeatmapVisible(on) {
+  heatmapVisible = on;
+  setLayerButton(btnHeatmap, on);
+  heatCanvas.style.display = on ? 'block' : 'none';
+  heatLegend.classList.toggle('hidden', !on);
+  if (on) renderHeatmap();
+  writeJSON('layer-heatmap', on);
+}
+async function setSeatHeatmapVisible(on) {
+  seatHeatmapVisible = on;
+  setLayerButton(btnSeatHeatmap, on);
+  seatHeatCanvas.style.display = on ? 'block' : 'none';
+  seatHeatLegend.classList.toggle('hidden', !on);
+  writeJSON('layer-seat-heatmap', on);
+  if (on) {
     await fetchSeatHeatmapData();
     renderSeatHeatmap();
   } else {
-    // Clear seat heatmap canvas
     const ctx = seatHeatCanvas.getContext('2d');
     ctx.clearRect(0, 0, seatHeatCanvas.width, seatHeatCanvas.height);
   }
-});
+}
+function setLabelsAlways(on) {
+  wrapper.classList.toggle('labels-always', on);
+  setLayerButton(btnLabels, on);
+  writeJSON('layer-labels', on);
+}
+function restoreLayerPrefs() {
+  setSnap(readJSON('snapEnabled', true));
+  setLabelsAlways(readJSON('layer-labels', false));
+  if (readJSON('layer-heatmap', false)) setHeatmapVisible(true);
+  if (readJSON('layer-seat-heatmap', false)) setSeatHeatmapVisible(true);
+}
+
+btnHeatmap.addEventListener('click', () => setHeatmapVisible(!heatmapVisible));
+btnSeatHeatmap.addEventListener('click', () => setSeatHeatmapVisible(!seatHeatmapVisible));
+btnLabels.addEventListener('click', () => setLabelsAlways(!wrapper.classList.contains('labels-always')));
+
+// ── Heatmaps ──────────────────────────────────────────────────────────────────────────
+// Colour-blind-friendly ramp shared by both heatmaps (matches the legends)
+const HEAT = {
+  unknown: [110, 118, 129],
+  low:     [76, 154, 255],   // blue
+  mid:     [46, 196, 182],   // teal
+  high:    [244, 196, 48],   // yellow
+  higher:  [255, 140, 66],   // orange
+  max:     [214, 34, 70],    // crimson
+};
 
 async function fetchSeatHeatmapData() {
   try {
     const data = await api('GET', '/api/seats/heatmap');
-    console.log('Seat heatmap API response status:', data.status ? data.status : 'No status field');
-    console.log('Seat heatmap data keys:', Object.keys(data));
-    console.log('Seats count:', data.seats ? Object.keys(data.seats).length : 0);
     seatHeatmapData.seats = data.seats || {};
   } catch (e) {
-    console.error('Failed to fetch seat heatmap data:', e);
-    console.error('Error details:', e.message);
     seatHeatmapData.seats = {};
+    toastError('Could not load seat port usage', e);
   }
 }
 
-function renderSeatHeatmap() {
-  console.log('renderSeatHeatmap called');
-  console.log('seatHeatmapData.seats:', seatHeatmapData.seats);
-
-  if (!seatHeatmapData.seats) {
-    console.log('No seat heatmap data, returning');
-    return;
-  }
-
-  // Check if canvas exists and has dimensions
-  if (!seatHeatCanvas) {
-    console.error('Seat heatmap canvas not found');
-    return;
-  }
-
-  // Set canvas size to match wrapper
-  const cw = seatHeatCanvas.offsetWidth || wrapper.offsetWidth;
-  const ch = seatHeatCanvas.offsetHeight || wrapper.offsetHeight;
-
-  console.log('Canvas dimensions:', { cw, ch });
-
-  if (cw === 0 || ch === 0) {
-    console.log('Canvas has zero dimensions, returning');
-    return;
-  }
-
-  seatHeatCanvas.width = cw;
-  seatHeatCanvas.height = ch;
-
-  const ctx = seatHeatCanvas.getContext('2d');
-  if (!ctx) return;
-
+function prepareCanvas(canvas) {
+  const cw = canvas.offsetWidth || wrapper.offsetWidth;
+  const ch = canvas.offsetHeight || wrapper.offsetHeight;
+  if (!cw || !ch) return null;
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, cw, ch);
+  // Screen pixels → canvas pixels (undoes the current zoom)
+  const rect = canvas.getBoundingClientRect();
+  const scale = rect.width > 0 ? cw / rect.width : 1;
+  return { ctx, cw, ch, rect, scale };
+}
 
-  // Count how many seat elements actually exist in the DOM
-  const seatElements = document.querySelectorAll('[data-seat-number]');
-  console.log(`Found ${seatElements.length} seat elements for heatmap rendering`);
-  console.log('Seat elements:', Array.from(seatElements).map(el => ({
-    number: el.dataset.seatNumber,
-    rect: el.getBoundingClientRect()
-  })));
+function renderSeatHeatmap() {
+  if (!seatHeatmapData.seats) return;
+  const c = prepareCanvas(seatHeatCanvas);
+  if (!c) return;
+  const { ctx, rect, scale } = c;
 
-  if (seatElements.length === 0) {
-    console.log('No seat elements found, skipping heatmap render');
-    return;
-  }
-
-  // Convert from visual (screen) pixels → canvas buffer pixels
-  const canvasRect = seatHeatCanvas.getBoundingClientRect();
-  const scale = canvasRect.width > 0 ? cw / canvasRect.width : 1;
-
-  console.log('Canvas rect:', canvasRect);
-  console.log('Scale factor:', scale);
-
-  // Get canvas rect for proper coordinate mapping
-  const wrapperRect = wrapper.getBoundingClientRect();
-  if (!wrapperRect) return;
-
-  console.log('Wrapper rect:', wrapperRect);
-  console.log('Total seats in heatmap data:', Object.keys(seatHeatmapData.seats).length);
-
-  // Draw heat map for each seat
   for (const [seatNumber, seatData] of Object.entries(seatHeatmapData.seats)) {
-    const seatEl = document.querySelector(`[data-seat-number="${seatNumber}"]`);
-    if (!seatEl) {
-      console.log(`Seat element not found for: ${seatNumber}`);
-      continue;
+    const seatEl = blocksOverlay.querySelector(`[data-seat-number="${CSS.escape(seatNumber)}"]`) ||
+                   seatsOverlay.querySelector(`[data-seat-number="${CSS.escape(seatNumber)}"]`);
+    if (!seatEl) continue;
+
+    const r = seatEl.getBoundingClientRect();
+    const cx = (r.left + r.width / 2 - rect.left) * scale;
+    const cy = (r.top + r.height / 2 - rect.top) * scale;
+
+    let rgb = HEAT.unknown;
+    const usage = seatData.resolved ? seatData.port_usage : null;
+    if (usage && usage.status === 'up') {
+      const mbps = (usage.total_bps || 0) / 1e6;
+      rgb = mbps >= 500 ? HEAT.max : mbps >= 100 ? HEAT.high : mbps >= 10 ? HEAT.mid : HEAT.low;
     }
 
-    // Get seat position on canvas
-    const seatRect = seatEl.getBoundingClientRect();
-    const cx = (seatRect.left + seatRect.width / 2 - wrapperRect.left) * scale;
-    const cy = (seatRect.top + seatRect.height / 2 - wrapperRect.top) * scale;
-
-    // Determine color based on resolution status and port usage
-    let rgb;
-    if (!seatData.resolved || !seatData.port_usage) {
-      // Unresolved or no port stats - show as gray (unknown)
-      rgb = [110, 118, 129]; // Gray - unknown/unresolved
-    } else {
-      const usage = seatData.port_usage;
-      const totalBps = usage.total_bps || 0;
-      const status = usage.status;
-
-      // Color based on throughput
-      const mbps = totalBps / 1e6;
-
-      if (!status || status !== 'up') {
-        rgb = [110, 118, 129]; // Gray - unknown/offline
-      } else if (mbps >= 500) {
-        rgb = [248, 81, 73]; // Red - high usage (500+ Mbps)
-      } else if (mbps >= 100) {
-        rgb = [210, 153, 34]; // Orange - medium-high (100-500 Mbps)
-      } else if (mbps >= 10) {
-        rgb = [63, 185, 80]; // Green - medium (10-100 Mbps)
-      } else {
-        rgb = [56, 139, 253]; // Blue - low (<10 Mbps)
-      }
-    }
-
-    // Draw filled circle for seat
-    console.log(`Drawing seat ${seatNumber} with color: rgb(${rgb.join(',')})`);
-    const radius = Math.min(seatRect.width, seatRect.height) / 2 * scale * 0.9;
-
+    const radius = Math.min(r.width, r.height) / 2 * scale * 0.9;
     const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-    grad.addColorStop(0,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`);
-    grad.addColorStop(0.6, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)`);
-    grad.addColorStop(1,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.3)`);
-
+    grad.addColorStop(0,   `rgba(${rgb},0.9)`);
+    grad.addColorStop(0.6, `rgba(${rgb},0.7)`);
+    grad.addColorStop(1,   `rgba(${rgb},0.3)`);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
   }
-
-  console.log('Finished drawing seat heatmap, total circles drawn:', Object.keys(seatHeatmapData.seats).length);
-  }
+}
 
 function renderHeatmap() {
-  if (!wrapper.offsetWidth) return;
-
-  const cw = heatCanvas.offsetWidth  || wrapper.offsetWidth;
-  const ch = heatCanvas.offsetHeight || wrapper.offsetHeight;
-  heatCanvas.width  = cw;
-  heatCanvas.height = ch;
-
-  const ctx = heatCanvas.getContext('2d');
-  ctx.clearRect(0, 0, cw, ch);
-
-  // Convert from visual (screen) pixels → canvas buffer pixels.
-  // getBoundingClientRect reflects the zoom transform; dividing by it
-  // gives us the ratio between CSS pixels and visual pixels.
-  const canvasRect = heatCanvas.getBoundingClientRect();
-  const scale = canvasRect.width > 0 ? cw / canvasRect.width : 1;
-
+  const c = prepareCanvas(heatCanvas);
+  if (!c) return;
+  const { ctx, cw, ch, rect, scale } = c;
   const baseR = Math.min(cw, ch) * 0.18;
 
-  // Find maximum throughput for normalizing the color scale
-  let maxThroughput = 0;
-  for (const sw of switches) {
-    if (sw.placed === false || sw.x == null) continue;
-    if (getDeviceSetting(sw.id, 'excludeHeatmap')) continue;
-    const stats = portStats[sw.id];
-    if (stats && stats.total_traffic_bps != null) {
-      maxThroughput = Math.max(maxThroughput, stats.total_traffic_bps);
-    }
-  }
+  const visible = switches.filter(sw =>
+    sw.placed !== false && sw.x != null && !getDeviceSetting(sw.id, 'excludeHeatmap') &&
+    sw.status !== 'offline' && portStats[sw.id] && portStats[sw.id].total_traffic_bps != null);
+  const maxThroughput = Math.max(0, ...visible.map(sw => portStats[sw.id].total_traffic_bps));
 
-  for (const sw of switches) {
-    if (sw.placed === false || sw.x == null) continue;
-    if (getDeviceSetting(sw.id, 'excludeHeatmap')) continue;
-
-    // Skip heatmap for offline devices or devices with no data
-    if (sw.status === 'offline') continue;
-
-    const stats = portStats[sw.id];
-    if (!stats || stats.total_traffic_bps == null) continue;
-
-    // Measure the actual DOM position of the pin so the blob tracks the
-    // pin head exactly regardless of label size or zoom level.
+  for (const sw of visible) {
     let cx, cy;
-    const marker = overlay.querySelector(`[data-id="${sw.id}"]`);
-    if (marker) {
-      const pin = marker.querySelector('.switch-pin');
-      if (pin) {
-        const pr = pin.getBoundingClientRect();
-        cx = (pr.left + pr.width / 2 - canvasRect.left) * scale;
-        // SVG glass circle is at cy=5 out of viewBox height 18 → 5/18 from top
-        cy = (pr.top  + pr.height * 5 / 18 - canvasRect.top) * scale;
-      }
-    }
-    if (cx == null) {
-      // Fallback: coordinate-based (used during initial render before DOM settles)
+    const pin = overlay.querySelector(`[data-id="${CSS.escape(sw.id)}"] .switch-pin`);
+    if (pin) {
+      const pr = pin.getBoundingClientRect();
+      cx = (pr.left + pr.width / 2 - rect.left) * scale;
+      cy = (pr.top + pr.height * 5 / 18 - rect.top) * scale; // pin head centre
+    } else {
       cx = (sw.x / 100) * cw;
       cy = (sw.y / 100) * ch;
     }
 
-    let rgb, r = baseR;
-
-    // Color based on absolute throughput normalized to max
-    const throughput = stats.total_traffic_bps;
-    const normalized = throughput / maxThroughput;
-
-    // Radius scales with throughput (more traffic = larger circle)
-    r = baseR * Math.min(1.8, 0.6 + normalized * 1.2);
-
-    // Color scale: blue (low) → green → orange → red (high throughput)
-    // Using absolute throughput thresholds based on typical network speeds
+    const throughput = portStats[sw.id].total_traffic_bps;
+    const normalized = maxThroughput > 0 ? throughput / maxThroughput : 0;
+    const r = baseR * Math.min(1.8, 0.6 + normalized * 1.2);
     const gbps = throughput / 1e9;
-    if      (gbps >= 10)   rgb = [200,  30,  30];   // 10+ Gbps - red
-    else if (gbps >= 5)    rgb = [248,  81,  73];   // 5-10 Gbps - orange-red
-    else if (gbps >= 1)    rgb = [210, 153,  34];   // 1-5 Gbps - orange
-    else if (gbps >= 0.1)  rgb = [ 63, 185,  80];   // 100 Mbps-1 Gbps - green
-    else                    rgb = [ 56, 139, 253];   // <100 Mbps - blue
+    const rgb = gbps >= 10 ? HEAT.max : gbps >= 5 ? HEAT.higher : gbps >= 1 ? HEAT.high
+              : gbps >= 0.1 ? HEAT.mid : HEAT.low;
 
     const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.95)`);
-    grad.addColorStop(0.5, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)`);
-    grad.addColorStop(0.75,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.3)`);
-    grad.addColorStop(1,   `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
-
+    grad.addColorStop(0,    `rgba(${rgb},0.95)`);
+    grad.addColorStop(0.5,  `rgba(${rgb},0.7)`);
+    grad.addColorStop(0.75, `rgba(${rgb},0.3)`);
+    grad.addColorStop(1,    `rgba(${rgb},0)`);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -2151,12 +2294,13 @@ function renderHeatmap() {
   }
 }
 
-// ── Utils ────────────────────────────────────────────────────────────────────
+// ── Utils ─────────────────────────────────────────────────────────────────────────────
 function escHtml(str) {
-  return String(str)
+  return String(str ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ── Bootstrap ────────────────────────────────────────────────────────────────
+// ── Bootstrap ───────────────────────────────────────────────────────────────────────────
+updateHistoryButtons();
 init();
