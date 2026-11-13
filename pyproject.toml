@@ -1,0 +1,10 @@
+# Tool settings only: the app is not a package. Dependencies live in requirements*.txt.
+
+[tool.ruff]
+target-version = "py311"           # the Dockerfile's Python
+line-length = 120
+extend-exclude = [".claude", ".planning"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
