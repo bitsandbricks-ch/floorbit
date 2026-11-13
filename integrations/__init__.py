@@ -35,7 +35,7 @@ from . import checkin, config, events, seat_sources, settings_bridge
 from .discord import DiscordNotifier
 from .monitor import StatusMonitor
 
-__all__ = ['init_integrations', 'config', 'events', 'seat_sources', 'checkin']
+__all__ = ['checkin', 'config', 'events', 'init_integrations', 'seat_sources']
 
 # Writes under these prefixes are announced to other browsers
 _WATCHED_PREFIXES = {
@@ -106,7 +106,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return jsonify({'ok': False, 'error': 'DISCORD_WEBHOOK_URL is not set'}), 400
         try:
             discord.send(discord.build_test_message())
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001  # report any send failure to the caller
             return jsonify({'ok': False, 'error': str(exc)}), 502
         return jsonify({'ok': True})
 
@@ -116,7 +116,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return jsonify({'ok': False, 'error': 'Status monitor is disabled or LibreNMS is not configured'}), 400
         try:
             changes = monitor.poll_once()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001  # report any poll failure to the caller
             monitor.last_error = str(exc)
             return jsonify({'ok': False, 'error': str(exc)}), 502
         return jsonify({'ok': True, 'changes': changes, 'counts': monitor.counts()})

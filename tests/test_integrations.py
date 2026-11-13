@@ -8,9 +8,9 @@ from flask import Flask, jsonify
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from integrations import checkin, config, events, init_integrations, seat_sources  # noqa: E402
-from integrations.discord import DiscordNotifier  # noqa: E402
-from integrations.monitor import StatusMonitor  # noqa: E402
+from integrations import checkin, config, events, init_integrations, seat_sources
+from integrations.discord import DiscordNotifier
+from integrations.monitor import StatusMonitor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -295,6 +295,7 @@ def test_trust_proxy(app, checkin_env, monkeypatch):
 # ── settings store bridge ──────────────────────────────────────────────────────────────────
 def test_settings_bridge(monkeypatch, tmp_path):
     import types
+
     from integrations import settings_bridge
 
     mod = types.ModuleType('fake_settings_store')
