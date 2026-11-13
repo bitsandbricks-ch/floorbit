@@ -1,5 +1,7 @@
 # Builds the Dockerfile on every pull request; on master and on v* tags it also pushes
 # ghcr.io/<owner>/<repo> (tags: latest on master, the version on a tag, and the short sha).
+# master builds also get master-<YYYYMMDDHHMMSS>-<short sha> (commit time, UTC): a tag that
+# sorts by time, so a deployment (Flux image automation on Oak) can follow the newest one.
 name: Image
 
 on:
@@ -31,7 +33,10 @@ jobs:
         run: |
           image="ghcr.io/${REPO,,}"
           tags=(-t "$image:${GITHUB_SHA::12}")
-          if [ "$GITHUB_REF" = refs/heads/master ]; then tags+=(-t "$image:latest"); fi
+          if [ "$GITHUB_REF" = refs/heads/master ]; then
+            ts=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d%H%M%S HEAD)
+            tags+=(-t "$image:latest" -t "$image:master-$ts-${GITHUB_SHA::7}")
+          fi
           if [ "$GITHUB_REF_TYPE" = tag ]; then tags+=(-t "$image:${GITHUB_REF_NAME#v}"); fi
           docker build --label "org.opencontainers.image.source=https://github.com/$REPO" "${tags[@]}" .
           echo "IMAGE=$image" >> "$GITHUB_ENV"
