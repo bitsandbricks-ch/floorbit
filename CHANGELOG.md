@@ -8,6 +8,9 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Kiosk view at `/kiosk`: a read-only floor plan for a big screen with switch status, seat
+  occupancy and a list of switches that are down. Uses live updates when the server has them and
+  polls otherwise. See `docs/kiosk.md`.
 - GitLab pipeline: ruff, JavaScript syntax check, pytest smoke tests, MR screenshots, Docker image
   build and push, and a release job for `v*` tags.
 - Repo conventions from the BitsAndBricks repo template: README, AGPL-3.0 licence, AGENTS.md,
