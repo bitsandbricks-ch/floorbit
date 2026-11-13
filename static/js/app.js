@@ -194,12 +194,16 @@ const btnZoomOut     = $('btn-zoom-out');
 const btnZoomReset   = $('btn-zoom-reset');
 const zoomLevelEl    = $('zoom-level');
 const btnCenter      = $('btn-center');
-const btnHeatmap     = $('btn-heatmap');
-const btnSeatHeatmap = $('btn-seat-heatmap');
+const btnGrid        = $('btn-grid');
+const gridEl         = $('canvas-grid');
+const btnTraffic     = $('btn-traffic');
+const trafficOptions = $('traffic-options');
+const trafficLevelSeg = $('traffic-level');
+const trafficTicks   = $('traffic-ticks');
+const trafficSummary = $('traffic-summary');
+const trafficNodataLabel = $('traffic-nodata-label');
 const heatCanvas     = $('heatmap-canvas');
 const seatHeatCanvas = $('seat-heatmap-canvas');
-const heatLegend     = $('heatmap-legend');
-const seatHeatLegend = $('seat-heatmap-legend');
 
 // Seat block inspector
 const blockDetailPanel     = $('block-detail-panel');
@@ -862,6 +866,7 @@ function applyView() {
   wrapper.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
   addCursor.style.transform = `translate(-50%, -50%) scale(${1 / view.k})`;
   zoomLevelEl.textContent = Math.round(view.k * 100) + '%';
+  updateGrid();
 }
 let saveViewTimer = null;
 function saveView() {
@@ -1864,7 +1869,7 @@ function onDocMouseMove(e) {
   if (item) { item.x = newX; item.y = newY; }
 
   updatePositionDisplay(newX, newY);
-  if (heatmapVisible) renderHeatmap();
+  scheduleHeatRender();
 }
 
 async function onDocMouseUp() {
@@ -2145,28 +2150,50 @@ function setLayerButton(btn, on) {
   btn.setAttribute('aria-pressed', String(on));
 }
 
-function setHeatmapVisible(on) {
-  heatmapVisible = on;
-  setLayerButton(btnHeatmap, on);
-  heatCanvas.style.display = on ? 'block' : 'none';
-  heatLegend.classList.toggle('hidden', !on);
-  if (on) renderHeatmap();
-  writeJSON('layer-heatmap', on);
-}
-async function setSeatHeatmapVisible(on) {
-  seatHeatmapVisible = on;
-  setLayerButton(btnSeatHeatmap, on);
-  seatHeatCanvas.style.display = on ? 'block' : 'none';
-  seatHeatLegend.classList.toggle('hidden', !on);
-  writeJSON('layer-seat-heatmap', on);
-  if (on) {
-    await fetchSeatHeatmapData();
-    renderSeatHeatmap();
-  } else {
-    const ctx = seatHeatCanvas.getContext('2d');
-    ctx.clearRect(0, 0, seatHeatCanvas.width, seatHeatCanvas.height);
+// Traffic heatmap: one layer, shown per seat (the seat's switch port) or per
+// switch (all its ports). heatmapVisible / seatHeatmapVisible say which canvas
+// is live, so the rest of the file can keep checking them.
+let trafficOn = false;
+let trafficLevel = 'seat';   // 'seat' | 'switch'
+
+function setTrafficLayer(on, level = trafficLevel) {
+  trafficOn = on;
+  trafficLevel = level === 'switch' ? 'switch' : 'seat';
+  heatmapVisible = on && trafficLevel === 'switch';
+  seatHeatmapVisible = on && trafficLevel === 'seat';
+
+  setLayerButton(btnTraffic, on);
+  trafficOptions.classList.toggle('hidden', !on);
+  for (const b of trafficLevelSeg.querySelectorAll('button[data-level]')) {
+    const active = b.dataset.level === trafficLevel;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-pressed', String(active));
+  }
+  trafficTicks.innerHTML = TRAFFIC_SCALES[trafficLevel].ticks.map(t => `<span>${escHtml(t)}</span>`).join('');
+  trafficNodataLabel.textContent = trafficLevel === 'seat' ? 'No data or port down' : 'Offline or no data';
+  trafficSummary.textContent = '';
+  writeJSON('layer-traffic', { on, level: trafficLevel });
+
+  heatCanvas.style.display = heatmapVisible ? 'block' : 'none';
+  seatHeatCanvas.style.display = seatHeatmapVisible ? 'block' : 'none';
+  wrapper.classList.toggle('heat-seat', seatHeatmapVisible);
+  if (!seatHeatmapVisible) clearSeatTints();
+
+  if (heatmapVisible) renderHeatmap();
+  if (seatHeatmapVisible) {
+    if (seatHeatmapData.seats) renderSeatHeatmap();
+    fetchSeatHeatmapData().then(() => { if (seatHeatmapVisible) renderSeatHeatmap(); });
   }
 }
+
+function setGridVisible(on) {
+  gridVisible = on;
+  setLayerButton(btnGrid, on);
+  gridEl.classList.toggle('hidden', !on);
+  writeJSON('layer-grid', on);
+  updateGrid();
+}
+
 function setLabelsAlways(on) {
   wrapper.classList.toggle('labels-always', on);
   setLayerButton(btnLabels, on);
@@ -2175,32 +2202,124 @@ function setLabelsAlways(on) {
 function restoreLayerPrefs() {
   setSnap(readJSON('snapEnabled', true));
   setLabelsAlways(readJSON('layer-labels', false));
-  if (readJSON('layer-heatmap', false)) setHeatmapVisible(true);
-  if (readJSON('layer-seat-heatmap', false)) setSeatHeatmapVisible(true);
+  setGridVisible(readJSON('layer-grid', true));
+  // Older builds had two separate heatmap toggles; carry their state over.
+  let traffic = readJSON('layer-traffic', null);
+  if (!traffic) {
+    if (readJSON('layer-seat-heatmap', false)) traffic = { on: true, level: 'seat' };
+    else if (readJSON('layer-heatmap', false)) traffic = { on: true, level: 'switch' };
+  }
+  setTrafficLayer(!!traffic?.on, traffic?.level);
 }
 
-btnHeatmap.addEventListener('click', () => setHeatmapVisible(!heatmapVisible));
-btnSeatHeatmap.addEventListener('click', () => setSeatHeatmapVisible(!seatHeatmapVisible));
+btnGrid.addEventListener('click', () => setGridVisible(!gridVisible));
+btnTraffic.addEventListener('click', () => setTrafficLayer(!trafficOn));
+trafficLevelSeg.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-level]');
+  if (b && b.dataset.level !== trafficLevel) setTrafficLayer(true, b.dataset.level);
+});
 btnLabels.addEventListener('click', () => setLabelsAlways(!wrapper.classList.contains('labels-always')));
 
-// ── Heatmaps ──────────────────────────────────────────────────────────────────────────
-// Colour-blind-friendly ramp shared by both heatmaps (matches the legends)
-const HEAT = {
-  unknown: [110, 118, 129],
-  low:     [76, 154, 255],   // blue
-  mid:     [46, 196, 182],   // teal
-  high:    [244, 196, 48],   // yellow
-  higher:  [255, 140, 66],   // orange
-  max:     [214, 34, 70],    // crimson
-};
+// ── Grid ──────────────────────────────────────────────────────────────────────────
+// The grid lives behind the floor plan and follows pan and zoom. Its finest
+// visible step is picked from GRID_STEPS (in % of the floor plan, the same unit
+// as snapping) so lines never get denser than GRID_MIN_PX; every fifth-ish step
+// is a stronger major line. The finest step at high zoom is GRID_SNAP, so
+// snapped items sit exactly on lines.
+let gridVisible = true;
+const GRID_STEPS = [GRID_SNAP, 1, 2.5, 5, 10, 25, 50];
+const GRID_MIN_PX = 10;
 
+function updateGrid() {
+  if (!gridVisible) return;
+  const w = wrapper.offsetWidth * view.k;
+  const h = wrapper.offsetHeight * view.k;
+  if (!w || !h) return;
+  const pxPerPercent = Math.min(w, h) / 100;
+  let i = GRID_STEPS.findIndex(step => step * pxPerPercent >= GRID_MIN_PX);
+  if (i < 0) i = GRID_STEPS.length - 1;
+  const minor = GRID_STEPS[i];
+  const major = GRID_STEPS[Math.min(i + 2, GRID_STEPS.length - 1)];
+  // Fade the minor lines in as they open up, so zooming doesn't make them pop.
+  const fade = Math.min(1, Math.max(0, (minor * pxPerPercent - GRID_MIN_PX) / GRID_MIN_PX));
+  const st = gridEl.style;
+  st.setProperty('--grid-minor-w', `${minor * w / 100}px`);
+  st.setProperty('--grid-minor-h', `${minor * h / 100}px`);
+  st.setProperty('--grid-major-w', `${major * w / 100}px`);
+  st.setProperty('--grid-major-h', `${major * h / 100}px`);
+  st.setProperty('--grid-x', `${view.x}px`);
+  st.setProperty('--grid-y', `${view.y}px`);
+  st.setProperty('--grid-minor-pct', `${Math.round(6 + fade * 10)}%`);
+}
+
+// The floor plan resizes with the window and when an inspector opens.
+if (window.ResizeObserver) {
+  new ResizeObserver(() => { updateGrid(); scheduleHeatRender(); }).observe(wrapper);
+}
+
+// ── Traffic heatmap ─────────────────────────────────────────────────────────────────────
+// Throughput maps to colour on a log scale, so every 10× more traffic is the
+// same step along the ramp. Seats and switches use different ranges because a
+// switch carries many seats' traffic.
+const TRAFFIC_SCALES = {
+  seat:   { min: 1e5, max: 1e9,  ticks: ['100k', '1M', '10M', '100M', '1G'] },
+  switch: { min: 1e7, max: 1e10, ticks: ['10M', '100M', '1G', '10G'] },
+};
+// Colour-blind-friendly ramp (blue → teal → yellow → orange → crimson); the
+// .heat-scale bar in style.css uses the same stops.
+const HEAT_STOPS = [
+  [0,    [76, 154, 255]],
+  [0.30, [46, 196, 182]],
+  [0.55, [244, 196, 48]],
+  [0.78, [255, 140, 66]],
+  [1,    [214, 34, 70]],
+];
+const HEAT_LUT = (() => {
+  const lut = new Uint8ClampedArray(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    let j = 1;
+    while (j < HEAT_STOPS.length - 1 && t > HEAT_STOPS[j][0]) j++;
+    const [t0, c0] = HEAT_STOPS[j - 1];
+    const [t1, c1] = HEAT_STOPS[j];
+    const f = (t - t0) / (t1 - t0);
+    for (let k = 0; k < 3; k++) lut[i * 3 + k] = c0[k] + (c1[k] - c0[k]) * f;
+  }
+  return lut;
+})();
+
+function heatLevel(bps, scale) {
+  if (!(bps > 0)) return 0;
+  const t = Math.log10(bps / scale.min) / Math.log10(scale.max / scale.min);
+  return Math.min(1, Math.max(0, t));
+}
+function heatColor(level) {
+  const i = Math.round(Math.min(1, Math.max(0, level)) * 255) * 3;
+  return `rgb(${HEAT_LUT[i]}, ${HEAT_LUT[i + 1]}, ${HEAT_LUT[i + 2]})`;
+}
+
+let heatRenderQueued = false;
+function scheduleHeatRender() {
+  if (heatRenderQueued || !(heatmapVisible || seatHeatmapVisible)) return;
+  heatRenderQueued = true;
+  requestAnimationFrame(() => {
+    heatRenderQueued = false;
+    if (heatmapVisible) renderHeatmap();
+    if (seatHeatmapVisible) renderSeatHeatmap();
+  });
+}
+
+let seatHeatmapFailed = false;
 async function fetchSeatHeatmapData() {
   try {
     const data = await api('GET', '/api/seats/heatmap');
     seatHeatmapData.seats = data.seats || {};
+    seatHeatmapFailed = false;
   } catch (e) {
     seatHeatmapData.seats = {};
-    toastError('Could not load seat port usage', e);
+    // This runs every refresh; only say so once per outage.
+    if (!seatHeatmapFailed) toastError('Could not load seat traffic', e);
+    seatHeatmapFailed = true;
   }
 }
 
@@ -2218,80 +2337,137 @@ function prepareCanvas(canvas) {
   return { ctx, cw, ch, rect, scale };
 }
 
+// Draws a heat field: each point is a soft disc whose centre value is its
+// level. Overlapping discs keep the higher value (not the sum), so the colour
+// always means "throughput here", never "how many points are close together".
+const HEAT_RES = 0.5;   // the field is computed at half resolution and scaled up
+const HEAT_FLOOR = 0.14; // idle-but-up still shows as faint blue
+let heatScratch = null;
+function drawHeatField(ctx, cw, ch, points, radius) {
+  if (!points.length) return;
+  const w = Math.max(1, Math.round(cw * HEAT_RES));
+  const h = Math.max(1, Math.round(ch * HEAT_RES));
+  heatScratch = heatScratch || document.createElement('canvas');
+  heatScratch.width = w;
+  heatScratch.height = h;
+  const g = heatScratch.getContext('2d', { willReadFrequently: true });
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'lighten';
+  const r = radius * HEAT_RES;
+  for (const p of points) {
+    const x = p.x * HEAT_RES, y = p.y * HEAT_RES;
+    const v = Math.round((HEAT_FLOOR + (1 - HEAT_FLOOR) * p.level) * 255);
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0,    `rgb(${v},${v},${v})`);
+    grad.addColorStop(0.45, `rgb(${Math.round(v * 0.82)},${Math.round(v * 0.82)},${Math.round(v * 0.82)})`);
+    grad.addColorStop(1,    'rgb(0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const img = g.getImageData(0, 0, w, h);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = d[i] / 255;
+    if (v < 0.01) { d[i + 3] = 0; continue; }
+    const t = Math.max(0, (v - HEAT_FLOOR) / (1 - HEAT_FLOOR));
+    const li = Math.round(t * 255) * 3;
+    d[i]     = HEAT_LUT[li];
+    d[i + 1] = HEAT_LUT[li + 1];
+    d[i + 2] = HEAT_LUT[li + 2];
+    d[i + 3] = Math.round(Math.min(1, v / HEAT_FLOOR) * (120 + 90 * t));
+  }
+  g.globalCompositeOperation = 'source-over';
+  g.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(heatScratch, 0, 0, cw, ch);
+}
+
+function seatThroughput(seatData) {
+  const usage = seatData && seatData.resolved ? seatData.port_usage : null;
+  if (!usage || usage.status !== 'up') return null;
+  return usage.total_bps || 0;
+}
+
+function clearSeatTints() {
+  for (const el of blocksOverlay.querySelectorAll('.seat-block-seat.heat, .seat-block-seat.heat-none')) {
+    el.classList.remove('heat', 'heat-none');
+    el.style.removeProperty('--heat');
+  }
+}
+
 function renderSeatHeatmap() {
   if (!seatHeatmapData.seats) return;
   const c = prepareCanvas(seatHeatCanvas);
   if (!c) return;
-  const { ctx, rect, scale } = c;
+  const { ctx, cw, ch, rect, scale } = c;
+  const range = TRAFFIC_SCALES.seat;
 
-  for (const [seatNumber, seatData] of Object.entries(seatHeatmapData.seats)) {
-    const seatEl = blocksOverlay.querySelector(`[data-seat-number="${CSS.escape(seatNumber)}"]`) ||
-                   seatsOverlay.querySelector(`[data-seat-number="${CSS.escape(seatNumber)}"]`);
-    if (!seatEl) continue;
-
-    const r = seatEl.getBoundingClientRect();
-    const cx = (r.left + r.width / 2 - rect.left) * scale;
-    const cy = (r.top + r.height / 2 - rect.top) * scale;
-
-    let rgb = HEAT.unknown;
-    const usage = seatData.resolved ? seatData.port_usage : null;
-    if (usage && usage.status === 'up') {
-      const mbps = (usage.total_bps || 0) / 1e6;
-      rgb = mbps >= 500 ? HEAT.max : mbps >= 100 ? HEAT.high : mbps >= 10 ? HEAT.mid : HEAT.low;
-    }
-
-    const radius = Math.min(r.width, r.height) / 2 * scale * 0.9;
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-    grad.addColorStop(0,   `rgba(${rgb},0.9)`);
-    grad.addColorStop(0.6, `rgba(${rgb},0.7)`);
-    grad.addColorStop(1,   `rgba(${rgb},0.3)`);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
+  const points = [];
+  let seatSize = 18;
+  let busiest = null;
+  let measured = 0;
+  for (const el of blocksOverlay.querySelectorAll('.seat-block-seat')) {
+    const bps = seatThroughput(seatHeatmapData.seats[el.dataset.seatNumber]);
+    el.classList.toggle('heat', bps != null);
+    el.classList.toggle('heat-none', bps == null);
+    if (bps == null) { el.style.removeProperty('--heat'); continue; }
+    const level = heatLevel(bps, range);
+    el.style.setProperty('--heat', heatColor(level));
+    const r = el.getBoundingClientRect();
+    seatSize = r.width * scale;
+    points.push({ x: (r.left + r.width / 2 - rect.left) * scale, y: (r.top + r.height / 2 - rect.top) * scale, level });
+    measured++;
+    if (!busiest || bps > busiest.bps) busiest = { name: el.dataset.seatNumber, bps };
   }
+  // Legacy individual seats get the glow only.
+  for (const el of seatsOverlay.querySelectorAll('[data-seat-number]')) {
+    const bps = seatThroughput(seatHeatmapData.seats[el.dataset.seatNumber]);
+    if (bps == null) continue;
+    const r = el.getBoundingClientRect();
+    points.push({ x: (r.left + r.width / 2 - rect.left) * scale, y: (r.top + r.height / 2 - rect.top) * scale,
+                  level: heatLevel(bps, range) });
+    measured++;
+    if (!busiest || bps > busiest.bps) busiest = { name: el.dataset.seatNumber, bps };
+  }
+
+  drawHeatField(ctx, cw, ch, points, Math.max(14, seatSize * 1.7));
+  trafficSummary.textContent = measured
+    ? `${measured} seat${measured === 1 ? '' : 's'} with traffic data · busiest ${busiest.name} at ${fmtBps(busiest.bps)}`
+    : 'No seat has traffic data yet. Seats need an IP in the seat mapping and LibreNMS must find their port.';
 }
 
 function renderHeatmap() {
   const c = prepareCanvas(heatCanvas);
   if (!c) return;
   const { ctx, cw, ch, rect, scale } = c;
-  const baseR = Math.min(cw, ch) * 0.18;
+  const range = TRAFFIC_SCALES.switch;
 
   const visible = switches.filter(sw =>
     sw.placed !== false && sw.x != null && !getDeviceSetting(sw.id, 'excludeHeatmap') &&
     sw.status !== 'offline' && portStats[sw.id] && portStats[sw.id].total_traffic_bps != null);
-  const maxThroughput = Math.max(0, ...visible.map(sw => portStats[sw.id].total_traffic_bps));
 
-  for (const sw of visible) {
-    let cx, cy;
+  const points = visible.map(sw => {
+    let x, y;
     const pin = overlay.querySelector(`[data-id="${CSS.escape(sw.id)}"] .switch-pin`);
     if (pin) {
       const pr = pin.getBoundingClientRect();
-      cx = (pr.left + pr.width / 2 - rect.left) * scale;
-      cy = (pr.top + pr.height * 5 / 18 - rect.top) * scale; // pin head centre
+      x = (pr.left + pr.width / 2 - rect.left) * scale;
+      y = (pr.top + pr.height * 5 / 18 - rect.top) * scale; // pin head centre
     } else {
-      cx = (sw.x / 100) * cw;
-      cy = (sw.y / 100) * ch;
+      x = (sw.x / 100) * cw;
+      y = (sw.y / 100) * ch;
     }
+    return { x, y, level: heatLevel(portStats[sw.id].total_traffic_bps, range) };
+  });
+  drawHeatField(ctx, cw, ch, points, Math.min(cw, ch) * 0.13);
 
-    const throughput = portStats[sw.id].total_traffic_bps;
-    const normalized = maxThroughput > 0 ? throughput / maxThroughput : 0;
-    const r = baseR * Math.min(1.8, 0.6 + normalized * 1.2);
-    const gbps = throughput / 1e9;
-    const rgb = gbps >= 10 ? HEAT.max : gbps >= 5 ? HEAT.higher : gbps >= 1 ? HEAT.high
-              : gbps >= 0.1 ? HEAT.mid : HEAT.low;
-
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0,    `rgba(${rgb},0.95)`);
-    grad.addColorStop(0.5,  `rgba(${rgb},0.7)`);
-    grad.addColorStop(0.75, `rgba(${rgb},0.3)`);
-    grad.addColorStop(1,    `rgba(${rgb},0)`);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const busiest = visible.reduce((a, sw) =>
+    (!a || portStats[sw.id].total_traffic_bps > portStats[a.id].total_traffic_bps ? sw : a), null);
+  trafficSummary.textContent = busiest
+    ? `${visible.length} switch${visible.length === 1 ? '' : 'es'} reporting · busiest ${busiest.name} at ${fmtBps(portStats[busiest.id].total_traffic_bps)}`
+    : 'No switch has reported traffic yet. Switches need to be online in LibreNMS.';
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────────────
