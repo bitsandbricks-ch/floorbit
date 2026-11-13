@@ -31,7 +31,7 @@ def get(key, default=None):
     if provider is not None:
         try:
             value = provider(key)
-        except Exception as exc:  # a broken provider must not take integrations down
+        except Exception as exc:  # noqa: BLE001  # a broken provider must not take integrations down
             print(f"[integrations] settings provider failed for {key}: {exc}")
             value = None
         if value is not None and value != '':
@@ -70,11 +70,13 @@ SCHEMA = [
 
     # Status monitor
     {'key': 'STATUS_MONITOR_ENABLED', 'group': 'monitor', 'type': 'bool', 'default': True,
-     'label': 'Switch status monitor', 'help': 'Poll LibreNMS in the background and detect switches going offline or online. Needs LibreNMS.'},
+     'label': 'Switch status monitor',
+     'help': 'Poll LibreNMS in the background and detect switches going offline or online. Needs LibreNMS.'},
     {'key': 'STATUS_MONITOR_INTERVAL', 'group': 'monitor', 'type': 'int', 'default': 60,
      'label': 'Poll interval (seconds)', 'help': 'How often to ask LibreNMS for device status. Minimum 10.'},
     {'key': 'STATUS_MONITOR_CONFIRM', 'group': 'monitor', 'type': 'int', 'default': 2,
-     'label': 'Polls to confirm a change', 'help': 'A new status must be seen this many polls in a row before it counts, to ignore flapping.'},
+     'label': 'Polls to confirm a change',
+     'help': 'A new status must be seen this many polls in a row before it counts, to ignore flapping.'},
 
     # Discord
     {'key': 'DISCORD_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
@@ -96,31 +98,40 @@ SCHEMA = [
     {'key': 'SEAT_SOURCE_JSON_PATH', 'group': 'seats', 'type': 'string', 'default': 'seats.json',
      'label': 'Seat JSON file', 'help': 'Path of the static seat mapping file.'},
     {'key': 'SEAT_SOURCE_HTTP_URL', 'group': 'seats', 'type': 'string', 'default': '',
-     'label': 'Seat HTTP source URL', 'help': 'Endpoint returning {"seats": {"A-1": {"username": ..., "ip_address": ...}}}.'},
+     'label': 'Seat HTTP source URL',
+     'help': 'Endpoint returning {"seats": {"A-1": {"username": ..., "ip_address": ...}}}.'},
     {'key': 'SEAT_SOURCE_HTTP_TOKEN', 'group': 'seats', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Seat HTTP source token', 'help': 'Sent as a Bearer token, if set.'},
     {'key': 'SEAT_SOURCE_CACHE_SECONDS', 'group': 'seats', 'type': 'int', 'default': 30,
-     'label': 'Seat mapping cache (seconds)', 'help': 'How long a merged mapping is reused before asking the sources again.'},
+     'label': 'Seat mapping cache (seconds)',
+     'help': 'How long a merged mapping is reused before asking the sources again.'},
 
     # Seat check-in page
     {'key': 'CHECKIN_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': False,
-     'label': 'Seat check-in page', 'help': 'Serve /checkin where people enter seat + username; their IP and MAC are recorded. Add "checkin" to Seat sources to use it.'},
+     'label': 'Seat check-in page',
+     'help': 'Serve /checkin where people enter seat + username; their IP and MAC are recorded. Add "checkin" '
+             'to Seat sources to use it.'},
     {'key': 'CHECKIN_ALLOWED_NETWORKS', 'group': 'checkin', 'type': 'string', 'default': '',
-     'label': 'Allowed networks', 'help': 'Comma-separated CIDRs players check in from, e.g. 10.0.0.0/16. Empty allows any.'},
+     'label': 'Allowed networks',
+     'help': 'Comma-separated CIDRs players check in from, e.g. 10.0.0.0/16. Empty allows any.'},
     {'key': 'CHECKIN_TRUST_PROXY', 'group': 'checkin', 'type': 'bool', 'default': False,
-     'label': 'Behind a reverse proxy', 'help': 'Use X-Forwarded-For as the client IP. Only turn on if a proxy you control sets it.'},
+     'label': 'Behind a reverse proxy',
+     'help': 'Use X-Forwarded-For as the client IP. Only turn on if a proxy you control sets it.'},
     {'key': 'CHECKIN_VALIDATE_SEATS', 'group': 'checkin', 'type': 'bool', 'default': True,
      'label': 'Only accept seats on the plan', 'help': 'Reject seat numbers that are not in any seat block.'},
     {'key': 'CHECKIN_REFRESH_INTERVAL', 'group': 'checkin', 'type': 'int', 'default': 300,
-     'label': 'Lease refresh (seconds)', 'help': 'How often to re-check each MAC in LibreNMS and follow DHCP IP changes.'},
+     'label': 'Lease refresh (seconds)',
+     'help': 'How often to re-check each MAC in LibreNMS and follow DHCP IP changes.'},
     {'key': 'CHECKIN_ADMIN_TOKEN', 'group': 'checkin', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Admin token', 'help': 'If set, listing or deleting check-ins needs this token (X-Admin-Token header).'},
     {'key': 'CHECKIN_FILE', 'group': 'checkin', 'type': 'string', 'default': 'checkins.json',
      'label': 'Check-in data file', 'help': 'Where check-ins are stored.'},
     {'key': 'CHECKIN_HISTORY_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': True,
-     'label': 'Keep check-in history', 'help': 'Log every check-in, seat move, removal and DHCP IP change, for /checkins/history and CSV export.'},
+     'label': 'Keep check-in history',
+     'help': 'Log every check-in, seat move, removal and DHCP IP change, for /checkins/history and CSV export.'},
     {'key': 'CHECKIN_HISTORY_FILE', 'group': 'checkin', 'type': 'string', 'default': '',
-     'label': 'Check-in history file', 'help': 'Append-only JSON Lines log. Empty means next to the check-in data file (checkins-history.jsonl).'},
+     'label': 'Check-in history file',
+     'help': 'Append-only JSON Lines log. Empty means next to the check-in data file (checkins-history.jsonl).'},
 
     # General
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',

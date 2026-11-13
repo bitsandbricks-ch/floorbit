@@ -7,7 +7,20 @@ extend-exclude = [".claude", ".planning"]
 
 [tool.ruff.lint]
 # Pinned, so a ruff upgrade doesn't change what fails. Widen it in an MR that also fixes the code.
-select = ["E4", "E7", "E9", "F"]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import order
+    "UP",       # pyupgrade (for target-version)
+    "B",        # bugbear
+    "BLE",      # no blind `except Exception`
+    "C4",       # comprehensions
+    "SIM",      # simplify
+    "RUF",      # ruff-specific
+]
+ignore = [
+    "C408",     # dict(key=...) reads better than a literal for the settings schema
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
