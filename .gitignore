@@ -42,5 +42,7 @@ env/
 
 # Project specific
 data.json
+checkins.json
+state/
 static/uploads/
 *.log
