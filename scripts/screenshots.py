@@ -23,7 +23,7 @@ from playwright.sync_api import sync_playwright
 BASE = os.environ.get("APP_URL", "http://127.0.0.1:5000").rstrip("/")
 USER = os.environ.get("SCREENSHOT_USER") or os.environ.get("AUTH_ADMIN_USER", "")
 PASSWORD = os.environ.get("SCREENSHOT_PASSWORD") or os.environ.get("AUTH_ADMIN_PASSWORD", "")
-PAGES = {"floorplan": "/", "settings": "/settings"}
+PAGES = {"floorplan": "/", "settings": "/settings", "users": "/settings/users"}
 DEMO_SWITCHES = [
     {"name": "sw-demo-01", "x": 25, "y": 30},
     {"name": "sw-demo-02", "x": 60, "y": 30},

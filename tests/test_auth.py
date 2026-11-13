@@ -15,7 +15,7 @@ def auth(app_module):
 
 @pytest.fixture
 def user(auth):
-    return auth.users.add(TEST_USER, TEST_PASSWORD, display_name="Test Person")
+    return auth.users.add(TEST_USER, TEST_PASSWORD, display_name="Test Person", role="admin")
 
 
 def sign_in(client, username=TEST_USER, password=TEST_PASSWORD, **extra):
@@ -51,6 +51,7 @@ def test_changes_need_a_signed_in_user(anon_client):
 def test_settings_api_is_never_open(anon_client):
     assert anon_client.get("/api/settings").status_code == 401
     assert anon_client.put("/api/settings", json={}).status_code == 401
+    assert anon_client.get("/api/users").status_code == 401
 
 
 def test_public_read_can_be_turned_off(anon_client, auth, monkeypatch):
@@ -154,9 +155,14 @@ def test_passwords_are_hashed(auth, user):
 
 def test_cli_manages_users(app_module, auth):
     runner = app_module.app.test_cli_runner()
+    result = runner.invoke(args=["users", "add", "root", "--password", "long-enough-pw"])
+    assert "as admin" in result.output  # the first account
     result = runner.invoke(args=["users", "add", "alice", "--password", "long-enough-pw"])
     assert result.exit_code == 0, result.output
-    assert auth.users.verify("alice", "long-enough-pw")
+    assert auth.users.verify("alice", "long-enough-pw")["role"] == "editor"
+    assert runner.invoke(args=["users", "role", "alice", "viewer"]).exit_code == 0
+    assert auth.users.get("alice")["role"] == "viewer"
+    assert runner.invoke(args=["users", "remove", "root"]).exit_code != 0  # the last admin
 
     assert "alice" in runner.invoke(args=["users", "list"]).output
     assert runner.invoke(args=["users", "add", "alice", "--password", "long-enough-pw"]).exit_code != 0
@@ -235,3 +241,103 @@ def test_callback_needs_the_matching_state(anon_client, auth, user, fake_sso):
     auth.users.link_identity(TEST_USER, "fake", "42")
     start_sso(anon_client)
     assert anon_client.get("/auth/fake/callback?state=forged&code=42").status_code == 400
+
+
+# ── Roles ──────────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def signed_in_as(app_module, auth):
+    """A client signed in as a fresh account with the given role."""
+    def make(role):
+        auth.users.add(f"{role}-user", TEST_PASSWORD, role=role)
+        test_client = app_module.app.test_client()
+        assert sign_in(test_client, username=f"{role}-user").status_code == 302
+        return test_client
+    return make
+
+
+def test_viewer_can_look_but_not_change(signed_in_as):
+    viewer = signed_in_as("viewer")
+    assert viewer.get("/").status_code == 200
+    resp = viewer.post("/api/switches", json={"name": "sw", "x": 1, "y": 1})
+    assert resp.status_code == 403
+    assert resp.get_json()["role_needed"] == "editor"
+
+
+def test_editor_can_change_the_floor_plan_but_not_settings(signed_in_as):
+    editor = signed_in_as("editor")
+    assert editor.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
+    assert editor.get("/api/settings").status_code == 403
+    assert editor.get("/api/users").status_code == 403
+    page = editor.get("/settings")
+    assert page.status_code == 403 and b"Not allowed" in page.data
+
+
+def test_admin_can_do_everything(signed_in_as):
+    admin = signed_in_as("admin")
+    assert admin.get("/api/settings").status_code == 200
+    assert admin.get("/settings/users").status_code == 200
+    assert admin.get("/api/users").status_code == 200
+
+
+def test_accounts_from_before_roles_count_as_admin(auth, anon_client):
+    auth.users.add("old-account", TEST_PASSWORD)
+    users = auth.users._users()
+    del users["old-account"]["role"]
+    auth.users._write_users(users)
+    assert auth.users.get("old-account") and auth.users.list()[0]["role"] == "admin"
+
+
+def test_role_change_applies_to_open_sessions(signed_in_as, auth):
+    editor = signed_in_as("editor")
+    assert editor.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
+    auth.users.update("editor-user", role="viewer")
+    assert editor.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 403
+
+
+# ── Users page API ─────────────────────────────────────────────────────────────
+
+def test_admin_manages_accounts(client, auth):
+    body = client.get("/api/users").get_json()
+    assert body["me"] == TEST_USER
+    assert [r["id"] for r in body["roles"]] == ["viewer", "editor", "admin"]
+
+    resp = client.post("/api/users", json={"username": "helper1", "password": "long-enough-pw", "role": "viewer"})
+    assert resp.status_code == 201
+    assert auth.users.get("helper1")["role"] == "viewer"
+    assert "password_hash" not in str(resp.get_json())
+
+    assert client.post("/api/users", json={"username": "helper1", "password": "long-enough-pw"}).status_code == 400
+    assert client.post("/api/users", json={"username": "x y", "password": "long-enough-pw"}).status_code == 400
+    assert client.post("/api/users", json={"username": "ok", "password": "short"}).status_code == 400
+    assert client.post("/api/users", json={"username": "ok", "password": "long-enough-pw",
+                                           "role": "superuser"}).status_code == 400
+
+    assert client.patch("/api/users/helper1", json={"role": "editor", "display_name": "Helper One"}).status_code == 200
+    assert auth.users.get("helper1")["display_name"] == "Helper One"
+    assert client.patch("/api/users/helper1", json={"password": "new-long-password"}).status_code == 200
+    assert auth.users.verify("helper1", "new-long-password")
+
+    assert client.delete("/api/users/helper1").status_code == 200
+    assert auth.users.get("helper1") is None
+    assert client.delete("/api/users/nobody").status_code == 400
+
+
+def test_admin_cannot_lock_themselves_out(client):
+    assert client.patch(f"/api/users/{TEST_USER}", json={"role": "viewer"}).status_code == 400
+    assert client.delete(f"/api/users/{TEST_USER}").status_code == 400
+
+
+def test_last_admin_stays_admin(auth):
+    auth.users.add("only-admin", TEST_PASSWORD, role="admin")
+    with pytest.raises(Exception, match="last admin"):
+        auth.users.update("only-admin", role="editor")
+    with pytest.raises(Exception, match="last admin"):
+        auth.users.remove("only-admin")
+
+
+def test_first_account_from_env_is_admin(auth, monkeypatch):
+    monkeypatch.setenv("AUTH_ADMIN_USER", "boss")
+    monkeypatch.setenv("AUTH_ADMIN_PASSWORD", TEST_PASSWORD)
+    auth._bootstrap_admin()
+    assert auth.users.get("boss")["role"] == "admin"

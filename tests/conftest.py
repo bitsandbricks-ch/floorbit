@@ -90,8 +90,8 @@ def anon_client(app_module):
 
 @pytest.fixture
 def client(app_module):
-    """Signed in as TEST_USER, so tests of the editor can change things."""
-    app_module.app.extensions["auth"].users.add(TEST_USER, TEST_PASSWORD)
+    """Signed in as TEST_USER, an admin, so tests can change anything."""
+    app_module.app.extensions["auth"].users.add(TEST_USER, TEST_PASSWORD, role="admin")
     test_client = app_module.app.test_client()
     resp = test_client.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD})
     assert resp.status_code == 302, resp.data

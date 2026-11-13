@@ -7,9 +7,11 @@ guard that runs before every request:
   ``AUTH_PUBLIC_PATHS`` (the attendee check-in page and the kiosk view).
 - Open while ``AUTH_PUBLIC_READ`` is on (the default): read-only ``GET``
   requests to ``/api/...``, so a kiosk screen can show the floor plan without
-  an account. ``/api/settings`` is never open.
+  an account. ``/api/settings`` and ``/api/users`` are never open.
 - Everything else, which is every page of the editor, ``/settings`` and every
-  request that changes something, needs a signed-in user.
+  request that changes something, needs a signed-in user with a role that
+  allows it (see roles.py): viewers look, editors change the floor plan,
+  admins also change settings and manage accounts.
 
 How a person proves who they are is up to the providers in ``providers/``;
 local username and password accounts are the only one so far.
@@ -25,6 +27,8 @@ from urllib.parse import urlsplit
 from flask import (Blueprint, abort, current_app, g, jsonify, redirect, render_template,
                    request, session, url_for)
 
+from . import roles
+from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
 from .users import UserError, UserStore, public
 
@@ -114,6 +118,13 @@ def _deny():
     return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
 
 
+def _forbidden(needed):
+    message = f'This needs the {roles.LABELS[needed]} role.'
+    if _wants_json():
+        return jsonify({'error': message, 'role_needed': needed}), 403
+    return render_template('forbidden.html', message=message, user=current_user()), 403
+
+
 def _same_origin():
     """Refuse state changes posted from another site (CSRF), on top of SameSite cookies."""
     origin = request.headers.get('Origin')
@@ -149,6 +160,7 @@ class Auth:
 
         app.extensions['auth'] = self
         app.register_blueprint(_blueprint())
+        app.register_blueprint(create_users_blueprint(self))
         app.before_request(self.guard)
         app.context_processor(lambda: {'current_user': current_user(), 'auth_enabled': self.enabled})
         _register_cli(app, self)
@@ -177,7 +189,7 @@ class Auth:
             if self.users.count():
                 return
             if name and password:
-                self.users.add(name, password)
+                self.users.add(name, password, role='admin')
                 print(f'[auth] Created the first account, {name}, from AUTH_ADMIN_USER.')
             else:
                 print('[auth] No accounts yet. Create one with: flask --app app users add <name>')
@@ -195,8 +207,9 @@ class Auth:
             return True
         if any(path == p or path.startswith(p + '/') for p in self.public_paths):
             return True
+        # Reads of admin-only data (settings, accounts) never count as public.
         if (self.public_read and request.method in SAFE_METHODS and path.startswith('/api/')
-                and not (path == '/api/settings' or path.startswith('/api/settings/'))):
+                and roles.needed_for(path, request.method, SAFE_METHODS) == 'viewer'):
             return True
         return False
 
@@ -207,9 +220,13 @@ class Auth:
             abort(403, description='Cross-site request refused.')
         if self.is_public():
             return None
-        if current_user():
-            return None
-        return _deny()
+        user = current_user()
+        if not user:
+            return _deny()
+        needed = roles.needed_for(request.path.rstrip('/') or '/', request.method, SAFE_METHODS)
+        if not roles.allows(user['role'], needed):
+            return _forbidden(needed)
+        return None
 
     # sign-in -------------------------------------------------------------
     def _failure_key(self, username):
@@ -250,7 +267,8 @@ class Auth:
             n += 1
             name = f'{base}{n}'
         return self.users.add(name, display_name=identity.display_name or identity.username,
-                              identities={identity.provider: identity.subject})
+                              identities={identity.provider: identity.subject},
+                              role=getattr(provider, 'default_role', 'viewer'))
 
 
 def init_auth(app, data_file):
@@ -354,18 +372,31 @@ def _register_cli(app, auth):
     @users.command('add')
     @click.argument('username')
     @click.option('--display-name', default='', help='Name shown in the top bar.')
+    @click.option('--role', type=click.Choice(roles.ROLES), default=None,
+                  help='Defaults to admin for the first account, editor after that.')
     @click.password_option(help='Prompted for when left out.')
-    def add_user(username, display_name, password):
+    def add_user(username, display_name, role, password):
+        role = role or ('admin' if auth.users.count() == 0 else roles.DEFAULT_ROLE)
         try:
-            auth.users.add(username, password, display_name=display_name)
+            auth.users.add(username, password, display_name=display_name, role=role)
         except UserError as exc:
             fail(exc)
-        click.echo(f'Added {username}.')
+        click.echo(f'Added {username} as {role}.')
+
+    @users.command('role')
+    @click.argument('username')
+    @click.argument('role', type=click.Choice(roles.ROLES))
+    def set_role(username, role):
+        try:
+            auth.users.update(username, role=role)
+        except UserError as exc:
+            fail(exc)
+        click.echo(f'{username} is now {role}.')
 
     @users.command('passwd')
     @click.argument('username')
     @click.password_option(help='Prompted for when left out.')
-    def set_password(username, password):
+    def set_password_cmd(username, password):
         try:
             auth.users.set_password(username, password)
         except UserError as exc:
@@ -388,6 +419,7 @@ def _register_cli(app, auth):
             click.echo('No accounts yet.')
         for user in rows:
             extra = ', '.join(user['identities'])
-            click.echo(f"{user['username']:<24} {user['display_name']}" + (f'  [{extra}]' if extra else ''))
+            click.echo(f"{user['username']:<24} {user['role']:<8} {user['display_name']}"
+                       + (f'  [{extra}]' if extra else ''))
 
     app.cli.add_command(users)
