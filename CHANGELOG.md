@@ -8,6 +8,10 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Floor plan grid that follows pan and zoom and lines up with the snap step (Layers > Grid).
+- Traffic heatmap layer with a Seats / Switches / Both level, coloured by LibreNMS throughput on a
+  log scale. Switches show as cards with their name and throughput. Replaces the separate switch
+  and seat heatmap toggles. Seat lookups for it now run in parallel.
 - Kiosk view at `/kiosk`: a read-only floor plan for a big screen with switch status, seat
   occupancy and a list of switches that are down. Uses live updates when the server has them and
   polls otherwise. See `docs/kiosk.md`.

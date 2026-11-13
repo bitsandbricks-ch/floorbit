@@ -22,6 +22,7 @@ COPY auth/ ./auth/
 COPY static/ ./static/
 COPY templates/ ./templates/
 COPY integrations/ ./integrations/
+COPY seat_traffic.py ./
 
 # Create necessary directories
 RUN mkdir -p static/uploads
