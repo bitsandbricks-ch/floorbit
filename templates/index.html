@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Building View</title>
+  <title>Floorbit</title>
+  <link rel="stylesheet" href="/static/css/attribution.css" />
   <script src="/static/js/theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
@@ -23,7 +24,7 @@
           <line x1="18" y1="11" x2="18" y2="13"/>
           <circle cx="19" cy="9" r="1" fill="currentColor"/>
         </svg>
-        <span class="topbar-title">Building View</span>
+        <span class="topbar-title">Floorbit</span>
       </div>
 
       <div class="status-chips" role="group" aria-label="Filter switches by status">
@@ -193,6 +194,7 @@
 
         <div class="sidebar-footer">
           <button class="link-btn" id="btn-shortcuts">Keyboard shortcuts <kbd>?</kbd></button>
+          {% with compact=True %}{% include "_attribution.html" %}{% endwith %}
         </div>
       </aside>
 
@@ -695,7 +697,21 @@
   <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
   <script src="/static/js/auth.js"></script>
-  <script src="/static/js/app.js"></script>
+  <!-- Editor scripts share one global scope; order matters (static/js/editor/README.md). -->
+  <script src="/static/js/editor/core.js"></script>
+  <script src="/static/js/editor/data.js"></script>
+  <script src="/static/js/editor/sidebar.js"></script>
+  <script src="/static/js/editor/canvas.js"></script>
+  <script src="/static/js/editor/modals.js"></script>
+  <script src="/static/js/editor/render.js"></script>
+  <script src="/static/js/editor/inspector.js"></script>
+  <script src="/static/js/editor/drag.js"></script>
+  <script src="/static/js/editor/menus.js"></script>
+  <script src="/static/js/editor/keyboard.js"></script>
+  <script src="/static/js/editor/status.js"></script>
+  <script src="/static/js/editor/layers.js"></script>
+  <script src="/static/js/editor/heatmap.js"></script>
+  <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>
 </body>
 </html>

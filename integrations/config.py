@@ -87,7 +87,7 @@ SCHEMA = [
      'label': 'Notify on recovery', 'help': 'Also post when a switch comes back online.'},
     {'key': 'DISCORD_MENTION', 'group': 'discord', 'type': 'string', 'default': '',
      'label': 'Mention on outage', 'help': 'Optional text put in front of outage alerts, e.g. <@&ROLE_ID> or @here.'},
-    {'key': 'DISCORD_USERNAME', 'group': 'discord', 'type': 'string', 'default': 'LAL Floor Plan',
+    {'key': 'DISCORD_USERNAME', 'group': 'discord', 'type': 'string', 'default': 'Floorbit',
      'label': 'Bot name', 'help': 'Name shown on the webhook messages.'},
     {'key': 'DISCORD_COOLDOWN', 'group': 'discord', 'type': 'int', 'default': 300,
      'label': 'Per-switch cooldown (seconds)', 'help': 'Do not alert about the same switch more often than this.'},

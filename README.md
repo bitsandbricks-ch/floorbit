@@ -80,15 +80,18 @@ Before you push, run what the pipeline runs:
 ```sh
 ruff check .
 pytest -q                                      # NetBox, LibreNMS and Redis are faked
-for f in static/js/*.js; do node --check "$f"; done
+find static -name '*.js' -exec node --check {} \;
 docker build .
 ```
 
 | Path | What lives there |
 | --- | --- |
-| `app.py` | The Flask app: pages, JSON API, NetBox and LibreNMS clients, Redis cache. |
+| `app.py` | Entry point; the app itself is built by `create_app()` in `floorbit/`. |
+| `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `sources/` (NetBox, LibreNMS), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
+| `integrations/` | Live updates, switch monitor, Discord alerts, seat sources, check-in. |
 | `auth/` | Sign-in: accounts, sessions, the login page and the providers for SSO later. |
-| `templates/`, `static/` | The pages and the browser app (plain JavaScript and CSS, no build step). |
+| `templates/`, `static/` | The pages and the browser app (plain JavaScript and CSS, no build step); the editor is in `static/js/editor/`. |
+| `changelog.d/` | One changelog fragment per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |
 | `scripts/screenshots.py` | Desktop and phone screenshots for pull requests. |
@@ -118,7 +121,8 @@ agents follow [AGENTS.md](AGENTS.md). Security problems go through a private vul
 
 ## Releases
 
-`mason bump floorbit minor` opens the version pull request, `mason release tag floorbit`
+`python scripts/changelog.py collect` merges the `changelog.d/` fragments into `CHANGELOG.md`
+(commit that on the release branch), `mason bump floorbit minor` opens the version pull request, `mason release tag floorbit`
 pushes the tag, and CI builds the image and publishes the release. See
 [CHANGELOG.md](CHANGELOG.md).
 
