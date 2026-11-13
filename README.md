@@ -96,16 +96,21 @@ docker build .
 
 ### CI
 
-GitHub Actions, in [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+GitHub Actions in [`.github/workflows/`](.github/workflows/), set up like the
+[BitsAndBricks repo template](https://github.com/bitsandbricks-ch/repo-template):
 
-| Job | When | What it does |
+| Workflow / job | When | What it does |
 | --- | --- | --- |
-| `ruff` | always | Python lint; findings show inline on the pull request. |
-| `javascript` | always | Syntax check of `static/js`. |
-| `pytest` | always | Smoke tests. |
-| `screenshots` | pull requests | Runs the app with demo data and screenshots every page, desktop and phone (artifact). |
-| `docker-image` | always | Builds the Docker image; pushes it to GHCR from `master` and `v*` tags. |
-| `release` | `v*` tags | Checks the tag against `VERSION` and publishes the GitHub release with its changelog section. |
+| `ci.yml` `ruff` | always | Python lint; findings show inline on the pull request. |
+| `ci.yml` `javascript` | always | Syntax check of `static/js`. |
+| `ci.yml` `pytest` | always | Smoke tests. |
+| `ci.yml` `screenshots` | pull requests | Runs the app with demo data and screenshots every page, desktop and phone (artifact). |
+| `ci.yml` `workflows` | always | actionlint over the workflow files. |
+| `ci.yml` `CI passed` | always | Green when every job above is; the one check the `master` ruleset requires. |
+| `image.yml` | always | Builds the Docker image; pushes it to GHCR from `master` (`latest`) and `v*` tags (the version). |
+| `release.yml` | `v*` tags | Checks the tag against `VERSION` and publishes the GitHub release with its changelog section. |
+
+Branch and tag protection live in [`.github/rulesets/`](.github/rulesets/) (`mason doctor --fix` applies them).
 
 Pull requests follow [CONTRIBUTING.md](CONTRIBUTING.md) and always include screenshots. Coding
 agents follow [AGENTS.md](AGENTS.md). Security problems go through a private vulnerability report, see

@@ -1,25 +1,21 @@
-# Lint and test every pull request and master, with screenshots for the pull request.
-# The Docker image is built every time and pushed to GHCR from master (latest) and from
-# v* tags (the version). A v* tag that matches VERSION also becomes a GitHub release with
-# its CHANGELOG.md section:
-#
-#     mason bump floorbit minor     PR that sets VERSION and adds the changelog section
-#     mason release tag floorbit    pushes v<version>; the release job below does the rest
-
 name: CI
 
+# Lint and test every pull request and master, with screenshots for the pull request.
+# "CI passed" comes last: it is the one check the master ruleset (.github/rulesets/main.json)
+# requires, so jobs can be added here without touching the ruleset. The image is built in
+# image.yml and releases are made in release.yml.
 on:
   pull_request:
   push:
     branches: [master]
-    tags: ["v*"]
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PYTHON_VERSION: "3.11"          # the Dockerfile's Python
@@ -28,9 +24,10 @@ env:
 jobs:
   ruff:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -41,18 +38,20 @@ jobs:
 
   javascript:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: 24
       - run: for f in $(find static -name '*.js'); do echo "$f"; node --check "$f"; done
 
   pytest:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -60,18 +59,14 @@ jobs:
             requirements.txt
             requirements-dev.txt
       - run: pip install --quiet -r requirements.txt -r requirements-dev.txt
-      - run: pytest -q --junitxml=report.xml
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pytest-report
-          path: report.xml
+      - run: pytest -q
 
   screenshots:
     # Every pull request has screenshots: this takes them, desktop and phone, of every page.
     # Download the "screenshots" artifact from the run's summary and drag them into the PR.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     container: mcr.microsoft.com/playwright/python:v1.49.0-noble
     services:
       redis:
@@ -83,71 +78,38 @@ jobs:
       AUTH_ADMIN_USER: demo
       AUTH_ADMIN_PASSWORD: demo-screenshots
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: pip install --quiet -r requirements.txt playwright==1.49.0
       - run: |
           python -m flask --app app run --port 5000 > flask.log 2>&1 &
           python scripts/screenshots.py screenshots
       - if: always()
         run: cat flask.log || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: screenshots
           path: screenshots/
           retention-days: 30
 
-  docker-image:
-    needs: [ruff, javascript, pytest]
+  workflows:
+    # The workflow files themselves: syntax, and expressions that would let a PR title
+    # or branch name run as shell (actionlint with its shellcheck pass).
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - id: tags
-        env:
-          EVENT: ${{ github.event_name }}
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-          IMAGE: ghcr.io/${{ github.repository }}
-          SHA: ${{ github.sha }}
-        run: |
-          image=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          tags=""
-          if [ "$EVENT" = push ] && [ "$REF_TYPE" = branch ]; then tags="$image:latest"; fi
-          if [ "$REF_TYPE" = tag ]; then tags="$image:${REF_NAME#v}"; fi
-          if [ -n "$tags" ]; then tags="$tags,$image:sha-${SHA::8}"; fi
-          echo "tags=$tags" >> "$GITHUB_OUTPUT"
-          echo "push=$([ -n "$tags" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-      - if: steps.tags.outputs.push == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      # Built every time; pushed from master and v* tags only.
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          pull: true
-          push: ${{ steps.tags.outputs.push == 'true' }}
-          tags: ${{ steps.tags.outputs.tags || 'floorbit:ci' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: |
+          pip install --quiet actionlint-py
+          actionlint -color
 
-  release:
-    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
-    needs: [docker-image]
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [ruff, javascript, pytest, screenshots, workflows]
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v4
       - env:
-          TAG: ${{ github.ref_name }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEEDS: ${{ toJSON(needs) }}
         run: |
-          sh scripts/release-notes.sh "$TAG" notes.md
-          cat notes.md
-          gh release create "$TAG" --title "$TAG" --notes-file notes.md --verify-tag
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' > /dev/null

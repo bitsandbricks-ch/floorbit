@@ -19,7 +19,7 @@ users: [README.md](README.md).
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests against the Flask test client, with a fake Redis. |
 | `scripts/screenshots.py` | Takes the pull request screenshots (the `screenshots` CI job runs it). |
-| `.github/workflows/ci.yml` | GitHub Actions: lint, test, screenshots, image build and push to GHCR, releases. |
+| `.github/workflows/` | GitHub Actions: `ci.yml` (lint, test, screenshots, the `CI passed` gate), `image.yml` (GHCR), `release.yml`. |
 | `.claude/`, `.planning/` | GSD workflow files. Leave them alone unless the task is about them. |
 
 ## Workflow
