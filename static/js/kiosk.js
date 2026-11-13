@@ -300,7 +300,7 @@
 
   async function loadConfig() {
     try { config = await getJSON('/api/config'); } catch { /* keep defaults */ }
-    $('k-title').textContent = OPT.title || 'Floor plan';
+    $('k-title').textContent = OPT.title || $('k-title').dataset.default || 'Floor plan';
     document.title = `${$('k-title').textContent} · Kiosk`;
   }
 

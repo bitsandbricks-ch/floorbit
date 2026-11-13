@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" {{ theme.html_attrs if theme is defined }}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Not allowed · Floorbit</title>
+  {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/login.css" />
 </head>

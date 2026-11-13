@@ -1,0 +1,75 @@
+/*
+ * Floorbit theme presets. Load after tokens.css.
+ * A preset only sets seeds and a few tokens. Pick one with
+ *   <html data-preset="kiosk">           (site default from settings)
+ *   /kiosk?theme=kiosk                    (per screen override)
+ * Light/dark stays a separate switch (data-theme), except where a preset fixes it.
+ */
+
+/* Floorbit: the default. Nothing to override; listed so settings can name it. */
+:root[data-preset="floorbit"] { }
+
+/* Kiosk: the big screen in the hall. Read from 10 m, so larger type, pure black,
+   stronger lines and no texture. Dark only: the server locks data-theme to dark. */
+:root[data-preset="kiosk"] {
+  color-scheme: dark;
+  --theme-bg: #000000;
+  --theme-surface: #0e0e13;
+  --theme-fg: #ffffff;
+  --color-raised: #1a1a21;
+  --color-line: #33333f;
+  --color-muted: #b4b4bc;
+  --color-faint: #8a8a94;
+  --plan-cell: transparent;
+  --fs-xs: 14px;
+  --fs-sm: 16px;
+  --fs-md: 20px;
+  --fs-lg: 24px;
+  --fs-xl: 32px;
+  --fs-2xl: 48px;
+}
+
+/* Ops: the orga desk. Dense and calm: smaller type, the accent stays out of the
+   way so status colours do the talking. */
+:root[data-preset="ops"] {
+  --theme-accent: #22d3ee;
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+}
+:root[data-preset="ops"][data-theme="light"] {
+  --theme-accent: #0e7490;
+  --theme-on-accent: #ffffff;
+}
+
+/* Classic: the look Floorbit had before the rebrand (GitHub dark, orange accent). Dark only. */
+:root[data-preset="classic"] {
+  --theme-accent: #ea6c0a;
+  --theme-on-accent: #ffffff;
+  --theme-bg: #0d1117;
+  --theme-surface: #161b22;
+  --theme-fg: #f0f6fc;
+  --theme-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --color-raised: #21262d;
+  --color-line: #30363d;
+  --color-muted: #9da7b3;
+  --color-faint: #6e7681;
+  --plan-cell: #12171e;
+}
+
+/*
+ * Custom theme, also the slot for an event's own colours and logo: the admin
+ * picks the seeds and a logo under Settings > Appearance, and the server writes them as an
+ * inline style on <html> (floorbit/theme.py), e.g.
+ *   <html data-preset="custom" style="--theme-accent:#ff3b6b;--theme-bg:#0a0a12">
+ * Everything else (raised, lines, muted text, hover, soft tints) follows from the seeds.
+ * Status colours are not seeds, so an event theme can never make "down" look fine.
+ */
+:root[data-preset="custom"] {
+  --color-raised: color-mix(in srgb, var(--theme-surface), var(--theme-fg) 5%);
+  --color-line: color-mix(in srgb, var(--theme-surface), var(--theme-fg) 10%);
+  --color-muted: color-mix(in srgb, var(--theme-fg) 68%, var(--theme-bg));
+  --color-faint: color-mix(in srgb, var(--theme-fg) 52%, var(--theme-bg));
+  --plan-cell: color-mix(in srgb, var(--theme-bg), var(--theme-fg) 4%);
+}

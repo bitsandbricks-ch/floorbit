@@ -1,53 +1,13 @@
 /* ── Design tokens ────────────────────────────────────────────────────────── */
+/* Colours, type and radii come from static/css/brand/ (tokens.css, themes.css and
+   legacy-map.css, which keeps the names below working). Only layout values live here. */
 :root {
-  color-scheme: dark;
-
-  /* Surfaces */
-  --bg-primary:   #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary:  #21262d;
-  --bg-hover:     #2a313a;
-  --bg-overlay:   rgba(22, 27, 34, 0.92);
-  --border:       #30363d;
-  --border-muted: #21262d;
-
-  /* Text */
-  --text-primary:   #f0f6fc;
-  --text-secondary: #9da7b3;
-  --text-muted:     #6e7681;
-
-  /* Brand & status */
-  --accent:       #ea6c0a;
-  --accent-hover: #f97316;
-  --accent-dim:   rgba(234, 108, 10, 0.14);
-  --success:      #3fb950;
-  --danger:       #f85149;
-  --warning:      #d29922;
-  --unknown:      #8b949e;
-  --success-dim:  rgba(63, 185, 80, 0.15);
-  --danger-dim:   rgba(248, 81, 73, 0.15);
-  --warning-dim:  rgba(210, 153, 34, 0.15);
-
-  /* Floor plan */
-  --canvas-dot:    #1f252d;
-  --grid-line:     rgba(139, 148, 158, 0.10);
-  --plan-outline:  rgba(139, 148, 158, 0.25);
-  --label-bg:      rgba(13, 17, 23, 0.88);
-  --label-border:  rgba(255, 255, 255, 0.10);
-  --block-bg:      rgba(22, 27, 34, 0.55);
-  --block-selected-bg: rgba(234, 108, 10, 0.08);
-  --seat-user-bg:  rgba(63, 185, 80, 0.12);
-  --seat-user-border: rgba(63, 185, 80, 0.6);
-  --marquee-bg:    rgba(249, 115, 22, 0.10);
-  --backdrop:      rgba(1, 4, 9, 0.7);
-
-  /* Type */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  --fs-xs: 11px;
-  --fs-sm: 12px;
-  --fs-md: 14px;
-  --fs-lg: 16px;
+  /* Floor plan: derived from the theme so every preset keeps the same contrast */
+  --grid-line:     color-mix(in srgb, var(--color-muted) 10%, transparent);
+  --plan-outline:  color-mix(in srgb, var(--color-muted) 25%, transparent);
+  --label-bg:      color-mix(in srgb, var(--color-ink) 88%, transparent);
+  --label-border:  color-mix(in srgb, var(--color-fg) 10%, transparent);
+  --backdrop:      rgb(0 0 0 / 0.6);
 
   /* Spacing scale */
   --sp-1: 4px;
@@ -56,59 +16,16 @@
   --sp-4: 16px;
   --sp-5: 24px;
 
-  --radius-sm: 6px;
   --radius:    8px;
-  --radius-lg: 12px;
-  --shadow:    0 8px 28px rgba(0, 0, 0, 0.55);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --focus-ring: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-hover);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.4);
 
   --sidebar-w:   280px;
   --inspector-w: 320px;
   --topbar-h:    52px;
 }
-
-/* Light theme: set on <html data-theme="light"> by static/js/theme.js */
 :root[data-theme="light"] {
-  color-scheme: light;
-
-  --bg-primary:   #f6f8fa;
-  --bg-secondary: #ffffff;
-  --bg-tertiary:  #eef1f4;
-  --bg-hover:     #e4e8ec;
-  --bg-overlay:   rgba(255, 255, 255, 0.94);
-  --border:       #d0d7de;
-  --border-muted: #e6eaee;
-
-  --text-primary:   #1f2328;
-  --text-secondary: #59636e;
-  --text-muted:     #6e7781;
-
-  --accent:       #c2560c;
-  --accent-hover: #a8480a;
-  --accent-dim:   rgba(234, 108, 10, 0.12);
-  --success:      #1a7f37;
-  --danger:       #cf222e;
-  --warning:      #9a6700;
-  --unknown:      #6e7781;
-  --success-dim:  rgba(26, 127, 55, 0.12);
-  --danger-dim:   rgba(207, 34, 46, 0.10);
-  --warning-dim:  rgba(154, 103, 0, 0.12);
-
-  --canvas-dot:    #d3d9df;
-  --grid-line:     rgba(89, 99, 110, 0.10);
-  --plan-outline:  rgba(89, 99, 110, 0.30);
-  --label-bg:      rgba(255, 255, 255, 0.95);
-  --label-border:  rgba(31, 35, 40, 0.15);
-  --block-bg:      rgba(255, 255, 255, 0.75);
-  --block-selected-bg: rgba(234, 108, 10, 0.07);
-  --seat-user-bg:  rgba(26, 127, 55, 0.10);
-  --seat-user-border: rgba(26, 127, 55, 0.55);
-  --marquee-bg:    rgba(194, 86, 12, 0.08);
-  --backdrop:      rgba(31, 35, 40, 0.40);
-
-  --shadow:    0 8px 28px rgba(31, 35, 40, 0.18);
-  --shadow-sm: 0 2px 8px rgba(31, 35, 40, 0.12);
+  --backdrop:  rgb(17 17 24 / 0.4);
+  --shadow-sm: 0 2px 8px rgb(17 17 24 / 0.12);
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
@@ -160,8 +77,7 @@ kbd {
   z-index: 30;
 }
 .topbar-brand { display: flex; align-items: center; gap: 10px; width: calc(var(--sidebar-w) - var(--sp-4)); flex-shrink: 0; }
-.topbar-icon  { width: 22px; height: 22px; color: var(--accent); }
-.topbar-title { font-size: var(--fs-lg); font-weight: 600; letter-spacing: .2px; }
+.topbar-brand .fb-brand-name { font-size: var(--fs-lg); }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); }
 
 .status-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
@@ -182,7 +98,7 @@ kbd {
 .status-chip.active { border-color: var(--accent); background: var(--accent-dim); color: var(--text-primary); }
 .status-chip-val { font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .status-glyph { font-size: 10px; font-weight: 700; }
-.chip-offline.has-items { border-color: rgba(248,81,73,.6); background: var(--danger-dim); }
+.chip-offline.has-items { border-color: color-mix(in srgb, var(--danger) 60%, transparent); background: var(--danger-dim); }
 
 .last-updated { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .last-updated.stale { color: var(--warning); }
@@ -210,11 +126,11 @@ kbd {
 .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 .btn-ghost { background: transparent; color: var(--text-secondary); }
 .btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--color-on-bit); font-weight: 600; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
-.btn-danger { background: transparent; border-color: rgba(248,81,73,.55); color: var(--danger); }
+.btn-danger { background: transparent; border-color: color-mix(in srgb, var(--danger) 55%, transparent); color: var(--danger); }
 .btn-danger:hover:not(:disabled) { background: var(--danger-dim); border-color: var(--danger); }
-.btn-danger-solid { background: #da3633; border-color: #da3633; color: #fff; font-weight: 600; }
+.btn-danger-solid { background: var(--danger); border-color: var(--danger); color: var(--color-ink); font-weight: 600; }
 .btn-danger-solid:hover { background: var(--danger); border-color: var(--danger); }
 .btn-full { width: 100%; }
 .btn-icon { padding: 6px 8px; text-decoration: none; }
@@ -396,7 +312,7 @@ kbd {
 /* Box select */
 .marquee {
   position: absolute; z-index: 22; pointer-events: none;
-  border: 1px solid var(--accent-hover); background: var(--marquee-bg);
+  border: 1px solid var(--color-trace); background: var(--marquee-bg);
   border-radius: 2px;
 }
 
@@ -496,7 +412,7 @@ kbd {
 .switch-marker.dragging { cursor: grabbing; z-index: 10; }
 .switch-marker.selected { z-index: 7; }
 .switch-marker.selected .switch-pin,
-.switch-marker.marquee-hit .switch-pin { filter: drop-shadow(0 0 4px var(--accent-hover)); }
+.switch-marker.marquee-hit .switch-pin { filter: drop-shadow(0 0 4px var(--color-trace)); }
 .switch-marker.dimmed   { opacity: .25; }
 
 .switch-pin { position: relative; width: 16px; height: 21px; color: var(--unknown); flex-shrink: 0; }
@@ -539,14 +455,14 @@ kbd {
   position: absolute; transform: translate(-50%, -50%);
   width: 20px; height: 20px; pointer-events: all; cursor: grab; user-select: none; z-index: 4;
 }
-.seat-marker.selected .seat-icon { border-color: var(--accent); }
+.seat-marker.selected .seat-icon { border-color: var(--color-trace); }
 .seat-icon {
   width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
   border-radius: 3px; background: var(--bg-tertiary); border: 2px solid var(--border);
   color: var(--text-secondary); font-size: 9px; font-weight: 600;
 }
 .seat-number {
-  position: absolute; top: -4px; left: -4px; background: var(--accent); color: #fff;
+  position: absolute; top: -4px; left: -4px; background: var(--accent); color: var(--color-on-bit);
   font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; white-space: nowrap;
   pointer-events: none;
 }
@@ -567,7 +483,7 @@ kbd {
 .seat-block:hover    { z-index: 4; border-color: var(--accent); }
 .seat-block.dragging { cursor: grabbing; z-index: 14; }
 .seat-block.selected,
-.seat-block.marquee-hit { z-index: 5; border-style: solid; border-color: var(--accent); background: var(--block-selected-bg); }
+.seat-block.marquee-hit { z-index: 5; border-style: solid; border-color: var(--color-trace); background: var(--block-selected-bg); }
 
 .seat-block-row { display: flex; gap: 2px; justify-content: center; }
 .seat-block-seat {
@@ -580,7 +496,7 @@ kbd {
 }
 .seat-block-seat:hover { border-color: var(--accent-hover); color: var(--text-primary); }
 .seat-block-seat.has-user { background: var(--seat-user-bg); border-color: var(--seat-user-border); color: var(--text-primary); }
-.seat-block-seat.selected { background: var(--accent); border-color: var(--accent-hover); color: #fff; }
+.seat-block-seat.selected { background: var(--color-trace); border-color: var(--color-trace); color: var(--color-ink); }
 .seat-block-label { font-size: 10px; color: var(--text-secondary); text-align: center; font-weight: 600; }
 
 /* Add-cursor overlay */
@@ -904,7 +820,7 @@ kbd {
   border-color: var(--heat); color: var(--text-primary);
 }
 .seat-block-seat.heat-none { border-style: dashed; opacity: .6; }
-.seat-block-seat.heat.selected { outline: 2px solid var(--accent-hover); outline-offset: 1px; }
+.seat-block-seat.heat.selected { outline: 2px solid var(--color-trace); outline-offset: 1px; }
 
 /* Switch level: each switch shows as a card under its pin with its name and
    throughput, tinted like the seat tiles. It replaces the hover label. */
@@ -926,7 +842,7 @@ kbd {
   background: var(--bg-tertiary); border-style: dashed; border-color: var(--text-muted); opacity: .75;
 }
 .heat-switch .switch-marker.selected .switch-heat-card,
-.heat-switch .switch-marker.marquee-hit .switch-heat-card { outline: 2px solid var(--accent-hover); outline-offset: 1px; }
+.heat-switch .switch-marker.marquee-hit .switch-heat-card { outline: 2px solid var(--color-trace); outline-offset: 1px; }
 
 /* ── Narrow screens ─────────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {

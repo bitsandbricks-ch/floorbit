@@ -1,0 +1,20 @@
+/* The brand in the top bar (templates/_brand.html). The logo files follow the theme through
+   --theme-logo and --theme-logo-mark, so light and dark each get their own. */
+.fb-brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; height: var(--fb-brand-h, 22px); }
+.fb-brand-lockup {
+  display: block; height: 100%; aspect-ratio: 248.5 / 64;
+  background: var(--theme-logo) no-repeat left center / contain;
+}
+.fb-brand-mark {
+  display: block; height: 100%; aspect-ratio: 1;
+  background: var(--theme-logo-mark) no-repeat center / contain;
+}
+.fb-brand-logo { display: block; height: 100%; width: auto; max-width: 180px; object-fit: contain; }
+.fb-brand-name {
+  font-weight: 600; letter-spacing: var(--tracking-tight); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; color: var(--color-fg);
+}
+
+/* Presets that fix light or dark have no use for the toggle. */
+:root[data-theme-lock] [data-theme-toggle] { display: none; }
+

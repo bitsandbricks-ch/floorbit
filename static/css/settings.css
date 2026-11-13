@@ -1,42 +1,4 @@
-/* Settings page. Self-contained so it doesn't depend on the main app layout. */
-:root {
-  --bg-primary:   #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary:  #21262d;
-  --bg-hover:     #2d333b;
-  --border:       #30363d;
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --text-muted:   #6e7681;
-  --accent:       #ea6c0a;
-  --accent-hover: #f97316;
-  --accent-dim:   rgba(234, 108, 10, 0.13);
-  --success:      #3fb950;
-  --danger:       #f85149;
-  --warning:      #d29922;
-  --radius-sm:    4px;
-  --radius:       8px;
-  color-scheme: dark;
-}
-
-/* Light theme: set on <html data-theme="light"> by static/js/theme.js */
-:root[data-theme="light"] {
-  color-scheme: light;
-  --bg-primary:   #f6f8fa;
-  --bg-secondary: #ffffff;
-  --bg-tertiary:  #eef1f4;
-  --bg-hover:     #e4e8ec;
-  --border:       #d0d7de;
-  --text-primary: #1f2328;
-  --text-secondary: #59636e;
-  --text-muted:   #6e7781;
-  --accent:       #c2560c;
-  --accent-hover: #a8480a;
-  --accent-dim:   rgba(234, 108, 10, 0.12);
-  --success:      #1a7f37;
-  --danger:       #cf222e;
-  --warning:      #9a6700;
-}
+/* Settings page. Colours come from static/css/brand/; the layout is self-contained. */
 
 .st-theme {
   order: 1;
@@ -52,7 +14,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.5;
   background: var(--bg-primary);
@@ -108,7 +70,8 @@ body {
 .st-input-row input[type="text"],
 .st-input-row input[type="url"],
 .st-input-row input[type="password"],
-.st-input-row input[type="number"] {
+.st-input-row input[type="number"],
+.st-input-row select {
   flex: 1; min-width: 0;
   padding: 6px 10px;
   background: var(--bg-primary); color: var(--text-primary);
@@ -118,6 +81,20 @@ body {
 .st-input-row input[type="number"] { max-width: 140px; flex: none; }
 .st-input-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .st-input-row input.invalid { border-color: var(--danger); }
+.st-input-row select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+/* Appearance: colour pickers, the logo preview, and fields that only apply to Custom */
+.st-input-row input[type="color"] {
+  width: 38px; height: 34px; padding: 2px; flex: none; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-primary);
+}
+.st-input-row input[type="color"] + input[type="text"] { max-width: 120px; flex: none; font-family: var(--font-mono); }
+.st-logo-preview {
+  height: 40px; max-width: 160px; object-fit: contain; padding: 4px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-primary);
+}
+.st-field.st-muted { opacity: .55; }
+.st-input-row input[type="color"].st-derived { opacity: .35; }
 .st-unit { color: var(--text-secondary); }
 .st-help { color: var(--text-secondary); font-size: 12px; }
 .st-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-muted); }
@@ -126,7 +103,7 @@ body {
   font-size: 11px; line-height: 18px; border: 1px solid var(--border); color: var(--text-secondary);
 }
 .st-badge.saved { border-color: var(--accent); color: var(--accent-hover); }
-.st-badge.env   { border-color: #388bfd; color: #58a6ff; }
+.st-badge.env   { border-color: var(--color-trace); color: var(--color-trace); }
 .st-badge.dirty { border-color: var(--warning); color: var(--warning); }
 .st-link { background: none; border: 0; color: var(--text-secondary); text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
 .st-link:hover { color: var(--text-primary); }
@@ -143,7 +120,7 @@ body {
   background: var(--text-secondary); border-radius: 50%; transition: transform .15s, background .15s;
 }
 .st-switch input:checked + span { background: var(--accent); border-color: var(--accent); }
-.st-switch input:checked + span::before { transform: translateX(16px); background: #fff; }
+.st-switch input:checked + span::before { transform: translateX(16px); background: var(--color-on-bit); }
 .st-switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-dim); }
 
 .st-btn {
@@ -154,7 +131,7 @@ body {
 }
 .st-btn:hover:not(:disabled) { background: var(--bg-hover); }
 .st-btn:disabled { opacity: .5; cursor: default; }
-.st-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.st-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--color-on-bit); }
 .st-btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 
 .st-test-result { font-size: 12px; margin-top: 6px; }
@@ -175,3 +152,5 @@ body {
   .st-field { grid-template-columns: 1fr; }
   .st-field > label { padding-top: 0; }
 }
+
+.hidden { display: none !important; }

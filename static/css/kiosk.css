@@ -1,27 +1,7 @@
 /* Read-only kiosk view of the floor plan (/kiosk).
- * Same colours as style.css; sizes scale with the screen so it reads from
+ * Colours come from static/css/brand/ (the kiosk preset by default); sizes scale with the screen so it reads from
  * across a hall. The map itself is scaled to fit by kiosk.js. */
 :root {
-  --bg-primary:   #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary:  #21262d;
-  --bg-overlay:   rgba(22, 27, 34, 0.92);
-  --border:       #30363d;
-
-  --text-primary:   #f0f6fc;
-  --text-secondary: #9da7b3;
-  --text-muted:     #6e7681;
-
-  --accent:      #ea6c0a;
-  --success:     #3fb950;
-  --danger:      #f85149;
-  --warning:     #d29922;
-  --unknown:     #8b949e;
-  --danger-dim:  rgba(248, 81, 73, 0.15);
-
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-
   /* 1u ≈ 16px on a 1920px wide screen, 32px on 4K */
   --u: clamp(12px, 0.84vw, 40px);
 }
@@ -51,7 +31,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   flex-shrink: 0;
 }
 .k-brand { display: flex; align-items: center; gap: calc(var(--u) * 0.75); min-width: 0; flex: 1; }
-.k-logo { width: calc(var(--u) * 2.2); height: calc(var(--u) * 2.2); color: var(--accent); flex-shrink: 0; }
+.k-logo { --fb-brand-h: calc(var(--u) * 2.2); flex-shrink: 0; }
 .k-title {
   font-size: calc(var(--u) * 1.8); font-weight: 700; letter-spacing: -0.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -83,12 +63,12 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   width: calc(var(--u) * 0.55); height: calc(var(--u) * 0.55); border-radius: 50%;
   background: var(--unknown);
 }
-.k-live-dot.live    { background: var(--success); box-shadow: 0 0 0 0 rgba(63, 185, 80, .6); animation: live 2s ease-out infinite; }
+.k-live-dot.live    { background: var(--success); box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 60%, transparent); animation: live 2s ease-out infinite; }
 .k-live-dot.polling { background: var(--accent); }
 .k-live-dot.error   { background: var(--danger); }
 @keyframes live {
-  0%   { box-shadow: 0 0 0 0 rgba(63, 185, 80, .6); }
-  100% { box-shadow: 0 0 0 calc(var(--u) * 0.5) rgba(63, 185, 80, 0); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 60%, transparent); }
+  100% { box-shadow: 0 0 0 calc(var(--u) * 0.5) transparent; }
 }
 
 .k-stale {
@@ -103,7 +83,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 .k-map {
   flex: 1; min-width: 0; position: relative; overflow: hidden;
   background-color: var(--bg-primary);
-  background-image: radial-gradient(circle, #1a2028 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 .k-plan { position: absolute; inset: 0; transform-origin: 0 0; }
@@ -152,7 +132,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 .k-swatch-online  { background: var(--success); }
 .k-swatch-offline { background: var(--danger); }
 .k-swatch-unknown { background: var(--unknown); }
-.k-swatch-seat-taken { border-radius: 3px; background: rgba(63, 185, 80, 0.35); border: 1px solid rgba(63, 185, 80, 0.8); }
+.k-swatch-seat-taken { border-radius: 3px; background: color-mix(in srgb, var(--success) 35%, transparent); border: 1px solid color-mix(in srgb, var(--success) 80%, transparent); }
 .k-swatch-seat-free  { border-radius: 3px; background: var(--bg-tertiary); border: 1px solid var(--border); }
 
 /* ── Map items (same geometry as the editor so layouts match) ───────────── */
@@ -179,8 +159,8 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 }
 .switch-label {
   font-size: 10px; font-weight: 600; color: var(--text-primary);
-  background: rgba(13, 17, 23, 0.88);
-  padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,.1);
+  background: color-mix(in srgb, var(--color-ink) 88%, transparent);
+  padding: 1px 5px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--color-fg) 10%, transparent);
   white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis;
   margin-top: 2px; line-height: 1.4;
 }
@@ -189,7 +169,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 .seat-block {
   position: absolute; transform: translate(-50%, -50%); z-index: 3;
   border: 1.5px dashed var(--border); border-radius: 6px;
-  background: rgba(22, 27, 34, 0.55);
+  background: var(--block-bg);
   display: flex; flex-direction: column; gap: 2px; padding: 4px;
 }
 .seat-block-label { font-size: 10px; color: var(--text-secondary); text-align: center; font-weight: 600; }
@@ -202,12 +182,12 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   font-size: 8px; font-weight: 600; color: var(--text-muted);
 }
 .seat-block-seat.has-user {
-  background: rgba(63, 185, 80, 0.35); border-color: rgba(63, 185, 80, 0.8); color: var(--text-primary);
+  background: color-mix(in srgb, var(--success) 35%, transparent); border-color: color-mix(in srgb, var(--success) 80%, transparent); color: var(--text-primary);
 }
 .seat-block-seat.just-taken { animation: taken 3s ease-out 1; }
 @keyframes taken {
-  0%   { box-shadow: 0 0 0 0 rgba(234, 108, 10, .9); background: var(--accent); }
-  100% { box-shadow: 0 0 0 10px rgba(234, 108, 10, 0); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-trace) 90%, transparent); background: var(--color-trace); }
+  100% { box-shadow: 0 0 0 10px transparent; }
 }
 
 .seat-marker {

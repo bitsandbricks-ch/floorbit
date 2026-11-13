@@ -5,9 +5,13 @@
 // (no dark flash on a light page). The choice is saved per browser; with
 // nothing saved the page follows the operating system's light/dark setting.
 // Any button with a data-theme-toggle attribute switches between the two.
+// Presets that only come in one (Kiosk, Classic, a dark custom theme) arrive from the
+// server as data-theme-lock on <html>; then the lock wins and the toggle is hidden.
+// The preset itself (data-preset) is set by the server: see floorbit/theme.py.
 (function () {
   const KEY = 'theme';
   const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  const lock = document.documentElement.dataset.themeLock || null;
 
   function saved() {
     try {
@@ -16,7 +20,7 @@
     } catch { return null; }
   }
   function current() {
-    return saved() || (media && media.matches ? 'light' : 'dark');
+    return lock || saved() || (media && media.matches ? 'light' : 'dark');
   }
 
   function syncButtons() {
