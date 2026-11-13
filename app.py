@@ -1183,57 +1183,10 @@ def get_seats_heatmap():
     if not seats:
         return jsonify({'error': 'No seat mapping available', 'sources': seat_sources.info()}), 400
 
-    results = {}
+    # Seats are looked up in parallel; see seat_traffic.py.
+    from seat_traffic import collect_seat_heatmap
 
-    for seat_number, seat_info in seats.items():
-        ip_address = seat_info.get('ip_address')
-        if not ip_address:
-            results[seat_number] = {
-                'username': seat_info.get('username'),
-                'ip_address': None,
-                'resolved': False,
-                'port_usage': None,
-                'error': 'No IP address',
-            }
-            continue
-
-        # Try to resolve IP to get port stats
-        result = resolve_ip_to_switch_port(ip_address)
-        if result and 'stats' in result:
-            stats = result['stats']
-            # Calculate port usage metrics
-            in_rate = float(stats.get('ifInOctets_rate') or 0)
-            out_rate = float(stats.get('ifOutOctets_rate') or 0)
-            total_bps = (in_rate + out_rate) * 8
-            port_status = stats.get('ifOperStatus', 'unknown')
-            port_speed = float(stats.get('ifSpeed') or 0)
-
-            results[seat_number] = {
-                'username': seat_info.get('username'),
-                'ip_address': ip_address,
-                'resolved': True,
-                'port_usage': {
-                    'total_bps': total_bps,
-                    'in_rate_bps': in_rate * 8,
-                    'out_rate_bps': out_rate * 8,
-                    'status': port_status,
-                    'speed_bps': port_speed,
-                },
-                'device_name': result.get('device_name'),
-                'port': result.get('port'),
-                'vlan': result.get('vlan'),
-                'mac': result.get('mac'),
-            }
-        else:
-            results[seat_number] = {
-                'username': seat_info.get('username'),
-                'ip_address': ip_address,
-                'resolved': False,
-                'port_usage': None,
-                'error': 'Could not resolve port stats',
-            }
-
-    return jsonify({'seats': results})
+    return jsonify({'seats': collect_seat_heatmap(seats, resolve_ip_to_switch_port)})
 
 
 # ── Integrations ───────────────────────────────────────────────────────────────
