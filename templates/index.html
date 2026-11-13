@@ -92,28 +92,24 @@
             </h3>
           </div>
           <div class="section-content">
-            <button class="layer-row" id="btn-heatmap" aria-pressed="false" title="Show traffic around each switch">
-              <span class="layer-name">Switch traffic heatmap</span>
+            <button class="layer-row" id="btn-grid" aria-pressed="true" title="Grid that follows pan and zoom; the finest lines match the snap step">
+              <span class="layer-name">Grid</span>
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
-            <div class="layer-legend hidden" id="heatmap-legend">
-              <div class="legend-item"><span class="legend-color" style="background:#4c9aff"></span><span class="legend-label">&lt; 100 Mbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#2ec4b6"></span><span class="legend-label">100 Mbps – 1 Gbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#f4c430"></span><span class="legend-label">1 – 5 Gbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#ff8c42"></span><span class="legend-label">5 – 10 Gbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#d62246"></span><span class="legend-label">10+ Gbps</span></div>
-            </div>
 
-            <button class="layer-row" id="btn-seat-heatmap" aria-pressed="false" title="Colour each seat by its port traffic">
-              <span class="layer-name">Seat port usage</span>
+            <button class="layer-row" id="btn-traffic" aria-pressed="false" title="Colour the map by throughput from LibreNMS">
+              <span class="layer-name">Traffic heatmap</span>
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
-            <div class="layer-legend hidden" id="seat-heatmap-legend">
-              <div class="legend-item"><span class="legend-color" style="background:#6e7681"></span><span class="legend-label">Unknown / offline</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#4c9aff"></span><span class="legend-label">&lt; 10 Mbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#2ec4b6"></span><span class="legend-label">10 – 100 Mbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#f4c430"></span><span class="legend-label">100 – 500 Mbps</span></div>
-              <div class="legend-item"><span class="legend-color" style="background:#d62246"></span><span class="legend-label">500+ Mbps</span></div>
+            <div class="layer-options hidden" id="traffic-options">
+              <span class="segmented segmented-sm" id="traffic-level" role="group" aria-label="Heatmap level">
+                <button type="button" data-level="seat" title="Each seat's switch port (download + upload)">Seats</button>
+                <button type="button" data-level="switch" title="Total throughput of each switch">Switches</button>
+              </span>
+              <div class="heat-scale" aria-hidden="true"></div>
+              <div class="heat-ticks" id="traffic-ticks"></div>
+              <div class="legend-item"><span class="legend-swatch legend-nodata"></span><span class="legend-label" id="traffic-nodata-label">No data or port down</span></div>
+              <p class="heat-summary" id="traffic-summary"></p>
             </div>
 
             <button class="layer-row" id="btn-labels" aria-pressed="false" title="Always show switch names on the map">
@@ -171,6 +167,7 @@
 
       <!-- ── Canvas ─────────────────────────────────────────────────────── -->
       <main class="canvas-area" id="canvas-area">
+        <div class="canvas-grid" id="canvas-grid" aria-hidden="true"></div>
 
         <!-- Floating toolbar -->
         <div class="toolbar" role="toolbar" aria-label="Edit tools">

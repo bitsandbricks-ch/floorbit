@@ -16,3 +16,7 @@ All notable changes to this project are listed here. The format follows
 - Repo conventions from the BitsAndBricks repo template: README, AGPL-3.0 licence, AGENTS.md,
   CONTRIBUTING.md, SECURITY.md, `.mason.toml`, `.editorconfig`, CODEOWNERS, merge request and issue
   templates.
+- Floor plan grid that follows pan and zoom and lines up with the snap step (Layers > Grid).
+- Traffic heatmap layer with a Seats / Switches level, coloured by LibreNMS throughput on a log
+  scale. Replaces the separate switch and seat heatmap toggles. Seat lookups for it now run in
+  parallel.

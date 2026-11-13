@@ -742,6 +742,53 @@ kbd {
 @keyframes toastIn  { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes toastOut { to { transform: translateY(8px); opacity: 0; } }
 
+/* ── Grid layer ──────────────────────────────────────────────────────────────
+   Drawn behind the floor plan by updateGrid() in app.js, which sets the cell
+   sizes and offset from the current pan and zoom. The finest lines sit on the
+   snap step, so items land on lines. Colours derive from --text-muted, so the
+   grid follows whichever theme sets that token. */
+.canvas-area, .floorplan-wrapper { background-image: none; }
+.canvas-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  --grid-major-color: color-mix(in srgb, var(--text-muted) 30%, transparent);
+  --grid-minor-color: color-mix(in srgb, var(--text-muted) var(--grid-minor-pct, 14%), transparent);
+  background-image:
+    linear-gradient(to right,  var(--grid-major-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-major-color) 1px, transparent 1px),
+    linear-gradient(to right,  var(--grid-minor-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-minor-color) 1px, transparent 1px);
+  background-size:
+    var(--grid-major-w, 120px) var(--grid-major-h, 120px), var(--grid-major-w, 120px) var(--grid-major-h, 120px),
+    var(--grid-minor-w, 24px) var(--grid-minor-h, 24px), var(--grid-minor-w, 24px) var(--grid-minor-h, 24px);
+  background-position: var(--grid-x, 0) var(--grid-y, 0);
+}
+
+/* ── Traffic heatmap layer ─────────────────────────────────────────────────── */
+.layer-options { padding: 4px 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.segmented-sm button { padding: 4px 0; font-size: var(--fs-xs); }
+.heat-scale {
+  height: 8px; border-radius: 4px; margin-top: 4px;
+  background: linear-gradient(90deg, #4c9aff 0%, #2ec4b6 30%, #f4c430 55%, #ff8c42 78%, #d62246 100%);
+}
+.heat-ticks {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: -2px;
+}
+.legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.legend-nodata { background: var(--bg-tertiary); border: 1px dashed var(--text-muted); }
+.heat-summary { font-size: var(--fs-xs); color: var(--text-secondary); line-height: 1.45; }
+.heat-summary:empty { display: none; }
+
+/* Seat level: the seat tiles take the heat colour, a glow underneath spreads it
+   into the aisles. The block background is lightened so the glow shows. */
+.heat-seat .seat-block { background: color-mix(in srgb, var(--bg-primary) 30%, transparent); }
+.seat-block-seat.heat {
+  background: color-mix(in srgb, var(--heat) 62%, var(--bg-tertiary));
+  border-color: var(--heat); color: var(--text-primary);
+}
+.seat-block-seat.heat-none { border-style: dashed; opacity: .6; }
+.seat-block-seat.heat.selected { outline: 2px solid var(--accent-hover); outline-offset: 1px; }
+
 /* ── Narrow screens ─────────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   :root { --sidebar-w: 240px; --inspector-w: 280px; }
