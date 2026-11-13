@@ -64,6 +64,14 @@ services:
       # values saved there are kept in data.json and win over these.
       - CACHE_TTL_RESOLVE=${CACHE_TTL_RESOLVE:-30}
       - LIBRENMS_FDB_EXCLUDE=${LIBRENMS_FDB_EXCLUDE:-}
+      # Sign-in, see docs/auth.md. Accounts are kept in data.json.
+      - SECRET_KEY=${SECRET_KEY:-}
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - AUTH_ADMIN_USER=${AUTH_ADMIN_USER:-}
+      - AUTH_ADMIN_PASSWORD=${AUTH_ADMIN_PASSWORD:-}
+      - AUTH_PUBLIC_READ=${AUTH_PUBLIC_READ:-true}
+      - AUTH_SESSION_HOURS=${AUTH_SESSION_HOURS:-12}
+      - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-false}
     depends_on:
       redis:
         condition: service_healthy

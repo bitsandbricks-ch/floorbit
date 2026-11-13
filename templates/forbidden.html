@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Not allowed · Building View</title>
+  <link rel="stylesheet" href="/static/css/login.css" />
+</head>
+<body>
+  <main class="lg-wrap">
+    <div class="lg-card">
+      <h1 class="lg-title">Not allowed</h1>
+      <p class="lg-sub">{{ message }} You are signed in as {{ user.display_name }} ({{ user.role }}).</p>
+      <div class="lg-providers">
+        <a class="lg-btn lg-btn-primary" href="/">Back to the floor plan</a>
+        <form method="post" action="/logout"><button type="submit" class="lg-btn" style="width:100%">Sign in as someone else</button></form>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
