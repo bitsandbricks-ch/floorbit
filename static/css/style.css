@@ -591,6 +591,33 @@ kbd {
 .resource-bar.crit { background: var(--danger); }
 .resource-value { font-size: var(--fs-xs); color: var(--text-secondary); width: 34px; text-align: right; flex-shrink: 0; }
 
+/* Seat inspector: switch port */
+.port-section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.port-section-head .detail-section-title { margin-bottom: 0; }
+.port-state {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--fs-xs); font-weight: 600; padding: 1px 9px; border-radius: 999px;
+  background: var(--bg-tertiary); color: var(--text-secondary);
+}
+.port-state::before { content: '?'; font-size: 9px; }
+.port-state[data-state="up"]       { background: var(--success-dim); color: var(--success); }
+.port-state[data-state="up"]::before       { content: '●'; }
+.port-state[data-state="down"]     { background: var(--danger-dim); color: var(--danger); }
+.port-state[data-state="down"]::before     { content: '✕'; }
+.port-state[data-state="errors"]   { background: var(--warning-dim); color: var(--warning); }
+.port-state[data-state="errors"]::before   { content: '!'; }
+.port-state[data-state="disabled"]::before { content: '–'; }
+.port-id { display: flex; flex-wrap: wrap; gap: 6px; font-family: var(--font-mono); font-size: var(--fs-md); font-weight: 600; word-break: break-all; }
+.port-sep { color: var(--text-muted); }
+.port-desc { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.port-list { margin-top: var(--sp-3); }
+.port-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+.port-actions .btn { flex: 1; text-decoration: none; }
+.port-polled { font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--sp-2); }
+.tone-success { color: var(--success); }
+.tone-warning { color: var(--warning); }
+.tone-danger  { color: var(--danger); }
+
 /* ── Forms ────────────────────────────────────────────────────────────────── */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }

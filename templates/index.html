@@ -363,21 +363,51 @@
             <dl class="detail-list">
               <dt>IP address</dt>  <dd id="block-seat-dd-ip">—</dd>
               <dt>MAC address</dt> <dd id="block-seat-dd-mac">—</dd>
-              <dt>Switch</dt>      <dd id="block-seat-dd-switch">—</dd>
-              <dt>Port</dt>        <dd id="block-seat-dd-port">—</dd>
               <dt>VLAN</dt>        <dd id="block-seat-dd-vlan">—</dd>
             </dl>
           </section>
 
-          <section class="detail-section">
-            <h4 class="detail-section-title">Port usage</h4>
-            <dl class="detail-list">
-              <dt>Status</dt>        <dd id="block-seat-dd-port-status">—</dd>
-              <dt>Total traffic</dt> <dd id="block-seat-dd-total-traffic">—</dd>
-              <dt>Download</dt>      <dd id="block-seat-dd-download">—</dd>
-              <dt>Upload</dt>        <dd id="block-seat-dd-upload">—</dd>
-              <dt>Port speed</dt>    <dd id="block-seat-dd-port-speed">—</dd>
+          <section class="detail-section" id="seat-port-section">
+            <div class="port-section-head">
+              <h4 class="detail-section-title">Switch port</h4>
+              <span class="port-state" id="seat-port-state" data-state="unknown">Unknown</span>
+            </div>
+            <div class="port-id">
+              <span id="block-seat-dd-switch">—</span>
+              <span class="port-sep" aria-hidden="true">·</span>
+              <span id="block-seat-dd-port">—</span>
+            </div>
+            <p class="port-desc hidden" id="seat-port-desc"></p>
+            <dl class="detail-list port-list">
+              <dt>Link</dt>     <dd id="block-seat-dd-port-speed">—</dd>
+              <dt>Download</dt> <dd id="block-seat-dd-download">—</dd>
+              <dt>Upload</dt>   <dd id="block-seat-dd-upload">—</dd>
+              <dt>Errors</dt>   <dd id="seat-port-errors">—</dd>
             </dl>
+            <div class="resource-bars">
+              <div class="resource-row" title="Busiest direction as a share of the link speed">
+                <span class="resource-label">Load</span>
+                <div class="resource-bar-wrap"><div class="resource-bar" id="bar-seat-port"></div></div>
+                <span class="resource-value" id="seat-port-load">—</span>
+              </div>
+            </div>
+            <div class="port-actions">
+              <button class="btn btn-ghost" id="seat-port-refresh" title="Look the port up again">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Refresh
+              </button>
+              <a class="btn btn-ghost hidden" id="seat-port-librenms" target="_blank" rel="noopener" title="Graphs and history for this port">
+                LibreNMS
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </a>
+            </div>
+            <p class="port-polled hidden" id="seat-port-polled"></p>
           </section>
 
           <section class="detail-section" id="block-seat-resolution-section">
