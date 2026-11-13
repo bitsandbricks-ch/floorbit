@@ -94,7 +94,7 @@ docker build .
 | `javascript` | always | Syntax check of `static/js`. |
 | `pytest` | always | Smoke tests; results show in the merge request. |
 | `screenshots` | merge requests | Runs the app with demo data and screenshots every page, desktop and phone. |
-| `image` | always | Builds the Docker image; pushes it from `master` and `v*` tags. |
+| `docker-image` | always | Builds the Docker image; pushes it from `master` and `v*` tags. |
 | `release` | `v*` tags | Checks the tag against `VERSION` and publishes the release with its changelog section. |
 
 Merge requests follow [CONTRIBUTING.md](CONTRIBUTING.md) and always include screenshots. Coding
