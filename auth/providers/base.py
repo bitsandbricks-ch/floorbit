@@ -9,8 +9,8 @@ Two shapes cover what we need:
   Discord OAuth). The provider turns that callback into an ``Identity``, and
   ``auth.resolve_identity`` maps it to a local user.
 
-Register a provider with ``auth.providers.register(MyProvider())`` before
-``init_auth`` runs, or from ``build_providers`` when it is configured by env.
+Register a provider with ``app.extensions['auth'].providers.register(MyProvider())``,
+or in ``Auth.__init__`` when its env vars are set.
 """
 from dataclasses import dataclass, field
 
