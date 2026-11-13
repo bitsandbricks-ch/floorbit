@@ -233,11 +233,17 @@ const blockSeatDdPort           = $('block-seat-dd-port');
 const blockSeatDdVlan           = $('block-seat-dd-vlan');
 const blockSeatResolutionStatus = $('block-seat-resolution-status');
 const blockSeatDetailClose      = $('block-seat-detail-close');
-const blockSeatDdPortStatus     = $('block-seat-dd-port-status');
-const blockSeatDdTotalTraffic   = $('block-seat-dd-total-traffic');
 const blockSeatDdDownload       = $('block-seat-dd-download');
 const blockSeatDdUpload         = $('block-seat-dd-upload');
 const blockSeatDdPortSpeed      = $('block-seat-dd-port-speed');
+const seatPortState             = $('seat-port-state');
+const seatPortDesc              = $('seat-port-desc');
+const seatPortErrors            = $('seat-port-errors');
+const barSeatPort               = $('bar-seat-port');
+const seatPortLoad              = $('seat-port-load');
+const seatPortRefresh           = $('seat-port-refresh');
+const seatPortLibrenms          = $('seat-port-librenms');
+const seatPortPolled            = $('seat-port-polled');
 
 // Top bar stats
 const heroTotal    = $('hero-total');
@@ -1533,18 +1539,97 @@ function deselectAll() {
 // ── Seat inspector ───────────────────────────────────────────────────────────────────
 let currentBlockSeatNumber = null;
 let currentBlockSeatResolution = null;
+const SEAT_PORT_REFRESH = 60_000;   // LibreNMS polls every 5 min, so a minute is plenty
+const PORT_STATE_LABEL = { up: 'Up', down: 'Down', disabled: 'Disabled', errors: 'Errors', unknown: 'Unknown' };
+
+function setPortState(state) {
+  const s = PORT_STATE_LABEL[state] ? state : 'unknown';
+  seatPortState.dataset.state = s;
+  seatPortState.textContent = PORT_STATE_LABEL[s];
+}
 
 function resetSeatNetworkFields() {
   for (const el of [blockSeatDdMac, blockSeatDdSwitch, blockSeatDdPort, blockSeatDdVlan,
-                    blockSeatDdPortStatus, blockSeatDdTotalTraffic, blockSeatDdDownload,
-                    blockSeatDdUpload, blockSeatDdPortSpeed]) {
+                    blockSeatDdDownload, blockSeatDdUpload, blockSeatDdPortSpeed, seatPortErrors]) {
     el.textContent = '—';
-    el.style.color = '';
+    el.className = '';
   }
+  setPortState('unknown');
+  setBar(barSeatPort, seatPortLoad, null);
+  seatPortDesc.classList.add('hidden');
+  seatPortLibrenms.classList.add('hidden');
+  seatPortPolled.classList.add('hidden');
+  seatPortRefresh.classList.remove('is-busy');
 }
 function setResolution(text, tone) {
   blockSeatResolutionStatus.textContent = text;
   blockSeatResolutionStatus.style.color = tone ? `var(--${tone})` : '';
+}
+
+// "1 Gbps" rather than fmtBps's "1.0 Gbps" for round link speeds
+function fmtLinkSpeed(bps) {
+  if (!bps) return null;
+  if (bps >= 1e9 && bps % 1e9 === 0) return `${bps / 1e9} Gbps`;
+  if (bps >= 1e6 && bps % 1e6 === 0) return `${bps / 1e6} Mbps`;
+  return fmtBps(bps);
+}
+
+function fmtAgo(unixSeconds) {
+  const secs = Math.max(0, Math.round(Date.now() / 1000 - unixSeconds));
+  if (secs < 60) return 'just now';
+  if (secs < 3600) return `${Math.round(secs / 60)} min ago`;
+  return `${Math.round(secs / 3600)} h ago`;
+}
+
+// Fills the "Switch port" section. Returns the port usage for the seat heatmap.
+function renderSeatPort(result) {
+  blockSeatDdSwitch.textContent = result.device_name || result.hostname || '—';
+  blockSeatDdPort.textContent = result.port || '—';
+  const s = result.stats || {};
+  if (!s.ifOperStatus && !s.state) { setPortState('unknown'); return null; }
+
+  // Older servers send only the raw counters; ifIn is what the player sends.
+  const state = s.state || (s.ifOperStatus === 'up' ? 'up' : 'down');
+  const download = s.download_bps ?? (parseFloat(s.ifOutOctets_rate) || 0) * 8;
+  const upload = s.upload_bps ?? (parseFloat(s.ifInOctets_rate) || 0) * 8;
+  const speed = s.speed_bps ?? (parseFloat(s.ifSpeed) || 0);
+  const linked = state === 'up' || state === 'errors';
+
+  setPortState(state);
+  seatPortDesc.textContent = s.description || '';
+  seatPortDesc.classList.toggle('hidden', !s.description);
+
+  if (state === 'disabled') blockSeatDdPortSpeed.textContent = 'Shut down on the switch';
+  else if (!linked) blockSeatDdPortSpeed.textContent = 'No link';
+  else blockSeatDdPortSpeed.textContent = [fmtLinkSpeed(speed), s.duplex && `${s.duplex} duplex`].filter(Boolean).join(' · ') || '—';
+  blockSeatDdPortSpeed.className = linked ? '' : 'tone-danger';
+  if (s.duplex === 'half') blockSeatDdPortSpeed.className = 'tone-warning';   // usually a negotiation problem
+
+  blockSeatDdDownload.textContent = linked ? fmtBps(download) : '—';
+  blockSeatDdUpload.textContent = linked ? fmtBps(upload) : '—';
+
+  if (s.errors_in == null && s.errors_out == null) {
+    seatPortErrors.textContent = '—';
+    seatPortErrors.className = '';
+  } else {
+    const total = (s.errors_in || 0) + (s.errors_out || 0);
+    let text = total ? `${(s.errors_in || 0).toLocaleString()} in · ${(s.errors_out || 0).toLocaleString()} out` : 'None';
+    if (s.error_rate) text += ` (${s.error_rate}/s now)`;
+    seatPortErrors.textContent = text;
+    seatPortErrors.className = s.error_rate ? 'tone-warning' : total ? '' : 'tone-success';
+  }
+
+  const pct = s.utilization != null ? s.utilization * 100 : null;
+  setBar(barSeatPort, seatPortLoad, pct != null ? Math.round(pct) : null);
+  if (pct > 0 && pct < 1) seatPortLoad.textContent = '<1%';
+
+  seatPortLibrenms.classList.toggle('hidden', !s.librenms_url);
+  if (s.librenms_url) seatPortLibrenms.href = s.librenms_url;
+  seatPortPolled.classList.toggle('hidden', !s.polled_at);
+  if (s.polled_at) seatPortPolled.textContent = `LibreNMS polled this port ${fmtAgo(s.polled_at)}.`;
+
+  return { total_bps: download + upload, in_rate_bps: upload, out_rate_bps: download,
+           status: s.ifOperStatus, speed_bps: speed };
 }
 
 async function showBlockSeatDetail(seatNumber) {
@@ -1559,6 +1644,7 @@ async function showBlockSeatDetail(seatNumber) {
   blockSeatDdNumber.textContent = seatNumber;
   blockSeatDdPosition.textContent = seatNumber;
   resetSeatNetworkFields();
+  seatPortRefresh.disabled = !seatData?.ip_address;
 
   if (!seatData) {
     blockSeatUserBadge.textContent = 'Not mapped';
@@ -1582,30 +1668,23 @@ async function showBlockSeatDetail(seatNumber) {
   }
 
   setResolution('Looking up switch port…');
+  await lookupSeatPort(seatNumber);
+}
+
+// Resolves the seat's IP to its switch port and fills the inspector. Also used by Refresh
+// and the once-a-minute update while the seat stays selected.
+async function lookupSeatPort(seatNumber) {
+  const seatData = seatMappings[seatNumber];
+  if (!seatData || !seatData.ip_address) return;
+  seatPortRefresh.disabled = true;
+  seatPortRefresh.classList.add('is-busy');
   try {
     const result = await api('GET', `/api/resolve/${encodeURIComponent(seatData.ip_address)}`);
     if (currentBlockSeatNumber !== seatNumber) return; // user moved on
     currentBlockSeatResolution = result;
     blockSeatDdMac.textContent = result.mac || '—';
-    blockSeatDdSwitch.textContent = result.device_name || result.hostname || '—';
-    blockSeatDdPort.textContent = result.port || '—';
     blockSeatDdVlan.textContent = result.vlan || '—';
-
-    let portUsage = null;
-    if (result.stats) {
-      const stats = result.stats;
-      blockSeatDdPortStatus.textContent = stats.ifOperStatus || '—';
-      blockSeatDdPortStatus.style.color = stats.ifOperStatus === 'up' ? 'var(--success)' : 'var(--danger)';
-      const inRate = (parseFloat(stats.ifInOctets_rate) || 0) * 8;
-      const outRate = (parseFloat(stats.ifOutOctets_rate) || 0) * 8;
-      const speedBps = parseFloat(stats.ifSpeed) || 0;
-      blockSeatDdTotalTraffic.textContent = fmtBps(inRate + outRate);
-      blockSeatDdDownload.textContent = fmtBps(inRate);
-      blockSeatDdUpload.textContent = fmtBps(outRate);
-      blockSeatDdPortSpeed.textContent = fmtBps(speedBps);
-      portUsage = { total_bps: inRate + outRate, in_rate_bps: inRate, out_rate_bps: outRate,
-                    status: stats.ifOperStatus, speed_bps: speedBps };
-    }
+    const portUsage = renderSeatPort(result);
     setResolution(`Found via ${result.arp_source || 'the LibreNMS ARP table'}.`, 'success');
 
     if (seatHeatmapVisible) {
@@ -1629,8 +1708,22 @@ async function showBlockSeatDetail(seatNumber) {
       };
       renderSeatHeatmap();
     }
+  } finally {
+    if (currentBlockSeatNumber === seatNumber) {
+      seatPortRefresh.disabled = false;
+      seatPortRefresh.classList.remove('is-busy');
+    }
   }
 }
+
+seatPortRefresh.addEventListener('click', () => {
+  if (selectedType === 'seat' && currentBlockSeatNumber) lookupSeatPort(currentBlockSeatNumber);
+});
+setInterval(() => {
+  if (!document.hidden && selectedType === 'seat' && currentBlockSeatNumber) {
+    lookupSeatPort(currentBlockSeatNumber).catch(() => {});
+  }
+}, SEAT_PORT_REFRESH);
 
 // ── Block inspector ──────────────────────────────────────────────────────────────────
 function selectBlock(id) {
