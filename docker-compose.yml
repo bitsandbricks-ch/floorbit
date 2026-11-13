@@ -26,6 +26,7 @@ services:
     volumes:
       - ./data.json:/app/data.json
       - ./static/uploads:/app/static/uploads
+      - ./state:/app/state
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=production
@@ -36,6 +37,23 @@ services:
       - LIBRENMS_URL=${LIBRENMS_URL:-}
       - LIBRENMS_TOKEN=${LIBRENMS_TOKEN:-}
       - LIBRENMS_VERIFY_SSL=${LIBRENMS_VERIFY_SSL:-true}
+      # Integrations (docs/integrations.md)
+      - LIVE_UPDATES_ENABLED=${LIVE_UPDATES_ENABLED:-true}
+      - STATUS_MONITOR_ENABLED=${STATUS_MONITOR_ENABLED:-true}
+      - STATUS_MONITOR_INTERVAL=${STATUS_MONITOR_INTERVAL:-60}
+      - STATUS_MONITOR_CONFIRM=${STATUS_MONITOR_CONFIRM:-2}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - DISCORD_MENTION=${DISCORD_MENTION:-}
+      - DISCORD_COOLDOWN=${DISCORD_COOLDOWN:-300}
+      - PUBLIC_URL=${PUBLIC_URL:-}
+      - SEAT_SOURCES=${SEAT_SOURCES:-json}
+      - SEAT_SOURCE_HTTP_URL=${SEAT_SOURCE_HTTP_URL:-}
+      - SEAT_SOURCE_HTTP_TOKEN=${SEAT_SOURCE_HTTP_TOKEN:-}
+      - CHECKIN_ENABLED=${CHECKIN_ENABLED:-false}
+      - CHECKIN_ALLOWED_NETWORKS=${CHECKIN_ALLOWED_NETWORKS:-}
+      - CHECKIN_TRUST_PROXY=${CHECKIN_TRUST_PROXY:-false}
+      - CHECKIN_ADMIN_TOKEN=${CHECKIN_ADMIN_TOKEN:-}
+      - CHECKIN_FILE=${CHECKIN_FILE:-/app/state/checkins.json}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_DB=${REDIS_DB:-0}
