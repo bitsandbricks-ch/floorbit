@@ -4,13 +4,16 @@ The editor and the settings page are behind a sign-in. Code: [`auth/`](../auth/)
 
 ## Who can do what
 
-| Request | Signed out | Signed in |
-| --- | --- | --- |
-| `/` (floor plan editor), `/settings` | redirected to `/login` | yes |
-| `GET /api/...` (switches, seats, status, live events) | yes, while `AUTH_PUBLIC_READ` is on | yes |
-| `/api/settings` (any method) | no (401) | yes |
-| Anything that changes data (`POST`, `PUT`, `PATCH`, `DELETE`) | no (401) | yes |
-| `/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | yes |
+| Request | Signed out | Viewer | Editor | Admin |
+| --- | --- | --- | --- | --- |
+| `/` (floor plan editor) | redirected to `/login` | read-only | yes | yes |
+| `GET /api/...` (switches, seats, status, live events) | yes, while `AUTH_PUBLIC_READ` is on | yes | yes | yes |
+| Changes (`POST`, `PUT`, `PATCH`, `DELETE`) | 401 | 403 | yes | yes |
+| `/settings`, `/settings/users`, `/api/settings`, `/api/users` | 401 / login | 403 | 403 | yes |
+| `/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | yes | yes | yes |
+
+Roles are in `auth/roles.py`. Each includes the ones below it. Accounts created before roles existed
+count as admin. Viewers get the editor with its editing tools hidden.
 
 Reads stay open by default so a kiosk screen or the check-in page can load the floor plan without an
 account. Set `AUTH_PUBLIC_READ=false` to close them too; a kiosk then needs to be signed in.
@@ -24,10 +27,13 @@ Signed-out API calls answer `401 {"error": "Sign in required", "login_url": "/lo
 ## Accounts
 
 Accounts are stored in `data.json` under `auth_users` (the file compose already mounts), with the
-password as a werkzeug scrypt hash. Manage them on the server:
+password as a werkzeug scrypt hash. Admins manage them on **Settings › Users** (`/settings/users`):
+add, change role, reset password, remove. Or on the server:
 
 ```sh
-docker compose exec lal-app flask users add mike          # asks for the password
+docker compose exec lal-app flask users add mike          # asks for the password; first account is admin
+docker compose exec lal-app flask users add helper1 --role viewer
+docker compose exec lal-app flask users role helper1 editor
 docker compose exec lal-app flask users passwd mike       # also signs out mike's sessions
 docker compose exec lal-app flask users remove mike
 docker compose exec lal-app flask users list
@@ -38,8 +44,9 @@ Outside Docker use `flask --app app users ...`.
 For a fresh install, `AUTH_ADMIN_USER` and `AUTH_ADMIN_PASSWORD` create the first account on start
 when there is none yet. They do nothing once an account exists, so you can remove them afterwards.
 
-Every account can do everything for now. Roles (for example a read-only helper) can be added later
-on the user record.
+Accounts added without a role are editors. The last admin can't be demoted or removed, and admins
+can't change their own role or remove themselves. A role change applies to open sessions at once; a
+password reset signs that account out everywhere.
 
 ## Settings
 
@@ -76,7 +83,8 @@ A login method is a provider in `auth/providers/`. Two kinds exist:
 The routes `/auth/<id>/start` and `/auth/<id>/callback`, the `state` check and the session are
 already there. `Auth.resolve_identity` maps an identity to an account through its linked
 `identities` (`users.link_identity("mike", "discord", "<discord user id>")`). A provider with
-`auto_create_users = True` creates an account on first sign-in; leave it off unless the provider
+`auto_create_users = True` creates an account on first sign-in (with the provider's `default_role`,
+viewer unless set); leave it off unless the provider
 itself limits who gets in (for example only members of a Discord guild role).
 
 An OIDC or Discord provider is then one class, registered in `init_auth` when its env vars are set
