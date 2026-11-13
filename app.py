@@ -8,6 +8,7 @@ import redis
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 
+import port_details
 from settings_store import SettingsStore, create_settings_blueprint
 
 load_dotenv()
@@ -733,33 +734,23 @@ def fetch_librenms_details(hostname):
     return result
 
 def fetch_librenms_device_port_stats_by_interface(hostname, interface):
-
+    """One port's state, speed, traffic and errors for the seat inspector (see port_details.py)."""
     headers = {
         'X-Auth-Token': LIBRENMS_TOKEN,
         'Accept': 'application/json',
     }
 
     result = {}
+    if not hostname or not interface:
+        return result
     try:
         device = fetch_librenms_device_by_hostname(hostname, headers)
         if not device:
             return result
         device_id = device.get('device_id') or device.get('hostname')
-        resp = requests.get(
-            f'{LIBRENMS_URL}/api/v0/devices/{device_id}/ports',
-            headers=headers, timeout=10, verify=LIBRENMS_VERIFY_SSL,
-            params={'columns': 'ifOperStatus,ifInOctets_rate,ifOutOctets_rate,ifSpeed,ifName'},
-        )
-        if resp.ok:
-            ports = resp.json().get('ports', [])
-
-            for p in ports:
-                if p.get('ifName') == interface:
-                    result['ifOperStatus'] = p.get('ifOperStatus')
-                    result['ifInOctets_rate'] = p.get('ifInOctets_rate')
-                    result['ifOutOctets_rate'] = p.get('ifOutOctets_rate')
-                    result['ifSpeed'] = p.get('ifSpeed')
-                    break
+        port = port_details.fetch_port(LIBRENMS_URL, headers, device_id, interface, verify=LIBRENMS_VERIFY_SSL)
+        if port:
+            result = port_details.summarize_port(port, LIBRENMS_URL, device.get('device_id'))
 
 
             # result['total_ports'] = len(ports)
