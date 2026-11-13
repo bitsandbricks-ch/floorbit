@@ -1,0 +1,14 @@
+# Tool settings only: the app is not a package. Dependencies live in requirements*.txt.
+
+[tool.ruff]
+target-version = "py311"           # the Dockerfile's Python
+line-length = 120
+extend-exclude = [".claude", ".planning"]
+
+[tool.ruff.lint]
+# Pinned, so a ruff upgrade doesn't change what fails. Widen it in an MR that also fixes the code.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
