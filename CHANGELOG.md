@@ -19,6 +19,14 @@ All notable changes to this project are listed here. The format follows
 - Seat inspector: a "Switch port" section with the port's state, link speed and duplex, download and
   upload, errors, load, a refresh button and a link to the port in LibreNMS.
 
+### Changed
+
+- ruff checks a wider rule set (pycodestyle, import order, pyupgrade, bugbear, blind except,
+  comprehensions, simplify, ruff-specific), and the code is cleaned up to pass it. Redis errors are
+  now caught as `redis.RedisError` instead of any `Exception`.
+
 ### Fixed
 
 - Seat inspector: download and upload were swapped (LibreNMS counts from the switch's side).
+- The MR screenshots job waits for page load instead of network idle, which never came once the
+  live-updates stream (`/api/events`) was open.

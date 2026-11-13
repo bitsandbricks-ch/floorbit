@@ -81,8 +81,9 @@ def main():
             context = browser.new_context(**options, color_scheme="dark")
             page = context.new_page()
             for name, path in pages.items():
-                page.goto(BASE + path, wait_until="networkidle")
-                page.wait_for_timeout(500)  # let the canvas settle after the last fetch
+                # "load", not "networkidle": the live-updates stream (/api/events) never goes idle.
+                page.goto(BASE + path, wait_until="load")
+                page.wait_for_timeout(1500)  # let the first fetches finish and the canvas settle
                 target = out / f"{name}-{view}.png"
                 page.screenshot(path=str(target))
                 print(target)

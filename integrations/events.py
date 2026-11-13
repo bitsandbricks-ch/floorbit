@@ -8,6 +8,7 @@ The bus lives in one process. That matches how the app runs today
 (``python app.py``, threaded). Running several worker processes would need a
 shared channel such as Redis pub/sub; ``publish`` is the single place to add it.
 """
+import contextlib
 import itertools
 import json
 import queue
@@ -45,14 +46,13 @@ def publish(event_type, data=None, origin=None):
     for cb in subs:
         try:
             cb(event)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001  # one bad subscriber must not stop the others
             print(f"[integrations] subscriber for {event_type} failed: {exc}")
     if config.get_bool('LIVE_UPDATES_ENABLED', True):
         for q in clients:
-            try:
+            # a stuck browser loses events; it resyncs on reconnect
+            with contextlib.suppress(queue.Full):
                 q.put_nowait(event)
-            except queue.Full:
-                pass  # a stuck browser loses events; it resyncs on reconnect
     return event
 
 
