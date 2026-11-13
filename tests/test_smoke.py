@@ -7,6 +7,12 @@ def test_index_renders(client):
     assert b"<html" in resp.data.lower()
 
 
+def test_kiosk_renders(client):
+    resp = client.get("/kiosk")
+    assert resp.status_code == 200
+    assert b"/static/js/kiosk.js" in resp.data
+
+
 def test_config_without_integrations(client):
     resp = client.get("/api/config")
     assert resp.status_code == 200
