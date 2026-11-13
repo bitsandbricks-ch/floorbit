@@ -32,13 +32,15 @@ let seats          = [];
 let seatBlocks     = [];
 let currentTool    = 'select';
 let selectedId     = null;
-let selectedType   = null; // 'switch' | 'block' | 'seat'
+let selectedType   = null; // 'switch' | 'block' | 'seat' | 'multi'
+const selection    = new Set();      // selected map items as 'switch:<id>' / 'block:<id>'
 let pendingCoords  = null;
 let pendingPickerDeviceId = null;   // selected device in the NetBox picker tab
 let selectedDeviceIds = new Set();  // selected device IDs in multiselect mode
-let contextTarget  = null;          // { type: 'switch'|'block', id }
+let contextTarget  = null;          // { type: 'switch'|'block'|'multi', id }
 let dragState      = null;
 let panState       = null;
+let marqueeState   = null;
 let suppressNextClick = false;
 let heatmapVisible = false;
 let seatHeatmapVisible = false;
@@ -244,6 +246,15 @@ const seatPortLoad              = $('seat-port-load');
 const seatPortRefresh           = $('seat-port-refresh');
 const seatPortLibrenms          = $('seat-port-librenms');
 const seatPortPolled            = $('seat-port-polled');
+
+// Multi-selection inspector
+const multiDetailPanel   = $('multi-detail-panel');
+const multiDetailName    = $('multi-detail-name');
+const multiDetailSummary = $('multi-detail-summary');
+const multiList          = $('multi-list');
+const multiDetailClose   = $('multi-detail-close');
+const multiDetailClear   = $('multi-detail-clear');
+const multiDetailDelete  = $('multi-detail-delete');
 
 // Top bar stats
 const heroTotal    = $('hero-total');
@@ -549,9 +560,116 @@ function recordMove(type, id, from, to) {
 }
 
 async function deleteSelection() {
+  if (selectedType === 'multi') { await actionDeleteSelection(); return; }
   if (!selectedId) return;
   if (selectedType === 'block') await actionDeleteBlock(selectedId);
   else if (selectedType === 'switch') await actionDeleteSwitch(selectedId);
+}
+
+// ── Group actions (box-select, Shift+click, Ctrl+A) ────────────────────────────────
+// moves: [{ type, id, from: {x, y}, to: {x, y} }] – one undo step for all of them.
+function saveMoves(moves, which) {
+  return Promise.all(moves.map((m) => {
+    const rid = resolveId(m.id);
+    return m.type === 'block' ? updateBlock(rid, m[which]) : updateSwitch(rid, m[which]);
+  }));
+}
+
+let moveQueue = Promise.resolve();   // keeps position saves in order (fast arrow-key nudges)
+const NUDGE_MERGE_MS = 1500;
+
+async function commitMoves(moves, { label, nudge = false }) {
+  try {
+    await saveMoves(moves, 'to');
+  } catch (e) {
+    for (const m of moves) {
+      const item = findItem(m.type, resolveId(m.id));
+      if (item) { item.x = m.from.x; item.y = m.from.y; }
+    }
+    renderAll();
+    toastError('Could not save the new positions', e);
+    return;
+  }
+  // Repeated arrow-key nudges of the same items become one undo step
+  const sig = moves.map(m => selKey(m.type, m.id)).sort().join(',');
+  const last = history[history.length - 1];
+  if (nudge && last && last.nudgeSig === sig && Date.now() - last.at < NUDGE_MERGE_MS && !future.length) {
+    for (const m of moves) {
+      const prev = last.moves.find(p => p.type === m.type && p.id === m.id);
+      if (prev) prev.to = m.to;
+    }
+    last.at = Date.now();
+    return;
+  }
+  const entry = {
+    label,
+    moves,
+    undo: () => saveMoves(entry.moves, 'from'),
+    redo: () => saveMoves(entry.moves, 'to'),
+  };
+  if (nudge) { entry.nudgeSig = sig; entry.at = Date.now(); }
+  pushHistory(entry);
+}
+
+function moveLabel(moves) {
+  if (moves.length > 1) return `move ${moves.length} items`;
+  return moves[0].type === 'block' ? 'move seat block' : 'move switch';
+}
+
+function removeRecord(rec) {
+  const id = resolveId(rec.ref.id);
+  return rec.type === 'block' ? deleteBlock(id) : deleteSwitch(id);
+}
+async function restoreRecord(rec) {
+  const { snapshot } = rec;
+  if (rec.type === 'block') {
+    const created = await createBlock(snapshot);
+    aliasId(resolveId(rec.ref.id), created.id);
+    rec.ref.id = created.id;
+  } else if (snapshot.source === 'manual') {
+    const created = await createManualSwitch({ name: snapshot.name, x: snapshot.x, y: snapshot.y });
+    aliasId(resolveId(rec.ref.id), created.id);
+    rec.ref.id = created.id;
+  } else {
+    await updateSwitch(resolveId(rec.ref.id), { x: snapshot.x, y: snapshot.y });
+  }
+}
+
+async function actionDeleteSelection() {
+  const items = selectedItems();
+  if (!items.length) return;
+  const netbox = items.some(i => i.type === 'switch' && i.item.source !== 'manual');
+  const ok = await confirmDialog({
+    title: `Delete ${items.length} items?`,
+    text: `${describeCounts(items)} will be removed from the map` +
+          (netbox ? ' (NetBox switches go back to the list of devices to place)' : '') +
+          '. You can undo this.',
+  });
+  if (!ok) return;
+  const records = [];
+  for (const { type, id, item } of items) {
+    const rec = {
+      type,
+      ref: { id },
+      snapshot: type === 'block' ? blockPayload(item)
+                                 : { name: item.name, x: item.x, y: item.y, source: item.source },
+    };
+    try {
+      await removeRecord(rec);
+      records.push(rec);
+    } catch (e) {
+      toastError(`Could not delete ${itemName(type, item)}`, e);
+    }
+  }
+  deselectAll();
+  renderAll();
+  if (!records.length) return;
+  pushHistory({
+    label: `delete ${records.length} items`,
+    undo: async () => { for (const r of records) await restoreRecord(r); },
+    redo: async () => { for (const r of records) await removeRecord(r); },
+  });
+  undoToast(`Deleted ${records.length} items`);
 }
 
 // ── Load data ──────────────────────────────────────────────────────────────────────
@@ -957,10 +1075,16 @@ canvasArea.addEventListener('wheel', (e) => {
   zoomAt(e.clientX, e.clientY, Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015)));
 }, { passive: false });
 
-// Drag on empty space pans (left button in Select, middle button or Space anywhere)
+// Drag on empty space pans (left button in Select, middle button or Space anywhere).
+// Shift+drag on empty space draws a selection box instead.
 let spaceHeld = false;
 canvasArea.addEventListener('mousedown', (e) => {
   if (e.target.closest('.toolbar, .zoom-bar, .switch-marker, .seat-marker, .seat-block')) return;
+  if (e.button === 0 && e.shiftKey && currentTool === 'select' && !spaceHeld) {
+    e.preventDefault();
+    startMarquee(e);
+    return;
+  }
   const canPan = e.button === 1 || (e.button === 0 && (currentTool === 'select' || spaceHeld));
   if (!canPan) return;
   e.preventDefault();
@@ -988,6 +1112,57 @@ function onPanUp() {
     deselectAll(); // plain click on empty space
   }
   panState = null;
+}
+
+// ── Box select ───────────────────────────────────────────────────────────────────────
+// Shift+drag on empty space: everything the box touches is added to the selection.
+function startMarquee(e) {
+  const el = document.createElement('div');
+  el.className = 'marquee';
+  canvasArea.appendChild(el);
+  marqueeState = { x0: e.clientX, y0: e.clientY, el, hits: [], moved: false };
+  document.addEventListener('mousemove', onMarqueeMove);
+  document.addEventListener('mouseup', onMarqueeUp);
+}
+function onMarqueeMove(e) {
+  const s = marqueeState;
+  if (!s) return;
+  if (!s.moved && Math.hypot(e.clientX - s.x0, e.clientY - s.y0) < 3) return;
+  s.moved = true;
+
+  const left = Math.min(s.x0, e.clientX), right  = Math.max(s.x0, e.clientX);
+  const top  = Math.min(s.y0, e.clientY), bottom = Math.max(s.y0, e.clientY);
+  const area = canvasArea.getBoundingClientRect();
+  s.el.style.left   = (left - area.left) + 'px';
+  s.el.style.top    = (top - area.top) + 'px';
+  s.el.style.width  = (right - left) + 'px';
+  s.el.style.height = (bottom - top) + 'px';
+
+  s.hits = [];
+  const test = (marker, type, hitEl) => {
+    const r = hitEl.getBoundingClientRect();
+    const hit = r.right >= left && r.left <= right && r.bottom >= top && r.top <= bottom;
+    marker.classList.toggle('marquee-hit', hit);
+    if (hit) s.hits.push(selKey(type, marker.dataset.id));
+  };
+  // Switches are hit-tested on the pin only: the hidden label still takes up space
+  for (const m of overlay.querySelectorAll('.switch-marker')) test(m, 'switch', m.querySelector('.switch-pin') || m);
+  for (const m of blocksOverlay.querySelectorAll('.seat-block')) test(m, 'block', m);
+}
+function onMarqueeUp() {
+  document.removeEventListener('mousemove', onMarqueeMove);
+  document.removeEventListener('mouseup', onMarqueeUp);
+  const s = marqueeState;
+  marqueeState = null;
+  if (!s) return;
+  s.el.remove();
+  for (const m of document.querySelectorAll('.marquee-hit')) m.classList.remove('marquee-hit');
+  if (!s.moved) return;
+  suppressNextClick = true;
+  setTimeout(() => { suppressNextClick = false; }, 0);
+  if (!s.hits.length) return;
+  for (const key of s.hits) selection.add(key);
+  applySelection();
 }
 
 window.addEventListener('resize', () => {
@@ -1295,6 +1470,7 @@ function renderAll() {
   updateEmptyState();
   if (heatmapVisible) renderHeatmap();
   if (seatHeatmapVisible) renderSeatHeatmap();
+  if (selectedType === 'multi') applySelection();
 }
 
 function matchesStatusFilter(sw) {
@@ -1347,7 +1523,7 @@ function renderSidebar() {
   const frag = document.createDocumentFragment();
   for (const sw of filtered) {
     const item = document.createElement('div');
-    item.className = 'switch-item' + (sw.id === selectedId && selectedType === 'switch' ? ' active' : '');
+    item.className = 'switch-item' + (inSelection('switch', sw.id) ? ' active' : '');
     item.dataset.id = sw.id;
     item.tabIndex = 0;
 
@@ -1361,12 +1537,13 @@ function renderSidebar() {
       <span class="switch-item-glyph status-${escHtml(statusBucket(sw.status))}" title="${escHtml(sw.status || 'unknown')}">${statusGlyph(sw.status)}</span>
       <span class="switch-item-name">${escHtml(sw.name)}</span>
       <span class="switch-item-status">${escHtml(detail)}</span>`;
-    const activate = () => {
+    const activate = (e) => {
+      if (e && e.shiftKey) { toggleInSelection('switch', sw.id); return; }
       selectSwitch(sw.id);
       focusOnItem(overlay.querySelector(`[data-id="${CSS.escape(sw.id)}"]`));
     };
     item.addEventListener('click', activate);
-    item.addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(); });
+    item.addEventListener('keydown', (e) => { if (e.key === 'Enter') activate(e); });
     frag.appendChild(item);
   }
   switchList.innerHTML = '';
@@ -1375,7 +1552,7 @@ function renderSidebar() {
 
 function createMarker(sw) {
   const el = document.createElement('div');
-  const isSelected = sw.id === selectedId && selectedType === 'switch';
+  const isSelected = inSelection('switch', sw.id);
   el.className = 'switch-marker' + (isSelected ? ' selected' : '') + (matchesStatusFilter(sw) ? '' : ' dimmed');
   el.dataset.id = sw.id;
   el.style.left = sw.x + '%';
@@ -1409,7 +1586,7 @@ function createSeatMarker(seat) {
 
 function createBlockMarker(block) {
   const el = document.createElement('div');
-  const isSelected = selectedId === block.id && selectedType === 'block';
+  const isSelected = inSelection('block', block.id);
   el.className = 'seat-block' + (isSelected ? ' selected' : '');
   el.dataset.id = block.id;
   el.dataset.type = 'block';
@@ -1446,17 +1623,18 @@ function hideInspectors() {
   detailPanel.classList.add('hidden');
   blockDetailPanel.classList.add('hidden');
   blockSeatDetailPanel.classList.add('hidden');
+  multiDetailPanel.classList.add('hidden');
 }
 
 function markSelection() {
   for (const m of overlay.querySelectorAll('.switch-marker'))
-    m.classList.toggle('selected', selectedType === 'switch' && m.dataset.id === selectedId);
+    m.classList.toggle('selected', inSelection('switch', m.dataset.id));
   for (const m of blocksOverlay.querySelectorAll('.seat-block'))
-    m.classList.toggle('selected', selectedType === 'block' && m.dataset.id === selectedId);
+    m.classList.toggle('selected', inSelection('block', m.dataset.id));
   for (const s of blocksOverlay.querySelectorAll('.seat-block-seat'))
     s.classList.toggle('selected', selectedType === 'seat' && s.dataset.seatNumber === currentBlockSeatNumber);
   for (const item of switchList.querySelectorAll('.switch-item'))
-    item.classList.toggle('active', selectedType === 'switch' && item.dataset.id === selectedId);
+    item.classList.toggle('active', inSelection('switch', item.dataset.id));
 }
 
 function selectSwitch(id) {
@@ -1466,6 +1644,8 @@ function selectSwitch(id) {
 
   selectedId = id;
   selectedType = 'switch';
+  selection.clear();
+  selection.add(selKey('switch', id));
   currentBlockSeatNumber = null;
   markSelection();
   hideInspectors();
@@ -1530,10 +1710,127 @@ async function fetchSwitchStatus(id) {
 function deselectAll() {
   selectedId = null;
   selectedType = null;
+  selection.clear();
   currentBlockSeatNumber = null;
   currentBlockSeatResolution = null;
   hideInspectors();
   markSelection();
+}
+
+// ── Multi-selection ──────────────────────────────────────────────────────────────────
+// `selection` holds every selected switch and seat block. With one item the
+// normal inspector is shown; with two or more, the selection inspector.
+function selKey(type, id) { return `${type}:${id}`; }
+function parseSelKey(key) {
+  const i = key.indexOf(':');
+  return { type: key.slice(0, i), id: key.slice(i + 1) };
+}
+function inSelection(type, id) { return selection.has(selKey(type, id)); }
+function findItem(type, id) {
+  if (type === 'block') return seatBlocks.find(b => b.id === id);
+  return switches.find(s => s.id === id && s.placed !== false && s.x != null);
+}
+function itemName(type, item) {
+  return type === 'block' ? (item.name || 'Unnamed block') : item.name;
+}
+function selectedItems() {
+  const out = [];
+  for (const key of selection) {
+    const { type, id } = parseSelKey(key);
+    const item = findItem(type, id);
+    if (item) out.push({ type, id, item });
+  }
+  return out;
+}
+function describeCounts(items) {
+  const nSwitches = items.filter(i => i.type === 'switch').length;
+  const nBlocks = items.length - nSwitches;
+  const parts = [];
+  if (nSwitches) parts.push(`${nSwitches} switch${nSwitches === 1 ? '' : 'es'}`);
+  if (nBlocks) parts.push(`${nBlocks} seat block${nBlocks === 1 ? '' : 's'}`);
+  return parts.join(' and ');
+}
+
+function applySelection() {
+  for (const key of [...selection]) {
+    const { type, id } = parseSelKey(key);
+    if (!findItem(type, id)) selection.delete(key);
+  }
+  if (selection.size === 0) { deselectAll(); return; }
+  if (selection.size === 1) {
+    const { type, id } = parseSelKey([...selection][0]);
+    if (type === 'block') selectBlock(id); else selectSwitch(id);
+    return;
+  }
+  selectedId = null;
+  selectedType = 'multi';
+  currentBlockSeatNumber = null;
+  currentBlockSeatResolution = null;
+  hideInspectors();
+  fillMultiInspector();
+  multiDetailPanel.classList.remove('hidden');
+  markSelection();
+}
+
+function fillMultiInspector() {
+  const items = selectedItems().sort((a, b) =>
+    a.type.localeCompare(b.type) || itemName(a.type, a.item).localeCompare(itemName(b.type, b.item)));
+  multiDetailName.textContent = `${items.length} items`;
+  multiDetailSummary.textContent = describeCounts(items);
+  multiList.innerHTML = items.map(({ type, id, item }) => `
+    <li><button class="multi-item" data-type="${type}" data-id="${escHtml(id)}">
+      ${type === 'switch'
+        ? `<span class="switch-item-glyph status-${escHtml(statusBucket(item.status))}">${statusGlyph(item.status)}</span>`
+        : '<span class="multi-item-kind" aria-hidden="true">▦</span>'}
+      <span class="multi-item-name">${escHtml(itemName(type, item))}</span>
+      <span class="multi-item-pos">${Number(item.x).toFixed(1)} / ${Number(item.y).toFixed(1)}</span>
+    </button></li>`).join('');
+}
+
+function toggleInSelection(type, id) {
+  const key = selKey(type, id);
+  if (selection.has(key)) selection.delete(key);
+  else selection.add(key);
+  applySelection();
+}
+
+function selectAllItems() {
+  selection.clear();
+  for (const sw of switches) if (sw.placed !== false && sw.x != null) selection.add(selKey('switch', sw.id));
+  for (const b of seatBlocks) selection.add(selKey('block', b.id));
+  applySelection();
+}
+
+multiList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.multi-item');
+  if (!btn) return;
+  const { type, id } = btn.dataset;
+  if (type === 'block') selectBlock(id); else selectSwitch(id);
+  focusOnItem(markerFor(type, id));
+});
+multiDetailClose.addEventListener('click', deselectAll);
+multiDetailClear.addEventListener('click', deselectAll);
+multiDetailDelete.addEventListener('click', () => actionDeleteSelection());
+
+// Arrow keys move the selection by one grid step (Shift: five steps)
+function nudgeSelection(dirX, dirY, big) {
+  const items = selectedItems();
+  if (!items.length) return;
+  const step = (snapEnabled ? GRID_SNAP : 0.1) * (big ? 5 : 1);
+  const list = items.map(({ type, id, item }) => ({ type, id, origX: item.x, origY: item.y }));
+  offsetItems(list, dirX * step, dirY * step);
+  const moves = movesFrom(list);
+  if (!moves.length) return;
+  refreshSelectionPositions();
+  moveQueue = moveQueue.then(() => commitMoves(moves, { label: moveLabel(moves), nudge: true }));
+}
+
+function refreshSelectionPositions() {
+  if (selectedType === 'multi') { fillMultiInspector(); return; }
+  const item = selectedId && findItem(selectedType, selectedId);
+  if (!item) return;
+  if (selectedType === 'block') fillBlockInspector(item);
+  else ddPosition.textContent = `${Number(item.x).toFixed(1)}% / ${Number(item.y).toFixed(1)}%`;
 }
 
 // ── Seat inspector ───────────────────────────────────────────────────────────────────
@@ -1733,6 +2030,8 @@ function selectBlock(id) {
 
   selectedId = id;
   selectedType = 'block';
+  selection.clear();
+  selection.add(selKey('block', id));
   currentBlockSeatNumber = null;
   markSelection();
   hideInspectors();
@@ -1917,12 +2216,20 @@ function startDrag(e, type, item, marker) {
   document.addEventListener('mouseup', onDocMouseUp);
 }
 
+// Shift+click toggles an item in the selection without starting a drag
+function suppressClickAfterMouseUp() {
+  suppressNextClick = true;
+  document.addEventListener('mouseup', () => setTimeout(() => { suppressNextClick = false; }, 0), { once: true });
+}
+
 function onMarkerMouseDown(e) {
   if (e.button !== 0 || currentTool !== 'select') return;
   e.stopPropagation();
   const marker = e.currentTarget;
   const sw = switches.find(s => s.id === marker.dataset.id);
   if (!sw) return;
+  if (e.shiftKey) { toggleInSelection('switch', sw.id); suppressClickAfterMouseUp(); return; }
+  if (selection.size > 1 && inSelection('switch', sw.id)) { startGroupDrag(e, 'switch', sw.id); return; }
   selectSwitch(sw.id);
   startDrag(e, 'switch', sw, marker);
 }
@@ -1933,6 +2240,8 @@ function onBlockMouseDown(e) {
   const marker = e.currentTarget;
   const block = seatBlocks.find(b => b.id === marker.dataset.id);
   if (!block) return;
+  if (e.shiftKey) { toggleInSelection('block', block.id); suppressClickAfterMouseUp(); return; }
+  if (selection.size > 1 && inSelection('block', block.id)) { startGroupDrag(e, 'block', block.id); return; }
   // Clicking a seat selects the seat (on click); dragging moves the whole block
   if (!e.target.closest('.seat-block-seat')) selectBlock(block.id);
   startDrag(e, 'block', block, marker);
@@ -1996,10 +2305,99 @@ async function onDocMouseUp() {
   }
 }
 
+// ── Group drag (several selected items) ──────────────────────────────────────────────
+function markerFor(type, id) {
+  const container = type === 'block' ? blocksOverlay : overlay;
+  return container.querySelector(`[data-id="${CSS.escape(id)}"]`);
+}
+
+// Moves every item in `list` ({ type, id, origX, origY }) by the same offset,
+// clamped so that none of them leaves the floor plan.
+function offsetItems(list, dx, dy) {
+  const xs = list.map(i => i.origX), ys = list.map(i => i.origY);
+  dx = Math.min(100 - Math.max(...xs), Math.max(-Math.min(...xs), dx));
+  dy = Math.min(100 - Math.max(...ys), Math.max(-Math.min(...ys), dy));
+  for (const it of list) {
+    const item = findItem(it.type, it.id);
+    if (!item) continue;
+    item.x = Math.round((it.origX + dx) * 100) / 100;
+    item.y = Math.round((it.origY + dy) * 100) / 100;
+    const m = markerFor(it.type, it.id);
+    if (m) { m.style.left = item.x + '%'; m.style.top = item.y + '%'; }
+  }
+  if (heatmapVisible) renderHeatmap();
+}
+
+function movesFrom(list) {
+  const moves = [];
+  for (const it of list) {
+    const item = findItem(it.type, it.id);
+    if (!item || (item.x === it.origX && item.y === it.origY)) continue;
+    moves.push({ type: it.type, id: it.id, from: { x: it.origX, y: it.origY }, to: { x: item.x, y: item.y } });
+  }
+  return moves;
+}
+
+function startGroupDrag(e, type, id) {
+  dragState = {
+    type: 'group',
+    clicked: { type, id },
+    startX: e.clientX,
+    startY: e.clientY,
+    wrapperRect: wrapper.getBoundingClientRect(),
+    moved: false,
+    items: selectedItems().map(({ type: t, id: i, item }) => ({ type: t, id: i, origX: item.x, origY: item.y })),
+  };
+  document.addEventListener('mousemove', onGroupMouseMove);
+  document.addEventListener('mouseup', onGroupMouseUp);
+}
+
+function onGroupMouseMove(e) {
+  const s = dragState;
+  if (!s || s.type !== 'group') return;
+  const dxPx = e.clientX - s.startX;
+  const dyPx = e.clientY - s.startY;
+  if (!s.moved && Math.hypot(dxPx, dyPx) < 3) return;
+  if (!s.moved) for (const it of s.items) markerFor(it.type, it.id)?.classList.add('dragging');
+  s.moved = true;
+
+  // Snap the item under the cursor; the others keep their relative positions
+  const anchor = s.items.find(i => i.type === s.clicked.type && i.id === s.clicked.id) || s.items[0];
+  const dx = snapToGrid(anchor.origX + dxPx / s.wrapperRect.width * 100) - anchor.origX;
+  const dy = snapToGrid(anchor.origY + dyPx / s.wrapperRect.height * 100) - anchor.origY;
+  offsetItems(s.items, dx, dy);
+  const a = findItem(anchor.type, anchor.id);
+  if (a) updatePositionDisplay(a.x, a.y);
+}
+
+async function onGroupMouseUp() {
+  document.removeEventListener('mousemove', onGroupMouseMove);
+  document.removeEventListener('mouseup', onGroupMouseUp);
+  const s = dragState;
+  dragState = null;
+  if (!s || s.type !== 'group') return;
+  for (const it of s.items) markerFor(it.type, it.id)?.classList.remove('dragging');
+
+  if (!s.moved) {
+    // A plain click on one of the selected items selects just that item
+    if (s.clicked.type === 'block') selectBlock(s.clicked.id); else selectSwitch(s.clicked.id);
+    return;
+  }
+  suppressNextClick = true;
+  setTimeout(() => { suppressNextClick = false; }, 0);
+
+  const moves = movesFrom(s.items);
+  if (!moves.length) return;
+  refreshSelectionPositions();
+  moveQueue = moveQueue.then(() => commitMoves(moves, { label: moveLabel(moves) }));
+}
+
 // ── Context menu ───────────────────────────────────────────────────────────────────────
 function openContextMenu(e, target) {
   contextTarget = target;
   ctxRename.textContent = target.type === 'block' ? 'Edit…' : 'Rename…';
+  ctxRename.classList.toggle('hidden', target.type === 'multi');
+  ctxDelete.firstChild.textContent = target.type === 'multi' ? `Delete ${selection.size} items ` : 'Delete ';
   contextMenu.classList.remove('hidden');
   const { innerWidth, innerHeight } = window;
   const w = contextMenu.offsetWidth, h = contextMenu.offsetHeight;
@@ -2010,6 +2408,7 @@ function onMarkerContextMenu(e) {
   e.preventDefault();
   e.stopPropagation();
   const id = e.currentTarget.dataset.id;
+  if (selection.size > 1 && inSelection('switch', id)) { openContextMenu(e, { type: 'multi' }); return; }
   selectSwitch(id);
   openContextMenu(e, { type: 'switch', id });
 }
@@ -2017,6 +2416,7 @@ function onBlockContextMenu(e) {
   e.preventDefault();
   e.stopPropagation();
   const id = e.currentTarget.dataset.id;
+  if (selection.size > 1 && inSelection('block', id)) { openContextMenu(e, { type: 'multi' }); return; }
   selectBlock(id);
   openContextMenu(e, { type: 'block', id });
 }
@@ -2035,7 +2435,8 @@ ctxDelete.addEventListener('click', (e) => {
   e.stopPropagation();
   contextMenu.classList.add('hidden');
   if (!contextTarget) return;
-  if (contextTarget.type === 'switch') actionDeleteSwitch(contextTarget.id);
+  if (contextTarget.type === 'multi') actionDeleteSelection();
+  else if (contextTarget.type === 'switch') actionDeleteSwitch(contextTarget.id);
   else actionDeleteBlock(contextTarget.id);
 });
 
@@ -2089,6 +2490,8 @@ function isTyping(e) {
   return t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable;
 }
 
+const ARROW_DIRS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (anyModalOpen()) { closeAllModals(); return; }
@@ -2105,20 +2508,28 @@ document.addEventListener('keydown', (e) => {
 
   if (mod && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if (mod && key === 'y') { e.preventDefault(); redo(); return; }
+  if (mod && key === 'a') { e.preventDefault(); setTool('select'); selectAllItems(); return; }
   if (mod) return;
 
   if (e.key === ' ' && !spaceHeld) { spaceHeld = true; canvasArea.classList.add('panning'); e.preventDefault(); return; }
 
+  if (ARROW_DIRS[e.key] && selection.size && currentTool === 'select' && !dragState) {
+    e.preventDefault();
+    nudgeSelection(...ARROW_DIRS[e.key], e.shiftKey);
+    return;
+  }
+
   switch (e.key) {
     case 'Delete':
     case 'Backspace':
-      if (selectedId) { e.preventDefault(); deleteSelection(); }
+      if (selection.size) { e.preventDefault(); deleteSelection(); }
       break;
     case 'v': case 'V': setTool('select'); break;
     case 's': case 'S': setTool('add-switch'); break;
     case 'b': case 'B': setTool('add-block'); break;
     case 'g': case 'G': setSnap(!snapEnabled); break;
     case 'f': case 'F': fitToContent(); break;
+    case 't': case 'T': window.floorTheme?.toggle(); break;
     case '+': case '=': zoomCentered(ZOOM_STEP); break;
     case '-': case '_': zoomCentered(1 / ZOOM_STEP); break;
     case '0': resetView(); break;
