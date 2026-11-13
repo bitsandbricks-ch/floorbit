@@ -3,7 +3,11 @@
 Wire-up from app.py is one call::
 
     from integrations import init_integrations
-    init_integrations(app, load_data=load_data)
+    init_integrations(app, load_data=load_data,
+                      settings_store=globals().get('settings_store'))
+
+When a settings store is passed, the integration settings show up on the
+/settings page and saved values win over env vars (see settings_bridge.py).
 
 What it adds:
 
@@ -27,7 +31,7 @@ import threading
 
 from flask import Blueprint, Response, jsonify, render_template, request, stream_with_context
 
-from . import checkin, config, events, seat_sources
+from . import checkin, config, events, seat_sources, settings_bridge
 from .discord import DiscordNotifier
 from .monitor import StatusMonitor
 
@@ -56,7 +60,9 @@ def _placed_switches(load_data):
     return list_switches
 
 
-def init_integrations(app, load_data, start_background=True):
+def init_integrations(app, load_data, settings_store=None, start_background=True):
+    if settings_store is not None:
+        settings_bridge.connect(settings_store)
     monitor = StatusMonitor(_placed_switches(load_data))
     refresher = checkin.CheckinRefresher()
     discord = DiscordNotifier()
