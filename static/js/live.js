@@ -72,6 +72,8 @@
         applyStatuses(known);
       }
       if (todo.includes('seat-blocks') && typeof loadSeatBlocks !== 'undefined') await loadSeatBlocks();
+      // app.js's load* functions only fetch, so draw the new data
+      if (typeof renderAll !== 'undefined') renderAll();
     } catch (e) {
       console.warn('[live] reload failed', e);
     }

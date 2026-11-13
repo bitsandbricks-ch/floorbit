@@ -4,7 +4,7 @@ import sys
 import threading
 
 import pytest
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

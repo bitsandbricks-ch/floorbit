@@ -37,12 +37,6 @@ services:
       - LIBRENMS_URL=${LIBRENMS_URL:-}
       - LIBRENMS_TOKEN=${LIBRENMS_TOKEN:-}
       - LIBRENMS_VERIFY_SSL=${LIBRENMS_VERIFY_SSL:-true}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_DB=${REDIS_DB:-0}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - CACHE_TTL_ARP=${CACHE_TTL_ARP:-300}
-      - CACHE_TTL_MAC=${CACHE_TTL_MAC:-300}
       # Integrations (docs/integrations.md)
       - LIVE_UPDATES_ENABLED=${LIVE_UPDATES_ENABLED:-true}
       - STATUS_MONITOR_ENABLED=${STATUS_MONITOR_ENABLED:-true}
@@ -60,6 +54,12 @@ services:
       - CHECKIN_TRUST_PROXY=${CHECKIN_TRUST_PROXY:-false}
       - CHECKIN_ADMIN_TOKEN=${CHECKIN_ADMIN_TOKEN:-}
       - CHECKIN_FILE=${CHECKIN_FILE:-/app/state/checkins.json}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - CACHE_TTL_ARP=${CACHE_TTL_ARP:-300}
+      - CACHE_TTL_MAC=${CACHE_TTL_MAC:-300}
     depends_on:
       redis:
         condition: service_healthy
