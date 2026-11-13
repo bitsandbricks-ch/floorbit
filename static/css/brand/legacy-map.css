@@ -1,0 +1,35 @@
+/*
+ * Bridge from Floorbit's current variable names (static/css/style.css) to the
+ * brand tokens, so pages can switch over before every rule is renamed.
+ * Load after tokens.css and themes.css; delete once style.css uses --color-* directly.
+ */
+:root, :root[data-theme], :root[data-preset] {
+  --bg-primary: var(--color-ink);
+  --bg-secondary: var(--color-surface);
+  --bg-tertiary: var(--color-raised);
+  --bg-hover: color-mix(in srgb, var(--color-raised), var(--color-fg) 5%);
+  --bg-overlay: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  --border: var(--color-line);
+  --border-muted: var(--color-raised);
+  --text-primary: var(--color-fg);
+  --text-secondary: var(--color-muted);
+  --text-muted: var(--color-faint);
+  --accent: var(--color-bit);
+  --accent-hover: var(--color-bit-hover);
+  --accent-dim: var(--color-bit-soft);
+  --success: var(--color-up);
+  --danger: var(--color-down);
+  --warning: var(--color-warn);
+  --unknown: var(--color-unknown);
+  --success-dim: color-mix(in srgb, var(--color-up) 15%, transparent);
+  --danger-dim: color-mix(in srgb, var(--color-down) 15%, transparent);
+  --warning-dim: color-mix(in srgb, var(--color-warn) 15%, transparent);
+  --canvas-dot: var(--plan-cell);
+  --block-bg: var(--plan-block);
+  --block-selected-bg: var(--color-trace-soft);
+  --seat-user-bg: var(--color-seat-checked-in);
+  --seat-user-border: color-mix(in srgb, var(--color-up) 60%, transparent);
+  --marquee-bg: var(--color-trace-soft);
+  --radius-sm: var(--radius-bit);
+  --radius-lg: var(--radius-card);
+}

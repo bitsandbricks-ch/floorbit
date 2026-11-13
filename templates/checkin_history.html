@@ -1,19 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" {{ theme.html_attrs if theme is defined }}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Check-in history · Floorbit</title>
+  {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <style>
     :root {
-      --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
-      --muted: #8b949e; --accent: #f0883e; --ok: #3fb950; --err: #f85149; --row: #1c2129;
+      --bg: var(--color-ink); --panel: var(--color-surface); --border: var(--color-line);
+      --text: var(--color-fg); --muted: var(--color-muted); --accent: var(--color-bit);
+      --ok: var(--color-up); --err: var(--color-down); --row: var(--color-raised);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0; padding: 24px 16px; background: var(--bg); color: var(--text);
-      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 14px/1.5 var(--font-sans);
     }
     .wrap { max-width: 1200px; margin: 0 auto; }
     header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
@@ -41,7 +43,7 @@
       padding: 7px 12px; font: inherit; font-weight: 600; border-radius: 6px; cursor: pointer;
       border: 1px solid var(--border); background: var(--bg); color: var(--text); white-space: nowrap;
     }
-    .btn.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--color-on-bit); }
     .btn:disabled { opacity: .6; cursor: default; }
     .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
     .count { color: var(--muted); font-size: 13px; }
@@ -56,9 +58,9 @@
     td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--muted); cursor: pointer; }
     td a:hover { color: var(--accent); border-color: var(--accent); }
     .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
-    .pill.checkin, .pill.here { color: var(--ok); border-color: rgba(63, 185, 80, .4); }
+    .pill.checkin, .pill.here { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
     .pill.removed, .pill.moved, .pill.replaced { color: var(--muted); }
-    .pill.ip_changed, .pill.mac_found { color: var(--accent); border-color: rgba(240, 136, 62, .4); }
+    .pill.ip_changed, .pill.mac_found { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
     .empty { padding: 32px; text-align: center; color: var(--muted); }
     .token { display: none; margin: 12px 0; gap: 8px; align-items: end; max-width: 420px; }
     .token.show { display: flex; }

@@ -1,0 +1,13 @@
+{#- The top-bar brand. An event logo replaces Floorbit's (the footer keeps the powered-by
+    pill); an event name alone sits next to the Floorbit mark. -#}
+<span class="fb-brand">
+  {%- if theme.logo_url %}
+  <img class="fb-brand-logo" src="{{ theme.logo_url }}" alt="{{ theme.name or 'Event logo' }}" />
+  {%- if theme.name %}<span class="fb-brand-name">{{ theme.name }}</span>{% endif %}
+  {%- elif theme.name %}
+  <span class="fb-brand-mark" role="img" aria-label="Floorbit"></span>
+  <span class="fb-brand-name">{{ theme.name }}</span>
+  {%- else %}
+  <span class="fb-brand-lockup" role="img" aria-label="Floorbit"></span>
+  {%- endif %}
+</span>

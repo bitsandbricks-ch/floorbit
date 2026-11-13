@@ -27,6 +27,9 @@ each seat is plugged into.
 - **Sign-in:** the editor and the settings need an account; the floor plan data stays readable for
   kiosk screens. Username and password today, built so SSO or Discord can be added. See
   [docs/auth.md](docs/auth.md).
+- **Themes:** the Floorbit look by default, plus Ops, Kiosk and Classic presets and a custom theme
+  with your event's colours, name and logo. Each screen can pick its own with `?theme=`. See
+  [docs/themes.md](docs/themes.md).
 - **Cache:** LibreNMS answers are cached in Redis (5 minutes by default), so a busy hall doesn't hammer
   the API.
 
@@ -60,6 +63,8 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `LIBRENMS_VERIFY_SSL` | `true` | `false` accepts a self-signed certificate. |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD` | `localhost`, `6379`, `0`, empty | The cache. Compose points the app at its own `redis` service. |
 | `CACHE_TTL_ARP`, `CACHE_TTL_MAC` | `300` | Seconds to keep a switch's ARP and MAC tables. |
+| `FLOORBIT_THEME` | `floorbit` | Site theme: `floorbit`, `ops`, `kiosk`, `classic` or `custom` ([docs/themes.md](docs/themes.md)). |
+| `FLOORBIT_EVENT_NAME` | empty | Event name in the top bar and on the kiosk. |
 | `SECRET_KEY` | generated | Signs the session cookie. Empty: generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |
 | `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |

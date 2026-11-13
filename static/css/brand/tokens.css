@@ -1,0 +1,167 @@
+/* Geist and Geist Mono ship with the app (SIL OFL, static/fonts/OFL.txt) so a LAN
+   without internet still renders them. */
+@font-face {
+  font-family: "Geist";
+  src: url("/static/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/static/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/*
+ * Floorbit design tokens. Plain CSS (Floorbit has no build step).
+ * Same names and neutrals as Seatbit's brand/tokens.css, plus the tokens a
+ * network floor plan needs (link status, trace, traffic heat).
+ *
+ * Theming works in three layers:
+ *   1. Seeds (--theme-*): the few values a preset or an admin sets.
+ *   2. Tokens (--color-*): what components use. Built-in themes set them to exact
+ *      values; a custom theme derives them from the seeds (themes.css, "custom").
+ *   3. Presets (themes.css): bundles of values, picked per site or per screen.
+ */
+:root {
+  color-scheme: dark;
+
+  /* 1. Seeds: override these to theme Floorbit */
+  --theme-accent: #2ee59d;     /* Bit Green: brand, primary buttons, focus */
+  --theme-on-accent: #0b0b0f;  /* text on accent fills */
+  --theme-bg: #0b0b0f;         /* page */
+  --theme-surface: #16161d;    /* cards, panels, inspector */
+  --theme-fg: #f4f4f5;         /* text */
+  --theme-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-mono: "Geist Mono", ui-monospace, monospace;
+  --theme-logo: url("/static/brand/floorbit-logo.svg");
+  --theme-logo-mark: url("/static/brand/floorbit-mark.svg");
+
+  /* 2. Neutrals: the dark hall */
+  --color-ink: var(--theme-bg);
+  --color-surface: var(--theme-surface);
+  --color-raised: #1f1f28;     /* inputs, hover, free seats */
+  --color-line: #2a2a35;       /* borders */
+  --color-fg: var(--theme-fg);
+  --color-muted: #a1a1aa;      /* secondary text */
+  --color-faint: #71717a;      /* hints, footer (4.1:1, non-essential only) */
+
+  /* Brand accent: Bit Green unless a theme changes it */
+  --color-bit: var(--theme-accent);
+  --color-bit-hover: color-mix(in srgb, var(--theme-accent), white 20%);
+  --color-on-bit: var(--theme-on-accent);
+  --color-bit-soft: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+
+  /* Trace: what you are looking at. Selection, a seat's path to its switch port. */
+  --color-trace: #22d3ee;
+  --color-trace-soft: color-mix(in srgb, var(--color-trace) 14%, transparent);
+
+  /* Link status. Fixed on purpose: a theme never changes what "down" looks like. */
+  --color-up: #2ee59d;
+  --color-down: #f87171;
+  --color-warn: #fbbf24;       /* errors, half duplex, flapping */
+  --color-unknown: #71717a;    /* not polled yet, no data */
+  --color-disabled: #3f3f46;   /* admin down */
+
+  /* Seats */
+  --color-seat: var(--color-raised);
+  --color-seat-checked-in: color-mix(in srgb, var(--color-up) 18%, var(--color-surface));
+  --color-seat-line: var(--color-line);
+
+  /* Traffic heat, idle to saturated. Cyan family, so it never reads as up or down. */
+  --heat-0: var(--color-raised);
+  --heat-1: #164e63;
+  --heat-2: #0e7490;
+  --heat-3: #22d3ee;
+  --heat-4: #fbbf24;
+  --heat-5: #f87171;
+
+  /* Floor plan canvas: the seat-grid texture, very low contrast */
+  --plan-bg: var(--color-ink);
+  --plan-cell: #14141b;
+  --plan-block: color-mix(in srgb, var(--color-surface) 70%, transparent);
+
+  /* Shape (Seatbit values) */
+  --radius-bit: 0.375rem;
+  --radius-card: 0.875rem;
+  --radius-pill: 999px;
+
+  /* Type */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 28px;
+  --tracking-tight: -0.025em;
+
+  --shadow: 0 8px 28px rgb(0 0 0 / 0.55);
+  --focus-ring: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-bit);
+}
+
+/*
+ * Light: the same seeds with daylight values. The accent gets deeper so green
+ * text stays AA on white, and text on green fills turns white. Keep both blocks the same.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --theme-accent: #047857;
+  --theme-on-accent: #ffffff;
+  --theme-bg: #f5f5f7;
+  --theme-surface: #ffffff;
+  --theme-fg: #111118;
+  --theme-logo: url("/static/brand/floorbit-logo-light.svg");
+  --theme-logo-mark: url("/static/brand/floorbit-mark-light.svg");
+  --color-raised: #eeeef2;
+  --color-line: #dcdce3;
+  --color-muted: #52525b;
+  --color-faint: #6b6b75;
+  --color-bit-hover: #065f46;
+  --color-trace: #0e7490;
+  --color-up: #047857;
+  --color-down: #c81e1e;
+  --color-warn: #b45309;
+  --color-unknown: #6b6b75;
+  --color-disabled: #d4d4d8;
+  --heat-1: #cffafe;
+  --heat-2: #67e8f9;
+  --heat-3: #0891b2;
+  --heat-4: #d97706;
+  --heat-5: #dc2626;
+  --plan-cell: #ececf0;
+  --shadow: 0 8px 28px rgb(17 17 24 / 0.14);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    /* "System" on a light device: copy of the block above. */
+    color-scheme: light;
+    --theme-accent: #047857;
+    --theme-on-accent: #ffffff;
+    --theme-bg: #f5f5f7;
+    --theme-surface: #ffffff;
+    --theme-fg: #111118;
+    --theme-logo: url("/static/brand/floorbit-logo-light.svg");
+    --theme-logo-mark: url("/static/brand/floorbit-mark-light.svg");
+    --color-raised: #eeeef2;
+    --color-line: #dcdce3;
+    --color-muted: #52525b;
+    --color-faint: #6b6b75;
+    --color-bit-hover: #065f46;
+    --color-trace: #0e7490;
+    --color-up: #047857;
+    --color-down: #c81e1e;
+    --color-warn: #b45309;
+    --color-unknown: #6b6b75;
+    --color-disabled: #d4d4d8;
+    --heat-1: #cffafe;
+    --heat-2: #67e8f9;
+    --heat-3: #0891b2;
+    --heat-4: #d97706;
+    --heat-5: #dc2626;
+    --plan-cell: #ececf0;
+    --shadow: 0 8px 28px rgb(17 17 24 / 0.14);
+  }
+}

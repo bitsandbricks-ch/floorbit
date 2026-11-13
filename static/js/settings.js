@@ -157,6 +157,55 @@
       });
       row.append(input);
       if (field.unit) row.append(el('span', { class: 'st-unit', text: field.unit }));
+    } else if (field.type === 'choice') {
+      const current = pendingReset ? info.value : fieldValue(field);
+      input = el('select', { id },
+        field.options.map(o => el('option', { value: o.value, text: o.label, selected: o.value === current })));
+      input.addEventListener('change', () => { onChange(input.value); updateThemeHints(); });
+      row.append(input);
+    } else if (field.type === 'color') {
+      // A text field (empty means "derive it") with a colour picker beside it.
+      const current = (pendingReset ? info.value : fieldValue(field)) || '';
+      // An empty field shows a dimmed grey picker: the colour is derived, not picked.
+      const picker = el('input', { type: 'color', value: current || '#808080', class: current ? '' : 'st-derived',
+                                   'aria-label': field.label + ' picker' });
+      input = el('input', { type: 'text', id, value: current, placeholder: 'Derived', spellcheck: 'false', maxlength: 7 });
+      const sync = (v) => {
+        const ok = v === '' || /^#[0-9a-f]{6}$/i.test(v);
+        input.classList.toggle('invalid', !ok);
+        if (ok && v) picker.value = v;
+        picker.classList.toggle('st-derived', !v);
+        onChange(v.toLowerCase());
+        updateThemeHints();
+      };
+      picker.addEventListener('input', () => { input.value = picker.value; sync(picker.value); });
+      input.addEventListener('input', () => sync(input.value.trim()));
+      row.append(picker, input);
+    } else if (field.type === 'image') {
+      const current = (pendingReset ? info.value : fieldValue(field)) || '';
+      const preview = el('img', { class: 'st-logo-preview' + (current ? '' : ' hidden'), src: current || undefined, alt: '' });
+      input = el('input', { type: 'file', id, accept: 'image/svg+xml,image/png,image/jpeg,image/webp' });
+      const remove = el('button', { type: 'button', class: 'st-btn' + (current ? '' : ' hidden'), text: 'Remove' });
+      input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) return;
+        if (file.size > 256 * 1024) { setMessage(`${field.label} must be 256 KB or smaller`, 'error'); input.value = ''; return; }
+        const reader = new FileReader();
+        reader.onload = () => {
+          preview.src = reader.result;
+          preview.classList.remove('hidden');
+          remove.classList.remove('hidden');
+          onChange(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+      remove.addEventListener('click', () => {
+        preview.classList.add('hidden');
+        remove.classList.add('hidden');
+        input.value = '';
+        onChange('');
+      });
+      row.append(preview, input, remove);
     } else if (field.type === 'list') {
       const current = pendingReset ? info.value : fieldValue(field);
       input = el('input', { type: 'text', id, value: (current || []).join(', ') });
@@ -182,7 +231,7 @@
     if (field.help) control.append(el('div', { class: 'st-help', text: field.help }));
     control.append(meta);
 
-    const wrapper = el('div', { class: 'st-field', 'data-key': field.key },
+    const wrapper = el('div', { class: 'st-field', 'data-key': field.key, 'data-theme-only': field.theme },
       el('label', { for: id, text: field.label }), control);
     return wrapper;
   }
@@ -204,11 +253,51 @@
     }
     card.append(...fields.map(renderField));
     if (result) card.append(result);
+    if (section.id === 'appearance') card.append(el('div', { class: 'st-test-result', id: 'st-theme-hint' }));
     return card;
+  }
+
+  // ── appearance hints ─────────────────────────────────────────────────────────────────
+  // Same maths as floorbit/theme.py: warn when the accent is hard to see on the background.
+  function luminance(hex) {
+    const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function contrast(a, b) {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  function currentValue(key) {
+    if (key in changes) return changes[key] === null ? state.values[key].value : changes[key];
+    return state.values[key].value;
+  }
+  function updateThemeHints() {
+    const custom = currentValue('theme.preset') === 'custom';
+    document.querySelectorAll('[data-theme-only="custom"]').forEach(f => f.classList.toggle('st-muted', !custom));
+    const hint = document.getElementById('st-theme-hint');
+    if (!hint) return;
+    const hex = /^#[0-9a-f]{6}$/i;
+    const accent = currentValue('theme.accent');
+    const bg = currentValue('theme.background') || '#0b0b0f';
+    if (!custom) {
+      hint.className = 'st-test-result';
+      hint.textContent = 'The colours below apply when Theme is Custom.';
+    } else if (hex.test(accent) && hex.test(bg)) {
+      const ratio = contrast(accent, bg);
+      const ok = ratio >= 3;
+      hint.className = 'st-test-result ' + (ok ? 'ok' : 'fail');
+      hint.textContent = (ok ? '✓ ' : '! ') + `Accent on background: ${ratio.toFixed(1)}:1` +
+        (ok ? '' : '. Below 3:1, buttons and focus rings will be hard to see.');
+    } else {
+      hint.className = 'st-test-result';
+      hint.textContent = '';
+    }
   }
 
   function rerender() {
     sectionsEl.replaceChildren(...state.sections.map(renderSection));
+    updateThemeHints();
     refreshSaveBar();
   }
 
@@ -242,10 +331,14 @@
     saveBtn.disabled = true;
     setMessage('Saving…');
     try {
+      const savedKeys = Object.keys(changes);
       state = await api('PUT', '/api/settings', { ...changes });
       for (const k of Object.keys(changes)) delete changes[k];
       render();
-      setMessage('Saved. Changes apply immediately.', 'ok');
+      const themeChanged = savedKeys.some(k => k.startsWith('theme.'));
+      setMessage(themeChanged ? 'Saved. Reloading to show the new theme…' : 'Saved. Changes apply immediately.', 'ok');
+      // The theme is rendered into the page by the server, so show it by reloading.
+      if (themeChanged) setTimeout(() => location.reload(), 600);
     } catch (err) {
       setMessage(err.message, 'error');
       saveBtn.disabled = false;

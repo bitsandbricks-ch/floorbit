@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" {{ theme.html_attrs if theme is defined }}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Seat check-in · Floorbit</title>
+  {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <style>
     :root {
-      --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
-      --muted: #8b949e; --accent: #f0883e; --ok: #3fb950; --err: #f85149;
+      --bg: var(--color-ink); --panel: var(--color-surface); --border: var(--color-line);
+      --text: var(--color-fg); --muted: var(--color-muted); --accent: var(--color-bit);
+      --ok: var(--color-up); --err: var(--color-down); --row: var(--color-raised);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
       background: var(--bg); color: var(--text);
-      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 15px/1.5 var(--font-sans);
     }
     .card {
       width: 100%; max-width: 380px; background: var(--panel);
@@ -30,7 +32,7 @@
     input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
     button {
       width: 100%; margin-top: 20px; padding: 11px; font-size: 15px; font-weight: 600;
-      color: #0d1117; background: var(--accent); border: 0; border-radius: 6px; cursor: pointer;
+      color: var(--color-on-bit); background: var(--accent); border: 0; border-radius: 6px; cursor: pointer;
     }
     button:disabled { opacity: .6; cursor: default; }
     .msg { margin-top: 16px; font-size: 14px; min-height: 1.5em; }

@@ -11,7 +11,8 @@ Add them to the URL, for example `/kiosk?title=LAN%20Party&refresh=10`.
 
 | Option    | Default      | What it does |
 |-----------|--------------|--------------|
-| `title`   | `Floor plan` | Heading in the top bar. |
+| `title`   | event name, else `Floor plan` | Heading in the top bar. The event name is set under Settings > Appearance. |
+| `theme`   | `kiosk`      | Theme preset for this screen, remembered by the browser ([docs/themes.md](docs/themes.md)). |
 | `refresh` | `15`         | Seconds between status polls when live updates are off (5 to 300). |
 | `labels`  | `1`          | `0` hides switch names on the map. |
 | `reload`  | `360`        | Reload the whole page every N minutes to pick up a new deployment (`0` = never). It only reloads when the server answers. |

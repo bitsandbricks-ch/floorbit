@@ -5,8 +5,11 @@ from the settings page always wins; otherwise the environment variable is used,
 and finally a built-in default. Secrets (API tokens) are write-only: the API
 reports whether they are set and where they come from, never their value.
 """
+import base64
+import binascii
 import json
 import os
+import re
 import threading
 
 import requests
@@ -34,7 +37,20 @@ SECTIONS = [
      'description': 'How long LibreNMS lookups are kept in Redis before they are fetched again.'},
     {'id': 'display',  'title': 'Display defaults',
      'description': 'Defaults for switches that have no per-device setting of their own.'},
+    {'id': 'appearance', 'title': 'Appearance',
+     'description': 'The look of every page. A screen can pick its own preset with ?theme= '
+                    '(for example /kiosk?theme=kiosk); ?theme=default goes back to this one.'},
 ]
+
+THEME_PRESETS = [
+    {'value': 'floorbit', 'label': 'Floorbit'},
+    {'value': 'ops',      'label': 'Ops desk (dense, cyan accent)'},
+    {'value': 'kiosk',    'label': 'Kiosk (big screen, dark)'},
+    {'value': 'classic',  'label': 'Classic (the old orange look, dark)'},
+    {'value': 'custom',   'label': 'Custom (your event colours below)'},
+]
+LOGO_MAX_BYTES = 256 * 1024
+LOGO_TYPES = ('image/svg+xml', 'image/png', 'image/jpeg', 'image/webp')
 
 # key, section, label, type, env var, default, help
 FIELDS = [
@@ -71,6 +87,26 @@ FIELDS = [
          env=None, default=False),
     dict(key='display.exclude_heatmap', section='display', label='Exclude switches from heatmap', type='bool',
          env=None, default=False),
+
+    dict(key='theme.preset', section='appearance', label='Theme', type='choice',
+         options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),
+    dict(key='theme.name', section='appearance', label='Event name', type='text',
+         env='FLOORBIT_EVENT_NAME', default='', placeholder='LAN Party 2026',
+         help='Shown in the top bar and as the kiosk heading. Empty shows the Floorbit logo.'),
+    dict(key='theme.logo', section='appearance', label='Event logo', type='image',
+         env=None, default='',
+         help='SVG, PNG, JPEG or WebP up to 256 KB. Replaces the Floorbit logo in the top bar; '
+              'the powered-by footer stays.'),
+    dict(key='theme.accent', section='appearance', label='Accent colour', type='color',
+         env=None, default='', theme='custom',
+         help='Buttons, links and focus. Status colours (up, down, warning) never change.'),
+    dict(key='theme.background', section='appearance', label='Background', type='color',
+         env=None, default='', theme='custom',
+         help='A dark background gives a dark-only theme, a light one a light-only theme.'),
+    dict(key='theme.surface', section='appearance', label='Panels', type='color',
+         env=None, default='', theme='custom', help='Empty: a shade of the background.'),
+    dict(key='theme.text', section='appearance', label='Text', type='color',
+         env=None, default='', theme='custom', help='Empty: near white or near black, by background.'),
 ]
 FIELDS_BY_KEY = {f['key']: f for f in FIELDS}
 
@@ -96,11 +132,34 @@ def _coerce(field, raw):
             raise SettingsError(f"{field['label']} must be between {lo} and {hi}")
         return val
     val = '' if raw is None else str(raw).strip()
+    if t == 'choice':
+        options = [o['value'] for o in field['options']]
+        if val not in options:
+            raise SettingsError(f"{field['label']} must be one of: {', '.join(options)}")
+    if t == 'color':
+        val = val.lower()
+        if val and not re.fullmatch(r'#[0-9a-f]{6}', val):
+            raise SettingsError(f"{field['label']} must be a colour like #2ee59d")
+    if t == 'image' and val:
+        _check_image(field, val)
     if t == 'url':
         val = val.rstrip('/')
         if val and not (val.startswith('http://') or val.startswith('https://')):
             raise SettingsError(f"{field['label']} must start with http:// or https://")
     return val
+
+
+def _check_image(field, data_url):
+    """A logo is stored inline as a data: URL, so backups carry it and offline LANs need no host."""
+    m = re.fullmatch(r'data:([\w/+.-]+);base64,([A-Za-z0-9+/=\s]+)', data_url)
+    if not m or m.group(1) not in LOGO_TYPES:
+        raise SettingsError(f"{field['label']} must be an SVG, PNG, JPEG or WebP image")
+    try:
+        size = len(base64.b64decode(m.group(2), validate=False))
+    except (binascii.Error, ValueError):
+        raise SettingsError(f"{field['label']} is not a valid image") from None
+    if size > LOGO_MAX_BYTES:
+        raise SettingsError(f"{field['label']} must be {LOGO_MAX_BYTES // 1024} KB or smaller")
 
 
 # ── Store ──────────────────────────────────────────────────────────────────────

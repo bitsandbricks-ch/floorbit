@@ -12,6 +12,8 @@ different features touch different files.
 2. **`floorbit/settings.py`** (the `/settings` page and its store) and **`floorbit/runtime.py`**:
    the values the app runs with right now (`rt`), refreshed whenever settings are saved.
 3. **`floorbit/cache.py`**: the Redis connection and the cache of LibreNMS answers.
+   **`floorbit/theme.py`**: the preset and colours every page renders with, `?theme=` per
+   screen and the event logo at `/brand/logo` (see [themes.md](themes.md)).
 4. **`floorbit/blueprints/`**: one blueprint per area, listed in `blueprints/__init__.py`:
 
    | Module | Routes |

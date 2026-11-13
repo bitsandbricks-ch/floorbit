@@ -30,7 +30,7 @@
 .us-reset input { flex: 1; }
 .us-add input:focus, .us-reset input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .st-btn-danger { color: var(--danger); }
-.st-btn-danger.armed { background: var(--danger); border-color: var(--danger); color: #fff; }
+.st-btn-danger.armed { background: var(--danger); border-color: var(--danger); color: var(--color-ink); }
 
 @media (max-width: 600px) {
   .us-row { grid-template-columns: 1fr 110px; }

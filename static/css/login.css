@@ -1,21 +1,8 @@
-/* Sign-in page. Same tokens as settings.css, self-contained. */
-:root {
-  --bg-primary:   #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary:  #21262d;
-  --border:       #30363d;
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --accent:       #ea6c0a;
-  --accent-hover: #f97316;
-  --danger:       #f85149;
-  --radius-sm:    4px;
-  --radius:       8px;
-}
+/* Sign-in page. Colours come from static/css/brand/; the layout is self-contained. */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.5;
   background: var(--bg-primary);
@@ -34,14 +21,13 @@ body {
   border-radius: var(--radius);
   padding: 24px;
 }
-.lg-brand { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-weight: 600; }
-.lg-icon { width: 20px; height: 20px; color: var(--accent); }
+.lg-brand { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-weight: 600; --fb-brand-h: 26px; }
 .lg-title { font-size: 20px; font-weight: 600; margin-top: 18px; }
 .lg-sub { color: var(--text-secondary); margin-bottom: 18px; }
 
 .lg-error {
-  border: 1px solid rgba(248, 81, 73, 0.4);
-  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
   border-radius: var(--radius-sm);
   padding: 8px 10px; margin-bottom: 14px;
@@ -61,7 +47,7 @@ body {
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   font: inherit; font-size: 14px;
 }
-.lg-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234, 108, 10, 0.2); }
+.lg-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
 
 .lg-btn {
   display: flex; align-items: center; justify-content: center;
@@ -71,7 +57,7 @@ body {
   font: inherit; font-weight: 600; text-decoration: none; cursor: pointer;
 }
 .lg-btn:hover { border-color: var(--text-secondary); }
-.lg-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; margin-top: 4px; }
+.lg-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--color-on-bit); margin-top: 4px; }
 .lg-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .lg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
