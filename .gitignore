@@ -44,3 +44,16 @@ env/
 data.json
 static/uploads/
 *.log
+screenshots/
+
+# Tools
+.pytest_cache/
+.ruff_cache/
+.cache/
+report.xml
+gl-code-quality-report.json
+
+# Secrets and agents' local state
+*.pem
+*.key
+.claude/settings.local.json

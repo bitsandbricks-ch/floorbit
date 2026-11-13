@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary
+# Not part of a source archive (git archive, GitLab's release archives)
+.gitlab export-ignore
+.gitattributes export-ignore
