@@ -53,7 +53,7 @@ class JsonFileSource(SeatSource):
         return config.get('SEAT_SOURCE_JSON_PATH', 'seats.json')
 
     def fetch(self):
-        with open(self.path(), 'r') as f:
+        with open(self.path()) as f:
             data = json.load(f)
         return data.get('seats', data) if isinstance(data, dict) else {}
 
@@ -127,7 +127,7 @@ def load(max_age=None):
             continue
         try:
             data = source.fetch() or {}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001  # a failing source is reported, the rest still load
             errors[name] = str(exc)
             print(f"[integrations] seat source {name} failed: {exc}")
             continue

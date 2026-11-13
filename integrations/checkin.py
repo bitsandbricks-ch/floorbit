@@ -47,7 +47,7 @@ def _path():
 def load_all():
     with _lock:
         try:
-            with open(_path(), 'r') as f:
+            with open(_path()) as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             return {}
@@ -269,7 +269,7 @@ class CheckinRefresher:
                 try:
                     refresh_once()
                     self.last_run, self.last_error = time.time(), None
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001  # keep the refresh thread alive
                     self.last_error = str(exc)
                     print(f"[integrations] check-in refresh failed: {exc}")
             time.sleep(interval)

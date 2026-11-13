@@ -13,3 +13,9 @@ All notable changes to this project are listed here. The format follows
 - Repo conventions from the BitsAndBricks repo template: README, AGPL-3.0 licence, AGENTS.md,
   CONTRIBUTING.md, SECURITY.md, `.mason.toml`, `.editorconfig`, CODEOWNERS, merge request and issue
   templates.
+
+### Changed
+
+- ruff checks a wider rule set (pycodestyle, import order, pyupgrade, bugbear, blind except,
+  comprehensions, simplify, ruff-specific), and the code is cleaned up to pass it. Redis errors are
+  now caught as `redis.RedisError` instead of any `Exception`.
