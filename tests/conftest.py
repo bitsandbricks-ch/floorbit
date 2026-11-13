@@ -68,13 +68,13 @@ def app_module(tmp_path, monkeypatch):
 
     import app
 
-    data_file = str(tmp_path / "data.json")
-    monkeypatch.setattr(app, "DATA_FILE", data_file)
+    monkeypatch.setattr(app, "DATA_FILE", str(tmp_path / "data.json"))
     monkeypatch.setattr(app, "redis_client", None)
     monkeypatch.setattr(app, "NETBOX_ENABLED", False)
     monkeypatch.setattr(app, "LIBRENMS_ENABLED", False)
     auth = app.app.extensions["auth"]
-    monkeypatch.setattr(auth.users, "path", data_file)
+    # Accounts share the throwaway data file with the floor plan.
+    monkeypatch.setattr(auth.users, "path", app.DATA_FILE)
     monkeypatch.setattr(auth, "enabled", True)
     monkeypatch.setattr(auth, "public_read", True)
     monkeypatch.setattr(auth, "_failures", {})

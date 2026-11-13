@@ -341,3 +341,27 @@ def test_first_account_from_env_is_admin(auth, monkeypatch):
     monkeypatch.setenv("AUTH_ADMIN_PASSWORD", TEST_PASSWORD)
     auth._bootstrap_admin()
     assert auth.users.get("boss")["role"] == "admin"
+
+
+# ── Routes from the integrations, check-in history and kiosk ──────────────────
+
+def test_check_in_records_need_an_editor(anon_client, signed_in_as):
+    # User, IP and MAC per seat: personal data, so never public, not even as a read.
+    viewer = signed_in_as("viewer")
+    for path in ("/api/checkins", "/api/checkins/history", "/api/checkins/history.csv", "/checkins/history"):
+        assert anon_client.get(path).status_code in (302, 401), path
+        assert viewer.get(path).status_code == 403, path
+    editor = signed_in_as("editor")
+    assert editor.get("/api/checkins/history").status_code not in (401, 403)
+
+
+def test_integration_controls_need_an_admin(anon_client, signed_in_as):
+    assert anon_client.get("/api/integrations").status_code == 401
+    assert signed_in_as("editor").post("/api/integrations/monitor/poll").status_code == 403
+    assert signed_in_as("admin").get("/api/integrations").status_code not in (401, 403)
+
+
+def test_kiosk_and_live_updates_stay_open(app_module, auth):
+    for path in ("/kiosk", "/api/events", "/api/status/snapshot", "/api/checkin/me"):
+        with app_module.app.test_request_context(path):
+            assert auth.is_public(), path

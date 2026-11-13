@@ -21,9 +21,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get("APP_URL", "http://127.0.0.1:5000").rstrip("/")
-USER = os.environ.get("SCREENSHOT_USER") or os.environ.get("AUTH_ADMIN_USER", "")
-PASSWORD = os.environ.get("SCREENSHOT_PASSWORD") or os.environ.get("AUTH_ADMIN_PASSWORD", "")
-PAGES = {"floorplan": "/", "settings": "/settings", "users": "/settings/users"}
+PAGES = {"floorplan": "/", "settings": "/settings"}
 DEMO_SWITCHES = [
     {"name": "sw-demo-01", "x": 25, "y": 30},
     {"name": "sw-demo-02", "x": 60, "y": 30},
@@ -32,6 +30,11 @@ DEMO_BLOCKS = [
     {"name": "A", "x": 15, "y": 45, "cols": 10, "rows": 2},
     {"name": "B", "x": 50, "y": 45, "cols": 10, "rows": 2},
 ]
+
+# Signs in with this account first (see the module docstring).
+USER = os.environ.get("SCREENSHOT_USER") or os.environ.get("AUTH_ADMIN_USER", "")
+PASSWORD = os.environ.get("SCREENSHOT_PASSWORD") or os.environ.get("AUTH_ADMIN_PASSWORD", "")
+PAGES["users"] = "/settings/users"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 

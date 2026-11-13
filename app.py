@@ -8,7 +8,6 @@ import redis
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 
-from auth import init_auth
 from settings_store import SettingsStore, create_settings_blueprint
 
 load_dotenv()
@@ -20,6 +19,8 @@ DATA_FILE = 'data.json'
 
 # Sign-in (see docs/auth.md). Registered first, so its check runs before the
 # other before_request hooks below and a refused request never touches Redis.
+from auth import init_auth  # noqa: E402
+
 init_auth(app, DATA_FILE)
 
 # ── Service config ─────────────────────────────────────────────────────────────

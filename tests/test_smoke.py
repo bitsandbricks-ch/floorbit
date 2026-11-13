@@ -57,6 +57,6 @@ def test_seat_block_lifecycle(client):
 
 
 def test_settings_round_trip(client):
-    resp = client.put("/api/settings", json={"display.hide_labels": True})
+    resp = client.put("/api/settings", json={"hide_labels": True})
     assert resp.status_code == 200
-    assert client.get("/api/settings").get_json()["values"]["display.hide_labels"]["value"] is True
+    assert client.get("/api/settings").get_json()["hide_labels"] is True

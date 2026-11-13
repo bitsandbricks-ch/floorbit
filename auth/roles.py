@@ -23,7 +23,9 @@ DEFAULT_ROLE = 'editor'
 LEGACY_ROLE = 'admin'
 
 # Paths below these need an admin, whatever the method.
-ADMIN_PATHS = ('/settings', '/api/settings', '/api/users')
+ADMIN_PATHS = ('/settings', '/api/settings', '/api/users', '/api/integrations')
+# Reads with personal data (who sat where, IPs, MACs): editors and up, never public.
+EDITOR_PATHS = ('/api/checkins', '/checkins')
 
 
 class RoleError(ValueError):
@@ -51,6 +53,6 @@ def needed_for(path, method, safe_methods):
     """The lowest role that may make this request."""
     if any(path == p or path.startswith(p + '/') for p in ADMIN_PATHS):
         return 'admin'
-    if method not in safe_methods:
+    if method not in safe_methods or any(path == p or path.startswith(p + '/') for p in EDITOR_PATHS):
         return 'editor'
     return 'viewer'

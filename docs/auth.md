@@ -9,7 +9,8 @@ The editor and the settings page are behind a sign-in. Code: [`auth/`](../auth/)
 | `/` (floor plan editor) | redirected to `/login` | read-only | yes | yes |
 | `GET /api/...` (switches, seats, status, live events) | yes, while `AUTH_PUBLIC_READ` is on | yes | yes | yes |
 | Changes (`POST`, `PUT`, `PATCH`, `DELETE`) | 401 | 403 | yes | yes |
-| `/settings`, `/settings/users`, `/api/settings`, `/api/users` | 401 / login | 403 | 403 | yes |
+| `/api/checkins...`, `/checkins/history` (user, IP, MAC per seat) | 401 / login | 403 | yes | yes |
+| `/settings`, `/settings/users`, `/api/settings`, `/api/users`, `/api/integrations...` | 401 / login | 403 | 403 | yes |
 | `/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | yes | yes | yes |
 
 Roles are in `auth/roles.py`. Each includes the ones below it. Accounts created before roles existed
