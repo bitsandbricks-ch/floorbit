@@ -16,11 +16,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py settings_store.py seat_traffic.py ./
+COPY app.py settings_store.py ./
+COPY auth/ ./auth/
 # COPY data.json .
 COPY static/ ./static/
 COPY templates/ ./templates/
 COPY integrations/ ./integrations/
+COPY seat_traffic.py ./
 
 # Create necessary directories
 RUN mkdir -p static/uploads

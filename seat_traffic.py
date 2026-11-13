@@ -21,7 +21,7 @@ def seat_port_usage(seat_info, resolve):
 
     try:
         result = resolve(ip_address)
-    except Exception as exc:  # one bad seat must not fail the whole map
+    except Exception as exc:  # noqa: BLE001 - one bad seat must not fail the whole map
         return {'username': username, 'ip_address': ip_address, 'resolved': False,
                 'port_usage': None, 'error': f'Lookup failed: {exc}'}
 
