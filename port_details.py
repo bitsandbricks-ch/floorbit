@@ -10,7 +10,8 @@ import requests
 # Columns the app has always asked for; every LibreNMS version has them.
 BASE_COLUMNS = ['port_id', 'device_id', 'ifName', 'ifOperStatus', 'ifInOctets_rate', 'ifOutOctets_rate', 'ifSpeed']
 # The extra detail. If LibreNMS rejects one of these, fetch_port() falls back to BASE_COLUMNS.
-DETAIL_COLUMNS = BASE_COLUMNS + [
+DETAIL_COLUMNS = [
+    *BASE_COLUMNS,
     'ifAlias', 'ifAdminStatus', 'ifDuplex', 'ifHighSpeed',
     'ifInErrors', 'ifOutErrors', 'ifInErrors_rate', 'ifOutErrors_rate', 'poll_time',
 ]
