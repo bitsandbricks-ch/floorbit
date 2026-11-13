@@ -30,10 +30,10 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           image="ghcr.io/${REPO,,}"
-          tags="-t $image:${GITHUB_SHA::12}"
-          if [ "$GITHUB_REF" = refs/heads/master ]; then tags="$tags -t $image:latest"; fi
-          if [ "$GITHUB_REF_TYPE" = tag ]; then tags="$tags -t $image:${GITHUB_REF_NAME#v}"; fi
-          docker build --label "org.opencontainers.image.source=https://github.com/$REPO" $tags .
+          tags=(-t "$image:${GITHUB_SHA::12}")
+          if [ "$GITHUB_REF" = refs/heads/master ]; then tags+=(-t "$image:latest"); fi
+          if [ "$GITHUB_REF_TYPE" = tag ]; then tags+=(-t "$image:${GITHUB_REF_NAME#v}"); fi
+          docker build --label "org.opencontainers.image.source=https://github.com/$REPO" "${tags[@]}" .
           echo "IMAGE=$image" >> "$GITHUB_ENV"
       - if: github.event_name != 'pull_request'
         env:

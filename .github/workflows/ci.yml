@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      - run: for f in $(find static -name '*.js'); do echo "$f"; node --check "$f"; done
+      - run: find static -name '*.js' -print -exec node --check {} \;
 
   pytest:
     runs-on: ubuntu-24.04
