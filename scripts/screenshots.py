@@ -111,7 +111,8 @@ def main():
                     page.fill("input[name=username]", USER)
                     page.fill("input[name=password]", PASSWORD)
                     page.click("button[type=submit]")
-                    page.wait_for_load_state("networkidle")
+                    # Signing in lands on the editor, whose live-updates stream never goes idle.
+                    page.wait_for_load_state("load")
             for name, path in pages.items():
                 # "load", not "networkidle": the live-updates stream (/api/events) never goes idle.
                 page.goto(BASE + path, wait_until="load")
