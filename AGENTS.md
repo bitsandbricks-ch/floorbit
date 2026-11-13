@@ -13,6 +13,7 @@ users: [README.md](README.md).
 | Path | What lives there |
 | --- | --- |
 | `app.py` | The Flask app: pages, JSON API, NetBox and LibreNMS clients, Redis cache. |
+| `auth/` | Sign-in: accounts in `data.json`, the request guard, login providers. See `docs/auth.md`. |
 | `templates/` | Jinja pages. |
 | `static/js/`, `static/css/` | The browser app (plain JavaScript and CSS, no build step). |
 | `seats.json` | Seat number to IP and username. |

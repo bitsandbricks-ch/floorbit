@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app.py settings_store.py ./
+COPY auth/ ./auth/
 # COPY data.json .
 COPY static/ ./static/
 COPY templates/ ./templates/

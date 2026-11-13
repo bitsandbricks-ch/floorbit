@@ -2,21 +2,27 @@
 
     python scripts/screenshots.py [out-dir]        # APP_URL defaults to http://127.0.0.1:5000
 
-The `screenshots` CI job starts the app with an empty data file, and this script places a few
-demo switches and seat blocks (example names only) before it takes the pictures.
+The `screenshots` CI job starts the app with an empty data file and a demo account
+(AUTH_ADMIN_USER / AUTH_ADMIN_PASSWORD), and this script signs in with it, places a few
+demo switches and seat blocks (example names only) and takes the pictures, the sign-in
+page included.
 """
 
+import http.cookiejar
 import json
 import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get("APP_URL", "http://127.0.0.1:5000").rstrip("/")
+USER = os.environ.get("SCREENSHOT_USER") or os.environ.get("AUTH_ADMIN_USER", "")
+PASSWORD = os.environ.get("SCREENSHOT_PASSWORD") or os.environ.get("AUTH_ADMIN_PASSWORD", "")
 PAGES = {"floorplan": "/", "settings": "/settings"}
 DEMO_SWITCHES = [
     {"name": "sw-demo-01", "x": 25, "y": 30},
@@ -27,12 +33,24 @@ DEMO_BLOCKS = [
     {"name": "B", "x": 50, "y": 45, "cols": 10, "rows": 2},
 ]
 
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
 
 def call(method, path, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(BASE + path, data=data, method=method, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
+    with opener.open(req, timeout=10) as resp:
         return resp.status, json.loads(resp.read() or b"null")
+
+
+def sign_in():
+    if not USER:
+        return
+    form = urllib.parse.urlencode({"username": USER, "password": PASSWORD}).encode()
+    try:
+        opener.open(urllib.request.Request(BASE + "/login", data=form, method="POST"), timeout=10)
+    except urllib.error.HTTPError as exc:
+        sys.exit(f"Signing in as {USER} failed: HTTP {exc.code}")
 
 
 def wait_for_app(seconds=60):
@@ -69,6 +87,7 @@ def main():
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "screenshots")
     out.mkdir(parents=True, exist_ok=True)
     wait_for_app()
+    sign_in()
     seed()
     pages = {name: path for name, path in PAGES.items() if page_exists(path)}
     with sync_playwright() as pw:
@@ -80,6 +99,16 @@ def main():
         for view, options in views.items():
             context = browser.new_context(**options, color_scheme="dark")
             page = context.new_page()
+            page.goto(BASE + "/login", wait_until="networkidle")
+            if page.url.split("?")[0].endswith("/login"):
+                target = out / f"login-{view}.png"
+                page.screenshot(path=str(target))
+                print(target)
+                if USER:
+                    page.fill("input[name=username]", USER)
+                    page.fill("input[name=password]", PASSWORD)
+                    page.click("button[type=submit]")
+                    page.wait_for_load_state("networkidle")
             for name, path in pages.items():
                 page.goto(BASE + path, wait_until="networkidle")
                 page.wait_for_timeout(500)  # let the canvas settle after the last fetch

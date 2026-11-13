@@ -8,6 +8,7 @@ import redis
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 
+from auth import init_auth
 from settings_store import SettingsStore, create_settings_blueprint
 
 load_dotenv()
@@ -16,6 +17,10 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 
 DATA_FILE = 'data.json'
+
+# Sign-in (see docs/auth.md). Registered first, so its check runs before the
+# other before_request hooks below and a refused request never touches Redis.
+init_auth(app, DATA_FILE)
 
 # ── Service config ─────────────────────────────────────────────────────────────
 # NetBox, LibreNMS and cache settings are edited on /settings, see

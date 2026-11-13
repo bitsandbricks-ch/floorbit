@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Building View</title>
   <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
 <body>
   <div class="app">
@@ -55,6 +56,15 @@
           </svg>
           Refresh
         </button>
+        {% if current_user %}
+        <form class="user-menu" method="post" action="/logout">
+          <span class="user-menu-name" title="Signed in as {{ current_user.username }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            {{ current_user.display_name }}
+          </span>
+          <button type="submit" class="btn btn-ghost">Sign out</button>
+        </form>
+        {% endif %}
         <a class="btn btn-ghost btn-icon" href="/settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/>
@@ -600,6 +610,7 @@
   <!-- ── Toasts ─────────────────────────────────────────────────────────── -->
   <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
+  <script src="/static/js/auth.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>
