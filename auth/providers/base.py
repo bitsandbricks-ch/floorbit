@@ -52,6 +52,7 @@ class RedirectProvider(AuthProvider):
     # A first login from someone without a linked account creates one. Keep it
     # off unless the provider itself limits who can sign in (e.g. a guild role).
     auto_create_users = False
+    default_role = 'viewer'          # role of an account created that way
 
     def start(self, callback_url, state):
         """URL to send the browser to. ``state`` must come back on the callback."""
