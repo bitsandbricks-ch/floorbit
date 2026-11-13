@@ -65,7 +65,7 @@ poll go in one message (up to 10 embeds), so a row losing power is one message.
 | `DISCORD_ALERTS_ENABLED` | `true` | |
 | `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime |
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
-| `DISCORD_USERNAME` | `LAL Floor Plan` | |
+| `DISCORD_USERNAME` | `Floorbit` | |
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
 | `PUBLIC_URL` | | link in the alert |
 

@@ -13,7 +13,8 @@ fixes and code.
 
 1. Make a branch from `master` and keep one topic per pull request.
 2. Run the checks from the README's [Develop](README.md#develop) section before you push.
-3. Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for anything users notice.
+3. Add a `changelog.d/<topic>.md` fragment for anything users notice (see
+   [changelog.d/README.md](changelog.d/README.md)); don't edit `CHANGELOG.md` directly.
 4. Open the pull request as a **draft** and fill in the template. Every pull request has
    **screenshots** (the CI `screenshots` job takes them). CI must be green before it can be
    merged.

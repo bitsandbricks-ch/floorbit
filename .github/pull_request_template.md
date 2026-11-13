@@ -18,5 +18,5 @@
 - [ ] CI is green
 - [ ] Screenshots are in the description
 - [ ] Docs and README updated for user-facing or setup changes
-- [ ] `CHANGELOG.md` has an entry under `[Unreleased]` (if this goes into a release)
+- [ ] A `changelog.d/` fragment describes the change (if users notice it)
 - [ ] No secrets, tokens or personal data in code, screenshots or logs

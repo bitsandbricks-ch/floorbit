@@ -95,6 +95,14 @@ jobs:
           path: screenshots/
           retention-days: 30
 
+  changelog:
+    # Entries live in changelog.d/ fragments (one per PR); this checks they parse.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 scripts/changelog.py check
+
   workflows:
     # The workflow files themselves: syntax, and expressions that would let a PR title
     # or branch name run as shell (actionlint with its shellcheck pass).
@@ -109,7 +117,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [ruff, javascript, pytest, screenshots, workflows]
+    needs: [ruff, javascript, pytest, screenshots, changelog, workflows]
     runs-on: ubuntu-24.04
     steps:
       - env:
