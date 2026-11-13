@@ -751,32 +751,12 @@ def fetch_librenms_device_port_stats_by_interface(hostname, interface):
         port = port_details.fetch_port(LIBRENMS_URL, headers, device_id, interface, verify=LIBRENMS_VERIFY_SSL)
         if port:
             result = port_details.summarize_port(port, LIBRENMS_URL, device.get('device_id'))
-
-
-            # result['total_ports'] = len(ports)
-            # result['up_ports']    = sum(1 for p in ports if p.get('ifOperStatus') == 'up')
-
-            # total_traffic_bps  = 0.0
-            # total_capacity_bps = 0.0
-            # for p in ports:
-            #     # if p.get('ifOperStatus') != 'up':
-            #     #     continue
-            #     in_rate  = float(p.get('ifInOctets_rate')  or 0)
-            #     out_rate = float(p.get('ifOutOctets_rate') or 0)
-            #     speed    = float(p.get('ifSpeed')          or 0)
-            #     total_traffic_bps  += (in_rate + out_rate) * 8
-            #     if speed > 0:
-            #         total_capacity_bps += speed
-
-            # result['total_traffic_bps'] = round(total_traffic_bps)
-            # if total_capacity_bps > 0:
-            #     result['traffic_util'] = round(
-            #         min(1.0, total_traffic_bps / total_capacity_bps), 4
-            #     )
     except requests.RequestException:
         pass
 
     return result
+
+
 # ── Pages ──────────────────────────────────────────────────────────────────────
 
 @app.route('/')

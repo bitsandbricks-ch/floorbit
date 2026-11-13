@@ -233,11 +233,17 @@ const blockSeatDdPort           = $('block-seat-dd-port');
 const blockSeatDdVlan           = $('block-seat-dd-vlan');
 const blockSeatResolutionStatus = $('block-seat-resolution-status');
 const blockSeatDetailClose      = $('block-seat-detail-close');
-const blockSeatDdPortStatus     = $('block-seat-dd-port-status');
-const blockSeatDdTotalTraffic   = $('block-seat-dd-total-traffic');
 const blockSeatDdDownload       = $('block-seat-dd-download');
 const blockSeatDdUpload         = $('block-seat-dd-upload');
 const blockSeatDdPortSpeed      = $('block-seat-dd-port-speed');
+const seatPortState             = $('seat-port-state');
+const seatPortDesc              = $('seat-port-desc');
+const seatPortErrors            = $('seat-port-errors');
+const barSeatPort               = $('bar-seat-port');
+const seatPortLoad              = $('seat-port-load');
+const seatPortRefresh           = $('seat-port-refresh');
+const seatPortLibrenms          = $('seat-port-librenms');
+const seatPortPolled            = $('seat-port-polled');
 
 // Top bar stats
 const heroTotal    = $('hero-total');
@@ -1531,35 +1537,7 @@ function deselectAll() {
 }
 
 // ── Seat inspector ───────────────────────────────────────────────────────────────────
-let currentBlockSeatNumber = null;
-let currentBlockSeatResolution = null;
-
-function resetSeatNetworkFields() {
-  for (const el of [blockSeatDdMac, blockSeatDdSwitch, blockSeatDdPort, blockSeatDdVlan,
-                    blockSeatDdPortStatus, blockSeatDdTotalTraffic, blockSeatDdDownload,
-                    blockSeatDdUpload, blockSeatDdPortSpeed]) {
-    el.textContent = '—';
-    el.style.color = '';
-  }
-}
-function setResolution(text, tone) {
-  blockSeatResolutionStatus.textContent = text;
-  blockSeatResolutionStatus.style.color = tone ? `var(--${tone})` : '';
-}
-
-async function showBlockSeatDetail(seatNumber) {
-  deselectAll();
-  selectedType = 'seat';
-  currentBlockSeatNumber = seatNumber;
-  currentBlockSeatResolution = null;
-  markSelection();
-
-  const seatData = seatMappings[seatNumber];
-  blockSeatDetailNumber.textContent = seatNumber;
-  blockSeatDdNumber.textContent = seatNumber;
-  blockSeatDdPosition.textContent = seatNumber;
-  resetSeatNetworkFields();
-
+PLACEHOLDER_A
   if (!seatData) {
     blockSeatUserBadge.textContent = 'Not mapped';
     blockSeatUserBadge.className = 'detail-status-badge badge-plain';
