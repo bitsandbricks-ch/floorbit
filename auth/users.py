@@ -61,7 +61,7 @@ class UserStore:
     def _read(self):
         if not os.path.exists(self.path):
             return {}
-        with open(self.path, 'r') as f:
+        with open(self.path) as f:
             return json.load(f)
 
     def _users(self):

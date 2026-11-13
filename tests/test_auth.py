@@ -3,9 +3,9 @@
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from conftest import TEST_PASSWORD, TEST_USER
 
 from auth.providers import AuthError, Identity, RedirectProvider
-from conftest import TEST_PASSWORD, TEST_USER
 
 
 @pytest.fixture
