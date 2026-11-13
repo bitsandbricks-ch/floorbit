@@ -42,6 +42,10 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - CACHE_TTL_ARP=${CACHE_TTL_ARP:-300}
       - CACHE_TTL_MAC=${CACHE_TTL_MAC:-300}
+      # Everything above except REDIS_* can also be changed on /settings;
+      # values saved there are kept in data.json and win over these.
+      - CACHE_TTL_RESOLVE=${CACHE_TTL_RESOLVE:-30}
+      - LIBRENMS_FDB_EXCLUDE=${LIBRENMS_FDB_EXCLUDE:-}
     depends_on:
       redis:
         condition: service_healthy
