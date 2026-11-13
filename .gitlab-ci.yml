@@ -87,6 +87,9 @@ screenshots:
   variables:
     REDIS_HOST: redis
     APP_URL: http://127.0.0.1:5000
+    # Throwaway demo account for this job's empty app; the script signs in with it.
+    AUTH_ADMIN_USER: demo
+    AUTH_ADMIN_PASSWORD: demo-screenshots
   script:
     - pip install --quiet -r requirements.txt playwright==1.49.0
     - python -m flask --app app run --port 5000 > flask.log 2>&1 &

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · Building View</title>
+  <link rel="stylesheet" href="/static/css/login.css" />
+</head>
+<body>
+  <main class="lg-wrap">
+    <div class="lg-card">
+      <div class="lg-brand">
+        <svg class="lg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="10" rx="2"/>
+          <line x1="6"  y1="11" x2="6"  y2="13"/>
+          <line x1="9"  y1="11" x2="9"  y2="13"/>
+          <line x1="12" y1="11" x2="12" y2="13"/>
+          <line x1="15" y1="11" x2="15" y2="13"/>
+          <line x1="18" y1="11" x2="18" y2="13"/>
+          <circle cx="19" cy="9" r="1" fill="currentColor"/>
+        </svg>
+        <span>Building View</span>
+      </div>
+      <h1 class="lg-title">Sign in</h1>
+      <p class="lg-sub">Sign in to edit the floor plan and change settings.</p>
+
+      {% if error %}
+      <p class="lg-error" role="alert">{{ error }}</p>
+      {% endif %}
+
+      {% if no_users %}
+      <p class="lg-note">
+        No accounts exist yet. Create the first one on the server with
+        <code>flask --app app users add &lt;name&gt;</code>, or set
+        <code>AUTH_ADMIN_USER</code> and <code>AUTH_ADMIN_PASSWORD</code> and restart.
+      </p>
+      {% endif %}
+
+      {% if password_login %}
+      <form class="lg-form" method="post" action="/login">
+        <input type="hidden" name="next" value="{{ next }}" />
+        <label class="lg-field">
+          <span>Username</span>
+          <input type="text" name="username" value="{{ username }}" autocomplete="username"
+                 autocapitalize="none" spellcheck="false" required {% if not username %}autofocus{% endif %} />
+        </label>
+        <label class="lg-field">
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required
+                 {% if username %}autofocus{% endif %} />
+        </label>
+        <button type="submit" class="lg-btn lg-btn-primary">Sign in</button>
+      </form>
+      {% endif %}
+
+      {% if redirect_providers %}
+      {% if password_login %}<div class="lg-divider"><span>or</span></div>{% endif %}
+      <div class="lg-providers">
+        {% for provider in redirect_providers %}
+        <a class="lg-btn" href="{{ url_for('auth.start', provider_id=provider.id, next=next) }}">Sign in with {{ provider.label }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% if checkin_url %}
+    <p class="lg-foot">Looking for your seat? <a href="{{ checkin_url }}">Check in here</a>.</p>
+    {% endif %}
+  </main>
+</body>
+</html>

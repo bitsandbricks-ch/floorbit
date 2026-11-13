@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Settings · Building View</title>
   <link rel="stylesheet" href="/static/css/settings.css" />
+  <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
 <body>
   <header class="st-header">
@@ -14,6 +15,13 @@
     </a>
     <h1>Settings</h1>
     <span class="st-header-spacer"></span>
+    {% if current_user %}
+    <a class="st-btn" href="/settings/users">Users</a>
+    <form class="user-menu" method="post" action="/logout">
+      <span class="user-menu-name" title="Signed in as {{ current_user.username }}">{{ current_user.display_name }}</span>
+      <button type="submit" class="st-btn">Sign out</button>
+    </form>
+    {% endif %}
   </header>
 
   <main class="st-main">
@@ -38,6 +46,7 @@
     </form>
   </main>
 
+  <script src="/static/js/auth.js"></script>
   <script src="/static/js/settings.js"></script>
 </body>
 </html>
