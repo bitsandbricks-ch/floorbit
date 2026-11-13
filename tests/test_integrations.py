@@ -158,3 +158,135 @@ def test_seat_sources_merge(tmp_path, monkeypatch):
                             'sources': ['fake', 'json']}
     assert seats['B-1']['username'] == 'carol'
     assert seat_sources.info()['errors'] == {'missing': 'unknown source'}
+
+
+# ── HTTP wiring ──────────────────────────────────────────────────────────────────────────
+@pytest.fixture
+def app():
+    data = {'switches': [{'id': 's1', 'name': 'sw-a1', 'placed': True}],
+            'cached_devices': [{'id': '9', 'name': 'nb-1'}], 'positions': {'9': {'x': 1, 'y': 1}},
+            'seat_blocks': [{'name': 'd', 'cols': 4, 'rows': 6}]}
+    a = Flask(__name__, template_folder=os.path.join(ROOT, 'templates'))
+
+    @a.route('/api/switches/<sid>', methods=['PUT'])
+    def put(sid):
+        return jsonify({'id': sid})
+
+    a.ext = init_integrations(a, load_data=lambda: data, start_background=False)
+    return a
+
+
+def test_integrations_endpoint(app):
+    body = app.test_client().get('/api/integrations').get_json()
+    assert set(body) >= {'live', 'monitor', 'discord', 'seat_sources', 'settings'}
+    assert body['discord']['configured'] is False
+
+
+def test_placed_switches_includes_netbox(app):
+    names = [s['name'] for s in app.ext['monitor']._list_switches()]
+    assert names == ['sw-a1', 'nb-1']
+
+
+def test_write_publishes_data_changed(app):
+    got = []
+    events.subscribe('data.changed', got.append)
+    app.test_client().put('/api/switches/s1', json={}, headers={'X-Client-Id': 'abc'})
+    assert got[0]['data']['resource'] == 'switches' and got[0]['origin'] == 'abc'
+
+
+def test_sse_stream_delivers_events(app):
+    gen = events.stream({'statuses': {}})
+    assert next(gen).startswith('retry')
+    assert 'event: hello' in next(gen)
+    threading.Timer(0.05, lambda: events.publish('switch.status', {'id': 's1', 'status': 'offline'})).start()
+    msg = next(gen)
+    assert 'event: switch.status' in msg and '"offline"' in msg
+    gen.close()
+    assert events.client_count() == 0
+
+
+def test_discord_test_endpoint_needs_webhook(app):
+    r = app.test_client().post('/api/integrations/discord/test')
+    assert r.status_code == 400
+
+
+# ── check-in ─────────────────────────────────────────────────────────────────────────
+@pytest.fixture
+def checkin_env(tmp_path, monkeypatch):
+    monkeypatch.setenv('CHECKIN_ENABLED', 'true')
+    monkeypatch.setenv('CHECKIN_FILE', str(tmp_path / 'checkins.json'))
+    arp = {'10.0.2.144': 'AA-BB-CC-00-11-22'}
+    monkeypatch.setattr(checkin, 'lookup_mac', lambda ip: checkin.normalise_mac(arp.get(ip)))
+    monkeypatch.setattr(checkin, 'lookup_ip', lambda mac: next(
+        (ip for ip, m in arp.items() if checkin.normalise_mac(m) == mac), None))
+    return arp
+
+
+def post_checkin(client, seat, user, ip):
+    return client.post('/api/checkin', json={'seat': seat, 'username': user},
+                       environ_base={'REMOTE_ADDR': ip})
+
+
+def test_checkin_disabled_by_default(app):
+    assert app.test_client().get('/checkin').status_code == 404
+    assert post_checkin(app.test_client(), 'D-1', 'x', '10.0.0.1').status_code == 404
+
+
+def test_checkin_records_ip_and_mac(app, checkin_env, monkeypatch):
+    c = app.test_client()
+    assert b'Seat check-in' in c.get('/checkin').data
+    r = post_checkin(c, 'd-22', 'Reykime', '10.0.2.144').get_json()
+    assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': True}
+    row = c.get('/api/checkins').get_json()['checkins'][0]
+    assert row['mac'] == 'aa:bb:cc:00:11:22'
+    me = c.get('/api/checkin/me', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
+    assert me['checkin']['seat'] == 'D-22'
+    # feeds the seat sources
+    monkeypatch.setenv('SEAT_SOURCES', 'checkin')
+    seats = seat_sources.load(max_age=0)
+    assert seats['D-22']['mac_address'] == 'aa:bb:cc:00:11:22'
+
+
+def test_checkin_validation(app, checkin_env, monkeypatch):
+    c = app.test_client()
+    assert 'not on the floor plan' in post_checkin(c, 'Z-99', 'x', '10.0.0.5').get_json()['error']
+    assert post_checkin(c, 'D-1', '', '10.0.0.5').status_code == 400
+    monkeypatch.setenv('CHECKIN_ALLOWED_NETWORKS', '10.0.0.0/16')
+    assert post_checkin(c, 'D-1', 'x', '192.168.1.5').status_code == 403
+    assert post_checkin(c, 'D-1', 'x', '10.0.9.5').status_code == 200
+
+
+def test_checkin_moves_machine_between_seats(app, checkin_env):
+    c = app.test_client()
+    post_checkin(c, 'D-1', 'bob', '10.0.0.7')
+    post_checkin(c, 'D-2', 'bob', '10.0.0.7')
+    assert list(checkin.load_all()) == ['D-2']
+
+
+def test_checkin_follows_dhcp_change(app, checkin_env):
+    c = app.test_client()
+    post_checkin(c, 'D-22', 'Reykime', '10.0.2.144')
+    checkin_env.clear()
+    checkin_env['10.0.2.200'] = 'aa:bb:cc:00:11:22'   # new lease, same MAC
+    assert checkin.refresh_once() == ['D-22']
+    row = checkin.load_all()['D-22']
+    assert row['ip'] == '10.0.2.200' and row['ip_changed']
+
+
+def test_checkin_admin_token(app, checkin_env, monkeypatch):
+    monkeypatch.setenv('CHECKIN_ADMIN_TOKEN', 's3cret')
+    c = app.test_client()
+    assert c.get('/api/checkins').status_code == 401
+    assert c.get('/api/checkins', headers={'X-Admin-Token': 's3cret'}).status_code == 200
+
+
+def test_trust_proxy(app, checkin_env, monkeypatch):
+    c = app.test_client()
+    hdr = {'X-Forwarded-For': '10.0.3.3, 172.16.0.1'}
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr,
+               environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
+    assert r['ip'] == '172.16.0.1'
+    monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr,
+               environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
+    assert r['ip'] == '10.0.3.3'
