@@ -8,6 +8,8 @@ import redis
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 
+from settings_store import SettingsStore, create_settings_blueprint
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -16,25 +18,64 @@ app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 DATA_FILE = 'data.json'
 
 # ── Service config ─────────────────────────────────────────────────────────────
-NETBOX_URL        = os.getenv('NETBOX_URL', '').rstrip('/')
-NETBOX_TOKEN      = os.getenv('NETBOX_TOKEN', '')
-NETBOX_ROLES      = [r.strip() for r in os.getenv('NETBOX_DEVICE_ROLE', 'access-switch').split(',') if r.strip()]
-NETBOX_VERIFY_SSL = os.getenv('NETBOX_VERIFY_SSL', 'true').lower() != 'false'
-
-LIBRENMS_URL        = os.getenv('LIBRENMS_URL', '').rstrip('/')
-LIBRENMS_TOKEN      = os.getenv('LIBRENMS_TOKEN', '')
-LIBRENMS_VERIFY_SSL = os.getenv('LIBRENMS_VERIFY_SSL', 'true').lower() != 'false'
+# NetBox, LibreNMS and cache settings are edited on /settings, see
+# "Runtime settings" below. Only Redis is configured from the environment.
 
 # ── Redis config ─────────────────────────────────────────────────────────────
 REDIS_HOST     = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT     = int(os.getenv('REDIS_PORT', 6379))
 REDIS_DB       = int(os.getenv('REDIS_DB', 0))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
-CACHE_TTL_ARP  = int(os.getenv('CACHE_TTL_ARP', 300))   # Default: 5 minutes
-CACHE_TTL_MAC  = int(os.getenv('CACHE_TTL_MAC', 300))   # Default: 5 minutes
 
-NETBOX_ENABLED   = bool(NETBOX_URL and NETBOX_TOKEN)
-LIBRENMS_ENABLED = bool(LIBRENMS_URL and LIBRENMS_TOKEN)
+# ── Runtime settings ───────────────────────────────────────────────────────────
+# Values saved on /settings live in data.json and win over env vars, which
+# remain the defaults (see settings_store.py). apply_runtime_settings()
+# rebinds these module globals, so the code below keeps reading them as-is.
+settings_store = SettingsStore(DATA_FILE)
+
+NETBOX_URL = NETBOX_TOKEN = LIBRENMS_URL = LIBRENMS_TOKEN = ''
+NETBOX_ROLES = []
+NETBOX_VERIFY_SSL = LIBRENMS_VERIFY_SSL = True
+LIBRENMS_FDB_EXCLUDE = []
+CACHE_TTL_ARP = CACHE_TTL_MAC = 300
+CACHE_TTL_RESOLVE = 30
+NETBOX_ENABLED = LIBRENMS_ENABLED = False
+DISPLAY_DEFAULTS = {}
+
+
+def apply_runtime_settings():
+    global NETBOX_URL, NETBOX_TOKEN, NETBOX_ROLES, NETBOX_VERIFY_SSL
+    global LIBRENMS_URL, LIBRENMS_TOKEN, LIBRENMS_VERIFY_SSL, LIBRENMS_FDB_EXCLUDE
+    global CACHE_TTL_ARP, CACHE_TTL_MAC, CACHE_TTL_RESOLVE
+    global NETBOX_ENABLED, LIBRENMS_ENABLED, DISPLAY_DEFAULTS
+    s = settings_store
+    NETBOX_URL           = s.get('netbox.url')
+    NETBOX_TOKEN         = s.get('netbox.token')
+    NETBOX_ROLES         = s.get('netbox.device_roles')
+    NETBOX_VERIFY_SSL    = s.get('netbox.verify_ssl')
+    LIBRENMS_URL         = s.get('librenms.url')
+    LIBRENMS_TOKEN       = s.get('librenms.token')
+    LIBRENMS_VERIFY_SSL  = s.get('librenms.verify_ssl')
+    LIBRENMS_FDB_EXCLUDE = [p.lower() for p in s.get('librenms.fdb_exclude')]
+    CACHE_TTL_ARP        = s.get('cache.ttl_arp')
+    CACHE_TTL_MAC        = s.get('cache.ttl_mac')
+    CACHE_TTL_RESOLVE    = s.get('cache.ttl_resolve')
+    NETBOX_ENABLED       = bool(NETBOX_URL and NETBOX_TOKEN)
+    LIBRENMS_ENABLED     = bool(LIBRENMS_URL and LIBRENMS_TOKEN)
+    DISPLAY_DEFAULTS     = {
+        'hide_labels':     s.get('display.hide_labels'),
+        'exclude_heatmap': s.get('display.exclude_heatmap'),
+    }
+
+
+apply_runtime_settings()
+
+
+@app.before_request
+def refresh_runtime_settings():
+    """Pick up settings saved by another process/worker (cheap mtime check)."""
+    if settings_store.reload_if_changed():
+        apply_runtime_settings()
 
 # ── Redis connection ──────────────────────────────────────────────────────
 redis_client = None
@@ -406,7 +447,7 @@ def find_mac_in_all_switches(mac_address):
         matches = {}
         for entry in ports:
 
-            excludes = ['port-channel', 'vlan', 'virtual', 'tunnel', 'loopback', 'po']
+            excludes = LIBRENMS_FDB_EXCLUDE
             port_name = entry.get('ifName', '').lower()
 
             if any(ex in port_name for ex in excludes):
@@ -535,7 +576,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
 
     if client:
         try:
-            client.setex(resolve_cache_key, 30, json.dumps(result))
+            client.setex(resolve_cache_key, CACHE_TTL_RESOLVE, json.dumps(result))
             # print(f"Resolve result cached for IP {ip_address}")
         except Exception as e:
             print(f"Redis cache write error (resolve): {e}")
@@ -595,6 +636,8 @@ def fetch_librenms_details(hostname):
     device: Optional[dict] = fetch_librenms_device_by_hostname(hostname, headers)
 
     # ── Extract device info ───────────────────────────────────────────────────
+    if not device:
+        return result   # not in LibreNMS: status stays 'unknown'
     result['status'] = 'online' if device.get('status', 0) == 1 else 'offline'
     # Try multiple possible IP field names from LibreNMS
     result['ip'] = (
@@ -750,11 +793,6 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/settings')
-def settings():
-    return render_template('settings.html')
-
-
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 @app.route('/api/config')
@@ -763,30 +801,28 @@ def get_config():
         'netbox_enabled':    NETBOX_ENABLED,
         'librenms_enabled':  LIBRENMS_ENABLED,
         'netbox_device_roles': NETBOX_ROLES,
+        'display_defaults':  DISPLAY_DEFAULTS,
     })
 
 
-@app.route('/api/settings', methods=['GET'])
-def get_settings():
-    """Get default settings for switches."""
-    data = load_data()
-    return jsonify(data.get('default_settings', {
-        'hide_labels': False,
-        'exclude_heatmap': False,
-    }))
+def redis_info():
+    client = get_redis_client()
+    connected = False
+    if client:
+        try:
+            connected = bool(client.ping())
+        except Exception:
+            connected = False
+    return {'host': REDIS_HOST, 'port': REDIS_PORT, 'db': REDIS_DB, 'connected': connected}
 
 
-@app.route('/api/settings', methods=['PUT'])
-def update_settings():
-    """Update default settings."""
-    body = request.get_json(force=True)
-    data = load_data()
-    data.setdefault('default_settings', {})
-    for key in ('hide_labels', 'exclude_heatmap'):
-        if key in body:
-            data['default_settings'][key] = bool(body[key])
-    save_data(data)
-    return jsonify(data['default_settings'])
+# /settings page plus GET/PUT /api/settings and POST /api/settings/test/<service>
+app.register_blueprint(create_settings_blueprint(
+    settings_store,
+    on_change=apply_runtime_settings,
+    get_redis=get_redis_client,
+    redis_info=redis_info,
+))
 
 
 # ── Switches ───────────────────────────────────────────────────────────────────
@@ -1031,7 +1067,7 @@ def get_cache_stats():
     """Get Redis cache statistics."""
     client = get_redis_client()
     if not client:
-        return jsonify({'error': 'Redis is not configured'}, 503)
+        return jsonify({'error': 'Redis is not configured'}), 503
 
     try:
         # Count ARP and MAC cache keys
@@ -1048,7 +1084,7 @@ def get_cache_stats():
             'cache_ttl_mac': CACHE_TTL_MAC,
         })
     except Exception as e:
-        return jsonify({'error': f'Failed to get cache stats: {str(e)}'}, 500)
+        return jsonify({'error': f'Failed to get cache stats: {str(e)}'}), 500
 
 
 # ── Status ─────────────────────────────────────────────────────────────────────
