@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings · Building View</title>
+  <link rel="stylesheet" href="/static/css/settings.css" />
+</head>
+<body>
+  <header class="st-header">
+    <a class="st-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Floor plan
+    </a>
+    <h1>Settings</h1>
+    <span class="st-header-spacer"></span>
+  </header>
+
+  <main class="st-main">
+    <p class="st-intro">
+      Saved values are stored on the server and override environment variables.
+      Use <em>Reset</em> on a field to go back to its environment or default value.
+    </p>
+
+    <section class="st-card" id="st-status">
+      <h2>Connections</h2>
+      <div class="st-status-grid" id="st-status-grid"></div>
+    </section>
+
+    <form id="st-form" autocomplete="off" novalidate>
+      <div id="st-sections"></div>
+
+      <div class="st-savebar">
+        <span class="st-savebar-msg" id="st-save-msg" role="status" aria-live="polite"></span>
+        <button type="button" class="st-btn" id="st-discard" disabled>Discard changes</button>
+        <button type="submit" class="st-btn st-btn-primary" id="st-save" disabled>Save</button>
+      </div>
+    </form>
+  </main>
+
+  <script src="/static/js/settings.js"></script>
+</body>
+</html>
