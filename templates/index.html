@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Building View</title>
+  <script src="/static/js/theme.js"></script>
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
@@ -49,6 +50,15 @@
 
       <div class="topbar-actions">
         <span class="last-updated" id="last-updated" title="Switch status refreshes every 10 seconds">Not updated yet</span>
+        <button class="btn btn-ghost btn-icon" id="btn-theme" data-theme-toggle data-theme-shortcut="T" title="Switch theme">
+          <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
         <button class="btn btn-ghost" id="btn-refresh-all" title="Refresh all switch statuses">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <polyline points="23 4 23 10 17 10"/>
@@ -186,7 +196,7 @@
 
         <!-- Floating toolbar -->
         <div class="toolbar" role="toolbar" aria-label="Edit tools">
-          <button class="tool-btn active" id="tool-select" title="Select and move (V)" aria-label="Select and move">
+          <button class="tool-btn active" id="tool-select" title="Select and move (V) · Shift+drag to select several" aria-label="Select and move">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3l14 9-7 1-4 7z"/></svg>
             <span class="tool-label">Select</span><kbd>V</kbd>
           </button>
@@ -492,6 +502,37 @@
           <button class="btn btn-danger" id="block-detail-delete" title="Delete (Del)">Delete</button>
         </div>
       </aside>
+
+      <!-- Inspector: several items -->
+      <aside class="detail-panel hidden" id="multi-detail-panel" aria-label="Selection details">
+        <div class="detail-header">
+          <div class="detail-heading">
+            <span class="detail-kind">Selection</span>
+            <div class="detail-name" id="multi-detail-name">—</div>
+            <span class="detail-status-badge badge-plain" id="multi-detail-summary">—</span>
+          </div>
+          <button class="detail-close" id="multi-detail-close" title="Clear selection (Esc)" aria-label="Clear selection">✕</button>
+        </div>
+
+        <div class="detail-body">
+          <section class="detail-section">
+            <h4 class="detail-section-title">Move together</h4>
+            <p class="multi-hint">
+              Drag any selected item to move them all, or nudge with the arrow keys
+              (<kbd>Shift</kbd> for bigger steps). One <kbd>Ctrl</kbd> <kbd>Z</kbd> undoes the whole move.
+            </p>
+          </section>
+          <section class="detail-section">
+            <h4 class="detail-section-title">Items</h4>
+            <ul class="multi-list" id="multi-list"></ul>
+          </section>
+        </div>
+
+        <div class="detail-footer">
+          <button class="btn btn-ghost" id="multi-detail-clear">Clear selection</button>
+          <button class="btn btn-danger" id="multi-detail-delete" title="Delete (Del)">Delete all</button>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -627,9 +668,14 @@
         <dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></dt><dd>Redo</dd>
         <dt><kbd>Del</kbd></dt><dd>Delete selection</dd>
         <dt><kbd>Esc</kbd></dt><dd>Deselect, back to Select</dd>
+        <dt><kbd>Shift</kbd> + drag</dt><dd>Box-select several items</dd>
+        <dt><kbd>Shift</kbd> + click</dt><dd>Add or remove an item from the selection</dd>
+        <dt><kbd>Ctrl</kbd> <kbd>A</kbd></dt><dd>Select everything on the map</dd>
+        <dt><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></dt><dd>Nudge the selection (<kbd>Shift</kbd> for bigger steps)</dd>
         <dt><kbd>/</kbd></dt><dd>Search</dd>
         <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
         <dt><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dt><dd>Zoom in, out, reset</dd>
+        <dt><kbd>T</kbd></dt><dd>Switch between light and dark theme</dd>
         <dt>Wheel</dt><dd>Zoom toward the cursor</dd>
         <dt>Drag empty space</dt><dd>Pan the map</dd>
       </dl>
