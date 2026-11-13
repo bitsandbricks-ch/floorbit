@@ -290,3 +290,52 @@ def test_trust_proxy(app, checkin_env, monkeypatch):
     r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr,
                environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
     assert r['ip'] == '10.0.3.3'
+
+
+# ── settings store bridge ──────────────────────────────────────────────────────────────────
+def test_settings_bridge(monkeypatch, tmp_path):
+    import types
+    from integrations import settings_bridge
+
+    mod = types.ModuleType('fake_settings_store')
+    mod.SECTIONS = [{'id': 'librenms', 'title': 'LibreNMS', 'description': ''}]
+    mod.FIELDS = [dict(key='librenms.url', section='librenms', label='URL', type='url',
+                       env='LIBRENMS_URL', default='')]
+    mod.FIELDS_BY_KEY = {f['key']: f for f in mod.FIELDS}
+
+    class Store:
+        __module__ = 'fake_settings_store'
+
+        def __init__(self):
+            self.saved = {'librenms.url': 'http://saved-nms',
+                          'integrations.seat_sources': ['checkin', 'json'],
+                          'integrations.discord_cooldown': 42}
+
+        def reload(self):
+            pass
+
+        def reload_if_changed(self):
+            return False
+
+        def source(self, key):
+            return 'saved' if key in self.saved else 'default'
+
+        def get(self, key):
+            return self.saved.get(key, mod.FIELDS_BY_KEY[key]['default'])
+
+    monkeypatch.setitem(sys.modules, 'fake_settings_store', mod)
+    monkeypatch.setenv('LIBRENMS_URL', 'http://env-nms')
+    monkeypatch.setenv('DISCORD_USERNAME', 'from-env')
+    assert settings_bridge.connect(Store()) is True
+
+    keys = {f['key']: f for f in mod.FIELDS}
+    assert keys['integrations.discord_webhook_url']['type'] == 'secret'
+    assert keys['integrations.seat_sources']['type'] == 'list'
+    assert keys['integrations.status_monitor_interval']['min'] == 10
+    assert {s['id'] for s in mod.SECTIONS} >= {'discord', 'checkin', 'monitor'}
+
+    assert config.get('LIBRENMS_URL') == 'http://saved-nms'      # store's own field
+    assert seat_sources.active_names() == ['checkin', 'json']       # list → csv
+    assert config.get_int('DISCORD_COOLDOWN', 300) == 42
+    assert config.get('DISCORD_USERNAME') == 'from-env'             # not saved → env
+    assert config.get('DISCORD_MENTION', 'dflt') == 'dflt'          # → default
