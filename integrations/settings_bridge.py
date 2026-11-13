@@ -26,7 +26,8 @@ SECTIONS = [
     {'id': 'seats', 'title': 'Seat sources',
      'description': 'Where the seat to user / IP mapping comes from. Sources are merged in the order listed.'},
     {'id': 'checkin', 'title': 'Seat check-in',
-     'description': 'A /checkin page where players enter seat and username; their IP and MAC (from LibreNMS ARP) are recorded.'},
+     'description': ('A /checkin page where players enter seat and username; '
+                     'their IP and MAC (from LibreNMS ARP) are recorded.')},
     {'id': 'general', 'title': 'General', 'description': 'Shared settings for integrations.'},
 ]
 

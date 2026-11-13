@@ -7,7 +7,7 @@ on its own thread so a slow Discord never delays the status monitor.
 import queue
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 
@@ -65,7 +65,7 @@ class DiscordNotifier:
             payload = self._queue.get()
             try:
                 self.send(payload)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001  # keep the sender thread alive
                 self.last_error = str(exc)
                 print(f"[integrations] Discord send failed: {exc}")
 
@@ -105,7 +105,7 @@ class DiscordNotifier:
 
         offline = [c for c in selected if c['status'] == 'offline']
         public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
-        ts = datetime.fromtimestamp(now, tz=timezone.utc).isoformat()
+        ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
 
         embeds = []
         for c in selected[:MAX_EMBEDS]:
@@ -147,9 +147,10 @@ class DiscordNotifier:
         public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
         embed = {
             'title': '✅ Discord alerts are connected',
-            'description': 'This channel will get a message when a switch on the floor plan goes offline or comes back.',
+            'description': ('This channel will get a message when a switch on the floor plan '
+                            'goes offline or comes back.'),
             'color': COLOR_INFO,
-            'timestamp': datetime.now(tz=timezone.utc).isoformat(),
+            'timestamp': datetime.now(tz=UTC).isoformat(),
         }
         if public_url:
             embed['url'] = public_url

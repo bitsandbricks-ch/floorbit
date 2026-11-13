@@ -1,12 +1,12 @@
-import os
 import json
-import uuid
+import os
 import time
+import uuid
 
-import requests
 import redis
+import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, jsonify, render_template, request
 
 import port_details
 from settings_store import SettingsStore, create_settings_blueprint
@@ -92,7 +92,7 @@ def setup_redis_connection():
         try:
             redis_client.ping()
             return
-        except Exception:
+        except redis.RedisError:
             redis_client = None
 
     # Try to establish new connection with retries
@@ -113,7 +113,7 @@ def setup_redis_connection():
             redis_client.ping()
             print(f"Connected to Redis at {REDIS_HOST}:{REDIS_PORT} (attempt {attempt + 1})")
             return
-        except Exception as e:
+        except redis.RedisError as e:
             if attempt < 4:  # Don't wait on the last attempt
                 print(f"Redis connection attempt {attempt + 1} failed: {e}. Retrying in 2 seconds...")
                 time.sleep(2)
@@ -139,7 +139,7 @@ def get_cached_arp(hostname):
         cached = client.get(cache_key)
         if cached:
             return json.loads(cached)
-    except Exception as e:
+    except (redis.RedisError, ValueError) as e:
         print(f"Redis cache read error (ARP): {e}")
     return None
 
@@ -152,7 +152,7 @@ def set_cached_arp(hostname, arp_data):
     try:
         cache_key = f"arp:{hostname}"
         client.setex(cache_key, CACHE_TTL_ARP, json.dumps(arp_data))
-    except Exception as e:
+    except redis.RedisError as e:
         print(f"Redis cache write error (ARP): {e}")
 
 
@@ -166,7 +166,7 @@ def get_cached_mac(hostname):
         cached = client.get(cache_key)
         if cached:
             return json.loads(cached)
-    except Exception as e:
+    except (redis.RedisError, ValueError) as e:
         print(f"Redis cache read error (MAC): {e}")
     return None
 
@@ -179,7 +179,7 @@ def set_cached_mac(hostname, mac_data):
     try:
         cache_key = f"mac:{hostname}"
         client.setex(cache_key, CACHE_TTL_MAC, json.dumps(mac_data))
-    except Exception as e:
+    except redis.RedisError as e:
         print(f"Redis cache write error (MAC): {e}")
 
 
@@ -191,7 +191,7 @@ def invalidate_hostname_cache(hostname):
     try:
         client.delete(f"arp:{hostname}")
         client.delete(f"mac:{hostname}")
-    except Exception as e:
+    except redis.RedisError as e:
         print(f"Redis cache invalidation error: {e}")
 
 
@@ -199,7 +199,7 @@ def invalidate_hostname_cache(hostname):
 
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
+        with open(DATA_FILE) as f:
             return json.load(f)
     return {
         'switches':       [],   # manual mode switch list
@@ -290,7 +290,7 @@ def fetch_librenms_arp_by_ip(ip_address):
                     client.setex(cache_key, CACHE_TTL_ARP, json.dumps(arp_data))
                     # print(f"ARP data cached for IP {ip_address}")
                     # print(f"Cached ARP entries for IP {ip_address}: {arp_data}")
-                except Exception as e:
+                except redis.RedisError as e:
                     print(f"Redis cache write error (IP ARP): {e}")
             return arp_data
         else:
@@ -443,7 +443,7 @@ def find_mac_in_all_switches(mac_address):
             return None
 
         # print(f"FDB search response for MAC {mac_address}: {resp.status_code}")
-        
+
         ports = resp.json().get('ports_fdb', [])
         matches = {}
         for entry in ports:
@@ -454,13 +454,13 @@ def find_mac_in_all_switches(mac_address):
             if any(ex in port_name for ex in excludes):
                 # print(f"Skipping port {port_name} for MAC {mac_address} due to exclusion filter")
                 continue
-            
+
             hostname = entry.get('hostname', '').lower()
             int_id = f"{hostname}:{port_name}"
             matches[int_id] = entry
 
         if matches:
-            
+
             # print(f"Found {len(matches)} matches for MAC {mac_address}: {matches}")
             # Return the first match with device and port info
             first = next(iter(matches.values()))
@@ -479,7 +479,7 @@ def find_mac_in_all_switches(mac_address):
 
     except requests.RequestException:
         pass
-        
+
 def resolve_ip_to_switch_port(ip_address, search_device=None):
     """Resolve an IP address to its switch and port using LibreNMS ARP and MAC tables.
 
@@ -512,11 +512,13 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
             cached_result = json.loads(cached)
             if cached_result.get('mac'):
                 # print(f"Resolve cache hit for IP {ip_address}")
-                stats = fetch_librenms_device_port_stats_by_interface(cached_result.get('hostname'), cached_result.get('port'))   
+                stats = fetch_librenms_device_port_stats_by_interface(
+                    cached_result.get('hostname'), cached_result.get('port'),
+                )
 
                 cached_result["stats"] = stats
                 return cached_result
-    
+
     if client:
         try:
             cache_key = f"arp_ip:{ip_address}"
@@ -536,7 +538,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
                 if mac_address:
                     result['mac'] = mac_address
                     result['arp_source'] = 'Redis cache (IP-based)'
-        except Exception as e:
+        except (redis.RedisError, ValueError) as e:
             print(f"Redis cache read error (IP ARP): {e}")
 
     # If not in cache, fetch from LibreNMS
@@ -571,7 +573,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
 
         result.update(switch_info)  # Include all original fields for debugging
 
-        stats = fetch_librenms_device_port_stats_by_interface(switch_info.get('hostname'), switch_info.get('port'))   
+        stats = fetch_librenms_device_port_stats_by_interface(switch_info.get('hostname'), switch_info.get('port'))
 
         result["stats"] = stats
 
@@ -579,7 +581,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
         try:
             client.setex(resolve_cache_key, CACHE_TTL_RESOLVE, json.dumps(result))
             # print(f"Resolve result cached for IP {ip_address}")
-        except Exception as e:
+        except redis.RedisError as e:
             print(f"Redis cache write error (resolve): {e}")
 
     return result
@@ -609,11 +611,12 @@ def fetch_librenms_device_by_hostname(hostname, headers):
                 if d.get('hostname', '').lower() == hn:
                     device = d
                     break
-                
+
                 if hn in d.get('display', '').lower() or hn in d.get('hostname', '').lower():
                     device = d  # Keep looking for better match, but remember this one
 
-                if hn.split('.')[0] in d.get('display', '').lower() or hn.split('.')[0] in d.get('hostname', '').lower():
+                short = hn.split('.')[0]
+                if short in d.get('display', '').lower() or short in d.get('hostname', '').lower():
                     device = d  # Also consider short hostname matches
 
     except requests.RequestException:
@@ -633,8 +636,7 @@ def fetch_librenms_details(hostname):
     result = {'status': 'unknown', 'hostname': hostname}
 
     # ── Find device by displayname ────────────────────────────────────────────
-    from typing import Optional
-    device: Optional[dict] = fetch_librenms_device_by_hostname(hostname, headers)
+    device: dict | None = fetch_librenms_device_by_hostname(hostname, headers)
 
     # ── Extract device info ───────────────────────────────────────────────────
     if not device:
@@ -788,7 +790,7 @@ def redis_info():
     if client:
         try:
             connected = bool(client.ping())
-        except Exception:
+        except redis.RedisError:
             connected = False
     return {'host': REDIS_HOST, 'port': REDIS_PORT, 'db': REDIS_DB, 'connected': connected}
 
@@ -1020,8 +1022,8 @@ def invalidate_cache():
             for key in client.scan_iter(match='mac:*'):
                 client.delete(key)
             return jsonify({'success': True, 'message': 'All cache entries invalidated'})
-        except Exception as e:
-            return jsonify({'error': f'Failed to clear cache: {str(e)}'}), 500
+        except redis.RedisError as e:
+            return jsonify({'error': f'Failed to clear cache: {e!s}'}), 500
 
     # Invalidate cache for specific hostnames
     invalidated = []
@@ -1029,7 +1031,7 @@ def invalidate_cache():
         try:
             invalidate_hostname_cache(hostname)
             invalidated.append(hostname)
-        except Exception as e:
+        except redis.RedisError as e:
             print(f"Failed to invalidate cache for {hostname}: {e}")
 
     return jsonify({
@@ -1060,8 +1062,8 @@ def get_cache_stats():
             'cache_ttl_arp': CACHE_TTL_ARP,
             'cache_ttl_mac': CACHE_TTL_MAC,
         })
-    except Exception as e:
-        return jsonify({'error': f'Failed to get cache stats: {str(e)}'}), 500
+    except redis.RedisError as e:
+        return jsonify({'error': f'Failed to get cache stats: {e!s}'}), 500
 
 
 # ── Status ─────────────────────────────────────────────────────────────────────
