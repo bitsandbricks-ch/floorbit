@@ -33,7 +33,7 @@ import time
 import requests
 from flask import request
 
-from . import config, events, seat_sources
+from . import config, events, history, seat_sources
 
 _lock = threading.RLock()
 SEAT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 _\-]{0,15}$')
@@ -180,8 +180,7 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None):
         # One machine holds one seat: drop other seats with this IP or MAC
         moved_from = [s for s, r in rows.items()
                       if s != seat and (r.get('ip') == ip or (mac and r.get('mac') == mac))]
-        for s in moved_from:
-            rows.pop(s, None)
+        moved_rows = [rows.pop(s) for s in moved_from]
         prev = rows.get(seat, {})
         row = {
             'seat': seat,
@@ -197,6 +196,9 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None):
             row['checked_in_at'] = now
         rows[seat] = row
         _save_all(rows)
+        for old in moved_rows:
+            history.record('moved', old, ts=now, to_seat=seat)
+        history.record('checkin', row, ts=now)
     seat_sources.invalidate()
     events.publish('checkin', {'seat': seat, 'username': username, 'ip': ip,
                                'mac': row['mac'], 'moved_from': moved_from})
@@ -209,6 +211,7 @@ def remove(seat):
         row = rows.pop(seat.upper(), None)
         if row:
             _save_all(rows)
+            history.record('removed', row)
     if row:
         seat_sources.invalidate()
         events.publish('checkin.removed', {'seat': seat.upper()})
@@ -224,7 +227,7 @@ def find_by_ip(ip):
 
 def refresh_once():
     """Follow DHCP changes: fill missing MACs, move IPs that changed for a known MAC."""
-    changed = []
+    changed, logged = [], []
     with _lock:
         rows = load_all()
         for seat, row in rows.items():
@@ -233,14 +236,18 @@ def refresh_once():
                 if mac:
                     row['mac'] = mac
                     changed.append(seat)
+                    logged.append(('mac_found', row, {}))
                 continue
             current = lookup_ip(row['mac'])
             if current and current != row['ip']:
+                logged.append(('ip_changed', row, {'previous_ip': row['ip']}))
                 row['ip'] = current
                 row['ip_changed'] = time.time()
                 changed.append(seat)
         if changed:
             _save_all(rows)
+            for kind, row, extra in logged:
+                history.record(kind, row, **extra)
     if changed:
         seat_sources.invalidate()
         events.publish('checkin.refreshed', {'seats': changed})

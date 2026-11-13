@@ -20,6 +20,8 @@ What it adds:
 * ``GET  /checkin`` + ``POST /api/checkin``  seat check-in page (CHECKIN_ENABLED)
 * ``GET  /api/checkin/me``             the check-in for the caller's IP
 * ``GET  /api/checkins``, ``DELETE /api/checkins/<seat>``  user/IP/seat/MAC table
+* ``GET  /checkins/history``           who sat where over time, with filters
+* ``GET  /api/checkins/history[.csv]`` the same as JSON or a CSV download
 * a ``data.changed`` event after every successful write to switches / seat blocks
 * a background status monitor and Discord alerts (when configured)
 
@@ -28,14 +30,15 @@ settings page later).
 """
 import hmac
 import threading
+import time
 
 from flask import Blueprint, Response, jsonify, render_template, request, stream_with_context
 
-from . import checkin, config, events, seat_sources, settings_bridge
+from . import checkin, config, events, history, seat_sources, settings_bridge
 from .discord import DiscordNotifier
 from .monitor import StatusMonitor
 
-__all__ = ['init_integrations', 'config', 'events', 'seat_sources', 'checkin']
+__all__ = ['init_integrations', 'config', 'events', 'seat_sources', 'checkin', 'history']
 
 # Writes under these prefixes are announced to other browsers
 _WATCHED_PREFIXES = {
@@ -90,6 +93,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             'seat_sources': seat_sources.info(),
             'checkin': {'enabled': config.get_bool('CHECKIN_ENABLED', False),
                         'count': len(checkin.load_all()),
+                        'history': history.enabled(),
                         'last_refresh': refresher.last_run,
                         'last_error': refresher.last_error},
             'settings': config.describe(),
@@ -195,6 +199,46 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         if denied:
             return denied
         return jsonify({'ok': True, 'changed': checkin.refresh_once()})
+
+    # ── Check-in history ────────────────────────────────────────────────────
+    # Not tied to CHECKIN_ENABLED: the log stays readable after check-in is
+    # closed, which is when it gets exported. The admin token still applies.
+    def history_rows():
+        view = request.args.get('view', 'sessions')
+        if view not in ('events', 'sessions'):
+            raise ValueError('view must be "sessions" or "events".')
+        return view, history.query(request.args, view)
+
+    @bp.route('/checkins/history')
+    def history_page():
+        return render_template('checkin_history.html')
+
+    @bp.route('/api/checkins/history')
+    def history_list():
+        denied = admin_denied()
+        if denied:
+            return denied
+        try:
+            view, rows = history_rows()
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        limit = max(1, min(request.args.get('limit', 500, type=int), 5000))
+        return jsonify({'view': view, 'total': len(rows), 'enabled': history.enabled(),
+                        'rows': history.to_json_rows(rows[:limit], view)})
+
+    @bp.route('/api/checkins/history.csv')
+    def history_csv():
+        denied = admin_denied()
+        if denied:
+            return denied
+        try:
+            view, rows = history_rows()
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        filename = f"lal-checkins-{view}-{time.strftime('%Y%m%d-%H%M')}.csv"
+        return Response(history.to_csv(rows, view), mimetype='text/csv',
+                        headers={'Content-Disposition': f'attachment; filename="{filename}"',
+                                 'Cache-Control': 'no-store'})
 
     app.register_blueprint(bp)
 
