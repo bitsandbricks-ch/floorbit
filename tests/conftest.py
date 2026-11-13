@@ -63,7 +63,12 @@ def app_module(tmp_path, monkeypatch):
 
     import app
 
-    monkeypatch.setattr(app, "DATA_FILE", str(tmp_path / "data.json"))
+    data_file = str(tmp_path / "data.json")
+    monkeypatch.setattr(app, "DATA_FILE", data_file)
+    # The settings store was built at import time with the real data.json: point it at the temp file.
+    monkeypatch.setattr(app.settings_store, "data_file", data_file)
+    app.settings_store.reload()
+    app.apply_runtime_settings()
     monkeypatch.setattr(app, "redis_client", None)
     monkeypatch.setattr(app, "NETBOX_ENABLED", False)
     monkeypatch.setattr(app, "LIBRENMS_ENABLED", False)
