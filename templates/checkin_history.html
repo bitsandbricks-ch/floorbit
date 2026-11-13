@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check-in history</title>
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+      --muted: #8b949e; --accent: #f0883e; --ok: #3fb950; --err: #f85149; --row: #1c2129;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px; background: var(--bg); color: var(--text);
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: 20px; }
+    header a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    header a:hover { color: var(--accent); }
+    .tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .tabs button {
+      background: transparent; color: var(--muted); border: 0; padding: 6px 14px; font: inherit; cursor: pointer;
+    }
+    .tabs button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: inset 0 -2px var(--accent); }
+    form.filters {
+      display: grid; gap: 10px 12px; align-items: end; margin: 16px 0 12px;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    input, select {
+      width: 100%; padding: 7px 9px; font: inherit; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color-scheme: dark;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+    .actions { display: flex; gap: 8px; }
+    .btn {
+      padding: 7px 12px; font: inherit; font-weight: 600; border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text); white-space: nowrap;
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .count { color: var(--muted); font-size: 13px; }
+    .msg { color: var(--err); font-size: 13px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; background: var(--panel); position: sticky; top: 0; }
+    tbody tr:nth-child(even) { background: var(--row); }
+    tbody tr:last-child td { border-bottom: 0; }
+    td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--muted); cursor: pointer; }
+    td a:hover { color: var(--accent); border-color: var(--accent); }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+    .pill.checkin, .pill.here { color: var(--ok); border-color: rgba(63, 185, 80, .4); }
+    .pill.removed, .pill.moved, .pill.replaced { color: var(--muted); }
+    .pill.ip_changed, .pill.mac_found { color: var(--accent); border-color: rgba(240, 136, 62, .4); }
+    .empty { padding: 32px; text-align: center; color: var(--muted); }
+    .token { display: none; margin: 12px 0; gap: 8px; align-items: end; max-width: 420px; }
+    .token.show { display: flex; }
+    .token > div { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Check-in history</h1>
+      <div class="tabs" role="group" aria-label="View">
+        <button type="button" data-view="sessions" aria-pressed="true">Who sat where</button>
+        <button type="button" data-view="events" aria-pressed="false">All events</button>
+      </div>
+      <a href="/">Back to floor plan</a>
+    </header>
+
+    <form class="token" id="tokenForm">
+      <div>
+        <label for="token">Admin token</label>
+        <input id="token" type="password" autocomplete="off" />
+      </div>
+      <button class="btn primary" type="submit">Unlock</button>
+    </form>
+
+    <form class="filters" id="filters" autocomplete="off">
+      <div><label for="f-seat">Seat</label><input id="f-seat" name="seat" placeholder="D-22" /></div>
+      <div><label for="f-user">Username</label><input id="f-user" name="user" placeholder="contains…" /></div>
+      <div><label for="f-ip">IP</label><input id="f-ip" name="ip" placeholder="10.0.2." /></div>
+      <div><label for="f-mac">MAC</label><input id="f-mac" name="mac" placeholder="aa:bb:cc" /></div>
+      <div><label for="f-since">From</label><input id="f-since" name="since" type="datetime-local" /></div>
+      <div><label for="f-until">To</label><input id="f-until" name="until" type="datetime-local" /></div>
+      <div id="eventField" hidden>
+        <label for="f-event">Event</label>
+        <select id="f-event" name="event">
+          <option value="">Any</option>
+          <option value="checkin">Check-in</option>
+          <option value="moved">Moved seat</option>
+          <option value="removed">Removed</option>
+          <option value="ip_changed">IP changed</option>
+          <option value="mac_found">MAC found</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit">Filter</button>
+        <button class="btn" type="reset">Clear</button>
+      </div>
+    </form>
+
+    <div class="bar">
+      <span class="count" id="count" role="status" aria-live="polite"></span>
+      <span class="msg" id="msg"></span>
+      <button class="btn" type="button" id="export">Export CSV</button>
+    </div>
+    <div class="table-wrap"><table><thead id="head"></thead><tbody id="body"></tbody></table></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const filters = $('filters');
+    const EVENT_LABELS = { checkin: 'Check-in', moved: 'Moved seat', removed: 'Removed',
+                           ip_changed: 'IP changed', mac_found: 'MAC found', replaced: 'Replaced' };
+    const COLUMNS = {
+      sessions: ['Seat', 'Username', 'MAC', 'IPs', 'Checked in', 'Left', 'Duration'],
+      events: ['Time', 'Event', 'Seat', 'Username', 'IP', 'MAC', 'Details'],
+    };
+    let view = 'sessions';
+    let token = '';
+    try { token = sessionStorage.getItem('lal-admin-token') || ''; } catch (_) {}
+
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    // Clicking a seat, user, IP or MAC filters on it
+    function link(field, value) {
+      return value ? `<a data-f="${field}" data-v="${esc(value)}">${esc(value)}</a>` : '<span class="count">–</span>';
+    }
+    function duration(start, end) {
+      const mins = Math.round(((end || Date.now() / 1000) - start) / 60);
+      if (mins < 60) return `${mins} min`;
+      const h = Math.floor(mins / 60);
+      return h < 24 ? `${h} h ${mins % 60} min` : `${Math.floor(h / 24)} d ${h % 24} h`;
+    }
+    function params() {
+      const p = new URLSearchParams({ view });
+      for (const [k, v] of new FormData(filters)) if (v && (k !== 'event' || view === 'events')) p.set(k, v);
+      return p;
+    }
+    function headers() { return token ? { 'X-Admin-Token': token } : {}; }
+
+    function render(d) {
+      $('head').innerHTML = '<tr>' + COLUMNS[view].map((c) => `<th>${c}</th>`).join('') + '</tr>';
+      const shown = d.rows.length;
+      $('count').textContent = d.total === shown
+        ? `${d.total} ${view === 'sessions' ? 'sessions' : 'events'}`
+        : `Showing ${shown} of ${d.total}. Export CSV for all.`;
+      if (!d.enabled) $('msg').textContent = 'History is turned off in settings; new check-ins are not logged.';
+      if (!shown) {
+        $('body').innerHTML = `<tr><td class="empty" colspan="${COLUMNS[view].length}">No check-ins match these filters.</td></tr>`;
+        return;
+      }
+      $('body').innerHTML = d.rows.map((r) => view === 'sessions'
+        ? `<tr><td>${link('seat', r.seat)}</td><td>${link('user', r.username)}</td>
+             <td class="mono">${link('mac', r.mac)}</td>
+             <td class="mono">${r.ips.map((ip) => link('ip', ip)).join(', ') || '–'}</td>
+             <td>${esc(r.start_local)}</td>
+             <td>${r.end ? esc(r.end_local) + ` <span class="pill ${r.end_reason}">${EVENT_LABELS[r.end_reason] || ''}</span>` : '<span class="pill here">Still here</span>'}</td>
+             <td>${duration(r.start, r.end)}</td></tr>`
+        : `<tr><td>${esc(r.time_local)}</td><td><span class="pill ${esc(r.event)}">${EVENT_LABELS[r.event] || esc(r.event)}</span></td>
+             <td>${link('seat', r.seat)}</td><td>${link('user', r.username)}</td>
+             <td class="mono">${link('ip', r.ip)}</td><td class="mono">${link('mac', r.mac)}</td>
+             <td class="count">${r.to_seat ? 'to ' + esc(r.to_seat) : r.previous_ip ? 'was ' + esc(r.previous_ip) : ''}</td></tr>`
+      ).join('');
+    }
+
+    async function load() {
+      $('msg').textContent = '';
+      try {
+        const r = await fetch('/api/checkins/history?' + params(), { headers: headers() });
+        if (r.status === 401) {
+          $('tokenForm').classList.add('show');
+          $('count').textContent = 'Enter the admin token to see the history.';
+          $('head').innerHTML = $('body').innerHTML = '';
+          return;
+        }
+        const d = await r.json();
+        if (!r.ok) { $('msg').textContent = d.error || 'Could not load the history.'; return; }
+        $('tokenForm').classList.remove('show');
+        render(d);
+      } catch (_) {
+        $('msg').textContent = 'Could not reach the server.';
+      }
+    }
+
+    document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+      view = b.dataset.view;
+      document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      $('eventField').hidden = view !== 'events';
+      load();
+    }));
+    filters.addEventListener('submit', (e) => { e.preventDefault(); load(); });
+    filters.addEventListener('reset', () => setTimeout(load));
+    $('body').addEventListener('click', (e) => {
+      const a = e.target.closest('a[data-f]');
+      if (!a) return;
+      filters.elements[a.dataset.f].value = a.dataset.v;
+      load();
+    });
+    $('tokenForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      token = $('token').value;
+      try { sessionStorage.setItem('lal-admin-token', token); } catch (_) {}
+      load();
+    });
+    $('export').addEventListener('click', async () => {
+      const btn = $('export');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/checkins/history.csv?' + params(), { headers: headers() });
+        if (!r.ok) { $('msg').textContent = 'Export failed.'; return; }
+        const name = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || 'checkins.csv';
+        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(await r.blob()), download: name });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // New check-ins show up without a reload
+    if (window.EventSource) {
+      const es = new EventSource('/api/events');
+      ['checkin', 'checkin.removed', 'checkin.refreshed'].forEach((t) => es.addEventListener(t, () => load()));
+    }
+    load();
+  </script>
+</body>
+</html>
