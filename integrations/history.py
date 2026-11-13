@@ -84,7 +84,7 @@ def record(event, row, ts=None, **extra):
 def read_all():
     """Every event, oldest first. Broken lines are skipped."""
     try:
-        with open(path(), 'r', encoding='utf-8') as f:
+        with open(path(), encoding='utf-8') as f:
             lines = f.read().splitlines()
     except FileNotFoundError:
         return []

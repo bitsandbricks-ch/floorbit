@@ -10,7 +10,7 @@ from flask import Flask
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from integrations import (  # noqa: E402
+from integrations import (
     checkin,
     config,
     events,
