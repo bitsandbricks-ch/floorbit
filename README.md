@@ -23,6 +23,9 @@ each seat is plugged into.
   seat's IP to its switch and port.
 - **Seats:** `seats.json` maps seat numbers to IPs and usernames. The heat map colours each seat by
   its port's traffic.
+- **Sign-in:** the editor and the settings need an account; the floor plan data stays readable for
+  kiosk screens. Username and password today, built so SSO or Discord can be added. See
+  [docs/auth.md](docs/auth.md).
 - **Cache:** LibreNMS answers are cached in Redis (5 minutes by default), so a busy hall doesn't hammer
   the API.
 
@@ -37,9 +40,10 @@ With Docker Compose (the app on port 5002, plus Redis):
 cp .env.example .env        # fill in NetBox and LibreNMS, or leave them empty
 touch data.json             # the floor plan is saved here
 docker compose up -d
+docker compose exec lal-app flask users add <name>     # your first account
 ```
 
-Open <http://localhost:5002>. The image is also built by CI and pushed to this project's container
+Open <http://localhost:5002> and sign in. The image is also built by CI and pushed to this project's container
 registry: `registry.gitlab.com/reykime-private/reykime-lal/lal-floorplan:latest` (from `master`) and
 `:<version>` (from a release).
 
@@ -56,6 +60,9 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `LIBRENMS_VERIFY_SSL` | `true` | `false` accepts a self-signed certificate. |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD` | `localhost`, `6379`, `0`, empty | The cache. Compose points the app at its own `redis` service. |
 | `CACHE_TTL_ARP`, `CACHE_TTL_MAC` | `300` | Seconds to keep a switch's ARP and MAC tables. |
+| `SECRET_KEY` | generated | Signs the session cookie. Empty: generated once and kept in `data.json`. |
+| `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |
+| `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |
 
 The floor plan itself (positions, seat blocks, settings) lives in `data.json`: back it up.
 
@@ -80,6 +87,7 @@ docker build .
 | Path | What lives there |
 | --- | --- |
 | `app.py` | The Flask app: pages, JSON API, NetBox and LibreNMS clients, Redis cache. |
+| `auth/` | Sign-in: accounts, sessions, the login page and the providers for SSO later. |
 | `templates/`, `static/` | The pages and the browser app (plain JavaScript and CSS, no build step). |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |

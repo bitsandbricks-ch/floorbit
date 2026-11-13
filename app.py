@@ -18,6 +18,12 @@ app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 
 DATA_FILE = 'data.json'
 
+# Sign-in (see docs/auth.md). Registered first, so its check runs before the
+# other before_request hooks below and a refused request never touches Redis.
+from auth import init_auth  # noqa: E402
+
+init_auth(app, DATA_FILE)
+
 # ── Service config ─────────────────────────────────────────────────────────────
 # NetBox, LibreNMS and cache settings are edited on /settings, see
 # "Runtime settings" below. Only Redis is configured from the environment.

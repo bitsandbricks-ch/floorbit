@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Building View</title>
   <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body>
+<body{% if current_user %} class="role-{{ current_user.role }}"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -55,12 +56,23 @@
           </svg>
           Refresh
         </button>
+        {% if current_user %}
+        <form class="user-menu" method="post" action="/logout">
+          <span class="user-menu-name" title="Signed in as {{ current_user.username }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            {{ current_user.display_name }}
+          </span>
+          <button type="submit" class="btn btn-ghost">Sign out</button>
+        </form>
+        {% endif %}
+        {% if not current_user or current_user.role == 'admin' %}
         <a class="btn btn-ghost btn-icon" href="/settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </a>
+        {% endif %}
       </div>
     </header>
 
@@ -630,6 +642,7 @@
   <!-- ── Toasts ─────────────────────────────────────────────────────────── -->
   <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
+  <script src="/static/js/auth.js"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/live.js"></script>
 </body>

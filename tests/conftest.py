@@ -10,6 +10,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+TEST_USER = "tester"
+TEST_PASSWORD = "correct-horse-battery"
+
 
 class FakeRedis:
     """Just enough of redis.Redis for the app's cache helpers."""
@@ -55,6 +58,8 @@ class FakeRedis:
 def app_module(tmp_path, monkeypatch):
     for name in ("NETBOX_URL", "NETBOX_TOKEN", "LIBRENMS_URL", "LIBRENMS_TOKEN"):
         monkeypatch.delenv(name, raising=False)
+    # Set before the first import, so the app never writes a generated key to ./data.json.
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key")
 
     import redis
 
@@ -72,10 +77,27 @@ def app_module(tmp_path, monkeypatch):
     monkeypatch.setattr(app, "redis_client", None)
     monkeypatch.setattr(app, "NETBOX_ENABLED", False)
     monkeypatch.setattr(app, "LIBRENMS_ENABLED", False)
+    auth = app.app.extensions["auth"]
+    # Accounts share the throwaway data file with the floor plan.
+    monkeypatch.setattr(auth.users, "path", app.DATA_FILE)
+    monkeypatch.setattr(auth, "enabled", True)
+    monkeypatch.setattr(auth, "public_read", True)
+    monkeypatch.setattr(auth, "_failures", {})
     app.app.config["TESTING"] = True
     return app
 
 
 @pytest.fixture
-def client(app_module):
+def anon_client(app_module):
+    """Nobody signed in."""
     return app_module.app.test_client()
+
+
+@pytest.fixture
+def client(app_module):
+    """Signed in as TEST_USER, an admin, so tests can change anything."""
+    app_module.app.extensions["auth"].users.add(TEST_USER, TEST_PASSWORD, role="admin")
+    test_client = app_module.app.test_client()
+    resp = test_client.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD})
+    assert resp.status_code == 302, resp.data
+    return test_client
