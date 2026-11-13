@@ -119,6 +119,33 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 Endpoints: `POST /api/checkin`, `GET /api/checkin/me`, `GET /api/checkins` (the
 user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refresh`.
 
+### Check-in history and CSV export
+
+Every change to the check-in table is appended to a JSON Lines log: `checkin`, `moved`
+(the same machine checked in at another seat, `to_seat`), `removed`, `ip_changed` (DHCP,
+`previous_ip`) and `mac_found`. `/checkins/history` shows it two ways:
+
+- **Who sat where**: one row per person per seat, from check-in until someone else took the
+  seat, they moved, or an admin removed them, with every IP seen in between.
+- **All events**: the raw log.
+
+Filter by seat, username (contains), IP (contains), MAC (any format, partial), time range and
+event type; click a value in the table to filter on it. **Export CSV** downloads the filtered
+rows (all of them, not just the 500 shown). The CSV has a UTF-8 BOM for Excel, local times plus
+Unix timestamps, and values starting with `=`, `+`, `-` or `@` are prefixed with `'` so a
+username can't run as a spreadsheet formula.
+
+API: `GET /api/checkins/history` and `GET /api/checkins/history.csv`, both taking
+`view=sessions|events`, `seat`, `user`, `ip`, `mac`, `event`, `since`, `until` (epoch seconds,
+`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`, server local time) and, for JSON, `limit` (default 500).
+They need `CHECKIN_ADMIN_TOKEN` when it is set, and keep working after `CHECKIN_ENABLED` is
+turned off, so the log can be exported after the event.
+
+| Variable | Default | |
+|---|---|---|
+| `CHECKIN_HISTORY_ENABLED` | `true` | |
+| `CHECKIN_HISTORY_FILE` | next to `CHECKIN_FILE` | e.g. `/app/state/checkins-history.jsonl` in Docker |
+
 ## Tests
 
 ```
