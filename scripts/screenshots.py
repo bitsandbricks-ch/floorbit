@@ -17,7 +17,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get("APP_URL", "http://127.0.0.1:5000").rstrip("/")
-PAGES = {"floorplan": "/", "settings": "/settings"}
+PAGES = {"floorplan": "/", "settings": "/settings", "kiosk": "/kiosk"}
 DEMO_SWITCHES = [
     {"name": "sw-demo-01", "x": 25, "y": 30},
     {"name": "sw-demo-02", "x": 60, "y": 30},

@@ -793,6 +793,12 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/kiosk')
+def kiosk():
+    """Read-only floor plan for a big screen (see docs/kiosk.md)."""
+    return render_template('kiosk.html')
+
+
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 @app.route('/api/config')

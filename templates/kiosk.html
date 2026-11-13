@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Floor plan · Kiosk</title>
+  <link rel="stylesheet" href="/static/css/kiosk.css" />
+</head>
+<body>
+  <!--
+    Read-only floor plan for a big screen. Options (query string):
+      ?title=LAN%20Party   heading text
+      ?refresh=15          seconds between status polls when live updates are off (5 to 300)
+      ?labels=0            hide switch names
+      ?reload=360          reload the whole page every N minutes (0 = never)
+    See docs/kiosk.md.
+  -->
+  <div class="kiosk">
+    <header class="k-header">
+      <div class="k-brand">
+        <svg class="k-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="10" rx="2"/>
+          <line x1="6" y1="11" x2="6" y2="13"/><line x1="9" y1="11" x2="9" y2="13"/>
+          <line x1="12" y1="11" x2="12" y2="13"/><line x1="15" y1="11" x2="15" y2="13"/>
+          <line x1="18" y1="11" x2="18" y2="13"/>
+        </svg>
+        <h1 class="k-title" id="k-title">Floor plan</h1>
+      </div>
+
+      <div class="k-stats" aria-live="polite">
+        <div class="k-stat k-stat-online">
+          <span class="k-stat-glyph" aria-hidden="true">●</span>
+          <span class="k-stat-val" id="k-online">–</span>
+          <span class="k-stat-label">switches up</span>
+        </div>
+        <div class="k-stat k-stat-offline" id="k-offline-stat">
+          <span class="k-stat-glyph" aria-hidden="true">✕</span>
+          <span class="k-stat-val" id="k-offline">–</span>
+          <span class="k-stat-label">down</span>
+        </div>
+        <div class="k-stat k-stat-unknown" id="k-unknown-stat">
+          <span class="k-stat-glyph" aria-hidden="true">?</span>
+          <span class="k-stat-val" id="k-unknown">–</span>
+          <span class="k-stat-label">unknown</span>
+        </div>
+        <div class="k-stat k-stat-seats" id="k-seats-stat">
+          <span class="k-stat-val" id="k-seats">–</span>
+          <span class="k-stat-label">seats taken</span>
+        </div>
+      </div>
+
+      <div class="k-meta">
+        <div class="k-clock" id="k-clock">--:--</div>
+        <div class="k-sync">
+          <span class="k-live-dot" id="k-live-dot" aria-hidden="true"></span>
+          <span id="k-sync-text">Connecting…</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="k-stale hidden" id="k-stale" role="alert"></div>
+
+    <main class="k-body">
+      <div class="k-map" id="k-map">
+        <div class="k-plan" id="k-plan">
+          <div class="k-layer" id="k-blocks"></div>
+          <div class="k-layer" id="k-seats-layer"></div>
+          <div class="k-layer" id="k-switches"></div>
+        </div>
+        <div class="k-empty hidden" id="k-empty">
+          <p class="k-empty-title">Nothing on the floor plan yet</p>
+          <p class="k-empty-text">Place switches and seat blocks in the editor and they show up here.</p>
+        </div>
+      </div>
+
+      <aside class="k-alerts hidden" id="k-alerts" aria-label="Switches that are down">
+        <h2 class="k-alerts-title"><span aria-hidden="true">✕</span> Down <span id="k-alerts-count"></span></h2>
+        <ul class="k-alerts-list" id="k-alerts-list"></ul>
+      </aside>
+    </main>
+
+    <footer class="k-legend" aria-label="Legend">
+      <span class="k-legend-item"><span class="k-swatch k-swatch-online"></span>Switch up</span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-offline"></span>Switch down</span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-unknown"></span>No status</span>
+      <span class="k-legend-sep"></span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-seat-taken"></span>Seat taken</span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-seat-free"></span>Seat free</span>
+      <span class="k-legend-hint" id="k-fs-hint">Double-click for full screen</span>
+    </footer>
+  </div>
+
+  <script src="/static/js/kiosk.js"></script>
+</body>
+</html>
