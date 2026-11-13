@@ -79,10 +79,7 @@ function clearCache() {
 }
 
 // ── Per-device settings helpers ───────────────────────────────────────────────
-// Server-wide defaults from Settings > Display defaults (sent in /api/config).
-const DISPLAY_DEFAULT_KEYS = { hideLabel: 'hide_labels', excludeHeatmap: 'exclude_heatmap' };
-function getDeviceSetting(id, key, def) {
-  if (def === undefined) def = config.display_defaults?.[DISPLAY_DEFAULT_KEYS[key]] ?? false;
+function getDeviceSetting(id, key, def = false) {
   return deviceSettings[id]?.[key] ?? def;
 }
 function setDeviceSetting(id, key, val) {
@@ -294,7 +291,16 @@ function applyConfig() {
   if (config.netbox_enabled) {
     syncSection.classList.remove('hidden');
   }
-  renderAll();   // re-render with the server's display defaults
+}
+
+async function loadFloorplan() {
+  const data = await api('GET', '/api/floorplan');
+  if (data.url) {
+    applyFloorplan(data.url);
+  } else {
+    // No floorplan loaded - remove has-image class to allow full canvas placement
+    wrapper.classList.remove('has-image');
+  }
 }
 
 async function loadSwitches() {
@@ -587,7 +593,7 @@ wrapper.addEventListener('mousemove', (e) => {
 
 // Click on canvas background → deselect
 wrapper.addEventListener('mousedown', (e) => {
-  if (e.target === wrapper) deselectAll();
+  if (e.target === wrapper || e.target === floorplanImg) deselectAll();
 });
 
 // ── Add Modal ────────────────────────────────────────────────────────────────
@@ -1544,7 +1550,10 @@ async function onDocMouseUp() {
   if (type === 'seat') {
     const marker = seatsOverlay.querySelector(`[data-id="${id}"]`);
     if (marker) marker.classList.remove('dragging');
-    // Individual seats aren't persisted (no /api/seats/<id>); move the seat block instead.
+    if (moved) {
+      const seat = seats.find(s => s.id === id);
+      if (seat) await api('PUT', `/api/seats/${id}`, { x: seat.x, y: seat.y }).catch(console.error);
+    }
   } else if (type === 'block') {
     const marker = blocksOverlay.querySelector(`[data-id="${id}"]`);
     if (marker) marker.classList.remove('dragging');
@@ -1767,7 +1776,13 @@ document.addEventListener('keydown', async (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
     if (selectedType === 'seat') {
-      // Individual seats can't be deleted; delete their seat block instead.
+      // Handle seat deletion
+      if (confirm('Delete this seat?')) {
+        await api('DELETE', `/api/seats/${selectedId}`);
+        seats = seats.filter(s => s.id !== selectedId);
+        deselectAll();
+        renderAll();
+      }
     } else if (selectedType === 'block') {
       // Handle seat block deletion
       if (confirm('Delete this seat block?')) {
