@@ -1,0 +1,53 @@
+name: Release
+
+# A pushed v* tag becomes a GitHub release, made here so it can be immutable:
+#
+#     mason bump <repo> minor      PR that sets the version and adds the changelog section
+#     mason release tag <repo>     pushes v<version>; this workflow does the rest
+#
+# The tag must match the version file named in .mason.toml ([release] version), and the
+# notes are that version's CHANGELOG.md section (GitHub's generated notes if it has none).
+# Attach build output by adding steps before "Create the release" that write to dist/.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    # Never release the template itself, only repos made from it.
+    if: ${{ !github.event.repository.is_template }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The tag matches the version file
+        id: version
+        run: python3 .github/scripts/release_version.py "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+      - name: Notes from the changelog
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          if [ -f CHANGELOG.md ]; then
+            awk -v v="$VERSION" '
+              /^## / { if (found) exit; if (index($0, "[" v "]") || $2 == v) { found = 1; next } }
+              found { print }' CHANGELOG.md > notes.md
+          fi
+          touch notes.md
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -- dist/*
+          [ -e "$1" ] || set --
+          if [ -s notes.md ]; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "$@"
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes "$@"
+          fi

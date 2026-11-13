@@ -32,6 +32,9 @@ All notable changes to this project are listed here. The format follows
 
 ### Changed
 
+- The project moved from GitLab to GitHub (`bitsandbricks-ch/floorbit`). CI runs on GitHub Actions
+  with the same jobs plus actionlint, the Docker image is published to `ghcr.io/bitsandbricks-ch/floorbit`,
+  and the repo files (rulesets, issue forms, Dependabot, funding link) follow the BitsAndBricks repo template.
 - ruff checks a wider rule set (pycodestyle, import order, pyupgrade, bugbear, blind except,
   comprehensions, simplify, ruff-specific), and the code is cleaned up to pass it. Redis errors are
   now caught as `redis.RedisError` instead of any `Exception`.

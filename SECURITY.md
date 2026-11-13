@@ -8,8 +8,8 @@ Security fixes go into `master` and the next release. Please keep to the latest 
 
 Please **don't open a public issue** for security problems.
 
-Open a new issue and tick **This issue is confidential** before you create it, so only the
-project's maintainers can see it. Include:
+Use **Security > Report a vulnerability** on the GitHub repository (a private report that only the
+maintainers can see). Include:
 
 - what is affected and the image tag or commit;
 - steps to reproduce, or a proof of concept;

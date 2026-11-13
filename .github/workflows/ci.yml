@@ -1,0 +1,119 @@
+name: CI
+
+# Lint and test every pull request and master, with screenshots for the pull request.
+# "CI passed" comes last: it is the one check the master ruleset (.github/rulesets/main.json)
+# requires, so jobs can be added here without touching the ruleset. The image is built in
+# image.yml and releases are made in release.yml.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"          # the Dockerfile's Python
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  ruff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install --quiet -r requirements-dev.txt
+      # The github format puts findings inline on the pull request's diff.
+      - run: ruff check --output-format=github .
+
+  javascript:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # find -exec would hide a failing check; the loop stops on the first one.
+      - run: |
+          find static -name '*.js' -print0 | while IFS= read -r -d '' f; do
+            echo "$f"; node --check "$f" || exit 1
+          done
+
+  pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: pip install --quiet -r requirements.txt -r requirements-dev.txt
+      - run: pytest -q
+
+  screenshots:
+    # Every pull request has screenshots: this takes them, desktop and phone, of every page.
+    # Download the "screenshots" artifact from the run's summary and drag them into the PR.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: mcr.microsoft.com/playwright/python:v1.49.0-noble
+    services:
+      redis:
+        image: redis:7-alpine
+    env:
+      REDIS_HOST: redis
+      APP_URL: http://127.0.0.1:5000
+      # Throwaway demo account for this job's empty app; the script signs in with it.
+      AUTH_ADMIN_USER: demo
+      AUTH_ADMIN_PASSWORD: demo-screenshots
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: pip install --quiet -r requirements.txt playwright==1.49.0
+      - run: |
+          python -m flask --app app run --port 5000 > flask.log 2>&1 &
+          python scripts/screenshots.py screenshots
+      - if: always()
+        run: cat flask.log || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshots
+          path: screenshots/
+          retention-days: 30
+
+  workflows:
+    # The workflow files themselves: syntax, and expressions that would let a PR title
+    # or branch name run as shell (actionlint with its shellcheck pass).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: |
+          pip install --quiet actionlint-py
+          actionlint -color
+
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [ruff, javascript, pytest, screenshots, workflows]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' > /dev/null

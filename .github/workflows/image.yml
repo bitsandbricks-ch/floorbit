@@ -1,0 +1,43 @@
+# Builds the Dockerfile on every pull request; on master and on v* tags it also pushes
+# ghcr.io/<owner>/<repo> (tags: latest on master, the version on a tag, and the short sha).
+name: Image
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          image="ghcr.io/${REPO,,}"
+          tags=(-t "$image:${GITHUB_SHA::12}")
+          if [ "$GITHUB_REF" = refs/heads/master ]; then tags+=(-t "$image:latest"); fi
+          if [ "$GITHUB_REF_TYPE" = tag ]; then tags+=(-t "$image:${GITHUB_REF_NAME#v}"); fi
+          docker build --label "org.opencontainers.image.source=https://github.com/$REPO" "${tags[@]}" .
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+      - if: github.event_name != 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push --all-tags "$IMAGE"

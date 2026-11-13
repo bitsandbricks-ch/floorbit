@@ -1,6 +1,6 @@
 # Rules for coding agents
 
-These rules are for AI coding agents (Claude Code, Codex, Copilot, ...) working on LAL Floor Plan.
+These rules are for AI coding agents (Claude Code, Codex, Copilot, ...) working on Floorbit.
 Humans: see [CONTRIBUTING.md](CONTRIBUTING.md); the same rules apply to you in spirit.
 `CLAUDE.md` imports this file.
 
@@ -18,32 +18,32 @@ users: [README.md](README.md).
 | `static/js/`, `static/css/` | The browser app (plain JavaScript and CSS, no build step). |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests against the Flask test client, with a fake Redis. |
-| `scripts/screenshots.py` | Takes the merge request screenshots (the `screenshots` CI job runs it). |
-| `.gitlab-ci.yml` | Lint, test, screenshots, image build and push, releases. |
+| `scripts/screenshots.py` | Takes the pull request screenshots (the `screenshots` CI job runs it). |
+| `.github/workflows/` | GitHub Actions: `ci.yml` (lint, test, screenshots, the `CI passed` gate), `image.yml` (GHCR), `release.yml`. |
 | `.claude/`, `.planning/` | GSD workflow files. Leave them alone unless the task is about them. |
 
 ## Workflow
 
-1. **Branch:** work on your own branch, never push to `master`. One topic per branch and merge request.
+1. **Branch:** work on your own branch, never push to `master`. One topic per branch and pull request.
 2. **Before you push**, run what CI runs and make it pass locally:
    - `pip install -r requirements.txt -r requirements-dev.txt`
    - `ruff check .`
    - `pytest -q`
    - `for f in static/js/*.js; do node --check "$f"; done`
    - `docker build .`
-3. **Merge request:** open it as a **draft** and fill in the template
-   (`.gitlab/merge_request_templates/Default.md`). Link the issue.
-4. **Screenshots:** every merge request has them, UI change or not. Take them from the pipeline's
-   `screenshots` job (or run `scripts/screenshots.py` against a local server) and put them in the
+3. **Pull request:** open it as a **draft** and fill in the template
+   (`.github/pull_request_template.md`). Link the issue.
+4. **Screenshots:** every pull request has them, UI change or not. Take them from the CI
+   `screenshots` job's artifact (or run `scripts/screenshots.py` against a local server) and put them in the
    description.
-5. **CI:** wait for the pipeline. Fix failures yourself. Never skip, disable or weaken a check or a
+5. **CI:** wait for the checks. Fix failures yourself. Never skip, disable or weaken a check or a
    test to get green.
-6. **Done** means the task is complete, the checklist is ticked and the pipeline is green: then mark
-   the merge request ready. Leave it a draft only while work is open or you are blocked, and say why
+6. **Done** means the task is complete, the checklist is ticked and CI is green: then mark
+   the pull request ready. Leave it a draft only while work is open or you are blocked, and say why
    in the description.
-7. **Never merge** your own merge request, never force-push to a branch someone else works on, and
+7. **Never merge** your own pull request, never force-push to a branch someone else works on, and
    never push a tag. Merging and releasing are the maintainer's call.
-8. Keep the merge request description current when you push more commits.
+8. Keep the pull request description current when you push more commits.
 
 ## Rules
 
@@ -59,8 +59,8 @@ users: [README.md](README.md).
 - **User to IP mapping** goes through providers that can be swapped. Don't integrate the Lock and
   Load backend yet: it gets a major rework in 2027.
 - **CI images:** pin them to a version tag (`python:3.11-slim`, not `python:latest`), and pass
-  `$CI_*` text that users control (branch names, MR titles) through variables, never pasted into
-  a script.
-- **Dependencies:** add one only when it clearly pays for itself, and say why in the merge request.
+  `${{ github.* }}` text that users control (branch names, PR titles) through `env:`, never pasted into
+  a `run:` script. Pin actions to a major version tag (`actions/checkout@v4`).
+- **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - Write short comments that explain why, not what.
 - Stay inside the repository. Ask before deleting files you didn't create.

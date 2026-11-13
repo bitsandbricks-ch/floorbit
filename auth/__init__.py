@@ -24,8 +24,7 @@ from datetime import timedelta
 from functools import wraps
 from urllib.parse import urlsplit
 
-from flask import (Blueprint, abort, current_app, g, jsonify, redirect, render_template,
-                   request, session, url_for)
+from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
 
 from . import roles
 from .admin import create_users_blueprint
@@ -174,7 +173,7 @@ class Auth:
         path = self.users.path
         data = {}
         if os.path.exists(path):
-            with open(path, 'r') as f:
+            with open(path) as f:
                 data = json.load(f)
         if not data.get('auth_secret_key'):
             data['auth_secret_key'] = secrets.token_hex(32)
@@ -208,10 +207,8 @@ class Auth:
         if any(path == p or path.startswith(p + '/') for p in self.public_paths):
             return True
         # Reads of admin-only data (settings, accounts) never count as public.
-        if (self.public_read and request.method in SAFE_METHODS and path.startswith('/api/')
-                and roles.needed_for(path, request.method, SAFE_METHODS) == 'viewer'):
-            return True
-        return False
+        return bool(self.public_read and request.method in SAFE_METHODS and path.startswith('/api/')
+                    and roles.needed_for(path, request.method, SAFE_METHODS) == 'viewer')
 
     def guard(self):
         if not self.enabled:

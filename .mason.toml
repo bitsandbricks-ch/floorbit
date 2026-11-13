@@ -1,20 +1,16 @@
-# Mason (the `mason` command and the web app) reads this file. The defaults say what every
-# repo should look like; this file has the last word for this repo. Review changes to it like
-# code: it can turn rules off.
+# Mason (the `mason` command and the web app) reads this file. The org's defaults
+# (bitsandbricks-ch/.mason) say what every repo should look like; this file has the last
+# word for this repo. Review changes to it like code: it can turn org rules off.
 #
-#   mason bump lal-floorplan minor     MR that sets VERSION and adds the CHANGELOG section
-#   mason release tag lal-floorplan    pushes v<version>; the release job in .gitlab-ci.yml does the rest
-#   mason doctor lal-floorplan         settings, protected branches and files against the defaults
-
-owner = "mike"
-templates = true                       # an issue template and a merge request template must exist
+#   mason bump floorbit minor     PR that sets VERSION and adds the CHANGELOG section
+#   mason release tag floorbit    pushes v<version>; .github/workflows/release.yml makes the release
+#   mason doctor floorbit         settings, rulesets and files against the defaults
+#
+# Releases are immutable and made by the workflow, so push only the tag.
+# The master ruleset requires this check (.github/rulesets/main.json).
+protect = { checks = ["CI passed"] }
 
 [release]
 version = "VERSION"
 changelog = ["CHANGELOG.md"]
 tag = "v{version}"
-
-[gitlab]
-# Merge only with a green pipeline; nobody pushes to master directly, developers merge.
-settings = { only_allow_merge_if_pipeline_succeeds = true, remove_source_branch_after_merge = true, squash_option = "default_on" }
-protected_branches = { master = { push_access_level = 0, merge_access_level = 30 } }

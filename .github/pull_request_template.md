@@ -4,9 +4,9 @@
 
 ## Screenshots
 
-<!-- Required on every merge request. UI changes: desktop and phone, before and after.
-     The pipeline's `screenshots` job takes them for you: open "Screenshots" in the pipeline
-     widget below, download, and drag them in here. Not a UI change? Show the page, API answer
+<!-- Required on every pull request. UI changes: desktop and phone, before and after.
+     The CI `screenshots` job takes them for you: download the "screenshots" artifact from
+     the workflow run's summary and drag them in here. Not a UI change? Show the page, API answer
      or pipeline output it touches. Remove personal data (names, IPs, tokens) first. -->
 
 ## How it was tested
@@ -15,10 +15,8 @@
 
 ## Checklist
 
-- [ ] Pipeline is green
+- [ ] CI is green
 - [ ] Screenshots are in the description
 - [ ] Docs and README updated for user-facing or setup changes
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]` (if this goes into a release)
 - [ ] No secrets, tokens or personal data in code, screenshots or logs
-
-/assign me
