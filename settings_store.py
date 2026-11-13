@@ -12,7 +12,6 @@ import threading
 import requests
 from flask import Blueprint, jsonify, render_template, request
 
-
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
 def _parse_bool(raw):
@@ -22,10 +21,7 @@ def _parse_bool(raw):
 
 
 def _parse_list(raw):
-    if isinstance(raw, list):
-        items = raw
-    else:
-        items = str(raw).split(',')
+    items = raw if isinstance(raw, list) else str(raw).split(',')
     return [str(i).strip() for i in items if str(i).strip()]
 
 
@@ -94,7 +90,7 @@ def _coerce(field, raw):
         try:
             val = int(raw)
         except (TypeError, ValueError):
-            raise SettingsError(f"{field['label']} must be a whole number")
+            raise SettingsError(f"{field['label']} must be a whole number") from None
         lo, hi = field.get('min'), field.get('max')
         if (lo is not None and val < lo) or (hi is not None and val > hi):
             raise SettingsError(f"{field['label']} must be between {lo} and {hi}")
@@ -123,12 +119,12 @@ class SettingsStore:
         if not os.path.exists(self.data_file):
             return {}
         try:
-            with open(self.data_file, 'r') as f:
+            with open(self.data_file) as f:
                 return json.load(f)
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
             if strict:
                 # Never overwrite a data file we could not parse.
-                raise OSError(f'{self.data_file} is unreadable or not valid JSON')
+                raise OSError(f'{self.data_file} is unreadable or not valid JSON') from exc
             return {}
 
     def _current_mtime(self):
@@ -243,7 +239,10 @@ def _test_http(url, headers, verify, ok_message):
     try:
         resp = requests.get(url, headers=headers, timeout=8, verify=verify)
     except requests.exceptions.SSLError as exc:
-        return {'ok': False, 'message': f'TLS error: {exc.__class__.__name__}. Turn off certificate verification if the server uses a self-signed certificate.'}
+        return {'ok': False, 'message': (
+            f'TLS error: {exc.__class__.__name__}. '
+            'Turn off certificate verification if the server uses a self-signed certificate.'
+        )}
     except requests.RequestException as exc:
         return {'ok': False, 'message': f'Could not connect: {exc.__class__.__name__}'}
     if resp.status_code in (401, 403):
@@ -352,7 +351,7 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
             try:
                 client.ping()
                 return jsonify({'ok': True, 'message': f'Connected, {client.dbsize()} keys cached.'})
-            except Exception as exc:   # redis raises several unrelated types
+            except Exception as exc:  # noqa: BLE001  # redis raises several unrelated types
                 return jsonify({'ok': False, 'message': f'Redis error: {exc.__class__.__name__}'})
         return jsonify({'error': f'Unknown service: {service}'}), 404
 
