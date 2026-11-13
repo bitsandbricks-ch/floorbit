@@ -1031,7 +1031,7 @@ def get_cache_stats():
     """Get Redis cache statistics."""
     client = get_redis_client()
     if not client:
-        return jsonify({'error': 'Redis is not configured'}, 503)
+        return jsonify({'error': 'Redis is not configured'}), 503
 
     try:
         # Count ARP and MAC cache keys
@@ -1048,7 +1048,7 @@ def get_cache_stats():
             'cache_ttl_mac': CACHE_TTL_MAC,
         })
     except Exception as e:
-        return jsonify({'error': f'Failed to get cache stats: {str(e)}'}, 500)
+        return jsonify({'error': f'Failed to get cache stats: {str(e)}'}), 500
 
 
 # ── Status ─────────────────────────────────────────────────────────────────────
