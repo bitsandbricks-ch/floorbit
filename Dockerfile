@@ -20,6 +20,7 @@ COPY app.py settings_store.py ./
 # COPY data.json .
 COPY static/ ./static/
 COPY templates/ ./templates/
+COPY integrations/ ./integrations/
 
 # Create necessary directories
 RUN mkdir -p static/uploads

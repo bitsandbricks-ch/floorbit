@@ -1142,15 +1142,9 @@ def resolve_ip(ip_address):
 
 @app.route('/api/seats/info', methods=['GET'])
 def get_seats_info():
-    """Get seat information from seats.json file."""
-    try:
-        with open('seats.json', 'r') as f:
-            seats_data = json.load(f)
-        return jsonify(seats_data)
-    except FileNotFoundError:
-        return jsonify({'error': 'seats.json file not found'}), 404
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid JSON in seats.json'}), 400
+    """Seat → user / IP mapping, merged from the configured seat sources."""
+    seats = seat_sources.load()
+    return jsonify({'seats': seats, 'errors': seat_sources.info()['errors']})
 
 
 @app.route('/api/seats/resolve', methods=['POST'])
@@ -1161,15 +1155,11 @@ def resolve_seats():
             'error': 'LibreNMS is not configured',
         }), 400
 
-    try:
-        # Load seats data
-        with open('seats.json', 'r') as f:
-            seats_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return jsonify({'error': 'Could not load seats.json'}), 400
+    seats = seat_sources.load()
+    if not seats:
+        return jsonify({'error': 'No seat mapping available', 'sources': seat_sources.info()}), 400
 
     results = {}
-    seats = seats_data.get('seats', {})
 
     for seat_number, seat_info in seats.items():
         ip_address = seat_info.get('ip_address')
@@ -1204,15 +1194,11 @@ def get_seats_heatmap():
             'error': 'LibreNMS is not configured',
         }), 400
 
-    try:
-        # Load seats data
-        with open('seats.json', 'r') as f:
-            seats_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return jsonify({'error': 'Could not load seats.json'}), 400
+    seats = seat_sources.load()
+    if not seats:
+        return jsonify({'error': 'No seat mapping available', 'sources': seat_sources.info()}), 400
 
     results = {}
-    seats = seats_data.get('seats', {})
 
     for seat_number, seat_info in seats.items():
         ip_address = seat_info.get('ip_address')
@@ -1263,6 +1249,15 @@ def get_seats_heatmap():
             }
 
     return jsonify({'seats': results})
+
+
+# ── Integrations ───────────────────────────────────────────────────────────────
+# Live push (/api/events), switch status monitor, Discord alerts, seat sources
+# and the seat check-in page. See docs/integrations.md.
+from integrations import init_integrations, seat_sources  # noqa: E402
+
+init_integrations(app, load_data=load_data,
+                  settings_store=globals().get('settings_store'))
 
 
 if __name__ == '__main__':
