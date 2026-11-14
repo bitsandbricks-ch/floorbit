@@ -57,6 +57,8 @@ each seat is plugged into.
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
 - **Build planner:** before the event, switches, ports and VLANs per seat block, switch configs
   from templates per model, and cable labels to print. See [docs/planner.md](docs/planner.md).
+- **Pre-flight check:** before doors open, every switch reachable, every uplink up, DHCP and DNS
+  answering, as a go or no-go board to print and sign. See [docs/preflight.md](docs/preflight.md).
 - **Shift handover:** what happened since the last handover, what is still open, and a note for the
   next shift, optionally posted to Discord. See [docs/handover.md](docs/handover.md).
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is

@@ -24,6 +24,7 @@ const Jobs = lazy(() => import('@/pages/Jobs'))
 const Tournament = lazy(() => import('@/pages/Tournament'))
 const Handover = lazy(() => import('@/pages/Handover'))
 const Planner = lazy(() => import('@/pages/Planner'))
+const Preflight = lazy(() => import('@/pages/Preflight'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/tournament" element={<Tournament />} />
         <Route path="/handover" element={<Handover />} />
         <Route path="/planner" element={<Planner />} />
+        <Route path="/preflight" element={<Preflight />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

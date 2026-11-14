@@ -1,0 +1,14 @@
+{
+  "title": "Pre-flight check",
+  "intro": "Before doors open: every placed switch reachable, every uplink up, and DHCP, DNS and the other services answering. Run it all, or one part again after a fix.",
+  "print": "Print",
+  "runAll": "Run all checks",
+  "run": "Run",
+  "runAgain": "Run again",
+  "notRun": "Not run yet.",
+  "ranBy": "{{when}}, {{who}}",
+  "verdict": { "ready": "Ready for doors", "notReady": "Not ready", "incomplete": "Not every check has run" },
+  "count": { "pass": "{{count}} OK", "warn": "{{count}} to check", "fail": "{{count}} failed", "skip": "{{count}} skipped" },
+  "group": { "switches": "Switches reachable", "uplinks": "Uplinks up", "services": "DHCP, DNS and services" },
+  "status": { "pass": "OK", "warn": "Check", "fail": "Failed", "skip": "Skipped" }
+}

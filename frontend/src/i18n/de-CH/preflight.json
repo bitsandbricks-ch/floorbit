@@ -1,0 +1,14 @@
+{
+  "title": "Pre-Flight-Check",
+  "intro": "Vor der Türöffnung: jeder platzierte Switch erreichbar, jeder Uplink oben, und DHCP, DNS und die anderen Dienste antworten. Alles prüfen, oder nach einer Korrektur einen Teil erneut.",
+  "print": "Drucken",
+  "runAll": "Alles prüfen",
+  "run": "Prüfen",
+  "runAgain": "Erneut prüfen",
+  "notRun": "Noch nicht geprüft.",
+  "ranBy": "{{when}}, {{who}}",
+  "verdict": { "ready": "Bereit für die Türöffnung", "notReady": "Nicht bereit", "incomplete": "Noch nicht alles geprüft" },
+  "count": { "pass": "{{count}} OK", "warn": "{{count}} zu prüfen", "fail": "{{count}} fehlgeschlagen", "skip": "{{count}} übersprungen" },
+  "group": { "switches": "Switches erreichbar", "uplinks": "Uplinks oben", "services": "DHCP, DNS und Dienste" },
+  "status": { "pass": "OK", "warn": "Prüfen", "fail": "Fehler", "skip": "Übersprungen" }
+}
