@@ -32,6 +32,10 @@ def _has_content(data):
     return any(data.get(k) for k in ('inventory', 'switches', 'seat_blocks', 'seats', 'app_settings'))
 
 
+def _has_floor(data):
+    return any(data.get(k) for k in ('inventory', 'switches', 'seat_blocks', 'seats'))
+
+
 def state(data=None):
     data = load_data() if data is None else data
     found = data.get('setup')
@@ -50,9 +54,15 @@ def mark_existing():
     existed. A new one gets an open record now, so a setting saved during setup doesn't end it."""
     with _lock:
         data = load_data()
-        if 'setup' not in data:
+        found = data.get('setup')
+        if found is None:
             data['setup'] = {'done': True, 'steps': {}, 'auto': True} if _has_content(data) \
                 else {'done': False, 'steps': {}}
+            save_data(data)
+        elif not found.get('done') and not found.get('steps') and _has_floor(data):
+            # Nobody started the setup, but the floor plan filled up anyway (the demo hall, a
+            # restored backup, `flask users add` run before the first start): it is in use.
+            found.update(done=True, auto=True)
             save_data(data)
 
 

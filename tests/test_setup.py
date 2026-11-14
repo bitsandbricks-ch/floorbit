@@ -88,3 +88,19 @@ def test_saving_a_setting_during_setup_does_not_end_it(client):
     setup.mark_existing()
     assert client.put("/api/settings", json={"theme.preset": "ops"}).status_code == 200
     assert client.get("/api/setup").get_json()["done"] is False
+
+
+def test_a_floor_plan_filled_before_setup_started_counts_as_set_up(client):
+    # e.g. `flask users add` opened the record, then the demo hall or a restore filled the plan.
+    setup.mark_existing()
+    client.post("/api/seat-blocks", json={"name": "A", "x": 10, "y": 10, "cols": 2, "rows": 1})
+    setup.mark_existing()
+    assert setup.state()["done"] is True
+
+
+def test_a_started_setup_stays_open(client):
+    setup.mark_existing()
+    client.post("/api/setup/steps/netbox", json={"state": "skipped"})
+    client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10})
+    setup.mark_existing()
+    assert setup.state()["done"] is False
