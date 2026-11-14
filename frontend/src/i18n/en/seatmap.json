@@ -1,6 +1,6 @@
 {
   "title": "Seat mapping",
-  "intro": "Which IP, MAC and nick belong to which seat. Floorbit merges it from the check-in page, plugins and seat files. What you enter here wins over all of them; fields you leave empty come from the other sources. Editors and admins only: this is personal data.",
+  "intro": "Which IP, MAC and nick belong to which seat. Floorbit merges it from the check-in page, plugins and seat files. What you enter here wins over all of them; fields you leave empty come from the other sources. Only accounts with seat access see it: this is personal data.",
   "search": "Search",
   "searchPlaceholder": "Seat, nick, IP, MAC…",
   "onlyManual": "Only hand entries",

@@ -35,6 +35,9 @@ each seat is plugged into.
 - **Sign-in:** the editor and the settings need an account; the floor plan data stays readable for
   kiosk screens. Username and password, or **Sign in with Discord**: members of your Discord server
   get an account with a role from their server roles. See [docs/auth.md](docs/auth.md).
+- **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
+  permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
+  viewers and kiosk screens.
 - **Themes:** the Floorbit look by default, plus Ops, Kiosk and Classic presets and a custom theme
   with your event's colours, name and logo. Each screen can pick its own with `?theme=`. See
   [docs/themes.md](docs/themes.md).

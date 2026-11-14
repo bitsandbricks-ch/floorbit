@@ -24,7 +24,8 @@ const list: SeatMapList = {
   errors: {},
   labels: { manual: 'Entered by hand', checkin: 'Seat check-in page' },
 }
-const me = { 'GET /api/auth/me': { enabled: true, user: { username: 'ed', display_name: 'Ed', role: 'editor' } } }
+const lead = { username: 'ed', display_name: 'Ed', role: 'lead', permissions: ['floorplan.view', 'seats.view', 'seats.edit'] }
+const me = { 'GET /api/auth/me': { enabled: true, user: lead } }
 
 describe('matches', () => {
   it('finds by seat, nick, IP and MAC, and can show only hand entries', () => {
@@ -43,6 +44,17 @@ describe('Seat mapping page', () => {
     expect(within(row).getByText('Seat check-in page')).toBeInTheDocument()
     expect(within(row).getByText('console')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', '/api/seat-map.csv')
+  })
+
+  it('is read-only for a tech (seats.view without seats.edit)', async () => {
+    const tech = { ...lead, role: 'tech', permissions: ['floorplan.view', 'seats.view'] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': { enabled: true, user: tech }, 'GET /api/seat-map': list }).fn)
+    renderWithApp(<SeatMapping />)
+    expect(await screen.findByText('A-1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'A-1' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add entry' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Import CSV' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toBeInTheDocument()
   })
 
   it('shows what an empty field falls back to and saves the hand entry', async () => {

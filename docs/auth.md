@@ -4,17 +4,70 @@ The editor and the settings page are behind a sign-in. Code: [`auth/`](../auth/)
 
 ## Who can do what
 
-| Request | Signed out | Viewer | Editor | Admin |
-| --- | --- | --- | --- | --- |
-| `/` (floor plan editor) | redirected to `/login` | read-only | yes | yes |
-| `GET /api/...` (switches, seats, status, live events) | yes, while `AUTH_PUBLIC_READ` is on | yes | yes | yes |
-| Changes (`POST`, `PUT`, `PATCH`, `DELETE`) | 401 | 403 | yes | yes |
-| `/api/checkins...`, `/checkins/history` (user, IP, MAC per seat) | 401 / login | 403 | yes | yes |
-| `/settings`, `/settings/users`, `/api/settings`, `/api/users`, `/api/integrations...` | 401 / login | 403 | 403 | yes |
-| `/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | yes | yes | yes |
+Access is role based (RBAC). Every request needs one **permission**; an account's **role** is a
+named set of permissions. The rules live in `auth/roles.py` (`RULES`): the first matching path
+wins, any other read needs `floorplan.view`, and any other change needs `settings.manage`, so a new
+route stays admin-only until someone gives it a rule.
 
-Roles are in `auth/roles.py`. Each includes the ones below it. Accounts created before roles existed
-count as admin. Viewers get the editor with its editing tools hidden.
+| Permission | Allows |
+| --- | --- |
+| `floorplan.view` | See the floor plan, dashboards and live switch status |
+| `floorplan.edit` | Change the floor plan and the inventory, run syncs |
+| `seats.view` | See who sits where: nicks, IPs, MACs and check-ins |
+| `seats.edit` | Change the seat mapping and check-ins |
+| `incidents.work` | Work incidents assigned to their teams |
+| `incidents.assign` | Assign incidents to any team |
+| `ports.act` | Run port actions on switches |
+| `plugins.run` | Run plugin actions |
+| `audit.read` | Read the audit log |
+| `settings.manage` | Change settings, plugins and backups |
+| `accounts.manage` | Manage accounts, roles and teams |
+
+Built-in roles (they can't be changed):
+
+| Role | Permissions |
+| --- | --- |
+| Admin | all |
+| Lead | everything except `settings.manage` and `accounts.manage` |
+| Tech | `floorplan.view`, `seats.view`, `incidents.work`, `ports.act` |
+| Viewer | `floorplan.view` |
+| Kiosk | `floorplan.view` (an account for a big screen; remove it to revoke it) |
+
+Admins add their own roles on **Settings › Roles and teams** (`/settings/teams`), with any mix of
+the permissions above. Custom roles are stored in `data.json` under `auth_roles`. A role still in
+use can't be removed, and no change may leave nobody with `accounts.manage`.
+
+| Request | Signed out | Needs |
+| --- | --- | --- |
+| `/` (floor plan editor) | redirected to `/login` | `floorplan.view`; editing tools need `floorplan.edit` |
+| `GET /api/...` (switches, status, live events, `/api/seats/occupancy`) | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
+| `/api/seats/info`, `/api/seat-map`, `/api/checkins`, `/seat-mapping` (nicks, IPs, MACs) | 401 / login | `seats.view` (changes: `seats.edit`) |
+| Floor plan, seat block and inventory changes | 401 | `floorplan.edit` |
+| `/settings/audit`, `/api/settings/audit` | 401 / login | `audit.read` |
+| `/settings/users`, `/settings/teams`, `/api/users`, `/api/roles`, `/api/teams` | 401 / login | `accounts.manage` |
+| `/settings`, `/api/settings`, `/api/integrations...`, `/api/demo` | 401 / login | `settings.manage` |
+| `/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | nothing |
+
+A refused request answers `403` with `permission_needed`. Plugin actions and widgets name the
+permission they need in their manifest (`permission:`; the older `role:` still works and maps to
+`floorplan.view`, `plugins.run` or `settings.manage`).
+
+Viewers, kiosks and signed-out screens see which seats are taken (`/api/seats/occupancy`), never
+who sits there.
+
+### Teams
+
+Teams are a tree (Infra › Core, Access, Wi-Fi; Operations; Electrics to start with), stored under
+`auth_teams`. An account can be in several teams, each with a role. A team role counts for that team
+and every team below it, and only adds permissions *inside* those teams (for example working the
+incidents routed to them, issue #11). Everything else is decided by the account's own role. Teams go
+at most 5 levels deep.
+
+### Upgrading
+
+Accounts from before roles existed have no role stored and count as admin, so nobody is locked out.
+The old `editor` role is now **Lead** (stored values are read as `lead`), which now also reads the
+audit log. Viewers lost access to `/api/seats/info`; the kiosk view uses `/api/seats/occupancy`.
 
 Reads stay open by default so a kiosk screen or the check-in page can load the floor plan without an
 account. Set `AUTH_PUBLIC_READ=false` to close them too; a kiosk then needs to be signed in.
@@ -34,7 +87,7 @@ add, change role, reset password, remove. Or on the server:
 ```sh
 docker compose exec lal-app flask users add mike          # asks for the password; first account is admin
 docker compose exec lal-app flask users add helper1 --role viewer
-docker compose exec lal-app flask users role helper1 editor
+docker compose exec lal-app flask users role helper1 lead
 docker compose exec lal-app flask users passwd mike       # also signs out mike's sessions
 docker compose exec lal-app flask users remove mike
 docker compose exec lal-app flask users list
@@ -45,7 +98,7 @@ Outside Docker use `flask --app app users ...`.
 For a fresh install, `AUTH_ADMIN_USER` and `AUTH_ADMIN_PASSWORD` create the first account on start
 when there is none yet. They do nothing once an account exists, so you can remove them afterwards.
 
-Accounts added without a role are editors. The last admin can't be demoted or removed, and admins
+Accounts added without a role are leads. The last account that can manage accounts can't be demoted or removed, and admins
 can't change their own role or remove themselves. A role change applies to open sessions at once; a
 password reset signs that account out everywhere.
 
@@ -95,7 +148,7 @@ Role mapping for server members, by Discord role ID (comma separated):
 | Setting | Env var | Members with one of these roles become |
 | --- | --- | --- |
 | Admin roles | `DISCORD_ADMIN_ROLES` | admin |
-| Editor roles | `DISCORD_EDITOR_ROLES` | editor |
+| Editor roles | `DISCORD_EDITOR_ROLES` | lead |
 | Viewer roles | `DISCORD_VIEWER_ROLES` | viewer |
 
 The highest matching role wins. With all three lists empty, every member of the server can sign in

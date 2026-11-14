@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useSeatMap } from '@/api/queries'
+import { useCan, useSeatMap } from '@/api/queries'
 import type { SeatRow } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
@@ -37,6 +37,8 @@ export default function SeatMapping() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const { data, error, isPending } = useSeatMap()
+  // Techs see the mapping (seats.view) but only leads and admins change it (seats.edit).
+  const canEdit = useCan('seats.edit')
   const [query, setQuery] = useState('')
   const [onlyManual, setOnlyManual] = useState(false)
   const [editing, setEditing] = useState<SeatRow | null>(null)
@@ -86,12 +88,16 @@ export default function SeatMapping() {
             <Button component="a" href="/api/seat-map.csv" variant="default" leftSection={<IconDownload size={16} />}>
               {t('seatmap.export')}
             </Button>
-            <Button variant="default" leftSection={<IconUpload size={16} />} onClick={importDialog.open}>
-              {t('seatmap.import')}
-            </Button>
-            <Button leftSection={<IconPlus size={16} />} onClick={() => open(null)}>
-              {t('seatmap.add')}
-            </Button>
+            {canEdit && (
+              <>
+                <Button variant="default" leftSection={<IconUpload size={16} />} onClick={importDialog.open}>
+                  {t('seatmap.import')}
+                </Button>
+                <Button leftSection={<IconPlus size={16} />} onClick={() => open(null)}>
+                  {t('seatmap.add')}
+                </Button>
+              </>
+            )}
           </>
         }
       />
@@ -145,9 +151,15 @@ export default function SeatMapping() {
                     {rows.map((r) => (
                       <Table.Tr key={r.seat}>
                         <Table.Td>
-                          <Button variant="subtle" size="compact-sm" onClick={() => open(r)} ff="monospace">
-                            {r.seat}
-                          </Button>
+                          {canEdit ? (
+                            <Button variant="subtle" size="compact-sm" onClick={() => open(r)} ff="monospace">
+                              {r.seat}
+                            </Button>
+                          ) : (
+                            <Text size="sm" ff="monospace" fw={600}>
+                              {r.seat}
+                            </Text>
+                          )}
                         </Table.Td>
                         <Table.Td>
                           <Cell value={r.nick} source={r.from.nick} label={label} />
@@ -173,7 +185,7 @@ export default function SeatMapping() {
                           )}
                         </Table.Td>
                         <Table.Td>
-                          {r.manual && (
+                          {canEdit && r.manual && (
                             <ConfirmButton
                               size="xs"
                               variant="subtle"

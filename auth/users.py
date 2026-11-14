@@ -149,7 +149,8 @@ class UserStore:
                 raise UserError(f'No user called {username}.')
             if role is not None:
                 role = _role(role)
-                if roles.of(user) == 'admin' and role != 'admin' and _admin_count(users) <= 1:
+                if _manager(user) and 'accounts.manage' not in roles.permissions_of(role) \
+                        and _admin_count(users) <= 1:
                     raise UserError('This is the last admin. Make someone else admin first.')
                 # Sessions read the record on every request, so this applies at once.
                 user['role'] = role
@@ -181,14 +182,19 @@ class UserStore:
             user = users.get((username or '').lower())
             if not user:
                 raise UserError(f'No user called {username}.')
-            if roles.of(user) == 'admin' and _admin_count(users) <= 1:
+            if _manager(user) and _admin_count(users) <= 1:
                 raise UserError('This is the last admin. Make someone else admin first.')
             del users[(username or '').lower()]
             self._write_users(users)
 
 
+def _manager(user):
+    return roles.can(user, 'accounts.manage')
+
+
 def _admin_count(users):
-    return sum(1 for u in users.values() if roles.of(u) == 'admin')
+    """Accounts that can still manage accounts (so nobody locks everyone out)."""
+    return sum(1 for u in users.values() if _manager(u))
 
 
 def public(user):
@@ -197,6 +203,9 @@ def public(user):
         'username': user['username'],
         'display_name': user.get('display_name') or user['username'],
         'role': roles.of(user),
+        'role_label': roles.label(roles.of(user)),
+        'permissions': sorted(roles.permissions_of(roles.of(user))),
+        'teams': dict(user.get('teams') or {}),
         'has_password': bool(user.get('password_hash')),
         'identities': sorted((user.get('identities') or {}).keys()),
         'discord_id': (user.get('identities') or {}).get('discord', ''),

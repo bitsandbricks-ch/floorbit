@@ -43,6 +43,13 @@ ACTIONS = {
     ('POST', '/api/users'): ('accounts', 'Added account'),
     ('PATCH', '/api/users/<username>'): ('accounts', 'Changed account'),
     ('DELETE', '/api/users/<username>'): ('accounts', 'Deleted account'),
+    ('PUT', '/api/roles/<role_id>'): ('accounts', 'Saved role'),
+    ('DELETE', '/api/roles/<role_id>'): ('accounts', 'Deleted role'),
+    ('POST', '/api/teams'): ('accounts', 'Added team'),
+    ('PATCH', '/api/teams/<team_id>'): ('accounts', 'Changed team'),
+    ('DELETE', '/api/teams/<team_id>'): ('accounts', 'Deleted team'),
+    ('PUT', '/api/teams/<team_id>/members/<username>'): ('accounts', 'Changed team member'),
+    ('DELETE', '/api/teams/<team_id>/members/<username>'): ('accounts', 'Removed team member'),
     ('DELETE', '/api/checkins/<seat>'): ('check-in', 'Removed check-in'),
     ('POST', '/api/checkins/refresh'): ('check-in', 'Refreshed check-ins'),
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
@@ -119,6 +126,9 @@ def read(limit=100, offset=0, user=None, area=None, query=None):
 # ── Request hook ─────────────────────────────────────────────────────────────────────
 def _target(response):
     """A human name for what changed: the switch or block name, else the id in the URL."""
+    args = request.view_args or {}
+    if 'team_id' in args and 'username' in args:   # a membership: who, in which team
+        return f"{args['username']} in {args['team_id']}"
     body = response.get_json(silent=True) if response.is_json else None
     sent = request.get_json(silent=True)
     for source in (body, (body or {}).get('user') if isinstance(body, dict) else None, sent):

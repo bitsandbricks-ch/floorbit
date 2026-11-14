@@ -1,7 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
-import type { InventoryList, SeatMapList, LogLine, Me, PluginInfo, Role, Tile, Widget, WidgetTile } from './types'
+import type {
+  AccountSummary,
+  InventoryList,
+  LogLine,
+  Me,
+  Permission,
+  PluginInfo,
+  RolesList,
+  SeatMapList,
+  Team,
+  Tile,
+  Widget,
+  WidgetTile,
+} from './types'
 
 export function useMe() {
   return useQuery({ queryKey: qk.me, queryFn: () => get<Me>('/api/auth/me'), staleTime: 60_000 })
@@ -33,13 +46,13 @@ export function usePluginLog(id: string, enabled: boolean) {
   })
 }
 
-/** Editors and admins may change things; everyone may when sign-in is off. */
-export function useCanEdit(needed: Role = 'editor') {
+/** Does the signed-in account's role have this permission? Everyone may when sign-in is off.
+ *  Only hides buttons: the server checks every request anyway (auth/roles.py). */
+export function useCan(permission: Permission) {
   const me = useMe().data
   if (!me) return false
   if (!me.enabled) return true
-  const order: Role[] = ['viewer', 'editor', 'admin']
-  return !!me.user && order.indexOf(me.user.role) >= order.indexOf(needed)
+  return !!me.user?.permissions?.includes(permission)
 }
 
 export function useInventory(hidden: boolean) {
@@ -51,4 +64,16 @@ export function useInventory(hidden: boolean) {
 
 export function useSeatMap() {
   return useQuery({ queryKey: qk.seatMap, queryFn: () => get<SeatMapList>('/api/seat-map') })
+}
+
+export function useRoles() {
+  return useQuery({ queryKey: qk.roles, queryFn: () => get<RolesList>('/api/roles') })
+}
+
+export function useTeams() {
+  return useQuery({ queryKey: qk.teams, queryFn: () => get<{ teams: Team[] }>('/api/teams') })
+}
+
+export function useAccounts() {
+  return useQuery({ queryKey: qk.users, queryFn: () => get<{ users: AccountSummary[] }>('/api/users') })
 }

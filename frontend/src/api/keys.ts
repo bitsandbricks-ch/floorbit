@@ -7,5 +7,8 @@ export const qk = {
   inventory: (hidden: boolean) => ['inventory', { hidden }] as const,
   inventoryAll: ['inventory'] as const,
   seatMap: ['seat-map'] as const,
+  roles: ['roles'] as const,
+  teams: ['teams'] as const,
+  users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
 }

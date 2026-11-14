@@ -4,10 +4,11 @@ Who may do what:
 
 - Settings > Plugins and ``/api/settings/plugins/...`` (turn on and off, test, log): admins only,
   through the ``/settings`` and ``/api/settings`` path rules of the request guard.
-- ``POST /api/plugins/<id>/actions/<action>``: the role the action names (editor or admin,
-  admin when it names none). Every run is in the audit log, with parameter names, never values.
-- Widgets and endpoints: a signed-in account with the role they name (viewer by default). They
-  are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
+- ``POST /api/plugins/<id>/actions/<action>``: the permission the action names (``permission:``,
+  or the older ``role:`` mapped across; settings.manage when it names none). Every run is in the
+  audit log, with parameter names, never values.
+- Widgets and endpoints: a signed-in account with the permission they name (floorplan.view by
+  default). They are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
 """
 from flask import Blueprint, current_app, jsonify, request
 
@@ -35,8 +36,9 @@ def _allowed(needed):
     user = _user()
     if not user:
         return jsonify({'error': 'Sign in required', 'login_url': '/login'}), 401
-    if not roles.allows(user['role'], needed):
-        return jsonify({'error': f'This needs the {roles.LABELS[needed]} role.', 'role_needed': needed}), 403
+    if not roles.can(user, needed):
+        return jsonify({'error': f"Your role can't do this. It needs: {roles.PERMISSIONS[needed]}.",
+                        'permission_needed': needed}), 403
     return None
 
 
@@ -133,7 +135,7 @@ def run_action(plugin_id, action_id):
     action = spec.item('actions', action_id) if spec else None
     if action is None:
         return _error('No such action', 404)
-    refused = _allowed(action['role'])
+    refused = _allowed(action['permission'])
     if refused:
         return refused
     body = request.get_json(silent=True) or {}
@@ -160,7 +162,7 @@ def widget(plugin_id, widget_id):
     item = spec.item('widgets', widget_id) if spec else None
     if item is None:
         return _error('No such widget', 404)
-    refused = _allowed(item['role'])
+    refused = _allowed(item['permission'])
     if refused:
         return refused
     try:
@@ -175,7 +177,7 @@ def endpoint(plugin_id, endpoint_id):
     item = spec.item('endpoints', endpoint_id) if spec else None
     if item is None:
         return _error('No such endpoint', 404)
-    refused = _allowed(item['role'])
+    refused = _allowed(item['permission'])
     if refused:
         return refused
     args = {k: v[:200] for k, v in list(request.args.items())[:20]}
@@ -196,24 +198,24 @@ def dashboard_page():
 
 @bp.route('/api/dashboard', methods=['GET'])
 def dashboard():
-    refused = _allowed('viewer')
+    refused = _allowed('floorplan.view')
     if refused:
         return refused
     from auth import roles
     user = _user()
-    role = user['role'] if user else 'admin'
+    granted = roles.permissions_of(roles.of(user)) if user else set(roles.PERMISSIONS)
     tiles = []
     registry = _registry()
     for spec in registry.specs.values():
         if not registry.enabled(spec):
             continue
         for w in spec.items('widgets'):
-            if roles.allows(role, w['role']):
+            if w['permission'] in granted:
                 tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'id': w['id'], 'label': w['label'],
                               'size': w.get('size', 'small'), 'refresh': w['refresh'],
                               'url': f"/api/plugins/{spec.id}/widgets/{w['id']}"})
         for a in spec.items('actions'):
-            if a.get('dashboard') and roles.allows(role, a['role']):
+            if a.get('dashboard') and a['permission'] in granted:
                 tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'id': a['id'], 'label': a['label'],
                               'kind': 'action', 'danger': bool(a.get('danger')),
                               'url': f"/api/plugins/{spec.id}/actions/{a['id']}"})

@@ -1,6 +1,6 @@
 {
   "title": "Platzzuordnung",
-  "intro": "Welche IP, MAC und welcher Nick zu welchem Platz gehören. Floorbit führt sie aus der Check-in-Seite, Plugins und Platzdateien zusammen. Was du hier einträgst, gilt vor allen anderen Quellen; leere Felder kommen aus den anderen Quellen. Nur für Editoren und Admins: Das sind Personendaten.",
+  "intro": "Welche IP, MAC und welcher Nick zu welchem Platz gehören. Floorbit führt sie aus der Check-in-Seite, Plugins und Platzdateien zusammen. Was du hier einträgst, gilt vor allen anderen Quellen; leere Felder kommen aus den anderen Quellen. Nur Konten mit Zugriff auf die Plätze sehen sie: Das sind Personendaten.",
   "search": "Suchen",
   "searchPlaceholder": "Platz, Nick, IP, MAC…",
   "onlyManual": "Nur Einträge von Hand",

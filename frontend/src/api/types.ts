@@ -1,11 +1,15 @@
 // Shapes the Flask API returns. Keep in step with floorbit/plugins and auth.
 
-export type Role = 'viewer' | 'editor' | 'admin'
+/** A permission from auth/roles.py PERMISSIONS, e.g. 'floorplan.edit'. */
+export type Permission = string
 
 export interface User {
   username: string
   display_name: string
-  role: Role
+  /** admin, lead, tech, viewer, kiosk or a custom role. */
+  role: string
+  role_label?: string
+  permissions: Permission[]
 }
 
 export interface Me {
@@ -79,8 +83,8 @@ export interface PluginInfo {
   enabled: boolean
   error: string | null
   settings_section: string | null
-  actions: { id: string; label: string; role: Role; danger?: boolean; help?: string }[]
-  widgets: { id: string; label: string; size: string; refresh: number; role: Role }[]
+  actions: { id: string; label: string; role: string; permission?: Permission; danger?: boolean; help?: string }[]
+  widgets: { id: string; label: string; size: string; refresh: number; role: string; permission?: Permission }[]
   endpoints: { id: string; label: string; url: string }[]
   hooks: { events: string[]; action: string }[]
   has_test: boolean
@@ -168,4 +172,35 @@ export interface ImportResult {
   added: number
   updated: number
   removed: number
+}
+
+// Roles and teams (auth/roles.py, auth/teams.py, auth/admin.py)
+export interface RoleInfo {
+  id: string
+  label: string
+  description: string
+  permissions: Permission[]
+  builtin: boolean
+  users: number
+}
+export interface RolesList {
+  permissions: { id: Permission; label: string }[]
+  roles: RoleInfo[]
+}
+export interface TeamMember {
+  username: string
+  role: string
+  role_label: string
+}
+export interface Team {
+  id: string
+  name: string
+  parent: string | null
+  depth: number
+  members: TeamMember[]
+}
+export interface AccountSummary {
+  username: string
+  display_name: string
+  role: string
 }

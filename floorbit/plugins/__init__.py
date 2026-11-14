@@ -67,6 +67,7 @@ TRUE_WORDS = ('1', 'true', 'yes', 'on')
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
                  'int': 'int', 'select': 'choice', 'list': 'list'}
 ROLES = ('viewer', 'editor', 'admin')
+ROLE_PERMISSION = {'viewer': 'floorplan.view', 'editor': 'plugins.run', 'admin': 'settings.manage'}
 # Events a hook can listen to. ``change`` is any audited change (area, action, target, fields),
 # ``switch.status`` a switch going offline or coming back (from the status monitor).
 EVENTS = ('change', 'switch.status')
@@ -172,6 +173,12 @@ def validate(m):
                 return f"{kind}.{item['id']}: role must be " + ('editor or admin' if kind == 'actions'
                                                                else 'viewer, editor or admin')
             item['role'] = role
+            # The permission it needs (auth/roles.py). Older manifests name a role; it maps across.
+            permission = item.get('permission') or ROLE_PERMISSION[role]
+            from auth.roles import PERMISSIONS
+            if permission not in PERMISSIONS:
+                return f"{kind}.{item['id']}: unknown permission {permission!r}"
+            item['permission'] = permission
             item.setdefault('label', item['id'].replace('_', ' ').capitalize())
             if kind == 'actions':
                 err = _check_fields(item.get('params'), f"actions.{item['id']}.params")
@@ -497,9 +504,9 @@ class Registry:
                 'settings_section': (spec.manifest.get('core_settings') or
                                      (f'plugin-{spec.id}' if spec.items('settings') and not spec.error else None)),
                 'default_enabled': bool(spec.manifest.get('default_enabled')),
-                'actions': [{k: a.get(k) for k in ('id', 'label', 'role', 'danger', 'help')}
+                'actions': [{k: a.get(k) for k in ('id', 'label', 'role', 'permission', 'danger', 'help')}
                             for a in spec.items('actions')],
-                'widgets': [{k: w.get(k) for k in ('id', 'label', 'size', 'refresh', 'role')}
+                'widgets': [{k: w.get(k) for k in ('id', 'label', 'size', 'refresh', 'role', 'permission')}
                             for w in spec.items('widgets')],
                 'endpoints': [{'id': e['id'], 'label': e.get('label'),
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}

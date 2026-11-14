@@ -9,9 +9,9 @@ guard that runs before every request:
   requests to ``/api/...``, so a kiosk screen can show the floor plan without
   an account. ``/api/settings`` and ``/api/users`` are never open.
 - Everything else, which is every page of the editor, ``/settings`` and every
-  request that changes something, needs a signed-in user with a role that
-  allows it (see roles.py): viewers look, editors change the floor plan,
-  admins also change settings and manage accounts.
+  request that changes something, needs a signed-in user whose role has the
+  permission the request needs (see roles.py: roles are sets of permissions,
+  and every path has a rule; a path without one needs an admin to change it).
 
 How a person proves who they are is up to the providers in ``providers/``:
 local username and password accounts and Discord (providers/discord.py).
@@ -26,7 +26,7 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
 
-from . import roles
+from . import roles, teams
 from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
 from .users import UserError, UserStore, public
@@ -118,9 +118,10 @@ def _deny():
 
 
 def _forbidden(needed):
-    message = f'This needs the {roles.LABELS[needed]} role.'
+    what = roles.PERMISSIONS.get(needed, needed)
+    message = f'Your role can\'t do this. It needs the permission: {what[0].lower() + what[1:]}.'
     if _wants_json():
-        return jsonify({'error': message, 'role_needed': needed}), 403
+        return jsonify({'error': message, 'permission_needed': needed}), 403
     return render_template('forbidden.html', message=message, user=current_user()), 403
 
 
@@ -144,6 +145,9 @@ class Auth:
         self.public_paths = _env_list('AUTH_PUBLIC_PATHS', DEFAULT_PUBLIC_PATHS)
         self.trusted_origins = [o.rstrip('/') for o in _env_list('AUTH_TRUSTED_ORIGINS', '')]
         self.users = UserStore(data_file)
+        # Roles and teams live in the same file as the accounts (and follow it in tests).
+        roles.configure(lambda: self.users.path)
+        teams.configure(lambda: self.users.path)
         self.providers = Registry()
         self.providers.register(LocalProvider(self.users))
         self._failures = {}
@@ -209,7 +213,7 @@ class Auth:
             return True
         # Reads of admin-only data (settings, accounts) never count as public.
         return bool(self.public_read and request.method in SAFE_METHODS and path.startswith('/api/')
-                    and roles.needed_for(path, request.method, SAFE_METHODS) == 'viewer')
+                    and roles.needed_for(path, request.method, SAFE_METHODS) == 'floorplan.view')
 
     def guard(self):
         if not self.enabled:
@@ -222,7 +226,7 @@ class Auth:
         if not user:
             return _deny()
         needed = roles.needed_for(request.path.rstrip('/') or '/', request.method, SAFE_METHODS)
-        if not roles.allows(user['role'], needed):
+        if not roles.can(user, needed):
             return _forbidden(needed)
         return None
 
@@ -377,8 +381,9 @@ def _register_cli(app, auth):
     @users.command('add')
     @click.argument('username')
     @click.option('--display-name', default='', help='Name shown in the top bar.')
-    @click.option('--role', type=click.Choice(roles.ROLES), default=None,
-                  help='Defaults to admin for the first account, editor after that.')
+    @click.option('--role', default=None,
+                  help='admin, lead, tech, viewer, kiosk or a custom role. Defaults to admin for the first '
+                       'account, lead after that.')
     @click.password_option(help='Prompted for when left out.')
     def add_user(username, display_name, role, password):
         role = role or ('admin' if auth.users.count() == 0 else roles.DEFAULT_ROLE)
@@ -390,7 +395,7 @@ def _register_cli(app, auth):
 
     @users.command('role')
     @click.argument('username')
-    @click.argument('role', type=click.Choice(roles.ROLES))
+    @click.argument('role')
     def set_role(username, role):
         try:
             auth.users.update(username, role=role)

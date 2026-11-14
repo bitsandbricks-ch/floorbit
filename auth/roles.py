@@ -1,59 +1,228 @@
-"""Roles: what a signed-in account may do.
+"""Roles: named sets of permissions (RBAC). See docs/auth.md.
 
-- viewer: open the floor plan editor read-only, change nothing.
-- editor: change the floor plan (switches, seat blocks, cache, sync).
-- admin:  everything, including /settings and managing accounts.
+Every request needs one permission (``needed_for``), and an account's role says which ones it
+has. Built-in roles can't be changed; admins add their own under Settings > Roles and teams.
+Team roles (auth/teams.py) add permissions inside a team only.
 
-Each role includes the ones below it. Accounts from before roles existed have
-no role stored and count as admin, so nobody is locked out by the upgrade.
+Accounts from before roles existed have no role stored and count as admin, so nobody is locked
+out by an upgrade; the old "editor" role is now "lead".
 """
+import json
+import os
+import re
+import threading
 
-ROLES = ('viewer', 'editor', 'admin')
-LABELS = {
-    'viewer': 'Viewer',
-    'editor': 'Editor',
-    'admin': 'Admin',
+# Permission id -> what it allows, as the roles page shows it.
+PERMISSIONS = {
+    'floorplan.view': 'See the floor plan, dashboards and live switch status',
+    'floorplan.edit': 'Change the floor plan and the inventory, run syncs',
+    'seats.view': 'See who sits where: nicks, IPs, MACs and check-ins',
+    'seats.edit': 'Change the seat mapping and check-ins',
+    'incidents.work': 'Work incidents assigned to their teams',
+    'incidents.assign': 'Assign incidents to any team',
+    'ports.act': 'Run port actions on switches',
+    'plugins.run': 'Run plugin actions',
+    'audit.read': 'Read the audit log',
+    'settings.manage': 'Change settings, plugins and backups',
+    'accounts.manage': 'Manage accounts, roles and teams',
 }
-DESCRIPTIONS = {
-    'viewer': 'Can look at the floor plan, cannot change anything.',
-    'editor': 'Can place and edit switches and seat blocks.',
-    'admin': 'Can also change settings and manage accounts.',
+
+BUILTIN = {
+    'admin': {'label': 'Admin', 'description': 'Everything, including settings, accounts, plugins and roles.',
+              'permissions': list(PERMISSIONS)},
+    'lead': {'label': 'Lead',
+             'description': 'Everything a tech can, plus the floor plan, assigning incidents to any team '
+                            'and reading the audit log.',
+             'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
+                             'incidents.assign', 'ports.act', 'plugins.run', 'audit.read']},
+    'tech': {'label': 'Tech',
+             'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
+             'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act']},
+    'viewer': {'label': 'Viewer', 'description': 'Looks at the floor plan and dashboards, changes nothing.',
+               'permissions': ['floorplan.view']},
+    'kiosk': {'label': 'Kiosk', 'description': 'A read-only account for a big screen. Remove it to revoke it.',
+              'permissions': ['floorplan.view']},
 }
-DEFAULT_ROLE = 'editor'
+# Old role names still stored in data.json.
+ALIASES = {'editor': 'lead'}
+DEFAULT_ROLE = 'lead'
 LEGACY_ROLE = 'admin'
+ROLE_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,31}$')
+KEY = 'auth_roles'
 
-# Paths below these need an admin, whatever the method.
-ADMIN_PATHS = ('/settings', '/api/settings', '/api/users', '/api/integrations', '/api/demo')
-# Reads with personal data (who sat where, IPs, MACs): editors and up, never public.
-EDITOR_PATHS = ('/api/checkins', '/checkins', '/api/inventory/log',
-                '/api/seat-map', '/api/seat-map.csv', '/seat-mapping')
+# Kept so older imports keep working; the full list is all_roles().
+ROLES = tuple(BUILTIN)
+LABELS = {k: v['label'] for k, v in BUILTIN.items()}
+
+_lock = threading.Lock()
+_path = None    # callable returning the data file (tests point it elsewhere)
 
 
 class RoleError(ValueError):
     pass
 
 
+def configure(path_getter):
+    global _path
+    _path = path_getter
+
+
+# storage --------------------------------------------------------------------------------------
+def _read():
+    path = _path() if _path else None
+    if not path or not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        return json.load(f)
+
+
+def _write(data):
+    # In place, not via rename: data.json is bind-mounted in docker-compose.
+    with open(_path(), 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+def _custom(data=None):
+    raw = (data if data is not None else _read()).get(KEY) or {}
+    return {k: v for k, v in raw.items() if isinstance(v, dict) and k not in BUILTIN}
+
+
+def all_roles():
+    """{id: {label, description, permissions, builtin}}: built-in first, then custom by label."""
+    out = {k: {**v, 'builtin': True} for k, v in BUILTIN.items()}
+    for k, v in sorted(_custom().items(), key=lambda kv: kv[1].get('label', kv[0]).lower()):
+        out[k] = {'label': v.get('label') or k, 'description': v.get('description') or '',
+                  'permissions': [p for p in v.get('permissions') or [] if p in PERMISSIONS], 'builtin': False}
+    return out
+
+
+def label(role):
+    return all_roles().get(role, {}).get('label', role)
+
+
+# checks ---------------------------------------------------------------------------------------
 def validate(role):
-    role = (role or '').strip().lower()
-    if role not in ROLES:
-        raise RoleError(f"Role must be one of: {', '.join(ROLES)}.")
+    role = ALIASES.get((role or '').strip().lower(), (role or '').strip().lower())
+    if role not in all_roles():
+        raise RoleError(f"Role must be one of: {', '.join(all_roles())}.")
     return role
 
 
 def of(user):
     """The role of a user record (stored or public)."""
     role = (user or {}).get('role') or LEGACY_ROLE
-    return role if role in ROLES else 'viewer'
+    role = ALIASES.get(role, role)
+    return role if role in all_roles() else 'viewer'
 
 
-def allows(role, needed):
-    return ROLES.index(role) >= ROLES.index(needed)
+def permissions_of(role):
+    return set(all_roles().get(ALIASES.get(role, role), {}).get('permissions') or [])
 
 
-def needed_for(path, method, safe_methods):
-    """The lowest role that may make this request."""
-    if any(path == p or path.startswith(p + '/') for p in ADMIN_PATHS):
-        return 'admin'
-    if method not in safe_methods or any(path == p or path.startswith(p + '/') for p in EDITOR_PATHS):
-        return 'editor'
-    return 'viewer'
+def can(user, permission):
+    """Does this account (a user record or public user) have the permission everywhere?"""
+    return permission in permissions_of(of(user))
+
+
+# custom roles ---------------------------------------------------------------------------------
+def _managers(data, roles_override):
+    """How many accounts could still manage accounts with these role definitions."""
+    def perms(role):
+        role = ALIASES.get(role, role)
+        if role in BUILTIN:
+            return set(BUILTIN[role]['permissions'])
+        return set((roles_override.get(role) or {}).get('permissions') or [])
+    users = (data.get('auth_users') or {}).values()
+    return sum(1 for u in users if 'accounts.manage' in perms(u.get('role') or LEGACY_ROLE))
+
+
+def save(role_id, label_text, description='', permissions=()):
+    role_id = (role_id or '').strip().lower()
+    if role_id in BUILTIN or role_id in ALIASES:
+        raise RoleError('Built-in roles cannot be changed. Make a new role instead.')
+    if not ROLE_ID_RE.match(role_id):
+        raise RoleError('A role ID is 2 to 32 lowercase letters, digits or dashes, starting with a letter.')
+    unknown = [p for p in permissions if p not in PERMISSIONS]
+    if unknown:
+        raise RoleError(f"Unknown permission: {', '.join(map(str, unknown))}")
+    label_text = (label_text or '').strip()[:40]
+    if not label_text:
+        raise RoleError('Give the role a name.')
+    with _lock:
+        data = _read()
+        custom = _custom(data)
+        custom[role_id] = {'label': label_text, 'description': (description or '').strip()[:200],
+                           'permissions': [p for p in PERMISSIONS if p in set(permissions)]}
+        if _managers(data, custom) == 0:
+            raise RoleError('Then nobody could manage accounts any more. Keep "Manage accounts" on this role.')
+        data[KEY] = custom
+        _write(data)
+    return custom[role_id]
+
+
+def delete(role_id):
+    if role_id in BUILTIN:
+        raise RoleError('Built-in roles cannot be removed.')
+    with _lock:
+        data = _read()
+        custom = _custom(data)
+        if role_id not in custom:
+            raise RoleError(f'No role called {role_id}.')
+        users = [u['username'] for u in (data.get('auth_users') or {}).values()
+                 if u.get('role') == role_id or role_id in (u.get('teams') or {}).values()]
+        if users:
+            raise RoleError(f"{len(users)} account(s) still have this role: {', '.join(sorted(users)[:5])}. "
+                            'Give them another role first.')
+        del custom[role_id]
+        data[KEY] = custom
+        _write(data)
+
+
+# the request guard ----------------------------------------------------------------------------
+READ = ('GET', 'HEAD', 'OPTIONS')
+WRITE = ('POST', 'PUT', 'PATCH', 'DELETE')
+# (path prefix, methods, permission), first match wins, so specific paths come first. A request
+# no rule matches needs floorplan.view to read and an admin (settings.manage) to change anything:
+# a new route is closed until someone gives it a rule here.
+RULES = (
+    ('/api/settings/audit', READ, 'audit.read'),
+    ('/settings/audit', READ, 'audit.read'),
+    ('/api/settings', None, 'settings.manage'),
+    ('/settings/users', None, 'accounts.manage'),
+    ('/settings/teams', None, 'accounts.manage'),
+    ('/settings', None, 'settings.manage'),
+    ('/api/users', None, 'accounts.manage'),
+    ('/api/roles', None, 'accounts.manage'),
+    ('/api/teams', None, 'accounts.manage'),
+    ('/api/integrations', None, 'settings.manage'),
+    ('/api/demo', None, 'settings.manage'),
+    ('/api/cache/invalid', WRITE, 'floorplan.edit'),
+    ('/api/switches', WRITE, 'floorplan.edit'),
+    ('/api/seat-blocks', WRITE, 'floorplan.edit'),
+    ('/api/inventory/log', READ, 'floorplan.edit'),
+    ('/api/inventory', WRITE, 'floorplan.edit'),
+    ('/api/seat-map', READ, 'seats.view'),
+    ('/api/seat-map.csv', READ, 'seats.view'),
+    ('/api/seat-map', WRITE, 'seats.edit'),
+    ('/seat-mapping', READ, 'seats.view'),
+    ('/api/checkins', READ, 'seats.view'),
+    ('/api/checkins', WRITE, 'seats.edit'),
+    ('/checkins', READ, 'seats.view'),
+    # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
+    ('/api/seats/info', READ, 'seats.view'),
+    ('/api/seats/sources', READ, 'seats.view'),
+    ('/api/seats/resolve', WRITE, 'seats.view'),
+    ('/api/resolve', READ, 'seats.view'),
+    # Plugin actions check the permission each action names (floorbit/blueprints/plugins.py).
+    ('/api/plugins', WRITE, 'floorplan.view'),
+)
+
+
+def needed_for(path, method, safe_methods=READ):
+    """The permission this request needs."""
+    reading = method in safe_methods
+    for prefix, methods, permission in RULES:
+        if (path == prefix or path.startswith(prefix + '/')) and (
+                methods is None or (reading and methods is READ) or (not reading and methods is WRITE)):
+            return permission
+    return 'floorplan.view' if reading else 'settings.manage'

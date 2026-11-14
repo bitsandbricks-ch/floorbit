@@ -82,13 +82,13 @@ settings:
   - {key: token, label: API token, type: secret}
   - {key: mode, type: select, options: [fast, safe], default: safe}
 actions:
-  - {id: sync, label: Sync now, role: editor, dashboard: true,     # role: editor or admin (default admin)
+  - {id: sync, label: Sync now, permission: plugins.run, dashboard: true,  # any permission; default settings.manage
      params: [{key: dry_run, type: bool, default: true}]}
   - {id: wipe, role: admin, danger: true}                           # asks before it runs
 widgets:
-  - {id: summary, label: Summary, size: wide, refresh: 60}          # role: viewer (default), editor or admin
+  - {id: summary, label: Summary, size: wide, refresh: 60}          # default floorplan.view
 endpoints:
-  - {id: data, label: Raw data, role: editor}
+  - {id: data, label: Raw data, permission: seats.view}
 hooks:
   - {events: [change], action: sync}                                # change, switch.status
 ```
@@ -142,8 +142,10 @@ plugin shows its error on Settings > Plugins and can't be turned on; it never st
 
 ### What Floorbit does for you
 
-- **Permissions:** actions need the role they name (editor or admin), widgets and endpoints need a
-  signed-in account with their role. None of them is ever public, even with `AUTH_PUBLIC_READ` on.
+- **Permissions:** actions and widgets need the permission they name (`permission:`, see
+  [docs/auth.md](auth.md); the older `role: viewer|editor|admin` maps to `floorplan.view`,
+  `plugins.run` or `settings.manage`); endpoints need a signed-in account with theirs. None of them
+  is ever public, even with `AUTH_PUBLIC_READ` on.
   Changes posted from another site are refused, like every other change.
 - **Audit:** every action run is logged with the plugin, the action, the account and the parameter
   *names*. Parameter checks happen before your code runs.
