@@ -113,6 +113,8 @@ def create_app(start_background=True):
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
+    from .stats import init_stats
+    init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
 
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).

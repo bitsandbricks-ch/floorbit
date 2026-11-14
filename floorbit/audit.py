@@ -57,6 +57,7 @@ ACTIONS = {
     ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('DELETE', '/api/settings/oidc/<provider_id>'): ('settings', 'Removed sign-in provider'),
+    ('POST', '/api/stats/peak/reset'): ('settings', 'Reset the bandwidth peak'),
 }
 AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins',
          'incidents', 'ports', 'security', 'power', 'alerts')

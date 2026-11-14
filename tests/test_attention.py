@@ -130,10 +130,10 @@ def test_entries_keep_their_first_time_and_announce_changes(hall):
     assert [e["kind"] for e in poll(hall, 1000)] == ["duplex"]
     assert poll(hall, 1120) == []   # still there, not new
     assert hall["watch"].snapshot()["items"][0]["since"] == 1000
-    assert hall["published"] == ["attention.changed"]
+    assert [k for k in hall["published"] if k == "attention.changed"] == ["attention.changed"]
     hall["mon"].set("sw-a-01", port("Gi1/0/4"))
     poll(hall, 1240)
-    assert hall["published"] == ["attention.changed", "attention.changed"]
+    assert [k for k in hall["published"] if k == "attention.changed"] == ["attention.changed"] * 2
 
 
 def test_without_monitoring_nothing_is_asked(hall, monkeypatch):
@@ -159,7 +159,7 @@ def test_problems_list_them_newest_first_with_a_floor_plan_link(hall, client):
 def test_the_background_thread_runs_in_the_app_context(hall, monkeypatch):
     seen = []
     watch = hall["watch"]
-    monkeypatch.setattr(watch, "poll_once", lambda: (seen.append(attention._monitor_ext() is not None), watch.stop()))
+    monkeypatch.setattr(watch, "poll_once", lambda: (seen.append(bool(attention._app_ext())), watch.stop()))
     watch._stop.clear()
     watch._run()
     assert seen == [True]

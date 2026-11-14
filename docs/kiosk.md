@@ -41,3 +41,8 @@ which only lists the taken seats: nicks and IPs never reach the screen.
 - The mouse pointer hides after 3 seconds.
 - The page asks the browser to keep the screen awake (Screen Wake Lock), where
   the browser allows it.
+
+## Other big screens
+
+The [health wall](health.md) (`/health?screen=1`) and the [stats dashboard](stats.md)
+(`/stats?screen=1`) have big-screen versions too, with the same kiosk theme and no personal data.

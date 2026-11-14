@@ -101,3 +101,24 @@ def seed_on_start(app):
             print(f"[demo] {result}")
         except Exception as exc:  # noqa: BLE001  # a demo hiccup must not stop the app
             print(f"[demo] could not lay out the demo hall: {exc}")
+        stats = app.extensions.get('floorbit_stats')
+        if stats is not None:
+            stats.backfill(demo_history())
+
+
+def demo_history(now=None, step=120):
+    """A made-up last day for the stats dashboard: quiet at night, busy in the evening."""
+    import math
+    import time
+    now = time.time() if now is None else now
+    out = []
+    for k in range(24 * 3600 // step, 0, -1):
+        t = now - k * step
+        hour = time.localtime(t).tm_hour + time.localtime(t).tm_min / 60
+        busy = 0.15 + 0.85 * max(0.0, math.sin((hour - 9) / 24 * 2 * math.pi)) ** 2
+        jitter = 0.9 + 0.2 * math.sin(t / 700) * math.cos(t / 1900)
+        online = round(70 + 15 * busy)
+        down = 3.3e9 * (0.55 + 0.45 * busy) * jitter   # about what the live demo hall sends
+        out.append({'t': t, 'down': round(down), 'up': round(down * 0.14), 'online': online,
+                    'ports_up': online + 12, 'ports_down': 96 - online, 'ports_errors': 0})
+    return out

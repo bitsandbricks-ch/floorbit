@@ -26,6 +26,7 @@ Browsers subscribe to `GET /api/events` (Server-Sent Events). `static/js/live.js
 | `monitor.poll` | every status poll | none (re-dispatched only) |
 | `checkin`, `checkin.removed`, `checkin.refreshed` | seat check-ins change | none (re-dispatched only) |
 | `attention.changed` | the needs-attention list changed | the Problems page reloads |
+| `stats.changed` | a new read of all ports, or the peak was reset | the Stats page reloads |
 
 Every event is also dispatched on `window` as `lal:live` with `{type, data}` in `detail`, so
 the reworked frontend can listen without depending on `live.js`. While connected,
@@ -81,6 +82,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENTION_INTERVAL` | `120` | seconds between reads of every port for the needs-attention list (at least 30; [alerts.md](alerts.md#needs-attention)) |
 | `ATTENTION_FLAPS` | `3` | link changes within ten minutes that count as flapping |
 | `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
+| `STATS_UPLINK_PATTERN` | `uplink\|trunk` | port descriptions that mark a switch's uplink on the [stats dashboard](stats.md) (a regular expression, case-insensitive) |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |
 | `DISCORD_POWER_ALERTS` | `true` | post when a circuit turns red or its breaker trips, with what it feeds |

@@ -184,7 +184,17 @@ class Plugin(Plugin):
     def device_ports(self, hostname):
         name = _short(hostname)
         ports = [_switch_for(b, n)[1] for _s, b, n, _i in _seats() if _switch_for(b, n)[0] == name]
-        return [{'name': port, **(self.port_stats(hostname, port) or {})} for port in ports]
+        out = [{'name': port, **(self.port_stats(hostname, port) or {})} for port in ports]
+        if ports and not _down(name):
+            # The access switch's uplink: everything its seats send and get, on a 10G port.
+            down = sum(p.get('download_bps') or 0 for p in out)
+            up = sum(p.get('upload_bps') or 0 for p in out)
+            dist = 'dist-01' if name[3] in 'ab' else 'dist-02'
+            out.append({'name': 'Te1/1/1', 'state': 'up', 'description': f'Uplink to {dist}', 'duplex': 'full',
+                        'speed_bps': 10_000_000_000, 'download_bps': up, 'upload_bps': down,
+                        'utilization': round(max(down, up) / 10e9, 4), 'errors_in': 0, 'errors_out': 0,
+                        'last_change': None})
+        return out
 
     def arp(self, query):
         q = (query or '').lower()
