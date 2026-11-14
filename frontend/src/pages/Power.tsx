@@ -179,7 +179,9 @@ export default function Power() {
   const error = power.error ?? act.error ?? check.error
 
   return (
-    <Layout title={t('power.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    // Circuits getting close, about to trip or tripped show in a background tab (issue #218).
+    <Layout title={t('power.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      count={data ? (data.counts.warn ?? 0) + (data.counts.crit ?? 0) + (data.counts.tripped ?? 0) : undefined}>
       <PageHead
         title={t('power.title')}
         desc={data ? t('power.intro', { warn: data.warn, crit: data.crit }) : undefined}
