@@ -1,0 +1,19 @@
+# Switch status, ports and which port a player is on, from MikroTik switches and routers through
+# the RouterOS v7 REST API. Off until turned on under Settings > Plugins. It only reads.
+id: mikrotik
+name: MikroTik
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live status, ports and traffic of MikroTik switches (RouterOS 7 REST API), and which switch port an IP or MAC is on (ARP, then the bridge host tables). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use an account in a read-only group."
+author: Floorbit
+homepage: https://mikrotik.com
+uses: [settings, http, monitoring]
+settings:
+  - {key: switches, label: Switches, type: list,
+     help: "Comma-separated, each as Name=URL, for example sw-a-01=https://192.0.2.21. The name must match the floor plan. Add the router too, so IPs can be found in its ARP table.",
+     placeholder: "sw-a-01=https://192.0.2.21"}
+  - {key: username, label: Username, type: string, help: "An account in a group with read and api (or rest-api) rights only."}
+  - {key: password, label: Password, type: secret}
+  - {key: timeout, label: Timeout, type: int, default: 4, min: 1, max: 20, help: "Seconds to wait for each device."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true,
+     help: "RouterOS's www-ssl service needs a certificate. Turn this off only for self-signed ones on a network you trust."}
