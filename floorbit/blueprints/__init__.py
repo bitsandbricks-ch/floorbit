@@ -1,5 +1,6 @@
 """One blueprint per area of the app. A new area gets its own module, added to ALL."""
 from . import (
+               api_tokens,
                attendee,
                audit,
                backup,
@@ -45,4 +46,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        teardown.bp, past_events.bp,
-       features.bp]
+       features.bp, api_tokens.bp]
