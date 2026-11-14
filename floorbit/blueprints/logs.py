@@ -6,7 +6,9 @@ lives in floorbit/syslog.py.
   have to be in the line), ``device``, ``seat``, ``port`` (``Gi1/0/4`` or ``GigabitEthernet1/0/4``),
   ``severity`` (the least severe level to show, ``warning`` shows emerg to warning), ``after`` (only
   lines newer than this id, for the live tail), ``before`` (only older, for paging) and ``limit``
-  (1 to 1000, 200 by default). Needs ``seats.view``: logs name MACs and IPs.
+  (1 to 1000, 200 by default). Needs ``seats.view``: logs name MACs and IPs. ``source=app`` reads
+  Floorbit's own log and ``source=audit`` the audit log instead, with the same filters (issue #93);
+  both also need ``audit.read``.
 - ``GET /api/logs/markers``: warnings and worse of the last 10 minutes, counted per seat and per
   switch, for the floor plan (issue #92).
 - ``GET /api/logs/alerts``: lines that matched a known pattern (err-disable, DHCP snooping, port
@@ -23,7 +25,9 @@ bp = Blueprint('logs', __name__)
 @bp.app_context_processor
 def syslog_flags():
     receiver = current_app.extensions.get('floorbit_syslog')
-    return {'syslog_on': bool(receiver and (syslog.settings()['enabled'] or receiver.demo))}
+    on = bool(receiver and (syslog.settings()['enabled'] or receiver.demo))
+    # The page also shows Floorbit's own log and the audit log, for those who may read them.
+    return {'syslog_on': on, 'logs_page': on or _can('audit.read')}
 
 
 @bp.route('/logs')
@@ -41,6 +45,23 @@ def _int(name, default, low, high):
     return value
 
 
+SOURCES = ('syslog', 'app', 'audit')
+
+
+def _can(permission):
+    from auth import current_user, roles  # late: auth imports floorbit while it loads
+    if not current_app.extensions['auth'].enabled:
+        return True
+    user = current_user()
+    return bool(user and roles.can(user, permission))
+
+
+def sources():
+    """The logs this account may read: the syslog with seats.view (the API's own rule), Floorbit's
+    own log and the audit log with audit.read."""
+    return ['syslog'] + (['app', 'audit'] if _can('audit.read') else [])
+
+
 @bp.route('/api/logs', methods=['GET'])
 def get_logs():
     args = request.args
@@ -53,10 +74,27 @@ def get_logs():
     severity = (args.get('severity') or '').strip().lower()
     if severity and severity not in syslog.SEVERITIES:
         return jsonify({'error': f"severity is one of {', '.join(syslog.SEVERITIES)}."}), 400
+    source = (args.get('source') or 'syslog').strip()
+    allowed = sources()
+    if source not in SOURCES:
+        return jsonify({'error': f"source is one of {', '.join(SOURCES)}."}), 400
+    if source not in allowed:
+        return jsonify({'error': 'Reading this log needs the audit.read permission.'}), 403
     receiver = current_app.extensions['floorbit_syslog']
+    status = {**receiver.status(), 'sources': allowed, 'source': source}
+    if source == 'app':
+        lines = current_app.extensions['floorbit_app_log'].search(
+            q=args.get('q', ''), device=args.get('device', ''), severity=severity, before=before, limit=limit)
+        return jsonify({'lines': lines, 'status': status})
+    if source == 'audit':
+        from .. import audit
+        lines = audit.as_log_lines(q=args.get('q', ''), severity=severity, before=before, limit=limit)
+        device = (args.get('device') or '').lower()
+        return jsonify({'lines': [ln for ln in lines if not device or ln['device'].lower() == device],
+                        'status': status})
     lines = receiver.search(q=args.get('q', ''), device=args.get('device', ''), seat=args.get('seat', ''),
                             port=args.get('port', ''), severity=severity, after=after, before=before, limit=limit)
-    return jsonify({'lines': lines, 'status': receiver.status()})
+    return jsonify({'lines': lines, 'status': status})
 
 
 @bp.route('/api/logs/markers', methods=['GET'])
