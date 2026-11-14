@@ -53,6 +53,8 @@ each seat is plugged into.
 - **Switch commands:** saved show commands (port status, MAC table, errors) on one or many switches,
   the answers side by side; leads also clear counters, after a second confirm. Every run is
   audited. See [docs/commands.md](docs/commands.md).
+- **Switch terminal:** a terminal on one switch in the browser, for leads, with their own login;
+  every line typed goes to the audit log. See [docs/terminal.md](docs/terminal.md).
 - **Security detection:** rogue DHCP, ARP spoofing, MAC flapping, loops and storms from security plugins,
   pointing at the seat and port, with one-click port shutdown. See [docs/security.md](docs/security.md).
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is

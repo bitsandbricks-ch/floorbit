@@ -556,6 +556,21 @@ Source: [`floorbit/blueprints/teardown.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
 | PUT | `/api/teardown/switches/<device_id>` | `floorplan.edit` | `teardown` |
 
+## floorbit.blueprints.terminal
+
+The browser terminal for one switch (issue #95). The rules live in floorbit/terminal.py.
+
+Source: [`floorbit/blueprints/terminal.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/terminal.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/terminal` | `terminal.open` | `terminal` |
+| POST | `/api/terminal` | `terminal.open` | `terminal` |
+| DELETE | `/api/terminal/<sid>` | `terminal.open` | `terminal` |
+| POST | `/api/terminal/<sid>/input` | `terminal.open` | `terminal` |
+| GET | `/api/terminal/<sid>/output` | `terminal.open` | `terminal` |
+| POST | `/api/terminal/<sid>/resize` | `terminal.open` | `terminal` |
+
 ## floorbit.blueprints.tournament
 
 Tournament awareness (issue #31): match zones and QoS hints. Rules in floorbit/tournament.py.

@@ -21,6 +21,7 @@ PERMISSIONS = {
     'incidents.assign': 'Assign incidents to any team',
     'ports.act': 'Run port actions and show commands on switches',
     'commands.change': 'Run switch commands that change something, such as clearing counters',
+    'terminal.open': 'Open a terminal on a switch in the browser, with their own switch login',
     'power.edit': 'Change power boards and circuits, enter readings and trips',
     'plugins.run': 'Run plugin actions',
     'audit.read': 'Read the audit log',
@@ -35,8 +36,8 @@ BUILTIN = {
              'description': 'Everything a tech can, plus the floor plan, assigning incidents to any team '
                             'and reading the audit log.',
              'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
-                             'incidents.assign', 'ports.act', 'commands.change', 'power.edit', 'plugins.run',
-                             'audit.read']},
+                             'incidents.assign', 'ports.act', 'commands.change', 'terminal.open', 'power.edit',
+                             'plugins.run', 'audit.read']},
     'tech': {'label': 'Tech',
              'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
              'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act']},
@@ -252,6 +253,9 @@ RULES = (
     ('/api/commands/templates', WRITE, 'settings.manage'),
     ('/api/commands', None, 'ports.act'),
     ('/commands', READ, 'ports.act'),
+    # The browser terminal: every line typed is audited (floorbit/terminal.py).
+    ('/api/terminal', None, 'terminal.open'),
+    ('/terminal', READ, 'terminal.open'),
     # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.
     ('/api/security/check', WRITE, 'plugins.run'),
     ('/api/security', None, 'seats.view'),
