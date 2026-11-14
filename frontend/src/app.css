@@ -101,3 +101,45 @@ body {
   .fb-qr { border-color: #999; }
   .fb-qr figcaption, .fb-qr figcaption strong { color: #000; }
 }
+
+/* The service health wall (pages/Health.tsx). Colour is never the only sign: each tile says its state. */
+.fb-health-counts { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 16px; font-weight: 600; }
+.fb-health-count { display: inline-flex; align-items: center; gap: 6px; }
+.fb-health-groups { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: flex-start; }
+.fb-health-group { min-width: 0; }
+.fb-health-group h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
+.fb-health-grid { display: grid; grid-template-columns: repeat(var(--n, 1), 250px); gap: 12px; }
+.fb-health-tile {
+  display: grid; gap: 6px; align-content: start; padding: 12px 14px; border-radius: 10px;
+  background: var(--color-surface); border: 1px solid var(--color-line); border-left: 6px solid var(--color-unknown);
+}
+.fb-health-tile.up { border-left-color: var(--color-up); }
+.fb-health-tile.warn { border-left-color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 10%, var(--color-surface)); }
+.fb-health-tile.down { border-left-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 16%, var(--color-surface)); }
+.fb-health-tile header { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fb-health-tile header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-health-state { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--color-muted); white-space: nowrap; }
+.fb-health-tile.down .fb-health-state { color: var(--color-down); }
+.fb-health-tile.warn .fb-health-state { color: var(--color-warn); }
+.fb-health-summary { margin: 0; font-size: 14px; }
+.fb-health-metrics { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; }
+.fb-health-metrics dt { font-size: 11px; color: var(--color-muted); }
+.fb-health-metrics dd { margin: 0; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fb-health-metrics small { font-size: 12px; font-weight: 400; color: var(--color-muted); }
+.fb-health-tile footer { font-size: 11px; color: var(--color-muted); }
+
+/* ?screen=1: no header, bigger tiles, readable from across the hall. */
+.fb-health-screen { padding: 24px 28px; min-height: 100vh; }
+.fb-health-screen > header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.fb-health-screen > header h1 { margin: 0; font-size: 28px; }
+.fb-health-screen > header span { margin-left: auto; color: var(--color-muted); }
+.fb-health-screen .fb-health-counts { font-size: 20px; }
+.fb-health-screen .fb-health-grid { grid-template-columns: repeat(var(--n, 1), 290px); gap: 16px; }
+@media (max-width: 700px) {
+  .fb-health-grid, .fb-health-screen .fb-health-grid { grid-template-columns: 1fr; }
+  .fb-health-group { width: 100%; }
+}
+.fb-health-screen .fb-health-tile { padding: 16px 18px; }
+.fb-health-screen .fb-health-tile header strong { font-size: 20px; }
+.fb-health-screen .fb-health-summary { font-size: 17px; }
+.fb-health-screen .fb-health-metrics dd { font-size: 24px; }

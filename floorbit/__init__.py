@@ -89,7 +89,11 @@ def create_app(start_background=True):
 
     # Plugins: actions, widgets, endpoints and hooks from floorbit/builtin_plugins (see docs/plugins.md).
     version_file = ROOT / 'VERSION'
-    init_plugins(app, settings_store, version_file.read_text().strip() if version_file.is_file() else '0')
+    registry = init_plugins(app, settings_store, version_file.read_text().strip() if version_file.is_file() else '0')
+
+    # The service health wall: health plugins polled in the background (docs/health.md).
+    from .health import init_health
+    init_health(app, registry, start_background=start_background)
 
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start

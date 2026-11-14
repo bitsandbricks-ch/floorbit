@@ -51,12 +51,14 @@ AREAS = {
     'inventory': 'sends devices into the inventory (it never deletes; hand edits win)',
     'mapping':   'sends seat / IP / MAC / nick entries into the seat mapping (hand entries win)',
     'monitoring': 'live switch status, ports and IP to switch port lookups (one plugin at a time)',
+    'health': 'service checks on the health wall (DHCP, DNS, cache, game servers, uplink)',
 }
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
     'mapping': ('seat_mapping',),
     'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp'),
+    'health': ('health_checks',),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
@@ -69,8 +71,9 @@ SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secr
 ROLES = ('viewer', 'editor', 'admin')
 ROLE_PERMISSION = {'viewer': 'floorplan.view', 'editor': 'plugins.run', 'admin': 'settings.manage'}
 # Events a hook can listen to. ``change`` is any audited change (area, action, target, fields),
-# ``switch.status`` a switch going offline or coming back (from the status monitor).
-EVENTS = ('change', 'switch.status')
+# ``switch.status`` a switch going offline or coming back (from the status monitor),
+# ``health.status`` a service on the health wall changing colour (floorbit/health.py).
+EVENTS = ('change', 'switch.status', 'health.status')
 
 
 @dataclass

@@ -6,6 +6,7 @@ from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
 
 STALE = 55   # seconds before the widget checks again on its own
+SLOW_MS = 2000   # answering slower than this is amber on the health wall
 
 
 def parse_targets(raw):
@@ -31,7 +32,7 @@ class Plugin(Base):
                 resp = http.get(t['url'])
                 ms = int((time.monotonic() - started) * 1000)
                 ok = resp.status_code < 400
-                results.append({'name': t['name'], 'state': 'up' if ok else 'down',
+                results.append({'name': t['name'], 'state': 'up' if ok else 'down', 'ms': ms,
                                 'detail': f'{resp.status_code} in {ms} ms'})
             except PluginError as exc:
                 results.append({'name': t['name'], 'state': 'down', 'detail': str(exc)[:120]})
@@ -52,10 +53,24 @@ class Plugin(Base):
         message = f'{len(results) - len(down)} of {len(results)} up'
         return {'message': message + (f": {', '.join(down)} down" if down else '')}
 
-    def widget_services(self):
+    def _recent(self):
         last = self.ctx.state.get('last') or {}
         stale = time.time() - (last.get('at') or 0) > STALE
-        results = self._check_all() if stale else last.get('results') or []
+        return self._check_all() if stale else last.get('results') or []
+
+    def health_checks(self):
+        out = []
+        for r in self._recent():
+            status = r['state']
+            if status == 'up' and (r.get('ms') or 0) > SLOW_MS:
+                status = 'warn'
+            metrics = [{'label': 'Answer time', 'value': r['ms'], 'unit': 'ms'}] if r.get('ms') is not None else []
+            out.append({'id': r['name'].lower(), 'name': r['name'], 'kind': 'web', 'status': status,
+                        'summary': r['detail'], 'metrics': metrics})
+        return out
+
+    def widget_services(self):
+        results = self._recent()
         if not results:
             return {'type': 'status', 'items': [], 'sub': 'No services configured yet.'}
         return {'type': 'status',
