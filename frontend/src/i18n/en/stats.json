@@ -34,5 +34,6 @@
   "noUplinks": "No uplinks found: name them in the port description (\"Uplink to dist-01\").",
   "top": "Top talkers",
   "noTop": "No traffic right now.",
-  "seat": "Seat {{seat}}"
+  "seat": "Seat {{seat}}",
+  "replay": "Replay the event"
 }

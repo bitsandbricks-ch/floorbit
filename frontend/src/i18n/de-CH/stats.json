@@ -34,5 +34,6 @@
   "noUplinks": "Keine Uplinks gefunden: In der Port-Beschreibung benennen (\"Uplink to dist-01\").",
   "top": "Die aktivsten Ports",
   "noTop": "Gerade kein Verkehr.",
-  "seat": "Platz {{seat}}"
+  "seat": "Platz {{seat}}",
+  "replay": "Event abspielen"
 }

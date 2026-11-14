@@ -30,7 +30,8 @@ every `ATTENTION_INTERVAL` seconds (120); each read becomes one sample here.
   (`uplink|trunk`, case-insensitive) or names another switch in the inventory, such as `to dist-01`.
   TODO: ask Mike whether uplinks should come from the inventory (NetBox cables) instead.
 
-Samples are kept for 24 hours, together with the event's peak, in Redis under `floorbit:stats`,
+Samples are kept for 24 hours, together with the event's peak and the moments each seat went online
+or offline (for the [replay](replay.md)), in Redis under `floorbit:stats`,
 so a restart doesn't lose them. Without Redis they live in memory until the next restart.
 
 **Reset peak** (needs `settings.manage`, in the audit log under settings) starts the event's peak

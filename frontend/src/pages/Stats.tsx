@@ -1,5 +1,5 @@
 import { Alert, Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
-import { IconMaximize } from '@tabler/icons-react'
+import { IconMaximize, IconPlayerPlay } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -176,6 +176,9 @@ export default function Stats() {
           <Group gap="xs">
             <Button variant="default" component="a" href="/stats?screen=1" leftSection={<IconMaximize size={16} />}>
               {t('stats.screen')}
+            </Button>
+            <Button variant="default" component="a" href="/replay" leftSection={<IconPlayerPlay size={16} />}>
+              {t('stats.replay')}
             </Button>
             {canReset && stats.data?.peak && (
               <ConfirmButton variant="default" danger label={t('stats.resetPeak')} question={t('stats.resetConfirm')}
