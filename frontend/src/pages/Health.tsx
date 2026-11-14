@@ -132,7 +132,9 @@ export default function Health() {
     )
   }
   return (
-    <Layout title={t('health.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    // Red and amber services show in a background tab, like the floor plan (issue #216).
+    <Layout title={t('health.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      count={health.data ? (health.data.counts.down ?? 0) + (health.data.counts.warn ?? 0) : undefined}>
       <PageHead
         title={t('health.title')}
         desc={t('health.intro')}
