@@ -20,6 +20,7 @@ export function IncidentCard({
   me,
   busy,
   onChange,
+  onDispatch,
 }: {
   incident: Incident
   board: IncidentBoard
@@ -27,6 +28,7 @@ export function IncidentCard({
   me: string | undefined
   busy: boolean
   onChange: (change: IncidentChange) => void
+  onDispatch?: () => void
 }) {
   const { t } = useTranslation()
   const [note, setNote] = useState('')
@@ -65,6 +67,7 @@ export function IncidentCard({
         {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}
         <Text size="sm" c="dimmed">
           {i.assignee ? t('incidents.assignedTo', { name: i.assignee }) : t('incidents.unassigned')}
+          {i.assignee && i.dispatched_at && i.status !== 'fixed' && ` · ${i.taken_at ? t('incidents.onTheWay') : t('incidents.notSeenYet')}`}
         </Text>
         {i.can_work && (
           <>
@@ -85,6 +88,9 @@ export function IncidentCard({
                 </Button>
               )}
             </Group>
+            {i.can_assign && i.status !== 'fixed' && onDispatch && (
+              <Button size="xs" variant="light" loading={busy} onClick={onDispatch}>{t('incidents.sendNearest')}</Button>
+            )}
             {i.can_assign && i.status !== 'fixed' && (
               <Group gap="xs" grow>
                 <Select size="xs" aria-label={t('incidents.assignee')} placeholder={t('incidents.assignee')} data={assignable}

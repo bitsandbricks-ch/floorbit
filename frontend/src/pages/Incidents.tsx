@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,7 @@ import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useIncidentPeople, useIncidents, useMe } from '@/api/queries'
-import type { Incident, IncidentStatus } from '@/api/types'
+import type { CrewMember, Incident, IncidentStatus } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
@@ -29,8 +29,24 @@ export default function Incidents() {
   const [formOpen, form] = useDisclosure(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
-  const refresh = () => void client.invalidateQueries({ queryKey: qk.incidents })
+  const crew = useQuery({
+    queryKey: qk.crew, queryFn: () => get<{ crew: CrewMember[] }>('/api/dispatch/crew'),
+    enabled: !!board.data?.can_assign_any, refetchInterval: 30_000,
+  })
+  const refresh = () => {
+    void client.invalidateQueries({ queryKey: qk.incidents })
+    void client.invalidateQueries({ queryKey: qk.crew })
+  }
   useLiveEvent('incident.changed', refresh)
+  useLiveEvent('dispatch.changed', refresh)
+  const send = useMutation({
+    mutationFn: (id: string) => post<{ display_name: string }>(`/api/incidents/${id}/dispatch`),
+    onSuccess: (r) => {
+      refresh()
+      setMessage({ ok: true, text: t('incidents.sentTo', { name: r.display_name }) })
+    },
+    onError: (e) => setMessage({ ok: false, text: e.message }),
+  })
 
   const create = useMutation({
     mutationFn: (d: IncidentDraft) => post<Incident>('/api/incidents', d),
@@ -55,6 +71,9 @@ export default function Incidents() {
         desc={t('incidents.intro')}
         actions={
           <>
+            <Button variant="default" component="a" href="/jobs" leftSection={<IconListCheck size={16} />}>
+              {t('incidents.myJobs')}
+            </Button>
             {board.data?.can_assign_any && (
               <Button variant="default" component="a" href="/incidents/qr" leftSection={<IconQrcode size={16} />}>
                 {t('incidents.qrCodes')}
@@ -72,6 +91,17 @@ export default function Incidents() {
           {message?.text}
         </Text>
       </Group>
+      {crew.data && (
+        <Group gap={6} mb="sm" aria-label={t('incidents.crew')} role="group">
+          <Text size="sm" fw={600}>{t('incidents.crew')}:</Text>
+          {crew.data.crew.length === 0 && <Text size="sm" c="dimmed">{t('incidents.crewNone')}</Text>}
+          {crew.data.crew.map((c) => (
+            <Badge key={c.username} variant="light" color={c.jobs ? 'warn' : 'up'} tt="none">
+              {c.display_name}{c.at ? ` · ${c.at}` : ''} · {c.jobs ? t('incidents.crewJobs', { count: c.jobs }) : t('incidents.crewFree')}
+            </Badge>
+          ))}
+        </Group>
+      )}
       {board.error && (
         <Alert color="down" role="alert" mb="md">
           {t('common.error', { message: board.error.message })}
@@ -94,7 +124,8 @@ export default function Incidents() {
                   {!column.length && <Text size="sm" c="dimmed">{t(`incidents.empty.${status}`)}</Text>}
                   {shown.map((i) => (
                     <IncidentCard key={i.id} incident={i} board={board.data} people={people.data} me={me.data?.user?.username}
-                      busy={change.isPending && change.variables?.id === i.id} onChange={(c) => change.mutate({ id: i.id, change: c })} />
+                      busy={(change.isPending && change.variables?.id === i.id) || (send.isPending && send.variables === i.id)}
+                      onChange={(c) => change.mutate({ id: i.id, change: c })} onDispatch={() => send.mutate(i.id)} />
                   ))}
                 </Stack>
               )

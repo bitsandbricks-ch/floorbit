@@ -268,6 +268,8 @@ export interface Incident {
   snapshot: SeatSnapshot | null
   created_at: number
   updated_at: number
+  dispatched_at?: number | null
+  taken_at?: number | null
   can_work: boolean
   can_assign: boolean
 }
@@ -629,3 +631,15 @@ export interface EventReport {
   problem_ports: ReportPort[]
   incidents: { total: number; fixed: number; open: number; from_seats: number; median_fix_s: number | null; items: ReportIncident[] }
 }
+
+/** GET /api/jobs: the tech's own jobs and duty status (issue #30). Plan points are in the drawing's units. */
+export interface DutyStatus { on_duty: boolean; at: string | null; since: number | null }
+export interface Job {
+  id: string; title: string; seat: string | null; switch_id: string | null; switch_name: string | null
+  circuit_id: string | null; circuit_name: string | null; status: IncidentStatus; team: string | null
+  source: string; reports: number; created_at: number; dispatched_at: number | null; taken_at: number | null
+  notes: { by: string | null; at: number; text: string }[]
+  drawing: PlanDrawing | null; target: [number, number] | null; from: [number, number] | null; hall: string | null
+}
+export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean }
+export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number }

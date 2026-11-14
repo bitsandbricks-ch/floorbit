@@ -11,6 +11,8 @@ export const qk = {
   teams: ['teams'] as const,
   oidc: ['oidc'] as const,
   incidents: ['incidents'] as const,
+  jobs: ['jobs'] as const,
+  crew: ['crew'] as const,
   incidentPeople: ['incidents', 'people'] as const,
   helpdeskQr: ['helpdesk', 'qr'] as const,
   switches: ['switches'] as const,

@@ -132,6 +132,20 @@ def get(incident_id):
     return next((i for i in _all(load_data()) if i['id'] == incident_id), None)
 
 
+def stamp(incident_id, **fields):
+    """Set bookkeeping fields (dispatch times) on an incident, without the checks of ``update``."""
+    with _lock:
+        data = load_data()
+        items = _all(data)
+        incident = next((i for i in items if i['id'] == incident_id), None)
+        if not incident:
+            return None
+        incident.update(fields)
+        incident['updated_at'] = time.time()
+        _save(data, items)
+        return incident
+
+
 def _clean_text(value, limit):
     return ' '.join(str(value or '').split())[:limit]
 
