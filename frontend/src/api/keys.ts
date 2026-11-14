@@ -21,6 +21,7 @@ export const qk = {
   wifi: (hall: string) => ['wifi', hall] as const,
   timeline: (query: string) => ['timeline', query] as const,
   statusPage: ['status-page'] as const,
+  runbooks: ['runbooks'] as const,
   teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,

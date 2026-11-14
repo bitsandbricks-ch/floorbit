@@ -34,6 +34,7 @@ from . import (
                problems,
                replay,
                report,
+               runbooks,
                screen,
                seat_blocks,
                seat_map,
@@ -59,4 +60,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        cables.bp, teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, webhooks.bp, wifi.bp,
-       speedtest.bp, timeline.bp, status_page.bp]
+       speedtest.bp, timeline.bp, status_page.bp,
+       runbooks.bp]

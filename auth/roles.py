@@ -244,6 +244,10 @@ RULES = (
     ('/gear', READ, 'incidents.work'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     ('/api/cables', WRITE, 'floorplan.edit'),
+    # Runbooks: the crew reads them, leads write them (floorbit/runbooks.py).
+    ('/api/runbooks', READ, 'incidents.work'),
+    ('/api/runbooks', WRITE, 'incidents.assign'),
+    ('/runbooks', READ, 'incidents.work'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).
     ('/api/status-page', READ, 'incidents.work'),
     ('/api/status-page', WRITE, 'incidents.assign'),

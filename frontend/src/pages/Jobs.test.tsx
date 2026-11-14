@@ -15,6 +15,7 @@ const job: Job = {
   status: 'assigned', team: 'access', source: 'helpdesk', reports: 1, created_at: now - 300, dispatched_at: now - 120, taken_at: null,
   notes: [], drawing: { shapes: [{ cx: 400, cy: 300, rotation: 0, w: 96, h: 32, name: 'B', cells }], box: '0 0 800 600', cell: 32 },
   target: [400, 300], from: [100, 300], hall: null,
+  runbook: { id: 'r1', title: 'No internet at the seat', body: '1. Check the **cable**' },
 }
 const data: JobsData = { me: { on_duty: true, at: 'A-1', since: now - 3600 }, seats: ['A-1', 'B-5', 'B-6', 'B-7'], jobs: [job], can_dispatch: false }
 
@@ -31,6 +32,8 @@ describe('My jobs', () => {
     expect(within(card).getByRole('img', { name: 'Floor plan with the job at Seat B-6' })).toBeInTheDocument()
     expect(container.querySelector('.cell.hit')).not.toBeNull()
     expect(container.querySelector('line.route')).not.toBeNull()
+    fireEvent.click(within(card).getByRole('button', { name: 'Steps: No internet at the seat' }))
+    expect(await within(card).findByText('cable')).toBeInTheDocument()
     fireEvent.click(within(card).getByRole('button', { name: "On my way" }))
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/jobs/j1/take')).toBe(true))
     fireEvent.change(within(card).getByRole('textbox', { name: 'Note (optional)' }), { target: { value: 'Cable was loose' } })
