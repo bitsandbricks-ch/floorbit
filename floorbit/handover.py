@@ -24,7 +24,7 @@ MAX_NOTE = 4000
 FIRST_SHIFT_HOURS = 8          # with no handover yet, look back this far
 MAX_CHANGES = 100
 # Audit areas a shift wants to know about. Incidents have their own section; sign-ins are noise.
-CHANGE_AREAS = ('ports', 'settings', 'floor plan', 'power', 'plugins', 'accounts', 'security', 'check-in')
+CHANGE_AREAS = ('ports', 'settings', 'floor plan', 'power', 'plugins', 'accounts', 'security', 'check-in', 'gear')
 
 _lock = threading.Lock()
 

@@ -76,6 +76,8 @@ ACTIONS = {
     ('PUT', '/api/planner/templates/<template_id>'): ('floor plan', 'Saved a switch config template'),
     ('DELETE', '/api/planner/templates/<template_id>'): ('floor plan', 'Removed a switch config template'),
     ('POST', '/api/planner/apply'): ('floor plan', 'Added the planned switches'),
+    ('POST', '/api/gear/<device_id>/out'): ('gear', 'Checked out gear'),
+    ('POST', '/api/gear/<device_id>/in'): ('gear', 'Checked in gear'),
     ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
     ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
@@ -87,7 +89,7 @@ ACTIONS = {
     ('POST', '/api/stats/peak/reset'): ('settings', 'Reset the bandwidth peak'),
 }
 AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins',
-         'incidents', 'ports', 'security', 'power', 'alerts')
+         'incidents', 'ports', 'security', 'power', 'alerts', 'gear')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
 listeners = []
 
