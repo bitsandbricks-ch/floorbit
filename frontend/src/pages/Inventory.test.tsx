@@ -36,7 +36,10 @@ const list: InventoryList = {
   roles: ['switch', 'router', 'firewall', 'access-point', 'server', 'other'],
   fields: ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes'],
 }
-const editor = { enabled: true, user: { username: 'ed', display_name: 'Ed', role: 'editor' } }
+const editor = {
+  enabled: true,
+  user: { username: 'ed', display_name: 'Ed', role: 'lead', permissions: ['floorplan.view', 'floorplan.edit'] },
+}
 
 describe('matches', () => {
   it('searches name, model, serial and IP, and filters by role', () => {
@@ -90,7 +93,7 @@ describe('Inventory page', () => {
   it('shows viewers the list without edit buttons', async () => {
     vi.stubGlobal(
       'fetch',
-      fakeFetch({ 'GET /api/auth/me': { enabled: true, user: { ...editor.user, role: 'viewer' } }, 'GET /api/inventory': list }).fn,
+      fakeFetch({ 'GET /api/auth/me': { enabled: true, user: { ...editor.user, role: 'viewer', permissions: ['floorplan.view'] } }, 'GET /api/inventory': list }).fn,
     )
     renderWithApp(<Inventory />)
     expect(await screen.findByText('Stage switch')).toBeInTheDocument()

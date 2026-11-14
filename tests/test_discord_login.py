@@ -124,7 +124,7 @@ def test_server_members_get_an_account_with_their_role(anon_client, auth, fake_d
     resp, _ = discord_sign_in(anon_client)
     assert resp.status_code == 302
     me = whoami(anon_client)
-    assert (me["username"], me["display_name"], me["role"]) == ("some.player", "Tech Lead", "editor")
+    assert (me["username"], me["display_name"], me["role"]) == ("some.player", "Tech Lead", "lead")
     created = auth.users.get("some.player")
     assert created["created_by"] == "discord" and created["password_hash"] is None
 

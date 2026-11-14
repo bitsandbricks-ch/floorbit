@@ -5,7 +5,7 @@
  *
  * Data:
  *  - Layout from /api/switches, /api/seat-blocks, /api/seats; occupancy from
- *    /api/seats/info. Reloaded every minute, or right away on a live event.
+ *    /api/seats/occupancy (taken or not, never who). Reloaded every minute, or right away on a live event.
  *  - Switch status: if the server has live updates (/api/events, MR !4) the
  *    page listens for pushes and only polls as a safety net. Otherwise it polls
  *    /api/status/snapshot (!4) or, without it, /api/switches/<id>/status.
@@ -36,7 +36,7 @@
   let switches   = [];
   let seats      = [];
   let seatBlocks = [];
-  let seatInfo   = {};               // seat number → { username, ip_address }
+  let seatInfo   = {};               // seat number → { taken: true }
   let live       = false;
   let snapshotSupported = null;      // null = not tried yet
   let lastOkAt   = null;
@@ -146,7 +146,7 @@
         inner += '<div class="seat-block-row">';
         for (let col = 0; col < block.cols; col++) {
           const { number, display } = numbers[i++];
-          const user = seatInfo[number]?.username;
+          const user = seatInfo[number]?.taken;
           let cls = 'seat-block-seat';
           if (user) {
             taken.add(number);
@@ -306,8 +306,9 @@
 
   async function loadSeatInfo() {
     try {
-      const data = await getJSON('/api/seats/info');
-      seatInfo = data.seats || {};
+      // Only which seats are taken: the kiosk never gets nicks or IPs.
+      const data = await getJSON('/api/seats/occupancy');
+      seatInfo = Object.fromEntries((data.taken || []).map(s => [s, { taken: true }]));
     } catch {
       seatInfo = {};   // no seats.json / no source: everything shows as free
     }

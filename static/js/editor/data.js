@@ -233,7 +233,13 @@ async function loadSeatMappings() {
     const data = await api('GET', '/api/seats/info');
     seatMappings = data.seats || {};
   } catch (e) {
-    seatMappings = {};
+    // Roles without seats.view (viewers, kiosks) only learn which seats are taken.
+    try {
+      const data = await api('GET', '/api/seats/occupancy');
+      seatMappings = Object.fromEntries((data.taken || []).map(s => [s, { taken: true }]));
+    } catch {
+      seatMappings = {};
+    }
   }
 }
 async function loadSwitches()   { switches   = await api('GET', '/api/switches'); }

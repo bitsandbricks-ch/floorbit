@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -60,7 +60,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="20" height="6" rx="1"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>
           Inventory
         </a>
-        {% if current_user.role in ('editor', 'admin') %}
+        {% if 'seats.view' in current_user.permissions %}
         <a class="btn btn-ghost" href="/seat-mapping" title="Seat mapping: which IP, MAC and nick sits at each seat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
           Seats
@@ -83,7 +83,7 @@
           <button type="submit" class="btn btn-ghost">Sign out</button>
         </form>
         {% endif %}
-        {% if not current_user or current_user.role == 'admin' %}
+        {% if not current_user or 'settings.manage' in current_user.permissions %}
         <a class="btn btn-ghost btn-icon" href="/settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/>

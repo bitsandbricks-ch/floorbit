@@ -159,7 +159,7 @@ def test_cli_manages_users(app_module, auth):
     assert "as admin" in result.output  # the first account
     result = runner.invoke(args=["users", "add", "alice", "--password", "long-enough-pw"])
     assert result.exit_code == 0, result.output
-    assert auth.users.verify("alice", "long-enough-pw")["role"] == "editor"
+    assert auth.users.verify("alice", "long-enough-pw")["role"] == "lead"  # was "editor" before #41
     assert runner.invoke(args=["users", "role", "alice", "viewer"]).exit_code == 0
     assert auth.users.get("alice")["role"] == "viewer"
     assert runner.invoke(args=["users", "remove", "root"]).exit_code != 0  # the last admin
@@ -261,7 +261,7 @@ def test_viewer_can_look_but_not_change(signed_in_as):
     assert viewer.get("/").status_code == 200
     resp = viewer.post("/api/switches", json={"name": "sw", "x": 1, "y": 1})
     assert resp.status_code == 403
-    assert resp.get_json()["role_needed"] == "editor"
+    assert resp.get_json()["permission_needed"] == "floorplan.edit"
 
 
 def test_editor_can_change_the_floor_plan_but_not_settings(signed_in_as):
@@ -300,7 +300,7 @@ def test_role_change_applies_to_open_sessions(signed_in_as, auth):
 def test_admin_manages_accounts(client, auth):
     body = client.get("/api/users").get_json()
     assert body["me"] == TEST_USER
-    assert [r["id"] for r in body["roles"]] == ["viewer", "editor", "admin"]
+    assert [r["id"] for r in body["roles"]] == ["admin", "lead", "tech", "viewer", "kiosk"]
 
     resp = client.post("/api/users", json={"username": "helper1", "password": "long-enough-pw", "role": "viewer"})
     assert resp.status_code == 201

@@ -6,6 +6,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
+const Teams = lazy(() => import('@/pages/Teams'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/settings/plugins" element={<Plugins />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/seat-mapping" element={<SeatMapping />} />
+        <Route path="/settings/teams" element={<Teams />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

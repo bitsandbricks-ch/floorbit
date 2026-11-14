@@ -30,9 +30,9 @@ Add them to the URL, for example `/kiosk?title=LAN%20Party&refresh=10`.
 - If no update has succeeded for 90 seconds (or four poll intervals, whichever
   is longer), a red banner says the data may be out of date.
 
-Seats count as taken when `/api/seats/info` has a username for them
-(`seats.json`, or any seat source such as check-ins). Usernames are not shown
-on the screen.
+Seats count as taken when a seat source (the seat mapping, `seats.json`,
+check-ins) has a nick or IP for them. The kiosk asks `/api/seats/occupancy`,
+which only lists the taken seats: nicks and IPs never reach the screen.
 
 ## On the screen
 

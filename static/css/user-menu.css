@@ -10,8 +10,8 @@
   .user-menu-name { display: none; }
 }
 
-/* Viewers only look: hide the editing tools. The server refuses their changes anyway. */
-body.role-viewer .toolbar,
-body.role-viewer .detail-footer,
-body.role-viewer #block-edit-form,
-body.role-viewer .context-menu { display: none !important; }
+/* Roles without floorplan.edit only look: hide the editing tools. The server refuses their changes anyway. */
+body.read-only .toolbar,
+body.read-only .detail-footer,
+body.read-only #block-edit-form,
+body.read-only .context-menu { display: none !important; }

@@ -66,6 +66,15 @@ def get_seats_info():
     return jsonify({'seats': seats, 'errors': seat_sources.info()['errors']})
 
 
+@bp.route('/api/seats/occupancy', methods=['GET'])
+def get_seats_occupancy():
+    """Which seats are taken, and nothing else: no nicks, IPs or MACs. For viewers and kiosks;
+    the full mapping (/api/seats/info) needs seats.view."""
+    seats = seat_sources.load()
+    taken = sorted(s for s, v in seats.items() if any((v or {}).get(k) for k in ('username', 'ip_address')))
+    return jsonify({'taken': taken})
+
+
 @bp.route('/api/seats/resolve', methods=['POST'])
 def resolve_seats():
     """Resolve all seat IP addresses to their switch and port mappings."""

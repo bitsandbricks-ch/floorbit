@@ -65,13 +65,20 @@ def test_filters_paging_and_csv(client):
     assert len(rows) == 3 and rows[0]["target"] == "'=sw-2"   # no spreadsheet formulas
 
 
-def test_audit_log_is_admin_only(anon_client, client, app_module):
+def test_audit_log_needs_audit_read(anon_client, client, app_module):
+    """Admins and leads (the old editors) read it; viewers and techs don't (issue #41)."""
     assert anon_client.get("/api/settings/audit").status_code == 401
-    app_module.app.extensions["auth"].users.add("ed", "editor-password-1", role="editor")
-    editor = app_module.app.test_client()
-    editor.post("/login", data={"username": "ed", "password": "editor-password-1"})
-    assert editor.get("/api/settings/audit").status_code == 403
-    assert editor.get("/settings/audit").status_code == 403
+    users = app_module.app.extensions["auth"].users
+    users.add("vi", "viewer-password-1", role="viewer")
+    users.add("ed", "editor-password-1", role="editor")
+    viewer, lead = app_module.app.test_client(), app_module.app.test_client()
+    viewer.post("/login", data={"username": "vi", "password": "viewer-password-1"})
+    lead.post("/login", data={"username": "ed", "password": "editor-password-1"})
+    assert viewer.get("/api/settings/audit").status_code == 403
+    assert viewer.get("/settings/audit").status_code == 403
+    assert lead.get("/api/settings/audit").status_code == 200
+    # The rest of /settings stays admin-only.
+    assert lead.get("/api/settings").status_code == 403
     assert b"Audit log" in client.get("/settings/audit").data
 
 

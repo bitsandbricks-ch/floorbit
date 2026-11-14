@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCanEdit, useInventory } from '@/api/queries'
+import { useCan, useInventory } from '@/api/queries'
 import type { Device, InventoryField, InventorySource, SyncReport } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
@@ -37,7 +37,7 @@ function SourceLine({ source }: { source: InventorySource }) {
 export default function Inventory() {
   const { t } = useTranslation()
   const client = useQueryClient()
-  const canEdit = useCanEdit()
+  const canEdit = useCan('floorplan.edit')
   const [showHidden, setShowHidden] = useState(false)
   const [query, setQuery] = useState('')
   const [role, setRole] = useState<string | null>(null)

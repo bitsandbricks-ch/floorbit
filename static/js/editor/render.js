@@ -150,7 +150,7 @@ function createBlockMarker(block) {
     for (let col = 0; col < block.cols; col++) {
       const { number, display } = numbers[i++];
       const user = seatMappings[number]?.username;
-      const cls = 'seat-block-seat' + (user ? ' has-user' : '') +
+      const cls = 'seat-block-seat' + (user || seatMappings[number]?.taken ? ' has-user' : '') +
                   (selectedType === 'seat' && currentBlockSeatNumber === number ? ' selected' : '');
       const title = user ? `${number} · ${user}` : number;
       html += `<div class="${cls}" style="${counterRotation}" data-seat-number="${escHtml(number)}" title="${escHtml(title)}">${escHtml(display)}</div>`;

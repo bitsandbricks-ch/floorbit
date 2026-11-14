@@ -110,7 +110,7 @@
     state = data;
     list.replaceChildren(...state.users.map(row));
     if (!addRole.options.length) {
-      for (const r of state.roles) addRole.append(el('option', { value: r.id, selected: r.id === 'editor' }, r.label));
+      for (const r of state.roles) addRole.append(el('option', { value: r.id, selected: r.id === 'lead' }, r.label));
       rolesIntro.replaceChildren(...state.roles.flatMap((r, i) => [
         i ? ' ' : '', el('strong', {}, r.label + ':'), ' ' + r.description]));
     }
@@ -122,7 +122,7 @@
     try {
       render(await api('POST', '/api/users', body));
       setMsg(addMsg, `Added ${body.username}.`, 'ok');
-      addForm.reset(); addRole.value = 'editor';
+      addForm.reset(); addRole.value = 'lead';
     } catch (e) { setMsg(addMsg, e.message, 'error'); }
   });
 

@@ -46,6 +46,7 @@ PAGES["plugins"] = "/settings/plugins"
 PAGES["dashboard"] = "/dashboard"
 PAGES["inventory"] = "/inventory"
 PAGES["seat-mapping"] = "/seat-mapping"
+PAGES["teams"] = "/settings/teams"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
