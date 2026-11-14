@@ -243,3 +243,8 @@ body {
 .fb-job-plan .route { stroke: var(--color-trace); stroke-width: 5; stroke-dasharray: 14 10; stroke-linecap: round; }
 .fb-job-plan .you { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 4; }
 .fb-job-plan .you-label { fill: var(--color-trace); font: 700 30px var(--font-sans); text-anchor: middle; }
+.fb-match-plan { width: 100%; height: auto; max-height: 60vh; background: var(--color-raised); border-radius: 10px; }
+.fb-match-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-match-plan .cell.match { fill: var(--color-warn); stroke: var(--color-warn); }
+.fb-match-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-match-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-warn); }

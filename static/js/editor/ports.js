@@ -43,7 +43,10 @@ function closePortDialog() {
   portDialogMode = null;
 }
 
+let portMatchZone = null;   // set once the server said the seat is a match seat (issue #31)
+
 function openPortDialog(mode, seat) {
+  portMatchZone = null;
   portDialogMode = mode;
   portDialogSeat = seat;
   portError.classList.add('hidden');
@@ -70,6 +73,7 @@ portForm.addEventListener('submit', async (e) => {
   try {
     if (portDialogMode === 'bounce') {
       const body = { seat };
+      if (portMatchZone) body.confirm_match = true;
       if (portInfo?.needs_login) Object.assign(body, { username: portUsername.value.trim(), password: portPassword.value });
       portPassword.value = '';
       const result = await api('POST', '/api/ports/bounce', body);
@@ -85,6 +89,11 @@ portForm.addEventListener('submit', async (e) => {
       loadIncidentMarkers();
     }
   } catch (err) {
+    if (err.body && err.body.match_seat && !portMatchZone) {
+      // A tournament seat: say so and make the next click the second confirmation.
+      portMatchZone = err.body.match_seat;
+      portOk.textContent = 'Bounce the match seat anyway';
+    }
     portError.textContent = err.message;
     portError.classList.remove('hidden');
   } finally {

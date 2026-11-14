@@ -48,6 +48,27 @@ describe('Security findings', () => {
     expect(call?.body).toEqual({ finding: 'demo:arp-1', username: 'kim', password: 'secret' })
   })
 
+  it('asks a second time for a match seat', async () => {
+    let calls = 0
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/security': list({ needs_login: false }),
+      'POST /api/ports/shutdown': () => (++calls === 1
+        ? { status: 409, body: { error: 'Seat B-4 is a match seat (Main stage).', match_seat: 'Main stage' } }
+        : { body: { ok: true, message: 'Gi1/0/4 on sw-b-01 is shut.' } }),
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Security />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Shut port' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Shut port' }))
+    expect(await within(dialog).findByText('Match seat: Main stage')).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, act on the match seat' }))
+    expect(await screen.findByText('Gi1/0/4 on sw-b-01 is shut.')).toBeInTheDocument()
+    const sent = fake.calls.filter((c) => c.path === '/api/ports/shutdown').map((c) => c.body)
+    expect(sent).toEqual([{ finding: 'demo:arp-1' }, { finding: 'demo:arp-1', confirm_match: true }])
+  })
+
   it('hides the shutdown without port actions and says when nothing is watching', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': me,

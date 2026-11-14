@@ -32,9 +32,10 @@ _failures = {}           # username -> [times of failed switch logins]
 
 
 class PortError(ValueError):
-    def __init__(self, message, status=400):
+    def __init__(self, message, status=400, match_seat=None):
         super().__init__(message)
         self.status = status
+        self.match_seat = match_seat   # the zone, when a match seat still needs its second confirmation
 
 
 def plugin(registry):
@@ -134,6 +135,13 @@ def act(registry, account, body, action):
     if not spec:
         raise PortError('No port actions plugin is on. An admin turns one on under Settings > Plugins.', 409)
     dev, port, seat = target(body)
+    if seat and body.get('confirm_match') is not True:
+        from .tournament import zone_of
+        zone = zone_of(seat)
+        if zone:
+            # Tournament seats (issue #31): a bounced port can lose a match, so ask twice.
+            raise PortError(f'Seat {seat} is a match seat ({zone}). Confirm again to {action} its port.', 409,
+                            match_seat=zone)
     needs_login = info(registry)['needs_login']
     login = _login(body, needs_login)
     key = (dev['name'], port)

@@ -270,6 +270,7 @@ export interface Incident {
   updated_at: number
   dispatched_at?: number | null
   taken_at?: number | null
+  match?: string | null
   can_work: boolean
   can_assign: boolean
 }
@@ -429,6 +430,8 @@ export interface Problem {
   link: string
   switch_id?: string
   muted?: { until: number; by: string | null; reason: string } | null
+  /** The match zone, when the problem is at a tournament seat (issue #31). */
+  match?: string | null
 }
 export interface ProblemList {
   problems: Problem[]
@@ -643,3 +646,16 @@ export interface Job {
 }
 export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean }
 export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number }
+
+/** Tournament awareness (issue #31). */
+export interface MatchZone { id: string; name: string; blocks: string[]; seats: string[]; note: string }
+export interface TournamentData {
+  zones: MatchZone[]
+  seats: Record<string, string>
+  plans: { hall: string; name: string; drawing: PlanDrawing; match: number }[]
+}
+export interface QosHints {
+  available: boolean
+  switches: { switch: string; switch_id: string; ports: { port: string; seat: string; zone: string }[]; uplinks: string[] }[]
+  missing: string[]
+}

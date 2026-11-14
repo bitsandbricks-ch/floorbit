@@ -70,5 +70,6 @@
   "crewNone": "Nobody is on duty.",
   "crewJobs_one": "{{count}} job",
   "crewJobs_other": "{{count}} jobs",
-  "crewFree": "free"
+  "crewFree": "free",
+  "match": "Match seat · {{zone}}"
 }

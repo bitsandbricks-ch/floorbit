@@ -70,5 +70,6 @@
   "crewNone": "Niemand ist im Dienst.",
   "crewJobs_one": "{{count}} Auftrag",
   "crewJobs_other": "{{count}} Aufträge",
-  "crewFree": "frei"
+  "crewFree": "frei",
+  "match": "Match-Platz · {{zone}}"
 }

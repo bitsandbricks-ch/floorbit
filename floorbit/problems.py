@@ -100,12 +100,16 @@ def _power():
 
 def _attention():
     from urllib.parse import quote
+
+    from .tournament import match_seats
     watch = current_app.extensions.get('floorbit_attention')
+    match = match_seats()
     out = []
     for a in (watch.snapshot()['items'] if watch else []):
         link = f"/?seat={quote(a['seat'])}" if a.get('seat') else f"/?switch={quote(a['switch_id'])}"
         out.append({'id': f"attention:{a['id']}", 'kind': a['kind'], 'level': 'warn', 'title': a['title'],
-                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id']})
+                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id'],
+                    'match': match.get(a.get('seat') or '')})
     return out
 
 
@@ -119,7 +123,9 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    attention = sorted(_attention(), key=lambda p: -(p['since'] or 0))
+    # Match seats (issue #31) first: a tournament player losing their link can't wait.
+    attention = sorted(_attention(), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
+    counts['match'] = sum(bool(p.get('match')) for p in attention)
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, **v} for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
     return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,

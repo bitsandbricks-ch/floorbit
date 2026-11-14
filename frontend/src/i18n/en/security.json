@@ -44,5 +44,8 @@
     "loop": "Loop",
     "storm": "Broadcast storm",
     "other": "Other"
-  }
+  },
+  "matchTitle": "Match seat: {{zone}}",
+  "matchText": "This port is behind a tournament seat. Taking it down can cost a match. Only go on if the match admins agree.",
+  "matchConfirm": "Yes, act on the match seat"
 }
