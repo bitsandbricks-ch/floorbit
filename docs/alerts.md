@@ -8,7 +8,8 @@ and [`floorbit/blueprints/problems.py`](../floorbit/blueprints/problems.py).
 ## Problems page
 
 **Problems** in the top bar (`/problems`) lists everything wrong right now, worst and oldest first,
-with a count of what is down next to the link:
+with a count of what is down next to the link. Its browser tab starts with the number of problems
+that are down or need a look, muted ones left out, e.g. "(2) Problems · Floorbit":
 
 - the monitoring source (LibreNMS) not answering;
 - placed switches that are offline;
