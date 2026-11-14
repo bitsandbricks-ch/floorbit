@@ -214,8 +214,8 @@ class SettingsStore:
         if not os.path.exists(self.data_file):
             return {}
         try:
-            with open(self.data_file) as f:
-                return json.load(f)
+            from .store import read_json
+            return read_json(self.data_file, {})
         except (OSError, json.JSONDecodeError) as exc:
             if strict:
                 # Never overwrite a data file we could not parse.
@@ -323,8 +323,8 @@ class SettingsStore:
             data.pop('default_settings', None)   # migrated into app_settings
             # Write in place: data.json is bind-mounted in docker-compose, so an
             # atomic rename onto it would fail.
-            with open(self.data_file, 'w') as f:
-                json.dump(data, f, indent=2)
+            from .store import write_json
+            write_json(self.data_file, data)
             self.reload()
 
 

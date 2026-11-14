@@ -176,16 +176,15 @@ class Auth:
     # setup ---------------------------------------------------------------
     def _stored_secret_key(self):
         """Without SECRET_KEY, keep a generated one in data.json so sessions survive restarts."""
-        import json
         path = self.users.path
         data = {}
         if os.path.exists(path):
-            with open(path) as f:
-                data = json.load(f)
+            from floorbit.store import read_json  # late: floorbit imports auth while it loads
+            data = read_json(path, {})
         if not data.get('auth_secret_key'):
             data['auth_secret_key'] = secrets.token_hex(32)
-            with open(path, 'w') as f:
-                json.dump(data, f, indent=2)
+            from floorbit.store import write_json
+            write_json(path, data)
         return data['auth_secret_key']
 
     def _bootstrap_admin(self):

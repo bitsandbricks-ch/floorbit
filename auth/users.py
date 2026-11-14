@@ -7,7 +7,6 @@ hashes (scrypt); the plain password never touches the disk.
 Accounts can also be linked to outside identities (``identities``), which is
 how a Discord (or later SSO) login maps to a user here.
 """
-import json
 import os
 import re
 import secrets
@@ -61,8 +60,8 @@ class UserStore:
     def _read(self):
         if not os.path.exists(self.path):
             return {}
-        with open(self.path) as f:
-            return json.load(f)
+        from floorbit.store import read_json  # late: floorbit imports auth while it loads
+        return read_json(self.path, {})
 
     def _users(self):
         return dict(self._read().get(self.KEY) or {})
@@ -71,8 +70,8 @@ class UserStore:
         data = self._read()
         data[self.KEY] = users
         # In place, not via rename: data.json is bind-mounted in docker-compose.
-        with open(self.path, 'w') as f:
-            json.dump(data, f, indent=2)
+        from floorbit.store import write_json
+        write_json(self.path, data)
 
     # reads ---------------------------------------------------------------
     def count(self):

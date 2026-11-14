@@ -7,7 +7,6 @@ Team roles (auth/teams.py) add permissions inside a team only.
 Accounts from before roles existed have no role stored and count as admin, so nobody is locked
 out by an upgrade; the old "editor" role is now "lead".
 """
-import json
 import os
 import re
 import threading
@@ -73,14 +72,14 @@ def _read():
     path = _path() if _path else None
     if not path or not os.path.exists(path):
         return {}
-    with open(path) as f:
-        return json.load(f)
+    from floorbit.store import read_json  # late: floorbit imports auth while it loads
+    return read_json(path, {})
 
 
 def _write(data):
     # In place, not via rename: data.json is bind-mounted in docker-compose.
-    with open(_path(), 'w') as f:
-        json.dump(data, f, indent=2)
+    from floorbit.store import write_json
+    write_json(_path(), data)
 
 
 def _custom(data=None):
