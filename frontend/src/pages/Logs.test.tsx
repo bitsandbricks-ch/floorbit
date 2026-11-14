@@ -14,7 +14,7 @@ const line = (id: number, over: Partial<SyslogLine> = {}): SyslogLine => ({
 const status = (over: Partial<LogStatus> = {}): LogStatus => ({
   enabled: true, listening: { port: 5514, tcp: false, bind: '0.0.0.0' }, error: null,
   counts: { received: 12, kept: 10, not_allowed: 2, rate_limited: 0 }, lines: 2, devices: ['dhcp-01', 'sw-a-01'],
-  retention_hours: 24, demo: false, last_id: 2, ...over,
+  retention_hours: 24, demo: false, last_id: 2, sources: ['syslog'], source: 'syslog', ...over,
 })
 const logs = (lines: SyslogLine[], over: Partial<LogStatus> = {}): LogsData => ({ lines, status: status(over) })
 const me = { enabled: true, user: { username: 'kim', display_name: 'Kim', role: 'tech', permissions: ['seats.view'] } }
@@ -66,6 +66,26 @@ describe('Logs', () => {
     renderWithApp(<Logs />, '/logs?seat=A-4')
     expect(await screen.findByText('on A-4')).toBeInTheDocument()
     expect(screen.getByDisplayValue('A-4')).toBeInTheDocument()
+  })
+
+  it('switches to Floorbit\'s own log and the audit log', async () => {
+    const all = { sources: ['syslog', 'app', 'audit'] as const }
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/logs': logs([line(1)], { sources: [...all.sources] }),
+      'GET /api/logs?source=app': logs([line(9, { device: 'Floorbit', program: 'syslog', message: 'could not prune' })],
+        { sources: [...all.sources], source: 'app' }),
+      'GET /api/logs?source=audit': logs([line(4, { device: 'kim', program: 'floor plan', message: 'Changed switch sw-a-01' })],
+        { sources: [...all.sources], source: 'audit' }),
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Logs />)
+    fireEvent.click(await screen.findByText('Floorbit'))
+    expect(await screen.findByText('could not prune')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Seat')).not.toBeInTheDocument()
+    expect(screen.queryByText('Listening on UDP 5514')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Audit log'))
+    expect(await screen.findByText('Changed switch sw-a-01')).toBeInTheDocument()
   })
 
   it('explains how to turn the receiver on', async () => {

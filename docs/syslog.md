@@ -83,6 +83,19 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
 - The line above the list says whether the receiver is listening, how many lines are kept and how
   many were dropped.
 
+## Floorbit's own log and the audit log
+
+Accounts with `audit.read` (admin and lead) get two more logs on the same page, with the same
+search and level filter:
+
+- **Floorbit:** what the app itself printed, such as a plugin that couldn't reach its server or a
+  file that couldn't be written. The last `APP_LOG_LINES` (2000) lines are kept in memory only; the
+  container's own log has everything. The development server's request lines are left out.
+- **Audit log:** who changed what ([audit.md](audit.md)), newest first, one line per change.
+  Failed sign-ins show as warnings.
+
+The Logs button in the top bar shows for them even while the syslog receiver is off.
+
 ## Log alerts
 
 Some lines mean a seat or a switch needs a look. Floorbit knows these patterns, from Cisco IOS and
@@ -122,6 +135,7 @@ underline, for accounts with `seats.view` while the receiver runs.
 | `SYSLOG_MAX_LINES` | `50000` | Lines kept in memory (at least 100). |
 | `SYSLOG_MAX_MB` | `100` | Megabytes kept on disk. |
 | `SYSLOG_RETENTION_HOURS` | `24` | Hours lines are kept. |
+| `APP_LOG_LINES` | `2000` | Lines of Floorbit's own log kept in memory (at least 100). |
 | `LOG_ALERT_MINUTES` | `15` | Minutes without a matching line before a log alert clears. |
 | `SYSLOG_PUBLISH_PORT` | `514` | Docker Compose only: the host port mapped to the receiver. |
 
@@ -131,6 +145,9 @@ underline, for accounts with `seats.view` while the receiver runs.
 `seat`, `port`, `severity` (the least severe level to show), `after` (only lines newer than this id,
 for following along), `before` (only older, for paging) and `limit` (1 to 1000, 200 by default).
 Needs `seats.view`.
+
+`source=app` reads Floorbit's own log and `source=audit` the audit log instead; both also need
+`audit.read`, and the answer's `status.sources` lists the logs the account may read.
 
 `GET /api/logs/alerts` lists the current log alerts, and `GET /api/logs/markers` the warnings of the
 last 10 minutes counted per seat and per switch (what the floor plan shows). Both need `seats.view`.

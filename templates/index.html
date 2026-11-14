@@ -104,8 +104,8 @@
           <span class="nav-label">Security</span> <span class="nav-count nav-count-warn" id="security-count" hidden></span>
         </a>
         {% endif %}
-        {% if 'seats.view' in current_user.permissions and syslog_on and feature_on('syslog') %}
-        <a class="btn btn-ghost" href="/logs" title="Logs: what the switches, firewalls and DHCP servers sent">
+        {% if 'seats.view' in current_user.permissions and logs_page and feature_on('syslog') %}
+        <a class="btn btn-ghost" href="/logs" title="Logs: syslog from the switches, firewalls and DHCP servers, and Floorbit's own log">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>
           <span class="nav-label">Logs</span>
         </a>
