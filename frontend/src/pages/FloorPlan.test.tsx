@@ -446,6 +446,19 @@ describe('Seats page', () => {
     await waitFor(() => expect(link).toHaveAttribute('href', '/plan?print=1&hall=main&show=offline'))
   })
 
+  it('puts the cursor in Find on /', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    const box = await screen.findByRole('textbox', { name: 'Find a seat' })
+    expect(box).toHaveAttribute('aria-keyshortcuts', '/')
+    fireEvent.change(box, { target: { value: 'D-2' } })
+    box.blur()
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Slash' })
+    expect(box).toHaveFocus()
+    const input = box as HTMLInputElement
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 3])
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }

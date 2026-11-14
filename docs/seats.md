@@ -49,6 +49,7 @@ Tab to the plan, then:
 | B | Open the block of the seat under the cursor. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
+| **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. The box shows a **/** hint on computers with a mouse. |
 
 A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the
 plan's description, one line per block ("Block D: 21 of 24 seats online, 1 problem."). The page is

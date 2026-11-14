@@ -1,8 +1,8 @@
-import { Alert, Anchor, Button, Drawer, Group, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
-import { useMediaQuery } from '@mantine/hooks'
+import { Alert, Anchor, Button, Drawer, Group, Kbd, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
+import { useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
@@ -54,6 +54,10 @@ export default function FloorPlan() {
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
   const [search, setSearch] = useState('')
+  // "/" jumps to the Find box, as on most sites with a search (issue #194). Mantine skips it while typing elsewhere.
+  const findBox = useRef<HTMLInputElement>(null)
+  const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
+  useHotkeys([['/', () => { findBox.current?.focus(); findBox.current?.select() }]])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
@@ -201,7 +205,7 @@ export default function FloorPlan() {
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
                 href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
               <form onSubmit={go} role="search">
-                <TextInput aria-label={t('plan.find')} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
+                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
                   onChange={(e) => setSearch(e.currentTarget.value)} />
               </form>
