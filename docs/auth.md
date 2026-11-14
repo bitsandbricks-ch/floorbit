@@ -163,6 +163,59 @@ as a viewer; with any list set, members without one of those roles are refused.
   Discord user ID on the account and nothing else (no token, no email).
 - Discord sign-ins and refused ones are in the audit log, under *sign-in*.
 
+## Sign in with OpenID Connect
+
+Admins add OIDC providers (Authentik, Keycloak, Microsoft Entra ID, Google, ...) under
+**Settings › Sign-in providers** (`/settings/sign-in`, needs `settings.manage`). Each one gets its own
+"Sign in with <name>" button next to local accounts and Discord. Code: [`auth/oidc.py`](../auth/oidc.py).
+
+Per provider:
+
+| Setting | |
+| --- | --- |
+| ID | Lowercase letters and digits. It is part of the redirect URL and of the secret's variable name. |
+| Name | The button text. |
+| Issuer URL | Endpoints and signing keys come from `<issuer>/.well-known/openid-configuration`, which must name the same issuer. https only, except `localhost`. |
+| Client ID | From the identity provider. |
+| Scopes | Default `openid profile email`; must include `openid`. Add `groups` (or what your provider calls it) for role mapping. |
+| Role claim | Default `groups`. If the ID token doesn't carry it, Floorbit asks the userinfo endpoint. |
+| Who gets in | Claim values and the role each gives. Several matches: the role with the most permissions wins. |
+
+Register this redirect URL at the identity provider (the settings page shows it):
+`<PUBLIC_URL>/auth/oidc-<id>/callback`.
+
+**The client secret** is never stored in `data.json` or shown in Settings. Set
+`OIDC_<ID>_CLIENT_SECRET`, or point `OIDC_<ID>_CLIENT_SECRET_FILE` at a Docker secret:
+
+```yaml
+services:
+  app:
+    environment:
+      OIDC_AUTHENTIK_CLIENT_SECRET_FILE: /run/secrets/oidc_authentik
+    secrets: [oidc_authentik]
+secrets:
+  oidc_authentik:
+    file: ./secrets/oidc_authentik.txt
+```
+
+The button only appears once the secret is there. **Test** on the settings page checks discovery,
+the keys and PKCE support.
+
+**Who can sign in:**
+
+- Without any role rule, only accounts an admin linked on **Settings › Users** (Link sign-in, with
+  the person's `sub` at the provider).
+- With rules, a first sign-in from someone with a mapped value creates an account without a
+  password. That account is refused once the person has no mapped value any more. Accounts an
+  admin linked by hand are trusted as they are.
+- Local accounts always keep working, so an admin can sign in while the identity provider is down.
+
+**How it is checked:** authorization code flow with PKCE (S256), `state` and `nonce`. The ID token's
+signature is checked against the issuer's published keys (asymmetric algorithms only, never `none`
+or HS256), plus `iss`, `aud` (and `azp` when there are several audiences), `exp`, `iat` and the
+`nonce`, with 60 seconds of clock skew. Keys are cached for an hour and fetched again when a token
+names a key we don't know. Every sign-in and refusal goes to the audit log with the provider.
+
 ## Adding another login method
 
 A login method is a provider in `auth/providers/`. Two kinds exist:

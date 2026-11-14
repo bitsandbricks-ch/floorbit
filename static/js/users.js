@@ -89,9 +89,25 @@
       } }, 'Save'));
     const showDiscord = state.discord || user.discord_id;
 
-    const linked = user.identities.map((id) => id === 'discord' ? `Discord ${user.discord_id}` : id);
+    // OIDC: link the subject ("sub") an identity provider uses for this person; empty unlinks.
+    const oidcProviders = state.oidc || [];
+    const oidcSelect = el('select', { 'aria-label': 'Sign-in provider' },
+      ...oidcProviders.map((p) => el('option', { value: p.id }, p.label)));
+    const oidcInput = el('input', { type: 'text', placeholder: 'Subject (sub), empty to unlink',
+      'aria-label': 'Subject at the sign-in provider', autocomplete: 'off', maxlength: 255 });
+    const oidc = el('div', { class: 'us-reset', hidden: true },
+      oidcSelect, oidcInput,
+      el('button', { class: 'st-btn st-btn-primary', type: 'button', onclick: async () => {
+        try {
+          render(await api('PATCH', `/api/users/${encodeURIComponent(user.username)}`,
+            { identity: { provider: oidcSelect.value, subject: oidcInput.value.trim() } }));
+        } catch (e) { setMsg(msg, e.message, 'error'); }
+      } }, 'Save'));
+    const providerLabel = (id) => (oidcProviders.find((p) => p.id === id) || {}).label || id;
+
+    const linked = user.identities.map((id) => id === 'discord' ? `Discord ${user.discord_id}` : providerLabel(id));
     const extra = (linked.length ? ` · linked: ${linked.join(', ')}` : '') +
-      (user.created_by ? ` · joined with ${user.created_by === 'discord' ? 'Discord' : user.created_by}` : '');
+      (user.created_by ? ` · joined with ${user.created_by === 'discord' ? 'Discord' : providerLabel(user.created_by)}` : '');
     return el('div', { class: 'us-row' },
       el('div', { class: 'us-who' },
         el('strong', {}, user.display_name, isMe ? el('span', { class: 'us-you' }, 'you') : ''),
@@ -102,8 +118,10 @@
           'Reset password'),
         showDiscord ? el('button', { class: 'st-btn', type: 'button', onclick: () => { discord.hidden = !discord.hidden; if (!discord.hidden) discordInput.focus(); } },
           user.discord_id ? 'Discord' : 'Link Discord') : '',
+        oidcProviders.length ? el('button', { class: 'st-btn', type: 'button', onclick: () => { oidc.hidden = !oidc.hidden; if (!oidc.hidden) oidcInput.focus(); } },
+          'Link sign-in') : '',
         remove),
-      reset, discord, msg);
+      reset, discord, oidc, msg);
   }
 
   function render(data) {

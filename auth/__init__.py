@@ -26,7 +26,7 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
 
-from . import roles, teams
+from . import oidc, roles, teams
 from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
 from .users import UserError, UserStore, public
@@ -148,8 +148,10 @@ class Auth:
         # Roles and teams live in the same file as the accounts (and follow it in tests).
         roles.configure(lambda: self.users.path)
         teams.configure(lambda: self.users.path)
+        oidc.configure(lambda: self.users.path)
         self.providers = Registry()
         self.providers.register(LocalProvider(self.users))
+        self.providers.add_source(oidc.providers)
         self._failures = {}
         self.public_url = lambda: ''   # create_app points this at the PUBLIC_URL setting
 
@@ -344,7 +346,10 @@ def _blueprint():
         state = secrets.token_urlsafe(24)
         session['auth_state'] = state
         session['auth_next'] = _safe_next(request.args.get('next'))
-        return redirect(provider.start(_auth().callback_url(provider_id), state))
+        try:
+            return redirect(provider.start(_auth().callback_url(provider_id), state))
+        except AuthError as exc:   # e.g. an OIDC issuer that is down: local sign-in still works
+            return render_login(str(exc), status=502)
 
     @bp.route('/auth/<provider_id>/callback')
     def callback(provider_id):

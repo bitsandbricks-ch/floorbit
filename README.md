@@ -34,7 +34,8 @@ each seat is plugged into.
   its port's traffic.
 - **Sign-in:** the editor and the settings need an account; the floor plan data stays readable for
   kiosk screens. Username and password, or **Sign in with Discord**: members of your Discord server
-  get an account with a role from their server roles. See [docs/auth.md](docs/auth.md).
+  get an account with a role from their server roles, and your own **OpenID Connect** providers
+  (Authentik, Keycloak, Entra ID, ...) with groups mapped to roles. See [docs/auth.md](docs/auth.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
   permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
   viewers and kiosk screens.

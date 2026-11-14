@@ -204,3 +204,30 @@ export interface AccountSummary {
   display_name: string
   role: string
 }
+export interface RoleMappingRule {
+  value: string
+  role: string
+}
+export interface OidcProvider {
+  id: string
+  name: string
+  issuer: string
+  client_id: string
+  scopes: string
+  role_claim: string
+  role_mapping: RoleMappingRule[]
+  secret_env: string
+  secret_set: boolean
+  callback_url: string
+}
+export interface OidcList {
+  providers: OidcProvider[]
+  roles: { id: string; label: string }[]
+  callback_template: string
+}
+export interface OidcTestResult {
+  ok: boolean
+  error?: string
+  problems?: string[]
+  keys?: number
+}

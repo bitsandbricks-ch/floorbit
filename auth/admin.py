@@ -6,12 +6,15 @@ The guard in auth/__init__.py already limits these paths to accounts with ``acco
 - ``GET /api/roles``: every permission and role; ``PUT``/``DELETE /api/roles/<id>`` for custom roles.
 - ``GET /api/teams``: the team tree with members; ``POST /api/teams``, ``PATCH``/``DELETE
   /api/teams/<id>``; ``PUT``/``DELETE /api/teams/<id>/members/<username>`` (``{"role": ...}``).
+- ``GET /api/settings/oidc``: OIDC sign-in providers (never their secrets); ``PUT``/``DELETE
+  /api/settings/oidc/<id>``, ``POST .../<id>/test``. These need ``settings.manage``.
 """
 from flask import Blueprint, jsonify, render_template, request
 
 from floorbit import spa
 
-from . import roles, teams
+from . import oidc, roles, teams
+from .providers import AuthError
 from .users import UserError, public
 
 
@@ -29,6 +32,9 @@ def create_users_blueprint(auth):
                       for r, v in roles.all_roles().items()],
             'me': (me() or {}).get('username'),
             'discord': bool(auth.providers.get('discord')),
+            # Providers an admin can link accounts to (configured, even if the secret is missing).
+            'oidc': [{'id': oidc.PREFIX + pid, 'label': cfg['name']}
+                     for pid, cfg in sorted(oidc.all_configs().items())],
         }
 
     def error(exc, status=400):
@@ -70,6 +76,15 @@ def create_users_blueprint(auth):
                     raise UserError('A Discord user ID is a number of 17 to 20 digits. In Discord, '
                                     'turn on developer mode, right-click the person and copy their ID.')
                 auth.users.link_identity(username, 'discord', discord_id)
+            if 'identity' in body:
+                link = body['identity'] if isinstance(body['identity'], dict) else {}
+                provider = str(link.get('provider') or '')
+                if provider[len(oidc.PREFIX):] not in oidc.all_configs() or not provider.startswith(oidc.PREFIX):
+                    raise UserError('Pick one of the sign-in providers.')
+                subject = str(link.get('subject') or '').strip()
+                if len(subject) > 255:
+                    raise UserError('That subject is too long.')
+                auth.users.link_identity(username, provider, subject)
         except UserError as exc:
             return error(exc)
         user = auth.users.get(username)
@@ -166,5 +181,58 @@ def create_users_blueprint(auth):
         except teams.TeamError as exc:
             return error(exc)
         return jsonify({'id': team_id, 'username': username, **teams_payload()})
+
+    # OIDC sign-in providers ----------------------------------------------------------------
+    def oidc_payload():
+        return {
+            'providers': [{'id': pid, **cfg, 'secret_env': oidc.env_name(pid),
+                           'secret_set': bool(oidc.client_secret(pid)),
+                           'callback_url': auth.callback_url(oidc.PREFIX + pid)}
+                          for pid, cfg in sorted(oidc.all_configs().items())],
+            'roles': [{'id': r, 'label': v['label']} for r, v in roles.all_roles().items()],
+            # The redirect URL a new provider will have: replace ID with its ID.
+            'callback_template': auth.callback_url(oidc.PREFIX + 'ID'),
+        }
+
+    @bp.route('/settings/sign-in')
+    def oidc_page():
+        return spa.render('Sign-in providers')
+
+    @bp.route('/api/settings/oidc', methods=['GET'])
+    def oidc_list():
+        return jsonify(oidc_payload())
+
+    @bp.route('/api/settings/oidc/<provider_id>', methods=['PUT'])
+    def oidc_save(provider_id):
+        try:
+            oidc.save(provider_id, request.get_json(silent=True) or {})
+        except oidc.OIDCError as exc:
+            return error(exc)
+        return jsonify({'id': provider_id, **oidc_payload()})
+
+    @bp.route('/api/settings/oidc/<provider_id>', methods=['DELETE'])
+    def oidc_delete(provider_id):
+        try:
+            oidc.delete(provider_id)
+        except oidc.OIDCError as exc:
+            return error(exc)
+        return jsonify({'id': provider_id, **oidc_payload()})
+
+    @bp.route('/api/settings/oidc/<provider_id>/test', methods=['POST'])
+    def oidc_test(provider_id):
+        cfg = oidc.all_configs().get(provider_id)
+        if not cfg:
+            return error(f'No sign-in provider called {provider_id}.', 404)
+        try:
+            config, jwks = oidc.discover(cfg['issuer'], refresh=True)
+        except AuthError as exc:
+            return jsonify({'ok': False, 'error': str(exc)})
+        problems = []
+        if 'S256' not in (config.get('code_challenge_methods_supported') or ['S256']):
+            problems.append('The provider does not list PKCE (S256).')
+        if not oidc.client_secret(provider_id):
+            problems.append(f'{oidc.env_name(provider_id)} is not set on the server.')
+        return jsonify({'ok': not problems, 'problems': problems, 'keys': len(jwks.get('keys') or []),
+                        'authorization_endpoint': config['authorization_endpoint']})
 
     return bp

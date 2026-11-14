@@ -5,6 +5,7 @@ import type {
   AccountSummary,
   InventoryList,
   LogLine,
+  OidcList,
   Me,
   Permission,
   PluginInfo,
@@ -68,6 +69,10 @@ export function useSeatMap() {
 
 export function useRoles() {
   return useQuery({ queryKey: qk.roles, queryFn: () => get<RolesList>('/api/roles') })
+}
+
+export function useOidcProviders() {
+  return useQuery({ queryKey: qk.oidc, queryFn: () => get<OidcList>('/api/settings/oidc') })
 }
 
 export function useTeams() {

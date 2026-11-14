@@ -9,6 +9,7 @@ export const qk = {
   seatMap: ['seat-map'] as const,
   roles: ['roles'] as const,
   teams: ['teams'] as const,
+  oidc: ['oidc'] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
 }
