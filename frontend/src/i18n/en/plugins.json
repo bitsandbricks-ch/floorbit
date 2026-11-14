@@ -1,6 +1,6 @@
 {
   "title": "Plugins",
-  "intro": "Plugins add actions, dashboard tiles and data sources. Each one lists what it may touch, and starts switched off. Only plugins that ship with Floorbit can be turned on for now.",
+  "intro": "Plugins add actions, dashboard tiles and data sources. Each one lists what it may touch. NetBox and LibreNMS are on from the start; the others start switched off. Only plugins that ship with Floorbit can be turned on for now.",
   "none": "No plugins are installed.",
   "on": "On",
   "off": "Off",

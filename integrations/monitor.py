@@ -1,7 +1,7 @@
 """Background switch status monitor.
 
-Every ``STATUS_MONITOR_INTERVAL`` seconds it asks LibreNMS for all devices in
-one request, matches them to the switches placed on the floor plan, and
+Every ``STATUS_MONITOR_INTERVAL`` seconds it asks the monitoring plugin (LibreNMS) for all
+devices in one request, matches them to the switches placed on the floor plan, and
 publishes events when a switch changes status:
 
 * ``switch.status``  one per confirmed change: {id, name, status, previous}
@@ -13,8 +13,6 @@ a row before it counts, so a single missed SNMP poll does not page anyone.
 """
 import threading
 import time
-
-import requests
 
 from . import config, events
 
@@ -57,26 +55,16 @@ class StatusMonitor:
 
     # ── config ────────────────────────────────────────────────────────────────────────────
     @staticmethod
-    def librenms():
-        url = (config.get('LIBRENMS_URL', '') or '').rstrip('/')
-        token = config.get('LIBRENMS_TOKEN', '') or ''
-        verify = config.get_bool('LIBRENMS_VERIFY_SSL', True)
-        return url, token, verify
+    def source():
+        from floorbit import sources
+        return sources.monitoring()
 
     def enabled(self):
-        url, token, _ = self.librenms()
-        return bool(url and token) and config.get_bool('STATUS_MONITOR_ENABLED', True)
+        return self.source().enabled() and config.get_bool('STATUS_MONITOR_ENABLED', True)
 
     # ── polling ───────────────────────────────────────────────────────────────────────────
     def fetch_devices(self):
-        url, token, verify = self.librenms()
-        resp = requests.get(
-            f'{url}/api/v0/devices',
-            headers={'X-Auth-Token': token, 'Accept': 'application/json'},
-            timeout=15, verify=verify,
-        )
-        resp.raise_for_status()
-        return resp.json().get('devices', [])
+        return self.source().devices()
 
     @staticmethod
     def match(name, devices):

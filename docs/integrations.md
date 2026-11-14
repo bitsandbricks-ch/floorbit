@@ -40,7 +40,7 @@ Behind nginx, the stream sends `X-Accel-Buffering: no`; also set `proxy_read_tim
 
 ## Switch status monitor
 
-A background thread polls LibreNMS (`/api/v0/devices`, one request for all devices) every
+A background thread polls the monitoring plugin (LibreNMS: `/api/v0/devices`, one request for all devices) every
 interval, matches devices to the switches placed on the plan (same name matching as the rest
 of the app), and publishes `switch.status` when one changes. The first poll is a baseline
 (no alerts after a restart), and a change must be seen on N polls in a row to count.

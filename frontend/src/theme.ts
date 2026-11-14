@@ -11,6 +11,8 @@ import {
 
 const token = (name: string) => Array(10).fill(`var(--color-${name})`) as unknown as MantineColorsTuple
 
+const TOKENS = ['bit', 'trace', 'up', 'down', 'warn']
+
 const variantColorResolver: VariantColorsResolver = (input) => {
   const result = defaultVariantColorsResolver(input)
   const color = input.color || input.theme.primaryColor
@@ -19,6 +21,12 @@ const variantColorResolver: VariantColorsResolver = (input) => {
   }
   if (input.variant === 'filled' && (color === 'down' || color === 'up' || color === 'warn')) {
     return { ...result, color: 'var(--color-ink)' }
+  }
+  // Mantine can't take alpha off a CSS variable, so "light" became a solid fill in the light theme
+  // (dark text on dark green). Mix the token with transparency ourselves.
+  if (input.variant === 'light' && TOKENS.includes(color)) {
+    const tint = (pct: number) => `color-mix(in srgb, var(--color-${color}) ${pct}%, transparent)`
+    return { ...result, background: tint(14), hover: tint(22), color: `var(--color-${color})`, border: 'transparent' }
   }
   return result
 }

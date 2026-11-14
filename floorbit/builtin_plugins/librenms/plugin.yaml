@@ -1,0 +1,13 @@
+# Live status, ports and IP to switch port lookups from LibreNMS. Ships with Floorbit and is on
+# by default; it does nothing until LibreNMS's URL and token are set (Settings > LibreNMS).
+id: librenms
+name: LibreNMS
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live switch status, port details and traffic, and which switch port an IP or MAC is on (ARP and MAC tables). Feeds the floor plan, the seat heatmap, the status monitor and the check-in page."
+author: Floorbit
+homepage: https://www.librenms.org
+uses: [monitoring]
+default_enabled: true
+# Settings > LibreNMS (librenms.url, LIBRENMS_URL, ...), as before the plugin existed.
+core_settings: librenms
