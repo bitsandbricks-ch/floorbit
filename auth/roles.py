@@ -239,8 +239,8 @@ RULES = (
     ('/api/planner', None, 'floorplan.edit'),
     ('/planner', READ, 'floorplan.edit'),
     # Past events: closing one clears the running event's history, and a backup is an admin's.
-    ('/api/events/backup', READ, 'settings.manage'),
-    ('/api/events', WRITE, 'settings.manage'),
+    ('/api/past-events/backup', READ, 'settings.manage'),
+    ('/api/past-events', WRITE, 'settings.manage'),
     # Shift handover: the crew's summary, with names from the audit log (floorbit/handover.py).
     ('/api/handover', None, 'incidents.work'),
     ('/handover', READ, 'incidents.work'),

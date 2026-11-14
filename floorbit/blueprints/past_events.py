@@ -1,12 +1,12 @@
 """Past events and comparing them (issue #38). Rules in floorbit/event_archive.py.
 
 - ``GET /events``: the page (React).
-- ``GET /api/events``: the running event's figures and every archived event's, for the comparison.
-- ``GET /api/events/<id>/report.pdf``: an archived event's report.
-- ``GET /api/events/backup/<id>.json``: its floor plan as a backup file (Settings > Backup restores it).
-- ``POST /api/events/close`` ``{"confirm": "<event name>", "next_name": "..."}``: archive the running
+- ``GET /api/past-events``: the running event's figures and every archived event's, for the comparison.
+- ``GET /api/past-events/<id>/report.pdf``: an archived event's report.
+- ``GET /api/past-events/backup/<id>.json``: its floor plan as a backup file (Settings > Backup restores it).
+- ``POST /api/past-events/close`` ``{"confirm": "<event name>", "next_name": "..."}``: archive the running
   event and start the next one from it. Admins only, and the event's name has to be typed.
-- ``PATCH /api/events/<id>`` ``{"name": "..."}``, ``DELETE /api/events/<id>``: admins only.
+- ``PATCH /api/past-events/<id>`` ``{"name": "..."}``, ``DELETE /api/past-events/<id>``: admins only.
 """
 import time
 
@@ -46,7 +46,7 @@ def events_page():
     return spa.render('Events')
 
 
-@bp.route('/api/events', methods=['GET'])
+@bp.route('/api/past-events', methods=['GET'])
 def list_events():
     built = _current(load_data())
     return jsonify({
@@ -56,7 +56,7 @@ def list_events():
     })
 
 
-@bp.route('/api/events/<event_id>/report.pdf', methods=['GET'])
+@bp.route('/api/past-events/<event_id>/report.pdf', methods=['GET'])
 def event_report(event_id):
     try:
         record = event_archive.get(event_id)
@@ -71,7 +71,7 @@ def event_report(event_id):
         'Content-Disposition': f'attachment; filename="floorbit-report-{event_id}.pdf"', 'Cache-Control': 'no-store'})
 
 
-@bp.route('/api/events/backup/<event_id>.json', methods=['GET'])
+@bp.route('/api/past-events/backup/<event_id>.json', methods=['GET'])
 def event_backup(event_id):
     try:
         record = event_archive.get(event_id)
@@ -82,7 +82,7 @@ def event_backup(event_id):
                              'Cache-Control': 'no-store'})
 
 
-@bp.route('/api/events/close', methods=['POST'])
+@bp.route('/api/past-events/close', methods=['POST'])
 def close_event():
     body = request.get_json(silent=True) or {}
     name = _name()
@@ -105,7 +105,7 @@ def close_event():
     return jsonify({'archived': saved, 'started': time.time()})
 
 
-@bp.route('/api/events/<event_id>', methods=['PATCH'])
+@bp.route('/api/past-events/<event_id>', methods=['PATCH'])
 def rename_event(event_id):
     try:
         saved = event_archive.rename(event_id, (request.get_json(silent=True) or {}).get('name'))
@@ -115,7 +115,7 @@ def rename_event(event_id):
     return jsonify(saved)
 
 
-@bp.route('/api/events/<event_id>', methods=['DELETE'])
+@bp.route('/api/past-events/<event_id>', methods=['DELETE'])
 def delete_event(event_id):
     try:
         event_archive.delete(event_id)

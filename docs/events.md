@@ -51,11 +51,11 @@ A bar under each figure shows it against the largest in its row.
 
 | Request | Permission |
 | --- | --- |
-| `GET /api/events` | See the floor plan |
-| `GET /api/events/<id>/report.pdf?lang=&tz=` | See the floor plan |
-| `GET /api/events/backup/<id>.json` | Change settings |
-| `POST /api/events/close` `{"confirm", "next_name"}` | Change settings |
-| `PATCH /api/events/<id>` `{"name"}`, `DELETE /api/events/<id>` | Change settings |
+| `GET /api/past-events` | See the floor plan |
+| `GET /api/past-events/<id>/report.pdf?lang=&tz=` | See the floor plan |
+| `GET /api/past-events/backup/<id>.json` | Change settings |
+| `POST /api/past-events/close` `{"confirm", "next_name"}` | Change settings |
+| `PATCH /api/past-events/<id>` `{"name"}`, `DELETE /api/past-events/<id>` | Change settings |
 
 Event ids are `YYYYMMDD-<8 hex>`. Anything else is a 404, so an id can never reach outside `events/`.
 

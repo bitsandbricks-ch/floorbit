@@ -68,7 +68,7 @@ function Comparison({ columns }: { columns: Column[] }) {
 function RenameModal({ event, onClose, onDone }: { event: PastEvent; onClose: () => void; onDone: () => void }) {
   const { t } = useTranslation()
   const [name, setName] = useState(event.name)
-  const save = useMutation({ mutationFn: () => patch(`/api/events/${event.id}`, { name: name.trim() }), onSuccess: onDone })
+  const save = useMutation({ mutationFn: () => patch(`/api/past-events/${event.id}`, { name: name.trim() }), onSuccess: onDone })
   return (
     <Modal opened onClose={onClose} title={t('events.rename')} centered>
       <Stack gap="sm">
@@ -86,7 +86,7 @@ function CloseEvent({ name, onDone }: { name: string; onDone: (archived: PastEve
   const [next, setNext] = useState('')
   const word = name || 'close'
   const close = useMutation({
-    mutationFn: () => post<{ archived: PastEvent }>('/api/events/close', { confirm, next_name: next.trim() }),
+    mutationFn: () => post<{ archived: PastEvent }>('/api/past-events/close', { confirm, next_name: next.trim() }),
     onSuccess: (r) => { setConfirm(''); setNext(''); onDone(r.archived) },
   })
   return (
@@ -114,12 +114,12 @@ export default function Events() {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
   const isAdmin = useCan('settings.manage')
-  const query = useQuery({ queryKey: qk.events, queryFn: () => get<EventsData>('/api/events') })
+  const query = useQuery({ queryKey: qk.events, queryFn: () => get<EventsData>('/api/past-events') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.events })
   useLiveEvent('events.changed', refresh)
   const [renaming, setRenaming] = useState<PastEvent | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const remove = useMutation({ mutationFn: (id: string) => del(`/api/events/${id}`), onSuccess: refresh })
+  const remove = useMutation({ mutationFn: (id: string) => del(`/api/past-events/${id}`), onSuccess: refresh })
   const d = query.data
   const tz = new Date().getTimezoneOffset()
   const lang = i18n.language.startsWith('de') ? 'de' : 'en'
@@ -156,13 +156,13 @@ export default function Events() {
                       </Stack>
                       <Group gap="xs">
                         <Button size="compact-sm" variant="default" component="a" leftSection={<IconDownload size={14} />}
-                          href={`/api/events/${e.id}/report.pdf?lang=${lang}&tz=${tz}`}>
+                          href={`/api/past-events/${e.id}/report.pdf?lang=${lang}&tz=${tz}`}>
                           {t('events.report')}
                         </Button>
                         {isAdmin && (
                           <>
                             <Button size="compact-sm" variant="default" component="a" leftSection={<IconDownload size={14} />}
-                              href={`/api/events/backup/${e.id}.json`}>
+                              href={`/api/past-events/backup/${e.id}.json`}>
                               {t('events.floorPlan')}
                             </Button>
                             <ConfirmButton size="compact-sm" variant="default" danger label={t('events.delete')}

@@ -22,28 +22,28 @@ const data: EventsData = {
 describe('Events', () => {
   it('compares the running event with past ones and closes it after the name is typed', async () => {
     const api = fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/events': data,
-      'POST /api/events/close': { archived: data.archived[0], started: 1 },
+      'GET /api/auth/me': admin, 'GET /api/past-events': data,
+      'POST /api/past-events/close': { archived: data.archived[0], started: 1 },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Events />)
     expect(await screen.findAllByText('Example LAN 2025')).toHaveLength(2)
     expect(screen.getByText('running')).toBeInTheDocument()
     expect(screen.getByText('350')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Floor plan' })).toHaveAttribute('href', '/api/events/backup/20251101-0a1b2c3d.json')
+    expect(screen.getByRole('link', { name: 'Floor plan' })).toHaveAttribute('href', '/api/past-events/backup/20251101-0a1b2c3d.json')
 
     const close = screen.getByRole('button', { name: 'Close the event' })
     expect(close).toBeDisabled()
     fireEvent.change(screen.getByRole('textbox', { name: 'Type "Example LAN 2026" to confirm' }), { target: { value: 'example lan 2026' } })
     fireEvent.change(screen.getByRole('textbox', { name: /Name of the next event/ }), { target: { value: 'Example LAN 2027' } })
     fireEvent.click(close)
-    await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/events/close'
+    await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/past-events/close'
       && JSON.stringify(c.body) === '{"confirm":"example lan 2026","next_name":"Example LAN 2027"}')).toBe(true))
     expect(await screen.findByText(/is closed and kept/)).toBeInTheDocument()
   })
 
   it('shows viewers the comparison and reports, without admin actions', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/events': data }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/past-events': data }).fn)
     renderWithApp(<Events />)
     expect(await screen.findByRole('link', { name: 'Report' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Close the event' })).not.toBeInTheDocument()
