@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
+import { useLocation } from 'react-router-dom'
 import FloorPlan from './FloorPlan'
 import axe from 'axe-core'
 import { density, findSeat, heatColor, heatLevel, linkSpans, matches, nearestSeat, seatOrder, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
@@ -443,5 +444,17 @@ describe('Seats page', () => {
     expect(link).toHaveAttribute('href', '/plan?print=1&hall=main')
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Offline'))
     await waitFor(() => expect(link).toHaveAttribute('href', '/plan?print=1&hall=main&show=offline'))
+  })
+
+  it('keeps the filter in the address', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main&show=offline')
+    const show = within(await screen.findByRole('radiogroup', { name: 'Show' }))
+    expect(show.getByRole('radio', { name: /^Offline/ })).toBeChecked()
+    fireEvent.click(show.getByText('All'))
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+    fireEvent.click(show.getByText('Problems'))
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('?hall=main&show=problems'))
   })
 })

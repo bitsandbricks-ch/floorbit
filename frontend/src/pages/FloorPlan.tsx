@@ -51,7 +51,8 @@ export default function FloorPlan() {
   useLiveEvent('plan.changed', refresh)
   const data = q.data
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
-  const [filter, setFilter] = useState<Filter>(() => (FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'))
+  // The filter lives in the address so a reload or a shared link keeps it (issue #192).
+  const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
   const [search, setSearch] = useState('')
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
@@ -195,7 +196,7 @@ export default function FloorPlan() {
               {data.halls.length > 1 && (
                 <Select aria-label={t('plan.hall')} w={180} allowDeselect={false} value={data.hall}
                   data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
-                  onChange={(v) => { const next = new URLSearchParams(); if (v) next.set('hall', v); setParams(next) }} />
+                  onChange={(v) => { const next = new URLSearchParams(); if (v) next.set('hall', v); if (filter !== 'all') next.set('show', filter); setParams(next) }} />
               )}
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
                 href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
@@ -219,7 +220,7 @@ export default function FloorPlan() {
           )}
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
           <Group mb="sm" gap="lg" wrap="wrap">
-            <SegmentedControl size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
+            <SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
               data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                 value: f,
                 // Each filter says how many seats it holds (issue #190), so the row doubles as a summary.

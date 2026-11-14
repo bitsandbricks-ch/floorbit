@@ -34,7 +34,8 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 
 **Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
 match seats, seats with a note or checked-in seats. Each choice shows how many seats it matches in
-this hall, so "Offline 0" answers the question without a click. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
+this hall, so "Offline 0" answers the question without a click. The choice is kept in the address
+(`/plan?show=offline`), so a reload or a link sent to another tech keeps it, and switching halls does too. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 ## Keyboard and screen readers
 
