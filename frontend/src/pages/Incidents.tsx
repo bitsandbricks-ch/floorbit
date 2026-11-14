@@ -34,13 +34,17 @@ export default function Incidents() {
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
   const [mineOnly, setMineOnly] = useState(false)
   // The filter lives in the address, so a link can open the board filtered (issue #210).
+  // The box keeps its own state: the address updates a moment later, and typing fast against it lost letters (issue #226).
   const [params, setParams] = useSearchParams()
-  const filter = params.get('q') ?? ''
+  const [filter, setFilterText] = useState(() => params.get('q') ?? '')
   const setFilter = (v: string) => {
-    const next = new URLSearchParams(params)
-    if (v) next.set('q', v)
-    else next.delete('q')
-    setParams(next, { replace: true })
+    setFilterText(v)
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (v) next.set('q', v)
+      else next.delete('q')
+      return next
+    }, { replace: true })
   }
   // "/" jumps to the filter, as on the Seats page; with Shift for Swiss and German keyboards (issue #226).
   const filterBox = useRef<HTMLInputElement>(null)
