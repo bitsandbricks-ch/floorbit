@@ -142,7 +142,7 @@ SCHEMA = [
     {'key': 'DISCORD_BOT_TOKEN', 'group': 'crew', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Bot token',
      'help': 'Developer Portal → your app → Bot → Reset Token. The bot needs View Channel, Send Messages, '
-             'Create Public Threads, Send Messages in Threads and Manage Threads in the crew channel.'},
+             'Embed Links, Create Public Threads, Send Messages in Threads and Manage Threads in the crew channel.'},
     {'key': 'DISCORD_CREW_CHANNEL', 'group': 'crew', 'type': 'string', 'default': '',
      'label': 'Crew channel ID',
      'help': 'Right-click the channel → Copy Channel ID (turn on Developer Mode first). Incidents get a message '
