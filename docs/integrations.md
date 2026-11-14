@@ -25,6 +25,7 @@ Browsers subscribe to `GET /api/events` (Server-Sent Events). `static/js/live.js
 | `data.changed` | someone added/moved/renamed/deleted a switch or seat block | reloads that list (skips your own edits, waits until you stop dragging) |
 | `monitor.poll` | every status poll | none (re-dispatched only) |
 | `checkin`, `checkin.removed`, `checkin.refreshed` | seat check-ins change | none (re-dispatched only) |
+| `attention.changed` | the needs-attention list changed | the Problems page reloads |
 
 Every event is also dispatched on `window` as `lal:live` with `{type, data}` in `detail`, so
 the reworked frontend can listen without depending on `live.js`. While connected,
@@ -77,6 +78,9 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
 | `ALERT_GROUP_AFTER` | `3` | more switch changes than this in one poll become one message, grouped by power circuit ([alerts.md](alerts.md)) |
 | `ALERT_QUIET_HOURS` | | e.g. `02:00-08:00`: messages go out silently and without the mention |
+| `ATTENTION_INTERVAL` | `120` | seconds between reads of every port for the needs-attention list (at least 30; [alerts.md](alerts.md#needs-attention)) |
+| `ATTENTION_FLAPS` | `3` | link changes within ten minutes that count as flapping |
+| `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |
 | `DISCORD_POWER_ALERTS` | `true` | post when a circuit turns red or its breaker trips, with what it feeds |

@@ -20,6 +20,9 @@ class Plugin(Plugin):
     def port_stats(self, hostname, interface):
         return client.fetch_librenms_device_port_stats_by_interface(hostname, interface)
 
+    def device_ports(self, hostname):
+        return client.fetch_device_ports(hostname)
+
     def arp(self, query):
         return client.arp_entries(query)
 

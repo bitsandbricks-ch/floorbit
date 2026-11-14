@@ -408,6 +408,7 @@ export interface PowerOverview {
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
 export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power'
+  | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
   switch_id: string
   name: string
@@ -429,7 +430,8 @@ export interface Problem {
 }
 export interface ProblemList {
   problems: Problem[]
-  counts: { down: number; warn: number; muted: number }
+  attention?: Problem[]
+  counts: { down: number; warn: number; muted: number; attention?: number }
   mutes: AlertMute[]
   quiet_hours: boolean
   checked_at: number

@@ -88,6 +88,9 @@ class NoMonitoring:
     def port_stats(self, hostname, interface):
         return None
 
+    def device_ports(self, hostname):
+        return []
+
     def arp(self, query):
         return []
 
@@ -154,6 +157,17 @@ class PluginMonitoring(NoMonitoring):
 
     def port_stats(self, hostname, interface):
         return self._remembered('port_stats', hostname, interface)
+
+    def device_ports(self, hostname):
+        """Every port of a switch, live (the needs-attention watch). Optional for plugins."""
+        from ..plugins.base import PluginError
+        if offline() or not hasattr(self._spec.plugin_class() or object, 'device_ports'):
+            return []
+        try:
+            return self._call('device_ports', hostname) or []
+        except PluginError as exc:
+            print(f'[sources] {self.name} device_ports failed: {exc}')
+            return []
 
     def arp(self, query):
         result = self._remembered('arp', query)

@@ -111,6 +111,10 @@ def create_app(start_background=True):
     from .power import init_power
     init_power(app, registry, start_background=start_background)
 
+    # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
+    from .attention import init_attention
+    init_attention(app, start_background=start_background)
+
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start
     seed_on_start(app)

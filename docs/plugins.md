@@ -130,7 +130,7 @@ class Plugin(Base):
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
-| `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`. See the built-in LibreNMS plugin |
+| `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`; optionally `device_ports(hostname)` (every port, for the needs-attention list). See the built-in LibreNMS plugin |
 | `ports` | act on switch ports (one plugin at a time): define `port_login()`, `bounce_port(target)` and `set_port(target)` (`target["enabled"]` says shut or on). See [ports.md](ports.md) and the built-in SSH port actions plugin |
 | `security` | report [security findings](security.md): define `security_findings()` returning `[{"id", "kind", "severity", "title", "switch", "port", "mac", "ip", "evidence"}]` |
 | `power` | send [load readings](power.md) from smart PDUs and meters: define `power_readings()` returning `[{"meter": "db1-1", "amps": 12.4}]` (or `"watts"`) |

@@ -44,6 +44,7 @@ runs the syncs. The floor plan's `/api/switches` works on the same list.
 Live data comes through `floorbit/sources/`: `sources.monitoring()` answers from the monitoring
 plugin that is on (the built-in LibreNMS plugin, `floorbit/builtin_plugins/librenms/`) with
 `devices()`, `device_details(hostname)`, `resolve_ip(ip)`, `port_stats(hostname, port)`,
+`device_ports(hostname)` (every port of a switch, for the [needs-attention watch](alerts.md#needs-attention)),
 `mac_for_ip(ip)` and `ip_for_mac(mac)`. The blueprints, the status monitor and the check-in page all
 ask it; nothing else talks to LibreNMS. With no monitoring plugin on, everything reads as unknown.
 `sources.use(fake)` swaps the source (tests, later the local agent) and `sources.use(None)` goes back.

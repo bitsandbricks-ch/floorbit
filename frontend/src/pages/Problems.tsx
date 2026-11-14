@@ -107,6 +107,7 @@ export default function Problems() {
   useLiveEvent('monitor.poll', refresh)
   useLiveEvent('alerts.changed', refresh)
   useLiveEvent('power.changed', refresh)
+  useLiveEvent('attention.changed', refresh)
 
   const mute = useMutation({
     mutationFn: (v: { id: string; minutes: number; reason: string }) =>
@@ -147,6 +148,15 @@ export default function Problems() {
                   onMute={() => { setDialogError(null); setTarget({ id: p.switch_id ?? '', name: p.where }) }} />
               ))}
             </Stack>
+          )}
+          {!!data.attention?.length && (
+            <section aria-labelledby="needs-attention">
+              <Title order={2} size="h4" id="needs-attention">{t('problems.attention.title')}</Title>
+              <Text size="sm" c="dimmed" mb="xs">{t('problems.attention.text')}</Text>
+              <Stack gap="xs">
+                {data.attention.map((p) => <Row key={p.id} p={p} canMute={false} busy={false} onMute={() => {}} />)}
+              </Stack>
+            </section>
           )}
           {data.mutes.length > 0 && (
             <section aria-labelledby="muted-switches">

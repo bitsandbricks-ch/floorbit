@@ -16,13 +16,16 @@ DETAIL_COLUMNS = [
     'ifInErrors', 'ifOutErrors', 'ifInErrors_rate', 'ifOutErrors_rate', 'poll_time',
 ]
 
+# For the needs-attention watch: when a port last went up or down. Older LibreNMS may refuse it.
+WATCH_COLUMNS = [*DETAIL_COLUMNS, 'ifLastChange']
+
 DUPLEX = {'fullDuplex': 'full', 'halfDuplex': 'half'}
 
 
-def fetch_port(base_url, headers, device_id, ifname, verify=True, timeout=10):
-    """Return the LibreNMS port row named ifname on device_id, or None."""
+def fetch_ports(base_url, headers, device_id, verify=True, timeout=10, tiers=None):
+    """Every port row of device_id, asking for the most columns LibreNMS accepts, or None."""
     resp = None
-    for columns in (DETAIL_COLUMNS, BASE_COLUMNS):
+    for columns in tiers or (DETAIL_COLUMNS, BASE_COLUMNS):
         try:
             resp = requests.get(
                 f'{base_url}/api/v0/devices/{device_id}/ports',
@@ -35,7 +38,12 @@ def fetch_port(base_url, headers, device_id, ifname, verify=True, timeout=10):
             break
     if resp is None or not resp.ok:
         return None
-    for port in resp.json().get('ports', []):
+    return resp.json().get('ports', [])
+
+
+def fetch_port(base_url, headers, device_id, ifname, verify=True, timeout=10):
+    """Return the LibreNMS port row named ifname on device_id, or None."""
+    for port in fetch_ports(base_url, headers, device_id, verify, timeout) or []:
         if port.get('ifName') == ifname:
             return port
     return None

@@ -511,6 +511,21 @@ def fetch_librenms_device_port_stats_by_interface(hostname, interface):
     return result
 
 
+def fetch_device_ports(hostname):
+    """Every port of one switch, summarised like port_stats plus its name and last change."""
+    headers = {'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'}
+    device = fetch_librenms_device_by_hostname(hostname, headers)
+    if not device:
+        return []
+    device_id = device.get('device_id') or device.get('hostname')
+    rows = librenms_ports.fetch_ports(
+        rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
+        tiers=(librenms_ports.WATCH_COLUMNS, librenms_ports.DETAIL_COLUMNS, librenms_ports.BASE_COLUMNS)) or []
+    return [{'name': row.get('ifName'), 'last_change': row.get('ifLastChange'),
+             **librenms_ports.summarize_port(row, rt.librenms_url, device.get('device_id'))}
+            for row in rows if row.get('ifName')]
+
+
 def list_devices():
     """Every LibreNMS device, as the API returns it (status, display, hostname, sysName, ...).
     Raises on failure, so the status monitor can show the error."""

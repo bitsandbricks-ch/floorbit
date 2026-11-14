@@ -60,7 +60,7 @@ AREAS = {
 AREA_METHODS = {
     'inventory': ('inventory',),
     'mapping': ('seat_mapping',),
-    'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp'),
+    'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp', 'device_ports'),
     'health': ('health_checks',),
     'security': ('security_findings',),
     'ports': ('port_login', 'bounce_port', 'set_port'),
