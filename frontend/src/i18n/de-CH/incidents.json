@@ -72,5 +72,6 @@
   "crewJobs_other": "{{count}} Aufträge",
   "crewFree": "frei",
   "match": "Match-Platz · {{zone}}",
-  "handover": "Schichtübergabe"
+  "handover": "Schichtübergabe",
+  "gear": "Material"
 }

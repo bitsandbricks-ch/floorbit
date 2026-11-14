@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconArrowsExchange, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconArrowsExchange, IconBox, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -76,6 +76,9 @@ export default function Incidents() {
             </Button>
             <Button variant="default" component="a" href="/handover" leftSection={<IconArrowsExchange size={16} />}>
               {t('incidents.handover')}
+            </Button>
+            <Button variant="default" component="a" href="/gear" leftSection={<IconBox size={16} />}>
+              {t('incidents.gear')}
             </Button>
             {board.data?.can_assign_any && (
               <Button variant="default" component="a" href="/incidents/qr" leftSection={<IconQrcode size={16} />}>
