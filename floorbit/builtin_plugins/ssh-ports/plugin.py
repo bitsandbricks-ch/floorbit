@@ -47,6 +47,29 @@ def clean_output(out, command):
     return '\n'.join(lines).strip('\n')
 
 
+class SSHShell:
+    """What the terminal needs from one SSH channel: recv() gives '' while quiet and None once closed."""
+
+    def __init__(self, client, channel):
+        self.client, self.channel = client, channel
+
+    def recv(self):
+        if self.channel.recv_ready():
+            return self.channel.recv(65535).decode('utf-8', 'replace')
+        if self.channel.closed or self.channel.exit_status_ready():
+            return None
+        return ''
+
+    def send(self, data):
+        self.channel.sendall(data.encode('utf-8'))
+
+    def resize(self, cols, rows):
+        self.channel.resize_pty(width=cols, height=rows)
+
+    def close(self):
+        self.client.close()
+
+
 def fingerprint(key):
     return f"{key.get_name()} SHA256:{base64.b64encode(hashlib.sha256(key.asbytes()).digest()).decode().rstrip('=')}"
 
@@ -142,7 +165,20 @@ class Plugin(Base):
         self.log(f"ran {len(commands)} command(s) on {target['switch']}")
         return result
 
-    def _connect(self, target, work):
+    def open_shell(self, target):
+        """An interactive shell for the browser terminal (issue #95). The caller reads and closes it."""
+        client, _timeout = self._open(target)
+        try:
+            channel = client.invoke_shell(term='xterm', width=int(target.get('cols') or 120),
+                                          height=int(target.get('rows') or 32))
+        except (OSError, paramiko.SSHException) as exc:
+            client.close()
+            raise PluginError(f'{target["switch"]} refused a shell ({type(exc).__name__}).') from None
+        self.log(f"opened a terminal on {target['switch']}")
+        return SSHShell(client, channel)
+
+    def _open(self, target):
+        """A connected client with the tech's login and the host key checked. Drops the login."""
         login = target.get('login') or {}
         if not login.get('username') or not login.get('password'):
             raise PluginError('This needs your switch login.')
@@ -156,25 +192,41 @@ class Plugin(Base):
             client.connect(host, port=int(self.settings.get('ssh_port') or 22), username=login['username'],
                            password=login['password'], timeout=timeout, banner_timeout=timeout,
                            auth_timeout=timeout, look_for_keys=False, allow_agent=False)
-            if policy.new:
-                pinned[host] = policy.new
-                self.ctx.set_state('hosts', pinned)
-                self.log(f'pinned the host key of {target["switch"]}: {policy.new}')
+        except PluginError:
+            client.close()
+            raise
+        except paramiko.AuthenticationException:
+            client.close()
+            raise PluginError(f'{target["switch"]} refused the login.') from None
+        except TimeoutError:
+            client.close()
+            raise PluginError(f'{target["switch"]} did not answer in time.') from None
+        except (OSError, paramiko.SSHException) as exc:
+            client.close()
+            raise PluginError(f'Could not reach {target["switch"]} over SSH ({type(exc).__name__}).') from None
+        finally:
+            login.clear()
+        if policy.new:
+            pinned[host] = policy.new
+            self.ctx.set_state('hosts', pinned)
+            self.log(f'pinned the host key of {target["switch"]}: {policy.new}')
+        return client, timeout
+
+    def _connect(self, target, work):
+        client, timeout = self._open(target)
+        try:
             shell = client.invoke_shell(width=200, height=1000)
             shell.settimeout(timeout)
             self._read(shell, timeout)
             work(shell, timeout)
         except PluginError:
             raise
-        except paramiko.AuthenticationException:
-            raise PluginError(f'{target["switch"]} refused the login.') from None
         except TimeoutError:
             raise PluginError(f'{target["switch"]} did not answer in time.') from None
         except (OSError, paramiko.SSHException) as exc:
             raise PluginError(f'Could not reach {target["switch"]} over SSH ({type(exc).__name__}).') from None
         finally:
             client.close()
-            login.clear()
 
     @staticmethod
     def _read(shell, timeout, settle=0.0):

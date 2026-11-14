@@ -19,6 +19,7 @@ route stays admin-only until someone gives it a rule.
 | `incidents.assign` | Assign incidents to any team |
 | `ports.act` | Run port actions and show commands on switches ([commands.md](commands.md)) |
 | `commands.change` | Run switch commands that change something, such as clearing counters |
+| `terminal.open` | Open a terminal on a switch in the browser ([terminal.md](terminal.md)) |
 | `power.edit` | Change power boards and circuits, enter readings and trips ([power.md](power.md)) |
 | `plugins.run` | Run plugin actions |
 | `audit.read` | Read the audit log |

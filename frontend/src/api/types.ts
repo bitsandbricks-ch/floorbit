@@ -976,3 +976,22 @@ export interface CommandRun {
   commands: string[]
   results: CommandResult[]
 }
+
+/** GET /api/terminal (floorbit/terminal.py, issue #95). */
+export interface TerminalInfo {
+  available: boolean
+  plugin: string | null
+  needs_login: boolean
+  switches: string[]
+  sessions: { id: string; switch: string; opened: number }[]
+  idle_minutes: number
+  max_minutes: number
+}
+
+/** GET /api/terminal/<id>/output. */
+export interface TerminalOutput {
+  data: string
+  next: number
+  skipped: number
+  closed: string | null
+}
