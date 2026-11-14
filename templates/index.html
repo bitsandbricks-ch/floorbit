@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions %} data-port-actions="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions %} data-security="on"{% endif %}{% if power_on %} data-power="on"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board and feature_on('incidents') %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions and feature_on('ports') %} data-port-actions="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and feature_on('security') %} data-security="on"{% endif %}{% if power_on and feature_on('power') %} data-power="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -62,26 +62,32 @@
           </svg>
         </button>
         {% if current_user %}
+        {% if feature_on('dashboard') %}
         <a class="btn btn-ghost" href="/dashboard" title="Dashboard: tiles from plugins">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           <span class="nav-label">Dashboard</span>
         </a>
+        {% endif %}
         <a class="btn btn-ghost" href="/inventory" title="Inventory: every device, by hand or from NetBox">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="20" height="6" rx="1"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>
           <span class="nav-label">Inventory</span>
         </a>
+        {% if feature_on('health') %}
         <a class="btn btn-ghost" href="/health" title="Service health: DHCP, DNS, cache, game servers and uplink">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           <span class="nav-label">Health</span>
         </a>
+        {% endif %}
         <a class="btn btn-ghost" href="/stats" title="Stats: bandwidth, uplinks, online seats and top talkers">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
           <span class="nav-label">Stats</span>
         </a>
+        {% if feature_on('traffic') %}
         <a class="btn btn-ghost" href="/traffic" title="Traffic: what the hall's traffic is made of (NetFlow)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>
           <span class="nav-label">Traffic</span>
         </a>
+        {% endif %}
         <a class="btn btn-ghost" href="/problems" title="Problems: everything wrong right now, and muted switches">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="nav-label">Problems</span> <span class="nav-count" id="problems-count" hidden></span>
@@ -92,19 +98,19 @@
           <span class="nav-label">Seats</span>
         </a>
         {% endif %}
-        {% if 'seats.view' in current_user.permissions %}
+        {% if 'seats.view' in current_user.permissions and feature_on('security') %}
         <a class="btn btn-ghost" href="/security" title="Security: rogue DHCP, ARP spoofing, MAC flapping, loops and storms">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <span class="nav-label">Security</span> <span class="nav-count nav-count-warn" id="security-count" hidden></span>
         </a>
         {% endif %}
-        {% if power_on %}
+        {% if power_on and feature_on('power') %}
         <a class="btn btn-ghost" href="/power" title="Electrics: boards, circuits and their load">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           <span class="nav-label">Power</span> <span class="nav-count nav-count-warn" id="power-count" hidden></span>
         </a>
         {% endif %}
-        {% if incidents_board %}
+        {% if incidents_board and feature_on('incidents') %}
         <a class="btn btn-ghost" href="/incidents" title="Incidents: problems at seats and switches">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
           <span class="nav-label">Incidents</span> <span class="nav-count" id="incident-count" hidden></span>
@@ -195,7 +201,7 @@
               <p class="heat-summary" id="traffic-summary"></p>
             </div>
 
-            {% if power_on %}
+            {% if power_on and feature_on('power') %}
             <button class="layer-row" id="btn-power" aria-pressed="false" title="Colour seats and switches by the load on their power circuit">
               <span class="layer-name">Power circuits</span>
               <span class="layer-switch" aria-hidden="true"></span>

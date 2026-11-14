@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useIncidentPeople, useIncidents, useMe } from '@/api/queries'
+import { useFeature, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
 import type { CrewMember, Incident, IncidentStatus } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -20,6 +20,10 @@ const FIXED_SHOWN = 20
 /** The incident board: open, being worked, fixed. Seat reports from the QR helpdesk land here too. */
 export default function Incidents() {
   const { t } = useTranslation()
+  const dispatchOn = useFeature('dispatch')
+  const handoverOn = useFeature('handover')
+  const gearOn = useFeature('gear')
+  const helpdeskOn = useFeature('helpdesk')
   const client = useQueryClient()
   const board = useIncidents()
   const people = useIncidentPeople()
@@ -71,16 +75,22 @@ export default function Incidents() {
         desc={t('incidents.intro')}
         actions={
           <>
-            <Button variant="default" component="a" href="/jobs" leftSection={<IconListCheck size={16} />}>
-              {t('incidents.myJobs')}
-            </Button>
-            <Button variant="default" component="a" href="/handover" leftSection={<IconArrowsExchange size={16} />}>
-              {t('incidents.handover')}
-            </Button>
-            <Button variant="default" component="a" href="/gear" leftSection={<IconBox size={16} />}>
-              {t('incidents.gear')}
-            </Button>
-            {board.data?.can_assign_any && (
+            {dispatchOn && (
+              <Button variant="default" component="a" href="/jobs" leftSection={<IconListCheck size={16} />}>
+                {t('incidents.myJobs')}
+              </Button>
+            )}
+            {handoverOn && (
+              <Button variant="default" component="a" href="/handover" leftSection={<IconArrowsExchange size={16} />}>
+                {t('incidents.handover')}
+              </Button>
+            )}
+            {gearOn && (
+              <Button variant="default" component="a" href="/gear" leftSection={<IconBox size={16} />}>
+                {t('incidents.gear')}
+              </Button>
+            )}
+            {board.data?.can_assign_any && helpdeskOn && (
               <Button variant="default" component="a" href="/incidents/qr" leftSection={<IconQrcode size={16} />}>
                 {t('incidents.qrCodes')}
               </Button>

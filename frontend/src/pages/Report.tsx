@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCan } from '@/api/queries'
+import { useCan, useFeature } from '@/api/queries'
 import type { EventReport, ReportHour } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
@@ -67,6 +67,7 @@ function Section({ title, empty, rows, head }: { title: string; empty: string; r
 
 export default function Report() {
   const { t, i18n } = useTranslation()
+  const pastEventsOn = useFeature('past_events')
   const qc = useQueryClient()
   const canReset = useCan('settings.manage')
   const [people, setPeople] = useState(false)
@@ -92,7 +93,9 @@ export default function Report() {
               href={pdfUrl(i18n.language, people, new Date().getTimezoneOffset())}>
               {t('report.download')}
             </Button>
-            <Button variant="default" component="a" href="/events">{t('report.pastEvents')}</Button>
+            {pastEventsOn && (
+              <Button variant="default" component="a" href="/events">{t('report.pastEvents')}</Button>
+            )}
             {canReset && (
               <ConfirmButton variant="default" danger label={t('report.newEvent')} question={t('report.newEventQuestion')}
                 onConfirm={() => reset.mutate()} loading={reset.isPending} />

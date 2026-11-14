@@ -81,6 +81,10 @@ def create_app(start_background=True):
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
 
+    # Features an admin turned off answer 404 and leave the navigation (docs/features.md).
+    from .features import init_features
+    init_features(app)
+
     # /settings page plus GET/PUT /api/settings and POST /api/settings/test/<service>
     app.register_blueprint(create_settings_blueprint(
         settings_store,
