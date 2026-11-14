@@ -36,5 +36,22 @@
   "noTop": "Gerade kein Verkehr.",
   "seat": "Platz {{seat}}",
   "report": "Event-Bericht",
-  "replay": "Event abspielen"
+  "replay": "Event abspielen",
+  "forecast": {
+    "title": "Bandbreiten-Prognose, nächste 12 Stunden",
+    "expected": "Erwartet",
+    "range": "Ruhigster bis strengster Tag",
+    "capacity": "Die Leitung",
+    "notYet_one": "Eine Prognose braucht {{count}} Stunde Verlauf; bisher ist es {{have}}.",
+    "notYet_other": "Eine Prognose braucht {{count}} Stunden Verlauf; bisher sind es {{have}}.",
+    "alert": "Erwartet bei {{pct}} % der Leitung um {{time}} ({{value}}).",
+    "chartLabel": "Bandbreiten-Prognose: höchstens erwartet {{value}} um {{time}}",
+    "how_one": "Jede Stunde ist der durchschnittliche Höchstwert zu dieser Tageszeit, aus {{count}} Tag dieses Events.",
+    "how_other": "Jede Stunde ist der durchschnittliche Höchstwert zu dieser Tageszeit, aus {{count}} Tagen dieses Events.",
+    "noLevel": "Noch nicht gesehene Stunden nehmen die letzten 3 Stunden.",
+    "level": "Die letzten 3 Stunden waren {{pct}} % {{dir}} als an früheren Tagen, die Prognose ist entsprechend angepasst.",
+    "busier": "strenger",
+    "quieter": "ruhiger",
+    "noCapacity": "Setze FORECAST_CAPACITY_MBPS, um zu warnen, bevor die Leitung voll ist."
+  }
 }

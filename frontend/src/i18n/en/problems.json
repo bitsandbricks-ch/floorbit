@@ -19,7 +19,8 @@
     "flapping": "Flapping",
     "errors": "Errors",
     "duplex": "Duplex",
-    "checkin": "Check-in"
+    "checkin": "Check-in",
+    "forecast": "Forecast"
   },
   "attention": {
     "title": "Needs attention",

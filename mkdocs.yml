@@ -74,6 +74,7 @@ nav:
       - Security detection: security.md
       - Electrics: power.md
       - Stats dashboard: stats.md
+      - Bandwidth forecast: forecast.md
       - Traffic insights: flows.md
       - DNS analytics: dns.md
       - Game insights: games.md
