@@ -47,6 +47,18 @@
   "who": "Wer",
   "intros": {
     "app": "Was Floorbit selbst ausgegeben hat: Plugins, die ihren Server nicht erreicht haben, Dateien, die nicht geschrieben werden konnten. Die letzten Zeilen, im Speicher.",
-    "audit": "Wer was wann geändert hat: jede Änderung in der App und jede Anmeldung."
-  }
+    "audit": "Wer was wann geändert hat: jede Änderung in der App und jede Anmeldung.",
+    "store": "Was ein Log-Plugin vom Syslog aufbewahrt, durchsucht mit seiner eigenen Abfragesprache. Eine leere Abfrage zeigt alles, was Floorbit geschickt hat."
+  },
+  "logql": "LogQL-Abfrage",
+  "range": "Zeitraum",
+  "run": "Suchen",
+  "hours": {
+    "1": "1 Stunde",
+    "24": "24 Stunden",
+    "168": "7 Tage",
+    "720": "30 Tage"
+  },
+  "storeSent": "{{name}}: {{n}} Zeilen geschickt",
+  "storeError": "{{name}} hat die Zeilen nicht angenommen: {{error}}"
 }

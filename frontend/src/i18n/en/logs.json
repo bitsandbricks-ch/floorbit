@@ -47,6 +47,18 @@
   "who": "Who",
   "intros": {
     "app": "What Floorbit itself printed: plugins that couldn't reach their server, files that couldn't be written. The last lines, in memory.",
-    "audit": "Who changed what, and when: every change through the app and every sign-in."
-  }
+    "audit": "Who changed what, and when: every change through the app and every sign-in.",
+    "store": "What a logs plugin keeps of the syslog, searched with its own query language. An empty query shows everything Floorbit sent."
+  },
+  "logql": "LogQL query",
+  "range": "Time range",
+  "run": "Search",
+  "hours": {
+    "1": "1 hour",
+    "24": "24 hours",
+    "168": "7 days",
+    "720": "30 days"
+  },
+  "storeSent": "{{name}}: {{n}} lines sent",
+  "storeError": "{{name}} couldn't take the lines: {{error}}"
 }

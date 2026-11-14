@@ -88,6 +88,29 @@ describe('Logs', () => {
     expect(await screen.findByText('Changed switch sw-a-01')).toBeInTheDocument()
   })
 
+  it('searches Loki with LogQL when it is sent', async () => {
+    const sources = ['syslog', 'plugin:loki'] as const
+    const stores = [{ id: 'loki', name: 'Grafana Loki', sent: 1200, error: null }]
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/logs': logs([line(1)], { sources: [...sources], stores }),
+      'GET /api/logs?source=plugin%3Aloki&hours=24': logs([line(1_800_000_000_000_000, { message: 'from loki' })],
+        { sources: [...sources], stores, source: 'plugin:loki' }),
+      'GET /api/logs?q=%7Bdevice%3D%22sw-a-01%22%7D&source=plugin%3Aloki&hours=24': logs([], {
+        sources: [...sources], stores, source: 'plugin:loki', query_error: "Loki can't read that query: parse error" }),
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Logs />)
+    expect(await screen.findByText(/Grafana Loki: 1,200 lines sent/)).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Grafana Loki'))
+    expect(await screen.findByText('from loki')).toBeInTheDocument()
+    const box = screen.getByLabelText('LogQL query')
+    fireEvent.change(box, { target: { value: '{device="sw-a-01"}' } })
+    expect(fake.calls.filter((c) => c.path.includes('sw-a-01'))).toHaveLength(0)   // not while typing
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(await screen.findByText(/parse error/)).toBeInTheDocument()
+  })
+
   it('explains how to turn the receiver on', async () => {
     const off = logs([], { enabled: false, listening: null, lines: 0, devices: [] })
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': off }).fn)
