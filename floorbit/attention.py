@@ -19,7 +19,7 @@ from collections import deque
 
 from integrations import checkin, config, events
 
-from . import inventory, sources
+from . import inventory, sources, status_page
 from .power import block_rows
 from .store import load_data
 
@@ -124,6 +124,7 @@ class AttentionWatch:
             self.items = found
             self.port_seats = port_seats
             self.last_poll = now
+        status_page.learn_seats(port_seats)
         if changed:
             events.publish('attention.changed', {'count': len(found)})
         stats = (_app_ext() or {}).get('floorbit_stats')

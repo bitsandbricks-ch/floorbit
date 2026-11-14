@@ -553,6 +553,19 @@ Source: [`floorbit/blueprints/stats.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/stats/peak/reset` | `settings.manage` |  |
 | GET | `/api/stats/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.status_page
+
+Public network status page (issue #101). The rules live in floorbit/status_page.py.
+
+Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/status_page.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/status-page` | `incidents.work` | `status_page` |
+| PUT | `/api/status-page/override` | `incidents.assign` | `status_page` |
+| POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
+| DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |
+
 ## floorbit.blueprints.switches
 
 Switches on the floor plan: the placed devices of the inventory (floorbit/inventory.py).

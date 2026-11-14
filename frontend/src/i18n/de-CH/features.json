@@ -34,6 +34,7 @@
     "planner": "Aufbauplaner",
     "preflight": "Pre-Flight-Check",
     "teardown": "Abbau-Checkliste",
+    "status_page": "Netzwerk-Statusseite",
     "public_hall": "Öffentlicher Hallenplan"
   },
   "desc": {
@@ -64,6 +65,7 @@
     "planner": "Switches pro Platzblock planen und ihre Konfigurationen erzeugen.",
     "preflight": "Das Go-/No-Go-Board vor der Türöffnung.",
     "teardown": "Material zurück, Konfigurationen gesichert, Event exportiert.",
+    "status_page": "Eine öffentliche Seite, die den Teilnehmenden zeigt, ob das Netzwerk läuft, welche Bereiche ein Ausfall trifft, und die Updates der Crew.",
     "public_hall": "Der Hallenplan, den Spieler ohne Anmeldung sehen."
   }
 }
