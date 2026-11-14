@@ -226,6 +226,8 @@ RULES = (
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch', READ, 'incidents.assign'),
+    # Pre-flight checks ask the monitoring source and the health plugins now (floorbit/preflight.py).
+    ('/api/preflight/run', WRITE, 'incidents.work'),
     # Build planner: the configs are the network's design (floorbit/planner.py).
     ('/api/planner', None, 'floorplan.edit'),
     ('/planner', READ, 'floorplan.edit'),
