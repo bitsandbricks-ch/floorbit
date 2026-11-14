@@ -460,7 +460,7 @@ def _file_incident(circuit, alert, feeds):
                 if parts else f"Board {alert['board']}, phase {circuit['phase']}.")
         incident = incidents.create(None, {'circuit_id': circuit['id'], 'title': title, 'problem': 'power',
                                            'team': team, 'note': note}, source='power')
-        events.publish('incident.changed', {'id': incident['id'], 'status': incident['status']})
+        events.publish('incident.changed', {'id': incident['id'], 'status': incident['status'], 'action': 'created'})
         return incident
     except Exception as exc:  # noqa: BLE001  # the alert still goes out when the board can't take it
         print(f'[power] could not file the incident for {circuit.get("name")}: {exc}')

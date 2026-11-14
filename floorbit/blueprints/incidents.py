@@ -54,7 +54,7 @@ def _view(user, incident, match=None):
 
 
 def _changed(incident, action):
-    events.publish('incident.changed', {'id': incident['id'], 'status': incident['status']})
+    events.publish('incident.changed', {'id': incident['id'], 'status': incident['status'], 'action': action})
     return incident, action
 
 

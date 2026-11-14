@@ -122,6 +122,10 @@ def create_app(start_background=True):
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
 
+    # Outgoing webhooks: chosen events POSTed to other tools, signed (docs/api.md#webhooks).
+    from .webhooks import init_webhooks
+    init_webhooks(app, start_background=start_background)
+
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start
     seed_on_start(app)
