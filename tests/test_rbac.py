@@ -127,7 +127,8 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/users", "/api/roles", "/api/teams", "/logout", "/login", "/auth/",
                         "/api/checkin", "/help/",   # public pages with their own checks (check-in, helpdesk)
                         "/api/setup",              # first-run setup: admins, or the setup code
-                        "/api/stats/peak/reset")   # starting the event's bandwidth peak again
+                        "/api/stats/peak/reset",   # starting the event's bandwidth peak again
+                        "/api/report/new-event")   # starting the report's history again
     loose = []
     for rule in app_module.app.url_map.iter_rules():
         writes = (rule.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}

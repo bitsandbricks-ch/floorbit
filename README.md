@@ -55,6 +55,9 @@ each seat is plugged into.
   seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
 - **Replay:** play the event back on the floor plan with a time slider: the hall filling up, the
   bandwidth peak and the incidents. See [docs/replay.md](docs/replay.md).
+- **Event report:** after the event, a report to read or download as PDF: attendance over time, peak
+  bandwidth, switch outages, the top problem ports and the incidents. No nicks or IPs unless an admin
+  asks. See [docs/report.md](docs/report.md).
 - **Traffic:** what the hall's traffic is made of from NetFlow or IPFIX (gaming, streaming,
   downloads, updates), per area, the services most seats use, and P2P floods or rogue servers.
   Aggregate only, with an optional collector container. See [docs/flows.md](docs/flows.md).

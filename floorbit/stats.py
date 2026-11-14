@@ -29,6 +29,10 @@ HOUR = 3600
 REDIS_KEY = 'floorbit:stats'
 TOP = 10
 MAX_SEAT_EVENTS = 100_000   # a flapping port must not grow the saved stats without end
+# For the post-event report (issue #22), kept for the whole event, not just the last day.
+EVENT_DAYS = 21
+MAX_SWITCH_EVENTS = 5000
+MAX_PROBLEM_PORTS = 1000
 
 
 def _num(value):
@@ -62,6 +66,12 @@ class Stats:
         self.seat_events = deque()
         self.seat_base = {'t': None, 'online': []}
         self._online = None      # the seats online at the last read
+        # For the report (issue #22), since the last "new event": one row per hour (most seats online,
+        # busiest read, average), switches going down and up, and how often each port had a problem.
+        self.hours = {}          # str(hour start) -> {'online_max', 'peak_bps', 'sum_bps', 'n'}
+        self.switch_events = deque()   # [t, switch_id, name, 'offline'|'online']
+        self.problem_ports = {}  # 'switch_id|port' -> {'switch', 'port', 'seat', 'count', 'kinds', 'last'}
+        self.event_start = None
         self.last = None
         self._loaded = False
 
@@ -88,6 +98,14 @@ class Stats:
                 self.seat_base = {'t': base.get('t'), 'online': list(base.get('online') or [])}
             online = saved.get('online_now')
             self._online = set(online) if isinstance(online, list) else None
+            hours = saved.get('hours')
+            self.hours = {k: v for k, v in hours.items() if isinstance(v, dict)} if isinstance(hours, dict) else {}
+            self.switch_events = deque(e for e in saved.get('switch_events') or []
+                                       if isinstance(e, list) and len(e) == 4)
+            problems = saved.get('problem_ports')
+            self.problem_ports = {k: v for k, v in problems.items() if isinstance(v, dict)} \
+                if isinstance(problems, dict) else {}
+            self.event_start = saved.get('event_start')
 
     def _save(self):
         client = cache.get_redis_client()
@@ -97,6 +115,8 @@ class Stats:
             client.set(REDIS_KEY, json.dumps({
                 'samples': list(self.samples), 'peak': self.peak, 'seat_events': list(self.seat_events),
                 'seat_base': self.seat_base, 'online_now': sorted(self._online) if self._online is not None else None,
+                'hours': self.hours, 'switch_events': list(self.switch_events), 'problem_ports': self.problem_ports,
+                'event_start': self.event_start,
             }))
         except Exception as exc:  # noqa: BLE001
             print(f'[stats] could not save the stats: {exc}')
@@ -152,6 +172,7 @@ class Stats:
             self.top = sorted(talkers, key=lambda t: -t['bps'])[:TOP]
             self.seat_bps = seat_bps
             self._seat_changes(set(seat_bps), now)
+            self._hour(sample)
             self.last = now
             self._save()
         return sample
@@ -176,6 +197,84 @@ class Stats:
             t, seat, on = self.seat_events.popleft()
             (base.add if on else base.discard)(seat)
             self.seat_base = {'t': t, 'online': sorted(base)}
+
+    def _hour(self, sample):
+        """Fold one read into its hour (lock held)."""
+        if self.event_start is None:
+            self.event_start = sample['t']
+        key = str(int(sample['t'] // HOUR * HOUR))
+        total = sample['down'] + sample['up']
+        row = self.hours.get(key) or {'online_max': 0, 'peak_bps': 0, 'sum_bps': 0, 'n': 0}
+        row = {'online_max': max(row['online_max'], sample['online']), 'peak_bps': max(row['peak_bps'], total),
+               'sum_bps': row['sum_bps'] + total, 'n': row['n'] + 1}
+        self.hours[key] = row
+        cutoff = sample['t'] - EVENT_DAYS * DAY
+        for old in [k for k in self.hours if int(k) < cutoff]:
+            del self.hours[old]
+
+    def record_switch(self, change):
+        """A switch went offline or came back (``switch.status`` from the status monitor)."""
+        if change.get('status') not in ('online', 'offline'):
+            return
+        with self._lock:
+            self._load()
+            self.switch_events.append([change.get('since') or time.time(), change.get('id'),
+                                       change.get('name') or '', change['status']])
+            while len(self.switch_events) > MAX_SWITCH_EVENTS:
+                self.switch_events.popleft()
+            self._save()
+
+    def count_problems(self, entries, now=None):
+        """Needs-attention items that just started: counted per port for the report's problem ports."""
+        if not entries:
+            return
+        now = time.time() if now is None else now
+        with self._lock:
+            self._load()
+            for e in entries:
+                key = f"{e.get('switch_id')}|{e.get('port')}"
+                row = self.problem_ports.get(key) or {'switch': e.get('switch'), 'port': e.get('port'),
+                                                      'seat': e.get('seat'), 'count': 0, 'kinds': {}}
+                row['count'] += 1
+                row['kinds'][e.get('kind') or 'other'] = row['kinds'].get(e.get('kind') or 'other', 0) + 1
+                row['seat'] = e.get('seat') or row.get('seat')
+                row['last'] = now
+                self.problem_ports[key] = row
+            if len(self.problem_ports) > MAX_PROBLEM_PORTS:
+                keep = sorted(self.problem_ports.items(), key=lambda kv: (-kv[1]['count'], -kv[1]['last']))
+                self.problem_ports = dict(keep[:MAX_PROBLEM_PORTS])
+            self._save()
+
+    def event(self):
+        """What the post-event report needs, kept since the last new event."""
+        with self._lock:
+            self._load()
+            hours = [{'t': int(k), 'online_max': v['online_max'], 'peak_bps': v['peak_bps'],
+                      'avg_bps': round(v['sum_bps'] / v['n']) if v['n'] else 0} for k, v in self.hours.items()]
+            return {'start': self.event_start, 'hours': sorted(hours, key=lambda h: h['t']), 'peak': self.peak,
+                    'switch_events': [list(e) for e in self.switch_events],
+                    'problem_ports': [dict(v, kinds=dict(v['kinds'])) for v in self.problem_ports.values()]}
+
+    def new_event(self, now=None):
+        """Start a new event: the report and the peak begin again. The last day's samples stay."""
+        now = time.time() if now is None else now
+        with self._lock:
+            self._load()
+            self.hours, self.problem_ports, self.event_start = {}, {}, now
+            self.switch_events = deque()
+            last = self.samples[-1] if self.samples else None
+            self.peak = {'bps': last['down'] + last['up'], 'at': last['t']} if last else None
+            self._save()
+
+    def backfill_event(self, switch_events, problems):
+        """The demo hall's made-up outages and problem ports, only while there are none yet."""
+        with self._lock:
+            self._load()
+            if self.switch_events or self.problem_ports:
+                return
+            self.switch_events.extend(switch_events)
+            self.problem_ports = dict(problems)
+            self._save()
 
     def backfill_seats(self, events, base_t):
         """Older seat changes (the demo hall's made-up day), only while there are none yet."""
@@ -203,6 +302,8 @@ class Stats:
             if self.samples or not samples:
                 return
             self.samples.extend(samples)
+            for sample in samples:
+                self._hour(sample)
             busiest = max(samples, key=lambda s: s['down'] + s['up'])
             self.peak = {'bps': busiest['down'] + busiest['up'], 'at': busiest['t']}
             self._save()
@@ -253,7 +354,20 @@ def _window(samples, since):
             'peak_at': busiest['t'], 'online_max': max(s['online'] for s in rows), 'samples': len(rows)}
 
 
+_current = None
+
+
+def _on_switch_status(event):
+    if _current is not None:
+        _current.record_switch(event.get('data') or {})
+
+
 def init_stats(app):
+    global _current
+    from integrations import events
     stats = Stats()
     app.extensions['floorbit_stats'] = stats
+    # One subscription for the process: the newest app's stats take the switch changes.
+    _current = stats
+    events.subscribe_once('switch.status', _on_switch_status)
     return stats

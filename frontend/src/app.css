@@ -227,3 +227,11 @@ body {
 .fb-replay-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
 .fb-replay-key.on { background: var(--color-up); }
 .fb-replay-key.ring { border: 2px solid var(--color-down); border-radius: 50%; }
+.fb-report-chart { width: 100%; height: 140px; display: block; }
+.fb-report-chart .grid { stroke: var(--color-line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.fb-report-chart .online, .fb-report-chart .avg { fill: none; stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-report-chart .checked { fill: none; stroke: var(--color-trace); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-report-chart .bar { fill: color-mix(in srgb, var(--color-bit) 30%, transparent); }
+.fb-report-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-bit); }
+.fb-report-key.checked { background: var(--color-trace); }
+.fb-report-key.bar { background: color-mix(in srgb, var(--color-bit) 30%, transparent); }

@@ -106,6 +106,7 @@ def seed_on_start(app):
             history = demo_history()
             stats.backfill(history)
             stats.backfill_seats(*demo_seat_history(history))
+            stats.backfill_event(*demo_event_history(history))
         from .flows import init_demo_flows
         init_demo_flows(app)
 
@@ -146,3 +147,26 @@ def demo_seat_history(samples):
         events += [[sample['t'], seat, 0] for seat in order[n:online]]
         online = n
     return events, samples[0]['t'] if samples else None
+
+
+def demo_event_history(samples):
+    """Made-up outages and problem ports for the demo's report: one access switch lost power for a
+    while, one distribution switch rebooted, and a few seat ports flapped or ran at half duplex."""
+    if not samples:
+        return [], {}
+    start, end = samples[0]['t'], samples[-1]['t']
+    span = end - start
+    outages = [
+        [start + span * at + took * k, name, name, ('offline', 'online')[k]]
+        for name, at, took in (('sw-c-02', 0.31, 1260), ('dist-02', 0.55, 240), ('sw-c-02', 0.72, 420))
+        for k in (0, 1)
+    ]
+    from ..builtin_plugins.demo.plugin import _switch_for
+    ports = {}
+    for i, (seat, kinds) in enumerate([('B-7', {'flapping': 9, 'errors': 3}), ('D-14', {'flapping': 6}),
+                                       ('A-3', {'duplex': 4}), ('C-22', {'errors': 3}), ('A-18', {'flapping': 2})]):
+        block, number = seat.split('-')
+        switch, port = _switch_for(block, int(number))
+        ports[f'{switch}|{port}'] = {'switch': switch, 'port': port, 'seat': seat, 'count': sum(kinds.values()),
+                                     'kinds': kinds, 'last': end - i * 1800}
+    return outages, ports

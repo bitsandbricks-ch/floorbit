@@ -1,5 +1,5 @@
 import { Alert, Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
-import { IconMaximize, IconPlayerPlay } from '@tabler/icons-react'
+import { IconFileText, IconMaximize, IconPlayerPlay } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -179,6 +179,9 @@ export default function Stats() {
             </Button>
             <Button variant="default" component="a" href="/replay" leftSection={<IconPlayerPlay size={16} />}>
               {t('stats.replay')}
+            </Button>
+            <Button variant="default" component="a" href="/report" leftSection={<IconFileText size={16} />}>
+              {t('stats.report')}
             </Button>
             {canReset && stats.data?.peak && (
               <ConfirmButton variant="default" danger label={t('stats.resetPeak')} question={t('stats.resetConfirm')}
