@@ -28,6 +28,16 @@
     button:hover, button:focus-visible { border-color: var(--color-bit); outline: none; }
     .done { color: var(--color-up); font-size: 18px; margin: 0; }
     .bad { color: var(--color-down); margin: 0; }
+    .speed { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--color-line); }
+    .speed h2 { margin: 0 0 6px; font-size: 18px; }
+    .speed button { text-align: center; }
+    .speed button:disabled { opacity: .6; cursor: wait; }
+    .figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 0; }
+    .figures div { background: var(--color-raised); border-radius: 10px; padding: 10px; text-align: center; }
+    .figures dt { font-size: 13px; color: var(--color-muted); }
+    .figures dd { margin: 2px 0 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .figures small { font-size: 12px; font-weight: 400; color: var(--color-muted); }
+    .speed .note { margin: 12px 0 0; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -48,6 +58,23 @@
     <p class="bad" role="alert">{{ t.busy }}</p>
     {% else %}
     <p class="bad" role="alert">{{ t.invalid }}</p>
+    {% endif %}
+    {% if state in ('ask', 'thanks', 'again') %}
+    <section class="speed" aria-labelledby="speed-title">
+      <h2 id="speed-title">{{ t.speed_title }}</h2>
+      <p>{{ t.speed_intro }}</p>
+      <button type="button" id="speed-run">{{ t.speed_run }}</button>
+      <dl class="figures" id="speed-figures" hidden>
+        <div><dt>{{ t.speed_down }}</dt><dd><span id="speed-down">–</span> <small>Mbit/s</small></dd></div>
+        <div><dt>{{ t.speed_up }}</dt><dd><span id="speed-up">–</span> <small>Mbit/s</small></dd></div>
+        <div><dt>{{ t.speed_ping }}</dt><dd><span id="speed-ping">–</span> <small>ms</small></dd></div>
+      </dl>
+      <p class="note" id="speed-note" role="status"></p>
+    </section>
+    <script src="/static/js/speedtest.js"
+            data-base="{{ url_for('speedtest.ping', seat=seat) | replace('/ping', '/') }}" data-k="{{ k }}"
+            data-saved="{{ t.speed_saved.format(seat=seat) }}" data-failed="{{ t.speed_failed }}"
+            data-running="{{ t.speed_running }}" data-again="{{ t.speed_again }}"></script>
     {% endif %}
   </main>
 </body>

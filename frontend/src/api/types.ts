@@ -237,6 +237,9 @@ export interface IncidentNote {
   at: number
   text: string
 }
+/** Speed test at the seat (issue #99): Mbit/s and ms, nothing personal. */
+export interface SpeedtestResult { down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; jitter_ms: number | null; at: number }
+
 export interface SeatSnapshot {
   known: boolean
   reason?: string
@@ -266,6 +269,8 @@ export interface Incident {
   reports: number
   notes: IncidentNote[]
   snapshot: SeatSnapshot | null
+  /** The latest speed test from the seat's help page (issue #99). */
+  speedtest?: SpeedtestResult | null
   created_at: number
   updated_at: number
   dispatched_at?: number | null

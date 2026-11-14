@@ -41,6 +41,9 @@ each seat is plugged into.
   (Authentik, Keycloak, Entra ID, ...) with groups mapped to roles. See [docs/auth.md](docs/auth.md).
 - **Incidents:** a board for problems at seats and switches, worked by your teams, with a QR code on
   every seat so attendees can report "no internet" in one tap. See [docs/incidents.md](docs/incidents.md).
+- **Speedtest at the seat:** the seat's help page also measures download, upload and latency to the
+  Floorbit server, and the result goes with the seat's report. Numbers only. See
+  [docs/speedtest.md](docs/speedtest.md).
 - **Tech dispatch:** send an incident to the nearest free tech; techs see their jobs on their phone
   with the seat on the hall plan. See [docs/dispatch.md](docs/dispatch.md).
 - **Tournament seats:** mark match seats; their problems come first, port actions on them ask twice,

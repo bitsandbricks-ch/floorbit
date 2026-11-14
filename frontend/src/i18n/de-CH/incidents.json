@@ -25,6 +25,7 @@
   "reports_other": "{{count}} Meldungen",
   "snapshot": "{{switch}} {{port}}: {{link}}, {{mac}}",
   "snapshotUnknown": "Port unbekannt: {{reason}}",
+  "speedtest": "Speedtest am Platz, {{ago}}: {{down}} runter, {{up}} hoch Mbit/s, {{ping}} ms",
   "macSeen": "Gerät gesehen",
   "macMissing": "kein Gerät gesehen",
   "link": {

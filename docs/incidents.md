@@ -28,7 +28,8 @@ assignee doesn't work for puts it back to open.
 
 **Incidents › Seat QR codes** (`/incidents/qr`) prints one QR code per seat, for every seat on the
 floor plan. Scanning one opens `/help/<seat>`: a small page, in English or German after the phone's
-language, with four buttons (no internet, slow connection, no power, something else).
+language, with four buttons (no internet, slow connection, no power, something else), and a
+[speed test](speedtest.md) whose result goes with the report.
 
 - **No account, nothing personal:** the page asks for no name or text.
 - **Only printed codes work:** each link carries a signature made with the app's `SECRET_KEY`, so
