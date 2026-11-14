@@ -1,0 +1,21 @@
+# Switch status, ports and which port a player is on, from a UniFi Network controller. Off until
+# turned on under Settings > Plugins. It only reads: give it a View Only account.
+id: unifi
+name: UniFi
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live status, ports and traffic of UniFi switches, and which switch port an IP or MAC is on (from the controller's client list). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use a View Only account."
+author: Floorbit
+homepage: https://ui.com
+uses: [settings, http, monitoring]
+settings:
+  - {key: url, label: Controller URL, type: url, placeholder: "https://unifi.example.com",
+     help: "The UniFi console (UniFi OS) or the Network application. No path."}
+  - {key: unifi_os, label: UniFi OS console, type: bool, default: true,
+     help: "On for a Dream Machine, Cloud Key Gen2 or UniFi OS server. Off for the older Network application on port 8443."}
+  - {key: username, label: Username, type: string, help: "A local account with the View Only role."}
+  - {key: password, label: Password, type: secret}
+  - {key: site, label: Site, type: string, default: default,
+     help: "The site's short name (from the URL in the controller: /manage/<site>/...)."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true,
+     help: "Consoles ship with a self-signed certificate. Turn it off only on a network you trust."}
