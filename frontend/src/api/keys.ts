@@ -18,6 +18,8 @@ export const qk = {
   security: ['security'] as const,
   power: ['power'] as const,
   problems: ['problems'] as const,
+  statsAll: ['stats'] as const,
+  stats: (screen: boolean) => ['stats', screen] as const,
   setup: ['setup'] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,

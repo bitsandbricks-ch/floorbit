@@ -23,6 +23,7 @@ import type {
   Tile,
   Widget,
   WidgetTile,
+  StatsData,
 } from './types'
 
 export function useMe() {
@@ -106,6 +107,14 @@ export function usePower() {
 
 export function useProblems() {
   return useQuery({ queryKey: qk.problems, queryFn: () => get<ProblemList>('/api/problems'), refetchInterval: 30_000 })
+}
+
+export function useStats(screen = false) {
+  return useQuery({
+    queryKey: qk.stats(screen),
+    queryFn: () => get<StatsData>(screen ? '/api/stats?screen=1' : '/api/stats'),
+    refetchInterval: 30_000,
+  })
 }
 
 export function useOidcProviders() {

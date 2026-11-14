@@ -116,8 +116,11 @@ def init_theme(app, store):
 
     @app.context_processor
     def theme_context():
-        # The health wall is a big screen too: it gets the kiosk preset unless the theme says otherwise.
-        page = 'kiosk' if request.path.rstrip('/') in ('/kiosk', '/health') else None
+        # The health wall and the stats screen are big screens too: they get the kiosk preset unless
+        # the theme says otherwise.
+        path = request.path.rstrip('/')
+        big = path in ('/kiosk', '/health') or (path == '/stats' and request.args.get('screen') == '1')
+        page = 'kiosk' if big else None
         theme = resolve(store, page=page, override=_request_override())
         theme['html_attrs'] = html_attrs(theme)
         return {'theme': theme}

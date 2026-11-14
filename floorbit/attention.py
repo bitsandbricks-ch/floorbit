@@ -95,15 +95,18 @@ class AttentionWatch:
         checked_in = set(checkin.load_all()) if config.get_bool('CHECKIN_ENABLED', False) else None
         flaps = config.get_int('ATTENTION_FLAPS', 3, minimum=2)
         error_step = config.get_int('ATTENTION_ERRORS', 10, minimum=1)
-        statuses = getattr((_monitor_ext() or {}).get('monitor'), 'statuses', {}) or {}
+        statuses = getattr((_app_ext().get('lal_integrations') or {}).get('monitor'), 'statuses', {}) or {}
         found = {}
-        for dev in inventory.devices(data):
+        reads = []   # every port read, for the stats dashboard (stats.py)
+        devices = inventory.devices(data)
+        for dev in devices:
             if dev.get('x') is None or (statuses.get(dev['id']) or {}).get('status') == 'offline':
                 continue
             for port in monitor.device_ports(dev['name']) or []:
                 name = port.get('name')
                 if not name:
                     continue
+                reads.append((dev, port, seat_of(port.get('description'), names)))
                 for entry in self._judge(dev, name, port, now, flaps, error_step, names, checked_in):
                     found[entry['id']] = entry
         new = []
@@ -118,6 +121,10 @@ class AttentionWatch:
             self.last_poll = now
         if changed:
             events.publish('attention.changed', {'count': len(found)})
+        stats = (_app_ext() or {}).get('floorbit_stats')
+        if stats is not None:
+            stats.record(reads, [d.get('name') or '' for d in devices], now=now)
+            events.publish('stats.changed', {})
         return new
 
     def _judge(self, dev, name, port, now, flaps, error_step, names, checked_in):
@@ -160,9 +167,9 @@ class AttentionWatch:
             return {'items': items, 'last_poll': self.last_poll, 'interval': self.interval()}
 
 
-def _monitor_ext():
+def _app_ext():
     from flask import current_app, has_app_context
-    return current_app.extensions.get('lal_integrations') if has_app_context() else None
+    return current_app.extensions if has_app_context() else {}
 
 
 def init_attention(app, start_background=True):

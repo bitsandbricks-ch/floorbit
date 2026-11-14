@@ -48,6 +48,8 @@ each seat is plugged into.
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
   working on, quiet hours, one Discord message for a big outage, and the ports that need a look
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
+- **Stats:** bandwidth now and at its peak (last hour, 24 hours, the event), uplink load per switch,
+  seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
 - **Electrics:** distribution boards and the circuits they feed (rows, seat blocks, switches), the load
   on each from typed-in or metered readings, and an incident for the Electrics team before a breaker
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).
