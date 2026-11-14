@@ -127,6 +127,24 @@ two monitor commands, and they change nothing. Devices are asked in parallel, 16
 device that doesn't answer within the timeout reads as offline, and the plugin's log says why.
 RouterOS serves the REST API over its `www-ssl` service, which needs a certificate.
 
+## Built in: Zabbix
+
+For halls that already watch their switches in Zabbix (#39). Off until an admin turns it on under
+**Settings > Plugins**. It calls the front end's JSON-RPC API (`api_jsonrpc.php`, Zabbix 6.4 or
+newer) with an API token, and only uses `*.get` methods.
+
+| Floorbit needs | From |
+| --- | --- |
+| Switches | `host.get` for the hosts in one host group (default `Switches`) |
+| Reachable or not | the availability of the host's SNMP interface |
+| Port state, traffic, speed, errors | `item.get`: the `net.if.status`, `net.if.in`, `net.if.out`, `net.if.speed`, `net.if.in.errors` and `net.if.out.errors` items that Zabbix's SNMP templates create for each discovered port |
+
+The port name and description come from the item names ("Interface Gi1/0/1(Seat A1): ...").
+Hosts that are not monitored in Zabbix read as unknown. Zabbix keeps no ARP or MAC tables, so
+finding which port an IP is on needs another source.
+
+Create the token for a user whose role can only read the switches' host group.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
