@@ -140,5 +140,18 @@
     "save": "Notiz speichern",
     "cancel": "Abbrechen",
     "byAt": "{{by}}, {{time}}"
+  },
+  "speed": {
+    "title": "Speedtests",
+    "when": "Wann",
+    "down": "Down (Mbit/s)",
+    "up": "Up (Mbit/s)",
+    "ping": "Ping (ms)",
+    "before": "vor dem letzten Link-Wechsel",
+    "minAgo_zero": "gerade eben",
+    "minAgo_one": "vor {{count}} Min.",
+    "minAgo_other": "vor {{count}} Min.",
+    "hAgo_one": "vor {{count}} Std.",
+    "hAgo_other": "vor {{count}} Std."
   }
 }

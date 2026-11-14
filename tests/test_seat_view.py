@@ -192,3 +192,18 @@ def test_crew_notes_on_a_seat(client, app_module, hall):
     assert "note" not in client.get("/api/plan").get_json()["seats"]["D-6"]
     client.post("/api/report/new-event")
     assert "note" not in client.get("/api/plan").get_json()["seats"]["D-1"]
+
+
+def test_inspector_shows_the_seats_speed_tests_to_the_crew(client, app_module, hall):
+    from floorbit import speedtest
+    for n in range(4):
+        speedtest.save("D-6", {"down_mbps": 100.0 + n, "up_mbps": 20.0, "ping_ms": 4.0, "jitter_ms": 1.0,
+                               "at": 1000.0 + n})
+    tests = client.get("/api/plan/seats/D-6").get_json()["speedtests"]
+    assert [x["down_mbps"] for x in tests] == [103.0, 102.0, 101.0]   # the latest three, newest first
+    assert client.get("/api/plan/seats/D-1").get_json()["speedtests"] == []
+
+    app_module.app.extensions["auth"].users.add("kim", "kim-password-1", role="kiosk")
+    kiosk = app_module.app.test_client()
+    kiosk.post("/login", data={"username": "kim", "password": "kim-password-1"})
+    assert "speedtests" not in kiosk.get("/api/plan/seats/D-6").get_json()

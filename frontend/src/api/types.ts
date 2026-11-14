@@ -1233,10 +1233,15 @@ export interface SeatDetails {
   /** May this account read and write the seat's note (incidents.work)? */
   crew: boolean
   note?: SeatNote | null
+  /** The player's speed tests from the help page, newest first (issue #182); crew only. */
+  speedtests?: SeatSpeedTest[]
   nick?: string | null
   ip?: string | null
   mac?: string | null
 }
+
+/** One speed test the player ran from the seat's help page (issue #99). */
+export interface SeatSpeedTest { down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; jitter_ms?: number | null; at: number }
 
 /** A crew note on a seat (issue #180). */
 export interface SeatNote { text: string; by: string | null; at: number }

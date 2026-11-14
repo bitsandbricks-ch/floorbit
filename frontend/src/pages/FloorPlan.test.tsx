@@ -361,4 +361,16 @@ describe('Seats page', () => {
     expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add a note' })).toBeNull()
   })
+
+  it('shows the seat speed tests to the crew, marking ones from before the last link change', async () => {
+    const speedtests = [
+      { down_mbps: 480, up_mbps: 120, ping_ms: 4, at: 1_799_999_000 },
+      { down_mbps: 12, up_mbps: 3, ping_ms: 40, at: 1_799_994_000 },
+    ]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': { ...details, crew: true, speedtests } }).fn)
+    renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByText('480')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Ping (ms)' })).toBeInTheDocument()
+    expect(screen.getAllByText(/before the last link change/)).toHaveLength(1)
+  })
 })

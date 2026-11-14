@@ -86,6 +86,9 @@ one while it was down, and nothing before Floorbit's first read. Below it: since
 online or offline and how often the link changed. It is built from the changes Floorbit already
 keeps for the [replay](replay.md), so it needs nothing new. When a player says "my internet keeps
 dropping", this answers whether the port did.
+**Speed tests** (needs `incidents.work`): the last three tests the player ran from the seat's
+[help page](speedtest.md), with down, up and ping. A test from before the link last changed is
+marked, so a slow result from before a cable swap isn't read as slow now.
 **Watch this seat** sends a browser notification when the seat's link changes (see
 [Notifications](notifications.md#watching-a-seat)).
 

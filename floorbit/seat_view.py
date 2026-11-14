@@ -19,12 +19,13 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import halls, incidents, inventory, seat_notes, tournament
+from . import halls, incidents, inventory, seat_notes, speedtest, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
 RECENT = 15 * 60     # "changed lately" on the Seats view (issue #171)
 HISTORY = 6 * 3600   # the inspector's link history (issue #167): long enough for "it keeps dropping"
+SPEEDTESTS = 3       # the inspector's speed tests (issue #182)
 
 
 def _ext(name):
@@ -159,7 +160,7 @@ def view(hall_id=None, now=None):
 
 def details(seat, people, crew=False):
     """One seat for the inspector. ``people``: may this account see nicks, IPs and MACs?
-    ``crew``: may it read and write the seat's note?"""
+    ``crew``: may it read and write the seat's note and see its speed tests?"""
     data = load_data()
     seat = str(seat or '').upper()
     if seat not in incidents.seat_numbers(data):
@@ -190,6 +191,8 @@ def details(seat, people, crew=False):
     }
     if crew:
         out['note'] = seat_notes.get(seat, data)
+        # The player's own tests from the help page (issue #182), newest first.
+        out['speedtests'] = speedtest.results(seat, data)[:SPEEDTESTS]
     stats = _ext('floorbit_stats')
     if stats:
         out['history'] = {**stats.seat_history(seat, now - HISTORY), 'to': now}
