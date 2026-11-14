@@ -1,9 +1,10 @@
-import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconArrowsExchange, IconBook, IconBox, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconArrowsExchange, IconBook, IconBox, IconFilter, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -11,6 +12,7 @@ import { useFeature, useIncidentPeople, useIncidents, useMe } from '@/api/querie
 import type { CrewMember, Incident, IncidentStatus } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { matchesFilter } from './incidents/filter'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 
@@ -31,6 +33,15 @@ export default function Incidents() {
   const me = useMe()
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
   const [mineOnly, setMineOnly] = useState(false)
+  // The filter lives in the address, so a link can open the board filtered (issue #210).
+  const [params, setParams] = useSearchParams()
+  const filter = params.get('q') ?? ''
+  const setFilter = (v: string) => {
+    const next = new URLSearchParams(params)
+    if (v) next.set('q', v)
+    else next.delete('q')
+    setParams(next, { replace: true })
+  }
   const [formOpen, form] = useDisclosure(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -68,7 +79,8 @@ export default function Incidents() {
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
-  const items = (board.data?.incidents ?? []).filter((i) => !mineOnly || i.can_work)
+  const teamNames = Object.fromEntries((board.data?.teams ?? []).map((x) => [x.id, x.name]))
+  const items = (board.data?.incidents ?? []).filter((i) => (!mineOnly || i.can_work) && matchesFilter(i, filter, teamNames))
   return (
     <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
       count={(board.data?.incidents ?? []).filter((i) => i.status === 'open').length}>
@@ -109,7 +121,11 @@ export default function Incidents() {
         }
       />
       <Group justify="space-between" mb="sm">
-        <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
+        <Group gap="md">
+          <TextInput aria-label={t('incidents.filter')} placeholder={t('incidents.filterHint')} w={240} value={filter}
+            leftSection={<IconFilter size={14} />} onChange={(e) => setFilter(e.currentTarget.value)} />
+          <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
+        </Group>
         <Text size="sm" role="status" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
           {message?.text}
         </Text>
@@ -144,7 +160,7 @@ export default function Incidents() {
                     <Title order={3} size="h4">{t(`incidents.status.${status}`)}</Title>
                     <Badge variant="light" color={status === 'open' && column.length ? 'down' : 'gray'}>{column.length}</Badge>
                   </Group>
-                  {!column.length && <Text size="sm" c="dimmed">{t(`incidents.empty.${status}`)}</Text>}
+                  {!column.length && <Text size="sm" c="dimmed">{filter ? t('incidents.noMatch') : t(`incidents.empty.${status}`)}</Text>}
                   {shown.map((i) => (
                     <IncidentCard key={i.id} incident={i} board={board.data} people={people.data} me={me.data?.user?.username}
                       busy={(change.isPending && change.variables?.id === i.id) || (send.isPending && send.variables === i.id)}

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Incident, IncidentBoard } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Incidents from './Incidents'
+import { matchesFilter } from './incidents/filter'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -52,6 +53,28 @@ describe('Incident board', () => {
     // Another team's incident: visible, but no buttons.
     expect(within(worked).queryByRole('button', { name: 'Fixed' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Seat QR codes' })).toBeNull()
+  })
+
+  it('filters the board from the address', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />, '/incidents?q=KIM')
+    const worked = await screen.findByRole('region', { name: 'Being worked' })
+    expect(within(worked).getByText('No power')).toBeInTheDocument()
+    const open = screen.getByRole('region', { name: 'Open' })
+    expect(within(open).getByText('Nothing matches the filter.')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('KIM')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter incidents' }), { target: { value: 'internet' } })
+    expect(await within(open).findByText('No internet at the seat')).toBeInTheDocument()
+    expect(within(worked).queryByText('No power')).toBeNull()
+  })
+
+  it('matches title, place, people, team and notes', () => {
+    const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
+    expect(matchesFilter(i, '')).toBe(true)
+    expect(matchesFilter(i, 'power')).toBe(true)
+    expect(matchesFilter(i, 'breaker')).toBe(true)
+    expect(matchesFilter(i, 'Electrics', { electrics: 'Electrics' })).toBe(true)
+    expect(matchesFilter(i, 'switch')).toBe(false)
   })
 
   it('takes an incident', async () => {
