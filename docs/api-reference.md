@@ -597,6 +597,17 @@ Source: [`floorbit/blueprints/terminal.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/terminal/<sid>/output` | `terminal.open` | `terminal` |
 | POST | `/api/terminal/<sid>/resize` | `terminal.open` | `terminal` |
 
+## floorbit.blueprints.timeline
+
+Event changelog (issue #100). The rules live in floorbit/timeline.py.
+
+Source: [`floorbit/blueprints/timeline.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/timeline.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/timeline` | `audit.read` | `timeline` |
+| GET | `/api/timeline.csv` | `audit.read` | `timeline` |
+
 ## floorbit.blueprints.tournament
 
 Tournament awareness (issue #31): match zones and QoS hints. Rules in floorbit/tournament.py.

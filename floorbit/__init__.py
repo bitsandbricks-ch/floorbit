@@ -146,6 +146,10 @@ def create_app(start_background=True):
     from .webhooks import init_webhooks
     init_webhooks(app, start_background=start_background)
 
+    # The event changelog: alerts from the event bus and each start go into its journal (docs/timeline.md).
+    from .timeline import init_timeline
+    init_timeline(app)
+
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start
     seed_on_start(app)
