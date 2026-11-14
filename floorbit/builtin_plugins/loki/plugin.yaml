@@ -1,0 +1,20 @@
+# Sends the syslog to Grafana Loki for longer storage, and reads it back with LogQL (docs/syslog.md).
+# Off until turned on under Settings > Plugins.
+id: loki
+name: Grafana Loki
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Sends the syslog lines Floorbit receives to Grafana Loki, to keep them longer than a day, and searches them with LogQL on the Logs page."
+author: Floorbit
+homepage: https://grafana.com/oss/loki/
+uses: [settings, http, logs]
+settings:
+  - {key: url, label: Loki URL, type: url, placeholder: "http://loki.example.com:3100",
+     help: "Loki's HTTP API, without /loki/api/v1."}
+  - {key: tenant, label: Tenant, type: string,
+     help: "Sent as X-Scope-OrgID when Loki runs with several tenants. Leave empty otherwise."}
+  - {key: username, label: Username, type: string, help: "For Loki behind basic auth, or Grafana Cloud's user id."}
+  - {key: password, label: Password or token, type: secret}
+  - {key: event_label, label: Event label, type: string, placeholder: "summer-lan",
+     help: "Added to every line as event=..., to tell events apart in one Loki."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}

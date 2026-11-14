@@ -8,7 +8,8 @@ lives in floorbit/syslog.py.
   lines newer than this id, for the live tail), ``before`` (only older, for paging) and ``limit``
   (1 to 1000, 200 by default). Needs ``seats.view``: logs name MACs and IPs. ``source=app`` reads
   Floorbit's own log and ``source=audit`` the audit log instead, with the same filters (issue #93);
-  both also need ``audit.read``.
+  both also need ``audit.read``. ``source=plugin:loki`` searches what a logs plugin keeps, with
+  ``q`` in its query language (LogQL) over the last ``hours`` (24).
 - ``GET /api/logs/markers``: warnings and worse of the last 10 minutes, counted per seat and per
   switch, for the floor plan (issue #92).
 - ``GET /api/logs/alerts``: lines that matched a known pattern (err-disable, DHCP snooping, port
@@ -57,9 +58,31 @@ def _can(permission):
 
 
 def sources():
-    """The logs this account may read: the syslog with seats.view (the API's own rule), Floorbit's
-    own log and the audit log with audit.read."""
-    return ['syslog'] + (['app', 'audit'] if _can('audit.read') else [])
+    """The logs this account may read: the syslog with seats.view (the API's own rule) and what
+    logs plugins (Loki) keep of it, Floorbit's own log and the audit log with audit.read."""
+    stores = [f'plugin:{s.id}' for s in current_app.extensions['floorbit_syslog'].log_plugins()]
+    return ['syslog', *stores] + (['app', 'audit'] if _can('audit.read') else [])
+
+
+def _from_store(source, args, before, limit, status):
+    """Search a logs plugin with its own query language (LogQL for Loki), newest first."""
+    import time
+
+    from ..plugins import PluginError
+    try:
+        hours = int(args.get('hours') or 24)
+    except ValueError:
+        hours = 0
+    if not 1 <= hours <= 24 * 90:
+        return jsonify({'error': 'hours is a whole number from 1 to 2160.'}), 400
+    end = before / 1e6 if before else time.time()   # a plugin line's id is its time in microseconds
+    query = (args.get('q') or '').strip() or '{job="floorbit"}'
+    try:
+        lines = current_app.extensions['floorbit_syslog'].query(source[len('plugin:'):], query, end - hours * 3600,
+                                                                end, limit)
+    except PluginError as exc:
+        return jsonify({'lines': [], 'status': {**status, 'query_error': str(exc)}})
+    return jsonify({'lines': lines or [], 'status': {**status, 'query': query}})
 
 
 @bp.route('/api/logs', methods=['GET'])
@@ -76,12 +99,16 @@ def get_logs():
         return jsonify({'error': f"severity is one of {', '.join(syslog.SEVERITIES)}."}), 400
     source = (args.get('source') or 'syslog').strip()
     allowed = sources()
-    if source not in SOURCES:
-        return jsonify({'error': f"source is one of {', '.join(SOURCES)}."}), 400
+    if source not in SOURCES and not source.startswith('plugin:'):
+        return jsonify({'error': f"source is one of {', '.join(SOURCES)} or plugin:<id>."}), 400
+    if source.startswith('plugin:') and source not in allowed:
+        return jsonify({'error': 'That logs plugin is not turned on.'}), 404
     if source not in allowed:
         return jsonify({'error': 'Reading this log needs the audit.read permission.'}), 403
     receiver = current_app.extensions['floorbit_syslog']
     status = {**receiver.status(), 'sources': allowed, 'source': source}
+    if source.startswith('plugin:'):
+        return _from_store(source, args, before, limit, status)
     if source == 'app':
         lines = current_app.extensions['floorbit_app_log'].search(
             q=args.get('q', ''), device=args.get('device', ''), severity=severity, before=before, limit=limit)

@@ -136,7 +136,7 @@ def create_app(start_background=True):
 
     # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
     from .syslog import init_syslog
-    init_syslog(app, start_background=start_background)
+    init_syslog(app, registry, start_background=start_background)
 
     # Bandwidth forecast from the stats' hours, with a warning before the line fills (docs/forecast.md).
     from .forecast import init_forecast
