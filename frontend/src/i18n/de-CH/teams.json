@@ -50,6 +50,7 @@
     "incidents_assign": "Incidents jedem Team zuweisen",
     "ports_act": "Port-Aktionen und Show-Befehle auf Switches ausführen",
     "commands_change": "Switch-Befehle ausführen, die etwas ändern, zum Beispiel Zähler zurücksetzen",
+    "configs_read": "Switch-Konfigurationen sichern und sie samt Änderungen lesen",
     "terminal_open": "Im Browser ein Terminal auf einem Switch öffnen, mit dem eigenen Switch-Login",
     "power_edit": "Stromverteiler und Stromkreise ändern, Messwerte und Auslösungen erfassen",
     "plugins_run": "Plugin-Aktionen ausführen",

@@ -122,6 +122,21 @@ Source: [`floorbit/blueprints/config.py`](https://github.com/bitsandbricks-ch/fl
 | --- | --- | --- | --- |
 | GET | `/api/config` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.configs
+
+Switch config backups and diffs (issue #96). The rules live in floorbit/config_backup.py.
+
+Source: [`floorbit/blueprints/configs.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/configs.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/configs` | `configs.read` | `configs` |
+| GET | `/api/configs/<switch>` | `configs.read` | `configs` |
+| GET | `/api/configs/<switch>/<cid>` | `configs.read` | `configs` |
+| POST | `/api/configs/<switch>/baseline` | `configs.read` | `configs` |
+| GET | `/api/configs/<switch>/diff` | `configs.read` | `configs` |
+| POST | `/api/configs/backup` | `configs.read` | `configs` |
+
 ## floorbit.blueprints.crew
 
 Buttons in the crew's Discord channel (issue #32). The bridge itself is integrations/crew.py.

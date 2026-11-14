@@ -320,6 +320,8 @@ class Plugin(Plugin):
                 parts.append(self._demo_errors(name))
             elif words[:2] == ['show', 'interface'] and port:
                 parts.append(self._demo_interface(name, port))
+            elif words[:2] == ['show', 'running-config']:
+                parts.append(self._demo_config(name))
             elif words[:2] == ['show', 'version']:
                 parts.append(f'Example Switch Software, Version 17.9.4 (demo)\n{name} uptime is 3 days, 4 hours\n'
                              f'Model number: {_model(name)}')
@@ -333,6 +335,23 @@ class Plugin(Plugin):
         if not any(n == name for n, _r, _i in _switches()):
             raise PluginError(f"{target['switch']} is not a demo switch.")
         return DemoShell(self, name)
+
+    def _demo_config(self, name):
+        """A made-up IOS running config: ports shut from Floorbit show up as shutdown."""
+        lines = ['Building configuration...', '', 'Current configuration : 4211 bytes', '!',
+                 f'! Last configuration change at {time.strftime("%H:%M:%S UTC %a %b %d %Y", time.gmtime())}',
+                 'version 17.9', f'hostname {name}', '!',
+                 'enable secret 9 $9$demo.example.hash', 'username netops privilege 15 secret 9 $9$demo.example.hash',
+                 '!', 'vlan 100', ' name players', 'vlan 999', ' name mgmt', '!']
+        for seat, _b, _n, _i, port in self._demo_ports(name):
+            lines += [f'interface {port}', f' description Seat {seat}', ' switchport access vlan 100',
+                      ' switchport mode access', ' spanning-tree portfast', ' spanning-tree bpduguard enable']
+            if (name, port) in _shut:
+                lines.append(' shutdown')
+            lines.append('!')
+        lines += ['snmp-server community demo-read-only RO', 'logging host 192.0.2.10', 'ntp server 192.0.2.1',
+                  'end']
+        return '\n'.join(lines)
 
     def _demo_ports(self, name):
         return [(s, b, n, i, _switch_for(b, n)[1]) for s, b, n, i in _seats() if _switch_for(b, n)[0] == name]

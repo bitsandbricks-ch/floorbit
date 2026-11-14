@@ -50,6 +50,7 @@
     "incidents_assign": "Assign incidents to any team",
     "ports_act": "Run port actions and show commands on switches",
     "commands_change": "Run switch commands that change something, such as clearing counters",
+    "configs_read": "Back up switch configs and read them and what changed",
     "terminal_open": "Open a terminal on a switch in the browser, with their own switch login",
     "power_edit": "Change power boards and circuits, enter readings and trips",
     "plugins_run": "Run plugin actions",

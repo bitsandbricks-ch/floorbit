@@ -170,7 +170,7 @@ def info(registry, may_change):
     }
 
 
-def _one(registry, spec, dev, commands, login):
+def _one(registry, spec, dev, commands, login, max_output=MAX_OUTPUT):
     started = time.monotonic()
     name = dev['name']
     with ports._lock:
@@ -183,7 +183,7 @@ def _one(registry, spec, dev, commands, login):
                                                       'commands': commands, 'login': mine})
         output = str((result or {}).get('output') or '') if isinstance(result, dict) else str(result or '')
         refused = (result or {}).get('refused') if isinstance(result, dict) else None
-        return {'switch': name, 'ok': not refused, 'output': output[-MAX_OUTPUT:],
+        return {'switch': name, 'ok': not refused, 'output': output[-max_output:],
                 'error': f'The switch refused "{refused}".' if refused else None,
                 'ms': int((time.monotonic() - started) * 1000)}
     except PluginError as exc:
@@ -196,33 +196,16 @@ def _one(registry, spec, dev, commands, login):
             ports._busy.discard(name)
 
 
-def run(registry, account, body, may_change):
-    """Run one template on the chosen switches. Returns (template, port, results)."""
-    spec = plugin(registry)
-    if not spec:
-        raise CommandError('No plugin that can run switch commands is on. An admin turns on SSH port actions '
-                           'under Settings > Plugins.', 409)
-    plat = platform(registry, spec)
-    tpl = next((t for t in templates(plat) if t['id'] == body.get('template')), None)
-    if not tpl:
-        raise CommandError('No such template.', 404)
-    if tpl['kind'] == 'change':
-        if not may_change:
-            raise CommandError('Your role can run show commands only.', 403)
-        if body.get('confirm') is not True:
-            raise CommandError(f'"{tpl["label"]}" changes something on the switch. Confirm again to run it.', 409,
-                               confirm=True)
+def run_on(registry, spec, account, body, commands, max_output=MAX_OUTPUT):
+    """Run commands on ``body['switches']`` with the login in ``body``. Returns one result per switch.
+
+    Shared by templates and config backups (floorbit/config_backup.py)."""
     names = body.get('switches')
     if not isinstance(names, list) or not names:
         raise CommandError('Pick at least one switch.')
     names = list(dict.fromkeys(str(n) for n in names))
     if len(names) > MAX_SWITCHES:
         raise CommandError(f'At most {MAX_SWITCHES} switches at a time.')
-    port = ''
-    if tpl['needs_port']:
-        port = str(body.get('port') or '').strip()
-        if not ports.PORT_RE.match(port):
-            raise CommandError('Type the port, for example Gi1/0/3.')
     data = load_data()
     try:
         devs = [ports._switch(data, n) for n in names]
@@ -241,14 +224,13 @@ def run(registry, account, body, may_change):
             if login:
                 login.clear()
             raise CommandError(str(exc), exc.status) from None
-    commands = [c.replace('{port}', port) for c in tpl['commands']]
     try:
         with ThreadPoolExecutor(max_workers=min(WORKERS, len(devs))) as pool:
-            results = list(pool.map(lambda d: _one(registry, spec, d, commands, login), devs))
+            results = list(pool.map(lambda d: _one(registry, spec, d, commands, login, max_output), devs))
     finally:
         if login:
             login.clear()
-    failed_login = needs_login and any(r.pop('login_failed', False) for r in results)
+    failed_login = needs_login and any(r.get('login_failed') for r in results)
     with ports._lock:
         if failed_login:
             ports._failures.setdefault(account, []).append(time.time())
@@ -256,4 +238,30 @@ def run(registry, account, body, may_change):
             ports._failures.pop(account, None)
     for r in results:
         r.pop('login_failed', None)
+    return results
+
+
+def run(registry, account, body, may_change):
+    """Run one template on the chosen switches. Returns (template, port, results)."""
+    spec = plugin(registry)
+    if not spec:
+        raise CommandError('No plugin that can run switch commands is on. An admin turns on SSH port actions '
+                           'under Settings > Plugins.', 409)
+    plat = platform(registry, spec)
+    tpl = next((t for t in templates(plat) if t['id'] == body.get('template')), None)
+    if not tpl:
+        raise CommandError('No such template.', 404)
+    if tpl['kind'] == 'change':
+        if not may_change:
+            raise CommandError('Your role can run show commands only.', 403)
+        if body.get('confirm') is not True:
+            raise CommandError(f'"{tpl["label"]}" changes something on the switch. Confirm again to run it.', 409,
+                               confirm=True)
+    port = ''
+    if tpl['needs_port']:
+        port = str(body.get('port') or '').strip()
+        if not ports.PORT_RE.match(port):
+            raise CommandError('Type the port, for example Gi1/0/3.')
+    commands = [c.replace('{port}', port) for c in tpl['commands']]
+    results = run_on(registry, spec, account, body, commands)
     return tpl, port, commands, results
