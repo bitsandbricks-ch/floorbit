@@ -1,3 +1,11 @@
+# The React app (frontend/), built into static/app/
+FROM node:24-slim AS frontend
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
@@ -21,6 +29,7 @@ COPY floorbit/ ./floorbit/
 COPY auth/ ./auth/
 # COPY data.json .
 COPY static/ ./static/
+COPY --from=frontend /src/static/app/ ./static/app/
 COPY templates/ ./templates/
 COPY integrations/ ./integrations/
 

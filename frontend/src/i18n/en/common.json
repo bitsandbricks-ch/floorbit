@@ -1,0 +1,22 @@
+{
+  "floorPlan": "Floor plan",
+  "settings": "Settings",
+  "dashboard": "Dashboard",
+  "plugins": "Plugins",
+  "signOut": "Sign out",
+  "signedInAs": "Signed in as {{username}}",
+  "language": "Language",
+  "themeLight": "Switch to light theme",
+  "themeDark": "Switch to dark theme",
+  "loading": "Loading…",
+  "working": "Working…",
+  "areYouSure": "{{label}}: are you sure?",
+  "confirm": "Yes, go ahead",
+  "cancel": "Cancel",
+  "details": "Details",
+  "notFound": "This page doesn't exist.",
+  "backToPlan": "Back to the floor plan",
+  "error": "Something went wrong: {{message}}",
+  "coffee": "Buy me a coffee",
+  "poweredBy": "Powered by"
+}

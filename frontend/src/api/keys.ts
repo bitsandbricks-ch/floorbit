@@ -1,0 +1,8 @@
+// Every query key in one place, so two pages never share a key for different data.
+export const qk = {
+  me: ['me'] as const,
+  dashboard: ['dashboard'] as const,
+  widget: (url: string) => ['widget', url] as const,
+  plugins: ['plugins'] as const,
+  pluginLog: (id: string) => ['plugins', id, 'log'] as const,
+}

@@ -61,3 +61,7 @@ gl-code-quality-report.json
 *.pem
 *.key
 .claude/settings.local.json
+
+# The React app, built by `npm run build` in frontend/
+static/app/
+frontend/node_modules/

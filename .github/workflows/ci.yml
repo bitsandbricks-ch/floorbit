@@ -46,9 +46,30 @@ jobs:
           node-version: 24
       # find -exec would hide a failing check; the loop stops on the first one.
       - run: |
-          find static -name '*.js' -print0 | while IFS= read -r -d '' f; do
+          find static -path static/app -prune -o -name '*.js' -print0 | while IFS= read -r -d '' f; do
             echo "$f"; node --check "$f" || exit 1
           done
+
+  frontend:
+    # The React app (frontend/): lint, types, unit tests and a production build.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
 
   pytest:
     runs-on: ubuntu-24.04
@@ -83,6 +104,12 @@ jobs:
       AUTH_ADMIN_PASSWORD: demo-screenshots
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The React pages need the built app; the playwright image has no Node of its own.
+      - run: npm ci --no-audit --no-fund && npm run build
+        working-directory: frontend
       - run: pip install --quiet -r requirements.txt playwright==1.49.0
       - run: |
           python -m flask --app app run --port 5000 > flask.log 2>&1 &
@@ -117,7 +144,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [ruff, javascript, pytest, screenshots, changelog, workflows]
+    needs: [ruff, javascript, frontend, pytest, screenshots, changelog, workflows]
     runs-on: ubuntu-24.04
     steps:
       - env:

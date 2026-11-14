@@ -1,0 +1,7 @@
+{
+  "title": "Dashboard",
+  "empty": "Noch nichts da. Kacheln kommen von Plugins: Ein Admin schaltet sie unter Einstellungen > Plugins ein.",
+  "emptyLink": "Einstellungen > Plugins öffnen",
+  "cantDraw": "Diese Kachel lässt sich nicht anzeigen.",
+  "from": "von {{plugin}}"
+}

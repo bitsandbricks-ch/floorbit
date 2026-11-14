@@ -1,4 +1,4 @@
-"""Widgets are data: a plugin returns a dict and Floorbit draws it (static/js/dashboard.js).
+"""Widgets are data: a plugin returns a dict and Floorbit draws it (frontend/src/widgets/WidgetBody.tsx).
 
 No plugin code runs in the browser, and text is always shown as text, never as HTML.
 Shapes (each may also have ``sub``, a short line under it, and ``link``, a path on this site):

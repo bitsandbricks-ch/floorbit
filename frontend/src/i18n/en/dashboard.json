@@ -1,0 +1,7 @@
+{
+  "title": "Dashboard",
+  "empty": "Nothing here yet. Tiles come from plugins: an admin turns them on under Settings > Plugins.",
+  "emptyLink": "Open Settings > Plugins",
+  "cantDraw": "This tile can't be drawn.",
+  "from": "from {{plugin}}"
+}

@@ -1,0 +1,22 @@
+{
+  "floorPlan": "Hallenplan",
+  "settings": "Einstellungen",
+  "dashboard": "Dashboard",
+  "plugins": "Plugins",
+  "signOut": "Abmelden",
+  "signedInAs": "Angemeldet als {{username}}",
+  "language": "Sprache",
+  "themeLight": "Zum hellen Design wechseln",
+  "themeDark": "Zum dunklen Design wechseln",
+  "loading": "Wird geladen…",
+  "working": "Läuft…",
+  "areYouSure": "{{label}}: wirklich ausführen?",
+  "confirm": "Ja, ausführen",
+  "cancel": "Abbrechen",
+  "details": "Details",
+  "notFound": "Diese Seite gibt es nicht.",
+  "backToPlan": "Zurück zum Hallenplan",
+  "error": "Etwas ist schiefgelaufen: {{message}}",
+  "coffee": "Spendier mir einen Kaffee",
+  "poweredBy": "Betrieben von"
+}

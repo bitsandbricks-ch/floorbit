@@ -105,7 +105,8 @@ docker build .
 | `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `sources/` (NetBox, LibreNMS), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
 | `integrations/` | Live updates, switch monitor, Discord alerts, seat sources, check-in. |
 | `auth/` | Sign-in: accounts, sessions, the login page and the login providers (password, Discord). |
-| `templates/`, `static/` | The pages and the browser app (plain JavaScript and CSS, no build step); the editor is in `static/js/editor/`. |
+| `frontend/` | The React app (TypeScript, Mantine). The dashboard and Settings > Plugins are in it so far; the other pages follow. See [frontend/README.md](frontend/README.md). |
+| `templates/`, `static/` | The other pages (plain JavaScript and CSS, no build step); the editor is in `static/js/editor/`. |
 | `changelog.d/` | One changelog fragment per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |
@@ -121,6 +122,7 @@ GitHub Actions in [`.github/workflows/`](.github/workflows/), set up like the
 | --- | --- | --- |
 | `ci.yml` `ruff` | always | Python lint; findings show inline on the pull request. |
 | `ci.yml` `javascript` | always | Syntax check of `static/js`. |
+| `ci.yml` `frontend` | always | The React app: `npm audit` (production packages), ESLint, TypeScript, Vitest and a production build. |
 | `ci.yml` `pytest` | always | Smoke tests. |
 | `ci.yml` `screenshots` | pull requests | Runs the app with demo data and screenshots every page, desktop and phone (artifact). |
 | `ci.yml` `workflows` | always | actionlint over the workflow files. |
