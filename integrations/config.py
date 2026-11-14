@@ -138,6 +138,25 @@ SCHEMA = [
     {'key': 'DISCORD_POWER_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
      'label': 'Power alerts', 'help': 'Post when a circuit turns red or its breaker trips, with what it feeds.'},
 
+    # The crew's Discord channel (integrations/crew.py)
+    {'key': 'DISCORD_BOT_TOKEN', 'group': 'crew', 'type': 'string', 'default': '', 'secret': True,
+     'label': 'Bot token',
+     'help': 'Developer Portal → your app → Bot → Reset Token. The bot needs View Channel, Send Messages, '
+             'Create Public Threads, Send Messages in Threads and Manage Threads in the crew channel.'},
+    {'key': 'DISCORD_CREW_CHANNEL', 'group': 'crew', 'type': 'string', 'default': '',
+     'label': 'Crew channel ID',
+     'help': 'Right-click the channel → Copy Channel ID (turn on Developer Mode first). Incidents get a message '
+             'and a thread here. Without a webhook URL, alerts go here too.'},
+    {'key': 'DISCORD_APP_PUBLIC_KEY', 'group': 'crew', 'type': 'string', 'default': '',
+     'label': 'App public key',
+     'help': 'Developer Portal → General Information → Public Key. Turns on the Take it and Fixed buttons. '
+             'Set the Interactions Endpoint URL there to <public URL>/api/discord/interactions.'},
+    {'key': 'DISCORD_CREW_ENABLED', 'group': 'crew', 'type': 'bool', 'default': True,
+     'label': 'Crew channel', 'help': 'Turn the crew channel off without removing the bot token.'},
+    {'key': 'DISCORD_CREW_INCIDENTS', 'group': 'crew', 'type': 'bool', 'default': True,
+     'label': 'Incidents in the crew channel',
+     'help': 'Post each incident with a thread that follows it until it is fixed.'},
+
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',
      'label': 'Seat sources', 'help': 'Comma-separated, merged in order. Built in: json, http, checkin.'},

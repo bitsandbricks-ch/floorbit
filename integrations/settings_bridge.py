@@ -28,6 +28,9 @@ SECTIONS = [
      'description': 'Power boards and circuits: when a circuit counts as loaded, and where its incidents go.'},
     {'id': 'discord', 'title': 'Discord alerts',
      'description': 'Post to a Discord channel when placed switches go offline or recover.'},
+    {'id': 'crew', 'title': 'Crew Discord channel',
+     'description': ('A bot posts each incident with a thread that follows it, and Take it / Fixed buttons '
+                     'for crew whose Discord account is linked. See docs/crew-discord.md.')},
     {'id': 'seats', 'title': 'Seat sources',
      'description': 'Where the seat to user / IP mapping comes from. Sources are merged in the order listed.'},
     {'id': 'checkin', 'title': 'Seat check-in',
