@@ -19,6 +19,7 @@ SWITCHES_PER_BLOCK = COLS * ROWS // SEATS_PER_SWITCH   # 3
 FLAPPING = 'sw-c-02'          # goes down for a minute every four
 HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
+FLAPPING_PORT = ('C', 9)      # a loose cable: the link drops every 45 seconds
 BOUNCE_SECONDS = 10          # a demo bounce keeps the port down this long
 _bounced = {}                 # (switch, port) -> time the port comes back
 _shut = set()                 # (switch, port) shut until turned on again
@@ -165,13 +166,25 @@ class Plugin(Plugin):
         rx, tx = self._rates(i) if _taken(i) else (0, 0)
         up = _taken(i) and not _down(name) and _bounced.get((name, interface), 0) < time.time() \
             and (name, interface) not in _shut
+        flapping = (block, number) == FLAPPING_PORT
+        if flapping:
+            up = int(time.time() // 45) % 2 == 0
         raw = {'ifOperStatus': 'up' if up else 'down', 'ifAdminStatus': 'up',
                'ifInOctets_rate': tx if up else 0, 'ifOutOctets_rate': rx if up else 0, 'ifSpeed': 1_000_000_000,
                'ifDuplex': 'halfDuplex' if (block, number) == HALF_DUPLEX else 'fullDuplex',
                'ifInErrors_rate': 2.5 if (block, number) == ERRORS else 0, 'ifOutErrors_rate': 0,
-               'ifInErrors': 1200 if (block, number) == ERRORS else 0, 'ifOutErrors': 0,
+               'ifInErrors': 1200 + int(time.time() // 2) % 100000 if (block, number) == ERRORS else 0,
+               'ifOutErrors': 0,
                'poll_time': int(time.time()), 'ifAlias': f'Seat {block}-{number}'}
-        return summarize_port(raw)
+        out = summarize_port(raw)
+        if flapping:
+            out['last_change'] = int(time.time() // 45) * 45
+        return out
+
+    def device_ports(self, hostname):
+        name = _short(hostname)
+        ports = [_switch_for(b, n)[1] for _s, b, n, _i in _seats() if _switch_for(b, n)[0] == name]
+        return [{'name': port, **(self.port_stats(hostname, port) or {})} for port in ports]
 
     def arp(self, query):
         q = (query or '').lower()

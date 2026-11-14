@@ -20,6 +20,27 @@ with a count of what is down next to the link:
 It asks nothing new: it reads what the status monitor, the health wall, the security watch and the
 power layer already know. Anyone with `floorplan.view` may see it.
 
+## Needs attention
+
+Below the problems, **Needs attention** lists ports an ops person should look at, newest first.
+Every `ATTENTION_INTERVAL` seconds (120) Floorbit reads all ports of the switches that are placed and
+online from the monitoring source (`device_ports`, one request per switch to LibreNMS) and keeps what
+it saw last time:
+
+| Entry | When |
+| --- | --- |
+| Flapping | the link went up or down `ATTENTION_FLAPS` times (3) within ten minutes |
+| Errors | the error counters (in and out) grew by `ATTENTION_ERRORS` (10) or more since the last read |
+| Duplex | a port that is up runs at half duplex: usually a bad cable or a forced speed setting |
+| Check-in | with [check-in](integrations.md#seat-check-in-page) on, a seat's port is up while nobody checked in at that seat |
+
+A port belongs to a seat when its description (ifAlias) names the seat, such as `Seat A-12` or
+`A-12 desk`; **Open** then goes to that seat on the floor plan, otherwise to the switch
+(`/?seat=A-12`, `/?switch=<id>`). Entries clear on their own once the port behaves. They hold the
+switch, port and seat, never who sits there, so everyone who may see the floor plan may see them.
+They don't go to Discord: there can be dozens during an event. Live updates send `attention.changed`.
+Code: [`floorbit/attention.py`](../floorbit/attention.py).
+
 ## Muting a switch
 
 A switch someone is working on, or that is off on purpose, can be muted for 30 minutes up to a day
@@ -48,6 +69,7 @@ means no quiet hours.
 
 ## Not in this version
 
-Alerts for a single port going down or errors rising need to know which ports matter (uplinks and
-trunks, not seats where players come and go). TODO: ask Mike which alerts matter most at the event,
-and whether uplink ports can come from the inventory.
+Discord alerts for a single port going down or errors rising need to know which ports matter (uplinks
+and trunks, not seats where players come and go); the needs-attention list shows them without
+paging anyone. TODO: ask Mike which alerts matter most at the event, and whether uplink ports can
+come from the inventory.

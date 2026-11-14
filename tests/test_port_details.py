@@ -76,3 +76,21 @@ def test_fetch_port_falls_back_to_base_columns(monkeypatch):
 def test_fetch_port_unknown_name(monkeypatch):
     monkeypatch.setattr(port_details.requests, 'get', lambda *a, **k: FakeResponse(200, [{'ifName': 'Gi1/0/1'}]))
     assert port_details.fetch_port('https://librenms.example.com', {}, 14, 'Gi1/0/14') is None
+
+
+def test_device_ports_for_the_attention_watch(monkeypatch):
+    from floorbit.builtin_plugins.librenms import client
+    calls = []
+
+    def fake_get(url, params=None, **kwargs):
+        calls.append(params['columns'])
+        if 'ifLastChange' in params['columns']:
+            return FakeResponse(500)   # a LibreNMS that doesn't know the column
+        return FakeResponse(200, [PORT, {'ifName': None}])
+
+    monkeypatch.setattr(port_details.requests, 'get', fake_get)
+    monkeypatch.setattr(client, 'fetch_librenms_device_by_hostname', lambda h, headers: {'device_id': 14})
+    [port] = client.fetch_device_ports('sw-a-01.example.com')
+    assert port['name'] == 'Gi1/0/14' and port['last_change'] is None
+    assert port['description'] == 'seat A-14' and port['duplex'] == 'full' and port['errors_in'] == 3
+    assert len(calls) == 2

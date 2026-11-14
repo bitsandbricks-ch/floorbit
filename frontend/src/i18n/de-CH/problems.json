@@ -7,7 +7,8 @@
     "warn_one": "{{count}} anzuschauen", "warn_other": "{{count}} anzuschauen",
     "muted_one": "{{count}} stumm", "muted_other": "{{count}} stumm"
   },
-  "kind": { "monitoring": "Monitoring", "switch": "Switch", "health": "Dienst", "security": "Sicherheit", "power": "Strom" },
+  "kind": { "monitoring": "Monitoring", "switch": "Switch", "health": "Dienst", "security": "Sicherheit", "power": "Strom", "flapping": "Flattern", "errors": "Fehler", "duplex": "Duplex", "checkin": "Check-in" },
+  "attention": { "title": "Braucht Aufmerksamkeit", "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex und Plätze online ohne Check-in. Sie verschwinden von selbst, sobald der Port sich normal verhält." },
   "since": "seit {{ago}}",
   "open": "Öffnen",
   "mute": "Stumm",

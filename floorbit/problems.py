@@ -8,6 +8,9 @@ Gathered from what is already watched, without asking anything new:
 - high and medium security findings (where only, unless the account has ``seats.view``);
 - power circuits that tripped, are about to, or are getting close.
 
+Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
+come as a list of their own under ``attention``, newest first.
+
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
 """
 import time
@@ -95,6 +98,17 @@ def _power():
     return out
 
 
+def _attention():
+    from urllib.parse import quote
+    watch = current_app.extensions.get('floorbit_attention')
+    out = []
+    for a in (watch.snapshot()['items'] if watch else []):
+        link = f"/?seat={quote(a['seat'])}" if a.get('seat') else f"/?switch={quote(a['switch_id'])}"
+        out.append({'id': f"attention:{a['id']}", 'kind': a['kind'], 'level': 'warn', 'title': a['title'],
+                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id']})
+    return out
+
+
 def current(may_see_people):
     muted = alerting.mutes()
     items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power()
@@ -103,6 +117,10 @@ def current(may_see_people):
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
               'warn': sum(p['level'] == 'warn' for p in items),
               'muted': sum(bool(p.get('muted')) for p in items)}
+    # Port trouble is its own list, newest first: during an event there can be dozens, and they
+    # shouldn't bury a switch that is down.
+    attention = sorted(_attention(), key=lambda p: -(p['since'] or 0))
+    counts['attention'] = len(attention)
     mutes = [{'switch_id': k, **v} for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
-    return {'problems': items, 'counts': counts, 'mutes': mutes,
+    return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,
             'quiet_hours': alerting.quiet_now(), 'checked_at': now}
