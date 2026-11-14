@@ -23,6 +23,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `status.js` | Switch list filter, LibreNMS status refresh, top bar stats. |
 | `layers.js` | Layer toggles and the grid. |
 | `heatmap.js` | The traffic heatmap layer. |
+| `incidents.js` | Open incidents as rings on seats and switches, and the count in the top bar. |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:

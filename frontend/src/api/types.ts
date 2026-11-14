@@ -231,3 +231,55 @@ export interface OidcTestResult {
   problems?: string[]
   keys?: number
 }
+export type IncidentStatus = 'open' | 'assigned' | 'fixed'
+export interface IncidentNote {
+  by: string | null
+  at: number
+  text: string
+}
+export interface SeatSnapshot {
+  known: boolean
+  reason?: string
+  switch?: string
+  port?: string
+  link?: string | null
+  speed_bps?: number | null
+  duplex?: string | null
+  error_rate?: number | null
+  mac_seen?: boolean
+  stale?: boolean
+}
+export interface Incident {
+  id: string
+  seat: string | null
+  switch_id: string | null
+  switch_name?: string
+  title: string
+  problem: string | null
+  team: string | null
+  status: IncidentStatus
+  assignee: string | null
+  source: 'board' | 'helpdesk'
+  reported_by: string | null
+  reports: number
+  notes: IncidentNote[]
+  snapshot: SeatSnapshot | null
+  created_at: number
+  updated_at: number
+  can_work: boolean
+  can_assign: boolean
+}
+export interface IncidentBoard {
+  incidents: Incident[]
+  teams: { id: string; name: string; depth: number }[]
+  workable_teams: string[]
+  assign_teams: string[]
+  can_assign_any: boolean
+  problems: string[]
+}
+export type IncidentPeople = Record<string, { username: string; display_name: string }[]>
+export interface QrSeat {
+  seat: string
+  url: string
+  image: string
+}

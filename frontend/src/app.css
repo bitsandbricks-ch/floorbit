@@ -87,3 +87,17 @@ body {
   white-space: pre-wrap;
   margin: 0;
 }
+
+/* Helpdesk QR sheet: a grid of cut-out cards that also prints cleanly. */
+.fb-qr-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.fb-qr { margin: 0; padding: 10px; border: 1px dashed var(--color-line); border-radius: 8px; text-align: center; break-inside: avoid; }
+.fb-qr-code { display: block; width: 100%; height: auto; background: #fff; border-radius: 4px; }
+.fb-qr figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: 12px; color: var(--color-muted); }
+.fb-qr figcaption strong { font-size: 18px; color: var(--color-fg); }
+@media print {
+  .fb-header, .fb-no-print, .fb-attribution { display: none !important; }
+  body { background: #fff !important; }
+  .fb-qr-sheet { grid-template-columns: repeat(4, 1fr); }
+  .fb-qr { border-color: #999; }
+  .fb-qr figcaption, .fb-qr figcaption strong { color: #000; }
+}

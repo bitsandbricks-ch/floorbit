@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>{{ t.title.format(seat=seat) }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+      background: var(--color-ink); color: var(--color-fg); font: 16px/1.5 var(--font-sans);
+    }
+    .card {
+      width: 100%; max-width: 420px; background: var(--color-surface);
+      border: 1px solid var(--color-line); border-radius: 12px; padding: 24px;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    p { margin: 0 0 18px; color: var(--color-muted); }
+    form { display: grid; gap: 10px; }
+    button {
+      width: 100%; padding: 16px; font: inherit; font-size: 17px; font-weight: 600; text-align: left;
+      color: var(--color-fg); background: var(--color-raised); border: 1px solid var(--color-line);
+      border-radius: 10px; cursor: pointer;
+    }
+    button:hover, button:focus-visible { border-color: var(--color-bit); outline: none; }
+    .done { color: var(--color-up); font-size: 18px; margin: 0; }
+    .bad { color: var(--color-down); margin: 0; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>{{ t.title.format(seat=seat) }}</h1>
+    {% if state == 'ask' %}
+    <p>{{ t.intro }}</p>
+    <form method="post" action="{{ url_for('incidents.help_page', seat=seat, k=k) }}">
+      {% for problem in problems %}
+      <button type="submit" name="problem" value="{{ problem }}">{{ t[problem] }}</button>
+      {% endfor %}
+    </form>
+    {% elif state == 'thanks' %}
+    <p class="done" role="status">{{ t.thanks.format(seat=seat) }}</p>
+    {% elif state == 'again' %}
+    <p class="done" role="status">{{ t.again.format(seat=seat) }}</p>
+    {% elif state == 'busy' %}
+    <p class="bad" role="alert">{{ t.busy }}</p>
+    {% else %}
+    <p class="bad" role="alert">{{ t.invalid }}</p>
+    {% endif %}
+  </main>
+</body>
+</html>

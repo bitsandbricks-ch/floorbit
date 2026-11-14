@@ -54,9 +54,12 @@ ACTIONS = {
     ('POST', '/api/checkins/refresh'): ('check-in', 'Refreshed check-ins'),
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
     ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
+    ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
+    ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('DELETE', '/api/settings/oidc/<provider_id>'): ('settings', 'Removed sign-in provider'),
 }
-AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins')
+AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins',
+         'incidents')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
 listeners = []
 
@@ -135,7 +138,7 @@ def _target(response):
     sent = request.get_json(silent=True)
     for source in (body, (body or {}).get('user') if isinstance(body, dict) else None, sent):
         if isinstance(source, dict):
-            for key in ('name', 'label', 'username'):
+            for key in ('name', 'label', 'username', 'title'):
                 if isinstance(source.get(key), str) and source[key]:
                     return source[key]
     args = request.view_args or {}

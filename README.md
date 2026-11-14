@@ -36,6 +36,8 @@ each seat is plugged into.
   kiosk screens. Username and password, or **Sign in with Discord**: members of your Discord server
   get an account with a role from their server roles, and your own **OpenID Connect** providers
   (Authentik, Keycloak, Entra ID, ...) with groups mapped to roles. See [docs/auth.md](docs/auth.md).
+- **Incidents:** a board for problems at seats and switches, worked by your teams, with a QR code on
+  every seat so attendees can report "no internet" in one tap. See [docs/incidents.md](docs/incidents.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
   permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
   viewers and kiosk screens.

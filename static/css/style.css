@@ -854,3 +854,20 @@ kbd {
   .status-chip-label { display: none; }
   .last-updated { display: none; }
 }
+
+/* Open incidents (static/js/editor/incidents.js): a red ring that pulses unless motion is reduced. */
+.seat-block-seat.has-incident { border-radius: 4px; }
+.seat-block-seat.has-incident, .switch-marker.has-incident .switch-pin {
+  box-shadow: 0 0 0 2px var(--color-down), 0 0 0 5px color-mix(in srgb, var(--color-down) 30%, transparent);
+  animation: incident-pulse 1.6s ease-in-out infinite;
+}
+.switch-marker.has-incident .switch-pin { border-radius: 50%; }
+@keyframes incident-pulse { 50% { box-shadow: 0 0 0 2px var(--color-down), 0 0 0 8px transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .seat-block-seat.has-incident, .switch-marker.has-incident .switch-pin { animation: none; }
+}
+.nav-count {
+  display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 2px; border-radius: 9px;
+  background: var(--color-down); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+}
+.nav-count[hidden] { display: none; }
