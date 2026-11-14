@@ -45,6 +45,12 @@ Who sits there (nick, IP and MAC) is only shown to accounts with `seats.view` (t
 admins). Everyone with `floorplan.view` sees the states. The link `/plan?seat=D-6` opens the page
 on that seat.
 
+## In the floor plan editor
+
+The editor draws seats with the same shapes through the **Seat states** layer (on by default,
+under Layers), with a short legend and a link to the Seats view. The traffic heatmap takes over
+the seat colours while it is on.
+
 ## Big screens
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
