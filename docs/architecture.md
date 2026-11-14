@@ -26,6 +26,7 @@ different features touch different files.
    | `network.py` | switch status, `/api/resolve/<ip>`, `/api/seats/info`, `/resolve`, `/heatmap` |
    | `backup.py` | `/api/settings/backup` (download, restore; see [backup.md](backup.md)) |
    | `audit.py` | `/settings/audit`, `/api/settings/audit`, `.csv` (see [audit.md](audit.md)) |
+   | `plugins.py` | `/settings/plugins`, `/dashboard`, `/api/plugins/...` (see [plugins.md](plugins.md)) |
    | `cache.py` | `/api/cache/...` |
 
 5. **`integrations/`**: live updates (SSE), the status monitor, Discord alerts, seat sources and

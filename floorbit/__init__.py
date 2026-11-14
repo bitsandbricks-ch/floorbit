@@ -7,6 +7,7 @@
 * ``floorbit/cache.py``     Redis
 * ``floorbit/audit.py``     the audit log of changes and sign-ins
 * ``floorbit/theme.py``     themes: the preset and colours each page renders with
+* ``floorbit/plugins/``     plugins: actions, widgets, endpoints and hooks outside the core
 * ``floorbit/sources/``     NetBox and LibreNMS, behind ``inventory()`` and ``monitoring()``
 * ``floorbit/blueprints/``  one blueprint per area of the JSON API and the pages
 * ``integrations/``         live updates, status monitor, Discord, seat sources, check-in
@@ -21,6 +22,7 @@ from flask import Flask
 from . import cache, runtime, store
 from .audit import init_audit
 from .blueprints import ALL as BLUEPRINTS
+from .plugins import init_plugins
 from .settings import SettingsStore, create_settings_blueprint
 from .theme import init_theme
 
@@ -84,4 +86,8 @@ def create_app(start_background=True):
     from integrations import init_integrations
     init_integrations(app, load_data=store.load_data, settings_store=settings_store,
                       start_background=start_background)
+
+    # Plugins: actions, widgets, endpoints and hooks from floorbit/builtin_plugins (see docs/plugins.md).
+    version_file = ROOT / 'VERSION'
+    init_plugins(app, settings_store, version_file.read_text().strip() if version_file.is_file() else '0')
     return app

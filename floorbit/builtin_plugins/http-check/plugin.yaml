@@ -1,0 +1,22 @@
+# A small plugin that ships with Floorbit: is each of these web services answering?
+# It is also the example for writing your own; see docs/plugins.md.
+id: http-check
+name: HTTP check
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Checks that web services (the cache, the ticket shop, a game server's web panel) answer, and shows them on the dashboard."
+author: Floorbit
+uses: [settings, actions, widgets, endpoints, http, storage]
+settings:
+  - {key: targets, label: Services, type: list,
+     help: "Comma-separated, each as Name=URL, for example Cache=https://cache.example.com/health. A URL alone is named by its host.",
+     placeholder: "Cache=https://cache.example.com/health"}
+  - {key: timeout, label: Timeout, type: int, default: 5, min: 1, max: 30, help: "Seconds to wait for each service."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}
+actions:
+  - {id: check, label: Check now, role: editor, dashboard: true,
+     help: "Checks every service once and updates the dashboard."}
+widgets:
+  - {id: services, label: Web services, size: wide, refresh: 60}
+endpoints:
+  - {id: results, label: The last results as JSON, role: editor}

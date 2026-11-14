@@ -56,7 +56,8 @@ class FakeRedis:
 
 @pytest.fixture
 def app_module(tmp_path, monkeypatch):
-    for name in ("NETBOX_URL", "NETBOX_TOKEN", "LIBRENMS_URL", "LIBRENMS_TOKEN", "AUDIT_FILE"):
+    for name in ("NETBOX_URL", "NETBOX_TOKEN", "LIBRENMS_URL", "LIBRENMS_TOKEN", "AUDIT_FILE", "PLUGINS_FILE",
+                 "FLOORBIT_DEV_PLUGINS"):
         monkeypatch.delenv(name, raising=False)
     # Set before the first import, so the app never writes a generated key to ./data.json.
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
