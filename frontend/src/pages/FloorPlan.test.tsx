@@ -458,6 +458,10 @@ describe('Seats page', () => {
     expect(box).toHaveFocus()
     const input = box as HTMLInputElement
     expect([input.selectionStart, input.selectionEnd]).toEqual([0, 3])
+    // Swiss German and German keyboards: Shift+7 types "/" (issue #222).
+    box.blur()
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Digit7', shiftKey: true })
+    expect(box).toHaveFocus()
   })
 
   it('shows every hall with its totals in the picker', async () => {
