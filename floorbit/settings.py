@@ -127,6 +127,11 @@ FIELDS = [
     dict(key='public.status_switch_names', section='public', label='Switch names on the status page', type='bool',
          env='STATUS_SWITCH_NAMES', default=False,
          help='Name the switches that are down on /status. Off: only halls, blocks and rows.'),
+    dict(key='public.stats_wall', section='public', label='Stats wall', type='bool',
+         env='STATS_WALL', default=False,
+         help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
+              'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
+              'Off by default.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),

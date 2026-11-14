@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  {% if not off %}<meta http-equiv="refresh" content="60" />{% endif %}
+  <title>{{ t.title }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 16px;
+      background: var(--color-ink); color: var(--color-fg); font: 16px/1.45 var(--font-sans);
+    }
+    main { max-width: 1100px; margin: 2vh auto 0; display: grid; gap: 16px; }
+    header h1 { margin: 0; font-size: clamp(24px, 4vw, 40px); line-height: 1.15; }
+    header p { margin: 4px 0 0; }
+    .muted { color: var(--color-muted); font-size: 14px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .fact {
+      background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 14px; padding: 18px 20px;
+      border-top: 4px solid var(--k, var(--color-bit));
+    }
+    .fact h2 { margin: 0; font-size: 14px; color: var(--color-muted); font-weight: 600; }
+    .fact .big { display: block; margin-top: 6px; font-size: clamp(30px, 4.4vw, 52px); font-weight: 800; line-height: 1.05;
+                 font-variant-numeric: tabular-nums; }
+    .fact p { margin: 6px 0 0; }
+    .fact .big small { font-size: .45em; font-weight: 700; margin-left: .15em; color: var(--color-muted); }
+    .up { --k: var(--color-up); }
+    .warn { --k: var(--color-warn); }
+    .cyan { --k: var(--color-trace, var(--color-bit)); }
+    .games { grid-column: 1 / -1; }
+    .games ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+    .games li { display: grid; grid-template-columns: 2em minmax(8em, 14em) 1fr; gap: 12px; align-items: center; font-weight: 700; font-size: 18px; }
+    .games .n { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+    .games .bar { height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--color-bit) 18%, transparent); overflow: hidden; }
+    .games .bar span { display: block; height: 100%; background: var(--color-bit); border-radius: 6px; }
+    @media (max-width: 600px) {
+      .games li { grid-template-columns: 2em 1fr; row-gap: 4px; font-size: 16px; }
+      .games .bar { grid-column: 2; }
+    }
+    body.screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; }
+    body.screen main { max-width: none; margin: 0; }
+    body.screen .grid { grid-template-columns: repeat(4, 1fr); gap: 1.4vw; }
+    body.screen header h1 { font-size: 2.6vw; }
+    body.screen .fact { padding: 1.2vw 1.4vw; }
+    body.screen .fact h2 { font-size: 1.05vw; }
+    body.screen .fact .big { font-size: 3.6vw; white-space: nowrap; }
+    body.screen .games { grid-column: 1 / -1; }
+    body.screen .games ol { gap: .6vw; }
+    body.screen .games li { font-size: 1.5vw; }
+    body.screen .games .bar { height: .7vw; }
+    body.screen .muted { font-size: 1vw; }
+    body.screen .attribution { display: none; }
+  </style>
+</head>
+<body{% if screen %} class="screen"{% endif %}>
+  <main>
+    {% if off %}
+    <div class="fact"><h1>{{ t.title }}</h1><p role="alert">{{ t.off }}</p></div>
+    {% else %}
+    <header>
+      <h1>{{ theme.name if theme is defined and theme.name else t.title }}</h1>
+      {% if theme is defined and theme.name %}<p class="muted">{{ t.title }}</p>{% endif %}
+    </header>
+    {% if not f.online and not f.downloaded and not f.peak and not f.games %}
+    <div class="fact"><p>{{ t.nothing }}</p></div>
+    {% else %}
+    <section class="grid" aria-label="{{ t.title }}">
+      <div class="fact up" id="wall-online">
+        <h2>{{ t.online }}</h2>
+        {% if f.online is none %}<span class="big">–</span><p class="muted">{{ t.unknown }}</p>
+        {% else %}<span class="big">{{ f.online }}</span><p class="muted">{{ t.of.format(n=f.seats) }}</p>{% endif %}
+      </div>
+      {% if f.downloaded %}
+      <div class="fact cyan" id="wall-downloaded">
+        <h2>{{ t.downloaded }}</h2><span class="big">{{ big(size(f.downloaded)) }}</span>
+        {% if f.running_hours %}<p class="muted">{{ t.running }} {{ t.hours.format(n=f.running_hours|round|int) }}</p>{% endif %}
+      </div>
+      {% endif %}
+      {% if f.peak and f.peak.bps %}
+      <div class="fact warn" id="wall-peak">
+        <h2>{{ t.peak }}</h2><span class="big">{{ big(rate(f.peak.bps)) }}</span>
+        <p class="muted">{{ stamp(t.at, f.peak.at) }}</p>
+      </div>
+      {% endif %}
+      {% if f.online_max %}
+      <div class="fact up">
+        <h2>{{ t.online_max }}</h2><span class="big">{{ f.online_max }}</span>
+        <p class="muted">{{ t.of.format(n=f.seats) }}</p>
+      </div>
+      {% endif %}
+      {% if f.busiest_hour %}
+      <div class="fact">
+        <h2>{{ t.busiest }}</h2><span class="big">{{ stamp('{time}', f.busiest_hour.t) }}</span>
+        <p class="muted">{{ t.avg.format(rate=rate(f.busiest_hour.bps)) }}</p>
+      </div>
+      {% endif %}
+      {% if f.loyal_block %}
+      <div class="fact cyan" id="wall-loyal">
+        <h2>{{ t.loyal }}</h2><span class="big">{{ big(((f.loyal_block.share * 100)|round|int)|string + ' %') }}</span>
+        <p class="muted">{{ t.loyal_detail.format(name=f.loyal_block.name, hours=num(f.loyal_block.hours)) }}</p>
+      </div>
+      {% endif %}
+      {% if f.cache_saved %}
+      <div class="fact up">
+        <h2>{{ t.cache }}</h2><span class="big">{{ big(size(f.cache_saved)) }}</span>
+        <p class="muted">{{ t.cache_detail }}</p>
+      </div>
+      {% endif %}
+      {% if f.games %}
+      <div class="fact games" id="wall-games">
+        <h2>{{ t.games }}</h2>
+        <ol>
+          {% for g in f.games %}
+          <li><span class="n">{{ loop.index }}</span><span>{{ g.name }}</span><span class="bar" aria-hidden="true"><span style="width: {{ (g.bar * 100)|round(1) }}%"></span></span></li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+    <p class="muted">{{ t.privacy }} {{ stamp(t.updated, now) }}</p>
+    <script src="/static/js/status.js"></script>
+    {% endif %}
+    {% if not screen %}{% include "_attribution.html" %}{% endif %}
+  </main>
+</body>
+</html>

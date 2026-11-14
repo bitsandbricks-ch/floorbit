@@ -36,7 +36,8 @@
     "preflight": "Pre-flight check",
     "teardown": "Teardown checklist",
     "status_page": "Network status page",
-    "public_hall": "Public hall map"
+    "public_hall": "Public hall map",
+    "stats_wall": "Public stats wall"
   },
   "desc": {
     "incidents": "The incident board for problems at seats and switches.",
@@ -68,6 +69,7 @@
     "preflight": "The go or no-go board before doors open.",
     "teardown": "Gear back, configs archived and the event exported.",
     "status_page": "A public page that tells attendees whether the network is fine, which areas an outage hits, and the crew's updates.",
-    "public_hall": "The hall map players see without signing in."
+    "public_hall": "The hall map players see without signing in.",
+    "stats_wall": "Fun facts about the event for a big screen and attendees: data downloaded, the bandwidth peak, top games, seats online. Hall-wide only."
   }
 }

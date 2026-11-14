@@ -54,6 +54,7 @@ FEATURES = (
     {'id': 'status_page', 'paths': ('/status', '/status.json', '/network-status', '/api/status-page'),
      'needs': ()},
     {'id': 'public_hall', 'paths': ('/hall', '/api/public'), 'needs': ()},
+    {'id': 'stats_wall', 'paths': ('/wall', '/wall.json'), 'needs': ()},
 )
 BY_ID = {f['id']: f for f in FEATURES}
 
