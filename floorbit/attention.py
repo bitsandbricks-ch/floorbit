@@ -49,6 +49,7 @@ class AttentionWatch:
         self._lock = threading.Lock()
         self._thread = None
         self._stop = threading.Event()
+        self.app = None
         self.reset()
 
     def reset(self):
@@ -76,7 +77,9 @@ class AttentionWatch:
         while not self._stop.is_set():
             if sources.monitoring().enabled():
                 try:
-                    self.poll_once()
+                    # In an app context: the switch statuses live in the app's extensions.
+                    with self.app.app_context():
+                        self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                     print(f'[attention] poll failed: {exc}')
             self._stop.wait(self.interval())
@@ -164,6 +167,7 @@ def _monitor_ext():
 
 def init_attention(app, start_background=True):
     watch = AttentionWatch()
+    watch.app = app
     app.extensions['floorbit_attention'] = watch
     started = threading.Event()
 

@@ -154,3 +154,12 @@ def test_problems_list_them_newest_first_with_a_floor_plan_link(hall, client):
     assert first["where"] == "sw-a-01 Gi1/0/5 (seat A-2)"
     assert first["link"] == "/?seat=A-2" and first["kind"] == "duplex" and first["level"] == "warn"
     assert second["link"] == f"/?switch={hall['switch']['id']}"
+
+
+def test_the_background_thread_runs_in_the_app_context(hall, monkeypatch):
+    seen = []
+    watch = hall["watch"]
+    monkeypatch.setattr(watch, "poll_once", lambda: (seen.append(attention._monitor_ext() is not None), watch.stop()))
+    watch._stop.clear()
+    watch._run()
+    assert seen == [True]
