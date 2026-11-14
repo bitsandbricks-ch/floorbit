@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -64,6 +64,12 @@
         <a class="btn btn-ghost" href="/seat-mapping" title="Seat mapping: which IP, MAC and nick sits at each seat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
           Seats
+        </a>
+        {% endif %}
+        {% if incidents_board %}
+        <a class="btn btn-ghost" href="/incidents" title="Incidents: problems at seats and switches">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          Incidents <span class="nav-count" id="incident-count" hidden></span>
         </a>
         {% endif %}
         {% endif %}
@@ -718,6 +724,7 @@
   <script src="/static/js/editor/status.js"></script>
   <script src="/static/js/editor/layers.js"></script>
   <script src="/static/js/editor/heatmap.js"></script>
+  <script src="/static/js/editor/incidents.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>
 </body>

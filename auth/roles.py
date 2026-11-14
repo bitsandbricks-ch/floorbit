@@ -213,6 +213,10 @@ RULES = (
     ('/api/seats/sources', READ, 'seats.view'),
     ('/api/seats/resolve', WRITE, 'seats.view'),
     ('/api/resolve', READ, 'seats.view'),
+    # Incidents: the blueprint checks incidents.work per team (floorbit/incidents.py).
+    ('/api/helpdesk/qr', READ, 'incidents.assign'),
+    ('/incidents/qr', READ, 'incidents.assign'),
+    ('/api/incidents', WRITE, 'floorplan.view'),
     # Plugin actions check the permission each action names (floorbit/blueprints/plugins.py).
     ('/api/plugins', WRITE, 'floorplan.view'),
 )

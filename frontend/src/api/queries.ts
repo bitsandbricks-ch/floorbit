@@ -3,12 +3,15 @@ import { get } from './client'
 import { qk } from './keys'
 import type {
   AccountSummary,
+  IncidentBoard,
+  IncidentPeople,
   InventoryList,
   LogLine,
   OidcList,
   Me,
   Permission,
   PluginInfo,
+  QrSeat,
   RolesList,
   SeatMapList,
   Team,
@@ -69,6 +72,19 @@ export function useSeatMap() {
 
 export function useRoles() {
   return useQuery({ queryKey: qk.roles, queryFn: () => get<RolesList>('/api/roles') })
+}
+
+// The board refreshes on its own; live events refresh it sooner (see pages/Incidents.tsx).
+export function useIncidents() {
+  return useQuery({ queryKey: qk.incidents, queryFn: () => get<IncidentBoard>('/api/incidents'), refetchInterval: 30_000 })
+}
+
+export function useIncidentPeople() {
+  return useQuery({ queryKey: qk.incidentPeople, queryFn: () => get<IncidentPeople>('/api/incidents/people') })
+}
+
+export function useHelpdeskQr() {
+  return useQuery({ queryKey: qk.helpdeskQr, queryFn: () => get<{ seats: QrSeat[] }>('/api/helpdesk/qr') })
 }
 
 export function useOidcProviders() {

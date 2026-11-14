@@ -27,6 +27,7 @@ async function init() {
 
   renderAll();
   doRefreshAll().catch(() => {});
+  loadIncidentMarkers();
 }
 
 function applyCachedStatus(cache) {
