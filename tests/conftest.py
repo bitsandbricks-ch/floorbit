@@ -85,6 +85,8 @@ def app_module(tmp_path, monkeypatch):
 
     data_file = str(tmp_path / "data.json")
     monkeypatch.setattr(store, "DATA_FILE", data_file)
+    # An installed Floorbit: the first-run setup (tests/test_setup.py) is over.
+    store.write_json(data_file, {"setup": {"done": True, "steps": {}}})
     # The settings store was built at import time with the real data.json: point it at the temp file.
     settings = app.app.extensions["floorbit_settings"]
     monkeypatch.setattr(settings, "data_file", data_file)

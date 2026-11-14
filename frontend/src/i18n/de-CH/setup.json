@@ -1,0 +1,64 @@
+{
+  "title": "Floorbit einrichten",
+  "intro": "Ein paar Schritte zum Start. Jeder lässt sich überspringen und später in den Einstellungen nachholen.",
+  "introAccount": "Willkommen. Zuerst das Konto, mit dem du dich anmeldest: Es wird Admin.",
+  "optional": "Optional",
+  "skip": "Vorerst überspringen",
+  "continue": "Weiter",
+  "saveContinue": "Speichern und weiter",
+  "connected": "Schon verbunden. Fülle die Felder nur aus, um es zu ändern.",
+  "url": "URL",
+  "token": "API-Token",
+  "verify": "TLS-Zertifikat prüfen (aus bei einem selbst signierten)",
+  "test": "Verbindung testen",
+  "alreadyDone": "Floorbit ist eingerichtet. Ändern kannst du alles in den Einstellungen.",
+  "adminOnly": "Ein Admin richtet Floorbit noch ein.",
+  "account": {
+    "text": "Floorbit hat beim Start einen Einrichtungscode ins Log geschrieben. Er zeigt, dass du diesen Server betreibst.",
+    "codeHelp": "Du findest ihn mit: docker compose logs floorbit",
+    "code": "Einrichtungscode",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "passwordHelp": "Mindestens 8 Zeichen.",
+    "repeat": "Passwort wiederholen",
+    "mismatch": "Die Passwörter stimmen nicht überein.",
+    "create": "Admin-Konto erstellen"
+  },
+  "netbox": {
+    "title": "NetBox",
+    "text": "Mit NetBox kommen deine Switches von dort, und du platzierst sie nur noch auf dem Hallenplan. Ohne NetBox fügst du sie von Hand hinzu.",
+    "tokenHelp": "Ein Token mit Leserechten reicht."
+  },
+  "librenms": {
+    "title": "LibreNMS",
+    "text": "LibreNMS liefert Live-Status, Ports, Traffic und welcher Platz an welchem Port hängt.",
+    "tokenHelp": "Ein Token mit Leserechten reicht."
+  },
+  "switches": {
+    "title": "Switches",
+    "netbox": "Hol die Switches jetzt aus NetBox. Später passiert das auch von selbst.",
+    "import": "Aus NetBox importieren",
+    "imported_one": "{{count}} Switch im Inventar.",
+    "imported_other": "{{count}} Switches im Inventar.",
+    "byHand": "Ohne NetBox fügst du Switches auf dem Hallenplan hinzu: S drücken und an die richtige Stelle klicken.",
+    "place": "Dann ziehst du jeden Switch dorthin, wo er in der Halle steht."
+  },
+  "theme": {
+    "title": "Aussehen",
+    "name": "Name des Events",
+    "nameHelp": "Erscheint oben in der Leiste und auf Kiosk-Bildschirmen. Optional.",
+    "label": "Theme",
+    "presets": {
+      "floorbit": "Floorbit",
+      "ops": "Ops-Desk: kompakt, fürs Netzwerkteam",
+      "kiosk": "Kiosk: gross und dunkel, für Bildschirme in der Halle",
+      "classic": "Classic: dunkel mit orangem Akzent"
+    },
+    "custom": "Farben und Logo deines Events:"
+  },
+  "finish": {
+    "text": "Das wars. Als Nächstes kommt der Hallenplan.",
+    "later": "Alles hier lässt sich in den Einstellungen ändern.",
+    "open": "Hallenplan öffnen"
+  }
+}

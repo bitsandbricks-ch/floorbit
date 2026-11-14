@@ -75,12 +75,13 @@ plan editor.
 With Docker Compose (Floorbit on port 8080, plus Redis):
 
 ```sh
-cp .env.example .env                              # optional: NetBox, LibreNMS, first account, ...
+cp .env.example .env                    # optional: NetBox, LibreNMS, ...
 docker compose up -d
-docker compose exec floorbit flask users add admin  # your first account
+docker compose logs floorbit | grep "setup code"
 ```
 
-Open <http://localhost:8080> and sign in. The full guide, with NetBox and LibreNMS, a reverse proxy,
+Open <http://localhost:8080>, choose **Set up Floorbit** and enter the setup code: you create the
+first admin and connect NetBox and LibreNMS (each step can be skipped). The full guide, with NetBox and LibreNMS, a reverse proxy,
 backups and updating, is [docs/install.md](docs/install.md). The image is built by CI and pushed to
 the GitHub container registry: `ghcr.io/bitsandbricks-ch/floorbit:latest` (from `master`) and
 `:<version>` (from a release).

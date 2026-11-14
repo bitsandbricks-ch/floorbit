@@ -1,0 +1,64 @@
+{
+  "title": "Set up Floorbit",
+  "intro": "A few steps to get going. Each one can be skipped and done later in Settings.",
+  "introAccount": "Welcome. First, the account you will sign in with: it becomes the admin.",
+  "optional": "Optional",
+  "skip": "Skip for now",
+  "continue": "Continue",
+  "saveContinue": "Save and continue",
+  "connected": "Already connected. Fill in the fields only to change it.",
+  "url": "URL",
+  "token": "API token",
+  "verify": "Check the TLS certificate (turn off for a self-signed one)",
+  "test": "Test the connection",
+  "alreadyDone": "Floorbit is set up. Change anything in Settings.",
+  "adminOnly": "An admin is still setting up Floorbit.",
+  "account": {
+    "text": "Floorbit printed a setup code to its log when it started. It proves you run this server.",
+    "codeHelp": "Find it with: docker compose logs floorbit",
+    "code": "Setup code",
+    "username": "Username",
+    "password": "Password",
+    "passwordHelp": "At least 8 characters.",
+    "repeat": "Password again",
+    "mismatch": "The passwords don't match.",
+    "create": "Create the admin account"
+  },
+  "netbox": {
+    "title": "NetBox",
+    "text": "With NetBox, your switches come from there and you only place them on the floor plan. Without it, you add them by hand.",
+    "tokenHelp": "A read-only token is enough."
+  },
+  "librenms": {
+    "title": "LibreNMS",
+    "text": "LibreNMS adds live status, ports, traffic, and which seat is on which port.",
+    "tokenHelp": "A read-only token is enough."
+  },
+  "switches": {
+    "title": "Switches",
+    "netbox": "Bring in the switches from NetBox now. It happens on its own later too.",
+    "import": "Import from NetBox",
+    "imported_one": "{{count}} switch in the inventory.",
+    "imported_other": "{{count}} switches in the inventory.",
+    "byHand": "Without NetBox, add switches on the floor plan: press S and click where one goes.",
+    "place": "Then drag each switch to where it stands in the hall."
+  },
+  "theme": {
+    "title": "Look",
+    "name": "Event name",
+    "nameHelp": "Shown in the top bar and on kiosk screens. Optional.",
+    "label": "Theme",
+    "presets": {
+      "floorbit": "Floorbit",
+      "ops": "Ops desk: dense, for the network team",
+      "kiosk": "Kiosk: big and dark, for screens in the hall",
+      "classic": "Classic: dark with an orange accent"
+    },
+    "custom": "Your event's colours and logo:"
+  },
+  "finish": {
+    "text": "That's it. The floor plan is next.",
+    "later": "Everything here can be changed in Settings.",
+    "open": "Open the floor plan"
+  }
+}

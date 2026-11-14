@@ -114,4 +114,8 @@ def create_app(start_background=True):
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start
     seed_on_start(app)
+
+    # First-run setup for a new install, after the demo so a demo hall counts as set up (docs/install.md).
+    from .blueprints.setup import init_setup
+    init_setup(app)
     return app
