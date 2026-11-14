@@ -177,6 +177,16 @@ Source: [`floorbit/blueprints/flows.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/flows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `traffic` |
 
+## floorbit.blueprints.games
+
+Game and launcher insights (issue #88). The numbers come from floorbit/games.py.
+
+Source: [`floorbit/blueprints/games.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/games.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/games` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `games` |
+
 ## floorbit.blueprints.gear
 
 Gear loans (issue #36). Rules in floorbit/gear.py.

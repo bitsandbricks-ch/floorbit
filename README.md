@@ -89,6 +89,8 @@ each seat is plugged into.
 - **DNS:** what the hall looks up, from the event's resolver: lookups per hour, top sites,
   categories, new sites and blocked lookups. Hall-wide only: a site is named once 5 seats looked it
   up. Built-in plugins read AdGuard Home and Pi-hole. See [docs/dns.md](docs/dns.md).
+- **Games:** what the hall plays and downloads per launcher (Steam, Battle.net, Riot, Epic and
+  more), and how much the LAN cache saved, from its access log. See [docs/games.md](docs/games.md).
 - **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer,
   with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
 - **Attendee view:** `/hall`, a public hall plan with every seat online or offline (seat numbers only,

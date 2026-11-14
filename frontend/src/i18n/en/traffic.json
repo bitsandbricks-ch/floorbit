@@ -43,5 +43,6 @@
     "web": "Web",
     "other": "Other"
   },
-  "dns": "DNS lookups"
+  "dns": "DNS lookups",
+  "games": "Games"
 }

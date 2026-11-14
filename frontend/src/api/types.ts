@@ -832,3 +832,34 @@ export interface DnsData {
   last_poll: number | null
   error: string | null
 }
+
+export interface CacheRow { cache: string; hit_bytes: number; miss_bytes: number; requests: number }
+export interface LancacheData {
+  configured: boolean
+  demo: boolean
+  hours: { t: number; hit_bytes: number; miss_bytes: number }[]
+  hit_bytes: number
+  miss_bytes: number
+  hit_ratio: number | null
+  caches: CacheRow[]
+  last_read: number | null
+  error: string | null
+}
+export interface LauncherRow {
+  id: string
+  name: string
+  lookups: number | null
+  dns_seats_max: number
+  traffic_bytes: number | null
+  traffic_seats: number | null
+  cache_hit_bytes: number | null
+  cache_miss_bytes: number | null
+}
+export interface GamesData {
+  launchers: LauncherRow[]
+  games: { name: string; bytes: number; seats: number }[]
+  other_caches: CacheRow[]
+  cache: LancacheData
+  sources: { dns: boolean; traffic: boolean; cache: boolean }
+  min_seats: { dns: number; traffic: number | null }
+}
