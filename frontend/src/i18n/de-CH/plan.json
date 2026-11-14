@@ -13,6 +13,7 @@
     "all": "Alle",
     "problems": "Probleme",
     "offline": "Offline",
+    "recent": "Kürzlich geändert",
     "match": "Matchplätze",
     "checked_in": "Eingecheckt"
   },
@@ -41,7 +42,8 @@
     "unknown": "Unbekannt: keine aktuelle Abfrage oder Port nicht bekannt",
     "checkedIn": "Eingecheckt",
     "problem": "Offenes Problem",
-    "match": "Matchplatz"
+    "match": "Matchplatz",
+    "recent": "Verbindung in den letzten 15 Minuten geändert"
   },
   "seat": "Platz {{seat}}",
   "close": "Schliessen",
@@ -97,6 +99,13 @@
     "state": "Zustand",
     "match": "Match",
     "count_one": "{{count}} Platz",
-    "count_other": "{{count}} Plätze"
-  }
+    "count_other": "{{count}} Plätze",
+    "changed": "Geändert",
+    "ago_zero": "gerade eben",
+    "ago_one": "vor {{count}} Min.",
+    "ago_other": "vor {{count}} Min."
+  },
+  "changedAgo_one": "vor {{count}} Min. geändert",
+  "changedAgo_other": "vor {{count}} Min. geändert",
+  "changedAgo_zero": "gerade geändert"
 }

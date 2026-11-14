@@ -32,8 +32,8 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 - **Middle:** seat states and their marks.
 - **Near** (a seat 30 px or more): seat numbers and switch names too.
 
-**Show** dims every seat except the ones with problems, offline seats, match seats or checked-in
-seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
+**Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
+match seats or checked-in seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 ## Keyboard and screen readers
 
@@ -58,6 +58,13 @@ checked with axe in the frontend tests.
 The colours run from dark purple to yellow (viridis), which stay in order for colour-blind eyes
 and in grey scale. Offline and unknown seats keep their shapes. Only each seat's volume is shown,
 never what it is. `/plan?traffic=1` opens with it on, also on big screens.
+
+## Changed lately
+
+A seat whose link went up or down in the last 15 minutes gets a dashed cyan ring that pulses (it
+stays still for people who turned motion off), and its label says "changed 4 min ago". **Show >
+Changed lately** keeps only those seats, on the map and in the list, so "what just went down?" is
+one click during an outage. Floorbit's first port read after a start doesn't count as a change.
 
 ## List
 

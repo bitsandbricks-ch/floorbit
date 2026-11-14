@@ -114,3 +114,27 @@ def test_inspector_details_carry_history(client, hall):
     # One read so far: the history starts there, online, with no change yet.
     assert d["history"]["start"] is True and d["history"]["changes"] == []
     assert d["history"]["to"] >= d["history"]["from"]
+
+
+def test_changed_lately(client, app_module):
+    """Issue #171: seats whose link changed in the last minutes, but not the first read."""
+    client.post("/api/seat-blocks", json={"name": "D", "x": 40, "y": 50, "cols": 4, "rows": 2})
+    stats = app_module.app.extensions["floorbit_stats"]
+    stats.reset()
+    now = time.time()
+    dev = {"id": "s1", "name": "sw-d-01"}
+
+    def port(name, up):
+        return {"name": name, "state": "up" if up else "down", "download_bps": 1e6 if up else 0}
+
+    def read(t, up6, up7):
+        stats.record([(dev, port("Gi1/0/6", up6), "D-6"), (dev, port("Gi1/0/7", up7), "D-7")], ["sw-d-01"], now=t)
+
+    read(now - 3600, True, True)
+    assert stats.changed_since(now - 7200) == {}
+    read(now - 1800, True, False)   # D-7 down half an hour ago
+    read(now - 240, False, False)   # D-6 down four minutes ago
+    assert stats.changed_since(now - 900) == {"D-6": pytest.approx(now - 240)}
+    assert set(stats.changed_since(now - 7200)) == {"D-6", "D-7"}
+    seats = client.get("/api/plan").get_json()["seats"]
+    assert seats["D-6"]["changed"] == pytest.approx(now - 240) and "changed" not in seats["D-7"]

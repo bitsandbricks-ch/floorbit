@@ -226,6 +226,18 @@ describe('Seats page', () => {
     expect(result.violations.map((v) => v.id)).toEqual([])
   })
 
+  it('marks seats whose link changed lately and filters to them', async () => {
+    const recent = { ...data, seats: { ...data.seats, 'D-3': { state: 'offline' as const, changed: Date.now() / 1000 - 240 } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': recent }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    expect(await screen.findByRole('button', { name: 'D-3: Offline · changed 4 min ago' })).toBeInTheDocument()
+    expect(container.querySelectorAll('.cell .recent')).toHaveLength(1)
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Link changed in the last 15 minutes')
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Changed lately'))
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
+    expect(container.querySelector('[data-seat="D-3"]')).not.toHaveClass('dim')
+  })
+
   it('says so when there is no recent port read', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, monitoring: false } }).fn)
     renderWithApp(<FloorPlan />, '/plan')

@@ -21,6 +21,7 @@ from . import halls, incidents, inventory, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
+RECENT = 15 * 60     # "changed lately" on the Seats view (issue #171)
 HISTORY = 6 * 3600   # the inspector's link history (issue #167): long enough for "it keeps dropping"
 
 
@@ -104,6 +105,8 @@ def view(hall_id=None, now=None):
     checked = _checked_in()
     taken = _taken()
     match = tournament.match_seats(data)
+    stats = _ext('floorbit_stats')
+    changed = stats.changed_since(now - RECENT) if stats else {}
     seats, blocks = {}, []
     for shape in (drawing or {}).get('shapes', []):
         counts = {'seats': 0, 'online': 0, 'problems': 0}
@@ -126,6 +129,8 @@ def view(hall_id=None, now=None):
                 row['match'] = match[s]
             if online and s in online:
                 row['bps'] = int(online[s] or 0)
+            if s in changed:
+                row['changed'] = changed[s]
             seats[s] = row
             counts['seats'] += 1
             counts['online'] += state == 'online'

@@ -4,8 +4,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanSeat, SeatViewData } from '@/api/types'
 import {
-  type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, nearestSeat, nextSeat, pan, parseBox,
-  rate, reveal, scale, seatCenter, zoom,
+  type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
+  parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
@@ -17,6 +17,7 @@ export function SeatGlyph({ seat, size, detail, traffic = false }: { seat: PlanS
   const heat = traffic && seat.state === 'online' ? heatColor(heatLevel(seat.bps)) : undefined
   return (
     <>
+      {seat.changed && <rect className="recent" x={i - 5} y={i - 5} width={s + 10} height={s + 10} rx={7} />}
       {seat.match && <rect className="match" x={i - 2.5} y={i - 2.5} width={s + 5} height={s + 5} rx={5} />}
       <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
@@ -171,6 +172,7 @@ export function SeatMap({ data, selected, onSelect, onClear, filter, view, setVi
     seat.problems ? t('plan.problemsN', { count: seat.problems }) : null,
     seat.match ? t('plan.matchIn', { zone: seat.match }) : null,
     seat.bps ? rate(seat.bps) : null,
+    seat.changed ? t('plan.changedAgo', { count: minutesAgo(seat.changed) }) : null,
   ].filter(Boolean).join(' · ')
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom

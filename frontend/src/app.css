@@ -395,3 +395,7 @@ body {
 .fb-seat-list tr.sel td { background: color-mix(in srgb, var(--color-bit) 18%, transparent); }
 .fb-seat-list-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 4px; }
 .fb-seat-list td { white-space: nowrap; }
+/* Seats whose link changed in the last 15 minutes (issue #171): a ring that pulses, still without motion. */
+.fb-plan .recent { fill: none; stroke: var(--color-trace); stroke-width: 2.5; stroke-dasharray: 3 3; animation: fb-recent 1.6s ease-in-out infinite; }
+@keyframes fb-recent { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .fb-plan .recent { animation: none; } }

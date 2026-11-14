@@ -15,7 +15,7 @@ import { type Filter, type View, around, findSeat, parseBox, seatCenter } from '
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 
-const FILTERS: Filter[] = ['all', 'problems', 'offline', 'match', 'checked_in']
+const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'checked_in']
 
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
  *  for colour-blind eyes, three zoom levels, and one inspector for a seat. ``?screen=1`` for a kiosk. */

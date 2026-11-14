@@ -1179,6 +1179,8 @@ export interface PlanSeat {
   problems?: number
   match?: string
   bps?: number
+  /** When the link last changed, if within the last 15 minutes (issue #171). */
+  changed?: number
 }
 
 export interface PlanBlock {

@@ -112,6 +112,7 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
   { key: 'checkedIn', seat: { state: 'online', checked_in: true } },
   { key: 'problem', seat: { state: 'offline', problems: 1 } },
   { key: 'match', seat: { state: 'online', match: 'x' } },
+  { key: 'recent', seat: { state: 'offline', changed: 1 } },
 ]
 
 /** The same shapes as on the plan, so the legend can't drift from it. */
