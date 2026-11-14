@@ -6,7 +6,7 @@
   "peopleHelp": "Nur für Admins. Personendaten: Der Download kommt ins Audit-Log.",
   "peopleOn": "Dieser Bericht enthält Nicks und IPs. Als Personendaten behandeln.",
   "newEvent": "Neues Event beginnen",
-  "newEventQuestion": "Neues Event beginnen? Der Verlauf des Berichts (Stunden, Ausfälle, Problem-Ports) und die Spitze beginnen neu. Störungen und Check-ins bleiben auf ihren Seiten.",
+  "newEventQuestion": "Neues Event beginnen? Der Verlauf des Berichts (Stunden, Ausfälle, Problem-Ports) und die Spitze beginnen neu, die Aufzeichnung für die Wiedergabe auch. Störungen und Check-ins bleiben auf ihren Seiten.",
   "newEventDone": "Neues Event begonnen.",
   "period": "{{start}} bis {{end}}",
   "empty": "Noch keine Port-Abfragen gespeichert: Der Bericht füllt sich während des Events.",

@@ -19,7 +19,7 @@ from collections import deque
 
 from integrations import checkin, config, events
 
-from . import inventory, sources, status_page
+from . import inventory, recording, sources, status_page
 from .power import block_rows
 from .store import load_data
 
@@ -42,6 +42,16 @@ def seat_of(description, names):
         if token.lower() in names:
             return names[token.lower()]
     return None
+
+
+def _record_frame(sample, seat_bps, data):
+    """A frame for the whole-event replay (floorbit/recording.py), every five minutes."""
+    from . import incidents
+    try:
+        open_seats = {i.get('seat') for i in incidents.list_all() if i.get('status') != 'fixed' and i.get('seat')}
+        recording.capture(sample, seat_bps, open_seats, data)
+    except Exception as exc:  # noqa: BLE001  # the recording must never stop the port watch
+        print(f'[attention] could not record a replay frame: {exc}')
 
 
 class AttentionWatch:
@@ -129,8 +139,9 @@ class AttentionWatch:
             events.publish('attention.changed', {'count': len(found)})
         stats = (_app_ext() or {}).get('floorbit_stats')
         if stats is not None:
-            stats.record(reads, [d.get('name') or '' for d in devices], now=now)
+            sample = stats.record(reads, [d.get('name') or '' for d in devices], now=now)
             stats.count_problems(new, now=now)
+            _record_frame(sample, stats.seats()['seats'], data)
             events.publish('stats.changed', {})
         return new
 

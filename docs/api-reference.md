@@ -465,6 +465,8 @@ Source: [`floorbit/blueprints/replay.py`](https://github.com/bitsandbricks-ch/fl
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/replay` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
+| GET | `/api/replay/event` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
+| GET | `/api/replay/event.json` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 
 ## floorbit.blueprints.report
 

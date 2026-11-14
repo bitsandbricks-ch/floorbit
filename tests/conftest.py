@@ -93,6 +93,9 @@ def app_module(tmp_path, monkeypatch):
     settings.reload()
     runtime.apply(settings)
     monkeypatch.setattr(cache, "redis_client", None)
+    from floorbit import recording
+    # The whole-event recording remembers its last frame: start each test without one.
+    monkeypatch.setattr(recording, "_state", {"last": None, "compacted": 0.0})
     monkeypatch.setattr(runtime.rt, "netbox_enabled", False)
     monkeypatch.setattr(runtime.rt, "librenms_enabled", False)
     auth = app.app.extensions["auth"]

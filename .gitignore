@@ -45,6 +45,7 @@ data.json
 checkins.json
 audit.jsonl
 timeline.jsonl
+recording.jsonl
 plugins.json
 monitoring-cache.json
 # ...but not the React app's translation files of the same name
