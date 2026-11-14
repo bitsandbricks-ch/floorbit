@@ -15,6 +15,7 @@ export const qk = {
   jobs: ['jobs'] as const,
   tournament: ['tournament'] as const,
   qos: ['tournament', 'qos'] as const,
+  brackets: ['tournament', 'brackets'] as const,
   crew: ['crew'] as const,
   handover: ['handover'] as const,
   gear: ['gear'] as const,

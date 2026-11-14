@@ -309,3 +309,22 @@ body {
 .fb-heatmap.incidents rect { fill: var(--color-down); }
 .fb-heatmap .label { fill: var(--color-muted); font: 600 12px var(--font-sans); text-anchor: end; }
 .fb-heatmap rect.cursor { fill: none; stroke: var(--color-fg); stroke-width: 2; pointer-events: none; }
+.fb-bracket-scroll { overflow-x: auto; padding-bottom: 6px; }
+.fb-bracket { display: grid; gap: 24px; min-width: min-content; }
+.fb-bracket-round { display: flex; flex-direction: column; }
+.fb-bracket-matches { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
+.fb-bracket-match { position: relative; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; }
+.fb-bracket-match.live { border-color: var(--color-warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warn) 35%, transparent); }
+.fb-bracket-open { all: unset; display: block; width: 100%; cursor: pointer; }
+.fb-bracket-open:hover { background: var(--color-raised); }
+.fb-bracket-open:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }
+.fb-bracket-team { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; font-size: 14px; }
+.fb-bracket-team + .fb-bracket-team { border-top: 1px solid var(--color-line); }
+.fb-bracket-team b { font-variant-numeric: tabular-nums; }
+.fb-bracket-team.won { font-weight: 700; background: color-mix(in srgb, var(--color-up) 14%, transparent); }
+.fb-bracket-team.lost { color: var(--color-muted); }
+.fb-bracket-team.tbd span { color: var(--color-muted); font-style: italic; padding-right: 3px; }
+.fb-bracket-match.live { padding-top: 14px; }
+.fb-bracket-live { position: absolute; top: 0; left: 10px; font-size: 10px; font-weight: 800; padding: 0 6px; border-radius: 0 0 6px 6px; background: var(--color-warn); color: #fff; }
+.fb-bracket-meta { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 6px; font-size: 12px; color: var(--color-muted); border-top: 1px dashed var(--color-line); }
+.fb-bracket-champion { text-align: center; font-weight: 800; font-size: 18px; padding: 14px; border: 2px solid var(--color-up); border-radius: 12px; background: var(--color-surface); }

@@ -88,6 +88,21 @@ Source: [`floorbit/blueprints/backup.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/settings/backup` | `settings.manage` |  |
 | POST | `/api/settings/backup` | `settings.manage` |  |
 
+## floorbit.blueprints.brackets
+
+Tournament brackets (issue #107). The rules live in floorbit/brackets.py; see docs/tournament.md.
+
+Source: [`floorbit/blueprints/brackets.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/brackets.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/tournament/brackets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
+| POST | `/api/tournament/brackets` | `floorplan.edit` | `tournament` |
+| DELETE | `/api/tournament/brackets/<bracket_id>` | `floorplan.edit` | `tournament` |
+| PATCH | `/api/tournament/brackets/<bracket_id>` | `floorplan.edit` | `tournament` |
+| PATCH | `/api/tournament/brackets/<bracket_id>/matches/<match_id>` | `floorplan.edit` | `tournament` |
+| POST | `/api/tournament/brackets/import` | `floorplan.edit` | `tournament` |
+
 ## floorbit.blueprints.cables
 
 Cables and patching (issue #97). The rules live in floorbit/cables.py.

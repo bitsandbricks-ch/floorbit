@@ -224,6 +224,23 @@ class Plugin(Plugin):
                         'length_m': 5 if panel else 10})
         return out
 
+    # brackets ---------------------------------------------------------------------------
+    def brackets(self):
+        # Made-up teams; the quarter-finals are played, one semi-final is on.
+        teams = ['Team Aurora', 'Pixel Foxes', 'Byte Club', 'Lag Busters', 'Null Pointers', 'Ping Pirates',
+                 'Frame Drop', 'Respawn Crew']
+
+        def m(a, b, sa=None, sb=None, status='waiting', station=''):
+            winner = None if sa is None or sb is None or status != 'done' else ('a' if sa > sb else 'b')
+            return {'a': {'name': a, 'score': sa}, 'b': {'name': b, 'score': sb}, 'status': status, 'winner': winner,
+                    'station': station}
+        return [{'id': 'demo-cup', 'name': 'Demo Cup', 'rounds': [
+            [m(teams[0], teams[7], 2, 0, 'done'), m(teams[3], teams[4], 1, 2, 'done'),
+             m(teams[1], teams[6], 2, 1, 'done'), m(teams[2], teams[5], 0, 2, 'done')],
+            [m(teams[0], teams[4], 1, 1, 'live', 'Stage'), m(teams[1], teams[5], station='Stage')],
+            [m(None, None)],
+        ]}]
+
     # seat mapping -----------------------------------------------------------------------
     def seat_mapping(self):
         return {seat: {'ip': _ip(i), 'mac': _mac(i), 'nick': f'player-{i + 1:02d}'}
