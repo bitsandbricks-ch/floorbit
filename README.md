@@ -45,6 +45,8 @@ each seat is plugged into.
   (never stored), or flag the seat for a tech. See [docs/ports.md](docs/ports.md).
 - **Security detection:** rogue DHCP, ARP spoofing, MAC flapping, loops and storms from security plugins,
   pointing at the seat and port, with one-click port shutdown. See [docs/security.md](docs/security.md).
+- **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
+  working on, quiet hours, and one Discord message for a big outage. See [docs/alerts.md](docs/alerts.md).
 - **Electrics:** distribution boards and the circuits they feed (rows, seat blocks, switches), the load
   on each from typed-in or metered readings, and an incident for the Electrics team before a breaker
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).

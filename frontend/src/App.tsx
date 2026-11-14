@@ -13,6 +13,7 @@ const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
 const Health = lazy(() => import('@/pages/Health'))
 const Security = lazy(() => import('@/pages/Security'))
 const Power = lazy(() => import('@/pages/Power'))
+const Problems = lazy(() => import('@/pages/Problems'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/health" element={<Health />} />
         <Route path="/security" element={<Security />} />
         <Route path="/power" element={<Power />} />
+        <Route path="/problems" element={<Problems />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

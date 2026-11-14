@@ -149,3 +149,7 @@ body {
 .fb-finding.high { border-left-color: var(--color-down); }
 .fb-finding.medium { border-left-color: var(--color-warn); }
 .fb-evidence { margin: 2px 0; padding-left: 18px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.fb-problem { border-left: 6px solid var(--color-unknown); }
+.fb-problem.down { border-left-color: var(--color-down); }
+.fb-problem.warn { border-left-color: var(--color-warn); }
+.fb-problem.muted { opacity: 0.75; }

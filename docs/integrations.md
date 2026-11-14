@@ -64,7 +64,8 @@ Discord message) instead of switch alerts, and starts from a fresh baseline when
 ## Discord alerts
 
 Posts to a channel webhook when placed switches go offline or come back. All changes from one
-poll go in one message (up to 10 embeds), so a row losing power is one message.
+poll go in one message, grouped by power circuit past `ALERT_GROUP_AFTER`, so a row losing power is
+one message. Muted switches send nothing ([alerts.md](alerts.md)).
 
 | Variable | Default | |
 |---|---|---|
@@ -74,6 +75,8 @@ poll go in one message (up to 10 embeds), so a row losing power is one message.
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
 | `DISCORD_USERNAME` | `Floorbit` | |
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
+| `ALERT_GROUP_AFTER` | `3` | more switch changes than this in one poll become one message, grouped by power circuit ([alerts.md](alerts.md)) |
+| `ALERT_QUIET_HOURS` | | e.g. `02:00-08:00`: messages go out silently and without the mention |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |
 | `DISCORD_POWER_ALERTS` | `true` | post when a circuit turns red or its breaker trips, with what it feeds |

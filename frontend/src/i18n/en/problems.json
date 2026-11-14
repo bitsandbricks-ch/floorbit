@@ -1,0 +1,27 @@
+{
+  "title": "Problems",
+  "intro": "Everything wrong right now: switches offline, services down, security findings and power circuits close to tripping. Mute a switch you are working on so it stops paging.",
+  "none": "Nothing is wrong right now.",
+  "count": {
+    "down_one": "{{count}} down", "down_other": "{{count}} down",
+    "warn_one": "{{count}} to look at", "warn_other": "{{count}} to look at",
+    "muted_one": "{{count}} muted", "muted_other": "{{count}} muted"
+  },
+  "kind": { "monitoring": "Monitoring", "switch": "Switch", "health": "Service", "security": "Security", "power": "Power" },
+  "since": "since {{ago}}",
+  "open": "Open",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "mutedUntil": "Muted until {{time}} by {{who}}",
+  "quiet": "Quiet hours: Discord messages go out silently, without the mention.",
+  "mutes": "Muted switches",
+  "muteTitle": "Mute alerts for {{name}}",
+  "muteText": "No Discord messages about this switch going offline or coming back until the mute ends. It stays on this list.",
+  "for": "For",
+  "reason": "Why (shown with the mute)",
+  "minutes": { "30": "30 minutes", "60": "1 hour", "240": "4 hours", "720": "12 hours", "1440": "1 day" },
+  "cancel": "Cancel",
+  "justNow": "just now",
+  "minutesAgo_one": "{{count}} min", "minutesAgo_other": "{{count}} min",
+  "hoursAgo_one": "{{count}} h", "hoursAgo_other": "{{count}} h"
+}
