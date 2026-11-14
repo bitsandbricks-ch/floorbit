@@ -1201,7 +1201,8 @@ export interface PlanSwitch {
 }
 
 export interface SeatViewData {
-  halls: { id: string; name: string }[]
+  /** Each hall's totals, for the hall picker (issue #196). */
+  halls: { id: string; name: string; seats: number; online: number; problems: number }[]
   hall: string
   drawing: PlanDrawing | null
   size: { w: number; h: number; cell: number }

@@ -221,3 +221,14 @@ def test_find_a_player_on_the_seats_page(client, app_module, hall):
     kiosk = app_module.app.test_client()
     kiosk.post("/login", data={"username": "kim", "password": "kim-password-1"})
     assert kiosk.get("/api/plan/find?q=player").status_code == 403
+
+
+def test_every_hall_has_its_totals_for_the_picker(client, hall):
+    client.post("/api/incidents", json={"title": "No link", "seat": "D-7"})
+    h2 = client.post("/api/halls", json={"name": "Hall 2"}).get_json()["id"]
+    client.post("/api/seat-blocks", json={"name": "E", "x": 50, "y": 50, "cols": 3, "rows": 1, "hall_id": h2})
+    totals = [(h["name"], h["seats"], h["online"], h["problems"]) for h in client.get("/api/plan").get_json()["halls"]]
+    assert totals[0][1:] == (8, 1, 1) and totals[1] == ("Hall 2", 3, 0, 0)
+    # The same from the other hall's side.
+    other = client.get(f"/api/plan?hall={h2}").get_json()
+    assert other["hall"] == h2 and [h["seats"] for h in other["halls"]] == [8, 3]
