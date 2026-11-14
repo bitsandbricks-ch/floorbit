@@ -25,3 +25,14 @@ midnight, like 22:00 to 08:00). During them new incidents and switches going dow
 **Jobs sent to me still come through** is on by default, so a job dispatched to you at 3 AM still
 reaches you; untick it for full quiet. Turning notifications off altogether is the switch at the
 top.
+
+## Watching a seat
+
+When a player says "it keeps dropping", open the seat in the [Seats view](seats.md) and press
+**Watch this seat**. This browser then shows a notification each time that seat's link goes down or
+comes back, until you press **Stop watching**. Watching turns notifications on if they were off. Like
+a job sent to you, a watched seat comes through quiet hours unless you turned that off. Up to 20
+seats can be watched per browser.
+
+Each port read sends the seats whose link changed as a live update (seat numbers and up or down,
+nothing else).

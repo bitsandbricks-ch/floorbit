@@ -163,3 +163,19 @@ def test_the_background_thread_runs_in_the_app_context(hall, monkeypatch):
     watch._stop.clear()
     watch._run()
     assert seen == [True]
+
+
+def test_seat_changes_go_out_as_a_live_event(hall, monkeypatch):
+    """Issue #178: each read publishes the seats that went up or down, but not the first read."""
+    sent = []
+    monkeypatch.setattr(events, "publish", lambda kind, data=None, origin=None: sent.append((kind, data)))
+    hall["app"].extensions["floorbit_stats"].reset()
+    mon = hall["mon"]
+    mon.set("sw-a-01", port("Gi1/0/1", description="Seat A-1"), port("Gi1/0/2", description="Seat A-2"))
+    poll(hall, 1000)
+    assert not [d for k, d in sent if k == "seats.changed"]
+    mon.set("sw-a-01", port("Gi1/0/1", state="down", description="Seat A-1"))
+    poll(hall, 1060)
+    assert [d for k, d in sent if k == "seats.changed"] == [{"seats": [["A-1", 0]]}]
+    poll(hall, 1120)
+    assert len([d for k, d in sent if k == "seats.changed"]) == 1

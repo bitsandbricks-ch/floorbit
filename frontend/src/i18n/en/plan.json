@@ -122,5 +122,10 @@
     "seats": "Seats on this switch",
     "port": "Port",
     "noSeats": "No seat is known on this switch yet."
+  },
+  "watch": {
+    "start": "Watch this seat",
+    "stop": "Stop watching",
+    "denied": "The browser blocks notifications for this site."
   }
 }

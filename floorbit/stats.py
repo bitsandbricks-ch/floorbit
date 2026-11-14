@@ -328,6 +328,20 @@ class Stats:
                     changes.append([t, on])
             return {'from': start, 'start': state, 'changes': changes}
 
+    def changes_at(self, t):
+        """The seats that went online (1) or offline (0) at the read at ``t``, as [[seat, 1|0]]
+        (issue #178). The first read is not a change."""
+        with self._lock:
+            if self.seat_base['t'] is not None and t <= self.seat_base['t']:
+                return []
+            out = []
+            for when, seat, on in reversed(self.seat_events):
+                if when < t:
+                    break
+                if when == t:
+                    out.append([seat, on])
+            return sorted(out)
+
     def changed_since(self, since):
         """Seats whose link changed after ``since`` (issue #171), with the time of their last change.
         The first read is not a change: before it, nothing was known."""
