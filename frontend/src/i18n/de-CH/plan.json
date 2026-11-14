@@ -81,6 +81,7 @@
     "onlineAll_other": "Die ganzen {{count}} Stunden online",
     "offlineAll_one": "Die ganze Stunde offline",
     "offlineAll_other": "Die ganzen {{count}} Stunden offline",
+    "changes_zero": "Kein Wechsel in {{hours}} h",
     "changes_one": "1 Wechsel in {{hours}} h",
     "changes_other": "{{count}} Wechsel in {{hours}} h",
     "ago_one": "vor 1 h",
