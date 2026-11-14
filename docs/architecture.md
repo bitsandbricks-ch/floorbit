@@ -23,6 +23,7 @@ different features touch different files.
    | `switches.py` | `/api/switches...` (list, NetBox sync, add, move, rename, delete) |
    | `seat_blocks.py` | `/api/seats`, `/api/seat-blocks...` |
    | `network.py` | switch status, `/api/resolve/<ip>`, `/api/seats/info`, `/resolve`, `/heatmap` |
+   | `backup.py` | `/api/settings/backup` (download, restore; see [backup.md](backup.md)) |
    | `cache.py` | `/api/cache/...` |
 
 5. **`integrations/`**: live updates (SSE), the status monitor, Discord alerts, seat sources and

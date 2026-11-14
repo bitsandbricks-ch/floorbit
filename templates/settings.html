@@ -47,6 +47,31 @@
       <div class="st-status-grid" id="st-status-grid"></div>
     </section>
 
+    <section class="st-card" id="st-backup">
+      <div class="st-card-head">
+        <div>
+          <h2>Backup and restore</h2>
+          <p class="st-card-desc">
+            The floor plan (switches, positions, seat blocks) and the saved settings, including the theme.
+            API tokens, webhook URLs, accounts and check-ins are never in a backup, and a restore leaves them as they are.
+          </p>
+        </div>
+      </div>
+      <div class="st-input-row">
+        <a class="st-btn" href="/api/settings/backup" download>Download backup</a>
+        <label class="st-btn" for="st-restore-file">Restore from file…</label>
+        <input type="file" id="st-restore-file" class="hidden" accept=".json,application/json" />
+      </div>
+      <div class="st-restore hidden" id="st-restore-confirm" role="alertdialog" aria-labelledby="st-restore-summary">
+        <p id="st-restore-summary"></p>
+        <div class="st-input-row">
+          <button type="button" class="st-btn st-btn-danger-solid" id="st-restore-go">Replace floor plan and settings</button>
+          <button type="button" class="st-btn" id="st-restore-cancel">Cancel</button>
+        </div>
+      </div>
+      <div class="st-test-result" id="st-backup-result" role="status" aria-live="polite"></div>
+    </section>
+
     <form id="st-form" autocomplete="off" novalidate>
       <div id="st-sections"></div>
 
@@ -60,6 +85,7 @@
 
   <script src="/static/js/auth.js"></script>
   <script src="/static/js/settings.js"></script>
+  <script src="/static/js/backup.js"></script>
   {% include "_attribution.html" %}
 </body>
 </html>

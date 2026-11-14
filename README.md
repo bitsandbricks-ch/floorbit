@@ -30,6 +30,8 @@ each seat is plugged into.
 - **Themes:** the Floorbit look by default, plus Ops, Kiosk and Classic presets and a custom theme
   with your event's colours, name and logo. Each screen can pick its own with `?theme=`. See
   [docs/themes.md](docs/themes.md).
+- **Backup:** download the floor plan and settings as one file and restore it later, without
+  tokens or accounts. See [docs/backup.md](docs/backup.md).
 - **Cache:** LibreNMS answers are cached in Redis (5 minutes by default), so a busy hall doesn't hammer
   the API.
 
@@ -69,7 +71,8 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |
 | `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |
 
-The floor plan itself (positions, seat blocks, settings) lives in `data.json`: back it up.
+The floor plan itself (positions, seat blocks, settings) lives in `data.json`: back it up, or use
+Settings > Backup and restore ([docs/backup.md](docs/backup.md)).
 
 ## Develop
 

@@ -42,6 +42,7 @@ __all__ = ['checkin', 'config', 'events', 'history', 'init_integrations', 'seat_
 
 # Writes under these prefixes are announced to other browsers
 _WATCHED_PREFIXES = {
+    '/api/settings/backup': 'all',   # a restore replaces the switches, seat blocks and settings
     '/api/switches': 'switches',
     '/api/seat-blocks': 'seat-blocks',
     '/api/settings': 'settings',
