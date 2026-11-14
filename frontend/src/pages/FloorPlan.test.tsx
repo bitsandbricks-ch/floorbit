@@ -209,7 +209,10 @@ describe('Seats page', () => {
     expect(within(table).getByRole('columnheader', { name: 'State' })).toHaveAttribute('aria-sort', 'ascending')
     fireEvent.click(within(table).getByRole('button', { name: 'Traffic' }))
     expect(seats()[0]).toBe('D-1')
-    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Offline'))
+    const show = within(screen.getByRole('radiogroup', { name: 'Show' }))
+    expect(show.getByText('Offline').parentElement).toHaveTextContent('Offline 1')
+    expect(show.getByText('Problems').parentElement).toHaveTextContent('Problems 1')
+    fireEvent.click(show.getByText('Offline'))
     await waitFor(() => expect(seats()).toEqual(['D-2']))
     expect(screen.getByText('1 seat')).toBeInTheDocument()
 
