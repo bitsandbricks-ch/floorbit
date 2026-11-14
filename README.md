@@ -50,6 +50,9 @@ each seat is plugged into.
   See [docs/health.md](docs/health.md).
 - **Port actions:** bounce a seat's switch port from the floor plan over SSH with the tech's own login
   (never stored), or flag the seat for a tech. See [docs/ports.md](docs/ports.md).
+- **Switch commands:** saved show commands (port status, MAC table, errors) on one or many switches,
+  the answers side by side; leads also clear counters, after a second confirm. Every run is
+  audited. See [docs/commands.md](docs/commands.md).
 - **Security detection:** rogue DHCP, ARP spoofing, MAC flapping, loops and storms from security plugins,
   pointing at the seat and port, with one-click port shutdown. See [docs/security.md](docs/security.md).
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
