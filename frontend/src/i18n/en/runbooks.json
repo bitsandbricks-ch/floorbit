@@ -1,0 +1,30 @@
+{
+  "title": "Runbooks",
+  "intro": "Step-by-step fix guides for kinds of incident. The incident links to the first runbook for its kind, and the tech sees the steps on the job.",
+  "add": "New runbook",
+  "name": "Title",
+  "for": "For incidents of kind",
+  "write": "Write",
+  "preview": "Preview",
+  "steps": "Steps",
+  "markdownHelp": "Markdown: # heading, 1. numbered steps, - bullets, **bold**, `code`, [link](https://example.com).",
+  "save": "Save",
+  "cancel": "Cancel",
+  "edit": "Edit",
+  "delete": "Delete",
+  "up": "Move up",
+  "down": "Move down",
+  "none": "No runbooks yet.",
+  "noKind": "Not linked to incidents",
+  "starter": "Starter",
+  "starterHint": "The starters are general first steps. Rewrite them with your event's own: where the spares are, who to call.",
+  "shadowed": "A runbook higher up the list is used for some of these kinds.",
+  "changed": "Changed by {{who}}, {{when}}",
+  "kind": {
+    "no-internet": "No internet",
+    "slow": "Slow connection",
+    "power": "Power",
+    "switch-down": "Switch down",
+    "other": "Other"
+  }
+}

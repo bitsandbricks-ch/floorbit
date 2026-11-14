@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, jsonify, render_template, reque
 from auth import roles, teams
 from integrations import events
 
-from .. import audit, incidents, spa
+from .. import audit, incidents, runbooks, spa
 from ..store import load_data
 
 bp = Blueprint('incidents', __name__)
@@ -47,10 +47,12 @@ def _board_user():
     return user
 
 
-def _view(user, incident, match=None):
+def _view(user, incident, match=None, books=None):
+    book = runbooks.for_incident(incident, runbooks.all_runbooks() if books is None else books)
     return {**incident, 'can_work': incidents.can_work(user, incident),
             'can_assign': incidents.can_assign(user, incident.get('team')),
-            'match': (match or {}).get(incident.get('seat') or '')}
+            'match': (match or {}).get(incident.get('seat') or ''),
+            'runbook': {'id': book['id'], 'title': book['title']} if book else None}
 
 
 def _changed(incident, action):
@@ -83,10 +85,11 @@ def list_incidents():
     user = _board_user()
     all_teams = teams.all_teams()
     match = match_seats()
+    books = runbooks.all_runbooks()
     # Match seats (issue #31) on top of each column; the board keeps the newest-first order otherwise.
     items = sorted(incidents.list_all(), key=lambda i: (i['status'] == 'fixed', not match.get(i.get('seat') or '')))
     return jsonify({
-        'incidents': [_view(user, i, match) for i in items],
+        'incidents': [_view(user, i, match, books) for i in items],
         'teams': [{'id': t['id'], 'name': t['name'], 'depth': t['depth']} for t in teams.tree()],
         'workable_teams': sorted(incidents.workable_teams(user)),
         'assign_teams': sorted(t for t in all_teams if incidents.can_assign(user, t)),

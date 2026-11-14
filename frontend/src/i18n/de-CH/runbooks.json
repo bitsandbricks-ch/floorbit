@@ -1,0 +1,30 @@
+{
+  "title": "Anleitungen",
+  "intro": "Schritt-für-Schritt-Anleitungen für Arten von Störungen. Die Störung verlinkt die erste Anleitung für ihre Art, und der Tech sieht die Schritte beim Auftrag.",
+  "add": "Neue Anleitung",
+  "name": "Titel",
+  "for": "Für Störungen der Art",
+  "write": "Schreiben",
+  "preview": "Vorschau",
+  "steps": "Schritte",
+  "markdownHelp": "Markdown: # Titel, 1. nummerierte Schritte, - Aufzählung, **fett**, `Code`, [Link](https://example.com).",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "edit": "Bearbeiten",
+  "delete": "Löschen",
+  "up": "Nach oben",
+  "down": "Nach unten",
+  "none": "Noch keine Anleitungen.",
+  "noKind": "Mit keiner Störung verknüpft",
+  "starter": "Vorlage",
+  "starterHint": "Die Vorlagen sind allgemeine erste Schritte. Schreibt sie auf euren Event um: wo die Ersatzgeräte liegen, wen man anruft.",
+  "shadowed": "Für einige dieser Arten gilt eine Anleitung weiter oben in der Liste.",
+  "changed": "Geändert von {{who}}, {{when}}",
+  "kind": {
+    "no-internet": "Kein Internet",
+    "slow": "Langsame Verbindung",
+    "power": "Strom",
+    "switch-down": "Switch ausgefallen",
+    "other": "Anderes"
+  }
+}

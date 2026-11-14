@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconArrowsExchange, IconBox, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconArrowsExchange, IconBook, IconBox, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,6 +24,7 @@ export default function Incidents() {
   const handoverOn = useFeature('handover')
   const gearOn = useFeature('gear')
   const helpdeskOn = useFeature('helpdesk')
+  const runbooksOn = useFeature('runbooks')
   const client = useQueryClient()
   const board = useIncidents()
   const people = useIncidentPeople()
@@ -83,6 +84,11 @@ export default function Incidents() {
             {handoverOn && (
               <Button variant="default" component="a" href="/handover" leftSection={<IconArrowsExchange size={16} />}>
                 {t('incidents.handover')}
+              </Button>
+            )}
+            {runbooksOn && (
+              <Button variant="default" component="a" href="/runbooks" leftSection={<IconBook size={16} />}>
+                {t('incidents.runbooks')}
               </Button>
             )}
             {gearOn && (
