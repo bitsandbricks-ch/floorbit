@@ -74,7 +74,7 @@
   "trafficScale": "Verkehr pro Platz",
   "blockSummary_one": "Block {{name}}: {{online}} von {{count}} Platz online",
   "blockSummary_other": "Block {{name}}: {{online}} von {{count}} Plätzen online",
-  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen.",
+  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn, B öffnet seinen Block. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen.",
   "history": {
     "title": "Verbindung",
     "onlineSince": "Online seit {{time}}",
@@ -107,5 +107,15 @@
   },
   "changedAgo_one": "vor {{count}} Min. geändert",
   "changedAgo_other": "vor {{count}} Min. geändert",
-  "changedAgo_zero": "gerade geändert"
+  "changedAgo_zero": "gerade geändert",
+  "blockPanel": {
+    "title": "Block {{name}}",
+    "switches": "Switches",
+    "noSwitches": "Für diese Plätze ist noch kein Switch-Port bekannt.",
+    "carries_one": "{{online}} von {{count}} Platz online",
+    "carries_other": "{{online}} von {{count}} Plätzen online",
+    "noPort_one": "{{count}} Platz an keinem bekannten Port",
+    "noPort_other": "{{count}} Plätze an keinem bekannten Port",
+    "open": "Block {{name}} öffnen"
+  }
 }
