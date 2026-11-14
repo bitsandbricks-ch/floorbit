@@ -104,6 +104,8 @@ def seed_on_start(app):
         stats = app.extensions.get('floorbit_stats')
         if stats is not None:
             stats.backfill(demo_history())
+        from .flows import init_demo_flows
+        init_demo_flows(app)
 
 
 def demo_history(now=None, step=120):

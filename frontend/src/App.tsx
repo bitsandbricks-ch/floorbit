@@ -16,6 +16,7 @@ const Power = lazy(() => import('@/pages/Power'))
 const Problems = lazy(() => import('@/pages/Problems'))
 const Setup = lazy(() => import('@/pages/Setup'))
 const Stats = lazy(() => import('@/pages/Stats'))
+const Traffic = lazy(() => import('@/pages/Traffic'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/problems" element={<Problems />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/stats" element={<Stats />} />
+        <Route path="/traffic" element={<Traffic />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
