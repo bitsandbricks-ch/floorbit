@@ -68,6 +68,19 @@ describe('Incident board', () => {
     expect(within(worked).queryByText('No power')).toBeNull()
   })
 
+  it('puts the cursor in the filter on /, with or without Shift (issue #226)', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />, '/incidents?q=KIM')
+    const box = await screen.findByRole('textbox', { name: 'Filter incidents' })
+    expect(box).toHaveAttribute('aria-keyshortcuts', '/')
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Slash' })
+    expect(box).toHaveFocus()
+    expect([(box as HTMLInputElement).selectionStart, (box as HTMLInputElement).selectionEnd]).toEqual([0, 3])
+    box.blur()
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Digit7', shiftKey: true })
+    expect(box).toHaveFocus()
+  })
+
   it('matches title, place, people, team and notes', () => {
     const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
     expect(matchesFilter(i, '')).toBe(true)

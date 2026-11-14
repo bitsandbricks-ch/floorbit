@@ -1,8 +1,8 @@
-import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconArrowsExchange, IconBook, IconBox, IconFilter, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { get, patch, post } from '@/api/client'
@@ -42,6 +42,11 @@ export default function Incidents() {
     else next.delete('q')
     setParams(next, { replace: true })
   }
+  // "/" jumps to the filter, as on the Seats page; with Shift for Swiss and German keyboards (issue #226).
+  const filterBox = useRef<HTMLInputElement>(null)
+  const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
+  const toFilter = () => { filterBox.current?.focus(); filterBox.current?.select() }
+  useHotkeys([['/', toFilter], ['shift+/', toFilter]])
   const [formOpen, form] = useDisclosure(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -122,8 +127,9 @@ export default function Incidents() {
       />
       <Group justify="space-between" mb="sm">
         <Group gap="md">
-          <TextInput aria-label={t('incidents.filter')} placeholder={t('incidents.filterHint')} w={240} value={filter}
-            leftSection={<IconFilter size={14} />} onChange={(e) => setFilter(e.currentTarget.value)} />
+          <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={240} value={filter}
+            leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
+            onChange={(e) => setFilter(e.currentTarget.value)} />
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
         </Group>
         <Text size="sm" role="status" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
