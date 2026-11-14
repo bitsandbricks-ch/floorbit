@@ -72,5 +72,19 @@
   "trafficScale": "Verkehr pro Platz",
   "blockSummary_one": "Block {{name}}: {{online}} von {{count}} Platz online",
   "blockSummary_other": "Block {{name}}: {{online}} von {{count}} Plätzen online",
-  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen."
+  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen.",
+  "history": {
+    "title": "Verbindung",
+    "onlineSince": "Online seit {{time}}",
+    "offlineSince": "Offline seit {{time}}",
+    "onlineAll_one": "Die ganze Stunde online",
+    "onlineAll_other": "Die ganzen {{count}} Stunden online",
+    "offlineAll_one": "Die ganze Stunde offline",
+    "offlineAll_other": "Die ganzen {{count}} Stunden offline",
+    "changes_one": "1 Wechsel in {{hours}} h",
+    "changes_other": "{{count}} Wechsel in {{hours}} h",
+    "ago_one": "vor 1 h",
+    "ago_other": "vor {{count}} h",
+    "now": "jetzt"
+  }
 }

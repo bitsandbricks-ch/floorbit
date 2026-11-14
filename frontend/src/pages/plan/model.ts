@@ -164,3 +164,19 @@ export function heatColor(level: number) {
 }
 
 export const HEAT_GRADIENT = `linear-gradient(90deg, ${VIRIDIS.map((c) => `rgb(${c.join(', ')})`).join(', ')})`
+
+export interface LinkSpan { from: number; to: number; on: boolean | null }
+
+/** The seat's link history as spans from `from` to `to` (issue #167). */
+export function linkSpans(h: { from: number; to: number; start: boolean | null; changes: [number, number][] }): LinkSpan[] {
+  const out: LinkSpan[] = []
+  let at = h.from
+  let on: boolean | null = h.start
+  for (const [t, v] of h.changes) {
+    if (t > at) out.push({ from: at, to: Math.min(t, h.to), on })
+    at = Math.max(at, t)
+    on = !!v
+  }
+  if (h.to > at) out.push({ from: at, to: h.to, on })
+  return out
+}
