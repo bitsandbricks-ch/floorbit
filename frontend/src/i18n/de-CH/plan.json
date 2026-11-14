@@ -157,5 +157,11 @@
   },
   "findPlayerHint": "Platz oder Nick, z. B. D-6",
   "players": "Gefundene Spieler",
-  "notFoundPlayer": "Kein Platz und kein Spieler gefunden"
+  "notFoundPlayer": "Kein Platz und kein Spieler gefunden",
+  "print": {
+    "title": "Plätze: {{hall}}",
+    "only": "Nur: {{filter}}",
+    "back": "Zurück",
+    "print": "Drucken"
+  }
 }

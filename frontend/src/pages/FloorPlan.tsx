@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Drawer, Group, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconSearch } from '@tabler/icons-react'
+import { IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +31,8 @@ export default function FloorPlan() {
   const blockSel = selected ? null : params.get('block')
   const switchSel = selected || blockSel ? null : params.get('switch')
   const screen = params.get('screen') === '1'
+  // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
+  const print = !screen && params.get('print') === '1'
   const traffic = params.get('traffic') === '1'
   const list = !screen && params.get('view') === 'list'
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
@@ -49,7 +51,7 @@ export default function FloorPlan() {
   useLiveEvent('plan.changed', refresh)
   const data = q.data
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>(() => (FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'))
   const [search, setSearch] = useState('')
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
@@ -137,6 +139,30 @@ export default function FloorPlan() {
     </Group>
   )
 
+  if (print) {
+    const hallName = data?.halls.find((h) => h.id === data.hall)?.name
+    return (
+      <main className="fb-plan-print">
+        <PrintTheme />
+        <Group justify="space-between" align="flex-end" mb="xs">
+          <div>
+            <Text fw={800} size="xl">{t('plan.print.title', { hall: hallName ?? '' })}</Text>
+            {summary}
+            {filter !== 'all' && <Text size="sm">{t('plan.print.only', { filter: t(`plan.filter.${filter}`) })}</Text>}
+          </div>
+          <Group gap="xs" className="fb-no-print">
+            <Button variant="default" component="a" href={`/plan${data ? `?hall=${encodeURIComponent(data.hall)}` : ''}`}>{t('plan.print.back')}</Button>
+            <Button leftSection={<IconPrinter size={16} />} onClick={() => window.print()}>{t('plan.print.print')}</Button>
+          </Group>
+        </Group>
+        {data?.drawing && view && (
+          <SeatMap data={data} view={view} setView={() => {}} filter={filter} selected={null} level="near" onSelect={() => {}} />
+        )}
+        {data && <Legend checkin={data.checkin} />}
+      </main>
+    )
+  }
+
   if (screen) {
     return (
       <main className="fb-plan-screen">
@@ -170,6 +196,8 @@ export default function FloorPlan() {
                   data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
                   onChange={(v) => { const next = new URLSearchParams(); if (v) next.set('hall', v); setParams(next) }} />
               )}
+              <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
+                href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
               <form onSubmit={go} role="search">
                 <TextInput aria-label={t('plan.find')} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
@@ -215,4 +243,15 @@ export default function FloorPlan() {
       )}
     </Layout>
   )
+}
+
+/** Light colours while the print sheet is open, whatever the theme: toner, not ink. */
+function PrintTheme() {
+  useEffect(() => {
+    const root = document.documentElement
+    const before = root.dataset.theme
+    root.dataset.theme = 'light'
+    return () => { if (before === undefined) delete root.dataset.theme; else root.dataset.theme = before }
+  }, [])
+  return null
 }

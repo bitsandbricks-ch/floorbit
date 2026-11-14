@@ -49,10 +49,12 @@ const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'righ
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
-export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false }: {
+export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, level: forced }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
+  /** Force a detail level, e.g. 'near' on paper where screen pixels mean nothing. */
+  level?: Density
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -61,7 +63,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const px = useSize(wrap)
   const drawing = data.drawing!
   const fit = useMemo(() => parseBox(drawing.box), [drawing.box])
-  const level: Density = density(drawing.cell, view, px)
+  const level: Density = forced ?? density(drawing.cell, view, px)
   const s = scale(view, px) || 1
   const [hover, setHover] = useState<{ seat: string; x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<string | null>(null)
@@ -270,7 +272,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           b.problems ? t('plan.problemsN', { count: b.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
       </VisuallyHidden>
       <VisuallyHidden role="status" aria-live="polite">{cursorSeat && `${cursor}: ${stateText(cursorSeat)}`}</VisuallyHidden>
-      <Group gap={4} className="fb-plan-zoom">
+      <Group gap={4} className="fb-plan-zoom fb-no-print">
         <Tooltip label={t('plan.zoomIn')}><ActionIcon variant="default" aria-label={t('plan.zoomIn')} onClick={() => setView(zoom(view, 1.4, centre(), fit))}><IconPlus size={16} /></ActionIcon></Tooltip>
         <Tooltip label={t('plan.zoomOut')}><ActionIcon variant="default" aria-label={t('plan.zoomOut')} onClick={() => setView(zoom(view, 1 / 1.4, centre(), fit))}><IconMinus size={16} /></ActionIcon></Tooltip>
         <Tooltip label={t('plan.fit')}><ActionIcon variant="default" aria-label={t('plan.fit')} onClick={() => setView(fit)}><IconFocus2 size={16} /></ActionIcon></Tooltip>

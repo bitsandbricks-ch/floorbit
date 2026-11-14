@@ -418,4 +418,27 @@ describe('Seats page', () => {
     expect(await screen.findByText('No such seat here')).toBeInTheDocument()
     expect(api.calls.some((c) => c.path.startsWith('/api/plan/find'))).toBe(false)
   })
+
+  it('prints the whole hall with every seat numbered, keeping the filter', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
+    const printed = vi.fn()
+    vi.stubGlobal('print', printed)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?print=1&hall=main&show=offline')
+    expect(await screen.findByText('Seats: Hall')).toBeInTheDocument()
+    expect(screen.getByText('Only: Offline')).toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe('light')
+    // Close-up detail on paper: seat numbers, whatever the size.
+    expect(container.querySelector('.fb-plan-wrap')).toHaveClass('d-near')
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }))
+    expect(printed).toHaveBeenCalled()
+  })
+
+  it('links to the print sheet with the current filter', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    const link = await screen.findByRole('link', { name: 'Print' })
+    expect(link).toHaveAttribute('href', '/plan?print=1&hall=main')
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Offline'))
+    await waitFor(() => expect(link).toHaveAttribute('href', '/plan?print=1&hall=main&show=offline'))
+  })
 })

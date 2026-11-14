@@ -411,3 +411,13 @@ body {
 .fb-plan .sw.link { cursor: pointer; }
 
 .fb-speed-tests td { white-space: nowrap; }
+
+/* The hall on paper (issue #188). */
+.fb-plan-print { padding: 16px; background: #fff; color: #111118; min-height: 100vh; }
+.fb-plan-print .fb-plan-wrap { height: 78vh; background: #fff; }
+@media print {
+  @page { size: landscape; margin: 10mm; }
+  .fb-plan-print { padding: 0; min-height: 0; }
+  .fb-plan-print .fb-plan-wrap { height: 140mm; border-color: #999; }
+  .fb-plan-print .fb-plan-legend { break-inside: avoid; }
+}

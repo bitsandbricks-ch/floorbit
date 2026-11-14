@@ -141,6 +141,14 @@ The editor draws seats with the same shapes through the **Seat states** layer (o
 under Layers), with a short legend and a link to the Seats view. The traffic heatmap takes over
 the seat colours while it is on.
 
+## Printing
+
+**Print** opens `/plan?print=1`: the whole hall fitted to the page with every seat numbered, the
+legend, the hall's name and the port read's time, light on white whatever the theme. The filter
+carries over (`&show=offline` prints only the offline seats). Use the browser's print dialog for
+paper size; landscape is the default. The sheet has no names, IPs or notes, so it can lie on a
+table at the info desk.
+
 ## Big screens
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
