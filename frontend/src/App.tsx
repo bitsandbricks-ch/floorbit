@@ -26,6 +26,7 @@ const Handover = lazy(() => import('@/pages/Handover'))
 const Planner = lazy(() => import('@/pages/Planner'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
 const Gear = lazy(() => import('@/pages/Gear'))
+const Teardown = lazy(() => import('@/pages/Teardown'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/planner" element={<Planner />} />
         <Route path="/preflight" element={<Preflight />} />
         <Route path="/gear" element={<Gear />} />
+        <Route path="/teardown" element={<Teardown />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
