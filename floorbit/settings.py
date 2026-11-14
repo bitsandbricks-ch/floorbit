@@ -132,6 +132,10 @@ FIELDS = [
          help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
               'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
               'Off by default.'),
+    dict(key='public.brackets', section='public', label='Tournament brackets', type='bool',
+         env='BRACKET_VIEW', default=False,
+         help='/bracket shows the tournament brackets with teams and scores for big screens (/bracket?screen=1) '
+              'and phones. Never seats. Off by default.'),
     dict(key='public.schedule', section='public', label='Schedule and countdown', type='bool',
          env='SCHEDULE_PAGE', default=False,
          help='/agenda shows the countdown to the event, what is on now and next, and the programme, for big '

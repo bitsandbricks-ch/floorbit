@@ -1139,3 +1139,32 @@ export interface ScheduleData {
   kinds: ScheduleKind[]
   public: boolean
 }
+
+/** Tournament brackets (issue #107): single elimination, entered here or imported from a plugin. */
+export interface BracketSide { name: string | null; score: number | null }
+export interface BracketMatch {
+  id: string
+  a: BracketSide
+  b: BracketSide
+  status: 'waiting' | 'live' | 'done'
+  winner: 'a' | 'b' | null
+  seats: string[]
+  station: string
+  zones: string[]
+}
+export interface Bracket {
+  id: string
+  name: string
+  zone_id: string | null
+  source: 'floorbit' | 'import'
+  plugin: string | null
+  rounds: BracketMatch[][]
+  updated_at: number | null
+  by: string | null
+}
+export interface BracketsData {
+  brackets: Bracket[]
+  zones: { id: string; name: string }[]
+  sources: string[]
+  public: boolean
+}

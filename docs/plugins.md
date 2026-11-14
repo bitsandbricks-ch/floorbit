@@ -281,6 +281,7 @@ class Plugin(Base):
 | `power` | send [load readings](power.md) from smart PDUs and meters: define `power_readings()` returning `[{"meter": "db1-1", "amps": 12.4}]` (or `"watts"`) |
 | `dns` | send lookups from the event's resolver for [DNS analytics](dns.md): define `dns_queries(since)` returning `[{"ts", "domain", "client", "blocked"}]` after that unix time. Floorbit keeps only hall-wide counts |
 | `wifi` | access points for the [Wi-Fi view](wifi.md): define `wifi_aps()` returning `[{"name", "model", "status": "up"/"down", "clients", "radios": [{"band": "2.4"/"5"/"6", "channel", "width", "utilization", "clients"}]}]`. Counts only: anything else is dropped. The built-in UniFi plugin has it |
+| `brackets` | send tournament brackets to the [bracket view](tournament.md#brackets): define `brackets()` returning `[{"id", "name", "rounds": [[{"a": {"name", "score"}, "b": {...}, "status": "waiting"/"live"/"done", "winner": "a"/"b"/null, "station"}]]}]`, the first round first. They are read-only in Floorbit and replaced on every import. The demo plugin has an example |
 | `logs` | keep the [syslog](syslog.md) longer and search it: define `push_logs(lines)`, called every 10 seconds with the new lines, and `query_logs(query, start, end, limit)` returning lines newest first in the Logs page's shape (`id` is the time in microseconds) |
 | `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link"}]`. See the built-in HTTP check plugin |
 
