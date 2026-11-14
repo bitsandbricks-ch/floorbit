@@ -198,7 +198,7 @@ export default function FloorPlan() {
     : switchSel ? <SwitchPanel key={switchSel} name={switchSel} onSeat={(s) => set('seat', s)} onClose={() => set('switch', null)} /> : null
   const panel = !!inspector
   return (
-    <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }}>
+    <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere}>
       {q.isPending && <Loader aria-label={t('common.loading')} />}
       {q.error && <Alert color="down" role="alert">{t('common.error', { message: q.error.message })}</Alert>}
       {data && (

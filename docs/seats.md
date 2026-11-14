@@ -39,7 +39,8 @@ this hall, so "Offline 0" answers the question without a click. The choice is ke
 
 With more than one hall, the hall picker shows each hall's seats online and seats with problems,
 and the header says how many seats have problems in the other halls, so trouble there shows before
-you switch. A link with a seat or switch but no hall (`/plan?seat=E-3`) opens the hall that seat or
+you switch. The browser tab counts them too: "(3) Seats · Floorbit" means three seats with
+problems in all halls, so a tab in the background still shows when something needs a look. A link with a seat or switch but no hall (`/plan?seat=E-3`) opens the hall that seat or
 switch is in.
 
 ## Keyboard and screen readers

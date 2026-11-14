@@ -5,11 +5,14 @@ import { useEffect } from 'react'
 import { Attribution } from './Attribution'
 import { ThemeToggle, UserMenu } from './UserMenu'
 
-/** Header with a way back, the page title, theme and user menu; the attribution at the end. */
-export function Layout({ title, back, children }: { title: string; back: { href: string; label: string }; children: ReactNode }) {
+/** Header with a way back, the page title, theme and user menu; the attribution at the end.
+ *  ``count`` goes in front of the tab title, so a background tab shows when something needs a look (issue #208). */
+export function Layout({ title, back, count, children }: {
+  title: string; back: { href: string; label: string }; count?: number; children: ReactNode
+}) {
   useEffect(() => {
-    document.title = `${title} · Floorbit`
-  }, [title])
+    document.title = `${count ? `(${count}) ` : ''}${title} · Floorbit`
+  }, [title, count])
   return (
     <>
       <header className="fb-header">

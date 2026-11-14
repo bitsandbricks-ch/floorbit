@@ -39,6 +39,7 @@ describe('Incident board', () => {
     renderWithApp(<Incidents />)
     const open = await screen.findByRole('region', { name: 'Open' })
     expect(within(open).getByText('No internet at the seat')).toBeInTheDocument()
+    expect(document.title).toBe('(1) Incidents · Floorbit')
     expect(within(open).getByText('From the seat')).toBeInTheDocument()
     expect(within(open).getByText('2 reports')).toBeInTheDocument()
     expect(within(open).getByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeInTheDocument()

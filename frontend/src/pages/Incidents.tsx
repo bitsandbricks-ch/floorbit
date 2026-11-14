@@ -70,7 +70,8 @@ export default function Incidents() {
 
   const items = (board.data?.incidents ?? []).filter((i) => !mineOnly || i.can_work)
   return (
-    <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      count={(board.data?.incidents ?? []).filter((i) => i.status === 'open').length}>
       <PageHead
         title={t('incidents.title')}
         desc={t('incidents.intro')}
