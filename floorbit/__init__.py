@@ -5,6 +5,7 @@
 * ``auth/``                 sign-in, roles and accounts (registered first, so its guard runs first)
 * ``floorbit/settings.py``  the settings page and its store; ``runtime.py`` holds the live values
 * ``floorbit/cache.py``     Redis
+* ``floorbit/audit.py``     the audit log of changes and sign-ins
 * ``floorbit/theme.py``     themes: the preset and colours each page renders with
 * ``floorbit/sources/``     NetBox and LibreNMS, behind ``inventory()`` and ``monitoring()``
 * ``floorbit/blueprints/``  one blueprint per area of the JSON API and the pages
@@ -18,6 +19,7 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from . import cache, runtime, store
+from .audit import init_audit
 from .blueprints import ALL as BLUEPRINTS
 from .settings import SettingsStore, create_settings_blueprint
 from .theme import init_theme
@@ -49,6 +51,9 @@ def create_app(start_background=True):
 
     # Every page's preset and colours, ?theme= per screen, and the uploaded event logo.
     init_theme(app, settings_store)
+
+    # Who changed what: every successful change and sign-in, see floorbit/audit.py.
+    init_audit(app)
 
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)

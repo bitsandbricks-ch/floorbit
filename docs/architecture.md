@@ -14,6 +14,7 @@ different features touch different files.
 3. **`floorbit/cache.py`**: the Redis connection and the cache of LibreNMS answers.
    **`floorbit/theme.py`**: the preset and colours every page renders with, `?theme=` per
    screen and the event logo at `/brand/logo` (see [themes.md](themes.md)).
+   **`floorbit/audit.py`**: appends every successful change and sign-in to the audit log.
 4. **`floorbit/blueprints/`**: one blueprint per area, listed in `blueprints/__init__.py`:
 
    | Module | Routes |
@@ -24,6 +25,7 @@ different features touch different files.
    | `seat_blocks.py` | `/api/seats`, `/api/seat-blocks...` |
    | `network.py` | switch status, `/api/resolve/<ip>`, `/api/seats/info`, `/resolve`, `/heatmap` |
    | `backup.py` | `/api/settings/backup` (download, restore; see [backup.md](backup.md)) |
+   | `audit.py` | `/settings/audit`, `/api/settings/audit`, `.csv` (see [audit.md](audit.md)) |
    | `cache.py` | `/api/cache/...` |
 
 5. **`integrations/`**: live updates (SSE), the status monitor, Discord alerts, seat sources and
