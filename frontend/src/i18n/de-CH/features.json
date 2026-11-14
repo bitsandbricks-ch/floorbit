@@ -37,7 +37,8 @@
     "teardown": "Abbau-Checkliste",
     "status_page": "Netzwerk-Statusseite",
     "public_hall": "Öffentlicher Hallenplan",
-    "stats_wall": "Öffentliche Statistikwand"
+    "stats_wall": "Öffentliche Statistikwand",
+    "schedule": "Programm und Countdown"
   },
   "desc": {
     "incidents": "Das Störungsboard für Probleme an Plätzen und Switches.",
@@ -70,6 +71,7 @@
     "teardown": "Material zurück, Konfigurationen gesichert, Event exportiert.",
     "status_page": "Eine öffentliche Seite, die den Teilnehmenden zeigt, ob das Netzwerk läuft, welche Bereiche ein Ausfall trifft, und die Updates der Crew.",
     "public_hall": "Der Hallenplan, den Spieler ohne Anmeldung sehen.",
-    "stats_wall": "Spannende Zahlen zum Event für eine grosse Leinwand und die Teilnehmenden: heruntergeladene Daten, Bandbreiten-Spitze, Top-Games, Plätze online. Nur für die ganze Halle."
+    "stats_wall": "Spannende Zahlen zum Event für eine grosse Leinwand und die Teilnehmenden: heruntergeladene Daten, Bandbreiten-Spitze, Top-Games, Plätze online. Nur für die ganze Halle.",
+    "schedule": "Das Programm des Events (Vorträge, Turniere, Essen, Nachtruhe) mit einer öffentlichen Countdown-Seite für Leinwände und Handys; importiert iCal."
   }
 }

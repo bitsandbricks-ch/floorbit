@@ -132,6 +132,10 @@ FIELDS = [
          help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
               'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
               'Off by default.'),
+    dict(key='public.schedule', section='public', label='Schedule and countdown', type='bool',
+         env='SCHEDULE_PAGE', default=False,
+         help='/agenda shows the countdown to the event, what is on now and next, and the programme, for big '
+              'screens (/agenda?screen=1) and phones. Off by default.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),
