@@ -45,6 +45,7 @@ data.json
 checkins.json
 audit.jsonl
 plugins.json
+monitoring-cache.json
 # ...but not the React app's translation files of the same name
 !frontend/src/i18n/**/*.json
 state/

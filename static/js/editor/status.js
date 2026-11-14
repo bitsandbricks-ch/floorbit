@@ -26,10 +26,14 @@ async function doRefreshAll() {
   try {
     const placed = switches.filter(s => s.placed !== false);
     let failures = 0;
+    offlineInfo = null;
     await Promise.all(placed.map(async (sw) => {
       try {
         const data = await api('GET', `/api/switches/${sw.id}/status`);
         sw.status = data.status;
+        // Last good data while the monitoring source is down: shown greyed out, with its age.
+        sw.stale = !!data.stale;
+        if (data.stale) offlineInfo = { since: data.offline_since, asOf: data.as_of };
         storePortStats(sw.id, data);
       } catch {
         failures++;
@@ -59,8 +63,19 @@ async function doRefreshAll() {
   }
 }
 
+let offlineInfo = null;    // { since, asOf } in epoch seconds while the monitoring source is down
+
+function clockTime(epochSeconds) {
+  return epochSeconds ? new Date(epochSeconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?';
+}
+
 function updateLastUpdated() {
   if (!config.librenms_enabled) return;
+  if (offlineInfo) {
+    lastUpdatedEl.textContent = `Offline since ${clockTime(offlineInfo.since)}, data from ${clockTime(offlineInfo.asOf)}`;
+    lastUpdatedEl.className = 'last-updated error';
+    return;
+  }
   if (lastRefreshFailed) {
     lastUpdatedEl.textContent = 'Refresh failed';
     lastUpdatedEl.className = 'last-updated error';

@@ -103,6 +103,9 @@ kbd {
 .last-updated { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .last-updated.stale { color: var(--warning); }
 .last-updated.error { color: var(--danger); }
+/* Last good data while the monitoring source is down (docs/offline.md). */
+.switch-marker.stale .switch-pin, .switch-item.stale .switch-item-glyph { filter: grayscale(1); opacity: 0.5; }
+.switch-item.stale .switch-item-status { font-style: italic; }
 
 /* Theme toggle: shows the theme you switch to */
 .theme-icon-light { display: none; }

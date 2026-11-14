@@ -9,11 +9,55 @@ See docs/architecture.md.
 Which devices exist is the inventory's job (``floorbit/inventory.py``), fed by plugins such as
 NetBox (``floorbit/builtin_plugins/netbox``).
 """
+import json
 import re
+import threading
+import time
+
+from . import lastgood
 
 # Set by floorbit.plugins.init_plugins; None until the app is created.
 registry = None
 _override = None
+
+# Is the monitoring source answering? Set by the status monitor's polls and by failed calls.
+_health_lock = threading.Lock()
+_health = {'source': None, 'ok': True, 'offline_since': None, 'last_ok': None, 'error': None}
+
+
+def health():
+    with _health_lock:
+        return dict(_health)
+
+
+def mark_ok(source):
+    """Returns how long the source was down (seconds), or None if it wasn't."""
+    with _health_lock:
+        was_down = _health['offline_since']
+        _health.update(source=source, ok=True, offline_since=None, last_ok=time.time(), error=None)
+    return time.time() - was_down if was_down else None
+
+
+def mark_failed(source, error):
+    """Returns True when this is the start of an outage."""
+    with _health_lock:
+        starting = _health['offline_since'] is None
+        _health.update(source=source, ok=False, error=str(error)[:300],
+                       offline_since=_health['offline_since'] or time.time())
+    return starting
+
+
+def offline():
+    with _health_lock:
+        return _health['offline_since'] is not None
+
+
+def _stale(entry):
+    """A cached answer, marked so pages can grey it out and say how old it is."""
+    at, value = entry
+    out = dict(value) if isinstance(value, dict) else {'value': value}
+    out.update(stale=True, as_of=at, offline_since=health()['offline_since'])
+    return out
 
 
 def normalise_mac(mac):
@@ -73,33 +117,49 @@ class PluginMonitoring(NoMonitoring):
         except PluginError:
             return False
 
+    def _key(self, method, *args):
+        return f'{self.name}:{method}:{json.dumps(args, default=str)}'
+
     def devices(self):
-        # Errors go up: the status monitor shows them.
+        # Errors go up: the status monitor shows them and marks the outage.
         return self._call('devices') or []
 
-    def device_details(self, hostname):
+    def _remembered(self, method, *args, good=bool):
+        """Call the plugin; keep good answers, and while the source is down answer from them."""
         from ..plugins.base import PluginError
+        key = self._key(method, *args)
+        if offline():
+            cached = lastgood.get(key)
+            if cached:
+                return _stale(cached)
         try:
-            return self._call('device_details', hostname)
-        except PluginError as exc:
-            return {'status': 'unknown', 'message': str(exc)}
-
-    def resolve_ip(self, ip_address, search_device=None):
-        return self._quiet('resolve_ip', ip_address, search_device)
-
-    def port_stats(self, hostname, interface):
-        return self._quiet('port_stats', hostname, interface)
-
-    def arp(self, query):
-        return self._quiet('arp', query) or []
-
-    def _quiet(self, method, *args):
-        from ..plugins.base import PluginError
-        try:
-            return self._call(method, *args)
+            result = self._call(method, *args)
         except PluginError as exc:
             print(f'[sources] {self.name} {method} failed: {exc}')
-            return None
+            mark_failed(self.name, exc)
+            cached = lastgood.get(key)
+            return _stale(cached) if cached else None
+        if good(result):
+            lastgood.put(key, result)
+        return result
+
+    def device_details(self, hostname):
+        result = self._remembered('device_details', hostname,
+                                  good=lambda r: isinstance(r, dict) and r.get('status') not in (None, 'unknown'))
+        return result or {'status': 'unknown', 'hostname': hostname,
+                          'message': 'The monitoring source is not answering'}
+
+    def resolve_ip(self, ip_address, search_device=None):
+        return self._remembered('resolve_ip', ip_address, search_device)
+
+    def port_stats(self, hostname, interface):
+        return self._remembered('port_stats', hostname, interface)
+
+    def arp(self, query):
+        result = self._remembered('arp', query)
+        if isinstance(result, dict):   # stale: the list is under 'value'
+            return result.get('value') or []
+        return result or []
 
     def mac_for_ip(self, ip):
         """IP to MAC from the ARP data (None if unknown)."""

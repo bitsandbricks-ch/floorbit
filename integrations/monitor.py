@@ -98,7 +98,22 @@ class StatusMonitor:
         return 'online' if device.get('status') in (1, '1', True) else 'offline'
 
     def poll_once(self):
-        devices = self.fetch_devices()
+        from floorbit import sources
+        source = self.source()
+        try:
+            devices = self.fetch_devices()
+        except Exception as exc:
+            # One message per outage, and no "switch down" flood: nothing is compared while it's down.
+            if sources.mark_failed(source.name, exc):
+                events.publish('monitoring.offline', {'source': source.label, 'error': str(exc)[:300],
+                                                      'since': sources.health()['offline_since']})
+            raise
+        down_for = sources.mark_ok(source.name)
+        if down_for is not None:
+            # Switches may have changed while the source was down: start over from a fresh baseline
+            # instead of announcing every difference at once.
+            self.baseline_done = False
+            events.publish('monitoring.online', {'source': source.label, 'down_for': down_for})
         switches = self._list_switches()
         confirm = config.get_int('STATUS_MONITOR_CONFIRM', 2, minimum=1)
         now = time.time()

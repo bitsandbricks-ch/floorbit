@@ -52,6 +52,8 @@ class DiscordNotifier:
     # ── wiring ────────────────────────────────────────────────────────────────────────────
     def attach(self):
         events.subscribe('monitor.poll', self.on_poll)
+        events.subscribe('monitoring.offline', self.on_source)
+        events.subscribe('monitoring.online', self.on_source)
 
     def _ensure_worker(self):
         with self._lock:
@@ -80,6 +82,34 @@ class DiscordNotifier:
                 self._queue.put_nowait(payload)
             except queue.Full:
                 self.last_error = 'alert queue full, message dropped'
+
+    def on_source(self, event):
+        """The monitoring source itself went away or came back: one message, not one per switch."""
+        if not self.enabled():
+            return
+        self._ensure_worker()
+        try:
+            self._queue.put_nowait(self.build_source_message(event['type'], event.get('data') or {}))
+        except queue.Full:
+            self.last_error = 'alert queue full, message dropped'
+
+    def build_source_message(self, kind, data, now=None):
+        now = now or time.time()
+        down = kind == 'monitoring.offline'
+        source = data.get('source') or 'The monitoring source'
+        embed = {
+            'title': f"{'⚠️' if down else '✅'} {source} is {'unreachable' if down else 'back'}",
+            'description': ('Switch status is frozen at the last good data and no switch alerts are sent '
+                            'until it answers again.' if down else
+                            f"Down for {_fmt_duration(data.get('down_for') or 0)}. Switch alerts are back on."),
+            'color': COLOR_OFFLINE if down else COLOR_ONLINE,
+            'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat(),
+        }
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        if public_url:
+            embed['url'] = public_url
+        return {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
+                'allowed_mentions': {'parse': []}}
 
     def build_status_message(self, changes, now=None):
         now = now or time.time()
