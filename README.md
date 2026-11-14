@@ -101,6 +101,9 @@ each seat is plugged into.
 - **DNS:** what the hall looks up, from the event's resolver: lookups per hour, top sites,
   categories, new sites and blocked lookups. Hall-wide only: a site is named once 5 seats looked it
   up. Built-in plugins read AdGuard Home and Pi-hole. See [docs/dns.md](docs/dns.md).
+- **Wi-Fi view:** how busy each access point is, clients per AP and which channel it is on, drawn
+  on the floor plan, with access points on the same channel near each other flagged. From UniFi
+  (or any plugin with `uses: [wifi]`); client counts only. See [docs/wifi.md](docs/wifi.md).
 - **Games:** what the hall plays and downloads per launcher (Steam, Battle.net, Riot, Epic and
   more), and how much the LAN cache saved, from its access log. See [docs/games.md](docs/games.md).
 - **Logs:** a syslog receiver for the switches, firewalls and DHCP servers: search by device, seat,

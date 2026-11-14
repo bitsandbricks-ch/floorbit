@@ -275,3 +275,12 @@ body {
 /* Logs page on phones (pages/Logs.tsx) */
 .fb-log-lines { list-style: none; margin: 0; padding: 0; }
 .fb-log-line { padding: 8px 0; border-bottom: 1px solid var(--mantine-color-default-border); }
+.fb-wifi-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: 10px; display: block; }
+.fb-wifi-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-wifi-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-wifi-plan .heat { pointer-events: none; }
+.fb-wifi-plan .ap { stroke: var(--color-surface); stroke-width: 4; }
+.fb-wifi-plan .ap.down { stroke-dasharray: 6 4; stroke: var(--color-down); }
+.fb-wifi-plan .clash { fill: none; stroke: var(--color-down); stroke-width: 5; stroke-dasharray: 10 6; }
+.fb-wifi-plan .val { fill: #fff; font: 700 20px var(--font-sans); text-anchor: middle; paint-order: stroke; stroke: rgb(0 0 0 / .35); stroke-width: 3px; }
+.fb-wifi-plan .ap-name { fill: var(--color-fg); font: 600 22px var(--font-sans); text-anchor: middle; }

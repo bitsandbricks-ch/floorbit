@@ -37,9 +37,9 @@ def test_demo_replaces_the_live_source(demo, monkeypatch):
 
 def test_lay_out_the_hall_once_on_an_empty_plan(demo):
     first = demo.post('/api/demo/layout').get_json()
-    assert first == {'placed': 15, 'blocks': 4}
+    assert first == {'placed': 24, 'blocks': 4}   # 15 switches and 9 access points
     switches = demo.get('/api/switches').get_json()
-    assert len(switches) == 15 and all(s['x'] is not None for s in switches)
+    assert len(switches) == 24 and all(s['x'] is not None for s in switches)
     assert [b['name'] for b in demo.get('/api/seat-blocks').get_json()] == ['A', 'B', 'C', 'D']
     # Never moves anything that is already on the plan.
     assert demo.post('/api/demo/layout').get_json()['skipped'] == 'the floor plan is not empty'

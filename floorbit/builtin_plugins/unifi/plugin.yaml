@@ -4,10 +4,10 @@ id: unifi
 name: UniFi
 version: "1.0.0"
 floorbit: ">=0.1,<2"
-description: "Live status, ports and traffic of UniFi switches, and which switch port an IP or MAC is on (from the controller's client list). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use a View Only account."
+description: "Live status, ports and traffic of UniFi switches, and which switch port an IP or MAC is on (from the controller's client list). Feeds the floor plan, the status monitor, the seat inspector, the check-in page and the Wi-Fi view (access point load and client counts). Only reads: use a View Only account."
 author: Floorbit
 homepage: https://ui.com
-uses: [settings, http, monitoring]
+uses: [settings, http, monitoring, wifi]
 settings:
   - {key: url, label: Controller URL, type: url, placeholder: "https://unifi.example.com",
      help: "The UniFi console (UniFi OS) or the Network application. No path."}
