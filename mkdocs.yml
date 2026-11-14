@@ -88,6 +88,7 @@ nav:
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md
       - Seats view: seats.md
+      - Prometheus metrics: metrics.md
       - Phones and tablets: mobile.md
       - Offline mode: offline.md
   - After the event:
