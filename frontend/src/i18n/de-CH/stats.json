@@ -76,5 +76,7 @@
       "incidents": "Incidents",
       "outages": "Switch-Ausfälle"
     }
-  }
+  },
+  "trendTraffic": "Verkehr in der letzten Stunde",
+  "trendOnline": "Plätze online in der letzten Stunde"
 }

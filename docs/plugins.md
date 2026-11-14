@@ -13,7 +13,8 @@ start on and do nothing until they're configured. Turning one on or off is in th
 in a section called *Plugin: <name>*. Secrets are write-only there, as everywhere.
 
 The **Dashboard** (top bar of the floor plan, `/dashboard`) shows the tiles of the plugins that are
-on, for anyone signed in whose role is allowed to see them.
+on, for anyone signed in whose role is allowed to see them. Layouts save which tiles a screen shows
+([Dashboards](dashboard.md)).
 
 Where plugins come from:
 

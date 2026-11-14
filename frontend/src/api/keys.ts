@@ -2,6 +2,7 @@
 export const qk = {
   me: ['me'] as const,
   dashboard: ['dashboard'] as const,
+  dashboardLayouts: ['dashboard', 'layouts'] as const,
   widget: (url: string) => ['widget', url] as const,
   plugins: ['plugins'] as const,
   inventory: (hidden: boolean) => ['inventory', { hidden }] as const,

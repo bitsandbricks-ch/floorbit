@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, Select, SimpleGrid, Stack, Table, Text, Title,
+  Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, Select, Stack, Table, Text, Title,
 } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -9,21 +9,12 @@ import { qk } from '@/api/keys'
 import type { WifiAp, WifiBand, WifiData, WifiRadio } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { StatCard } from '@/components/StatCard'
 import { channelColor, loadColor } from './wifi/colors'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/wifi.md'
 const RADIUS = 80   // an AP's circle on the plan, in plan units
 type Mode = 'load' | 'clients' | 'channels'
-
-function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Paper withBorder radius="lg" p="sm">
-      <Text size="xs" c="dimmed">{label}</Text>
-      <Text fw={700} size="xl">{value}</Text>
-      {sub && <Text size="xs" c="dimmed">{sub}</Text>}
-    </Paper>
-  )
-}
 
 function radioOn(ap: WifiAp, band: WifiBand): WifiRadio | undefined {
   return ap.radios.find((r) => r.band === band)
@@ -117,13 +108,15 @@ export default function Wifi() {
           <Alert color="gray" variant="light">{t('wifi.noPlugin')} <Anchor href={DOCS}>docs/wifi.md</Anchor></Alert>
         ) : (
           <>
-            <SimpleGrid cols={{ base: 2, sm: 4 }}>
-              <Figure label={t('wifi.clients')} value={num(d.clients)}
+            <div className="fb-stat-row">
+              <StatCard label={t('wifi.clients')} value={num(d.clients)}
                 sub={bands.map((b) => t('wifi.bandClients', { band: b, count: d.bands[b]!.clients })).join(' · ')} />
-              <Figure label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} sub={d.down.length ? t('wifi.down', { names: d.down.join(', ') }) : t('wifi.allUp')} />
-              <Figure label={t('wifi.busy')} value={num(d.busy.length)} sub={d.busy.join(', ') || t('wifi.busyNone', { pct: d.thresholds.busy })} />
-              <Figure label={t('wifi.overlaps')} value={num(d.overlaps.length)} sub={t('wifi.overlapsSub')} />
-            </SimpleGrid>
+              <StatCard label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'down' : 'up'}
+                sub={d.down.length ? t('wifi.down', { names: d.down.join(', ') }) : t('wifi.allUp')} />
+              <StatCard label={t('wifi.busy')} value={num(d.busy.length)} tone={d.busy.length ? 'warn' : undefined}
+                sub={d.busy.join(', ') || t('wifi.busyNone', { pct: d.thresholds.busy })} />
+              <StatCard label={t('wifi.overlaps')} value={num(d.overlaps.length)} tone={d.overlaps.length ? 'warn' : undefined} sub={t('wifi.overlapsSub')} />
+            </div>
             {d.drawing && d.aps.some((a) => a.on_plan) ? (
               <Paper withBorder radius="lg" p="md">
                 <Group justify="space-between" mb="sm" wrap="wrap">
