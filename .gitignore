@@ -68,3 +68,6 @@ gl-code-quality-report.json
 # The React app, built by `npm run build` in frontend/
 static/app/
 frontend/node_modules/
+
+# The documentation site (mkdocs build)
+/site/
