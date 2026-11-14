@@ -235,3 +235,11 @@ body {
 .fb-report-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-bit); }
 .fb-report-key.checked { background: var(--color-trace); }
 .fb-report-key.bar { background: color-mix(in srgb, var(--color-bit) 30%, transparent); }
+.fb-job-plan { width: 100%; height: auto; max-height: 55vh; background: var(--color-raised); border-radius: 10px; }
+.fb-job-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-job-plan .cell.hit { fill: var(--color-down); stroke: var(--color-down); }
+.fb-job-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-job-plan .target { fill: none; stroke: var(--color-down); stroke-width: 5; }
+.fb-job-plan .route { stroke: var(--color-trace); stroke-width: 5; stroke-dasharray: 14 10; stroke-linecap: round; }
+.fb-job-plan .you { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 4; }
+.fb-job-plan .you-label { fill: var(--color-trace); font: 700 30px var(--font-sans); text-anchor: middle; }

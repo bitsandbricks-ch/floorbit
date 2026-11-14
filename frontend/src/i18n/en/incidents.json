@@ -60,5 +60,15 @@
   "print": "Print",
   "qrNone": "No seats on the floor plan yet.",
   "qrCaption": "Problem? Scan for help",
-  "qrAlt": "QR code for seat {{seat}}"
+  "qrAlt": "QR code for seat {{seat}}",
+  "sendNearest": "Send to nearest tech",
+  "sentTo": "Sent to {{name}}.",
+  "onTheWay": "on the way",
+  "notSeenYet": "not seen yet",
+  "myJobs": "My jobs",
+  "crew": "On duty",
+  "crewNone": "Nobody is on duty.",
+  "crewJobs_one": "{{count}} job",
+  "crewJobs_other": "{{count}} jobs",
+  "crewFree": "free"
 }

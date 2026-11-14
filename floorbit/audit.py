@@ -70,6 +70,10 @@ ACTIONS = {
     ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
     ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
+    ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
+    ('POST', '/api/jobs/<incident_id>/take'): ('incidents', 'Took job'),
+    ('POST', '/api/jobs/<incident_id>/done'): ('incidents', 'Finished job'),
+    ('POST', '/api/jobs/<incident_id>/give-back'): ('incidents', 'Gave job back'),
     ('DELETE', '/api/settings/oidc/<provider_id>'): ('settings', 'Removed sign-in provider'),
     ('POST', '/api/stats/peak/reset'): ('settings', 'Reset the bandwidth peak'),
 }

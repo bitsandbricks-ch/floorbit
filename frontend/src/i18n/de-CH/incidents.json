@@ -60,5 +60,15 @@
   "print": "Drucken",
   "qrNone": "Noch keine Plätze auf dem Plan.",
   "qrCaption": "Problem? Scannen für Hilfe",
-  "qrAlt": "QR-Code für Platz {{seat}}"
+  "qrAlt": "QR-Code für Platz {{seat}}",
+  "sendNearest": "An nächsten Techniker senden",
+  "sentTo": "An {{name}} gesendet.",
+  "onTheWay": "unterwegs",
+  "notSeenYet": "noch nicht gesehen",
+  "myJobs": "Meine Aufträge",
+  "crew": "Im Dienst",
+  "crewNone": "Niemand ist im Dienst.",
+  "crewJobs_one": "{{count}} Auftrag",
+  "crewJobs_other": "{{count}} Aufträge",
+  "crewFree": "frei"
 }

@@ -48,3 +48,5 @@ Set **Public URL** (Settings › General, `PUBLIC_URL`) when Floorbit runs behin
 at the address attendees can reach.
 
 Every change (filed, changed, reported from a seat) goes to the audit log under **Incidents**.
+
+To send incidents to the nearest free tech and work them from a phone, see [dispatch](dispatch.md).
