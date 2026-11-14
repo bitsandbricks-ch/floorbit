@@ -97,6 +97,9 @@ Clicking a seat opens one panel with everything about it: state, block, switch a
 now, check-in, match zone, open incidents and needs-attention items, and links to the seat in the
 editor and to the incidents. On a phone it opens from the bottom.
 
+**Copy link** puts the page's address with this seat open on the clipboard (hall, filter and view
+included), to paste into the crew chat. It holds the seat number only, nothing about the player.
+
 **Link** shows the seat's port over the last 6 hours: a full green bar while it was up, a thin red
 one while it was down, and nothing before Floorbit's first read. Below it: since when the seat is
 online or offline and how often the link changed. It is built from the changes Floorbit already

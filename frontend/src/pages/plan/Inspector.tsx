@@ -1,7 +1,8 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
 import { IconExternalLink, IconMapPin } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
@@ -18,6 +19,7 @@ const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown
  *  seats.view, who sits there. */
 export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: () => void; onBlock?: (block: string) => void }) {
   const { t, i18n } = useTranslation()
+  const here = useLocation()
   const q = useQuery({ queryKey: qk.planSeat(seat), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seat)}`) })
   const d = q.data
   // Like the plan: a missing check-in is listed but not counted as a problem.
@@ -30,7 +32,17 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
     <Stack gap="sm" className="fb-inspector" aria-live="polite">
       <Group justify="space-between" wrap="nowrap">
         <Title order={2} size="h3">{t('plan.seat', { seat })}</Title>
-        <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
+        <Group gap={4} wrap="nowrap">
+          {/* The address already opens this seat, so the link is simply the page (issue #200). */}
+          <CopyButton value={`${window.location.origin}${here.pathname}${here.search}`} timeout={1500}>
+            {({ copied, copy }) => (
+              <Button variant="subtle" size="compact-sm" color={copied ? 'up' : undefined} onClick={copy}>
+                {copied ? t('plan.copied') : t('plan.copyLink')}
+              </Button>
+            )}
+          </CopyButton>
+          <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
+        </Group>
       </Group>
       {q.isPending && <Loader size="sm" aria-label={t('common.loading')} />}
       {q.error && <Alert color="down" role="alert">{t('common.error', { message: q.error.message })}</Alert>}

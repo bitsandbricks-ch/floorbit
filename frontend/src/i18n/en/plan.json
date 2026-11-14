@@ -51,6 +51,8 @@
     "note": "Crew note"
   },
   "seat": "Seat {{seat}}",
+  "copyLink": "Copy link",
+  "copied": "Copied",
   "close": "Close",
   "block": "Block",
   "port": "Switch port",

@@ -51,6 +51,8 @@
     "note": "Crew-Notiz"
   },
   "seat": "Platz {{seat}}",
+  "copyLink": "Link kopieren",
+  "copied": "Kopiert",
   "close": "Schliessen",
   "block": "Block",
   "port": "Switch-Port",

@@ -471,6 +471,16 @@ describe('Seats page', () => {
     expect(await option('Hall')).toHaveTextContent('Hall2/4 online · 1 with problems')
   })
 
+  it('copies a link to the open seat', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan/seats/D-2': details }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<FloorPlan />, '/plan?hall=main&show=offline&seat=D-2')
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy link' }))
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/plan?hall=main&show=offline&seat=D-2`)
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }
