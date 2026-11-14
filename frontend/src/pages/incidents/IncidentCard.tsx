@@ -42,6 +42,8 @@ export function IncidentCard({
   const where = i.seat ? t('incidents.seat', { seat: i.seat })
     : i.circuit_id ? t('incidents.circuit', { name: i.circuit_name ?? i.circuit_id })
     : t('incidents.switch', { name: i.switch_name ?? i.switch_id })
+  const planLink = i.seat ? `/plan?seat=${encodeURIComponent(i.seat)}`
+    : !i.circuit_id && i.switch_name ? `/plan?switch=${encodeURIComponent(i.switch_name)}` : null
   const snap = i.snapshot
   const assignable = (people?.[i.team ?? ''] ?? []).map((p) => ({ value: p.username, label: p.display_name }))
   const lastNote = i.notes[i.notes.length - 1]
@@ -54,7 +56,11 @@ export function IncidentCard({
           <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{ago(i.created_at, t)}</Text>
         </Group>
         <Group gap={6}>
-          <Badge variant="light" color="trace" tt="none">{where}</Badge>
+          {/* Seats and switches open on the Seats page, in their own hall (issue #206). */}
+          {planLink
+            ? <Badge component="a" href={planLink}
+                variant="light" color="trace" tt="none" style={{ cursor: 'pointer' }} title={t('incidents.openOnPlan')}>{where}</Badge>
+            : <Badge variant="light" color="trace" tt="none">{where}</Badge>}
           {i.match && <Badge color="warn" variant="filled" tt="none">{t('incidents.match', { zone: i.match })}</Badge>}
           {teamName ? <Badge variant="outline" tt="none">{teamName}</Badge> : <Badge variant="outline" color="warn" tt="none">{t('incidents.noTeam')}</Badge>}
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}

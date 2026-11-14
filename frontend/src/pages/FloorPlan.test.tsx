@@ -164,7 +164,7 @@ describe('Seats page', () => {
   })
 
   it('passes an axe check', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan?seat=D-2')
     expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
     // jsdom does no layout, so colour contrast is checked in the browser, not here.
@@ -297,7 +297,7 @@ describe('Seats page', () => {
   it('bounces the port and flags the seat for a tech', async () => {
     const tech = { enabled: true, user: { ...me.user, permissions: ['floorplan.view', 'ports.act', 'incidents.work'] } }
     const api = fakeFetch({
-      'GET /api/auth/me': tech, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details,
+      'GET /api/auth/me': tech, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details,
       'GET /api/ports': { available: true, needs_login: true, plugin: 'SSH' },
       'POST /api/ports/bounce': { ok: true, message: 'Gi1/0/2 on sw-d-01 bounced.' },
       'POST /api/incidents': { id: 'i2' },
@@ -322,7 +322,7 @@ describe('Seats page', () => {
     const set = vi.fn(async (c: object) => (prefs = { ...prefs, ...c }))
     window.floorNotify = { supported: () => true, permission: () => 'granted', set, settings: () => prefs }
     try {
-      vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+      vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details }).fn)
       renderWithApp(<FloorPlan />, '/plan?seat=D-2')
       fireEvent.click(await screen.findByRole('button', { name: 'Watch this seat' }))
       await waitFor(() => expect(set).toHaveBeenCalledWith({ watch: ['D-2'], on: true }))
@@ -335,7 +335,7 @@ describe('Seats page', () => {
   })
 
   it('offers no actions to a viewer', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details }).fn)
     renderWithApp(<FloorPlan />, '/plan?seat=D-2')
     expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bounce port' })).toBeNull()
@@ -346,7 +346,7 @@ describe('Seats page', () => {
     const noted = { ...data, seats: { ...data.seats, 'D-2': { ...data.seats['D-2'], note: true } } }
     const note = { text: 'Cable swapped at 14:20', by: 'Tia', at: 1_800_000_000 }
     const api = fakeFetch({
-      'GET /api/auth/me': me, 'GET /api/plan': noted, 'GET /api/plan/seats/D-2': { ...details, crew: true, note },
+      'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': noted, 'GET /api/plan/seats/D-2': { ...details, crew: true, note },
       'PUT /api/plan/seats/D-2/note': { note: null },
     })
     vi.stubGlobal('fetch', api.fn)
@@ -360,7 +360,7 @@ describe('Seats page', () => {
   })
 
   it('shows no note box without incidents.work', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details }).fn)
     renderWithApp(<FloorPlan />, '/plan?seat=D-2')
     expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add a note' })).toBeNull()
@@ -371,7 +371,7 @@ describe('Seats page', () => {
       { down_mbps: 480, up_mbps: 120, ping_ms: 4, at: 1_799_999_000 },
       { down_mbps: 12, up_mbps: 3, ping_ms: 40, at: 1_799_994_000 },
     ]
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': { ...details, crew: true, speedtests } }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': { ...details, crew: true, speedtests } }).fn)
     renderWithApp(<FloorPlan />, '/plan?seat=D-2')
     expect(await screen.findByText('480')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Ping (ms)' })).toBeInTheDocument()
