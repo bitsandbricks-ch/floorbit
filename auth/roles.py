@@ -226,6 +226,9 @@ RULES = (
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch', READ, 'incidents.assign'),
+    # Shift handover: the crew's summary, with names from the audit log (floorbit/handover.py).
+    ('/api/handover', None, 'incidents.work'),
+    ('/handover', READ, 'incidents.work'),
     # Port actions: the switch login is the tech's own, typed for each action (floorbit/ports.py).
     ('/api/ports', None, 'ports.act'),
     # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.

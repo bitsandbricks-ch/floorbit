@@ -71,5 +71,6 @@
   "crewJobs_one": "{{count}} job",
   "crewJobs_other": "{{count}} jobs",
   "crewFree": "free",
-  "match": "Match seat · {{zone}}"
+  "match": "Match seat · {{zone}}",
+  "handover": "Shift handover"
 }
