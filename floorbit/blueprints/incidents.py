@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, jsonify, render_template, reque
 from auth import roles, teams
 from integrations import events
 
-from .. import audit, incidents, runbooks, spa
+from .. import audit, incidents, runbooks, seat_notes, spa
 from ..store import load_data
 
 bp = Blueprint('incidents', __name__)
@@ -47,12 +47,16 @@ def _board_user():
     return user
 
 
-def _view(user, incident, match=None, books=None):
+def _view(user, incident, match=None, books=None, notes=None):
     book = runbooks.for_incident(incident, runbooks.all_runbooks() if books is None else books)
+    seat = incident.get('seat') or ''
+    # The seat's crew note (issue #204). Everyone on the board works incidents, which is what notes need.
+    note = (seat_notes.all_notes() if notes is None else notes).get(seat) if seat else None
     return {**incident, 'can_work': incidents.can_work(user, incident),
             'can_assign': incidents.can_assign(user, incident.get('team')),
-            'match': (match or {}).get(incident.get('seat') or ''),
-            'runbook': {'id': book['id'], 'title': book['title']} if book else None}
+            'match': (match or {}).get(seat),
+            'runbook': {'id': book['id'], 'title': book['title']} if book else None,
+            'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None}
 
 
 def _changed(incident, action):
@@ -86,10 +90,11 @@ def list_incidents():
     all_teams = teams.all_teams()
     match = match_seats()
     books = runbooks.all_runbooks()
+    notes = seat_notes.all_notes()
     # Match seats (issue #31) on top of each column; the board keeps the newest-first order otherwise.
     items = sorted(incidents.list_all(), key=lambda i: (i['status'] == 'fixed', not match.get(i.get('seat') or '')))
     return jsonify({
-        'incidents': [_view(user, i, match, books) for i in items],
+        'incidents': [_view(user, i, match, books, notes) for i in items],
         'teams': [{'id': t['id'], 'name': t['name'], 'depth': t['depth']} for t in teams.tree()],
         'workable_teams': sorted(incidents.workable_teams(user)),
         'assign_teams': sorted(t for t in all_teams if incidents.can_assign(user, t)),

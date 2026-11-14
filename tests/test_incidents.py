@@ -178,3 +178,12 @@ def test_board_changes_are_audited(client, floor):
     rows, _ = audit.read(area="incidents")
     assert [(r["action"], r["target"]) for r in rows] == [("Changed incident", "Cable cut"),
                                                           ("Filed incident", "Cable cut")]
+
+
+def test_board_shows_the_seat_s_crew_note(client, floor):
+    client.post("/api/incidents", json={"seat": "A-2", "title": "No link"})
+    client.post("/api/incidents", json={"seat": "A-3", "title": "Slow"})
+    client.put("/api/plan/seats/A-2/note", json={"text": "Cable swapped at 14:20"})
+    cards = {i["seat"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
+    assert cards["A-2"]["seat_note"]["text"] == "Cable swapped at 14:20" and cards["A-2"]["seat_note"]["at"]
+    assert cards["A-3"]["seat_note"] is None

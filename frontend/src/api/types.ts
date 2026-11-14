@@ -290,6 +290,8 @@ export interface Incident {
   can_assign: boolean
   /** The first runbook for this kind of incident (issue #102). */
   runbook?: { id: string; title: string } | null
+  /** The seat's crew note (issue #204). */
+  seat_note?: { text: string; by: string | null; at: number } | null
 }
 export interface IncidentBoard {
   incidents: Incident[]

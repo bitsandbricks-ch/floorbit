@@ -1,5 +1,5 @@
 import { Anchor, Badge, Button, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
-import { IconBook } from '@tabler/icons-react'
+import { IconBook, IconNote } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
@@ -76,6 +76,13 @@ export function IncidentCard({
             {t('incidents.speedtest', {
               down: mbit(i.speedtest.down_mbps), up: mbit(i.speedtest.up_mbps), ping: i.speedtest.ping_ms ?? '?', ago: ago(i.speedtest.at, t),
             })}
+          </Text>
+        )}
+        {i.seat_note && (
+          <Text size="sm" data-seat-note style={{ overflowWrap: 'anywhere' }}>
+            <IconNote size={14} color="var(--color-warn)" style={{ verticalAlign: -2, marginRight: 4 }} aria-hidden />
+            <Text span fw={600}>{t('incidents.seatNote')}</Text> {i.seat_note.text}{' '}
+            <Text span size="xs" c="dimmed">{[i.seat_note.by, ago(i.seat_note.at, t)].filter(Boolean).join(' · ')}</Text>
           </Text>
         )}
         {i.runbook && (

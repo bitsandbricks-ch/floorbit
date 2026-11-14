@@ -11,6 +11,9 @@ who has it, its notes and, for reports from a seat, what the network said about 
 The board refreshes on its own and as soon as anything changes. Open incidents also show on the
 floor plan as a red ring on the seat or switch, with a count next to **Incidents** in the top bar.
 
+An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
+with who wrote it and when, so whoever takes it knows what was already done there.
+
 Who can do what (permissions in [auth.md](auth.md)):
 
 | Action | Needs |
