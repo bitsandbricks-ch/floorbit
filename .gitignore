@@ -45,6 +45,8 @@ data.json
 checkins.json
 audit.jsonl
 plugins.json
+# ...but not the React app's translation files of the same name
+!frontend/src/i18n/**/*.json
 state/
 static/uploads/
 *.log
@@ -61,3 +63,7 @@ gl-code-quality-report.json
 *.pem
 *.key
 .claude/settings.local.json
+
+# The React app, built by `npm run build` in frontend/
+static/app/
+frontend/node_modules/

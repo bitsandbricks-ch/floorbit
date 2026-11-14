@@ -35,6 +35,8 @@ DEMO_BLOCKS = [
 USER = os.environ.get("SCREENSHOT_USER") or os.environ.get("AUTH_ADMIN_USER", "")
 PASSWORD = os.environ.get("SCREENSHOT_PASSWORD") or os.environ.get("AUTH_ADMIN_PASSWORD", "")
 PAGES["users"] = "/settings/users"
+PAGES["plugins"] = "/settings/plugins"
+PAGES["dashboard"] = "/dashboard"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 

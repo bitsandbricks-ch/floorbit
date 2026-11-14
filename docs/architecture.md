@@ -47,7 +47,32 @@ Blueprints never call the NetBox or LibreNMS API modules themselves. They ask:
 keeps other NMSs possible. Not yet behind it: the status monitor and the check-in MAC lookup in
 `integrations/` still call LibreNMS themselves; moving them is a follow-up.
 
-## Browser (`static/`)
+## Browser
+
+The browser side is moving to React one page at a time (issue #46).
+
+### React app (`frontend/`)
+
+React 19, TypeScript, Mantine and TanStack Query, built with Vite, set up like Hubra's
+`app/frontend`. `npm run build` writes it to `static/app/` (not committed; the Docker image builds
+it). Flask stays the JSON API and serves the pages: a route that moved to React returns
+`spa.render(title)` from `floorbit/spa.py`, which renders `templates/spa.html` with the theme head
+and the asset tags from Vite's manifest. So the preset, colours and light/dark from the server
+apply before React paints, and sign-in and roles are checked by Flask as for any page.
+
+- `src/pages/`: one file per page, loaded lazily. Routes are in `src/App.tsx`.
+- `src/api/`: the fetch client (same origin, cookie session; a 401 goes to the sign-in page),
+  the response types and the TanStack Query hooks. Query keys live in `src/api/keys.ts`.
+- `src/theme.ts`: Mantine on top of the design tokens, as CSS variables, so themes need no rebuild.
+- `src/i18n/`: texts per feature, in English (`en`) and Swiss German (`de-CH`); a test checks both
+  have the same keys.
+- `src/widgets/`: draws plugin widgets. Everything a plugin returns is shown as text; ESLint
+  refuses `dangerouslySetInnerHTML`.
+
+Moved so far: `/dashboard`, `/settings/plugins`. Without a build these answer 503 with the steps
+to make one.
+
+### Older pages (`static/`)
 
 Plain JavaScript and CSS, no build step.
 

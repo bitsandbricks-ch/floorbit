@@ -16,8 +16,9 @@ users: [README.md](README.md).
 | `floorbit/` | The Flask app. `blueprints/` has one module per area of the API; `sources/` is the only code that talks to NetBox and LibreNMS. See `docs/architecture.md`. |
 | `integrations/` | Live updates, status monitor, Discord, seat sources, check-in. See `docs/integrations.md`. |
 | `auth/` | Sign-in: accounts in `data.json`, the request guard, login providers. See `docs/auth.md`. |
-| `templates/` | Jinja pages. |
-| `static/js/`, `static/css/` | The browser app (plain JavaScript and CSS, no build step). The editor is split by feature in `static/js/editor/` (load order in its README). |
+| `frontend/` | The React app (React, TypeScript, Mantine, TanStack Query, Vite), set up like Hubra's. Pages move into it one at a time; Flask serves it through `templates/spa.html` (`floorbit/spa.py`). See `frontend/README.md`. |
+| `templates/` | Jinja pages (the ones not moved to React yet). |
+| `static/js/`, `static/css/` | The older pages' scripts and styles (plain JavaScript and CSS, no build step). The editor is split by feature in `static/js/editor/` (load order in its README). |
 | `changelog.d/` | Changelog fragments, one per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests against the Flask test client, with a fake Redis. |
@@ -32,7 +33,8 @@ users: [README.md](README.md).
    - `pip install -r requirements.txt -r requirements-dev.txt`
    - `ruff check .`
    - `pytest -q`
-   - `find static -name '*.js' -exec node --check {} \;`
+   - `find static -path static/app -prune -o -name '*.js' -exec node --check {} \;`
+   - in `frontend/`: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
    - `docker build .`
 3. **Pull request:** open it as a **draft** and fill in the template
    (`.github/pull_request_template.md`). Link the issue.
@@ -66,7 +68,8 @@ users: [README.md](README.md).
   `${{ github.* }}` text that users control (branch names, PR titles) through `env:`, never pasted into
   a `run:` script. Pin actions to a major version tag (`actions/checkout@v4`).
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
-- **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new editor
+- **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
+  `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
   feature is a new file in `static/js/editor/`. NetBox and LibreNMS calls go through
   `floorbit.sources`, never straight from a blueprint. Nothing names one particular event:
   event names, branding and hosts are settings.

@@ -9,9 +9,9 @@ Who may do what:
 - Widgets and endpoints: a signed-in account with the role they name (viewer by default). They
   are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
 """
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, request
 
-from .. import audit
+from .. import audit, spa
 from ..plugins import SETTING_TYPES, PluginError
 
 bp = Blueprint('plugins', __name__)
@@ -82,7 +82,7 @@ def _params(action, body):
 
 @bp.route('/settings/plugins')
 def plugins_page():
-    return render_template('plugins.html')
+    return spa.render('Plugins')
 
 
 @bp.route('/api/settings/plugins', methods=['GET'])
@@ -191,7 +191,7 @@ def endpoint(plugin_id, endpoint_id):
 
 @bp.route('/dashboard')
 def dashboard_page():
-    return render_template('dashboard.html')
+    return spa.render('Dashboard')
 
 
 @bp.route('/api/dashboard', methods=['GET'])

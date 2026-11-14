@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+{#- The React app's page (frontend/, see floorbit/spa.py). The theme head comes first, as on every
+    page, so the preset and light/dark are set before the app paints. -#}
+<html lang="en" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  {% if assets %}
+  {% for href in assets.css %}<link rel="stylesheet" href="{{ href }}" />
+  {% endfor %}
+  {% for src in assets.js %}<script type="module" src="{{ src }}"></script>
+  {% endfor %}
+  {% endif %}
+</head>
+<body>
+  <div id="root">
+    {% if not assets %}
+    <main style="max-width:640px;margin:48px auto;padding:0 16px;font-family:var(--font-sans);color:var(--color-fg)">
+      <h1>{{ title }}</h1>
+      <p>This page is part of Floorbit's React app, which isn't built on this server yet.
+        Run <code>npm ci &amp;&amp; npm run build</code> in <code>frontend/</code>, or use the Docker image,
+        which ships it built.</p>
+      <p><a href="/">Back to the floor plan</a></p>
+    </main>
+    {% endif %}
+  </div>
+</body>
+</html>
