@@ -73,3 +73,6 @@ frontend/node_modules/
 
 # The documentation site (mkdocs build)
 /site/
+
+# A local redis-server started inside the repo writes its snapshot here.
+dump.rdb
