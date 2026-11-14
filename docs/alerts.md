@@ -34,6 +34,7 @@ it saw last time:
 | Errors | the error counters (in and out) grew by `ATTENTION_ERRORS` (10) or more since the last read |
 | Duplex | a port that is up runs at half duplex: usually a bad cable or a forced speed setting |
 | Check-in | with [check-in](integrations.md#seat-check-in-page) on, a seat's port is up while nobody checked in at that seat |
+| Log | with the [syslog receiver](syslog.md#log-alerts) on, a line about err-disable, port security, DHCP snooping, MAC flapping, a loop, storm control or a spanning tree change |
 
 A port belongs to a seat when its description (ifAlias) names the seat, such as `Seat A-12` or
 `A-12 desk`; **Open** then goes to that seat on the floor plan, otherwise to the switch

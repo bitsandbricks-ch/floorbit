@@ -29,7 +29,7 @@ from datetime import datetime
 
 from integrations import config
 
-from . import features, inventory, store
+from . import features, inventory, log_alerts, store
 
 MAX_LINE = 2048
 SEVERITIES = ('emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug')
@@ -130,6 +130,7 @@ class SyslogReceiver:
         self._allow_cache = (0, [], {})
         self.port_seats = lambda: {}
         self._seats_seen, self._seats_index = None, {}
+        self.alerts = log_alerts.LogAlerts()
         self.listening = None
         self.error = None
         self.demo = False
@@ -269,6 +270,7 @@ class SyslogReceiver:
             self.counts['kept'] += 1
             self._trim(now)
         self._write(line)
+        self.alerts.observe(line, now)
         return line
 
     def _seat_index(self):
@@ -320,6 +322,21 @@ class SyslogReceiver:
             if len(out) >= limit:
                 break
         return out
+
+    def markers(self, devices, now=None, minutes=10):
+        with self._lock:
+            lines = list(self.lines)
+        self._fill_seats(lines)
+        return log_alerts.markers(lines, devices, now=now, minutes=minutes)
+
+    def alert_items(self, now=None):
+        """Log alerts, with the seat filled in once the port watch knows it."""
+        items = self.alerts.snapshot(now)
+        index = self._seat_index()
+        for item in items:
+            if item['port'] and not item['seat']:
+                item['seat'] = index.get((item['device'].lower(), item['port']))
+        return items
 
     def status(self):
         with self._lock:
@@ -399,6 +416,11 @@ def demo_lines(now):
         out.append(('sw-a-01', '<187>%DHCP_SNOOPING-3-DHCP_SNOOPING_UNTRUSTED_PORT: DHCP_SNOOPING drop message '
                                'on untrusted port, message type: DHCPOFFER, MAC sa: 0200.0000.0007, '
                                'vlan: 100, port: Gi1/0/7'))
+    if minute % 7 == 0:
+        out.append(('sw-b-01', '<188>%PM-4-ERR_DISABLE: bpduguard error detected on Gi1/0/3, putting Gi1/0/3 in '
+                               'err-disable state'))
+    if minute % 6 == 0:
+        out.append(('dist-01', '<189>%SPANTREE-5-TOPOTRAP: Topology Change Trap for vlan 100'))
     if minute % 5 == 0:
         out.append(('dhcp-01', '<30>dhcpd[812]: DHCPACK on 192.0.2.40 to 02:00:00:00:00:1e via eth1'))
     out.append(('fw-01', f'<134>filterlog[5512]: 5,,,1000000103,igb1,match,block,in,4,0x0,,64,{minute % 65000},0,'

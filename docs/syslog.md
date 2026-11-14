@@ -83,6 +83,31 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
 - The line above the list says whether the receiver is listening, how many lines are kept and how
   many were dropped.
 
+## Log alerts
+
+Some lines mean a seat or a switch needs a look. Floorbit knows these patterns, from Cisco IOS and
+the words other vendors use:
+
+| Pattern | Matches |
+| --- | --- |
+| Port shut down by the switch (err-disable) | `ERR_DISABLE`, `err-disable` |
+| Port security violation | `PSECURE_VIOLATION`, `PORT_SECURITY` |
+| DHCP snooping dropped packets | `DHCP_SNOOPING` |
+| MAC address moving between ports | `MACFLAP`, `MAC_MOVE`, "flapping between port" |
+| Loop detected | `LOOP_DETECT`, `LOOP_BACK_DETECTED`, "loop detected" |
+| Storm control | `STORM_CONTROL` |
+| Spanning tree topology change | `SPANTREE`, `TOPOLOGY_CHANGE`, "topology change" |
+
+A matching line becomes a **needs-attention** item on the Problems page, with the switch, port and
+seat. **A flood is one item:** more lines with the same pattern from the same device and port add to
+its count ("12 lines") until it has been quiet for `LOG_ALERT_MINUTES` (15); then it clears. The
+item links to the Logs page filtered to that seat or device (or to the floor plan for accounts
+without `seats.view`). The item names the pattern, never the line, so it can be shown to everyone
+who sees the Problems page. A new item also sends the `logs.alert` [webhook](api.md#webhooks).
+
+**On the floor plan**, seats and switches with warnings or worse in the last 10 minutes get a cyan
+underline, for accounts with `seats.view` while the receiver runs.
+
 ## Settings
 
 | Variable | Default | What it does |
@@ -97,6 +122,7 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
 | `SYSLOG_MAX_LINES` | `50000` | Lines kept in memory (at least 100). |
 | `SYSLOG_MAX_MB` | `100` | Megabytes kept on disk. |
 | `SYSLOG_RETENTION_HOURS` | `24` | Hours lines are kept. |
+| `LOG_ALERT_MINUTES` | `15` | Minutes without a matching line before a log alert clears. |
 | `SYSLOG_PUBLISH_PORT` | `514` | Docker Compose only: the host port mapped to the receiver. |
 
 ## API
@@ -105,6 +131,9 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
 `seat`, `port`, `severity` (the least severe level to show), `after` (only lines newer than this id,
 for following along), `before` (only older, for paging) and `limit` (1 to 1000, 200 by default).
 Needs `seats.view`.
+
+`GET /api/logs/alerts` lists the current log alerts, and `GET /api/logs/markers` the warnings of the
+last 10 minutes counted per seat and per switch (what the floor plan shows). Both need `seats.view`.
 
 ```json
 {
@@ -123,4 +152,4 @@ Needs `seats.view`.
 
 With `FLOORBIT_DEMO=1` the app makes up lines from the demo hall itself (no receiver needed): the
 loose cable on seat C-9 going down and up, a MAC flapping between two ports, DHCP snooping drops,
-DHCP leases and firewall blocks. The receiver stays off unless `SYSLOG_ENABLED` is set.
+DHCP leases, a port in err-disable, spanning tree changes and firewall blocks. The receiver stays off unless `SYSLOG_ENABLED` is set.

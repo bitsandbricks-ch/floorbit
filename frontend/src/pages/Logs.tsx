@@ -3,6 +3,7 @@ import { useMediaQuery } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { SyslogLine, LogSeverity, LogStatus, LogsData } from '@/api/types'
@@ -110,7 +111,12 @@ function Compact({ line, onDevice }: { line: SyslogLine; onDevice: (d: string) =
  *  follow along. Lines name MACs and IPs, so the page needs seats.view like the API. */
 export default function Logs() {
   const { t } = useTranslation()
-  const [filters, setFilters] = useState<Filters>(EMPTY)
+  // Links from Problems and elsewhere open the page filtered: /logs?seat=A-4.
+  const [search] = useSearchParams()
+  const [filters, setFilters] = useState<Filters>(() => ({
+    q: search.get('q') ?? '', device: search.get('device') ?? '', seat: search.get('seat') ?? '',
+    port: search.get('port') ?? '', severity: SEVERITIES.includes(search.get('severity') as LogSeverity) ? search.get('severity')! : '',
+  }))
   const [live, setLive] = useState(true)
   // Older pages belong to the filters they were read with; new filters start from the newest again.
   const [older, setOlder] = useState<{ key: string; lines: SyslogLine[]; more: boolean }>({ key: '', lines: [], more: true })

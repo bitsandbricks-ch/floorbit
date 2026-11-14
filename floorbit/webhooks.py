@@ -34,7 +34,7 @@ NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}$')
 # The events a hook can pick, in the order the settings page lists them.
 EVENTS = ('switch.down', 'switch.up', 'monitoring.offline', 'monitoring.online', 'incident.opened',
           'incident.changed', 'seat.checked_in', 'security.finding', 'power.alert', 'health.changed',
-          'forecast.alert')
+          'forecast.alert', 'logs.alert')
 
 _lock = threading.Lock()
 _queue = collections.deque()          # jobs waiting to be sent
@@ -164,6 +164,8 @@ def translate(event):
         return [(kind, {'changes': data.get('changes') or []})]
     if kind == 'forecast.alert':
         return [(kind, {k: data.get(k) for k in ('t', 'bps', 'pct', 'capacity_bps')})]
+    if kind == 'logs.alert':   # the pattern and where, never the line: it can name MACs and IPs
+        return [(kind, {k: data.get(k) for k in ('id', 'pattern', 'title', 'device', 'port', 'seat')})]
     return []
 
 
