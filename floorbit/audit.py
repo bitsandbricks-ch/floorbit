@@ -38,8 +38,11 @@ ACTIONS = {
     ('DELETE', '/api/users/<username>'): ('accounts', 'Deleted account'),
     ('DELETE', '/api/checkins/<seat>'): ('check-in', 'Removed check-in'),
     ('POST', '/api/checkins/refresh'): ('check-in', 'Refreshed check-ins'),
+    ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
 }
-AREAS = ('floor plan', 'settings', 'accounts', 'check-in', 'sign-in')
+AREAS = ('floor plan', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins')
+# Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
+listeners = []
 
 
 def path():
@@ -154,5 +157,10 @@ def init_audit(app):
             fields = _changed_fields() if request.method in ('PUT', 'PATCH') else None
             if rule == '/api/settings/backup':
                 fields = None
-            record(area, action, user=user, target=_target(response), fields=fields)
+            entry = record(area, action, user=user, target=_target(response), fields=fields)
+            for listener in listeners:
+                try:
+                    listener(entry)
+                except Exception as exc:  # noqa: BLE001  # a listener must never break the request
+                    print(f'[audit] listener failed: {exc}')
         return response

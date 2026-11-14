@@ -44,6 +44,7 @@ env/
 data.json
 checkins.json
 audit.jsonl
+plugins.json
 state/
 static/uploads/
 *.log

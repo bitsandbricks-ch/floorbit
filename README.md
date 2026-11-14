@@ -34,6 +34,8 @@ each seat is plugged into.
   tokens or accounts. See [docs/backup.md](docs/backup.md).
 - **Audit log:** who changed what and when, and every sign-in, under Settings. See
   [docs/audit.md](docs/audit.md).
+- **Plugins and dashboard:** plugins add actions, dashboard tiles, endpoints and hooks, each
+  limited to the areas it lists. Floorbit ships an HTTP check. See [docs/plugins.md](docs/plugins.md).
 - **Cache:** LibreNMS answers are cached in Redis (5 minutes by default), so a busy hall doesn't hammer
   the API.
 
@@ -70,6 +72,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `FLOORBIT_THEME` | `floorbit` | Site theme: `floorbit`, `ops`, `kiosk`, `classic` or `custom` ([docs/themes.md](docs/themes.md)). |
 | `FLOORBIT_EVENT_NAME` | empty | Event name in the top bar and on the kiosk. |
 | `AUDIT_FILE` | next to `data.json` | Where the audit log is kept ([docs/audit.md](docs/audit.md)). |
+| `PLUGINS_FILE` | next to `data.json` | Which plugins are on, and their state ([docs/plugins.md](docs/plugins.md)). |
 | `SECRET_KEY` | generated | Signs the session cookie. Empty: generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |
 | `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |

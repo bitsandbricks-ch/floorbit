@@ -55,6 +55,7 @@ services:
       - CHECKIN_ADMIN_TOKEN=${CHECKIN_ADMIN_TOKEN:-}
       - CHECKIN_FILE=${CHECKIN_FILE:-/app/state/checkins.json}
       - AUDIT_FILE=${AUDIT_FILE:-/app/state/audit.jsonl}   # Settings > Audit log, docs/audit.md
+      - PLUGINS_FILE=${PLUGINS_FILE:-/app/state/plugins.json}   # which plugins are on, and their state
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_DB=${REDIS_DB:-0}
