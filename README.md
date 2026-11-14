@@ -68,6 +68,8 @@ each seat is plugged into.
 - **Past events:** close an event to keep it with its report and floor plan, start the next one from
   it, and compare events side by side (attendance, bandwidth, incidents, time to fix). See
   [docs/events.md](docs/events.md).
+- **API tokens:** scripts and other tools use the same API as the pages, with a token that has a role,
+  is read-only by default and can expire. See [docs/api.md](docs/api.md).
 - **Shift handover:** what happened since the last handover, what is still open, and a note for the
   next shift, optionally posted to Discord. See [docs/handover.md](docs/handover.md).
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is
