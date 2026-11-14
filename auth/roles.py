@@ -226,6 +226,9 @@ RULES = (
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch', READ, 'incidents.assign'),
+    # Build planner: the configs are the network's design (floorbit/planner.py).
+    ('/api/planner', None, 'floorplan.edit'),
+    ('/planner', READ, 'floorplan.edit'),
     # Shift handover: the crew's summary, with names from the audit log (floorbit/handover.py).
     ('/api/handover', None, 'incidents.work'),
     ('/handover', READ, 'incidents.work'),
