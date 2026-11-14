@@ -50,6 +50,8 @@ each seat is plugged into.
 - **Electrics:** distribution boards and the circuits they feed (rows, seat blocks, switches), the load
   on each from typed-in or metered readings, and an incident for the Electrics team before a breaker
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).
+- **Phones and tablets:** tap, drag and pinch on the floor plan, search in a drawer and details in a
+  bottom sheet, so a tech on the floor can look up a seat or switch. See [docs/mobile.md](docs/mobile.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
   permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
   viewers and kiosk screens.

@@ -14,6 +14,10 @@
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
     <header class="topbar">
+      <button class="btn btn-ghost btn-icon sidebar-toggle" id="btn-sidebar" type="button" aria-controls="sidebar"
+              aria-expanded="false" aria-label="Search and layers" title="Search and layers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div class="topbar-brand">
         {% include "_brand.html" %}
       </div>
@@ -123,7 +127,7 @@
     <div class="main-layout">
 
       <!-- ── Sidebar ───────────────────────────────────────────────────── -->
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar">
 
         <!-- Universal Search -->
         <section class="sidebar-section">
@@ -799,6 +803,7 @@
   <script src="/static/js/editor/security.js"></script>
   <script src="/static/js/editor/power.js"></script>
   <script src="/static/js/editor/problems.js"></script>
+  <script src="/static/js/editor/touch.js"></script>
   <script src="/static/js/editor/ports.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>
