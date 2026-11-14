@@ -1,6 +1,6 @@
 """Backup and restore of the floor plan and settings (Settings > Backup).
 
-A backup holds what took work to set up: switch positions, manual switches, seat blocks and the
+A backup holds what took work to set up: the inventory (devices and where they are placed), seat blocks and the
 saved settings, including the theme and event logo. It never holds secrets (API tokens, webhook
 URLs, the session key) or accounts, so it is safe to keep on a laptop or share with another orga
 team, and restoring one can't lock anybody out. Check-ins are personal data and stay out too.
@@ -10,7 +10,7 @@ import time
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from .. import runtime, store
+from .. import inventory, runtime, store
 from ..settings import FIELDS_BY_KEY, check_changes
 
 bp = Blueprint('backup', __name__)
@@ -18,7 +18,9 @@ bp = Blueprint('backup', __name__)
 FORMAT = 'floorbit-backup'
 FORMAT_VERSION = 1
 # The parts of data.json a backup carries. Everything else (accounts, the session key) stays put.
-LAYOUT_KEYS = ('switches', 'cached_devices', 'positions', 'seats', 'seat_blocks')
+LAYOUT_KEYS = ('inventory', 'seats', 'seat_blocks')
+# Backups from before the inventory: still restored, moved over like data.json is.
+OLD_LAYOUT_KEYS = ('switches', 'cached_devices', 'positions')
 MAX_BYTES = 8 * 1024 * 1024
 
 
@@ -32,6 +34,7 @@ def _secret_keys():
 
 
 def make_backup(data):
+    inventory.migrate(data)
     secrets = _secret_keys()
     settings = {k: v for k, v in (data.get('app_settings') or {}).items()
                 if k in FIELDS_BY_KEY and k not in secrets}
@@ -62,12 +65,18 @@ def validate(backup):
     layout, settings = backup.get('layout'), backup.get('settings')
     if not isinstance(layout, dict) or not isinstance(settings, dict):
         raise BackupError('The backup has no "layout" or "settings" section')
-    unknown = sorted(set(layout) - set(LAYOUT_KEYS))
+    unknown = sorted(set(layout) - set(LAYOUT_KEYS) - set(OLD_LAYOUT_KEYS))
     if unknown:
         raise BackupError(f'Unknown layout part(s): {", ".join(unknown)}')
     for key in ('switches', 'cached_devices', 'seat_blocks'):
         if key in layout:
             _check_list(key, layout[key])
+    if 'inventory' in layout:
+        _check_list('inventory', layout['inventory'], required=('id', 'name'))
+        try:
+            layout['inventory'] = [inventory.normalize(d) for d in layout['inventory']]
+        except inventory.InventoryError as exc:
+            raise BackupError(f'An inventory entry is not valid: {exc}') from None
     if 'seats' in layout:
         _check_list('seats', layout['seats'], required=())
     if 'positions' in layout and not isinstance(layout['positions'], dict):
@@ -88,14 +97,23 @@ def restore(data, backup, settings_store):
     skipped = sorted(k for k in backup['settings'] if k not in settings)
     check_changes(settings)   # a bad value stops the restore before anything is written
 
-    for key in LAYOUT_KEYS:
-        data[key] = layout.get(key, {} if key == 'positions' else [])
+    parts = {k: layout[k] for k in (*OLD_LAYOUT_KEYS, 'inventory') if k in layout}
+    if 'inventory' in parts:
+        for key in OLD_LAYOUT_KEYS:
+            parts.pop(key, None)
+    inventory.migrate(parts)
+    data['inventory'] = parts['inventory']
+    for key in OLD_LAYOUT_KEYS:
+        data.pop(key, None)
+    for key in ('seats', 'seat_blocks'):
+        data[key] = layout.get(key, [])
     store.save_data(data)
     if settings:
         settings_store.update(settings)
     runtime.apply(settings_store)
     return {
-        'restored': {k: len(layout.get(k, [])) for k in LAYOUT_KEYS},
+        'restored': {'inventory': len(data['inventory']),
+                     **{k: len(layout.get(k, [])) for k in ('seats', 'seat_blocks')}},
         'settings': len(settings),
         'skipped_settings': skipped,
     }

@@ -18,8 +18,9 @@ each seat is plugged into.
 ## What it does
 
 - **Floor plan:** place, move and rename switches and seat blocks.
-- **NetBox:** the switch list comes from NetBox (devices with the roles in `NETBOX_DEVICE_ROLE`);
-  you only place them. Manual switches work with or without NetBox.
+- **Inventory:** every switch, access point and other device, added by hand or fed by NetBox
+  (devices with the roles in `NETBOX_DEVICE_ROLE`). What you change by hand is never overwritten by
+  a sync. See [docs/inventory.md](docs/inventory.md).
 - **LibreNMS:** live status and port counts per switch, and the ARP and MAC tables that resolve a
   seat's IP to its switch and port.
 - **Seats:** `seats.json` maps seat numbers to IPs and usernames. The heat map colours each seat by
@@ -62,7 +63,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `NETBOX_URL`, `NETBOX_TOKEN` | empty | NetBox API. Both set turns the NetBox switch list on. |
+| `NETBOX_URL`, `NETBOX_TOKEN` | empty | NetBox API, read by the built-in NetBox plugin to fill the inventory. |
 | `NETBOX_DEVICE_ROLE` | `access-switch` | Device role slugs to show, comma separated. |
 | `NETBOX_VERIFY_SSL` | `true` | `false` accepts a self-signed certificate. |
 | `LIBRENMS_URL`, `LIBRENMS_TOKEN` | empty | LibreNMS API. Both set turns status, ports and seat resolving on. |
@@ -102,7 +103,7 @@ docker build .
 | Path | What lives there |
 | --- | --- |
 | `app.py` | Entry point; the app itself is built by `create_app()` in `floorbit/`. |
-| `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `sources/` (NetBox, LibreNMS), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
+| `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `inventory.py` (the device list), `sources/` (LibreNMS), `builtin_plugins/` (NetBox, HTTP check), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
 | `integrations/` | Live updates, switch monitor, Discord alerts, seat sources, check-in. |
 | `auth/` | Sign-in: accounts, sessions, the login page and the login providers (password, Discord). |
 | `frontend/` | The React app (TypeScript, Mantine). The dashboard and Settings > Plugins are in it so far; the other pages follow. See [frontend/README.md](frontend/README.md). |

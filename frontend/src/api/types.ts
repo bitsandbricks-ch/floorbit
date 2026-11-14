@@ -90,3 +90,48 @@ export interface LogLine {
   time: string
   line: string
 }
+
+export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes'] as const
+export type InventoryField = (typeof INVENTORY_FIELDS)[number]
+
+export interface Device extends Record<InventoryField, string> {
+  id: string
+  x: number | null
+  y: number | null
+  placed: boolean
+  origin: string
+  hidden: boolean
+  updated_at: string
+  sources: string[]
+  locked: InventoryField[]
+  gone: string[]
+  fed: Record<string, Partial<Record<InventoryField, string>>>
+}
+
+export interface SyncReport {
+  plugin: string
+  at: string
+  error?: string
+  received?: number
+  skipped?: number
+  added?: number
+  updated?: number
+  unchanged?: number
+  joined?: number
+  locked?: number
+  gone?: number
+  back?: number
+}
+
+export interface InventorySource {
+  id: string
+  name: string
+  last_sync: SyncReport | null
+}
+
+export interface InventoryList {
+  devices: Device[]
+  sources: InventorySource[]
+  roles: string[]
+  fields: InventoryField[]
+}

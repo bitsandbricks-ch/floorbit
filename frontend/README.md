@@ -34,3 +34,5 @@ npm run build        # writes ../static/app/, which Flask serves
 - Colours come from the design tokens (`var(--color-...)`), never hex values, so themes work.
 - Text from the API or a plugin is shown as text. No `dangerouslySetInnerHTML` (ESLint refuses it).
 - Query keys come from `src/api/keys.ts`.
+- Added a translation file and the tests don't see it? Vitest caches transforms: delete
+  `node_modules/.vitest-cache`.

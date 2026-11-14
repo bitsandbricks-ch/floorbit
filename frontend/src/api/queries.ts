@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
-import type { LogLine, Me, PluginInfo, Tile, Widget, WidgetTile } from './types'
+import type { InventoryList, LogLine, Me, PluginInfo, Role, Tile, Widget, WidgetTile } from './types'
 
 export function useMe() {
   return useQuery({ queryKey: qk.me, queryFn: () => get<Me>('/api/auth/me'), staleTime: 60_000 })
@@ -30,5 +30,21 @@ export function usePluginLog(id: string, enabled: boolean) {
     queryKey: qk.pluginLog(id),
     queryFn: () => get<{ lines: LogLine[] }>(`/api/settings/plugins/${encodeURIComponent(id)}/log`),
     enabled,
+  })
+}
+
+/** Editors and admins may change things; everyone may when sign-in is off. */
+export function useCanEdit(needed: Role = 'editor') {
+  const me = useMe().data
+  if (!me) return false
+  if (!me.enabled) return true
+  const order: Role[] = ['viewer', 'editor', 'admin']
+  return !!me.user && order.indexOf(me.user.role) >= order.indexOf(needed)
+}
+
+export function useInventory(hidden: boolean) {
+  return useQuery({
+    queryKey: qk.inventory(hidden),
+    queryFn: () => get<InventoryList>(`/api/inventory${hidden ? '?hidden=1' : ''}`),
   })
 }

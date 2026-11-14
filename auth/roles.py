@@ -25,7 +25,7 @@ LEGACY_ROLE = 'admin'
 # Paths below these need an admin, whatever the method.
 ADMIN_PATHS = ('/settings', '/api/settings', '/api/users', '/api/integrations')
 # Reads with personal data (who sat where, IPs, MACs): editors and up, never public.
-EDITOR_PATHS = ('/api/checkins', '/checkins')
+EDITOR_PATHS = ('/api/checkins', '/checkins', '/api/inventory/log')
 
 
 class RoleError(ValueError):

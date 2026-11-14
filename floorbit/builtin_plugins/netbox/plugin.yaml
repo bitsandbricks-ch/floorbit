@@ -1,0 +1,13 @@
+# Feeds the inventory from NetBox: devices with the configured roles. Ships with Floorbit and
+# is on by default; it does nothing until NetBox's URL and token are set (Settings > NetBox).
+id: netbox
+name: NetBox
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Adds the devices with the configured roles from NetBox to the inventory (name, role, model, serial, management IP, site and status). Fields changed by hand in Floorbit stay as they are."
+author: Floorbit
+homepage: https://netbox.dev
+uses: [http, inventory]
+default_enabled: true
+# Settings > NetBox (netbox.url, NETBOX_URL, ...), as before the plugin existed.
+core_settings: netbox

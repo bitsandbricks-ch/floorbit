@@ -48,7 +48,11 @@ AREAS = {
     'hooks':     'run an action when something changes in Floorbit',
     'http':      'outgoing HTTP requests',
     'storage':   'a small private state (64 KB)',
+    'inventory': 'sends devices into the inventory (it never deletes; hand edits win)',
 }
+# Builtin plugins only: on until an admin turns them off, and settings kept under a core section
+# (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working.
+BUILTIN_ONLY = ('default_enabled', 'core_settings')
 # Manifest setting types and the settings page type each becomes.
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
                  'int': 'int', 'select': 'choice', 'list': 'list'}
@@ -186,6 +190,10 @@ def _check_methods(spec):
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
     allowed |= {'test'}
+    if 'inventory' in spec.uses:
+        allowed.add('inventory')
+    elif callable(getattr(cls, 'inventory', None)):
+        return 'plugin.py: inventory() needs "inventory" under uses:'
     for name in dir(cls):
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
@@ -213,6 +221,10 @@ def _load(path, trust, current_version):
     spec.id = str(spec.manifest.get('id', path.name)) if isinstance(spec.manifest, dict) else path.name
     spec.error = validate(spec.manifest)
     if spec.error:
+        return spec
+    extra = [k for k in BUILTIN_ONLY if spec.manifest.get(k)]
+    if extra and trust != 'builtin':
+        spec.error = f"{', '.join(extra)}: only for plugins that ship with Floorbit"
         return spec
     ok, why = compatible(spec.manifest.get('floorbit'), current_version)
     if not ok:
@@ -297,8 +309,15 @@ class Registry:
                 settings_module.FIELDS_BY_KEY[key] = field_def
         self.settings_store.reload()
 
+    def _core_fields(self, spec):
+        from .. import settings as settings_module
+        section = spec.manifest.get('core_settings')
+        return [f['key'] for f in settings_module.FIELDS if f['section'] == section] if section else []
+
     def settings_of(self, spec):
         out = {}
+        for key in self._core_fields(spec):
+            out[key.split('.', 1)[1]] = self.settings_store.get(key)
         for f in spec.items('settings'):
             out[f['key']] = self.settings_store.get(f"plugin.{spec.id}.{f['key']}")
         return out
@@ -346,7 +365,12 @@ class Registry:
                 raise
 
     def enabled(self, spec):
-        return not spec.error and bool(self._record(spec.id).get('enabled'))
+        if spec.error:
+            return False
+        record = self._record(spec.id)
+        if 'enabled' in record:
+            return bool(record['enabled'])
+        return bool(spec.trust == 'builtin' and spec.manifest.get('default_enabled'))
 
     def set_enabled(self, plugin_id, on):
         spec = self.specs.get(plugin_id)
@@ -395,6 +419,10 @@ class Registry:
             self.log(spec.id, f'widget {widget_id}: {exc}')
             raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
 
+    def feeders(self, area):
+        """The plugins that are on and feed this area (``inventory``), in id order."""
+        return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
+
     # hooks ---------------------------------------------------------------------------------
     def emit(self, event, data):
         """Run hooked actions in the background, so a slow plugin never slows a request."""
@@ -421,7 +449,9 @@ class Registry:
                 'author': spec.manifest.get('author', ''), 'homepage': spec.manifest.get('homepage', ''),
                 'uses': [{'id': u, 'label': AREAS.get(u, u)} for u in spec.uses if u in AREAS],
                 'enabled': self.enabled(spec), 'error': spec.error,
-                'settings_section': f'plugin-{spec.id}' if spec.items('settings') and not spec.error else None,
+                'settings_section': (spec.manifest.get('core_settings') or
+                                     (f'plugin-{spec.id}' if spec.items('settings') and not spec.error else None)),
+                'default_enabled': bool(spec.manifest.get('default_enabled')),
                 'actions': [{k: a.get(k) for k in ('id', 'label', 'role', 'danger', 'help')}
                             for a in spec.items('actions')],
                 'widgets': [{k: w.get(k) for k in ('id', 'label', 'size', 'refresh', 'role')}

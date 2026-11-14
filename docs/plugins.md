@@ -7,8 +7,9 @@ the dashboard (widgets), read-only JSON (endpoints) and code that runs when some
 
 ## Turning plugins on
 
-Settings > Plugins lists every plugin, what it may touch, and whether it is on. All plugins start
-**off**. Turning one on or off is in the audit log. A plugin's settings are on the settings page,
+Settings > Plugins lists every plugin, what it may touch, and whether it is on. Plugins start
+**off**, except the few that ship with Floorbit and replace what used to be built in (NetBox); those
+start on and do nothing until they're configured. Turning one on or off is in the audit log. A plugin's settings are on the settings page,
 in a section called *Plugin: <name>*. Secrets are write-only there, as everywhere.
 
 The **Dashboard** (top bar of the floor plan, `/dashboard`) shows the tiles of the plugins that are
@@ -26,6 +27,15 @@ labdex's community plugins) comes in a later step. Until then, no outside code r
 
 Which plugins are on, and each plugin's small private state, live in `plugins.json` next to
 `data.json`, or wherever `PLUGINS_FILE` points (Compose: the `state` volume).
+
+## Built in: NetBox
+
+Feeds the [inventory](inventory.md) with the NetBox devices that have the configured roles: name,
+role, model, serial, management IP, site or location, and status. It is on by default and uses the
+settings under **Settings > NetBox** (`NETBOX_URL`, `NETBOX_TOKEN`, `NETBOX_DEVICE_ROLES`,
+`NETBOX_VERIFY_SSL`), as before it became a plugin. It only reads from NetBox and only follows
+NetBox's "next page" links to the same host. Run it with **Sync now** on the Inventory page or the
+sync button on the floor plan.
 
 ## Built in: HTTP check
 
@@ -103,6 +113,11 @@ class Plugin(Base):
 | `hooks` | run an action on `change` (any audited change: area, action, target, fields, user) or `switch.status` (a switch went offline or came back) |
 | `http` | make outgoing requests with `self.ctx.http(...)` |
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
+| `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
+
+Two manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until
+an admin turns it off) and `core_settings: <section>` (read a settings section that existed before
+the plugin, so old env variables keep working).
 
 The loader refuses a plugin whose manifest uses an area it doesn't list, and code whose methods
 don't match the manifest (a `run_x` with no action `x`, or an action with no `run_x`). A broken

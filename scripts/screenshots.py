@@ -37,6 +37,7 @@ PASSWORD = os.environ.get("SCREENSHOT_PASSWORD") or os.environ.get("AUTH_ADMIN_P
 PAGES["users"] = "/settings/users"
 PAGES["plugins"] = "/settings/plugins"
 PAGES["dashboard"] = "/dashboard"
+PAGES["inventory"] = "/inventory"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 

@@ -4,5 +4,7 @@ export const qk = {
   dashboard: ['dashboard'] as const,
   widget: (url: string) => ['widget', url] as const,
   plugins: ['plugins'] as const,
+  inventory: (hidden: boolean) => ['inventory', { hidden }] as const,
+  inventoryAll: ['inventory'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
 }

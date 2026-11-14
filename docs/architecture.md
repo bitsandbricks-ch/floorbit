@@ -21,7 +21,8 @@ different features touch different files.
    | --- | --- |
    | `pages.py` | `/`, `/kiosk` |
    | `config.py` | `/api/config` |
-   | `switches.py` | `/api/switches...` (list, NetBox sync, add, move, rename, delete) |
+   | `switches.py` | `/api/switches...`: the floor plan's view of the inventory (list, sync, add, move, rename, remove) |
+   | `inventory.py` | `/inventory`, `/api/inventory...` (see [inventory.md](inventory.md)) |
    | `seat_blocks.py` | `/api/seats`, `/api/seat-blocks...` |
    | `network.py` | switch status, `/api/resolve/<ip>`, `/api/seats/info`, `/resolve`, `/heatmap` |
    | `backup.py` | `/api/settings/backup` (download, restore; see [backup.md](backup.md)) |
@@ -34,18 +35,15 @@ different features touch different files.
 
 `floorbit/store.py` reads and writes `data.json`, which holds the floor plan, settings and accounts.
 
-### Data sources (`floorbit/sources/`)
+### Inventory and data sources
 
-Blueprints never call the NetBox or LibreNMS API modules themselves. They ask:
+`floorbit/inventory.py` owns the list of devices (see [inventory.md](inventory.md)); plugins with
+`uses: [inventory]`, such as the built-in NetBox plugin, feed it, and `blueprints/inventory.py`
+runs the syncs. The floor plan's `/api/switches` works on the same list.
 
-- `sources.inventory()`: which switches exist (`fetch_devices()`); NetBox today.
-- `sources.monitoring()`: `device_details(hostname)`, `resolve_ip(ip)`, `port_stats(hostname, port)`;
-  LibreNMS today.
-
-`sources.use(inventory=..., monitoring=...)` swaps either one. That keeps a hosted version open
-(issue #2), where a small agent at the event feeds the data in instead of direct API calls, and it
-keeps other NMSs possible. Not yet behind it: the status monitor and the check-in MAC lookup in
-`integrations/` still call LibreNMS themselves; moving them is a follow-up.
+Live data still comes through `floorbit/sources/`: `sources.monitoring()` has
+`device_details(hostname)`, `resolve_ip(ip)` and `port_stats(hostname, port)` (LibreNMS today), and
+`sources.use(monitoring=...)` swaps it. LibreNMS becomes a plugin next (issue #49).
 
 ## Browser
 
@@ -69,7 +67,7 @@ apply before React paints, and sign-in and roles are checked by Flask as for any
 - `src/widgets/`: draws plugin widgets. Everything a plugin returns is shown as text; ESLint
   refuses `dangerouslySetInnerHTML`.
 
-Moved so far: `/dashboard`, `/settings/plugins`. Without a build these answer 503 with the steps
+Moved so far: `/dashboard`, `/settings/plugins`, `/inventory`. Without a build these answer 503 with the steps
 to make one.
 
 ### Older pages (`static/`)

@@ -44,6 +44,7 @@ __all__ = ['checkin', 'config', 'events', 'history', 'init_integrations', 'seat_
 _WATCHED_PREFIXES = {
     '/api/settings/backup': 'all',   # a restore replaces the switches, seat blocks and settings
     '/api/switches': 'switches',
+    '/api/inventory': 'switches',   # the floor plan's switches are inventory devices
     '/api/seat-blocks': 'seat-blocks',
     '/api/settings': 'settings',
 }
@@ -51,16 +52,10 @@ _WATCHED_PREFIXES = {
 
 def _placed_switches(load_data):
     def list_switches():
-        data = load_data()
-        out = []
-        for s in data.get('switches', []):
-            if s.get('placed', True) and s.get('name'):
-                out.append({'id': s['id'], 'name': s['name'], 'source': 'manual'})
-        positions = data.get('positions', {}) or {}
-        for d in data.get('cached_devices', []):
-            if d['id'] in positions and positions[d['id']]:
-                out.append({'id': d['id'], 'name': d['name'], 'source': 'netbox'})
-        return out
+        from floorbit import inventory
+        return [{'id': d['id'], 'name': d['name'], 'source': d.get('origin', 'manual')}
+                for d in inventory.devices(load_data())
+                if d.get('name') and d.get('x') is not None and d.get('y') is not None]
     return list_switches
 
 

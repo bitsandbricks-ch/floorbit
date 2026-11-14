@@ -18,5 +18,6 @@
   "backToPlan": "Back to the floor plan",
   "error": "Something went wrong: {{message}}",
   "coffee": "Buy me a coffee",
-  "poweredBy": "Powered by"
+  "poweredBy": "Powered by",
+  "inventory": "Inventory"
 }
