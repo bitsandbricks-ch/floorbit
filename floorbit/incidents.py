@@ -187,7 +187,7 @@ def _check_assignee(username, team_id):
     return user['username']
 
 
-def create(user, body, snapshot=None, source='board'):
+def create(user, body, snapshot=None, source='board', speedtest=None):
     """A new incident. ``user`` is None for an attendee's report from the help page."""
     with _lock:
         data = load_data()
@@ -208,6 +208,8 @@ def create(user, body, snapshot=None, source='board'):
             'reported_by': user['username'] if user else None, 'reports': 1,
             'notes': [], 'snapshot': snapshot, 'created_at': now, 'updated_at': now,
         }
+        if speedtest:
+            incident['speedtest'] = speedtest
         note = _clean_text(body.get('note'), MAX_NOTE)
         if note:
             incident['notes'].append({'by': user['username'] if user else None, 'at': now, 'text': note})
@@ -218,9 +220,14 @@ def create(user, body, snapshot=None, source='board'):
 
 
 def report_from_seat(seat, problem, snapshot):
-    """An attendee's report. A second report for an open incident at the same seat just counts up."""
+    """An attendee's report. A second report for an open incident at the same seat just counts up.
+
+    A speed test run at the seat in the last half hour goes with it (floorbit/speedtest.py).
+    """
+    from . import speedtest
     with _lock:
         data = load_data()
+        test = speedtest.latest(seat, data)
         for incident in _all(data):
             if incident.get('seat') == seat and incident['source'] == 'helpdesk' \
                     and incident['status'] != 'fixed' and incident.get('problem') == problem:
@@ -228,13 +235,15 @@ def report_from_seat(seat, problem, snapshot):
                 incident['updated_at'] = time.time()
                 if snapshot:
                     incident['snapshot'] = snapshot
+                if test:
+                    incident['speedtest'] = test
                 _save(data, _all(data))
                 return incident, False
     team = PROBLEMS[problem] if PROBLEMS[problem] in teams.all_teams() else None
     titles = {'no-internet': 'No internet at the seat', 'slow': 'Slow connection', 'power': 'No power at the seat',
               'other': 'Needs help at the seat'}
     return create(None, {'seat': seat, 'title': titles[problem], 'problem': problem, 'team': team},
-                  snapshot=snapshot, source='helpdesk'), True
+                  snapshot=snapshot, source='helpdesk', speedtest=test), True
 
 
 def update(user, incident_id, body):

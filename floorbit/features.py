@@ -23,7 +23,8 @@ ENV = 'FLOORBIT_FEATURES_OFF'
 # id, the paths it owns (a path and everything under it), and the features it needs.
 FEATURES = (
     {'id': 'incidents', 'paths': ('/incidents', '/api/incidents'), 'needs': ()},
-    {'id': 'helpdesk', 'paths': ('/help', '/api/helpdesk', '/incidents/qr'), 'needs': ('incidents',)},
+    {'id': 'helpdesk', 'paths': ('/help', '/api/helpdesk', '/incidents/qr', '/api/speedtests'),
+     'needs': ('incidents',)},
     {'id': 'dispatch', 'paths': ('/jobs', '/api/jobs', '/api/dispatch'), 'needs': ('incidents',)},
     {'id': 'handover', 'paths': ('/handover', '/api/handover'), 'needs': ('incidents',)},
     {'id': 'gear', 'paths': ('/gear', '/api/gear'), 'needs': ()},

@@ -529,6 +529,16 @@ Source: [`floorbit/blueprints/setup.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/setup/finish` | `settings.manage` |  |
 | POST | `/api/setup/steps/<step>` | `settings.manage` |  |
 
+## floorbit.blueprints.speedtest
+
+Speedtest at the seat (issue #99). The rules live in floorbit/speedtest.py.
+
+Source: [`floorbit/blueprints/speedtest.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/speedtest.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/speedtests` | `incidents.work` | `helpdesk` |
+
 ## floorbit.blueprints.stats
 
 The stats dashboard (issue #24). See docs/stats.md.
