@@ -33,6 +33,7 @@ from . import (
                setup,
                stats,
                switches,
+               teardown,
                tournament,
 )
 
@@ -40,4 +41,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        inventory.bp, seat_map.bp, demo.bp, incidents.bp,
        health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp, screen.bp,
        attendee.bp, halls.bp, layout_templates.bp,
-       replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp]
+       replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
+       teardown.bp]
