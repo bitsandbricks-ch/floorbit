@@ -35,5 +35,6 @@
   "top": "Die aktivsten Ports",
   "noTop": "Gerade kein Verkehr.",
   "seat": "Platz {{seat}}",
+  "report": "Event-Bericht",
   "replay": "Event abspielen"
 }

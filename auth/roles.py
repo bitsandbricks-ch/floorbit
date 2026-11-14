@@ -196,6 +196,8 @@ RULES = (
     ('/api/teams', None, 'accounts.manage'),
     ('/api/integrations', None, 'settings.manage'),
     ('/api/demo', None, 'settings.manage'),
+    # Starting a new event clears the report's history; adding nicks and IPs is checked in the blueprint.
+    ('/api/report/new-event', WRITE, 'settings.manage'),
     ('/api/cache/invalid', WRITE, 'floorplan.edit'),
     ('/api/switches', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),

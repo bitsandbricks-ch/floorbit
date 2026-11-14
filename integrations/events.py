@@ -32,6 +32,13 @@ def subscribe(event_type, callback):
         _subscribers.append((event_type, callback))
 
 
+def subscribe_once(event_type, callback):
+    """Like ``subscribe``, but only if this callback isn't subscribed to ``event_type`` yet."""
+    with _lock:
+        if (event_type, callback) not in _subscribers:
+            _subscribers.append((event_type, callback))
+
+
 def publish(event_type, data=None, origin=None):
     event = {
         'id': next(_ids),

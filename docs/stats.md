@@ -32,7 +32,8 @@ every `ATTENTION_INTERVAL` seconds (120); each read becomes one sample here.
 
 Samples are kept for 24 hours, together with the event's peak and the moments each seat went online
 or offline (for the [replay](replay.md)), in Redis under `floorbit:stats`,
-so a restart doesn't lose them. Without Redis they live in memory until the next restart.
+so a restart doesn't lose them. Without Redis they live in memory until the next restart. For the
+[event report](report.md), each read is also folded into one row per hour, kept for 21 days.
 
 **Reset peak** (needs `settings.manage`, in the audit log under settings) starts the event's peak
 again from the latest read: use it after load tests, before doors open.

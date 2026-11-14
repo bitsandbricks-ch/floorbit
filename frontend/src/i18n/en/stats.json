@@ -35,5 +35,6 @@
   "top": "Top talkers",
   "noTop": "No traffic right now.",
   "seat": "Seat {{seat}}",
+  "report": "Event report",
   "replay": "Replay the event"
 }

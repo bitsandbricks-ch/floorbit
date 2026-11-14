@@ -124,6 +124,7 @@ class AttentionWatch:
         stats = (_app_ext() or {}).get('floorbit_stats')
         if stats is not None:
             stats.record(reads, [d.get('name') or '' for d in devices], now=now)
+            stats.count_problems(new, now=now)
             events.publish('stats.changed', {})
         return new
 
