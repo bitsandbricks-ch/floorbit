@@ -27,4 +27,21 @@ In the menu, the arrow keys move between entries, Enter picks one, and Escape or
 closes it. Right-clicking a switch or block also selects it, so the inspector shows what the menu is
 about.
 
+## Entries from plugins
+
+A plugin can add entries for seats and switches that run one of its actions, such as looking up a
+seat's ticket or opening the switch in another tool. They show below the built-in entries, to
+accounts that may run the action, and a `danger: true` action asks first. The result shows as a
+message at the bottom of the screen, and every run is in the audit log like any plugin action.
+
+```yaml
+uses: [actions, context_menu]
+actions:
+  - {id: lookup, label: Look up ticket, permission: seats.view, params: [{key: seat, type: string}]}
+context_menu:
+  - {action: lookup, targets: [seat]}
+```
+
+The action gets the seat number as `seat` or the switch name as `switch`. See [plugins.md](plugins.md).
+
 The code is `static/js/editor/menus.js`; the long press is in `static/js/editor/touch.js`.

@@ -7,6 +7,8 @@ Who may do what:
 - ``POST /api/plugins/<id>/actions/<action>``: the permission the action names (``permission:``,
   or the older ``role:`` mapped across; settings.manage when it names none). Every run is in the
   audit log, with parameter names, never values.
+- ``GET /api/plugins/menu``: the plugins' entries for the floor plan's right-click menu
+  (``context_menu:``), only those whose action this account may run.
 - Widgets and endpoints: a signed-in account with the permission they name (floorplan.view by
   default). They are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
 """
@@ -194,6 +196,31 @@ def endpoint(plugin_id, endpoint_id):
 @bp.route('/dashboard')
 def dashboard_page():
     return spa.render('Dashboard')
+
+
+@bp.route('/api/plugins/menu', methods=['GET'])
+def context_menu():
+    """The plugins' entries for the floor plan's right-click menu that this account may run."""
+    from auth import roles
+    auth = current_app.extensions.get('auth')
+    user = _user()
+    if auth is None or not auth.enabled:
+        granted = set(roles.PERMISSIONS)   # sign-in switched off: everyone may do everything
+    else:
+        granted = roles.permissions_of(roles.of(user)) if user else set()
+    entries = []
+    registry = _registry()
+    for spec in registry.specs.values():
+        if not registry.enabled(spec):
+            continue
+        for entry in spec.items('context_menu'):
+            action = spec.item('actions', entry['action'])
+            if action and action['permission'] in granted:
+                entries.append({'plugin': spec.id, 'plugin_name': spec.name, 'label': entry['label'],
+                                'targets': entry['targets'],
+                                'danger': bool(action.get('danger')),
+                                'url': f"/api/plugins/{spec.id}/actions/{action['id']}"})
+    return jsonify({'entries': entries})
 
 
 @bp.route('/api/dashboard', methods=['GET'])

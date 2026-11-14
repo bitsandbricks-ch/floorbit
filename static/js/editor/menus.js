@@ -11,6 +11,40 @@ const menuCanEdit = () => !document.body.classList.contains('read-only');
 const menuCanEditSeats = () => document.body.dataset.seatEdit === 'on';
 const menuIncidentsOn = () => document.body.dataset.incidents === 'on';
 
+// Plugin entries (a plugin's context_menu:), only those this account may run. Loaded once.
+let pluginMenuEntries = [];
+async function loadPluginMenu() {
+  try {
+    pluginMenuEntries = (await api('GET', '/api/plugins/menu')).entries || [];
+  } catch {
+    pluginMenuEntries = [];   // plugins are extra; the menu works without them
+  }
+}
+loadPluginMenu();
+
+async function runPluginEntry(entry, params) {
+  const what = params.seat ? `seat ${params.seat}` : params.switch;
+  if (entry.danger && !(await confirmDialog({ title: entry.label, text: `Run "${entry.label}" (${entry.plugin_name}) on ${what}?`,
+                                              okLabel: entry.label }))) return;
+  try {
+    const result = await api('POST', entry.url, params);
+    toast(`${entry.label}: ${result.message || 'Done'}`, { type: 'success' });
+  } catch (e) {
+    toastError(entry.label, e);
+  }
+}
+
+function pluginEntries(target) {
+  const on = target.type === 'seat' ? 'seat' : target.type === 'switch' ? 'switch' : null;
+  if (!on) return [];
+  const sw = on === 'switch' ? switches.find(s => s.id === target.id) : null;
+  if (on === 'switch' && !sw) return [];
+  const params = on === 'seat' ? { seat: target.seat } : { switch: sw.name };
+  return pluginMenuEntries.filter(e => e.targets.includes(on)).map(e => ({
+    label: e.label, title: e.plugin_name, danger: e.danger, run: () => runPluginEntry(e, params),
+  }));
+}
+
 function menuEntries(target) {
   const items = [];
   const add = (label, run, opts = {}) => items.push({ label, run, ...opts });
@@ -48,6 +82,8 @@ function menuEntries(target) {
     add('Fit to screen', () => fitToContent());
     add('Reset zoom', () => resetView());
   }
+  const fromPlugins = pluginEntries(target);
+  if (fromPlugins.length) { sep(); items.push(...fromPlugins); }
   if (items.length && items[items.length - 1].sep) items.pop();
   return items;
 }
@@ -96,6 +132,7 @@ function openContextMenu(x, y, target, { keyboard = false } = {}) {
     btn.setAttribute('role', 'menuitem');
     btn.tabIndex = -1;
     btn.textContent = item.label;
+    if (item.title) btn.title = item.title;   // the plugin it comes from
     if (item.key) {
       const kbd = document.createElement('kbd');
       kbd.textContent = item.key;
