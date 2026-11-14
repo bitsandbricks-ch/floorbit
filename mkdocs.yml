@@ -70,6 +70,7 @@ nav:
       - Crew Discord channel: crew-discord.md
       - Alerts and problems: alerts.md
       - Port actions: ports.md
+      - Switch commands: commands.md
       - Service health: health.md
       - Security detection: security.md
       - Electrics: power.md

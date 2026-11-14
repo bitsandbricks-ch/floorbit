@@ -17,7 +17,8 @@ route stays admin-only until someone gives it a rule.
 | `seats.edit` | Change the seat mapping and check-ins |
 | `incidents.work` | Work incidents assigned to their teams |
 | `incidents.assign` | Assign incidents to any team |
-| `ports.act` | Run port actions on switches |
+| `ports.act` | Run port actions and show commands on switches ([commands.md](commands.md)) |
+| `commands.change` | Run switch commands that change something, such as clearing counters |
 | `power.edit` | Change power boards and circuits, enter readings and trips ([power.md](power.md)) |
 | `plugins.run` | Run plugin actions |
 | `audit.read` | Read the audit log |

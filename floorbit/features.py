@@ -36,6 +36,7 @@ FEATURES = (
     {'id': 'forecast', 'paths': ('/api/forecast',), 'needs': ()},
     {'id': 'security', 'paths': ('/security', '/api/security'), 'needs': ()},
     {'id': 'ports', 'paths': ('/api/ports',), 'needs': ()},
+    {'id': 'commands', 'paths': ('/commands', '/api/commands'), 'needs': ('ports',)},
     {'id': 'power', 'paths': ('/power', '/api/power'), 'needs': ()},
     {'id': 'tournament', 'paths': ('/tournament', '/api/tournament'), 'needs': ()},
     {'id': 'replay', 'paths': ('/replay', '/api/replay'), 'needs': ()},
