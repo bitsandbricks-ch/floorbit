@@ -9,3 +9,7 @@
   <link rel="stylesheet" href="/static/css/brand/legacy-map.css" />
   <link rel="stylesheet" href="/static/css/brand/brand.css" />
   <script src="/static/js/theme.js"></script>
+  {%- if demo_mode %}
+  {#- The "Demo data" banner on every page while the demo plugin is on (floorbit/blueprints/demo.py). #}
+  <link rel="stylesheet" href="/static/css/brand/demo.css" />
+  {%- endif %}

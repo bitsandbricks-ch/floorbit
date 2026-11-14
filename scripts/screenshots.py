@@ -2,10 +2,11 @@
 
     python scripts/screenshots.py [out-dir]        # APP_URL defaults to http://127.0.0.1:5000
 
-The `screenshots` CI job starts the app with an empty data file and a demo account
-(AUTH_ADMIN_USER / AUTH_ADMIN_PASSWORD), and this script signs in with it, places a few
-demo switches and seat blocks (example names only) and takes the pictures, the sign-in
-page included.
+The `screenshots` CI job starts the app with an empty data file, a demo account
+(AUTH_ADMIN_USER / AUTH_ADMIN_PASSWORD) and FLOORBIT_DEMO=1, so the demo plugin has already laid
+out a made-up hall with players and traffic. This script signs in and takes the pictures, the
+sign-in page included. Without demo mode it places a few example switches, seat blocks and seat
+entries itself (example names and documentation IPs only).
 """
 
 import http.cookiejar

@@ -23,6 +23,8 @@ each seat is plugged into.
   a sync. See [docs/inventory.md](docs/inventory.md).
 - **LibreNMS:** live status and port counts per switch, and the ARP and MAC tables that resolve a
   seat's IP to its switch and port.
+- **Demo mode:** `FLOORBIT_DEMO=1` fills Floorbit with a made-up hall, players and traffic, to try it
+  without a network. See [docs/demo.md](docs/demo.md).
 - **Seat mapping:** each seat's IP, MAC and nick, typed in by hand (or imported as CSV) or fed by
   plugins, check-ins and `seats.json`; what you type wins. See [docs/seat-mapping.md](docs/seat-mapping.md).
 - **Seats:** `seats.json` maps seat numbers to IPs and usernames. The heat map colours each seat by

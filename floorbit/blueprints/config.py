@@ -18,6 +18,7 @@ def get_config():
         # The floor plan's live status, port and heatmap features: any monitoring plugin that is set up.
         'librenms_enabled':  sources.monitoring().enabled(),
         'monitoring_source': sources.monitoring().name,
+        'demo': bool(registry and registry.demo_on()),
         'netbox_device_roles': rt.netbox_roles,
         'display_defaults':  rt.display_defaults,
     })

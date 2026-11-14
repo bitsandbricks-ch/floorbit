@@ -1,0 +1,11 @@
+# Made-up data for trying Floorbit without a network, and for the pull request screenshots.
+# Off unless FLOORBIT_DEMO=1 or an admin turns it on. While it's on, every page says "Demo data".
+id: demo
+name: Demo data
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "A made-up hall: switches, seat blocks, players on documentation IPs, ports going up and down and traffic that moves. Nothing real: example names, 192.0.2.0/24 and 198.51.100.0/24. While it's on it replaces the live monitoring source."
+author: Floorbit
+uses: [inventory, mapping, monitoring]
+# FLOORBIT_DEMO=1 turns it on (see docs/demo.md).
+enable_env: FLOORBIT_DEMO
