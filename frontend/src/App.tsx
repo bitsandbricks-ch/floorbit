@@ -28,6 +28,7 @@ const Preflight = lazy(() => import('@/pages/Preflight'))
 const Gear = lazy(() => import('@/pages/Gear'))
 const Teardown = lazy(() => import('@/pages/Teardown'))
 const Events = lazy(() => import('@/pages/Events'))
+const Features = lazy(() => import('@/pages/Features'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/gear" element={<Gear />} />
         <Route path="/teardown" element={<Teardown />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/settings/features" element={<Features />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

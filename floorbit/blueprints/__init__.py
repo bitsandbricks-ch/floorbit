@@ -8,6 +8,7 @@ from . import (
                crew,
                demo,
                dispatch,
+               features,
                flows,
                gear,
                halls,
@@ -43,4 +44,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp, screen.bp,
        attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
-       teardown.bp, past_events.bp]
+       teardown.bp, past_events.bp,
+       features.bp]
