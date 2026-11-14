@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -143,6 +143,21 @@ export default function Handover() {
                 </Table.ScrollContainer>
               )}
             </Paper>
+
+            {d.seat_notes.length > 0 && (
+              <Paper withBorder radius="lg" p="md">
+                <Title order={2} size="h4" mb="xs">{t('handover.seatNotes')}</Title>
+                <Stack gap={6}>
+                  {d.seat_notes.map((n) => (
+                    <Group key={n.seat} gap="sm" wrap="nowrap" align="baseline">
+                      <Anchor href={`/plan?seat=${encodeURIComponent(n.seat)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{n.seat}</Anchor>
+                      <Text size="sm" style={{ flex: 1, overflowWrap: 'anywhere' }}>{n.text}</Text>
+                      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{n.by ? `${n.by} · ` : ''}{when(n.at)}</Text>
+                    </Group>
+                  ))}
+                </Stack>
+              </Paper>
+            )}
 
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('handover.handOver')}</Title>

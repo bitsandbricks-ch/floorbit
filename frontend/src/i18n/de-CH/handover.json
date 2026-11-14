@@ -18,6 +18,7 @@
   "noOutages": "Kein Switch ist ausgefallen.",
   "wasDown": "ausgefallen um {{when}} für {{for}}",
   "stillDown": "ausgefallen seit {{when}} ({{for}})",
+  "seatNotes": "Platz-Notizen aus dieser Schicht",
   "changesTitle": "Änderungen",
   "noChanges": "Keine Port-Aktionen, Einstellungen oder Änderungen am Hallenplan.",
   "when": "Wann",

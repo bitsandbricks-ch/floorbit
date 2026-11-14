@@ -19,11 +19,19 @@ const data: HandoverData = {
   },
   outages: [{ switch_id: 's1', name: 'sw-b-01', down_at: now - 120, back_at: null, down_s: 120 }],
   changes: [{ at: now - 300, user: 'lea', area: 'ports', action: 'Bounced port', target: 'A-1' }],
+  seat_notes: [{ seat: 'C-3', text: 'Cable swapped, watch it', by: 'ana', at: now - 200 }],
   counts,
   history: [{ id: 'h1', at: now - 3600, since: now - 7200, by: 'Ben', note: 'Row B switch is flaky.', counts }],
 }
 
 describe('Shift handover', () => {
+  it('leaves the seat notes out when the shift wrote none', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': { ...data, seat_notes: [] } }).fn)
+    renderWithApp(<Handover />)
+    expect(await screen.findByText('Row B switch is flaky.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Seat notes from this shift' })).toBeNull()
+  })
+
   it('shows the shift and hands over with a note', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': tech, 'GET /api/handover': data,
@@ -36,6 +44,9 @@ describe('Shift handover', () => {
     expect(screen.getByText('Main stage')).toBeInTheDocument()
     expect(screen.getByText('sw-b-01')).toBeInTheDocument()
     expect(screen.getByText('Bounced port: A-1')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Seat notes from this shift' })).toBeInTheDocument()
+    expect(screen.getByText('Cable swapped, watch it')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'C-3' })).toHaveAttribute('href', '/plan?seat=C-3')
     fireEvent.change(screen.getByRole('textbox', { name: /Note for the next shift/ }), { target: { value: 'Watch row B' } })
     fireEvent.click(screen.getByRole('button', { name: 'Hand over' }))
     expect(await screen.findByText(/posted to Discord/)).toBeInTheDocument()

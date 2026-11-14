@@ -59,3 +59,17 @@ def test_handover_can_go_to_discord(client, app_module, monkeypatch):
     assert msg["allowed_mentions"] == {"parse": []}
     client.post("/api/handover", json={"note": "No post"})
     assert len(sent) == 1
+
+
+def test_the_shift_s_seat_notes_are_in_the_summary(client):
+    _floor(client)
+    client.put("/api/plan/seats/A-2/note", json={"text": "Cable swapped"})
+    client.put("/api/plan/seats/A-3/note", json={"text": "Own switch, leave it"})
+    notes = client.get("/api/handover").get_json()["seat_notes"]
+    assert [(n["seat"], n["text"]) for n in notes] == [("A-3", "Own switch, leave it"), ("A-2", "Cable swapped")]
+    assert notes[0]["at"] and "by" in notes[0]
+
+    client.post("/api/handover", json={"note": "Quiet night."})
+    assert client.get("/api/handover").get_json()["seat_notes"] == []   # the next shift starts empty
+    client.put("/api/plan/seats/A-2/note", json={"text": "Cable swapped again"})
+    assert [n["seat"] for n in client.get("/api/handover").get_json()["seat_notes"]] == ["A-2"]

@@ -6,7 +6,8 @@ hands over. What happened is put together from what Floorbit already keeps:
 - incidents still open, and the ones opened and fixed since;
 - switch outages since (the stats store's switch events);
 - what is wrong right now (the Problems list);
-- changes from the audit log: port actions, settings, the floor plan, power, plugins and accounts.
+- changes from the audit log: port actions, settings, the floor plan, power, plugins and accounts;
+- crew notes on seats written or changed since (issue #202).
 
 Each handover is kept in data.json under ``handover`` (the newest ``MAX_KEPT``): when, who, the note
 and the counts. The next summary starts where the last handover ended.
@@ -108,7 +109,7 @@ def _incident(i, match):
 
 
 def summary(switch_events, problems_now, since=None, now=None):
-    from . import incidents, tournament
+    from . import incidents, seat_notes, tournament
     now = time.time() if now is None else now
     data = load_data()
     since = since_default(now, data) if since is None else since
@@ -121,12 +122,15 @@ def summary(switch_events, problems_now, since=None, now=None):
     outages = [o for o in _outages(switch_events, since, now) if o['down_at'] >= since or o['back_at'] is None
                or o['back_at'] >= since]
     changes = _changes(since)
+    notes = [{'seat': seat, **n} for seat, n in seat_notes.all_notes(data).items() if (n.get('at') or 0) >= since]
+    notes.sort(key=lambda n: -(n.get('at') or 0))
     return {
         'since': since, 'now': now, 'previous': last(data),
         'incidents': {'open': still_open, 'opened': opened, 'fixed': fixed},
         'outages': outages,
         'problems': problems_now,
         'changes': changes,
+        'seat_notes': notes,
         'counts': {'open': len(still_open), 'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
                    'problems': problems_now.get('down', 0) + problems_now.get('warn', 0)},
