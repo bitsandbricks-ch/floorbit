@@ -95,6 +95,9 @@ each seat is plugged into.
   up. Built-in plugins read AdGuard Home and Pi-hole. See [docs/dns.md](docs/dns.md).
 - **Games:** what the hall plays and downloads per launcher (Steam, Battle.net, Riot, Epic and
   more), and how much the LAN cache saved, from its access log. See [docs/games.md](docs/games.md).
+- **Logs:** a syslog receiver for the switches, firewalls and DHCP servers: search by device, seat,
+  port and level, and follow along live. Off until turned on, allow-listed and capped. See
+  [docs/syslog.md](docs/syslog.md).
 - **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer,
   with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
 - **Attendee view:** `/hall`, a public hall plan with every seat online or offline (seat numbers only,

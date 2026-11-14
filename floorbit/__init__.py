@@ -130,6 +130,10 @@ def create_app(start_background=True):
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
 
+    # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
+    from .syslog import init_syslog
+    init_syslog(app, start_background=start_background)
+
     # Bandwidth forecast from the stats' hours, with a warning before the line fills (docs/forecast.md).
     from .forecast import init_forecast
     init_forecast(app, start_background=start_background)
