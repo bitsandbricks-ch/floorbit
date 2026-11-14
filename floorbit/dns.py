@@ -238,6 +238,25 @@ class DnsStats:
             self._stop.wait(settings()['interval'])
 
     # ── reading ──────────────────────────────────────────────────────────────
+    def site_lookups(self, hours=24, now=None):
+        """{site: [lookups, most clients in an hour]} for the named sites (the five-seat rule) in the range."""
+        now = time.time() if now is None else now
+        floor = settings()['min_clients']
+        start = _hour(now) - (hours - 1) * 3600
+        out = {}
+        with self._lock:
+            rows = [v['sites'] for h, v in self.hours.items() if h >= start]
+            if self.current and self.current['hour'] >= start:
+                rows.append({s: [v['lookups'], v['blocked'], len(v['clients'])]
+                             for s, v in self.current['sites'].items()})
+        for sites in rows:
+            for s, (n, _b, c) in sites.items():
+                if c >= floor:
+                    row = out.setdefault(s, [0, 0])
+                    row[0] += n
+                    row[1] = max(row[1], c)
+        return out
+
     def snapshot(self, hours=24, now=None):
         now = time.time() if now is None else now
         floor = settings()['min_clients']

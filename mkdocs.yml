@@ -76,6 +76,7 @@ nav:
       - Stats dashboard: stats.md
       - Traffic insights: flows.md
       - DNS analytics: dns.md
+      - Game insights: games.md
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md
       - Phones and tablets: mobile.md

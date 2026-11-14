@@ -31,6 +31,7 @@ FEATURES = (
     {'id': 'dashboard', 'paths': ('/dashboard', '/api/dashboard'), 'needs': ()},
     {'id': 'traffic', 'paths': ('/traffic', '/api/flows'), 'needs': ()},
     {'id': 'dns', 'paths': ('/dns', '/api/dns'), 'needs': ()},
+    {'id': 'games', 'paths': ('/games', '/api/games'), 'needs': ()},
     {'id': 'security', 'paths': ('/security', '/api/security'), 'needs': ()},
     {'id': 'ports', 'paths': ('/api/ports',), 'needs': ()},
     {'id': 'power', 'paths': ('/power', '/api/power'), 'needs': ()},

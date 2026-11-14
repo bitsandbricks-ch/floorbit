@@ -136,11 +136,17 @@ export default function Traffic() {
   const { t } = useTranslation()
   const flows = useFlows()
   const dnsOn = useFeature('dns')
+  const gamesOn = useFeature('games')
   const data = flows.data
   return (
     <Layout title={t('traffic.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('traffic.title')} desc={t('traffic.intro')}
-        actions={dnsOn && <Button variant="default" component="a" href="/dns">{t('traffic.dns')}</Button>} />
+        actions={
+          <Group gap="xs">
+            {gamesOn && <Button variant="default" component="a" href="/games">{t('traffic.games')}</Button>}
+            {dnsOn && <Button variant="default" component="a" href="/dns">{t('traffic.dns')}</Button>}
+          </Group>
+        } />
       {flows.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: flows.error.message })}</Alert>}
       {data?.rules_error && <Alert color="warn" mb="md">{t('traffic.rulesError', { message: data.rules_error })}</Alert>}
       {flows.isPending || !data ? <Loader size="sm" /> : !data.collector ? (
