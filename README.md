@@ -19,6 +19,8 @@ each seat is plugged into.
 
 - **Floor plan:** place, move and rename switches and seat blocks. More than one hall or floor, each
   with its own plan and background image; seat blocks can come from a CSV file. See [docs/halls.md](docs/halls.md).
+- **Templates:** save the floor plan as a template with versions, start from one later, or share one
+  with another LAN as a file, never with event data in it. See [docs/templates.md](docs/templates.md).
 - **Inventory:** every switch, access point and other device, added by hand or fed by NetBox
   (devices with the roles in `NETBOX_DEVICE_ROLE`). What you change by hand is never overwritten by
   a sync. See [docs/inventory.md](docs/inventory.md).

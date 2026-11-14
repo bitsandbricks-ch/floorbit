@@ -514,3 +514,36 @@ export interface FlowsData {
   retention_days?: number
   raw?: { files: number; bytes: number; oldest: string | null }
 }
+
+export interface Hall {
+  id: string
+  name: string
+  background: string | null
+  switches: number
+  seat_blocks: number
+}
+
+export interface TemplateVersion {
+  n: number
+  saved: string
+  halls: number
+  switches: number
+  seat_blocks: number
+}
+
+export interface LayoutTemplate {
+  id: string
+  name: string
+  description: string
+  created: string
+  updated: string
+  versions: TemplateVersion[]
+  dropped?: string[]
+}
+
+export interface ApplyResult {
+  halls: number
+  seat_blocks: number
+  switches_placed: number
+  switches_added: number
+}

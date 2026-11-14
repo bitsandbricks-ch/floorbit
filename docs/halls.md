@@ -13,6 +13,7 @@ the browser remembers the last one). The button next to it opens **Halls**:
   hall always stays.
 - **Background image** for each hall (below).
 - **Import seat blocks (CSV)** into a hall (below).
+- **Templates** opens the [template library](templates.md): save a hall or the whole plan, start from one.
 
 An install from before halls is one hall called "Hall", holding everything. Nothing changes until
 you add a second one.
