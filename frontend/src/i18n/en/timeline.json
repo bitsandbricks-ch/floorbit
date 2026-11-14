@@ -1,0 +1,23 @@
+{
+  "title": "Event changelog",
+  "intro": "Everything that changed during the LAN on one timeline: floor plan and settings edits from the audit log, switch outages, incidents, alerts and Floorbit updates. Filter it and export it.",
+  "search": "Search what, where or who",
+  "range": "Time range",
+  "hours": {
+    "6": "Last 6 h",
+    "24": "Last 24 h",
+    "0": "Everything"
+  },
+  "kind": {
+    "change": "Changes",
+    "sign-in": "Sign-ins",
+    "outage": "Outages",
+    "incident": "Incidents",
+    "alert": "Alerts",
+    "deploy": "Deploys"
+  },
+  "by": "by {{who}}",
+  "empty": "Nothing in this range with these filters.",
+  "showing": "{{shown}} of {{total}}",
+  "older": "Older entries"
+}

@@ -44,6 +44,7 @@ FEATURES = (
     {'id': 'power', 'paths': ('/power', '/api/power'), 'needs': ()},
     {'id': 'tournament', 'paths': ('/tournament', '/api/tournament'), 'needs': ()},
     {'id': 'replay', 'paths': ('/replay', '/api/replay'), 'needs': ()},
+    {'id': 'timeline', 'paths': ('/timeline', '/api/timeline', '/api/timeline.csv'), 'needs': ()},
     {'id': 'report', 'paths': ('/report', '/api/report', '/api/report.pdf'), 'needs': ()},
     {'id': 'past_events', 'paths': ('/events', '/api/past-events'), 'needs': ('report',)},
     {'id': 'planner', 'paths': ('/planner', '/api/planner'), 'needs': ()},

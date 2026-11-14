@@ -284,3 +284,5 @@ body {
 .fb-wifi-plan .clash { fill: none; stroke: var(--color-down); stroke-width: 5; stroke-dasharray: 10 6; }
 .fb-wifi-plan .val { fill: #fff; font: 700 20px var(--font-sans); text-anchor: middle; paint-order: stroke; stroke: rgb(0 0 0 / .35); stroke-width: 3px; }
 .fb-wifi-plan .ap-name { fill: var(--color-fg); font: 600 22px var(--font-sans); text-anchor: middle; }
+.fb-timeline-row + .fb-timeline-row { border-top: 1px solid var(--color-line); }
+.fb-timeline-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
