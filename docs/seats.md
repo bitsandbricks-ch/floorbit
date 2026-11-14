@@ -24,8 +24,8 @@ offline that might be fine.
 
 ## Zoom levels
 
-Drag to move, scroll or pinch to zoom; **+**, **-**, **0** and the arrow keys work when the plan has
-focus. What is drawn depends on how big a seat is on screen:
+Drag to move, scroll or pinch to zoom; **+**, **-**, **0** and **Shift** with the arrow keys work
+when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-readers)). What is drawn depends on how big a seat is on screen:
 
 - **Far** (a seat under 12 px): each block's name with its online and total seats and its
   problems.
@@ -34,6 +34,22 @@ focus. What is drawn depends on how big a seat is on screen:
 
 **Show** dims every seat except the ones with problems, offline seats, match seats or checked-in
 seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
+
+## Keyboard and screen readers
+
+Tab to the plan, then:
+
+| Key | Does |
+| --- | --- |
+| Arrow keys | Move a dashed cursor to the next seat in that direction, in rotated blocks too. The first press starts on the open seat or the one in the middle of the view. The view follows the cursor. |
+| Enter or Space | Open the seat under the cursor in the inspector. |
+| Escape | Close the inspector. |
+| Shift + arrow keys | Move the map. |
+| **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
+
+A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the
+plan's description, one line per block ("Block D: 21 of 24 seats online, 1 problem."). The page is
+checked with axe in the frontend tests.
 
 ## Traffic
 

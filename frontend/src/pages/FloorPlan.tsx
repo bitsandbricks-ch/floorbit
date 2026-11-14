@@ -75,6 +75,7 @@ export default function FloorPlan() {
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic}
+      onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }} />
   )
   const summary = data && (

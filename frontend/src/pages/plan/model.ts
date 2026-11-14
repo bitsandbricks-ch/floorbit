@@ -61,7 +61,60 @@ export function seatCenter(drawing: PlanDrawing, seat: string) {
   return null
 }
 
-export type Filter = 'all' | 'problems' | 'offline' | 'match' | 'checked_in'
+export type Direction = 'left' | 'right' | 'up' | 'down'
+const AXES: Record<Direction, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }
+
+/** The seat an arrow key moves to (issue #155): the closest one in that direction on screen,
+ *  where a seat straight ahead beats a nearer one off to the side. Rotated blocks work too,
+ *  because it goes by where seats are on the plan, not by rows. */
+export function nextSeat(drawing: PlanDrawing, from: string, dir: Direction): string | null {
+  const at = seatCenter(drawing, from)
+  if (!at) return null
+  const [ax, ay] = AXES[dir]
+  let best: string | null = null
+  let bestCost = Infinity
+  for (const b of drawing.shapes) {
+    for (const c of b.cells) {
+      if (c.seat === from) continue
+      const p = seatCenter(drawing, c.seat)!
+      const dx = p.x - at.x
+      const dy = p.y - at.y
+      const ahead = dx * ax + dy * ay
+      const side = Math.abs(dx * ay - dy * ax)
+      // Within 45 degrees of the arrow, and not just a rounding step sideways.
+      if (ahead < drawing.cell * 0.3 || side > ahead) continue
+      const cost = ahead + side * 3
+      if (cost < bestCost) { bestCost = cost; best = c.seat }
+    }
+  }
+  return best
+}
+
+/** The seat closest to a point, for the first arrow press. */
+export function nearestSeat(drawing: PlanDrawing, point: { x: number; y: number }): string | null {
+  let best: string | null = null
+  let bestD = Infinity
+  for (const b of drawing.shapes) {
+    for (const c of b.cells) {
+      const p = seatCenter(drawing, c.seat)!
+      const d = Math.hypot(p.x - point.x, p.y - point.y)
+      if (d < bestD) { bestD = d; best = c.seat }
+    }
+  }
+  return best
+}
+
+/** The same view while `point` is well inside it, else the view centred on it along the axis it
+ *  left, so the keyboard cursor never sits at the edge. */
+export function reveal(view: View, point: { x: number; y: number }, margin: number): View {
+  const m = Math.min(margin, view.w / 4, view.h / 4)
+  let { x, y } = view
+  if (point.x < x + m || point.x > x + view.w - m) x = point.x - view.w / 2
+  if (point.y < y + m || point.y > y + view.h - m) y = point.y - view.h / 2
+  return x === view.x && y === view.y ? view : { ...view, x, y }
+}
+
+export type Filter ='all' | 'problems' | 'offline' | 'match' | 'checked_in'
 
 export function matches(seat: PlanSeat | undefined, filter: Filter) {
   if (filter === 'all') return true

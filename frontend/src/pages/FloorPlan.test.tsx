@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import FloorPlan from './FloorPlan'
-import { density, findSeat, heatColor, heatLevel, matches, parseBox, seatCenter, zoom } from './plan/model'
+import axe from 'axe-core'
+import { density, findSeat, heatColor, heatLevel, matches, nearestSeat, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -49,6 +50,24 @@ describe('seat map model', () => {
     expect(findSeat('Z-1', { 'D-6': 1 })).toBeNull()
     expect(seatCenter(drawing, 'D-1')).toEqual({ x: 592, y: 500 })
     expect(matches(data.seats['D-2'], 'problems') && !matches(data.seats['D-1'], 'offline')).toBe(true)
+  })
+})
+
+describe('keyboard', () => {
+  it('moves from seat to seat by where seats are, in rotated blocks too', () => {
+    expect(nextSeat(drawing, 'D-1', 'right')).toBe('D-2')
+    expect(nextSeat(drawing, 'D-4', 'right')).toBeNull()
+    expect(nextSeat(drawing, 'D-2', 'up')).toBeNull()
+    const upright = { ...drawing, shapes: [{ ...drawing.shapes[0], rotation: 90 }] }
+    expect(nextSeat(upright, 'D-1', 'down')).toBe('D-2')
+    expect(nextSeat(upright, 'D-1', 'right')).toBeNull()
+    expect(nearestSeat(drawing, { x: 700, y: 480 })).toBe('D-4')
+  })
+
+  it('keeps the view until the seat nears its edge, then centres it', () => {
+    const view = parseBox('0 0 400 200')
+    expect(reveal(view, { x: 200, y: 100 }, 64)).toBe(view)
+    expect(reveal(view, { x: 380, y: 100 }, 64)).toEqual({ x: 180, y: 0, w: 400, h: 200 })
   })
 })
 
@@ -108,6 +127,36 @@ describe('Seats page', () => {
     fireEvent.change(find, { target: { value: 'd4' } })
     fireEvent.submit(find.closest('form')!)
     await waitFor(() => expect(container.querySelector('[data-seat="D-4"]')).toHaveClass('sel'))
+  })
+
+  it('goes from seat to seat with the keyboard and opens one with Enter', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    const map = await screen.findByRole('application', { name: 'Seat map' })
+    expect(map).toHaveAccessibleDescription(/Arrow keys move from seat to seat.*Block D: 2 of 4 seats online, 1 problem\./)
+    map.focus()
+    fireEvent.keyDown(map, { key: 'ArrowRight' })   // the first press starts on the seat in the middle
+    const cursor = () => container.querySelector('.cell.kb')?.getAttribute('data-seat')
+    expect(cursor()).toBe('D-2')
+    expect(map.getAttribute('aria-activedescendant')).toBe(container.querySelector('[data-seat="D-2"]')!.id)
+    expect(screen.getByRole('status')).toHaveTextContent('D-2: Offline · 1 problem')
+    fireEvent.keyDown(map, { key: 'ArrowRight' })
+    fireEvent.keyDown(map, { key: 'ArrowLeft' })
+    expect(cursor()).toBe('D-2')
+    fireEvent.keyDown(map, { key: 'Enter' })
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    fireEvent.keyDown(map, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByText('sw-d-01 · Gi1/0/2')).toBeNull())
+  })
+
+  it('passes an axe check', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    // jsdom does no layout, so colour contrast is checked in the browser, not here.
+    const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
+    expect(result.passes.length).toBeGreaterThan(10)
+    expect(result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
   })
 
   it('says so when there is no recent port read', async () => {
