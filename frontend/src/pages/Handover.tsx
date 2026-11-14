@@ -1,4 +1,5 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
+import { IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +10,7 @@ import type { HandoverData, HandoverIncident, HandoverRecord } from '@/api/types
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { duration } from './report/format'
-import { when } from './handover/format'
+import { summaryText, when } from './handover/format'
 
 function Figure({ label, value, tone }: { label: string; value: number; tone?: 'down' | 'warn' | 'up' }) {
   return (
@@ -70,7 +71,16 @@ export default function Handover() {
 
   return (
     <Layout title={t('handover.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
-      <PageHead title={t('handover.title')} desc={t('handover.intro')} />
+      <PageHead title={t('handover.title')} desc={t('handover.intro')} actions={d && (
+        <CopyButton value={summaryText(d, note, t, duration)} timeout={2000}>
+          {({ copied, copy }) => (
+            <Button variant="default" leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+              color={copied ? 'up' : undefined} onClick={copy}>
+              {copied ? t('handover.copied') : t('handover.copy')}
+            </Button>
+          )}
+        </CopyButton>
+      )} />
       <Stack gap="md">
         {(query.error ?? send.error) && <Alert color="down" role="alert">{t('common.error', { message: (query.error ?? send.error)!.message })}</Alert>}
         {done && (

@@ -32,5 +32,7 @@
   "doneDiscord": "Übergeben und auf Discord gepostet. Die nächste Zusammenfassung beginnt jetzt.",
   "earlier": "Frühere Übergaben",
   "counts": "{{open}} offen, {{fixed}} behoben, {{outages}} Ausfälle",
-  "status": { "open": "Offen", "assigned": "Übernommen", "fixed": "Behoben" }
+  "status": { "open": "Offen", "assigned": "Übernommen", "fixed": "Behoben" },
+  "copy": "Als Text kopieren",
+  "copied": "Kopiert"
 }

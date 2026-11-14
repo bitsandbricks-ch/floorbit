@@ -52,4 +52,21 @@ describe('Shift handover', () => {
     expect(await screen.findByText(/posted to Discord/)).toBeInTheDocument()
     await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && JSON.stringify(c.body) === JSON.stringify({ note: 'Watch row B', discord: true }))).toBe(true))
   })
+
+  it('copies the summary as text, with the note being written (issue #220)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': data }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<Handover />)
+    fireEvent.change(await screen.findByLabelText(/Note for the next shift/), { target: { value: 'Watch row B' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
+    const text = writeText.mock.calls[0][0] as string
+    expect(text).toMatch(/^Shift handover: Since /)
+    expect(text).toContain('Incidents open: 1 · New this shift: 2 · Fixed this shift: 1 · Switch outages: 1 · Problems now: 3')
+    expect(text).toContain('Still open:\n- No link (Seat A-1, Main stage)')
+    expect(text).toContain('Fixed this shift:\n- Slow (Seat A-2, ana)')
+    expect(text).toMatch(/Switch outages:\n- sw-b-01: down since .+ \(2 min\)/)
+    expect(text.endsWith('Note for the next shift:\nWatch row B')).toBe(true)
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
 })

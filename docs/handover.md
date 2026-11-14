@@ -30,6 +30,10 @@ is written to the audit log. With Discord alerts or the [crew channel](crew-disc
 **Also post the summary to Discord** posts the figures, the five oldest open incidents and the
 note. The message mentions nobody.
 
+**Copy as text** at the top puts the summary on the clipboard as plain text, for a crew that hands
+over in another chat or by mail: the figures, every open incident, those fixed this shift, the
+switch outages and the note as written so far. Changes and seat notes stay on the page.
+
 ## Who can use it
 
 Accounts with **Work incidents** (`incidents.work`): techs, leads and admins. The summary names
