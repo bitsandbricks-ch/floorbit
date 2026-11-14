@@ -74,3 +74,12 @@ def test_every_page_says_demo_data_while_it_is_on(client, anon_client):
     client.put('/api/settings/plugins/demo', json={'enabled': True})
     assert b'demo.css' in anon_client.get('/login').data
     assert b'demo.css' in client.get('/inventory').data
+
+
+def test_demo_devices_do_not_sit_on_each_other():
+    """Every demo device gets its own spot on the plan, so no two names print over each other."""
+    from floorbit.builtin_plugins.demo.plugin import LAYOUT
+    spots = list(LAYOUT['devices'].items())
+    for i, (a, (ax, ay)) in enumerate(spots):
+        for b, (bx, by) in spots[i + 1:]:
+            assert abs(ax - bx) >= 5 or abs(ay - by) >= 5, (a, b)
