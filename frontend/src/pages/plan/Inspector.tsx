@@ -6,7 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
-import { rate } from './model'
+import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, rate } from './model'
 import { SeatGlyph } from './SeatMap'
 
 const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown: 'gray' }
@@ -81,10 +81,15 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
 ]
 
 /** The same shapes as on the plan, so the legend can't drift from it. */
-export function Legend({ checkin }: { checkin: boolean }) {
+export function Legend({ checkin, traffic = false }: { checkin: boolean; traffic?: boolean }) {
   const { t } = useTranslation()
   return (
     <ul className="fb-plan-legend" aria-label={t('plan.legend')}>
+      {traffic && (
+        <li className="heat">
+          {t('plan.trafficScale')} <span>{rate(HEAT_MIN)}</span><i style={{ background: HEAT_GRADIENT }} aria-hidden="true" /><span>{rate(HEAT_MAX)}</span>
+        </li>
+      )}
       {SAMPLES.filter((x) => checkin || x.key !== 'checkedIn').map((x) => (
         <li key={x.key}>
           <svg viewBox="-4 -4 40 40" width={22} height={22} aria-hidden="true" className="fb-plan"><SeatGlyph seat={x.seat} size={32} detail /></svg>

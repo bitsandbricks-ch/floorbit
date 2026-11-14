@@ -89,3 +89,25 @@ export function rate(bps: number) {
   if (bps >= 1e3) return `${Math.round(bps / 1e3)} kbit/s`
   return `${bps} bit/s`
 }
+
+// Traffic overlay (issue #152): a fixed log scale, so the same colour means the same traffic in
+// every hall and at every hour, and viridis, which stays in order for colour-blind eyes and in
+// grey scale (the editor's rainbow heatmap does not).
+export const HEAT_MIN = 1e5
+export const HEAT_MAX = 1e9
+const VIRIDIS: [number, number, number][] = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]]
+
+export function heatLevel(bps: number | undefined) {
+  if (!bps || bps <= HEAT_MIN) return 0
+  return Math.min(1, Math.log10(bps / HEAT_MIN) / Math.log10(HEAT_MAX / HEAT_MIN))
+}
+
+export function heatColor(level: number) {
+  const x = Math.min(1, Math.max(0, level)) * (VIRIDIS.length - 1)
+  const i = Math.min(VIRIDIS.length - 2, Math.floor(x))
+  const f = x - i
+  const c = VIRIDIS[i].map((v, k) => Math.round(v + (VIRIDIS[i + 1][k] - v) * f))
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`
+}
+
+export const HEAT_GRADIENT = `linear-gradient(90deg, ${VIRIDIS.map((c) => `rgb(${c.join(', ')})`).join(', ')})`

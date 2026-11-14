@@ -373,3 +373,9 @@ body {
 @media (max-width: 48em) {
   .fb-plan-wrap { height: 60vh; }
 }
+/* Traffic overlay (issue #152): online seats filled by viridis; numbers flip to stay readable. */
+.fb-plan.traffic .cell[data-state="online"] .num { fill: #fff; }
+.fb-plan.traffic .cell.bright[data-state="online"] .num { fill: #1a1a1a; }
+.fb-plan .seat.heat { stroke: color-mix(in srgb, var(--color-fg) 35%, transparent); }
+.fb-plan-legend .heat { gap: 8px; }
+.fb-plan-legend .heat i { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }

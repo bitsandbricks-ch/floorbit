@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import FloorPlan from './FloorPlan'
-import { density, findSeat, matches, parseBox, seatCenter, zoom } from './plan/model'
+import { density, findSeat, heatColor, heatLevel, matches, parseBox, seatCenter, zoom } from './plan/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -49,6 +49,27 @@ describe('seat map model', () => {
     expect(findSeat('Z-1', { 'D-6': 1 })).toBeNull()
     expect(seatCenter(drawing, 'D-1')).toEqual({ x: 592, y: 500 })
     expect(matches(data.seats['D-2'], 'problems') && !matches(data.seats['D-1'], 'offline')).toBe(true)
+  })
+})
+
+describe('traffic overlay', () => {
+  it('uses a fixed log scale and viridis', () => {
+    expect([undefined, 1e5, 1e6, 1e7, 1e9, 1e10].map(heatLevel)).toEqual([0, 0, 0.25, 0.5, 1, 1])
+    expect(heatColor(0)).toBe('rgb(68, 1, 84)')
+    expect(heatColor(1)).toBe('rgb(253, 231, 37)')
+    expect(heatColor(0.5)).toBe('rgb(33, 145, 140)')
+  })
+
+  it('fills online seats by traffic and keeps the other shapes', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    const toggle = await screen.findByRole('switch', { name: 'Traffic' })
+    expect(container.querySelector('.seat.heat')).toBeNull()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('heat'))
+    expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveStyle({ fill: heatColor(heatLevel(6_000_000)) })
+    expect(container.querySelector('[data-seat="D-2"] .slash')).not.toBeNull()
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('100 kbit/s')
   })
 })
 
