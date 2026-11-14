@@ -53,5 +53,28 @@
     "busier": "busier",
     "quieter": "quieter",
     "noCapacity": "Set FORECAST_CAPACITY_MBPS to warn before the line fills."
+  },
+  "compare": {
+    "title": "Compare",
+    "dayView": "Today and yesterday",
+    "eventView": "This event and {{name}}",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisEvent": "This event",
+    "change": "Change",
+    "dayFair": "Today so far, and yesterday until the same time.",
+    "eventFair_one": "The first {{count}} hour of this event, and of {{name}}.",
+    "eventFair_other": "The first {{count}} hours of this event, and of {{name}}.",
+    "noYesterday": "Nothing from yesterday to compare with yet.",
+    "chartLabel": "Average bandwidth per hour: {{now}} and {{then}}",
+    "hourN": "Hour {{n}}",
+    "row": {
+      "peak_bps": "Busiest moment",
+      "avg_bps": "Average bandwidth",
+      "bytes_moved": "Data moved",
+      "online_max": "Most seats online",
+      "incidents": "Incidents",
+      "outages": "Switch outages"
+    }
   }
 }

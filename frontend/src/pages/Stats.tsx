@@ -11,6 +11,7 @@ import type { StatsData, StatsSample } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { Compare } from './stats/Compare'
 import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
 
@@ -90,6 +91,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
       </section>
 
       {forecastOn && !screen && <Forecast />}
+      {!screen && <Compare />}
 
       <section className="fb-stats-panel" aria-labelledby="stats-uplinks">
         <h2 id="stats-uplinks">{t('stats.uplinks')}</h2>
