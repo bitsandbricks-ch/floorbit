@@ -53,6 +53,8 @@ each seat is plugged into.
 - **Traffic:** what the hall's traffic is made of from NetFlow or IPFIX (gaming, streaming,
   downloads, updates), per area, the services most seats use, and P2P floods or rogue servers.
   Aggregate only, with an optional collector container. See [docs/flows.md](docs/flows.md).
+- **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer,
+  with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
 - **Electrics:** distribution boards and the circuits they feed (rows, seat blocks, switches), the load
   on each from typed-in or metered readings, and an incident for the Electrics team before a breaker
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).

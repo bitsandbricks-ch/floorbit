@@ -119,7 +119,7 @@ def init_theme(app, store):
         # The health wall and the stats screen are big screens too: they get the kiosk preset unless
         # the theme says otherwise.
         path = request.path.rstrip('/')
-        big = path in ('/kiosk', '/health') or (path == '/stats' and request.args.get('screen') == '1')
+        big = path in ('/kiosk', '/health', '/screen') or (path == '/stats' and request.args.get('screen') == '1')
         page = 'kiosk' if big else None
         theme = resolve(store, page=page, override=_request_override())
         theme['html_attrs'] = html_attrs(theme)

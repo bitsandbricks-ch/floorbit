@@ -55,6 +55,7 @@ class Stats:
         self.peak = None         # {'bps', 'at'}: the busiest read since the last reset
         self.uplinks = []
         self.top = []
+        self.seat_bps = {}       # seat -> traffic right now, for the kiosk's heat view
         self.last = None
         self._loaded = False
 
@@ -95,6 +96,7 @@ class Stats:
         online = ports_up = ports_down = ports_errors = 0
         uplinks = {}
         talkers = []
+        seat_bps = {}
         for dev, port, seat in reads:
             state = port.get('state')
             if state in ('up', 'errors'):
@@ -118,6 +120,7 @@ class Stats:
             up += u
             if seat and state in ('up', 'errors'):
                 online += 1
+                seat_bps[seat] = round(d + u)
             if d + u > 0:
                 talkers.append({'seat': seat, 'switch_id': dev['id'], 'switch': dev['name'], 'port': port['name'],
                                 'download_bps': round(d), 'upload_bps': round(u), 'bps': round(d + u)})
@@ -132,6 +135,7 @@ class Stats:
                 self.peak = {'bps': sample['down'] + sample['up'], 'at': now}
             self.uplinks = sorted(uplinks.values(), key=lambda u: -(u['utilization'] or 0))
             self.top = sorted(talkers, key=lambda t: -t['bps'])[:TOP]
+            self.seat_bps = seat_bps
             self.last = now
             self._save()
         return sample
@@ -146,6 +150,11 @@ class Stats:
             busiest = max(samples, key=lambda s: s['down'] + s['up'])
             self.peak = {'bps': busiest['down'] + busiest['up'], 'at': busiest['t']}
             self._save()
+
+    def seats(self):
+        """Traffic per online seat from the latest read: seat numbers and numbers, nothing else."""
+        with self._lock:
+            return {'seats': dict(self.seat_bps), 'last_poll': self.last}
 
     def reset_peak(self):
         with self._lock:

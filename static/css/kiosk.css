@@ -202,3 +202,10 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   .k-live-dot.live, .switch-marker.is-offline .switch-pin::after, .seat-block-seat.just-taken { animation: none; }
   .k-plan.animate { transition: none; }
 }
+
+/* ?view=heat: seats coloured by their traffic (kiosk.js heatStyle) */
+.k-heat-legend { gap: calc(var(--u) * 0.5); align-items: center; }
+.k-heat-bar {
+  display: inline-block; width: calc(var(--u) * 8); height: calc(var(--u) * 0.6); border-radius: 99px;
+  background: linear-gradient(90deg, hsl(130 75% 45%), hsl(65 75% 45%), hsl(0 75% 45%));
+}

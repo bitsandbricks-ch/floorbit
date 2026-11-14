@@ -82,6 +82,8 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENTION_INTERVAL` | `120` | seconds between reads of every port for the needs-attention list (at least 30; [alerts.md](alerts.md#needs-attention)) |
 | `ATTENTION_FLAPS` | `3` | link changes within ten minutes that count as flapping |
 | `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
+| `SEAT_FINDER` | `true` | the public "find your seat" page `/find` ([kiosk.md](kiosk.md#find-your-seat)) |
+| `SEAT_FINDER_NICKS` | `false` | let `/find` also find a seat by the exact nick |
 | `STATS_UPLINK_PATTERN` | `uplink\|trunk` | port descriptions that mark a switch's uplink on the [stats dashboard](stats.md) (a regular expression, case-insensitive) |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |

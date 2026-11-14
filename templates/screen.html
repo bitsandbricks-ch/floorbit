@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Big screen · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--color-ink); cursor: none; }
+    .view { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .8s ease; }
+    .view.on { opacity: 1; }
+    .progress { position: fixed; left: 0; bottom: 0; height: 4px; background: var(--color-bit); width: 0; z-index: 3; }
+    .qr {
+      position: fixed; right: 18px; bottom: 18px; z-index: 2; display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px 10px 10px; background: var(--color-surface); border: 1px solid var(--color-line);
+      border-radius: 14px; color: var(--color-fg); font: 600 18px/1.3 var(--font-sans);
+    }
+    .qr img { width: 120px; height: 120px; border-radius: 8px; background: #fff; }
+    .qr small { display: block; font-weight: 400; font-size: 14px; color: var(--color-muted); }
+    @media (prefers-reduced-motion: reduce) { .view { transition: none; } }
+  </style>
+</head>
+<body>
+  {% for v in views %}
+  <iframe class="view{{ ' on' if loop.first }}" title="{{ v.id }}" data-src="{{ v.url }}"
+          {% if loop.first %}src="{{ v.url }}"{% endif %}></iframe>
+  {% endfor %}
+  {% if qr %}
+  <aside class="qr" aria-label="Find your seat">
+    <img src="{{ qr.image }}" alt="QR code for {{ qr.url }}" />
+    <div>Find your seat<small>Finde deinen Platz</small><small>{{ qr.url }}</small></div>
+  </aside>
+  {% endif %}
+  <div class="progress" id="progress"></div>
+  <script>window.SCREEN_EVERY = {{ every }};</script>
+  <script src="/static/js/screen.js"></script>
+</body>
+</html>
