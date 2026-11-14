@@ -125,7 +125,8 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
     """A write route that falls through to the admin default must be one we meant to keep admin-only."""
     admin_on_purpose = ("/api/settings", "/api/integrations", "/api/demo", "/api/cache", "/api/plugins",
                         "/api/users", "/api/roles", "/api/teams", "/logout", "/login", "/auth/",
-                        "/api/checkin", "/help/")   # public pages with their own checks (check-in, helpdesk)
+                        "/api/checkin", "/help/",   # public pages with their own checks (check-in, helpdesk)
+                        "/api/setup")              # first-run setup: admins, or the setup code
     loose = []
     for rule in app_module.app.url_map.iter_rules():
         writes = (rule.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}

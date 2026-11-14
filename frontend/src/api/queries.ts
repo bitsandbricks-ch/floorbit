@@ -18,6 +18,7 @@ import type {
   ProblemList,
   RolesList,
   SeatMapList,
+  SetupState,
   Team,
   Tile,
   Widget,
@@ -117,4 +118,8 @@ export function useTeams() {
 
 export function useAccounts() {
   return useQuery({ queryKey: qk.users, queryFn: () => get<{ users: AccountSummary[] }>('/api/users') })
+}
+
+export function useSetup() {
+  return useQuery({ queryKey: qk.setup, queryFn: () => get<SetupState>('/api/setup') })
 }

@@ -23,9 +23,9 @@
 
       {% if no_users %}
       <p class="lg-note">
-        No accounts exist yet. Create the first one on the server with
-        <code>flask --app app users add &lt;name&gt;</code>, or set
-        <code>AUTH_ADMIN_USER</code> and <code>AUTH_ADMIN_PASSWORD</code> and restart.
+        No accounts exist yet. <a href="/setup">Set up Floorbit</a> with the setup code from its log,
+        or create the first account on the server with <code>flask --app app users add &lt;name&gt;</code>,
+        or set <code>AUTH_ADMIN_USER</code> and <code>AUTH_ADMIN_PASSWORD</code> and restart.
       </p>
       {% endif %}
 

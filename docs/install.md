@@ -24,9 +24,22 @@ optional, and `docker compose up -d` works without the file too.
 To try it with a made-up hall full of players and traffic first, set `FLOORBIT_DEMO=1` in `.env`
 and run `docker compose up -d` again ([demo.md](demo.md)).
 
-## 2. The first account
+## 2. The first account and setup
 
-Either put a name and password in `.env` before the first start:
+Open Floorbit in the browser and follow **Set up Floorbit**. It asks for the setup code that
+Floorbit prints to its log while it has no accounts, so nobody else who reaches a new server first
+can make themselves admin:
+
+```sh
+docker compose logs floorbit | grep "setup code"
+```
+
+The code changes on every restart and after 10 wrong tries. With it you create the first account
+(an admin), then the setup walks you through NetBox, LibreNMS, importing switches and the look.
+Every step can be skipped and done later in Settings; until you finish or skip to the end, the
+floor plan sends admins back to it.
+
+Without the browser, put a name and password in `.env` before the first start:
 
 ```sh
 AUTH_ADMIN_USER=admin
@@ -39,10 +52,11 @@ or create the account in the running container (it asks for the password):
 docker compose exec floorbit flask users add admin
 ```
 
-The first account is an admin. Add more under **Settings > Users**, or with
+Add more accounts under **Settings > Users**, or with
 `docker compose exec floorbit flask users add <name> --role tech`. Roles and teams:
-[auth.md](auth.md). Once you can sign in, take the password back out of `.env`: it is only read
-while there are no accounts.
+[auth.md](auth.md). If you used `.env`, take the password back out once you can sign in: it is only
+read while there are no accounts. An install that already had switches, blocks or settings before
+the setup existed counts as set up.
 
 ## 3. Your floor plan
 
