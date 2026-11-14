@@ -95,6 +95,7 @@ nav:
       - Event changelog: timeline.md
       - Network status page: status-page.md
       - Stats wall: stats-wall.md
+      - Schedule and countdown: schedule.md
       - Runbooks: runbooks.md
       - Teardown checklist: teardown.md
       - Past events: events.md

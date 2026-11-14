@@ -102,7 +102,7 @@ ACTIONS = {
 }
 AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins',
          'incidents', 'ports', 'security', 'power', 'alerts', 'gear', 'cables',
-         'status page', 'runbooks')
+         'status page', 'runbooks', 'schedule')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
 listeners = []
 

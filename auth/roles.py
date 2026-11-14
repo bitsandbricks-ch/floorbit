@@ -250,6 +250,8 @@ RULES = (
     ('/api/runbooks', READ, 'incidents.work'),
     ('/api/runbooks', WRITE, 'incidents.assign'),
     ('/runbooks', READ, 'incidents.work'),
+    # Schedule: everyone reads it, leads plan it; /agenda itself is public (floorbit/schedule.py).
+    ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).
     ('/api/status-page', READ, 'incidents.work'),
     ('/api/status-page', WRITE, 'incidents.assign'),

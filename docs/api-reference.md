@@ -494,6 +494,21 @@ Source: [`floorbit/blueprints/runbooks.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/runbooks/<book_id>` | `incidents.assign` | `runbooks` |
 | POST | `/api/runbooks/<book_id>/move` | `incidents.assign` | `runbooks` |
 
+## floorbit.blueprints.schedule
+
+Event schedule and countdown (issue #106). The rules live in floorbit/schedule.py; see docs/schedule.md.
+
+Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/schedule.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/schedule` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `schedule` |
+| PUT | `/api/schedule/event` | `floorplan.edit` | `schedule` |
+| POST | `/api/schedule/import` | `floorplan.edit` | `schedule` |
+| POST | `/api/schedule/items` | `floorplan.edit` | `schedule` |
+| DELETE | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
+| PATCH | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
+
 ## floorbit.blueprints.seat_blocks
 
 Seat blocks (rows of seats) on the floor plan. Each is in one hall (``hall_id``, floorbit/halls.py).

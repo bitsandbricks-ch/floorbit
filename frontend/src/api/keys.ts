@@ -23,6 +23,7 @@ export const qk = {
   timeline: (query: string) => ['timeline', query] as const,
   statusPage: ['status-page'] as const,
   runbooks: ['runbooks'] as const,
+  schedule: ['schedule'] as const,
   teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,

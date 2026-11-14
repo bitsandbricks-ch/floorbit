@@ -197,6 +197,8 @@ def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_
         if kinds and r['kind'] not in kinds:
             continue
         picked.append({k: v for k, v in r.items() if v not in (None, '')})
+    # Newest first; two entries in the same millisecond keep the later-written one first.
+    picked.reverse()
     picked.sort(key=lambda r: r['t'], reverse=True)
     return picked[:limit], len(picked), counts
 

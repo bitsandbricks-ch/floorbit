@@ -87,6 +87,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENDEE_VIEW` | `false` | the public attendee view `/hall`, seats online or offline ([kiosk.md](kiosk.md#attendee-view)); also under Settings > Attendee pages |
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
 | `STATUS_SWITCH_NAMES` | `false` | name the switches that are down on `/status` |
+| `SCHEDULE_PAGE` | `false` | the public schedule and countdown `/agenda` ([schedule.md](schedule.md)); also under Settings > Attendee pages |
 | `STATS_WALL` | `false` | the public stats wall `/wall` ([stats-wall.md](stats-wall.md)); also under Settings > Attendee pages |
 | `STATS_UPLINK_PATTERN` | `uplink\|trunk` | port descriptions that mark a switch's uplink on the [stats dashboard](stats.md) (a regular expression, case-insensitive) |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |

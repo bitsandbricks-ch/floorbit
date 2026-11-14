@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  {% if not off %}<meta http-equiv="refresh" content="60" />{% endif %}
+  <title>{{ t.title }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 16px; background: var(--color-ink); color: var(--color-fg); font: 16px/1.45 var(--font-sans); }
+    main { max-width: 900px; margin: 2vh auto 0; display: grid; gap: 16px; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 40px); line-height: 1.15; }
+    h2 { margin: 0 0 10px; font-size: 14px; color: var(--color-muted); font-weight: 600; }
+    .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 14px; padding: 18px 20px; }
+    .muted { color: var(--color-muted); font-size: 14px; }
+    .countdown { display: flex; gap: 0 clamp(18px, 3vw, 56px); flex-wrap: wrap; margin-top: 4px; }
+    .countdown div { text-align: center; }
+    .countdown b { display: block; font-size: clamp(40px, 9vw, 96px); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .countdown span { color: var(--color-muted); font-size: 14px; }
+    .two { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .item { border-left: 4px solid var(--k, var(--color-line)); padding: 4px 0 4px 12px; }
+    .item b { display: block; font-size: 18px; }
+    .big .item b { font-size: clamp(20px, 3vw, 30px); }
+    .talk { --k: var(--color-bit); } .tournament { --k: var(--color-warn); } .meal { --k: var(--color-up); }
+    .quiet { --k: var(--color-trace); } .other { --k: var(--color-muted); }
+    .banner { background: color-mix(in srgb, var(--color-trace) 18%, var(--color-surface)); border-color: var(--color-trace); }
+    ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    ol li { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; align-items: start; }
+    ol li.past { opacity: .5; }
+    ol li.on { font-weight: 700; }
+    ol .when { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+    ol li.day { display: block; margin: 14px 0 2px; font-size: 15px; font-weight: 700; }
+    ol li.day:first-child { margin-top: 0; }
+    body.screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; }
+    body.screen main { max-width: none; margin: 0; grid-template-columns: 1fr 1fr; align-items: start; }
+    body.screen header, body.screen .wide { grid-column: 1 / -1; }
+    body.screen .countdown b { font-size: 7vw; }
+    body.screen .countdown span { font-size: 1.3vw; }
+    body.screen .item b { font-size: 2.2vw; }
+    body.screen .muted, body.screen ol { font-size: 1.2vw; }
+    body.screen h2 { font-size: 1.1vw; }
+    body.screen .programme { max-height: 62vh; overflow: hidden; }
+    body.screen ol li.past { display: none; }
+    body.screen ol li.day { font-size: 1.3vw; }
+    body.screen .programme .item b { font-size: 1.7vw; }
+    .item + .item { margin-top: 10px; }
+  </style>
+</head>
+<body{% if screen %} class="screen"{% endif %}>
+  <main>
+    {% if off %}
+    <div class="card"><h1>{{ t.title }}</h1><p role="alert">{{ t.off }}</p></div>
+    {% else %}
+    <header>
+      <h1>{{ theme.name if theme is defined and theme.name else t.title }}</h1>
+      {% if theme is defined and theme.name %}<p class="muted">{{ t.title }}</p>{% endif %}
+    </header>
+    {% if s.phase == 'before' %}
+    <section class="card wide" aria-live="polite">
+      <h2>{{ t.starts_in }}</h2>
+      <div class="countdown" id="countdown" data-target="{{ s.event.start }}" data-now="{{ now }}">
+        <div><b data-unit="d">{{ left.d }}</b><span>{{ t.days }}</span></div>
+        <div><b data-unit="h">{{ '%02d' % left.h }}</b><span>h</span></div>
+        <div><b data-unit="m">{{ '%02d' % left.m }}</b><span>min</span></div>
+        <div><b data-unit="s">{{ '%02d' % left.s }}</b><span>s</span></div>
+      </div>
+      <p class="muted">{{ stamp('{time}', s.event.start) }}</p>
+    </section>
+    {% elif s.phase == 'after' %}
+    <section class="card wide"><p><b>{{ t.over }}</b></p></section>
+    {% endif %}
+    {% if s.quiet %}
+    <section class="card banner wide" role="status"><b>{{ stamp(t.quiet, s.quiet.end or s.quiet.start + 1800) }}</b></section>
+    {% endif %}
+    {% if s.phase != 'after' %}
+    <section class="card big" id="agenda-now">
+      <h2>{{ t.now }}</h2>
+      {% for i in s.now if i.kind != 'quiet' %}
+      <div class="item {{ i.kind }}"><b>{{ i.title }}</b>
+        <span class="muted">{{ [t.kind[i.kind] if i.kind != 'other' else '', i.where]|select|join(' · ') }}{% if i.end %} · {{ stamp(t.until, i.end) }}{% endif %}</span></div>
+      {% else %}
+      <p class="muted">{{ t.nothing_now }}</p>
+      {% endfor %}
+    </section>
+    {% if s.next %}
+    <section class="card big" id="agenda-next">
+      <h2>{{ t.next }} · {{ stamp('{time}', s.next[0].start) }}</h2>
+      {% for i in s.next %}
+      <div class="item {{ i.kind }}"><b>{{ i.title }}</b>
+        <span class="muted">{{ [t.kind[i.kind] if i.kind != 'other' else '', i.where]|select|join(' · ') or '&nbsp;'|safe }}</span></div>
+      {% endfor %}
+    </section>
+    {% endif %}
+    {% endif %}
+    <section class="card wide programme">
+      <h2>{{ t.programme }}</h2>
+      {% if s['items'] %}
+      <ol id="programme">
+        {% for i in s['items'] %}
+        {% set on = i.start <= now < (i.end or i.start + 1800) %}
+        <li class="{{ 'on' if on else 'past' if (i.end or i.start + 1800) <= now else '' }}" data-at="{{ i.start }}">
+          <span class="when">{{ stamp('{time}', i.start) }}</span>
+          <div class="item {{ i.kind }}"><b>{{ i.title }}</b>
+            <span class="muted">{{ [t.kind[i.kind] if i.kind != 'other' else '', i.where, i.note]|select|join(' · ') }}</span></div>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="muted">{{ t.empty }}</p>
+      {% endif %}
+    </section>
+    <p class="muted wide">{{ stamp(t.updated, now) }}</p>
+    <script src="/static/js/agenda.js"></script>
+    {% endif %}
+    {% if not screen %}{% include "_attribution.html" %}{% endif %}
+  </main>
+</body>
+</html>

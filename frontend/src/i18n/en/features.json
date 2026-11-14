@@ -37,7 +37,8 @@
     "teardown": "Teardown checklist",
     "status_page": "Network status page",
     "public_hall": "Public hall map",
-    "stats_wall": "Public stats wall"
+    "stats_wall": "Public stats wall",
+    "schedule": "Schedule and countdown"
   },
   "desc": {
     "incidents": "The incident board for problems at seats and switches.",
@@ -70,6 +71,7 @@
     "teardown": "Gear back, configs archived and the event exported.",
     "status_page": "A public page that tells attendees whether the network is fine, which areas an outage hits, and the crew's updates.",
     "public_hall": "The hall map players see without signing in.",
-    "stats_wall": "Fun facts about the event for a big screen and attendees: data downloaded, the bandwidth peak, top games, seats online. Hall-wide only."
+    "stats_wall": "Fun facts about the event for a big screen and attendees: data downloaded, the bandwidth peak, top games, seats online. Hall-wide only.",
+    "schedule": "The event programme (talks, tournaments, meals, quiet hours) with a public countdown page for big screens and phones; imports iCal."
   }
 }

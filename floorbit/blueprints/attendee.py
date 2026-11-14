@@ -24,12 +24,12 @@ TEXTS = {
            'offline': 'offline', 'count': '{online} of {total} seats online', 'updated': 'Updated {time}',
            'unknown': 'The network status is not available right now.', 'off': 'This page is switched off.',
            'empty': 'There is no hall plan yet.', 'map': 'Hall plan, online seats marked',
-           'find': 'Find your seat', 'halls': 'Halls'},
+           'find': 'Find your seat', 'halls': 'Halls', 'agenda': 'Schedule'},
     'de': {'title': 'Hallenübersicht', 'intro': 'Welche Plätze gerade online sind.', 'online': 'online',
            'offline': 'offline', 'count': '{online} von {total} Plätzen online', 'updated': 'Stand {time}',
            'unknown': 'Der Netzwerkstatus ist gerade nicht verfügbar.', 'off': 'Diese Seite ist ausgeschaltet.',
            'empty': 'Es gibt noch keinen Hallenplan.', 'map': 'Hallenplan, Plätze online markiert',
-           'find': 'Finde deinen Platz', 'halls': 'Hallen'},
+           'find': 'Finde deinen Platz', 'halls': 'Hallen', 'agenda': 'Programm'},
 }
 
 
@@ -71,7 +71,8 @@ def hall_page():
     count = sum(1 for b in drawing['shapes'] for c in b['cells'] if c['on'])
     return render_template('hall.html', lang=lang, t=text, state='ok' if online is not None else 'unknown',
                            drawing=drawing, total=total, count=count, last=last, finder=finder_on(),
-                           tabs=tabs, hall_id=hall['id'] if tabs else '')
+                           tabs=tabs, hall_id=hall['id'] if tabs else '',
+                           agenda=bool(current_app.extensions['floorbit_settings'].get('public.schedule')))
 
 
 @bp.route('/api/public/seats')
