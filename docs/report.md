@@ -17,6 +17,12 @@ The port reads are folded into one row per hour and kept for **21 days**, in Red
 stats (`floorbit:stats`). Switch outages (up to 5,000 changes) and problem ports (up to 1,000 ports)
 are kept since the last new event.
 
+## Compared with the last event
+
+With an archived event ([past events](events.md)), the page compares this event so far with
+the last one's first as many hours: bandwidth, data moved, seats online, incidents and outages,
+with the change in percent. See [stats](stats.md#compare). The PDF doesn't have it yet.
+
 ## Download as PDF
 
 **Download PDF** gives the same report as a PDF on A4 (`GET /api/report.pdf?lang=en|de&tz=<minutes>`),

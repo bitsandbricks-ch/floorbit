@@ -498,6 +498,7 @@ Source: [`floorbit/blueprints/stats.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/forecast` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `forecast` |
 | GET | `/api/stats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/stats/compare` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | POST | `/api/stats/peak/reset` | `settings.manage` |  |
 | GET | `/api/stats/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 

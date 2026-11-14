@@ -77,7 +77,8 @@ each seat is plugged into.
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is
   fixed, and Take it / Fixed buttons for linked crew. See [docs/crew-discord.md](docs/crew-discord.md).
 - **Stats:** bandwidth now and at its peak (last hour, 24 hours, the event), uplink load per switch,
-  seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
+  seats online and the busiest ports, with a big-screen version, and today next to yesterday or this
+  event next to the last one. See [docs/stats.md](docs/stats.md).
 - **Bandwidth forecast:** the next 12 hours from the event's hours so far (a profile per hour of
   the day times how the last hours ran), with a warning before the line fills. See
   [docs/forecast.md](docs/forecast.md).
