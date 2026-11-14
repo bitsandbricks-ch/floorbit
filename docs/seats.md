@@ -59,6 +59,14 @@ The colours run from dark purple to yellow (viridis), which stay in order for co
 and in grey scale. Offline and unknown seats keep their shapes. Only each seat's volume is shown,
 never what it is. `/plan?traffic=1` opens with it on, also on big screens.
 
+## List
+
+**Map / List** switches the plan for a table of the hall's seats: seat, state, problems, traffic,
+check-in and match zone. Click a column to sort (problems and traffic start with the most), and the
+**Show** filter applies here too, so "every offline seat" is two clicks. Click a seat to open the
+inspector. **CSV** downloads what the list shows. `/plan?view=list` opens the page as a list; it is
+also the plain way through the hall for screen readers and small phones.
+
 ## The inspector
 
 Clicking a seat opens one panel with everything about it: state, block, switch and port, traffic

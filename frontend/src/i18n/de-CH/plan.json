@@ -87,5 +87,16 @@
     "ago_one": "vor 1 h",
     "ago_other": "vor {{count}} h",
     "now": "jetzt"
+  },
+  "list": {
+    "view": "Ansicht",
+    "map": "Plan",
+    "list": "Liste",
+    "label": "Plätze",
+    "seat": "Platz",
+    "state": "Zustand",
+    "match": "Match",
+    "count_one": "{{count}} Platz",
+    "count_other": "{{count}} Plätze"
   }
 }

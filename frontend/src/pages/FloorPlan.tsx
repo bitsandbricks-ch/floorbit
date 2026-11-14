@@ -12,6 +12,7 @@ import type { SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { Inspector, Legend } from './plan/Inspector'
 import { type Filter, type View, around, findSeat, parseBox, seatCenter } from './plan/model'
+import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 
 const FILTERS: Filter[] = ['all', 'problems', 'offline', 'match', 'checked_in']
@@ -25,6 +26,7 @@ export default function FloorPlan() {
   const selected = params.get('seat')
   const screen = params.get('screen') === '1'
   const traffic = params.get('traffic') === '1'
+  const list = !screen && params.get('view') === 'list'
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
   const phone = useMediaQuery('(max-width: 48em)')
@@ -143,17 +145,19 @@ export default function FloorPlan() {
           <Group mb="sm" gap="lg" wrap="wrap">
             <SegmentedControl size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
               data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({ value: f, label: t(`plan.filter.${f}`) }))} />
-            <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />
+            <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
+              aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
+            {!list && <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />}
           </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
           <div className={`fb-plan-layout${selected && !phone ? ' with-inspector' : ''}`}>
-            {map}
+            {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
             {selected && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
-          <Legend checkin={data.checkin} traffic={traffic} />
-          <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>
+          {!list && <Legend checkin={data.checkin} traffic={traffic} />}
+          {!list && <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>}
           {phone && (
             <Drawer opened={!!selected} onClose={() => set('seat', null)} position="bottom" size="55%" withCloseButton={false}
               title={null} aria-label={selected ?? ''}>

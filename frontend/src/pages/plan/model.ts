@@ -125,6 +125,13 @@ export function matches(seat: PlanSeat | undefined, filter: Filter) {
   return !!seat.checked_in
 }
 
+/** Seats in reading order: by block, then by number (D-2 before D-10). */
+export function seatOrder(a: string, b: string) {
+  const [ba, na] = [a.replace(/-?\d+$/, ''), Number(a.match(/(\d+)$/)?.[1] ?? 0)]
+  const [bb, nb] = [b.replace(/-?\d+$/, ''), Number(b.match(/(\d+)$/)?.[1] ?? 0)]
+  return ba.localeCompare(bb) || na - nb
+}
+
 /** "D-6" from "d6", "d 6" or "D-06", if the plan has it. */
 export function findSeat(query: string, seats: Record<string, unknown>) {
   const q = query.trim().toUpperCase().replace(/\s+/g, '')

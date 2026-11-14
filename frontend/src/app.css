@@ -390,3 +390,8 @@ body {
 .fb-link-history .on { fill: var(--color-up); }
 .fb-link-history .off { fill: var(--color-down); }
 .fb-link-history .axis { stroke: var(--color-line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+/* The Seats view's list (issue #169). */
+.fb-seat-list { background: var(--color-raised); border: 1px solid var(--color-line); border-radius: 12px; padding: 10px 12px; }
+.fb-seat-list tr.sel td { background: color-mix(in srgb, var(--color-bit) 18%, transparent); }
+.fb-seat-list-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 4px; }
+.fb-seat-list td { white-space: nowrap; }

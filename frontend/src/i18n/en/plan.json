@@ -87,5 +87,16 @@
     "ago_one": "1 h ago",
     "ago_other": "{{count}} h ago",
     "now": "now"
+  },
+  "list": {
+    "view": "View",
+    "map": "Map",
+    "list": "List",
+    "label": "Seats",
+    "seat": "Seat",
+    "state": "State",
+    "match": "Match",
+    "count_one": "{{count}} seat",
+    "count_other": "{{count}} seats"
   }
 }

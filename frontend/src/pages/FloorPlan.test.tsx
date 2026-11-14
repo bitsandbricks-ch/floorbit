@@ -4,7 +4,7 @@ import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import FloorPlan from './FloorPlan'
 import axe from 'axe-core'
-import { density, findSeat, heatColor, heatLevel, linkSpans, matches, nearestSeat, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
+import { density, findSeat, heatColor, heatLevel, linkSpans, matches, nearestSeat, seatOrder, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -50,6 +50,7 @@ describe('seat map model', () => {
     expect(findSeat(' d-06 ', { 'D-6': 1 })).toBe('D-6')
     expect(findSeat('Z-1', { 'D-6': 1 })).toBeNull()
     expect(seatCenter(drawing, 'D-1')).toEqual({ x: 592, y: 500 })
+    expect(['D-10', 'A-3', 'D-2', 'A-12'].sort(seatOrder)).toEqual(['A-3', 'A-12', 'D-2', 'D-10'])
     expect(matches(data.seats['D-2'], 'problems') && !matches(data.seats['D-1'], 'offline')).toBe(true)
   })
 })
@@ -194,6 +195,35 @@ describe('Seats page', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('lists the seats in a sortable table that follows the filter', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?view=list')
+    const table = await screen.findByRole('table', { name: 'Seats' })
+    const seats = () => within(table).getAllByRole('row').slice(1).map((r) => r.querySelector('td')!.textContent)
+    expect(seats()).toEqual(['D-1', 'D-2', 'D-3', 'D-4'])
+    expect(container.querySelector('svg[role=application]')).toBeNull()
+    fireEvent.click(within(table).getByRole('button', { name: 'State' }))
+    expect(seats()).toEqual(['D-2', 'D-3', 'D-1', 'D-4'])
+    expect(within(table).getByRole('columnheader', { name: 'State' })).toHaveAttribute('aria-sort', 'ascending')
+    fireEvent.click(within(table).getByRole('button', { name: 'Traffic' }))
+    expect(seats()[0]).toBe('D-1')
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Offline'))
+    await waitFor(() => expect(seats()).toEqual(['D-2']))
+    expect(screen.getByText('1 seat')).toBeInTheDocument()
+
+    const created: Blob[] = []
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => { created.push(b); return 'blob:x' }, revokeObjectURL: () => {} }))
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    fireEvent.click(screen.getByRole('button', { name: 'CSV' }))
+    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,match\nD-2,offline,1,,no,\n')
+    click.mockRestore()
+
+    fireEvent.click(within(table).getByRole('button', { name: 'D-2' }))
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
+    expect(result.violations.map((v) => v.id)).toEqual([])
   })
 
   it('says so when there is no recent port read', async () => {
