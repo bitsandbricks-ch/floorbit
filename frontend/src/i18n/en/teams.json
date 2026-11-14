@@ -49,6 +49,7 @@
     "incidents_work": "Work incidents assigned to their teams",
     "incidents_assign": "Assign incidents to any team",
     "ports_act": "Run port actions on switches",
+    "power_edit": "Change power boards and circuits, enter readings and trips",
     "plugins_run": "Run plugin actions",
     "audit_read": "Read the audit log",
     "settings_manage": "Change settings, plugins and backups",

@@ -14,6 +14,7 @@ import type {
   QrSeat,
   HealthWall,
   SecurityList,
+  PowerOverview,
   RolesList,
   SeatMapList,
   Team,
@@ -95,6 +96,10 @@ export function useHealth() {
 
 export function useSecurity() {
   return useQuery({ queryKey: qk.security, queryFn: () => get<SecurityList>('/api/security'), refetchInterval: 30_000 })
+}
+
+export function usePower() {
+  return useQuery({ queryKey: qk.power, queryFn: () => get<PowerOverview>('/api/power'), refetchInterval: 30_000 })
 }
 
 export function useOidcProviders() {

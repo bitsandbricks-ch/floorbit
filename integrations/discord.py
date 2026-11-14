@@ -2,7 +2,8 @@
 
 Listens for ``monitor.poll`` events and posts one message per poll that had
 changes, so a whole row losing power is one message, not twenty. ``health.changed`` (the
-service health wall) posts when a service goes red and when it is back. Sending runs
+service health wall) posts when a service goes red and when it is back; ``security.finding``
+and ``power.alert`` post new findings and circuits that turn red or trip. Sending runs
 on its own thread so a slow Discord never delays the status monitor.
 """
 import queue
@@ -59,6 +60,7 @@ class DiscordNotifier:
         events.subscribe('monitoring.online', self.on_source)
         events.subscribe('health.changed', self.on_health)
         events.subscribe('security.finding', self.on_security)
+        events.subscribe('power.alert', self.on_power)
 
     def _ensure_worker(self):
         with self._lock:
@@ -185,6 +187,54 @@ class DiscordNotifier:
                    'allowed_mentions': {'parse': []}}
         mention = config.get('DISCORD_MENTION', '') or ''
         if mention and finding.get('severity') == 'high':
+            payload['content'] = mention
+            payload['allowed_mentions'] = {'parse': ['roles', 'everyone', 'users']}
+        return payload
+
+    def on_power(self, event):
+        if not self.enabled() or not config.get_bool('DISCORD_POWER_ALERTS', True):
+            return
+        payload = self.build_power_message(event.get('data') or {})
+        if payload:
+            self._ensure_worker()
+            try:
+                self._queue.put_nowait(payload)
+            except queue.Full:
+                self.last_error = 'alert queue full, message dropped'
+
+    def build_power_message(self, alert, now=None):
+        """A circuit turned red or its breaker tripped: which one, and what goes dark."""
+        if alert.get('state') not in ('crit', 'tripped'):
+            return None
+        now = now or time.time()
+        key = f"power:{alert.get('id')}:{alert.get('state')}"
+        last = self._last_alert.get(key)
+        if last is not None and now - last < config.get_int('DISCORD_COOLDOWN', 300, minimum=0):
+            return None
+        self._last_alert[key] = now
+        tripped = alert['state'] == 'tripped'
+        name = str(alert.get('name') or 'A circuit')[:80]
+        title = f'⚡ Breaker tripped: {name}' if tripped else f"⚡ {name} at {alert.get('pct')} %"
+        fields = [{'name': 'Board', 'value': str(alert.get('board') or '?')[:40], 'inline': True},
+                  {'name': 'Phase', 'value': str(alert.get('phase') or '?')[:4], 'inline': True}]
+        if alert.get('rating_a'):
+            fields.append({'name': 'Fuse', 'value': f"{alert['rating_a']:g} A", 'inline': True})
+        feeds = []
+        if alert.get('seats'):
+            feeds.append(f"{alert['seats']} seats")
+        if alert.get('switches'):
+            feeds.append(', '.join(str(s) for s in alert['switches'][:6])[:200])
+        if feeds:
+            fields.append({'name': 'Feeds', 'value': ' and '.join(feeds)[:250], 'inline': False})
+        embed = {'title': title[:200], 'color': COLOR_OFFLINE if tripped else COLOR_INFO, 'fields': fields,
+                 'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        if public_url:
+            embed['url'] = public_url + '/power'
+        payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
+                   'allowed_mentions': {'parse': []}}
+        mention = config.get('DISCORD_MENTION', '') or ''
+        if mention and tripped:
             payload['content'] = mention
             payload['allowed_mentions'] = {'parse': ['roles', 'everyone', 'users']}
         return payload

@@ -105,7 +105,7 @@
     });
 
     for (const type of ['monitor.poll', 'checkin', 'checkin.removed', 'checkin.refreshed', 'incident.changed',
-                        'security.finding']) {
+                        'security.finding', 'power.changed', 'power.alert']) {
       es.addEventListener(type, (e) => emit(type, JSON.parse(e.data).data));
     }
   }

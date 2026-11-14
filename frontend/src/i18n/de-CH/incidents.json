@@ -1,6 +1,6 @@
 {
   "title": "Störungen",
-  "intro": "Probleme während des Events, an einem Platz oder Switch. Teilnehmende melden sie über den QR-Code an ihrem Platz; eure Teams bearbeiten sie hier.",
+  "intro": "Probleme während des Events, an einem Platz, Switch oder Stromkreis. Teilnehmende melden sie über den QR-Code an ihrem Platz; eure Teams bearbeiten sie hier.",
   "new": "Neue Störung",
   "qrCodes": "QR-Codes der Plätze",
   "mineOnly": "Nur, was ich bearbeiten kann",
@@ -17,8 +17,10 @@
   },
   "seat": "Platz {{seat}}",
   "switch": "Switch {{name}}",
+  "circuit": "Stromkreis {{name}}",
   "noTeam": "Kein Team",
   "fromSeat": "Vom Platz",
+  "fromPower": "Vom Stromlayer",
   "reports_one": "{{count}} Meldung",
   "reports_other": "{{count}} Meldungen",
   "snapshot": "{{switch}} {{port}}: {{link}}, {{mac}}",

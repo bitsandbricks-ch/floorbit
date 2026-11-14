@@ -30,6 +30,8 @@ async function init() {
   loadIncidentMarkers();
   loadPortInfo();
   loadSecurityMarkers();
+  if (powerOn) setPowerLayer(readJSON('layer-power', false));
+  loadPowerMarkers();
 }
 
 function applyCachedStatus(cache) {

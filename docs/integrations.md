@@ -56,6 +56,7 @@ Discord message) instead of switch alerts, and starts from a fresh baseline when
 | `HEALTH_INTERVAL` | `30` | seconds between health wall checks, min 10 ([health.md](health.md)) |
 | `HEALTH_CONFIRM` | `2` | checks in a row before a service's new colour counts |
 | `SECURITY_INTERVAL` | `60` | seconds between security checks, min 15 ([security.md](security.md)) |
+| `POWER_INTERVAL` | `60` | seconds between power meter readings, min 15 ([power.md](power.md)) |
 
 `GET /api/status/snapshot` returns the last known status of every placed switch in one call.
 `POST /api/integrations/monitor/poll` runs a poll now.
@@ -75,6 +76,7 @@ poll go in one message (up to 10 embeds), so a row losing power is one message.
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |
+| `DISCORD_POWER_ALERTS` | `true` | post when a circuit turns red or its breaker trips, with what it feeds |
 | `PUBLIC_URL` | | link in the alert |
 
 `POST /api/integrations/discord/test` sends a test message.

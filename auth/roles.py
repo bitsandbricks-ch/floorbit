@@ -21,6 +21,7 @@ PERMISSIONS = {
     'incidents.work': 'Work incidents assigned to their teams',
     'incidents.assign': 'Assign incidents to any team',
     'ports.act': 'Run port actions on switches',
+    'power.edit': 'Change power boards and circuits, enter readings and trips',
     'plugins.run': 'Run plugin actions',
     'audit.read': 'Read the audit log',
     'settings.manage': 'Change settings, plugins and backups',
@@ -34,7 +35,7 @@ BUILTIN = {
              'description': 'Everything a tech can, plus the floor plan, assigning incidents to any team '
                             'and reading the audit log.',
              'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
-                             'incidents.assign', 'ports.act', 'plugins.run', 'audit.read']},
+                             'incidents.assign', 'ports.act', 'power.edit', 'plugins.run', 'audit.read']},
     'tech': {'label': 'Tech',
              'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
              'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act']},
@@ -225,6 +226,10 @@ RULES = (
     ('/security', READ, 'seats.view'),
     # Asking every health plugin now sends requests out: the same as running a plugin action.
     ('/api/health', WRITE, 'plugins.run'),
+    # Power: changes need power.edit, readings and trips also incidents.work in the Electrics team;
+    # the blueprint checks that (floorbit/blueprints/power.py). Asking the meters is a plugin run.
+    ('/api/power/check', WRITE, 'plugins.run'),
+    ('/api/power', WRITE, 'floorplan.view'),
     # Plugin actions check the permission each action names (floorbit/blueprints/plugins.py).
     ('/api/plugins', WRITE, 'floorplan.view'),
 )
