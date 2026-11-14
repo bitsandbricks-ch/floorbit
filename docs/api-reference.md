@@ -330,6 +330,7 @@ Source: [`floorbit/blueprints/plugins.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/plugins/<plugin_id>/actions/<action_id>` | `floorplan.view` |  |
 | GET | `/api/plugins/<plugin_id>/endpoints/<endpoint_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/<plugin_id>/widgets/<widget_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/menu` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/settings/plugins` | `settings.manage` |  |
 | PUT | `/api/settings/plugins/<plugin_id>` | `settings.manage` |  |
 | GET | `/api/settings/plugins/<plugin_id>/log` | `settings.manage` |  |
