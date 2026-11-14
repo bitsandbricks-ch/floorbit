@@ -910,3 +910,46 @@ kbd {
 @media (max-width: 1600px) {
   .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+
+/* ── Phones (issue #11): the floor plan full width, the sidebar a drawer, the
+   inspector a sheet at the bottom, and the top bar a row that scrolls sideways. ──────────── */
+.sidebar-toggle { display: none; }
+.floorplan-wrapper, .canvas-area { touch-action: none; }   /* our own pan and pinch (touch.js) */
+@media (max-width: 760px) {
+  :root { --topbar-h: 52px; }
+  .sidebar-toggle { display: inline-flex; flex-shrink: 0; }
+  .topbar { gap: var(--sp-2); padding: 0 var(--sp-2); }
+  .topbar-brand { width: auto; }
+  .topbar-brand .fb-brand-name, .status-chips, .user-menu-name, .last-updated { display: none; }
+  .topbar-actions { position: relative; overflow-x: auto; scrollbar-width: none; gap: 2px; min-width: 0; }
+  .topbar-actions::-webkit-scrollbar { display: none; }
+  .topbar-actions .btn { flex-shrink: 0; min-height: 40px; }
+  .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .sidebar {
+    position: fixed; top: var(--topbar-h); bottom: 0; left: 0; z-index: 40;
+    width: min(320px, 86vw); transform: translateX(-100%); transition: transform .18s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .sidebar-open .sidebar { transform: none; }
+  .sidebar-open .canvas-area::after {
+    content: ''; position: absolute; inset: 0; background: rgb(0 0 0 / 35%); z-index: 35;
+  }
+
+  .detail-panel {
+    position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 55vh; z-index: 45;
+    border-left: 0; border-top: 1px solid var(--border); border-radius: 14px 14px 0 0;
+    overflow-y: auto; animation: sheetUp .16s ease;
+  }
+  @keyframes sheetUp { from { transform: translateY(30%); opacity: 0; } }
+
+  /* Adding switches and blocks wants a mouse; selecting, moving and the inspector work by touch. */
+  .toolbar { top: var(--sp-2); }
+  #tool-add-switch, #tool-add-block { display: none; }
+  .zoom-bar { bottom: var(--sp-2); right: var(--sp-2); }
+  .switch-pin { min-width: 28px; min-height: 28px; }
+}
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
+  .detail-panel { animation: none; }
+}

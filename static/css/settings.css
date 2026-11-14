@@ -151,6 +151,13 @@ body {
 @media (max-width: 600px) {
   .st-field { grid-template-columns: 1fr; }
   .st-field > label { padding-top: 0; }
+  /* Phones (issue #11): the header links wrap instead of widening the page. */
+  .st-header { flex-wrap: wrap; height: auto; min-height: 52px; padding: 8px 12px; gap: 8px; }
+  .st-header-spacer { flex-basis: 100%; height: 0; }
+  .st-savebar { flex-wrap: wrap; }
+  .st-savebar-msg { flex-basis: 100%; }
+  .st-meta { flex-wrap: wrap; }
+  .st-meta span { overflow-wrap: anywhere; min-width: 0; }
 }
 
 .hidden { display: none !important; }

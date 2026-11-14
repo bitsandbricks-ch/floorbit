@@ -28,6 +28,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `power.js` | The power layer: seats and switches coloured by their circuit's load, distribution boards, and the count of red circuits in the top bar. |
 | `problems.js` | The count of current problems next to Problems in the top bar. |
 | `ports.js` | Port actions on the selected seat (bounce its port) and flagging a seat for a tech. |
+| `touch.js` | Phones and tablets: one finger pans, drags and taps like the mouse, two fingers pinch to zoom; the sidebar as a drawer. |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:
