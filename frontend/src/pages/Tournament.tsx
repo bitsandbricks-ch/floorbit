@@ -11,6 +11,7 @@ import type { MatchZone, PlanDrawing, QosHints, TournamentData } from '@/api/typ
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { compact } from './tournament/seats'
 
 function HallPlan({ drawing, label }: { drawing: PlanDrawing; label: string }) {
   return (
@@ -33,7 +34,7 @@ function HallPlan({ drawing, label }: { drawing: PlanDrawing; label: string }) {
 function ZoneForm({ zone, onDone, onCancel }: { zone?: MatchZone; onDone: () => void; onCancel?: () => void }) {
   const { t } = useTranslation()
   const [name, setName] = useState(zone?.name ?? '')
-  const [seats, setSeats] = useState(zone ? [...zone.blocks, ...zone.seats].join(', ') : '')
+  const [seats, setSeats] = useState(zone ? [...zone.blocks, ...compact(zone.seats)].join(', ') : '')
   const [note, setNote] = useState(zone?.note ?? '')
   const save = useMutation({
     mutationFn: () => zone
@@ -144,7 +145,7 @@ export default function Tournament() {
                     <Stack gap={2} style={{ minWidth: 0 }}>
                       <Text fw={600}><IconTrophy size={16} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> {z.name}</Text>
                       <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-                        {[...z.blocks.map((b) => t('tournament.block', { name: b })), ...z.seats].join(', ')}
+                        {[...z.blocks.map((b) => t('tournament.block', { name: b })), ...compact(z.seats)].join(', ')}
                       </Text>
                       {z.note && <Text size="xs" c="dimmed">{z.note}</Text>}
                     </Stack>

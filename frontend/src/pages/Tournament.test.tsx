@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { QosHints, TournamentData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Tournament from './Tournament'
+import { compact } from './tournament/seats'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -17,6 +18,10 @@ const data: TournamentData = {
 const qos: QosHints = { available: true, missing: ['B-2'], switches: [{ switch: 'sw-b-01', switch_id: 's1', uplinks: ['Te1/1/1'], ports: [{ port: 'Gi1/0/1', seat: 'B-1', zone: 'Main stage' }] }] }
 
 describe('Tournament seats', () => {
+  it('writes seat runs as ranges', () => {
+    expect(compact(['B-1', 'B-2', 'B-3', 'B-7', 'C-1', 'X'])).toEqual(['B-1..B-3', 'B-7', 'C-1', 'X'])
+  })
+
   it('shows the zones, the plan and the QoS ports, and adds a zone', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': lead, 'GET /api/tournament': data, 'GET /api/tournament/qos': qos,
