@@ -54,3 +54,20 @@ other sources still work.
 | `DELETE /api/seat-map/<seat>` | Remove the hand entry |
 | `GET /api/seat-map.csv` | The hand entries as CSV |
 | `POST /api/seat-map/import` | `{"csv": "...", "replace": false, "dry_run": true}`; a dry run only checks |
+
+## Finding a player
+
+The search box on the floor plan (press `/`) finds switches, seats and nicks, and for accounts with
+`seats.view` also IPs and MACs (issue #14). A MAC can be written any common way (`02:00:..`,
+`02-00-..`, `0200.0000.0009`).
+
+A full IP or MAC is also looked up on the network (`GET /api/seats/find?q=`):
+
+- when no seat source knows it, the monitoring source's ARP table turns the IP into a MAC (or back)
+  and that finds the seat;
+- the switch port it is plugged into is resolved, and shows under **On the network** even when no
+  seat is known for it.
+
+Picking a result jumps to the seat, opens it, and the switch it hangs on lights up for a few
+seconds. Nicks, IPs and MACs never reach roles without `seats.view`; they still find switches and
+seat numbers.

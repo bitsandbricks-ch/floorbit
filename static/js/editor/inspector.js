@@ -353,6 +353,7 @@ async function showBlockSeatDetail(seatNumber) {
 
 // Resolves the seat's IP to its switch port and fills the inspector. Also used by Refresh
 // and the once-a-minute update while the seat stays selected.
+let flashSwitchOnResolve = false;   // set by the search before it opens a seat
 async function lookupSeatPort(seatNumber) {
   const seatData = seatMappings[seatNumber];
   if (!seatData || !seatData.ip_address) return;
@@ -365,6 +366,12 @@ async function lookupSeatPort(seatNumber) {
     blockSeatDdMac.textContent = result.mac || '—';
     blockSeatDdVlan.textContent = result.vlan || '—';
     const portUsage = renderSeatPort(result);
+    if (flashSwitchOnResolve) {
+      // Picked from the search: show which switch it hangs on (sidebar.js flashSwitch).
+      flashSwitchOnResolve = false;
+      const name = String(result.device_name || result.hostname || '').toLowerCase();
+      flashSwitch(switches.find(s => [name, name.split('.')[0]].includes(s.name.toLowerCase()))?.id);
+    }
     setResolution(`Found via ${result.arp_source || 'the LibreNMS ARP table'}.`, 'success');
 
     if (seatHeatmapVisible) {

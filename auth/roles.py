@@ -210,6 +210,7 @@ RULES = (
     ('/checkins', READ, 'seats.view'),
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
+    ('/api/seats/find', READ, 'seats.view'),
     ('/api/seats/sources', READ, 'seats.view'),
     ('/api/seats/resolve', WRITE, 'seats.view'),
     ('/api/resolve', READ, 'seats.view'),

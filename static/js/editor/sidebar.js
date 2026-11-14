@@ -90,6 +90,15 @@ function renderUniversalSearchResults() {
       if (seatData && seatData.username && seatData.username.toLowerCase().includes(query)) {
         seatMatches.push({ blockId: block.id, seatNumber: number, name: seatData.username, sub: number });
       }
+      // IPs and MACs are only in seatMappings for roles with seats.view (data.js).
+      for (const key of ['ip_address', 'mac_address']) {
+        const value = seatData && seatData[key];
+        const hit = key === 'ip_address' ? String(value || '').toLowerCase().includes(query)
+          : value && macKey(query).length >= 4 && macKey(value).includes(macKey(query));
+        if (value && hit) {
+          seatMatches.push({ blockId: block.id, seatNumber: number, name: value, sub: `${number}${seatData.username ? ' · ' + seatData.username : ''}` });
+        }
+      }
     }
   }
   const uniqueSeatMatches = seatMatches
@@ -110,9 +119,59 @@ function renderUniversalSearchResults() {
   }
 
   searchResults.innerHTML = html || '<div class="search-no-results">No matches</div>';
-  searchResults.querySelectorAll('.search-result-item').forEach(item => {
+  bindSearchResults();
+  if (looksLikeAddress(universalSearch.value)) findOnNetwork(universalSearch.value.trim());
+}
+
+function bindSearchResults() {
+  searchResults.querySelectorAll('.search-result-item:not([data-bound])').forEach(item => {
+    item.dataset.bound = '1';
     item.addEventListener('click', () => handleSearchResultClick(item));
   });
+}
+
+// A full IP or MAC is also looked up on the network (issue #14): through the ARP table when no seat
+// source knows it, and with the switch port it is plugged into. Needs seats.view; others get a 403.
+const macKey = (v) => String(v).toLowerCase().replace(/[\s:.\-]/g, '');
+const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]*:[0-9a-f:]+$/i;
+function looksLikeAddress(q) {
+  const v = q.trim();
+  return IP_RE.test(v) || /^[0-9a-f]{12}$/i.test(macKey(v));
+}
+
+let networkSearchSeq = 0;
+async function findOnNetwork(query) {
+  const seq = ++networkSearchSeq;
+  let body;
+  try { body = await api('GET', `/api/seats/find?q=${encodeURIComponent(query)}`); } catch { return; }
+  if (seq !== networkSearchSeq || universalSearch.value.trim() !== query) return;
+  const hits = (body.results || []).filter(r => r.port);
+  if (!hits.length) return;
+  let html = '<div class="search-result-group"><div class="search-result-group-title">On the network</div>';
+  for (const r of hits) {
+    const where = `${r.switch || '?'} ${r.port}`;
+    html += `
+      <div class="search-result-item" data-type="network" data-seat-number="${escHtml(r.seat || '')}"
+           data-switch-id="${escHtml(r.switch_id || '')}">
+        <span class="search-result-item-type">${r.seat ? 'Seat' : 'Port'}</span>
+        <span class="search-result-item-name">${escHtml(r.seat ? `${r.seat}${r.username ? ' · ' + r.username : ''}` : where)}</span>
+        <span class="search-result-item-sub">${escHtml(r.seat ? where : (body.arp || r.ip || r.mac || ''))}</span>
+      </div>`;
+  }
+  html += '</div>';
+  searchResults.querySelector('.search-no-results')?.remove();
+  searchResults.insertAdjacentHTML('afterbegin', html);
+  bindSearchResults();
+}
+
+// Light up the switch a found seat hangs on for a few seconds, so the eye finds both.
+function flashSwitch(switchId) {
+  const marker = switchId && overlay.querySelector(`[data-id="${CSS.escape(switchId)}"]`);
+  if (!marker) return;
+  marker.classList.remove('search-hit');
+  void marker.offsetWidth;   // restart the animation
+  marker.classList.add('search-hit');
+  setTimeout(() => marker.classList.remove('search-hit'), 6000);
 }
 
 function handleSearchResultClick(item) {
@@ -121,8 +180,18 @@ function handleSearchResultClick(item) {
     selectSwitch(item.dataset.id);
     focusOnItem(overlay.querySelector(`[data-id="${CSS.escape(item.dataset.id)}"]`));
   } else if (type === 'seat-block') {
+    flashSwitchOnResolve = true;
     showBlockSeatDetail(item.dataset.seatNumber);
     focusOnItem(blocksOverlay.querySelector(`[data-seat-number="${CSS.escape(item.dataset.seatNumber)}"]`));
+  } else if (type === 'network') {
+    if (item.dataset.seatNumber) {
+      showBlockSeatDetail(item.dataset.seatNumber);
+      focusOnItem(blocksOverlay.querySelector(`[data-seat-number="${CSS.escape(item.dataset.seatNumber)}"]`));
+    } else if (item.dataset.switchId) {
+      selectSwitch(item.dataset.switchId);
+      focusOnItem(overlay.querySelector(`[data-id="${CSS.escape(item.dataset.switchId)}"]`));
+    }
+    flashSwitch(item.dataset.switchId);
   }
   universalSearch.value = '';
   searchResults.innerHTML = '';
