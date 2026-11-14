@@ -67,8 +67,11 @@ def _rate_limited():
         return len(recent) >= RATE_LIMIT
 
 
-def plan(data, highlight=None):
-    """The seat blocks as SVG shapes, cropped to the hall, with one seat marked."""
+def plan(data, highlight=None, online=None):
+    """The seat blocks as SVG shapes, cropped to the hall, with one seat marked.
+
+    With ``online`` (a set of seat numbers) every cell also says whether its seat is online.
+    """
     shapes, xs, ys, found = [], [], [], None
     for block in data.get('seat_blocks') or []:
         rows = block_rows(block)
@@ -84,7 +87,8 @@ def plan(data, highlight=None):
                 if hit:
                     found = {'seat': seat, 'block': block.get('name') or '', 'row': r + 1, 'rows': nrows,
                              'col': c + 1}
-                cells.append({'x': c * CELL - w / 2, 'y': r * CELL - h / 2, 'hit': hit})
+                cells.append({'x': c * CELL - w / 2, 'y': r * CELL - h / 2, 'hit': hit, 'seat': seat,
+                              'on': None if online is None else seat in online})
         reach = max(w, h) / 2 + CELL
         xs += [cx - reach, cx + reach]
         ys += [cy - reach - 40, cy + reach]   # room for the block's name above it

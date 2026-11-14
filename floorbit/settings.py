@@ -42,6 +42,9 @@ SECTIONS = [
                     'discord.com/developers, add <this site>/auth/discord/callback as an OAuth2 redirect '
                     '(set Public URL under General when the app runs behind a proxy) and paste its client '
                     'ID and secret here. Without a server, only accounts linked on the Users page can use it.'},
+    {'id': 'public', 'title': 'Attendee pages',
+     'description': 'Pages for attendees, open without an account. They show seat numbers only: '
+                    'no nicks, addresses, switches or ports.'},
     {'id': 'appearance', 'title': 'Appearance',
      'description': 'The look of every page. A screen can pick its own preset with ?theme= '
                     '(for example /kiosk?theme=kiosk); ?theme=default goes back to this one.'},
@@ -112,6 +115,11 @@ FIELDS = [
          help='Role IDs whose members become viewers. With all three role lists empty, every '
               'member of the server can sign in as a viewer; otherwise members without one of '
               'these roles are refused. The role is set on the first sign-in; change it on the Users page later.'),
+
+    dict(key='public.attendee_view', section='public', label='Attendee view', type='bool',
+         env='ATTENDEE_VIEW', default=False,
+         help='/hall shows the hall plan with every seat online or offline. Off by default because '
+              'it also shows when a seat is empty, for example while its player is away.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),
