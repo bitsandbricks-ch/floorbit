@@ -7,8 +7,9 @@ export function ConfirmButton({
   label,
   danger,
   onConfirm,
+  question,
   ...props
-}: ButtonProps & { label: string; danger?: boolean; onConfirm: () => void; title?: string }) {
+}: ButtonProps & { label: string; danger?: boolean; onConfirm: () => void; title?: string; question?: string }) {
   const { t } = useTranslation()
   const [opened, { open, close }] = useDisclosure(false)
   return (
@@ -18,7 +19,7 @@ export function ConfirmButton({
       </Button>
       {danger && (
         <Modal opened={opened} onClose={close} title={label} centered>
-          <Text mb="lg">{t('common.areYouSure', { label })}</Text>
+          <Text mb="lg">{question ?? t('common.areYouSure', { label })}</Text>
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>
               {t('common.cancel')}

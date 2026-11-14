@@ -1,29 +1,13 @@
-"""Where the network data comes from.
+"""Where live network data comes from.
 
-The app asks two sources for everything it knows about the network, and never calls the
-NetBox or LibreNMS API modules directly:
+``monitoring()``: switch status, port counters, and which switch port an IP is on (LibreNMS
+today). The app never calls the LibreNMS API module directly; ``use()`` swaps the source (a
+local agent feeding a hosted instance, another NMS, a fake in tests). See docs/architecture.md.
 
-* ``inventory()``: which switches exist (NetBox today).
-* ``monitoring()``: switch status, port counters, and which switch port an IP is on
-  (LibreNMS today).
-
-Keeping every call behind these two keeps other sources possible: a local agent that
-pushes data to a hosted instance, a different NMS, or fakes in tests. ``use()`` swaps
-them. See docs/architecture.md.
+Which devices exist is the inventory's job (``floorbit/inventory.py``), fed by plugins such as
+NetBox (``floorbit/builtin_plugins/netbox``).
 """
-from . import librenms, netbox
-
-
-class NetBoxInventory:
-    name = 'netbox'
-
-    def enabled(self):
-        from ..runtime import rt
-        return rt.netbox_enabled
-
-    def fetch_devices(self):
-        """[{id, name, netbox_status}] for every device with a configured role."""
-        return netbox.fetch_netbox_devices()
+from . import librenms
 
 
 class LibreNMSMonitoring:
@@ -46,24 +30,17 @@ class LibreNMSMonitoring:
         return librenms.fetch_librenms_device_port_stats_by_interface(hostname, interface)
 
 
-_inventory = NetBoxInventory()
 _monitoring = LibreNMSMonitoring()
-
-
-def inventory():
-    return _inventory
 
 
 def monitoring():
     return _monitoring
 
 
-def use(inventory=None, monitoring=None):
-    """Replace a source (an agent-fed one, or a fake in tests). Returns the previous pair."""
-    global _inventory, _monitoring
-    previous = (_inventory, _monitoring)
-    if inventory is not None:
-        _inventory = inventory
+def use(monitoring=None):
+    """Replace the monitoring source (an agent-fed one, or a fake in tests). Returns the previous one."""
+    global _monitoring
+    previous = _monitoring
     if monitoring is not None:
         _monitoring = monitoring
     return previous

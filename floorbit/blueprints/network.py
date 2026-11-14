@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 
 from integrations import seat_sources
 
-from .. import sources
+from .. import inventory, sources
 from ..seat_traffic import collect_seat_heatmap
 from ..store import load_data
 
@@ -19,19 +19,8 @@ def get_switch_status(switch_id):
             'message': 'LibreNMS is not configured',
         })
 
-    data = load_data()
-    # Check manual switches first (present in both modes)
-    switch = next((s for s in data.get('switches', []) if s['id'] == switch_id), None)
-    if switch:
-        hostname = switch['name']
-    elif sources.inventory().enabled():
-        device = next(
-            (d for d in data.get('cached_devices', []) if d['id'] == switch_id),
-            None,
-        )
-        hostname = device['name'] if device else switch_id
-    else:
-        hostname = switch_id
+    device = inventory.find(load_data(), switch_id)
+    hostname = device['name'] if device else switch_id
 
     details = sources.monitoring().device_details(hostname)
     return jsonify({'id': switch_id, **details})

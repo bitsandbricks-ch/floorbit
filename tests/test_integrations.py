@@ -163,7 +163,7 @@ def test_seat_sources_merge(tmp_path, monkeypatch):
 # ── HTTP wiring ──────────────────────────────────────────────────────────────────────────
 @pytest.fixture
 def app():
-    data = {'switches': [{'id': 's1', 'name': 'sw-a1', 'placed': True}],
+    data = {'switches': [{'id': 's1', 'name': 'sw-a1', 'placed': True, 'x': 5, 'y': 5}],
             'cached_devices': [{'id': '9', 'name': 'nb-1'}], 'positions': {'9': {'x': 1, 'y': 1}},
             'seat_blocks': [{'name': 'd', 'cols': 4, 'rows': 6}]}
     a = Flask(__name__, template_folder=os.path.join(ROOT, 'templates'))

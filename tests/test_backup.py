@@ -17,7 +17,7 @@ def test_backup_has_layout_and_settings_but_no_secrets(client):
     assert 'attachment; filename="floorbit-backup-' in resp.headers["Content-Disposition"]
     backup = resp.get_json()
     assert backup["format"] == "floorbit-backup" and backup["version"] == 1
-    assert [s["name"] for s in backup["layout"]["switches"]] == ["sw-demo-01"]
+    assert [s["name"] for s in backup["layout"]["inventory"]] == ["sw-demo-01"]
     assert len(backup["layout"]["seat_blocks"]) == 1
     assert backup["settings"]["theme.preset"] == "ops"
     text = resp.get_data(as_text=True)

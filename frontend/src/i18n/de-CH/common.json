@@ -18,5 +18,6 @@
   "backToPlan": "Zurück zum Hallenplan",
   "error": "Etwas ist schiefgelaufen: {{message}}",
   "coffee": "Spendier mir einen Kaffee",
-  "poweredBy": "Betrieben von"
+  "poweredBy": "Betrieben von",
+  "inventory": "Inventar"
 }
