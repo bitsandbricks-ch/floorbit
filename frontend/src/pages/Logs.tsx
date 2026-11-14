@@ -79,7 +79,7 @@ function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => v
         {(line.port || line.seat) && (
           <Text size="xs" c="dimmed">
             {line.port}
-            {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs">{t('logs.seat', { seat: line.seat })}</Anchor></>}
+            {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor></>}
           </Text>
         )}
       </Table.Td>
@@ -106,7 +106,7 @@ function Compact({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) 
           ? <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}>{line.device}</Anchor>
           : <Text size="sm">{line.device}</Text>}
         {line.port && <Text size="xs" c="dimmed">{line.port}</Text>}
-        {line.seat && <Anchor href={onPlan({ seat: line.seat })} size="xs">{t('logs.seat', { seat: line.seat })}</Anchor>}
+        {line.seat && <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor>}
       </Group>
       <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }} mt={2}>
         {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
