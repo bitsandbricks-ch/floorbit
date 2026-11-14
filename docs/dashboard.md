@@ -3,8 +3,9 @@
 Floorbit's dashboards share one kind of card for their figures: Stats, Wi-Fi and Problems show a
 label, the number, a line under it, and where it helps a colour edge (green fine, amber to look at,
 red down) and a small trend line over the last hour. Cards and list entries that point at a place
-drill down to it on the floor plan: an uplink or a busy switch opens `/?switch=<id>`, a busy seat
-`/?seat=<seat>`. On a big screen (`?screen=1`) the links are left out.
+drill down to it on the [Seats page](seats.md), in the hall it is in: an uplink or a busy switch
+opens `/plan?switch=<name>`, a busy seat `/plan?seat=<seat>`. The traffic, logs and brackets pages
+link seats the same way. On a big screen (`?screen=1`) the links are left out.
 
 ## Plugin dashboard and saved layouts
 
