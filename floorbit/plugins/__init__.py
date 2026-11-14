@@ -50,6 +50,13 @@ AREAS = {
     'storage':   'a small private state (64 KB)',
     'inventory': 'sends devices into the inventory (it never deletes; hand edits win)',
     'mapping':   'sends seat / IP / MAC / nick entries into the seat mapping (hand entries win)',
+    'monitoring': 'live switch status, ports and IP to switch port lookups (one plugin at a time)',
+}
+# The methods each data area calls. A plugin must define them all, and only with the area listed.
+AREA_METHODS = {
+    'inventory': ('inventory',),
+    'mapping': ('seat_mapping',),
+    'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working.
@@ -191,11 +198,12 @@ def _check_methods(spec):
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
     allowed |= {'test'}
-    for area, method in (('inventory', 'inventory'), ('mapping', 'seat_mapping')):
-        if area in spec.uses:
-            allowed.add(method)
-        elif callable(getattr(cls, method, None)):
-            return f'plugin.py: {method}() needs "{area}" under uses:'
+    for area, methods in AREA_METHODS.items():
+        for method in methods:
+            if area in spec.uses:
+                allowed.add(method)
+            elif callable(getattr(cls, method, None)):
+                return f'plugin.py: {method}() needs "{area}" under uses:'
     for name in dir(cls):
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
@@ -425,6 +433,11 @@ class Registry:
         """The plugins that are on and feed this area (``inventory``), in id order."""
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
 
+    def monitoring_source(self):
+        """The monitoring plugin in use: the first one that is on, in id order (or None)."""
+        found = self.feeders('monitoring')
+        return found[0] if found else None
+
     def mapping_sources(self):
         """[(name, label, fetch)] for the seat sources: plugins that feed the seat mapping."""
         from .. import seatmap
@@ -489,7 +502,8 @@ class Registry:
 def init_plugins(app, settings_store, current_version):
     registry = Registry(settings_store, current_version)
     app.extensions['floorbit_plugins'] = registry
-    from .. import audit
+    from .. import audit, sources
+    sources.registry = registry
     audit.listeners.append(lambda entry: registry.emit('change', {
         k: entry.get(k) for k in ('area', 'action', 'target', 'fields', 'user')}))
     try:

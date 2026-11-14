@@ -41,9 +41,12 @@ different features touch different files.
 `uses: [inventory]`, such as the built-in NetBox plugin, feed it, and `blueprints/inventory.py`
 runs the syncs. The floor plan's `/api/switches` works on the same list.
 
-Live data still comes through `floorbit/sources/`: `sources.monitoring()` has
-`device_details(hostname)`, `resolve_ip(ip)` and `port_stats(hostname, port)` (LibreNMS today), and
-`sources.use(monitoring=...)` swaps it. LibreNMS becomes a plugin next (issue #49).
+Live data comes through `floorbit/sources/`: `sources.monitoring()` answers from the monitoring
+plugin that is on (the built-in LibreNMS plugin, `floorbit/builtin_plugins/librenms/`) with
+`devices()`, `device_details(hostname)`, `resolve_ip(ip)`, `port_stats(hostname, port)`,
+`mac_for_ip(ip)` and `ip_for_mac(mac)`. The blueprints, the status monitor and the check-in page all
+ask it; nothing else talks to LibreNMS. With no monitoring plugin on, everything reads as unknown.
+`sources.use(fake)` swaps the source (tests, later the local agent) and `sources.use(None)` goes back.
 
 ## Browser
 

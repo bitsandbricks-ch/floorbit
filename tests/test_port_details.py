@@ -1,6 +1,6 @@
 """Seat port view: reading one port from LibreNMS and summarising it. No real LibreNMS is called."""
 
-from floorbit.sources import librenms_ports as port_details
+from floorbit.builtin_plugins.librenms import ports as port_details
 
 PORT = {
     'port_id': 812, 'device_id': 14, 'ifName': 'Gi1/0/14', 'ifAlias': 'seat A-14 ',

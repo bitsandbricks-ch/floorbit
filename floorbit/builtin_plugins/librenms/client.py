@@ -1,16 +1,18 @@
 """LibreNMS: switch status and ports, and IP to switch port resolution (ARP, then FDB).
 
-The only module that talks to the LibreNMS API for the core app. Answers are cached in
-Redis (see floorbit/cache.py) for the TTLs on the settings page.
+The LibreNMS plugin's API client (plugin.py wraps it). Nothing else in Floorbit talks to
+LibreNMS: the core asks ``floorbit.sources.monitoring()``. Answers are cached in Redis (see
+floorbit/cache.py) for the TTLs on the settings page.
 """
 import json
 
 import redis
 import requests
 
-from ..cache import get_cached_arp, get_cached_mac, get_redis_client, set_cached_arp, set_cached_mac
-from ..runtime import rt
-from . import librenms_ports
+from floorbit.cache import get_cached_arp, get_cached_mac, get_redis_client, set_cached_arp, set_cached_mac
+from floorbit.runtime import rt
+
+from . import ports as librenms_ports
 
 
 def fetch_librenms_arp_by_ip(ip_address):
@@ -486,7 +488,7 @@ def fetch_librenms_details(hostname):
     return result
 
 def fetch_librenms_device_port_stats_by_interface(hostname, interface):
-    """One port's state, speed, traffic and errors for the seat inspector (see librenms_ports.py)."""
+    """One port's state, speed, traffic and errors for the seat inspector (see ports.py)."""
     headers = {
         'X-Auth-Token': rt.librenms_token,
         'Accept': 'application/json',
@@ -507,3 +509,23 @@ def fetch_librenms_device_port_stats_by_interface(hostname, interface):
         pass
 
     return result
+
+
+def list_devices():
+    """Every LibreNMS device, as the API returns it (status, display, hostname, sysName, ...).
+    Raises on failure, so the status monitor can show the error."""
+    resp = requests.get(f'{rt.librenms_url}/api/v0/devices',
+                        headers={'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'},
+                        timeout=15, verify=rt.librenms_verify_ssl)
+    resp.raise_for_status()
+    return resp.json().get('devices', []) or []
+
+
+def arp_entries(query):
+    """ARP rows matching an IP or a MAC ([] when LibreNMS has none)."""
+    resp = requests.get(f'{rt.librenms_url}/api/v0/resources/ip/arp/{query}',
+                        headers={'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'},
+                        timeout=10, verify=rt.librenms_verify_ssl)
+    if not resp.ok:
+        return []
+    return resp.json().get('arp', []) or []

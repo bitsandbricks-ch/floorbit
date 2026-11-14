@@ -13,7 +13,7 @@ users: [README.md](README.md).
 | Path | What lives there |
 | --- | --- |
 | `app.py` | Entry point only: `app = create_app()`. |
-| `floorbit/` | The Flask app. `blueprints/` has one module per area of the API; `sources/` is the only code that talks to NetBox and LibreNMS. See `docs/architecture.md`. |
+| `floorbit/` | The Flask app. `blueprints/` has one module per area of the API; `builtin_plugins/` has NetBox (feeds the inventory) and LibreNMS (monitoring, asked through `sources.monitoring()`). See `docs/architecture.md`. |
 | `integrations/` | Live updates, status monitor, Discord, seat sources, check-in. See `docs/integrations.md`. |
 | `auth/` | Sign-in: accounts in `data.json`, the request guard, login providers. See `docs/auth.md`. |
 | `frontend/` | The React app (React, TypeScript, Mantine, TanStack Query, Vite), set up like Hubra's. Pages move into it one at a time; Flask serves it through `templates/spa.html` (`floorbit/spa.py`). See `frontend/README.md`. |
@@ -70,8 +70,8 @@ users: [README.md](README.md).
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
   `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
-  feature is a new file in `static/js/editor/`. NetBox and LibreNMS calls go through
-  `floorbit.sources`, never straight from a blueprint. Nothing names one particular event:
+  feature is a new file in `static/js/editor/`. NetBox and LibreNMS calls live in their
+  plugins; the core asks the inventory and `floorbit.sources.monitoring()`, never the API itself. Nothing names one particular event:
   event names, branding and hosts are settings.
 - Write short comments that explain why, not what.
 - Stay inside the repository. Ask before deleting files you didn't create.

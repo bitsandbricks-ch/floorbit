@@ -105,7 +105,7 @@ docker build .
 | Path | What lives there |
 | --- | --- |
 | `app.py` | Entry point; the app itself is built by `create_app()` in `floorbit/`. |
-| `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `inventory.py` (the device list), `sources/` (LibreNMS), `builtin_plugins/` (NetBox, HTTP check), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
+| `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `inventory.py` (the device list), `sources/` (asks the monitoring plugin), `builtin_plugins/` (NetBox, LibreNMS, HTTP check), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
 | `integrations/` | Live updates, switch monitor, Discord alerts, seat sources, check-in. |
 | `auth/` | Sign-in: accounts, sessions, the login page and the login providers (password, Discord). |
 | `frontend/` | The React app (TypeScript, Mantine). The dashboard and Settings > Plugins are in it so far; the other pages follow. See [frontend/README.md](frontend/README.md). |

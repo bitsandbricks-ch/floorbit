@@ -37,6 +37,15 @@ settings under **Settings > NetBox** (`NETBOX_URL`, `NETBOX_TOKEN`, `NETBOX_DEVI
 NetBox's "next page" links to the same host. Run it with **Sync now** on the Inventory page or the
 sync button on the floor plan.
 
+## Built in: LibreNMS
+
+The monitoring source: live switch status, port details and traffic, and which switch port an IP
+or MAC is on (ARP, then the MAC tables). The floor plan, the seat heatmap, the status monitor and
+the check-in page all get their live data from it. It is on by default and uses the settings
+under **Settings > LibreNMS** (`LIBRENMS_URL`, `LIBRENMS_TOKEN`, `LIBRENMS_VERIFY_SSL`,
+`LIBRENMS_FDB_EXCLUDE`), as before it became a plugin. Turn it off and the floor plan shows every
+switch as unknown. Only one monitoring plugin is used at a time: the first one that is on.
+
 ## Built in: HTTP check
 
 Checks that web services answer (the LAN cache, the ticket shop, a game server's web panel) and
@@ -115,6 +124,7 @@ class Plugin(Base):
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
+| `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`. See the built-in LibreNMS plugin |
 
 Two manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until
 an admin turns it off) and `core_settings: <section>` (read a settings section that existed before

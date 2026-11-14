@@ -30,7 +30,6 @@ import tempfile
 import threading
 import time
 
-import requests
 from flask import request
 
 from . import config, events, history, seat_sources
@@ -63,55 +62,25 @@ def _save_all(rows):
     os.replace(tmp, path)   # atomic: a crash never leaves half a file
 
 
-# ── LibreNMS lookups ─────────────────────────────────────────────────────────
-def _librenms():
-    url = (config.get('LIBRENMS_URL', '') or '').rstrip('/')
-    token = config.get('LIBRENMS_TOKEN', '') or ''
-    return url, token, config.get_bool('LIBRENMS_VERIFY_SSL', True)
+# ── ARP lookups (through the monitoring plugin, e.g. LibreNMS) ──────────────
+def _monitoring():
+    from floorbit import sources
+    return sources.monitoring()
 
 
 def normalise_mac(mac):
-    if not mac:
-        return None
-    hexchars = re.sub(r'[^0-9a-fA-F]', '', str(mac)).lower()
-    if len(hexchars) != 12:
-        return None
-    return ':'.join(hexchars[i:i + 2] for i in range(0, 12, 2))
-
-
-def _arp_query(query):
-    url, token, verify = _librenms()
-    if not (url and token):
-        return []
-    resp = requests.get(f'{url}/api/v0/resources/ip/arp/{query}',
-                        headers={'X-Auth-Token': token, 'Accept': 'application/json'},
-                        timeout=10, verify=verify)
-    if not resp.ok:
-        return []
-    return resp.json().get('arp', []) or []
+    from floorbit.sources import normalise_mac as norm
+    return norm(mac) if mac else None
 
 
 def lookup_mac(ip):
-    """IP → MAC from LibreNMS ARP data (None if unknown)."""
-    try:
-        for entry in _arp_query(ip):
-            if entry.get('ipv4_address') == ip:
-                return normalise_mac(entry.get('mac_address'))
-    except requests.RequestException as exc:
-        print(f"[integrations] check-in MAC lookup failed for {ip}: {exc}")
-    return None
+    """IP → MAC from the monitoring plugin's ARP data (None if unknown)."""
+    return _monitoring().mac_for_ip(ip)
 
 
 def lookup_ip(mac):
-    """MAC → current IP from LibreNMS ARP data (None if unknown)."""
-    try:
-        want = normalise_mac(mac)
-        for entry in _arp_query(want):
-            if normalise_mac(entry.get('mac_address')) == want and entry.get('ipv4_address'):
-                return entry['ipv4_address']
-    except requests.RequestException as exc:
-        print(f"[integrations] check-in IP lookup failed for {mac}: {exc}")
-    return None
+    """MAC → current IP from the monitoring plugin's ARP data (None if unknown)."""
+    return _monitoring().ip_for_mac(mac)
 
 
 # ── request helpers ──────────────────────────────────────────────────────────
@@ -271,8 +240,7 @@ class CheckinRefresher:
     def _run(self):
         while True:
             interval = config.get_int('CHECKIN_REFRESH_INTERVAL', 300, minimum=30)
-            url, token, _ = _librenms()
-            if url and token and config.get_bool('CHECKIN_ENABLED', False) and load_all():
+            if _monitoring().enabled() and config.get_bool('CHECKIN_ENABLED', False) and load_all():
                 try:
                     refresh_once()
                     self.last_run, self.last_error = time.time(), None
