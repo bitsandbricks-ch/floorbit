@@ -211,3 +211,19 @@ body {
 .fb-flow-anomalies { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .fb-flow-anomalies li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
 .fb-flow-anomalies .when { color: var(--color-muted); margin-left: auto; font-size: 13px; }
+
+/* Event replay (pages/Replay.tsx): the hall plan drawn like the attendee view. */
+.fb-replay-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: 10px; }
+.fb-replay-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
+.fb-replay-plan .cell { fill: var(--color-surface); stroke: var(--color-line); transition: fill .25s; }
+.fb-replay-plan .cell.on { fill: var(--color-up); stroke: var(--color-up); }
+.fb-replay-plan .ring { fill: none; stroke: var(--color-down); stroke-width: 4; }
+.fb-replay-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-replay-chart { width: 100%; height: 120px; display: block; cursor: pointer; }
+.fb-replay-chart .area { fill: color-mix(in srgb, var(--color-bit) 18%, transparent); }
+.fb-replay-chart .line { fill: none; stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-replay-chart .peak { stroke: var(--color-warn); stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.fb-replay-chart .cursor { stroke: var(--color-fg); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-replay-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.fb-replay-key.on { background: var(--color-up); }
+.fb-replay-key.ring { border: 2px solid var(--color-down); border-radius: 50%; }

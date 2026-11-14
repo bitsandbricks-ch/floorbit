@@ -53,6 +53,8 @@ each seat is plugged into.
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
 - **Stats:** bandwidth now and at its peak (last hour, 24 hours, the event), uplink load per switch,
   seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
+- **Replay:** play the event back on the floor plan with a time slider: the hall filling up, the
+  bandwidth peak and the incidents. See [docs/replay.md](docs/replay.md).
 - **Traffic:** what the hall's traffic is made of from NetFlow or IPFIX (gaming, streaming,
   downloads, updates), per area, the services most seats use, and P2P floods or rogue servers.
   Aggregate only, with an optional collector container. See [docs/flows.md](docs/flows.md).

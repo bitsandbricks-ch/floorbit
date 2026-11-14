@@ -547,3 +547,55 @@ export interface ApplyResult {
   switches_placed: number
   switches_added: number
 }
+
+export interface PlanCell {
+  x: number
+  y: number
+  seat: string
+  hit: boolean
+  on: boolean | null
+}
+
+export interface PlanShape {
+  cx: number
+  cy: number
+  rotation: number
+  w: number
+  h: number
+  name: string
+  cells: PlanCell[]
+}
+
+export interface PlanDrawing {
+  shapes: PlanShape[]
+  box: string
+  cell: number
+}
+
+/** [time, seat, 1 online / 0 offline] */
+export type SeatChange = [number, string, 0 | 1]
+
+export interface ReplayIncident {
+  id: string
+  title: string
+  seat: string | null
+  switch: string | null
+  start: number
+  end: number | null
+}
+
+export interface ReplayData {
+  halls: { id: string; name: string }[]
+  hall: string
+  drawing: PlanDrawing | null
+  start: number | null
+  end: number | null
+  interval: number
+  samples: { t: number; down: number; up: number; online: number }[]
+  peak: { bps: number; at: number } | null
+  seat_base: { t: number | null; online: string[] }
+  seat_events: SeatChange[]
+  checkins: SeatChange[]
+  incidents: ReplayIncident[]
+  last_poll: number | null
+}

@@ -28,6 +28,7 @@ DAY = 24 * 3600
 HOUR = 3600
 REDIS_KEY = 'floorbit:stats'
 TOP = 10
+MAX_SEAT_EVENTS = 100_000   # a flapping port must not grow the saved stats without end
 
 
 def _num(value):
@@ -56,6 +57,11 @@ class Stats:
         self.uplinks = []
         self.top = []
         self.seat_bps = {}       # seat -> traffic right now, for the kiosk's heat view
+        # For the replay (issue #21): which seats went online or offline when, as [t, seat, 1|0] on
+        # change only, and which seats were online at the start of what is kept.
+        self.seat_events = deque()
+        self.seat_base = {'t': None, 'online': []}
+        self._online = None      # the seats online at the last read
         self.last = None
         self._loaded = False
 
@@ -76,13 +82,22 @@ class Stats:
         if isinstance(saved, dict):
             self.samples = deque(s for s in saved.get('samples') or [] if isinstance(s, dict) and 't' in s)
             self.peak = saved.get('peak')
+            self.seat_events = deque(e for e in saved.get('seat_events') or [] if isinstance(e, list) and len(e) == 3)
+            base = saved.get('seat_base')
+            if isinstance(base, dict):
+                self.seat_base = {'t': base.get('t'), 'online': list(base.get('online') or [])}
+            online = saved.get('online_now')
+            self._online = set(online) if isinstance(online, list) else None
 
     def _save(self):
         client = cache.get_redis_client()
         if not client:
             return
         try:
-            client.set(REDIS_KEY, json.dumps({'samples': list(self.samples), 'peak': self.peak}))
+            client.set(REDIS_KEY, json.dumps({
+                'samples': list(self.samples), 'peak': self.peak, 'seat_events': list(self.seat_events),
+                'seat_base': self.seat_base, 'online_now': sorted(self._online) if self._online is not None else None,
+            }))
         except Exception as exc:  # noqa: BLE001
             print(f'[stats] could not save the stats: {exc}')
 
@@ -136,9 +151,50 @@ class Stats:
             self.uplinks = sorted(uplinks.values(), key=lambda u: -(u['utilization'] or 0))
             self.top = sorted(talkers, key=lambda t: -t['bps'])[:TOP]
             self.seat_bps = seat_bps
+            self._seat_changes(set(seat_bps), now)
             self.last = now
             self._save()
         return sample
+
+    def _seat_changes(self, online, now):
+        """Write down which seats went online or offline since the last read (lock held)."""
+        before = self._online
+        if before is None:
+            # The first read since the start: what was online before it is unknown.
+            if self.seat_base['t'] is None:
+                self.seat_base = {'t': now, 'online': []}
+            before = _replay(self.seat_base, self.seat_events)
+        for seat in sorted(online - before):
+            self.seat_events.append([now, seat, 1])
+        for seat in sorted(before - online):
+            self.seat_events.append([now, seat, 0])
+        self._online = online
+        # Keep the same day as the samples: older changes fold into the starting state.
+        cutoff = now - DAY
+        base = set(self.seat_base['online'])
+        while self.seat_events and (self.seat_events[0][0] < cutoff or len(self.seat_events) > MAX_SEAT_EVENTS):
+            t, seat, on = self.seat_events.popleft()
+            (base.add if on else base.discard)(seat)
+            self.seat_base = {'t': t, 'online': sorted(base)}
+
+    def backfill_seats(self, events, base_t):
+        """Older seat changes (the demo hall's made-up day), only while there are none yet."""
+        with self._lock:
+            self._load()
+            if self.seat_events or not events:
+                return
+            self.seat_events.extend(events)
+            self.seat_base = {'t': base_t, 'online': []}
+            self._online = _replay(self.seat_base, self.seat_events)
+            self._save()
+
+    def timeline(self):
+        """What the replay needs: the samples, the event's peak, and the seats' changes."""
+        with self._lock:
+            self._load()
+            return {'samples': [{k: s[k] for k in ('t', 'down', 'up', 'online')} for s in self.samples],
+                    'peak': self.peak, 'seat_base': dict(self.seat_base), 'seat_events': list(self.seat_events),
+                    'last_poll': self.last}
 
     def backfill(self, samples):
         """Older samples (the demo hall's made-up day), only while there are none yet."""
@@ -176,6 +232,15 @@ class Stats:
         out['day'] = _window(samples, now - DAY)
         out['series'] = [{k: s[k] for k in ('t', 'down', 'up', 'online')} for s in samples]
         return out
+
+
+def _replay(base, events, until=None):
+    online = set(base.get('online') or [])
+    for t, seat, on in events:
+        if until is not None and t > until:
+            break
+        (online.add if on else online.discard)(seat)
+    return online
 
 
 def _window(samples, since):

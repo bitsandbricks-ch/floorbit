@@ -18,6 +18,7 @@ const Setup = lazy(() => import('@/pages/Setup'))
 const Stats = lazy(() => import('@/pages/Stats'))
 const Traffic = lazy(() => import('@/pages/Traffic'))
 const Templates = lazy(() => import('@/pages/Templates'))
+const Replay = lazy(() => import('@/pages/Replay'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/stats" element={<Stats />} />
         <Route path="/traffic" element={<Traffic />} />
         <Route path="/templates" element={<Templates />} />
+        <Route path="/replay" element={<Replay />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

@@ -103,24 +103,46 @@ def seed_on_start(app):
             print(f"[demo] could not lay out the demo hall: {exc}")
         stats = app.extensions.get('floorbit_stats')
         if stats is not None:
-            stats.backfill(demo_history())
+            history = demo_history()
+            stats.backfill(history)
+            stats.backfill_seats(*demo_seat_history(history))
         from .flows import init_demo_flows
         init_demo_flows(app)
 
 
 def demo_history(now=None, step=120):
-    """A made-up last day for the stats dashboard: quiet at night, busy in the evening."""
+    """A made-up last day for the stats dashboard: doors open, the hall fills up over the first
+    hours, then quiet at night and busy in the evening."""
     import math
     import time
     now = time.time() if now is None else now
     out = []
+    start = now - 24 * 3600
     for k in range(24 * 3600 // step, 0, -1):
         t = now - k * step
         hour = time.localtime(t).tm_hour + time.localtime(t).tm_min / 60
         busy = 0.15 + 0.85 * max(0.0, math.sin((hour - 9) / 24 * 2 * math.pi)) ** 2
         jitter = 0.9 + 0.2 * math.sin(t / 700) * math.cos(t / 1900)
-        online = round(70 + 15 * busy)
-        down = 3.3e9 * (0.55 + 0.45 * busy) * jitter   # about what the live demo hall sends
+        arrived = min(1.0, (t - start) / (4 * 3600))
+        online = round((70 + 15 * busy) * arrived)
+        down = 3.3e9 * (0.55 + 0.45 * busy) * jitter * max(0.05, arrived)   # about what the live demo hall sends
         out.append({'t': t, 'down': round(down), 'up': round(down * 0.14), 'online': online,
                     'ports_up': online + 12, 'ports_down': 96 - online, 'ports_errors': 0})
     return out
+
+
+def demo_seat_history(samples):
+    """Seat changes that match ``demo_history``'s online counts: seats come in a made-up order and
+    leave in reverse, so the replay shows the hall filling up. Returns (events, start)."""
+    import random
+
+    from ..builtin_plugins.demo.plugin import _seats
+    order = [seat for seat, _b, _n, _i in _seats()]
+    random.Random(18).shuffle(order)
+    events, online = [], 0
+    for sample in samples:
+        n = min(sample['online'], len(order))
+        events += [[sample['t'], seat, 1] for seat in order[online:n]]
+        events += [[sample['t'], seat, 0] for seat in order[n:online]]
+        online = n
+    return events, samples[0]['t'] if samples else None

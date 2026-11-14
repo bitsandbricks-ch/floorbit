@@ -24,6 +24,7 @@ export const qk = {
   setup: ['setup'] as const,
   halls: ['halls'] as const,
   templates: ['templates'] as const,
+  replay: (hall: string) => ['replay', hall] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
 }
