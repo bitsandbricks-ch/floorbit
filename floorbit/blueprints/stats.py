@@ -4,6 +4,7 @@
 - ``GET /api/stats``: bandwidth now, the hour, the day and the event's peak, uplinks, online seats,
   port counts and top talkers. Nicks are added to the top talkers only for ``seats.view`` and never
   with ``?screen=1``, which a kiosk shows to everyone.
+- ``GET /api/stats/seats``: traffic per online seat right now (seat numbers only), for the kiosk.
 - ``POST /api/stats/peak/reset``: start the event's peak again (``settings.manage``), e.g. after
   load tests before doors open.
 """
@@ -45,6 +46,12 @@ def get_stats():
             if t['seat']:
                 t['nick'] = (seats.get(t['seat']) or {}).get('username') or None
     return jsonify(out)
+
+
+@bp.route('/api/stats/seats', methods=['GET'])
+def seat_traffic():
+    """Traffic per online seat, for the kiosk's heat view (``/kiosk?view=heat``)."""
+    return jsonify(_stats().seats())
 
 
 @bp.route('/api/stats/peak/reset', methods=['POST'])

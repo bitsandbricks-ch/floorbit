@@ -15,6 +15,7 @@ from . import (
                ports,
                power,
                problems,
+               screen,
                seat_blocks,
                seat_map,
                security,
@@ -25,4 +26,4 @@ from . import (
 
 ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
        inventory.bp, seat_map.bp, demo.bp, incidents.bp,
-       health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp]
+       health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp, screen.bp]

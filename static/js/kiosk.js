@@ -24,7 +24,9 @@
     labels:       params.get('labels') !== '0',
     statusEvery:  intParam('refresh', 15, 5, 300) * 1000,
     reloadEvery:  intParam('reload', 360, 0, 10080) * 60_000,   // minutes → ms, 0 = never
+    heat:         params.get('view') === 'heat',                 // seats coloured by their traffic
   };
+  const HEAT_EVERY        = 30_000;
   const LAYOUT_EVERY      = 60_000;
   const LIVE_STATUS_EVERY = 60_000;          // safety-net poll while live updates are on
   const LIVE_RETRY        = 5 * 60_000;      // retry /api/events after it failed for good
@@ -44,6 +46,7 @@
   let layoutSig  = '';
   const downSince = {};              // switch id → time first seen offline
   let prevTaken  = null;             // Set of seat numbers taken at the last render
+  let heat       = {};               // seat number → traffic in bit/s (?view=heat)
 
   const $ = (id) => document.getElementById(id);
   const mapEl    = $('k-map');
@@ -111,6 +114,25 @@
     return ordered.map(n => ({ number: `${prefix}${n}`, display: n }));
   }
 
+  // ── Heat view ──────────────────────────────────────────────────────────────
+  // Traffic per seat from /api/stats/seats (seat numbers and numbers only), on a log scale so
+  // 1 Mbit/s and 500 Mbit/s both read: green for a little, amber, red for a lot.
+  function heatStyle(bps) {
+    if (!bps) return '';
+    const level = Math.min(1, Math.max(0, (Math.log10(bps) - 5) / 4));   // 100 kbit/s … 1 Gbit/s
+    const hue = Math.round(130 - 130 * level);
+    return `background:hsl(${hue} 75% 45%);border-color:hsl(${hue} 75% 35%);color:#fff;`;
+  }
+
+  async function loadHeat() {
+    try {
+      heat = (await getJSON('/api/stats/seats')).seats || {};
+    } catch {
+      heat = {};
+    }
+    renderBlocks();
+  }
+
   function bucket(status) {
     return status === 'online' || status === 'offline' ? status : 'unknown';
   }
@@ -153,7 +175,8 @@
             cls += ' has-user';
             if (prevTaken && !prevTaken.has(number)) cls += ' just-taken';
           }
-          inner += `<div class="${cls}" style="${counter}" data-seat-number="${escHtml(number)}">${escHtml(display)}</div>`;
+          const style = counter + (OPT.heat ? heatStyle(heat[number]) : '');
+          inner += `<div class="${cls}" style="${style}" data-seat-number="${escHtml(number)}">${escHtml(display)}</div>`;
         }
         inner += '</div>';
       }
@@ -531,6 +554,12 @@
     await layoutTick();
     statusTick();
     connectLive();
+    if (OPT.heat) {
+      $('k-title').textContent += ' · Traffic';
+      $('k-heat-legend')?.classList.remove('hidden');
+      loadHeat();
+      setInterval(loadHeat, HEAT_EVERY);
+    }
   }
   start();
 })();
