@@ -32,7 +32,7 @@ body {
 .st-header-spacer { flex: 1; }
 .st-back {
   display: inline-flex; align-items: center; gap: 4px;
-  color: var(--text-secondary); text-decoration: none; font-weight: 500;
+  color: var(--text-secondary); text-decoration: none; font-weight: 500; white-space: nowrap;
 }
 .st-back:hover { color: var(--text-primary); }
 .st-back svg { width: 16px; height: 16px; }
@@ -172,3 +172,11 @@ body {
 .st-restore p { margin-bottom: 10px; }
 a.st-btn { text-decoration: none; }
 .st-btn-danger-solid { background: var(--danger); border-color: var(--danger); color: var(--color-ink); }
+
+/* Links to the other settings pages and tools: a card, not header buttons, so they wrap
+   instead of running off the right edge (issue #236). */
+.st-nav-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px 20px; margin-top: 10px; }
+.st-nav-group h3 { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.st-nav-group ul { list-style: none; margin: 0; padding: 0; }
+.st-nav-group a { display: inline-block; padding: 3px 0; color: var(--text-primary); text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
+.st-nav-group a:hover { text-decoration-color: currentColor; }

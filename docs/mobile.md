@@ -32,7 +32,7 @@ buttons are ordinary buttons and get ordinary taps.
 ## Other pages
 
 The React pages (Problems, Health, Security, Incidents, Electrics, ...) are built on Mantine and fit
-a phone as they are. The settings pages wrap their header links instead of widening the page.
+a phone as they are. The settings pages wrap their header links instead of widening the page. The main Settings page lists its other pages and the event tools in a "More settings and tools" card at the top, so its header holds only the back link, the title and the user menu.
 
 `scripts/screenshots.py` takes every page at phone width too, so a layout that breaks on a phone
 shows up in the pull request screenshots.
