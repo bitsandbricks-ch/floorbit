@@ -18,6 +18,8 @@ COLOR_OFFLINE = 0xF85149
 COLOR_ONLINE = 0x3FB950
 COLOR_INFO = 0xF0883E   # the app's orange accent
 MAX_EMBEDS = 10         # Discord limit per message
+SECURITY_KINDS = {'rogue-dhcp': 'Rogue DHCP server', 'arp-spoof': 'ARP spoofing', 'mac-flap': 'MAC flapping',
+                  'loop': 'Network loop', 'storm': 'Broadcast storm', 'other': 'Security finding'}
 
 
 def _fmt_duration(seconds):
@@ -56,6 +58,7 @@ class DiscordNotifier:
         events.subscribe('monitoring.offline', self.on_source)
         events.subscribe('monitoring.online', self.on_source)
         events.subscribe('health.changed', self.on_health)
+        events.subscribe('security.finding', self.on_security)
 
     def _ensure_worker(self):
         with self._lock:
@@ -144,6 +147,46 @@ class DiscordNotifier:
             payload['content'] = mention
         else:
             payload['allowed_mentions'] = {'parse': []}
+        return payload
+
+    def on_security(self, event):
+        if not self.enabled() or not config.get_bool('DISCORD_SECURITY_ALERTS', True):
+            return
+        payload = self.build_security_message(event.get('data') or {})
+        if payload:
+            self._ensure_worker()
+            try:
+                self._queue.put_nowait(payload)
+            except queue.Full:
+                self.last_error = 'alert queue full, message dropped'
+
+    def build_security_message(self, finding, now=None):
+        """High and medium findings. Where, not who: no MAC or IP goes to Discord."""
+        if finding.get('severity') not in ('high', 'medium'):
+            return None
+        now = now or time.time()
+        key = 'security:' + str(finding.get('id'))
+        last = self._last_alert.get(key)
+        if last is not None and now - last < config.get_int('DISCORD_COOLDOWN', 300, minimum=0):
+            return None
+        self._last_alert[key] = now
+        where = ' '.join(str(finding.get(k) or '') for k in ('switch', 'port')).strip() or 'unknown port'
+        fields = [{'name': 'Where', 'value': where[:100], 'inline': True}]
+        if finding.get('seat'):
+            fields.append({'name': 'Seat', 'value': str(finding['seat'])[:20], 'inline': True})
+        fields.append({'name': 'Severity', 'value': str(finding.get('severity')), 'inline': True})
+        embed = {'title': f"🛡️ {SECURITY_KINDS.get(finding.get('kind'), 'Security finding')}",
+                 'color': COLOR_OFFLINE if finding.get('severity') == 'high' else COLOR_INFO,
+                 'fields': fields, 'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        if public_url:
+            embed['url'] = public_url + '/security'
+        payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
+                   'allowed_mentions': {'parse': []}}
+        mention = config.get('DISCORD_MENTION', '') or ''
+        if mention and finding.get('severity') == 'high':
+            payload['content'] = mention
+            payload['allowed_mentions'] = {'parse': ['roles', 'everyone', 'users']}
         return payload
 
     def build_source_message(self, kind, data, now=None):

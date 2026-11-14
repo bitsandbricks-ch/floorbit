@@ -95,6 +95,10 @@ def create_app(start_background=True):
     from .health import init_health
     init_health(app, registry, start_background=start_background)
 
+    # Security findings from security plugins, polled in the background (docs/security.md).
+    from .security import init_security
+    init_security(app, registry, start_background=start_background)
+
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start
     seed_on_start(app)

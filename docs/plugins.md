@@ -90,7 +90,7 @@ widgets:
 endpoints:
   - {id: data, label: Raw data, permission: seats.view}
 hooks:
-  - {events: [change], action: sync}                                # change, switch.status, health.status
+  - {events: [change], action: sync}                                # change, switch.status, health.status, security.finding
 ```
 
 ```python
@@ -125,13 +125,14 @@ class Plugin(Base):
 | `actions` | add actions, run with `POST /api/plugins/<id>/actions/<action>` |
 | `widgets` | add dashboard tiles |
 | `endpoints` | serve JSON at `GET /api/plugins/<id>/endpoints/<endpoint>` |
-| `hooks` | run an action on `change` (any audited change: area, action, target, fields, user) `switch.status` (a switch went offline or came back) or `health.status` (a service on the health wall changed colour: id, name, kind, status, previous, summary) |
+| `hooks` | run an action on `change` (any audited change: area, action, target, fields, user) `switch.status` (a switch went offline or came back) `health.status` (a service on the health wall changed colour: id, name, kind, status, previous, summary) or `security.finding` (a new security finding: id, kind, severity, switch, port, seat) |
 | `http` | make outgoing requests with `self.ctx.http(...)` |
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
 | `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`. See the built-in LibreNMS plugin |
-| `ports` | act on switch ports (one plugin at a time): define `port_login()` and `bounce_port(target)`. See [ports.md](ports.md) and the built-in SSH port actions plugin |
+| `ports` | act on switch ports (one plugin at a time): define `port_login()`, `bounce_port(target)` and `set_port(target)` (`target["enabled"]` says shut or on). See [ports.md](ports.md) and the built-in SSH port actions plugin |
+| `security` | report [security findings](security.md): define `security_findings()` returning `[{"id", "kind", "severity", "title", "switch", "port", "mac", "ip", "evidence"}]` |
 | `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link"}]`. See the built-in HTTP check plugin |
 
 Three manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until

@@ -64,7 +64,7 @@ def test_demo_bounce_takes_the_port_down_and_is_audited(client, switch):
     assert again.status_code == 429
     entries = [e for e in audit_lines() if e["area"] == "ports"]
     assert [(e["action"], e.get("ok", True)) for e in entries] == [("Bounced port", True),
-                                                                   ("Port bounce failed", False)]
+                                                                   ("Bounced port: failed", False)]
     assert entries[0]["target"] == "sw-a-01 Gi1/0/3"
 
 

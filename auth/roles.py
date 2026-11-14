@@ -219,6 +219,10 @@ RULES = (
     ('/api/incidents', WRITE, 'floorplan.view'),
     # Port actions: the switch login is the tech's own, typed for each action (floorbit/ports.py).
     ('/api/ports', None, 'ports.act'),
+    # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.
+    ('/api/security/check', WRITE, 'plugins.run'),
+    ('/api/security', None, 'seats.view'),
+    ('/security', READ, 'seats.view'),
     # Asking every health plugin now sends requests out: the same as running a plugin action.
     ('/api/health', WRITE, 'plugins.run'),
     # Plugin actions check the permission each action names (floorbit/blueprints/plugins.py).

@@ -143,3 +143,9 @@ body {
 .fb-health-screen .fb-health-tile header strong { font-size: 20px; }
 .fb-health-screen .fb-health-summary { font-size: 17px; }
 .fb-health-screen .fb-health-metrics dd { font-size: 24px; }
+
+/* Security findings (pages/Security.tsx) */
+.fb-finding { border-left: 6px solid var(--color-unknown); }
+.fb-finding.high { border-left-color: var(--color-down); }
+.fb-finding.medium { border-left-color: var(--color-warn); }
+.fb-evidence { margin: 2px 0; padding-left: 18px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }

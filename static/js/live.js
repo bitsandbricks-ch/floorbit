@@ -104,7 +104,8 @@
       scheduleReload(ev.data.resource);
     });
 
-    for (const type of ['monitor.poll', 'checkin', 'checkin.removed', 'checkin.refreshed', 'incident.changed']) {
+    for (const type of ['monitor.poll', 'checkin', 'checkin.removed', 'checkin.refreshed', 'incident.changed',
+                        'security.finding']) {
       es.addEventListener(type, (e) => emit(type, JSON.parse(e.data).data));
     }
   }

@@ -21,8 +21,9 @@ SECTIONS = [
      'description': 'Push changes and switch status to every open browser without a reload.'},
     {'id': 'monitor', 'title': 'Status monitor',
      'description': 'Background LibreNMS poll that detects switches going offline or coming back.'},
-    {'id': 'health', 'title': 'Service health wall',
-     'description': 'How often the health plugins are asked about DHCP, DNS, the cache, game servers and the uplink.'},
+    {'id': 'health', 'title': 'Health wall and security',
+     'description': ('How often the health plugins (DHCP, DNS, cache, game servers, uplink) and the '
+                     'security plugins are asked.')},
     {'id': 'discord', 'title': 'Discord alerts',
      'description': 'Post to a Discord channel when placed switches go offline or recover.'},
     {'id': 'seats', 'title': 'Seat sources',
@@ -42,6 +43,7 @@ INT_LIMITS = {
     'DISCORD_COOLDOWN': (0, 86400),
     'HEALTH_INTERVAL': (10, 86400),
     'HEALTH_CONFIRM': (1, 20),
+    'SECURITY_INTERVAL': (15, 86400),
     'SEAT_SOURCE_CACHE_SECONDS': (0, 86400),
     'CHECKIN_REFRESH_INTERVAL': (30, 86400),
 }

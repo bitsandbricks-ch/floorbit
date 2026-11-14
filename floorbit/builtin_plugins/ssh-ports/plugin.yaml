@@ -4,7 +4,7 @@ id: ssh-ports
 name: SSH port actions
 version: "1.0.0"
 floorbit: ">=0.1,<2"
-description: "Bounces a seat's switch port over SSH. The tech types their own switch login for each action; it is used for that one connection and never stored. Host keys are pinned on first use."
+description: "Bounces a seat's switch port, or shuts it for a security finding, over SSH. The tech types their own switch login for each action; it is used for that one connection and never stored. Host keys are pinned on first use."
 author: Floorbit
 uses: [settings, actions, endpoints, storage, ports]
 settings:

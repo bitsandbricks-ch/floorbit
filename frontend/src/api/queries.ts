@@ -13,6 +13,7 @@ import type {
   PluginInfo,
   QrSeat,
   HealthWall,
+  SecurityList,
   RolesList,
   SeatMapList,
   Team,
@@ -90,6 +91,10 @@ export function useHelpdeskQr() {
 
 export function useHealth() {
   return useQuery({ queryKey: qk.health, queryFn: () => get<HealthWall>('/api/health'), refetchInterval: 30_000 })
+}
+
+export function useSecurity() {
+  return useQuery({ queryKey: qk.security, queryFn: () => get<SecurityList>('/api/security'), refetchInterval: 30_000 })
 }
 
 export function useOidcProviders() {

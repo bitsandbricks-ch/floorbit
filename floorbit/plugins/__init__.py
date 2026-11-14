@@ -52,7 +52,8 @@ AREAS = {
     'mapping':   'sends seat / IP / MAC / nick entries into the seat mapping (hand entries win)',
     'monitoring': 'live switch status, ports and IP to switch port lookups (one plugin at a time)',
     'health': 'service checks on the health wall (DHCP, DNS, cache, game servers, uplink)',
-    'ports': 'act on switch ports (bounce a seat\'s port), with the tech\'s own login (one plugin at a time)',
+    'ports': 'act on switch ports (bounce, shut, turn on), with the tech\'s own login (one plugin at a time)',
+    'security': 'security findings: rogue DHCP, ARP spoofing, MAC flapping, loops and storms',
 }
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
@@ -60,7 +61,8 @@ AREA_METHODS = {
     'mapping': ('seat_mapping',),
     'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp'),
     'health': ('health_checks',),
-    'ports': ('port_login', 'bounce_port'),
+    'security': ('security_findings',),
+    'ports': ('port_login', 'bounce_port', 'set_port'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
@@ -75,7 +77,8 @@ ROLE_PERMISSION = {'viewer': 'floorplan.view', 'editor': 'plugins.run', 'admin':
 # Events a hook can listen to. ``change`` is any audited change (area, action, target, fields),
 # ``switch.status`` a switch going offline or coming back (from the status monitor),
 # ``health.status`` a service on the health wall changing colour (floorbit/health.py).
-EVENTS = ('change', 'switch.status', 'health.status')
+# ``security.finding`` a new security finding (floorbit/security.py).
+EVENTS = ('change', 'switch.status', 'health.status', 'security.finding')
 
 
 @dataclass
