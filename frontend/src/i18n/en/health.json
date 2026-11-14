@@ -1,0 +1,40 @@
+{
+  "title": "Service health",
+  "intro": "DHCP, DNS, the LAN cache, game servers and the internet uplink at a glance. Each service comes from a health plugin; Discord gets a message when one turns red.",
+  "screen": "Big screen",
+  "checkNow": "Check now",
+  "checked_one": "Checked {{count}} second ago",
+  "checked_other": "Checked {{count}} seconds ago",
+  "since": "Like this for",
+  "agoSeconds_one": "{{count}} second",
+  "agoSeconds_other": "{{count}} seconds",
+  "agoMinutes_one": "{{count}} minute",
+  "agoMinutes_other": "{{count}} minutes",
+  "noPlugins": "No health plugin is on yet. Turn one on under Settings > Plugins (HTTP check, or one for your DHCP, DNS or cache) to fill the wall.",
+  "noChecks": "The health plugins have nothing to report yet. Check their settings under Settings > Plugins.",
+  "status": {
+    "up": "Up",
+    "warn": "Degraded",
+    "down": "Down",
+    "unknown": "Unknown"
+  },
+  "count": {
+    "up_one": "{{count}} up",
+    "up_other": "{{count}} up",
+    "warn_one": "{{count}} degraded",
+    "warn_other": "{{count}} degraded",
+    "down_one": "{{count}} down",
+    "down_other": "{{count}} down",
+    "unknown_one": "{{count}} unknown",
+    "unknown_other": "{{count}} unknown"
+  },
+  "kind": {
+    "dhcp": "DHCP",
+    "dns": "DNS",
+    "cache": "LAN cache",
+    "game": "Game servers",
+    "uplink": "Internet uplink",
+    "web": "Web services",
+    "other": "Other"
+  }
+}

@@ -78,6 +78,13 @@ SCHEMA = [
      'label': 'Polls to confirm a change',
      'help': 'A new status must be seen this many polls in a row before it counts, to ignore flapping.'},
 
+    # Service health wall
+    {'key': 'HEALTH_INTERVAL', 'group': 'health', 'type': 'int', 'default': 30,
+     'label': 'Check interval (seconds)', 'help': 'How often to ask the health plugins. Minimum 10.'},
+    {'key': 'HEALTH_CONFIRM', 'group': 'health', 'type': 'int', 'default': 2,
+     'label': 'Checks to confirm a change',
+     'help': 'A service must show its new colour this many checks in a row before it alerts.'},
+
     # Discord
     {'key': 'DISCORD_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Discord webhook URL', 'help': 'Channel settings → Integrations → Webhooks → Copy URL.'},
@@ -91,6 +98,9 @@ SCHEMA = [
      'label': 'Bot name', 'help': 'Name shown on the webhook messages.'},
     {'key': 'DISCORD_COOLDOWN', 'group': 'discord', 'type': 'int', 'default': 300,
      'label': 'Per-switch cooldown (seconds)', 'help': 'Do not alert about the same switch more often than this.'},
+    {'key': 'DISCORD_HEALTH_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
+     'label': 'Health wall alerts',
+     'help': 'Post when a service on the health wall goes red, and when it is back (with Notify on recovery).'},
 
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',

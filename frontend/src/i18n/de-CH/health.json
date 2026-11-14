@@ -1,0 +1,40 @@
+{
+  "title": "Dienste-Status",
+  "intro": "DHCP, DNS, LAN-Cache, Gameserver und der Internet-Uplink auf einen Blick. Jeder Dienst kommt von einem Health-Plugin; Discord bekommt eine Nachricht, wenn einer rot wird.",
+  "screen": "Grossbildschirm",
+  "checkNow": "Jetzt prüfen",
+  "checked_one": "Vor {{count}} Sekunde geprüft",
+  "checked_other": "Vor {{count}} Sekunden geprüft",
+  "since": "So seit",
+  "agoSeconds_one": "{{count}} Sekunde",
+  "agoSeconds_other": "{{count}} Sekunden",
+  "agoMinutes_one": "{{count}} Minute",
+  "agoMinutes_other": "{{count}} Minuten",
+  "noPlugins": "Noch kein Health-Plugin ist eingeschaltet. Schalte eines unter Einstellungen > Plugins ein (HTTP-Check oder eines für deinen DHCP, DNS oder Cache), um die Wand zu füllen.",
+  "noChecks": "Die Health-Plugins melden noch nichts. Prüfe ihre Einstellungen unter Einstellungen > Plugins.",
+  "status": {
+    "up": "Läuft",
+    "warn": "Eingeschränkt",
+    "down": "Ausgefallen",
+    "unknown": "Unbekannt"
+  },
+  "count": {
+    "up_one": "{{count}} läuft",
+    "up_other": "{{count}} laufen",
+    "warn_one": "{{count}} eingeschränkt",
+    "warn_other": "{{count}} eingeschränkt",
+    "down_one": "{{count}} ausgefallen",
+    "down_other": "{{count}} ausgefallen",
+    "unknown_one": "{{count}} unbekannt",
+    "unknown_other": "{{count}} unbekannt"
+  },
+  "kind": {
+    "dhcp": "DHCP",
+    "dns": "DNS",
+    "cache": "LAN-Cache",
+    "game": "Gameserver",
+    "uplink": "Internet-Uplink",
+    "web": "Webdienste",
+    "other": "Weiteres"
+  }
+}

@@ -38,6 +38,9 @@ each seat is plugged into.
   (Authentik, Keycloak, Entra ID, ...) with groups mapped to roles. See [docs/auth.md](docs/auth.md).
 - **Incidents:** a board for problems at seats and switches, worked by your teams, with a QR code on
   every seat so attendees can report "no internet" in one tap. See [docs/incidents.md](docs/incidents.md).
+- **Service health wall:** DHCP leases, DNS, the LAN cache, game servers and the uplink, green, amber or
+  red, on an ops screen or a kiosk, with a Discord message when one goes red. Each check is a plugin.
+  See [docs/health.md](docs/health.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
   permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
   viewers and kiosk screens.

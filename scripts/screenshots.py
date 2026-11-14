@@ -49,6 +49,7 @@ PAGES["seat-mapping"] = "/seat-mapping"
 PAGES["teams"] = "/settings/teams"
 PAGES["sign-in"] = "/settings/sign-in"
 PAGES["incidents"] = "/incidents"
+PAGES["health"] = "/health"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 

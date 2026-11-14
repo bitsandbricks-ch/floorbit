@@ -1,4 +1,4 @@
-"""Made-up data for every data area: inventory, seat mapping and monitoring.
+"""Made-up data for every data area: inventory, seat mapping, monitoring and the health wall.
 
 Everything is computed from the seat and switch numbers plus the clock, so it needs no state,
 moves a little on every poll and looks the same on every instance. Names are generic, IPs come
@@ -18,6 +18,7 @@ SWITCHES_PER_BLOCK = COLS * ROWS // SEATS_PER_SWITCH   # 3
 FLAPPING = 'sw-c-02'          # goes down for a minute every four
 HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
+DHCP_POOL = 100               # small enough that the player scope shows amber
 
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
 # Blocks in a 2 x 2 grid (12 seats of 3.5 % each are 42 % wide), their switches just above them.
@@ -74,6 +75,13 @@ def _wave(seed, now=None, period=300.0):
     """0..1, slowly moving, different per seed."""
     now = time.time() if now is None else now
     return 0.5 + 0.5 * math.sin(now / period * 2 * math.pi + seed * 1.7)
+
+
+def _level(value, warn, down, higher_is_better=False):
+    """up, warn or down for a ratio against two thresholds."""
+    if higher_is_better:
+        return 'down' if value <= down else 'warn' if value <= warn else 'up'
+    return 'down' if value >= down else 'warn' if value >= warn else 'up'
 
 
 def _model(name):
@@ -160,6 +168,48 @@ class Plugin(Plugin):
         heavy = index % 11 == 0
         down = (40e6 if heavy else 1.5e6) * (0.2 + _wave(index))
         return down, down * (0.08 + 0.1 * _wave(index + 5, period=120))
+
+    # health wall ------------------------------------------------------------------------
+    def health_checks(self):
+        now = time.time()
+        players = sum(_taken(s[3]) for s in _seats())
+        left = DHCP_POOL - players
+        hit = round(62 + 28 * _wave(1, now, period=600))
+        saved = round(40 + (now % 86400) / 86400 * 900 * _wave(2, now, period=3600), 1)
+        uplink = round(35 + 50 * _wave(3, now, period=900))
+        game_down = int(now // 60) % 5 < 2          # two minutes in five, so alerts can be tried
+        dns_ms = round(3 + 9 * _wave(4, now, period=120))
+        return [
+            {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/dashboard',
+             'status': _level(left / DHCP_POOL, warn=0.25, down=0.05, higher_is_better=True),
+             'summary': f'{left} of {DHCP_POOL} leases left',
+             'metrics': [{'label': 'Leases left', 'value': left}, {'label': 'In use', 'value': players}]},
+            {'id': 'dhcp-staff', 'name': 'DHCP staff', 'kind': 'dhcp', 'status': 'up',
+             'summary': '52 of 64 leases left', 'metrics': [{'label': 'Leases left', 'value': 52}]},
+            {'id': 'dns-1', 'name': 'DNS resolver 1', 'kind': 'dns', 'status': 'up',
+             'summary': f'Answers in {dns_ms} ms',
+             'metrics': [{'label': 'Answer time', 'value': dns_ms, 'unit': 'ms'}]},
+            {'id': 'dns-2', 'name': 'DNS resolver 2', 'kind': 'dns', 'status': 'up',
+             'summary': f'Answers in {dns_ms + 2} ms',
+             'metrics': [{'label': 'Answer time', 'value': dns_ms + 2, 'unit': 'ms'}]},
+            {'id': 'cache', 'name': 'LAN cache', 'kind': 'cache',
+             'status': _level(hit / 100, warn=0.5, down=0.2, higher_is_better=True),
+             'summary': f'{hit} % hit rate, {saved} GB saved',
+             'metrics': [{'label': 'Hit rate', 'value': hit, 'unit': '%'},
+                         {'label': 'Saved', 'value': saved, 'unit': 'GB'}]},
+            {'id': 'game-1', 'name': 'Game server 1', 'kind': 'game', 'status': 'up',
+             'summary': '18 of 20 players', 'metrics': [{'label': 'Players', 'value': '18/20'}]},
+            {'id': 'game-2', 'name': 'Game server 2', 'kind': 'game', 'status': 'up',
+             'summary': '9 of 10 players', 'metrics': [{'label': 'Players', 'value': '9/10'}]},
+            {'id': 'game-3', 'name': 'Game server 3', 'kind': 'game', 'status': 'down' if game_down else 'up',
+             'summary': 'Not answering' if game_down else '4 of 10 players',
+             'metrics': [] if game_down else [{'label': 'Players', 'value': '4/10'}]},
+            {'id': 'uplink', 'name': 'Internet uplink', 'kind': 'uplink',
+             'status': _level(uplink / 100, warn=0.8, down=0.95),
+             'summary': f'{uplink / 10:.1f} of 10 Gbit/s in use',
+             'metrics': [{'label': 'In use', 'value': uplink, 'unit': '%', 'tone': 'warn' if uplink >= 80 else ''},
+                         {'label': 'Loss', 'value': 0, 'unit': '%'}]},
+        ]
 
     def test(self):
         return f'Demo data: {len(_switches())} switches and {sum(_taken(s[3]) for s in _seats())} players.'

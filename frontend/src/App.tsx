@@ -10,6 +10,7 @@ const Teams = lazy(() => import('@/pages/Teams'))
 const SignIn = lazy(() => import('@/pages/SignIn'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
+const Health = lazy(() => import('@/pages/Health'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/settings/sign-in" element={<SignIn />} />
         <Route path="/incidents" element={<Incidents />} />
         <Route path="/incidents/qr" element={<HelpdeskQr />} />
+        <Route path="/health" element={<Health />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

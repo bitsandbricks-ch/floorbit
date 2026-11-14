@@ -1,7 +1,8 @@
 """Discord alerts through a channel webhook.
 
 Listens for ``monitor.poll`` events and posts one message per poll that had
-changes, so a whole row losing power is one message, not twenty. Sending runs
+changes, so a whole row losing power is one message, not twenty. ``health.changed`` (the
+service health wall) posts when a service goes red and when it is back. Sending runs
 on its own thread so a slow Discord never delays the status monitor.
 """
 import queue
@@ -54,6 +55,7 @@ class DiscordNotifier:
         events.subscribe('monitor.poll', self.on_poll)
         events.subscribe('monitoring.offline', self.on_source)
         events.subscribe('monitoring.online', self.on_source)
+        events.subscribe('health.changed', self.on_health)
 
     def _ensure_worker(self):
         with self._lock:
@@ -92,6 +94,57 @@ class DiscordNotifier:
             self._queue.put_nowait(self.build_source_message(event['type'], event.get('data') or {}))
         except queue.Full:
             self.last_error = 'alert queue full, message dropped'
+
+    def on_health(self, event):
+        if not self.enabled() or not config.get_bool('DISCORD_HEALTH_ALERTS', True):
+            return
+        payload = self.build_health_message((event.get('data') or {}).get('changes', []))
+        if payload:
+            self._ensure_worker()
+            try:
+                self._queue.put_nowait(payload)
+            except queue.Full:
+                self.last_error = 'alert queue full, message dropped'
+
+    def build_health_message(self, changes, now=None):
+        """Red services, and (if wanted) services that were red and are back. Amber pages nobody."""
+        now = now or time.time()
+        cooldown = config.get_int('DISCORD_COOLDOWN', 300, minimum=0)
+        notify_recovery = config.get_bool('DISCORD_NOTIFY_RECOVERY', True)
+        selected = []
+        for c in changes:
+            down = c.get('status') == 'down'
+            back = c.get('previous') == 'down' and c.get('status') in ('up', 'warn')
+            if not down and not (back and notify_recovery):
+                continue
+            key = 'health:' + str(c.get('id'))
+            last = self._last_alert.get(key)
+            if down and last is not None and now - last < cooldown:
+                continue
+            self._last_alert[key] = now
+            selected.append(c)
+        if not selected:
+            return None
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
+        embeds = []
+        for c in selected[:MAX_EMBEDS]:
+            down = c['status'] == 'down'
+            embed = {'title': f"{'🔴' if down else '🟢'} {str(c.get('name'))[:100]} is {'down' if down else 'back'}",
+                     'color': COLOR_OFFLINE if down else COLOR_ONLINE, 'timestamp': ts}
+            if c.get('summary'):
+                embed['description'] = str(c['summary'])[:200]
+            if public_url:
+                embed['url'] = public_url + '/health'
+            embeds.append(embed)
+        payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': embeds,
+                   'allowed_mentions': {'parse': ['roles', 'everyone', 'users']}}
+        mention = config.get('DISCORD_MENTION', '') or ''
+        if mention and any(c['status'] == 'down' for c in selected):
+            payload['content'] = mention
+        else:
+            payload['allowed_mentions'] = {'parse': []}
+        return payload
 
     def build_source_message(self, kind, data, now=None):
         now = now or time.time()

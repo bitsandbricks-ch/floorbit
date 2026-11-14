@@ -283,3 +283,31 @@ export interface QrSeat {
   url: string
   image: string
 }
+
+// The service health wall (floorbit/health.py).
+export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'web' | 'other'
+export interface HealthMetric {
+  label: string
+  value: number | string
+  unit: string
+  tone: Tone
+}
+export interface HealthCheck {
+  id: string
+  name: string
+  kind: HealthKind
+  status: State
+  summary: string
+  metrics: HealthMetric[]
+  link: string
+  plugin: string
+  plugin_name: string
+  since: number
+}
+export interface HealthWall {
+  checks: HealthCheck[]
+  counts: Record<State, number>
+  last_poll: number | null
+  interval: number
+  plugins: number
+}

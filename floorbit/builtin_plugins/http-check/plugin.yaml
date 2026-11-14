@@ -4,9 +4,9 @@ id: http-check
 name: HTTP check
 version: "1.0.0"
 floorbit: ">=0.1,<2"
-description: "Checks that web services (the cache, the ticket shop, a game server's web panel) answer, and shows them on the dashboard."
+description: "Checks that web services (the cache, the ticket shop, a game server's web panel) answer, and shows them on the dashboard and the health wall."
 author: Floorbit
-uses: [settings, actions, widgets, endpoints, http, storage]
+uses: [settings, actions, widgets, endpoints, http, storage, health]
 settings:
   - {key: targets, label: Services, type: list,
      help: "Comma-separated, each as Name=URL, for example Cache=https://cache.example.com/health. A URL alone is named by its host.",
