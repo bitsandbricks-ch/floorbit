@@ -1,0 +1,21 @@
+# Switch status and port traffic from Prometheus, for halls that scrape their switches with the
+# SNMP exporter instead of running LibreNMS. Off until turned on under Settings > Plugins.
+id: prometheus
+name: Prometheus
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live switch status and port state, traffic and errors from Prometheus (SNMP exporter, if_mib). Feeds the floor plan, the status monitor and the seat inspector. Prometheus has no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS or a seat source."
+author: Floorbit
+homepage: https://prometheus.io
+uses: [settings, http, monitoring]
+settings:
+  - {key: url, label: Prometheus URL, type: url, placeholder: "https://prometheus.example.com",
+     help: "The Prometheus server (or anything that speaks its query API, like Thanos or VictoriaMetrics)."}
+  - {key: token, label: Bearer token, type: secret, help: "Only if Prometheus sits behind a proxy that wants one."}
+  - {key: job, label: Job, type: string, default: snmp,
+     help: "The scrape job of the SNMP exporter. Only its series are read."}
+  - {key: device_label, label: Switch name label, type: string, default: instance,
+     help: "The label that holds the switch's name, to match it to the floor plan (instance, sysName, ...)."}
+  - {key: rate_window, label: Rate window, type: string, default: 2m,
+     help: "How far back traffic rates look, like 2m. At least twice the scrape interval."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}
