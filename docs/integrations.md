@@ -43,7 +43,10 @@ Behind nginx, the stream sends `X-Accel-Buffering: no`; also set `proxy_read_tim
 A background thread polls the monitoring plugin (LibreNMS: `/api/v0/devices`, one request for all devices) every
 interval, matches devices to the switches placed on the plan (same name matching as the rest
 of the app), and publishes `switch.status` when one changes. The first poll is a baseline
-(no alerts after a restart), and a change must be seen on N polls in a row to count.
+(no alerts after a restart), and a change must be seen on N polls in a row to count. When the
+monitoring source itself stops answering, the monitor sends one `monitoring.offline` event (one
+Discord message) instead of switch alerts, and starts from a fresh baseline when it is back; see
+[offline.md](offline.md).
 
 | Variable | Default | |
 |---|---|---|

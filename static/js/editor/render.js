@@ -67,7 +67,7 @@ function renderSidebar() {
   const frag = document.createDocumentFragment();
   for (const sw of filtered) {
     const item = document.createElement('div');
-    item.className = 'switch-item' + (inSelection('switch', sw.id) ? ' active' : '');
+    item.className = 'switch-item' + (inSelection('switch', sw.id) ? ' active' : '') + (sw.stale ? ' stale' : '');
     item.dataset.id = sw.id;
     item.tabIndex = 0;
 
@@ -97,11 +97,12 @@ function renderSidebar() {
 function createMarker(sw) {
   const el = document.createElement('div');
   const isSelected = inSelection('switch', sw.id);
-  el.className = 'switch-marker' + (isSelected ? ' selected' : '') + (matchesStatusFilter(sw) ? '' : ' dimmed');
+  el.className = 'switch-marker' + (isSelected ? ' selected' : '') + (matchesStatusFilter(sw) ? '' : ' dimmed') +
+                 (sw.stale ? ' stale' : '');
   el.dataset.id = sw.id;
   el.style.left = sw.x + '%';
   el.style.top  = sw.y + '%';
-  el.title = `${sw.name} · ${sw.status || 'unknown'}`;
+  el.title = `${sw.name} · ${sw.status || 'unknown'}${sw.stale ? ' (last known, monitoring is down)' : ''}`;
   const hideLabel = getDeviceSetting(sw.id, 'hideLabel');
   el.innerHTML = `
     <div class="switch-pin status-${escHtml(sw.status || 'unknown')}">${pinSVG(sw.status)}</div>

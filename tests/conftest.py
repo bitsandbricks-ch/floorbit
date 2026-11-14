@@ -54,6 +54,19 @@ class FakeRedis:
         return {}
 
 
+@pytest.fixture(autouse=True)
+def fresh_monitoring_state(tmp_path, monkeypatch):
+    """No last good monitoring data or outage carried over from another test (docs/offline.md)."""
+    monkeypatch.setenv("MONITORING_CACHE_FILE", str(tmp_path / "monitoring-cache.json"))
+    from floorbit import sources
+    from floorbit.sources import lastgood
+    lastgood.clear()
+    sources.mark_ok(None)
+    yield
+    lastgood.clear()
+    sources.mark_ok(None)
+
+
 @pytest.fixture
 def app_module(tmp_path, monkeypatch):
     for name in ("NETBOX_URL", "NETBOX_TOKEN", "LIBRENMS_URL", "LIBRENMS_TOKEN", "AUDIT_FILE", "PLUGINS_FILE",

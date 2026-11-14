@@ -1,4 +1,7 @@
-"""Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap."""
+"""Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap.
+
+While the monitoring source is down, answers come from its last good data, marked ``stale`` with
+``as_of`` and ``offline_since`` (floorbit/sources, docs/offline.md)."""
 from flask import Blueprint, jsonify, request
 
 from integrations import seat_sources
@@ -24,6 +27,14 @@ def get_switch_status(switch_id):
 
     details = sources.monitoring().device_details(hostname)
     return jsonify({'id': switch_id, **details})
+
+
+@bp.route('/api/monitoring/health', methods=['GET'])
+def monitoring_health():
+    """Is the monitoring source answering? When not, since when (pages show cached data meanwhile)."""
+    source = sources.monitoring()
+    return jsonify({'enabled': source.enabled(), 'name': source.name, 'label': source.label,
+                    **sources.health()})
 
 
 @bp.route('/api/resolve/<ip_address>', methods=['GET'])
