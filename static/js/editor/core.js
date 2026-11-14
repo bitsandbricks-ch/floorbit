@@ -56,7 +56,7 @@ const selection    = new Set();      // selected map items as 'switch:<id>' / 'b
 let pendingCoords  = null;
 let pendingPickerDeviceId = null;   // selected device in the NetBox picker tab
 let selectedDeviceIds = new Set();  // selected device IDs in multiselect mode
-let contextTarget  = null;          // { type: 'switch'|'block'|'multi', id }
+let contextTarget  = null;          // { type: 'seat'|'switch'|'block'|'multi'|'floor', ... }
 let dragState      = null;
 let panState       = null;
 let marqueeState   = null;
@@ -161,8 +161,6 @@ const shortcutsClose   = $('shortcuts-close');
 
 // Context menu
 const contextMenu      = $('context-menu');
-const ctxRename        = $('ctx-rename');
-const ctxDelete        = $('ctx-delete');
 
 // Switch inspector
 const detailPanel       = $('detail-panel');

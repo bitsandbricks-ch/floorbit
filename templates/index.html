@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board and feature_on('incidents') %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions and feature_on('ports') %} data-port-actions="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and feature_on('security') %} data-security="on"{% endif %}{% if power_on and feature_on('power') %} data-power="on"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board and feature_on('incidents') %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions and feature_on('ports') %} data-port-actions="on"{% endif %}{% if current_user and 'seats.edit' in current_user.permissions %} data-seat-edit="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and feature_on('security') %} data-security="on"{% endif %}{% if power_on and feature_on('power') %} data-power="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -687,10 +687,8 @@
   </div>
 
   <!-- ── Context Menu ───────────────────────────────────────────────────── -->
-  <div class="context-menu hidden" id="context-menu" role="menu">
-    <button class="context-item" id="ctx-rename" role="menuitem">Rename</button>
-    <button class="context-item danger" id="ctx-delete" role="menuitem">Delete <kbd>Del</kbd></button>
-  </div>
+  <!-- Filled per target by static/js/editor/menus.js -->
+  <div class="context-menu hidden" id="context-menu" role="menu"></div>
 
   <!-- ── Rename Modal ───────────────────────────────────────────────────── -->
   <div class="modal-backdrop hidden" id="rename-backdrop">
@@ -811,6 +809,7 @@
         <dt><kbd>Ctrl</kbd> <kbd>A</kbd></dt><dd>Select everything on the map</dd>
         <dt><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></dt><dd>Nudge the selection (<kbd>Shift</kbd> for bigger steps)</dd>
         <dt><kbd>/</kbd></dt><dd>Search</dd>
+        <dt><kbd>Shift</kbd> <kbd>F10</kbd></dt><dd>Menu for what is selected (also the Menu key, or right-click)</dd>
         <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
         <dt><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dt><dd>Zoom in, out, reset</dd>
         <dt><kbd>T</kbd></dt><dd>Switch between light and dark theme</dd>
