@@ -953,3 +953,15 @@ kbd {
   .sidebar { transition: none; }
   .detail-panel { animation: none; }
 }
+
+/* Search (issue #14): the switch a found seat hangs on lights up for a few seconds. */
+.switch-marker.search-hit { z-index: 8; }
+.switch-marker.search-hit .switch-label { opacity: 1; }
+.switch-marker.search-hit .switch-pin {
+  filter: drop-shadow(0 0 6px var(--color-trace));
+  animation: searchHit .9s ease-in-out 4;
+}
+@keyframes searchHit { 50% { transform: scale(1.5); } }
+@media (prefers-reduced-motion: reduce) {
+  .switch-marker.search-hit .switch-pin { animation: none; }
+}

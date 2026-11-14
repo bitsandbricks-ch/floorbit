@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 
 from integrations import seat_sources
 
-from .. import inventory, sources
+from .. import inventory, seat_search, sources
 from ..seat_traffic import collect_seat_heatmap
 from ..store import load_data
 
@@ -64,6 +64,12 @@ def get_seats_info():
     """Seat → user / IP mapping, merged from the configured seat sources."""
     seats = seat_sources.load()
     return jsonify({'seats': seats, 'errors': seat_sources.info()['errors']})
+
+
+@bp.route('/api/seats/find', methods=['GET'])
+def find_seat():
+    """A player by nick, seat, IP or MAC: their seat, block and switch port (floorbit/seat_search.py)."""
+    return jsonify(seat_search.find(request.args.get('q', '')[:100]))
 
 
 @bp.route('/api/seats/occupancy', methods=['GET'])
