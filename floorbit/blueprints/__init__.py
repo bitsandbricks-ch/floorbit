@@ -42,6 +42,7 @@ from . import (
                setup,
                speedtest,
                stats,
+               stats_wall,
                status_page,
                switches,
                teardown,
@@ -61,4 +62,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        cables.bp, teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, webhooks.bp, wifi.bp,
        speedtest.bp, timeline.bp, status_page.bp,
-       runbooks.bp]
+       runbooks.bp, stats_wall.bp]
