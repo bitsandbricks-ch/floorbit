@@ -77,7 +77,21 @@
     });
     if (isMe) select.title = 'Ask another admin to change your role';
 
-    const extra = user.identities.length ? ` · linked: ${user.identities.join(', ')}` : '';
+    // Discord: link a Discord user ID so that person can use "Sign in with Discord".
+    const discordInput = el('input', { type: 'text', inputmode: 'numeric', value: user.discord_id || '',
+      placeholder: 'Discord user ID, empty to unlink', 'aria-label': 'Discord user ID', autocomplete: 'off' });
+    const discord = el('div', { class: 'us-reset', hidden: true },
+      discordInput,
+      el('button', { class: 'st-btn st-btn-primary', type: 'button', onclick: async () => {
+        try {
+          render(await api('PATCH', `/api/users/${encodeURIComponent(user.username)}`, { discord_id: discordInput.value.trim() }));
+        } catch (e) { setMsg(msg, e.message, 'error'); }
+      } }, 'Save'));
+    const showDiscord = state.discord || user.discord_id;
+
+    const linked = user.identities.map((id) => id === 'discord' ? `Discord ${user.discord_id}` : id);
+    const extra = (linked.length ? ` · linked: ${linked.join(', ')}` : '') +
+      (user.created_by ? ` · joined with ${user.created_by === 'discord' ? 'Discord' : user.created_by}` : '');
     return el('div', { class: 'us-row' },
       el('div', { class: 'us-who' },
         el('strong', {}, user.display_name, isMe ? el('span', { class: 'us-you' }, 'you') : ''),
@@ -86,8 +100,10 @@
       el('div', { class: 'us-actions' },
         el('button', { class: 'st-btn', type: 'button', onclick: () => { reset.hidden = !reset.hidden; if (!reset.hidden) pw.focus(); } },
           'Reset password'),
+        showDiscord ? el('button', { class: 'st-btn', type: 'button', onclick: () => { discord.hidden = !discord.hidden; if (!discord.hidden) discordInput.focus(); } },
+          user.discord_id ? 'Discord' : 'Link Discord') : '',
         remove),
-      reset, msg);
+      reset, discord, msg);
   }
 
   function render(data) {

@@ -13,8 +13,8 @@ guard that runs before every request:
   allows it (see roles.py): viewers look, editors change the floor plan,
   admins also change settings and manage accounts.
 
-How a person proves who they are is up to the providers in ``providers/``;
-local username and password accounts are the only one so far.
+How a person proves who they are is up to the providers in ``providers/``:
+local username and password accounts and Discord (providers/discord.py).
 """
 import os
 import re
@@ -147,6 +147,7 @@ class Auth:
         self.providers = Registry()
         self.providers.register(LocalProvider(self.users))
         self._failures = {}
+        self.public_url = lambda: ''   # create_app points this at the PUBLIC_URL setting
 
         if not app.config.get('SECRET_KEY'):
             app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or self._stored_secret_key()
@@ -254,10 +255,12 @@ class Auth:
         """Map an outside identity to a local user, creating one if the provider allows it."""
         user = self.users.find_by_identity(identity.provider, identity.subject)
         if user:
+            provider.check_existing(user, identity)
             return user
         if not getattr(provider, 'auto_create_users', False):
             raise AuthError(f'No account here is linked to this {provider.label} login. '
                             'Ask an organiser to add you.')
+        role = provider.new_user_role(identity)
         base = re.sub(r'[^A-Za-z0-9._-]', '', identity.username or '').lstrip('._-')[:28] or identity.provider
         name, n = base, 1
         while self.users.get(name):
@@ -265,7 +268,13 @@ class Auth:
             name = f'{base}{n}'
         return self.users.add(name, display_name=identity.display_name or identity.username,
                               identities={identity.provider: identity.subject},
-                              role=getattr(provider, 'default_role', 'viewer'))
+                              role=role, created_by=provider.id)
+
+    def callback_url(self, provider_id):
+        """Where the provider sends the browser back. PUBLIC_URL wins behind a reverse proxy."""
+        base = (self.public_url() or '').rstrip('/')
+        path = url_for('auth.callback', provider_id=provider_id)
+        return base + path if base else url_for('auth.callback', provider_id=provider_id, _external=True)
 
 
 def init_auth(app, data_file):
@@ -331,8 +340,7 @@ def _blueprint():
         state = secrets.token_urlsafe(24)
         session['auth_state'] = state
         session['auth_next'] = _safe_next(request.args.get('next'))
-        callback = url_for('auth.callback', provider_id=provider_id, _external=True)
-        return redirect(provider.start(callback, state))
+        return redirect(provider.start(_auth().callback_url(provider_id), state))
 
     @bp.route('/auth/<provider_id>/callback')
     def callback(provider_id):
@@ -345,7 +353,7 @@ def _blueprint():
         if not expected or not secrets.compare_digest(expected, request.args.get('state', '')):
             return render_login('The sign-in link expired. Please try again.', status=400)
         try:
-            identity = provider.finish(request, url_for('auth.callback', provider_id=provider_id, _external=True))
+            identity = provider.finish(request, auth.callback_url(provider_id))
             user = auth.resolve_identity(identity, provider)
         except (AuthError, UserError) as exc:
             return render_login(str(exc), status=403)

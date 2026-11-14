@@ -61,3 +61,10 @@ class RedirectProvider(AuthProvider):
     def finish(self, request, callback_url):
         """Turn the callback request into an Identity, or raise AuthError."""
         raise NotImplementedError
+
+    def new_user_role(self, identity):
+        """Role for an account created on first sign-in. Raise AuthError to refuse the person."""
+        return self.default_role
+
+    def check_existing(self, user, identity):
+        """Called on every sign-in to a linked account. Raise AuthError to refuse it."""

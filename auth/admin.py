@@ -22,6 +22,7 @@ def create_users_blueprint(auth):
             'roles': [{'id': r, 'label': roles.LABELS[r], 'description': roles.DESCRIPTIONS[r]}
                       for r in roles.ROLES],
             'me': (me() or {}).get('username'),
+            'discord': bool(auth.providers.get('discord')),
         }
 
     def error(exc, status=400):
@@ -57,6 +58,12 @@ def create_users_blueprint(auth):
                 auth.users.update(username, role=body.get('role'), display_name=body.get('display_name'))
             if body.get('password'):
                 auth.users.set_password(username, body['password'])
+            if 'discord_id' in body:
+                discord_id = str(body['discord_id'] or '').strip()
+                if discord_id and not (discord_id.isdigit() and 17 <= len(discord_id) <= 20):
+                    raise UserError('A Discord user ID is a number of 17 to 20 digits. In Discord, '
+                                    'turn on developer mode, right-click the person and copy their ID.')
+                auth.users.link_identity(username, 'discord', discord_id)
         except UserError as exc:
             return error(exc)
         user = auth.users.get(username)

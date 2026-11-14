@@ -50,7 +50,7 @@
       {% if password_login %}<div class="lg-divider"><span>or</span></div>{% endif %}
       <div class="lg-providers">
         {% for provider in redirect_providers %}
-        <a class="lg-btn" href="{{ url_for('auth.start', provider_id=provider.id, next=next) }}">Sign in with {{ provider.label }}</a>
+        <a class="lg-btn lg-btn-{{ provider.id }}" href="{{ url_for('auth.start', provider_id=provider.id, next=next) }}">Sign in with {{ provider.label }}</a>
         {% endfor %}
       </div>
       {% endif %}
