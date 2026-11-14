@@ -29,7 +29,8 @@
     .banner { background: color-mix(in srgb, var(--color-trace) 18%, var(--color-surface)); border-color: var(--color-trace); }
     ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
     ol li { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; align-items: start; }
-    ol li.past { opacity: .5; }
+    /* Past items in the muted text colour rather than faded: faded text fell to 2.3:1 (issue #232). */
+    ol li.past, ol li.past * { color: var(--color-muted); }
     ol li.on { font-weight: 700; }
     ol .when { color: var(--color-muted); font-variant-numeric: tabular-nums; }
     ol li.day { display: block; margin: 14px 0 2px; font-size: 15px; font-weight: 700; }

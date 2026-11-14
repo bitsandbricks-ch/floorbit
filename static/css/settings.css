@@ -93,11 +93,12 @@ body {
   height: 40px; max-width: 160px; object-fit: contain; padding: 4px;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-primary);
 }
-.st-field.st-muted { opacity: .55; }
+/* Fields for the Custom theme only: fade the controls, not the words, which must stay readable (issue #232). */
+.st-field.st-muted input, .st-field.st-muted select, .st-field.st-muted .st-input-row { opacity: .55; }
 .st-input-row input[type="color"].st-derived { opacity: .35; }
 .st-unit { color: var(--text-secondary); }
 .st-help { color: var(--text-secondary); font-size: 12px; }
-.st-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-muted); }
+.st-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-secondary); }
 .st-badge {
   display: inline-block; padding: 0 6px; border-radius: 10px;
   font-size: 11px; line-height: 18px; border: 1px solid var(--border); color: var(--text-secondary);

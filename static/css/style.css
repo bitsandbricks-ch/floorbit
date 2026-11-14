@@ -100,7 +100,7 @@ kbd {
 .status-glyph { font-size: 10px; font-weight: 700; }
 .chip-offline.has-items { border-color: color-mix(in srgb, var(--danger) 60%, transparent); background: var(--danger-dim); }
 
-.last-updated { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.last-updated { font-size: var(--fs-xs); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .last-updated.stale { color: var(--warning); }
 .last-updated.error { color: var(--danger); }
 /* Last good data while the monitoring source is down (docs/offline.md). */
@@ -270,7 +270,7 @@ kbd {
 .switch-item.active { background: var(--accent-dim); }
 .switch-item-glyph { width: 14px; text-align: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
 .switch-item-name { flex: 1; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.switch-item-status { font-size: var(--fs-xs); color: var(--text-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.switch-item-status { font-size: var(--fs-xs); color: var(--text-secondary); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .list-filter {
   display: flex; align-items: center; justify-content: space-between;
   font-size: var(--fs-xs); color: var(--text-secondary);
