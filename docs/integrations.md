@@ -75,7 +75,9 @@ poll go in one message (up to 10 embeds), so a row losing power is one message.
 
 `/api/seats/info`, `/api/seats/resolve` and `/api/seats/heatmap` get their seat mapping from
 `integrations.seat_sources` instead of reading `seats.json` directly. Sources are merged in
-the order listed in `SEAT_SOURCES`; the first one with a value for a field wins.
+the order listed in `SEAT_SOURCES`; the first one with a value for a field wins. Hand entries
+from the [seat mapping](seat-mapping.md) page and plugins with `uses: [mapping]` always come
+before them.
 
 | Source | What it reads |
 |---|---|

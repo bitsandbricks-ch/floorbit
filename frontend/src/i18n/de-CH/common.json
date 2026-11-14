@@ -19,5 +19,6 @@
   "error": "Etwas ist schiefgelaufen: {{message}}",
   "coffee": "Spendier mir einen Kaffee",
   "poweredBy": "Betrieben von",
-  "inventory": "Inventar"
+  "inventory": "Inventar",
+  "seatMapping": "Platzzuordnung"
 }

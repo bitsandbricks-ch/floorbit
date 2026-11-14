@@ -143,6 +143,8 @@ def test_seat_sources_merge(tmp_path, monkeypatch):
         'A-2': {'username': 'bob', 'ip_address': ''},
     }}))
     monkeypatch.setenv('SEAT_SOURCE_JSON_PATH', str(f))
+    from floorbit import store
+    monkeypatch.setattr(store, 'DATA_FILE', str(tmp_path / 'data.json'))
 
     @seat_sources.register
     class Fake(seat_sources.SeatSource):
@@ -155,7 +157,8 @@ def test_seat_sources_merge(tmp_path, monkeypatch):
     seats = seat_sources.load(max_age=0)
     assert seats['A-1']['ip_address'] == '10.0.0.1'
     assert seats['A-2'] == {'ip': '10.0.0.2', 'ip_address': '10.0.0.2', 'username': 'bob',
-                            'sources': ['fake', 'json']}
+                            'sources': ['fake', 'json'],
+                            'field_sources': {'ip': 'fake', 'ip_address': 'fake', 'username': 'json'}}
     assert seats['B-1']['username'] == 'carol'
     assert seat_sources.info()['errors'] == {'missing': 'unknown source'}
 
@@ -336,7 +339,8 @@ def test_settings_bridge(monkeypatch, tmp_path):
     assert {s['id'] for s in mod.SECTIONS} >= {'discord', 'checkin', 'monitor'}
 
     assert config.get('LIBRENMS_URL') == 'http://saved-nms'      # store's own field
-    assert seat_sources.active_names() == ['checkin', 'json']       # list → csv
+    assert seat_sources.configured_names() == ['checkin', 'json']   # list → csv
+    assert seat_sources.active_names()[0] == 'manual'               # hand entries always first
     assert config.get_int('DISCORD_COOLDOWN', 300) == 42
     assert config.get('DISCORD_USERNAME') == 'from-env'             # not saved → env
     assert config.get('DISCORD_MENTION', 'dflt') == 'dflt'          # → default

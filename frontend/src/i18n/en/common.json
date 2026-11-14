@@ -19,5 +19,6 @@
   "error": "Something went wrong: {{message}}",
   "coffee": "Buy me a coffee",
   "poweredBy": "Powered by",
-  "inventory": "Inventory"
+  "inventory": "Inventory",
+  "seatMapping": "Seat mapping"
 }

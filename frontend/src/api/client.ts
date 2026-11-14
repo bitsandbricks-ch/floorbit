@@ -32,6 +32,7 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
   }
   if (!res.ok) {
     const message = typeof data.error === 'string' ? data.error : `HTTP ${res.status}`
+    // e.g. the CSV import's line-by-line problems
     throw new ApiError(message, res.status, data)
   }
   return data as T

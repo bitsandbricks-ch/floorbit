@@ -135,3 +135,37 @@ export interface InventoryList {
   roles: string[]
   fields: InventoryField[]
 }
+
+export interface ManualSeat {
+  seat: string
+  ip: string
+  mac: string
+  nick: string
+  note: string
+  updated_at: string | null
+  updated_by: string | null
+}
+
+export interface SeatRow {
+  seat: string
+  ip: string
+  mac: string
+  nick: string
+  from: Partial<Record<'ip' | 'mac' | 'nick' | 'note', string>>
+  manual: ManualSeat | null
+  sources: string[]
+}
+
+export interface SeatMapList {
+  seats: SeatRow[]
+  sources: string[]
+  errors: Record<string, string>
+  labels: Record<string, string>
+}
+
+export interface ImportResult {
+  dry_run?: boolean
+  added: number
+  updated: number
+  removed: number
+}
