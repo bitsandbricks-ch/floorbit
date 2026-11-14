@@ -1,16 +1,17 @@
 """Backup and restore of the floor plan and settings (Settings > Backup).
 
-A backup holds what took work to set up: the inventory (devices and where they are placed), seat blocks and the
-saved settings, including the theme and event logo. It never holds secrets (API tokens, webhook
-URLs, the session key) or accounts, so it is safe to keep on a laptop or share with another orga
-team, and restoring one can't lock anybody out. Check-ins are personal data and stay out too.
+A backup holds what took work to set up: the halls with their background images, the inventory
+(devices and where they are placed), seat blocks and the saved settings, including the theme and
+event logo. It never holds secrets (API tokens, webhook URLs, the session key) or accounts, so it is
+safe to keep on a laptop or share with another orga team, and restoring one can't lock anybody out.
+Check-ins are personal data and stay out too.
 For a full copy of everything, back up the ``data.json`` file itself. See docs/backup.md.
 """
 import time
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from .. import inventory, runtime, store
+from .. import halls, inventory, runtime, store
 from ..settings import FIELDS_BY_KEY, check_changes
 
 bp = Blueprint('backup', __name__)
@@ -18,10 +19,10 @@ bp = Blueprint('backup', __name__)
 FORMAT = 'floorbit-backup'
 FORMAT_VERSION = 1
 # The parts of data.json a backup carries. Everything else (accounts, the session key) stays put.
-LAYOUT_KEYS = ('inventory', 'seats', 'seat_blocks')
+LAYOUT_KEYS = ('halls', 'inventory', 'seats', 'seat_blocks')
 # Backups from before the inventory: still restored, moved over like data.json is.
 OLD_LAYOUT_KEYS = ('switches', 'cached_devices', 'positions')
-MAX_BYTES = 8 * 1024 * 1024
+MAX_BYTES = 64 * 1024 * 1024   # background images travel inline, up to 5 MB each
 
 
 class BackupError(ValueError):
@@ -42,7 +43,9 @@ def make_backup(data):
         'format': FORMAT,
         'version': FORMAT_VERSION,
         'created': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
-        'layout': {k: data[k] for k in LAYOUT_KEYS if k in data},
+        'layout': {**{k: data[k] for k in LAYOUT_KEYS if k in data and k != 'halls'},
+                   'halls': [{'id': h['id'], 'name': h['name'], 'background': halls.background_data_url(h)}
+                             for h in halls.halls(data)]},
         'settings': settings,
     }
 
@@ -54,6 +57,25 @@ def _check_list(name, value, required=('id',)):
         missing = [k for k in required if k not in item]
         if missing:
             raise BackupError(f'An entry in "{name}" has no {", ".join(missing)}')
+
+
+def _check_halls(value):
+    """[(hall, (mime, bytes) or None)], every image decoded before anything is written."""
+    _check_list('halls', value, required=('id', 'name'))
+    if len(value) > halls.MAX_HALLS:
+        raise BackupError(f'At most {halls.MAX_HALLS} halls')
+    out, seen = [], set()
+    for raw in value:
+        hid = str(raw['id'])[:40]
+        if not hid.replace('-', '').replace('_', '').isalnum() or hid in seen:
+            raise BackupError(f'Hall id "{hid}" is not valid or used twice')
+        seen.add(hid)
+        try:
+            image = halls.decode_image(raw['background']) if raw.get('background') else None
+            out.append(({'id': hid, 'name': halls.clean_name(raw['name']), 'background': None}, image))
+        except halls.HallError as exc:
+            raise BackupError(f'Hall "{hid}": {exc}') from None
+    return out
 
 
 def validate(backup):
@@ -79,6 +101,8 @@ def validate(backup):
             raise BackupError(f'An inventory entry is not valid: {exc}') from None
     if 'seats' in layout:
         _check_list('seats', layout['seats'], required=())
+    if 'halls' in layout:
+        layout['halls'] = _check_halls(layout['halls'])
     if 'positions' in layout and not isinstance(layout['positions'], dict):
         raise BackupError('"positions" must be an object')
     return layout, settings
@@ -107,12 +131,19 @@ def restore(data, backup, settings_store):
         data.pop(key, None)
     for key in ('seats', 'seat_blocks'):
         data[key] = layout.get(key, [])
+    for hall in halls.halls(data):
+        halls.remove_background(hall)
+    data['halls'] = []
+    for hall, image in layout.get('halls') or []:
+        if image:
+            halls.set_background(hall, *image)
+        data['halls'].append(hall)
     store.save_data(data)
     if settings:
         settings_store.update(settings)
     runtime.apply(settings_store)
     return {
-        'restored': {'inventory': len(data['inventory']),
+        'restored': {'inventory': len(data['inventory']), 'halls': len(halls.halls(data)),
                      **{k: len(layout.get(k, [])) for k in ('seats', 'seat_blocks')}},
         'settings': len(settings),
         'skipped_settings': skipped,

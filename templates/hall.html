@@ -19,6 +19,12 @@
     }
     h1 { margin: 0 0 4px; font-size: 22px; }
     p { margin: 0 0 12px; color: var(--color-muted); }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+    .tabs a {
+      padding: 6px 12px; border: 1px solid var(--color-line); border-radius: 999px; text-decoration: none;
+      color: var(--color-fg); font-weight: 600;
+    }
+    .tabs a[aria-current] { background: var(--color-bit); border-color: var(--color-bit); color: var(--color-on-bit); }
     .count { color: var(--color-fg); font-size: 20px; font-weight: 600; margin: 0; }
     .bar { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; justify-content: space-between; }
     .legend { display: flex; gap: 16px; font-size: 14px; color: var(--color-muted); }
@@ -38,6 +44,11 @@
 <body>
   <main class="card">
     <h1>{{ t.title }}</h1>
+    {% if tabs %}
+    <nav class="tabs" aria-label="{{ t.halls }}">
+      {% for h in tabs %}<a href="?hall={{ h.id }}"{% if h.on %} aria-current="page"{% endif %}>{{ h.name }}</a>{% endfor %}
+    </nav>
+    {% endif %}
     {% if state == 'off' %}
     <p class="bad" role="alert">{{ t.off }}</p>
     {% elif state == 'empty' %}
@@ -65,7 +76,7 @@
       {% if b.name %}<text class="name" x="{{ b.cx }}" y="{{ b.cy - [b.w, b.h]|max / 2 - 18 }}">{{ b.name }}</text>{% endif %}
       {% endfor %}
     </svg>
-    <p id="hall-updated" data-text="{{ t.updated }}" data-at="{{ last or '' }}"></p>
+    <p id="hall-updated" data-text="{{ t.updated }}" data-at="{{ last or '' }}" data-hall="{{ hall_id }}"></p>
     <script src="/static/js/hall.js"></script>
     {% endif %}
   </main>

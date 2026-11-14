@@ -5,16 +5,33 @@ inventory device is a switch here, whoever created it.
 """
 from flask import Blueprint, jsonify, request
 
-from .. import inventory
+from .. import halls, inventory
 from ..store import load_data, save_data
 from .inventory import data_lock, run_sync
 
 bp = Blueprint('switches', __name__)
 
 
+def _switches(data):
+    ids = {h['id'] for h in halls.halls(data)}
+    out = [inventory.as_switch(d) for d in inventory.devices(data)]
+    for sw in out:
+        sw['hall_id'] = halls.hall_of(sw, data, ids) if sw['placed'] else None
+    return out
+
+
+def _one(dev, data):
+    sw = inventory.as_switch(dev)
+    sw['hall_id'] = halls.hall_of(sw, data) if sw['placed'] else None
+    return sw
+
+
 @bp.route('/api/switches', methods=['GET'])
 def get_switches():
-    return jsonify([inventory.as_switch(d) for d in inventory.devices(load_data())])
+    """Every switch; with ``?hall=<id>`` the ones placed in that hall and the unplaced ones."""
+    found = _switches(load_data())
+    wanted = request.args.get('hall')
+    return jsonify([s for s in found if not s['placed'] or s['hall_id'] == wanted] if wanted else found)
 
 
 @bp.route('/api/switches/sync', methods=['POST'])
@@ -26,7 +43,7 @@ def sync_switches():
     errors = [r for r in reports if r.get('error')]
     if len(errors) == len(reports):
         return jsonify({'error': '; '.join(r['error'] for r in errors), 'reports': reports}), 502
-    return jsonify([inventory.as_switch(d) for d in inventory.devices(load_data())])
+    return jsonify(_switches(load_data()))
 
 
 @bp.route('/api/switches', methods=['POST'])
@@ -40,30 +57,34 @@ def add_switch():
     with data_lock:
         data = load_data()
         try:
-            dev = inventory.create(data, {'name': body.get('name') or 'Switch', 'role': 'switch', 'x': x, 'y': y})
-        except inventory.InventoryError as exc:
+            hall_id = halls.check_id(data, body.get('hall_id'))
+            dev = inventory.create(data, {'name': body.get('name') or 'Switch', 'role': 'switch', 'x': x, 'y': y,
+                                          'hall_id': hall_id})
+        except (inventory.InventoryError, halls.HallError) as exc:
             return jsonify({'error': str(exc)}), 400
         save_data(data)
-    return jsonify(inventory.as_switch(dev)), 201
+    return jsonify(_one(dev, data)), 201
 
 
 @bp.route('/api/switches/<switch_id>', methods=['PUT'])
 def update_switch(switch_id):
     body = request.get_json(force=True) or {}
-    patch = {k: body[k] for k in ('name', 'x', 'y') if k in body}
+    patch = {k: body[k] for k in ('name', 'x', 'y', 'hall_id') if k in body}
     if ('x' in patch) != ('y' in patch):
         patch.pop('x', None)
         patch.pop('y', None)
     with data_lock:
         data = load_data()
         try:
+            if 'hall_id' in patch:
+                patch['hall_id'] = halls.check_id(data, patch['hall_id'])
             dev, _ = inventory.update(data, switch_id, patch)
         except KeyError:
             return jsonify({'error': 'Switch not found'}), 404
-        except inventory.InventoryError as exc:
+        except (inventory.InventoryError, halls.HallError) as exc:
             return jsonify({'error': str(exc)}), 400
         save_data(data)
-    return jsonify(inventory.as_switch(dev))
+    return jsonify(_one(dev, data))
 
 
 @bp.route('/api/switches/<switch_id>', methods=['DELETE'])

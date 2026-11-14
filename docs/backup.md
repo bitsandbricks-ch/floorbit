@@ -7,7 +7,7 @@
 | In a backup | Not in a backup |
 | --- | --- |
 | Manual switches, switch positions, the cached NetBox device list | API tokens, the Discord webhook and every other secret setting |
-| Seat blocks and seats | Accounts and the session key |
+| Every hall with its background image, seat blocks and seats | Accounts and the session key |
 | Saved settings, including the theme, event name and logo | Check-ins and their history (personal data) |
 
 So a backup is safe to keep on a laptop or hand to the next event's orga team, and restoring one
@@ -17,8 +17,8 @@ never locks anybody out or overwrites a token.
 
 Pick a backup file. Settings shows what it holds and asks once. Restoring:
 
-- replaces the floor plan with the backup's (switches, positions, seat blocks); a part the backup
-  doesn't have ends up empty;
+- replaces the floor plan with the backup's (halls and their background images, switches, positions,
+  seat blocks); a part the backup doesn't have ends up empty, and a backup from before halls gives one hall;
 - saves the backup's settings over the current ones; settings the backup doesn't name, and all
   secrets, keep their current value; settings this version doesn't know are skipped and listed;
 - checks the whole file first: if anything is wrong, nothing changes.

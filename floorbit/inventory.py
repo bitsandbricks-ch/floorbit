@@ -96,6 +96,7 @@ def normalize(raw):
     dev['locked'] = [f for f in raw.get('locked') or [] if f in FIELDS]
     dev['gone'] = [str(p)[:40] for p in raw.get('gone') or []][:20]
     dev['hidden'] = bool(raw.get('hidden'))
+    dev['hall_id'] = str(raw['hall_id'])[:40] if raw.get('hall_id') else None
     dev['updated_at'] = str(raw.get('updated_at') or now())[:40]
     return dev
 
@@ -112,7 +113,7 @@ def find(data, device_id):
 
 def public(dev):
     """What the API returns: the device with which fields come from where."""
-    out = {k: dev.get(k) for k in ('id', *FIELDS, 'x', 'y', 'origin', 'hidden', 'updated_at')}
+    out = {k: dev.get(k) for k in ('id', *FIELDS, 'x', 'y', 'hall_id', 'origin', 'hidden', 'updated_at')}
     out['placed'] = dev.get('x') is not None and dev.get('y') is not None
     out['sources'] = sorted(dev.get('refs') or {})
     out['locked'] = sorted(dev.get('locked') or [])
@@ -123,7 +124,7 @@ def public(dev):
 
 def as_switch(dev):
     """The shape /api/switches has always had, for the floor plan editor."""
-    out = {'id': dev['id'], 'name': dev['name'], 'x': dev.get('x'), 'y': dev.get('y'),
+    out = {'id': dev['id'], 'name': dev['name'], 'x': dev.get('x'), 'y': dev.get('y'), 'hall_id': dev.get('hall_id'),
            'placed': dev.get('x') is not None and dev.get('y') is not None,
            'source': 'manual' if dev.get('origin') == 'manual' else dev['origin'], 'status': 'unknown'}
     if dev.get('origin') != 'manual':
@@ -199,6 +200,8 @@ def create(data, body):
         fields = {f: clean_field(f, body.get(f, 'switch' if f == 'role' else '')) for f in FIELDS}
         x, y = _position(body)
         dev = _blank(**fields, x=x, y=y)
+        if body.get('hall_id'):
+            dev['hall_id'] = str(body['hall_id'])[:40]
         data['inventory'].append(dev)
         return dev
 
@@ -233,6 +236,10 @@ def update(data, device_id, body):
             if (x, y) != (dev.get('x'), dev.get('y')):
                 dev['x'], dev['y'] = x, y
                 changed.append('position')
+        # The hall is part of where a device is, checked by the caller (floorbit/halls.py).
+        if body.get('hall_id') and body['hall_id'] != dev.get('hall_id'):
+            dev['hall_id'] = str(body['hall_id'])[:40]
+            changed.append('hall')
         for f in body.get('unlock') or []:
             if f in dev['locked']:
                 dev['locked'].remove(f)
