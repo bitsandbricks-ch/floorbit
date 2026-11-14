@@ -55,6 +55,7 @@ class AttentionWatch:
     def reset(self):
         self.ports = {}       # (switch_id, port) -> {'oper', 'last_change', 'errors', 'changes': deque}
         self.items = {}       # id -> entry
+        self.port_seats = {}  # (switch name, port) -> seat, from the last read, for the syslog (floorbit/syslog.py)
         self.last_poll = None
 
     # ── lifecycle ─────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ class AttentionWatch:
         statuses = getattr((_app_ext().get('lal_integrations') or {}).get('monitor'), 'statuses', {}) or {}
         found = {}
         reads = []   # every port read, for the stats dashboard (stats.py)
+        port_seats = {}
         devices = inventory.devices(data)
         for dev in devices:
             if dev.get('x') is None or (statuses.get(dev['id']) or {}).get('status') == 'offline':
@@ -107,6 +109,8 @@ class AttentionWatch:
                 if not name:
                     continue
                 reads.append((dev, port, seat_of(port.get('description'), names)))
+                if reads[-1][2]:
+                    port_seats[(str(dev['name']).lower(), name)] = reads[-1][2]
                 for entry in self._judge(dev, name, port, now, flaps, error_step, names, checked_in):
                     found[entry['id']] = entry
         new = []
@@ -118,6 +122,7 @@ class AttentionWatch:
                     new.append(entry)
             changed = bool(new) or found.keys() != self.items.keys()
             self.items = found
+            self.port_seats = port_seats
             self.last_poll = now
         if changed:
             events.publish('attention.changed', {'count': len(found)})
