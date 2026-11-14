@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions %} data-port-actions="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -446,6 +446,14 @@
                 </svg>
                 Refresh
               </button>
+              <button class="btn btn-ghost hidden" id="seat-port-bounce" title="Take this port down for a few seconds and bring it back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                Bounce port
+              </button>
+              <button class="btn btn-ghost hidden" id="seat-flag" title="File an incident so a tech comes to this seat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                Flag for a tech
+              </button>
               <a class="btn btn-ghost hidden" id="seat-port-librenms" target="_blank" rel="noopener" title="Graphs and history for this port">
                 LibreNMS
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -680,6 +688,34 @@
     </div>
   </div>
 
+  <!-- ── Port action dialog (static/js/editor/ports.js) ───────────────────── -->
+  <div class="modal-backdrop hidden" id="port-backdrop">
+    <form class="modal" role="dialog" aria-modal="true" aria-labelledby="port-title" id="port-form" autocomplete="off">
+      <h3 class="modal-title" id="port-title">Bounce port</h3>
+      <p class="modal-text" id="port-text"></p>
+      <div class="form-grid" id="port-login">
+        <label class="field field-full">
+          <span class="field-label">Your switch username</span>
+          <input class="modal-input" type="text" id="port-username" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        </label>
+        <label class="field field-full">
+          <span class="field-label">Your switch password</span>
+          <input class="modal-input" type="password" id="port-password" maxlength="256" autocomplete="off" />
+        </label>
+        <p class="field-hint field-full">Used for this one connection and never stored. The action is in the audit log under your name.</p>
+      </div>
+      <label class="field field-full hidden" id="port-note-field">
+        <span class="field-label">What should the tech look at?</span>
+        <textarea class="modal-input" id="port-note" rows="3" maxlength="2000"></textarea>
+      </label>
+      <p class="modal-error hidden" id="port-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="port-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="port-ok">Bounce port</button>
+      </div>
+    </form>
+  </div>
+
   <!-- ── Shortcuts dialog ───────────────────────────────────────────────── -->
   <div class="modal-backdrop hidden" id="shortcuts-backdrop">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
@@ -729,6 +765,7 @@
   <script src="/static/js/editor/layers.js"></script>
   <script src="/static/js/editor/heatmap.js"></script>
   <script src="/static/js/editor/incidents.js"></script>
+  <script src="/static/js/editor/ports.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>
 </body>

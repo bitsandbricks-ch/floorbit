@@ -1,4 +1,4 @@
-"""Made-up data for every data area: inventory, seat mapping, monitoring and the health wall.
+"""Made-up data for every data area: inventory, seat mapping, monitoring, the health wall and port actions.
 
 Everything is computed from the seat and switch numbers plus the clock, so it needs no state,
 moves a little on every poll and looks the same on every instance. Names are generic, IPs come
@@ -8,7 +8,7 @@ import math
 import time
 
 from floorbit.builtin_plugins.librenms.ports import summarize_port
-from floorbit.plugins.base import Plugin
+from floorbit.plugins.base import Plugin, PluginError
 
 DOMAIN = 'example.com'
 BLOCKS = ('A', 'B', 'C', 'D')
@@ -18,6 +18,8 @@ SWITCHES_PER_BLOCK = COLS * ROWS // SEATS_PER_SWITCH   # 3
 FLAPPING = 'sw-c-02'          # goes down for a minute every four
 HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
+BOUNCE_SECONDS = 10          # a demo bounce keeps the port down this long
+_bounced = {}                 # (switch, port) -> time the port comes back
 DHCP_POOL = 100               # small enough that the player scope shows amber
 
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
@@ -148,7 +150,7 @@ class Plugin(Plugin):
             return None
         _label, block, number, i = seat
         rx, tx = self._rates(i) if _taken(i) else (0, 0)
-        up = _taken(i) and not _down(name)
+        up = _taken(i) and not _down(name) and _bounced.get((name, interface), 0) < time.time()
         raw = {'ifOperStatus': 'up' if up else 'down', 'ifAdminStatus': 'up',
                'ifInOctets_rate': tx if up else 0, 'ifOutOctets_rate': rx if up else 0, 'ifSpeed': 1_000_000_000,
                'ifDuplex': 'halfDuplex' if (block, number) == HALF_DUPLEX else 'fullDuplex',
@@ -168,6 +170,17 @@ class Plugin(Plugin):
         heavy = index % 11 == 0
         down = (40e6 if heavy else 1.5e6) * (0.2 + _wave(index))
         return down, down * (0.08 + 0.1 * _wave(index + 5, period=120))
+
+    # port actions -----------------------------------------------------------------------
+    def port_login(self):
+        return False      # nothing real to log in to
+
+    def bounce_port(self, target):
+        name = _short(target['switch'])
+        if not any(n == name for n, _r, _i in _switches()):
+            raise PluginError(f"{target['switch']} is not a demo switch.")
+        _bounced[(name, target['port'])] = time.time() + BOUNCE_SECONDS
+        return {'message': f"{target['port']} on {name} is down for {BOUNCE_SECONDS} s (demo: no switch was touched)."}
 
     # health wall ------------------------------------------------------------------------
     def health_checks(self):

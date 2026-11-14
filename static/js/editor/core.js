@@ -365,11 +365,12 @@ shortcutsClose.addEventListener('click', () => shortcutsBackdrop.classList.add('
 shortcutsBackdrop.addEventListener('click', (e) => { if (e.target === shortcutsBackdrop) shortcutsBackdrop.classList.add('hidden'); });
 
 function anyModalOpen() {
-  return [modalBackdrop, renameBackdrop, blockBackdropEl(), confirmBackdrop, shortcutsBackdrop]
+  return [modalBackdrop, renameBackdrop, blockBackdropEl(), confirmBackdrop, shortcutsBackdrop, $('port-backdrop')]
     .some(el => el && !el.classList.contains('hidden'));
 }
 function closeAllModals() {
   if (!confirmBackdrop.classList.contains('hidden')) { closeConfirm(false); return; }
+  if (typeof portDialogOpen === 'function' && portDialogOpen()) { closePortDialog(); return; }
   if (!shortcutsBackdrop.classList.contains('hidden')) { shortcutsBackdrop.classList.add('hidden'); return; }
   if (!renameBackdrop.classList.contains('hidden')) { renameBackdrop.classList.add('hidden'); return; }
   if (!modalBackdrop.classList.contains('hidden')) { closeAddModal(); return; }

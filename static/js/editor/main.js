@@ -28,6 +28,7 @@ async function init() {
   renderAll();
   doRefreshAll().catch(() => {});
   loadIncidentMarkers();
+  loadPortInfo();
 }
 
 function applyCachedStatus(cache) {
