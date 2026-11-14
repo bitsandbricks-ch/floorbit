@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
+import { SeatActions } from './Actions'
 import { rate } from './model'
 import { SeatGlyph } from './SeatMap'
 
@@ -59,6 +60,7 @@ export function Inspector({ seat, onClose }: { seat: string; onClose: () => void
               {d.attention.map((a, n) => <Text key={n} size="sm">{a.title} <Text span c="dimmed" size="xs">({t('plan.since', { time: clock(a.since) })})</Text></Text>)}
             </Stack>
           )}
+          <SeatActions seat={seat} hasPort={!!d.switch} />
           <Group gap="xs">
             <Button component="a" href={`/?seat=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconMapPin size={14} />}>{t('plan.openEditor')}</Button>
             <Button component="a" href="/incidents" variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>

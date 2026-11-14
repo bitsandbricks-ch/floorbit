@@ -41,6 +41,14 @@ Clicking a seat opens one panel with everything about it: state, block, switch a
 now, check-in, match zone, open incidents and needs-attention items, and links to the seat in the
 editor and to the incidents. On a phone it opens from the bottom.
 
+Techs can act from the panel too, with the same rules as the editor:
+
+- **Bounce port** (needs `ports.act` and a port actions plugin, see [Port actions](ports.md)):
+  asks for the tech's own switch login when the plugin needs one, never stores it, and asks again
+  for a match seat.
+- **Flag for a tech** (needs `incidents.work`): opens a "Tech visit" incident at the seat with a
+  note, like the editor's flag.
+
 Who sits there (nick, IP and MAC) is only shown to accounts with `seats.view` (techs, leads and
 admins). Everyone with `floorplan.view` sees the states. The link `/plan?seat=D-6` opens the page
 on that seat.

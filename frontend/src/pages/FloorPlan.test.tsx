@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -93,5 +93,36 @@ describe('Seats page', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, monitoring: false } }).fn)
     renderWithApp(<FloorPlan />, '/plan')
     expect(await screen.findByText(/No recent port read/)).toBeInTheDocument()
+  })
+
+  it('bounces the port and flags the seat for a tech', async () => {
+    const tech = { enabled: true, user: { ...me.user, permissions: ['floorplan.view', 'ports.act', 'incidents.work'] } }
+    const api = fakeFetch({
+      'GET /api/auth/me': tech, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details,
+      'GET /api/ports': { available: true, needs_login: true, plugin: 'SSH' },
+      'POST /api/ports/bounce': { ok: true, message: 'Gi1/0/2 on sw-d-01 bounced.' },
+      'POST /api/incidents': { id: 'i2' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    fireEvent.click(await screen.findByRole('button', { name: 'Bounce port' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Your switch username/), { target: { value: 'tia' } })
+    fireEvent.change(within(dialog).getByLabelText(/Your switch password/), { target: { value: 'secret' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Bounce port' }))
+    await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/ports/bounce', body: { seat: 'D-2', username: 'tia', password: 'secret' } }))
+    expect(await screen.findByText('Gi1/0/2 on sw-d-01 bounced.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Flag for a tech' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'What should the tech look at?' }), { target: { value: 'No link' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Flag the seat' }))
+    await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/incidents', body: { seat: 'D-2', title: 'Tech visit', note: 'No link' } }))
+  })
+
+  it('offers no actions to a viewer', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bounce port' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Flag for a tech' })).toBeNull()
   })
 })

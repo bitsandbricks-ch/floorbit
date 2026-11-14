@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export interface PortRequest {
-  action: 'shutdown' | 'enable'
+  action: 'shutdown' | 'enable' | 'bounce'
   /** Shut a finding's port: the server takes the switch and port from the finding. */
   finding?: string
+  /** A seat's port: the server finds the switch and port from the seat. */
+  seat?: string
   switch?: string
   port?: string
   where: string
@@ -36,13 +38,14 @@ export function PortDialog({
   const [password, setPassword] = useState('')
   const [reason, setReason] = useState('')
   const shut = request?.action === 'shutdown'
+  const bounce = request?.action === 'bounce'
   const close = () => {
     setPassword('')
     setReason('')
     onClose()
   }
   return (
-    <Modal opened={!!request} onClose={close} title={shut ? t('security.shutTitle', { where: request?.where }) : t('security.enableTitle', { where: request?.where })}>
+    <Modal opened={!!request} onClose={close} title={t(bounce ? 'security.bounceTitle' : shut ? 'security.shutTitle' : 'security.enableTitle', { where: request?.where })}>
       <form
         autoComplete="off"
         onSubmit={(e) => {
@@ -53,7 +56,7 @@ export function PortDialog({
         }}
       >
         <Stack gap="sm">
-          <Text size="sm">{shut ? t('security.shutText') : t('security.enableText')}</Text>
+          <Text size="sm">{t(bounce ? 'security.bounceText' : shut ? 'security.shutText' : 'security.enableText')}</Text>
           {shut && (
             <TextInput label={t('security.reason')} value={reason} maxLength={200} onChange={(e) => setReason(e.currentTarget.value)} />
           )}
@@ -71,7 +74,7 @@ export function PortDialog({
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>{t('common.cancel')}</Button>
             <Button type="submit" color={shut ? 'down' : undefined} loading={busy}>
-              {matchSeat ? t('security.matchConfirm') : shut ? t('security.shut') : t('security.enable')}
+              {matchSeat ? t('security.matchConfirm') : t(bounce ? 'security.bounce' : shut ? 'security.shut' : 'security.enable')}
             </Button>
           </Group>
         </Stack>

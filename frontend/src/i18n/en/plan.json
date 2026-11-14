@@ -9,7 +9,13 @@
   "findHint": "Seat, e.g. D-6",
   "notFound": "No such seat here",
   "show": "Show",
-  "filter": { "all": "All", "problems": "Problems", "offline": "Offline", "match": "Match seats", "checked_in": "Checked in" },
+  "filter": {
+    "all": "All",
+    "problems": "Problems",
+    "offline": "Offline",
+    "match": "Match seats",
+    "checked_in": "Checked in"
+  },
   "noMonitoring": "No recent port read, so every seat shows as unknown. Check the monitoring plugin in Settings > Plugins.",
   "empty": "This hall has no seat blocks yet.",
   "emptyLink": "Add seat blocks in the floor plan editor",
@@ -19,7 +25,11 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "fit": "Show the whole hall",
-  "state": { "online": "Online", "offline": "Offline", "unknown": "Unknown" },
+  "state": {
+    "online": "Online",
+    "offline": "Offline",
+    "unknown": "Unknown"
+  },
   "checkedIn": "Checked in",
   "problemsN_one": "{{count}} problem",
   "problemsN_other": "{{count}} problems",
@@ -48,7 +58,15 @@
   "noPeople": "Who sits here is hidden: your role can't see nicks and IPs.",
   "problems": "Problems",
   "since": "since {{time}}",
-  "incidentStatus": { "open": "open", "assigned": "assigned", "fixed": "fixed" },
+  "incidentStatus": {
+    "open": "open",
+    "assigned": "assigned",
+    "fixed": "fixed"
+  },
   "openEditor": "Show in the editor",
-  "incidents": "Incidents"
+  "incidents": "Incidents",
+  "flag": "Flag for a tech",
+  "flagNote": "What should the tech look at?",
+  "flagSend": "Flag the seat",
+  "flagged": "Seat {{seat}} is flagged for a tech."
 }
