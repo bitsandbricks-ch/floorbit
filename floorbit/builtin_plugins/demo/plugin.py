@@ -1,5 +1,5 @@
 """Made-up data for every data area: inventory, seat mapping, monitoring, the health wall, port actions,
-security findings and power readings.
+security findings, power readings and DNS lookups.
 
 Everything is computed from the seat and switch numbers plus the clock, so it needs no state,
 moves a little on every poll and looks the same on every instance. Names are generic, IPs come
@@ -45,6 +45,25 @@ LAYOUT = {
             'switches': ['core-01', 'dist-01', 'dist-02']}],
     },
 }
+
+
+# (name, weight, blocked by the resolver) for the demo lookups.
+DNS_SITES = (
+    ('cdn.steamcontent.com', 18, False), ('api.steampowered.com', 8, False), ('gateway.discord.gg', 10, False),
+    ('cdn.discordapp.com', 5, False), ('video-edge.ttvnw.net', 8, False), ('www.twitch.tv', 3, False),
+    ('rr3.googlevideo.com', 5, False), ('www.youtube.com', 3, False), ('eu.battle.net', 4, False),
+    ('auth.riotgames.com', 3, False), ('download.windowsupdate.com', 3, False), ('api.spotify.com', 2, False),
+    ('ads.doubleclick.net', 4, True), ('telemetry.tracker.example', 2, True), ('www.wikipedia.org', 2, False),
+)
+
+
+def _dns_pick(pick, index):
+    """(domain, blocked) for a number below the weights' sum plus 6: past the sum, the seat's own."""
+    for domain, weight, blocked in DNS_SITES:
+        if pick < weight:
+            return domain, blocked
+        pick -= weight
+    return (f'www.hobby-{index}.example' if pick < 4 else f'pc-{index}.lan'), False
 
 
 def _seats():
@@ -318,6 +337,25 @@ class Plugin(Plugin):
             else:
                 amps = 6 + 5 * _wave(30 + i, now, period=900)
             out.append({'meter': c['meter'], 'amps': round(amps, 1)})
+        return out
+
+    # dns --------------------------------------------------------------------------------
+    def dns_queries(self, since):
+        """Lookups from every player, about two a minute each. Busy sites are looked up by many seats,
+        each seat also looks up a site of its own (never named: too few clients) and its own PC."""
+        now = time.time()
+        total = sum(w for _d, w, _b in DNS_SITES)
+        out = []
+        for minute in range(int(max(since, now - 600) // 60), int(now // 60) + 1):
+            for _seat, _b, _n, i in _seats():
+                if not _taken(i):
+                    continue
+                for k in range(2):
+                    ts = minute * 60 + (i * 7 + k * 29) % 60
+                    if not since < ts <= now:
+                        continue
+                    domain, blocked = _dns_pick((i * 31 + minute * 17 + k * 13) % (total + 6), i)
+                    out.append({'ts': ts, 'domain': domain, 'client': _ip(i), 'blocked': blocked})
         return out
 
     def test(self):

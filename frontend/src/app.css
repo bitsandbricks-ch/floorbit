@@ -252,3 +252,10 @@ body {
 /* Pre-flight verdict (issue #35): the whole banner says go or no-go. */
 .fb-preflight-verdict.ready { border-color: var(--color-up); background: color-mix(in srgb, var(--color-up) 10%, transparent); }
 .fb-preflight-verdict.notReady { border-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 10%, transparent); }
+/* DNS analytics: lookups per hour, the blocked part on top. */
+.fb-dns-chart { width: 100%; height: 140px; display: block; }
+.fb-dns-chart .grid { stroke: var(--color-line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.fb-dns-chart .ok { fill: color-mix(in srgb, var(--color-bit) 55%, transparent); }
+.fb-dns-chart .blocked { fill: var(--color-down); }
+.fb-dns-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: color-mix(in srgb, var(--color-bit) 55%, transparent); }
+.fb-dns-key.blocked { background: var(--color-down); }

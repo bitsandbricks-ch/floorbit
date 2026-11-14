@@ -75,6 +75,7 @@ nav:
       - Electrics: power.md
       - Stats dashboard: stats.md
       - Traffic insights: flows.md
+      - DNS analytics: dns.md
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md
       - Phones and tablets: mobile.md
