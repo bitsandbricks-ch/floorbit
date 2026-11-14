@@ -1,0 +1,21 @@
+# Switch status, ports and which port a player is on, from Aruba AOS-CX switches through their REST
+# API. Off until turned on under Settings > Plugins. It only reads.
+id: aruba
+name: Aruba AOS-CX
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live status, ports and traffic of Aruba AOS-CX switches (REST API v10.08), and which switch port an IP is on (ARP, then the MAC tables). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use an operators-group account."
+author: Floorbit
+homepage: https://www.arubanetworks.com
+uses: [settings, http, monitoring]
+settings:
+  - {key: switches, label: Switches, type: list,
+     help: "Comma-separated, each as Name=URL, for example sw-a-01=https://192.0.2.31. The name must match the floor plan. Add the core too, so IPs can be found in its ARP table.",
+     placeholder: "sw-a-01=https://192.0.2.31"}
+  - {key: username, label: Username, type: string, help: "A local account in the operators group (read-only)."}
+  - {key: password, label: Password, type: secret}
+  - {key: vlans, label: Player VLANs, type: list, default: [],
+     help: "Comma-separated VLAN IDs to search for a player's MAC, like 100,101. Empty: every VLAN on the switch."}
+  - {key: timeout, label: Timeout, type: int, default: 6, min: 1, max: 20, help: "Seconds to wait for each switch."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true,
+     help: "Switches ship with a self-signed certificate. Turn this off only on a network you trust."}

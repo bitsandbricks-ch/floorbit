@@ -145,6 +145,23 @@ finding which port an IP is on needs another source.
 
 Create the token for a user whose role can only read the switches' host group.
 
+## Built in: Aruba AOS-CX
+
+For halls with Aruba CX switches (#39). Off until an admin turns it on under **Settings > Plugins**.
+Every switch is listed as `Name=https://address`; Floorbit talks to each switch's REST API
+(`/rest/v10.08`, AOS-CX 10.08 or newer) and only reads.
+
+| Floorbit needs | From |
+| --- | --- |
+| Reachable or not | `GET system` answers |
+| Port state, speed, duplex, traffic, errors | `GET system/interfaces?depth=2` (physical ports only, not VLAN interfaces or LAGs) |
+| Which port an IP is on | the ARP table in `system/vrfs/default/neighbors` on any listed switch, then the MAC in `system/vlans/<id>/macs` on each switch. Ports whose description matches the uplink pattern are skipped, so the access port wins over the core's uplink |
+
+Each read signs in and signs out again, because AOS-CX allows only a few sessions per user and a
+poll that kept them open would lock the account out. Give Floorbit a local user with the
+read-only `operators` group. **VLANs** limits the MAC lookup to the seat VLANs; without it every
+VLAN on the switch is asked, which takes longer on big switches.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
