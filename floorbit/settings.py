@@ -120,6 +120,13 @@ FIELDS = [
          env='ATTENDEE_VIEW', default=False,
          help='/hall shows the hall plan with every seat online or offline. Off by default because '
               'it also shows when a seat is empty, for example while its player is away.'),
+    dict(key='public.status_page', section='public', label='Network status page', type='bool',
+         env='STATUS_PAGE', default=False,
+         help='/status tells attendees whether the network is fine, which areas an outage hits, and the '
+              "crew's updates. Off by default."),
+    dict(key='public.status_switch_names', section='public', label='Switch names on the status page', type='bool',
+         env='STATUS_SWITCH_NAMES', default=False,
+         help='Name the switches that are down on /status. Off: only halls, blocks and rows.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),

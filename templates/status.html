@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  {% if not off %}<meta http-equiv="refresh" content="60" />{% endif %}
+  <title>{{ t.title }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 16px;
+      background: var(--color-ink); color: var(--color-fg); font: 16px/1.5 var(--font-sans);
+    }
+    main { max-width: 760px; margin: 2vh auto 0; display: grid; gap: 16px; }
+    .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 12px; padding: 20px; }
+    h1 { margin: 0; font-size: 15px; color: var(--color-muted); font-weight: 600; letter-spacing: .02em; }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    p { margin: 0; }
+    .state { display: flex; gap: 14px; align-items: center; margin-top: 10px; }
+    .dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: var(--k); box-shadow: 0 0 0 6px color-mix(in srgb, var(--k) 25%, transparent); }
+    .state strong { font-size: 24px; line-height: 1.2; }
+    .muted { color: var(--color-muted); font-size: 14px; }
+    .operational { --k: var(--color-up); }
+    .degraded, .maintenance { --k: var(--color-warn); }
+    .outage { --k: var(--color-down); }
+    .unknown { --k: var(--color-muted); }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    li { border-left: 3px solid var(--k, var(--color-line)); padding: 2px 0 2px 12px; }
+    li b { display: block; }
+  </style>
+</head>
+<body>
+  <main>
+    {% if off %}
+    <div class="card"><h1>{{ t.title }}</h1><p role="alert">{{ t.off }}</p></div>
+    {% else %}
+    <section class="card {{ s.state }}" aria-live="polite">
+      <h1>{{ t.title }}</h1>
+      <div class="state">
+        <span class="dot" aria-hidden="true"></span>
+        <div>
+          <strong id="status-state" data-state="{{ s.state }}">{{ t.state[s.state] }}</strong>
+          <p class="muted">{{ t.detail[s.state] }}{% if s.since %} {{ stamp(t.since, s.since) }}{% endif %}</p>
+        </div>
+      </div>
+    </section>
+    {% if s.areas %}
+    <section class="card">
+      <h2>{{ t.areas }}</h2>
+      <ul class="{{ s.state }}">
+        {% for a in s.areas %}
+        <li>
+          <b>{% if a.block %}{{ t.block.format(name=a.block) }}{% elif a.hall %}{{ t.hall_wide.format(name=a.hall) }}{% else %}{{ t.somewhere }}{% endif %}{% if a.block and a.hall %} · {{ a.hall }}{% endif %}</b>
+          <span class="muted">{{ [t.rows.format(rows=a.rows) if a.rows else '', t.seats.format(n=a.seats) if a.seats else '', t.switches.format(names=a.switches|join(', ')) if a.switches else '']|select|join(' · ') }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    <section class="card">
+      <h2>{{ t.updates }}</h2>
+      {% if s.updates %}
+      <ul>
+        {% for u in s.updates %}
+        <li class="{{ u.state or '' }}">
+          <span class="muted">{{ stamp('{time}', u.at) }}{% if u.area %} · {{ u.area }}{% endif %}</span>
+          <p>{{ u.text }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">{{ t.none }}</p>
+      {% endif %}
+    </section>
+    <p class="muted">{{ stamp(t.updated, s.checked_at) }}</p>
+    <script src="/static/js/status.js"></script>
+    {% endif %}
+    {% include "_attribution.html" %}
+  </main>
+</body>
+</html>
