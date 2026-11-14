@@ -70,6 +70,8 @@ each seat is plugged into.
   [docs/events.md](docs/events.md).
 - **API tokens:** scripts and other tools use the same API as the pages, with a token that has a role,
   is read-only by default and can expire. See [docs/api.md](docs/api.md).
+- **Webhooks:** switch down, incident opened, seat checked in and more, sent to other tools as signed
+  JSON as they happen. See [docs/api.md](docs/api.md#webhooks).
 - **Shift handover:** what happened since the last handover, what is still open, and a note for the
   next shift, optionally posted to Discord. See [docs/handover.md](docs/handover.md).
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is
