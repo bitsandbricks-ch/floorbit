@@ -20,11 +20,12 @@
     "errors": "Errors",
     "duplex": "Duplex",
     "checkin": "Check-in",
-    "forecast": "Forecast"
+    "forecast": "Forecast",
+    "log": "Log"
   },
   "attention": {
     "title": "Needs attention",
-    "text": "Ports to look at, newest first: flapping links, errors rising, half duplex, and seats online without a check-in. They clear on their own once the port behaves."
+    "text": "Ports to look at, newest first: flapping links, errors rising, half duplex, seats online without a check-in, and syslog lines like err-disable or DHCP snooping. They clear on their own once the port behaves."
   },
   "since": "since {{ago}}",
   "open": "Open",

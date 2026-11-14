@@ -27,6 +27,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `incidents.js` | Open incidents as rings on seats and switches, and the count in the top bar. |
 | `tournament.js` | Match seats (tournament zones) with a gold outline. |
 | `security.js` | Active security findings as dashed rings on seats and switches, and the count in the top bar. |
+| `logs.js` | Seats and switches with syslog warnings in the last 10 minutes, underlined in cyan. |
 | `power.js` | The power layer: seats and switches coloured by their circuit's load, distribution boards, and the count of red circuits in the top bar. |
 | `problems.js` | The count of current problems next to Problems in the top bar. |
 | `ports.js` | Port actions on the selected seat (bounce its port) and flagging a seat for a tech. |

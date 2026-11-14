@@ -20,11 +20,12 @@
     "errors": "Fehler",
     "duplex": "Duplex",
     "checkin": "Check-in",
-    "forecast": "Prognose"
+    "forecast": "Prognose",
+    "log": "Log"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
-    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex und Plätze online ohne Check-in. Sie verschwinden von selbst, sobald der Port sich normal verhält."
+    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in und Syslog-Zeilen wie err-disable oder DHCP-Snooping. Sie verschwinden von selbst, sobald der Port sich normal verhält."
   },
   "since": "seit {{ago}}",
   "open": "Öffnen",

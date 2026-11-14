@@ -60,6 +60,14 @@ describe('Logs', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Older lines' })).not.toBeInTheDocument())
   })
 
+  it('opens filtered from a link', async () => {
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs?seat=A-4': logs([line(5, { seat: 'A-4', message: 'on A-4' })]) })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Logs />, '/logs?seat=A-4')
+    expect(await screen.findByText('on A-4')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('A-4')).toBeInTheDocument()
+  })
+
   it('explains how to turn the receiver on', async () => {
     const off = logs([], { enabled: false, listening: null, lines: 0, devices: [] })
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': off }).fn)

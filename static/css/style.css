@@ -893,6 +893,11 @@ kbd {
 .switch-marker.has-finding .switch-pin { outline: 2px dashed var(--color-warn); outline-offset: 3px; border-radius: 50%; }
 .nav-count-warn { background: var(--color-warn); color: #000; }
 
+/* Syslog warnings of the last 10 minutes (static/js/editor/logs.js): a cyan underline, so it can sit
+   with a security ring or an incident. */
+.seat-block-seat.has-log { box-shadow: inset 0 -3px 0 var(--color-trace); }
+.switch-marker.has-log .switch-pin { box-shadow: 0 0 0 3px var(--color-trace); border-radius: 50%; }
+
 /* Power layer (static/js/editor/power.js): seats and switches take their circuit's colour. */
 #power-overlay { position: absolute; inset: 0; pointer-events: none; }
 .power-layer .seat-block-seat.power-tinted { background: color-mix(in srgb, var(--power) 38%, var(--color-surface)); }
