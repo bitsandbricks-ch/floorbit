@@ -15,6 +15,7 @@ function renderAll() {
   if (seatHeatmapVisible) renderSeatHeatmap();
   if (selectedType === 'multi') applySelection();
   if (typeof markIncidents === 'function') markIncidents();
+  if (typeof markFindings === 'function') markFindings();
 }
 
 function matchesStatusFilter(sw) {
@@ -28,6 +29,7 @@ function renderOverlay() {
   }
   scheduleHeatRender(); // re-tint the new switch cards
   if (typeof markIncidents === 'function') markIncidents();
+  if (typeof markFindings === 'function') markFindings();
 }
 
 function renderSeats() {

@@ -877,3 +877,8 @@ kbd {
 #port-form .form-grid { margin-top: 12px; }
 #port-note-field { display: grid; gap: 4px; margin-top: 12px; }
 #port-note-field.hidden { display: none; }
+
+/* Security findings (static/js/editor/security.js): a dashed amber ring, distinct from incidents. */
+.seat-block-seat.has-finding { outline: 2px dashed var(--color-warn); outline-offset: 2px; border-radius: 4px; }
+.switch-marker.has-finding .switch-pin { outline: 2px dashed var(--color-warn); outline-offset: 3px; border-radius: 50%; }
+.nav-count-warn { background: var(--color-warn); color: #000; }

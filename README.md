@@ -43,6 +43,8 @@ each seat is plugged into.
   See [docs/health.md](docs/health.md).
 - **Port actions:** bounce a seat's switch port from the floor plan over SSH with the tech's own login
   (never stored), or flag the seat for a tech. See [docs/ports.md](docs/ports.md).
+- **Security detection:** rogue DHCP, ARP spoofing, MAC flapping, loops and storms from security plugins,
+  pointing at the seat and port, with one-click port shutdown. See [docs/security.md](docs/security.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
   permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
   viewers and kiosk screens.

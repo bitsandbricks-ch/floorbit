@@ -11,6 +11,7 @@ const SignIn = lazy(() => import('@/pages/SignIn'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
 const Health = lazy(() => import('@/pages/Health'))
+const Security = lazy(() => import('@/pages/Security'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/incidents" element={<Incidents />} />
         <Route path="/incidents/qr" element={<HelpdeskQr />} />
         <Route path="/health" element={<Health />} />
+        <Route path="/security" element={<Security />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

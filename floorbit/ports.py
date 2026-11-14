@@ -1,4 +1,5 @@
-"""Port actions (issue #16): bounce a seat's switch port from the floor plan. See docs/ports.md.
+"""Port actions (issues #16, #29): bounce a seat's switch port, or shut it for a security finding.
+See docs/ports.md.
 
 Floorbit never talks to a switch itself: a plugin with ``uses: [ports]`` does (the built-in SSH
 port actions plugin, or the demo data). When that plugin says it needs a login, the tech types
@@ -83,7 +84,14 @@ def resolve_seat(seat):
 def target(body):
     """The switch (inventory entry) and port the request is about."""
     seat = str(body.get('seat') or '').strip().upper()
-    if seat:
+    if body.get('finding'):
+        # A security finding names its own switch and port: the browser only says which finding.
+        from . import security
+        found = security.get(str(body['finding']))
+        if not found or not found.get('switch') or not found.get('port'):
+            raise PortError('That finding has no switch port Floorbit can act on.')
+        name, port, seat = found['switch'], found['port'], found.get('seat') or ''
+    elif seat:
         name, port = resolve_seat(seat)
     else:
         name, port = body.get('switch'), body.get('port')
@@ -111,8 +119,17 @@ def _check_failures(account, now):
         raise PortError('Too many failed switch logins. Wait a few minutes before trying again.', 429)
 
 
-def bounce(registry, account, body):
-    """Take the port down and up again. Returns (switch, port, seat, message)."""
+ACTIONS = {
+    # action: (plugin method, extra target keys, audit text, default message)
+    'bounce': ('bounce_port', {}, 'Bounced port', '{port} on {switch} went down and came back up.'),
+    'shutdown': ('set_port', {'enabled': False}, 'Shut port', '{port} on {switch} is shut until someone turns it on.'),
+    'enable': ('set_port', {'enabled': True}, 'Turned port on', '{port} on {switch} is on again.'),
+}
+
+
+def act(registry, account, body, action):
+    """Run one port action. Returns (switch, port, seat, message)."""
+    method, extra, _label, default = ACTIONS[action]
     spec = plugin(registry)
     if not spec:
         raise PortError('No port actions plugin is on. An admin turns one on under Settings > Plugins.', 409)
@@ -123,15 +140,15 @@ def bounce(registry, account, body):
     now = time.time()
     with _lock:
         _check_failures(account, now)
-        if now - _last.get(key, 0) < COOLDOWN:
+        if action == 'bounce' and now - _last.get(key, 0) < COOLDOWN:
             raise PortError(f'{port} on {dev["name"]} was just bounced. Give it {COOLDOWN} seconds.', 429)
         if dev['name'] in _busy:
             raise PortError(f'Another port action on {dev["name"]} is still running.', 409)
         _busy.add(dev['name'])
     try:
-        result = registry.call(spec, 'bounce_port', {
+        result = registry.call(spec, method, {
             'switch': dev['name'], 'host': dev['mgmt_ip'], 'port': port, 'model': dev.get('model') or '',
-            'login': login})
+            'login': login, **extra})
     except PluginError as exc:
         if needs_login and 'login' in str(exc).lower():
             with _lock:
@@ -144,7 +161,31 @@ def bounce(registry, account, body):
         with _lock:
             _busy.discard(dev['name'])
     with _lock:
-        _last[key] = time.time()
+        if action == 'bounce':
+            _last[key] = time.time()
         _failures.pop(account, None)
+    if action != 'bounce':
+        _remember(dev['name'], port, seat, account, body.get('reason'), shut=action == 'shutdown')
     message = (result or {}).get('message') if isinstance(result, dict) else None
-    return dev['name'], port, seat, str(message or f'{port} on {dev["name"]} went down and came back up.')[:200]
+    return dev['name'], port, seat, str(message or default.format(port=port, switch=dev['name']))[:200]
+
+
+def bounce(registry, account, body):
+    return act(registry, account, body, 'bounce')
+
+
+# ── Ports Floorbit shut, so nobody forgets to turn them on again ──────────────────────────
+def _remember(switch, port, seat, account, reason, shut):
+    from .store import save_data
+    with _lock:
+        data = load_data()
+        kept = [p for p in data.get('ports_shut') or [] if (p.get('switch'), p.get('port')) != (switch, port)]
+        if shut:
+            kept.append({'switch': switch, 'port': port, 'seat': seat, 'by': account, 'at': time.time(),
+                         'reason': ' '.join(str(reason or '').split())[:200]})
+        data['ports_shut'] = kept[-500:]
+        save_data(data)
+
+
+def shut_ports():
+    return list(load_data().get('ports_shut') or [])

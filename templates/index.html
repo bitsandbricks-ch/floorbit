@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions %} data-port-actions="on"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions %} data-port-actions="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions %} data-security="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -68,6 +68,12 @@
         <a class="btn btn-ghost" href="/seat-mapping" title="Seat mapping: which IP, MAC and nick sits at each seat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
           Seats
+        </a>
+        {% endif %}
+        {% if 'seats.view' in current_user.permissions %}
+        <a class="btn btn-ghost" href="/security" title="Security: rogue DHCP, ARP spoofing, MAC flapping, loops and storms">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Security <span class="nav-count nav-count-warn" id="security-count" hidden></span>
         </a>
         {% endif %}
         {% if incidents_board %}
@@ -765,6 +771,7 @@
   <script src="/static/js/editor/layers.js"></script>
   <script src="/static/js/editor/heatmap.js"></script>
   <script src="/static/js/editor/incidents.js"></script>
+  <script src="/static/js/editor/security.js"></script>
   <script src="/static/js/editor/ports.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>

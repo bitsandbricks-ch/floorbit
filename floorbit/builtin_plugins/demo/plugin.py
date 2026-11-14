@@ -20,6 +20,7 @@ HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
 BOUNCE_SECONDS = 10          # a demo bounce keeps the port down this long
 _bounced = {}                 # (switch, port) -> time the port comes back
+_shut = set()                 # (switch, port) shut until turned on again
 DHCP_POOL = 100               # small enough that the player scope shows amber
 
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
@@ -150,7 +151,8 @@ class Plugin(Plugin):
             return None
         _label, block, number, i = seat
         rx, tx = self._rates(i) if _taken(i) else (0, 0)
-        up = _taken(i) and not _down(name) and _bounced.get((name, interface), 0) < time.time()
+        up = _taken(i) and not _down(name) and _bounced.get((name, interface), 0) < time.time() \
+            and (name, interface) not in _shut
         raw = {'ifOperStatus': 'up' if up else 'down', 'ifAdminStatus': 'up',
                'ifInOctets_rate': tx if up else 0, 'ifOutOctets_rate': rx if up else 0, 'ifSpeed': 1_000_000_000,
                'ifDuplex': 'halfDuplex' if (block, number) == HALF_DUPLEX else 'fullDuplex',
@@ -181,6 +183,48 @@ class Plugin(Plugin):
             raise PluginError(f"{target['switch']} is not a demo switch.")
         _bounced[(name, target['port'])] = time.time() + BOUNCE_SECONDS
         return {'message': f"{target['port']} on {name} is down for {BOUNCE_SECONDS} s (demo: no switch was touched)."}
+
+    def set_port(self, target):
+        name = _short(target['switch'])
+        if not any(n == name for n, _r, _i in _switches()):
+            raise PluginError(f"{target['switch']} is not a demo switch.")
+        (_shut.discard if target.get('enabled') else _shut.add)((name, target['port']))
+        state = 'on again' if target.get('enabled') else 'shut'
+        return {'message': f"{target['port']} on {name} is {state} (demo: no switch was touched)."}
+
+    # security findings ------------------------------------------------------------------
+    def security_findings(self):
+        """A few made-up findings; the rogue DHCP server comes and goes so alerts can be tried."""
+        now = time.time()
+        spoof = next(i for s, _b, _n, i in _seats() if s == 'B-4')
+        victim = next(i for s, _b, _n, i in _seats() if s == 'B-9')
+        flap = next(i for s, _b, _n, i in _seats() if s == 'C-14')
+        out = [
+            {'id': f'arp-{_ip(victim)}', 'kind': 'arp-spoof', 'severity': 'high',
+             'title': f'{_ip(victim)} is answered by two MACs',
+             'detail': 'Another seat answers ARP for this address: someone may be intercepting its traffic.',
+             'switch': _switch_for('B', 4)[0], 'port': _switch_for('B', 4)[1], 'mac': _mac(spoof), 'ip': _ip(victim),
+             'evidence': [f'{_mac(victim)} on {_switch_for("B", 9)[1]} (seat B-9, expected)',
+                          f'{_mac(spoof)} on {_switch_for("B", 4)[1]} (seat B-4)']},
+            {'id': f'flap-{_mac(flap)}', 'kind': 'mac-flap', 'severity': 'medium',
+             'title': f'{_mac(flap)} moves between two ports',
+             'detail': 'The same MAC shows up on two access ports in turn: a loop, or a cloned MAC.',
+             'switch': _switch_for('C', 14)[0], 'port': _switch_for('C', 14)[1], 'mac': _mac(flap),
+             'evidence': [f'{_switch_for("C", 14)[1]} and {_switch_for("C", 15)[1]}, 14 moves in 5 minutes']},
+            {'id': 'storm-sw-d-02', 'kind': 'storm', 'severity': 'medium',
+             'title': 'Broadcast storm on sw-d-02', 'switch': 'sw-d-02', 'port': 'Gi1/0/48',
+             'detail': 'Broadcasts on the uplink are far above normal.',
+             'evidence': [f'{round(4200 + 1800 * _wave(9, now, period=120))} broadcast packets/s, '
+                          'normal is under 200']},
+        ]
+        if int(now // 60) % 6 < 3:
+            rogue = next(i for s, _b, _n, i in _seats() if s == 'A-7')
+            out.insert(0, {'id': f'dhcp-{_mac(rogue)}', 'kind': 'rogue-dhcp', 'severity': 'high',
+                           'title': 'DHCP offers from a server that is not ours',
+                           'detail': 'A device at a seat hands out addresses: players near it may get no internet.',
+                           'switch': _switch_for('A', 7)[0], 'port': _switch_for('A', 7)[1], 'mac': _mac(rogue),
+                           'ip': '192.0.2.250', 'evidence': ['Offers 10.0.0.0/24 with gateway 10.0.0.1']})
+        return out
 
     # health wall ------------------------------------------------------------------------
     def health_checks(self):

@@ -16,6 +16,12 @@ Select a seat. Under **Switch port**:
   the seat, with your note. It shows on the [incident board](incidents.md) and as a red ring on
   the seat. Clear it there by marking it fixed.
 
+## Shutting a port for a security finding
+
+On the [Security](security.md) page, **Shut port** takes a finding's port down until someone turns
+it on again (**Ports Floorbit shut**, with who, when and why). The browser only names the
+finding; the server takes the switch and port from it.
+
 ## How it reaches the switch
 
 Floorbit doesn't talk to switches itself: a plugin with `uses: [ports]` does, one at a time.
@@ -27,8 +33,9 @@ Floorbit doesn't talk to switches itself: a plugin with `uses: [ports]` does, on
   configuration.
 - **Demo data** pretends: the port shows as down for 10 seconds.
 
-A plugin defines `port_login()` (true when it needs the tech's login) and `bounce_port(target)`,
-where `target` is `{switch, host, port, model, login}` and `login` is `{username, password}` or None.
+A plugin defines `port_login()` (true when it needs the tech's login), `bounce_port(target)` and
+`set_port(target)`, where `target` is `{switch, host, port, model, login}` (plus `enabled` for
+`set_port`) and `login` is `{username, password}` or None.
 
 ## Secure by design
 
@@ -50,6 +57,6 @@ where `target` is `{switch, host, port, model, login}` and `login` is `{username
 
 | | Needs |
 | --- | --- |
-| Bounce a port (`POST /api/ports/bounce`) | `ports.act` (Tech, Lead, Admin) |
+| Bounce, shut or turn on a port (`POST /api/ports/bounce`, `/shutdown`, `/enable`) | `ports.act` (Tech, Lead, Admin) |
 | Flag a seat for a tech | `incidents.work` (see [incidents.md](incidents.md)) |
 | Turn the plugin on, pick the switch software, forget host keys | `settings.manage` |

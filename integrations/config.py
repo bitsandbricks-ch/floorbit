@@ -85,6 +85,11 @@ SCHEMA = [
      'label': 'Checks to confirm a change',
      'help': 'A service must show its new colour this many checks in a row before it alerts.'},
 
+    # Security findings
+    {'key': 'SECURITY_INTERVAL', 'group': 'health', 'type': 'int', 'default': 60,
+     'label': 'Security check interval (seconds)',
+     'help': 'How often to ask the security plugins for findings. Minimum 15.'},
+
     # Discord
     {'key': 'DISCORD_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Discord webhook URL', 'help': 'Channel settings → Integrations → Webhooks → Copy URL.'},
@@ -101,6 +106,9 @@ SCHEMA = [
     {'key': 'DISCORD_HEALTH_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
      'label': 'Health wall alerts',
      'help': 'Post when a service on the health wall goes red, and when it is back (with Notify on recovery).'},
+    {'key': 'DISCORD_SECURITY_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
+     'label': 'Security alerts',
+     'help': 'Post new high and medium security findings: where (switch, port, seat), never MACs or IPs.'},
 
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',

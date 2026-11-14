@@ -72,14 +72,27 @@ class Plugin(Base):
         return True
 
     def bounce_port(self, target):
+        down, up = self.commands()
+        wait = int(self.settings.get('down_seconds') or 5)
+        self._session(target, [down, up], wait)
+        self.log(f"bounced {target['port']} on {target['switch']}")
+        return {'message': f"{target['port']} on {target['switch']} was down for {wait} s and is back up."}
+
+    def set_port(self, target):
+        down, up = self.commands()
+        on = bool(target.get('enabled'))
+        self._session(target, [up if on else down], 0)
+        self.log(f"turned {target['port']} on {target['switch']} {'on' if on else 'off'}")
+        return {'message': f"{target['port']} on {target['switch']} is {'on again' if on else 'shut'}."}
+
+    def _session(self, target, batches, wait):
+        """One SSH connection with the tech's login, running each batch of commands in turn."""
         port = target.get('port') or ''
         if not PORT_RE.match(port):
             raise PluginError('Bad port name.')
         login = target.get('login') or {}
         if not login.get('username') or not login.get('password'):
             raise PluginError('This needs your switch login.')
-        down, up = self.commands()
-        wait = int(self.settings.get('down_seconds') or 5)
         host = target['host']
         pinned = dict(self.ctx.state.get('hosts') or {})
         policy = PinnedKeys(pinned, self.settings.get('trust_new_hosts', True))
@@ -97,9 +110,10 @@ class Plugin(Base):
             shell = client.invoke_shell(width=200, height=1000)
             shell.settimeout(timeout)
             self._read(shell, timeout)
-            self._run(shell, [c.format(port=port) for c in down], timeout)
-            time.sleep(wait)
-            self._run(shell, [c.format(port=port) for c in up], timeout)
+            for i, batch in enumerate(batches):
+                if i:
+                    time.sleep(wait)
+                self._run(shell, [c.format(port=port) for c in batch], timeout)
         except PluginError:
             raise
         except paramiko.AuthenticationException:
@@ -111,8 +125,6 @@ class Plugin(Base):
         finally:
             client.close()
             login.clear()
-        self.log(f'bounced {port} on {target["switch"]}')
-        return {'message': f'{port} on {target["switch"]} was down for {wait} s and is back up.'}
 
     @staticmethod
     def _read(shell, timeout):
