@@ -114,6 +114,7 @@ class Plugin(Base):
 | `http` | make outgoing requests with `self.ctx.http(...)` |
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
+| `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
 
 Two manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until
 an admin turns it off) and `core_settings: <section>` (read a settings section that existed before

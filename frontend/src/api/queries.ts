@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
-import type { InventoryList, LogLine, Me, PluginInfo, Role, Tile, Widget, WidgetTile } from './types'
+import type { InventoryList, SeatMapList, LogLine, Me, PluginInfo, Role, Tile, Widget, WidgetTile } from './types'
 
 export function useMe() {
   return useQuery({ queryKey: qk.me, queryFn: () => get<Me>('/api/auth/me'), staleTime: 60_000 })
@@ -47,4 +47,8 @@ export function useInventory(hidden: boolean) {
     queryKey: qk.inventory(hidden),
     queryFn: () => get<InventoryList>(`/api/inventory${hidden ? '?hidden=1' : ''}`),
   })
+}
+
+export function useSeatMap() {
+  return useQuery({ queryKey: qk.seatMap, queryFn: () => get<SeatMapList>('/api/seat-map') })
 }

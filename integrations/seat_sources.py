@@ -15,8 +15,12 @@ Every source returns the same shape::
 for a field wins, so a live source can sit in front of the static file and
 the file fills the gaps.
 
+Hand entries (Floorbit's seat mapping page, ``floorbit/seatmap.py``) always come first, so
+what people type in wins; plugins with ``uses: [mapping]`` follow them, then ``SEAT_SOURCES``.
+
 Built-in sources:
 
+* ``manual``   the entries on the Seat mapping page (always first, never needs listing)
 * ``json``     reads ``SEAT_SOURCE_JSON_PATH`` (default ``seats.json``)
 * ``http``     GETs ``SEAT_SOURCE_HTTP_URL``; the response must be the shape
                above, either at the top level or under ``"seats"``. Optional
@@ -91,13 +95,40 @@ def register(source_cls):
     return source_cls
 
 
+class ManualSource(SeatSource):
+    name = 'manual'
+    label = 'Entered by hand'
+
+    def fetch(self):
+        from floorbit import seatmap, store
+        # Only the mapping itself: who typed it in and when stays on the Seat mapping page.
+        return {seat: {k: v for k, v in entry.items() if k in seatmap.FIELDS}
+                for seat, entry in seatmap.entries(store.load_data()).items()}
+
+
 register(JsonFileSource)
 register(HttpJsonSource)
+register(ManualSource)
+
+# Set by floorbit.plugins: returns [(name, label, fetch)] for the plugins that feed the mapping.
+plugin_sources = None
+
+
+def configured_names():
+    raw = config.get('SEAT_SOURCES', 'json') or 'json'
+    return [n.strip().lower() for n in str(raw).split(',') if n.strip() and n.strip().lower() != 'manual']
+
+
+def _plugins():
+    try:
+        return list(plugin_sources()) if plugin_sources else []
+    except Exception as exc:  # noqa: BLE001  # never let the plugin list break the mapping
+        print(f'[integrations] could not list plugin seat sources: {exc}')
+        return []
 
 
 def active_names():
-    raw = config.get('SEAT_SOURCES', 'json') or 'json'
-    return [n.strip().lower() for n in str(raw).split(',') if n.strip()]
+    return ['manual', *[p[0] for p in _plugins()], *configured_names()]
 
 
 def _normalise(entry):
@@ -120,13 +151,15 @@ def load(max_age=None):
             return _cache['data']
 
     merged, errors = {}, {}
+    plugins = {name: fetch for name, _label, fetch in _plugins()}
     for name in active_names():
         source = _registry.get(name)
-        if source is None:
+        fetch = plugins.get(name) or (source.fetch if source else None)
+        if fetch is None:
             errors[name] = 'unknown source'
             continue
         try:
-            data = source.fetch() or {}
+            data = fetch() or {}
         except Exception as exc:  # noqa: BLE001  # a failing source is reported, the rest still load
             errors[name] = str(exc)
             print(f"[integrations] seat source {name} failed: {exc}")
@@ -134,9 +167,13 @@ def load(max_age=None):
         for seat, entry in data.items():
             entry = _normalise(entry)
             target = merged.setdefault(str(seat), {})
+            sources_of = target.setdefault('field_sources', {})
             for key, value in entry.items():
+                if key in ('sources', 'field_sources'):
+                    continue
                 if target.get(key) in (None, '') and value not in (None, ''):
                     target[key] = value
+                    sources_of[key] = name
             target.setdefault('sources', [])
             target['sources'].append(name)
 
@@ -158,7 +195,8 @@ def info():
     return {
         'active': active,
         'available': [{'name': s.name, 'label': s.label, 'configured': s.configured()}
-                      for s in _registry.values()],
+                      for s in _registry.values()] +
+                     [{'name': n, 'label': label, 'configured': True, 'plugin': True} for n, label, _ in _plugins()],
         'last_load': last,
         'errors': errors,
     }

@@ -30,6 +30,12 @@ DEMO_BLOCKS = [
     {"name": "A", "x": 15, "y": 45, "cols": 10, "rows": 2},
     {"name": "B", "x": 50, "y": 45, "cols": 10, "rows": 2},
 ]
+# Example values only (RFC 5737 addresses, made-up nicks): screenshots never show real people.
+DEMO_SEATS = {
+    "A-1": {"ip": "192.0.2.11", "mac": "02:00:00:00:00:11", "nick": "player-one"},
+    "A-2": {"ip": "192.0.2.12", "nick": "player-two", "note": "Brought a second PC"},
+    "B-1": {"mac": "02:00:00:00:00:21", "nick": "player-three"},
+}
 
 # Signs in with this account first (see the module docstring).
 USER = os.environ.get("SCREENSHOT_USER") or os.environ.get("AUTH_ADMIN_USER", "")
@@ -38,6 +44,7 @@ PAGES["users"] = "/settings/users"
 PAGES["plugins"] = "/settings/plugins"
 PAGES["dashboard"] = "/dashboard"
 PAGES["inventory"] = "/inventory"
+PAGES["seat-mapping"] = "/seat-mapping"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
@@ -78,6 +85,8 @@ def seed():
         call("POST", "/api/switches", switch)
     for block in DEMO_BLOCKS:
         call("POST", "/api/seat-blocks", block)
+    for seat, entry in DEMO_SEATS.items():
+        call("PUT", f"/api/seat-map/{seat}", entry)
 
 
 def page_exists(path):

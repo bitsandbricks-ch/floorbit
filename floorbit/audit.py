@@ -29,6 +29,9 @@ ACTIONS = {
     ('PATCH', '/api/inventory/<device_id>'): ('inventory', 'Changed device'),
     ('DELETE', '/api/inventory/<device_id>'): ('inventory', 'Removed device'),
     ('POST', '/api/inventory/sync'): ('inventory', 'Synced the inventory'),
+    ('PUT', '/api/seat-map/<seat>'): ('seat mapping', 'Changed seat mapping'),
+    ('DELETE', '/api/seat-map/<seat>'): ('seat mapping', 'Removed seat mapping'),
+    ('POST', '/api/seat-map/import'): ('seat mapping', 'Imported seat mapping'),
     ('POST', '/api/seat-blocks'): ('floor plan', 'Added seat block'),
     ('PUT', '/api/seat-blocks/<block_id>'): ('floor plan', 'Changed seat block'),
     ('DELETE', '/api/seat-blocks/<block_id>'): ('floor plan', 'Deleted seat block'),
@@ -44,7 +47,7 @@ ACTIONS = {
     ('POST', '/api/checkins/refresh'): ('check-in', 'Refreshed check-ins'),
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
 }
-AREAS = ('floor plan', 'inventory', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins')
+AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
 listeners = []
 
