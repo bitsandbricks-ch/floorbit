@@ -76,5 +76,7 @@
       "incidents": "Incidents",
       "outages": "Switch outages"
     }
-  }
+  },
+  "trendTraffic": "Traffic in the last hour",
+  "trendOnline": "Seats online in the last hour"
 }

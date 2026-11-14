@@ -11,6 +11,7 @@ import type { StatsData, StatsSample } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { StatCard } from '@/components/StatCard'
 import { Compare } from './stats/Compare'
 import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
@@ -18,16 +19,6 @@ import { bps } from './stats/format'
 const HOUR = 3600
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-function Big({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="fb-stat">
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-      {sub && <span>{sub}</span>}
-    </div>
-  )
-}
 
 /** Traffic over time: download as an area, upload as a line, with the busiest point marked. */
 function Chart({ series, label }: { series: StatsSample[]; label: string }) {
@@ -63,22 +54,24 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
   const now = data.now
   const since = (data.last_poll ?? data.series.at(-1)?.t ?? 0) - (range === 'hour' ? HOUR : 24 * HOUR)
   const series = data.series.filter((s) => s.t >= since)
+  const lastHour = data.series.filter((s) => s.t >= (data.last_poll ?? data.series.at(-1)?.t ?? 0) - HOUR)
   if (!now) {
     return <Text c="dimmed">{data.monitoring ? t('stats.collecting') : t('stats.noMonitoring')}</Text>
   }
   return (
     <div className="fb-stats">
-      <dl className="fb-stats-row" aria-label={t('stats.bandwidth')}>
-        <Big label={t('stats.now')} value={bps(now.down + now.up)}
-          sub={t('stats.downUp', { down: bps(now.down), up: bps(now.up) })} />
-        {data.hour && <Big label={t('stats.hour')} value={bps(data.hour.peak_bps)} sub={t('stats.avg', { value: bps(data.hour.avg_bps) })} />}
-        {data.day && <Big label={t('stats.day')} value={bps(data.day.peak_bps)} sub={t('stats.avg', { value: bps(data.day.avg_bps) })} />}
-        {data.peak && <Big label={t('stats.peak')} value={bps(data.peak.bps)} sub={t('stats.at', { time: clock(data.peak.at) })} />}
-        <Big label={t('stats.online')} value={String(now.online)}
+      <div className="fb-stats-row" role="group" aria-label={t('stats.bandwidth')}>
+        <StatCard label={t('stats.now')} value={bps(now.down + now.up)} trend={lastHour.map((s) => s.down + s.up)}
+          trendLabel={t('stats.trendTraffic')} sub={t('stats.downUp', { down: bps(now.down), up: bps(now.up) })} />
+        {data.hour && <StatCard label={t('stats.hour')} value={bps(data.hour.peak_bps)} sub={t('stats.avg', { value: bps(data.hour.avg_bps) })} />}
+        {data.day && <StatCard label={t('stats.day')} value={bps(data.day.peak_bps)} sub={t('stats.avg', { value: bps(data.day.avg_bps) })} />}
+        {data.peak && <StatCard label={t('stats.peak')} value={bps(data.peak.bps)} sub={t('stats.at', { time: clock(data.peak.at) })} />}
+        <StatCard label={t('stats.online')} value={String(now.online)} trend={lastHour.map((s) => s.online)} trendLabel={t('stats.trendOnline')}
           sub={data.day ? t('stats.onlineMax', { count: data.day.online_max }) : undefined} />
-        <Big label={t('stats.ports')} value={t('stats.portsUp', { count: now.ports_up })}
+        <StatCard label={t('stats.ports')} value={t('stats.portsUp', { count: now.ports_up })}
+          tone={now.ports_errors ? 'warn' : undefined} href={screen ? undefined : '/problems'}
           sub={t('stats.portsRest', { down: now.ports_down, errors: now.ports_errors })} />
-      </dl>
+      </div>
 
       <section className="fb-stats-panel wide" aria-labelledby="stats-traffic">
         <Group justify="space-between" mb={6}>
@@ -101,7 +94,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
               const pct = Math.round((u.utilization ?? 0) * 100)
               return (
                 <li key={u.switch_id} className={pct >= 80 ? 'down' : pct >= 60 ? 'warn' : ''}>
-                  <span className="name">{u.switch} <small>{u.port}</small></span>
+                  <span className="name">{screen ? u.switch : <a href={`/?switch=${encodeURIComponent(u.switch_id)}`}>{u.switch}</a>} <small>{u.port}</small></span>
                   <span className="bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
                     aria-label={`${u.switch} ${u.port}`}><i style={{ width: `${Math.min(100, pct)}%` }} /></span>
                   <span className="value">{pct} % · {bps(u.bps)}</span>
@@ -119,7 +112,11 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
             {data.top.map((r) => (
               <li key={`${r.switch_id}:${r.port}`}>
                 <span className="name">
-                  {r.seat ? t('stats.seat', { seat: r.seat }) : `${r.switch} ${r.port}`}
+                  {screen ? (r.seat ? t('stats.seat', { seat: r.seat }) : `${r.switch} ${r.port}`) : (
+                    <a href={r.seat ? `/?seat=${encodeURIComponent(r.seat)}` : `/?switch=${encodeURIComponent(r.switch_id)}`}>
+                      {r.seat ? t('stats.seat', { seat: r.seat }) : `${r.switch} ${r.port}`}
+                    </a>
+                  )}
                   {r.nick && <small> · {r.nick}</small>}
                 </span>
                 <span className="value">{bps(r.bps)}</span>

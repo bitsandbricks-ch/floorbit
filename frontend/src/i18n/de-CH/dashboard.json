@@ -3,5 +3,20 @@
   "empty": "Noch nichts da. Kacheln kommen von Plugins: Ein Admin schaltet sie unter Einstellungen > Plugins ein.",
   "emptyLink": "Einstellungen > Plugins öffnen",
   "cantDraw": "Diese Kachel lässt sich nicht anzeigen.",
-  "from": "von {{plugin}}"
+  "from": "von {{plugin}}",
+  "layout": "Layout",
+  "allTiles": "Alle Kacheln",
+  "newLayout": "Neues Layout",
+  "editLayout": "Layout bearbeiten",
+  "layoutName": "Name des Layouts",
+  "layoutPlaceholder": "Ops-Desk",
+  "columns": "Spalten",
+  "pickTiles": "Wähle die Kacheln für diesen Bildschirm und ihre Reihenfolge.",
+  "up": "{{tile}} nach oben",
+  "down": "{{tile}} nach unten",
+  "saveLayout": "Layout speichern",
+  "cancel": "Abbrechen",
+  "deleteLayout": "Layout löschen",
+  "screen": "Vollbild",
+  "layoutEmpty": "Keine Kachel dieses Layouts ist verfügbar: ihr Plugin ist aus, oder dieses Konto darf sie nicht sehen."
 }
