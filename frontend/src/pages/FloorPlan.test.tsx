@@ -23,7 +23,7 @@ const data: SeatViewData = {
 const details: SeatDetails = {
   seat: 'D-2', block: 'D', state: 'offline', bps: null, switch: 'sw-d-01', port: 'Gi1/0/2',
   incidents: [{ id: 'i1', title: 'No link', status: 'open', created_at: 1_800_000_000 }], attention: [],
-  match: null, checked_in: false, last_read: 1_800_000_000, people: false,
+  match: null, checked_in: false, last_read: 1_800_000_000, people: false, crew: false,
   history: { from: 1_800_000_000 - 6 * 3600, to: 1_800_000_000, start: true, changes: [[1_799_990_000, 0], [1_799_991_000, 1], [1_799_995_000, 0]] },
 }
 const me = { enabled: true, user: { username: 'tia', display_name: 'Tia', role: 'tech', permissions: ['floorplan.view'] } }
@@ -336,5 +336,29 @@ describe('Seats page', () => {
     expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bounce port' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Flag for a tech' })).toBeNull()
+  })
+
+  it('lets the crew leave a note on a seat', async () => {
+    const noted = { ...data, seats: { ...data.seats, 'D-2': { ...data.seats['D-2'], note: true } } }
+    const note = { text: 'Cable swapped at 14:20', by: 'Tia', at: 1_800_000_000 }
+    const api = fakeFetch({
+      'GET /api/auth/me': me, 'GET /api/plan': noted, 'GET /api/plan/seats/D-2': { ...details, crew: true, note },
+      'PUT /api/plan/seats/D-2/note': { note: null },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByText('Cable swapped at 14:20')).toBeInTheDocument()
+    expect(container.querySelector('[data-seat="D-2"] .note')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /Crew note/ }), { target: { value: 'Own switch, leave it' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ text: 'Own switch, leave it' }))
+  })
+
+  it('shows no note box without incidents.work', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add a note' })).toBeNull()
   })
 })

@@ -1181,6 +1181,8 @@ export interface PlanSeat {
   bps?: number
   /** When the link last changed, if within the last 15 minutes (issue #171). */
   changed?: number
+  /** The crew left a note on the seat (issue #180); its text is in SeatDetails. */
+  note?: boolean
 }
 
 export interface PlanBlock {
@@ -1228,10 +1230,16 @@ export interface SeatDetails {
   checked_in: boolean | null
   last_read: number | null
   people: boolean
+  /** May this account read and write the seat's note (incidents.work)? */
+  crew: boolean
+  note?: SeatNote | null
   nick?: string | null
   ip?: string | null
   mac?: string | null
 }
+
+/** A crew note on a seat (issue #180). */
+export interface SeatNote { text: string; by: string | null; at: number }
 
 /** One seat block for the Seats view's block panel (issue #174). */
 export interface BlockDetails {

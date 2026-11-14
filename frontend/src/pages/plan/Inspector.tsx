@@ -6,6 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
+import { SeatNoteBox } from './SeatNoteBox'
 import { WatchSeat } from './WatchSeat'
 import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
@@ -55,6 +56,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           </Table>
           {d.history && d.switch && <LinkHistory history={d.history} />}
           {!d.people && <Text size="sm" c="dimmed">{t('plan.noPeople')}</Text>}
+          {d.crew && <SeatNoteBox key={seat} seat={seat} note={d.note} />}
           {(d.incidents.length > 0 || d.attention.length > 0) && (
             <Stack gap={4}>
               <Title order={3} size="h5">{t('plan.problems')}</Title>
@@ -117,6 +119,7 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
   { key: 'problem', seat: { state: 'offline', problems: 1 } },
   { key: 'match', seat: { state: 'online', match: 'x' } },
   { key: 'recent', seat: { state: 'offline', changed: 1 } },
+  { key: 'note', seat: { state: 'online', note: true } },
 ]
 
 /** The same shapes as on the plan, so the legend can't drift from it. */

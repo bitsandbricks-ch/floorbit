@@ -166,3 +166,29 @@ def test_switch_panel(client, hall):
 def test_port_order():
     from floorbit.seat_view import _port_key
     assert sorted(["Gi1/0/10", "Gi1/0/2", "Gi1/0/1"], key=_port_key) == ["Gi1/0/1", "Gi1/0/2", "Gi1/0/10"]
+
+
+def test_crew_notes_on_a_seat(client, app_module, hall):
+    got = client.put("/api/plan/seats/d-6/note", json={"text": "  Cable swapped at 14:20  "}).get_json()
+    assert got["note"]["text"] == "Cable swapped at 14:20" and got["note"]["at"]
+    details = client.get("/api/plan/seats/D-6").get_json()
+    assert details["crew"] is True and details["note"]["text"] == "Cable swapped at 14:20"
+    assert client.get("/api/plan").get_json()["seats"]["D-6"]["note"] is True
+    assert client.put("/api/plan/seats/Z-1/note", json={"text": "x"}).status_code == 404
+    assert client.put("/api/plan/seats/D-6/note", json={"text": 5}).status_code == 400
+    assert len(client.put("/api/plan/seats/D-1/note", json={"text": "x" * 900}).get_json()["note"]["text"]) == 500
+
+    # The kiosk sees that there is a note, not what it says, and can't write one.
+    app_module.app.extensions["auth"].users.add("kim", "kim-password-1", role="kiosk")
+    kiosk = app_module.app.test_client()
+    kiosk.post("/login", data={"username": "kim", "password": "kim-password-1"})
+    seen = kiosk.get("/api/plan/seats/D-6").get_json()
+    assert seen["crew"] is False and "note" not in seen
+    assert kiosk.get("/api/plan").get_json()["seats"]["D-6"]["note"] is True
+    assert kiosk.put("/api/plan/seats/D-6/note", json={"text": "hi"}).status_code == 403
+
+    # Empty text removes it; a new event clears the rest.
+    assert client.put("/api/plan/seats/D-6/note", json={"text": ""}).get_json()["note"] is None
+    assert "note" not in client.get("/api/plan").get_json()["seats"]["D-6"]
+    client.post("/api/report/new-event")
+    assert "note" not in client.get("/api/plan").get_json()["seats"]["D-1"]

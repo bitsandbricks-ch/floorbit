@@ -18,7 +18,7 @@ import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 
 const PANELS = ['seat', 'block', 'switch']
-const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'checked_in']
+const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'note', 'checked_in']
 
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
  *  for colour-blind eyes, three zoom levels, and one inspector for a seat. ``?screen=1`` for a kiosk. */
@@ -45,6 +45,7 @@ export default function FloorPlan() {
   useLiveEvent('stats.changed', refresh)
   useLiveEvent('attention.changed', refresh)
   useLiveEvent('incident.changed', refresh)
+  useLiveEvent('plan.changed', refresh)
   const data = q.data
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   const [filter, setFilter] = useState<Filter>('all')

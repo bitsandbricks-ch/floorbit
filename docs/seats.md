@@ -97,6 +97,13 @@ Techs can act from the panel too, with the same rules as the editor:
 - **Flag for a tech** (needs `incidents.work`): opens a "Tech visit" incident at the seat with a
   note, like the editor's flag.
 
+**Crew note** (needs `incidents.work`): one short note per seat, up to 500 characters, such as
+"cable swapped at 14:20" or "brought their own switch, leave it", so the next tech at the seat
+knows what was done. The panel shows who wrote it and when; anyone with `incidents.work` can edit or
+remove it, and each change goes to the audit log. Everyone else only sees that the seat has one: a
+small amber corner on the map and the **Has a note** filter. Starting a new event (on the report)
+clears the notes.
+
 Who sits there (nick, IP and MAC) is only shown to accounts with `seats.view` (techs, leads and
 admins). Everyone with `floorplan.view` sees the states. The link `/plan?seat=D-6` opens the page
 on that seat.

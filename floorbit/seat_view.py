@@ -7,7 +7,8 @@ Every seat gets a state and a few flags, so the page can draw it the same way ev
 - ``checked_in``: the player checked in at the seat (with check-in on);
 - ``taken``: the seat mapping has a player there;
 - ``problems``: open incidents plus current port trouble (needs attention) on the seat;
-- ``match``: the match zone the seat is in, if any.
+- ``match``: the match zone the seat is in, if any;
+- ``note``: the crew left a note on the seat (its text only in :func:`details`, for the crew).
 
 No nicks, IPs or MACs here: :func:`details` adds those only for accounts with ``seats.view``.
 """
@@ -18,7 +19,7 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import halls, incidents, inventory, tournament
+from . import halls, incidents, inventory, seat_notes, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
@@ -108,6 +109,7 @@ def view(hall_id=None, now=None):
     match = tournament.match_seats(data)
     stats = _ext('floorbit_stats')
     changed = stats.changed_since(now - RECENT) if stats else {}
+    notes = seat_notes.all_notes(data)
     seats, blocks = {}, []
     for shape in (drawing or {}).get('shapes', []):
         counts = {'seats': 0, 'online': 0, 'problems': 0}
@@ -132,6 +134,8 @@ def view(hall_id=None, now=None):
                 row['bps'] = int(online[s] or 0)
             if s in changed:
                 row['changed'] = changed[s]
+            if s in notes:
+                row['note'] = True
             seats[s] = row
             counts['seats'] += 1
             counts['online'] += state == 'online'
@@ -153,8 +157,9 @@ def view(hall_id=None, now=None):
     }
 
 
-def details(seat, people):
-    """One seat for the inspector. ``people``: may this account see nicks, IPs and MACs?"""
+def details(seat, people, crew=False):
+    """One seat for the inspector. ``people``: may this account see nicks, IPs and MACs?
+    ``crew``: may it read and write the seat's note?"""
     data = load_data()
     seat = str(seat or '').upper()
     if seat not in incidents.seat_numbers(data):
@@ -181,7 +186,10 @@ def details(seat, people):
         'checked_in': None if checked is None else seat in checked,
         'last_read': last,
         'people': bool(people),
+        'crew': bool(crew),
     }
+    if crew:
+        out['note'] = seat_notes.get(seat, data)
     stats = _ext('floorbit_stats')
     if stats:
         out['history'] = {**stats.seat_history(seat, now - HISTORY), 'to': now}

@@ -5,12 +5,17 @@
 - ``GET /api/plan/seats/<seat>``: one seat for the inspector. Nicks, IPs and MACs only with ``seats.view``.
 - ``GET /api/plan/blocks/<name>``: one seat block for the block panel: states, problems, switches.
 - ``GET /api/plan/switches/<name>``: one switch for the switch panel: status and the seats it serves.
+- ``PUT /api/plan/seats/<seat>/note`` ``{text}``: the crew's note on the seat; empty text removes it.
 
-All need ``floorplan.view`` (the default rule in auth/roles.py). The rules live in floorbit/seat_view.py.
+Reading needs ``floorplan.view`` (the default rule in auth/roles.py), the note ``incidents.work``.
+The rules live in floorbit/seat_view.py and floorbit/seat_notes.py.
 """
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
-from .. import seat_view, spa
+from integrations import events
+
+from .. import audit, incidents, seat_notes, seat_view, spa
+from ..store import load_data
 
 bp = Blueprint('plan', __name__)
 
@@ -35,7 +40,7 @@ def plan_view():
 
 @bp.route('/api/plan/seats/<seat>')
 def seat_details(seat):
-    out = seat_view.details(seat, people=_can('seats.view'))
+    out = seat_view.details(seat, people=_can('seats.view'), crew=_can('incidents.work'))
     if out is None:
         return jsonify({'error': 'No such seat.'}), 404
     return jsonify(out)
@@ -55,3 +60,19 @@ def switch_details(name):
     if out is None:
         return jsonify({'error': 'No such switch.'}), 404
     return jsonify(out)
+
+
+@bp.route('/api/plan/seats/<seat>/note', methods=['PUT'])
+def seat_note(seat):
+    seat = str(seat or '').upper()
+    if seat not in incidents.seat_numbers(load_data()):
+        return jsonify({'error': 'No such seat.'}), 404
+    text = (request.get_json(silent=True) or {}).get('text')
+    if text is not None and not isinstance(text, str):
+        return jsonify({'error': 'The note is text.'}), 400
+    from auth import current_user  # late: auth imports floorbit while it loads
+    user = current_user() or {}
+    note = seat_notes.set_note(seat, text, by=user.get('display_name') or user.get('username'))
+    audit.record('incidents', 'Wrote a seat note' if note else 'Removed a seat note', g.get('audit_user'), seat)
+    events.publish('plan.changed', {'seat': seat})
+    return jsonify({'note': note})

@@ -206,6 +206,8 @@ RULES = (
     # Starting a new event clears the report's history; adding nicks and IPs is checked in the blueprint.
     ('/api/report/new-event', WRITE, 'settings.manage'),
     ('/api/cache/invalid', WRITE, 'floorplan.edit'),
+    # Crew notes on a seat (floorbit/seat_notes.py); reading them is checked in the blueprint.
+    ('/api/plan/seats', WRITE, 'incidents.work'),
     ('/api/switches', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),

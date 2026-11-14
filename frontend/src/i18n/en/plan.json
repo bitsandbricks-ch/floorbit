@@ -15,6 +15,7 @@
     "offline": "Offline",
     "recent": "Changed lately",
     "match": "Match seats",
+    "note": "Has a note",
     "checked_in": "Checked in"
   },
   "noMonitoring": "No recent port read, so every seat shows as unknown. Check the monitoring plugin in Settings > Plugins.",
@@ -43,7 +44,8 @@
     "checkedIn": "Checked in",
     "problem": "Open problem",
     "match": "Match seat",
-    "recent": "Link changed in the last 15 minutes"
+    "recent": "Link changed in the last 15 minutes",
+    "note": "Crew note"
   },
   "seat": "Seat {{seat}}",
   "close": "Close",
@@ -127,5 +129,16 @@
     "start": "Watch this seat",
     "stop": "Stop watching",
     "denied": "The browser blocks notifications for this site."
+  },
+  "hasNote": "has a crew note",
+  "note": {
+    "title": "Crew note",
+    "hint": "What was done here, for the next tech. Only the crew sees it.",
+    "add": "Add a note",
+    "edit": "Edit",
+    "remove": "Remove",
+    "save": "Save note",
+    "cancel": "Cancel",
+    "byAt": "{{by}}, {{time}}"
   }
 }

@@ -15,6 +15,7 @@
     "offline": "Offline",
     "recent": "Kürzlich geändert",
     "match": "Matchplätze",
+    "note": "Mit Notiz",
     "checked_in": "Eingecheckt"
   },
   "noMonitoring": "Keine aktuelle Port-Abfrage, darum zeigen alle Plätze «unbekannt». Prüfe das Monitoring-Plugin unter Einstellungen > Plugins.",
@@ -43,7 +44,8 @@
     "checkedIn": "Eingecheckt",
     "problem": "Offenes Problem",
     "match": "Matchplatz",
-    "recent": "Verbindung in den letzten 15 Minuten geändert"
+    "recent": "Verbindung in den letzten 15 Minuten geändert",
+    "note": "Crew-Notiz"
   },
   "seat": "Platz {{seat}}",
   "close": "Schliessen",
@@ -127,5 +129,16 @@
     "start": "Platz beobachten",
     "stop": "Nicht mehr beobachten",
     "denied": "Der Browser blockiert Benachrichtigungen für diese Seite."
+  },
+  "hasNote": "hat eine Crew-Notiz",
+  "note": {
+    "title": "Crew-Notiz",
+    "hint": "Was hier gemacht wurde, für den nächsten Tech. Nur die Crew sieht sie.",
+    "add": "Notiz hinzufügen",
+    "edit": "Bearbeiten",
+    "remove": "Entfernen",
+    "save": "Notiz speichern",
+    "cancel": "Abbrechen",
+    "byAt": "{{by}}, {{time}}"
   }
 }

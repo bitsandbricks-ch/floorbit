@@ -346,6 +346,7 @@ body {
 .fb-plan .s-offline { fill: var(--color-surface); stroke: var(--color-down); stroke-width: 2.5; }
 .fb-plan .slash { stroke: var(--color-down); stroke-width: 2.5; stroke-linecap: round; }
 .fb-plan .s-unknown { fill: var(--color-raised); stroke: var(--color-muted); stroke-dasharray: 4 3; }
+.fb-plan .note { fill: var(--color-warn); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
 .fb-plan .chk { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
 .fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
