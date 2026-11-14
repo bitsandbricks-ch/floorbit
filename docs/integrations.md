@@ -174,6 +174,7 @@ turned off, so the log can be exported after the event.
 |---|---|---|
 | `CHECKIN_HISTORY_ENABLED` | `true` | |
 | `CHECKIN_HISTORY_FILE` | next to `CHECKIN_FILE` | e.g. `/app/state/checkins-history.jsonl` in Docker |
+| `RECORDING_FILE` | `recording.jsonl` next to `data.json` | the whole-event recording for the replay ([replay](replay.md)) |
 
 ## Tests
 

@@ -27,5 +27,26 @@
   "noPlan": "This hall has no seat blocks.",
   "openIncident": "open incident",
   "openAt": "Open incidents at this time",
-  "kept": "Floorbit keeps the last 24 hours of port reads; check-ins and incidents for the whole event."
+  "kept": "Floorbit keeps the last 24 hours of port reads; check-ins and incidents for the whole event.",
+  "range": "Time range",
+  "day": "Last 24 hours",
+  "wholeEvent": "Whole event",
+  "keptEvent": "For more, switch to Whole event.",
+  "speed14400": "4 h/s",
+  "event": {
+    "empty": "Nothing recorded yet. Floorbit writes a frame of the whole event every five minutes while the port watch runs.",
+    "heatmap": "Seat blocks over time",
+    "metric": "Heatmap shows",
+    "online": "Seats online",
+    "traffic": "Traffic",
+    "incidents": "Incidents",
+    "heatmapLabel": "Heatmap of the seat blocks over time: {{metric}}. Click a column to jump there.",
+    "noBlocks": "No seat blocks recorded for this hall.",
+    "export": "Export",
+    "json": "Download JSON",
+    "video": "Record video",
+    "recording": "Recording the video",
+    "exportHint": "The video (WebM) is made in your browser from the recording, at most 75 seconds long. The JSON has every frame of every hall.",
+    "kept": "The whole-event recording keeps a frame every 5 minutes for the last day, every 30 minutes for the last week, then one an hour. It starts over with Start a new event on the report page."
+  }
 }

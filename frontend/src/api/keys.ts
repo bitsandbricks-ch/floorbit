@@ -54,6 +54,7 @@ export const qk = {
   halls: ['halls'] as const,
   templates: ['templates'] as const,
   replay: (hall: string) => ['replay', hall] as const,
+  replayEvent: (hall: string) => ['replay', 'event', hall] as const,
   reports: ['report'] as const,
   report: (people: boolean) => ['report', people] as const,
   users: ['users'] as const,

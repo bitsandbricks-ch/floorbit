@@ -22,11 +22,36 @@ keep the moments a seat changed (in Redis with the other stats, at most 100,000 
 
 With check-ins in use, the replay can show "checked in" instead of "online".
 
+## The whole event
+
+**Whole event** at the top of the page switches from the last 24 hours to a recording of the whole
+event (`floorbit/recording.py`). The port watch writes a frame to it every five minutes: bandwidth,
+seats online, which seats were online, which had an open incident, and per seat block the seats,
+how many were online, their traffic and their open incidents. Seat numbers and numbers only.
+
+Older frames are thinned out once an hour, so a long event stays small:
+
+| Age | One frame every |
+| --- | --- |
+| last 24 hours | 5 minutes |
+| up to a week | 30 minutes |
+| older | hour (at most 5,000 frames) |
+
+The frames go to `recording.jsonl` next to `data.json` (or the file `RECORDING_FILE` names) and
+start over with **Start a new event** on the [report](report.md) page.
+
+Below the plan, a **heatmap** shows every seat block over time: seats online (share of the block),
+traffic, or open incidents. Click a column to jump there.
+
+**Export:**
+
+- **Download JSON** (`GET /api/replay/event.json`): every frame of every hall.
+- **Record video** plays the recording onto a canvas in the browser and saves it as a WebM video
+  (at most 75 seconds, longer events skip frames). It needs a browser with `MediaRecorder`
+  (current Chrome, Edge and Firefox); without one the button is hidden.
+
 ## What would need more history
 
-- **More than the last 24 hours of port reads.** A whole weekend needs the stats samples and seat
-  changes kept longer (more Redis memory) or written to a file like the NetFlow hourly totals. TODO for
-  Mike: keep them for the whole event?
 - **Switches going down and coming back** are not kept as history yet (only their current state and
   the incidents filed for them), so the replay doesn't show them.
-- **Per-seat traffic over time** (a heat replay) would need the per-seat numbers of every read kept.
+- **Per-seat traffic over time** is kept per block in the whole-event recording, not per seat.

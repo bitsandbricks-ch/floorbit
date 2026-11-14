@@ -11,7 +11,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 
 from integrations import events, seat_sources
 
-from .. import audit, incidents, report, report_pdf, spa
+from .. import audit, incidents, recording, report, report_pdf, spa
 from ..store import load_data
 from .replay import _checkins
 
@@ -78,5 +78,6 @@ def report_file():
 @bp.route('/api/report/new-event', methods=['POST'])
 def new_event():
     current_app.extensions['floorbit_stats'].new_event()
+    recording.clear()   # the whole-event replay starts over with the event (floorbit/recording.py)
     events.publish('stats.changed', {})
     return jsonify({'ok': True})

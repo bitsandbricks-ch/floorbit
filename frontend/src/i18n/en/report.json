@@ -6,7 +6,7 @@
   "peopleHelp": "Admins only. Personal data: the download goes to the audit log.",
   "peopleOn": "This report includes nicks and IPs. Handle it as personal data.",
   "newEvent": "Start a new event",
-  "newEventQuestion": "Start a new event? The report's history (hours, outages, problem ports) and the peak begin again. Incidents and check-ins stay on their own pages.",
+  "newEventQuestion": "Start a new event? The report's history (hours, outages, problem ports) and the peak begin again, and so does the recording for the replay. Incidents and check-ins stay on their own pages.",
   "newEventDone": "New event started.",
   "period": "{{start}} to {{end}}",
   "empty": "No port reads kept yet: the report fills in while the event runs.",

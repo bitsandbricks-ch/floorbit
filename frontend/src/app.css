@@ -302,3 +302,10 @@ body {
 .fb-dashboard-screen { min-height: 100vh; padding: 16px; background: var(--color-ink); }
 .fb-stats-panel .name a { color: inherit; text-decoration: none; }
 .fb-stats-panel .name a:hover, .fb-stats-panel .name a:focus-visible { color: var(--color-bit); text-decoration: underline; }
+.fb-heatmap-scroll { overflow-x: auto; }
+.fb-heatmap { width: 100%; min-width: 640px; height: auto; display: block; }
+.fb-heatmap rect { fill: var(--color-up); cursor: pointer; }
+.fb-heatmap.traffic rect { fill: var(--color-bit); }
+.fb-heatmap.incidents rect { fill: var(--color-down); }
+.fb-heatmap .label { fill: var(--color-muted); font: 600 12px var(--font-sans); text-anchor: end; }
+.fb-heatmap rect.cursor { fill: none; stroke: var(--color-fg); stroke-width: 2; pointer-events: none; }
