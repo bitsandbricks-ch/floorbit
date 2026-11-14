@@ -67,3 +67,7 @@ body {
 
 .lg-foot { color: var(--text-secondary); margin-top: 16px; }
 .lg-foot a { color: var(--accent-hover); }
+
+/* Discord's own colour, so the button reads as Discord's on every theme. */
+.lg-btn-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+.lg-btn-discord:hover { background: #4752c4; border-color: #4752c4; }

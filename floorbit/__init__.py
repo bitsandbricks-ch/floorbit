@@ -27,6 +27,13 @@ from .theme import init_theme
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _setting_or_empty(settings_store, key):
+    try:
+        return settings_store.get(key)
+    except KeyError:   # integrations add this field at start-up
+        return ''
+
+
 def create_app(start_background=True):
     load_dotenv()
     app = Flask(__name__, root_path=str(ROOT))
@@ -40,6 +47,12 @@ def create_app(start_background=True):
     settings_store = SettingsStore(store.DATA_FILE)
     runtime.apply(settings_store)
     app.extensions['floorbit_settings'] = settings_store
+
+    # Discord sign-in reads its settings on every request, so a save applies at once.
+    from auth.providers import DiscordProvider
+    auth = app.extensions['auth']
+    auth.providers.register(DiscordProvider(settings_store.get))
+    auth.public_url = lambda: _setting_or_empty(settings_store, 'integrations.public_url')
 
     @app.before_request
     def refresh_runtime_settings():

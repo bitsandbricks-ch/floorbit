@@ -71,7 +71,46 @@ password reset signs that account out everywhere.
   another site are refused (403).
 - A password change bumps the account's `session_version`, which signs out its other sessions.
 
-## Adding SSO (OIDC) or Discord later
+## Sign in with Discord
+
+A "Sign in with Discord" button appears on the sign-in page once a Discord application is set
+up. Settings > Discord sign-in holds the values; each one can also come from an environment
+variable.
+
+1. Create an application at <https://discord.com/developers/applications>. Under OAuth2, add the
+   redirect `https://<your Floorbit address>/auth/discord/callback`. Behind a reverse proxy, set
+   **Public URL** (Settings > General, `PUBLIC_URL`) so Floorbit sends Discord that exact address.
+2. Paste the application's **client ID** and **client secret** (`DISCORD_CLIENT_ID`,
+   `DISCORD_CLIENT_SECRET`). The secret is write-only, like the other tokens, and never in a backup.
+
+Who gets in depends on whether a server is set:
+
+| Server ID (`DISCORD_GUILD_ID`) | Who can sign in |
+| --- | --- |
+| empty | Only accounts an admin linked to a Discord user. On the Users page, click **Link Discord** on an account and paste the person's Discord user ID (in Discord: Settings > Advanced > Developer mode, then right-click the person > Copy User ID). |
+| set | Linked accounts, plus members of that Discord server. A member's first sign-in creates an account (no password) whose role comes from their server roles. |
+
+Role mapping for server members, by Discord role ID (comma separated):
+
+| Setting | Env var | Members with one of these roles become |
+| --- | --- | --- |
+| Admin roles | `DISCORD_ADMIN_ROLES` | admin |
+| Editor roles | `DISCORD_EDITOR_ROLES` | editor |
+| Viewer roles | `DISCORD_VIEWER_ROLES` | viewer |
+
+The highest matching role wins. With all three lists empty, every member of the server can sign in
+as a viewer; with any list set, members without one of those roles are refused.
+
+- The Discord role sets the role of a new account only. Change it later on the Users page.
+- An account Discord created stops working when its owner leaves the server or loses every listed
+  role (checked on each sign-in; a session that is already open lasts until it expires, see
+  `AUTH_SESSION_HOURS`). Remove the account on the Users page to end it at once.
+- Accounts an admin linked by hand don't need the server or a role.
+- Floorbit asks Discord for `identify`, plus `guilds.members.read` when a server is set. It keeps the
+  Discord user ID on the account and nothing else (no token, no email).
+- Discord sign-ins and refused ones are in the audit log, under *sign-in*.
+
+## Adding another login method
 
 A login method is a provider in `auth/providers/`. Two kinds exist:
 
@@ -79,15 +118,13 @@ A login method is a provider in `auth/providers/`. Two kinds exist:
   `authenticate(username, password)`. `LocalProvider` is one; LDAP would be another.
 - `RedirectProvider`: the sign-in page shows a "Sign in with ..." button. `start(callback_url, state)`
   returns the URL to send the browser to, and `finish(request, callback_url)` turns the callback into
-  an `Identity(provider, subject, username, display_name, email)`.
+  an `Identity(provider, subject, username, display_name, email)`. `DiscordProvider` is one.
 
 The routes `/auth/<id>/start` and `/auth/<id>/callback`, the `state` check and the session are
-already there. `Auth.resolve_identity` maps an identity to an account through its linked
-`identities` (`users.link_identity("mike", "discord", "<discord user id>")`). A provider with
-`auto_create_users = True` creates an account on first sign-in (with the provider's `default_role`,
-viewer unless set); leave it off unless the provider
-itself limits who gets in (for example only members of a Discord guild role).
-
-An OIDC or Discord provider is then one class, registered in `init_auth` when its env vars are set
-(`OIDC_ISSUER`, `OIDC_CLIENT_ID`, ... or `DISCORD_CLIENT_ID`, ...). The tests in
-`tests/test_auth.py` run the whole redirect flow with a fake provider.
+shared. `Auth.resolve_identity` maps an identity to an account through its linked `identities`
+(`users.link_identity("mike", "discord", "<discord user id>")`) and calls the provider's
+`check_existing(user, identity)` on every sign-in. A provider with `auto_create_users = True`
+creates an account on first sign-in with the role from `new_user_role(identity)`; leave it off
+unless the provider itself limits who gets in (as Discord does with a server). The tests in
+`tests/test_auth.py` run the redirect flow with a fake provider, and `tests/test_discord_login.py`
+runs Discord's against a fake Discord API.

@@ -25,8 +25,8 @@ each seat is plugged into.
 - **Seats:** `seats.json` maps seat numbers to IPs and usernames. The heat map colours each seat by
   its port's traffic.
 - **Sign-in:** the editor and the settings need an account; the floor plan data stays readable for
-  kiosk screens. Username and password today, built so SSO or Discord can be added. See
-  [docs/auth.md](docs/auth.md).
+  kiosk screens. Username and password, or **Sign in with Discord**: members of your Discord server
+  get an account with a role from their server roles. See [docs/auth.md](docs/auth.md).
 - **Themes:** the Floorbit look by default, plus Ops, Kiosk and Classic presets and a custom theme
   with your event's colours, name and logo. Each screen can pick its own with `?theme=`. See
   [docs/themes.md](docs/themes.md).
@@ -73,6 +73,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `SECRET_KEY` | generated | Signs the session cookie. Empty: generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |
 | `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID` | empty | Sign in with Discord; also under Settings > Discord sign-in ([docs/auth.md](docs/auth.md#sign-in-with-discord)). |
 
 The floor plan itself (positions, seat blocks, settings) lives in `data.json`: back it up, or use
 Settings > Backup and restore ([docs/backup.md](docs/backup.md)).
@@ -100,7 +101,7 @@ docker build .
 | `app.py` | Entry point; the app itself is built by `create_app()` in `floorbit/`. |
 | `floorbit/` | The Flask app: `blueprints/` (pages and JSON API), `sources/` (NetBox, LibreNMS), settings, Redis cache. See [docs/architecture.md](docs/architecture.md). |
 | `integrations/` | Live updates, switch monitor, Discord alerts, seat sources, check-in. |
-| `auth/` | Sign-in: accounts, sessions, the login page and the providers for SSO later. |
+| `auth/` | Sign-in: accounts, sessions, the login page and the login providers (password, Discord). |
 | `templates/`, `static/` | The pages and the browser app (plain JavaScript and CSS, no build step); the editor is in `static/js/editor/`. |
 | `changelog.d/` | One changelog fragment per pull request. |
 | `seats.json` | Seat number to IP and username. |

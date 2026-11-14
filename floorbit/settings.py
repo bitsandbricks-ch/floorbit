@@ -37,6 +37,11 @@ SECTIONS = [
      'description': 'How long LibreNMS lookups are kept in Redis before they are fetched again.'},
     {'id': 'display',  'title': 'Display defaults',
      'description': 'Defaults for switches that have no per-device setting of their own.'},
+    {'id': 'signin', 'title': 'Discord sign-in',
+     'description': 'A "Sign in with Discord" button on the sign-in page. Create an application at '
+                    'discord.com/developers, add <this site>/auth/discord/callback as an OAuth2 redirect '
+                    '(set Public URL under General when the app runs behind a proxy) and paste its client '
+                    'ID and secret here. Without a server, only accounts linked on the Users page can use it.'},
     {'id': 'appearance', 'title': 'Appearance',
      'description': 'The look of every page. A screen can pick its own preset with ?theme= '
                     '(for example /kiosk?theme=kiosk); ?theme=default goes back to this one.'},
@@ -87,6 +92,26 @@ FIELDS = [
          env=None, default=False),
     dict(key='display.exclude_heatmap', section='display', label='Exclude switches from heatmap', type='bool',
          env=None, default=False),
+
+    dict(key='signin.discord_client_id', section='signin', label='Client ID', type='text',
+         env='DISCORD_CLIENT_ID', default='', placeholder='123456789012345678'),
+    dict(key='signin.discord_client_secret', section='signin', label='Client secret', type='secret',
+         env='DISCORD_CLIENT_SECRET', default=''),
+    dict(key='signin.discord_guild_id', section='signin', label='Server ID', type='text',
+         env='DISCORD_GUILD_ID', default='', placeholder='Empty: linked accounts only',
+         help='Members of this Discord server can sign in, and get an account on their first sign-in. '
+              'Right-click the server in Discord (developer mode on) and copy its ID.'),
+    dict(key='signin.discord_admin_roles', section='signin', label='Admin roles', type='list',
+         env='DISCORD_ADMIN_ROLES', default=[],
+         help='Comma-separated Discord role IDs whose members become admins.'),
+    dict(key='signin.discord_editor_roles', section='signin', label='Editor roles', type='list',
+         env='DISCORD_EDITOR_ROLES', default=[],
+         help='Role IDs whose members become editors.'),
+    dict(key='signin.discord_viewer_roles', section='signin', label='Viewer roles', type='list',
+         env='DISCORD_VIEWER_ROLES', default=[],
+         help='Role IDs whose members become viewers. With all three role lists empty, every '
+              'member of the server can sign in as a viewer; otherwise members without one of '
+              'these roles are refused. The role is set on the first sign-in; change it on the Users page later.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),

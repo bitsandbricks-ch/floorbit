@@ -5,7 +5,7 @@ container rebuild without another volume. Passwords are stored as werkzeug
 hashes (scrypt); the plain password never touches the disk.
 
 Accounts can also be linked to outside identities (``identities``), which is
-how an SSO or Discord login will map to a user here later.
+how a Discord (or later SSO) login maps to a user here.
 """
 import json
 import os
@@ -104,7 +104,8 @@ class UserStore:
         return user
 
     # writes --------------------------------------------------------------
-    def add(self, username, password=None, display_name=None, identities=None, role=roles.DEFAULT_ROLE):
+    def add(self, username, password=None, display_name=None, identities=None, role=roles.DEFAULT_ROLE,
+            created_by=None):
         username = validate_username(username)
         role = _role(role)
         if password is not None:
@@ -122,6 +123,8 @@ class UserStore:
                 'session_version': 1,
                 'created_at': int(time.time()),
             }
+            if created_by:   # a login provider that made this account on first sign-in
+                users[username.lower()]['created_by'] = created_by
             self._write_users(users)
             return dict(users[username.lower()])
 
@@ -156,12 +159,20 @@ class UserStore:
             return dict(user)
 
     def link_identity(self, username, provider, subject):
+        """Link an outside login to this account; an empty subject unlinks it."""
+        subject = str(subject or '').strip()
         with self._lock:
             users = self._users()
             user = users.get((username or '').lower())
             if not user:
                 raise UserError(f'No user called {username}.')
-            user.setdefault('identities', {})[provider] = str(subject)
+            if not subject:
+                (user.get('identities') or {}).pop(provider, None)
+            else:
+                for other in users.values():
+                    if other is not user and (other.get('identities') or {}).get(provider) == subject:
+                        raise UserError(f'That {provider} login is already linked to {other["username"]}.')
+                user.setdefault('identities', {})[provider] = subject
             self._write_users(users)
 
     def remove(self, username):
@@ -188,4 +199,6 @@ def public(user):
         'role': roles.of(user),
         'has_password': bool(user.get('password_hash')),
         'identities': sorted((user.get('identities') or {}).keys()),
+        'discord_id': (user.get('identities') or {}).get('discord', ''),
+        'created_by': user.get('created_by'),
     }

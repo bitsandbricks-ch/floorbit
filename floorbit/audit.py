@@ -143,8 +143,12 @@ def init_audit(app):
             record('sign-in', 'Signed in' if ok else 'Sign-in failed', user=name or None, ok=ok)
         elif rule == '/logout' and request.method == 'POST' and user:
             record('sign-in', 'Signed out', user=user)
-        elif request.endpoint == 'auth.callback' and response.status_code in (302, 303) and session.get('user'):
-            record('sign-in', 'Signed in', user=session['user'], target=(request.view_args or {}).get('provider_id'))
+        elif request.endpoint == 'auth.callback':
+            provider = (request.view_args or {}).get('provider_id')
+            if response.status_code in (302, 303) and session.get('user'):
+                record('sign-in', 'Signed in', user=session['user'], target=provider)
+            elif response.status_code in (400, 403):
+                record('sign-in', 'Sign-in failed', target=provider, ok=False)
         elif response.status_code < 400 and (request.method, rule) in ACTIONS:
             area, action = ACTIONS[(request.method, rule)]
             fields = _changed_fields() if request.method in ('PUT', 'PATCH') else None

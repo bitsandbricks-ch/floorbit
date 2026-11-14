@@ -1,9 +1,10 @@
 """Registry of login methods. See base.py for how to add one."""
 from .base import AuthError, AuthProvider, Identity, PasswordProvider, RedirectProvider
+from .discord import DiscordProvider
 from .local import LocalProvider
 
 __all__ = [
-    'AuthError', 'AuthProvider', 'Identity', 'LocalProvider', 'PasswordProvider',
+    'AuthError', 'AuthProvider', 'DiscordProvider', 'Identity', 'LocalProvider', 'PasswordProvider',
     'RedirectProvider', 'Registry',
 ]
 
