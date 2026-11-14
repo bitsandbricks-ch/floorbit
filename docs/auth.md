@@ -81,17 +81,17 @@ Signed-out API calls answer `401 {"error": "Sign in required", "login_url": "/lo
 
 ## Accounts
 
-Accounts are stored in `data.json` under `auth_users` (the file compose already mounts), with the
+Accounts are stored in `data.json` under `auth_users` (in the compose file's state volume), with the
 password as a werkzeug scrypt hash. Admins manage them on **Settings › Users** (`/settings/users`):
 add, change role, reset password, remove. Or on the server:
 
 ```sh
-docker compose exec lal-app flask users add mike          # asks for the password; first account is admin
-docker compose exec lal-app flask users add helper1 --role viewer
-docker compose exec lal-app flask users role helper1 lead
-docker compose exec lal-app flask users passwd mike       # also signs out mike's sessions
-docker compose exec lal-app flask users remove mike
-docker compose exec lal-app flask users list
+docker compose exec floorbit flask users add mike          # asks for the password; first account is admin
+docker compose exec floorbit flask users add helper1 --role viewer
+docker compose exec floorbit flask users role helper1 lead
+docker compose exec floorbit flask users passwd mike       # also signs out mike's sessions
+docker compose exec floorbit flask users remove mike
+docker compose exec floorbit flask users list
 ```
 
 Outside Docker use `flask --app app users ...`.

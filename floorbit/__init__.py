@@ -14,6 +14,7 @@
 
 See docs/architecture.md.
 """
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -38,8 +39,15 @@ def _setting_or_empty(settings_store, key):
 
 def create_app(start_background=True):
     load_dotenv()
+    if os.environ.get('FLOORBIT_DATA_FILE'):   # may come from .env, read just now
+        store.DATA_FILE = os.environ['FLOORBIT_DATA_FILE']
     app = Flask(__name__, root_path=str(ROOT))
     app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
+
+    stuck = store.unwritable()
+    if stuck:
+        print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
+              "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
 
     # Sign-in first, so its check runs before the other before_request hooks and a
     # refused request never touches Redis.

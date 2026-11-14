@@ -1,11 +1,38 @@
-version: '3.8'
+# Floorbit and Redis. Setup guide: docs/install.md.
+#
+#   cp .env.example .env      # optional: NetBox, LibreNMS, first account, ...
+#   docker compose up -d
+#
+# Then open http://localhost:8080 (FLOORBIT_PORT). Settings come from .env; most can also be
+# changed later under Settings, and values saved there win over .env.
 
 services:
+  floorbit:
+    image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
+    ports:
+      - "${FLOORBIT_PORT:-8080}:5000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      REDIS_HOST: redis
+    volumes:
+      # data.json, accounts, the audit log, plugin state and check-ins: back this up.
+      - floorbit_state:/app/state
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # The cache for LibreNMS answers. Only Floorbit talks to it, so no port is published.
   redis:
     image: redis:7-alpine
-    container_name: lal-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -16,74 +43,6 @@ services:
       retries: 3
       start_period: 5s
 
-  lal-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: lal-app
-    ports:
-      - "5002:5000"
-    volumes:
-      - ./data.json:/app/data.json
-      - ./static/uploads:/app/static/uploads
-      - ./state:/app/state
-    environment:
-      - FLASK_APP=app.py
-      - FLASK_ENV=production
-      - NETBOX_URL=${NETBOX_URL:-}
-      - NETBOX_TOKEN=${NETBOX_TOKEN:-}
-      - NETBOX_DEVICE_ROLE=${NETBOX_DEVICE_ROLE:-access-switch}
-      - NETBOX_VERIFY_SSL=${NETBOX_VERIFY_SSL:-true}
-      - LIBRENMS_URL=${LIBRENMS_URL:-}
-      - LIBRENMS_TOKEN=${LIBRENMS_TOKEN:-}
-      - LIBRENMS_VERIFY_SSL=${LIBRENMS_VERIFY_SSL:-true}
-      # Integrations (docs/integrations.md)
-      - LIVE_UPDATES_ENABLED=${LIVE_UPDATES_ENABLED:-true}
-      - STATUS_MONITOR_ENABLED=${STATUS_MONITOR_ENABLED:-true}
-      - STATUS_MONITOR_INTERVAL=${STATUS_MONITOR_INTERVAL:-60}
-      - STATUS_MONITOR_CONFIRM=${STATUS_MONITOR_CONFIRM:-2}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
-      - DISCORD_MENTION=${DISCORD_MENTION:-}
-      - DISCORD_COOLDOWN=${DISCORD_COOLDOWN:-300}
-      - PUBLIC_URL=${PUBLIC_URL:-}
-      - SEAT_SOURCES=${SEAT_SOURCES:-json}
-      - SEAT_SOURCE_HTTP_URL=${SEAT_SOURCE_HTTP_URL:-}
-      - SEAT_SOURCE_HTTP_TOKEN=${SEAT_SOURCE_HTTP_TOKEN:-}
-      - CHECKIN_ENABLED=${CHECKIN_ENABLED:-false}
-      - CHECKIN_ALLOWED_NETWORKS=${CHECKIN_ALLOWED_NETWORKS:-}
-      - CHECKIN_TRUST_PROXY=${CHECKIN_TRUST_PROXY:-false}
-      - CHECKIN_ADMIN_TOKEN=${CHECKIN_ADMIN_TOKEN:-}
-      - CHECKIN_FILE=${CHECKIN_FILE:-/app/state/checkins.json}
-      - AUDIT_FILE=${AUDIT_FILE:-/app/state/audit.jsonl}   # Settings > Audit log, docs/audit.md
-      - PLUGINS_FILE=${PLUGINS_FILE:-/app/state/plugins.json}   # which plugins are on, and their state
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_DB=${REDIS_DB:-0}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - CACHE_TTL_ARP=${CACHE_TTL_ARP:-300}
-      - CACHE_TTL_MAC=${CACHE_TTL_MAC:-300}
-      # Everything above except REDIS_* can also be changed on /settings;
-      # values saved there are kept in data.json and win over these.
-      - CACHE_TTL_RESOLVE=${CACHE_TTL_RESOLVE:-30}
-      - LIBRENMS_FDB_EXCLUDE=${LIBRENMS_FDB_EXCLUDE:-}
-      # Sign-in, see docs/auth.md. Accounts are kept in data.json.
-      - SECRET_KEY=${SECRET_KEY:-}
-      - AUTH_ENABLED=${AUTH_ENABLED:-true}
-      - AUTH_ADMIN_USER=${AUTH_ADMIN_USER:-}
-      - AUTH_ADMIN_PASSWORD=${AUTH_ADMIN_PASSWORD:-}
-      - AUTH_PUBLIC_READ=${AUTH_PUBLIC_READ:-true}
-      - AUTH_SESSION_HOURS=${AUTH_SESSION_HOURS:-12}
-      - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-false}
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
 volumes:
+  floorbit_state:
   redis_data:

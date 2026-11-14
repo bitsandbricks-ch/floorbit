@@ -7,3 +7,4 @@ pyyaml>=6.0
 PyJWT[crypto]>=2.8
 segno>=1.6
 paramiko>=3.4
+gunicorn>=23.0             # production server in the Docker image (Dockerfile)

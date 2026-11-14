@@ -57,8 +57,11 @@ class JsonFileSource(SeatSource):
         return config.get('SEAT_SOURCE_JSON_PATH', 'seats.json')
 
     def fetch(self):
-        with open(self.path()) as f:
-            data = json.load(f)
+        try:
+            with open(self.path()) as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return {}   # a fresh install has no seats.json yet; that is not an error
         return data.get('seats', data) if isinstance(data, dict) else {}
 
 
