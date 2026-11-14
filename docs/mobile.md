@@ -11,6 +11,7 @@ simple changes by touch. The kiosk and check-in pages are unchanged; they have t
 | Drag a switch or block | Moves it (undo works as with the mouse) |
 | Drag the empty plan | Pans |
 | Pinch with two fingers | Zooms, and pans while you pinch |
+| Hold a finger still on a seat, switch or the plan | Opens its [menu](context-menu.md), like a right-click |
 | ☰ in the top bar | Opens search and the layer list as a drawer |
 
 Below 760 px wide:

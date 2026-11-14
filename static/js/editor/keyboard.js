@@ -12,6 +12,7 @@ function isTyping(e) {
 const ARROW_DIRS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 document.addEventListener('keydown', (e) => {
+  if (contextMenu.contains(e.target)) return;   // the open menu handles its own keys (menus.js)
   if (e.key === 'Escape') {
     if (anyModalOpen()) { closeAllModals(); return; }
     if (!contextMenu.classList.contains('hidden')) { contextMenu.classList.add('hidden'); return; }
@@ -21,6 +22,11 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (isTyping(e) || anyModalOpen()) return;
+  if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+    e.preventDefault();
+    openContextMenuFromKeyboard();
+    return;
+  }
 
   const mod = e.ctrlKey || e.metaKey;
   const key = e.key.toLowerCase();
