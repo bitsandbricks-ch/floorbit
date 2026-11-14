@@ -904,3 +904,9 @@ kbd {
 .legend-swatch.power-swatch.warn { --power: var(--color-warn); }
 .legend-swatch.power-swatch.crit { --power: var(--color-down); }
 .legend-swatch.power-swatch.unknown { --power: var(--color-muted); }
+
+/* Top bar: below this width the links show only their icon (the title says what they are), so
+   the counts stay visible instead of the bar running off the screen. */
+@media (max-width: 1600px) {
+  .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

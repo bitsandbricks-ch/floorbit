@@ -229,6 +229,8 @@ RULES = (
     # Power: changes need power.edit, readings and trips also incidents.work in the Electrics team;
     # the blueprint checks that (floorbit/blueprints/power.py). Asking the meters is a plugin run.
     ('/api/power/check', WRITE, 'plugins.run'),
+    # Muting a switch's alerts is for the people working the problems.
+    ('/api/alerts', WRITE, 'incidents.work'),
     ('/api/power', WRITE, 'floorplan.view'),
     # Plugin actions check the permission each action names (floorbit/blueprints/plugins.py).
     ('/api/plugins', WRITE, 'floorplan.view'),

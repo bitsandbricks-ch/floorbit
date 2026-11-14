@@ -32,6 +32,7 @@ async function init() {
   loadSecurityMarkers();
   if (powerOn) setPowerLayer(readJSON('layer-power', false));
   loadPowerMarkers();
+  loadProblemCount();
 }
 
 function applyCachedStatus(cache) {

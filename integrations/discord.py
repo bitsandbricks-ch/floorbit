@@ -13,12 +13,13 @@ from datetime import UTC, datetime
 
 import requests
 
-from . import config, events
+from . import alerting, config, events
 
 COLOR_OFFLINE = 0xF85149
 COLOR_ONLINE = 0x3FB950
 COLOR_INFO = 0xF0883E   # the app's orange accent
 MAX_EMBEDS = 10         # Discord limit per message
+SILENT = 4096           # Discord's SUPPRESS_NOTIFICATIONS flag: posted, but no push or sound
 SECURITY_KINDS = {'rogue-dhcp': 'Rogue DHCP server', 'arp-spoof': 'ARP spoofing', 'mac-flap': 'MAC flapping',
                   'loop': 'Network loop', 'storm': 'Broadcast storm', 'other': 'Security finding'}
 
@@ -34,6 +35,30 @@ def _fmt_duration(seconds):
         return f'{minutes}m {seconds}s'
     hours, minutes = divmod(minutes, 60)
     return f'{hours}h {minutes}m'
+
+
+def _circuits_of_switches():
+    """Switch id -> power circuit name, from the Electrics layer (empty when it isn't used)."""
+    try:
+        from floorbit import store
+        circuits = (store.load_data().get('power') or {}).get('circuits') or []
+    except Exception:  # noqa: BLE001  # grouping is a nicety; the alert goes out without it
+        return {}
+    return {sid: c.get('name') for c in circuits if isinstance(c, dict) for sid in c.get('switches') or []}
+
+
+def _grouped(changes):
+    """One line per power circuit (what a row losing power looks like), then the rest."""
+    by_circuit = _circuits_of_switches()
+    groups = {}
+    for c in changes:
+        groups.setdefault(by_circuit.get(c['id']), []).append(str(c.get('name'))[:60])
+    lines = [f"**Circuit {name}**: {', '.join(sorted(names))}" for name, names in sorted(
+        ((k, v) for k, v in groups.items() if k), key=lambda kv: -len(kv[1]))]
+    if None in groups:
+        rest = sorted(groups[None])
+        lines.append(('Other: ' if lines else '') + ', '.join(rest))
+    return '\n'.join(lines)
 
 
 class DiscordNotifier:
@@ -78,38 +103,41 @@ class DiscordNotifier:
                 self.last_error = str(exc)
                 print(f"[integrations] Discord send failed: {exc}")
 
+    def post(self, payload):
+        """Queue a message. In quiet hours it goes out silently, without the mention."""
+        if alerting.quiet_now():
+            mention = config.get('DISCORD_MENTION', '') or ''
+            content = (payload.get('content') or '').replace(mention, '').strip() if mention else payload.get('content')
+            payload = {**payload, 'allowed_mentions': {'parse': []}, 'flags': SILENT}
+            payload.pop('content', None)
+            if content:
+                payload['content'] = content
+        self._ensure_worker()
+        try:
+            self._queue.put_nowait(payload)
+        except queue.Full:
+            self.last_error = 'alert queue full, message dropped'
+
     # ── message building ─────────────────────────────────────────────────────────────
     def on_poll(self, event):
         if not self.enabled():
             return
         payload = self.build_status_message(event['data'].get('changes', []))
         if payload:
-            self._ensure_worker()
-            try:
-                self._queue.put_nowait(payload)
-            except queue.Full:
-                self.last_error = 'alert queue full, message dropped'
+            self.post(payload)
 
     def on_source(self, event):
         """The monitoring source itself went away or came back: one message, not one per switch."""
         if not self.enabled():
             return
-        self._ensure_worker()
-        try:
-            self._queue.put_nowait(self.build_source_message(event['type'], event.get('data') or {}))
-        except queue.Full:
-            self.last_error = 'alert queue full, message dropped'
+        self.post(self.build_source_message(event['type'], event.get('data') or {}))
 
     def on_health(self, event):
         if not self.enabled() or not config.get_bool('DISCORD_HEALTH_ALERTS', True):
             return
         payload = self.build_health_message((event.get('data') or {}).get('changes', []))
         if payload:
-            self._ensure_worker()
-            try:
-                self._queue.put_nowait(payload)
-            except queue.Full:
-                self.last_error = 'alert queue full, message dropped'
+            self.post(payload)
 
     def build_health_message(self, changes, now=None):
         """Red services, and (if wanted) services that were red and are back. Amber pages nobody."""
@@ -156,11 +184,7 @@ class DiscordNotifier:
             return
         payload = self.build_security_message(event.get('data') or {})
         if payload:
-            self._ensure_worker()
-            try:
-                self._queue.put_nowait(payload)
-            except queue.Full:
-                self.last_error = 'alert queue full, message dropped'
+            self.post(payload)
 
     def build_security_message(self, finding, now=None):
         """High and medium findings. Where, not who: no MAC or IP goes to Discord."""
@@ -196,11 +220,7 @@ class DiscordNotifier:
             return
         payload = self.build_power_message(event.get('data') or {})
         if payload:
-            self._ensure_worker()
-            try:
-                self._queue.put_nowait(payload)
-            except queue.Full:
-                self.last_error = 'alert queue full, message dropped'
+            self.post(payload)
 
     def build_power_message(self, alert, now=None):
         """A circuit turned red or its breaker tripped: which one, and what goes dark."""
@@ -258,13 +278,17 @@ class DiscordNotifier:
                 'allowed_mentions': {'parse': []}}
 
     def build_status_message(self, changes, now=None):
+        """Switches that went offline or came back in one poll. Muted switches are left out; past
+        ``ALERT_GROUP_AFTER`` changes they become one message grouped by power circuit, so a row
+        losing power is one alert, not fifty."""
         now = now or time.time()
         cooldown = config.get_int('DISCORD_COOLDOWN', 300, minimum=0)
         notify_recovery = config.get_bool('DISCORD_NOTIFY_RECOVERY', True)
+        muted = alerting.mutes(now) if changes else {}
 
         selected = []
         for c in changes:
-            if c['status'] == 'unknown':
+            if c['status'] == 'unknown' or c['id'] in muted:
                 continue
             if c['status'] == 'online' and not notify_recovery:
                 continue
@@ -280,26 +304,40 @@ class DiscordNotifier:
             return None
 
         offline = [c for c in selected if c['status'] == 'offline']
+        back = [c for c in selected if c['status'] != 'offline']
         public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
         ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
+        group_after = config.get_int('ALERT_GROUP_AFTER', 3, minimum=1)
 
         embeds = []
-        for c in selected[:MAX_EMBEDS]:
-            down = c['status'] == 'offline'
-            fields = [{'name': 'Was', 'value': c.get('previous') or 'unknown', 'inline': True}]
-            if not down and c.get('down_for'):
-                fields.append({'name': 'Down for', 'value': _fmt_duration(c['down_for']), 'inline': True})
-            if down and c.get('reason'):
-                fields.append({'name': 'Reason', 'value': str(c['reason'])[:200], 'inline': True})
-            embed = {
-                'title': f"{'🔴' if down else '🟢'} {c['name']} is {'offline' if down else 'back online'}",
-                'color': COLOR_OFFLINE if down else COLOR_ONLINE,
-                'fields': fields,
-                'timestamp': ts,
-            }
-            if public_url:
-                embed['url'] = public_url
-            embeds.append(embed)
+        if len(selected) > min(group_after, MAX_EMBEDS):
+            for items, down in ((offline, True), (back, False)):
+                if not items:
+                    continue
+                embed = {'title': (f"{'🔴' if down else '🟢'} {len(items)} switch{'es' if len(items) != 1 else ''} "
+                                   f"{'offline' if down else 'back online'}"),
+                         'description': _grouped(items)[:4000],
+                         'color': COLOR_OFFLINE if down else COLOR_ONLINE, 'timestamp': ts}
+                if public_url:
+                    embed['url'] = public_url + '/problems'
+                embeds.append(embed)
+        else:
+            for c in selected:
+                down = c['status'] == 'offline'
+                fields = [{'name': 'Was', 'value': c.get('previous') or 'unknown', 'inline': True}]
+                if not down and c.get('down_for'):
+                    fields.append({'name': 'Down for', 'value': _fmt_duration(c['down_for']), 'inline': True})
+                if down and c.get('reason'):
+                    fields.append({'name': 'Reason', 'value': str(c['reason'])[:200], 'inline': True})
+                embed = {
+                    'title': f"{'🔴' if down else '🟢'} {c['name']} is {'offline' if down else 'back online'}",
+                    'color': COLOR_OFFLINE if down else COLOR_ONLINE,
+                    'fields': fields,
+                    'timestamp': ts,
+                }
+                if public_url:
+                    embed['url'] = public_url
+                embeds.append(embed)
 
         content = ''
         if offline:
@@ -307,8 +345,6 @@ class DiscordNotifier:
             content = f'{mention} ' if mention else ''
             content += (f'{len(offline)} switch{"es" if len(offline) != 1 else ""} went offline'
                         if len(offline) > 1 else '')
-        if len(selected) > MAX_EMBEDS:
-            content += f' (+{len(selected) - MAX_EMBEDS} more)'
 
         payload = {
             'username': config.get('DISCORD_USERNAME', 'Floorbit'),

@@ -405,3 +405,33 @@ export interface PowerOverview {
   can_edit: boolean
   can_read: boolean
 }
+
+// Everything wrong right now, and muted switches (floorbit/problems.py).
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power'
+export interface AlertMute {
+  switch_id: string
+  name: string
+  until: number
+  at: number
+  by: string | null
+  reason: string
+}
+export interface Problem {
+  id: string
+  kind: ProblemKind
+  level: 'down' | 'warn'
+  title: string
+  where: string
+  since: number | null
+  link: string
+  switch_id?: string
+  muted?: { until: number; by: string | null; reason: string } | null
+}
+export interface ProblemList {
+  problems: Problem[]
+  counts: { down: number; warn: number; muted: number }
+  mutes: AlertMute[]
+  quiet_hours: boolean
+  checked_at: number
+  can_mute: boolean
+}

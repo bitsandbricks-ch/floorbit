@@ -1,0 +1,27 @@
+{
+  "title": "Probleme",
+  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte einen Switch stumm, an dem du arbeitest, damit er nicht mehr alarmiert.",
+  "none": "Gerade ist alles in Ordnung.",
+  "count": {
+    "down_one": "{{count}} down", "down_other": "{{count}} down",
+    "warn_one": "{{count}} anzuschauen", "warn_other": "{{count}} anzuschauen",
+    "muted_one": "{{count}} stumm", "muted_other": "{{count}} stumm"
+  },
+  "kind": { "monitoring": "Monitoring", "switch": "Switch", "health": "Dienst", "security": "Sicherheit", "power": "Strom" },
+  "since": "seit {{ago}}",
+  "open": "Öffnen",
+  "mute": "Stumm",
+  "unmute": "Wieder laut",
+  "mutedUntil": "Stumm bis {{time}}, von {{who}}",
+  "quiet": "Ruhezeit: Discord-Nachrichten gehen still raus, ohne Erwähnung.",
+  "mutes": "Stumme Switches",
+  "muteTitle": "Alarme für {{name}} stummschalten",
+  "muteText": "Keine Discord-Nachrichten, wenn dieser Switch offline geht oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste.",
+  "for": "Für",
+  "reason": "Warum (wird bei der Stummschaltung angezeigt)",
+  "minutes": { "30": "30 Minuten", "60": "1 Stunde", "240": "4 Stunden", "720": "12 Stunden", "1440": "1 Tag" },
+  "cancel": "Abbrechen",
+  "justNow": "gerade eben",
+  "minutesAgo_one": "{{count}} Min.", "minutesAgo_other": "{{count}} Min.",
+  "hoursAgo_one": "{{count}} Std.", "hoursAgo_other": "{{count}} Std."
+}

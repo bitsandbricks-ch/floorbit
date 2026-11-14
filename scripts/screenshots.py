@@ -52,6 +52,7 @@ PAGES["incidents"] = "/incidents"
 PAGES["health"] = "/health"
 PAGES["security"] = "/security"
 PAGES["power"] = "/power"
+PAGES["problems"] = "/problems"
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
