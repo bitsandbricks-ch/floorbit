@@ -27,6 +27,7 @@ from . import (
                network,
                pages,
                past_events,
+               plan,
                planner,
                plugins,
                ports,
@@ -64,4 +65,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        cables.bp, teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, webhooks.bp, wifi.bp,
        speedtest.bp, timeline.bp, status_page.bp,
-       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp]
+       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp]

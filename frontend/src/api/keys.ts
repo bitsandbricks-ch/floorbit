@@ -61,4 +61,7 @@ export const qk = {
   report: (people: boolean) => ['report', people] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
+  planAll: ['plan'] as const,
+  plan: (hall: string) => ['plan', hall] as const,
+  planSeat: (seat: string) => ['plan', 'seat', seat] as const,
 }

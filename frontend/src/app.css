@@ -328,3 +328,48 @@ body {
 .fb-bracket-live { position: absolute; top: 0; left: 10px; font-size: 10px; font-weight: 800; padding: 0 6px; border-radius: 0 0 6px 6px; background: var(--color-warn); color: #fff; }
 .fb-bracket-meta { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 6px; font-size: 12px; color: var(--color-muted); border-top: 1px dashed var(--color-line); }
 .fb-bracket-champion { text-align: center; font-weight: 800; font-size: 18px; padding: 14px; border: 2px solid var(--color-up); border-radius: 12px; background: var(--color-surface); }
+
+/* Seats (pages/FloorPlan.tsx, issue #55). Each state has its own shape as well as its own colour,
+   so it reads in grey scale and for colour-blind eyes: filled, hollow with a slash, dashed. */
+.fb-plan-layout { display: grid; gap: 12px; }
+.fb-plan-layout.with-inspector { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+.fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; }
+.fb-plan-wrap > svg.fb-plan { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
+.fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--color-bit); }
+.fb-plan-wrap > svg.fb-plan:active { cursor: grabbing; }
+.fb-plan .bg { opacity: var(--plan-bg-opacity, .5); pointer-events: none; }
+.fb-plan .blk { fill: color-mix(in srgb, var(--color-surface) 60%, transparent); stroke: var(--color-line); }
+.fb-plan .hit { fill: transparent; }
+.fb-plan .cell { cursor: pointer; }
+.fb-plan .seat { stroke-width: 2; }
+.fb-plan .s-online { fill: var(--color-up); stroke: color-mix(in srgb, var(--color-up) 70%, var(--color-fg)); }
+.fb-plan .s-offline { fill: var(--color-surface); stroke: var(--color-down); stroke-width: 2.5; }
+.fb-plan .slash { stroke: var(--color-down); stroke-width: 2.5; stroke-linecap: round; }
+.fb-plan .s-unknown { fill: var(--color-raised); stroke: var(--color-muted); stroke-dasharray: 4 3; }
+.fb-plan .chk { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
+.fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
+.fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
+.fb-plan .match { fill: none; stroke: var(--color-warn); stroke-width: 3.5; }
+.fb-plan .num { fill: var(--color-fg); font: 700 11px var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
+.fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
+.fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
+.fb-plan .cell.dim { opacity: .18; }
+.fb-plan .cell:hover .seat { stroke: var(--color-bit); stroke-width: 3; }
+.fb-plan .name { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: 6px; }
+.fb-plan .sum text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; }
+.fb-plan .sum .sub { font-weight: 600; }
+.fb-plan .sw rect { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; }
+.fb-plan .sw-online rect { fill: var(--color-bit); }
+.fb-plan .sw-offline rect { fill: var(--color-down); }
+.fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
+.fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
+.fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
+.fb-plan-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; padding: 0; font-size: 13px; color: var(--color-muted); }
+.fb-plan-legend li { display: flex; align-items: center; gap: 6px; }
+.fb-plan-legend svg { overflow: visible; }
+.fb-plan-screen { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; padding: 2vh 2vw; background: var(--color-ink); }
+.fb-plan-screen .fb-plan-wrap { height: auto; min-height: 0; }
+.fb-plan-screen .fb-plan-summary p { font-size: 1.4vw; }
+@media (max-width: 48em) {
+  .fb-plan-wrap { height: 60vh; }
+}

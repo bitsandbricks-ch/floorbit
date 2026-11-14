@@ -38,6 +38,7 @@ const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
 const Runbooks = lazy(() => import('@/pages/Runbooks'))
 const Schedule = lazy(() => import('@/pages/Schedule'))
 const Brackets = lazy(() => import('@/pages/Brackets'))
+const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
 const Teardown = lazy(() => import('@/pages/Teardown'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/runbooks" element={<Runbooks />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/tournament/brackets" element={<Brackets />} />
+        <Route path="/plan" element={<FloorPlan />} />
         <Route path="/teardown" element={<Teardown />} />
         <Route path="/events" element={<Events />} />
         <Route path="/settings/features" element={<Features />} />

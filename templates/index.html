@@ -62,6 +62,10 @@
           </svg>
         </button>
         {% if current_user %}
+        <a class="btn btn-ghost" href="/plan" title="Seats: every seat's state, zoom levels and one seat inspector">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-dasharray="3 2"/><path d="M14 14l7 7M21 14l-7 7"/></svg>
+          <span class="nav-label">Seats</span>
+        </a>
         {% if feature_on('dashboard') %}
         <a class="btn btn-ghost" href="/dashboard" title="Dashboard: tiles from plugins">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>

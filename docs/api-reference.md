@@ -375,6 +375,17 @@ Source: [`floorbit/blueprints/past_events.py`](https://github.com/bitsandbricks-
 | GET | `/api/past-events/backup/<event_id>.json` | `settings.manage` | `past_events` |
 | POST | `/api/past-events/close` | `settings.manage` | `past_events` |
 
+## floorbit.blueprints.plan
+
+The floor plan's seat view (issue #55): the React page and its two reads.
+
+Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plan/seats/<seat>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.planner
 
 Build planner (issue #34). Rules in floorbit/planner.py.
