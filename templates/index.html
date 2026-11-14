@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions %} data-port-actions="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions %} data-security="on"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions %} data-port-actions="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions %} data-security="on"{% endif %}{% if power_on %} data-power="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -74,6 +74,12 @@
         <a class="btn btn-ghost" href="/security" title="Security: rogue DHCP, ARP spoofing, MAC flapping, loops and storms">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Security <span class="nav-count nav-count-warn" id="security-count" hidden></span>
+        </a>
+        {% endif %}
+        {% if power_on %}
+        <a class="btn btn-ghost" href="/power" title="Electrics: boards, circuits and their load">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Power <span class="nav-count nav-count-warn" id="power-count" hidden></span>
         </a>
         {% endif %}
         {% if incidents_board %}
@@ -166,6 +172,20 @@
               <div class="legend-item"><span class="legend-swatch legend-nodata"></span><span class="legend-label" id="traffic-nodata-label">No data or port down</span></div>
               <p class="heat-summary" id="traffic-summary"></p>
             </div>
+
+            {% if power_on %}
+            <button class="layer-row" id="btn-power" aria-pressed="false" title="Colour seats and switches by the load on their power circuit">
+              <span class="layer-name">Power circuits</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <div class="layer-options hidden" id="power-options">
+              <div class="legend-item"><span class="legend-swatch power-swatch ok"></span><span class="legend-label">Under the amber mark</span></div>
+              <div class="legend-item"><span class="legend-swatch power-swatch warn"></span><span class="legend-label">Getting close</span></div>
+              <div class="legend-item"><span class="legend-swatch power-swatch crit"></span><span class="legend-label">About to trip, or tripped</span></div>
+              <div class="legend-item"><span class="legend-swatch power-swatch unknown"></span><span class="legend-label">No reading yet</span></div>
+              <p class="heat-summary" id="power-summary"></p>
+            </div>
+            {% endif %}
 
             <button class="layer-row" id="btn-labels" aria-pressed="false" title="Always show switch names on the map">
               <span class="layer-name">Always show switch labels</span>
@@ -268,6 +288,7 @@
           <div id="switches-overlay"></div>
           <div id="seats-overlay"></div>
           <div id="blocks-overlay"></div>
+          <div id="power-overlay"></div>
 
           <div class="add-cursor" id="add-cursor">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -772,6 +793,7 @@
   <script src="/static/js/editor/heatmap.js"></script>
   <script src="/static/js/editor/incidents.js"></script>
   <script src="/static/js/editor/security.js"></script>
+  <script src="/static/js/editor/power.js"></script>
   <script src="/static/js/editor/ports.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>

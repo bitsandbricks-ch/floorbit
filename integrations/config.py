@@ -90,6 +90,26 @@ SCHEMA = [
      'label': 'Security check interval (seconds)',
      'help': 'How often to ask the security plugins for findings. Minimum 15.'},
 
+    # Electrics
+    {'key': 'POWER_ENABLED', 'group': 'power', 'type': 'bool', 'default': True,
+     'label': 'Power layer',
+     'help': 'The Electrics page and the power layer on the floor plan. Turn it off if nobody tracks power.'},
+    {'key': 'POWER_WARN', 'group': 'power', 'type': 'int', 'default': 80,
+     'label': 'Amber from (% of the fuse rating)', 'help': 'A circuit at this load shows amber.'},
+    {'key': 'POWER_CRIT', 'group': 'power', 'type': 'int', 'default': 95,
+     'label': 'Red from (% of the fuse rating)',
+     'help': 'A circuit at this load shows red, files an incident and alerts, before the breaker trips.'},
+    {'key': 'POWER_VOLTAGE', 'group': 'power', 'type': 'int', 'default': 230,
+     'label': 'Voltage (V)', 'help': 'Turns readings in watts into amps.'},
+    {'key': 'POWER_INTERVAL', 'group': 'power', 'type': 'int', 'default': 60,
+     'label': 'Meter interval (seconds)', 'help': 'How often to ask the power plugins for readings. Minimum 15.'},
+    {'key': 'POWER_TEAM', 'group': 'power', 'type': 'string', 'default': 'electrics',
+     'label': 'Electrics team',
+     'help': 'The team id power incidents go to. Its members may enter readings and trips.'},
+    {'key': 'POWER_INCIDENTS', 'group': 'power', 'type': 'bool', 'default': True,
+     'label': 'File power incidents',
+     'help': 'A circuit turning red or a tripped breaker opens an incident for the Electrics team.'},
+
     # Discord
     {'key': 'DISCORD_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Discord webhook URL', 'help': 'Channel settings → Integrations → Webhooks → Copy URL.'},
@@ -109,6 +129,8 @@ SCHEMA = [
     {'key': 'DISCORD_SECURITY_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
      'label': 'Security alerts',
      'help': 'Post new high and medium security findings: where (switch, port, seat), never MACs or IPs.'},
+    {'key': 'DISCORD_POWER_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
+     'label': 'Power alerts', 'help': 'Post when a circuit turns red or its breaker trips, with what it feeds.'},
 
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',

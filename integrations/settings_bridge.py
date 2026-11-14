@@ -24,6 +24,8 @@ SECTIONS = [
     {'id': 'health', 'title': 'Health wall and security',
      'description': ('How often the health plugins (DHCP, DNS, cache, game servers, uplink) and the '
                      'security plugins are asked.')},
+    {'id': 'power', 'title': 'Electrics',
+     'description': 'Power boards and circuits: when a circuit counts as loaded, and where its incidents go.'},
     {'id': 'discord', 'title': 'Discord alerts',
      'description': 'Post to a Discord channel when placed switches go offline or recover.'},
     {'id': 'seats', 'title': 'Seat sources',
@@ -44,6 +46,10 @@ INT_LIMITS = {
     'HEALTH_INTERVAL': (10, 86400),
     'HEALTH_CONFIRM': (1, 20),
     'SECURITY_INTERVAL': (15, 86400),
+    'POWER_WARN': (10, 150),
+    'POWER_CRIT': (11, 200),
+    'POWER_VOLTAGE': (100, 400),
+    'POWER_INTERVAL': (15, 86400),
     'SEAT_SOURCE_CACHE_SECONDS': (0, 86400),
     'CHECKIN_REFRESH_INTERVAL': (30, 86400),
 }

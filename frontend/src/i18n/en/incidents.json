@@ -1,6 +1,6 @@
 {
   "title": "Incidents",
-  "intro": "Problems during the event, at a seat or a switch. Attendees report them from the QR code on their seat; your teams work them here.",
+  "intro": "Problems during the event, at a seat, a switch or a power circuit. Attendees report them from the QR code on their seat; your teams work them here.",
   "new": "New incident",
   "qrCodes": "Seat QR codes",
   "mineOnly": "Only what I can work",
@@ -17,8 +17,10 @@
   },
   "seat": "Seat {{seat}}",
   "switch": "Switch {{name}}",
+  "circuit": "Circuit {{name}}",
   "noTeam": "No team",
   "fromSeat": "From the seat",
+  "fromPower": "From the power layer",
   "reports_one": "{{count}} report",
   "reports_other": "{{count}} reports",
   "snapshot": "{{switch}} {{port}}: {{link}}, {{mac}}",

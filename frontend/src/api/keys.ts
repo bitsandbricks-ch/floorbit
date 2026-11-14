@@ -16,6 +16,7 @@ export const qk = {
   switches: ['switches'] as const,
   health: ['health'] as const,
   security: ['security'] as const,
+  power: ['power'] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
 }

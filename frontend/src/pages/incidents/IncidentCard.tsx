@@ -31,7 +31,9 @@ export function IncidentCard({
   const { t } = useTranslation()
   const [note, setNote] = useState('')
   const teamName = board.teams.find((x) => x.id === i.team)?.name
-  const where = i.seat ? t('incidents.seat', { seat: i.seat }) : t('incidents.switch', { name: i.switch_name ?? i.switch_id })
+  const where = i.seat ? t('incidents.seat', { seat: i.seat })
+    : i.circuit_id ? t('incidents.circuit', { name: i.circuit_name ?? i.circuit_id })
+    : t('incidents.switch', { name: i.switch_name ?? i.switch_id })
   const snap = i.snapshot
   const assignable = (people?.[i.team ?? ''] ?? []).map((p) => ({ value: p.username, label: p.display_name }))
   const lastNote = i.notes[i.notes.length - 1]
@@ -47,6 +49,7 @@ export function IncidentCard({
           <Badge variant="light" color="trace" tt="none">{where}</Badge>
           {teamName ? <Badge variant="outline" tt="none">{teamName}</Badge> : <Badge variant="outline" color="warn" tt="none">{t('incidents.noTeam')}</Badge>}
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
+          {i.source === 'power' && <Badge variant="light" color="warn" tt="none">{t('incidents.fromPower')}</Badge>}
           {i.reports > 1 && <Badge variant="light" color="warn" tt="none">{t('incidents.reports', { count: i.reports })}</Badge>}
         </Group>
         {snap && (
@@ -59,7 +62,7 @@ export function IncidentCard({
               : t('incidents.snapshotUnknown', { reason: snap.reason })}
           </Text>
         )}
-        {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? t('incidents.attendee')}</Text></Text>}
+        {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}
         <Text size="sm" c="dimmed">
           {i.assignee ? t('incidents.assignedTo', { name: i.assignee }) : t('incidents.unassigned')}
         </Text>

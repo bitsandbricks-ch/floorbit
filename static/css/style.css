@@ -882,3 +882,25 @@ kbd {
 .seat-block-seat.has-finding { outline: 2px dashed var(--color-warn); outline-offset: 2px; border-radius: 4px; }
 .switch-marker.has-finding .switch-pin { outline: 2px dashed var(--color-warn); outline-offset: 3px; border-radius: 50%; }
 .nav-count-warn { background: var(--color-warn); color: #000; }
+
+/* Power layer (static/js/editor/power.js): seats and switches take their circuit's colour. */
+#power-overlay { position: absolute; inset: 0; pointer-events: none; }
+.power-layer .seat-block-seat.power-tinted { background: color-mix(in srgb, var(--power) 38%, var(--color-surface)); }
+.power-layer .switch-marker.power-tinted .switch-pin { box-shadow: 0 0 0 3px var(--power); border-radius: 50%; }
+.power-ok { --power: var(--color-up); }
+.power-warn { --power: var(--color-warn); }
+.power-crit, .power-tripped { --power: var(--color-down); }
+.power-unknown { --power: var(--color-muted); }
+.power-layer .seat-block-seat.power-tripped { background-image: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--color-down) 45%, transparent) 3px 6px); }
+.power-board {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: auto;
+  display: flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: 6px;
+  border: 2px solid var(--power); background: var(--color-surface); color: inherit;
+  font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.power-board-icon { color: var(--power); }
+.legend-swatch.power-swatch { background: var(--power); }
+.legend-swatch.power-swatch.ok { --power: var(--color-up); }
+.legend-swatch.power-swatch.warn { --power: var(--color-warn); }
+.legend-swatch.power-swatch.crit { --power: var(--color-down); }
+.legend-swatch.power-swatch.unknown { --power: var(--color-muted); }

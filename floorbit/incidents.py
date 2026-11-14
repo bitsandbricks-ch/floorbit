@@ -1,4 +1,4 @@
-"""Incidents: problems during the event, tied to a seat or a switch. See docs/incidents.md.
+"""Incidents: problems during the event, tied to a seat, a switch or a power circuit. See docs/incidents.md.
 
 Stored in data.json under ``incidents``. Who may see and change what follows the permissions in
 auth/roles.py, scoped by team (auth/teams.py):
@@ -136,9 +136,15 @@ def _clean_text(value, limit):
     return ' '.join(str(value or '').split())[:limit]
 
 
-def _where(data, seat, switch_id):
-    if bool(seat) == bool(switch_id):
-        raise IncidentError('An incident is about one seat or one switch.')
+def _where(data, seat, switch_id, circuit_id=None):
+    if sum(map(bool, (seat, switch_id, circuit_id))) != 1:
+        raise IncidentError('An incident is about one seat, one switch or one power circuit.')
+    if circuit_id:
+        circuit = next((c for c in (data.get('power') or {}).get('circuits') or []
+                        if c.get('id') == circuit_id), None)
+        if not circuit:
+            raise IncidentError('There is no such power circuit.')
+        return {'seat': None, 'switch_id': None, 'circuit_id': circuit_id, 'circuit_name': circuit.get('name')}
     if seat:
         seat = str(seat).strip().upper()
         if seat not in seat_numbers(data):
@@ -171,7 +177,7 @@ def create(user, body, snapshot=None, source='board'):
     """A new incident. ``user`` is None for an attendee's report from the help page."""
     with _lock:
         data = load_data()
-        where = _where(data, body.get('seat'), body.get('switch_id'))
+        where = _where(data, body.get('seat'), body.get('switch_id'), body.get('circuit_id'))
         team = _check_team(body.get('team'))
         if user is not None:
             allowed = (can_assign(user, team) or team in workable_teams(user)) if team \

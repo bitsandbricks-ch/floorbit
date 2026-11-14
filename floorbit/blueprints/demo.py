@@ -59,8 +59,29 @@ def seed():
         blocks = [{'id': str(uuid.uuid4()), 'seat_width': 3, 'seat_height': 3, 'spacing_x': 0.5,
                    'spacing_y': 1, 'rotation': 0, 'reverse_numbers': False, **b} for b in layout['blocks']]
         data['seat_blocks'] = blocks
+        _seed_power(data, layout)
         save_data(data)
     return {'placed': placed, 'blocks': len(blocks)}
+
+
+def _seed_power(data, layout):
+    """The demo boards and circuits, on the blocks and switches just placed."""
+    spec = layout.get('power')
+    if not spec or (data.get('power') or {}).get('circuits'):
+        return
+    blocks = {b['name']: b['id'] for b in data.get('seat_blocks') or [] if b.get('name')}
+    devices = {d['name']: d['id'] for d in inventory.devices(data)}
+    boards = [{'id': uuid.uuid4().hex[:10], **b} for b in spec['boards']]
+    board_ids = {b['name']: b['id'] for b in boards}
+    circuits = []
+    for c in spec['circuits']:
+        circuits.append({'id': uuid.uuid4().hex[:10], 'board': board_ids[c['board']], 'name': c['name'],
+                         'phase': c['phase'], 'rating_a': float(c['rating_a']), 'meter': c['meter'],
+                         'blocks': [{'block': blocks[c['block']], 'rows': c.get('rows') or []}]
+                         if c.get('block') in blocks else [],
+                         'switches': [devices[n] for n in c.get('switches') or [] if n in devices],
+                         'tripped': None, 'reading': None})
+    data['power'] = {'boards': boards, 'circuits': circuits}
 
 
 @bp.route('/api/demo/layout', methods=['POST'])

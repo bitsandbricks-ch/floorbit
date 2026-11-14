@@ -18,6 +18,7 @@ route stays admin-only until someone gives it a rule.
 | `incidents.work` | Work incidents assigned to their teams |
 | `incidents.assign` | Assign incidents to any team |
 | `ports.act` | Run port actions on switches |
+| `power.edit` | Change power boards and circuits, enter readings and trips ([power.md](power.md)) |
 | `plugins.run` | Run plugin actions |
 | `audit.read` | Read the audit log |
 | `settings.manage` | Change settings, plugins and backups |

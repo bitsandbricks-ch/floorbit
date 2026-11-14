@@ -49,6 +49,7 @@
     "incidents_work": "Incidents der eigenen Teams bearbeiten",
     "incidents_assign": "Incidents jedem Team zuweisen",
     "ports_act": "Port-Aktionen auf Switches ausführen",
+    "power_edit": "Stromverteiler und Stromkreise ändern, Messwerte und Auslösungen erfassen",
     "plugins_run": "Plugin-Aktionen ausführen",
     "audit_read": "Das Audit-Log lesen",
     "settings_manage": "Einstellungen, Plugins und Backups ändern",

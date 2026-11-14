@@ -254,12 +254,14 @@ export interface Incident {
   seat: string | null
   switch_id: string | null
   switch_name?: string
+  circuit_id?: string | null
+  circuit_name?: string
   title: string
   problem: string | null
   team: string | null
   status: IncidentStatus
   assignee: string | null
-  source: 'board' | 'helpdesk'
+  source: 'board' | 'helpdesk' | 'power'
   reported_by: string | null
   reports: number
   notes: IncidentNote[]
@@ -351,4 +353,55 @@ export interface SecurityList {
   plugins: number
   can_act: boolean
   needs_login: boolean
+}
+
+// Electrics: boards, circuits and their load (floorbit/power.py).
+export type PowerState = 'ok' | 'warn' | 'crit' | 'tripped' | 'unknown'
+export type Phase = 'L1' | 'L2' | 'L3' | '3P'
+export interface PowerBoard {
+  id: string
+  name: string
+  location: string
+  x: number | null
+  y: number | null
+}
+export interface PowerReading {
+  amps: number
+  at: number
+  source: 'manual' | 'plugin'
+  by?: string | null
+  plugin?: string
+}
+export interface CircuitFeed {
+  block: string
+  rows: number[]
+}
+export interface Circuit {
+  id: string
+  board: string
+  name: string
+  phase: Phase
+  rating_a: number
+  meter: string
+  blocks: CircuitFeed[]
+  switches: string[]
+  tripped: { by: string | null; at: number } | null
+  reading: PowerReading | null
+  state: PowerState
+  load_pct: number | null
+  fed: { seats: string[]; switches: { id: string; name: string }[] }
+  feeds_label: string
+}
+export interface PowerOverview {
+  enabled: boolean
+  boards: PowerBoard[]
+  circuits: Circuit[]
+  counts: Record<PowerState, number>
+  warn: number
+  crit: number
+  last_poll: number | null
+  plugins: number
+  blocks: { id: string; name: string; rows: number }[]
+  can_edit: boolean
+  can_read: boolean
 }

@@ -1,4 +1,5 @@
-"""Made-up data for every data area: inventory, seat mapping, monitoring, the health wall and port actions.
+"""Made-up data for every data area: inventory, seat mapping, monitoring, the health wall, port actions,
+security findings and power readings.
 
 Everything is computed from the seat and switch numbers plus the clock, so it needs no state,
 moves a little on every poll and looks the same on every instance. Names are generic, IPs come
@@ -31,6 +32,17 @@ LAYOUT = {
                 **{f'sw-{b.lower()}-{n:02d}': (x + (n - 2) * 13, y - 12)
                    for b, (x, y) in _CENTRES.items() for n in range(1, SWITCHES_PER_BLOCK + 1)}},
     'blocks': [{'name': b, 'x': x, 'y': y, 'cols': COLS, 'rows': ROWS} for b, (x, y) in _CENTRES.items()],
+    # Two boards, one 16 A circuit per seat row (phases in turn) and one for the network rack.
+    'power': {
+        'boards': [{'name': 'DB-1', 'location': 'West wall', 'x': 4, 'y': 42},
+                   {'name': 'DB-2', 'location': 'East wall', 'x': 96, 'y': 78}],
+        'circuits': [{'board': 'DB-1' if b in 'AB' else 'DB-2', 'name': f'{b} row {r}', 'rating_a': 16,
+                      'phase': ('L1', 'L2', 'L3')[(BLOCKS.index(b) * ROWS + r - 1) % 3],
+                      'meter': f'{b.lower()}{r}', 'block': b, 'rows': [r]}
+                     for b in BLOCKS for r in range(1, ROWS + 1)]
+        + [{'board': 'DB-1', 'name': 'Network rack', 'rating_a': 32, 'phase': '3P', 'meter': 'rack',
+            'switches': ['core-01', 'dist-01', 'dist-02']}],
+    },
 }
 
 
@@ -267,6 +279,23 @@ class Plugin(Plugin):
              'metrics': [{'label': 'In use', 'value': uplink, 'unit': '%', 'tone': 'warn' if uplink >= 80 else ''},
                          {'label': 'Loss', 'value': 0, 'unit': '%'}]},
         ]
+
+    # power ------------------------------------------------------------------------------
+    def power_readings(self):
+        """Load per meter in amps. B row 2 runs warm; C row 2 goes over the top two minutes in seven."""
+        now = time.time()
+        out = []
+        for i, c in enumerate(LAYOUT['power']['circuits']):
+            if c['meter'] == 'rack':
+                amps = 9 + 3 * _wave(20, now, period=600)
+            elif c['meter'] == 'b2':
+                amps = 13.2 + 0.8 * _wave(21, now, period=300)
+            elif c['meter'] == 'c2':
+                amps = 15.6 + 0.4 * _wave(22, now) if int(now // 60) % 7 < 2 else 11 + _wave(22, now)
+            else:
+                amps = 6 + 5 * _wave(30 + i, now, period=900)
+            out.append({'meter': c['meter'], 'amps': round(amps, 1)})
+        return out
 
     def test(self):
         return f'Demo data: {len(_switches())} switches and {sum(_taken(s[3]) for s in _seats())} players.'

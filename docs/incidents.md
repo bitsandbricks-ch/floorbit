@@ -1,6 +1,6 @@
 # Incidents and the seat helpdesk
 
-Problems during the event, tied to a seat or a switch, on the **Incidents** board (`/incidents`).
+Problems during the event, tied to a seat, a switch or a power circuit ([power.md](power.md)), on the **Incidents** board (`/incidents`).
 Code: [`floorbit/incidents.py`](../floorbit/incidents.py) and
 [`floorbit/blueprints/incidents.py`](../floorbit/blueprints/incidents.py).
 
