@@ -89,6 +89,7 @@ nav:
       - Kiosk view: kiosk.md
       - Seats view: seats.md
       - Prometheus metrics: metrics.md
+      - Browser notifications: notifications.md
       - Phones and tablets: mobile.md
       - Offline mode: offline.md
   - After the event:
