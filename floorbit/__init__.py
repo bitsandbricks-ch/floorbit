@@ -116,6 +116,10 @@ def create_app(start_background=True):
     from .power import init_power
     init_power(app, registry, start_background=start_background)
 
+    # DNS analytics: what the hall looks up, hall-wide only (docs/dns.md).
+    from .dns import init_dns
+    init_dns(app, registry, start_background=start_background)
+
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
     from .stats import init_stats

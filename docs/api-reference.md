@@ -145,6 +145,16 @@ Source: [`floorbit/blueprints/dispatch.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/jobs/<incident_id>/take` | `floorplan.view` | `dispatch` |
 | PUT | `/api/jobs/me` | `floorplan.view` | `dispatch` |
 
+## floorbit.blueprints.dns
+
+DNS analytics (issue #87): what the hall looks up. Counting lives in floorbit/dns.py.
+
+Source: [`floorbit/blueprints/dns.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/dns.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/dns` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dns` |
+
 ## floorbit.blueprints.features
 
 Feature switches (issue #114). Rules in floorbit/features.py.
