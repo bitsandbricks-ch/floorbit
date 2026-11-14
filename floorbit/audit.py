@@ -21,6 +21,9 @@ _lock = threading.Lock()
 # (method, URL rule) -> (area, action). Requests not listed here aren't logged: reads, the
 # attendee check-in (it has its own history), lookups sent as POST, connection tests.
 ACTIONS = {
+    ('POST', '/api/tournament/zones'): ('floor plan', 'Added match zone'),
+    ('PATCH', '/api/tournament/zones/<zone_id>'): ('floor plan', 'Changed match zone'),
+    ('DELETE', '/api/tournament/zones/<zone_id>'): ('floor plan', 'Removed match zone'),
     ('POST', '/api/report/new-event'): ('report', 'Started a new event'),
     ('POST', '/api/switches'): ('floor plan', 'Added switch'),
     ('PUT', '/api/switches/<switch_id>'): ('floor plan', 'Changed switch'),

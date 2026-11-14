@@ -37,6 +37,9 @@ def act(action):
     try:
         switch, port, seat, message = ports.act(_registry(), account, body, action)
     except ports.PortError as exc:
+        if exc.match_seat:
+            # Not an attempt yet: the browser asks for the second confirmation.
+            return jsonify({'error': str(exc), 'match_seat': exc.match_seat, 'seat': body.get('seat')}), 409
         # Failed attempts are logged too; the target is what was asked for, never the login.
         asked = body.get('finding') or body.get('seat') or f"{body.get('switch') or '?'} {body.get('port') or '?'}"
         audit.record('ports', f'{label}: failed', user=g.get('audit_user'), target=str(asked)[:80], ok=False)

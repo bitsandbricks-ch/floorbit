@@ -855,6 +855,9 @@ kbd {
   .last-updated { display: none; }
 }
 
+/* Match seats (static/js/editor/tournament.js): a gold outline, under an incident's red ring. */
+.seat-block-seat.match-seat { outline: 2px solid var(--color-warn); outline-offset: 1px; border-radius: 4px; }
+
 /* Open incidents (static/js/editor/incidents.js): a red ring that pulses unless motion is reduced. */
 .seat-block-seat.has-incident { border-radius: 4px; }
 .seat-block-seat.has-incident, .switch-marker.has-incident .switch-pin {

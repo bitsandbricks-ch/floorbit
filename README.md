@@ -43,6 +43,8 @@ each seat is plugged into.
   every seat so attendees can report "no internet" in one tap. See [docs/incidents.md](docs/incidents.md).
 - **Tech dispatch:** send an incident to the nearest free tech; techs see their jobs on their phone
   with the seat on the hall plan. See [docs/dispatch.md](docs/dispatch.md).
+- **Tournament seats:** mark match seats; their problems come first, port actions on them ask twice,
+  and the switch ports behind them are listed for QoS. See [docs/tournament.md](docs/tournament.md).
 - **Service health wall:** DHCP leases, DNS, the LAN cache, game servers and the uplink, green, amber or
   red, on an ops screen or a kiosk, with a Discord message when one goes red. Each check is a plugin.
   See [docs/health.md](docs/health.md).

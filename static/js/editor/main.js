@@ -29,6 +29,7 @@ async function init() {
   renderAll();
   doRefreshAll().catch(() => {});
   loadIncidentMarkers();
+  loadMatchSeats();
   loadPortInfo();
   loadSecurityMarkers();
   if (powerOn) setPowerLayer(readJSON('layer-power', false));

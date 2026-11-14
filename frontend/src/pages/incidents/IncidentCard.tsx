@@ -49,6 +49,7 @@ export function IncidentCard({
         </Group>
         <Group gap={6}>
           <Badge variant="light" color="trace" tt="none">{where}</Badge>
+          {i.match && <Badge color="warn" variant="filled" tt="none">{t('incidents.match', { zone: i.match })}</Badge>}
           {teamName ? <Badge variant="outline" tt="none">{teamName}</Badge> : <Badge variant="outline" color="warn" tt="none">{t('incidents.noTeam')}</Badge>}
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {i.source === 'power' && <Badge variant="light" color="warn" tt="none">{t('incidents.fromPower')}</Badge>}

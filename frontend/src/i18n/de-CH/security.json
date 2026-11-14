@@ -44,5 +44,8 @@
     "loop": "Schleife",
     "storm": "Broadcast-Sturm",
     "other": "Weiteres"
-  }
+  },
+  "matchTitle": "Match-Platz: {{zone}}",
+  "matchText": "Dieser Port gehört zu einem Turnier-Platz. Wenn er ausfällt, kann ein Match verloren gehen. Nur weitermachen, wenn die Match-Admins einverstanden sind.",
+  "matchConfirm": "Ja, beim Match-Platz ausführen"
 }

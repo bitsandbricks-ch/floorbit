@@ -33,6 +33,7 @@ function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy:
           <Group gap="xs">
             <Badge variant="light" color={p.level === 'down' ? 'down' : 'warn'} tt="none">{t(`problems.kind.${p.kind}`)}</Badge>
             <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
+            {p.match && <Badge color="warn" variant="filled" tt="none">{t('problems.match', { zone: p.match })}</Badge>}
           </Group>
           {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
           {p.muted && (

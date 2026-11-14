@@ -47,9 +47,10 @@ def _board_user():
     return user
 
 
-def _view(user, incident):
+def _view(user, incident, match=None):
     return {**incident, 'can_work': incidents.can_work(user, incident),
-            'can_assign': incidents.can_assign(user, incident.get('team'))}
+            'can_assign': incidents.can_assign(user, incident.get('team')),
+            'match': (match or {}).get(incident.get('seat') or '')}
 
 
 def _changed(incident, action):
@@ -78,10 +79,14 @@ def qr_page():
 # ── The board ──────────────────────────────────────────────────────────────────
 @bp.route('/api/incidents', methods=['GET'])
 def list_incidents():
+    from ..tournament import match_seats
     user = _board_user()
     all_teams = teams.all_teams()
+    match = match_seats()
+    # Match seats (issue #31) on top of each column; the board keeps the newest-first order otherwise.
+    items = sorted(incidents.list_all(), key=lambda i: (i['status'] == 'fixed', not match.get(i.get('seat') or '')))
     return jsonify({
-        'incidents': [_view(user, i) for i in incidents.list_all()],
+        'incidents': [_view(user, i, match) for i in items],
         'teams': [{'id': t['id'], 'name': t['name'], 'depth': t['depth']} for t in teams.tree()],
         'workable_teams': sorted(incidents.workable_teams(user)),
         'assign_teams': sorted(t for t in all_teams if incidents.can_assign(user, t)),
