@@ -217,7 +217,7 @@ describe('Seats page', () => {
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => { created.push(b); return 'blob:x' }, revokeObjectURL: () => {} }))
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     fireEvent.click(screen.getByRole('button', { name: 'CSV' }))
-    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,match\nD-2,offline,1,,no,\n')
+    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,match,note\nD-2,offline,1,,no,,no\n')
     click.mockRestore()
 
     fireEvent.click(within(table).getByRole('button', { name: 'D-2' }))
@@ -372,5 +372,16 @@ describe('Seats page', () => {
     expect(await screen.findByText('480')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Ping (ms)' })).toBeInTheDocument()
     expect(screen.getAllByText(/before the last link change/)).toHaveLength(1)
+  })
+
+  it('lists which seats have a crew note and sorts them first', async () => {
+    const noted = { ...data, seats: { ...data.seats, 'D-3': { ...data.seats['D-3'], note: true } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': noted }).fn)
+    renderWithApp(<FloorPlan />, '/plan?view=list')
+    const table = await screen.findByRole('table', { name: 'Seats' })
+    fireEvent.click(within(table).getByRole('button', { name: 'Note' }))
+    const first = within(table).getAllByRole('row')[1]
+    expect(within(first).getByRole('button', { name: 'D-3' })).toBeInTheDocument()
+    expect(within(first).getByText('Yes')).toBeInTheDocument()
   })
 })

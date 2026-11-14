@@ -105,7 +105,8 @@
     "changed": "Geändert",
     "ago_zero": "gerade eben",
     "ago_one": "vor {{count}} Min.",
-    "ago_other": "vor {{count}} Min."
+    "ago_other": "vor {{count}} Min.",
+    "note": "Notiz"
   },
   "changedAgo_one": "vor {{count}} Min. geändert",
   "changedAgo_other": "vor {{count}} Min. geändert",

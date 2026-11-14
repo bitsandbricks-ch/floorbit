@@ -6,7 +6,7 @@ import type { PlanSeat, SeatViewData } from '@/api/types'
 import { type Filter, matches, minutesAgo, rate, seatOrder } from './model'
 import { SeatGlyph } from './SeatMap'
 
-type Key = 'seat' | 'state' | 'problems' | 'bps' | 'changed'
+type Key = 'seat' | 'state' | 'problems' | 'bps' | 'changed' | 'note'
 const STATE_ORDER = { offline: 0, unknown: 1, online: 2 }
 
 /** The hall's seats as a sortable table (issue #169): the plain way through the hall for screen
@@ -24,6 +24,7 @@ export function SeatList({ data, filter, selected, onSelect }: {
       problems: (a, b) => (a[1].problems ?? 0) - (b[1].problems ?? 0) || seatOrder(b[0], a[0]),
       bps: (a, b) => (a[1].bps ?? 0) - (b[1].bps ?? 0) || seatOrder(b[0], a[0]),
       changed: (a, b) => (a[1].changed ?? 0) - (b[1].changed ?? 0) || seatOrder(b[0], a[0]),
+      note: (a, b) => Number(!!a[1].note) - Number(!!b[1].note) || seatOrder(b[0], a[0]),
     }
     list.sort(by[sort.key])
     return sort.desc ? list.reverse() : list
@@ -31,8 +32,8 @@ export function SeatList({ data, filter, selected, onSelect }: {
 
   const head = (key: Key, label: string, numeric = false) => {
     const on = sort.key === key
-    // Problems, traffic and changes start with the most (or latest), seats and states with the first.
-    const flip = () => setSort(on ? { key, desc: !sort.desc } : { key, desc: key === 'problems' || key === 'bps' || key === 'changed' })
+    // Problems, traffic, changes and notes start with the most (or latest), seats and states with the first.
+    const flip = () => setSort(on ? { key, desc: !sort.desc } : { key, desc: key === 'problems' || key === 'bps' || key === 'changed' || key === 'note' })
     return (
       <Table.Th aria-sort={on ? (sort.desc ? 'descending' : 'ascending') : 'none'} ta={numeric ? 'right' : undefined}>
         <UnstyledButton onClick={flip} fw={600} fz="sm">
@@ -47,9 +48,9 @@ export function SeatList({ data, filter, selected, onSelect }: {
 
   const csv = () => {
     const cell = (v: string | number) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
-    const lines = [['seat', 'state', 'problems', 'bps', ...(data.checkin ? ['checked_in'] : []), 'match']]
+    const lines = [['seat', 'state', 'problems', 'bps', ...(data.checkin ? ['checked_in'] : []), 'match', 'note']]
     for (const [seat, s] of rows) {
-      lines.push([seat, s.state, String(s.problems ?? 0), String(s.bps ?? ''), ...(data.checkin ? [s.checked_in ? 'yes' : 'no'] : []), s.match ?? ''])
+      lines.push([seat, s.state, String(s.problems ?? 0), String(s.bps ?? ''), ...(data.checkin ? [s.checked_in ? 'yes' : 'no'] : []), s.match ?? '', s.note ? 'yes' : 'no'])
     }
     const url = URL.createObjectURL(new Blob([lines.map((l) => l.map(cell).join(',')).join('\n') + '\n'], { type: 'text/csv' }))
     const a = document.createElement('a')
@@ -76,6 +77,7 @@ export function SeatList({ data, filter, selected, onSelect }: {
               {head('changed', t('plan.list.changed'))}
               {data.checkin && <Table.Th>{t('plan.checkin')}</Table.Th>}
               <Table.Th>{t('plan.list.match')}</Table.Th>
+              {head('note', t('plan.list.note'))}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -95,6 +97,7 @@ export function SeatList({ data, filter, selected, onSelect }: {
                 <Table.Td>{s.changed ? t('plan.list.ago', { count: minutesAgo(s.changed) }) : '–'}</Table.Td>
                 {data.checkin && <Table.Td>{s.checked_in ? t('plan.yes') : t('plan.no')}</Table.Td>}
                 <Table.Td>{s.match ?? '–'}</Table.Td>
+                <Table.Td>{s.note ? t('plan.yes') : '–'}</Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
