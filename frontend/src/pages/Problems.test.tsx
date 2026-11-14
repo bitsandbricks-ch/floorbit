@@ -34,15 +34,17 @@ describe('Problems', () => {
     expect(within(muted).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     expect(within(muted).getByText(/Recabling/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Muted switches' })).toBeInTheDocument()
+    // The muted switch opens on the floor plan, in its hall (issue #212).
+    expect(screen.getByRole('link', { name: 'sw-d-01' })).toHaveAttribute('href', '/plan?switch=sw-d-01')
   })
 
   it('lists ports that need attention, linked to the floor plan', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
       attention: [
         { id: 'attention:checkin:s1:Gi1/0/12', kind: 'checkin', level: 'warn', title: 'Seat A-12 is online without a check-in',
-          where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/?seat=A-12', switch_id: 's1' },
+          where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/plan?seat=A-12', switch_id: 's1' },
         { id: 'attention:flapping:s1:Gi1/0/9', kind: 'flapping', level: 'warn', title: 'Port flapping: 4 link changes in 10 minutes',
-          where: 'sw-a-01 Gi1/0/9', since: now - 120, link: '/?switch=s1', switch_id: 's1' },
+          where: 'sw-a-01 Gi1/0/9', since: now - 120, link: '/plan?switch=sw-a-01', switch_id: 's1' },
       ],
     }) }).fn)
     renderWithApp(<Problems />)
@@ -51,7 +53,7 @@ describe('Problems', () => {
     expect(items.map((a) => a.getAttribute('aria-label'))).toEqual([
       'Seat A-12 is online without a check-in', 'Port flapping: 4 link changes in 10 minutes'])
     expect(within(items[0]).getByText('Check-in')).toBeInTheDocument()
-    expect(within(items[1]).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/?switch=s1')
+    expect(within(items[1]).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/plan?switch=sw-a-01')
     expect(within(section).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
   })
 

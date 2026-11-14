@@ -164,7 +164,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href="/">{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={`/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {data.can_mute && (
                       <Button size="compact-xs" variant="subtle" onClick={() => unmute.mutate(m.switch_id)} disabled={unmute.isPending}>
                         {t('problems.unmute')}
