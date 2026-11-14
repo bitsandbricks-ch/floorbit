@@ -15,6 +15,7 @@ export const qk = {
   tournament: ['tournament'] as const,
   qos: ['tournament', 'qos'] as const,
   crew: ['crew'] as const,
+  handover: ['handover'] as const,
   incidentPeople: ['incidents', 'people'] as const,
   helpdeskQr: ['helpdesk', 'qr'] as const,
   switches: ['switches'] as const,

@@ -72,6 +72,7 @@ ACTIONS = {
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
     ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
     ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
+    ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
     ('POST', '/api/jobs/<incident_id>/take'): ('incidents', 'Took job'),

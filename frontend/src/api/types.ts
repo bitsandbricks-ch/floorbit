@@ -659,3 +659,23 @@ export interface QosHints {
   switches: { switch: string; switch_id: string; ports: { port: string; seat: string; zone: string }[]; uplinks: string[] }[]
   missing: string[]
 }
+
+/** Shift handover (issue #33). */
+export interface HandoverIncident {
+  id: string; title: string; where: { kind: 'seat' | 'switch' | 'circuit'; name: string }; status: IncidentStatus
+  assignee: string | null; team: string | null; created_at: number; fixed_at: number | null; match: string | null
+}
+export interface HandoverRecord {
+  id: string; at: number; since: number; by: string | null; note: string
+  counts: HandoverCounts
+}
+export interface HandoverCounts { open: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number }
+export interface HandoverData {
+  since: number; now: number; previous: HandoverRecord | null
+  incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
+  outages: { switch_id: string; name: string; down_at: number; back_at: number | null; down_s: number }[]
+  changes: { at: number; user: string | null; area: string; action: string; target: string | null }[]
+  counts: HandoverCounts
+  history: HandoverRecord[]
+  discord: boolean
+}
