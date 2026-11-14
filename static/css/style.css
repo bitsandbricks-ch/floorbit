@@ -617,8 +617,8 @@ kbd {
 .port-sep { color: var(--text-muted); }
 .port-desc { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
 .port-list { margin-top: var(--sp-3); }
-.port-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
-.port-actions .btn { flex: 1; text-decoration: none; }
+.port-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+.port-actions .btn { flex: 1 1 auto; text-decoration: none; white-space: nowrap; }
 .port-polled { font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--sp-2); }
 .tone-success { color: var(--success); }
 .tone-warning { color: var(--warning); }
@@ -871,3 +871,9 @@ kbd {
   background: var(--color-down); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
 }
 .nav-count[hidden] { display: none; }
+
+/* Port action dialog (static/js/editor/ports.js) */
+.modal-error { margin: 8px 0 0; color: var(--color-down); font-size: var(--fs-sm); }
+#port-form .form-grid { margin-top: 12px; }
+#port-note-field { display: grid; gap: 4px; margin-top: 12px; }
+#port-note-field.hidden { display: none; }

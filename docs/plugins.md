@@ -131,6 +131,7 @@ class Plugin(Base):
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
 | `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`. See the built-in LibreNMS plugin |
+| `ports` | act on switch ports (one plugin at a time): define `port_login()` and `bounce_port(target)`. See [ports.md](ports.md) and the built-in SSH port actions plugin |
 | `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link"}]`. See the built-in HTTP check plugin |
 
 Three manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until

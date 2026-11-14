@@ -52,6 +52,7 @@ AREAS = {
     'mapping':   'sends seat / IP / MAC / nick entries into the seat mapping (hand entries win)',
     'monitoring': 'live switch status, ports and IP to switch port lookups (one plugin at a time)',
     'health': 'service checks on the health wall (DHCP, DNS, cache, game servers, uplink)',
+    'ports': 'act on switch ports (bounce a seat\'s port), with the tech\'s own login (one plugin at a time)',
 }
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
@@ -59,6 +60,7 @@ AREA_METHODS = {
     'mapping': ('seat_mapping',),
     'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp'),
     'health': ('health_checks',),
+    'ports': ('port_login', 'bounce_port'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;

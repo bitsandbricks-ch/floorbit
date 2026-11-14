@@ -1,0 +1,28 @@
+# Port actions over SSH, with the tech's own switch login for each action (see docs/ports.md).
+# Off until an admin turns it on. Nothing it uses to log in is stored.
+id: ssh-ports
+name: SSH port actions
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Bounces a seat's switch port over SSH. The tech types their own switch login for each action; it is used for that one connection and never stored. Host keys are pinned on first use."
+author: Floorbit
+uses: [settings, actions, endpoints, storage, ports]
+settings:
+  - {key: platform, label: Switch software, type: select, default: cisco_ios,
+     options: [cisco_ios, cisco_nxos, aruba_aoscx, aruba_procurve, juniper_junos, custom],
+     help: "Which commands take a port down and up again. Custom uses the two lists below."}
+  - {key: ssh_port, label: SSH port, type: int, default: 22, min: 1, max: 65535}
+  - {key: down_seconds, label: Seconds down, type: int, default: 5, min: 1, max: 60,
+     help: "How long the port stays down before it is turned on again."}
+  - {key: timeout, label: Timeout, type: int, default: 15, min: 3, max: 60, help: "Seconds to wait for the switch."}
+  - {key: trust_new_hosts, label: Trust a switch's key the first time, type: bool, default: true,
+     help: "Pins each switch's SSH host key on the first connection and refuses the switch if it changes. Off: only switches whose key is already pinned are used."}
+  - {key: custom_down, label: Custom commands to take a port down, type: list,
+     help: "Comma-separated, {port} is the interface. Only for Custom.", placeholder: "configure terminal, interface {port}, shutdown, end"}
+  - {key: custom_up, label: Custom commands to bring it back, type: list,
+     help: "Comma-separated, {port} is the interface. Only for Custom.", placeholder: "configure terminal, interface {port}, no shutdown, end"}
+actions:
+  - {id: forget_hosts, label: Forget pinned host keys, role: admin, danger: true,
+     help: "After a switch was replaced: the next connection pins its new key."}
+endpoints:
+  - {id: hosts, label: Pinned host keys, role: admin}
