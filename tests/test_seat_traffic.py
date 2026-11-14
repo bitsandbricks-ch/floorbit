@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from floorbit.seat_traffic import collect_seat_heatmap, seat_port_usage
+from floorbit.seat_traffic import collect_seat_heatmap, resolve_seats, seat_port_usage
 
 PORT = {'ifOperStatus': 'up', 'ifInOctets_rate': '1250000', 'ifOutOctets_rate': '250000',
         'ifSpeed': '1000000000'}
@@ -81,3 +81,31 @@ def test_lookups_run_in_parallel():
 
 def test_empty_mapping():
     assert collect_seat_heatmap({}, fake_resolve) == {}
+
+
+def test_resolve_seats_skips_seats_without_an_ip_and_survives_a_bad_lookup():
+    def resolve(ip):
+        if ip == '192.0.2.3':
+            raise RuntimeError('LibreNMS timed out')
+        return None if ip == '192.0.2.2' else {'device_name': 'sw-a1', 'port': 'ge-0/0/7'}
+    seats = {'A-1': {'username': 'neo', 'ip_address': '192.0.2.1'}, 'A-2': {'ip_address': '192.0.2.2'},
+             'A-3': {'ip_address': '192.0.2.3'}, 'A-4': {'username': 'trin'}, 'A-5': None}
+    got = resolve_seats(seats, resolve)
+    assert set(got) == {'A-1', 'A-2', 'A-3'}
+    assert got['A-1'] == {'username': 'neo', 'ip_address': '192.0.2.1', 'resolved': True,
+                          'device_name': 'sw-a1', 'port': 'ge-0/0/7'}
+    assert got['A-2'] == {'username': None, 'ip_address': '192.0.2.2', 'resolved': False, 'error': 'Could not resolve'}
+    assert got['A-3']['resolved'] is False and 'timed out' in got['A-3']['error']
+
+
+def test_resolve_seats_runs_in_parallel():
+    seen, lock = [], threading.Lock()
+    def slow(ip):
+        with lock:
+            seen.append(threading.get_ident())
+        time.sleep(0.05)
+        return {'port': 'x'}
+    seats = {f'A-{i}': {'ip_address': f'192.0.2.{i}'} for i in range(1, 17)}
+    start = time.monotonic()
+    assert len(resolve_seats(seats, slow)) == 16
+    assert time.monotonic() - start < 0.5 and len(set(seen)) > 1

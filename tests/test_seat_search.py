@@ -88,3 +88,17 @@ def test_finding_people_needs_seats_view(app_module, hall):
     viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
     assert viewer.get("/api/seats/find?q=player").status_code == 403
     assert app_module.app.test_client().get("/api/seats/find?q=player").status_code in (401, 403)
+
+
+def test_resolve_every_seat_survives_one_failing_lookup(client, hall, monkeypatch):
+    class Flaky(Monitoring):
+        def resolve_ip(self, ip, search_device=None):
+            if ip == "198.51.100.44":
+                raise TimeoutError("LibreNMS timed out")
+            return super().resolve_ip(ip, search_device)
+    monkeypatch.setattr(sources, "monitoring", lambda: Flaky())
+    seats = client.post("/api/seats/resolve").get_json()["seats"]
+    assert set(seats) == {"A-2", "A-4"}   # A-3 has only a MAC
+    assert seats["A-2"]["resolved"] is True and seats["A-2"]["port"] == "Gi1/0/7"
+    assert seats["A-2"]["username"] == "player-two"
+    assert seats["A-4"]["resolved"] is False and "timed out" in seats["A-4"]["error"]
