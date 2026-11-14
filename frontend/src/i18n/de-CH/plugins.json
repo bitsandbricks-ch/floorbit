@@ -1,0 +1,20 @@
+{
+  "title": "Plugins",
+  "intro": "Plugins bringen Aktionen, Dashboard-Kacheln und Datenquellen. Jedes zeigt, worauf es zugreifen darf, und ist zuerst ausgeschaltet. Vorerst lassen sich nur Plugins einschalten, die mit Floorbit kommen.",
+  "none": "Es sind keine Plugins installiert.",
+  "on": "Ein",
+  "off": "Aus",
+  "turnedOn": "{{name}} ist eingeschaltet.",
+  "turnedOff": "{{name}} ist ausgeschaltet.",
+  "test": "Testen",
+  "testing": "Wird getestet…",
+  "settings": "Einstellungen",
+  "log": "Protokoll",
+  "hideLog": "Protokoll ausblenden",
+  "emptyLog": "Noch nichts protokolliert.",
+  "uses": "Worauf dieses Plugin zugreifen darf",
+  "trust": {
+    "builtin": "Kommt mit Floorbit",
+    "development": "Entwicklungsstand"
+  }
+}
