@@ -88,6 +88,22 @@ Source: [`floorbit/blueprints/backup.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/settings/backup` | `settings.manage` |  |
 | POST | `/api/settings/backup` | `settings.manage` |  |
 
+## floorbit.blueprints.cables
+
+Cables and patching (issue #97). The rules live in floorbit/cables.py.
+
+Source: [`floorbit/blueprints/cables.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/cables.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/cables` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
+| POST | `/api/cables` | `floorplan.edit` | `cables` |
+| GET | `/api/cables.csv` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
+| DELETE | `/api/cables/<cable_id>` | `floorplan.edit` | `cables` |
+| PATCH | `/api/cables/<cable_id>` | `floorplan.edit` | `cables` |
+| POST | `/api/cables/import` | `floorplan.edit` | `cables` |
+| GET | `/api/cables/labels.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
+
 ## floorbit.blueprints.cache
 
 Inspect and clear the Redis cache of LibreNMS answers.

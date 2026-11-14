@@ -76,6 +76,7 @@ AREA_METHODS = {
 # Methods a plugin of the area may have but doesn't need: without them the feature says the plugin
 # can't do it (switch commands, issue #94; the browser terminal, issue #95).
 OPTIONAL_METHODS = {
+    'inventory': ('cables',),
     'ports': ('send_commands', 'command_platform', 'open_shell'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
