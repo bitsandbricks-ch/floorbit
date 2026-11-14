@@ -4,6 +4,7 @@
 - ``GET /api/plan?hall=<id>``: the hall's drawing, a state per seat and counts per block.
 - ``GET /api/plan/seats/<seat>``: one seat for the inspector. Nicks, IPs and MACs only with ``seats.view``.
 - ``GET /api/plan/blocks/<name>``: one seat block for the block panel: states, problems, switches.
+- ``GET /api/plan/switches/<name>``: one switch for the switch panel: status and the seats it serves.
 
 All need ``floorplan.view`` (the default rule in auth/roles.py). The rules live in floorbit/seat_view.py.
 """
@@ -45,4 +46,12 @@ def block_details(name):
     out = seat_view.block(name)
     if out is None:
         return jsonify({'error': 'No such block.'}), 404
+    return jsonify(out)
+
+
+@bp.route('/api/plan/switches/<name>')
+def switch_details(name):
+    out = seat_view.switch(name)
+    if out is None:
+        return jsonify({'error': 'No such switch.'}), 404
     return jsonify(out)

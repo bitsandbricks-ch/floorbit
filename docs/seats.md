@@ -108,6 +108,12 @@ online, and the seats with problems (click one to open it). When half a block go
 at a glance whether it is one switch. `/plan?block=D` opens it. It shows states only, never who
 sits where.
 
+## The switch panel
+
+Click a switch's marker, or a switch's name in the block panel, to see that switch: its status and
+since when, and the seats it serves port by port with their states (click one to open it). Before
+walking to a switch, you see which players it takes down. `/plan?switch=sw-c-02` opens it.
+
 ## In the floor plan editor
 
 The editor draws seats with the same shapes through the **Seat states** layer (on by default,

@@ -1247,3 +1247,13 @@ export interface BlockDetails {
   switches: { name: string; seats: number; online: number; status: string }[]
   no_port: number
 }
+
+/** One switch for the Seats view's switch panel (issue #176). */
+export interface SwitchDetails {
+  name: string
+  status: string
+  since: number | null
+  model: string | null
+  online: number
+  seats: { seat: string; port: string; state: SeatState; problems: number }[]
+}

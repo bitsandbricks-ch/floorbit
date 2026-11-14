@@ -11,11 +11,13 @@ import { useLiveEvent } from '@/api/live'
 import type { SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { BlockPanel } from './plan/BlockPanel'
+import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
 import { type Filter, type View, around, findSeat, parseBox, seatCenter } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 
+const PANELS = ['seat', 'block', 'switch']
 const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'checked_in']
 
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
@@ -26,6 +28,7 @@ export default function FloorPlan() {
   const hall = params.get('hall') ?? ''
   const selected = params.get('seat')
   const blockSel = selected ? null : params.get('block')
+  const switchSel = selected || blockSel ? null : params.get('switch')
   const screen = params.get('screen') === '1'
   const traffic = params.get('traffic') === '1'
   const list = !screen && params.get('view') === 'list'
@@ -62,9 +65,8 @@ export default function FloorPlan() {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
     else next.delete(key)
-    // One panel at a time: a seat or a block.
-    if (value && key === 'seat') next.delete('block')
-    if (value && key === 'block') next.delete('seat')
+    // One panel at a time: a seat, a block or a switch.
+    if (value && PANELS.includes(key)) PANELS.filter((k) => k !== key).forEach((k) => next.delete(k))
     setParams(next, { replace: true })
   }
   const go = (e: React.FormEvent) => {
@@ -101,7 +103,7 @@ export default function FloorPlan() {
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
-      onBlock={screen ? undefined : (b) => set('block', b)} />
+      onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
   )
   const summary = data && (
     <Group gap="lg" className="fb-plan-summary" wrap="wrap">
@@ -127,7 +129,8 @@ export default function FloorPlan() {
 
   const inspector = selected
     ? <Inspector key={selected} seat={selected} onClose={() => set('seat', null)} onBlock={(b) => set('block', b)} />
-    : blockSel ? <BlockPanel key={blockSel} name={blockSel} onSeat={(s) => set('seat', s)} onClose={() => set('block', null)} /> : null
+    : blockSel ? <BlockPanel key={blockSel} name={blockSel} onSeat={(s) => set('seat', s)} onSwitch={(w) => set('switch', w)} onClose={() => set('block', null)} />
+    : switchSel ? <SwitchPanel key={switchSel} name={switchSel} onSeat={(s) => set('seat', s)} onClose={() => set('switch', null)} /> : null
   const panel = !!inspector
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }}>
@@ -168,8 +171,8 @@ export default function FloorPlan() {
           {!list && <Legend checkin={data.checkin} traffic={traffic} />}
           {!list && <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>}
           {phone && (
-            <Drawer opened={panel} onClose={() => set(selected ? 'seat' : 'block', null)} position="bottom" size="55%" withCloseButton={false}
-              title={null} aria-label={selected ?? blockSel ?? ''}>
+            <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
+              title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>
               {inspector}
             </Drawer>
           )}

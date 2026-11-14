@@ -117,5 +117,10 @@
     "noPort_one": "{{count}} Platz an keinem bekannten Port",
     "noPort_other": "{{count}} Plätze an keinem bekannten Port",
     "open": "Block {{name}} öffnen"
+  },
+  "switchPanel": {
+    "seats": "Plätze an diesem Switch",
+    "port": "Port",
+    "noSeats": "An diesem Switch ist noch kein Platz bekannt."
   }
 }

@@ -151,3 +151,18 @@ def test_block_panel(client, hall):
     assert b["no_port"] == 6
     assert "player-six" not in str(b) and "198.51.100.7" not in str(b)
     assert client.get("/api/plan/blocks/Z").status_code == 404
+
+
+def test_switch_panel(client, hall):
+    """Issue #176: one switch's status and the seats it serves, port by port."""
+    s = client.get("/api/plan/switches/sw-d-01").get_json()
+    assert [(r["seat"], r["port"], r["state"]) for r in s["seats"]] == [
+        ("D-6", "Gi1/0/6", "online"), ("D-7", "Gi1/0/7", "offline")]
+    assert s["online"] == 1 and s["status"] == "unknown"
+    assert "player-six" not in str(s) and "198.51.100.7" not in str(s)
+    assert client.get("/api/plan/switches/sw-z-99").status_code == 404
+
+
+def test_port_order():
+    from floorbit.seat_view import _port_key
+    assert sorted(["Gi1/0/10", "Gi1/0/2", "Gi1/0/1"], key=_port_key) == ["Gi1/0/1", "Gi1/0/2", "Gi1/0/10"]

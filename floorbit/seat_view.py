@@ -11,6 +11,7 @@ Every seat gets a state and a few flags, so the page can draw it the same way ev
 
 No nicks, IPs or MACs here: :func:`details` adds those only for accounts with ``seats.view``.
 """
+import re
 import time
 
 from flask import current_app
@@ -235,3 +236,38 @@ def block(name, now=None):
         'switches': sorted(switches.values(), key=lambda w: w['name']),
         'no_port': sum(1 for s in cells if s not in ports),
     }
+
+
+def switch(name, now=None):
+    """One switch for the switch panel (issue #176): its status and the seats it serves, port by
+    port. States only, never who sits where."""
+    now = time.time() if now is None else now
+    short = str(name or '').lower().split('.')[0]
+    data = load_data()
+    dev = next((d for d in inventory.devices(data, include_hidden=True)
+                if short and str(d.get('name') or '').lower().split('.')[0] == short), None)
+    ports = [(seat, port) for seat, (sw, port) in _port_of_seat().items() if sw.lower().split('.')[0] == short]
+    if dev is None and not ports:
+        return None
+    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    st = next((s for s in (getattr(monitor, 'statuses', None) or {}).values()
+               if str(s.get('name') or '').lower().split('.')[0] == short), None) or {}
+    seats = {}
+    for hall in halls.halls(data):
+        seats.update(view(hall['id'], now=now)['seats'])
+    rows = [{'seat': seat, 'port': port, 'state': (seats.get(seat) or {}).get('state', 'unknown'),
+             'problems': (seats.get(seat) or {}).get('problems', 0)} for seat, port in ports]
+    rows.sort(key=lambda r: _port_key(r['port']))
+    return {
+        'name': (dev or {}).get('name') or name,
+        'status': st.get('status') or 'unknown',
+        'since': st.get('since'),
+        'model': (dev or {}).get('model') or None,
+        'seats': rows,
+        'online': sum(1 for r in rows if r['state'] == 'online'),
+    }
+
+
+def _port_key(port):
+    """Gi1/0/2 before Gi1/0/10."""
+    return [int(p) if p.isdigit() else p for p in re.split(r'(\d+)', str(port))]

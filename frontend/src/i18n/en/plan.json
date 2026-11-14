@@ -117,5 +117,10 @@
     "noPort_one": "{{count}} seat on no known port",
     "noPort_other": "{{count}} seats on no known port",
     "open": "Open block {{name}}"
+  },
+  "switchPanel": {
+    "seats": "Seats on this switch",
+    "port": "Port",
+    "noSeats": "No seat is known on this switch yet."
   }
 }

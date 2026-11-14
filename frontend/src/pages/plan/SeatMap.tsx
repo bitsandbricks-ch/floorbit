@@ -48,9 +48,9 @@ const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'righ
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
-export function SeatMap({ data, selected, onSelect, onClear, onBlock, filter, view, setView, traffic = false }: {
+export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
-  onBlock?: (block: string) => void; filter: Filter
+  onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
 }) {
   const { t } = useTranslation()
@@ -200,7 +200,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, filter, vi
         onPointerLeave={() => setHover(null)}>
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
         {data.switches.map((w) => (
-          <g key={w.id} className={`sw sw-${w.status}`} transform={`translate(${w.x} ${w.y})`}>
+          <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
             <rect x={-7} y={-7} width={14} height={14} transform="rotate(45)" />
             <title>{`${w.name}: ${w.status}`}</title>
             {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}

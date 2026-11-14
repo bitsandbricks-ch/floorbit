@@ -264,6 +264,26 @@ describe('Seats page', () => {
     expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
   })
 
+  it('opens a switch panel from its marker and from the block panel', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'offline', x: 600, y: 440 }] }
+    const sw = { name: 'sw-d-01', status: 'offline', since: 1_800_000_000, model: null, online: 1,
+      seats: [{ seat: 'D-1', port: 'Gi1/0/1', state: 'online', problems: 0 }, { seat: 'D-2', port: 'Gi1/0/2', state: 'offline', problems: 1 }] }
+    const block = { name: 'D', hall: 'main', seats: 4, online: 2, offline: 1, unknown: 1, checked_in: 1, bps: 0, problems: [],
+      switches: [{ name: 'sw-d-01', seats: 2, online: 1, status: 'offline' }], no_port: 2 }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': me, 'GET /api/plan': withSwitch, 'GET /api/plan/switches/sw-d-01': sw,
+      'GET /api/plan/blocks/D': block, 'GET /api/plan/seats/D-2': details,
+    }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?block=D')
+    fireEvent.click(await screen.findByRole('button', { name: 'sw-d-01' }))
+    const seats = await screen.findByRole('table', { name: 'Seats on this switch' })
+    expect(within(seats).getAllByRole('row').slice(1).map((r) => r.textContent)).toEqual(['Gi1/0/1D-1Online', 'Gi1/0/2D-2!Offline'])
+    fireEvent.click(within(seats).getByRole('button', { name: 'D-2' }))
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    fireEvent.click(container.querySelector('g.sw.link')!)
+    expect(await screen.findByRole('table', { name: 'Seats on this switch' })).toBeInTheDocument()
+  })
+
   it('says so when there is no recent port read', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, monitoring: false } }).fn)
     renderWithApp(<FloorPlan />, '/plan')

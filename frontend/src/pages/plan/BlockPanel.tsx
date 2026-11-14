@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
@@ -9,7 +9,9 @@ import { rate } from './model'
 const TONE: Record<string, string> = { online: 'up', offline: 'down' }
 
 /** A whole seat block at a glance (issue #174): when half a block goes dark, is it one switch? */
-export function BlockPanel({ name, onSeat, onClose }: { name: string; onSeat: (seat: string) => void; onClose: () => void }) {
+export function BlockPanel({ name, onSeat, onSwitch, onClose }: {
+  name: string; onSeat: (seat: string) => void; onSwitch?: (name: string) => void; onClose: () => void
+}) {
   const { t } = useTranslation()
   const q = useQuery({ queryKey: qk.planBlock(name), queryFn: () => get<BlockDetails>(`/api/plan/blocks/${encodeURIComponent(name)}`) })
   const b = q.data
@@ -45,7 +47,9 @@ export function BlockPanel({ name, onSeat, onClose }: { name: string; onSeat: (s
             {b.switches.map((w) => (
               <Group key={w.name} justify="space-between" wrap="nowrap" gap="xs">
                 <Group gap="xs" wrap="nowrap">
-                  <Text size="sm" fw={600}>{w.name}</Text>
+                  {onSwitch
+                    ? <Anchor component="button" type="button" size="sm" fw={600} onClick={() => onSwitch(w.name)}>{w.name}</Anchor>
+                    : <Text size="sm" fw={600}>{w.name}</Text>}
                   <Badge size="sm" color={TONE[w.status] ?? 'gray'} variant={w.status === 'offline' ? 'filled' : 'light'}>{t(`plan.state.${w.status}`, { defaultValue: w.status })}</Badge>
                 </Group>
                 {/* One empty seat is normal; a switch with none of its seats up is the outage. */}
