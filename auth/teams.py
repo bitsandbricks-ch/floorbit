@@ -6,7 +6,6 @@ of Infra leads Core, Access and Wi-Fi too, and Infra's members see what is route
 sub-teams. Team roles only add permissions inside those teams; the account's own role still
 decides everything else.
 """
-import json
 import os
 import re
 import threading
@@ -39,13 +38,13 @@ def _read():
     path = _path() if _path else None
     if not path or not os.path.exists(path):
         return {}
-    with open(path) as f:
-        return json.load(f)
+    from floorbit.store import read_json  # late: floorbit imports auth while it loads
+    return read_json(path, {})
 
 
 def _write(data):
-    with open(_path(), 'w') as f:   # in place: data.json is bind-mounted
-        json.dump(data, f, indent=2)
+    from floorbit.store import write_json  # in place: data.json is bind-mounted
+    write_json(_path(), data)
 
 
 def _teams(data):
