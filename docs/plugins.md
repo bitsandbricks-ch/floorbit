@@ -103,6 +103,30 @@ Settings:
 - **Verify TLS:** consoles ship with a self-signed certificate. Turn this off only on a network you
   trust.
 
+## Built in: MikroTik
+
+For MikroTik switches and routers running RouterOS 7 (#39). Off until an admin turns it on under
+**Settings > Plugins**. Each device is its own API, so the plugin lists them as `Name=URL`, for
+example `sw-a-01=https://192.0.2.21`. The names must match the floor plan. Add the router too, so
+its ARP table can be searched.
+
+| Floorbit needs | From |
+| --- | --- |
+| Is the switch answering, CPU and memory | `/rest/system/resource` |
+| Ports: state, disabled, comment, error counters | `/rest/interface` (Ethernet ports only) |
+| Traffic | `interface/monitor-traffic` (once) |
+| Link speed and duplex | `interface/ethernet/monitor` (once) |
+| Which port an IP is on | `/rest/ip/arp` on every listed device, then `/rest/interface/bridge/host` |
+
+When the player's MAC shows up on several switches, the access port wins. Ports whose comment
+matches the uplink pattern (`STATS_UPLINK_PATTERN`, default `uplink|trunk`) are skipped, so comment
+your uplinks.
+
+Use an account in a group with only `read` and `api` (or `rest-api`) rights. The only POSTs are the
+two monitor commands, and they change nothing. Devices are asked in parallel, 16 at a time. A
+device that doesn't answer within the timeout reads as offline, and the plugin's log says why.
+RouterOS serves the REST API over its `www-ssl` service, which needs a certificate.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
