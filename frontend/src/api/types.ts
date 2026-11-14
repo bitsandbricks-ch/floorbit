@@ -995,3 +995,12 @@ export interface TerminalOutput {
   skipped: number
   closed: string | null
 }
+
+/** Cables and patching (issue #97). */
+export interface Cable {
+  id: string; label: string; switch: string; port: string; panel: string; panel_port: string; seat: string
+  color: string; length_m: number | null; note: string; source: 'floorbit' | 'import'; plugin?: string
+  updated_at: number; by: string | null
+}
+export interface CableList { cables: Cable[]; sources: string[] }
+export interface CableImport { imported: number; errors: string[] }

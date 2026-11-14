@@ -236,6 +236,8 @@ RULES = (
     # Gear loans name people and are the crew's (floorbit/gear.py).
     ('/api/gear', None, 'incidents.work'),
     ('/gear', READ, 'incidents.work'),
+    # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
+    ('/api/cables', WRITE, 'floorplan.edit'),
     # Pre-flight checks ask the monitoring source and the health plugins now (floorbit/preflight.py).
     ('/api/preflight/run', WRITE, 'incidents.work'),
     # Build planner: the configs are the network's design (floorbit/planner.py).
