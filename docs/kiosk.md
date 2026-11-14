@@ -77,3 +77,20 @@ address.
 | `SEAT_FINDER` | `true` | `false` switches the page off (and the QR code on `/screen`). |
 | `SEAT_FINDER_NICKS` | `false` | Also find a seat by the player's exact nick. Off by default: anyone who knows a nick could find where that person sits. |
 
+
+## Attendee view
+
+`/hall` shows the hall plan with every seat green when it is online (its switch port is up) and grey
+when it is not, plus "312 of 400 seats online". It needs no account, so it can go on the event website
+or a screen at the entrance, and it works on phones in English and German.
+
+It shows seat numbers and online or offline, nothing else: no nicks, addresses, MACs, switches or ports.
+It is **off by default**, because it also shows when a seat is empty, for example while its player is
+away. Switch it on under **Settings > Attendee pages** (or `ATTENDEE_VIEW=true`).
+
+- The status comes from the same port reads as the stats page (every `ATTENTION_INTERVAL`, 120 s),
+  so no extra requests go to the switches.
+- The page reloads the status every minute from `GET /api/public/seats`
+  (`{"seats": {"D-6": true, ...}, "online": 1, "total": 8, "updated": <unix time>}`).
+- After three missed reads the page says the status isn't available instead of showing old dots, and
+  the API answers `null` for every seat.

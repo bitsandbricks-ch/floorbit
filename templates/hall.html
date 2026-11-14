@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>{{ t.title }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 16px;
+      background: var(--color-ink); color: var(--color-fg); font: 16px/1.5 var(--font-sans);
+    }
+    .card {
+      max-width: 1100px; background: var(--color-surface); margin: 2vh auto 0;
+      border: 1px solid var(--color-line); border-radius: 12px; padding: 20px;
+    }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    p { margin: 0 0 12px; color: var(--color-muted); }
+    .count { color: var(--color-fg); font-size: 20px; font-weight: 600; margin: 0; }
+    .bar { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; justify-content: space-between; }
+    .legend { display: flex; gap: 16px; font-size: 14px; color: var(--color-muted); }
+    .legend span::before {
+      content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+      margin-right: 6px; vertical-align: -1px; background: var(--k); border: 1px solid var(--color-line);
+    }
+    .bad { color: var(--color-warn, var(--color-down)); margin-top: 12px; }
+    a { color: var(--color-bit); }
+    svg { width: 100%; height: auto; margin-top: 10px; background: var(--color-raised); border-radius: 10px; }
+    .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
+    .cell { fill: var(--color-surface); stroke: var(--color-line); }
+    .cell.on { fill: var(--color-up); stroke: var(--color-up); }
+    .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>{{ t.title }}</h1>
+    {% if state == 'off' %}
+    <p class="bad" role="alert">{{ t.off }}</p>
+    {% elif state == 'empty' %}
+    <p>{{ t.empty }}</p>
+    {% else %}
+    <p>{{ t.intro }}{% if finder %} <a href="{{ url_for('screen.find_page') }}">{{ t.find }}</a>{% endif %}</p>
+    <div class="bar">
+      <p class="count" id="hall-count" data-text="{{ t.count }}" aria-live="polite">
+        {% if state == 'ok' %}{{ t.count.format(online=count, total=total) }}{% endif %}
+      </p>
+      <div class="legend">
+        <span style="--k: var(--color-up)">{{ t.online }}</span>
+        <span style="--k: var(--color-surface)">{{ t.offline }}</span>
+      </div>
+    </div>
+    <p id="hall-unknown" class="bad" role="status" {% if state == 'ok' %}hidden{% endif %}>{{ t.unknown }}</p>
+    <svg viewBox="{{ drawing.box }}" role="img" aria-label="{{ t.map }}">
+      {% for b in drawing.shapes %}
+      <g transform="translate({{ b.cx }} {{ b.cy }}) rotate({{ b.rotation }})">
+        <rect class="blk" x="{{ -b.w / 2 - 6 }}" y="{{ -b.h / 2 - 6 }}" width="{{ b.w + 12 }}" height="{{ b.h + 12 }}" rx="6" />
+        {% for c in b.cells %}
+        <rect class="cell{{ ' on' if c.on }}" data-seat="{{ c.seat }}" x="{{ c.x + 1 }}" y="{{ c.y + 1 }}" width="{{ drawing.cell - 2 }}" height="{{ drawing.cell - 2 }}" rx="3"><title>{{ c.seat }}</title></rect>
+        {% endfor %}
+      </g>
+      {% if b.name %}<text class="name" x="{{ b.cx }}" y="{{ b.cy - [b.w, b.h]|max / 2 - 18 }}">{{ b.name }}</text>{% endif %}
+      {% endfor %}
+    </svg>
+    <p id="hall-updated" data-text="{{ t.updated }}" data-at="{{ last or '' }}"></p>
+    <script src="/static/js/hall.js"></script>
+    {% endif %}
+  </main>
+</body>
+</html>
