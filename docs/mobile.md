@@ -21,7 +21,7 @@ Below 760 px wide:
   the plan stays visible.
 - The top bar keeps its icons and scrolls sideways if they don't fit; the brand name, status chips
   and last-updated time are hidden.
-- **Add switch** and **Add block** are hidden: placing new things wants a mouse. Selecting, moving,
+- The **Switch** and **Seat block** tools are hidden: placing new things wants a mouse. Selecting, moving,
   renaming and the inspector work by touch.
 
 `static/js/editor/touch.js` turns one finger into the mouse events the editor already handles, so

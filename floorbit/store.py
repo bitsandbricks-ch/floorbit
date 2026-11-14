@@ -2,17 +2,19 @@
 
 Everything lives in one JSON file, ``DATA_FILE``, read and written whole.
 
-It is written in place, not swapped in by a rename, because docker-compose bind-mounts the single
+It is written in place, not swapped in by a rename, because older compose files bind-mount the single
 file and a rename onto a bind mount fails. So a reader can catch it between the truncate and the
 write. ``read_json`` and ``write_json`` close that gap: inside one process a lock keeps them apart,
 and a reader in another process (more than one worker) that finds half a file waits and reads again.
 Every reader and writer of data.json (here, auth/ and the settings store) goes through them.
 """
 import json
+import os
 import threading
 import time
 
-DATA_FILE = 'data.json'
+# Compose keeps it in the state folder with everything else (docs/install.md).
+DATA_FILE = os.environ.get('FLOORBIT_DATA_FILE') or 'data.json'
 READ_TRIES = 6            # about 0.3 s in all before a half-written file counts as broken
 
 _lock = threading.RLock()
@@ -39,6 +41,20 @@ def write_json(path, data):
     text = json.dumps(data, indent=2)
     with _lock, open(path, 'w') as f:
         f.write(text)
+
+
+def unwritable(path=None):
+    """Files next to the data file (and its folder) this process can't write, so a save won't 500
+    by surprise. Files copied into the Docker volume with ``docker compose cp`` arrive owned by root."""
+    folder = os.path.dirname(os.path.abspath(path or DATA_FILE))
+    if not os.path.isdir(folder):
+        return []
+    found = [] if os.access(folder, os.W_OK) else [folder]
+    for name in sorted(os.listdir(folder)):
+        full = os.path.join(folder, name)
+        if os.path.isfile(full) and not os.access(full, os.W_OK):
+            found.append(full)
+    return found
 
 
 def load_data():

@@ -72,17 +72,18 @@ plan editor.
 
 ## Run it
 
-With Docker Compose (the app on port 5002, plus Redis):
+With Docker Compose (Floorbit on port 8080, plus Redis):
 
 ```sh
-cp .env.example .env        # fill in NetBox and LibreNMS, or leave them empty
-touch data.json             # the floor plan is saved here
+cp .env.example .env                              # optional: NetBox, LibreNMS, first account, ...
 docker compose up -d
-docker compose exec lal-app flask users add <name>     # your first account
+docker compose exec floorbit flask users add admin  # your first account
 ```
 
-Open <http://localhost:5002> and sign in. The image is also built by CI and pushed to the GitHub container
-registry: `ghcr.io/bitsandbricks-ch/floorbit:latest` (from `master`) and `:<version>` (from a release).
+Open <http://localhost:8080> and sign in. The full guide, with NetBox and LibreNMS, a reverse proxy,
+backups and updating, is [docs/install.md](docs/install.md). The image is built by CI and pushed to
+the GitHub container registry: `ghcr.io/bitsandbricks-ch/floorbit:latest` (from `master`) and
+`:<version>` (from a release).
 
 ## Configuration
 
@@ -96,6 +97,8 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `LIBRENMS_URL`, `LIBRENMS_TOKEN` | empty | LibreNMS API. Both set turns status, ports and seat resolving on. |
 | `LIBRENMS_VERIFY_SSL` | `true` | `false` accepts a self-signed certificate. |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD` | `localhost`, `6379`, `0`, empty | The cache. Compose points the app at its own `redis` service. |
+| `FLOORBIT_DATA_FILE` | `data.json` | Where the floor plan, accounts and settings are kept; the audit log and plugin state go next to it. The image uses `/app/state/data.json`. |
+| `FLOORBIT_PORT`, `FLOORBIT_VERSION` | `8080`, `latest` | Compose only: the port on this machine and the image tag ([docs/install.md](docs/install.md)). |
 | `CACHE_TTL_ARP`, `CACHE_TTL_MAC` | `300` | Seconds to keep a switch's ARP and MAC tables. |
 | `FLOORBIT_THEME` | `floorbit` | Site theme: `floorbit`, `ops`, `kiosk`, `classic` or `custom` ([docs/themes.md](docs/themes.md)). |
 | `FLOORBIT_EVENT_NAME` | empty | Event name in the top bar and on the kiosk. |
