@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit log · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <link rel="stylesheet" href="/static/css/settings.css" />
+  <link rel="stylesheet" href="/static/css/user-menu.css" />
+  <link rel="stylesheet" href="/static/css/audit.css" />
+</head>
+<body>
+  <header class="st-header">
+    <a class="st-back" href="/settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Settings
+    </a>
+    <h1>Audit log</h1>
+    <span class="st-header-spacer"></span>
+    {% if current_user %}
+    <form class="user-menu" method="post" action="/logout">
+      <span class="user-menu-name" title="Signed in as {{ current_user.username }}">{{ current_user.display_name }}</span>
+      <button type="submit" class="st-btn">Sign out</button>
+    </form>
+    {% endif %}
+  </header>
+
+  <main class="st-main au-main">
+    <p class="st-intro">
+      Every change to the floor plan, settings and accounts, and every sign-in, newest first.
+      It names what changed, never the values: tokens and passwords stay out.
+    </p>
+
+    <section class="st-card">
+      <form class="au-filters" id="au-filters" role="search">
+        <label><span>Area</span>
+          <select name="area">
+            <option value="">All</option>
+            {% for a in areas %}<option value="{{ a }}">{{ a | capitalize }}</option>{% endfor %}
+          </select></label>
+        <label><span>Account</span>
+          <input type="text" name="user" placeholder="Any" autocapitalize="none" spellcheck="false" /></label>
+        <label class="au-grow"><span>Search</span>
+          <input type="search" name="q" placeholder="Switch name, action, field…" /></label>
+        <a class="st-btn" id="au-csv" href="/api/settings/audit.csv">Download CSV</a>
+      </form>
+      <p class="au-count" id="au-count" role="status" aria-live="polite"></p>
+      <div class="au-table-wrap">
+        <table class="au-table">
+          <thead><tr><th>When</th><th>Account</th><th>Area</th><th>What</th><th>Fields</th></tr></thead>
+          <tbody id="au-rows"></tbody>
+        </table>
+      </div>
+      <button type="button" class="st-btn au-more hidden" id="au-more">Show older</button>
+    </section>
+  </main>
+
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/audit.js"></script>
+  {% include "_attribution.html" %}
+</body>
+</html>

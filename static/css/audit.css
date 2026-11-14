@@ -1,0 +1,39 @@
+/* Audit log page, on top of settings.css. */
+.au-main { max-width: 1100px; }
+.au-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.au-filters label { display: flex; flex-direction: column; gap: 4px; font-weight: 500; }
+.au-filters .au-grow { flex: 1; min-width: 180px; }
+.au-filters input, .au-filters select {
+  padding: 6px 10px; min-width: 0;
+  background: var(--bg-primary); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit;
+}
+.au-filters input:focus, .au-filters select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.au-count { margin: 12px 0 4px; color: var(--text-secondary); }
+
+.au-table-wrap { overflow-x: auto; }
+.au-table { width: 100%; border-collapse: collapse; }
+.au-table th {
+  text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-secondary); padding: 8px 10px; border-bottom: 1px solid var(--border);
+}
+.au-table td { padding: 8px 10px; border-bottom: 1px solid var(--bg-tertiary); vertical-align: top; }
+.au-time { white-space: nowrap; color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px; }
+.au-user { font-weight: 500; white-space: nowrap; }
+.au-user.none { color: var(--text-muted); font-weight: 400; }
+.au-area {
+  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; white-space: nowrap;
+  border: 1px solid var(--border); color: var(--text-secondary);
+}
+.au-target { font-family: var(--font-mono); color: var(--text-primary); margin-left: 6px; }
+.au-fields { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.au-failed { color: var(--danger); }
+.au-empty { padding: 24px 10px; text-align: center; color: var(--text-secondary); }
+.au-more { margin-top: 12px; }
+
+@media (max-width: 700px) {
+  .au-table thead { display: none; }
+  .au-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--bg-tertiary); }
+  .au-table td { padding: 0; border: 0; }
+  .au-table td.au-what, .au-table td.au-fields-cell { grid-column: 1 / -1; }
+}

@@ -32,6 +32,8 @@ each seat is plugged into.
   [docs/themes.md](docs/themes.md).
 - **Backup:** download the floor plan and settings as one file and restore it later, without
   tokens or accounts. See [docs/backup.md](docs/backup.md).
+- **Audit log:** who changed what and when, and every sign-in, under Settings. See
+  [docs/audit.md](docs/audit.md).
 - **Cache:** LibreNMS answers are cached in Redis (5 minutes by default), so a busy hall doesn't hammer
   the API.
 
@@ -67,6 +69,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `CACHE_TTL_ARP`, `CACHE_TTL_MAC` | `300` | Seconds to keep a switch's ARP and MAC tables. |
 | `FLOORBIT_THEME` | `floorbit` | Site theme: `floorbit`, `ops`, `kiosk`, `classic` or `custom` ([docs/themes.md](docs/themes.md)). |
 | `FLOORBIT_EVENT_NAME` | empty | Event name in the top bar and on the kiosk. |
+| `AUDIT_FILE` | next to `data.json` | Where the audit log is kept ([docs/audit.md](docs/audit.md)). |
 | `SECRET_KEY` | generated | Signs the session cookie. Empty: generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |
 | `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |

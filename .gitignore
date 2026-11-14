@@ -43,6 +43,7 @@ env/
 # Project specific
 data.json
 checkins.json
+audit.jsonl
 state/
 static/uploads/
 *.log
