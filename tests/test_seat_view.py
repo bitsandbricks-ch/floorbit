@@ -75,3 +75,9 @@ def test_a_missing_checkin_is_not_a_problem(client, app_module, hall, monkeypatc
     monkeypatch.setattr(watch, "snapshot", lambda: {"items": items})
     assert client.get("/api/plan").get_json()["seats"]["D-6"]["problems"] == 1
     assert len(client.get("/api/plan/seats/D-6").get_json()["attention"]) == 2
+
+
+def test_editor_has_the_seat_states_layer(client):
+    page = client.get("/").get_data(as_text=True)
+    assert 'id="btn-seat-states"' in page and "/static/js/editor/seat-states.js" in page
+    assert page.index("editor/seat-states.js") < page.index("editor/main.js")

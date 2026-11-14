@@ -199,6 +199,17 @@
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
 
+            <button class="layer-row" id="btn-seat-states" aria-pressed="true" title="Draw seats online, offline or unknown, as on the Seats view">
+              <span class="layer-name">Seat states</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <div class="layer-options seat-states-legend" id="seat-states-legend">
+              <span><i class="seat-key st-online"></i>Online</span>
+              <span><i class="seat-key st-offline"></i>Offline</span>
+              <span><i class="seat-key st-unknown"></i>Unknown</span>
+              <span><i class="seat-key st-online st-checked"></i>Checked in</span>
+              <a href="/plan">Open the Seats view</a>
+            </div>
             <button class="layer-row" id="btn-traffic" aria-pressed="false" title="Colour the map by throughput from LibreNMS">
               <span class="layer-name">Traffic heatmap</span>
               <span class="layer-switch" aria-hidden="true"></span>
@@ -865,6 +876,7 @@
   <script src="/static/js/editor/heatmap.js"></script>
   <script src="/static/js/editor/incidents.js"></script>
   <script src="/static/js/editor/tournament.js"></script>
+  <script src="/static/js/editor/seat-states.js"></script>
   <script src="/static/js/editor/security.js"></script>
   <script src="/static/js/editor/logs.js"></script>
   <script src="/static/js/editor/power.js"></script>
