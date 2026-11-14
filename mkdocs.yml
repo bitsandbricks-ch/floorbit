@@ -1,0 +1,92 @@
+# The documentation site (issue #53): docs/ built with MkDocs Material.
+#   pip install -r requirements-docs.txt && mkdocs serve
+# .github/workflows/docs.yml checks it on every pull request and publishes it on every release.
+site_name: Floorbit
+site_description: The event network on a floor plan, for LAN parties.
+site_url: https://bitsandbricks-ch.github.io/floorbit/
+repo_url: https://github.com/bitsandbricks-ch/floorbit
+repo_name: bitsandbricks-ch/floorbit
+edit_uri: edit/master/docs/
+copyright: Floorbit by Mike · BitsAndBricks
+docs_dir: docs
+# Design notes and the brand book are for the people building Floorbit, not running it.
+exclude_docs: |
+  plans/
+  brand.md
+  hooks/
+  screenshots/
+hooks:
+  - docs/hooks/source_links.py
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle: {icon: material/weather-night, name: Dark}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle: {icon: material/weather-sunny, name: Light}
+  logo: assets/floorbit-mark.svg
+  favicon: assets/favicon.svg
+  features: [navigation.sections, navigation.top, search.highlight, content.code.copy]
+extra_css: [assets/floorbit.css]
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+      # Anchors like GitHub's, so links between docs work in the repository and on the site.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}
+  - pymdownx.highlight
+  - pymdownx.superfences
+validation:
+  links: {not_found: warn, anchors: warn}
+nav:
+  - Home: index.md
+  - Set up:
+      - Install with Docker Compose: install.md
+      - Sign-in, roles and teams: auth.md
+      - Inventory (NetBox): inventory.md
+      - Halls and floor plan import: halls.md
+      - Floor plan templates: templates.md
+      - Seat mapping: seat-mapping.md
+      - Themes: themes.md
+      - Feature switches: features.md
+      - Backup and restore: backup.md
+      - Demo mode: demo.md
+  - Before the event:
+      - Build planner: planner.md
+      - Pre-flight check: preflight.md
+      - Tournament seats: tournament.md
+      - Gear loans: gear.md
+  - During the event:
+      - Incidents and the seat helpdesk: incidents.md
+      - Tech dispatch: dispatch.md
+      - Shift handover: handover.md
+      - Crew Discord channel: crew-discord.md
+      - Alerts and problems: alerts.md
+      - Port actions: ports.md
+      - Service health: health.md
+      - Security detection: security.md
+      - Electrics: power.md
+      - Stats dashboard: stats.md
+      - Traffic insights: flows.md
+      - Kiosk view: kiosk.md
+      - Phones and tablets: mobile.md
+      - Offline mode: offline.md
+  - After the event:
+      - Post-event report: report.md
+      - Event replay: replay.md
+      - Teardown checklist: teardown.md
+      - Past events: events.md
+  - Extend:
+      - Plugins: plugins.md
+      - Integrations: integrations.md
+      - The API: api.md
+      - API reference: api-reference.md
+      - Architecture: architecture.md
+      - Audit log: audit.md

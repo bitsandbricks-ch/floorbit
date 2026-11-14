@@ -132,6 +132,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 scripts/changelog.py check
 
+  docs:
+    # The documentation site builds without broken links, and the API reference matches the routes
+    # (that part is a test in pytest). Published by docs.yml on release.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install --quiet -r requirements-docs.txt
+      - run: mkdocs build --strict --site-dir site
+        env:
+          NO_MKDOCS_2_WARNING: "1"
+
   workflows:
     # The workflow files themselves: syntax, and expressions that would let a PR title
     # or branch name run as shell (actionlint with its shellcheck pass).
@@ -146,7 +161,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [ruff, javascript, frontend, pytest, screenshots, changelog, workflows]
+    needs: [ruff, javascript, frontend, pytest, screenshots, changelog, workflows, docs]
     runs-on: ubuntu-24.04
     steps:
       - env:
