@@ -12,6 +12,17 @@ __all__ = [
 class Registry:
     def __init__(self):
         self._providers = {}
+        self._sources = []   # callables returning providers that admins add at runtime (OIDC)
+
+    def add_source(self, source):
+        self._sources.append(source)
+
+    def _all(self):
+        out = dict(self._providers)
+        for source in self._sources:
+            for provider in source():
+                out.setdefault(provider.id, provider)   # a built-in id is never shadowed
+        return out
 
     def register(self, provider):
         if not provider.id or provider.kind not in ('password', 'redirect'):
@@ -20,8 +31,8 @@ class Registry:
         return provider
 
     def get(self, provider_id):
-        provider = self._providers.get(provider_id)
+        provider = self._all().get(provider_id)
         return provider if provider and provider.enabled() else None
 
     def enabled(self, kind=None):
-        return [p for p in self._providers.values() if p.enabled() and (kind is None or p.kind == kind)]
+        return [p for p in self._all().values() if p.enabled() and (kind is None or p.kind == kind)]

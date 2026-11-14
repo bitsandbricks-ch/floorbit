@@ -53,6 +53,8 @@ ACTIONS = {
     ('DELETE', '/api/checkins/<seat>'): ('check-in', 'Removed check-in'),
     ('POST', '/api/checkins/refresh'): ('check-in', 'Refreshed check-ins'),
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
+    ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
+    ('DELETE', '/api/settings/oidc/<provider_id>'): ('settings', 'Removed sign-in provider'),
 }
 AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
