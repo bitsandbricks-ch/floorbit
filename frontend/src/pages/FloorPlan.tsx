@@ -17,6 +17,7 @@ import { Inspector, Legend } from './plan/Inspector'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
+import { Shortcuts } from './plan/Shortcuts'
 
 const PANELS = ['seat', 'block', 'switch']
 const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'note', 'checked_in']
@@ -66,7 +67,10 @@ export default function FloorPlan() {
   const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
   const toFind = () => { findBox.current?.focus(); findBox.current?.select() }
   // Swiss and German keyboards type "/" with Shift (Shift+7), and Mantine matches Shift exactly (issue #222).
-  useHotkeys([['/', toFind], ['shift+/', toFind]])
+  // "?" lists the shortcuts, as on GitHub and Gmail (issue #224). Usually typed with Shift.
+  const [shortcuts, setShortcuts] = useState(false)
+  const showShortcuts = () => setShortcuts(true)
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts]])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
@@ -256,7 +260,13 @@ export default function FloorPlan() {
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
           {!list && <Legend checkin={data.checkin} traffic={traffic} />}
-          {!list && <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>}
+          {!list && (
+            <Text size="sm" c="dimmed" mt="xs">
+              {t('plan.help')}
+              {keyboard && <>{' '}<Anchor component="button" type="button" size="sm" onClick={showShortcuts}>{t('plan.shortcuts.show')}</Anchor> <Kbd size="xs">?</Kbd></>}
+            </Text>
+          )}
+          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} />
           {phone && (
             <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
               title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>

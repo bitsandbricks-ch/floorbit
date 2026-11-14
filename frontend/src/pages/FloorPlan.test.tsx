@@ -464,6 +464,16 @@ describe('Seats page', () => {
     expect(box).toHaveFocus()
   })
 
+  it('lists the keyboard shortcuts on ? (issue #224)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.keyDown(document.documentElement, { key: '?', code: 'Slash', shiftKey: true })
+    const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })
+    expect(within(dialog).getByText('Open the block of the seat under the cursor')).toBeInTheDocument()
+    expect(within(dialog).getByText('Find a seat')).toBeInTheDocument()
+  })
+
   it('shows every hall with its totals in the picker', async () => {
     const halls = [data.halls[0], { id: 'annex', name: 'Annex', seats: 40, online: 38, problems: 2 }]
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': { ...data, halls } }).fn)

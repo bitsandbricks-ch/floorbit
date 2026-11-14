@@ -168,5 +168,19 @@
     "only": "Only: {{filter}}",
     "back": "Back",
     "print": "Print"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "show": "Keyboard shortcuts",
+    "intro": "Tab to the plan first. / and ? work anywhere on the page.",
+    "or": "or",
+    "arrows": "Go from seat to seat",
+    "open": "Open the seat under the cursor",
+    "close": "Close the seat",
+    "block": "Open the block of the seat under the cursor",
+    "pan": "Move the map",
+    "zoom": "Zoom in, out, or show the whole hall",
+    "find": "Find a seat",
+    "help": "Show this list"
   }
 }

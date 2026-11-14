@@ -56,6 +56,7 @@ Tab to the plan, then:
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
+| **?** | Anywhere on the page: list these shortcuts. On a computer with a mouse, **Keyboard shortcuts** under the plan opens the same list. |
 
 A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the
 plan's description, one line per block ("Block D: 21 of 24 seats online, 1 problem."). The page is
