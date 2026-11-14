@@ -48,7 +48,7 @@
   "block": "Block",
   "port": "Switch-Port",
   "noPort": "Noch nicht bekannt",
-  "traffic": "Verkehr jetzt",
+  "traffic": "Verkehr",
   "checkin": "Eingecheckt",
   "yes": "Ja",
   "no": "Nein",
@@ -68,5 +68,6 @@
   "flag": "Für Techniker markieren",
   "flagNote": "Was soll sich der Techniker anschauen?",
   "flagSend": "Platz markieren",
-  "flagged": "Platz {{seat}} ist für einen Techniker markiert."
+  "flagged": "Platz {{seat}} ist für einen Techniker markiert.",
+  "trafficScale": "Verkehr pro Platz"
 }

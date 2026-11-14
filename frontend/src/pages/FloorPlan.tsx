@@ -1,4 +1,4 @@
-import { Alert, Anchor, Drawer, Group, Loader, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Drawer, Group, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -24,6 +24,7 @@ export default function FloorPlan() {
   const hall = params.get('hall') ?? ''
   const selected = params.get('seat')
   const screen = params.get('screen') === '1'
+  const traffic = params.get('traffic') === '1'
   const phone = useMediaQuery('(max-width: 48em)')
   const qc = useQueryClient()
   const q = useQuery({
@@ -73,7 +74,7 @@ export default function FloorPlan() {
   const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
 
   const map = data?.drawing && view && (
-    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected}
+    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }} />
   )
   const summary = data && (
@@ -89,7 +90,7 @@ export default function FloorPlan() {
       <main className="fb-plan-screen">
         {summary}
         {map}
-        {data && <Legend checkin={data.checkin} />}
+        {data && <Legend checkin={data.checkin} traffic={traffic} />}
       </main>
     )
   }
@@ -117,8 +118,11 @@ export default function FloorPlan() {
             </Group>
           </Group>
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
-          <SegmentedControl mb="sm" size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
-            data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({ value: f, label: t(`plan.filter.${f}`) }))} />
+          <Group mb="sm" gap="lg" wrap="wrap">
+            <SegmentedControl size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
+              data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({ value: f, label: t(`plan.filter.${f}`) }))} />
+            <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />
+          </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
@@ -126,7 +130,7 @@ export default function FloorPlan() {
             {map}
             {selected && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
-          <Legend checkin={data.checkin} />
+          <Legend checkin={data.checkin} traffic={traffic} />
           <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>
           {phone && (
             <Drawer opened={!!selected} onClose={() => set('seat', null)} position="bottom" size="55%" withCloseButton={false}

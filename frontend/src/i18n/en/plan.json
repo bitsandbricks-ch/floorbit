@@ -48,7 +48,7 @@
   "block": "Block",
   "port": "Switch port",
   "noPort": "Not known yet",
-  "traffic": "Traffic now",
+  "traffic": "Traffic",
   "checkin": "Checked in",
   "yes": "Yes",
   "no": "No",
@@ -68,5 +68,6 @@
   "flag": "Flag for a tech",
   "flagNote": "What should the tech look at?",
   "flagSend": "Flag the seat",
-  "flagged": "Seat {{seat}} is flagged for a tech."
+  "flagged": "Seat {{seat}} is flagged for a tech.",
+  "trafficScale": "Traffic per seat"
 }

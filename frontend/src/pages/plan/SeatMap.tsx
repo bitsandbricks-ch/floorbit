@@ -3,17 +3,19 @@ import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanSeat, SeatViewData } from '@/api/types'
-import { type Density, type Filter, type View, density, matches, pan, parseBox, rate, scale, zoom } from './model'
+import { type Density, type Filter, type View, density, heatColor, heatLevel, matches, pan, parseBox, rate, scale, zoom } from './model'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
-export function SeatGlyph({ seat, size, detail }: { seat: PlanSeat; size: number; detail: boolean }) {
+export function SeatGlyph({ seat, size, detail, traffic = false }: { seat: PlanSeat; size: number; detail: boolean; traffic?: boolean }) {
   const i = size * 0.08
   const s = size - 2 * i
+  // With the traffic overlay an online seat is filled by its traffic; the shapes stay the same.
+  const heat = traffic && seat.state === 'online' ? heatColor(heatLevel(seat.bps)) : undefined
   return (
     <>
       {seat.match && <rect className="match" x={i - 2.5} y={i - 2.5} width={s + 5} height={s + 5} rx={5} />}
-      <rect className={`seat s-${seat.state}`} x={i} y={i} width={s} height={s} rx={3} />
+      <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
       {detail && seat.checked_in && <polygon className="chk" points={`${i + s * 0.42},${i} ${i + s},${i} ${i + s},${i + s * 0.58}`} />}
       {seat.problems ? (
@@ -39,9 +41,9 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
 }
 
 /** The plan with pan (drag, arrow keys), zoom (wheel, pinch, + and -) and three levels of detail. */
-export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
+export function SeatMap({ data, selected, onSelect, filter, view, setView, traffic = false }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; filter: Filter
-  view: View; setView: (v: View) => void
+  view: View; setView: (v: View) => void; traffic?: boolean
 }) {
   const { t } = useTranslation()
   const wrap = useRef<HTMLDivElement>(null)
@@ -143,7 +145,7 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
   const tip = hover && data.seats[hover.seat]
   return (
     <div ref={wrap} className={`fb-plan-wrap d-${level}`}>
-      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="fb-plan" tabIndex={0} role="application"
+      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} tabIndex={0} role="application"
         aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
@@ -161,7 +163,8 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
               <rect className="blk" x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
               {b.cells.map((c) => {
                 const seat = data.seats[c.seat] ?? { state: 'unknown' as const }
-                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : ''].join(' ').trim()
+                const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
+                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : ''].join(' ').trim()
                 return (
                   <g key={c.seat} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
                     role="button" aria-label={`${c.seat}: ${stateText(seat)}`}
@@ -172,7 +175,7 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
                     onPointerLeave={() => setHover(null)}
                     onClick={() => { if (!moved.current) onSelect(c.seat) }}>
                     <rect className="hit" width={drawing.cell} height={drawing.cell} />
-                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} />
+                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} />
                     {level === 'near' && (
                       <text className="num" x={drawing.cell / 2} y={drawing.cell / 2} dy="0.35em"
                         transform={b.rotation ? `rotate(${-b.rotation} ${drawing.cell / 2} ${drawing.cell / 2})` : undefined}>

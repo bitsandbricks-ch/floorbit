@@ -35,6 +35,14 @@ focus. What is drawn depends on how big a seat is on screen:
 **Show** dims every seat except the ones with problems, offline seats, match seats or checked-in
 seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
+## Traffic
+
+**Traffic** fills each online seat by its traffic now, on a fixed scale from 100 kbit/s to
+1 Gbit/s (log scale, so the same colour means the same traffic in every hall and at every hour).
+The colours run from dark purple to yellow (viridis), which stay in order for colour-blind eyes
+and in grey scale. Offline and unknown seats keep their shapes. Only each seat's volume is shown,
+never what it is. `/plan?traffic=1` opens with it on, also on big screens.
+
 ## The inspector
 
 Clicking a seat opens one panel with everything about it: state, block, switch and port, traffic
