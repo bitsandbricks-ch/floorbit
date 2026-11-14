@@ -46,6 +46,12 @@ under **Settings > LibreNMS** (`LIBRENMS_URL`, `LIBRENMS_TOKEN`, `LIBRENMS_VERIF
 `LIBRENMS_FDB_EXCLUDE`), as before it became a plugin. Turn it off and the floor plan shows every
 switch as unknown. Only one monitoring plugin is used at a time: the first one that is on.
 
+## Built in: Demo data
+
+A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
+replaces LibreNMS while it's on). Off unless `FLOORBIT_DEMO=1` or an admin turns it on. See
+[demo.md](demo.md).
+
 ## Built in: HTTP check
 
 Checks that web services answer (the LAN cache, the ticket shop, a game server's web panel) and
@@ -126,8 +132,8 @@ class Plugin(Base):
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
 | `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`. See the built-in LibreNMS plugin |
 
-Two manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until
-an admin turns it off) and `core_settings: <section>` (read a settings section that existed before
+Three manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until
+an admin turns it off), `enable_env: <VARIABLE>` (on while that variable is `1`) and `core_settings: <section>` (read a settings section that existed before
 the plugin, so old env variables keep working).
 
 The loader refuses a plugin whose manifest uses an area it doesn't list, and code whose methods

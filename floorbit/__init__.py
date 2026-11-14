@@ -90,4 +90,8 @@ def create_app(start_background=True):
     # Plugins: actions, widgets, endpoints and hooks from floorbit/builtin_plugins (see docs/plugins.md).
     version_file = ROOT / 'VERSION'
     init_plugins(app, settings_store, version_file.read_text().strip() if version_file.is_file() else '0')
+
+    # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
+    from .blueprints.demo import seed_on_start
+    seed_on_start(app)
     return app

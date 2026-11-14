@@ -1,0 +1,19 @@
+/* "Demo data" on every page while the demo plugin is on, so nobody mistakes it for the real
+   network. A pseudo-element, so it needs no markup in each page; it never takes clicks. */
+body::after {
+  content: "Demo data";
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 10000;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-warn);
+  color: var(--color-ink, #111);
+  font: 600 12px/1.4 var(--font-sans, system-ui, sans-serif);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  pointer-events: none;
+}

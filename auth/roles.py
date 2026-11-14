@@ -23,7 +23,7 @@ DEFAULT_ROLE = 'editor'
 LEGACY_ROLE = 'admin'
 
 # Paths below these need an admin, whatever the method.
-ADMIN_PATHS = ('/settings', '/api/settings', '/api/users', '/api/integrations')
+ADMIN_PATHS = ('/settings', '/api/settings', '/api/users', '/api/integrations', '/api/demo')
 # Reads with personal data (who sat where, IPs, MACs): editors and up, never public.
 EDITOR_PATHS = ('/api/checkins', '/checkins', '/api/inventory/log',
                 '/api/seat-map', '/api/seat-map.csv', '/seat-mapping')

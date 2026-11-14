@@ -59,8 +59,10 @@ AREA_METHODS = {
     'monitoring': ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
-# (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working.
-BUILTIN_ONLY = ('default_enabled', 'core_settings')
+# (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
+# ``enable_env`` names a variable that forces it on (FLOORBIT_DEMO for the demo data).
+BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
+TRUE_WORDS = ('1', 'true', 'yes', 'on')
 # Manifest setting types and the settings page type each becomes.
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
                  'int': 'int', 'select': 'choice', 'list': 'list'}
@@ -377,6 +379,9 @@ class Registry:
     def enabled(self, spec):
         if spec.error:
             return False
+        env = spec.manifest.get('enable_env') if spec.trust == 'builtin' else None
+        if env and os.environ.get(str(env), '').strip().lower() in TRUE_WORDS:
+            return True
         record = self._record(spec.id)
         if 'enabled' in record:
             return bool(record['enabled'])
@@ -436,7 +441,13 @@ class Registry:
     def monitoring_source(self):
         """The monitoring plugin in use: the first one that is on, in id order (or None)."""
         found = self.feeders('monitoring')
+        # Demo data, once on, replaces the live source: a mix of both would be nonsense.
+        found.sort(key=lambda spec: spec.id != 'demo')
         return found[0] if found else None
+
+    def demo_on(self):
+        spec = self.specs.get('demo')
+        return bool(spec and spec.trust == 'builtin' and self.enabled(spec))
 
     def mapping_sources(self):
         """[(name, label, fetch)] for the seat sources: plugins that feed the seat mapping."""
