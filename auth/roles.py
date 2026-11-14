@@ -200,6 +200,7 @@ RULES = (
     ('/api/switches', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
+    ('/api/templates', WRITE, 'floorplan.edit'),
     ('/api/inventory/log', READ, 'floorplan.edit'),
     ('/api/inventory', WRITE, 'floorplan.edit'),
     ('/api/seat-map', READ, 'seats.view'),
