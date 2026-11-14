@@ -62,7 +62,8 @@ def _grouped(changes):
 
 
 class DiscordNotifier:
-    def __init__(self):
+    def __init__(self, crew=None):
+        self.crew = crew          # CrewBridge: with no webhook, alerts go to the crew channel
         self._queue = queue.Queue(maxsize=100)
         self._last_alert = {}     # switch id -> ts
         self._thread = None
@@ -75,8 +76,11 @@ class DiscordNotifier:
     def webhook():
         return config.get('DISCORD_WEBHOOK_URL', '') or ''
 
+    def _via_crew(self):
+        return not self.webhook() and self.crew is not None and self.crew.enabled()
+
     def enabled(self):
-        return bool(self.webhook()) and config.get_bool('DISCORD_ALERTS_ENABLED', True)
+        return (bool(self.webhook()) or self._via_crew()) and config.get_bool('DISCORD_ALERTS_ENABLED', True)
 
     # ── wiring ────────────────────────────────────────────────────────────────────────────
     def attach(self):
@@ -375,6 +379,10 @@ class DiscordNotifier:
     # ── sending ───────────────────────────────────────────────────────────────────────────
     def send(self, payload, retries=2):
         url = self.webhook()
+        if not url and self._via_crew():
+            self.crew.post_alert(payload)
+            self.last_sent, self.last_error = time.time(), None
+            return True
         if not url:
             raise RuntimeError('DISCORD_WEBHOOK_URL is not set')
         for attempt in range(retries + 1):
@@ -397,7 +405,8 @@ class DiscordNotifier:
     def info(self):
         return {
             'enabled': self.enabled(),
-            'configured': bool(self.webhook()),
+            'configured': bool(self.webhook()) or self._via_crew(),
+            'via': 'webhook' if self.webhook() else ('crew channel' if self._via_crew() else None),
             'last_sent': self.last_sent,
             'last_error': self.last_error,
         }

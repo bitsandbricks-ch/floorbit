@@ -35,6 +35,7 @@ import time
 from flask import Blueprint, Response, jsonify, render_template, request, stream_with_context
 
 from . import checkin, config, events, history, seat_sources, settings_bridge
+from .crew import CrewBridge
 from .discord import DiscordNotifier
 from .monitor import StatusMonitor
 
@@ -64,7 +65,11 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         settings_bridge.connect(settings_store)
     monitor = StatusMonitor(_placed_switches(load_data))
     refresher = checkin.CheckinRefresher()
-    discord = DiscordNotifier()
+    auth = app.extensions.get('auth')
+    crew = CrewBridge(users=auth.users if auth else None, app=app)
+    crew.attach()
+    app.extensions['floorbit_crew'] = crew
+    discord = DiscordNotifier(crew=crew)
     discord.attach()
 
     bp = Blueprint('integrations', __name__)
@@ -86,6 +91,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
                      'clients': events.client_count()},
             'monitor': monitor.info(),
             'discord': discord.info(),
+            'crew': crew.info(),
             'seat_sources': seat_sources.info(),
             'checkin': {'enabled': config.get_bool('CHECKIN_ENABLED', False),
                         'count': len(checkin.load_all()),
@@ -102,8 +108,8 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
 
     @bp.route('/api/integrations/discord/test', methods=['POST'])
     def discord_test():
-        if not discord.webhook():
-            return jsonify({'ok': False, 'error': 'DISCORD_WEBHOOK_URL is not set'}), 400
+        if not discord.webhook() and not crew.enabled():
+            return jsonify({'ok': False, 'error': 'Set a webhook URL or the crew channel bot first'}), 400
         try:
             discord.send(discord.build_test_message())
         except Exception as exc:  # noqa: BLE001  # report any send failure to the caller

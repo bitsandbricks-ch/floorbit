@@ -93,6 +93,9 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 
 `POST /api/integrations/discord/test` sends a test message.
 
+With no webhook, alerts can go to the crew channel through a bot instead. That channel also gets
+one message and thread per incident ([crew-discord.md](crew-discord.md)).
+
 ## Seat → user / IP sources
 
 `/api/seats/info`, `/api/seats/resolve` and `/api/seats/heatmap` get their seat mapping from
