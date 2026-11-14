@@ -88,7 +88,7 @@ export function IncidentCard({
                 </Button>
               )}
             </Group>
-            {i.can_assign && i.status !== 'fixed' && onDispatch && (
+            {i.can_assign && i.status === 'open' && !i.assignee && onDispatch && (
               <Button size="xs" variant="light" loading={busy} onClick={onDispatch}>{t('incidents.sendNearest')}</Button>
             )}
             {i.can_assign && i.status !== 'fixed' && (

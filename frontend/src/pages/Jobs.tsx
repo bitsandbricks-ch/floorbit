@@ -43,13 +43,13 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
         ) : <Text size="sm" c="dimmed">{t('jobs.noPlace')}</Text>}
         <TextInput aria-label={t('jobs.note')} placeholder={t('jobs.note')} value={note} maxLength={2000}
           onChange={(e) => setNote(e.currentTarget.value)} />
-        <Group gap="xs" grow>
-          {!job.taken_at && <Button size="md" loading={busy} onClick={() => onAnswer('take', '')}>{t('jobs.onMyWay')}</Button>}
-          <Button size="md" color="up" variant={job.taken_at ? 'filled' : 'light'} loading={busy} onClick={() => onAnswer('done', note.trim())}>
+        <Stack gap="xs">
+          {!job.taken_at && <Button size="md" fullWidth loading={busy} onClick={() => onAnswer('take', '')}>{t('jobs.onMyWay')}</Button>}
+          <Button size="md" fullWidth color="up" variant={job.taken_at ? 'filled' : 'light'} loading={busy} onClick={() => onAnswer('done', note.trim())}>
             {t('jobs.done')}
           </Button>
-          <Button size="md" variant="default" loading={busy} onClick={() => onAnswer('give-back', note.trim())}>{t('jobs.giveBack')}</Button>
-        </Group>
+          <Button size="md" fullWidth variant="default" loading={busy} onClick={() => onAnswer('give-back', note.trim())}>{t('jobs.giveBack')}</Button>
+        </Stack>
       </Stack>
     </Paper>
   )
