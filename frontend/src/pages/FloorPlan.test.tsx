@@ -159,6 +159,31 @@ describe('Seats page', () => {
     expect(result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
   })
 
+  it('rotates through the halls on a big screen, longer where there are problems', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const two = [{ id: 'main', name: 'Hall' }, { id: 'annex', name: 'Annex' }]
+      const quiet = Object.fromEntries(Object.keys(data.seats).map((k) => [k, { state: 'online' as const }]))
+      const api = fakeFetch({
+        'GET /api/plan?hall=main': { ...data, halls: two },
+        'GET /api/plan?hall=annex': { ...data, halls: two, hall: 'annex', seats: quiet },
+      })
+      vi.stubGlobal('fetch', api.fn)
+      const { container } = renderWithApp(<FloorPlan />, '/plan?screen=1&cycle=10&hall=main')
+      expect(await screen.findByText('Hall')).toBeInTheDocument()
+      expect(container.querySelector('.fb-plan-cycle')).toHaveStyle({ animationDuration: '20000ms' })   // Hall has a problem
+      await vi.advanceTimersByTimeAsync(19_000)
+      expect(api.calls.some((c) => c.path === '/api/plan?hall=annex')).toBe(false)
+      await vi.advanceTimersByTimeAsync(1_500)
+      expect(await screen.findByText('Annex')).toBeInTheDocument()
+      expect(container.querySelector('.fb-plan-cycle')).toHaveStyle({ animationDuration: '10000ms' })
+      await vi.advanceTimersByTimeAsync(10_500)
+      await waitFor(() => expect(screen.getByText('Hall')).toBeInTheDocument())
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('says so when there is no recent port read', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, monitoring: false } }).fn)
     renderWithApp(<FloorPlan />, '/plan')

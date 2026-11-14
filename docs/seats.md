@@ -87,3 +87,7 @@ the seat colours while it is on.
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
 the totals. It reloads every 30 seconds and with each port read.
+
+With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
+hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A
+hall with seats with problems stays up twice as long. Add `&traffic=1` to rotate the traffic overlay.

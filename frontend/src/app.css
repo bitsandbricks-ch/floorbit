@@ -380,3 +380,8 @@ body {
 .fb-plan .seat.heat { stroke: color-mix(in srgb, var(--color-fg) 35%, transparent); }
 .fb-plan-legend .heat { gap: 8px; }
 .fb-plan-legend .heat i { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }
+/* Hall rotation on a big screen (issue #163): the bar fills while the hall is shown. */
+.fb-plan-screen .fb-plan-hall { font-size: 2vw; color: var(--color-fg); }
+.fb-plan-cycle { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--color-bit); transform-origin: left; animation: fb-plan-cycle linear forwards; }
+@keyframes fb-plan-cycle { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .fb-plan-cycle { animation: none; opacity: .5; } }
