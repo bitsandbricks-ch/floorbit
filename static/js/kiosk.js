@@ -24,6 +24,7 @@
     labels:       params.get('labels') !== '0',
     statusEvery:  intParam('refresh', 15, 5, 300) * 1000,
     reloadEvery:  intParam('reload', 360, 0, 10080) * 60_000,   // minutes → ms, 0 = never
+    hall:         params.get('hall') || '',                      // which hall; the first by default
     heat:         params.get('view') === 'heat',                 // seats coloured by their traffic
   };
   const HEAT_EVERY        = 30_000;
@@ -337,16 +338,31 @@
     }
   }
 
+  // One hall per screen (?hall=<id>); its background image goes under the plan.
+  let hall = null;
+  let hallCount = 1;
+  function showHall(list) {
+    hallCount = list.length || 1;
+    hall = list.find(h => h.id === OPT.hall) || list[0] || null;
+    const bg = $('k-plan-bg');
+    if (!bg) return;
+    bg.hidden = !(hall && hall.background);
+    if (hall && hall.background && bg.getAttribute('src') !== hall.background) bg.src = hall.background;
+  }
+
   async function loadLayout() {
     const known = Object.fromEntries(switches.map(s => [s.id, s.status]));
-    const [sw, blocks, legacy] = await Promise.all([
+    const [sw, blocks, legacy, hallList] = await Promise.all([
       getJSON('/api/switches'),
       getJSON('/api/seat-blocks'),
       getJSON('/api/seats').catch(() => []),
+      getJSON('/api/halls').then(r => r.halls).catch(() => []),
       loadSeatInfo(),
     ]);
-    switches = sw.map(s => ({ ...s, status: known[s.id] || s.status }));
-    seatBlocks = blocks;
+    showHall(hallList);
+    const here = (item) => !hall || item.hall_id === hall.id;
+    switches = sw.filter(here).map(s => ({ ...s, status: known[s.id] || s.status }));
+    seatBlocks = blocks.filter(here);
     seats = legacy;
   }
 
@@ -554,6 +570,7 @@
     await layoutTick();
     statusTick();
     connectLive();
+    if (hall && hallCount > 1 && !OPT.title) $('k-title').textContent += ` · ${hall.name}`;
     if (OPT.heat) {
       $('k-title').textContent += ' · Traffic';
       $('k-heat-legend')?.classList.remove('hidden');

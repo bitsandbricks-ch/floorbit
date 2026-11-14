@@ -21,6 +21,12 @@
       <div class="topbar-brand">
         {% include "_brand.html" %}
       </div>
+      <div class="hall-picker">
+        <select id="hall-select" class="hall-select" aria-label="Hall"></select>
+        <button class="btn btn-ghost btn-icon" id="btn-halls" type="button" title="Halls: add, rename, background image, import seat blocks" aria-label="Manage halls">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        </button>
+      </div>
 
       <div class="status-chips" role="group" aria-label="Filter switches by status">
         <button class="status-chip" data-status="all" title="Show all switches">
@@ -299,6 +305,7 @@
         <div class="tool-hint hidden" id="tool-hint"></div>
 
         <div class="floorplan-wrapper" id="floorplan-wrapper" data-tool="select">
+          <img class="plan-bg" id="plan-bg" alt="" hidden draggable="false" />
           <canvas id="heatmap-canvas"></canvas>
           <canvas id="seat-heatmap-canvas"></canvas>
           <div id="switches-overlay"></div>
@@ -652,6 +659,26 @@
     </div>
   </div>
 
+  <!-- ── Halls ───────────────────────────────────────────────────────────── -->
+  <div class="modal-backdrop hidden" id="halls-backdrop">
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="halls-title">
+      <h3 class="modal-title" id="halls-title">Halls</h3>
+      <p class="field-hint">Each hall or floor has its own plan, background image, switches and seat blocks.
+        Block names stay unique across halls, so seat numbers do too. A CSV of seat blocks has the columns
+        <code>name,x,y,cols,rows</code> (x and y in percent of the plan) and optionally <code>rotation</code>,
+        <code>seat_width</code>, <code>seat_height</code>, <code>spacing_x</code>, <code>spacing_y</code>,
+        <code>reverse_numbers</code>.</p>
+      <ul class="halls-list" id="halls-list"></ul>
+      <form class="halls-add" id="halls-add">
+        <input class="modal-input" id="halls-add-name" maxlength="60" placeholder="New hall, e.g. Hall 2" required aria-label="New hall name" />
+        <button class="btn btn-primary" type="submit">Add hall</button>
+      </form>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="halls-close" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Context Menu ───────────────────────────────────────────────────── -->
   <div class="context-menu hidden" id="context-menu" role="menu">
     <button class="context-item" id="ctx-rename" role="menuitem">Rename</button>
@@ -795,6 +822,7 @@
   <script src="/static/js/auth.js"></script>
   <!-- Editor scripts share one global scope; order matters (static/js/editor/README.md). -->
   <script src="/static/js/editor/core.js"></script>
+  <script src="/static/js/editor/halls.js"></script>
   <script src="/static/js/editor/data.js"></script>
   <script src="/static/js/editor/sidebar.js"></script>
   <script src="/static/js/editor/canvas.js"></script>

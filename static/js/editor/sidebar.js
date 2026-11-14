@@ -257,7 +257,8 @@ btnSync.addEventListener('click', async () => {
     // Keep the live status we already know about
     const statusById = Object.fromEntries(switches.map(s => [s.id, s.status]));
     const manual = switches.filter(s => s.source === 'manual');
-    switches = [...synced.map(s => ({ ...s, status: statusById[s.id] || s.status })), ...manual];
+    switches = [...inHall(synced).filter(s => s.source !== 'manual')
+      .map(s => ({ ...s, status: statusById[s.id] || s.status })), ...manual];
     renderAll();
     const unplaced = switches.filter(s => !s.placed && s.source !== 'manual').length;
     syncInfo.textContent = `Synced ${synced.length} device(s), ${unplaced} not on the map yet`;

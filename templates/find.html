@@ -57,6 +57,7 @@
     </form>
     {% if state == 'found' %}
     <h2>{{ t.found.format(seat=found.seat) }}</h2>
+    {% if found.hall %}<p class="where"><strong>{{ found.hall }}</strong></p>{% endif %}
     <p class="where">{{ t.where.format(block=found.block, row=found.row, rows=found.rows, col=found.col) }}</p>
     <svg viewBox="{{ drawing.box }}" role="img" aria-label="{{ t.map.format(seat=found.seat) }}">
       {% for b in drawing.shapes %}

@@ -284,11 +284,14 @@ async function api(method, path, body) {
   }
   if (!res.ok) {
     let msg = `${method} ${path} failed (${res.status})`;
+    let data = null;
     try {
-      const data = await res.json();
+      data = await res.json();
       if (data && data.error) msg = data.error;
     } catch { /* not JSON */ }
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.body = data;   // e.g. the line-by-line errors of a CSV import
+    throw err;
   }
   return res.json();
 }

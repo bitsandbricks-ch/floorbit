@@ -5,11 +5,13 @@
 
 // ── Data operations (server + local state) ──────────────────────────────────────
 async function createManualSwitch(data) {
-  const sw = await api('POST', '/api/switches', data);
+  const sw = await api('POST', '/api/switches', { ...data, hall_id: currentHall });
   switches.push(sw);
   return sw;
 }
 async function updateSwitch(id, patch) {
+  // Placing a switch puts it in the hall on screen.
+  if ('x' in patch) patch = { ...patch, hall_id: currentHall };
   const updated = await api('PUT', `/api/switches/${id}`, patch);
   const idx = switches.findIndex(s => s.id === id);
   if (idx >= 0) {
@@ -33,7 +35,7 @@ async function deleteSwitch(id) {
   if (selectedId === id) deselectAll();
 }
 async function createBlock(data) {
-  const block = await api('POST', '/api/seat-blocks', data);
+  const block = await api('POST', '/api/seat-blocks', { ...data, hall_id: currentHall });
   seatBlocks.push(block);
   return block;
 }
@@ -242,6 +244,6 @@ async function loadSeatMappings() {
     }
   }
 }
-async function loadSwitches()   { switches   = await api('GET', '/api/switches'); }
+async function loadSwitches()   { switches   = inHall(await api('GET', '/api/switches')); }
 async function loadSeats()      { seats      = await api('GET', '/api/seats'); }
-async function loadSeatBlocks() { seatBlocks = await api('GET', '/api/seat-blocks'); }
+async function loadSeatBlocks() { seatBlocks = inHall(await api('GET', '/api/seat-blocks')); }

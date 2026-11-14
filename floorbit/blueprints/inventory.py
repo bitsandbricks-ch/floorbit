@@ -80,6 +80,7 @@ def list_devices():
 @bp.route('/api/inventory', methods=['POST'])
 def create_device():
     body = request.get_json(silent=True) or {}
+    body.pop('hall_id', None)   # placing in a hall goes through /api/switches, which checks the hall
     with data_lock:
         data = load_data()
         try:
@@ -93,6 +94,7 @@ def create_device():
 @bp.route('/api/inventory/<device_id>', methods=['PATCH'])
 def update_device(device_id):
     body = request.get_json(silent=True) or {}
+    body.pop('hall_id', None)   # see create_device
     if not isinstance(body.get('unlock', []), list):
         return jsonify({'error': 'unlock must be a list of field names'}), 400
     with data_lock:

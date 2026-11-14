@@ -17,7 +17,9 @@
   async function refresh() {
     let data;
     try {
-      const res = await fetch('/api/public/seats', { cache: 'no-store' });
+      const hall = updated.dataset.hall;
+      const res = await fetch('/api/public/seats' + (hall ? `?hall=${encodeURIComponent(hall)}` : ''),
+        { cache: 'no-store' });
       if (!res.ok) return;
       data = await res.json();
     } catch { return; }   // keep what is shown; the next round tries again

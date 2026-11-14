@@ -1,6 +1,7 @@
 """Big-screen rotation and the "find your seat" page (issue #18). See docs/kiosk.md.
 
-- ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``),
+- ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``,
+  ``&hall=<id>`` for the floor plan views of another hall than the first),
   with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like ``/kiosk``.
 - ``GET /find``: for players' phones, no account: type a seat number, see where it is in the hall.
   Finding by nick is off unless ``SEAT_FINDER_NICKS`` is on, and then only an exact nick finds a
@@ -15,6 +16,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 
 from integrations import config, seat_sources
 
+from .. import halls
 from ..power import block_rows
 from ..store import load_data
 
@@ -67,13 +69,18 @@ def _rate_limited():
         return len(recent) >= RATE_LIMIT
 
 
-def plan(data, highlight=None, online=None):
-    """The seat blocks as SVG shapes, cropped to the hall, with one seat marked.
+def plan(data, highlight=None, online=None, hall_id=None):
+    """One hall's seat blocks (the first hall's by default) as SVG shapes, cropped to the hall,
+    with one seat marked.
 
     With ``online`` (a set of seat numbers) every cell also says whether its seat is online.
     """
     shapes, xs, ys, found = [], [], [], None
+    hall_id = hall_id or halls.default_id(data)
+    ids = {h['id'] for h in halls.halls(data)}
     for block in data.get('seat_blocks') or []:
+        if halls.hall_of(block, data, ids) != hall_id:
+            continue
         rows = block_rows(block)
         if not rows or block.get('x') is None:
             continue
@@ -108,6 +115,17 @@ def _by_nick(query):
     return None
 
 
+def _locate(data, seat):
+    """The drawing of the hall the seat is in, and where in it; with more than one hall, its name too."""
+    all_halls = halls.halls(data)
+    for hall in all_halls:
+        drawing, found = plan(data, seat, hall_id=hall['id'])
+        if found:
+            found['hall'] = hall['name'] if len(all_halls) > 1 else ''
+            return drawing, found
+    return None, None
+
+
 @bp.route('/find')
 def find_page():
     lang, text = _texts()
@@ -120,12 +138,11 @@ def find_page():
     if _rate_limited():
         return render_template('find.html', lang=lang, t=text, state='busy', nicks=nicks, query=query), 429
     data = load_data()
-    seat = query.upper()
-    drawing, found = plan(data, seat)
+    drawing, found = _locate(data, query.upper())
     if not found and nicks:
         by_nick = _by_nick(query)
         if by_nick:
-            drawing, found = plan(data, by_nick)
+            drawing, found = _locate(data, by_nick)
     if not found:
         return render_template('find.html', lang=lang, t=text, state='none', nicks=nicks, query=query), 404
     return render_template('find.html', lang=lang, t=text, state='found', nicks=nicks, query=query,
@@ -150,9 +167,13 @@ def screen_page():
         every = 30
     theme = request.args.get('theme') or ''
     theme = theme if re.fullmatch(r'[a-z0-9-]{1,30}', theme) else ''
+    hall = request.args.get('hall') or ''
+    hall = hall if re.fullmatch(r'[\w-]{1,40}', hall) else ''
     urls = []
     for v in views:
         url = VIEWS[v]
+        if hall and url.startswith('/kiosk'):
+            url += ('&' if '?' in url else '?') + 'hall=' + hall
         if theme:
             url += ('&' if '?' in url else '?') + 'theme=' + theme
         urls.append({'id': v, 'url': url})

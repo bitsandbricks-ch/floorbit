@@ -11,6 +11,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | File | What lives there |
 | --- | --- |
 | `core.js` | State, DOM references, localStorage, the `api()` helper, toasts, dialogs, undo/redo, utils. |
+| `halls.js` | Halls: which one is shown (`?hall=`), the hall picker, the background image, and the Halls dialog (add, rename, delete, background, CSV import of seat blocks). Loaded before `data.js`, whose lists keep only the shown hall's items. |
 | `data.js` | Creating, changing and deleting switches and seat blocks; group actions; loading data. |
 | `sidebar.js` | Collapsible sections, seat numbering, search, tool selection, NetBox sync. |
 | `canvas.js` | Coordinates, placing items, pan and zoom, box select. |
