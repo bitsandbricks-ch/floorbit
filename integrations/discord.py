@@ -90,6 +90,7 @@ class DiscordNotifier:
         events.subscribe('health.changed', self.on_health)
         events.subscribe('security.finding', self.on_security)
         events.subscribe('power.alert', self.on_power)
+        events.subscribe('forecast.alert', self.on_forecast)
 
     def _ensure_worker(self):
         with self._lock:
@@ -262,6 +263,31 @@ class DiscordNotifier:
             payload['content'] = mention
             payload['allowed_mentions'] = {'parse': ['roles', 'everyone', 'users']}
         return payload
+
+    def on_forecast(self, event):
+        if not self.enabled() or not config.get_bool('DISCORD_FORECAST_ALERTS', True):
+            return
+        payload = self.build_forecast_message(event.get('data') or {})
+        if payload:
+            self.post(payload)
+
+    def build_forecast_message(self, alert, now=None):
+        """The forecast reaches the line's capacity within the next hours. Sent once per expected peak."""
+        if not alert.get('t') or not alert.get('pct'):
+            return None
+        now = now or time.time()
+        at = datetime.fromtimestamp(alert['t']).strftime('%H:%M')
+        gbps = (alert.get('bps') or 0) / 1e9
+        cap = (alert.get('capacity_bps') or 0) / 1e9
+        embed = {'title': f"📈 Bandwidth expected at {alert['pct']} % around {at}"[:200],
+                 'description': f'Forecast {gbps:.1f} Gbps of a {cap:.1f} Gbps line, from the hours so far.',
+                 'color': COLOR_OFFLINE if alert['pct'] >= 100 else COLOR_INFO,
+                 'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        if public_url:
+            embed['url'] = public_url + '/stats'
+        return {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
+                'allowed_mentions': {'parse': []}}
 
     def build_source_message(self, kind, data, now=None):
         now = now or time.time()

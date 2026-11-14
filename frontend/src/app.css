@@ -264,3 +264,4 @@ body {
 .fb-dns-chart .miss { fill: color-mix(in srgb, var(--color-trace) 55%, transparent); }
 .fb-dns-key.hit { background: var(--color-up); }
 .fb-dns-key.miss { background: color-mix(in srgb, var(--color-trace) 55%, transparent); }
+.fb-dns-chart .capacity { stroke: var(--color-down); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }

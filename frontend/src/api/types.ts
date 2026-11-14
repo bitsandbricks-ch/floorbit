@@ -863,3 +863,18 @@ export interface GamesData {
   sources: { dns: boolean; traffic: boolean; cache: boolean }
   min_seats: { dns: number; traffic: number | null }
 }
+
+export interface ForecastPoint { t: number; bps: number; low: number; high: number; basis: 'profile' | 'recent'; pct?: number }
+export interface ForecastData {
+  ready: boolean
+  history_hours: number
+  min_hours: number
+  capacity_bps: number | null
+  warn_pct: number
+  lead_hours: number
+  points: ForecastPoint[]
+  alert: { t: number; bps: number; pct: number } | null
+  level: number | null
+  days: number
+  peak: ForecastPoint | null
+}

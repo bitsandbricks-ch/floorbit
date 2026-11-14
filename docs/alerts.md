@@ -15,7 +15,8 @@ with a count of what is down next to the link:
 - red and amber services on the [health wall](health.md);
 - high and medium [security findings](security.md). Accounts without `seats.view` see the kind and
   the switch port only, since titles and seats can point at a person;
-- [power circuits](power.md) that tripped, are about to, or are getting close.
+- [power circuits](power.md) that tripped, are about to, or are getting close;
+- the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours.
 
 It asks nothing new: it reads what the status monitor, the health wall, the security watch and the
 power layer already know. Anyone with `floorplan.view` may see it.

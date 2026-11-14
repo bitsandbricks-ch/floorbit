@@ -4,6 +4,7 @@
 - ``GET /api/stats``: bandwidth now, the hour, the day and the event's peak, uplinks, online seats,
   port counts and top talkers. Nicks are added to the top talkers only for ``seats.view`` and never
   with ``?screen=1``, which a kiosk shows to everyone.
+- ``GET /api/forecast``: the bandwidth forecast for the next hours (floorbit/forecast.py).
 - ``GET /api/stats/seats``: traffic per online seat right now (seat numbers only), for the kiosk.
 - ``POST /api/stats/peak/reset``: start the event's peak again (``settings.manage``), e.g. after
   load tests before doors open.
@@ -46,6 +47,11 @@ def get_stats():
             if t['seat']:
                 t['nick'] = (seats.get(t['seat']) or {}).get('username') or None
     return jsonify(out)
+
+
+@bp.route('/api/forecast', methods=['GET'])
+def get_forecast():
+    return jsonify(current_app.extensions['floorbit_forecast'].current())
 
 
 @bp.route('/api/stats/seats', methods=['GET'])
