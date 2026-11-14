@@ -191,3 +191,23 @@ body {
 .fb-stats-screen .fb-stats-chart svg { height: 240px; }
 .fb-stats-screen .fb-stats-bars li, .fb-stats-screen .fb-stats-top li { font-size: 18px; }
 @media (max-width: 700px) { .fb-stats { grid-template-columns: 1fr; } }
+
+/* Traffic insights (pages/Traffic.tsx): fixed category colours, readable in light and dark. */
+.cat-gaming { background: #16a34a; }
+.cat-streaming { background: #9333ea; }
+.cat-downloads { background: #2563eb; }
+.cat-updates { background: #d97706; }
+.cat-web { background: #0891b2; }
+.cat-other { background: #94a3b8; }
+.fb-mix { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--color-raised); }
+.fb-mix.big { height: 22px; border-radius: 8px; }
+.fb-mix i { display: block; height: 100%; }
+.fb-mix-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+.fb-mix-legend i, .fb-dotcat { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.fb-mix-legend span { color: var(--color-muted); margin-left: 4px; }
+.fb-flow-areas { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fb-flow-areas li { display: grid; grid-template-columns: minmax(60px, auto) 1fr auto; align-items: center; gap: 10px; font-size: 14px; }
+.fb-flow-areas .value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fb-flow-anomalies { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fb-flow-anomalies li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.fb-flow-anomalies .when { color: var(--color-muted); margin-left: auto; font-size: 13px; }

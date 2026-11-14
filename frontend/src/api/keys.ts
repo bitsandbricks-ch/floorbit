@@ -19,6 +19,7 @@ export const qk = {
   power: ['power'] as const,
   problems: ['problems'] as const,
   statsAll: ['stats'] as const,
+  flows: ['flows'] as const,
   stats: (screen: boolean) => ['stats', screen] as const,
   setup: ['setup'] as const,
   users: ['users'] as const,

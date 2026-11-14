@@ -24,6 +24,7 @@ import type {
   Widget,
   WidgetTile,
   StatsData,
+  FlowsData,
 } from './types'
 
 export function useMe() {
@@ -115,6 +116,10 @@ export function useStats(screen = false) {
     queryFn: () => get<StatsData>(screen ? '/api/stats?screen=1' : '/api/stats'),
     refetchInterval: 30_000,
   })
+}
+
+export function useFlows() {
+  return useQuery({ queryKey: qk.flows, queryFn: () => get<FlowsData>('/api/flows'), refetchInterval: 30_000 })
 }
 
 export function useOidcProviders() {

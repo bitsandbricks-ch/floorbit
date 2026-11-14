@@ -5,6 +5,7 @@ from . import (
                cache,
                config,
                demo,
+               flows,
                health,
                incidents,
                inventory,
@@ -24,4 +25,4 @@ from . import (
 
 ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
        inventory.bp, seat_map.bp, demo.bp, incidents.bp,
-       health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp]
+       health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp]

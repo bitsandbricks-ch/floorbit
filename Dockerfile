@@ -48,6 +48,8 @@ ENV FLASK_APP=app.py \
 
 USER floorbit
 EXPOSE 5000
+# The optional flow collector (python -m floorbit.flows, docs/flows.md).
+EXPOSE 2055/udp
 
 # One worker: the status monitor, watchers and live updates live in the process. Threads serve the
 # open live-update streams (one per browser tab); raise them with GUNICORN_CMD_ARGS="--threads 200".

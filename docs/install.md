@@ -92,6 +92,17 @@ AUTH_COOKIE_SECURE=true                # the session cookie only travels over HT
 Live updates are a long-running request (`/api/events`): don't buffer it (Floorbit already sends
 `X-Accel-Buffering: no` for nginx) and allow it a long read timeout.
 
+## 6. Traffic insights (optional)
+
+For the **Traffic** page, start the NetFlow/IPFIX collector too and point the switches or the router
+at this host, udp/2055:
+
+```sh
+docker compose --profile flows up -d
+```
+
+What it keeps and for how long: [flows.md](flows.md).
+
 ## Backups
 
 Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): `data.json` (floor plan,

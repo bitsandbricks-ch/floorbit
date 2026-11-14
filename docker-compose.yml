@@ -30,7 +30,31 @@ services:
       retries: 3
       start_period: 15s
 
-  # The cache for LibreNMS answers. Only Floorbit talks to it, so no port is published.
+  # Optional: the NetFlow/IPFIX collector for the Traffic page (docs/flows.md). Start it with
+  #   docker compose --profile flows up -d
+  # and point the switches or the router at this host, udp/2055 (FLOWS_PORT).
+  flows:
+    image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
+    profiles: ["flows"]
+    command: ["python", "-m", "floorbit.flows"]
+    ports:
+      - "${FLOWS_PORT:-2055}:2055/udp"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      REDIS_HOST: redis
+      FLOWS_PORT: "2055"
+    volumes:
+      # Reads the seat addresses from the same state; keeps raw flows under /app/state/flows.
+      - floorbit_state:/app/state
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # The cache for LibreNMS answers, and the hand-over from the flow collector. Only Floorbit talks
+  # to it, so no port is published.
   redis:
     image: redis:7-alpine
     volumes:
