@@ -128,6 +128,7 @@ class CrewBridge:
         self.request = requests.request   # tests swap in a fake
         self._queue = queue.Queue(maxsize=500)
         self._thread = None
+        self._ticker = None
         self._lock = threading.Lock()
         self._file_lock = threading.Lock()
         self.last_sent = None
@@ -196,23 +197,34 @@ class CrewBridge:
             self._thread.start()
 
     def start(self):
-        """Run the sender thread from the start, so the waiting check runs without an event first."""
-        self._ensure_worker()
+        """Look for incidents nobody has taken once a minute, on a thread of its own (issue #298)."""
+        with self._lock:
+            if self._ticker and self._ticker.is_alive():
+                return
+            self._ticker = threading.Thread(target=self._tick, name='discord-crew-waiting', daemon=True)
+            self._ticker.start()
+
+    def _tick(self):
+        while True:
+            time.sleep(CHECK_EVERY)
+            try:
+                if self.app is not None:
+                    with self.app.app_context():
+                        self.nudge_waiting()
+                else:
+                    self.nudge_waiting()
+            except Exception as exc:  # noqa: BLE001  # keep checking after a failed send
+                self.last_error = str(exc)[:300]
 
     def _handle(self, item):
         # Incidents are queued by id; a crew notice as ('notice', notice).
         if isinstance(item, tuple):
             return self.post_notice(item[1])
-        if item == 'waiting':
-            return self.nudge_waiting()
         return self.sync(item)
 
     def _worker(self):
         while True:
-            try:
-                item = self._queue.get(timeout=CHECK_EVERY)
-            except queue.Empty:
-                item = 'waiting'
+            item = self._queue.get()
             try:
                 if self.app is not None:
                     with self.app.app_context():
