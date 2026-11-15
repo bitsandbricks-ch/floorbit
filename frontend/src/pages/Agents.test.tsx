@@ -17,20 +17,22 @@ describe('Agents', () => {
   it('lists agents, enrols one and shows its key and how to start it', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': admin,
-      'GET /api/agents': { agents: [agent, { ...agent, id: 'b', name: 'Old site', connected: false, last_seen: null, version: null, stats: { calls: 0, failed: 0, median_ms: null, last_error: null } }], connected: true, max: 10 },
+      'GET /api/agents': { agents: [agent, { ...agent, id: 'b', name: 'Old site', connected: false, last_seen: null, version: null, stats: { calls: 0, failed: 0, median_ms: null, last_error: null } }, { ...agent, id: 'c', name: 'Old box', connected: false, version: '0.0.9', outdated: true, stats: undefined }], connected: true, max: 10, server_version: '0.1.0' },
       'POST /api/agents': { ...agent, id: 'e5f6a7b8', name: 'Autumn LAN', connected: false, last_seen: null, key: 'fba_e5f6a7b8_example-key-0123456789' },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Agents />)
     expect(await screen.findByText('Spring LAN, hall 2')).toBeInTheDocument()
     expect(screen.getByText('Connected')).toBeInTheDocument()
-    expect(screen.getByText('Not connected')).toBeInTheDocument()
+    expect(screen.getAllByText('Not connected')).toHaveLength(2)
     expect(screen.getByText(/never connected/)).toBeInTheDocument()
     expect(screen.getByText(/version 0\.9\.0/)).toBeInTheDocument()
     expect(screen.getByText(/412 calls in the last hour, answered in 84 ms/)).toBeInTheDocument()
     expect(screen.getByText('2 failed')).toBeInTheDocument()
     expect(screen.getByText(/port_stats: LibreNMS said no/)).toBeInTheDocument()
     expect(screen.getByText('No calls in the last hour')).toBeInTheDocument()
+    expect(screen.getByText('Update')).toBeInTheDocument()
+    expect(screen.getByText(/Older than this Floorbit \(0\.1\.0\)/)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Autumn LAN' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enrol' }))
     expect(await screen.findByText('fba_e5f6a7b8_example-key-0123456789')).toBeInTheDocument()

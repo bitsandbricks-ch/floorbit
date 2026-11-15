@@ -10,7 +10,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
-type Answer = { agents: Agent[]; connected: boolean; max: number }
+type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string }
 type Made = Agent & { key: string }
 
 function ago(ts: number, lang: string): string {
@@ -108,6 +108,7 @@ export default function Agents() {
                           <Badge variant="light" color={a.connected ? 'up' : 'gray'} tt="none">
                             {a.connected ? t('agents.connected') : t('agents.notConnected')}
                           </Badge>
+                          {a.outdated && <Badge variant="light" color="warn" tt="none">{t('agents.outdated')}</Badge>}
                         </Group>
                         <Text size="xs" c="dimmed">
                           {a.last_seen ? t('agents.seen', { when: ago(a.last_seen, i18n.language) }) : t('agents.neverSeen')}
@@ -115,6 +116,7 @@ export default function Agents() {
                           {' · '}{t('agents.made', { date: date(a.created_at), who: a.created_by ?? '?' })}
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
+                        {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.server_version })}</Text>}
                       </Stack>
                       <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.revoke')}
                         question={t('agents.revokeQuestion', { name: a.name })} onConfirm={() => revoke.mutate(a.id)} />

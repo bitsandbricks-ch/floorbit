@@ -118,3 +118,14 @@ def test_the_page_is_for_admins(app_module, client):
     assert client.get("/settings/agents").status_code in (200, 503)   # 503: no frontend build (CI)
     lead = sign_in_as(app_module, "le2", "lead")
     assert lead.get("/settings/agents").status_code in (302, 403)
+
+
+def test_an_older_agent_is_flagged(client, anon_client, app_module):
+    assert agent_link.outdated('0.9.0', '0.10.0') and agent_link.outdated('v1.2', '1.2.1')
+    assert not agent_link.outdated('1.2.3', '1.2.3') and not agent_link.outdated('2.0.0', '1.9.9')
+    assert not agent_link.outdated(None, '1.0.0') and not agent_link.outdated('dev', '1.0.0')
+    key = enrol(client)['key']
+    anon_client.get("/api/agent/v1/hello", headers={"Floorbit-Agent-Key": key, "Floorbit-Agent-Version": "0.0.1"})
+    listed = client.get("/api/agents").get_json()
+    assert listed["server_version"] == app_module.app.config["FLOORBIT_VERSION"]
+    assert listed["agents"][0]["outdated"] is (listed["server_version"] != "0.0.1")

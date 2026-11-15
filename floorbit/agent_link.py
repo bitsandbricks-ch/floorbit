@@ -70,6 +70,18 @@ def _public(a, now):
             'connected': bool(seen and now - seen < CONNECTED_FOR)}
 
 
+def _version(v):
+    """'1.12.3', 'v1.12.3-rc1' -> (1, 12, 3); None when it isn't a version."""
+    m = re.match(r'^v?(\d+)\.(\d+)(?:\.(\d+))?', str(v or '').strip())
+    return tuple(int(x or 0) for x in m.groups()) if m else None
+
+
+def outdated(agent_version, server_version):
+    """Is the agent older than this Floorbit? Unknown versions are not flagged: no false alarms."""
+    a, s = _version(agent_version), _version(server_version)
+    return bool(a and s and a < s)
+
+
 def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now

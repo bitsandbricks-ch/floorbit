@@ -36,8 +36,10 @@ def agents_page():
 
 @bp.route('/api/agents', methods=['GET'])
 def list_agents():
-    return jsonify({'agents': agent_link.all_agents(), 'connected': agent_link.tunnel.connected(),
-                    'max': agent_link.MAX_AGENTS})
+    server = current_app.config.get('FLOORBIT_VERSION') or '0'
+    agents = [{**a, 'outdated': agent_link.outdated(a.get('version'), server)} for a in agent_link.all_agents()]
+    return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
+                    'max': agent_link.MAX_AGENTS, 'server_version': server})
 
 
 @bp.route('/api/agents', methods=['POST'])

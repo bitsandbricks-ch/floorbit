@@ -1346,6 +1346,8 @@ export interface Agent {
   last_seen: number | null; version: string | null; address: string | null; connected: boolean
   /** The last hour of answers, kept in memory on the server (missing right after enrolling). */
   stats?: AgentStats
+  /** Older than the hosted Floorbit: time to pull the new image. */
+  outdated?: boolean
 }
 
 export interface AgentStats {

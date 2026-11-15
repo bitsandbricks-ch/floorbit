@@ -10,6 +10,8 @@
   "neverSeen": "noch nie verbunden",
   "seen": "zuletzt gesehen {{when}}",
   "version": "Version {{v}}",
+  "outdated": "Update",
+  "outdatedHelp": "Älter als dieses Floorbit ({{v}}). Neues Image holen und den Agent neu starten.",
   "made": "Eingetragen am {{date}} von {{who}}",
   "stats": "{{count}} Anfragen in der letzten Stunde, beantwortet in {{ms}} ms (Median)",
   "statsNone": "Keine Anfragen in der letzten Stunde",
