@@ -1,9 +1,12 @@
-import { ActionIcon, Group, Tooltip } from '@mantine/core'
+import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanSeat, SeatViewData } from '@/api/types'
-import { type Density, type Filter, type View, density, heatColor, heatLevel, matches, pan, parseBox, rate, scale, zoom } from './model'
+import {
+  type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, nearestSeat, nextSeat, pan, parseBox,
+  rate, reveal, scale, seatCenter, zoom,
+} from './model'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
@@ -40,12 +43,16 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return px
 }
 
-/** The plan with pan (drag, arrow keys), zoom (wheel, pinch, + and -) and three levels of detail. */
-export function SeatMap({ data, selected, onSelect, filter, view, setView, traffic = false }: {
-  data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; filter: Filter
+const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
+
+/** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
+ *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
+export function SeatMap({ data, selected, onSelect, onClear, filter, view, setView, traffic = false }: {
+  data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
 }) {
   const { t } = useTranslation()
+  const ids = useId().replace(/:/g, '')
   const wrap = useRef<HTMLDivElement>(null)
   const svg = useRef<SVGSVGElement>(null)
   const px = useSize(wrap)
@@ -54,6 +61,7 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView, traff
   const level: Density = density(drawing.cell, view, px)
   const s = scale(view, px) || 1
   const [hover, setHover] = useState<{ seat: string; x: number; y: number } | null>(null)
+  const [cursor, setCursor] = useState<string | null>(null)
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const moved = useRef(false)
 
@@ -120,6 +128,30 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView, traff
     pointers.current.delete(e.pointerId)
   }
   const onKey = (e: React.KeyboardEvent) => {
+    const dir = ARROWS[e.key]
+    if (dir && !e.shiftKey) {
+      e.preventDefault()
+      // The first press starts on the open seat, else on the seat nearest the middle of the view.
+      const from = cursor ?? selected
+      const to = from && seatCenter(drawing, from) ? nextSeat(drawing, from, dir) : nearestSeat(drawing, centre())
+      const seat = to ?? from
+      if (!seat) return
+      setCursor(seat)
+      const at = seatCenter(drawing, seat)
+      if (at) setView(reveal(view, at, drawing.cell * 2))
+      return
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && (cursor ?? selected)) {
+      e.preventDefault()
+      onSelect((cursor ?? selected)!)
+      return
+    }
+    if (e.key === 'Escape' && (selected || cursor)) {
+      e.preventDefault()
+      if (selected) onClear?.()
+      else setCursor(null)
+      return
+    }
     const step = view.w * 0.1
     const moves: Record<string, () => View> = {
       '+': () => zoom(view, 1.25, centre(), fit), '=': () => zoom(view, 1.25, centre(), fit),
@@ -143,10 +175,14 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView, traff
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
   const tip = hover && data.seats[hover.seat]
+  const ringAt = cursor ? seatCenter(drawing, cursor) : null
+  const ring = ringAt && { at: ringAt, rotation: drawing.shapes.find((b) => b.cells.some((c) => c.seat === cursor))?.rotation ?? 0 }
+  const cursorSeat = cursor ? data.seats[cursor] ?? { state: 'unknown' as const } : null
   return (
     <div ref={wrap} className={`fb-plan-wrap d-${level}`}>
       <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} tabIndex={0} role="application"
-        aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} onKeyDown={onKey}
+        aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} aria-describedby={`${ids}-keys ${ids}-blocks`}
+        aria-activedescendant={cursor ? `${ids}-${cursor}` : undefined} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
@@ -164,9 +200,10 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView, traff
               {b.cells.map((c) => {
                 const seat = data.seats[c.seat] ?? { state: 'unknown' as const }
                 const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
-                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : ''].join(' ').trim()
+                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
+                  cursor === c.seat ? 'kb' : ''].join(' ').trim()
                 return (
-                  <g key={c.seat} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
+                  <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
                     role="button" aria-label={`${c.seat}: ${stateText(seat)}`}
                     onPointerEnter={(e) => {
                       const box = wrap.current?.getBoundingClientRect()
@@ -201,12 +238,23 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView, traff
             </g>
           )
         })}
+        {ring && (
+          // Drawn last so the neighbouring seats don't cover it.
+          <rect className="kb-ring" x={ring.at.x - drawing.cell / 2 - 1} y={ring.at.y - drawing.cell / 2 - 1}
+            width={drawing.cell + 2} height={drawing.cell + 2} rx={6} transform={`rotate(${ring.rotation} ${ring.at.x} ${ring.at.y})`} />
+        )}
       </svg>
       {tip && hover && level !== 'far' && (
-        <div className="fb-plan-tip" role="status" style={{ left: hover.x + 14, top: hover.y + 14 }}>
+        <div className="fb-plan-tip" aria-hidden="true" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <b>{hover.seat}</b> {stateText(tip)}
         </div>
       )}
+      <VisuallyHidden id={`${ids}-keys`}>{t('plan.keys')}</VisuallyHidden>
+      <VisuallyHidden id={`${ids}-blocks`}>
+        {data.blocks.map((b) => [t('plan.blockSummary', { name: b.name, online: b.online, count: b.seats }),
+          b.problems ? t('plan.problemsN', { count: b.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
+      </VisuallyHidden>
+      <VisuallyHidden role="status" aria-live="polite">{cursorSeat && `${cursor}: ${stateText(cursorSeat)}`}</VisuallyHidden>
       <Group gap={4} className="fb-plan-zoom">
         <Tooltip label={t('plan.zoomIn')}><ActionIcon variant="default" aria-label={t('plan.zoomIn')} onClick={() => setView(zoom(view, 1.4, centre(), fit))}><IconPlus size={16} /></ActionIcon></Tooltip>
         <Tooltip label={t('plan.zoomOut')}><ActionIcon variant="default" aria-label={t('plan.zoomOut')} onClick={() => setView(zoom(view, 1 / 1.4, centre(), fit))}><IconMinus size={16} /></ActionIcon></Tooltip>
