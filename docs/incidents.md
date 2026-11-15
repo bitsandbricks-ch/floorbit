@@ -27,6 +27,10 @@ board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
 
+**New incident** warns when the seat or switch you pick already has incidents that are not fixed
+(**Already open here**), with their titles, status and who has them, so two techs don't file the
+same broken seat twice. You can still file it.
+
 The seat or switch badge on a card opens it on the [Seats page](seats.md) (`/plan?seat=D-6`,
 `/plan?switch=sw-a-01`), in the hall it is in.
 

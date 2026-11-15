@@ -89,5 +89,7 @@
   "tookNext": "You have it: {{title}}",
   "nothingNext": "Nothing open that you can work",
   "again": "Incident no. {{n}} at this seat",
-  "againHint": "A seat that keeps coming back often has a cable or port to check."
+  "againHint": "A seat that keeps coming back often has a cable or port to check.",
+  "alreadyOpen_one": "Already open here",
+  "alreadyOpen_other": "{{count}} already open here"
 }

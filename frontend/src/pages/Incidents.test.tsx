@@ -183,6 +183,20 @@ describe('Incident board', () => {
       expect(within(card).queryByText(/at this seat/)).toBeNull()
     }
   })
+  it('says what is already open at a seat before filing another (issue #328)', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />)
+    await screen.findByText('No power')
+    fireEvent.click(screen.getByRole('button', { name: 'New incident' }))
+    const dialog = await screen.findByRole('dialog')
+    const seat = within(dialog).getByRole('textbox', { name: /Seat/ })
+    fireEvent.change(seat, { target: { value: 'B-9' } })
+    expect(within(dialog).queryByText(/already open here/i)).toBeNull()
+    fireEvent.change(seat, { target: { value: ' a-1 ' } })
+    expect(within(dialog).getByText('2 already open here')).toBeInTheDocument()
+    expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
+    expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
+  })
   it('takes the next one with the n key, but not while typing', async () => {
     const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0], status: 'assigned', assignee: 'sam' } })
     vi.stubGlobal('fetch', api.fn)
