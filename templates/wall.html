@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
-  {% if not off %}<meta http-equiv="refresh" content="60" />{% endif %}
+  {% if not off %}
+  <noscript><meta http-equiv="refresh" content="60" /></noscript>
+  <script src="/static/js/refresh.js" data-every="60" defer></script>
+  {% endif %}
   <title>{{ t.title }} · Floorbit</title>
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />

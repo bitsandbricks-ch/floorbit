@@ -27,7 +27,18 @@ It is **off** until an admin turns on **Network status page** under **Settings >
   block nearest to it on the floor plan.
 - **Updates** the crew posts, newest first (at most 50 are kept).
 
-The page reloads itself every minute and shows times in the reader's own time zone.
+The page updates every minute and shows times in the reader's own time zone.
+
+## Staying current
+
+The status page, the [stats wall](stats-wall.md), the public [schedule](schedule.md) and the
+[bracket](tournament.md) update themselves in place: every minute (the bracket every 30 seconds)
+the page fetches its own address again and swaps in the new content, so a big screen doesn't
+flash white. A hidden browser tab waits and updates as soon as it is shown.
+
+If the server or the network is gone for a moment, the page keeps showing the last good data with
+a small note at the top, "No connection. Showing data from 14:05.", instead of a browser error
+page, and picks up again by itself. Without JavaScript the page reloads every minute instead.
 
 ## Privacy
 

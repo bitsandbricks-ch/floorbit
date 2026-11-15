@@ -46,7 +46,7 @@ Changing brackets needs `floorplan.edit`; every change is in the audit log.
 
 `/bracket` shows the brackets for attendees and the big screens (`?screen=1`, `?id=<bracket>` for
 one of several): team names, scores, which match is live, the station and the champion, and the
-match zone's name. Never seats. It reloads every 30 seconds; `/bracket.json` has the same. It is off
+match zone's name. Never seats. It updates every 30 seconds in place; `/bracket.json` has the same. It is off
 until **Settings > Attendee pages > Tournament brackets** (or `BRACKET_VIEW=true`) turns it on.
 
 ## API
