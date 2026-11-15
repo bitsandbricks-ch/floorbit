@@ -109,6 +109,9 @@ def seed_on_start(app):
             stats.backfill_event(*demo_event_history(history))
         from .flows import init_demo_flows
         init_demo_flows(app)
+        lancache = app.extensions.get('floorbit_lancache')
+        if lancache is not None:
+            lancache.start_demo()
 
 
 def demo_history(now=None, step=120):

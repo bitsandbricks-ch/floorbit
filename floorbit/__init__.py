@@ -120,6 +120,10 @@ def create_app(start_background=True):
     from .dns import init_dns
     init_dns(app, registry, start_background=start_background)
 
+    # What the LAN cache served, from its access log (docs/games.md).
+    from .lancache import init_lancache
+    init_lancache(app, start_background=start_background)
+
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
     from .stats import init_stats

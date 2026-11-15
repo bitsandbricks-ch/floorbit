@@ -259,3 +259,8 @@ body {
 .fb-dns-chart .blocked { fill: var(--color-down); }
 .fb-dns-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: color-mix(in srgb, var(--color-bit) 55%, transparent); }
 .fb-dns-key.blocked { background: var(--color-down); }
+/* Games: what the LAN cache served per hour, from disk below and from the internet on top. */
+.fb-dns-chart .hit { fill: var(--color-up); }
+.fb-dns-chart .miss { fill: color-mix(in srgb, var(--color-trace) 55%, transparent); }
+.fb-dns-key.hit { background: var(--color-up); }
+.fb-dns-key.miss { background: color-mix(in srgb, var(--color-trace) 55%, transparent); }

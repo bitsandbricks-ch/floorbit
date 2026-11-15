@@ -12,6 +12,7 @@ from . import (
                dns,
                features,
                flows,
+               games,
                gear,
                halls,
                handover,
@@ -44,8 +45,8 @@ from . import (
 
 ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
        inventory.bp, seat_map.bp, demo.bp, incidents.bp,
-       health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp, dns.bp, screen.bp,
-       attendee.bp, halls.bp, layout_templates.bp,
+       health.bp, ports.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp, flows.bp, dns.bp, games.bp,
+       screen.bp, attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, webhooks.bp]
