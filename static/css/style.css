@@ -1002,3 +1002,26 @@ kbd {
 .halls-add { display: flex; gap: var(--sp-2); }
 .halls-add .modal-input { flex: 1; margin: 0; }
 @media (max-width: 720px) { .hall-select { max-width: 110px; } }
+
+/* Seat states layer (static/js/editor/seat-states.js, issue #55): the same shapes as the Seats
+   view, so a state never relies on colour alone. The traffic heatmap wins while it is on. */
+.seat-block-seat.st-online:not(.heat) { background: var(--color-up); border-color: color-mix(in srgb, var(--color-up) 70%, var(--color-fg)); color: var(--color-ink); }
+.seat-block-seat.st-offline:not(.heat) {
+  background: linear-gradient(to top right, transparent calc(50% - 1px), var(--color-down) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)), var(--bg-tertiary);
+  border: 2px solid var(--color-down); color: var(--text-primary);
+}
+.seat-block-seat.st-unknown:not(.heat) { border-style: dashed; border-color: var(--text-secondary); }
+.seat-block-seat.st-checked { position: relative; }
+.seat-block-seat.st-checked::after {
+  content: ''; position: absolute; top: -1px; right: -1px; width: 0; height: 0;
+  border-top: 8px solid var(--color-trace); border-left: 8px solid transparent;
+}
+.seat-block-seat.st-online.selected, .seat-block-seat.st-offline.selected { outline: 3px solid var(--color-trace); outline-offset: 1px; }
+.seat-states-legend { flex-direction: row !important; flex-wrap: wrap; gap: 6px 12px !important; font-size: var(--fs-xs); color: var(--text-secondary); }
+.seat-states-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.seat-states-legend a { width: 100%; color: var(--accent); font-weight: 600; text-decoration: none; }
+.seat-key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--bg-tertiary); border: 1px solid var(--border); position: relative; }
+.seat-key.st-online { background: var(--color-up); border-color: var(--color-up); }
+.seat-key.st-offline { border: 2px solid var(--color-down); background: linear-gradient(to top right, transparent 45%, var(--color-down) 45% 55%, transparent 55%), var(--bg-tertiary); }
+.seat-key.st-unknown { border-style: dashed; border-color: var(--text-secondary); }
+.seat-key.st-checked::after { content: ''; position: absolute; top: -1px; right: -1px; border-top: 8px solid var(--color-trace); border-left: 8px solid transparent; }

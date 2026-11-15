@@ -62,6 +62,7 @@ export const qk = {
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
   planAll: ['plan'] as const,
+  ports: ['ports'] as const,
   plan: (hall: string) => ['plan', hall] as const,
   planSeat: (seat: string) => ['plan', 'seat', seat] as const,
 }

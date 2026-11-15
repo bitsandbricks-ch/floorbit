@@ -47,5 +47,8 @@
   },
   "matchTitle": "Match seat: {{zone}}",
   "matchText": "This port is behind a tournament seat. Taking it down can cost a match. Only go on if the match admins agree.",
-  "matchConfirm": "Yes, act on the match seat"
+  "matchConfirm": "Yes, act on the match seat",
+  "bounce": "Bounce port",
+  "bounceTitle": "Bounce the port of {{where}}",
+  "bounceText": "The port goes down for a few seconds and comes back up. The player loses the connection for that time."
 }

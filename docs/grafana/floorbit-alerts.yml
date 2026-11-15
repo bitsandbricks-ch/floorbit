@@ -1,0 +1,41 @@
+# Example Prometheus alert rules for Floorbit's /api/metrics (see docs/metrics.md).
+# Thresholds are starting points: tune them to the size of your event.
+groups:
+  - name: floorbit
+    rules:
+      - alert: FloorbitScrapeFailing
+        expr: absent(floorbit_info)
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Prometheus has no Floorbit metrics
+          description: Check that metrics are on under Settings and that the scrape token still works.
+
+      - alert: FloorbitPortReadStale
+        expr: max(floorbit_port_read_age_seconds) > 300
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: Floorbit has not read the switch ports for {{ $value | humanizeDuration }}
+          description: Seat states are stale. Check the monitoring plugin under Settings > Plugins.
+
+      - alert: FloorbitSwitchOffline
+        expr: sum(floorbit_switches{status="offline"}) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: '{{ $value }} switch(es) offline'
+
+      - alert: FloorbitSeatsDropped
+        # Many seats going offline at once usually means an uplink or a switch, not players leaving.
+        expr: sum by (hall) (floorbit_seats{state="offline"}) - sum by (hall) (floorbit_seats{state="offline"} offset 5m) > 10
+        labels: {severity: critical}
+        annotations:
+          summary: '{{ $value }} more seats offline in {{ $labels.hall }} than 5 minutes ago'
+
+      - alert: FloorbitOpenIncidents
+        expr: sum(floorbit_incidents{status="open"}) > 10
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: '{{ $value }} incidents open and nobody assigned'
