@@ -177,7 +177,14 @@ TEXTS = {
            'thanks': 'Thanks, we know. Someone from the team will come to seat {seat}.',
            'again': 'We already have this one for seat {seat} and noted that you asked again.',
            'invalid': 'This help link is not valid. Please use the QR code on your seat, or ask at the info desk.',
-           'busy': 'Too many reports from here. Please wait a few minutes or ask at the info desk.'},
+           'busy': 'Too many reports from here. Please wait a few minutes or ask at the info desk.',
+           'speed_title': 'Test your connection',
+           'speed_intro': 'Measures the connection from your seat to our server in the hall, not the internet. '
+           'It takes about 20 seconds: pause other downloads first.',
+           'speed_run': 'Start the test', 'speed_again': 'Test again', 'speed_running': 'Testing…',
+           'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latency',
+           'speed_saved': 'Saved for seat {seat}. The team sees it with your report.',
+           'speed_failed': 'The test did not finish: {error}'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
            'nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.',
            'no-internet': 'Kein Internet', 'slow': 'Langsame oder abbrechende Verbindung', 'power': 'Kein Strom',
@@ -185,7 +192,14 @@ TEXTS = {
            'thanks': 'Danke, wir wissen Bescheid. Jemand vom Team kommt zu Platz {seat}.',
            'again': 'Das haben wir für Platz {seat} schon und vermerkt, dass du nochmals gefragt hast.',
            'invalid': 'Dieser Hilfe-Link ist ungültig. Nutze bitte den QR-Code an deinem Platz oder frag am Infodesk.',
-           'busy': 'Zu viele Meldungen von hier. Warte bitte ein paar Minuten oder frag am Infodesk.'},
+           'busy': 'Zu viele Meldungen von hier. Warte bitte ein paar Minuten oder frag am Infodesk.',
+           'speed_title': 'Verbindung testen',
+           'speed_intro': 'Misst die Verbindung von deinem Platz zu unserem Server in der Halle, nicht das Internet. '
+           'Das dauert etwa 20 Sekunden: halte andere Downloads vorher an.',
+           'speed_run': 'Test starten', 'speed_again': 'Nochmals testen', 'speed_running': 'Teste…',
+           'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latenz',
+           'speed_saved': 'Für Platz {seat} gespeichert. Das Team sieht es bei deiner Meldung.',
+           'speed_failed': 'Der Test wurde nicht fertig: {error}'},
 }
 
 
@@ -229,7 +243,8 @@ def help_page(seat):
     _changed(incident, 'reported')
     audit.record('incidents', 'Reported from seat' if new else 'Reported again from seat', target=seat,
                  fields=[problem])
-    return render_template('help.html', lang=lang, t=text, seat=seat, state='thanks' if new else 'again')
+    return render_template('help.html', lang=lang, t=text, seat=seat, state='thanks' if new else 'again',
+                           k=request.args.get('k'))
 
 
 help_page._auth_public = True   # what auth.public_endpoint sets; open to attendees without an account

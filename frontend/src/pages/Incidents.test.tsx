@@ -14,7 +14,8 @@ const base: Omit<Incident, 'id' | 'title' | 'status'> = {
 const board: IncidentBoard = {
   incidents: [
     { ...base, id: 'i1', title: 'No internet at the seat', status: 'open', source: 'helpdesk', reports: 2, reported_by: null,
-      snapshot: { known: true, switch: 'sw-a-01', port: 'Gi1/0/3', link: 'down', mac_seen: false } },
+      snapshot: { known: true, switch: 'sw-a-01', port: 'Gi1/0/3', link: 'down', mac_seen: false },
+      speedtest: { down_mbps: 12.5, up_mbps: 9.1, ping_ms: 3.2, jitter_ms: 0.4, at: Date.now() / 1000 - 120 } },
     { ...base, id: 'i2', title: 'No power', status: 'assigned', team: 'electrics', assignee: 'kim', can_work: false },
     { ...base, id: 'i3', title: 'Cable swapped', status: 'fixed' },
   ],
@@ -40,6 +41,7 @@ describe('Incident board', () => {
     expect(within(open).getByText('From the seat')).toBeInTheDocument()
     expect(within(open).getByText('2 reports')).toBeInTheDocument()
     expect(within(open).getByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeInTheDocument()
+    expect(within(open).getByText('Speed test at the seat, 2 min ago: 12.5 down, 9.1 up Mbit/s, 3.2 ms')).toBeInTheDocument()
     const worked = screen.getByRole('region', { name: 'Being worked' })
     expect(within(worked).getByText('With kim')).toBeInTheDocument()
     // Another team's incident: visible, but no buttons.

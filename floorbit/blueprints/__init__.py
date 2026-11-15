@@ -39,6 +39,7 @@ from . import (
                seat_map,
                security,
                setup,
+               speedtest,
                stats,
                switches,
                teardown,
@@ -55,4 +56,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        logs.bp, screen.bp, attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        cables.bp, teardown.bp, past_events.bp,
-       features.bp, api_tokens.bp, webhooks.bp, wifi.bp]
+       features.bp, api_tokens.bp, webhooks.bp, wifi.bp,
+       speedtest.bp]

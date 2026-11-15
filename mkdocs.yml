@@ -66,6 +66,7 @@ nav:
       - Cables and patching: cables.md
   - During the event:
       - Incidents and the seat helpdesk: incidents.md
+      - Speedtest at the seat: speedtest.md
       - Tech dispatch: dispatch.md
       - Shift handover: handover.md
       - Crew Discord channel: crew-discord.md
