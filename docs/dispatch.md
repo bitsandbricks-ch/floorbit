@@ -14,7 +14,8 @@ Send an incident to the nearest free tech, and let techs work their jobs from th
 - **On my way** tells the board you saw the job. **Done** marks the incident fixed (with an optional
   note). **Give back** puts it back on the board, unassigned, for someone else.
 
-The page refreshes by itself when a job comes in.
+The page refreshes by itself when a job comes in. Once you have fixed something, it also says how many
+jobs you fixed in the last 12 hours, about one shift.
 
 ## For leads: Send to nearest tech
 
@@ -43,7 +44,7 @@ at, and since when. No GPS, no phone location: a position is always a seat numbe
 
 | Request | Needs | What |
 | --- | --- | --- |
-| `GET /api/jobs` | `incidents.work` | My status, my jobs with the hall plan, the job's point and mine |
+| `GET /api/jobs` | `incidents.work` | My status, my jobs with the hall plan, the job's point and mine, and `done` (fixed in the last 12 hours) |
 | `PUT /api/jobs/me` | `incidents.work` | `{"on_duty": true, "at": "B-7"}`; `"at": ""` clears it |
 | `POST /api/jobs/<id>/take` | the job's tech | On my way |
 | `POST /api/jobs/<id>/done` | the job's tech | Fixed, with an optional `note` |

@@ -1,7 +1,8 @@
 """Tech dispatch (issue #30). Rules live in floorbit/dispatch.py; see docs/dispatch.md.
 
 - ``GET /jobs``: the tech's phone page (React).
-- ``GET /api/jobs``: my status, my jobs with the hall plan, where the job is and where I am.
+- ``GET /api/jobs``: my status, my jobs with the hall plan, where the job is and where I am, and how many
+  I fixed in the last 12 hours (``done``).
 - ``PUT /api/jobs/me``: go on or off duty, say where I am (``{"on_duty": true, "at": "B-7"}``).
 - ``POST /api/jobs/<id>/take``, ``/done``, ``/give-back``: the tech's answers to a job.
 - ``POST /api/incidents/<id>/dispatch``: send the incident to the nearest free tech (``incidents.assign``).
@@ -9,6 +10,8 @@
 
 All of it needs ``incidents.work`` somewhere, like the incident board.
 """
+import time
+
 from flask import Blueprint, jsonify, request
 
 from auth import roles
@@ -18,6 +21,8 @@ from .. import dispatch, halls, incidents, runbooks, spa
 from ..store import load_data
 from .incidents import _board_user
 from .screen import plan
+
+DONE_WINDOW = 12 * 3600
 
 bp = Blueprint('dispatch', __name__)
 
@@ -65,8 +70,13 @@ def my_jobs():
     me_at = dispatch.position(me, seats, switches)
     mine = sorted(dispatch.open_jobs(user['username'], incidents.list_all()), key=lambda i: i['created_at'])
     can_dispatch = roles.can(user, 'incidents.assign')
+    # A tech on their feet all shift likes to see what they got done (issue #342).
+    since = time.time() - DONE_WINDOW
+    done = sum(1 for i in incidents.list_all() if i.get('status') == 'fixed' and i.get('assignee') == user['username']
+               and (i.get('fixed_at') or 0) >= since)
     return jsonify({
         'me': me,
+        'done': done,
         'seats': sorted(seats),
         'jobs': [_job(i, data, seats, switches, me_at, runbooks.all_runbooks(data)) for i in mine],
         'can_dispatch': can_dispatch,

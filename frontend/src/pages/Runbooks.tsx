@@ -62,7 +62,7 @@ export default function Runbooks() {
   const qc = useQueryClient()
   const canEdit = useCan('incidents.assign')
   const [params, setParams] = useSearchParams()
-  const query = useQuery({ queryKey: qk.runbooks, queryFn: () => get<{ runbooks: Runbook[]; kinds: RunbookKind[] }>('/api/runbooks') })
+  const query = useQuery({ queryKey: qk.runbooks, queryFn: () => get<{ runbooks: Runbook[]; kinds: RunbookKind[]; used?: Record<string, number>; missing?: Record<string, number> }>('/api/runbooks') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.runbooks })
   useLiveEvent('runbooks.changed', refresh)
   const [editing, setEditing] = useState<'new' | string | null>(null)
@@ -86,10 +86,15 @@ export default function Runbooks() {
             <Paper withBorder radius="lg" p="xs">
               {books.length === 0 ? <Text size="sm" c="dimmed" p="xs">{t('runbooks.none')}</Text> : books.map((b) => (
                 <NavLink key={b.id} variant="light" color="bit" style={{ borderRadius: 8 }} active={b.id === open?.id && editing !== 'new'} label={b.title} onClick={() => pick(b.id)}
-                  description={b.kinds.length ? b.kinds.map((k) => t(`runbooks.kind.${k}`)).join(', ') : t('runbooks.noKind')} />
+                  description={[b.kinds.length ? b.kinds.map((k) => t(`runbooks.kind.${k}`)).join(', ') : t('runbooks.noKind'),
+                    d.used?.[b.id] ? t('runbooks.used', { count: d.used[b.id] }) : ''].filter(Boolean).join(' · ')} />
               ))}
             </Paper>
             {books.some((b) => b.starter) && <Text size="xs" c="dimmed" mt="xs">{t('runbooks.starterHint')}</Text>}
+            {/* Kinds of incident nobody wrote a runbook for yet (issue #340). */}
+            {Object.entries(d.missing ?? {}).map(([k, n]) => (
+              <Text key={k} size="xs" c="warn" mt="xs">{t('runbooks.missing', { count: n, kind: t(`runbooks.kind.${k}`, { defaultValue: k }) })}</Text>
+            ))}
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 8 }}>
             <Paper withBorder radius="lg" p="md">

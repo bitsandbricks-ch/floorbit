@@ -26,6 +26,12 @@ Until the crew saves a runbook, Floorbit offers four starters with general first
 adding or removing any runbook keeps the list as it is from then on. Rewrite the starters with your
 event's own steps: where the spare switches and cables are, who to call, which channel to post in.
 
+## Which ones matter
+
+The list says under each runbook how many incidents on the board it is shown on, and below the list
+how many incidents are of a kind no runbook covers yet ("2 incidents of kind “Power” have no
+runbook"). Write those first.
+
 ## Writing
 
 Runbooks are Markdown: `#` headings, `1.` numbered steps, `-` bullets, `**bold**`, `` `code` `` and
@@ -41,7 +47,7 @@ Runbooks are Markdown: `#` headings, `1.` numbered steps, `-` bullets, `**bold**
 
 | Route | What |
 | --- | --- |
-| `GET /api/runbooks` | the runbooks, in order, and the kinds |
+| `GET /api/runbooks` | the runbooks, in order, the kinds, `used` (runbook id: incidents it is shown on) and `missing` (kind: incidents with no runbook) |
 | `POST /api/runbooks` | `{"title": "...", "kinds": ["no-internet"], "body": "1. ..."}` |
 | `PATCH /api/runbooks/<id>` | change any of those |
 | `DELETE /api/runbooks/<id>` | remove one |

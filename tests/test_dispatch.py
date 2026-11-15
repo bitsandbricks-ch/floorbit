@@ -63,12 +63,14 @@ def test_tech_takes_and_finishes_a_job_from_the_phone(client, floor):
     first = mine["jobs"][0]
     assert first["drawing"]["shapes"] and first["target"] and first["from"]
     assert first["dispatched_at"] and first["taken_at"] is None
-    assert "B-6" in mine["seats"] and mine["can_dispatch"] is False
+    assert "B-6" in mine["seats"] and mine["can_dispatch"] is False and mine["done"] == 0
     # Someone else can't answer for Ben.
     assert floor["ana"].post(f"/api/jobs/{job}/take").status_code == 403
     assert ben.post(f"/api/jobs/{job}/take").get_json()["taken_at"]
     assert ben.post(f"/api/jobs/{job}/done", json={"note": "Cable was loose"}).get_json()["status"] == "fixed"
-    assert ben.get("/api/jobs").get_json()["jobs"] == []
+    after = ben.get("/api/jobs").get_json()
+    assert after["jobs"] == [] and after["done"] == 1   # issue #342
+    assert floor["ana"].get("/api/jobs").get_json()["done"] == 0
     # He is now where the job was.
     assert ben.get("/api/jobs").get_json()["me"]["at"] == "B-6"
     notes = next(i for i in client.get("/api/incidents").get_json()["incidents"] if i["id"] == job)["notes"]

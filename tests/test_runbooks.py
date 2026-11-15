@@ -69,3 +69,15 @@ def test_roles(floor):
     assert floor["ana"].get("/api/runbooks").status_code == 200
     assert floor["ana"].post("/api/runbooks", json={"title": "x", "body": "y"}).status_code == 403
     assert floor["vic"].get("/api/runbooks").status_code == 403
+
+
+def test_the_list_says_how_often_each_runbook_was_shown_and_what_is_missing(client, floor):
+    # Issue #340: which runbooks matter, and which kinds of incident have none.
+    body = client.get("/api/runbooks").get_json()
+    assert body["used"] == {} and body["missing"] == {}
+    client.post("/api/incidents", json={"seat": "A-1", "title": "Slow", "problem": "slow"})
+    client.post("/api/incidents", json={"seat": "A-2", "title": "Slow too", "problem": "slow"})
+    client.post("/api/incidents", json={"seat": "A-3", "title": "Odd"})
+    body = client.get("/api/runbooks").get_json()
+    slow = next(b["id"] for b in body["runbooks"] if b["kinds"] == ["slow"])
+    assert body["used"] == {slow: 2} and body["missing"] == {"other": 1}
