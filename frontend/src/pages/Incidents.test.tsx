@@ -183,4 +183,16 @@ describe('Incident board', () => {
       expect(within(card).queryByText(/at this seat/)).toBeNull()
     }
   })
+  it('takes the next one with the n key, but not while typing', async () => {
+    const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0], status: 'assigned', assignee: 'sam' } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: /Take the next one/ })
+    await waitFor(() => expect(take).toBeEnabled())
+    const filter = screen.getByRole('textbox', { name: /Filter/ })
+    fireEvent.keyDown(filter, { key: 'n' })
+    expect(api.calls.some((c) => c.method === 'PATCH')).toBe(false)
+    fireEvent.keyDown(document.documentElement, { key: 'n' })
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.path).toBe('/api/incidents/i1'))
+  })
 })

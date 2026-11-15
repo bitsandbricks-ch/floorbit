@@ -96,6 +96,12 @@ export default function Incidents() {
 
   const teamNames = Object.fromEntries((board.data?.teams ?? []).map((x) => [x.id, x.name]))
   const next = nextToTake(board.data?.incidents ?? [])
+  const username = me.data?.user?.username
+  const takeNext = () => {
+    if (next && username && !change.isPending) change.mutate({ id: next.id, change: { status: 'assigned', assignee: username }, next: true })
+  }
+  // "n" takes the next one, like "/" jumps to the filter (issue #316); typing in a field doesn't count.
+  useHotkeys([['n', takeNext]])
   const items = (board.data?.incidents ?? []).filter((i) => (!mineOnly || i.can_work) && matchesFilter(i, filter, teamNames))
   return (
     <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
@@ -144,8 +150,8 @@ export default function Incidents() {
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
           {me.data?.user && (
             <Button variant="default" leftSection={<IconHandGrab size={16} />} disabled={!next} loading={change.isPending && change.variables?.next}
-              title={next ? next.title : t('incidents.nothingNext')}
-              onClick={() => next && change.mutate({ id: next.id, change: { status: 'assigned', assignee: me.data?.user?.username ?? null }, next: true })}>
+              title={next ? next.title : t('incidents.nothingNext')} aria-keyshortcuts="n"
+              rightSection={keyboard ? <Kbd size="xs" aria-hidden>n</Kbd> : undefined} onClick={takeNext}>
               {t('incidents.takeNext')}
             </Button>
           )}
