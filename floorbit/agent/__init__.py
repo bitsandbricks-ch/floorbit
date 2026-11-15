@@ -6,22 +6,32 @@ other monitoring plugin). It connects out to the hosted Floorbit (``FLOORBIT_URL
 (``FLOORBIT_AGENT_KEY``), asks for calls in a long poll, runs each one against the local plugin and
 posts the answer back. The hosted side is floorbit/agent_link.py.
 
-Nothing listens here: the agent only makes outgoing HTTPS requests. When the hosted Floorbit can't
-be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
+Nothing listens here unless asked: the agent makes outgoing HTTPS requests, and only with
+``FLOORBIT_AGENT_SYSLOG_PORT`` or ``FLOORBIT_AGENT_FLOWS_PORT`` does it take syslog or flows from
+the event network (syslog_relay.py, flows_relay.py).
+When the hosted Floorbit can't be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
 """
 import contextlib
+import gzip
 import io
 import json
 import os
+import signal
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 KEY_HEADER = 'Floorbit-Agent-Key'
 VERSION_HEADER = 'Floorbit-Agent-Version'
+PROTOCOL_HEADER = 'Floorbit-Agent-Protocol'
+PROTOCOL = 1              # the agent protocol this agent speaks; the hosted side says which it does
 POLL_WAIT = 25            # the hosted side holds a poll at most this long
 HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
+GZIP_FROM = 2048          # bytes: smaller bodies aren't worth packing
+BEAT_EVERY = 10           # seconds between heartbeat writes
+HEALTHY_FOR = 120         # `health`: the last poll that got through is at most this old
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
@@ -136,9 +146,12 @@ class Agent:
         self._stop = threading.Event()
         self.answered = 0
         self.poll_wait = POLL_WAIT
+        self.gzip = False         # once hello says the hosted Floorbit takes gzipped bodies
+        self.heartbeat = None     # a file touched after each poll that got through, for `health`
+        self._beat_at = 0
 
     def _headers(self, json_body=False):
-        h = {KEY_HEADER: self.key, VERSION_HEADER: self.version}
+        h = {KEY_HEADER: self.key, VERSION_HEADER: self.version, PROTOCOL_HEADER: str(PROTOCOL)}
         if json_body:
             h['Content-Type'] = 'application/json'
         return h
@@ -147,12 +160,27 @@ class Agent:
         if resp.status_code == 401:
             raise Refused('The hosted Floorbit refused the agent key: it is wrong or was revoked. '
                           'Enrol the agent again.')
+        if resp.status_code == 426:
+            # Retrying won't help: one of the two has to be updated.
+            raise Refused((resp.json() or {}).get('error') or 'The hosted Floorbit speaks another agent protocol.')
         resp.raise_for_status()
         return resp.json()
 
     def hello(self):
-        return self._check(self.http.get(f'{self.url}/api/agent/v1/hello', headers=self._headers(),
+        body = self._check(self.http.get(f'{self.url}/api/agent/v1/hello', headers=self._headers(),
                                          timeout=HTTP_TIMEOUT))
+        self.gzip = 'gzip' in (body.get('encodings') or [])
+        return body
+
+    def _post(self, path, payload):
+        """POST JSON to the hosted Floorbit, gzipped when it takes that and the body is worth it."""
+        # default=str: a plugin answer may hold dates or other things JSON doesn't know.
+        data = json.dumps(payload, default=str).encode()
+        headers = self._headers(True)
+        if self.gzip and len(data) > GZIP_FROM:
+            data = gzip.compress(data, compresslevel=6)
+            headers['Content-Encoding'] = 'gzip'
+        return self.http.post(f'{self.url}{path}', data=data, headers=headers, timeout=HTTP_TIMEOUT)
 
     def poll(self, wait=POLL_WAIT):
         """One long poll; runs the calls it brings. Returns how many it got."""
@@ -169,14 +197,45 @@ class Agent:
             answer = {'id': call['id'], 'ok': True, 'result': result}
         except Exception as exc:  # noqa: BLE001  # the hosted side gets the message, the agent goes on
             answer = {'id': call['id'], 'ok': False, 'error': str(exc)[:300] or type(exc).__name__}
-        # default=str: a plugin answer may hold dates or other things JSON doesn't know.
-        payload = json.dumps({'answers': [answer]}, default=str)
         try:
-            self._check(self.http.post(f'{self.url}/api/agent/v1/answers', data=payload,
-                                       headers=self._headers(True), timeout=HTTP_TIMEOUT))
+            self._check(self._post('/api/agent/v1/answers', {'answers': [answer]}))
             self.answered += 1
         except Exception as exc:  # noqa: BLE001  # the call times out on the hosted side; nothing to keep
             self.log(f'[agent] could not send the answer to {call["method"]}: {exc}')
+
+    def send_syslog(self, lines, dropped=0):
+        """One batch for the hosted syslog (syslog_relay.Relay calls this)."""
+        from .syslog_relay import TurnedOff
+        resp = self._post('/api/agent/v1/syslog', {'lines': lines, 'dropped': dropped})
+        if resp.status_code == 409:
+            raise TurnedOff((resp.json() or {}).get('error') or 'Syslog is turned off on the hosted Floorbit.')
+        return self._check(resp)
+
+    def _said(self, resp):
+        """409: the hosted side has the feature off, and says so."""
+        if resp.status_code == 409:
+            raise RuntimeError((resp.json() or {}).get('error') or 'turned off on the hosted Floorbit')
+        return self._check(resp)
+
+    def flow_seats(self):
+        return self._said(self.http.get(f'{self.url}/api/agent/v1/seats', headers=self._headers(),
+                                        timeout=HTTP_TIMEOUT))
+
+    def send_flows(self, snapshot):
+        return self._said(self._post('/api/agent/v1/flows', {'snapshot': snapshot}))
+
+    def beat(self, now=None):
+        """The hosted Floorbit answered: say so in the heartbeat file (at most every few seconds)."""
+        now = time.time() if now is None else now
+        if not self.heartbeat or now - self._beat_at < BEAT_EVERY:
+            return
+        try:
+            with open(self.heartbeat, 'w', encoding='utf-8') as f:
+                f.write(f'{now:.0f}\n')
+            self._beat_at = now
+        except OSError as exc:
+            self.log(f'[agent] cannot write the heartbeat file {self.heartbeat}: {exc}')
+            self.heartbeat = None
 
     def stop(self):
         self._stop.set()
@@ -192,6 +251,7 @@ class Agent:
                              f'(Floorbit {hello.get("server_version")})')
                     connected, backoff = True, 1
                 self.poll(self.poll_wait)
+                self.beat()
             except Refused:
                 raise
             except Exception as exc:  # noqa: BLE001  # network trouble: wait and try again
@@ -267,15 +327,88 @@ def check(agent, execute, out=print):
                 line(True, f"{feed['name']} answers: {len(feed['items'])} health checks")
     except Exception as exc:  # noqa: BLE001
         line(False, f'the health plugins: {exc}')
+    if os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT'):
+        try:
+            agent.send_syslog([])
+            line(True, f'the hosted Floorbit takes syslog (the agent will listen on UDP '
+                       f'{os.environ["FLOORBIT_AGENT_SYSLOG_PORT"]})')
+        except Exception as exc:  # noqa: BLE001
+            line(False, f'syslog: {exc}')
+    if os.environ.get('FLOORBIT_AGENT_FLOWS_PORT'):
+        try:
+            seats = agent.flow_seats().get('seat_of') or {}
+            line(True, f'the hosted Floorbit takes flows and knows {len(seats)} seat addresses (the agent will '
+                       f'listen on UDP {os.environ["FLOORBIT_AGENT_FLOWS_PORT"]})')
+        except Exception as exc:  # noqa: BLE001
+            line(False, f'flows: {exc}')
     out('All good: start the agent without "check".' if ok else 'Fix what failed, then run the check again.')
     return ok
 
 
+def start_syslog(agent, port, out=print):
+    """The syslog relay, when FLOORBIT_AGENT_SYSLOG_PORT is set: the Relay, None when it isn't set,
+    False when it can't start (a wrong port number, or one in use)."""
+    from .syslog_relay import Relay
+    port = str(port or '').strip()
+    if not port:
+        return None
+    try:
+        relay = Relay(agent.send_syslog, int(port), os.environ.get('FLOORBIT_AGENT_SYSLOG_BIND') or '0.0.0.0', log=out)
+        relay.start()
+    except (ValueError, OSError, OverflowError) as exc:
+        out(f'[agent] cannot listen for syslog on "{port}": {exc}')
+        return False
+    return relay
+
+
+def start_flows(agent, port, out=print):
+    """The flow collector, when FLOORBIT_AGENT_FLOWS_PORT is set; as start_syslog."""
+    from .flows_relay import FlowsRelay
+    port = str(port or '').strip()
+    if not port:
+        return None
+    try:
+        relay = FlowsRelay(agent, int(port), os.environ.get('FLOORBIT_AGENT_FLOWS_BIND') or '0.0.0.0', log=out)
+        relay.start()
+    except (ValueError, OSError, OverflowError) as exc:
+        out(f'[agent] cannot listen for flows on "{port}": {exc}')
+        return False
+    return relay
+
+
+def _stop_on_term(_signum, _frame):
+    raise KeyboardInterrupt
+
+
+def heartbeat_file():
+    return os.environ.get('FLOORBIT_AGENT_HEARTBEAT') or os.path.join(
+        os.path.dirname(os.path.abspath(os.environ.get('FLOORBIT_DATA_FILE') or 'agent-data.json')), 'agent-heartbeat')
+
+
+def health(path=None, now=None, out=print):
+    """``python -m floorbit.agent health``, the container's health check: 0 when the agent got through
+    to the hosted Floorbit in the last HEALTHY_FOR seconds, 1 otherwise. Fast: no app, no network."""
+    path = path or heartbeat_file()
+    now = time.time() if now is None else now
+    try:
+        age = now - os.path.getmtime(path)
+    except OSError:
+        out('unhealthy: the agent has not reached the hosted Floorbit yet')
+        return 1
+    if age > HEALTHY_FOR:
+        out(f'unhealthy: the hosted Floorbit last answered {age:.0f} s ago')
+        return 1
+    out(f'healthy: the hosted Floorbit answered {age:.0f} s ago')
+    return 0
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
-    if argv and argv[0] not in ('check', 'run'):
-        print('Usage: python -m floorbit.agent [run | check]', file=sys.stderr)
+    if argv and argv[0] not in ('check', 'run', 'health'):
+        print('Usage: python -m floorbit.agent [run | check | health]', file=sys.stderr)
         return 2
+    if argv and argv[0] == 'health':
+        return health()
     url = os.environ.get('FLOORBIT_URL', '').strip()
     key = os.environ.get('FLOORBIT_AGENT_KEY', '').strip()
     if not url or not key:
@@ -297,8 +430,18 @@ def main(argv=None):
     version_file = ROOT / 'VERSION'
     version = version_file.read_text().strip() if version_file.is_file() else '0'
     agent = Agent(url, key, local_executor(app), version=version)
+    agent.heartbeat = heartbeat_file()
     if argv and argv[0] == 'check':
         return 0 if check(agent, agent.execute) else 1
+    relays = [start_syslog(agent, os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT', '')),
+              start_flows(agent, os.environ.get('FLOORBIT_AGENT_FLOWS_PORT', ''))]
+    if False in relays:
+        for relay in relays:
+            if relay:
+                relay.stop()
+        return 2
+    # docker stop sends SIGTERM: leave the way Ctrl+C does, so the syslog backlog goes out first.
+    signal.signal(signal.SIGTERM, _stop_on_term)
     try:
         agent.run()
     except Refused as exc:
@@ -306,4 +449,9 @@ def main(argv=None):
         return 1
     except KeyboardInterrupt:
         agent.stop()
+        print('[agent] stopping')
+    finally:
+        for relay in relays:
+            if relay:
+                relay.stop()
     return 0
