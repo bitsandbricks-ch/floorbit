@@ -38,3 +38,28 @@ def test_gear_is_for_the_crew(app_module, client):
     tech = sign_in_as(app_module, "te1", "tech")
     sw = client.post("/api/inventory", json={"name": "sw-x", "role": "switch"}).get_json()
     assert tech.post(f"/api/gear/{sw['id']}/out", json={"to": "te1"}).status_code == 200
+
+
+def test_back_by_and_overdue(client, monkeypatch):
+    # A loan can say when it is due back (issue #426).
+    import time
+    sw = client.post("/api/inventory", json={"name": "sw-spare-02", "role": "switch"}).get_json()
+    now = time.time()
+    assert client.post(f"/api/gear/{sw['id']}/out", json={"to": "Ana", "until": now - 60}).status_code == 400
+    assert client.post(f"/api/gear/{sw['id']}/out", json={"to": "Ana", "until": now + 30 * 86400}).status_code == 400
+    assert client.post(f"/api/gear/{sw['id']}/out", json={"to": "Ana", "until": "tonight"}).status_code == 400
+    assert client.post(f"/api/gear/{sw['id']}/out", json={"to": "Ana", "until": now + 3600}).status_code == 200
+    (item,) = [i for i in client.get("/api/gear").get_json()["items"] if i["id"] == sw["id"]]
+    assert item["loan"]["until"] == now + 3600 and item["loan"]["overdue"] is False
+    monkeypatch.setattr(time, "time", lambda: now + 7200)
+    (item,) = [i for i in client.get("/api/gear").get_json()["items"] if i["id"] == sw["id"]]
+    assert item["loan"]["overdue"] is True
+    client.post(f"/api/gear/{sw['id']}/in", json={})
+    assert client.get("/api/gear").get_json()["log"][0]["late"] == 3600
+
+
+def test_loan_without_back_by_is_never_overdue(client):
+    sw = client.post("/api/inventory", json={"name": "sw-spare-04", "role": "switch"}).get_json()
+    client.post(f"/api/gear/{sw['id']}/out", json={"to": "Ana", "until": ""})
+    (item,) = [i for i in client.get("/api/gear").get_json()["items"] if i["id"] == sw["id"]]
+    assert item["loan"]["until"] is None and item["loan"]["overdue"] is False

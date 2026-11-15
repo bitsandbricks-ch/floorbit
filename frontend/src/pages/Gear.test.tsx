@@ -30,8 +30,31 @@ describe('Gear', () => {
     fireEvent.change(await screen.findByRole('combobox', { name: 'Who' }), { target: { value: 'Ana' } })
     fireEvent.click(screen.getAllByRole('button', { name: 'Check out' }).at(-1)!)
     await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/gear/d1/out'
-      && JSON.stringify(c.body) === JSON.stringify({ to: 'Ana', kind: 'person', note: '' }))).toBe(true))
+      && JSON.stringify(c.body) === JSON.stringify({ to: 'Ana', kind: 'person', note: '', until: null }))).toBe(true))
   })
+  it('asks when a piece is due back, and flags overdue loans (issue #426)', async () => {
+    const late: GearData = { ...data, items: [
+      { ...data.items[0], loan: { to: 'Ana', kind: 'person', by: 'Ben', at, note: '', until: at + 3600, overdue: true } },
+      { ...data.items[1], loan: { ...data.items[1].loan!, until: at + 7200, overdue: false } },
+      { ...data.items[0], id: 'd3', name: 'sw-spare-03' },
+    ] }
+    const api = fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/gear': late, 'POST /api/gear/d3/out': { to: 'Ana' } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Gear />)
+    expect(await screen.findByText(/^Overdue since/)).toBeInTheDocument()
+    expect(screen.getByText(/^Back by/)).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Overdue (1)'))
+    expect(screen.getByText('sw-spare-01')).toBeInTheDocument()
+    expect(screen.queryByText('ap-hall2-01')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('All'))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Check out' })[0])
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Who' }), { target: { value: 'Ana' } })
+    fireEvent.change(screen.getByLabelText('Back by (optional)'), { target: { value: '2030-01-02T20:00' } })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Check out' }))
+    await waitFor(() => expect(api.calls.some((c) => c.path === '/api/gear/d3/out'
+      && (c.body as { until: number }).until === new Date('2030-01-02T20:00').getTime() / 1000)).toBe(true))
+  })
+
   it('says who has what and filters to one holder', async () => {
     const loan = (to: string) => ({ to, kind: 'person' as const, by: 'Ben', at, note: '' })
     const lots: GearData = { ...data, items: [
