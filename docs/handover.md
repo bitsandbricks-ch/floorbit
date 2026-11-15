@@ -15,6 +15,9 @@ last handover. It also gives them a place to leave a note for the next shift. Is
 - **Changes from the [audit log](audit.md):** port actions, settings, the floor plan, power,
   plugins, accounts, security and check-ins. Incidents have their own sections, and sign-ins are
   left out.
+- **Seat notes from this shift:** the [crew notes on seats](seats.md#the-inspector) written or changed since the
+  last handover, newest first, each linking to its seat. Only shown when there are some; they are
+  not posted to Discord.
 
 The first summary looks back 8 hours. After that, each summary starts where the last handover
 ended.

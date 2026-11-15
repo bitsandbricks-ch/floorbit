@@ -18,6 +18,7 @@
   "noOutages": "No switch went down.",
   "wasDown": "down at {{when}} for {{for}}",
   "stillDown": "down since {{when}} ({{for}})",
+  "seatNotes": "Seat notes from this shift",
   "changesTitle": "Changes",
   "noChanges": "No port actions, settings or floor plan changes.",
   "when": "When",

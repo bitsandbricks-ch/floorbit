@@ -694,6 +694,8 @@ export interface HandoverData {
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
   outages: { switch_id: string; name: string; down_at: number; back_at: number | null; down_s: number }[]
   changes: { at: number; user: string | null; area: string; action: string; target: string | null }[]
+  /** Crew notes on seats written or changed this shift (issue #202). */
+  seat_notes: { seat: string; text: string; by: string | null; at: number }[]
   counts: HandoverCounts
   history: HandoverRecord[]
   discord: boolean
