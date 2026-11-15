@@ -740,7 +740,14 @@ kbd {
   padding: 7px 10px; background: none; border: none; border-radius: var(--radius-sm);
   text-align: left; font-size: var(--fs-sm);
 }
-.context-item:hover        { background: var(--bg-hover); }
+.context-item:hover,
+.context-item:focus-visible { background: var(--bg-hover); outline: none; }
+.context-item kbd          { margin-left: var(--sp-3); color: var(--text-muted); font-size: var(--fs-xs, 11px); }
+.context-title {
+  padding: 6px 10px 4px; font-size: var(--fs-xs, 11px); font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px;
+}
+.context-sep               { height: 1px; margin: 4px 6px; background: var(--border); }
 .context-item.danger       { color: var(--danger); }
 .context-item.danger:hover { background: var(--danger-dim); }
 

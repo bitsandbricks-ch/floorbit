@@ -95,6 +95,8 @@ each seat is plugged into.
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).
 - **Find a player:** search by nick, seat, IP or MAC, jump to the seat and see the switch port it is
   plugged into, even through the ARP table. See [docs/seat-mapping.md](docs/seat-mapping.md#finding-a-player).
+- **Right-click menu:** right-click (or long-press) a seat, switch or the empty floor for what you can
+  do with it, from seat details to bouncing its port. See [docs/context-menu.md](docs/context-menu.md).
 - **Phones and tablets:** tap, drag and pinch on the floor plan, search in a drawer and details in a
   bottom sheet, so a tech on the floor can look up a seat or switch. See [docs/mobile.md](docs/mobile.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from

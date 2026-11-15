@@ -14,4 +14,3 @@
 body.read-only .toolbar,
 body.read-only .detail-footer,
 body.read-only #block-edit-form,
-body.read-only .context-menu { display: none !important; }

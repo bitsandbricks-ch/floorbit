@@ -19,7 +19,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `render.js` | Drawing switches, seat blocks and seats. |
 | `inspector.js` | Selection and the inspector panels. |
 | `drag.js` | Dragging one item or a group. |
-| `menus.js` | Context menu and rename dialog. |
+| `menus.js` | The right-click menu (entries per seat, switch, block, group or empty floor, each only when the account may use it) and the rename dialog. |
 | `keyboard.js` | Keyboard shortcuts. |
 | `status.js` | Switch list filter, LibreNMS status refresh, top bar stats. |
 | `layers.js` | Layer toggles and the grid. |
