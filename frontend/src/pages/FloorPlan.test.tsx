@@ -138,6 +138,17 @@ describe('Seats page', () => {
     fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
     expect(await screen.findByText(/^Fixed here 2 times before, last: Cable loose \(/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=seat%3AD-2')
+    expect(screen.queryByRole('link', { name: 'QR code' })).toBeNull()      // printing codes needs incidents.assign
+  })
+
+  it('links a lead to the seat\'s and the block\'s QR codes (issue #380)', async () => {
+    const lead = { enabled: true, user: { ...me.user, role: 'lead', permissions: ['floorplan.view', 'incidents.work', 'incidents.assign'] } }
+    const block = { name: 'D', hall: 'main', seats: 4, online: 2, offline: 1, unknown: 1, checked_in: 1, bps: null, problems: [], switches: [], no_port: 0 }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details, 'GET /api/plan/blocks/D': block }).fn)
+    renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByRole('link', { name: 'QR code' })).toHaveAttribute('href', '/incidents/qr?seats=D-2')
+    fireEvent.click(screen.getByRole('button', { name: 'Open block D' }))
+    expect(await screen.findByRole('link', { name: 'Print QR codes' })).toHaveAttribute('href', '/incidents/qr?block=D')
   })
 
   it('dims seats a filter leaves out and finds a seat', async () => {

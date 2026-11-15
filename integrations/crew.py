@@ -318,6 +318,10 @@ class CrewBridge:
                 lines.append(f'📟 Sent to {who}.' if sent else f'🙋 {who} has it.')
             elif status == 'open':
                 lines.append('↩️ Back on the board. Nobody has it.')
+        ok = incident.get('seat_ok_at')
+        if ok and ok != before.get('seat_ok') and incident.get('status') != 'fixed':
+            # Issue #374: the attendee says it fixed itself. Tell the thread so nobody walks over for nothing.
+            lines.append('👍 The seat says it works again. Check or ask before marking it fixed.')
         for note in (incident.get('notes') or [])[int(before.get('notes') or 0):]:
             by = _name(note.get('by'), self.users) or 'Seat report'
             lines.append(f"💬 **{by}**: {note.get('text') or ''}"[:MAX_LINE])
@@ -348,7 +352,8 @@ class CrewBridge:
         ch = channel_id()
         msg = self._call('POST', f'/channels/{ch}/messages', body)
         record = {'message': msg['id'], 'thread': None, 'status': incident['status'],
-                  'assignee': incident.get('assignee'), 'notes': 0, 'at': time.time(), 'shown': digest(body)}
+                  'assignee': incident.get('assignee'), 'notes': 0, 'at': time.time(), 'shown': digest(body),
+                  'seat_ok': incident.get('seat_ok_at')}
         try:
             thread = self._call('POST', f"/channels/{ch}/messages/{msg['id']}/threads",
                                 {'name': f"{where(incident)}: {incident.get('title') or 'Incident'}"[:100],
@@ -368,7 +373,8 @@ class CrewBridge:
     def _update(self, incident, before, body):
         ch = channel_id()
         record = {**before, 'status': incident['status'], 'assignee': incident.get('assignee'),
-                  'notes': len(incident.get('notes') or []), 'at': time.time(), 'shown': digest(body)}
+                  'notes': len(incident.get('notes') or []), 'at': time.time(), 'shown': digest(body),
+                  'seat_ok': incident.get('seat_ok_at')}
         lines = self.changes(before, incident)
         if not lines and before.get('shown') == record['shown']:
             return {**record, 'at': before.get('at', record['at'])}
@@ -409,6 +415,8 @@ class CrewBridge:
                 waited = now - (incident.get('created_at') or now)
                 if incident.get('status') != 'open' or incident.get('assignee') or waited < minutes * 60:
                     continue
+                if incident.get('seat_ok_at'):
+                    continue   # the seat says it works again: no reason to ping the crew about it
                 text = f'⏳ Waiting {_waited(waited)}. Nobody has taken it yet.'
                 self._call('POST', f"/channels/{record['thread']}/messages",
                            {'content': f'<@&{role}> {text}' if role else text,

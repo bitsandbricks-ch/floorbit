@@ -11,6 +11,7 @@ const data: StatusPageData = {
   state: 'degraded', auto_state: 'degraded', override: null, since: at - 300, checked_at: at,
   areas: [{ hall: '', block: 'A', rows: '1-2', seats: 2 }],
   crew_areas: [{ hall: '', block: 'A', rows: '1-2', seats: 2, switches: ['sw-a-01'] }],
+  recovered: [], recovered_at: null, crew_recovered: [],
   updates: [{ id: 'u1', at: at - 60, text: 'A switch in block A is down, we are on it.', state: null, area: 'Block A' }],
   public: true, switch_names: false,
 }
@@ -37,5 +38,19 @@ describe('NetworkStatus', () => {
     await waitFor(() => expect(sent).toContainEqual({ method: 'POST', path: '/api/status-page/updates', body: { text: 'Fixed.', area: '' } }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove update' }))
     await waitFor(() => expect(sent.some((s) => s.method === 'DELETE' && s.path === '/api/status-page/updates/u1')).toBe(true))
+  })
+
+  it('lists the areas that are back up recently, with their switches (issue #396)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false },
+      'GET /api/status-page': { ...data, state: 'operational', auto_state: 'operational', since: null, areas: [], crew_areas: [],
+        recovered: [{ hall: '', block: 'C', rows: '', seats: null }], recovered_at: at - 120,
+        crew_recovered: [{ hall: '', block: 'C', rows: '', seats: null, switches: ['sw-c-02'] }] },
+    }).fn)
+    renderWithApp(<NetworkStatus />)
+    const box = await screen.findByTestId('recovered')
+    expect(box).toHaveTextContent('Back up recently')
+    expect(box).toHaveTextContent('Seat block C')
+    expect(box).toHaveTextContent('switches: sw-c-02')
   })
 })

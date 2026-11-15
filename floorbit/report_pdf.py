@@ -24,6 +24,8 @@ TEXTS = {
         'none_ports': 'No port problems were noticed.',
         'opened': 'Opened', 'where': 'Where', 'what': 'What', 'team': 'Team', 'took': 'Fixed after',
         'repeat': 'Seats with more than one incident: {seats}.',
+        'asked': 'What attendees reported at their seats: {what}.',
+        'no-internet': 'No internet', 'slow': 'Slow connection', 'power': 'No power', 'other': 'Something else',
         'open': 'open', 'none_incidents': 'No incidents were filed.', 'reported_by': 'Reported by',
         'nick': 'Nick', 'ip': 'IP', 'cut': 'Showing the first {n} of {total}.',
         'people': 'Includes nicks and IPs (asked for by an admin). Handle as personal data.',
@@ -48,6 +50,8 @@ TEXTS = {
         'kinds': 'Was', 'none_ports': 'Keine Port-Probleme bemerkt.',
         'opened': 'Eröffnet', 'where': 'Wo', 'what': 'Was', 'team': 'Team', 'took': 'Behoben nach',
         'repeat': 'Plätze mit mehr als einer Störung: {seats}.',
+        'asked': 'Was an den Plätzen gemeldet wurde: {what}.',
+        'no-internet': 'Kein Internet', 'slow': 'Langsame Verbindung', 'power': 'Kein Strom', 'other': 'Anderes',
         'open': 'offen', 'none_incidents': 'Keine Störungen erfasst.', 'reported_by': 'Gemeldet von',
         'nick': 'Nick', 'ip': 'IP', 'cut': 'Die ersten {n} von {total}.',
         'people': 'Enthält Nicks und IPs (von einem Admin verlangt). Als Personendaten behandeln.',
@@ -324,6 +328,10 @@ def pdf(report, lang='en', tz=0):
     if repeats:
         seats = ', '.join(f"{r['seat']} ({r['count']}{TIMES})" for r in repeats)
         note = ' '.join(x for x in (tx['repeat'].format(seats=seats), note) if x)
+    asked = found.get('seat_problems') or []
+    if asked:
+        what = ', '.join(f"{tx[a['problem']]} {a['count']}{TIMES}" for a in asked)
+        note = ' '.join(x for x in (tx['asked'].format(what=what), note) if x)
     _table(doc, tx['incidents'], cols, rows, tx['none_incidents'], note)
 
     for n, pg in enumerate(doc.pages, start=1):

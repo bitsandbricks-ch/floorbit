@@ -192,6 +192,62 @@ def test_board_shows_the_seat_s_crew_note(client, floor):
     assert cards["A-3"]["seat_note"] is None
 
 
+def test_attendee_says_it_works_again(anon_client, client, app_module, floor):
+    # Issue #372: tags the seat's open reports for the crew; only the crew can mark them fixed.
+    url = help_url(app_module, "A-3")
+    assert b'name="works"' not in anon_client.get(url).data        # nothing reported, nothing to call off
+    anon_client.post(url, data={"problem": "no-internet"})
+    assert b'name="works"' in anon_client.get(url).data
+    resp = anon_client.post(url, data={"works": "1"})
+    assert resp.status_code == 200 and b"we told the team it works again" in resp.data
+    (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-3"]
+    assert incident["seat_ok_at"] and incident["status"] == "open"
+    page = anon_client.get(url).data.decode()
+    assert "You told us it works again" in page and 'name="works"' not in page
+    rows, _ = audit.read(area="incidents")
+    assert rows[0]["action"] == "Seat says it works again" and rows[0]["target"] == "A-3"
+    # Broken again: a new report clears it.
+    anon_client.post(url, data={"problem": "no-internet"})
+    (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-3"]
+    assert not incident.get("seat_ok_at") and incident["reports"] == 2
+
+
+def test_a_seat_that_works_again_is_not_waiting(anon_client, app_module, floor):
+    # Issue #376: the board's "Waiting" rule, also counted by the handover and the dashboard.
+    anon_client.post(help_url(app_module, "A-2"), data={"problem": "slow"})
+    with app_module.app.app_context():
+        (incident,) = incidents.list_all()
+        later = incident["created_at"] + 20 * 60
+        assert incidents.is_waiting(incident, later)
+        incidents.seat_says_ok("A-2")
+        assert not incidents.is_waiting(incidents.get(incident["id"]), later)
+
+
+def test_the_help_page_says_how_many_reports_are_ahead(anon_client, client, app_module, floor):
+    # Issue #378: a count only, from the whole board's open queue.
+    now = time.time()
+    first = client.post("/api/incidents", json={"seat": "A-1", "title": "Filed first"}).get_json()
+    taken = client.post("/api/incidents", json={"seat": "A-2", "title": "Someone has it"}).get_json()
+    client.patch(f"/api/incidents/{taken['id']}", json={"assignee": TEST_USER})
+    with app_module.app.app_context():
+        incidents.stamp(first["id"], created_at=now - 300)
+        incidents.stamp(taken["id"], created_at=now - 200)
+    url = help_url(app_module, "A-4")
+    anon_client.post(url, data={"problem": "slow"})
+    page = anon_client.get(url).data.decode()
+    assert "One report is ahead of yours." in page and "Filed first" not in page
+    client.patch(f"/api/incidents/{first['id']}", json={"assignee": TEST_USER})
+    assert "ahead of yours" not in anon_client.get(url).data.decode()
+
+
+def test_works_again_without_a_report_changes_nothing(anon_client, client, app_module, floor):
+    client.post("/api/incidents", json={"seat": "A-4", "title": "Filed by the crew"})
+    assert anon_client.post(help_url(app_module, "A-4"), data={"works": "1"}).status_code == 200
+    (incident,) = client.get("/api/incidents").get_json()["incidents"]
+    assert not incident.get("seat_ok_at")      # the QR link only speaks for the seat's own reports
+    assert not [r for r in audit.read(area="incidents")[0] if r["action"] == "Seat says it works again"]
+
+
 def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, app_module, floor):
     url = help_url(app_module, "A-2")
     assert b'class="report' not in anon_client.get(url).data
@@ -217,3 +273,94 @@ def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, a
     with app_module.app.app_context():
         assert incidents.seat_report_state("A-2", now=time.time() + 31 * 60) is None
         assert incidents.seat_report_state("A-3") is None
+
+
+def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, client, app_module, floor, monkeypatch):
+    # Issue #384: a known outage, so attendees don't each report it.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    monkeypatch.setattr(monitor, "statuses", {})
+    assert b"has been down" not in anon_client.get(help_url(app_module, "A-1")).data
+    monitor.statuses = {floor["switch_id"]: {"status": "offline", "since": time.time() - 12 * 60}}
+    page = anon_client.get(help_url(app_module, "A-1")).data.decode()
+    assert "has been down for 12 min" in page and "sw-a-01" not in page
+    assert 'href="/status"' not in page            # issue #388: only when the status page is public
+    assert client.put("/api/settings", json={"public.status_page": True}).status_code == 200
+    assert 'href="/status"' in anon_client.get(help_url(app_module, "A-1")).data.decode()
+    assert b"has been down" not in anon_client.get(help_url(app_module, "A-2")).data   # its port isn't known
+    # Remembered by the status page once the port read no longer has it.
+    monkeypatch.setattr(watch, "port_seats", {}, raising=False)
+    status_page.learn_seats({("sw-a-01", "Gi1/0/2"): "A-2"})
+    assert b"has been down" in anon_client.get(help_url(app_module, "A-2")).data
+
+
+def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_module, floor, monkeypatch):
+    # Issue #386: the crew sees it is part of an outage, not a cable.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    monkeypatch.setattr(monitor, "statuses", {})
+    client.post("/api/incidents", json={"seat": "A-1", "title": "No link"})
+    client.post("/api/incidents", json={"seat": "A-2", "title": "Slow"})
+    assert all(i["outage"] is None for i in client.get("/api/incidents").get_json()["incidents"])
+    since = time.time() - 300
+    monitor.statuses = {floor["switch_id"]: {"status": "offline", "since": since}}
+    cards = {i["seat"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
+    assert cards["A-1"]["outage"] == {"switch": "sw-a-01", "since": since}
+    assert cards["A-2"]["outage"] is None
+
+
+def test_the_board_says_when_the_switch_came_back(client, app_module, floor, monkeypatch):
+    # Issue #390: filed during the outage, the switch is back since: maybe fixed already.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    filed = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    sid = floor["switch_id"]
+    # Up since before it was filed, or up since a restart: nothing to say.
+    monkeypatch.setattr(monitor, "statuses", {sid: {"status": "online", "since": filed["created_at"] - 60,
+                                                    "previous": "offline"}})
+    assert client.get("/api/incidents").get_json()["incidents"][0]["back_up"] is None
+    monitor.statuses = {sid: {"status": "online", "since": filed["created_at"] + 60}}
+    assert client.get("/api/incidents").get_json()["incidents"][0]["back_up"] is None
+    monitor.statuses = {sid: {"status": "online", "since": filed["created_at"] + 60, "previous": "offline"}}
+    card = client.get("/api/incidents").get_json()["incidents"][0]
+    assert card["back_up"] == {"switch": "sw-a-01", "since": filed["created_at"] + 60} and card["outage"] is None
+
+
+def test_the_help_page_asks_when_the_switch_came_back(anon_client, app_module, floor, monkeypatch):
+    # Issue #392: reported during the outage, the switch is back: ask before a tech walks over.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    sid = floor["switch_id"]
+    back = {sid: {"status": "online", "since": time.time() - 3 * 60, "previous": "offline"}}
+    monkeypatch.setattr(monitor, "statuses", back)
+    url = help_url(app_module, "A-1")
+    assert b"has been back" not in anon_client.get(url).data          # nothing reported
+    with app_module.app.app_context():
+        incident, _ = incidents.report_from_seat("A-1", "no-internet", {})
+        incidents.stamp(incident["id"], created_at=time.time() - 10 * 60)
+    page = anon_client.get(url).data.decode()
+    assert "has been back for 3 min" in page and "sw-a-01" not in page and 'name="works"' in page
+    assert "wieder da" in anon_client.get(url, headers={"Accept-Language": "de"}).data.decode()
+    # Back since before the report: the report is about something else.
+    monitor.statuses = {sid: {**back[sid], "since": time.time() - 20 * 60}}
+    assert b"has been back" not in anon_client.get(url).data
+    # Once the seat said it works again, there is nothing left to ask.
+    monitor.statuses = back
+    anon_client.post(url, data={"works": "1"})
+    assert b"has been back" not in anon_client.get(url).data
