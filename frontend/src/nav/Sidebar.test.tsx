@@ -95,7 +95,8 @@ describe('Sidebar', () => {
   it('offers language, theme and sign-out in the account menu', () => {
     sidebar()
     fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as kim' }))
-    expect(screen.getByRole('menuitemradio', { name: 'Deutsch' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitemradio', { name: 'Deutsch (Schweiz)' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitemradio', { name: 'Deutsch (Deutschland, Österreich)' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Sign out' }).closest('form')).toHaveAttribute('action', '/logout')
   })
 })

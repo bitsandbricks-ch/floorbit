@@ -56,6 +56,8 @@ def create_app(start_background=True):
     # refused request never touches Redis.
     from auth import init_auth
     init_auth(app, store.DATA_FILE)
+    from . import i18n
+    i18n.init_app(app)
 
     settings_store = SettingsStore(store.DATA_FILE)
     runtime.apply(settings_store)

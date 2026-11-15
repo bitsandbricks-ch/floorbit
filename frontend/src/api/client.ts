@@ -1,5 +1,6 @@
 // Same-origin JSON calls to the Flask API. The session cookie goes along by default; Flask
 // checks Origin on writes (auth/_same_origin), so no CSRF token is needed here.
+import i18next from 'i18next'
 
 export class ApiError extends Error {
   status: number
@@ -19,10 +20,13 @@ export function loginUrl(): string {
 }
 
 export async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
+  // The language picked in the sidebar, so the server's error texts come in it too.
+  const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': i18next.language || 'en' }
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
   const res = await fetch(path, {
     method,
     credentials: 'same-origin',
-    headers: body === undefined ? { Accept: 'application/json' } : { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
