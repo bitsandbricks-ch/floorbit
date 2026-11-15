@@ -6,6 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
+import { WatchSeat } from './WatchSeat'
 import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
 
@@ -65,6 +66,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           )}
           <SeatActions seat={seat} hasPort={!!d.switch} />
           <Group gap="xs">
+            {d.switch && <WatchSeat seat={seat} />}
             <Button component="a" href={`/?seat=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconMapPin size={14} />}>{t('plan.openEditor')}</Button>
             <Button component="a" href="/incidents" variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>
           </Group>

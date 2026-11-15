@@ -7,16 +7,18 @@
 (function () {
   const KEY = 'floorbit-notify';
   const DEFAULTS = { on: false, incidents: true, jobs: true, switches: true,
-                     quiet: false, quietFrom: '22:00', quietTo: '08:00', jobsInQuiet: true };
+                     quiet: false, quietFrom: '22:00', quietTo: '08:00', jobsInQuiet: true, watch: [] };
   let source = null;
   let me = null;
 
   // The React pages keep the language in floorbit-lang; the editor follows the browser.
   const TEXTS = {
     en: { incident: 'New incident', seat: 'Seat', sw: 'Switch', job: 'A job for you', jobText: 'An incident was sent to you.',
-          down: 'Switch down', downText: '{name} went offline.' },
+          down: 'Switch down', downText: '{name} went offline.',
+          watched: 'Watched seat', seatDown: 'Seat {seat} went offline.', seatUp: 'Seat {seat} is online again.' },
     de: { incident: 'Neue Störung', seat: 'Platz', sw: 'Switch', job: 'Ein Auftrag für dich', jobText: 'Dir wurde eine Störung zugeteilt.',
-          down: 'Switch ausgefallen', downText: '{name} ist offline.' },
+          down: 'Switch ausgefallen', downText: '{name} ist offline.',
+          watched: 'Beobachteter Platz', seatDown: 'Platz {seat} ist offline.', seatUp: 'Platz {seat} ist wieder online.' },
   };
   function text() {
     let lang = '';
@@ -97,6 +99,18 @@
     show(text().down, text().downText.replace('{name}', data.name || 'Switch'), `switch-${data.id || data.name}`, '/');
   }
 
+  // Watched seats (issue #178): like a job sent to me, they come through quiet hours unless that is off.
+  function onSeats(data) {
+    const s = read();
+    const watch = Array.isArray(s.watch) ? s.watch : [];
+    if (!watch.length || (quietNow(s) && !s.jobsInQuiet) || !Array.isArray(data.seats)) return;
+    const t = text();
+    for (const [seat, on] of data.seats) {
+      if (!watch.includes(seat)) continue;
+      show(t.watched, (on ? t.seatUp : t.seatDown).replace('{seat}', seat), `seat-${seat}`, `/plan?seat=${encodeURIComponent(seat)}`);
+    }
+  }
+
   function listen(type, fn) {
     source.addEventListener(type, (e) => {
       try {
@@ -121,6 +135,7 @@
     listen('incident.changed', onIncident);
     listen('incident.dispatched', onDispatched);
     listen('switch.status', onSwitch);
+    listen('seats.changed', onSeats);
   }
 
   function stop() {

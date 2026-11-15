@@ -122,5 +122,10 @@
     "seats": "Plätze an diesem Switch",
     "port": "Port",
     "noSeats": "An diesem Switch ist noch kein Platz bekannt."
+  },
+  "watch": {
+    "start": "Platz beobachten",
+    "stop": "Nicht mehr beobachten",
+    "denied": "Der Browser blockiert Benachrichtigungen für diese Seite."
   }
 }

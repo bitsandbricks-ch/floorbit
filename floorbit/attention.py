@@ -143,6 +143,10 @@ class AttentionWatch:
             stats.count_problems(new, now=now)
             _record_frame(sample, stats.seats()['seats'], data)
             events.publish('stats.changed', {})
+            changes = stats.changes_at(now)
+            if changes:
+                # Seat numbers and up/down only, for "watch this seat" in the browser (issue #178).
+                events.publish('seats.changed', {'seats': changes})
         return new
 
     def _judge(self, dev, name, port, now, flaps, error_step, names, checked_in):

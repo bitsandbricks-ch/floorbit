@@ -313,6 +313,23 @@ describe('Seats page', () => {
     await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/incidents', body: { seat: 'D-2', title: 'Tech visit', note: 'No link' } }))
   })
 
+  it('watches a seat through notify.js', async () => {
+    let prefs = { on: false, incidents: true, jobs: true, switches: true, watch: [] as string[] }
+    const set = vi.fn(async (c: object) => (prefs = { ...prefs, ...c }))
+    window.floorNotify = { supported: () => true, permission: () => 'granted', set, settings: () => prefs }
+    try {
+      vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+      renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+      fireEvent.click(await screen.findByRole('button', { name: 'Watch this seat' }))
+      await waitFor(() => expect(set).toHaveBeenCalledWith({ watch: ['D-2'], on: true }))
+      expect(await screen.findByRole('button', { name: 'Stop watching' })).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(screen.getByRole('button', { name: 'Stop watching' }))
+      await waitFor(() => expect(set).toHaveBeenLastCalledWith({ watch: [] }))
+    } finally {
+      delete window.floorNotify
+    }
+  })
+
   it('offers no actions to a viewer', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
     renderWithApp(<FloorPlan />, '/plan?seat=D-2')

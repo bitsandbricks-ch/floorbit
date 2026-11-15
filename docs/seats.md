@@ -86,6 +86,8 @@ one while it was down, and nothing before Floorbit's first read. Below it: since
 online or offline and how often the link changed. It is built from the changes Floorbit already
 keeps for the [replay](replay.md), so it needs nothing new. When a player says "my internet keeps
 dropping", this answers whether the port did.
+**Watch this seat** sends a browser notification when the seat's link changes (see
+[Notifications](notifications.md#watching-a-seat)).
 
 Techs can act from the panel too, with the same rules as the editor:
 

@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 export interface NotifyPrefs {
   on: boolean; incidents: boolean; jobs: boolean; switches: boolean
   quiet?: boolean; quietFrom?: string; quietTo?: string; jobsInQuiet?: boolean
+  /** Seats to notify about when their link changes (issue #178). */
+  watch?: string[]
 }
 
 declare global {

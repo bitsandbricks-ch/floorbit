@@ -80,6 +80,19 @@ describe('quiet hours', () => {
   })
 })
 
+describe('watched seats', () => {
+  it('notifies when a watched seat goes down or comes back, and only that seat', async () => {
+    const shown: { title: string; body: string; tag: string }[] = []
+    loadNotify(shown)
+    await window.floorNotify!.set({ on: true, watch: ['D-6'] })
+    await waitFor(() => expect(FakeSource.last?.handlers['seats.changed']).toBeTruthy())
+    FakeSource.last!.emit('seats.changed', { seats: [['D-6', 0], ['D-7', 0]] })
+    FakeSource.last!.emit('seats.changed', { seats: [['D-6', 1]] })
+    await waitFor(() => expect(shown).toHaveLength(2))
+    expect(shown.map((n) => [n.tag, n.body])).toEqual([['seat-D-6', 'Seat D-6 went offline.'], ['seat-D-6', 'Seat D-6 is online again.']])
+  })
+})
+
 describe('NotifySettings', () => {
   it('switches notifications on through notify.js', async () => {
     const set = vi.fn(async (c: object) => ({ on: true, incidents: true, jobs: true, switches: true, ...c }))
