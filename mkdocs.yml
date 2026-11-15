@@ -80,6 +80,7 @@ nav:
       - Bandwidth forecast: forecast.md
       - Traffic insights: flows.md
       - DNS analytics: dns.md
+      - Wi-Fi view: wifi.md
       - Game insights: games.md
       - Syslog: syslog.md
       - The right-click menu: context-menu.md

@@ -18,6 +18,7 @@ export const qk = {
   handover: ['handover'] as const,
   gear: ['gear'] as const,
   cables: ['cables'] as const,
+  wifi: (hall: string) => ['wifi', hall] as const,
   teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,

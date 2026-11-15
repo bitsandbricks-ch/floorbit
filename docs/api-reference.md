@@ -617,6 +617,16 @@ Source: [`floorbit/blueprints/webhooks.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/settings/webhooks/<hook_id>/secret` | `settings.manage` |  |
 | POST | `/api/settings/webhooks/<hook_id>/test` | `settings.manage` |  |
 
+## floorbit.blueprints.wifi
+
+Wi-Fi view (issue #98). The rules live in floorbit/wifi.py.
+
+Source: [`floorbit/blueprints/wifi.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/wifi.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/wifi` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
+
 ## floorbit.settings
 
 Persisted application settings.

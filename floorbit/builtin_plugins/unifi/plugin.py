@@ -2,6 +2,7 @@
 
 Reads the controller's own API with a View Only account: ``stat/device`` for the switches and their
 ``port_table``, ``stat/sta`` for the clients (IP, MAC, and the switch MAC and port they are on).
+For the Wi-Fi view, ``stat/device``'s access points with their radios' channel, load and client count.
 Answers have the same shapes as the LibreNMS plugin's. UniFi names a switch port "Port 7"; a name
 someone gave it in the controller ("Seat A1") becomes its description.
 """
@@ -159,6 +160,20 @@ class Plugin(Base):
         return {'ip': ip_address, 'mac': normalise_mac(client.get('mac')), 'device_name': device['name'],
                 'hostname': device['name'], 'port': port, 'vlan': str(client['vlan']) if client.get('vlan') else None,
                 'arp_source': 'UniFi', 'stats': stats}
+
+    # the Wi-Fi view (issue #98): counts only, never the client list ------------------------
+    def wifi_aps(self):
+        out = []
+        for d in self._get('stat/device'):
+            if d.get('type') != 'uap' or not d.get('name'):
+                continue
+            widths = {r.get('radio'): r.get('ht') for r in d.get('radio_table') or []}
+            radios = [{'band': r.get('radio'), 'channel': r.get('channel'),
+                       'width': widths.get(r.get('radio')), 'utilization': r.get('cu_total'),
+                       'clients': r.get('num_sta') or 0} for r in d.get('radio_table_stats') or []]
+            out.append({'name': d['name'], 'model': d.get('model') or '', 'clients': d.get('num_sta'),
+                        'status': 'up' if d.get('state') == 1 else 'down', 'radios': radios})
+        return out
 
     def test(self):
         found = self.devices()

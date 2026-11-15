@@ -25,13 +25,22 @@ _bounced = {}                 # (switch, port) -> time the port comes back
 _shut = set()                 # (switch, port) shut until turned on again
 DHCP_POOL = 100               # small enough that the player scope shows amber
 
+# Access points: (name, where on the plan, (2.4 GHz channel or None, 5 GHz channel)). ap-02 and
+# ap-03 share channel 44 a little too close together, so the Wi-Fi view has an overlap to show. The
+# stage AP is 5 GHz only, as high-density APs often are.
+APS = (('ap-01', (14, 30), (1, 36)), ('ap-02', (40, 30), (6, 44)), ('ap-03', (60, 30), (11, 44)),
+       ('ap-04', (86, 30), (1, 52)), ('ap-05', (14, 92), (6, 100)), ('ap-06', (40, 92), (11, 116)),
+       ('ap-07', (60, 92), (1, 132)), ('ap-08', (86, 92), (6, 149)), ('ap-stage', (50, 60), (None, 60)))
+CROWDED_AP = 'ap-stage'     # the stage: always busy
+
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
 # Blocks in a 2 x 2 grid (12 seats of 3.5 % each are 42 % wide), their switches just above them.
 _CENTRES = {'A': (27, 42), 'B': (73, 42), 'C': (27, 78), 'D': (73, 78)}
 LAYOUT = {
     'devices': {'core-01': (50, 8), 'dist-01': (27, 20), 'dist-02': (73, 20),
                 **{f'sw-{b.lower()}-{n:02d}': (x + (n - 2) * 13, y - 12)
-                   for b, (x, y) in _CENTRES.items() for n in range(1, SWITCHES_PER_BLOCK + 1)}},
+                   for b, (x, y) in _CENTRES.items() for n in range(1, SWITCHES_PER_BLOCK + 1)},
+                **{name: pos for name, pos, _ch in APS}},
     'blocks': [{'name': b, 'x': x, 'y': y, 'cols': COLS, 'rows': ROWS} for b, (x, y) in _CENTRES.items()],
     # Two boards, one 16 A circuit per seat row (phases in turn) and one for the network rack.
     'power': {
@@ -183,9 +192,26 @@ class DemoShell:
 class Plugin(Plugin):
     # inventory --------------------------------------------------------------------------
     def inventory(self):
+        aps = [{'id': name, 'name': name, 'role': 'access-point', 'model': 'Example AP 6', 'serial': f'DEMOAP{i:03d}',
+                'mgmt_ip': f'198.51.100.{100 + i}', 'hall': 'Demo hall', 'status': 'active'}
+               for i, (name, _pos, _ch) in enumerate(APS, 1)]
         return [{'id': name, 'name': name, 'role': role, 'model': _model(name),
                  'serial': f'DEMO{i:05d}', 'mgmt_ip': f'198.51.100.{i}', 'hall': 'Demo hall',
-                 'status': 'active'} for name, role, i in _switches()]
+                 'status': 'active'} for name, role, i in _switches()] + aps
+
+    # wifi -------------------------------------------------------------------------------
+    def wifi_aps(self):
+        out = []
+        for i, (name, _pos, (ch24, ch5)) in enumerate(APS):
+            busy = name == CROWDED_AP
+            load = 0.8 + 0.2 * _wave(i, period=600) if busy else 0.15 + 0.45 * _wave(i, period=900)
+            n24, n5 = round(4 + 10 * load), round(8 + (40 if busy else 30) * load)
+            out.append({'name': name, 'model': 'Example AP 6', 'status': 'up',
+                        'radios': ([{'band': '2.4', 'channel': ch24, 'width': 20,
+                                     'utilization': round(30 + 55 * load), 'clients': n24}] if ch24 else [])
+                        + [{'band': '5', 'channel': ch5, 'width': 80, 'utilization': round(10 + 75 * load),
+                            'clients': n5}]})
+        return out
 
     def cables(self):
         # The first block's seats run through a patch panel, the rest go straight to the switch.
@@ -210,11 +236,17 @@ class Plugin(Plugin):
     def devices(self):
         return [{'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name,
                  'status': 0 if _down(name) else 1, 'status_reason': 'icmp' if _down(name) else ''}
-                for name, _role, _i in _switches()]
+                for name, _role, _i in _switches()] + [
+            {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': 1, 'status_reason': ''}
+            for name, _pos, _ch in APS]
 
     def device_details(self, hostname):
         name = _short(hostname)
         found = next(((n, i) for n, _r, i in _switches() if n == name), None)
+        ap = next((i for i, (n, _p, _c) in enumerate(APS, 1) if n == name), None)
+        if ap:
+            return {'status': 'online', 'hostname': hostname, 'ip': f'198.51.100.{100 + ap}',
+                    'cpu_load': round(10 + 20 * _wave(ap)), 'total_ports': 1, 'up_ports': 1}
         if not found:
             return {'status': 'unknown', 'hostname': hostname}
         name, i = found
