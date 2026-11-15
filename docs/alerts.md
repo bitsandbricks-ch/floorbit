@@ -27,6 +27,10 @@ When the list holds more than one kind, a row above it shows one kind at a time 
 services, power, …) with how many of each. The choice is kept in the address (`/problems?kind=power`),
 so a reload or a shared link shows the same.
 
+For people who see the [incident board](incidents.md), an offline switch has **Make an incident**:
+one click puts it on the board with the switch and the problem's title. Once an incident for that
+switch is open, the button becomes **Incident open**, which opens the board filtered to the switch.
+
 ## Needs attention
 
 Below the problems, **Needs attention** lists ports an ops person should look at, newest first.

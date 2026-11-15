@@ -38,7 +38,9 @@ function useNowSeconds() {
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy: boolean; onMute: () => void }) {
+function Row({ p, canMute, busy, onMute, onReport }: {
+  p: Problem; canMute: boolean; busy: boolean; onMute: () => void; onReport?: () => void
+}) {
   const { t } = useTranslation()
   return (
     <Paper withBorder radius="md" p="sm" component="article" aria-label={p.title}
@@ -62,6 +64,15 @@ function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy:
         <Group gap="xs" wrap="nowrap">
           {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since, t) })}</Text>}
           {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
+          {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
+          {p.incident && (
+            <Button size="xs" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.name ?? p.where)}`}>
+              {t('problems.incidentOpen')}
+            </Button>
+          )}
+          {onReport && p.kind === 'switch' && p.incident === null && (
+            <Button size="xs" variant="subtle" onClick={onReport} disabled={busy}>{t('problems.report')}</Button>
+          )}
           {canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
             <Button size="xs" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={onMute} disabled={busy}>{t('problems.mute')}</Button>
           )}
@@ -137,6 +148,7 @@ export default function Problems() {
   useLiveEvent('alerts.changed', refresh)
   useLiveEvent('power.changed', refresh)
   useLiveEvent('attention.changed', refresh)
+  useLiveEvent('incident.changed', refresh)
 
   const mute = useMutation({
     // A service on the health wall is muted by its own id (issue #256), a switch by its id.
@@ -144,6 +156,10 @@ export default function Problems() {
       post('/api/alerts/mutes', { [v.kind === 'health' ? 'service_id' : 'switch_id']: v.kind === 'health' ? v.id.replace(/^health:/, '') : v.id, minutes: v.minutes, reason: v.reason }),
     onSuccess: () => { setTarget(null); refresh() },
     onError: (e) => setDialogError(e.message),
+  })
+  const report = useMutation({
+    mutationFn: (p: Problem) => post('/api/incidents', { switch_id: p.switch_id, title: p.title }),
+    onSuccess: refresh,
   })
   const unmute = useMutation({
     mutationFn: (id: string) => del(`/api/alerts/mutes/${encodeURIComponent(id)}`),
@@ -158,7 +174,7 @@ export default function Problems() {
   // In the order they first appear, which is worst first.
   const kinds: string[] = data ? [...new Set(data.problems.map((p) => p.kind))] : []
   const visible = data ? data.problems.filter((p) => !kinds.includes(shown) || p.kind === shown) : []
-  const error = list.error ?? unmute.error ?? extend.error
+  const error = list.error ?? unmute.error ?? extend.error ?? report.error
 
   return (
     // Muted problems stay out of the tab count: someone is already on them (issue #214).
@@ -191,7 +207,8 @@ export default function Problems() {
           ) : (
             <Stack gap="xs">
               {visible.map((p) => (
-                <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending}
+                <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending || report.isPending}
+                  onReport={data.can_report ? () => report.mutate(p) : undefined}
                   onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: p.kind === 'health' ? 'health' : 'switch' }) }} />
               ))}
             </Stack>

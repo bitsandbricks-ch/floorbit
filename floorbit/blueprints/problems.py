@@ -1,7 +1,8 @@
 """The Problems page and alert mutes (issue #10). See docs/alerts.md.
 
 - ``GET /problems``: everything wrong right now.
-- ``GET /api/problems``: the list (floorbit/problems.py), with the running mutes.
+- ``GET /api/problems``: the list (floorbit/problems.py), with the running mutes. For people who
+  see the incident board, an offline switch carries the id of its open incident (issue #278).
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
   ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256).
 - ``PATCH /api/alerts/mutes/<id>``: ``{"minutes"}`` makes a running mute last longer (issue #264).
@@ -12,7 +13,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import alerting, events
 
-from .. import audit, inventory, problems, spa
+from .. import audit, incidents, inventory, problems, spa
 from ..store import load_data
 
 bp = Blueprint('problems', __name__)
@@ -38,7 +39,18 @@ def problems_page():
 
 @bp.route('/api/problems', methods=['GET'])
 def list_problems():
-    return jsonify({**problems.current(_can('seats.view')), 'can_mute': _can('incidents.work')})
+    body = {**problems.current(_can('seats.view')), 'can_mute': _can('incidents.work')}
+    # An offline switch can become an incident in one click, or links the one already open (issue #278).
+    body['can_report'] = not current_app.extensions['auth'].enabled or incidents.can_see_board(_user())
+    if body['can_report']:
+        open_for = {}
+        for incident in incidents.list_all():
+            if incident.get('status') != 'fixed' and incident.get('switch_id'):
+                open_for.setdefault(incident['switch_id'], incident['id'])
+        for p in body['problems']:
+            if p.get('kind') == 'switch':
+                p['incident'] = open_for.get(p.get('switch_id'))
+    return jsonify(body)
 
 
 @bp.route('/api/alerts/mutes', methods=['POST'])

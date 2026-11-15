@@ -92,6 +92,21 @@ describe('Problems', () => {
     expect(await screen.findAllByRole('article')).toHaveLength(3)
   })
 
+  it('makes an incident from an offline switch, or links the open one', async () => {
+    const problems = list().problems.map((p) => p.id === 'switch:s1' ? { ...p, name: 'sw-c-02', incident: null }
+      : p.id === 'switch:s2' ? { ...p, name: 'sw-d-01', incident: 'abc123' } : p)
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems, can_report: true }),
+      'POST /api/incidents': { status: 201, body: {} } })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const open = await screen.findByRole('article', { name: 'sw-d-01 is offline' })
+    expect(within(open).getByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents?q=sw-d-01')
+    const down = screen.getByRole('article', { name: 'sw-c-02 is offline' })
+    fireEvent.click(within(down).getByRole('button', { name: 'Make an incident' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/incidents')?.body)
+      .toEqual({ switch_id: 's1', title: 'sw-c-02 is offline' }))
+  })
+
   it('says when a mute is about to end, and only then', async () => {
     const mutes = [
       { switch_id: 's2', name: 'sw-d-01', until: now + 240, at: now, by: 'kim', reason: '' },
