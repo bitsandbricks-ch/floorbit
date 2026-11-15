@@ -451,6 +451,7 @@ Source: [`floorbit/blueprints/plugins.py`](https://github.com/bitsandbricks-ch/f
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/dashboard` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
+| GET | `/api/dashboard/floorbit/<tile>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
 | GET | `/api/dashboard/layouts` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
 | DELETE | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |
 | PUT | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |

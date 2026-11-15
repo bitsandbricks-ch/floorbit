@@ -174,6 +174,8 @@ def validate(m):
         return 'plugin.yaml must be a mapping'
     if not ID_RE.match(str(m.get('id', ''))):
         return 'id: 2 to 40 lowercase letters, digits and dashes, starting with a letter'
+    if m['id'] == 'floorbit':
+        return 'id: "floorbit" is taken by Floorbit\'s own dashboard tiles'
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"

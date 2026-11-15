@@ -84,5 +84,8 @@
   "handover": "Schichtübergabe",
   "gear": "Material",
   "runbook": "Anleitung: {{title}}",
-  "runbooks": "Anleitungen"
+  "runbooks": "Anleitungen",
+  "takeNext": "Nächste übernehmen",
+  "tookNext": "Du hast sie: {{title}}",
+  "nothingNext": "Nichts offen, das du bearbeiten kannst"
 }

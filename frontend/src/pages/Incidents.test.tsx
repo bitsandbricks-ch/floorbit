@@ -55,6 +55,23 @@ describe('Incident board', () => {
     expect(within(night).getByText('Waiting 13 h 38 min')).toBeInTheDocument()
   })
 
+  it('puts waiting incidents on top of the open column, longest first', async () => {
+    const now = Date.now() / 1000
+    const queue: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'q1', title: 'Newest', status: 'open', created_at: now - 60 },
+      { ...base, id: 'q2', title: 'Waiting a bit', status: 'open', created_at: now - 15 * 60 },
+      { ...base, id: 'q3', title: 'Recent', status: 'open', created_at: now - 4 * 60 },
+      { ...base, id: 'q4', title: 'Waiting longest', status: 'open', created_at: now - 50 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': queue }).fn)
+    renderWithApp(<Incidents />)
+    const open = await screen.findByRole('region', { name: 'Open' })
+    await within(open).findByText('Newest')
+    const titles = Array.from(open.querySelectorAll('[data-incident]')).map((el) => el.textContent ?? '')
+    const order = ['Waiting longest', 'Waiting a bit', 'Newest', 'Recent'].map((x) => titles.findIndex((tt) => tt.includes(x)))
+    expect(order).toEqual([0, 1, 2, 3])
+  })
+
   it('sorts incidents into columns with the seat report details', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     renderWithApp(<Incidents />)
@@ -118,5 +135,33 @@ describe('Incident board', () => {
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/auth/me')).toBe(true))
     fireEvent.click(within(open).getByRole('button', { name: 'Take it' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'assigned', assignee: 'sam' }))
+  })
+  it('takes the oldest open incident this account can work', async () => {
+    const now = Date.now() / 1000
+    const queue: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'n1', title: 'Newer', status: 'open', created_at: now - 120 },
+      { ...base, id: 'n2', title: 'Oldest but not mine', status: 'open', created_at: now - 3600, can_work: false },
+      { ...base, id: 'n3', title: 'Oldest I can work', status: 'open', created_at: now - 1800 },
+      { ...base, id: 'n4', title: 'Taken', status: 'assigned', assignee: 'kim', created_at: now - 7200 },
+    ] }
+    const api = fakeFetch({ ...routes, 'GET /api/incidents': queue,
+      'PATCH /api/incidents/n3': { ...queue.incidents[2], status: 'assigned', assignee: 'sam' } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: 'Take the next one' })
+    await waitFor(() => expect(take).toBeEnabled())
+    fireEvent.click(take)
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.path).toBe('/api/incidents/n3'))
+    expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'assigned', assignee: 'sam' })
+    expect(await screen.findByText('You have it: Oldest I can work')).toBeInTheDocument()
+  })
+
+  it('has nothing to take when nothing open is workable', async () => {
+    const none: IncidentBoard = { ...board, incidents: [board.incidents[1], board.incidents[2]] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': none }).fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: 'Take the next one' })
+    expect(take).toBeDisabled()
+    expect(take).toHaveAttribute('title', 'Nothing open that you can work')
   })
 })
