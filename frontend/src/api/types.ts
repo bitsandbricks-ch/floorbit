@@ -1354,6 +1354,8 @@ export interface Agent {
   outdated?: boolean
   /** Hall ids it answers for; empty: every hall. */
   halls?: string[]
+  /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
+  relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
 }
 
 export interface AgentStats {

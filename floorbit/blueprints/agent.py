@@ -143,6 +143,8 @@ def syslog():
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
     taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
+    if lines:
+        agent_link.tunnel.relayed(agent['id'], 'syslog', taken)
     return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})
 
 
@@ -190,6 +192,7 @@ def flows():
     clean['agent'] = agent['name']
     from ..flows import store
     store.publish(clean, keep_locally=True)
+    agent_link.tunnel.relayed(agent['id'], 'flows', 1)
     return jsonify({'ok': True})
 
 

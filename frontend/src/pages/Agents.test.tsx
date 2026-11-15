@@ -11,6 +11,7 @@ const agent: Agent = {
   id: 'a1b2c3d4', name: 'Spring LAN, hall 2', created_at: 1_790_000_000, created_by: 'ada',
   last_seen: Date.now() / 1000 - 5, version: '0.9.0', address: null, connected: true,
   stats: { calls: 412, failed: 2, median_ms: 84, last_error: { at: Date.now() / 1000 - 60, method: 'port_stats', error: 'LibreNMS said no' } },
+  relays: { syslog: { at: Date.now() / 1000 - 3, count: 120 }, flows: { at: Date.now() / 1000 - 8, count: 6 } },
 }
 
 describe('Agents', () => {
@@ -34,6 +35,8 @@ describe('Agents', () => {
     expect(screen.getByText(/port_stats: LibreNMS said no/)).toBeInTheDocument()
     expect(screen.getByText('No calls in the last hour')).toBeInTheDocument()
     expect(screen.getByText('Update')).toBeInTheDocument()
+    expect(screen.getAllByText('Syslog').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('NetFlow').length).toBeGreaterThan(0)
     expect(screen.getByText(/Older than this Floorbit \(0\.1\.0\)/)).toBeInTheDocument()
     expect(await screen.findAllByText('Answers for')).toHaveLength(3)
     expect(screen.getByText(/With an agent per hall/)).toBeInTheDocument()

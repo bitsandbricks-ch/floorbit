@@ -53,7 +53,9 @@ agent answered, how long it took (the median, from handing a call out to getting
 many failed, and the last error with its method. A slow LibreNMS or one that refuses the agent's
 token shows up there first. These numbers are kept in memory, so a restart starts them over. An agent older than the hosted
 Floorbit gets an **Update** badge: pull the new image and start it again (below). An agent that
-sends no version, or one Floorbit can't read, is never flagged.
+sends no version, or one Floorbit can't read, is never flagged. An agent that sent syslog or a
+traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
+agent forwards what.
 
 Revoking the agent stops it at its next request: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
@@ -268,7 +270,7 @@ For admins (**Manage settings**):
 
 | Request | What |
 | --- | --- |
-| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`), and `server_version` |
+| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), and `server_version` |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
 | `PATCH /api/agents/<id>` | `{"halls": [ids]}`: the halls it answers for, empty for every hall |
 | `DELETE /api/agents/<id>` | revoke it |

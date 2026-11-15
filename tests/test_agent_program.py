@@ -801,3 +801,18 @@ def test_stopping_sends_the_syslog_backlog():
 def test_sigterm_stops_like_ctrl_c():
     with pytest.raises(KeyboardInterrupt):
         agent_mod._stop_on_term(15, None)
+
+
+def test_the_agents_page_shows_what_each_agent_relays(client, app_module, monkeypatch):
+    _syslog_receiver(app_module, monkeypatch)
+    first, second = enrol(client, "Hall 1"), enrol(client, "Hall 2")
+    agent = app_module.app.test_client()
+    lines = [{"raw": "<14>hello", "from": "192.0.2.9"}, {"raw": "<14>outside", "from": "203.0.113.7"}]
+    agent.post("/api/agent/v1/syslog", json={"lines": lines}, headers={"Floorbit-Agent-Key": first["key"]})
+    agent.post("/api/agent/v1/syslog", json={"lines": []}, headers={"Floorbit-Agent-Key": second["key"]})  # a check
+    agent.post("/api/agent/v1/flows", json={"snapshot": {"updated": 1}}, headers={"Floorbit-Agent-Key": second["key"]})
+    shown = {a["name"]: a["relays"] for a in client.get("/api/agents").get_json()["agents"]}
+    assert shown["Hall 1"]["syslog"]["count"] == 1 and "flows" not in shown["Hall 1"]
+    assert list(shown["Hall 2"]) == ["flows"]
+    later = time.time() + agent_link.RELAY_RECENT + 1
+    assert agent_link.tunnel.relays(first["id"], now=later) == {}
