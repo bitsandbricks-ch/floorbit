@@ -421,3 +421,7 @@ body {
   .fb-plan-print .fb-plan-wrap { height: 140mm; border-color: #999; }
   .fb-plan-print .fb-plan-legend { break-inside: avoid; }
 }
+
+/* Counts on the Seats page filters (issue #190). */
+.fb-filter-count { font-variant-numeric: tabular-nums; opacity: 0.75; }
+.fb-filter-empty { opacity: 0.55; }

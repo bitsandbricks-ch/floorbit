@@ -14,7 +14,7 @@ import { Layout } from '@/components/Layout'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
-import { type Filter, type View, around, findSeat, parseBox, seatCenter } from './plan/model'
+import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 
@@ -106,6 +106,7 @@ export default function FloorPlan() {
   const notFound = search.trim() !== '' && data && !findSeat(search, data.seats)
     ? (canPeople ? !!searched && players.hits.length === 0 : true) : false
   const total = data ? Object.keys(data.seats).length : 0
+  const counts = Object.fromEntries(FILTERS.map((f) => [f, data ? Object.values(data.seats).filter((x) => matches(x, f)).length : 0])) as Record<Filter, number>
   const online = data ? Object.values(data.seats).filter((s) => s.state === 'online').length : 0
   const problems = data ? Object.values(data.seats).filter((s) => s.problems).length : 0
   const halls = data?.halls
@@ -219,7 +220,11 @@ export default function FloorPlan() {
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
           <Group mb="sm" gap="lg" wrap="wrap">
             <SegmentedControl size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
-              data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({ value: f, label: t(`plan.filter.${f}`) }))} />
+              data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
+                value: f,
+                // Each filter says how many seats it holds (issue #190), so the row doubles as a summary.
+                label: <span className={counts[f] ? undefined : 'fb-filter-empty'}><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
+              }))} />
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             {!list && <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />}

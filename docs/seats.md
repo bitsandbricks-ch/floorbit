@@ -33,7 +33,8 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 - **Near** (a seat 30 px or more): seat numbers and switch names too.
 
 **Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
-match seats or checked-in seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
+match seats, seats with a note or checked-in seats. Each choice shows how many seats it matches in
+this hall, so "Offline 0" answers the question without a click. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 ## Keyboard and screen readers
 
