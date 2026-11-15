@@ -296,6 +296,8 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/logs` | `seats.view` | `syslog` |
+| GET | `/api/logs/alerts` | `seats.view` | `syslog` |
+| GET | `/api/logs/markers` | `seats.view` | `syslog` |
 
 ## floorbit.blueprints.network
 

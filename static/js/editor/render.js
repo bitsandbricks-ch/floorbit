@@ -16,6 +16,7 @@ function renderAll() {
   if (selectedType === 'multi') applySelection();
   if (typeof markIncidents === 'function') markIncidents();
   if (typeof markFindings === 'function') markFindings();
+  if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
   if (typeof markMatchSeats === 'function') markMatchSeats();
 }
@@ -32,6 +33,7 @@ function renderOverlay() {
   scheduleHeatRender(); // re-tint the new switch cards
   if (typeof markIncidents === 'function') markIncidents();
   if (typeof markFindings === 'function') markFindings();
+  if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
 }
 

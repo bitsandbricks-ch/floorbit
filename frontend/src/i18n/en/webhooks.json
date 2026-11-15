@@ -39,6 +39,7 @@
     "security.finding": "Security finding",
     "power.alert": "Power alert",
     "health.changed": "Service health changed",
-    "forecast.alert": "Bandwidth forecast warning"
+    "forecast.alert": "Bandwidth forecast warning",
+    "logs.alert": "Log alert (err-disable, DHCP snooping, ...)"
   }
 }

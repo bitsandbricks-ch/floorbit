@@ -7,10 +7,15 @@ lives in floorbit/syslog.py.
   ``severity`` (the least severe level to show, ``warning`` shows emerg to warning), ``after`` (only
   lines newer than this id, for the live tail), ``before`` (only older, for paging) and ``limit``
   (1 to 1000, 200 by default). Needs ``seats.view``: logs name MACs and IPs.
+- ``GET /api/logs/markers``: warnings and worse of the last 10 minutes, counted per seat and per
+  switch, for the floor plan (issue #92).
+- ``GET /api/logs/alerts``: lines that matched a known pattern (err-disable, DHCP snooping, port
+  security, MAC flapping, loops, storms, spanning tree), one item per pattern, device and port.
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import spa, syslog
+from .. import inventory, spa, syslog
+from ..store import load_data
 
 bp = Blueprint('logs', __name__)
 
@@ -52,3 +57,14 @@ def get_logs():
     lines = receiver.search(q=args.get('q', ''), device=args.get('device', ''), seat=args.get('seat', ''),
                             port=args.get('port', ''), severity=severity, after=after, before=before, limit=limit)
     return jsonify({'lines': lines, 'status': receiver.status()})
+
+
+@bp.route('/api/logs/markers', methods=['GET'])
+def get_markers():
+    devices = {d['name'].lower(): d['id'] for d in inventory.devices(load_data())}
+    return jsonify(current_app.extensions['floorbit_syslog'].markers(devices))
+
+
+@bp.route('/api/logs/alerts', methods=['GET'])
+def get_alerts():
+    return jsonify({'alerts': current_app.extensions['floorbit_syslog'].alert_items()})

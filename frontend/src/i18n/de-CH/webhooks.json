@@ -39,6 +39,7 @@
     "security.finding": "Sicherheitsbefund",
     "power.alert": "Stromalarm",
     "health.changed": "Dienststatus geändert",
-    "forecast.alert": "Warnung der Bandbreiten-Prognose"
+    "forecast.alert": "Warnung der Bandbreiten-Prognose",
+    "logs.alert": "Log-Alarm (err-disable, DHCP-Snooping, ...)"
   }
 }

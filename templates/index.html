@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board and feature_on('incidents') %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions and feature_on('ports') %} data-port-actions="on"{% endif %}{% if current_user and 'seats.edit' in current_user.permissions %} data-seat-edit="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and feature_on('security') %} data-security="on"{% endif %}{% if power_on and feature_on('power') %} data-power="on"{% endif %}>
+<body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board and feature_on('incidents') %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions and feature_on('ports') %} data-port-actions="on"{% endif %}{% if current_user and 'seats.edit' in current_user.permissions %} data-seat-edit="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and feature_on('security') %} data-security="on"{% endif %}{% if power_on and feature_on('power') %} data-power="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and syslog_on and feature_on('syslog') %} data-logs="on"{% endif %}>
   <div class="app">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────── -->
@@ -850,6 +850,7 @@
   <script src="/static/js/editor/incidents.js"></script>
   <script src="/static/js/editor/tournament.js"></script>
   <script src="/static/js/editor/security.js"></script>
+  <script src="/static/js/editor/logs.js"></script>
   <script src="/static/js/editor/power.js"></script>
   <script src="/static/js/editor/problems.js"></script>
   <script src="/static/js/editor/touch.js"></script>

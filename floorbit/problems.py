@@ -128,6 +128,35 @@ def _attention():
     return out
 
 
+def _logs(may_see_people):
+    """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
+    from urllib.parse import quote
+
+    from . import features, inventory
+    from .store import load_data
+    from .tournament import match_seats
+    receiver = current_app.extensions.get('floorbit_syslog')
+    if not receiver or not features.on('syslog'):
+        return []
+    by_name = {d['name'].lower(): d['id'] for d in inventory.devices(load_data())}
+    match = match_seats()
+    out = []
+    for a in receiver.alert_items():
+        switch_id = by_name.get(a['device'].lower())
+        where = ' '.join(x for x in (a['device'], a['port']) if x) + (f" (seat {a['seat']})" if a['seat'] else '')
+        title = a['title'] + (f" ({a['count']} lines)" if a['count'] > 1 else '')
+        if may_see_people:
+            query = f"seat={quote(a['seat'])}" if a['seat'] else f"device={quote(a['device'])}"
+            link = f'/logs?{query}'
+        elif a['seat']:
+            link = f"/?seat={quote(a['seat'])}"
+        else:
+            link = f'/?switch={quote(switch_id)}' if switch_id else ''
+        out.append({'id': a['id'], 'kind': 'log', 'level': 'warn', 'title': title, 'where': where,
+                    'since': a['since'], 'link': link, 'switch_id': switch_id, 'match': match.get(a['seat'] or '')})
+    return out
+
+
 def current(may_see_people):
     muted = alerting.mutes()
     items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power() + _forecast()
@@ -139,7 +168,7 @@ def current(may_see_people):
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
     # Match seats (issue #31) first: a tournament player losing their link can't wait.
-    attention = sorted(_attention(), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
+    attention = sorted(_attention() + _logs(may_see_people), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
     counts['match'] = sum(bool(p.get('match')) for p in attention)
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, **v} for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
