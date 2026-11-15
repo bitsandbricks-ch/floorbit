@@ -1,0 +1,18 @@
+# Switch status and port traffic from Zabbix, for halls that already watch their switches there.
+# Off until turned on under Settings > Plugins. It only reads.
+id: zabbix
+name: Zabbix
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live switch status and port state, traffic and errors from Zabbix (hosts with the standard SNMP network interface items). Feeds the floor plan, the status monitor and the seat inspector. Zabbix keeps no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS, UniFi, MikroTik or a seat source."
+author: Floorbit
+homepage: https://www.zabbix.com
+uses: [settings, http, monitoring]
+settings:
+  - {key: url, label: Zabbix URL, type: url, placeholder: "https://zabbix.example.com",
+     help: "The Zabbix front end. Floorbit calls its api_jsonrpc.php (Zabbix 6.4 or newer)."}
+  - {key: token, label: API token, type: secret,
+     help: "Administration > Users > API tokens, for a user whose role can only read the switches' host group."}
+  - {key: group, label: Host group, type: string, default: Switches,
+     help: "Only hosts in this group are read."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}
