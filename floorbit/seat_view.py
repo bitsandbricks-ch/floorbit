@@ -209,8 +209,11 @@ def details(seat, people, crew=False):
     now = time.time()
     online, last = _fresh_online(now)
     port = _port_of_seat().get(seat)
+    here = [i for i in incidents.list_all() if i.get('seat') == seat]
     open_items = [{'id': i['id'], 'title': i['title'], 'status': i['status'], 'created_at': i['created_at']}
-                  for i in incidents.list_all() if i.get('seat') == seat and i.get('status') != 'fixed']
+                  for i in here if i.get('status') != 'fixed']
+    # A seat that keeps breaking is a cable or port to swap (issue #330): say what was fixed before.
+    fixed = sorted((i for i in here if i.get('status') == 'fixed'), key=lambda i: -(i.get('fixed_at') or 0))
     watch = _ext('floorbit_attention')
     attention = [{'kind': a['kind'], 'title': a['title'], 'since': a['since']}
                  for a in (watch.snapshot()['items'] if watch else []) if a.get('seat') == seat]
@@ -223,6 +226,8 @@ def details(seat, people, crew=False):
         'switch': port[0] if port else None,
         'port': port[1] if port else None,
         'incidents': open_items,
+        'fixed_before': {'count': len(fixed), 'last': {'title': fixed[0]['title'], 'fixed_at': fixed[0].get('fixed_at')}
+                         if fixed else None},
         'attention': attention,
         'match': tournament.zone_of(seat, data),
         'checked_in': None if checked is None else seat in checked,

@@ -1245,6 +1245,8 @@ export interface SeatDetails {
   switch: string | null
   port: string | null
   incidents: { id: string; title: string; status: string; created_at: number }[]
+  /** Incidents fixed at this seat before, and the latest one (issue #330). */
+  fixed_before?: { count: number; last: { title: string; fixed_at: number | null } | null }
   attention: { kind: string; title: string; since: number }[]
   /** The link over the last hours (issue #167): online at ``from`` (null: not read yet), then each change. */
   history?: { from: number; to: number; start: boolean | null; changes: [number, number][] }

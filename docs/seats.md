@@ -97,8 +97,10 @@ also the plain way through the hall for screen readers and small phones.
 ## The inspector
 
 Clicking a seat opens one panel with everything about it: state, block, switch and port, traffic
-now, check-in, match zone, open incidents and needs-attention items, and links to the seat in the
-editor and to the incidents. On a phone it opens from the bottom.
+now, check-in, match zone, open incidents and needs-attention items, how often an incident was
+fixed at the seat before (with the latest one), and links to the seat in the editor and to its
+incidents (the board filtered to the seat). A seat that keeps breaking usually has a cable or port
+to swap. On a phone it opens from the bottom.
 
 **Copy link** puts the page's address with this seat open on the clipboard (hall, filter and view
 included), to paste into the crew chat. It holds the seat number only, nothing about the player.
