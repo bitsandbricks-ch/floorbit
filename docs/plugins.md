@@ -179,6 +179,16 @@ poll signs in, reads `GET /api/queries` since the last poll (at most 20,000 look
 again, because Pi-hole allows only a few sessions at once. Lookups blocked by gravity, regex or deny
 lists, or blocked upstream, count as blocked.
 
+## Built in: Grafana Loki
+
+Keeps the [syslog](syslog.md) longer than Floorbit's own 24 hours. Set Loki's URL (for example
+`http://loki.example.com:3100`), and the tenant, username and password when your Loki needs them
+(the tenant is sent as `X-Scope-OrgID`). Every 10 seconds Floorbit pushes the new lines to
+`/loki/api/v1/push` with a few labels (`job="floorbit"`, `source="syslog"`, `device`, `severity`, and
+`event` when the **Event label** is set); the rest of a line is JSON, so `| json` gets `program`,
+`message`, `port` and `seat`. Lines Loki didn't take are sent again next time. The Logs page then
+gets a **Grafana Loki** source to search it with LogQL, over up to 30 days.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
@@ -269,6 +279,7 @@ class Plugin(Base):
 | `security` | report [security findings](security.md): define `security_findings()` returning `[{"id", "kind", "severity", "title", "switch", "port", "mac", "ip", "evidence"}]` |
 | `power` | send [load readings](power.md) from smart PDUs and meters: define `power_readings()` returning `[{"meter": "db1-1", "amps": 12.4}]` (or `"watts"`) |
 | `dns` | send lookups from the event's resolver for [DNS analytics](dns.md): define `dns_queries(since)` returning `[{"ts", "domain", "client", "blocked"}]` after that unix time. Floorbit keeps only hall-wide counts |
+| `logs` | keep the [syslog](syslog.md) longer and search it: define `push_logs(lines)`, called every 10 seconds with the new lines, and `query_logs(query, start, end, limit)` returning lines newest first in the Logs page's shape (`id` is the time in microseconds) |
 | `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link"}]`. See the built-in HTTP check plugin |
 
 Three manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until

@@ -32,6 +32,8 @@ from integrations import config
 from . import features, inventory, log_alerts, store
 
 MAX_LINE = 2048
+FORWARD_SECONDS = 10
+FORWARD_BACKLOG = 20_000
 SEVERITIES = ('emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug')
 # RFC 3164: <PRI>Mmm dd hh:mm:ss host tag: msg   RFC 5424: <PRI>1 2026-11-14T10:00:00Z host app pid msgid - msg
 RFC5424 = re.compile(r'^<(\d{1,3})>1 (\S+) (\S+) (\S+) (\S+) (\S+) (?:-|(?:\[.*?\])+) ?(.*)$', re.S)
@@ -131,6 +133,8 @@ class SyslogReceiver:
         self.port_seats = lambda: {}
         self._seats_seen, self._seats_index = None, {}
         self.alerts = log_alerts.LogAlerts()
+        self.registry = None
+        self.forwarded = {}     # plugin id -> {'id': last line sent, 'at', 'sent', 'error'}
         self.listening = None
         self.error = None
         self.demo = False
@@ -338,13 +342,55 @@ class SyslogReceiver:
                 item['seat'] = index.get((item['device'].lower(), item['port']))
         return items
 
+    # ── keeping it longer: plugins in the logs area (Loki) get every line ─────────────
+    def log_plugins(self):
+        return self.registry.feeders('logs') if self.registry else []
+
+    def forward_once(self, now=None):
+        """Send each logs plugin the lines it hasn't had yet. A plugin that fails gets them next time,
+        up to FORWARD_BACKLOG lines; past that the oldest are skipped."""
+        from .plugins import PluginError
+        now = time.time() if now is None else now
+        with self._lock:
+            lines = list(self.lines)
+        last = lines[-1]['id'] if lines else 0
+        for spec in self.log_plugins():
+            state = self.forwarded.setdefault(spec.id, {'id': last, 'at': None, 'sent': 0, 'error': None})
+            todo = [ln for ln in lines if ln['id'] > state['id']][-FORWARD_BACKLOG:]
+            if not todo:
+                continue
+            try:
+                self.registry.call(spec, 'push_logs', todo)
+            except PluginError as exc:
+                state['error'] = str(exc)
+                continue
+            state.update(id=todo[-1]['id'], at=now, sent=state['sent'] + len(todo), error=None)
+
+    def _forwarding(self):
+        while True:
+            time.sleep(FORWARD_SECONDS)
+            if features.on('syslog'):
+                try:
+                    self.forward_once()
+                except Exception as exc:  # noqa: BLE001  # a plugin bug must not stop forwarding for good
+                    print(f'[syslog] could not forward: {exc}')
+
+    def query(self, plugin_id, query, start, end, limit):
+        """Search a logs plugin (Loki) with its own query language."""
+        spec = next((s for s in self.log_plugins() if s.id == plugin_id), None)
+        if spec is None:
+            return None
+        return self.registry.call(spec, 'query_logs', query, start, end, limit)
+
     def status(self):
         with self._lock:
             devices = sorted({str(line.get('device')) for line in self.lines if line.get('device')})
             return {'enabled': settings()['enabled'], 'listening': self.listening, 'error': self.error,
                     'counts': dict(self.counts), 'lines': len(self.lines), 'devices': devices,
                     'retention_hours': settings()['retention_hours'], 'demo': self.demo,
-                    'last_id': self.lines[-1]['id'] if self.lines else 0}
+                    'last_id': self.lines[-1]['id'] if self.lines else 0,
+                    'stores': [{'id': s.id, 'name': s.name, **{k: v for k, v in self.forwarded.get(s.id, {}).items()
+                                                               if k != 'id'}} for s in self.log_plugins()]}
 
     # ── listening ───────────────────────────────────────────────────────────────────
     def start(self):
@@ -428,9 +474,10 @@ def demo_lines(now):
     return out
 
 
-def init_syslog(app, start_background=True):
+def init_syslog(app, registry=None, start_background=True):
     global _receiver
     receiver = _receiver = SyslogReceiver()
+    receiver.registry = registry
     app.extensions['floorbit_syslog'] = receiver
 
     def seats():
@@ -446,6 +493,7 @@ def init_syslog(app, start_background=True):
             started.set()
             if features.on('syslog'):
                 receiver.start()
+            threading.Thread(target=receiver._forwarding, name='syslog-forward', daemon=True).start()
 
     return receiver
 

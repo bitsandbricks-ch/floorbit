@@ -911,7 +911,7 @@ export interface SyslogLine {
   seat: string | null
 }
 
-export type LogSource = 'syslog' | 'app' | 'audit'
+export type LogSource = 'syslog' | 'app' | 'audit' | `plugin:${string}`
 
 export interface LogStatus {
   enabled: boolean
@@ -925,6 +925,10 @@ export interface LogStatus {
   last_id: number
   sources: LogSource[]
   source: LogSource
+  /** Logs plugins (Loki) that get every line, and how sending them goes. */
+  stores?: { id: string; name: string; at?: number | null; sent?: number; error?: string | null }[]
+  query?: string
+  query_error?: string
 }
 
 export interface LogsData {

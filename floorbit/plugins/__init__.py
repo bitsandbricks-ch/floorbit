@@ -56,6 +56,7 @@ AREAS = {
     'security': 'security findings: rogue DHCP, ARP spoofing, MAC flapping, loops and storms',
     'power': 'load readings per circuit from smart PDUs and meters',
     'dns': 'lookups from the event\'s DNS resolver, for hall-wide DNS analytics (never per seat)',
+    'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
 }
 # What a context_menu entry can be on, and the action parameter that carries the target.
@@ -70,6 +71,7 @@ AREA_METHODS = {
     'ports': ('port_login', 'bounce_port', 'set_port'),
     'power': ('power_readings',),
     'dns': ('dns_queries',),
+    'logs': ('push_logs', 'query_logs'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;

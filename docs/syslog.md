@@ -96,6 +96,15 @@ search and level filter:
 
 The Logs button in the top bar shows for them even while the syslog receiver is off.
 
+## Keeping it longer: Grafana Loki
+
+Floorbit keeps the syslog for a day. To keep it longer, turn on the built-in
+[Grafana Loki plugin](plugins.md#built-in-grafana-loki) under Settings > Plugins: every line goes to
+Loki as well, and the Logs page gets a **Grafana Loki** source to search it with LogQL over the last
+hour to 30 days. Write the query and press Enter, for example
+`{job="floorbit", device="sw-a-01"} |= "err-disable"`; an empty query shows everything Floorbit sent.
+The line above the syslog shows how many lines went to Loki, or why it didn't take them.
+
 ## Log alerts
 
 Some lines mean a seat or a switch needs a look. Floorbit knows these patterns, from Cisco IOS and
@@ -148,6 +157,8 @@ Needs `seats.view`.
 
 `source=app` reads Floorbit's own log and `source=audit` the audit log instead; both also need
 `audit.read`, and the answer's `status.sources` lists the logs the account may read.
+
+`source=plugin:loki` searches Loki: `q` is the LogQL query and `hours` the time range (1 to 2160).
 
 `GET /api/logs/alerts` lists the current log alerts, and `GET /api/logs/markers` the warnings of the
 last 10 minutes counted per seat and per switch (what the floor plan shows). Both need `seats.view`.

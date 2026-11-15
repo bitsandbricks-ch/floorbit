@@ -17,6 +17,7 @@ const COLOR: Record<LogSeverity, string> = {
 }
 const PAGE = 200
 const TAIL_MS = 3000
+const STORE_MS = 15_000   // asking Loki every 3 seconds would be rude
 
 type Filters = { q: string; device: string; seat: string; port: string; severity: string }
 const EMPTY: Filters = { q: '', device: '', seat: '', port: '', severity: '' }
@@ -55,6 +56,9 @@ function StatusLine({ status }: { status: LogStatus }) {
         {t('logs.kept', { count: status.lines, n: num(status.lines), hours: status.retention_hours })}
         {dropped > 0 && ` · ${t('logs.dropped', { allow: num(status.counts.not_allowed), rate: num(status.counts.rate_limited) })}`}
       </Text>
+      {(status.stores ?? []).map((st) => st.error
+        ? <Badge key={st.id} color="warn" variant="light" tt="none">{t('logs.storeError', { name: st.name, error: st.error })}</Badge>
+        : <Text key={st.id} size="xs" c="dimmed">· {t('logs.storeSent', { name: st.name, n: num(st.sent ?? 0) })}</Text>)}
     </Group>
   )
 }
@@ -124,19 +128,26 @@ export default function Logs() {
   }))
   const [source, setSource] = useState<LogSource>(() => {
     const s = search.get('source')
-    return s === 'app' || s === 'audit' ? s : 'syslog'
+    return s === 'app' || s === 'audit' || s?.startsWith('plugin:') ? (s as LogSource) : 'syslog'
   })
   const syslog = source === 'syslog'
+  const store = source.startsWith('plugin:')
+  // A LogQL query runs when it's sent (Enter), not on every key: half a query is an error.
+  const [logql, setLogql] = useState('')
+  const [draft, setDraft] = useState('')
+  const [hours, setHours] = useState('24')
   const [live, setLive] = useState(true)
   // Older pages belong to the filters they were read with; new filters start from the newest again.
   const [older, setOlder] = useState<{ key: string; lines: SyslogLine[]; more: boolean }>({ key: '', lines: [], more: true })
   const settled = useSettled(filters)
   // Seat, port and device only mean something in the syslog.
-  const key = params(syslog ? settled : { ...EMPTY, q: settled.q, severity: settled.severity }, syslog ? {} : { source })
+  const key = store
+    ? params({ ...EMPTY, q: logql }, { source, hours })
+    : params(syslog ? settled : { ...EMPTY, q: settled.q, severity: settled.severity }, syslog ? {} : { source })
   const query = useQuery({
     queryKey: qk.logs(key),
     queryFn: () => get<LogsData>(`/api/logs${key}`),
-    refetchInterval: live ? TAIL_MS : false,
+    refetchInterval: live ? (store ? STORE_MS : TAIL_MS) : false,
     placeholderData: keepPreviousData,
   })
   const set = (k: keyof Filters) => (v: string | null) => setFilters((f) => ({ ...f, [k]: v ?? '' }))
@@ -156,39 +167,52 @@ export default function Logs() {
       setLoadingOlder(false)
     }
   }
-  const filtered = syslog ? Object.values(filters).some((v) => v !== '') : filters.q !== '' || filters.severity !== ''
+  const filtered = store ? logql !== '' : syslog ? Object.values(filters).some((v) => v !== '') : filters.q !== '' || filters.severity !== ''
   const sources = data?.status.sources ?? ['syslog']
   const onDevice = syslog ? set('device') : undefined
+  const storeName = (s: string) => data?.status.stores?.find((x) => `plugin:${x.id}` === s)?.name ?? s.slice('plugin:'.length)
   const phone = useMediaQuery('(max-width: 48em)')
 
   return (
     <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }}>
-      <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : `logs.intros.${source}`)}
+      <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={<Switch label={t('logs.live')} checked={live} onChange={(e) => setLive(e.currentTarget.checked)} />} />
       {query.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: query.error.message })}</Alert>}
       {data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
       {sources.length > 1 && (
         <SegmentedControl mb="sm" value={source} onChange={(v) => setSource(v as LogSource)} aria-label={t('logs.source')}
-          data={sources.map((s) => ({ value: s, label: t(`logs.sources.${s}`) }))} />
+          data={sources.map((s) => ({ value: s, label: s.startsWith('plugin:') ? storeName(s) : t(`logs.sources.${s}`) }))} />
       )}
-      <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
-        <TextInput label={t('logs.search')} placeholder={t('logs.searchHint')} value={filters.q} style={{ flex: '2 1 220px' }}
-          onChange={(e) => set('q')(e.currentTarget.value)} />
-        {syslog && (
-          <>
-            <Select label={t('logs.device')} placeholder={t('logs.all')} data={data?.status.devices ?? []} value={filters.device || null}
-              onChange={set('device')} clearable searchable style={{ flex: '1 1 160px' }} />
-            <TextInput label={t('logs.seatFilter')} placeholder="A-12" value={filters.seat} style={{ flex: '0 1 110px' }}
-              onChange={(e) => set('seat')(e.currentTarget.value)} />
-            <TextInput label={t('logs.port')} placeholder="Gi1/0/4" value={filters.port} style={{ flex: '0 1 120px' }}
-              onChange={(e) => set('port')(e.currentTarget.value)} />
-          </>
-        )}
-        <Select label={t('logs.severity')} placeholder={t('logs.all')} value={filters.severity || null} onChange={set('severity')} clearable
-          data={SEVERITIES.slice(0, -1).map((s) => ({ value: s, label: t('logs.atLeast', { level: t(`logs.sev.${s}`) }) }))}
-          style={{ flex: '1 1 160px' }} />
-        {filtered && <Button variant="default" onClick={() => setFilters(EMPTY)}>{t('logs.clear')}</Button>}
-      </Group>
+      {store ? (
+        <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
+          <TextInput label={t('logs.logql')} placeholder='{job="floorbit"} |= "err-disable"' value={draft} styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
+            style={{ flex: '3 1 320px' }} onChange={(e) => setDraft(e.currentTarget.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') setLogql(draft.trim()) }} />
+          <Select label={t('logs.range')} value={hours} onChange={(v) => setHours(v ?? '24')} allowDeselect={false}
+            data={['1', '24', '168', '720'].map((h) => ({ value: h, label: t(`logs.hours.${h}`) }))} style={{ flex: '0 1 140px' }} />
+          <Button onClick={() => setLogql(draft.trim())}>{t('logs.run')}</Button>
+        </Group>
+      ) : (
+        <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
+          <TextInput label={t('logs.search')} placeholder={t('logs.searchHint')} value={filters.q} style={{ flex: '2 1 220px' }}
+            onChange={(e) => set('q')(e.currentTarget.value)} />
+          {syslog && (
+            <>
+              <Select label={t('logs.device')} placeholder={t('logs.all')} data={data?.status.devices ?? []} value={filters.device || null}
+                onChange={set('device')} clearable searchable style={{ flex: '1 1 160px' }} />
+              <TextInput label={t('logs.seatFilter')} placeholder="A-12" value={filters.seat} style={{ flex: '0 1 110px' }}
+                onChange={(e) => set('seat')(e.currentTarget.value)} />
+              <TextInput label={t('logs.port')} placeholder="Gi1/0/4" value={filters.port} style={{ flex: '0 1 120px' }}
+                onChange={(e) => set('port')(e.currentTarget.value)} />
+            </>
+          )}
+          <Select label={t('logs.severity')} placeholder={t('logs.all')} value={filters.severity || null} onChange={set('severity')} clearable
+            data={SEVERITIES.slice(0, -1).map((s) => ({ value: s, label: t('logs.atLeast', { level: t(`logs.sev.${s}`) }) }))}
+            style={{ flex: '1 1 160px' }} />
+          {filtered && <Button variant="default" onClick={() => setFilters(EMPTY)}>{t('logs.clear')}</Button>}
+        </Group>
+      )}
+      {store && data?.status.query_error && <Alert color="warn" mb="md">{data.status.query_error}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : (
         <>
           {syslog && <StatusLine status={data.status} />}
