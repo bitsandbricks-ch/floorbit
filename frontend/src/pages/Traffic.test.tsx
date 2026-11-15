@@ -41,6 +41,12 @@ describe('Traffic', () => {
     expect(screen.getByText('P2P or torrent traffic from seat D-5')).toBeInTheDocument()
   })
 
+  it('names the local agent that collects the flows', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/flows': flows({ agent: 'Hall 2' }) }).fn)
+    renderWithApp(<Traffic />)
+    expect(await screen.findByText(/collected by the local agent Hall 2/)).toBeInTheDocument()
+  })
+
   it('leaves the seats out without seats.view', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/flows': flows({ seats: null, can_see_seats: false }) }).fn)
     renderWithApp(<Traffic />)

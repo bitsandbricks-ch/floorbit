@@ -44,5 +44,6 @@
     "other": "Other"
   },
   "dns": "DNS lookups",
-  "games": "Games"
+  "games": "Games",
+  "viaAgent": "collected by the local agent {{agent}}"
 }

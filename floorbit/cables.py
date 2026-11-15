@@ -153,7 +153,7 @@ def import_from(registry, by):
                 errors.append(f"{feed['name']} (local agent): {feed['error']}")
             else:
                 found += [(feed['name'], c) for c in feed['items']]
-                answered.add(feed['name'])
+                answered.update({feed['name'], feed.get('base_name', feed['name'])})
     for spec in sources(registry):
         if spec.name in answered:
             continue

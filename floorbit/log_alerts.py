@@ -79,6 +79,9 @@ class LogAlerts:
             return sorted((dict(v) for v in self.items.values()), key=lambda i: -i['since'])
 
 
+OLD_RUN = 200
+
+
 def markers(lines, devices, now=None, minutes=10):
     """Warnings and worse of the last minutes per seat and per switch, for the floor plan.
 
@@ -88,11 +91,16 @@ def markers(lines, devices, now=None, minutes=10):
     now = time.time() if now is None else now
     worst = SEVERITIES.index('warning')
     seats, switches = {}, {}
+    old = 0
     for line in reversed(lines):
         if line['ts'] < now - minutes * 60:
-            if line['ts'] < now - minutes * 60 - 300:   # lines arrive in order, give or take a clock
+            # Lines mostly arrive in order, so a run of old ones means the rest are older still. A run,
+            # not one: a sender's own clock, or a local agent's buffered lines, can put an old one late.
+            old += 1
+            if old >= OLD_RUN:
                 break
             continue
+        old = 0
         if SEVERITIES.index(line['severity']) > worst:
             continue
         if line.get('seat'):
