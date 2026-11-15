@@ -78,7 +78,13 @@ kbd {
 }
 .topbar-brand { display: flex; align-items: center; gap: 10px; width: calc(var(--sidebar-w) - var(--sp-4)); flex-shrink: 0; }
 .topbar-brand .fb-brand-name { font-size: var(--fs-lg); }
-.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+/* The page links: with many pages on they scroll sideways here instead of pushing Sign out and
+   Settings off the screen, where the body's overflow: hidden made them unreachable (issue #238). */
+.topbar-nav { position: relative; display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+/* position: relative keeps the visually hidden labels (position: absolute) inside the strip. */
+.topbar-nav .btn { flex-shrink: 0; }
+.topbar-actions > :not(.topbar-nav) { flex-shrink: 0; }
 
 .status-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
 .status-chip {
@@ -939,6 +945,8 @@ kbd {
   .topbar-actions { position: relative; overflow-x: auto; scrollbar-width: none; gap: 2px; min-width: 0; }
   .topbar-actions::-webkit-scrollbar { display: none; }
   .topbar-actions .btn { flex-shrink: 0; min-height: 40px; }
+  /* Here the whole row scrolls, so the page links keep their width (issue #238). */
+  .topbar-nav { flex-shrink: 0; overflow-x: visible; }
   .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   .sidebar {
