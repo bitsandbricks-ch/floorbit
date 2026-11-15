@@ -343,6 +343,16 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
 
+## floorbit.blueprints.metrics
+
+Prometheus metrics (issue #153). The counts live in floorbit/metrics.py; docs in docs/metrics.md.
+
+Source: [`floorbit/blueprints/metrics.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/metrics.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/metrics` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.network
 
 Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap.

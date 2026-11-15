@@ -11,6 +11,7 @@
   {% if assets %}
   {% for href in assets.css %}<link rel="stylesheet" href="{{ href }}" />
   {% endfor %}
+  <script src="/static/js/notify.js"></script>
   {% for src in assets.js %}<script type="module" src="{{ src }}"></script>
   {% endfor %}
   {% endif %}

@@ -146,6 +146,8 @@ jobs:
       - run: mkdocs build --strict --site-dir site
         env:
           NO_MKDOCS_2_WARNING: "1"
+      - name: Example alert rules are valid Prometheus rules
+        run: docker run --rm -v "$PWD/docs/grafana:/rules:ro" --entrypoint promtool prom/prometheus:v2.53.2 check rules /rules/floorbit-alerts.yml
 
   workflows:
     # The workflow files themselves: syntax, and expressions that would let a PR title

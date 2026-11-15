@@ -20,5 +20,23 @@
   "coffee": "Buy me a coffee",
   "poweredBy": "Powered by",
   "inventory": "Inventory",
-  "seatMapping": "Seat mapping"
+  "seatMapping": "Seat mapping",
+  "notify": {
+    "menu": "Notifications",
+    "title": "Notifications on this device",
+    "intro": "Floorbit shows a browser notification while one of its tabs is open, even in the background. The setting is for this browser only.",
+    "on": "Notifications on this device",
+    "denied": "The browser blocks notifications for this site. Allow them in the browser's site settings, then switch them on again.",
+    "jobs": "A job sent to me",
+    "incidents": "Every new incident (needs the incident board)",
+    "switches": "A switch going down",
+    "done": "Done",
+    "unsupported": "This browser can't show notifications.",
+    "quiet": "Quiet hours",
+    "quietFrom": "From",
+    "quietTo": "To",
+    "jobsInQuiet": "Jobs sent to me still come through",
+    "quietNow": "Quiet hours now: only jobs sent to you come through.",
+    "quietNowAll": "Quiet hours now: nothing comes through."
+  }
 }

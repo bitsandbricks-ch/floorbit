@@ -1,9 +1,11 @@
 import { ActionIcon, Button, Menu, Tooltip } from '@mantine/core'
-import { IconLanguage, IconLogout, IconMoon, IconSun, IconUser } from '@tabler/icons-react'
+import { IconBell, IconLanguage, IconLogout, IconMoon, IconSun, IconUser } from '@tabler/icons-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMe } from '@/api/queries'
 import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n'
+import { NotifySettings } from './NotifySettings'
 
 function signOut() {
   // A plain form post: /logout clears the session and redirects to the sign-in page.
@@ -33,7 +35,9 @@ export function UserMenu() {
   const { t, i18n } = useTranslation()
   const me = useMe().data
   const user = me?.user
+  const [notify, setNotify] = useState(false)
   return (
+    <>
     <Menu position="bottom-end" width={220}>
       <Menu.Target>
         <Button variant="subtle" color="gray" leftSection={<IconUser size={16} />} aria-label={user ? t('common.signedInAs', { username: user.username }) : t('common.language')}>
@@ -54,6 +58,12 @@ export function UserMenu() {
             {l.label}
           </Menu.Item>
         ))}
+        {user && (
+          <>
+            <Menu.Divider />
+            <Menu.Item leftSection={<IconBell size={16} />} onClick={() => setNotify(true)}>{t('common.notify.menu')}</Menu.Item>
+          </>
+        )}
         {me?.enabled && user && (
           <>
             <Menu.Divider />
@@ -64,5 +74,7 @@ export function UserMenu() {
         )}
       </Menu.Dropdown>
     </Menu>
+    {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
+    </>
   )
 }
