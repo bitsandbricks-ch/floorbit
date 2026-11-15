@@ -2,6 +2,7 @@
   "title": "Störungen",
   "intro": "Probleme während des Events, an einem Platz, Switch oder Stromkreis. Teilnehmende melden sie über den QR-Code an ihrem Platz; eure Teams bearbeiten sie hier.",
   "new": "Neue Störung",
+  "csv": "Als CSV herunterladen",
   "qrCodes": "QR-Codes der Plätze",
   "mineOnly": "Nur, was ich bearbeiten kann",
   "filed": "Störung erfasst.",

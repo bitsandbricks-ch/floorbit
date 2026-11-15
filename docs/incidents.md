@@ -57,6 +57,18 @@ Who can do what (permissions in [auth.md](auth.md)):
 Someone can only be given an incident they could work themselves. Moving an incident to a team its
 assignee doesn't work for puts it back to open.
 
+### Download as CSV
+
+**Download as CSV** on the board saves every incident as a spreadsheet for the debrief after the
+event, oldest first (`GET /api/incidents.csv`). It has one row per incident: when it came in, where,
+the title, team, status, where it came from (board, seat helpdesk, Discord …), how many reports,
+who filed it, who has it, when it was picked up and fixed, the minutes to fix and how many notes it
+has. Times are in your browser's time zone.
+
+It never has what the seat report saw (nicks, IPs) or the note texts, which can name people. Anyone
+who sees the board can download it, and each download goes to the [audit log](audit.md). A cell that
+starts with `=`, `+`, `-` or `@` gets a `'` in front, so a spreadsheet never runs it as a formula.
+
 ## The helpdesk on each seat
 
 **Incidents › Seat QR codes** (`/incidents/qr`) prints one QR code per seat, for every seat on the
