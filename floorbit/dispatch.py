@@ -18,6 +18,7 @@ from . import halls, incidents
 from .store import load_data, save_data
 
 KEY = 'dispatch'
+AUTO_KEY = 'dispatch_auto'   # send new incidents to the nearest free tech by themselves (issue #358)
 OTHER_HALL = 100_000     # a tech in another hall is only sent when nobody is in this one
 UNKNOWN = 1_000_000      # nor one who never said where they are
 DONE_WINDOW = 12 * 3600  # about one shift
@@ -185,6 +186,63 @@ def send(by_user, incident_id):
     changed = incidents.stamp(incident_id, dispatched_at=time.time(), dispatched_by=by_user['username'],
                               taken_at=None)
     return changed, tech, d
+
+
+def auto_on(data=None):
+    data = data if data is not None else load_data()
+    return bool(data.get(AUTO_KEY))
+
+
+def set_auto(user, on):
+    """Turn automatic dispatch on or off. A lead's call, so it needs incidents.assign."""
+    from auth import roles
+    if not roles.can(user, 'incidents.assign'):
+        raise DispatchError('Needs the "assign incidents" permission.', 403)
+    with _lock:
+        data = load_data()
+        data[AUTO_KEY] = bool(on)
+        save_data(data)
+    return bool(on)
+
+
+def _auto_pick(incident):
+    """With automatic dispatch on, give a new incident to the nearest free tech, as (incident, tech).
+
+    Only new incidents nobody has: one that waits because nobody was free stays on the board for a lead
+    or the next "Take the next one", so a tech coming back isn't flooded with old jobs at once.
+    """
+    if not incident or incident.get('assignee') or incident.get('status') != 'open' or not auto_on():
+        return None
+    tech, _d = nearest(incident)
+    if not tech:
+        return None
+    now = time.time()
+    changed = incidents.stamp(incident['id'], assignee=tech['username'], status='assigned', dispatched_at=now,
+                              dispatched_by=None, taken_at=None, picked_up_at=incident.get('picked_up_at') or now)
+    return changed, tech
+
+
+def send_new(incident):
+    """After a new incident is filed: with automatic dispatch on, send it to the nearest free tech.
+
+    Called by every place that files one (board, seat help page, power alerts). It never fails the
+    filing: a lead can still send the incident by hand."""
+    from integrations import events
+
+    from . import audit
+    try:
+        sent = _auto_pick(incident)
+    except Exception as exc:  # noqa: BLE001
+        print(f'[dispatch] could not send {incident.get("id")} by itself: {exc}')
+        return incident
+    if not sent:
+        return incident
+    changed, tech = sent
+    audit.record('incidents', 'Sent incident to the nearest tech by itself', target=changed['id'],
+                 fields=[tech['username']])
+    events.publish('incident.changed', {'id': changed['id'], 'status': changed['status'], 'action': 'dispatched'})
+    events.publish('incident.dispatched', {'id': changed['id'], 'assignee': tech['username'], 'auto': True})
+    return changed
 
 
 def _mine(user, incident_id):
