@@ -4,6 +4,7 @@ import { IconChevronLeft } from '@tabler/icons-react'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Attribution } from './Attribution'
+import { CrewNoticeBanner } from './CrewNotice'
 import { GoTo } from './GoTo'
 import { rememberPage } from './pages'
 import { ThemeToggle, UserMenu } from './UserMenu'
@@ -33,6 +34,7 @@ export function Layout({ title, back, count, children }: {
           <UserMenu />
         </Group>
       </header>
+      <CrewNoticeBanner />
       <main className="fb-main">{children}</main>
       <Attribution />
     </>

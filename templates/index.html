@@ -170,6 +170,19 @@
       </div>
     </header>
 
+    {# Crew notice from a lead (issue #246), filled by static/js/editor/notice.js. #}
+    <div class="crew-notice" id="crew-notice" role="status" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a3 3 0 0 1 0 6M18 6a7 7 0 0 1 0 12"/></svg>
+      <div class="crew-notice-body">
+        <strong>Crew notice</strong>
+        <span class="crew-notice-text"></span>
+        <span class="crew-notice-meta"></span>
+      </div>
+      <button type="button" class="btn btn-ghost btn-icon crew-notice-hide" aria-label="Hide this notice" title="Hide this notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
     <div class="main-layout">
 
       <!-- ── Sidebar ───────────────────────────────────────────────────── -->
@@ -889,6 +902,7 @@
   <script src="/static/js/editor/touch.js"></script>
   <script src="/static/js/editor/ports.js"></script>
   <script src="/static/js/editor/focus.js"></script>
+  <script src="/static/js/editor/notice.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>
 </body>

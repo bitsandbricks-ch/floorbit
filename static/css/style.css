@@ -1033,3 +1033,17 @@ kbd {
 .seat-key.st-offline { border: 2px solid var(--color-down); background: linear-gradient(to top right, transparent 45%, var(--color-down) 45% 55%, transparent 55%), var(--bg-tertiary); }
 .seat-key.st-unknown { border-style: dashed; border-color: var(--text-secondary); }
 .seat-key.st-checked::after { content: ''; position: absolute; top: -1px; right: -1px; border-top: 8px solid var(--color-trace); border-left: 8px solid transparent; }
+
+/* Crew notice under the top bar (issue #246); same message as the React pages' banner. */
+.crew-notice {
+  display: flex; align-items: flex-start; gap: var(--sp-3); padding: 8px var(--sp-4);
+  background: color-mix(in srgb, var(--color-trace) 12%, var(--bg-secondary));
+  border-bottom: 1px solid var(--border); color: var(--text-primary); flex-shrink: 0;
+}
+.crew-notice[hidden] { display: none; }
+.crew-notice > svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; color: var(--color-trace); }
+.crew-notice-warn { background: color-mix(in srgb, var(--color-warn) 14%, var(--bg-secondary)); }
+.crew-notice-warn > svg { color: var(--color-warn); }
+.crew-notice-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); align-items: baseline; }
+.crew-notice-text { overflow-wrap: anywhere; }
+.crew-notice-meta { color: var(--text-secondary); font-size: var(--fs-sm, 12px); }

@@ -67,4 +67,5 @@ export const qk = {
   planSeat: (seat: string) => ['plan', 'seat', seat] as const,
   planBlock: (name: string) => ['plan', 'block', name] as const,
   planSwitch: (name: string) => ['plan', 'switch', name] as const,
+  notice: ['notice'] as const,
 }

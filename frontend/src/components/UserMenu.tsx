@@ -1,10 +1,11 @@
 import { ActionIcon, Button, Menu, Tooltip } from '@mantine/core'
-import { IconBell, IconLanguage, IconLogout, IconMoon, IconSun, IconUser } from '@tabler/icons-react'
+import { IconBell, IconLanguage, IconLogout, IconMoon, IconSpeakerphone, IconSun, IconUser } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMe } from '@/api/queries'
+import { useCan, useMe } from '@/api/queries'
 import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n'
+import { CrewNoticeEditor } from './CrewNotice'
 import { NotifySettings } from './NotifySettings'
 
 function signOut() {
@@ -36,6 +37,8 @@ export function UserMenu() {
   const me = useMe().data
   const user = me?.user
   const [notify, setNotify] = useState(false)
+  const [notice, setNotice] = useState(false)
+  const lead = useCan('incidents.assign')
   return (
     <>
     <Menu position="bottom-end" width={220}>
@@ -62,6 +65,7 @@ export function UserMenu() {
           <>
             <Menu.Divider />
             <Menu.Item leftSection={<IconBell size={16} />} onClick={() => setNotify(true)}>{t('common.notify.menu')}</Menu.Item>
+            {lead && <Menu.Item leftSection={<IconSpeakerphone size={16} />} onClick={() => setNotice(true)}>{t('notice.menu')}</Menu.Item>}
           </>
         )}
         {me?.enabled && user && (
@@ -75,6 +79,7 @@ export function UserMenu() {
       </Menu.Dropdown>
     </Menu>
     {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
+    {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}
     </>
   )
 }

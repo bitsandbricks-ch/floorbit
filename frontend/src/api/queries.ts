@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
 import type {
+  CrewNotice,
   AccountSummary,
   IncidentBoard,
   IncidentPeople,
@@ -148,4 +149,17 @@ export function useAccounts() {
 
 export function useSetup() {
   return useQuery({ queryKey: qk.setup, queryFn: () => get<SetupState>('/api/setup') })
+}
+
+/** The notice that is up, checked every 30 s: one more live-event connection per tab would cost
+ *  more than the minute's delay is worth (issue #246). */
+export function useNotice() {
+  const me = useMe().data
+  return useQuery({
+    queryKey: qk.notice,
+    queryFn: () => get<{ notice: CrewNotice | null }>('/api/notice'),
+    refetchInterval: 30_000,
+    // Signed-out pages (and the sign-in screen) have nothing to show.
+    enabled: !!me && (!me.enabled || !!me.user),
+  })
 }
