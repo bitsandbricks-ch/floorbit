@@ -151,3 +151,10 @@ def test_the_floor_plan_marks_muted_switches(client, floor):
     client.post("/api/alerts/mutes", json={"switch_id": floor["a"], "minutes": 30})
     mutes = client.get("/api/problems").get_json()["mutes"]
     assert [(m["switch_id"], m["kind"]) for m in mutes] == [(floor["a"], "switch")] and mutes[0]["until"] > time.time()
+
+
+def test_the_floor_plan_can_mute_a_switch(client):
+    """The right-click menu opens this dialog; can_mute says who gets the entries (issue #270)."""
+    page = client.get("/").get_data(as_text=True)
+    assert 'id="mute-form"' in page and 'id="mute-minutes"' in page and 'id="mute-reason"' in page
+    assert client.get("/api/problems").get_json()["can_mute"] is True
