@@ -258,12 +258,19 @@ answering, but it names the agent: "The local agent is away", with when it was l
 
 ## The protocol
 
-The agent sends its key in the `Floorbit-Agent-Key` header and its version in
-`Floorbit-Agent-Version`. It needs no account and no session.
+The agent sends its key in the `Floorbit-Agent-Key` header, its version in
+`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (now `1`; no header
+counts as `1`). It needs no account and no session.
+
+The protocol has its own number because the agent and Floorbit are released apart. A change the other
+side can't follow gets a new number. A Floorbit that doesn't speak the agent's protocol answers every
+agent request with **426** and says which one it speaks. The agent then stops with exit code 1, like
+for a revoked key, because retrying won't help: update the agent or Floorbit. `hello` says which
+protocol the hosted Floorbit speaks (`"protocol"`).
 
 | Request | What |
 | --- | --- |
-| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings"}`, or 401 |
+| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol"}`, or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
 | `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |

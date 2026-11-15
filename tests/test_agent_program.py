@@ -892,3 +892,18 @@ def test_broken_or_huge_gzip_is_refused(client, app_module, monkeypatch):
     assert post("/api/agent/v1/syslog", data=bomb, headers=h).get_json()["received"] == 0
     fine = gz.compress(b'{"lines": [{"raw": "<14>hi", "from": "192.0.2.9"}]}')
     assert post("/api/agent/v1/syslog", data=fine, headers=h).get_json() == {"taken": 1, "received": 1}
+
+
+def test_another_protocol_gets_one_clear_answer(client, app_module, monkeypatch):
+    key = enrol(client)["key"]
+    agent = app_module.app.test_client()
+    h = {"Floorbit-Agent-Key": key}
+    hello = agent.get("/api/agent/v1/hello", headers=h).get_json()        # no header: protocol 1
+    assert hello["protocol"] == agent_link.PROTOCOL == agent_mod.PROTOCOL
+    res = agent.get("/api/agent/v1/calls?wait=0", headers={**h, "Floorbit-Agent-Protocol": "2"})
+    assert res.status_code == 426 and "protocol 1, the agent 2" in res.get_json()["error"]
+    assert client.get("/api/agents").status_code == 200                    # the admin side doesn't care
+    monkeypatch.setattr(agent_mod, "PROTOCOL", 2)
+    a = make(app_module, key)
+    with pytest.raises(agent_mod.Refused, match="Update the agent"):
+        a.run()                                                          # stops instead of retrying

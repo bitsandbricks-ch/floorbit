@@ -270,6 +270,10 @@ def check(key, version=None, address=None, now=None):
 
 # ── The call tunnel ────────────────────────────────────────────────────────────────────────────
 
+# The agent protocol (/api/agent/v1, docs/agent.md "The protocol"). The agent lives in its own
+# repository, so the two are released apart: a change the other side can't follow gets a new number.
+PROTOCOL = 1
+PROTOCOLS = (1,)          # what this Floorbit understands
 RELAY_RECENT = 600       # syslog or flows sent within this long count as relayed
 STATS_WINDOW = 3600      # the Local agents page shows the last hour's calls
 STATS_KEEP = 5000        # answers kept per agent for that, at most

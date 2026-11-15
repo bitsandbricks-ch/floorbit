@@ -31,6 +31,7 @@ from .. import agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 HEADER = 'Floorbit-Agent-Key'
+PROTOCOL_HEADER = 'Floorbit-Agent-Protocol'
 
 
 def _who():
@@ -87,6 +88,20 @@ def revoke(agent_id):
     return jsonify({'ok': True})
 
 
+@bp.before_request
+def _same_protocol():
+    """An agent speaking another protocol gets one clear answer instead of odd failures later.
+    No header means protocol 1: every agent before the header was added spoke it."""
+    if not request.path.startswith('/api/agent/'):
+        return None
+    spoken = (request.headers.get(PROTOCOL_HEADER) or '1').strip()
+    if spoken not in {str(p) for p in agent_link.PROTOCOLS}:
+        return jsonify({'error': f'This Floorbit speaks agent protocol {agent_link.PROTOCOL}, the agent {spoken[:10]}. '
+                                 'Update the agent (or this Floorbit) so they match.',
+                        'protocol': agent_link.PROTOCOL}), 426
+    return None
+
+
 def _agent():
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
                             request.remote_addr)
@@ -125,7 +140,7 @@ def hello():
         return _refused()
     events.publish('agents.changed', {})
     return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0',
-                    'encodings': ['gzip']})
+                    'encodings': ['gzip'], 'protocol': agent_link.PROTOCOL})
 
 
 @bp.route('/api/agent/v1/calls', methods=['GET'])
