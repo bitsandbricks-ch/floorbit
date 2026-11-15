@@ -11,6 +11,9 @@ who has it, its notes and, for reports from a seat, what the network said about 
 The board refreshes on its own and as soon as anything changes. Open incidents also show on the
 floor plan as a red ring on the seat or switch, with a count next to **Incidents** in the top bar.
 The board's browser tab starts with the number of open incidents, e.g. "(2) Incidents · Floorbit".
+An open incident that nobody has taken for 10 minutes gets an orange **Waiting 25 min** tag, so the
+ones that slipped through stand out. The [event report](report.md) shows how long incidents waited
+on average.
 
 **Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
 notes contain the text, ignoring case. It is kept in the address (`/incidents?q=B-7`), so a link can
