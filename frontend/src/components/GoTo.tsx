@@ -1,11 +1,12 @@
-import { Button, Kbd, Modal, TextInput } from '@mantine/core'
+import { Modal, TextInput } from '@mantine/core'
 import { useHotkeys } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCan, useMe, usePageList, usePlaces } from '@/api/queries'
 import { toggleScheme, useScheme } from '@/colorScheme'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { isServerPage } from '@/nav/sections'
 import { CrewNoticeEditor } from './CrewNotice'
 import { NotifySettings } from './NotifySettings'
 import { fold, RECENT_MAX, recentPages } from './pages'
@@ -16,29 +17,20 @@ type Opens = 'notice' | 'notify'
 
 interface Item { href: string; id: string; label: string; recent: boolean; run?: () => void }
 
-/** "Go to" button in every React page's header, and Ctrl+K / ⌘K, to jump to any page
- *  without the detour through the floor plan (issue #242). */
-export function GoTo() {
+/** "Go to" (Ctrl+K / ⌘K) on every React page: jump to any page, seat or switch without the
+ *  detour through the floor plan (issue #242). The sidebar's search row opens it too. */
+export function GoTo({ opened, onOpen, onClose }: { opened: boolean; onOpen: () => void; onClose: () => void }) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
   const [opens, setOpens] = useState<Opens | null>(null)
   // Mantine's mod+K: Ctrl on Windows and Linux, ⌘ on a Mac.
-  useHotkeys([['mod+K', () => setOpen(true)]], [])
-  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+  useHotkeys([['mod+K', onOpen]], [])
   return (
     <>
-      <Button
-        variant="subtle" color="gray" leftSection={<IconSearch size={16} aria-hidden="true" />}
-        onClick={() => setOpen(true)} aria-keyshortcuts="Control+K Meta+K"
-        rightSection={<Kbd size="xs" visibleFrom="sm">{mac ? '⌘K' : 'Ctrl K'}</Kbd>}
-      >
-        <span className="fb-goto-label">{t('goto.button')}</span>
-      </Button>
-      <Modal opened={open} onClose={() => setOpen(false)} title={t('goto.title')} size="md" closeButtonProps={{ 'aria-label': t('goto.close') }}
+      <Modal opened={opened} onClose={onClose} title={t('goto.title')} size="md" closeButtonProps={{ 'aria-label': t('goto.close') }}
         // Room for the search box's focus ring under the sticky title.
         styles={{ body: { paddingTop: 4 } }}
       >
-        {open && <Palette onDone={() => setOpen(false)} onOpen={(o) => { setOpen(false); setOpens(o) }} />}
+        {opened && <Palette onDone={onClose} onOpen={(o) => { onClose(); setOpens(o) }} />}
       </Modal>
       {opens === 'notice' && <CrewNoticeEditor onClose={() => setOpens(null)} />}
       {opens === 'notify' && <NotifySettings opened onClose={() => setOpens(null)} />}
@@ -97,14 +89,16 @@ function Palette({ onDone, onOpen }: { onDone: () => void; onOpen: (o: Opens) =>
   }, [pages, query, t, here, places, asked, actions])
   const current = Math.min(active, shown.length - 1)
 
-  // A full page load: the floor plan and the settings pages are server pages, not routes.
+  const navigate = useNavigate()
+  // The floor plan and the settings pages are server pages: a full page load. The rest are routes.
   const pick = (item: Item) => {
     if (item.run) item.run()
     else go(item.href)
   }
   const go = (href: string) => {
     onDone()
-    window.location.assign(href)
+    if (isServerPage(href)) window.location.assign(href)
+    else navigate(href)
   }
   const move = (to: number) => {
     setActive(to)

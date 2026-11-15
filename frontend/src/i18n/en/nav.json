@@ -1,0 +1,23 @@
+{
+  "label": "Main",
+  "goTo": "Go to…",
+  "home": "Floor plan",
+  "collapse": "Collapse the sidebar",
+  "expand": "Expand the sidebar",
+  "menu": "Menu",
+  "closeMenu": "Close the menu",
+  "account": "Account",
+  "appearance": "Appearance",
+  "problemsDown": "{{count}} down",
+  "sections": {
+    "helpdesk": "Helpdesk",
+    "network": "Network",
+    "build": "Build and teardown",
+    "event": "Event",
+    "admin": "Settings",
+    "more": "More"
+  },
+  "search": "Search pages, seats and switches",
+  "quick": "Main pages",
+  "homeBrand": "Floorbit, to the floor plan"
+}

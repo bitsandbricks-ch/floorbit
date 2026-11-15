@@ -191,7 +191,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `FLOORBIT_PORT`, `FLOORBIT_VERSION` | `8080`, `latest` | Compose only: the port on this machine and the image tag ([docs/install.md](docs/install.md)). |
 | `CACHE_TTL_ARP`, `CACHE_TTL_MAC` | `300` | Seconds to keep a switch's ARP and MAC tables. |
 | `FLOORBIT_THEME` | `floorbit` | Site theme: `floorbit`, `ops`, `kiosk`, `classic` or `custom` ([docs/themes.md](docs/themes.md)). |
-| `FLOORBIT_EVENT_NAME` | empty | Event name in the top bar and on the kiosk. |
+| `FLOORBIT_EVENT_NAME` | empty | Event name in the sidebar and on the kiosk. |
 | `AUDIT_FILE` | next to `data.json` | Where the audit log is kept ([docs/audit.md](docs/audit.md)). |
 | `TIMELINE_FILE` | next to `data.json` | Where the event changelog keeps alerts and starts ([docs/timeline.md](docs/timeline.md)). |
 | `PLUGINS_FILE` | next to `data.json` | Which plugins are on, and their state ([docs/plugins.md](docs/plugins.md)). |

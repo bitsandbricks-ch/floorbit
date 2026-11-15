@@ -22,11 +22,17 @@ body {
   box-shadow: var(--focus-ring);
 }
 
+/* The sidebar (src/nav/nav.css) beside the page. */
+.fb-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
+.fb-shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fb-shell-main > .fb-attribution { margin-top: auto; }
+
+/* The page title as a bar of its own on phones; desktops show the page's PageHead, so the
+   heading stays for screen readers only. */
 .fb-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 56px;
+  height: 52px;
   padding: 0 16px;
   border-bottom: 1px solid var(--color-line);
   background: var(--color-surface);
@@ -45,12 +51,44 @@ body {
   text-overflow: ellipsis;
 }
 
-.fb-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 16px 96px;
+.fb-header { justify-content: space-between; }
+.fb-header-brand { display: flex; align-items: center; height: 36px; color: inherit; }
+.fb-header-brand .fb-brand { --fb-brand-h: 26px; }
+@media (min-width: 768px) {
+  /* Keyboard focus must never land on something hidden: the sidebar has both. */
+  .fb-header-brand, .fb-header-search { display: none; }
+  .fb-header {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
 }
 
+.fb-main {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+  box-sizing: border-box;
+}
+.fb-main-wide { max-width: none; }
+@media (max-width: 767.98px) {
+  .fb-main { padding: 16px 16px 32px; }
+}
+
+@media (max-width: 767.98px) {
+  .fb-pagehead-actions {
+    flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+    width: calc(100% + 32px); margin: 0 -16px; padding: 2px 16px;
+  }
+  .fb-pagehead-actions::-webkit-scrollbar { display: none; }
+  .fb-pagehead-actions > * { flex: none; }
+}
+
+/* "‹ Incidents" above a sub page's title. */
+.fb-up { margin: -12px 0 12px; font-size: var(--fs-sm); }
+.fb-up a { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); text-decoration: none; }
+.fb-up a:hover { color: var(--color-fg); text-decoration: underline; }
+@media (max-width: 767.98px) { .fb-up { margin: 0 0 8px; } }
 
 .fb-dot {
   display: inline-block;
@@ -95,7 +133,7 @@ body {
 .fb-qr figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: 12px; color: var(--color-muted); }
 .fb-qr figcaption strong { font-size: 18px; color: var(--color-fg); }
 @media print {
-  .fb-header, .fb-no-print, .fb-attribution { display: none !important; }
+  .fb-header, .fb-no-print, .fb-attribution, .fb-nav-slot, .fb-tabbar { display: none !important; }
   body { background: #fff !important; }
   .fb-qr-sheet { grid-template-columns: repeat(4, 1fr); }
   .fb-qr { border-color: #999; }
@@ -446,8 +484,4 @@ body {
 .fb-goto-item[aria-selected='true'] { background: var(--color-bit-soft); }
 .fb-goto-path { color: var(--color-muted); font-size: 13px; font-family: var(--font-mono); }
 .fb-goto-empty { margin: 12px 0 0; color: var(--color-muted); }
-/* On a phone the button shows only its icon; the label stays for screen readers. */
-@media (max-width: 600px) {
-  .fb-goto-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-}
 .fb-goto-recent { color: var(--color-muted); font-size: 13px; }

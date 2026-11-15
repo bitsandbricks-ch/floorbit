@@ -27,5 +27,12 @@ export default defineConfig({
     manifest: true,
     modulePreload: { polyfill: false },
     sourcemap: false,
+    // Two entries: the React app, and the sidebar alone for the pages Flask draws (floorbit/spa.py).
+    rollupOptions: {
+      input: {
+        index: resolve(import.meta.dirname, 'index.html'),
+        nav: resolve(import.meta.dirname, 'src/nav/entry.tsx'),
+      },
+    },
   },
 })
