@@ -30,6 +30,7 @@ async function init() {
   doRefreshAll().catch(() => {});
   loadIncidentMarkers();
   loadMatchSeats();
+  initSeatStates();
   loadPortInfo();
   loadSecurityMarkers();
   loadLogMarkers();
