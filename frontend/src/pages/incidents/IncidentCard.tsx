@@ -43,6 +43,8 @@ export function IncidentCard({
   const { t } = useTranslation()
   const [note, setNote] = useState('')
   const teamName = board.teams.find((x) => x.id === i.team)?.name
+  // The how-many-th incident at this seat (issue #314): a seat that keeps coming back has a cable or port to check.
+  const atSeat = i.seat ? board.incidents.filter((x) => x.seat === i.seat && x.created_at <= i.created_at).length : 0
   const where = i.seat ? t('incidents.seat', { seat: i.seat })
     : i.circuit_id ? t('incidents.circuit', { name: i.circuit_name ?? i.circuit_id })
     : t('incidents.switch', { name: i.switch_name ?? i.switch_id })
@@ -72,6 +74,7 @@ export function IncidentCard({
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {i.source === 'power' && <Badge variant="light" color="warn" tt="none">{t('incidents.fromPower')}</Badge>}
           {i.reports > 1 && <Badge variant="light" color="warn" tt="none">{t('incidents.reports', { count: i.reports })}</Badge>}
+          {atSeat > 1 && <Badge variant="outline" color="warn" tt="none" title={t('incidents.againHint')}>{t('incidents.again', { n: atSeat })}</Badge>}
           {waiting && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
         </Group>
         {snap && (

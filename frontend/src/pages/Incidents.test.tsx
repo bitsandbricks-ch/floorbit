@@ -164,4 +164,23 @@ describe('Incident board', () => {
     expect(take).toBeDisabled()
     expect(take).toHaveAttribute('title', 'Nothing open that you can work')
   })
+  it('says when a seat has had incidents before', async () => {
+    const now = Date.now() / 1000
+    const repeats: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'r1', title: 'Third time', seat: 'B-7', status: 'open', created_at: now - 60 },
+      { ...base, id: 'r2', title: 'Second time', seat: 'B-7', status: 'fixed', created_at: now - 3600 },
+      { ...base, id: 'r3', title: 'First time', seat: 'B-7', status: 'fixed', created_at: now - 7200 },
+      { ...base, id: 'r4', title: 'Elsewhere', seat: 'C-1', status: 'open', created_at: now - 120 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': repeats }).fn)
+    renderWithApp(<Incidents />)
+    const third = (await screen.findByText('Third time')).closest('[data-incident]') as HTMLElement
+    expect(within(third).getByText('Incident no. 3 at this seat')).toBeInTheDocument()
+    const second = screen.getByText('Second time').closest('[data-incident]') as HTMLElement
+    expect(within(second).getByText('Incident no. 2 at this seat')).toBeInTheDocument()
+    for (const title of ['First time', 'Elsewhere']) {
+      const card = screen.getByText(title).closest('[data-incident]') as HTMLElement
+      expect(within(card).queryByText(/at this seat/)).toBeNull()
+    }
+  })
 })
