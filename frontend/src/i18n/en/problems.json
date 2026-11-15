@@ -1,6 +1,6 @@
 {
   "title": "Problems",
-  "intro": "Everything wrong right now: switches offline, services down, security findings and power circuits close to tripping. Mute a switch you are working on so it stops paging.",
+  "intro": "Everything wrong right now: switches offline, services down, security findings and power circuits close to tripping. Mute a switch or service you are working on so it stops paging.",
   "none": "Nothing is wrong right now.",
   "count": {
     "down_one": "{{count}} down",
@@ -33,7 +33,7 @@
   "unmute": "Unmute",
   "mutedUntil": "Muted until {{time}} by {{who}}",
   "quiet": "Quiet hours: Discord messages go out silently, without the mention.",
-  "mutes": "Muted switches",
+  "mutes": "Muted switches and services",
   "muteTitle": "Mute alerts for {{name}}",
   "muteText": "No Discord messages about this switch going offline or coming back until the mute ends. It stays on this list.",
   "for": "For",
@@ -56,5 +56,6 @@
     "down": "Down",
     "warn": "To look at",
     "muted": "Muted"
-  }
+  },
+  "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall."
 }

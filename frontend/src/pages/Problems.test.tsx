@@ -35,7 +35,7 @@ describe('Problems', () => {
     const muted = screen.getByRole('article', { name: 'sw-d-01 is offline' })
     expect(within(muted).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     expect(within(muted).getByText(/Recabling/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Muted switches' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Muted switches and services' })).toBeInTheDocument()
     // The muted switch opens on the floor plan, in its hall (issue #212).
     expect(screen.getByRole('link', { name: 'sw-d-01' })).toHaveAttribute('href', '/plan?switch=sw-d-01')
   })
@@ -70,6 +70,26 @@ describe('Problems', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
       .toEqual({ switch_id: 's1', minutes: 60, reason: 'Swapping the PSU' }))
+  })
+
+  it('mutes a service on the health wall, and lists it with the muted switches', async () => {
+    const service = { id: 'health:demo:game-1', kind: 'health' as const, level: 'down' as const, title: 'Game server 1: down', where: 'Not answering',
+      since: now, link: '/health', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/problems': list({ problems: [service], mutes: [{ switch_id: 'health:demo:dns', kind: 'health', name: 'DNS', until: now + 600, at: now, by: 'kim', reason: '' }] }),
+      'POST /api/alerts/mutes': { status: 201, body: {} },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const row = await screen.findByRole('article', { name: 'Game server 1: down' })
+    expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/health')
+    fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for Game server 1' })
+    expect(within(dialog).getByText(/this service going down/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
+      .toEqual({ service_id: 'demo:game-1', minutes: 60, reason: '' }))
   })
 
   it('says when all is well', async () => {

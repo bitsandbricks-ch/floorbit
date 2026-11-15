@@ -152,7 +152,8 @@ body {
 .fb-problem { border-left: 6px solid var(--color-unknown); }
 .fb-problem.down { border-left-color: var(--color-down); }
 .fb-problem.warn { border-left-color: var(--color-warn); }
-.fb-problem.muted { opacity: 0.75; }
+/* Muted: the grey edge says it, not faded text, which fell under WCAG contrast. */
+.fb-problem.muted { border-left-style: dashed; }
 
 /* Stats dashboard (pages/Stats.tsx) */
 .fb-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

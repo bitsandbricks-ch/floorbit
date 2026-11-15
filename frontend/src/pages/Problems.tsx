@@ -48,7 +48,7 @@ function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy:
         <Group gap="xs" wrap="nowrap">
           {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since, t) })}</Text>}
           {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
-          {canMute && p.kind === 'switch' && !p.muted && (
+          {canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
             <Button size="xs" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={onMute} disabled={busy}>{t('problems.mute')}</Button>
           )}
         </Group>
@@ -57,8 +57,10 @@ function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy:
   )
 }
 
+type MuteTarget = { id: string; name: string; kind: 'switch' | 'health' }
+
 function MuteDialog({ target, busy, error, onClose, onSave }: {
-  target: { id: string; name: string } | null
+  target: MuteTarget | null
   busy: boolean
   error: string | null
   onClose: () => void
@@ -66,13 +68,15 @@ function MuteDialog({ target, busy, error, onClose, onSave }: {
 }) {
   const { t } = useTranslation()
   return (
-    <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })}>
-      <MuteForm busy={busy} error={error} onClose={onClose} onSave={onSave} />
+    <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })} closeButtonProps={{ 'aria-label': t('problems.cancel') }}>
+      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : 'problems.muteText')}
+        busy={busy} error={error} onClose={onClose} onSave={onSave} />
     </Modal>
   )
 }
 
-function MuteForm({ busy, error, onClose, onSave }: {
+function MuteForm({ text, busy, error, onClose, onSave }: {
+  text: string
   busy: boolean
   error: string | null
   onClose: () => void
@@ -84,7 +88,7 @@ function MuteForm({ busy, error, onClose, onSave }: {
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(Number(minutes), reason.trim()) }}>
       <Stack gap="sm">
-        <Text size="sm">{t('problems.muteText')}</Text>
+        <Text size="sm">{text}</Text>
         <Select label={t('problems.for')} data={MINUTES.map((m) => ({ value: m, label: t(`problems.minutes.${m}`) }))}
           value={minutes} onChange={setMinutes} allowDeselect={false} />
         <TextInput label={t('problems.reason')} value={reason} maxLength={200} onChange={(e) => setReason(e.currentTarget.value)} />
@@ -98,12 +102,12 @@ function MuteForm({ busy, error, onClose, onSave }: {
   )
 }
 
-/** Everything wrong right now, in one list, with mutes for switches someone is working on (issue #10). */
+/** Everything wrong right now, in one list, with mutes for switches and services someone is working on (issues #10, #256). */
 export default function Problems() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const list = useProblems()
-  const [target, setTarget] = useState<{ id: string; name: string } | null>(null)
+  const [target, setTarget] = useState<MuteTarget | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const refresh = () => void client.invalidateQueries({ queryKey: qk.problems })
   useLiveEvent('monitor.poll', refresh)
@@ -112,8 +116,9 @@ export default function Problems() {
   useLiveEvent('attention.changed', refresh)
 
   const mute = useMutation({
-    mutationFn: (v: { id: string; minutes: number; reason: string }) =>
-      post('/api/alerts/mutes', { switch_id: v.id, minutes: v.minutes, reason: v.reason }),
+    // A service on the health wall is muted by its own id (issue #256), a switch by its id.
+    mutationFn: (v: MuteTarget & { minutes: number; reason: string }) =>
+      post('/api/alerts/mutes', { [v.kind === 'health' ? 'service_id' : 'switch_id']: v.kind === 'health' ? v.id.replace(/^health:/, '') : v.id, minutes: v.minutes, reason: v.reason }),
     onSuccess: () => { setTarget(null); refresh() },
     onError: (e) => setDialogError(e.message),
   })
@@ -147,7 +152,7 @@ export default function Problems() {
             <Stack gap="xs">
               {data.problems.map((p) => (
                 <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending}
-                  onMute={() => { setDialogError(null); setTarget({ id: p.switch_id ?? '', name: p.where }) }} />
+                  onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: p.kind === 'health' ? 'health' : 'switch' }) }} />
               ))}
             </Stack>
           )}
@@ -166,7 +171,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href={`/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {data.can_mute && (
                       <Button size="compact-xs" variant="subtle" onClick={() => unmute.mutate(m.switch_id)} disabled={unmute.isPending}>
                         {t('problems.unmute')}
@@ -180,7 +185,7 @@ export default function Problems() {
         </Stack>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={dialogError} onClose={() => setTarget(null)}
-        onSave={(minutes, reason) => target && mute.mutate({ id: target.id, minutes, reason })} />
+        onSave={(minutes, reason) => target && mute.mutate({ ...target, minutes, reason })} />
     </Layout>
   )
 }
