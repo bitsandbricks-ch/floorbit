@@ -220,7 +220,8 @@ def atom_feed(updates, base_url, title, state_names, now=None):
     Same fields as /status.json (time, area, state, text): never who posted.
     """
     base = base_url.rstrip('/')
-    host = base.split('://', 1)[-1].split('/', 1)[0] or 'floorbit'
+    # A tag: URI names a domain, so no port.
+    host = base.split('://', 1)[-1].split('/', 1)[0].rsplit(':', 1)[0] or 'floorbit'
 
     def stamp(at):
         return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(at))
