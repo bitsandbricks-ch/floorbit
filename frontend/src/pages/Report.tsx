@@ -210,6 +210,13 @@ export default function Report() {
                 ))}
               </Text>
             )}
+            {!!r.incidents.seat_problems?.length && (
+              <Text size="sm">
+                {t('report.seatProblems', {
+                  what: r.incidents.seat_problems.map((x) => `${t(`report.problem_${x.problem}`, { defaultValue: x.problem })} ${x.count}×`).join(', '),
+                })}
+              </Text>
+            )}
             {r.incidents.total > r.incidents.items.length && (
               <Text size="xs" c="dimmed">{t('report.cut', { count: r.incidents.items.length, total: r.incidents.total })}</Text>
             )}

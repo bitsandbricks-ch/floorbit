@@ -44,6 +44,14 @@ describe('My jobs', () => {
     expect(await screen.findByText('Marked fixed.')).toBeInTheDocument()
   })
 
+  it('says when the seat says it works again (issue #382)', async () => {
+    const ok = { ...data, jobs: [{ ...job, seat_ok_at: now - 120 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/jobs': ok }).fn)
+    const { container } = renderWithApp(<Jobs />)
+    await screen.findByRole('article', { name: job.title })
+    expect(container.querySelector('[data-seat-ok]')?.textContent).toMatch(/^The seat said at .+ that it works again\. Ask there/)
+  })
+
   it('goes off duty', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [], done: 3, auto: true },

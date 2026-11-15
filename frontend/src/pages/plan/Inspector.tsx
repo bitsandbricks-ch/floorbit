@@ -1,9 +1,10 @@
 import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
-import { IconExternalLink, IconMapPin } from '@tabler/icons-react'
+import { IconExternalLink, IconMapPin, IconQrcode } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { get } from '@/api/client'
+import { useCan } from '@/api/queries'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
@@ -20,6 +21,7 @@ const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown
 export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: () => void; onBlock?: (block: string) => void }) {
   const { t, i18n } = useTranslation()
   const here = useLocation()
+  const canQr = useCan('incidents.assign')
   const q = useQuery({ queryKey: qk.planSeat(seat), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seat)}`) })
   const d = q.data
   // Like the plan: a missing check-in is listed but not counted as a problem.
@@ -93,6 +95,8 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
             {d.switch && <WatchSeat seat={seat} />}
             <Button component="a" href={`/?seat=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconMapPin size={14} />}>{t('plan.openEditor')}</Button>
             <Button component="a" href={`/incidents?q=${encodeURIComponent(`seat:${seat}`)}`} variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>
+            {/* Reprint a torn sticker straight from the seat (issue #380). */}
+            {canQr && <Button component="a" href={`/incidents/qr?seats=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconQrcode size={14} />}>{t('plan.qrCode')}</Button>}
           </Group>
         </>
       )}
