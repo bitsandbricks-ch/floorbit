@@ -9,6 +9,7 @@
   <script src="/static/js/refresh.js" data-every="60" defer></script>
   {% endif %}
   <title>{{ t.title }} · Floorbit</title>
+  {% if not off %}<link rel="alternate" type="application/atom+xml" title="{{ t.updates }}" href="/status.atom" />{% endif %}
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <style>
@@ -34,6 +35,8 @@
     li { border-left: 3px solid var(--k, var(--color-line)); padding: 2px 0 2px 12px; }
     li b { display: block; }
     .recovered-at { margin-bottom: 10px; }
+    .feed { margin-top: 12px; }
+    .feed a { color: inherit; }
   </style>
 </head>
 <body>
@@ -88,6 +91,7 @@
       {% else %}
       <p class="muted">{{ t.none }}</p>
       {% endif %}
+      <p class="muted feed"><a href="/status.atom">{{ t.feed }}</a></p>
     </section>
     <p class="muted">{{ stamp(t.updated, s.checked_at) }}</p>
     <script src="/static/js/status.js"></script>

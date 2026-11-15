@@ -2,7 +2,8 @@
 
 `/status` tells attendees whether the network is fine, which areas an outage hits, and what the crew
 says about it. It needs no account, so it can be linked from the event website, shown on a screen
-or posted in Discord. `/status.json` has the same as JSON.
+or posted in Discord. `/status.json` has the same as JSON, and `/status.atom` has the crew's updates
+as an Atom feed, so attendees can follow them in a feed reader and the event website can show them.
 
 It is **off** until an admin turns on **Network status page** under **Settings > Attendee pages**
 (or `STATUS_PAGE=true`). The feature can also be switched off entirely under Settings > Features.
@@ -59,11 +60,20 @@ the affected areas with the switch names, and the updates.
 - Posting and removing updates and setting the state need `incidents.assign` (lead and admin).
 - Every change is in the audit log (area *status page*).
 
+## Discord
+
+Set **Attendee status channel webhook** (Settings > Integrations > Discord,
+`DISCORD_STATUS_WEBHOOK_URL`) to a webhook in a channel attendees read, such as `#network-status`.
+Every update the crew posts then goes there as well, with its state, area and a link to `/status`,
+while the public status page is on. Like the page, it never says who posted, and it mentions
+nobody. This is separate from the crew's alert webhook, which says much more.
+
 ## API
 
 | Route | What |
 | --- | --- |
 | `GET /status`, `GET /status.json` | the public page, no account |
+| `GET /status.atom` | the crew's updates as an Atom feed, no account. Its links use the Public URL (Settings > General, `PUBLIC_URL`) when it is set |
 | `GET /api/status-page` | the crew's view: the public one plus the state set by hand and the switch names |
 | `POST /api/status-page/updates` | `{"text": "...", "area": "Hall B"}` |
 | `DELETE /api/status-page/updates/<id>` | removes an update |

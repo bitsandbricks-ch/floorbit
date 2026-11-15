@@ -199,3 +199,39 @@ def test_back_online_counts_incidents_filed_while_down(client, app_module, floor
     with app_module.app.app_context():
         msg = DiscordNotifier().build_status_message([change(floor["b"], "sw-a-02", "online")])
     assert "Open incidents from its seats" not in {f["name"] for f in msg["embeds"][0]["fields"]}
+
+
+def test_status_updates_go_to_the_attendee_channel(client, monkeypatch):
+    # Crew updates on the public status page also go to a Discord channel attendees read.
+    sent = []
+    # On the class, so the app's own notifier queues nothing and never reaches Discord.
+    monkeypatch.setattr(DiscordNotifier, "post", lambda self, payload: sent.append(payload))
+    update = {"text": "Hall B has no network, about 15 minutes.", "area": "Hall B", "state": "maintenance"}
+    client.post("/api/status-page/updates", json=update)
+    assert sent == []   # no webhook set
+    monkeypatch.setenv("DISCORD_STATUS_WEBHOOK_URL", "https://discord.example.com/api/webhooks/1/x")
+    client.post("/api/status-page/updates", json=update)
+    assert sent == []   # the public status page is off
+    client.put("/api/settings", json={"public.status_page": True})
+    client.post("/api/status-page/updates", json=update)
+    assert sent and all(m == sent[0] for m in sent)
+    msg = sent[0]
+    assert msg["_webhook"] == "https://discord.example.com/api/webhooks/1/x"
+    embed = msg["embeds"][0]
+    assert embed["title"] == "Maintenance · Hall B" and embed["description"] == update["text"]
+    assert embed["url"].endswith("/status") and msg["allowed_mentions"] == {"parse": []}
+    from tests.conftest import TEST_USER
+    assert TEST_USER not in str(msg)
+
+
+def test_status_updates_use_their_own_webhook(monkeypatch):
+    posted = []
+
+    class Resp:
+        status_code, text = 204, ""
+
+    monkeypatch.setattr("integrations.discord.requests.post",
+                        lambda url, json, timeout: posted.append((url, json)) or Resp())
+    monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.example.com/api/webhooks/2/crew")
+    DiscordNotifier().send({"embeds": [], "_webhook": "https://discord.example.com/api/webhooks/1/x"})
+    assert posted == [("https://discord.example.com/api/webhooks/1/x", {"embeds": []})]

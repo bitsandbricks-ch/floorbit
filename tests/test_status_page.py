@@ -1,5 +1,6 @@
 """Public network status page (issue #101): the state, the areas hit, the crew's updates."""
 import time
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -169,3 +170,31 @@ def test_crew_view_lists_recently_back_with_switches(client, floor):
     floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": time.time() - 60, "previous": "offline"}}
     crew = client.get("/api/status-page").get_json()
     assert crew["crew_recovered"][0]["switches"] == ["sw-a-01"] and "switches" not in crew["recovered"][0]
+
+
+def test_atom_feed_of_updates(client, anon_client, floor, switched_on):
+    client.put("/api/settings", json={"integrations.public_url": "https://status.example.com/"})
+    client.post("/api/status-page/updates", json={"text": "Hall B has no network <for now> & we know.",
+                                                  "area": "Hall B", "state": "maintenance"})
+    client.post("/api/status-page/updates", json={"text": "Hall B is back."})
+    r = anon_client.get("/status.atom")
+    assert r.status_code == 200 and r.mimetype == "application/atom+xml"
+    ns = {"a": "http://www.w3.org/2005/Atom"}
+    feed = ET.fromstring(r.data)
+    entries = feed.findall("a:entry", ns)
+    assert [e.find("a:content", ns).text for e in entries] == [
+        "Hall B is back.", "Hall B has no network <for now> & we know."]
+    assert entries[1].find("a:title", ns).text.startswith("Maintenance · Hall B: ")
+    assert feed.find("a:link[@rel='self']", ns).get("href") == "https://status.example.com/status.atom"
+    # Same rule as /status.json: never who posted.
+    from tests.conftest import TEST_USER
+    assert TEST_USER.encode() not in r.data
+    assert 'href="/status.atom"' in anon_client.get("/status").get_data(as_text=True)
+
+
+def test_atom_feed_off_and_empty(client, anon_client, floor):
+    assert anon_client.get("/status.atom").status_code == 404
+    client.put("/api/settings", json={"public.status_page": True})
+    feed = ET.fromstring(anon_client.get("/status.atom").data)
+    assert feed.find("{http://www.w3.org/2005/Atom}updated").text.endswith("Z")
+    assert feed.findall("{http://www.w3.org/2005/Atom}entry") == []

@@ -17,6 +17,7 @@ import math
 import threading
 import time
 import uuid
+from xml.sax.saxutils import escape as _x
 
 from . import halls, inventory
 from .power import block_rows
@@ -211,3 +212,41 @@ def current(data, statuses, monitoring_up, show_names=False):
         'recovered_at': max(statuses[d['id']]['since'] for d in back) if back and monitoring_up else None,
         'checked_at': now,
     }
+
+
+def atom_feed(updates, base_url, title, state_names, now=None):
+    """The crew's updates as an Atom feed, so attendees and the event website can follow them.
+
+    Same fields as /status.json (time, area, state, text): never who posted.
+    """
+    base = base_url.rstrip('/')
+    # A tag: URI names a domain, so no port.
+    host = base.split('://', 1)[-1].split('/', 1)[0].rsplit(':', 1)[0] or 'floorbit'
+
+    def stamp(at):
+        return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(at))
+
+    # A feed with no entries still needs <updated>: the newest update, else now.
+    newest = max((u.get('at') or 0 for u in updates), default=0) or (now or time.time())
+    out = ['<?xml version="1.0" encoding="utf-8"?>',
+           '<feed xmlns="http://www.w3.org/2005/Atom">',
+           f'<id>tag:{_x(host)},2026:floorbit-status</id>',
+           f'<title>{_x(title)}</title>',
+           f'<link rel="alternate" type="text/html" href="{_x(base)}/status"/>',
+           f'<link rel="self" type="application/atom+xml" href="{_x(base)}/status.atom"/>',
+           f'<updated>{stamp(newest)}</updated>',
+           '<author><name>Floorbit</name></author>']
+    for u in updates:
+        label = state_names.get(u.get('state')) if u.get('state') else None
+        head = ' · '.join(p for p in (label, u.get('area')) if p)
+        text = u.get('text') or ''
+        line = text if len(text) <= 80 else text[:79].rstrip() + '…'
+        out += ['<entry>',
+                f'<id>tag:{_x(host)},2026:floorbit-status:{_x(str(u.get("id")))}</id>',
+                f'<title>{_x((head + ": " if head else "") + line)}</title>',
+                f'<link rel="alternate" type="text/html" href="{_x(base)}/status"/>',
+                f'<updated>{stamp(u.get("at") or newest)}</updated>',
+                f'<content type="text">{_x(text)}</content>',
+                '</entry>']
+    out.append('</feed>')
+    return '\n'.join(out) + '\n'

@@ -2,6 +2,7 @@
 
 - ``GET /status``: the page for attendees, no account. Off unless Settings > Attendee pages turns it on.
 - ``GET /status.json``: the same as JSON, for the event website or a Discord bot.
+- ``GET /status.atom``: the crew's updates as an Atom feed, for feed readers and the event website.
 - ``GET /network-status``: the crew's page (React): what the public page says now, updates, the state
   set by hand.
 - ``GET /api/status-page``: what the public page shows, plus who set what.
@@ -13,7 +14,7 @@ Reading the crew's view needs ``incidents.work``, changing it ``incidents.assign
 """
 import time
 
-from flask import Blueprint, current_app, g, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
 from markupsafe import Markup, escape
 
 from integrations import events
@@ -37,7 +38,8 @@ TEXTS = {
            'switches': 'Switches: {names}', 'updates': 'Updates from the crew', 'none': 'No updates yet.',
            'updated': 'Updated {time}. This page updates every minute.', 'block': 'Seat block {name}',
            'unnamed': 'A seat block', 'hall_wide': 'Hall {name}', 'somewhere': 'Somewhere in the hall',
-           'recovered': 'Back up recently', 'recovered_at': 'The network here has been back since {time}.'},
+           'recovered': 'Back up recently', 'recovered_at': 'The network here has been back since {time}.',
+           'feed': 'Follow the updates in a feed reader (Atom)'},
     'de': {'title': 'Netzwerkstatus', 'off': 'Diese Seite ist ausgeschaltet.',
            'state': {'operational': 'Alles läuft', 'degraded': 'Ein Teil des Netzwerks ist ausgefallen',
                      'outage': 'Netzwerkausfall', 'maintenance': 'Wartung',
@@ -52,7 +54,8 @@ TEXTS = {
            'none': 'Noch keine Updates.', 'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.',
            'block': 'Platzblock {name}', 'unnamed': 'Ein Platzblock', 'hall_wide': 'Halle {name}',
            'somewhere': 'Irgendwo in der Halle', 'recovered': 'Wieder da',
-           'recovered_at': 'Das Netzwerk hier läuft seit {time} wieder.'},
+           'recovered_at': 'Das Netzwerk hier läuft seit {time} wieder.',
+           'feed': 'Updates im Feedreader folgen (Atom)'},
 }
 
 
@@ -92,6 +95,10 @@ def _stamp(text, at):
     return Markup(str(escape(text)).replace('{time}', str(tag)))
 
 
+def _base_url():
+    return (current_app.extensions['auth'].public_url() or '').rstrip('/') or request.host_url.rstrip('/')
+
+
 def _changed():
     events.publish('status_page.changed', {})
 
@@ -116,7 +123,20 @@ def status_json():
     return jsonify(body)
 
 
-for _view in (status_public, status_json):
+@bp.route('/status.atom')
+def status_atom():
+    if not page_on():
+        return jsonify({'error': 'The status page is switched off.'}), 404
+    lang = request.accept_languages.best_match(['en', 'de'], default='en')
+    text = TEXTS[lang]
+    name = _settings().get('theme.name') or ''
+    base = _base_url()
+    feed = status_page.atom_feed(_now()['updates'], base, f"{text['title']}{' · ' + name if name else ''}",
+                                 text['state'])
+    return Response(feed, mimetype='application/atom+xml', headers={'Cache-Control': 'max-age=60'})
+
+
+for _view in (status_public, status_json, status_atom):
     _view._auth_public = True   # what auth.public_endpoint sets: attendees have no account
 
 
@@ -145,6 +165,10 @@ def add_update():
         return jsonify({'error': str(exc)}), exc.status
     audit.record('status page', 'Posted status update', g.get('audit_user'), update['text'][:120])
     _changed()
+    # For the attendees' Discord channel (integrations/discord.py): never who posted.
+    events.publish('status_page.update', {
+        'update': {k: update[k] for k in ('at', 'text', 'state', 'area')}, 'public': page_on(),
+        'page_url': _base_url() + '/status'})
     return jsonify(update), 201
 
 
