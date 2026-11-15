@@ -1220,6 +1220,8 @@ export interface SeatDetails {
   port: string | null
   incidents: { id: string; title: string; status: string; created_at: number }[]
   attention: { kind: string; title: string; since: number }[]
+  /** The link over the last hours (issue #167): online at ``from`` (null: not read yet), then each change. */
+  history?: { from: number; to: number; start: boolean | null; changes: [number, number][] }
   match: string | null
   checked_in: boolean | null
   last_read: number | null

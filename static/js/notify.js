@@ -6,7 +6,8 @@
 
 (function () {
   const KEY = 'floorbit-notify';
-  const DEFAULTS = { on: false, incidents: true, jobs: true, switches: true };
+  const DEFAULTS = { on: false, incidents: true, jobs: true, switches: true,
+                     quiet: false, quietFrom: '22:00', quietTo: '08:00', jobsInQuiet: true };
   let source = null;
   let me = null;
 
@@ -32,6 +33,22 @@
     }
   }
 
+  function minutes(hhmm) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+    return m ? (Number(m[1]) % 24) * 60 + Number(m[2]) : null;
+  }
+
+  // Quiet hours (issue #161): local time on this device, and they may run past midnight.
+  function quietNow(s, date) {
+    if (!s.quiet) return false;
+    const from = minutes(s.quietFrom);
+    const to = minutes(s.quietTo);
+    if (from === null || to === null || from === to) return false;
+    const d = date || new Date();
+    const now = d.getHours() * 60 + d.getMinutes();
+    return from < to ? now >= from && now < to : now >= from || now < to;
+  }
+
   function supported() {
     return typeof Notification !== 'undefined' && typeof EventSource !== 'undefined';
   }
@@ -55,7 +72,7 @@
 
   async function onIncident(data) {
     const s = read();
-    if (!s.incidents || data.action !== 'created' || !data.id) return;
+    if (!s.incidents || quietNow(s) || data.action !== 'created' || !data.id) return;
     let item = null;
     try {
       item = ((await json('/api/incidents')).incidents || []).find((i) => i.id === data.id);
@@ -69,12 +86,14 @@
   }
 
   function onDispatched(data) {
-    if (!read().jobs || !me || data.assignee !== me) return;
+    const s = read();
+    if (!s.jobs || (quietNow(s) && !s.jobsInQuiet) || !me || data.assignee !== me) return;
     show(text().job, text().jobText, `job-${data.id}`, '/jobs');
   }
 
   function onSwitch(data) {
-    if (!read().switches || !data || data.status !== 'offline') return;
+    const s = read();
+    if (!s.switches || quietNow(s) || !data || data.status !== 'offline') return;
     show(text().down, text().downText.replace('{name}', data.name || 'Switch'), `switch-${data.id || data.name}`, '/');
   }
 
@@ -127,6 +146,7 @@
     supported,
     settings: read,
     permission: () => (supported() ? Notification.permission : 'unsupported'),
+    quietNow: () => quietNow(read()),
     set,
   };
   // Another tab changed the settings.

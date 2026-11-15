@@ -49,3 +49,24 @@ def test_a_read_only_token_can_scrape(client, anon_client, app_module, hall, mon
     assert anon_client.get("/api/metrics").status_code in (401, 302)
     resp = anon_client.get("/api/metrics", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200 and "floorbit_info" in resp.get_data(as_text=True)
+
+
+def test_grafana_examples_use_real_metrics(client, hall, monkeypatch):
+    """The dashboard and alert rules in docs/grafana (issue #162) only ask for metrics that exist."""
+    import json
+    import pathlib
+    import re
+
+    import yaml
+
+    monkeypatch.setenv("CHECKIN_ENABLED", "1")
+    assert client.put("/api/settings", json={"metrics.enabled": True}).status_code == 200
+    served = set(re.findall(r"^# TYPE (\w+) ", client.get("/api/metrics").get_data(as_text=True), re.M))
+    docs = pathlib.Path(__file__).resolve().parent.parent / "docs" / "grafana"
+    dash = json.loads((docs / "floorbit-dashboard.json").read_text())
+    exprs = [t["expr"] for p in dash["panels"] for t in p["targets"]]
+    assert len({p["id"] for p in dash["panels"]}) == len(dash["panels"])
+    rules = yaml.safe_load((docs / "floorbit-alerts.yml").read_text())["groups"][0]["rules"]
+    exprs += [r["expr"] for r in rules]
+    used = {m for e in exprs for m in re.findall(r"floorbit_\w+", e)}
+    assert used and used <= served, used - served
