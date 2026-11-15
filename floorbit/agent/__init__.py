@@ -23,7 +23,8 @@ POLL_WAIT = 25            # the hosted side holds a poll at most this long
 HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
-METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp')
+METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
+           'inventory_feeds')
 
 
 class Refused(RuntimeError):
@@ -39,11 +40,25 @@ def local_executor(app):
             raise PluginError(f'{method} is not something the agent answers')
         with app.app_context():
             registry = sources.registry
+            if method == 'inventory_feeds':
+                return inventory_feeds(registry)
             spec = registry.monitoring_source() if registry is not None else None
             if spec is None:
                 raise PluginError('No monitoring plugin is set up on the agent (LIBRENMS_URL and LIBRENMS_TOKEN?)')
             return registry.call(spec, method, *args)
     return execute
+
+
+def inventory_feeds(registry):
+    """Every inventory plugin that's on here (NetBox), each with its devices or its error."""
+    from ..plugins.base import PluginError
+    out = []
+    for spec in registry.feeders('inventory') if registry is not None else []:
+        try:
+            out.append({'plugin': spec.id, 'name': spec.name, 'items': registry.call(spec, 'inventory') or []})
+        except PluginError as exc:
+            out.append({'plugin': spec.id, 'name': spec.name, 'error': str(exc)[:300]})
+    return out
 
 
 class Agent:

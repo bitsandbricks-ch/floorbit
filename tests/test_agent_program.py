@@ -134,3 +134,69 @@ def test_the_local_executor_only_runs_monitoring_methods(app_module):
     execute = agent_mod.local_executor(app_module.app)
     with pytest.raises(PluginError):
         execute('delete_everything', [])
+
+
+def test_the_inventory_comes_through_the_agent(client, app_module):
+    """A hosted sync asks the agent for its NetBox devices, kept under NetBox's own id."""
+    key = enrol(client)['key']
+
+    def execute(method, args):
+        if method == 'inventory_feeds':
+            return [{'plugin': 'netbox', 'name': 'NetBox', 'items': [
+                        {'id': '7', 'name': 'sw-a-01', 'role': 'switch', 'model': 'X1'}]},
+                    {'plugin': 'other', 'name': 'Other', 'error': 'Other said no'},
+                    {'plugin': 'Not An Id!', 'name': 'x', 'items': []}]
+        return fake_execute(method, args)
+
+    a = make(app_module, key, execute)
+    a.poll_wait = 0.5
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        res = client.post('/api/inventory/sync', headers={'X-Requested-With': 'fetch'})
+        assert res.status_code == 200, res.get_json()
+        reports = {r['plugin']: r for r in res.get_json()['reports'] if r.get('via') == 'agent'}
+        assert reports['netbox']['added'] == 1, reports['netbox']
+        assert 'error' in reports['other'] and 'Not An Id!' not in reports
+        devices = client.get('/api/inventory').get_json()
+        assert [d['name'] for d in devices['devices']] == ['sw-a-01']
+        by_id = {s['id']: s for s in devices['sources']}
+        # NetBox's own row (it is on here too) shows the agent's sync; Other only came from the agent.
+        assert by_id['netbox']['last_sync']['via'] == 'agent'
+        assert by_id['other']['name'] == 'Other (local agent)'
+    finally:
+        a.stop()
+        worker.join(30)
+
+
+def test_an_away_agent_is_a_failed_sync(client):
+    enrol(client)
+    res = client.post('/api/inventory/sync', headers={'X-Requested-With': 'fetch'})
+    agent = [r for r in res.get_json()['reports'] if r.get('via') == 'agent']
+    assert agent and 'not connected' in agent[0]['error']
+    names = [s['name'] for s in client.get('/api/inventory').get_json()['sources']]
+    assert 'Local agent' in names
+
+
+def test_the_agent_sends_its_inventory_plugins(app_module):
+    from floorbit.plugins.base import PluginError
+
+    class Spec:
+        def __init__(self, i):
+            self.id, self.name = i, i.title()
+
+    class Registry:
+        def feeders(self, area):
+            return [Spec('netbox'), Spec('broken')] if area == 'inventory' else []
+
+        def call(self, spec, method):
+            if spec.id == 'broken':
+                raise PluginError('down')
+            return [{'id': '1', 'name': 'sw-01'}]
+
+    assert agent_mod.inventory_feeds(Registry()) == [
+        {'plugin': 'netbox', 'name': 'Netbox', 'items': [{'id': '1', 'name': 'sw-01'}]},
+        {'plugin': 'broken', 'name': 'Broken', 'error': 'down'}]

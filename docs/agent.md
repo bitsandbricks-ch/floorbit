@@ -10,7 +10,7 @@ opened. The hosted Floorbit hands the agent its LibreNMS questions (which switch
 port an IP is on, a port's traffic). The agent asks the event's own LibreNMS and sends the answers back.
 
 !!! note "Work in progress"
-    NetBox through the agent and a Compose file for it follow in the next pull requests.
+    A Compose file for the agent follows in the next pull request.
 
 ## Enrolling an agent
 
@@ -55,6 +55,22 @@ it tries again after 1 second, then 2, 4 and so on, up to a minute between tries
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
 start it with the new key.
 
+## The inventory through the agent
+
+Set up the event's inventory plugin on the agent too (for NetBox: `NETBOX_URL` and
+`NETBOX_TOKEN`). An inventory sync on the hosted Floorbit (**Inventory > Sync**, or **Sync
+switches** in the editor) then also asks the agent: it runs each inventory plugin that is on there
+and sends back their devices. They are merged under the plugin's own id (`netbox`), the same as a
+local install would, so a hall that moves from a local Floorbit to a hosted one keeps its devices,
+their positions and the fields you edited by hand.
+
+The inventory page lists the agent's plugins as, for example, "NetBox (local agent)", with their last
+sync. A plugin that fails on the agent fails on its own; the others still sync. If the agent is away,
+the sync says so and nothing changes. A sync waits up to 25 seconds for the agent.
+
+Turn the inventory plugins off on the hosted Floorbit itself (**Settings > Plugins**): it can't
+reach NetBox, so they would only add a failed sync each time.
+
 ## When the agent is away
 
 An agent counts as **connected** while it asked for work in the last 60 seconds. A page that needs
@@ -75,8 +91,9 @@ The agent sends its key in the `Floorbit-Agent-Key` header and its version in
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
 
 The methods are those of the monitoring source (see [architecture.md](architecture.md#inventory-and-data-sources)):
-`configured`, `devices`, `device_details`, `resolve_ip`, `port_stats`, `device_ports` and `arp`. Nothing else
-can be asked. The agent answers with what its own monitoring plugin returns.
+`configured`, `devices`, `device_details`, `resolve_ip`, `port_stats`, `device_ports` and `arp`, plus
+`inventory_feeds`, which answers `[{"plugin", "name", "items"}]` (or `"error"` instead of `"items"`) for each
+inventory plugin that's on. Nothing else can be asked. The agent answers with what its own monitoring plugin returns.
 
 For admins (**Manage settings**):
 

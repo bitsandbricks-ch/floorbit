@@ -12,6 +12,8 @@ Nothing on the event network has to be reachable from outside.
   last good data, marked stale (floorbit/sources/lastgood.py).
 - **The source:** with an agent enrolled, ``AgentMonitoring`` is what ``sources.monitoring()``
   returns, so the floor plan, status monitor and check-in page work as with a local LibreNMS.
+- **The inventory:** an inventory sync also asks the agent for its inventory plugins' devices
+  (``inventory_feeds``), merged under each plugin's own id (floorbit/blueprints/inventory.py).
 
 One app process (gunicorn runs one worker), so the queue lives in memory.
 """
@@ -37,8 +39,12 @@ CALL_TIMEOUT = 8         # seconds a page waits for the agent's answer
 MAX_WAIT = 25            # longest long poll, under the usual 30 s proxy timeouts
 MAX_PENDING = 200        # calls queued for the agent; more fail at once
 TOUCH_EVERY = 30         # seconds between "last seen" writes to data.json
-# What the agent may be asked: the monitoring source's methods (floorbit/sources), nothing else.
-METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp')
+INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it longer, under proxy timeouts
+# What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
+# inventory feeds of its inventory plugins (NetBox), nothing else.
+METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
+           'inventory_feeds')
+PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
 _active = None            # ((data file, mtime), is an agent enrolled?)
@@ -231,6 +237,23 @@ class Tunnel:
 
 
 tunnel = Tunnel()
+
+
+def inventory_feeds():
+    """The agent's inventory plugins and their devices: ``[{plugin, name, items | error}]``.
+
+    Raises AgentUnavailable or AgentError. Feeds that don't look right are dropped."""
+    feeds = tunnel.call('inventory_feeds', timeout=INVENTORY_TIMEOUT)
+    out = []
+    for f in feeds if isinstance(feeds, list) else []:
+        if not isinstance(f, dict) or not PLUGIN_ID_RE.match(str(f.get('plugin') or '')):
+            continue
+        name = str(f.get('name') or f['plugin'])[:60]
+        if f.get('error') or not isinstance(f.get('items'), list):
+            out.append({'plugin': f['plugin'], 'name': name, 'error': str(f.get('error') or 'no devices sent')[:300]})
+        else:
+            out.append({'plugin': f['plugin'], 'name': name, 'items': f['items']})
+    return out
 
 
 # ── The monitoring source it feeds ─────────────────────────────────────────────────────────────
