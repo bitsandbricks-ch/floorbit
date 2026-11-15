@@ -17,6 +17,8 @@ It needs no gateway connection.
   ``incidents.work`` (issues #272, #274); a webhook can't carry buttons.
 - An incident nobody has taken for ``DISCORD_CREW_WAITING_MINUTES`` gets one line in its
   thread saying so, with a ping for ``DISCORD_CREW_WAITING_ROLE`` when that is set (issue #298).
+- A job sent to a tech who hasn't said "On my way" after ``DISCORD_CREW_UNSEEN_MINUTES`` gets one
+  line in its thread too, so a lead can send it to someone else (issue #366).
 
 Talking to Discord runs on its own thread, so a slow Discord never holds up a request. Which
 Discord message and thread belong to which incident is kept in its own small file next to
@@ -211,8 +213,10 @@ class CrewBridge:
                 if self.app is not None:
                     with self.app.app_context():
                         self.nudge_waiting()
+                        self.nudge_unseen()
                 else:
                     self.nudge_waiting()
+                    self.nudge_unseen()
             except Exception as exc:  # noqa: BLE001  # keep checking after a failed send
                 self.last_error = str(exc)[:300]
 
@@ -410,6 +414,36 @@ class CrewBridge:
                            {'content': f'<@&{role}> {text}' if role else text,
                             'allowed_mentions': {'parse': [], 'roles': [role] if role else []}})
                 record['nudged'] = True
+                nudged.append(incident['id'])
+            if nudged:
+                self._write(state)
+        return nudged
+
+    def nudge_unseen(self, now=None):
+        """Say once in a thread when the tech a job was sent to hasn't seen it for a while (issue #366).
+
+        Same rule as the board's "not seen for" line. Once per sending: sent again, it can say so again.
+        No ping: the tech's phone is the problem, and the lead reads the thread."""
+        minutes = config.get_int('DISCORD_CREW_UNSEEN_MINUTES', 5, minimum=0)
+        if not minutes or not self.enabled():
+            return []
+        from floorbit import incidents
+        now = now or time.time()
+        nudged = []
+        with self._file_lock:
+            state = self._read()
+            for incident in incidents.list_all():
+                record = state.get(incident['id'])
+                sent = incident.get('dispatched_at')
+                if not record or not record.get('thread') or not sent or record.get('unseen_for') == sent:
+                    continue
+                if incident.get('status') == 'fixed' or not incident.get('assignee') or incident.get('taken_at') \
+                        or now - sent < minutes * 60:
+                    continue
+                text = f"📵 Sent to {incident['assignee']} {_waited(now - sent)} ago, not seen yet."
+                self._call('POST', f"/channels/{record['thread']}/messages",
+                           {'content': text, 'allowed_mentions': {'parse': []}})
+                record['unseen_for'] = sent
                 nudged.append(incident['id'])
             if nudged:
                 self._write(state)
