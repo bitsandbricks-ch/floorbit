@@ -104,6 +104,7 @@ export default function Jobs() {
               </Stack>
             </Paper>
             {!data.me.on_duty && <Text size="sm" c="dimmed">{t('jobs.offDuty')}</Text>}
+            {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
             {data.jobs.length === 0 ? (
               <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('jobs.none')}</Text></Paper>
             ) : data.jobs.map((job) => (

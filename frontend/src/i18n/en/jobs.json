@@ -21,5 +21,7 @@
   "otherHall": "In {{hall}}",
   "doneMsg": "Marked fixed.",
   "backMsg": "Back on the board.",
-  "runbook": "Steps: {{title}}"
+  "runbook": "Steps: {{title}}",
+  "doneLately_one": "You fixed {{count}} job in the last 12 hours.",
+  "doneLately_other": "You fixed {{count}} jobs in the last 12 hours."
 }

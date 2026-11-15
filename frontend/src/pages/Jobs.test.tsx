@@ -44,12 +44,13 @@ describe('My jobs', () => {
 
   it('goes off duty', async () => {
     const api = fakeFetch({
-      'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [] },
+      'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [], done: 3 },
       'PUT /api/jobs/me': { on_duty: false, at: 'A-1', since: now },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Jobs />)
     expect(await screen.findByText('No jobs for you right now.')).toBeInTheDocument()
+    expect(screen.getByText('You fixed 3 jobs in the last 12 hours.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('switch', { name: /On duty/ }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ on_duty: false }))
   })
