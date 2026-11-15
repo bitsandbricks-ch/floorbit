@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from integrations import crew
 from tests.conftest import TEST_USER
+from tests.test_health import fake_checks, registry, wall  # noqa: F401 (fixtures)
+from tests.test_service_mutes import red_wall
 
 CHANNEL = "900000000000000001"
 
@@ -289,3 +291,35 @@ def test_the_mute_button_id_takes_switch_ids_but_nothing_odd():
         "mute", "3f2b9c1e-7a4d-4e8f-9b1a-2c3d4e5f6a7b")
     assert crew.parse_custom_id("fb:mute:a/b") is None
     assert crew.parse_custom_id("fb:take:a-b") is None
+
+
+def test_a_service_alert_can_be_muted_from_discord(bridge, client, anon_client, app_module, monkeypatch, key,
+                                                   wall, fake_checks):  # noqa: F811
+    """Issue #274: the same button under a red service on the health wall."""
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations import alerting
+    from integrations.discord import DiscordNotifier
+    # The app's own notifier would post the red wall too, from its thread: keep it out of the count.
+    monkeypatch.setattr(app_module.app.extensions["floorbit_discord"], "post", lambda payload: None)
+    red_wall(wall, fake_checks, monkeypatch)
+
+    notifier = DiscordNotifier(crew=bridge)
+    change = {"id": "demo:game-1", "name": "Game server 1", "status": "down", "previous": "up"}
+    notifier.send(notifier.build_health_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    (button,) = body["components"][0]["components"]
+    assert button["label"] == "Mute Game server 1 for 1 h" and button["custom_id"] == "fb:mute:health:demo:game-1"
+    assert crew.parse_custom_id(button["custom_id"]) == ("mute", "health:demo:game-1")
+
+    users = app_module.app.extensions["auth"].users
+    users.add("tech-ana", "example-pass-1", role="tech", identities={"discord": "111"})
+
+    def press(target):
+        resp = anon_client.post("/api/discord/interactions", **_interaction(key, _click("mute", target)))
+        return resp.get_json()["data"]["content"]
+
+    assert press("health:demo:game-1").startswith("Muted Game server 1 until ")
+    assert alerting.mutes()["health:demo:game-1"]["by"] == "tech-ana"
+    assert "health wall" in press("health:demo:nope")
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Muted service alerts from Discord"

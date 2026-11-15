@@ -4,7 +4,7 @@
   server to server. Each request must carry a valid Ed25519 signature for the app's public key
   (``DISCORD_APP_PUBLIC_KEY``), so only Discord can call it.
 
-"Mute … for 1 h" under a switch alert mutes that switch for an hour (issue #272).
+"Mute … for 1 h" under a switch or service alert mutes it for an hour (issues #272, #274).
 
 A click acts as the Floorbit account linked to the clicking Discord user, with that account's
 permissions, exactly as if they had clicked on the incident board. Clicks from another server or
@@ -109,11 +109,21 @@ def _mute(user, switch_id):
 
     from .. import inventory
     from ..store import load_data
-    device = next((d for d in inventory.devices(load_data(), include_hidden=True) if d['id'] == switch_id), None)
-    if not device:
-        return _say('That switch is not on the floor plan any more.')
-    entry = alerting.mute(device['id'], device['name'], crew.MUTE_MINUTES, user['username'], 'Muted from Discord')
-    audit.record('alerts', 'Muted switch alerts from Discord', user=user['username'], target=device['name'])
+    if switch_id.startswith('health:'):
+        # A service on the health wall (issue #274), muted under the same key as on the Problems page.
+        wall = current_app.extensions.get('floorbit_health')
+        check = next((c for c in (wall.snapshot()['checks'] if wall else [])
+                      if alerting.service_key(c['id']) == switch_id), None)
+        if not check:
+            return _say('That service is not on the health wall any more.')
+        key, name, label = switch_id, check['name'], 'Muted service alerts from Discord'
+    else:
+        device = next((d for d in inventory.devices(load_data(), include_hidden=True) if d['id'] == switch_id), None)
+        if not device:
+            return _say('That switch is not on the floor plan any more.')
+        key, name, label = device['id'], device['name'], 'Muted switch alerts from Discord'
+    entry = alerting.mute(key, name, crew.MUTE_MINUTES, user['username'], 'Muted from Discord')
+    audit.record('alerts', label, user=user['username'], target=name)
     events.publish('alerts.changed', {})
     until = time.strftime('%H:%M', time.localtime(entry['until']))
-    return _say(f"Muted {device['name']} until {until}. Unmute or add time on the Problems page.")
+    return _say(f"Muted {name} until {until}. Unmute or add time on the Problems page.")

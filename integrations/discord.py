@@ -242,6 +242,10 @@ class DiscordNotifier:
             payload['content'] = mention
         else:
             payload['allowed_mentions'] = {'parse': []}
+        down = [c for c in selected[:MAX_EMBEDS] if c['status'] == 'down']
+        if down:
+            # The same "Mute … for 1 h" as under a switch (issue #274).
+            payload['_mute'] = [(alerting.service_key(c['id']), c.get('name')) for c in down[:MAX_BUTTONS]]
         return payload
 
     def on_security(self, event):
