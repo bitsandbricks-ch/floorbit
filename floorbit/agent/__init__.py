@@ -154,7 +154,55 @@ class Agent:
                 backoff = min(backoff * 2, MAX_BACKOFF)
 
 
+def check(agent, execute, out=print):
+    """``python -m floorbit.agent check``: try each part once and say what works. True when all do.
+
+    For setting up at the event: it runs in a second and names the part that's wrong, instead of
+    an agent that keeps retrying in the background."""
+    ok = True
+
+    def line(good, text):
+        nonlocal ok
+        ok = ok and good
+        out(f"{'OK  ' if good else 'FAIL'} {text}")
+
+    try:
+        hello = agent.hello()
+        line(True, f'{agent.url} accepts the key: this is "{hello["name"]}" (Floorbit {hello.get("server_version")})')
+    except Refused:
+        line(False, f'{agent.url} refused the key: it is wrong or was revoked. Enrol the agent again.')
+    except Exception as exc:  # noqa: BLE001
+        line(False, f'cannot reach {agent.url}: {exc}')
+    try:
+        devices = execute('devices', [])
+        line(True, f'the monitoring plugin answers: {len(devices or [])} devices')
+    except Exception as exc:  # noqa: BLE001
+        hint = '' if os.environ.get('LIBRENMS_URL') else ' (LIBRENMS_URL and LIBRENMS_TOKEN are not set)'
+        line(False, f'the monitoring plugin: {exc}{hint}')
+    try:
+        feeds = execute('inventory_feeds', [])
+    except Exception as exc:  # noqa: BLE001
+        feeds = []
+        line(False, f'the inventory plugins: {exc}')
+    if not feeds:
+        out('-    no inventory plugin is on (NETBOX_URL and NETBOX_TOKEN): the hosted inventory is kept by hand')
+    for feed in feeds:
+        if 'error' in feed:
+            # The plugin's own message points at the settings page, which the agent doesn't have.
+            hint = ' (NETBOX_URL and NETBOX_TOKEN are not set)' if (
+                feed['plugin'] == 'netbox' and not os.environ.get('NETBOX_URL')) else ''
+            line(False, f"{feed['name']}: {feed['error']}{hint}")
+        else:
+            line(True, f"{feed['name']} answers: {len(feed['items'])} devices")
+    out('All good: start the agent without "check".' if ok else 'Fix what failed, then run the check again.')
+    return ok
+
+
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] not in ('check', 'run'):
+        print('Usage: python -m floorbit.agent [run | check]', file=sys.stderr)
+        return 2
     url = os.environ.get('FLOORBIT_URL', '').strip()
     key = os.environ.get('FLOORBIT_AGENT_KEY', '').strip()
     if not url or not key:
@@ -175,6 +223,8 @@ def main(argv=None):
     version_file = ROOT / 'VERSION'
     version = version_file.read_text().strip() if version_file.is_file() else '0'
     agent = Agent(url, key, local_executor(app), version=version)
+    if argv and argv[0] == 'check':
+        return 0 if check(agent, agent.execute) else 1
     try:
         agent.run()
     except Refused as exc:

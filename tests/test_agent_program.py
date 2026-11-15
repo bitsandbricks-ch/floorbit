@@ -124,11 +124,11 @@ def test_an_unreachable_host_is_retried(app_module):
 def test_main_wants_its_settings(monkeypatch, capsys):
     monkeypatch.delenv('FLOORBIT_URL', raising=False)
     monkeypatch.delenv('FLOORBIT_AGENT_KEY', raising=False)
-    assert agent_mod.main() == 2
+    assert agent_mod.main([]) == 2
     monkeypatch.setenv('FLOORBIT_URL', 'http://hosted.example.com')
     monkeypatch.setenv('FLOORBIT_AGENT_KEY', 'fba_00000000_' + 'x' * 30)
     monkeypatch.delenv('FLOORBIT_AGENT_INSECURE', raising=False)
-    assert agent_mod.main() == 2
+    assert agent_mod.main([]) == 2
     assert 'https://' in capsys.readouterr().err
 
 
@@ -313,3 +313,44 @@ def test_stats_forget_the_last_hour():
     assert agent_link.tunnel.stats('abcd1234')['failed'] == 1
     assert agent_link.tunnel.stats('abcd1234', now=time.time() + 3601)['calls'] == 0
     assert agent_link.tunnel.stats('someone-else')['calls'] == 0
+
+
+def test_check_says_what_works(client, app_module):
+    key = enrol(client)['key']
+    lines = []
+
+    def execute(method, args):
+        if method == 'inventory_feeds':
+            return [{'plugin': 'netbox', 'name': 'NetBox', 'items': [{'id': '1', 'name': 'sw-01'}]}]
+        return fake_execute(method, args)
+
+    assert agent_mod.check(make(app_module, key), execute, lines.append) is True
+    assert lines[0].startswith('OK') and 'Demo LAN 2026' in lines[0]
+    assert 'OK   the monitoring plugin answers: 1 devices' in lines
+    assert 'OK   NetBox answers: 1 devices' in lines and lines[-1].startswith('All good')
+
+
+def test_check_names_what_fails(client, app_module, monkeypatch):
+    monkeypatch.setenv('LIBRENMS_URL', 'https://librenms.example.com')
+    made = enrol(client)
+    client.delete(f"/api/agents/{made['id']}")
+    lines = []
+
+    def execute(method, args):
+        if method == 'inventory_feeds':
+            return []
+        raise RuntimeError('LibreNMS answered 401')
+
+    assert agent_mod.check(make(app_module, made['key']), execute, lines.append) is False
+    assert 'FAIL the monitoring plugin: LibreNMS answered 401' in lines
+    monkeypatch.delenv('LIBRENMS_URL')
+    lines.clear()
+
+    assert agent_mod.check(make(app_module, made['key']), execute, lines.append) is False
+    assert lines[0].startswith('FAIL') and 'refused the key' in lines[0]
+    assert 'FAIL the monitoring plugin: LibreNMS answered 401 (LIBRENMS_URL and LIBRENMS_TOKEN are not set)' in lines
+    assert any('no inventory plugin' in x for x in lines) and lines[-1].startswith('Fix')
+
+
+def test_main_knows_its_commands():
+    assert agent_mod.main(['delete-everything']) == 2

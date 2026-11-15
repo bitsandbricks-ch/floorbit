@@ -54,6 +54,21 @@ docker run -d --restart on-failure:3 --name floorbit-agent \
   ghcr.io/bitsandbricks-ch/floorbit python -m floorbit.agent
 ```
 
+**Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
+monitoring plugin, the inventory plugins), says which works and which doesn't, and exits with 0 when
+everything works, 1 when something doesn't:
+
+```sh
+docker compose -f docker-compose.agent.yml run --rm agent python -m floorbit.agent check
+```
+
+```text
+OK   https://floor.example.com accepts the key: this is "Spring LAN, hall 2" (Floorbit 0.1.0)
+OK   the monitoring plugin answers: 24 devices
+FAIL NetBox: Set the NetBox URL and API token under Settings > NetBox first. (NETBOX_URL and NETBOX_TOKEN are not set)
+Fix what failed, then run the check again.
+```
+
 Set up the event's plugins on it the usual way (for LibreNMS `LIBRENMS_URL` and `LIBRENMS_TOKEN`,
 for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorbit is:
 
