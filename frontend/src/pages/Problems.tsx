@@ -1,8 +1,9 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Modal, Paper, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -123,6 +124,14 @@ export default function Problems() {
   const [target, setTarget] = useState<MuteTarget | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const now = useNowSeconds()
+  // One kind at a time, kept in the address so a reload or a shared link keeps it (issue #276).
+  const [params, setParams] = useSearchParams()
+  const shown = params.get('kind') ?? 'all'
+  const showKind = (v: string) => setParams((prev) => {
+    const next = new URLSearchParams(prev)
+    if (v === 'all') next.delete('kind'); else next.set('kind', v)
+    return next
+  }, { replace: true })
   const refresh = () => void client.invalidateQueries({ queryKey: qk.problems })
   useLiveEvent('monitor.poll', refresh)
   useLiveEvent('alerts.changed', refresh)
@@ -146,6 +155,9 @@ export default function Problems() {
     onSuccess: refresh,
   })
   const data = list.data
+  // In the order they first appear, which is worst first.
+  const kinds: string[] = data ? [...new Set(data.problems.map((p) => p.kind))] : []
+  const visible = data ? data.problems.filter((p) => !kinds.includes(shown) || p.kind === shown) : []
   const error = list.error ?? unmute.error ?? extend.error
 
   return (
@@ -165,11 +177,20 @@ export default function Problems() {
                 tone={data.counts[k] && k !== 'muted' ? k : undefined} />
             ))}
           </div>
+          {kinds.length > 1 && (
+            <SegmentedControl size="xs" value={kinds.includes(shown) ? shown : 'all'} onChange={showKind} aria-label={t('problems.show')}
+              style={{ alignSelf: 'flex-start' }}
+              data={['all', ...kinds].map((k) => ({
+                value: k,
+                label: <span><span>{k === 'all' ? t('problems.all') : t(`problems.kind.${k}`)}</span>{' '}
+                  <span className="fb-filter-count">{k === 'all' ? data.problems.length : data.problems.filter((p) => p.kind === k).length}</span></span>,
+              }))} />
+          )}
           {!data.problems.length ? (
             <Text c="dimmed">{t('problems.none')}</Text>
           ) : (
             <Stack gap="xs">
-              {data.problems.map((p) => (
+              {visible.map((p) => (
                 <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending}
                   onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: p.kind === 'health' ? 'health' : 'switch' }) }} />
               ))}

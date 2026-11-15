@@ -61,5 +61,7 @@
     "warn": "To look at",
     "muted": "Muted"
   },
-  "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall."
+  "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall.",
+  "show": "Show",
+  "all": "All"
 }

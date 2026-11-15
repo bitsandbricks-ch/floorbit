@@ -61,5 +61,7 @@
     "warn": "Anzuschauen",
     "muted": "Stumm"
   },
-  "muteTextService": "Keine Discord-Nachrichten, wenn dieser Dienst ausfällt oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste und auf der Health-Wand."
+  "muteTextService": "Keine Discord-Nachrichten, wenn dieser Dienst ausfällt oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste und auf der Health-Wand.",
+  "show": "Anzeigen",
+  "all": "Alle"
 }

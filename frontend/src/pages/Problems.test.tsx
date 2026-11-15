@@ -80,6 +80,18 @@ describe('Problems', () => {
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ minutes: 30 }))
   })
 
+  it('shows one kind at a time, with counts, and keeps it in the link', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />, '/problems?kind=power')
+    expect(await screen.findByRole('article', { name: /Circuit B row 2/ })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Switch'))
+    expect(await screen.findAllByRole('article')).toHaveLength(2)
+    expect(screen.queryByRole('article', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('All'))
+    expect(await screen.findAllByRole('article')).toHaveLength(3)
+  })
+
   it('says when a mute is about to end, and only then', async () => {
     const mutes = [
       { switch_id: 's2', name: 'sw-d-01', until: now + 240, at: now, by: 'kim', reason: '' },

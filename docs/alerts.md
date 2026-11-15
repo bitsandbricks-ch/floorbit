@@ -23,6 +23,10 @@ It asks nothing new: it reads what the status monitor, the health wall, the secu
 power layer already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
 and its name in the list of muted switches, open that switch on the floor plan (`/plan`), in its hall.
 
+When the list holds more than one kind, a row above it shows one kind at a time (switches,
+services, power, …) with how many of each. The choice is kept in the address (`/problems?kind=power`),
+so a reload or a shared link shows the same.
+
 ## Needs attention
 
 Below the problems, **Needs attention** lists ports an ops person should look at, newest first.
