@@ -220,6 +220,7 @@ TEXTS = {
            'ahead_one': 'One report is ahead of yours.', 'ahead_other': '{n} reports are ahead of yours.',
            'outage': 'We know: the network at your seat has been down for {m} min. The team is on it, '
            'no need to report it. Something else? Tap it below.',
+           'status_link': 'Updates on the network status page',
            'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
            'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
@@ -245,6 +246,7 @@ TEXTS = {
            'ahead_one': 'Vor deiner ist noch eine Meldung.', 'ahead_other': 'Vor deiner sind noch {n} Meldungen.',
            'outage': 'Wir wissen es: Das Netz an deinem Platz ist seit {m} Min. ausgefallen. Das Team ist dran, '
            'du musst es nicht melden. Etwas anderes? Tippe es unten an.',
+           'status_link': 'Neuigkeiten auf der Netzwerk-Statusseite',
            'works': 'Es geht wieder',
            'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
            'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.'},
@@ -283,7 +285,11 @@ def help_page(seat):
         # A known outage at this seat (issue #384): say so before people report it one by one.
         since = seat_view.outage_since(seat)
         outage = max(1, round((time.time() - since) / 60)) if since else None
+        from .status_page import page_on
+        # Point at the public status page for updates, when there is one (issue #388).
+        status_url = url_for('status_page.status_public') if outage and page_on() else None
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask', outage=outage,
+                               status_url=status_url,
                                problems=list(incidents.PROBLEMS), k=request.args.get('k'),
                                report=incidents.seat_report_state(seat), ahead=incidents.seat_queue_ahead(seat))
     if request.form.get('works'):
