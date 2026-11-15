@@ -95,6 +95,10 @@ def _stamp(text, at):
     return Markup(str(escape(text)).replace('{time}', str(tag)))
 
 
+def _base_url():
+    return (current_app.extensions['auth'].public_url() or '').rstrip('/') or request.host_url.rstrip('/')
+
+
 def _changed():
     events.publish('status_page.changed', {})
 
@@ -126,7 +130,7 @@ def status_atom():
     lang = request.accept_languages.best_match(['en', 'de'], default='en')
     text = TEXTS[lang]
     name = _settings().get('theme.name') or ''
-    base = (current_app.extensions['auth'].public_url() or '').rstrip('/') or request.host_url.rstrip('/')
+    base = _base_url()
     feed = status_page.atom_feed(_now()['updates'], base, f"{text['title']}{' · ' + name if name else ''}",
                                  text['state'])
     return Response(feed, mimetype='application/atom+xml', headers={'Cache-Control': 'max-age=60'})
@@ -161,6 +165,10 @@ def add_update():
         return jsonify({'error': str(exc)}), exc.status
     audit.record('status page', 'Posted status update', g.get('audit_user'), update['text'][:120])
     _changed()
+    # For the attendees' Discord channel (integrations/discord.py): never who posted.
+    events.publish('status_page.update', {
+        'update': {k: update[k] for k in ('at', 'text', 'state', 'area')}, 'public': page_on(),
+        'page_url': _base_url() + '/status'})
     return jsonify(update), 201
 
 

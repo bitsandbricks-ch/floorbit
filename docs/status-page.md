@@ -60,6 +60,14 @@ the affected areas with the switch names, and the updates.
 - Posting and removing updates and setting the state need `incidents.assign` (lead and admin).
 - Every change is in the audit log (area *status page*).
 
+## Discord
+
+Set **Attendee status channel webhook** (Settings > Integrations > Discord,
+`DISCORD_STATUS_WEBHOOK_URL`) to a webhook in a channel attendees read, such as `#network-status`.
+Every update the crew posts then goes there as well, with its state, area and a link to `/status`,
+while the public status page is on. Like the page, it never says who posted, and it mentions
+nobody. This is separate from the crew's alert webhook, which says much more.
+
 ## API
 
 | Route | What |
