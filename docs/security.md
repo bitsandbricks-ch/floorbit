@@ -15,7 +15,8 @@ the seat or switch, with a count next to **Security**. Code:
   port from the finding, not from the browser. The port stays down until someone turns it on
   again under **Ports Floorbit shut**, which lists who shut it, when and why.
 - **I'm on it**: tells the others someone is looking at it. Findings someone is on sort
-  below the ones nobody has taken.
+  below the ones nobody has taken. The browser tab counts only the findings nobody is on yet, like
+  "(2) Security".
 
 A finding the plugin stops reporting is cleared and stays under **Cleared in the last hour**.
 If a plugin fails, its findings stay as they were: a failed check doesn't clear anything.

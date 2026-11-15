@@ -45,6 +45,7 @@ data.json
 checkins.json
 audit.jsonl
 timeline.jsonl
+recording.jsonl
 plugins.json
 monitoring-cache.json
 # ...but not the React app's translation files of the same name
@@ -72,3 +73,6 @@ frontend/node_modules/
 
 # The documentation site (mkdocs build)
 /site/
+
+# A local redis-server started inside the repo writes its snapshot here.
+dump.rdb

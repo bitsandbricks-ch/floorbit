@@ -50,11 +50,33 @@ def seat_port_usage(seat_info, resolve):
     }
 
 
-def collect_seat_heatmap(seats, resolve, max_workers=MAX_WORKERS):
-    """{seat_number: entry} for every seat in the mapping, looked up in parallel."""
+def seat_resolution(seat_info, resolve):
+    """/api/seats/resolve entry for one seat with an IP: its switch port, or why not."""
+    base = {'username': seat_info.get('username'), 'ip_address': seat_info['ip_address']}
+    try:
+        result = resolve(seat_info['ip_address'])
+    except Exception as exc:  # noqa: BLE001 - one bad seat must not fail the whole batch
+        return {**base, 'resolved': False, 'error': f'Lookup failed: {exc}'}
+    if not result:
+        return {**base, 'resolved': False, 'error': 'Could not resolve'}
+    return {**base, 'resolved': True, **result}
+
+
+def _each_seat(seats, entry, max_workers):
     items = list(seats.items())
     if not items:
         return {}
     with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(items)))) as pool:
-        entries = pool.map(lambda item: seat_port_usage(item[1], resolve), items)
-        return {number: entry for (number, _), entry in zip(items, entries, strict=True)}
+        entries = pool.map(lambda item: entry(item[1]), items)
+        return {number: e for (number, _), e in zip(items, entries, strict=True)}
+
+
+def collect_seat_heatmap(seats, resolve, max_workers=MAX_WORKERS):
+    """{seat_number: entry} for every seat in the mapping, looked up in parallel."""
+    return _each_seat(seats, lambda info: seat_port_usage(info, resolve), max_workers)
+
+
+def resolve_seats(seats, resolve, max_workers=MAX_WORKERS):
+    """{seat_number: entry} for the seats that have an IP, looked up in parallel (issue #198)."""
+    with_ip = {n: info for n, info in seats.items() if (info or {}).get('ip_address')}
+    return _each_seat(with_ip, lambda info: seat_resolution(info, resolve), max_workers)

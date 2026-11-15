@@ -12,6 +12,7 @@
     "bytes_moved": "Datenmenge (Schätzung)",
     "incidents": "Störungen",
     "median_fix_s": "Mittlere Zeit bis behoben",
+    "median_take_s": "Mittlere Zeit bis übernommen",
     "outages": "Switch-Ausfälle",
     "down_s": "Switch-Ausfallzeit gesamt",
     "cache_saved_bytes": "Cache-Einsparung"

@@ -20,7 +20,7 @@ const data: EventReport = {
   outages: [{ switch: 'sw-c-02', times: 2, down_s: 1680, longest_s: 1260, still_down: false }],
   problem_ports: [{ switch: 'sw-b-01', port: 'Gi1/0/7', seat: 'B-7', count: 12, kinds: { flapping: 9, errors: 3 }, last: t0 }],
   incidents: {
-    total: 1, fixed: 1, open: 0, from_seats: 1, median_fix_s: 900,
+    total: 1, fixed: 1, open: 0, from_seats: 1, median_fix_s: 900, median_take_s: 120,
     items: [{ title: 'No internet at the seat', seat: 'B-7', switch: null, circuit: null, team: 'infra', source: 'helpdesk',
       reports: 2, start: t0 + 100, end: t0 + 1000, status: 'fixed' }],
   },
@@ -44,9 +44,27 @@ describe('Report', () => {
     expect(screen.getByText('2.5 TB')).toBeInTheDocument()
     expect(screen.getByText('sw-c-02')).toBeInTheDocument()
     expect(screen.getByText('flapping 9×, errors 3×')).toBeInTheDocument()
+    // How fast the crew picks incidents up, next to how fast they fix them (issue #294).
+    expect(screen.getByText(/half fixed within 15 min · half taken within 2 min/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Download PDF/ })).toHaveAttribute('href', expect.stringContaining('/api/report.pdf?lang=en'))
     expect(screen.queryByRole('switch', { name: /nicks and IPs/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Start a new event' })).not.toBeInTheDocument()
+  })
+
+  it('lists seats with more than one incident, linked to the seat (issue #312)', async () => {
+    const repeats = { ...data, incidents: { ...data.incidents, repeat_seats: [{ seat: 'B-7', count: 3 }, { seat: 'A-2', count: 2 }] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/report': repeats }).fn)
+    renderWithApp(<Report />)
+    expect(await screen.findByText(/Seats with more than one incident:/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'B-7' })).toHaveAttribute('href', '/plan?seat=B-7')
+    expect(screen.getByRole('link', { name: 'A-2' })).toHaveAttribute('href', '/plan?seat=A-2')
+  })
+
+  it('says what attendees reported at their seats (issue #370)', async () => {
+    const asked = { ...data, incidents: { ...data.incidents, seat_problems: [{ problem: 'no-internet', count: 6 }, { problem: 'slow', count: 3 }] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/report': asked }).fn)
+    renderWithApp(<Report />)
+    expect(await screen.findByText('What attendees reported at their seats: No internet 6×, Slow connection 3×')).toBeInTheDocument()
   })
 
   it('lets an admin add nicks and IPs', async () => {

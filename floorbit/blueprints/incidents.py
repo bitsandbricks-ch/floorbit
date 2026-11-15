@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, jsonify, render_template, reque
 from auth import roles, teams
 from integrations import events
 
-from .. import audit, incidents, runbooks, spa
+from .. import audit, dispatch, incidents, runbooks, seat_notes, spa
 from ..store import load_data
 
 bp = Blueprint('incidents', __name__)
@@ -47,12 +47,41 @@ def _board_user():
     return user
 
 
-def _view(user, incident, match=None, books=None):
+def _view(user, incident, match=None, books=None, notes=None, outages=None):
     book = runbooks.for_incident(incident, runbooks.all_runbooks() if books is None else books)
+    seat = incident.get('seat') or ''
+    # The seat's crew note (issue #204). Everyone on the board works incidents, which is what notes need.
+    note = (seat_notes.all_notes() if notes is None else notes).get(seat) if seat else None
     return {**incident, 'can_work': incidents.can_work(user, incident),
             'can_assign': incidents.can_assign(user, incident.get('team')),
-            'match': (match or {}).get(incident.get('seat') or ''),
-            'runbook': {'id': book['id'], 'title': book['title']} if book else None}
+            'match': (match or {}).get(seat),
+            'runbook': {'id': book['id'], 'title': book['title']} if book else None,
+            'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None,
+            # The seat's switch is down right now (issue #386): part of an outage, not a cable.
+            'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None,
+            'back_up': (outages or {}).get(('back', incident.get('id'))) if incident.get('status') != 'fixed' else None}
+
+
+def _outages(items):
+    """{seat: {switch, since}} for open incidents whose seat's switch is down now, and
+    {('back', incident id): {switch, since}} for ones whose switch came back after they were filed."""
+    from .. import seat_view
+    statuses = seat_view.monitor_statuses()
+    if not statuses:
+        return {}
+    data = load_data()
+    out = {}
+    for seat in {i.get('seat') for i in items if i.get('seat') and i['status'] != 'fixed'}:
+        found = seat_view.outage_of(seat, data, statuses)
+        if found:
+            out[seat] = {'switch': found[0], 'since': found[1]}
+    # Reported while its switch was down, and the switch is back since (issue #390): maybe fixed already.
+    for i in items:
+        if i.get('seat') and i['status'] != 'fixed' and i.get('seat') not in out:
+            back = seat_view.back_up(i['seat'], i.get('created_at') or 0, data, statuses)
+            if back:
+                out[('back', i['id'])] = {'switch': back[0], 'since': back[1]}
+    return out
 
 
 def _changed(incident, action):
@@ -86,10 +115,12 @@ def list_incidents():
     all_teams = teams.all_teams()
     match = match_seats()
     books = runbooks.all_runbooks()
+    notes = seat_notes.all_notes()
     # Match seats (issue #31) on top of each column; the board keeps the newest-first order otherwise.
     items = sorted(incidents.list_all(), key=lambda i: (i['status'] == 'fixed', not match.get(i.get('seat') or '')))
+    outages = _outages(items)
     return jsonify({
-        'incidents': [_view(user, i, match, books) for i in items],
+        'incidents': [_view(user, i, match, books, notes, outages) for i in items],
         'teams': [{'id': t['id'], 'name': t['name'], 'depth': t['depth']} for t in teams.tree()],
         'workable_teams': sorted(incidents.workable_teams(user)),
         'assign_teams': sorted(t for t in all_teams if incidents.can_assign(user, t)),
@@ -134,6 +165,7 @@ def add_incident():
     except incidents.IncidentError as exc:
         return _error(exc)
     _changed(incident, 'created')
+    incident = dispatch.send_new(incident)
     return jsonify(_view(user, incident)), 201
 
 
@@ -187,7 +219,20 @@ TEXTS = {
            'speed_run': 'Start the test', 'speed_again': 'Test again', 'speed_running': 'Testing…',
            'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latency',
            'speed_saved': 'Saved for seat {seat}. The team sees it with your report.',
-           'speed_failed': 'The test did not finish: {error}'},
+           'speed_failed': 'The test did not finish: {error}',
+           'state_open': 'Your report is in. Nobody from the team has taken it yet; someone will come.',
+           'state_sent': 'Your report was sent to a tech nearby. They will be on their way shortly.',
+           'state_taken': 'Someone from the team has your report and is on the way.',
+           'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.',
+           'state_ok': 'You told us it works again. Thanks! Broken again? Tap it below.',
+           'ahead_one': 'One report is ahead of yours.', 'ahead_other': '{n} reports are ahead of yours.',
+           'outage': 'We know: the network at your seat has been down for {m} min. The team is on it, '
+           'no need to report it. Something else? Tap it below.',
+           'status_link': 'Updates on the network status page',
+           'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
+           'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.',
+           'back_up': 'The network at your seat has been back for {m} min. Does it work again? Then tap '
+           '"It works again" below.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
            'nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.',
            'no-internet': 'Kein Internet', 'slow': 'Langsame oder abbrechende Verbindung', 'power': 'Kein Strom',
@@ -202,7 +247,21 @@ TEXTS = {
            'speed_run': 'Test starten', 'speed_again': 'Nochmals testen', 'speed_running': 'Teste…',
            'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latenz',
            'speed_saved': 'Für Platz {seat} gespeichert. Das Team sieht es bei deiner Meldung.',
-           'speed_failed': 'Der Test wurde nicht fertig: {error}'},
+           'speed_failed': 'Der Test wurde nicht fertig: {error}',
+           'state_open': 'Deine Meldung ist da. Noch hat sie niemand vom Team übernommen; jemand kommt.',
+           'state_sent': 'Deine Meldung ging an jemanden vom Team in der Nähe. Gleich ist jemand unterwegs.',
+           'state_taken': 'Jemand vom Team hat deine Meldung und ist unterwegs.',
+           'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.',
+           'state_ok': 'Du hast gemeldet, dass es wieder geht. Danke! Wieder kaputt? Tippe unten.',
+           'ahead_one': 'Vor deiner ist noch eine Meldung.', 'ahead_other': 'Vor deiner sind noch {n} Meldungen.',
+           'outage': 'Wir wissen es: Das Netz an deinem Platz ist seit {m} Min. ausgefallen. Das Team ist dran, '
+           'du musst es nicht melden. Etwas anderes? Tippe es unten an.',
+           'status_link': 'Neuigkeiten auf der Netzwerk-Statusseite',
+           'works': 'Es geht wieder',
+           'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
+           'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.',
+           'back_up': 'Das Netz an deinem Platz ist seit {m} Min. wieder da. Geht es wieder? Dann tippe unten '
+           'auf «Es geht wieder».'},
 }
 
 
@@ -234,8 +293,23 @@ def help_page(seat):
     if not valid:
         return render_template('help.html', lang=lang, t=text, seat=seat, state='invalid'), 404
     if request.method == 'GET':
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
-                               problems=list(incidents.PROBLEMS), k=request.args.get('k'))
+        from .. import seat_view
+        # A known outage at this seat (issue #384): say so before people report it one by one.
+        since = seat_view.outage_since(seat)
+        outage = max(1, round((time.time() - since) / 60)) if since else None
+        from .status_page import page_on
+        # Point at the public status page for updates, when there is one (issue #388).
+        status_url = url_for('status_page.status_public') if outage and page_on() else None
+        # The switch came back after they reported (issue #392): ask them to check before a tech walks over.
+        filed = None if outage else incidents.seat_open_since(seat)
+        back = seat_view.back_up(seat, filed) if filed else None
+        back_up = max(1, round((time.time() - back[1]) / 60)) if back else None
+        return render_template('help.html', lang=lang, t=text, seat=seat, state='ask', outage=outage,
+                               status_url=status_url, back_up=back_up,
+                               problems=list(incidents.PROBLEMS), k=request.args.get('k'),
+                               report=incidents.seat_report_state(seat), ahead=incidents.seat_queue_ahead(seat))
+    if request.form.get('works'):
+        return _works_again(lang, text, seat)
     problem = request.form.get('problem')
     if problem not in incidents.PROBLEMS:
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
@@ -244,10 +318,24 @@ def help_page(seat):
         return render_template('help.html', lang=lang, t=text, seat=seat, state='busy'), 429
     incident, new = incidents.report_from_seat(seat, problem, incidents.seat_snapshot(seat))
     _changed(incident, 'reported')
+    if new:
+        dispatch.send_new(incident)
     audit.record('incidents', 'Reported from seat' if new else 'Reported again from seat', target=seat,
                  fields=[problem])
     return render_template('help.html', lang=lang, t=text, seat=seat, state='thanks' if new else 'again',
                            k=request.args.get('k'))
+
+
+def _works_again(lang, text, seat):
+    # Rate limited like reports: it only tags the incidents, but it still writes to the board.
+    if _rate_limited():
+        return render_template('help.html', lang=lang, t=text, seat=seat, state='busy'), 429
+    marked = incidents.seat_says_ok(seat)
+    for incident in marked:
+        _changed(incident, 'seat-ok')
+    if marked:
+        audit.record('incidents', 'Seat says it works again', target=seat)
+    return render_template('help.html', lang=lang, t=text, seat=seat, state='ok', k=request.args.get('k'))
 
 
 help_page._auth_public = True   # what auth.public_endpoint sets; open to attendees without an account

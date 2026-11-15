@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
+  <link rel="stylesheet" href="/static/css/goto.css" />
 </head>
 <body{% if current_user %} class="role-{{ current_user.role }}{% if 'floorplan.edit' not in current_user.permissions %} read-only{% endif %}"{% endif %}{% if incidents_board and feature_on('incidents') %} data-incidents="on"{% endif %}{% if current_user and 'ports.act' in current_user.permissions and feature_on('ports') %} data-port-actions="on"{% endif %}{% if current_user and 'seats.edit' in current_user.permissions %} data-seat-edit="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and feature_on('security') %} data-security="on"{% endif %}{% if power_on and feature_on('power') %} data-power="on"{% endif %}{% if current_user and 'seats.view' in current_user.permissions and syslog_on and feature_on('syslog') %} data-logs="on"{% endif %}>
   <div class="app">
@@ -61,7 +62,14 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>
+        {# The page links scroll sideways inside this strip, so theme, account and settings
+           stay on screen however many pages are on (issue #238). #}
+        <nav class="topbar-nav" aria-label="Pages">
         {% if current_user %}
+        <a class="btn btn-ghost" href="/plan" title="Seats: every seat's state, zoom levels and one seat inspector">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-dasharray="3 2"/><path d="M14 14l7 7M21 14l-7 7"/></svg>
+          <span class="nav-label">Seats</span>
+        </a>
         {% if feature_on('dashboard') %}
         <a class="btn btn-ghost" href="/dashboard" title="Dashboard: tiles from plugins">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
@@ -95,7 +103,7 @@
         {% if 'seats.view' in current_user.permissions %}
         <a class="btn btn-ghost" href="/seat-mapping" title="Seat mapping: which IP, MAC and nick sits at each seat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>
-          <span class="nav-label">Seats</span>
+          <span class="nav-label">Seat mapping</span>
         </a>
         {% endif %}
         {% if 'seats.view' in current_user.permissions and feature_on('security') %}
@@ -142,6 +150,9 @@
           </svg>
           <span class="nav-label">Refresh</span>
         </button>
+        </nav>
+        {# "Go to" (Ctrl+K), outside the scrolling strip so it is always in reach (issue #250). #}
+        <span data-goto="btn btn-ghost goto-compact"></span>
         {% if current_user %}
         <form class="user-menu" method="post" action="/logout">
           <span class="user-menu-name" title="Signed in as {{ current_user.username }}">
@@ -161,6 +172,19 @@
         {% endif %}
       </div>
     </header>
+
+    {# Crew notice from a lead (issue #246), filled by static/js/editor/notice.js. #}
+    <div class="crew-notice" id="crew-notice" role="status" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a3 3 0 0 1 0 6M18 6a7 7 0 0 1 0 12"/></svg>
+      <div class="crew-notice-body">
+        <strong>Crew notice</strong>
+        <span class="crew-notice-text"></span>
+        <span class="crew-notice-meta"></span>
+      </div>
+      <button type="button" class="btn btn-ghost btn-icon crew-notice-hide" aria-label="Hide this notice" title="Hide this notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
 
     <div class="main-layout">
 
@@ -195,6 +219,17 @@
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
 
+            <button class="layer-row" id="btn-seat-states" aria-pressed="true" title="Draw seats online, offline or unknown, as on the Seats view">
+              <span class="layer-name">Seat states</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <div class="layer-options seat-states-legend" id="seat-states-legend">
+              <span><i class="seat-key st-online"></i>Online</span>
+              <span><i class="seat-key st-offline"></i>Offline</span>
+              <span><i class="seat-key st-unknown"></i>Unknown</span>
+              <span><i class="seat-key st-online st-checked"></i>Checked in</span>
+              <a href="/plan">Open the Seats view</a>
+            </div>
             <button class="layer-row" id="btn-traffic" aria-pressed="false" title="Colour the map by throughput from LibreNMS">
               <span class="layer-name">Traffic heatmap</span>
               <span class="layer-switch" aria-hidden="true"></span>
@@ -723,6 +758,33 @@
     </div>
   </div>
 
+  <!-- ── Mute a switch's alerts (static/js/editor/mutes.js) ─────────────────── -->
+  <div class="modal-backdrop hidden" id="mute-backdrop">
+    <form class="modal" role="dialog" aria-modal="true" aria-labelledby="mute-title" id="mute-form" autocomplete="off">
+      <h3 class="modal-title" id="mute-title">Mute alerts</h3>
+      <p class="modal-text">No Discord messages about this switch going offline or coming back until the mute ends. It stays on the Problems page.</p>
+      <label class="field">
+        <span class="field-label">For</span>
+        <select class="modal-input" id="mute-minutes">
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="240">4 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">1 day</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Why (shown with the mute)</span>
+        <input class="modal-input" type="text" id="mute-reason" maxlength="200" />
+      </label>
+      <p class="modal-error" id="mute-error" role="alert" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="mute-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="mute-ok">Mute</button>
+      </div>
+    </form>
+  </div>
+
   <!-- ── Seat Block Modal ─────────────────────────────────────────────────── -->
   <div class="modal-backdrop hidden" id="block-backdrop">
     <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="block-modal-title">
@@ -827,6 +889,7 @@
         <dt><kbd>Ctrl</kbd> <kbd>A</kbd></dt><dd>Select everything on the map</dd>
         <dt><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></dt><dd>Nudge the selection (<kbd>Shift</kbd> for bigger steps)</dd>
         <dt><kbd>/</kbd></dt><dd>Search</dd>
+        <dt><kbd>Ctrl</kbd> <kbd>K</kbd></dt><dd>Go to any page (<kbd>⌘</kbd> <kbd>K</kbd> on a Mac)</dd>
         <dt><kbd>Shift</kbd> <kbd>F10</kbd></dt><dd>Menu for what is selected (also the Menu key, or right-click)</dd>
         <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
         <dt><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dt><dd>Zoom in, out, reset</dd>
@@ -844,6 +907,7 @@
   <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
   <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notify.js"></script>
   <!-- Editor scripts share one global scope; order matters (static/js/editor/README.md). -->
   <script src="/static/js/editor/core.js"></script>
   <script src="/static/js/editor/halls.js"></script>
@@ -861,14 +925,18 @@
   <script src="/static/js/editor/heatmap.js"></script>
   <script src="/static/js/editor/incidents.js"></script>
   <script src="/static/js/editor/tournament.js"></script>
+  <script src="/static/js/editor/seat-states.js"></script>
   <script src="/static/js/editor/security.js"></script>
   <script src="/static/js/editor/logs.js"></script>
   <script src="/static/js/editor/power.js"></script>
+  <script src="/static/js/editor/mutes.js"></script>
   <script src="/static/js/editor/problems.js"></script>
   <script src="/static/js/editor/touch.js"></script>
   <script src="/static/js/editor/ports.js"></script>
   <script src="/static/js/editor/focus.js"></script>
+  <script src="/static/js/editor/notice.js"></script>
   <script src="/static/js/editor/main.js"></script>
   <script src="/static/js/live.js"></script>
+  <script src="/static/js/goto.js"></script>
 </body>
 </html>

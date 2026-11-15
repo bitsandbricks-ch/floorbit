@@ -18,6 +18,20 @@ These pages are for people running Floorbit at their own LAN.
 
 No network to try it on? [Demo mode](demo.md) fills a made-up hall.
 
+## Getting around
+
+Every page with a header, the floor plan and Settings included, has a **Go to** button, also on
+<kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>⌘</kbd>+<kbd>K</kbd> on a Mac). Type part of a page's name, pick it
+with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose [feature](features.md) is off,
+pages your role can't open and pages this server has nothing for yet (Wi-Fi without a Wi-Fi source,
+Electrics without power boards), the same way the floor plan's top bar does.
+Type a seat number or a switch name too: `b8` offers seat B-8 and `core` the switches named core-something,
+and each opens on the floor plan. If your role may see people (`seats.view`), a player's nick, IP or MAC
+works too: `198.51.100.7` offers "Player 198.51.100.7 · A-2" and opens that seat. Other roles only get
+seat numbers and switch names.
+It also does what the buttons around it do, once you type them: `dark` switches the theme, `sign` signs you
+out, `notice` lets a lead put up a [crew notice](crew-notice.md) and `shortcuts` lists the floor plan's keys. Before you type, the five pages you opened last on this browser come first.
+
 ## Build on it
 
 - [Plugins](plugins.md): monitoring sources, health checks, actions and dashboard tiles.

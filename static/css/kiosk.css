@@ -168,7 +168,8 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis;
   margin-top: 2px; line-height: 1.4;
 }
-.switch-marker.is-offline .switch-label { background: var(--danger); border-color: var(--danger); }
+/* Ink on the down colour: white failed contrast on the light red of dark themes (issue #288). */
+.switch-marker.is-offline .switch-label { background: var(--danger); border-color: var(--danger); color: var(--color-ink); }
 
 .seat-block {
   position: absolute; transform: translate(-50%, -50%); z-index: 3;

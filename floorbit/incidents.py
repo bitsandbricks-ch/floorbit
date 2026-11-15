@@ -233,6 +233,7 @@ def report_from_seat(seat, problem, snapshot):
                     and incident['status'] != 'fixed' and incident.get('problem') == problem:
                 incident['reports'] = int(incident.get('reports') or 1) + 1
                 incident['updated_at'] = time.time()
+                incident.pop('seat_ok_at', None)   # asked again: it is broken after all
                 if snapshot:
                     incident['snapshot'] = snapshot
                 if test:
@@ -244,6 +245,82 @@ def report_from_seat(seat, problem, snapshot):
               'other': 'Needs help at the seat'}
     return create(None, {'seat': seat, 'title': titles[problem], 'problem': problem, 'team': team},
                   snapshot=snapshot, source='helpdesk', speedtest=test), True
+
+
+def seat_says_ok(seat, now=None):
+    """The attendee says it works again (issue #372). Marks the seat's open reports; the crew still decides.
+
+    Returns the incidents it marked, so the caller can tell the board. Fixing stays with the crew: an
+    anonymous QR link can't close incidents, only save someone a walk."""
+    now = time.time() if now is None else now
+    with _lock:
+        data = load_data()
+        marked = []
+        for incident in _all(data):
+            if incident.get('seat') == seat and incident.get('source') == 'helpdesk' and incident['status'] != 'fixed':
+                incident['seat_ok_at'] = now
+                incident['updated_at'] = now
+                marked.append(incident)
+        if marked:
+            _save(data, _all(data))
+        return marked
+
+
+WAITING_AFTER = 10 * 60     # the board's "Waiting" tag (issue #296)
+FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
+
+
+def is_waiting(incident, now):
+    """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared.
+
+    Not once the seat says it works again (issue #376): nobody is waiting on it any more."""
+    return incident.get('status') == 'open' and not incident.get('assignee') and not incident.get('seat_ok_at') \
+        and now - (incident.get('created_at') or now) >= WAITING_AFTER
+
+
+def seat_report_state(seat, now=None):
+    """What a seat's help page says about its latest report (issue #308): open, sent, taken, ok or fixed.
+
+    Names stay out: whoever holds the seat's QR link sees only that someone has it."""
+    now = time.time() if now is None else now
+    found = [i for i in list_all() if i.get('seat') == seat and i.get('source') == 'helpdesk'
+             and (i['status'] != 'fixed' or (i.get('fixed_at') or 0) >= now - FIXED_SHOWN_FOR)]
+    if not found:
+        return None
+    # A report still being worked counts before one that was fixed.
+    latest = max(found, key=lambda i: (i['status'] != 'fixed', i.get('created_at') or 0))
+    if latest['status'] == 'fixed':
+        return 'fixed'
+    if latest.get('seat_ok_at'):
+        return 'ok'
+    if not latest.get('assignee'):
+        return 'open'
+    # Sent by dispatch but the tech hasn't said "On my way" yet: don't promise someone is coming (issue #362).
+    if latest.get('dispatched_at') and not latest.get('taken_at'):
+        return 'sent'
+    return 'taken'
+
+
+def seat_open_since(seat):
+    """When the seat's oldest open helpdesk report was filed, or None (issue #392)."""
+    times = [i.get('created_at') or 0 for i in list_all() if i.get('seat') == seat and i.get('source') == 'helpdesk'
+             and i['status'] != 'fixed' and not i.get('seat_ok_at')]
+    return min(times) if times else None
+
+
+def seat_queue_ahead(seat):
+    """How many open reports nobody has taken were filed before this seat's (issue #378).
+
+    Only a count, so the attendee knows roughly how long to wait; nothing about the others leaks.
+    Counts the whole board, since the crew works one queue; ones the seat behind them called off don't count."""
+    items = list_all()
+    mine = [i for i in items if i.get('seat') == seat and i.get('source') == 'helpdesk'
+            and i['status'] == 'open' and not i.get('assignee') and not i.get('seat_ok_at')]
+    if not mine:
+        return None
+    since = min(i.get('created_at') or 0 for i in mine)
+    return sum(1 for i in items if i['status'] == 'open' and not i.get('assignee') and not i.get('seat_ok_at')
+               and (i.get('created_at') or 0) < since)
 
 
 def update(user, incident_id, body):
@@ -290,6 +367,10 @@ def update(user, incident_id, body):
         title = _clean_text(body.get('title'), MAX_TITLE) if 'title' in body else None
         if title:
             incident['title'] = title
+        # The first time anyone has it, for "half taken within" in the report (issue #294). Not
+        # taken_at: that is dispatch's "the tech saw the job" and must stay empty until they do.
+        if incident['assignee'] and not incident.get('picked_up_at'):
+            incident['picked_up_at'] = now
         incident['updated_at'] = now
         _save(data, items)
         return incident

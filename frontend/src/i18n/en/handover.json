@@ -18,6 +18,7 @@
   "noOutages": "No switch went down.",
   "wasDown": "down at {{when}} for {{for}}",
   "stillDown": "down since {{when}} ({{for}})",
+  "seatNotes": "Seat notes from this shift",
   "changesTitle": "Changes",
   "noChanges": "No port actions, settings or floor plan changes.",
   "when": "When",
@@ -31,5 +32,22 @@
   "doneDiscord": "Handed over and posted to Discord. The next summary starts now.",
   "earlier": "Earlier handovers",
   "counts": "{{open}} open, {{fixed}} fixed, {{outages}} outages",
-  "status": { "open": "Open", "assigned": "Taken", "fixed": "Fixed" }
+  "status": {
+    "open": "Open",
+    "assigned": "Taken",
+    "fixed": "Fixed"
+  },
+  "copy": "Copy as text",
+  "copied": "Copied",
+  "mutedTitle": "Muted right now",
+  "noticeUp": "Crew notice up",
+  "noticeBy": "from {{who}}",
+  "mutedUntil": "muted until {{until}} by {{who}}",
+  "waiting_one": "{{count}} waiting 10+ min",
+  "waiting_other": "{{count}} waiting 10+ min",
+  "gearTitle_one": "Gear still out ({{count}} piece)",
+  "gearTitle_other": "Gear still out ({{count}} pieces)",
+  "halfWithin": "half within {{d}}",
+  "fixedBy": "By: {{list}}",
+  "nobodyNamed": "nobody named"
 }

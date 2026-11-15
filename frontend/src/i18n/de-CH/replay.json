@@ -27,5 +27,26 @@
   "noPlan": "Diese Halle hat keine Sitzblöcke.",
   "openIncident": "offener Incident",
   "openAt": "Offene Incidents zu dieser Zeit",
-  "kept": "Floorbit bewahrt die Port-Abfragen der letzten 24 Stunden auf, Check-ins und Incidents für den ganzen Event."
+  "kept": "Floorbit bewahrt die Port-Abfragen der letzten 24 Stunden auf, Check-ins und Incidents für den ganzen Event.",
+  "range": "Zeitraum",
+  "day": "Letzte 24 Stunden",
+  "wholeEvent": "Ganzer Event",
+  "keptEvent": "Für mehr auf Ganzer Event wechseln.",
+  "speed14400": "4 h/s",
+  "event": {
+    "empty": "Noch nichts aufgezeichnet. Floorbit schreibt alle fünf Minuten ein Bild des ganzen Events, solange die Port-Überwachung läuft.",
+    "heatmap": "Sitzblöcke über die Zeit",
+    "metric": "Heatmap zeigt",
+    "online": "Plätze online",
+    "traffic": "Traffic",
+    "incidents": "Störungen",
+    "heatmapLabel": "Heatmap der Sitzblöcke über die Zeit: {{metric}}. Auf eine Spalte klicken, um dorthin zu springen.",
+    "noBlocks": "Für diese Halle sind keine Sitzblöcke aufgezeichnet.",
+    "export": "Export",
+    "json": "JSON herunterladen",
+    "video": "Video aufnehmen",
+    "recording": "Video wird aufgenommen",
+    "exportHint": "Das Video (WebM) entsteht in deinem Browser aus der Aufzeichnung, höchstens 75 Sekunden lang. Das JSON enthält jedes Bild jeder Halle.",
+    "kept": "Die Aufzeichnung des ganzen Events behält am letzten Tag alle 5 Minuten ein Bild, in der letzten Woche alle 30 Minuten, danach eines pro Stunde. Sie beginnt neu mit Neues Event beginnen auf der Berichtsseite."
+  }
 }

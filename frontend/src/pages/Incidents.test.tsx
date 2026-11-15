@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Incident, IncidentBoard } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Incidents from './Incidents'
+import { matchesFilter } from './incidents/filter'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -15,7 +16,8 @@ const board: IncidentBoard = {
   incidents: [
     { ...base, id: 'i1', title: 'No internet at the seat', status: 'open', source: 'helpdesk', reports: 2, reported_by: null,
       snapshot: { known: true, switch: 'sw-a-01', port: 'Gi1/0/3', link: 'down', mac_seen: false },
-      speedtest: { down_mbps: 12.5, up_mbps: 9.1, ping_ms: 3.2, jitter_ms: 0.4, at: Date.now() / 1000 - 120 } },
+      speedtest: { down_mbps: 12.5, up_mbps: 9.1, ping_ms: 3.2, jitter_ms: 0.4, at: Date.now() / 1000 - 120 },
+      seat_note: { text: 'Cable swapped, watch it', by: 'ana', at: Date.now() / 1000 - 600 } },
     { ...base, id: 'i2', title: 'No power', status: 'assigned', team: 'electrics', assignee: 'kim', can_work: false },
     { ...base, id: 'i3', title: 'Cable swapped', status: 'fixed' },
   ],
@@ -33,20 +35,115 @@ const routes = {
 }
 
 describe('Incident board', () => {
+  it('says when an open incident has waited 10 minutes with nobody on it', async () => {
+    const now = Date.now() / 1000
+    const waiting: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'w1', title: 'Waiting long', status: 'open', created_at: now - 25 * 60 },
+      { ...base, id: 'w2', title: 'Just in', status: 'open', created_at: now - 5 * 60 },
+      { ...base, id: 'w3', title: 'Old but taken', status: 'assigned', assignee: 'sam', created_at: now - 40 * 60 },
+      { ...base, id: 'w4', title: 'Overnight', status: 'open', created_at: now - (13 * 60 + 38) * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': waiting }).fn)
+    renderWithApp(<Incidents />)
+    const long = (await screen.findByText('Waiting long')).closest('[data-incident]') as HTMLElement
+    expect(within(long).getByText('Waiting 25 min')).toBeInTheDocument()
+    const fresh = screen.getByText('Just in').closest('[data-incident]') as HTMLElement
+    expect(within(fresh).queryByText(/^Waiting/)).toBeNull()
+    const taken = screen.getByText('Old but taken').closest('[data-incident]') as HTMLElement
+    expect(within(taken).queryByText(/^Waiting/)).toBeNull()
+    const night = screen.getByText('Overnight').closest('[data-incident]') as HTMLElement
+    expect(within(night).getByText('Waiting 13 h 38 min')).toBeInTheDocument()
+  })
+
+  it('puts waiting incidents on top of the open column, longest first', async () => {
+    const now = Date.now() / 1000
+    const queue: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'q1', title: 'Newest', status: 'open', created_at: now - 60 },
+      { ...base, id: 'q2', title: 'Waiting a bit', status: 'open', created_at: now - 15 * 60 },
+      { ...base, id: 'q3', title: 'Recent', status: 'open', created_at: now - 4 * 60 },
+      { ...base, id: 'q4', title: 'Waiting longest', status: 'open', created_at: now - 50 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': queue }).fn)
+    renderWithApp(<Incidents />)
+    const open = await screen.findByRole('region', { name: 'Open' })
+    await within(open).findByText('Newest')
+    const titles = Array.from(open.querySelectorAll('[data-incident]')).map((el) => el.textContent ?? '')
+    const order = ['Waiting longest', 'Waiting a bit', 'Newest', 'Recent'].map((x) => titles.findIndex((tt) => tt.includes(x)))
+    expect(order).toEqual([0, 1, 2, 3])
+  })
+
   it('sorts incidents into columns with the seat report details', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     renderWithApp(<Incidents />)
     const open = await screen.findByRole('region', { name: 'Open' })
     expect(within(open).getByText('No internet at the seat')).toBeInTheDocument()
+    expect(document.title).toBe('(1) Incidents · Floorbit')
     expect(within(open).getByText('From the seat')).toBeInTheDocument()
     expect(within(open).getByText('2 reports')).toBeInTheDocument()
     expect(within(open).getByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeInTheDocument()
     expect(within(open).getByText('Speed test at the seat, 2 min ago: 12.5 down, 9.1 up Mbit/s, 3.2 ms')).toBeInTheDocument()
+    expect(within(open).getAllByRole('link', { name: 'Seat A-1' })[0]).toHaveAttribute('href', '/plan?seat=A-1')
+    expect(open.querySelector('[data-seat-note]')).toHaveTextContent('Crew note: Cable swapped, watch it ana · 10 min ago')
+    expect(screen.getByRole('region', { name: 'Being worked' }).querySelector('[data-seat-note]')).toBeNull()
     const worked = screen.getByRole('region', { name: 'Being worked' })
     expect(within(worked).getByText('With kim')).toBeInTheDocument()
     // Another team's incident: visible, but no buttons.
     expect(within(worked).queryByRole('button', { name: 'Fixed' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Seat QR codes' })).toBeNull()
+  })
+
+  it('filters the board from the address', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />, '/incidents?q=KIM')
+    const worked = await screen.findByRole('region', { name: 'Being worked' })
+    expect(within(worked).getByText('No power')).toBeInTheDocument()
+    const open = screen.getByRole('region', { name: 'Open' })
+    expect(within(open).getByText('Nothing matches the filter.')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('KIM')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter incidents' }), { target: { value: 'internet' } })
+    expect(await within(open).findByText('No internet at the seat')).toBeInTheDocument()
+    expect(within(worked).queryByText('No power')).toBeNull()
+  })
+
+  it('puts the cursor in the filter on /, with or without Shift (issue #226)', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />, '/incidents?q=KIM')
+    const box = await screen.findByRole('textbox', { name: 'Filter incidents' })
+    expect(box).toHaveAttribute('aria-keyshortcuts', '/')
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Slash' })
+    expect(box).toHaveFocus()
+    expect([(box as HTMLInputElement).selectionStart, (box as HTMLInputElement).selectionEnd]).toEqual([0, 3])
+    box.blur()
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Digit7', shiftKey: true })
+    expect(box).toHaveFocus()
+  })
+
+  it('matches one seat exactly with seat:', () => {
+    const at = (seat: string) => ({ ...base, id: seat, title: 'x', status: 'open' as const, seat })
+    expect(matchesFilter(at('D-2'), 'seat:d-2')).toBe(true)
+    expect(matchesFilter(at('D-20'), 'seat:D-2')).toBe(false)
+    expect(matchesFilter(at('D-20'), 'D-2')).toBe(true)
+  })
+  it('matches one switch exactly with switch: (issue #336)', () => {
+    const on = (name: string) => ({ ...base, id: name, title: `${name} is offline`, status: 'open' as const, seat: null, switch_id: `id-${name}`, switch_name: name })
+    expect(matchesFilter(on('sw-a-01'), 'switch:SW-A-01')).toBe(true)
+    expect(matchesFilter(on('sw-a-01'), 'switch:id-sw-a-01')).toBe(true)
+    expect(matchesFilter(on('sw-a-010'), 'switch:sw-a-01')).toBe(false)
+  })
+  it('matches the tech on it with with: (issue #350)', () => {
+    const on = (assignee: string | null) => ({ ...base, id: String(assignee), title: 'x', status: 'assigned' as const, assignee,
+      notes: [{ by: 'kim', at: 1, text: 'asked kim' }] })
+    expect(matchesFilter(on('kim'), 'with:Kim')).toBe(true)
+    expect(matchesFilter(on('kimi'), 'with:kim')).toBe(false)
+    expect(matchesFilter(on(null), 'with:kim')).toBe(false)
+  })
+  it('matches title, place, people, team and notes', () => {
+    const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
+    expect(matchesFilter(i, '')).toBe(true)
+    expect(matchesFilter(i, 'power')).toBe(true)
+    expect(matchesFilter(i, 'breaker')).toBe(true)
+    expect(matchesFilter(i, 'Electrics', { electrics: 'Electrics' })).toBe(true)
+    expect(matchesFilter(i, 'switch')).toBe(false)
   })
 
   it('takes an incident', async () => {
@@ -57,5 +154,140 @@ describe('Incident board', () => {
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/auth/me')).toBe(true))
     fireEvent.click(within(open).getByRole('button', { name: 'Take it' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'assigned', assignee: 'sam' }))
+  })
+  it('takes the oldest open incident this account can work', async () => {
+    const now = Date.now() / 1000
+    const queue: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'n1', title: 'Newer', status: 'open', created_at: now - 120 },
+      { ...base, id: 'n2', title: 'Oldest but not mine', status: 'open', created_at: now - 3600, can_work: false },
+      { ...base, id: 'n3', title: 'Oldest I can work', status: 'open', created_at: now - 1800 },
+      { ...base, id: 'n4', title: 'Taken', status: 'assigned', assignee: 'kim', created_at: now - 7200 },
+    ] }
+    const api = fakeFetch({ ...routes, 'GET /api/incidents': queue,
+      'PATCH /api/incidents/n3': { ...queue.incidents[2], status: 'assigned', assignee: 'sam' } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: 'Take the next one' })
+    await waitFor(() => expect(take).toBeEnabled())
+    fireEvent.click(take)
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.path).toBe('/api/incidents/n3'))
+    expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'assigned', assignee: 'sam' })
+    expect(await screen.findByText('You have it: Oldest I can work')).toBeInTheDocument()
+  })
+
+  it('has nothing to take when nothing open is workable', async () => {
+    const none: IncidentBoard = { ...board, incidents: [board.incidents[1], board.incidents[2]] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': none }).fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: 'Take the next one' })
+    expect(take).toBeDisabled()
+    expect(take).toHaveAttribute('title', 'Nothing open that you can work')
+  })
+  it('says when a seat has had incidents before', async () => {
+    const now = Date.now() / 1000
+    const repeats: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'r1', title: 'Third time', seat: 'B-7', status: 'open', created_at: now - 60 },
+      { ...base, id: 'r2', title: 'Second time', seat: 'B-7', status: 'fixed', created_at: now - 3600 },
+      { ...base, id: 'r3', title: 'First time', seat: 'B-7', status: 'fixed', created_at: now - 7200 },
+      { ...base, id: 'r4', title: 'Elsewhere', seat: 'C-1', status: 'open', created_at: now - 120 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': repeats }).fn)
+    renderWithApp(<Incidents />)
+    const third = (await screen.findByText('Third time')).closest('[data-incident]') as HTMLElement
+    expect(within(third).getByRole('link', { name: 'Incident no. 3 at this seat' })).toHaveAttribute('href', '/incidents?q=seat%3AB-7')
+    const second = screen.getByText('Second time').closest('[data-incident]') as HTMLElement
+    expect(within(second).getByText('Incident no. 2 at this seat')).toBeInTheDocument()
+    for (const title of ['First time', 'Elsewhere']) {
+      const card = screen.getByText(title).closest('[data-incident]') as HTMLElement
+      expect(within(card).queryByText(/at this seat/)).toBeNull()
+    }
+  })
+  it('says what is already open at a seat before filing another (issue #328)', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />)
+    await screen.findByText('No power')
+    fireEvent.click(screen.getByRole('button', { name: 'New incident' }))
+    const dialog = await screen.findByRole('dialog')
+    const seat = within(dialog).getByRole('textbox', { name: /Seat/ })
+    fireEvent.change(seat, { target: { value: 'B-9' } })
+    expect(within(dialog).queryByText(/already open here/i)).toBeNull()
+    fireEvent.change(seat, { target: { value: ' a-1 ' } })
+    expect(within(dialog).getByText('2 already open here')).toBeInTheDocument()
+    expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
+    expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
+  })
+  it('flags a sent job nobody has seen for 5 minutes (issue #364)', async () => {
+    const now = Date.now() / 1000
+    const sent: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'u1', title: 'Sent a while ago', status: 'assigned', assignee: 'kim', dispatched_at: now - 7 * 60, taken_at: null },
+      { ...base, id: 'u2', title: 'Sent just now', status: 'assigned', assignee: 'kim', dispatched_at: now - 60, taken_at: null },
+      { ...base, id: 'u3', title: 'Seen', status: 'assigned', assignee: 'kim', dispatched_at: now - 20 * 60, taken_at: now - 15 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': sent }).fn)
+    renderWithApp(<Incidents />)
+    const old = (await screen.findByText('Sent a while ago')).closest('[data-incident]') as HTMLElement
+    expect(within(old).getByText('not seen for 7 min')).toBeInTheDocument()
+    const fresh = screen.getByText('Sent just now').closest('[data-incident]') as HTMLElement
+    expect(within(fresh).getByText('With kim · not seen yet')).toBeInTheDocument()
+    const seen = screen.getByText('Seen').closest('[data-incident]') as HTMLElement
+    expect(within(seen).getByText('With kim · on the way')).toBeInTheDocument()
+  })
+
+  it('says when the seat reports it works again (issue #372)', async () => {
+    const now = Date.now() / 1000
+    const ok: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'k1', title: 'Fixed itself', status: 'open', source: 'helpdesk', seat_ok_at: now - 3 * 60 },
+      { ...base, id: 'k2', title: 'Still broken', status: 'open', source: 'helpdesk' },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': ok }).fn)
+    renderWithApp(<Incidents />)
+    const said = (await screen.findByText('Fixed itself')).closest('[data-incident]') as HTMLElement
+    expect(within(said).getByText('Seat says it works again · 3 min ago')).toBeInTheDocument()
+    const broken = screen.getByText('Still broken').closest('[data-incident]') as HTMLElement
+    expect(within(broken).queryByText(/works again/)).not.toBeInTheDocument()
+  })
+
+  it('says when the seat\'s switch is down (issue #386)', async () => {
+    const now = Date.now() / 1000
+    const down: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'o1', title: 'On the down switch', status: 'open', outage: { switch: 'sw-c-02', since: now - 5 * 60 } },
+      { ...base, id: 'o2', title: 'Elsewhere', status: 'open' },
+      { ...base, id: 'o3', title: 'Filed during it', status: 'open', back_up: { switch: 'sw-b-01', since: now - 2 * 60 } },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': down }).fn)
+    renderWithApp(<Incidents />)
+    const card = (await screen.findByText('On the down switch')).closest('[data-incident]') as HTMLElement
+    expect(within(card).getByText('sw-c-02 down · 5 min ago')).toBeInTheDocument()
+    const other = screen.getByText('Elsewhere').closest('[data-incident]') as HTMLElement
+    expect(within(other).queryByText(/ down · /)).not.toBeInTheDocument()
+    const back = screen.getByText('Filed during it').closest('[data-incident]') as HTMLElement
+    expect(within(back).getByText('sw-b-01 back up · 2 min ago')).toBeInTheDocument()   // issue #390
+  })
+
+  it('says how long a fixed incident took (issue #332)', async () => {
+    const now = Date.now() / 1000
+    const done: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'f1', title: 'Quick one', status: 'fixed', assignee: 'kim', created_at: now - 3600, fixed_at: now - 3600 + 12 * 60 },
+      { ...base, id: 'f2', title: 'Long one', status: 'fixed', created_at: now - 7200, fixed_at: now - 7200 + 65 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': done }).fn)
+    renderWithApp(<Incidents />)
+    const quick = (await screen.findByText('Quick one')).closest('[data-incident]') as HTMLElement
+    expect(within(quick).getByText('With kim · fixed after 12 min')).toBeInTheDocument()
+    const long = screen.getByText('Long one').closest('[data-incident]') as HTMLElement
+    expect(within(long).getByText('Fixed after 1 h 5 min')).toBeInTheDocument()
+    expect(within(long).queryByText(/Nobody on it/)).toBeNull()
+  })
+  it('takes the next one with the n key, but not while typing', async () => {
+    const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0], status: 'assigned', assignee: 'sam' } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: /Take the next one/ })
+    await waitFor(() => expect(take).toBeEnabled())
+    const filter = screen.getByRole('textbox', { name: /Filter/ })
+    fireEvent.keyDown(filter, { key: 'n' })
+    expect(api.calls.some((c) => c.method === 'PATCH')).toBe(false)
+    fireEvent.keyDown(document.documentElement, { key: 'n' })
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.path).toBe('/api/incidents/i1'))
   })
 })

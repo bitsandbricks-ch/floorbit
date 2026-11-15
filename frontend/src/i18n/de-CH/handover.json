@@ -18,6 +18,7 @@
   "noOutages": "Kein Switch ist ausgefallen.",
   "wasDown": "ausgefallen um {{when}} für {{for}}",
   "stillDown": "ausgefallen seit {{when}} ({{for}})",
+  "seatNotes": "Platz-Notizen aus dieser Schicht",
   "changesTitle": "Änderungen",
   "noChanges": "Keine Port-Aktionen, Einstellungen oder Änderungen am Hallenplan.",
   "when": "Wann",
@@ -31,5 +32,22 @@
   "doneDiscord": "Übergeben und auf Discord gepostet. Die nächste Zusammenfassung beginnt jetzt.",
   "earlier": "Frühere Übergaben",
   "counts": "{{open}} offen, {{fixed}} behoben, {{outages}} Ausfälle",
-  "status": { "open": "Offen", "assigned": "Übernommen", "fixed": "Behoben" }
+  "status": {
+    "open": "Offen",
+    "assigned": "Übernommen",
+    "fixed": "Behoben"
+  },
+  "copy": "Als Text kopieren",
+  "copied": "Kopiert",
+  "mutedTitle": "Gerade stumm",
+  "noticeUp": "Crew-Hinweis hängt",
+  "noticeBy": "von {{who}}",
+  "mutedUntil": "stumm bis {{until}} von {{who}}",
+  "waiting_one": "{{count}} wartet seit 10+ Min.",
+  "waiting_other": "{{count}} warten seit 10+ Min.",
+  "gearTitle_one": "Material noch draussen ({{count}} Stück)",
+  "gearTitle_other": "Material noch draussen ({{count}} Stück)",
+  "halfWithin": "die Hälfte innert {{d}}",
+  "fixedBy": "Von: {{list}}",
+  "nobodyNamed": "niemand genannt"
 }

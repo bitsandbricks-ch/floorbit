@@ -13,8 +13,12 @@ Send an incident to the nearest free tech, and let techs work their jobs from th
   The plan has no walls or aisles, so the line is the straight way, not a walking route.
 - **On my way** tells the board you saw the job. **Done** marks the incident fixed (with an optional
   note). **Give back** puts it back on the board, unassigned, for someone else.
+- When the attendee taps **It works again** on the seat's [help page](incidents.md#the-helpdesk-on-each-seat),
+  the job says so ("The seat said at 10:42 that it works again"): ask there before you fix anything.
 
-The page refreshes by itself when a job comes in.
+The page refreshes by itself when a job comes in, and the browser tab shows how many jobs you haven't
+answered with **On my way** yet, like "(2) My jobs". Once you have fixed something, it also says how many
+jobs you fixed in the last 12 hours, about one shift.
 
 ## For leads: Send to nearest tech
 
@@ -28,11 +32,21 @@ gives the incident to the free tech nearest to it:
   hasn't said where they are. Incidents on a power circuit have no place on the plan, so any free
   tech can get them; a tie goes to whoever has waited longest.
 
-The board shows who is on duty, where, and how many jobs they have, and on each sent incident
-whether the tech has seen it yet ("on the way") or not.
+The board shows who is on duty, where, how many jobs they have and how many they fixed in the last
+12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not. A job nobody has seen 5 minutes after it
+was sent says so in amber ("not seen for 7 min"): their phone may be in a pocket, and a lead can
+send it to someone else. Click a
+tech to filter the board to what they are on (`with:kim`); click again to clear it.
 
-Nothing is sent by itself: a lead decides. Everything goes to the audit log (sent, taken, finished,
-given back).
+By default nothing is sent by itself: a lead decides. A lead (`incidents.assign`) can turn on
+**Send new ones to the nearest free tech by themselves** next to the crew. Then every new incident
+(from the board, a seat's help page or a power alert) goes to the nearest free tech the moment it is
+filed, by the same rules. If nobody is free it stays on the board; incidents filed earlier are left
+alone, so a tech coming back on duty is not flooded with old jobs at once. While it is on, My jobs tells
+techs on duty that jobs come by themselves.
+
+Everything goes to the audit log (sent by hand or by itself, taken, finished, given back, and the
+switch turned on or off).
 
 ## What is kept
 
@@ -43,10 +57,11 @@ at, and since when. No GPS, no phone location: a position is always a seat numbe
 
 | Request | Needs | What |
 | --- | --- | --- |
-| `GET /api/jobs` | `incidents.work` | My status, my jobs with the hall plan, the job's point and mine |
+| `GET /api/jobs` | `incidents.work` | My status, my jobs with the hall plan, the job's point and mine, and `done` (fixed in the last 12 hours) |
 | `PUT /api/jobs/me` | `incidents.work` | `{"on_duty": true, "at": "B-7"}`; `"at": ""` clears it |
 | `POST /api/jobs/<id>/take` | the job's tech | On my way |
 | `POST /api/jobs/<id>/done` | the job's tech | Fixed, with an optional `note` |
 | `POST /api/jobs/<id>/give-back` | the job's tech | Back on the board, with an optional `note` |
 | `POST /api/incidents/<id>/dispatch` | `incidents.assign` | Send to the nearest free tech; 409 if there is none |
-| `GET /api/dispatch/crew` | `incidents.assign` | Who is on duty, where, with how many jobs |
+| `PUT /api/dispatch/auto` | `incidents.assign` | `{"on": true}`: send new incidents by themselves |
+| `GET /api/dispatch/crew` | `incidents.assign` | Who is on duty, where, with how many open jobs and how many fixed in the last 12 hours (`done`), and whether `auto` is on |

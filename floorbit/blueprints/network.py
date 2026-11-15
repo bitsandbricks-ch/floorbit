@@ -8,6 +8,7 @@ from integrations import seat_sources
 
 from .. import inventory, seat_search, sources
 from ..seat_traffic import collect_seat_heatmap
+from ..seat_traffic import resolve_seats as resolve_each_seat
 from ..store import load_data
 
 bp = Blueprint('network', __name__)
@@ -83,7 +84,7 @@ def get_seats_occupancy():
 
 @bp.route('/api/seats/resolve', methods=['POST'])
 def resolve_seats():
-    """Resolve all seat IP addresses to their switch and port mappings."""
+    """Every seat with an IP: its switch and port, or why it could not be found."""
     if not sources.monitoring().enabled():
         return jsonify({
             'error': 'LibreNMS is not configured',
@@ -93,30 +94,8 @@ def resolve_seats():
     if not seats:
         return jsonify({'error': 'No seat mapping available', 'sources': seat_sources.info()}), 400
 
-    results = {}
-
-    for seat_number, seat_info in seats.items():
-        ip_address = seat_info.get('ip_address')
-        if not ip_address:
-            continue
-
-        # Try to resolve the IP
-        result = sources.monitoring().resolve_ip(ip_address)
-        if result:
-            results[seat_number] = {
-                'username': seat_info.get('username'),
-                'ip_address': ip_address,
-                'resolved': True,
-                **result,
-            }
-        else:
-            results[seat_number] = {
-                'username': seat_info.get('username'),
-                'ip_address': ip_address,
-                'resolved': False,
-                'error': 'Could not resolve',
-            }
-
+    # In parallel, like the heatmap; one failing lookup marks only its seat (issue #198).
+    results = resolve_each_seat(seats, sources.monitoring().resolve_ip)
     return jsonify({'seats': results})
 
 

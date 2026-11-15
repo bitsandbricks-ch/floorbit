@@ -13,6 +13,17 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
 - **Changes:** the message is edited to show the new status and who has the incident. The thread gets
   one line per change: someone took it, it was sent to a tech ([dispatch](dispatch.md)), it is back
   on the board, it was fixed or reopened. Each new note is posted there too.
+- **Waiting:** when nobody has taken an incident for 10 minutes (`DISCORD_CREW_WAITING_MINUTES`),
+  its thread gets one line, "⏳ Waiting 10 min. Nobody has taken it yet.", the same rule as the
+  board's "Waiting" badge. Set `DISCORD_CREW_WAITING_ROLE` to a role ID, for example the leads, and
+  that line pings the role. It is said once per incident, also when it is reopened later. Floorbit
+  looks once a minute.
+- **Not seen:** when a job [sent to a tech](dispatch.md) is still not seen 5 minutes later
+  (`DISCORD_CREW_UNSEEN_MINUTES`), its thread gets one line, "📵 Sent to kim 5 min ago, not seen
+  yet.", the same rule as the board. It pings nobody. Sent again, it can say so again.
+- **Works again:** when the attendee taps "It works again" on the seat's [help page](incidents.md#the-helpdesk-on-each-seat),
+  the thread gets "👍 The seat says it works again. Check or ask before marking it fixed." and no
+  waiting nudge follows. The incident stays open until someone marks it fixed.
 - **Fixed:** the buttons go away and the thread is archived. When the incident is reopened, the
   thread opens again.
 - **Buttons:** "Take it" and "Fixed" act as the Floorbit account linked to whoever clicks. That account
@@ -23,6 +34,14 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
   ([integrations.md](integrations.md#discord-alerts)) go to the crew channel through the bot.
   With a webhook URL set, they still go to the webhook. You can use one channel for
   incidents and another for alerts.
+- **Mute from the alert:** when a switch-offline or service-down alert comes through the bot and the
+  buttons are set up, it has a "Mute sw-a-01 for 1 h" button per switch or red service (up to five;
+  a grouped big-outage message has none). It mutes those alerts for an hour as the linked account, which needs
+  `incidents.work`, with the reason "Muted from Discord". It is in the audit log, and the
+  [Problems page](alerts.md) shows it with **+30 min** and **Unmute**. A webhook can't carry buttons.
+
+- **Crew notices:** when a lead puts up a [crew notice](crew-notice.md), it is posted in the crew
+  channel too: warning or info, who put it up and for how long. Taking it down posts nothing.
 
 What people write in Discord threads is not copied back into Floorbit. That needs a gateway
 connection and Discord's message content permission. Notes are added on the incident board.
@@ -58,6 +77,10 @@ never mention anyone (`allowed_mentions` is empty).
 | `DISCORD_APP_PUBLIC_KEY` | | turns on the buttons |
 | `DISCORD_CREW_ENABLED` | `true` | turn the channel off without removing the token |
 | `DISCORD_CREW_INCIDENTS` | `true` | post incidents (off: only alerts, when there is no webhook) |
+| `DISCORD_CREW_NOTICES` | `true` | post each [crew notice](crew-notice.md) a lead puts up |
+| `DISCORD_CREW_WAITING_MINUTES` | `10` | say once in the thread when nobody has taken an incident for this long (`0`: never) |
+| `DISCORD_CREW_UNSEEN_MINUTES` | `5` | say once in the thread when a sent job is not seen for this long (`0`: never) |
+| `DISCORD_CREW_WAITING_ROLE` | | role ID to ping with that line |
 | `DISCORD_CREW_FILE` | next to `data.json` | which message and thread belong to which incident |
 
 `GET /api/integrations` shows the bridge's state under `crew`: whether it is configured, whether the

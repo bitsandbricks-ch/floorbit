@@ -11,7 +11,7 @@ most problems and every incident.
 | Peak bandwidth, bandwidth per hour, data moved | The port reads; data moved is estimated from the hourly averages |
 | Switch outages | The status monitor: each time a switch went offline and came back |
 | Top problem ports | The needs-attention watch: how often each port started flapping, rising errors, half duplex or online without a check-in |
-| Incidents | The incident board: opened, where, what, team, how long until fixed |
+| Incidents | The incident board: opened, where, what, team, how long until fixed; how long until someone took them (the first time an incident was assigned or taken, kept from now on: older incidents don't count); the seats with more than one incident, most first, which often points at a cable or port; what attendees reported from their seat QR codes (no internet, slow, no power, something else, every report counted) (page and PDF) |
 
 The port reads are folded into one row per hour and kept for **21 days**, in Redis with the other
 stats (`floorbit:stats`). Switch outages (up to 5,000 changes) and problem ports (up to 1,000 ports)

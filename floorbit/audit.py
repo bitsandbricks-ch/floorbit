@@ -92,8 +92,11 @@ ACTIONS = {
     ('DELETE', '/api/teardown/items/<item_id>'): ('floor plan', 'Removed a teardown step'),
     ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
     ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
+    ('PUT', '/api/notice'): ('incidents', 'Put up a crew notice'),
+    ('DELETE', '/api/notice'): ('incidents', 'Took down the crew notice'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
+    ('PUT', '/api/dispatch/auto'): ('incidents', 'Turned automatic dispatch on or off'),
     ('POST', '/api/jobs/<incident_id>/take'): ('incidents', 'Took job'),
     ('POST', '/api/jobs/<incident_id>/done'): ('incidents', 'Finished job'),
     ('POST', '/api/jobs/<incident_id>/give-back'): ('incidents', 'Gave job back'),
@@ -102,7 +105,7 @@ ACTIONS = {
 }
 AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins',
          'incidents', 'ports', 'security', 'power', 'alerts', 'gear', 'cables',
-         'status page', 'runbooks')
+         'status page', 'runbooks', 'schedule', 'tournament')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
 listeners = []
 

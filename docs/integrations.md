@@ -73,7 +73,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 |---|---|---|
 | `DISCORD_WEBHOOK_URL` | | Channel settings → Integrations → Webhooks |
 | `DISCORD_ALERTS_ENABLED` | `true` | |
-| `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime |
+| `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime, and how many open incidents from its seats were filed while it was down |
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
 | `DISCORD_USERNAME` | `Floorbit` | |
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
@@ -87,6 +87,10 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENDEE_VIEW` | `false` | the public attendee view `/hall`, seats online or offline ([kiosk.md](kiosk.md#attendee-view)); also under Settings > Attendee pages |
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
 | `STATUS_SWITCH_NAMES` | `false` | name the switches that are down on `/status` |
+| `BRACKET_VIEW` | `false` | the public tournament bracket view `/bracket` ([tournament.md](tournament.md#brackets)); also under Settings > Attendee pages |
+| `METRICS_ENABLED` | `false` | Prometheus metrics at `/api/metrics` ([metrics.md](metrics.md)); also under Settings > Prometheus metrics |
+| `SCHEDULE_PAGE` | `false` | the public schedule and countdown `/agenda` ([schedule.md](schedule.md)); also under Settings > Attendee pages |
+| `STATS_WALL` | `false` | the public stats wall `/wall` ([stats-wall.md](stats-wall.md)); also under Settings > Attendee pages |
 | `STATS_UPLINK_PATTERN` | `uplink\|trunk` | port descriptions that mark a switch's uplink on the [stats dashboard](stats.md) (a regular expression, case-insensitive) |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |
@@ -105,6 +109,10 @@ one message and thread per incident ([crew-discord.md](crew-discord.md)).
 the order listed in `SEAT_SOURCES`; the first one with a value for a field wins. Hand entries
 from the [seat mapping](seat-mapping.md) page and plugins with `uses: [mapping]` always come
 before them.
+
+`/api/seats/resolve` and `/api/seats/heatmap` look up each seat's IP in the monitoring source in
+parallel (eight at a time). A lookup that fails marks only that seat (`resolved: false` with the
+error); the rest of the answer is still there.
 
 | Source | What it reads |
 |---|---|
@@ -174,6 +182,7 @@ turned off, so the log can be exported after the event.
 |---|---|---|
 | `CHECKIN_HISTORY_ENABLED` | `true` | |
 | `CHECKIN_HISTORY_FILE` | next to `CHECKIN_FILE` | e.g. `/app/state/checkins-history.jsonl` in Docker |
+| `RECORDING_FILE` | `recording.jsonl` next to `data.json` | the whole-event recording for the replay ([replay](replay.md)) |
 
 ## Tests
 

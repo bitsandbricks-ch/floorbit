@@ -26,13 +26,16 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `heatmap.js` | The traffic heatmap layer. |
 | `incidents.js` | Open incidents as rings on seats and switches, and the count in the top bar. |
 | `tournament.js` | Match seats (tournament zones) with a gold outline. |
+| `seat-states.js` | The seat states layer: seats online, offline or unknown, and checked in, drawn like the Seats view (`/plan`). |
 | `security.js` | Active security findings as dashed rings on seats and switches, and the count in the top bar. |
 | `logs.js` | Seats and switches with syslog warnings in the last 10 minutes, underlined in cyan. |
 | `power.js` | The power layer: seats and switches coloured by their circuit's load, distribution boards, and the count of red circuits in the top bar. |
+| `mutes.js` | Muted switches: a bell-off badge on the pin and "alerts muted until" in its tooltip (the mutes come from `problems.js`), and muting, extending or unmuting a switch from its right-click menu. |
 | `problems.js` | The count of current problems next to Problems in the top bar. |
 | `ports.js` | Port actions on the selected seat (bounce its port) and flagging a seat for a tech. |
 | `touch.js` | Phones and tablets: one finger pans, drags and taps like the mouse, two fingers pinch to zoom; the sidebar as a drawer. |
 | `focus.js` | Opening the floor plan on one switch or seat from a link (`/?switch=<id>`, `/?seat=<seat>`), as the Problems list does. |
+| `notice.js` | The crew notice from a lead, as a banner under the top bar. |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:

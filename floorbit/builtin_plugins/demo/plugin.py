@@ -27,9 +27,10 @@ DHCP_POOL = 100               # small enough that the player scope shows amber
 
 # Access points: (name, where on the plan, (2.4 GHz channel or None, 5 GHz channel)). ap-02 and
 # ap-03 share channel 44 a little too close together, so the Wi-Fi view has an overlap to show. The
-# stage AP is 5 GHz only, as high-density APs often are.
-APS = (('ap-01', (14, 30), (1, 36)), ('ap-02', (40, 30), (6, 44)), ('ap-03', (60, 30), (11, 44)),
-       ('ap-04', (86, 30), (1, 52)), ('ap-05', (14, 92), (6, 100)), ('ap-06', (40, 92), (11, 116)),
+# stage AP is 5 GHz only, as high-density APs often are. The top row sits between the access switches
+# (at 14, 27, 40, 60, 73 and 86 % across), not on them, so their names don't print over each other.
+APS = (('ap-01', (7, 30), (1, 36)), ('ap-02', (47, 30), (6, 44)), ('ap-03', (53, 30), (11, 44)),
+       ('ap-04', (93, 30), (1, 52)), ('ap-05', (14, 92), (6, 100)), ('ap-06', (40, 92), (11, 116)),
        ('ap-07', (60, 92), (1, 132)), ('ap-08', (86, 92), (6, 149)), ('ap-stage', (50, 60), (None, 60)))
 CROWDED_AP = 'ap-stage'     # the stage: always busy
 
@@ -223,6 +224,23 @@ class Plugin(Plugin):
                         'panel_port': str(number) if panel else '', 'seat': seat, 'color': 'blue',
                         'length_m': 5 if panel else 10})
         return out
+
+    # brackets ---------------------------------------------------------------------------
+    def brackets(self):
+        # Made-up teams; the quarter-finals are played, one semi-final is on.
+        teams = ['Team Aurora', 'Pixel Foxes', 'Byte Club', 'Lag Busters', 'Null Pointers', 'Ping Pirates',
+                 'Frame Drop', 'Respawn Crew']
+
+        def m(a, b, sa=None, sb=None, status='waiting', station=''):
+            winner = None if sa is None or sb is None or status != 'done' else ('a' if sa > sb else 'b')
+            return {'a': {'name': a, 'score': sa}, 'b': {'name': b, 'score': sb}, 'status': status, 'winner': winner,
+                    'station': station}
+        return [{'id': 'demo-cup', 'name': 'Demo Cup', 'rounds': [
+            [m(teams[0], teams[7], 2, 0, 'done'), m(teams[3], teams[4], 1, 2, 'done'),
+             m(teams[1], teams[6], 2, 1, 'done'), m(teams[2], teams[5], 0, 2, 'done')],
+            [m(teams[0], teams[4], 1, 1, 'live', 'Stage'), m(teams[1], teams[5], station='Stage')],
+            [m(None, None)],
+        ]}]
 
     # seat mapping -----------------------------------------------------------------------
     def seat_mapping(self):

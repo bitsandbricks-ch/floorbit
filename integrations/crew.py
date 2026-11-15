@@ -12,7 +12,13 @@ It needs no gateway connection.
   the app's Interactions Endpoint URL points at ``/api/discord/interactions``. A click counts
   as the Floorbit account that has that Discord user linked (Discord sign-in, #9). Discord
   users with no linked account are told how to link one, and nothing changes.
-- With no webhook set, the switch, health, security and power alerts go to this channel too.
+- With no webhook set, the switch, health, security and power alerts go to this channel too. A
+  switch-offline or service-down alert then has a "Mute … for 1 h" button for crew with
+  ``incidents.work`` (issues #272, #274); a webhook can't carry buttons.
+- An incident nobody has taken for ``DISCORD_CREW_WAITING_MINUTES`` gets one line in its
+  thread saying so, with a ping for ``DISCORD_CREW_WAITING_ROLE`` when that is set (issue #298).
+- A job sent to a tech who hasn't said "On my way" after ``DISCORD_CREW_UNSEEN_MINUTES`` gets one
+  line in its thread too, so a lead can send it to someone else (issue #366).
 
 Talking to Discord runs on its own thread, so a slow Discord never holds up a request. Which
 Discord message and thread belong to which incident is kept in its own small file next to
@@ -39,8 +45,10 @@ STATUS_TEXT = {'open': 'Open', 'assigned': 'Taken', 'fixed': 'Fixed'}
 MAX_LINE = 1800           # under Discord's 2000-character message limit
 MAX_TRACKED = 3000        # oldest incidents are forgotten beyond this
 ARCHIVE_AFTER = 1440      # minutes; Discord archives a quiet thread after this anyway
-ACTION_PREFIX = 'fb'      # custom_id: fb:<action>:<incident id>
-ACTIONS = ('take', 'fixed')
+ACTION_PREFIX = 'fb'      # custom_id: fb:<action>:<incident id>, or fb:mute:<switch id>
+ACTIONS = ('take', 'fixed', 'mute')
+MUTE_MINUTES = 60         # what "Mute 1 h" under a switch alert means (issue #272)
+CHECK_EVERY = 60          # seconds between looks for incidents nobody has taken (issue #298)
 
 
 class CrewError(RuntimeError):
@@ -77,8 +85,16 @@ def custom_id(action, incident_id):
 
 def parse_custom_id(value):
     """(action, incident id), or None for a button this app didn't make."""
-    parts = str(value or '').split(':')
-    if len(parts) != 3 or parts[0] != ACTION_PREFIX or parts[1] not in ACTIONS or not parts[2].isalnum():
+    parts = str(value or '').split(':', 2)
+    if len(parts) != 3 or parts[0] != ACTION_PREFIX or parts[1] not in ACTIONS:
+        return None
+    # Incident ids are plain; switch ids may be uuids or NetBox names with dashes and dots, and a
+    # service's mute key is health:<plugin>:<check> (issue #274).
+    allowed = parts[2]
+    if parts[1] == 'mute':
+        for ch in '-_.:':
+            allowed = allowed.replace(ch, '')
+    if not allowed.isalnum():
         return None
     return parts[1], parts[2]
 
@@ -102,6 +118,11 @@ def _name(username, users=None):
     return (found or {}).get('display_name') or username
 
 
+def _waited(seconds):
+    minutes = int(seconds // 60)
+    return f'{minutes} min' if minutes < 60 else f'{minutes // 60} h {minutes % 60} min'
+
+
 class CrewBridge:
     def __init__(self, users=None, app=None):
         self.users = users          # auth's UserStore, for display names
@@ -109,6 +130,7 @@ class CrewBridge:
         self.request = requests.request   # tests swap in a fake
         self._queue = queue.Queue(maxsize=500)
         self._thread = None
+        self._ticker = None
         self._lock = threading.Lock()
         self._file_lock = threading.Lock()
         self.last_sent = None
@@ -130,6 +152,7 @@ class CrewBridge:
     # wiring -------------------------------------------------------------------------------
     def attach(self):
         events.subscribe('incident.changed', self.on_incident)
+        events.subscribe('notice.changed', self.on_notice)
 
     def on_incident(self, event):
         if not self.enabled() or not config.get_bool('DISCORD_CREW_INCIDENTS', True):
@@ -143,6 +166,31 @@ class CrewBridge:
         except queue.Full:
             self.last_error = 'crew channel queue full, an update was dropped'
 
+    def on_notice(self, event):
+        """A lead put up a crew notice (issue #248). Taking one down posts nothing."""
+        notice = (event.get('data') or {}).get('notice')
+        if not notice or not self.enabled() or not config.get_bool('DISCORD_CREW_NOTICES', True):
+            return
+        self._ensure_worker()
+        try:
+            self._queue.put_nowait(('notice', notice))
+        except queue.Full:
+            self.last_error = 'crew channel queue full, a notice was dropped'
+
+    @staticmethod
+    def notice_message(notice):
+        # Durations, not clock times: the server's time zone may not be the hall's.
+        hours = round((notice['until'] - notice['at']) / 3600) if notice.get('until') else 0
+        head = '⚠️ **Crew notice**' if notice.get('level') == 'warn' else '📣 **Crew notice**'
+        meta = [f"from {notice['by']}" if notice.get('by') else '',
+                f"for {hours} hour{'s' if hours != 1 else ''}" if hours else 'until taken down']
+        quoted = '\n'.join('> ' + line for line in notice['text'].splitlines() or [''])
+        return f"{head} ({', '.join(m for m in meta if m)})\n{quoted}"
+
+    def post_notice(self, notice):
+        return self._call('POST', f'/channels/{channel_id()}/messages',
+                          {'content': self.notice_message(notice), 'allowed_mentions': {'parse': []}})
+
     def _ensure_worker(self):
         with self._lock:
             if self._thread and self._thread.is_alive():
@@ -150,15 +198,43 @@ class CrewBridge:
             self._thread = threading.Thread(target=self._worker, name='discord-crew', daemon=True)
             self._thread.start()
 
-    def _worker(self):
+    def start(self):
+        """Look for incidents nobody has taken once a minute, on a thread of its own (issue #298)."""
+        with self._lock:
+            if self._ticker and self._ticker.is_alive():
+                return
+            self._ticker = threading.Thread(target=self._tick, name='discord-crew-waiting', daemon=True)
+            self._ticker.start()
+
+    def _tick(self):
         while True:
-            incident_id = self._queue.get()
+            time.sleep(CHECK_EVERY)
             try:
                 if self.app is not None:
                     with self.app.app_context():
-                        self.sync(incident_id)
+                        self.nudge_waiting()
+                        self.nudge_unseen()
                 else:
-                    self.sync(incident_id)
+                    self.nudge_waiting()
+                    self.nudge_unseen()
+            except Exception as exc:  # noqa: BLE001  # keep checking after a failed send
+                self.last_error = str(exc)[:300]
+
+    def _handle(self, item):
+        # Incidents are queued by id; a crew notice as ('notice', notice).
+        if isinstance(item, tuple):
+            return self.post_notice(item[1])
+        return self.sync(item)
+
+    def _worker(self):
+        while True:
+            item = self._queue.get()
+            try:
+                if self.app is not None:
+                    with self.app.app_context():
+                        self._handle(item)
+                else:
+                    self._handle(item)
             except Exception as exc:  # noqa: BLE001  # keep the sender thread alive
                 self.last_error = str(exc)[:300]
                 print(f'[integrations] crew channel update failed: {exc}')
@@ -242,6 +318,10 @@ class CrewBridge:
                 lines.append(f'📟 Sent to {who}.' if sent else f'🙋 {who} has it.')
             elif status == 'open':
                 lines.append('↩️ Back on the board. Nobody has it.')
+        ok = incident.get('seat_ok_at')
+        if ok and ok != before.get('seat_ok') and incident.get('status') != 'fixed':
+            # Issue #374: the attendee says it fixed itself. Tell the thread so nobody walks over for nothing.
+            lines.append('👍 The seat says it works again. Check or ask before marking it fixed.')
         for note in (incident.get('notes') or [])[int(before.get('notes') or 0):]:
             by = _name(note.get('by'), self.users) or 'Seat report'
             lines.append(f"💬 **{by}**: {note.get('text') or ''}"[:MAX_LINE])
@@ -272,7 +352,8 @@ class CrewBridge:
         ch = channel_id()
         msg = self._call('POST', f'/channels/{ch}/messages', body)
         record = {'message': msg['id'], 'thread': None, 'status': incident['status'],
-                  'assignee': incident.get('assignee'), 'notes': 0, 'at': time.time(), 'shown': digest(body)}
+                  'assignee': incident.get('assignee'), 'notes': 0, 'at': time.time(), 'shown': digest(body),
+                  'seat_ok': incident.get('seat_ok_at')}
         try:
             thread = self._call('POST', f"/channels/{ch}/messages/{msg['id']}/threads",
                                 {'name': f"{where(incident)}: {incident.get('title') or 'Incident'}"[:100],
@@ -292,7 +373,8 @@ class CrewBridge:
     def _update(self, incident, before, body):
         ch = channel_id()
         record = {**before, 'status': incident['status'], 'assignee': incident.get('assignee'),
-                  'notes': len(incident.get('notes') or []), 'at': time.time(), 'shown': digest(body)}
+                  'notes': len(incident.get('notes') or []), 'at': time.time(), 'shown': digest(body),
+                  'seat_ok': incident.get('seat_ok_at')}
         lines = self.changes(before, incident)
         if not lines and before.get('shown') == record['shown']:
             return {**record, 'at': before.get('at', record['at'])}
@@ -312,6 +394,69 @@ class CrewBridge:
                 self._call('PATCH', f'/channels/{thread}', {'archived': True})
         return record
 
+    def nudge_waiting(self, now=None):
+        """Say once in each thread whose incident nobody has taken for a while (issue #298).
+
+        Same rule as the board's "Waiting" badge: open, nobody on it, opened that long ago. Only
+        once per incident, so a reopened one doesn't ping again."""
+        minutes = config.get_int('DISCORD_CREW_WAITING_MINUTES', 10, minimum=0)
+        if not minutes or not self.enabled():
+            return []
+        from floorbit import incidents
+        now = now or time.time()
+        role = ''.join(ch for ch in config.get('DISCORD_CREW_WAITING_ROLE', '') if ch.isdigit())
+        nudged = []
+        with self._file_lock:
+            state = self._read()
+            for incident in incidents.list_all():
+                record = state.get(incident['id'])
+                if not record or not record.get('thread') or record.get('nudged'):
+                    continue
+                waited = now - (incident.get('created_at') or now)
+                if incident.get('status') != 'open' or incident.get('assignee') or waited < minutes * 60:
+                    continue
+                if incident.get('seat_ok_at'):
+                    continue   # the seat says it works again: no reason to ping the crew about it
+                text = f'⏳ Waiting {_waited(waited)}. Nobody has taken it yet.'
+                self._call('POST', f"/channels/{record['thread']}/messages",
+                           {'content': f'<@&{role}> {text}' if role else text,
+                            'allowed_mentions': {'parse': [], 'roles': [role] if role else []}})
+                record['nudged'] = True
+                nudged.append(incident['id'])
+            if nudged:
+                self._write(state)
+        return nudged
+
+    def nudge_unseen(self, now=None):
+        """Say once in a thread when the tech a job was sent to hasn't seen it for a while (issue #366).
+
+        Same rule as the board's "not seen for" line. Once per sending: sent again, it can say so again.
+        No ping: the tech's phone is the problem, and the lead reads the thread."""
+        minutes = config.get_int('DISCORD_CREW_UNSEEN_MINUTES', 5, minimum=0)
+        if not minutes or not self.enabled():
+            return []
+        from floorbit import incidents
+        now = now or time.time()
+        nudged = []
+        with self._file_lock:
+            state = self._read()
+            for incident in incidents.list_all():
+                record = state.get(incident['id'])
+                sent = incident.get('dispatched_at')
+                if not record or not record.get('thread') or not sent or record.get('unseen_for') == sent:
+                    continue
+                if incident.get('status') == 'fixed' or not incident.get('assignee') or incident.get('taken_at') \
+                        or now - sent < minutes * 60:
+                    continue
+                text = f"📵 Sent to {incident['assignee']} {_waited(now - sent)} ago, not seen yet."
+                self._call('POST', f"/channels/{record['thread']}/messages",
+                           {'content': text, 'allowed_mentions': {'parse': []}})
+                record['unseen_for'] = sent
+                nudged.append(incident['id'])
+            if nudged:
+                self._write(state)
+        return nudged
+
     def _thread_lines(self, thread, lines):
         if not thread or not lines:
             return
@@ -327,7 +472,13 @@ class CrewBridge:
     # alerts -------------------------------------------------------------------------------
     def post_alert(self, payload):
         """An alert from DiscordNotifier, when there is no webhook. Bots can't set a display name."""
-        body = {k: v for k, v in payload.items() if k not in ('username', 'avatar_url')}
+        body = {k: v for k, v in payload.items() if k not in ('username', 'avatar_url') and not k.startswith('_')}
+        if payload.get('_mute') and self.buttons():
+            row = [{'type': 2, 'style': 2, 'label': f'Mute {str(name)[:60]} for 1 h',
+                    'custom_id': custom_id('mute', sid)} for sid, name in payload['_mute']
+                   if len(custom_id('mute', sid)) <= 100]   # Discord's custom_id limit
+            if row:
+                body['components'] = [{'type': 1, 'components': row}]
         return self._call('POST', f'/channels/{channel_id()}/messages', body)
 
     # HTTP ---------------------------------------------------------------------------------

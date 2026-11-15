@@ -35,6 +35,10 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
           {job.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {job.taken_at && <Badge variant="light" color="up" tt="none">{t('jobs.taken', { when: since(job.taken_at) })}</Badge>}
         </Group>
+        {/* Before the walk: the seat may have fixed itself (issue #382). */}
+        {job.seat_ok_at && (
+          <Text size="sm" fw={600} c="up" data-seat-ok>{t('jobs.seatOk', { when: since(job.seat_ok_at) })}</Text>
+        )}
         {last && <Text size="sm">“{last.text}”</Text>}
         {job.runbook && (
           <Accordion variant="contained" radius="md">
@@ -87,7 +91,9 @@ export default function Jobs() {
   const error = jobs.error ?? duty.error ?? answer.error
 
   return (
-    <Layout title={t('jobs.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
+    // Jobs nobody has said "On my way" to go in the tab title, so a phone with the tab in the background shows them (issue #346).
+    <Layout title={t('jobs.title')} back={{ href: '/incidents', label: t('incidents.title') }}
+      count={(data?.jobs ?? []).filter((j) => !j.taken_at).length}>
       <PageHead title={t('jobs.title')} desc={t('jobs.intro')} />
       <Stack gap="md">
         {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
@@ -104,6 +110,9 @@ export default function Jobs() {
               </Stack>
             </Paper>
             {!data.me.on_duty && <Text size="sm" c="dimmed">{t('jobs.offDuty')}</Text>}
+            {/* So a tech knows jobs can arrive without a lead sending them (issue #360). */}
+            {data.me.on_duty && data.auto && <Text size="sm" c="dimmed">{t('jobs.autoOn')}</Text>}
+            {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
             {data.jobs.length === 0 ? (
               <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('jobs.none')}</Text></Paper>
             ) : data.jobs.map((job) => (

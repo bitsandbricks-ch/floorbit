@@ -34,6 +34,8 @@ describe('Electrics', () => {
     expect(within(row).getByText('block A row 2, sw-a-01')).toBeInTheDocument()
     expect(within(row).getByText('3 seats')).toBeInTheDocument()
     expect(screen.getByText('1 tripped')).toBeInTheDocument()
+    // One getting close and one tripped: a background tab shows two (issue #218).
+    expect(document.title).toBe('(2) Electrics · Floorbit')
     // Someone on the Electrics team types readings in but can't change the circuits.
     expect(screen.queryByRole('button', { name: 'Add board' })).not.toBeInTheDocument()
     expect(within(row).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()

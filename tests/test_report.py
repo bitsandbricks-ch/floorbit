@@ -129,3 +129,53 @@ def test_pdf_text_is_escaped_and_fits():
     page.text(10, 10, "Grüße (a\\b)")
     assert b"(Gr\xfc\xdfe \\(a\\\\b\\))" in page.stream()
     assert pdf.text_width(pdf.fit("x" * 200, 10, 50), 10) <= 50
+
+
+def test_time_until_someone_takes_an_incident(client, stats, monkeypatch):
+    # The report says how fast incidents are picked up, not just fixed (issue #294).
+    start = time.time()   # near now: the sign-in session checks the clock too
+    clock = [start]
+    monkeypatch.setattr(time, "time", lambda: clock[0])
+    first = client.post("/api/incidents", json={"seat": "D-1", "title": "No link"}).get_json()["id"]
+    second = client.post("/api/incidents", json={"seat": "D-2", "title": "Slow"}).get_json()["id"]
+    client.post("/api/incidents", json={"seat": "D-3", "title": "Nobody looked yet"})
+    clock[0] += 120
+    client.patch(f"/api/incidents/{first}", json={"status": "assigned"})
+    clock[0] += 480
+    client.patch(f"/api/incidents/{second}", json={"status": "assigned"})
+    # Handing it on or fixing it later doesn't move the first pick-up.
+    clock[0] += 300
+    client.patch(f"/api/incidents/{first}", json={"status": "open"})
+    client.patch(f"/api/incidents/{first}", json={"status": "fixed"})
+    from floorbit import incidents
+    assert incidents.get(first)["picked_up_at"] == start + 120
+    # Dispatch's own "the tech saw the job" stays untouched by this.
+    assert incidents.get(second).get("taken_at") is None
+    found = client.get("/api/report").get_json()["incidents"]
+    # Taken after 120 s and 600 s: the middle of the sorted list is the later one.
+    assert found["median_take_s"] == 600
+    assert found["total"] == 3
+
+
+def test_seats_with_more_than_one_incident(client, stats):
+    # A seat that keeps coming back points at a cable or port (issue #312).
+    for seat, title in (("D-1", "No link"), ("D-2", "Slow"), ("D-1", "No link again"), ("D-3", "Power"),
+                        ("D-1", "Drops"), ("D-2", "Slow again")):
+        client.post("/api/incidents", json={"seat": seat, "title": title})
+    found = client.get("/api/report").get_json()["incidents"]
+    assert found["repeat_seats"] == [{"seat": "D-1", "count": 3}, {"seat": "D-2", "count": 2}]
+    pdf = client.get("/api/report.pdf")
+    assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
+
+
+def test_what_attendees_reported(client, stats):
+    # Counts every press of a help page button (issue #370), not the incidents they landed on.
+    from floorbit import incidents
+    incidents.report_from_seat("D-1", "slow", {})
+    incidents.report_from_seat("D-1", "slow", {})
+    incidents.report_from_seat("D-2", "no-internet", {})
+    client.post("/api/incidents", json={"seat": "D-3", "title": "Filed on the board"})
+    found = client.get("/api/report").get_json()["incidents"]
+    assert found["seat_problems"] == [{"problem": "no-internet", "count": 1}, {"problem": "slow", "count": 2}]
+    pdf = client.get("/api/report.pdf")
+    assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")

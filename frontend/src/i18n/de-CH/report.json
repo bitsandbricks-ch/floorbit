@@ -6,7 +6,7 @@
   "peopleHelp": "Nur für Admins. Personendaten: Der Download kommt ins Audit-Log.",
   "peopleOn": "Dieser Bericht enthält Nicks und IPs. Als Personendaten behandeln.",
   "newEvent": "Neues Event beginnen",
-  "newEventQuestion": "Neues Event beginnen? Der Verlauf des Berichts (Stunden, Ausfälle, Problem-Ports) und die Spitze beginnen neu. Störungen und Check-ins bleiben auf ihren Seiten.",
+  "newEventQuestion": "Neues Event beginnen? Der Verlauf des Berichts (Stunden, Ausfälle, Problem-Ports) und die Spitze beginnen neu, die Aufzeichnung für die Wiedergabe auch. Störungen und Check-ins bleiben auf ihren Seiten.",
   "newEventDone": "Neues Event begonnen.",
   "period": "{{start}} bis {{end}}",
   "empty": "Noch keine Port-Abfragen gespeichert: Der Bericht füllt sich während des Events.",
@@ -18,6 +18,7 @@
   "incidents": "Störungen",
   "incidentsSub": "{{fixed}} behoben, {{open}} offen",
   "median": "die Hälfte in {{d}} behoben",
+  "medianTaken": "die Hälfte in {{d}} übernommen",
   "outages": "Switch-Ausfälle",
   "outagesSub": "{{count}} Switches",
   "ofSeats": "von {{count}} Plätzen",
@@ -57,5 +58,11 @@
   "kind_duplex": "Halbduplex",
   "kind_checkin": "kein Check-in",
   "kept": "Port-Abfragen werden pro Stunde zusammengefasst und 21 Tage behalten, Switch-Ausfälle und Problem-Ports seit dem letzten neuen Event.",
-  "pastEvents": "Vergangene Events"
+  "pastEvents": "Vergangene Events",
+  "repeatSeats": "Plätze mit mehr als einer Störung:",
+  "seatProblems": "Was an den Plätzen gemeldet wurde: {{what}}",
+  "problem_no-internet": "Kein Internet",
+  "problem_slow": "Langsame Verbindung",
+  "problem_power": "Kein Strom",
+  "problem_other": "Anderes"
 }

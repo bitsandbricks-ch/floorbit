@@ -88,6 +88,21 @@ Source: [`floorbit/blueprints/backup.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/settings/backup` | `settings.manage` |  |
 | POST | `/api/settings/backup` | `settings.manage` |  |
 
+## floorbit.blueprints.brackets
+
+Tournament brackets (issue #107). The rules live in floorbit/brackets.py; see docs/tournament.md.
+
+Source: [`floorbit/blueprints/brackets.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/brackets.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/tournament/brackets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
+| POST | `/api/tournament/brackets` | `floorplan.edit` | `tournament` |
+| DELETE | `/api/tournament/brackets/<bracket_id>` | `floorplan.edit` | `tournament` |
+| PATCH | `/api/tournament/brackets/<bracket_id>` | `floorplan.edit` | `tournament` |
+| PATCH | `/api/tournament/brackets/<bracket_id>/matches/<match_id>` | `floorplan.edit` | `tournament` |
+| POST | `/api/tournament/brackets/import` | `floorplan.edit` | `tournament` |
+
 ## floorbit.blueprints.cables
 
 Cables and patching (issue #97). The rules live in floorbit/cables.py.
@@ -166,6 +181,7 @@ Source: [`floorbit/blueprints/dispatch.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| PUT | `/api/dispatch/auto` | `incidents.assign` | `dispatch` |
 | GET | `/api/dispatch/crew` | `incidents.assign` | `dispatch` |
 | POST | `/api/incidents/<incident_id>/dispatch` | `floorplan.view` | `incidents` |
 | GET | `/api/jobs` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dispatch` |
@@ -328,6 +344,16 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
 
+## floorbit.blueprints.metrics
+
+Prometheus metrics (issue #153). The counts live in floorbit/metrics.py; docs in docs/metrics.md.
+
+Source: [`floorbit/blueprints/metrics.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/metrics.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/metrics` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.network
 
 Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap.
@@ -345,6 +371,29 @@ Source: [`floorbit/blueprints/network.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/seats/resolve` | `seats.view` |  |
 | GET | `/api/switches/<switch_id>/status` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.notice
+
+Crew notice (issue #246). Rules in floorbit/notice.py.
+
+Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/notice.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| DELETE | `/api/notice` | `incidents.assign` |  |
+| GET | `/api/notice` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/notice` | `incidents.assign` |  |
+
+## floorbit.blueprints.pages
+
+The HTML pages of the editor and the kiosk view, and the list of pages for "Go to".
+
+Source: [`floorbit/blueprints/pages.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/pages.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/pages` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/pages/find` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.past_events
 
 Past events and comparing them (issue #38). Rules in floorbit/event_archive.py.
@@ -359,6 +408,21 @@ Source: [`floorbit/blueprints/past_events.py`](https://github.com/bitsandbricks-
 | GET | `/api/past-events/<event_id>/report.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `past_events` |
 | GET | `/api/past-events/backup/<event_id>.json` | `settings.manage` | `past_events` |
 | POST | `/api/past-events/close` | `settings.manage` | `past_events` |
+
+## floorbit.blueprints.plan
+
+The floor plan's seat view (issue #55): the React page and its two reads.
+
+Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plan/blocks/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plan/find` | `seats.view` |  |
+| GET | `/api/plan/seats/<seat>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/plan/seats/<seat>/note` | `incidents.work` |  |
+| GET | `/api/plan/switches/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.planner
 
@@ -388,6 +452,7 @@ Source: [`floorbit/blueprints/plugins.py`](https://github.com/bitsandbricks-ch/f
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/dashboard` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
+| GET | `/api/dashboard/floorbit/<tile>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
 | GET | `/api/dashboard/layouts` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
 | DELETE | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |
 | PUT | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |
@@ -453,7 +518,8 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | POST | `/api/alerts/mutes` | `incidents.work` |  |
-| DELETE | `/api/alerts/mutes/<switch_id>` | `incidents.work` |  |
+| DELETE | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
+| PATCH | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.replay
@@ -465,6 +531,8 @@ Source: [`floorbit/blueprints/replay.py`](https://github.com/bitsandbricks-ch/fl
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/replay` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
+| GET | `/api/replay/event` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
+| GET | `/api/replay/event.json` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 
 ## floorbit.blueprints.report
 
@@ -491,6 +559,21 @@ Source: [`floorbit/blueprints/runbooks.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/runbooks/<book_id>` | `incidents.assign` | `runbooks` |
 | PATCH | `/api/runbooks/<book_id>` | `incidents.assign` | `runbooks` |
 | POST | `/api/runbooks/<book_id>/move` | `incidents.assign` | `runbooks` |
+
+## floorbit.blueprints.schedule
+
+Event schedule and countdown (issue #106). The rules live in floorbit/schedule.py; see docs/schedule.md.
+
+Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/schedule.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/schedule` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `schedule` |
+| PUT | `/api/schedule/event` | `floorplan.edit` | `schedule` |
+| POST | `/api/schedule/import` | `floorplan.edit` | `schedule` |
+| POST | `/api/schedule/items` | `floorplan.edit` | `schedule` |
+| DELETE | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
+| PATCH | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
 
 ## floorbit.blueprints.seat_blocks
 

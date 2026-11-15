@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
 import type {
+  PageLink,
+  Place,
+  CrewNotice,
   AccountSummary,
   IncidentBoard,
   IncidentPeople,
@@ -34,8 +37,29 @@ export function useMe() {
 /** Is this feature switched on (Settings > Features)? On until the server says otherwise, so a slow
  *  answer never hides a link. Only hides links: a feature that is off answers 404 anyway. */
 export function useFeature(feature: string) {
+  return !useFeaturesOff().includes(feature)
+}
+
+/** The features that are switched off; empty until the server answers. */
+export function useFeaturesOff(): string[] {
   const off = useQuery({ queryKey: qk.features, queryFn: () => get<{ off: string[] }>('/api/features'), staleTime: 60_000, retry: false })
-  return !off.data?.off.includes(feature)
+  return off.data?.off ?? []
+}
+
+/** The pages this account may open, for "Go to" (issue #250); empty until the server answers. */
+export function usePageList(): PageLink[] {
+  const pages = useQuery({ queryKey: qk.pages, queryFn: () => get<{ pages: PageLink[] }>('/api/pages'), staleTime: 60_000, retry: false })
+  return pages.data?.pages ?? []
+}
+
+/** Seats and switches whose number or name matches, for "Go to" (issue #252); needs two characters. */
+export function usePlaces(query: string): Place[] {
+  const q = query.trim()
+  const places = useQuery({
+    queryKey: qk.places(q), queryFn: () => get<{ places: Place[] }>(`/api/pages/find?q=${encodeURIComponent(q)}`),
+    enabled: q.length >= 2, staleTime: 30_000, retry: false,
+  })
+  return q.length >= 2 ? places.data?.places ?? [] : []
 }
 
 export function useDashboard() {
@@ -143,4 +167,17 @@ export function useAccounts() {
 
 export function useSetup() {
   return useQuery({ queryKey: qk.setup, queryFn: () => get<SetupState>('/api/setup') })
+}
+
+/** The notice that is up, checked every 30 s: one more live-event connection per tab would cost
+ *  more than the minute's delay is worth (issue #246). */
+export function useNotice() {
+  const me = useMe().data
+  return useQuery({
+    queryKey: qk.notice,
+    queryFn: () => get<{ notice: CrewNotice | null }>('/api/notice'),
+    refetchInterval: 30_000,
+    // Signed-out pages (and the sign-in screen) have nothing to show.
+    enabled: !!me && (!me.enabled || !!me.user),
+  })
 }

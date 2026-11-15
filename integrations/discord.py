@@ -2,7 +2,8 @@
 
 Listens for ``monitor.poll`` events and posts one message per poll that had
 changes, so a whole row losing power is one message, not twenty. ``health.changed`` (the
-service health wall) posts when a service goes red and when it is back; ``security.finding``
+service health wall) posts when a service goes red and when it is back, and a mute that runs out
+on something still down is said once; ``security.finding``
 and ``power.alert`` post new findings and circuits that turn red or trip. Sending runs
 on its own thread so a slow Discord never delays the status monitor.
 """
@@ -19,6 +20,7 @@ COLOR_OFFLINE = 0xF85149
 COLOR_ONLINE = 0x3FB950
 COLOR_INFO = 0xF0883E   # the app's orange accent
 MAX_EMBEDS = 10         # Discord limit per message
+MAX_BUTTONS = 5         # Discord limit per row of buttons
 SILENT = 4096           # Discord's SUPPRESS_NOTIFICATIONS flag: posted, but no push or sound
 SECURITY_KINDS = {'rogue-dhcp': 'Rogue DHCP server', 'arp-spoof': 'ARP spoofing', 'mac-flap': 'MAC flapping',
                   'loop': 'Network loop', 'storm': 'Broadcast storm', 'other': 'Security finding'}
@@ -62,8 +64,10 @@ def _grouped(changes):
 
 
 class DiscordNotifier:
-    def __init__(self, crew=None):
+    def __init__(self, crew=None, app=None):
         self.crew = crew          # CrewBridge: with no webhook, alerts go to the crew channel
+        self.app = app            # to find the health wall, which starts after us
+        self.monitor = None       # StatusMonitor, for what a switch is doing when its mute ends
         self._queue = queue.Queue(maxsize=100)
         self._last_alert = {}     # switch id -> ts
         self._thread = None
@@ -125,11 +129,58 @@ class DiscordNotifier:
 
     # ── message building ─────────────────────────────────────────────────────────────
     def on_poll(self, event):
+        ended = self.check_mutes()
         if not self.enabled():
             return
         payload = self.build_status_message(event['data'].get('changes', []))
         if payload:
             self.post(payload)
+        if ended:
+            self.post(ended)
+
+    def _still_down(self, key):
+        """Whether what a mute covered is still down right now, as the monitor or wall last saw it."""
+        if key.startswith('health:'):
+            wall = self.app.extensions.get('floorbit_health') if self.app else None
+            return bool(wall) and wall.confirmed.get(key[len('health:'):]) == 'down'
+        status = (self.monitor.statuses.get(key) or {}).get('status') if self.monitor else None
+        return status == 'offline'
+
+    def check_mutes(self, now=None):
+        """Mutes that ran out while their switch or service is still down (issue #262). The down
+        alert was swallowed while muted and nothing changes when the mute ends, so without this
+        nobody would hear of it again. Returns the message, or None. A mute lifted by hand says
+        nothing: whoever lifted it knows."""
+        now = now or time.time()
+        ended = alerting.take_expired(now)
+        health_alerts = config.get_bool('DISCORD_HEALTH_ALERTS', True)
+        down = [(k, v) for k, v in ended.items()
+                if (health_alerts or not k.startswith('health:')) and self._still_down(k)]
+        if not down:
+            return None
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
+        embeds = []
+        for key, entry in down[:MAX_EMBEDS]:
+            service = key.startswith('health:')
+            self._last_alert[key] = now  # the cooldown starts here, like a fresh down alert
+            embed = {'title': f"🔔 Mute on {str(entry.get('name') or key)[:100]} ended: still "
+                              f"{'down' if service else 'offline'}",
+                     'color': COLOR_OFFLINE, 'timestamp': ts}
+            reason = str(entry.get('reason') or '')[:150]
+            embed['description'] = (f'Muted because: {reason}' if reason
+                                    else 'The mute ran out and it has not come back.')
+            if public_url:
+                embed['url'] = public_url + ('/health' if service else '/problems')
+            embeds.append(embed)
+        payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': embeds,
+                   'allowed_mentions': {'parse': ['roles', 'everyone', 'users']}}
+        mention = config.get('DISCORD_MENTION', '') or ''
+        if mention:
+            payload['content'] = mention
+        else:
+            payload['allowed_mentions'] = {'parse': []}
+        return payload
 
     def on_source(self, event):
         """The monitoring source itself went away or came back: one message, not one per switch."""
@@ -138,24 +189,33 @@ class DiscordNotifier:
         self.post(self.build_source_message(event['type'], event.get('data') or {}))
 
     def on_health(self, event):
-        if not self.enabled() or not config.get_bool('DISCORD_HEALTH_ALERTS', True):
+        ended = self.check_mutes()
+        if not self.enabled():
+            return
+        if ended:
+            self.post(ended)
+        if not config.get_bool('DISCORD_HEALTH_ALERTS', True):
             return
         payload = self.build_health_message((event.get('data') or {}).get('changes', []))
         if payload:
             self.post(payload)
 
     def build_health_message(self, changes, now=None):
-        """Red services, and (if wanted) services that were red and are back. Amber pages nobody."""
+        """Red services, and (if wanted) services that were red and are back. Amber pages nobody,
+        and a muted service nobody either."""
         now = now or time.time()
         cooldown = config.get_int('DISCORD_COOLDOWN', 300, minimum=0)
         notify_recovery = config.get_bool('DISCORD_NOTIFY_RECOVERY', True)
+        muted = alerting.mutes(now) if changes else {}
         selected = []
         for c in changes:
             down = c.get('status') == 'down'
             back = c.get('previous') == 'down' and c.get('status') in ('up', 'warn')
             if not down and not (back and notify_recovery):
                 continue
-            key = 'health:' + str(c.get('id'))
+            key = alerting.service_key(c.get('id'))
+            if key in muted:
+                continue  # someone is on it (issue #256)
             last = self._last_alert.get(key)
             if down and last is not None and now - last < cooldown:
                 continue
@@ -182,6 +242,10 @@ class DiscordNotifier:
             payload['content'] = mention
         else:
             payload['allowed_mentions'] = {'parse': []}
+        down = [c for c in selected[:MAX_EMBEDS] if c['status'] == 'down']
+        if down:
+            # The same "Mute … for 1 h" as under a switch (issue #274).
+            payload['_mute'] = [(alerting.service_key(c['id']), c.get('name')) for c in down[:MAX_BUTTONS]]
         return payload
 
     def on_security(self, event):
@@ -357,6 +421,11 @@ class DiscordNotifier:
                 fields = [{'name': 'Was', 'value': c.get('previous') or 'unknown', 'inline': True}]
                 if not down and c.get('down_for'):
                     fields.append({'name': 'Down for', 'value': _fmt_duration(c['down_for']), 'inline': True})
+                    waiting = self._reports_from_outage(c, now)
+                    if waiting:
+                        fields.append({'name': 'Open incidents from its seats',
+                                       'value': f'{waiting} filed while it was down: check whether they work now',
+                                       'inline': False})
                 if down and c.get('reason'):
                     fields.append({'name': 'Reason', 'value': str(c['reason'])[:200], 'inline': True})
                 embed = {
@@ -383,7 +452,30 @@ class DiscordNotifier:
         }
         if content.strip():
             payload['content'] = content.strip()
+        if offline and len(embeds) == len(selected):
+            # Mute buttons, for the crew bot only: a webhook can't carry them (issue #272).
+            payload['_mute'] = [(c['id'], c['name']) for c in offline[:MAX_BUTTONS]]
         return payload
+
+    def _reports_from_outage(self, change, now):
+        """Open incidents at the switch's seats filed while it was down (issue #398): likely fixed now."""
+        from contextlib import nullcontext
+
+        from flask import has_app_context
+        if not has_app_context() and self.app is None:
+            return 0
+        try:
+            with nullcontext() if has_app_context() else self.app.app_context():
+                from floorbit import incidents, seat_view
+                from floorbit.store import load_data
+                data = load_data()
+                start = now - change['down_for']
+                return sum(1 for i in incidents.list_all()
+                           if i['status'] != 'fixed' and i.get('seat') and (i.get('created_at') or 0) >= start
+                           and any(d['id'] == change['id'] for d in seat_view._switches_of(i['seat'], data)))
+        except Exception as exc:  # noqa: BLE001  # a hint is not worth losing the alert over
+            print(f"[integrations] Discord: counting open incidents failed: {exc}")
+            return 0
 
     def build_test_message(self):
         public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
@@ -411,6 +503,7 @@ class DiscordNotifier:
             return True
         if not url:
             raise RuntimeError('DISCORD_WEBHOOK_URL is not set')
+        payload = {k: v for k, v in payload.items() if not k.startswith('_')}
         for attempt in range(retries + 1):
             resp = requests.post(url, json=payload, timeout=10)
             if resp.status_code == 429 and attempt < retries:

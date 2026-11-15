@@ -156,6 +156,20 @@ SCHEMA = [
     {'key': 'DISCORD_CREW_INCIDENTS', 'group': 'crew', 'type': 'bool', 'default': True,
      'label': 'Incidents in the crew channel',
      'help': 'Post each incident with a thread that follows it until it is fixed.'},
+    {'key': 'DISCORD_CREW_NOTICES', 'group': 'crew', 'type': 'bool', 'default': True,
+     'label': 'Crew notices in the crew channel',
+     'help': 'Post each crew notice a lead puts up, so people away from Floorbit see it too.'},
+    {'key': 'DISCORD_CREW_WAITING_MINUTES', 'group': 'crew', 'type': 'int', 'default': 10,
+     'label': 'Nudge after (minutes)',
+     'help': "Say once in an incident's thread when nobody has taken it for this long. 0 turns it off."},
+    {'key': 'DISCORD_CREW_UNSEEN_MINUTES', 'group': 'crew', 'type': 'int', 'default': 5,
+     'label': 'Say a sent job is unseen after (minutes)',
+     'help': "Say once in an incident's thread when the tech it was sent to hasn't seen it for this long. "
+             '0 turns it off.'},
+    {'key': 'DISCORD_CREW_WAITING_ROLE', 'group': 'crew', 'type': 'string', 'default': '',
+     'label': 'Role to ping when waiting',
+     'help': 'Optional. Right-click the role in Server Settings → Roles → Copy Role ID. Its members get '
+             'pinged by that one line, for example the leads.'},
 
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',

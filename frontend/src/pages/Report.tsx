@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -121,7 +121,8 @@ export default function Report() {
               <Figure label={t('report.moved')} value={r.hours.length ? bytes(r.bytes_moved) : '–'} sub={t('report.movedHelp')} />
               <Figure label={t('report.incidents')} value={String(r.incidents.total)}
                 sub={t('report.incidentsSub', { fixed: r.incidents.fixed, open: r.incidents.open })
-                  + (r.incidents.median_fix_s ? ` · ${t('report.median', { d: duration(r.incidents.median_fix_s) })}` : '')} />
+                  + (r.incidents.median_fix_s ? ` · ${t('report.median', { d: duration(r.incidents.median_fix_s) })}` : '')
+                  + (r.incidents.median_take_s ? ` · ${t('report.medianTaken', { d: duration(r.incidents.median_take_s) })}` : '')} />
               <Figure label={t('report.outages')} value={String(r.outages.reduce((n, o) => n + o.times, 0))}
                 sub={t('report.outagesSub', { count: r.outages.length })} />
             </SimpleGrid>
@@ -200,6 +201,22 @@ export default function Report() {
                   {r.people && <><Table.Td>{i.reported_by ?? '–'}</Table.Td><Table.Td>{i.nick ?? '–'}</Table.Td></>}
                 </Table.Tr>
               ))} />
+            {/* Underlined: in the dark theme the link colour alone is too close to the text around it (issue #356). */}
+            {!!r.incidents.repeat_seats?.length && (
+              <Text size="sm">
+                {t('report.repeatSeats')}{' '}
+                {r.incidents.repeat_seats.map((x, n) => (
+                  <span key={x.seat}>{n > 0 && ', '}<Anchor underline="always" href={`/plan?seat=${encodeURIComponent(x.seat)}`}>{x.seat}</Anchor> ({x.count}×)</span>
+                ))}
+              </Text>
+            )}
+            {!!r.incidents.seat_problems?.length && (
+              <Text size="sm">
+                {t('report.seatProblems', {
+                  what: r.incidents.seat_problems.map((x) => `${t(`report.problem_${x.problem}`, { defaultValue: x.problem })} ${x.count}×`).join(', '),
+                })}
+              </Text>
+            )}
             {r.incidents.total > r.incidents.items.length && (
               <Text size="xs" c="dimmed">{t('report.cut', { count: r.incidents.items.length, total: r.incidents.total })}</Text>
             )}

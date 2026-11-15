@@ -1,6 +1,6 @@
 {
   "title": "Probleme",
-  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte einen Switch stumm, an dem du arbeitest, damit er nicht mehr alarmiert.",
+  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte einen Switch oder Dienst stumm, an dem du arbeitest, damit er nicht mehr alarmiert.",
   "none": "Gerade ist alles in Ordnung.",
   "count": {
     "down_one": "{{count}} down",
@@ -31,9 +31,13 @@
   "open": "Öffnen",
   "mute": "Stumm",
   "unmute": "Wieder laut",
+  "extend": "+30 Min.",
+  "extendLabel": "{{name}} 30 Minuten länger stumm schalten",
+  "endsIn_one": "endet in {{count}} Minute",
+  "endsIn_other": "endet in {{count}} Minuten",
   "mutedUntil": "Stumm bis {{time}}, von {{who}}",
   "quiet": "Ruhezeit: Discord-Nachrichten gehen still raus, ohne Erwähnung.",
-  "mutes": "Stumme Switches",
+  "mutes": "Stumme Switches und Dienste",
   "muteTitle": "Alarme für {{name}} stummschalten",
   "muteText": "Keine Discord-Nachrichten, wenn dieser Switch offline geht oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste.",
   "for": "Für",
@@ -56,5 +60,12 @@
     "down": "Down",
     "warn": "Anzuschauen",
     "muted": "Stumm"
-  }
+  },
+  "muteTextService": "Keine Discord-Nachrichten, wenn dieser Dienst ausfällt oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste und auf der Health-Wand.",
+  "show": "Anzeigen",
+  "all": "Alle",
+  "report": "Störung erfassen",
+  "incidentOpen": "Störung offen",
+  "copy": "Liste kopieren",
+  "copied": "Kopiert"
 }

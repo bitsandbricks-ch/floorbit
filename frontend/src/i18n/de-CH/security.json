@@ -47,5 +47,8 @@
   },
   "matchTitle": "Match-Platz: {{zone}}",
   "matchText": "Dieser Port gehört zu einem Turnier-Platz. Wenn er ausfällt, kann ein Match verloren gehen. Nur weitermachen, wenn die Match-Admins einverstanden sind.",
-  "matchConfirm": "Ja, beim Match-Platz ausführen"
+  "matchConfirm": "Ja, beim Match-Platz ausführen",
+  "bounce": "Port neu starten",
+  "bounceTitle": "Port von {{where}} neu starten",
+  "bounceText": "Der Port geht für ein paar Sekunden aus und wieder an. Der Spieler verliert so lange die Verbindung."
 }

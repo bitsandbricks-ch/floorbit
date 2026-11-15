@@ -1,4 +1,4 @@
-import { Button, Group, Modal, SegmentedControl, Select, Stack, Text, TextInput, Textarea } from '@mantine/core'
+import { Alert, Button, Group, Modal, SegmentedControl, Select, Stack, Text, TextInput, Textarea } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { IncidentBoard } from '@/api/types'
@@ -37,6 +37,11 @@ export function NewIncident({
   const [title, setTitle] = useState('')
   const [team, setTeam] = useState<string | null>(teams[0]?.id ?? null)
   const [note, setNote] = useState('')
+  // Two techs filing the same broken seat is the usual duplicate (issue #328): say so before saving.
+  const seatKey = seat.trim().toLowerCase()
+  const already = board.incidents.filter((i) => i.status !== 'fixed' && (kind === 'seat'
+    ? !!seatKey && (i.seat ?? '').toLowerCase() === seatKey
+    : !!switchId && !i.seat && i.switch_id === switchId))
 
   return (
     <Modal opened={opened} onClose={onClose} title={t('incidents.new')}>
@@ -54,6 +59,13 @@ export function NewIncident({
           ) : (
             <Select label={t('incidents.whichSwitch')} data={switches.map((s) => ({ value: s.id, label: s.name }))} value={switchId}
               onChange={setSwitchId} searchable required />
+          )}
+          {already.length > 0 && (
+            <Alert color="warn" variant="light" title={t('incidents.alreadyOpen', { count: already.length })}>
+              {already.map((i) => (
+                <Text key={i.id} size="sm">{i.title} · {t(`incidents.status.${i.status}`)}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
+              ))}
+            </Alert>
           )}
           <TextInput label={t('incidents.what')} value={title} required maxLength={120} onChange={(e) => setTitle(e.currentTarget.value)} />
           <Select label={t('incidents.team')} data={teams.map((x) => ({ value: x.id, label: `${'· '.repeat(x.depth)}${x.name}` }))}

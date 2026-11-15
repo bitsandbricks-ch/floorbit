@@ -59,3 +59,101 @@ def test_handover_can_go_to_discord(client, app_module, monkeypatch):
     assert msg["allowed_mentions"] == {"parse": []}
     client.post("/api/handover", json={"note": "No post"})
     assert len(sent) == 1
+
+
+def test_the_shift_s_seat_notes_are_in_the_summary(client):
+    _floor(client)
+    client.put("/api/plan/seats/A-2/note", json={"text": "Cable swapped"})
+    client.put("/api/plan/seats/A-3/note", json={"text": "Own switch, leave it"})
+    notes = client.get("/api/handover").get_json()["seat_notes"]
+    assert [(n["seat"], n["text"]) for n in notes] == [("A-3", "Own switch, leave it"), ("A-2", "Cable swapped")]
+    assert notes[0]["at"] and "by" in notes[0]
+
+    client.post("/api/handover", json={"note": "Quiet night."})
+    assert client.get("/api/handover").get_json()["seat_notes"] == []   # the next shift starts empty
+    client.put("/api/plan/seats/A-2/note", json={"text": "Cable swapped again"})
+    assert [n["seat"] for n in client.get("/api/handover").get_json()["seat_notes"]] == ["A-2"]
+
+
+def test_the_summary_says_what_is_muted_and_the_crew_notice(client, app_module, monkeypatch):
+    # A mute set by the last shift must not be forgotten by the next one (issue #258).
+    from integrations import alerting
+    alerting.mute("s1", "sw-a-01", 60, "kim", "Swapping the PSU")
+    alerting.mute(alerting.service_key("demo:dns"), "DNS", 30, "kim")
+    client.put("/api/notice", json={"text": "Row C has no power until 14:00", "hours": 2})
+    body = client.get("/api/handover").get_json()
+    assert [(m["kind"], m["name"], m["reason"]) for m in body["mutes"]] == [
+        ("health", "DNS", ""), ("switch", "sw-a-01", "Swapping the PSU")]
+    assert body["counts"]["muted"] == 2
+    assert body["notice"]["text"] == "Row C has no power until 14:00"
+
+    notifier = app_module.app.extensions["floorbit_discord"]
+    sent = []
+    monkeypatch.setattr(notifier, "enabled", lambda: True)
+    monkeypatch.setattr(notifier, "post", sent.append)
+    client.post("/api/handover", json={"note": "", "discord": True})
+    assert "🔕 **2** muted: DNS (until " in sent[0]["embeds"][0]["description"]
+
+    alerting.unmute("s1")
+    alerting.unmute(alerting.service_key("demo:dns"))
+    client.delete("/api/notice")
+    body = client.get("/api/handover").get_json()
+    assert body["mutes"] == [] and body["notice"] is None and body["counts"]["muted"] == 0
+
+
+def test_the_summary_counts_incidents_waiting_with_nobody_on_them(client, app_module, monkeypatch):
+    _floor(client)
+    old = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    client.post("/api/incidents", json={"seat": "A-2", "title": "Slow"})
+    from floorbit import handover
+    with app_module.app.test_request_context():
+        body = handover.summary([], {}, now=old["created_at"] + 11 * 60)
+    assert body["counts"]["open"] == 2 and body["counts"]["waiting"] == 2
+    assert client.get("/api/handover").get_json()["counts"]["waiting"] == 0
+    record = {"by": "ana", "note": "", "at": body["now"], "counts": {**body["counts"], "waiting": 2}}
+    assert "(2 waiting 10+ min, 2 new" in handover.discord_message(record, body)["embeds"][0]["description"]
+    record["counts"].pop("waiting")   # a record from before the count existed
+    assert "**2** incidents open (2 new" in handover.discord_message(record, body)["embeds"][0]["description"]
+
+
+def test_the_summary_says_who_still_has_gear(client, app_module, monkeypatch):
+    # Gear lent out by one shift is chased by the next (issue #324).
+    ids = [client.post("/api/inventory", json={"name": n, "role": "switch"}).get_json()["id"]
+           for n in ("sw-spare-01", "sw-spare-02", "ap-spare-01")]
+    client.post(f"/api/gear/{ids[0]}/out", json={"to": "player-12"})
+    client.post(f"/api/gear/{ids[1]}/out", json={"to": "player-12"})
+    client.post(f"/api/gear/{ids[2]}/out", json={"to": "Crew"})
+    body = client.get("/api/handover").get_json()
+    assert body["gear"] == [{"to": "player-12", "count": 2, "names": ["sw-spare-01", "sw-spare-02"]},
+                            {"to": "Crew", "count": 1, "names": ["ap-spare-01"]}]
+    assert body["counts"]["gear_out"] == 3
+
+    notifier = app_module.app.extensions["floorbit_discord"]
+    sent = []
+    monkeypatch.setattr(notifier, "enabled", lambda: True)
+    monkeypatch.setattr(notifier, "post", sent.append)
+    client.post("/api/handover", json={"note": "", "discord": True})
+    assert "🎒 **3** pieces of gear out: player-12 (2), Crew (1)" in sent[0]["embeds"][0]["description"]
+
+    client.put("/api/settings/features", json={"gear": False})
+    body = client.get("/api/handover").get_json()
+    assert body["gear"] == [] and body["counts"]["gear_out"] == 0
+
+
+def test_the_summary_says_how_fast_the_shift_fixed_things(client, app_module, monkeypatch):
+    # Issue #334: the middle fix time of this shift, on the page and in the Discord post.
+    from floorbit import handover
+    _floor(client)
+    assert client.get("/api/handover").get_json()["counts"]["median_fix_s"] is None
+    for seat in ("A-1", "A-2", "A-3"):
+        i = client.post("/api/incidents", json={"seat": seat, "title": "No link"}).get_json()
+        client.patch(f"/api/incidents/{i['id']}", json={"status": "fixed"})
+    assert client.get("/api/handover").get_json()["counts"]["median_fix_s"] == 0
+    assert handover._minutes(0) == "1 min" and handover._minutes(65 * 60) == "1 h 5 min"
+
+    notifier = app_module.app.extensions["floorbit_discord"]
+    sent = []
+    monkeypatch.setattr(notifier, "enabled", lambda: True)
+    monkeypatch.setattr(notifier, "post", sent.append)
+    client.post("/api/handover", json={"note": "", "discord": True})
+    assert "3 fixed this shift, half within 1 min)" in sent[0]["embeds"][0]["description"]

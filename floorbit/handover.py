@@ -6,7 +6,10 @@ hands over. What happened is put together from what Floorbit already keeps:
 - incidents still open, and the ones opened and fixed since;
 - switch outages since (the stats store's switch events);
 - what is wrong right now (the Problems list);
-- changes from the audit log: port actions, settings, the floor plan, power, plugins and accounts.
+- changes from the audit log: port actions, settings, the floor plan, power, plugins and accounts;
+- crew notes on seats written or changed since (issue #202);
+- what is muted right now and the crew notice that is up (issue #258), so a mute set by the last
+  shift is not forgotten.
 
 Each handover is kept in data.json under ``handover`` (the newest ``MAX_KEPT``): when, who, the note
 and the counts. The next summary starts where the last handover ended.
@@ -107,8 +110,27 @@ def _incident(i, match):
             'fixed_at': i.get('fixed_at'), 'match': match.get(i.get('seat') or '')}
 
 
+def _mutes(now):
+    from integrations import alerting
+    return [{'kind': 'health' if key.startswith(alerting.service_key('')) else 'switch', 'name': m.get('name'),
+             'until': m['until'], 'by': m.get('by'), 'reason': m.get('reason') or ''}
+            for key, m in sorted(alerting.mutes(now).items(), key=lambda kv: kv[1]['until'])]
+
+
+def _gear_out(data):
+    """Who still holds gear, most pieces first (issue #324): a loan outlives the shift that made it."""
+    from . import features, gear
+    if 'gear' in features.off(data):
+        return []
+    held = {}
+    for r in gear.outstanding(data):
+        held.setdefault(r['loan']['to'], []).append(r['name'])
+    return [{'to': to, 'count': len(names), 'names': sorted(names)}
+            for to, names in sorted(held.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))]
+
+
 def summary(switch_events, problems_now, since=None, now=None):
-    from . import incidents, tournament
+    from . import incidents, notice, seat_notes, tournament
     now = time.time() if now is None else now
     data = load_data()
     since = since_default(now, data) if since is None else since
@@ -121,15 +143,28 @@ def summary(switch_events, problems_now, since=None, now=None):
     outages = [o for o in _outages(switch_events, since, now) if o['down_at'] >= since or o['back_at'] is None
                or o['back_at'] >= since]
     changes = _changes(since)
+    notes = [{'seat': seat, **n} for seat, n in seat_notes.all_notes(data).items() if (n.get('at') or 0) >= since]
+    notes.sort(key=lambda n: -(n.get('at') or 0))
+    mutes = _mutes(now)
+    gear_out = _gear_out(data)
+    # How fast this shift fixed things (issue #334): the middle value, so one long job doesn't skew it.
+    took = sorted(i['fixed_at'] - i['created_at'] for i in fixed if i['fixed_at'] and i['created_at'])
     return {
         'since': since, 'now': now, 'previous': last(data),
         'incidents': {'open': still_open, 'opened': opened, 'fixed': fixed},
         'outages': outages,
         'problems': problems_now,
         'changes': changes,
-        'counts': {'open': len(still_open), 'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
+        'seat_notes': notes,
+        'mutes': mutes,
+        'gear': gear_out,
+        'notice': notice.current(data, now),
+        'counts': {'open': len(still_open), 'waiting': sum(1 for i in items if incidents.is_waiting(i, now)),
+                   'opened': opened, 'fixed': len(fixed),
+                   'median_fix_s': round(took[len(took) // 2]) if took else None, 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
-                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0)},
+                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes),
+                   'gear_out': sum(g['count'] for g in gear_out)},
     }
 
 
@@ -145,12 +180,28 @@ def hand_over(user, note, counts, since, now=None):
         return record
 
 
+def _minutes(seconds):
+    mins = max(1, round(seconds / 60))
+    return f'{mins} min' if mins < 60 else f'{mins // 60} h {mins % 60} min'
+
+
 def discord_message(record, summary_, public_url='', username='Floorbit'):
     """One embed for the crew channel: the counts, what is still open, and the note."""
     c = record['counts']
-    lines = [f"**{c['open']}** incidents open ({c['opened']} new, {c['fixed']} fixed this shift)",
+    waiting = f"{c['waiting']} waiting 10+ min, " if c.get('waiting') else ''   # older records have no count
+    half = f", half within {_minutes(c['median_fix_s'])}" if c.get('median_fix_s') is not None else ''
+    lines = [f"**{c['open']}** incidents open ({waiting}{c['opened']} new, {c['fixed']} fixed this shift{half})",
              f"**{c['outages']}** switch outages" + (f", **{c['still_down']}** still down" if c['still_down'] else ''),
              f"**{c['problems']}** problems right now, **{c['changes']}** changes in the audit log"]
+    muted = summary_.get('mutes') or []
+    if muted:
+        lines.append(f"🔕 **{len(muted)}** muted: " + ', '.join(
+            f"{m['name']} (until {datetime.fromtimestamp(m['until']).astimezone():%H:%M})" for m in muted[:5])
+            + (', ...' if len(muted) > 5 else ''))
+    gear_out = summary_.get('gear') or []
+    if gear_out:
+        lines.append(f"🎒 **{sum(g['count'] for g in gear_out)}** pieces of gear out: " + ', '.join(
+            f"{g['to']} ({g['count']})" for g in gear_out[:5]) + (', ...' if len(gear_out) > 5 else ''))
     top = summary_['incidents']['open'][:5]
     if top:
         lines.append('')

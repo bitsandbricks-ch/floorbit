@@ -29,6 +29,8 @@ describe('My jobs', () => {
     vi.stubGlobal('fetch', api.fn)
     const { container } = renderWithApp(<Jobs />)
     const card = await screen.findByRole('article', { name: 'No internet at the seat' })
+    expect(document.title).toBe('(1) My jobs · Floorbit')
+    expect(screen.queryByText(/by themselves/)).toBeNull()
     expect(within(card).getByRole('img', { name: 'Floor plan with the job at Seat B-6' })).toBeInTheDocument()
     expect(container.querySelector('.cell.hit')).not.toBeNull()
     expect(container.querySelector('line.route')).not.toBeNull()
@@ -42,14 +44,25 @@ describe('My jobs', () => {
     expect(await screen.findByText('Marked fixed.')).toBeInTheDocument()
   })
 
+  it('says when the seat says it works again (issue #382)', async () => {
+    const ok = { ...data, jobs: [{ ...job, seat_ok_at: now - 120 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/jobs': ok }).fn)
+    const { container } = renderWithApp(<Jobs />)
+    await screen.findByRole('article', { name: job.title })
+    expect(container.querySelector('[data-seat-ok]')?.textContent).toMatch(/^The seat said at .+ that it works again\. Ask there/)
+  })
+
   it('goes off duty', async () => {
     const api = fakeFetch({
-      'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [] },
+      'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [], done: 3, auto: true },
       'PUT /api/jobs/me': { on_duty: false, at: 'A-1', since: now },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Jobs />)
     expect(await screen.findByText('No jobs for you right now.')).toBeInTheDocument()
+    expect(screen.getByText('You fixed 3 jobs in the last 12 hours.')).toBeInTheDocument()
+    expect(document.title).toBe('My jobs · Floorbit')
+    expect(screen.getByText(/New incidents come to the nearest free tech by themselves/)).toBeInTheDocument()   // issue #360
     fireEvent.click(screen.getByRole('switch', { name: /On duty/ }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ on_duty: false }))
   })
@@ -69,13 +82,22 @@ describe('Board dispatch', () => {
     const api = fakeFetch({
       'GET /api/auth/me': { enabled: true, user: { username: 'lea', display_name: 'Lea', role: 'lead', permissions: ['incidents.work', 'incidents.assign'] } },
       'GET /api/incidents': board, 'GET /api/incidents/people': {}, 'GET /api/switches': [],
-      'GET /api/dispatch/crew': { crew: [{ username: 'ben', display_name: 'Ben', at: 'A-1', since: now, jobs: 0 }] },
+      'GET /api/dispatch/crew': { crew: [{ username: 'ben', display_name: 'Ben', at: 'A-1', since: now, jobs: 0, done: 2 }] },
       'POST /api/incidents/i1/dispatch': { id: 'i1', assignee: 'ben', display_name: 'Ben' },
+      'PUT /api/dispatch/auto': { auto: true },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Incidents />)
-    expect(await screen.findByText('Ben · A-1 · free')).toBeInTheDocument()
+    const ben = await screen.findByRole('button', { name: 'Ben · A-1 · free · 2 fixed' })
+    fireEvent.click(ben)   // issue #350: the board shows what Ben is on, which here is nothing yet
+    expect(ben).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('with:ben')
+    fireEvent.click(ben)
+    expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('')
     fireEvent.click(await screen.findByRole('button', { name: 'Send to nearest tech' }))
     expect(await screen.findByText('Sent to Ben.')).toBeInTheDocument()
+    // Issue #358: a lead can let new incidents go out by themselves.
+    fireEvent.click(screen.getByRole('switch', { name: 'Send new ones to the nearest free tech by themselves' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT' && c.path === '/api/dispatch/auto')?.body).toEqual({ on: true }))
   })
 })

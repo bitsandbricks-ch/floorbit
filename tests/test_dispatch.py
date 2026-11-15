@@ -63,18 +63,36 @@ def test_tech_takes_and_finishes_a_job_from_the_phone(client, floor):
     first = mine["jobs"][0]
     assert first["drawing"]["shapes"] and first["target"] and first["from"]
     assert first["dispatched_at"] and first["taken_at"] is None
-    assert "B-6" in mine["seats"] and mine["can_dispatch"] is False
+    assert "B-6" in mine["seats"] and mine["can_dispatch"] is False and mine["done"] == 0
     # Someone else can't answer for Ben.
     assert floor["ana"].post(f"/api/jobs/{job}/take").status_code == 403
     assert ben.post(f"/api/jobs/{job}/take").get_json()["taken_at"]
     assert ben.post(f"/api/jobs/{job}/done", json={"note": "Cable was loose"}).get_json()["status"] == "fixed"
-    assert ben.get("/api/jobs").get_json()["jobs"] == []
+    after = ben.get("/api/jobs").get_json()
+    assert after["jobs"] == [] and after["done"] == 1   # issue #342
+    assert floor["ana"].get("/api/jobs").get_json()["done"] == 0
     # He is now where the job was.
     assert ben.get("/api/jobs").get_json()["me"]["at"] == "B-6"
     notes = next(i for i in client.get("/api/incidents").get_json()["incidents"] if i["id"] == job)["notes"]
     assert notes[-1]["text"] == "Cable was loose" and notes[-1]["by"] == "ben"
+    crew = {c["username"]: c for c in client.get("/api/dispatch/crew").get_json()["crew"]}
+    assert crew["ben"]["done"] == 1 and crew["ben"]["jobs"] == 0   # issue #344
     actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
     assert {"Sent incident to the nearest tech", "Took job", "Finished job"} <= set(actions)
+
+
+def test_the_job_says_when_the_seat_says_it_works_again(client, floor, app_module):
+    # Issue #382: the tech sees it before walking over.
+    from floorbit import incidents
+    ben = floor["ben"]
+    ben.put("/api/jobs/me", json={"on_duty": True, "at": "A-1"})
+    job = _incident(client, "B-6")
+    client.post(f"/api/incidents/{job}/dispatch")
+    assert ben.get("/api/jobs").get_json()["jobs"][0]["seat_ok_at"] is None
+    with app_module.app.app_context():
+        incidents.stamp(job, source="helpdesk")
+        incidents.seat_says_ok("B-6")
+    assert ben.get("/api/jobs").get_json()["jobs"][0]["seat_ok_at"]
 
 
 def test_give_back_puts_the_job_on_the_board(client, floor):
@@ -98,3 +116,49 @@ def test_off_duty_and_rights(client, floor):
     assert floor["ana"].get("/api/dispatch/crew").status_code == 403
     assert floor["vic"].get("/api/jobs").status_code == 403
     assert floor["vic"].put("/api/jobs/me", json={"on_duty": True}).status_code == 403
+
+
+def test_a_note_on_a_sent_job_does_not_say_the_tech_saw_it(client, floor):
+    # The report's "taken within" stamp (issue #294) must not fill in dispatch's taken_at.
+    floor["ben"].put("/api/jobs/me", json={"on_duty": True, "at": "A-1"})
+    job = _incident(client, "B-6")
+    client.post(f"/api/incidents/{job}/dispatch")
+    client.patch(f"/api/incidents/{job}", json={"note": "Player says it blinks"})
+    [mine] = floor["ben"].get("/api/jobs").get_json()["jobs"]
+    assert mine["taken_at"] is None
+
+
+def test_auto_dispatch_sends_new_incidents_by_themselves(client, floor, app_module):
+    # Issue #358: off by default, a lead's switch, and only for new incidents.
+    floor["ben"].put("/api/jobs/me", json={"on_duty": True, "at": "B-1"})
+    assert client.get("/api/dispatch/crew").get_json()["auto"] is False
+    waiting = _incident(client, "B-6")
+    assert floor["ben"].put("/api/dispatch/auto", json={"on": True}).status_code == 403
+    assert client.put("/api/dispatch/auto", json={"on": True}).get_json() == {"auto": True}
+    assert client.get("/api/dispatch/crew").get_json()["auto"] is True
+    assert floor["ben"].get("/api/jobs").get_json()["auto"] is True   # issue #360
+    resp = client.post("/api/incidents", json={"seat": "B-7", "title": "Slow connection"})
+    assert resp.status_code == 201 and resp.get_json()["assignee"] == "ben" and resp.get_json()["status"] == "assigned"
+    [job] = floor["ben"].get("/api/jobs").get_json()["jobs"]
+    assert job["title"] == "Slow connection" and job["dispatched_at"] and job["taken_at"] is None
+    # The one filed before stays on the board; with Ben busy, the next new one does too.
+    board = {i["id"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
+    assert board[waiting]["assignee"] is None
+    later = _incident(client, "A-2", "Needs help")
+    assert next(i for i in client.get("/api/incidents").get_json()["incidents"] if i["id"] == later)["assignee"] is None
+    actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
+    assert {"Turned automatic dispatch on or off", "Sent incident to the nearest tech by itself"} <= set(actions)
+    assert client.put("/api/dispatch/auto", json={"on": False}).get_json() == {"auto": False}
+
+
+def test_auto_dispatch_takes_seat_reports_too(client, floor, app_module):
+    # A seat report goes to the access team; a lead may work any team's incident.
+    lea = _login(app_module, "lea", "lead")
+    lea.put("/api/jobs/me", json={"on_duty": True, "at": "A-1"})
+    client.put("/api/dispatch/auto", json={"on": True})
+    with app_module.app.test_request_context():
+        from floorbit import incidents
+        incident, new = incidents.report_from_seat("A-3", "no-internet", {})
+        assert new
+        sent = dispatch.send_new(incident)
+    assert sent["assignee"] == "lea" and sent["source"] == "helpdesk"

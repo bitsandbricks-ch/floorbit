@@ -2,28 +2,39 @@ import type { ReactNode } from 'react'
 import { Anchor, Group } from '@mantine/core'
 import { IconChevronLeft } from '@tabler/icons-react'
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Attribution } from './Attribution'
+import { CrewNoticeBanner } from './CrewNotice'
+import { GoTo } from './GoTo'
+import { rememberPage } from './pages'
 import { ThemeToggle, UserMenu } from './UserMenu'
 
-/** Header with a way back, the page title, theme and user menu; the attribution at the end. */
-export function Layout({ title, back, children }: { title: string; back: { href: string; label: string }; children: ReactNode }) {
+/** Header with a way back, the page title, theme and user menu; the attribution at the end.
+ *  ``count`` goes in front of the tab title, so a background tab shows when something needs a look (issue #208). */
+export function Layout({ title, back, count, children }: {
+  title: string; back: { href: string; label: string }; count?: number; children: ReactNode
+}) {
+  const path = useLocation().pathname
+  useEffect(() => rememberPage(path), [path])
   useEffect(() => {
-    document.title = `${title} · Floorbit`
-  }, [title])
+    document.title = `${count ? `(${count}) ` : ''}${title} · Floorbit`
+  }, [title, count])
   return (
     <>
       <header className="fb-header">
         {/* The floor plan and settings are still server pages: a full page load, not a route. */}
-        <Anchor href={back.href} c="dimmed" size="sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Anchor href={back.href} c="dimmed" size="sm" style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
           <IconChevronLeft size={16} aria-hidden="true" />
           {back.label}
         </Anchor>
         <h1>{title}</h1>
         <Group gap={4} ml="auto" wrap="nowrap">
+          <GoTo />
           <ThemeToggle />
           <UserMenu />
         </Group>
       </header>
+      <CrewNoticeBanner />
       <main className="fb-main">{children}</main>
       <Attribution />
     </>

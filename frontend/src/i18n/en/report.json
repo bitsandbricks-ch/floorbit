@@ -6,7 +6,7 @@
   "peopleHelp": "Admins only. Personal data: the download goes to the audit log.",
   "peopleOn": "This report includes nicks and IPs. Handle it as personal data.",
   "newEvent": "Start a new event",
-  "newEventQuestion": "Start a new event? The report's history (hours, outages, problem ports) and the peak begin again. Incidents and check-ins stay on their own pages.",
+  "newEventQuestion": "Start a new event? The report's history (hours, outages, problem ports) and the peak begin again, and so does the recording for the replay. Incidents and check-ins stay on their own pages.",
   "newEventDone": "New event started.",
   "period": "{{start}} to {{end}}",
   "empty": "No port reads kept yet: the report fills in while the event runs.",
@@ -18,6 +18,7 @@
   "incidents": "Incidents",
   "incidentsSub": "{{fixed}} fixed, {{open}} open",
   "median": "half fixed within {{d}}",
+  "medianTaken": "half taken within {{d}}",
   "outages": "Switch outages",
   "outagesSub": "{{count}} switches",
   "ofSeats": "of {{count}} seats",
@@ -57,5 +58,11 @@
   "kind_duplex": "half duplex",
   "kind_checkin": "no check-in",
   "kept": "Port reads are folded into one row per hour and kept for 21 days, switch outages and problem ports since the last new event.",
-  "pastEvents": "Past events"
+  "pastEvents": "Past events",
+  "repeatSeats": "Seats with more than one incident:",
+  "seatProblems": "What attendees reported at their seats: {{what}}",
+  "problem_no-internet": "No internet",
+  "problem_slow": "Slow connection",
+  "problem_power": "No power",
+  "problem_other": "Something else"
 }
