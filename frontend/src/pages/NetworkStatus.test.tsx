@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StatusPageData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -97,7 +97,8 @@ describe('NetworkStatus', () => {
     expect(box).not.toHaveTextContent('sw-')
     fireEvent.click(screen.getByRole('button', { name: 'Down: Seat block A' }))
     expect(screen.getByLabelText('New update for attendees')).toHaveValue('Seat block A has no network right now. The crew is on it.')
-    expect(screen.getByLabelText('Area (optional)')).toHaveValue('Seat block A')
+    // Planned maintenance has an area field of its own: look in the update's card.
+    expect(within(box.closest('.mantine-Paper-root') as HTMLElement).getByLabelText('Area (optional)')).toHaveValue('Seat block A')
     fireEvent.click(screen.getByRole('button', { name: 'Back: Seat block C' }))
     expect((screen.getByLabelText('New update for attendees') as HTMLTextAreaElement).value).toMatch(/^Seat block C has network again\./)
   })
