@@ -203,6 +203,20 @@ describe('Incident board', () => {
     expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
     expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
   })
+  it('says how long a fixed incident took (issue #332)', async () => {
+    const now = Date.now() / 1000
+    const done: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'f1', title: 'Quick one', status: 'fixed', assignee: 'kim', created_at: now - 3600, fixed_at: now - 3600 + 12 * 60 },
+      { ...base, id: 'f2', title: 'Long one', status: 'fixed', created_at: now - 7200, fixed_at: now - 7200 + 65 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': done }).fn)
+    renderWithApp(<Incidents />)
+    const quick = (await screen.findByText('Quick one')).closest('[data-incident]') as HTMLElement
+    expect(within(quick).getByText('With kim · fixed after 12 min')).toBeInTheDocument()
+    const long = screen.getByText('Long one').closest('[data-incident]') as HTMLElement
+    expect(within(long).getByText('Fixed after 1 h 5 min')).toBeInTheDocument()
+    expect(within(long).queryByText(/Nobody on it/)).toBeNull()
+  })
   it('takes the next one with the n key, but not while typing', async () => {
     const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0], status: 'assigned', assignee: 'sam' } })
     vi.stubGlobal('fetch', api.fn)

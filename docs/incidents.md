@@ -24,6 +24,9 @@ notes contain the text, ignoring case. `seat:D-2` matches that seat only (not D-
 open the board filtered, and it works together with **Only what I can work**. **/** anywhere on the
 board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen-readers).
 
+A fixed incident says how long it took from filed to fixed, e.g. **With kim · fixed after 12 min**
+(or **Fixed after 1 h 5 min** when nobody was named on it).
+
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
 

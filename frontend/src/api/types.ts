@@ -283,6 +283,8 @@ export interface Incident {
   speedtest?: SpeedtestResult | null
   created_at: number
   updated_at: number
+  /** When it was marked fixed; null while not fixed. */
+  fixed_at?: number | null
   dispatched_at?: number | null
   taken_at?: number | null
   match?: string | null
