@@ -272,8 +272,9 @@ def check(key, version=None, address=None, now=None):
 
 # The agent protocol (/api/agent/v1, docs/agent.md "The protocol"). The agent lives in its own
 # repository, so the two are released apart: a change the other side can't follow gets a new number.
-PROTOCOL = 1
-PROTOCOLS = (1,)          # what this Floorbit understands
+# 2 adds the WebSocket link (/api/agent/v2/link); everything from 1 stays as it was.
+PROTOCOL = 2
+PROTOCOLS = (1, 2)        # what this Floorbit understands
 RELAY_RECENT = 600       # syslog or flows sent within this long count as relayed
 STATS_WINDOW = 3600      # the Local agents page shows the last hour's calls
 STATS_KEEP = 5000        # answers kept per agent for that, at most
@@ -391,6 +392,17 @@ class Tunnel:
                     call.taken, call.agent, call.taken_at = True, agent, time.monotonic()
                     out.append({'id': call.id, 'method': call.method, 'args': call.args})
             return out
+
+    def give_back(self, taken):
+        """Calls an agent took but can't deliver (its link closed meanwhile): another agent, or
+        this one once it is back, takes them instead of the caller waiting out its timeout."""
+        with self._cond:
+            for item in reversed(taken):
+                call = self._calls.get(str(item['id']))
+                if call is not None and call.taken and not call.done.is_set():
+                    call.taken, call.agent, call.taken_at = False, None, None
+                    self._pending.appendleft(call)
+            self._cond.notify_all()
 
     def answer(self, call_id, ok, result=None, error=None, agent=None):
         """The agent's answer to one call. False when nobody waits for it any more, or when another

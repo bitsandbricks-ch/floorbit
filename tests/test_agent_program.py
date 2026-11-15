@@ -899,11 +899,11 @@ def test_another_protocol_gets_one_clear_answer(client, app_module, monkeypatch)
     agent = app_module.app.test_client()
     h = {"Floorbit-Agent-Key": key}
     hello = agent.get("/api/agent/v1/hello", headers=h).get_json()        # no header: protocol 1
-    assert hello["protocol"] == agent_link.PROTOCOL == agent_mod.PROTOCOL
-    res = agent.get("/api/agent/v1/calls?wait=0", headers={**h, "Floorbit-Agent-Protocol": "2"})
-    assert res.status_code == 426 and "protocol 1, the agent 2" in res.get_json()["error"]
+    assert hello["protocol"] == agent_link.PROTOCOL and agent_mod.PROTOCOL in hello["protocols"]
+    res = agent.get("/api/agent/v1/calls?wait=0", headers={**h, "Floorbit-Agent-Protocol": "9"})
+    assert res.status_code == 426 and "protocol 2, the agent 9" in res.get_json()["error"]
     assert client.get("/api/agents").status_code == 200                    # the admin side doesn't care
-    monkeypatch.setattr(agent_mod, "PROTOCOL", 2)
+    monkeypatch.setattr(agent_mod, "PROTOCOL", 9)
     a = make(app_module, key)
     with pytest.raises(agent_mod.Refused, match="Update the agent"):
         a.run()                                                          # stops instead of retrying

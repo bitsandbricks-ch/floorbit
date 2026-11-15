@@ -152,3 +152,80 @@ def test_an_agent_answers_only_its_own_calls(client, anon_client):
     assert anon_client.post("/api/agent/v1/answers", json=right, headers=head(first["key"])).get_json()["taken"] == 1
     asker.join(5)
     assert got["answer"] == ["sw-a-01"]
+
+
+# ── Protocol 2: the WebSocket link ──────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def live_server(app_module):
+    """The app on a real local port: the test client can't open a WebSocket."""
+    from werkzeug.serving import make_server
+    server = make_server("127.0.0.1", 0, app_module.app, threaded=True)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"127.0.0.1:{server.server_port}"
+    server.shutdown()
+
+
+def link_to(address, key):
+    import simple_websocket
+    return simple_websocket.Client.connect(f"ws://{address}/api/agent/v2/link", headers=head(key))
+
+
+def test_hello_offers_the_link(client, anon_client):
+    made = enrol(client)
+    hello = anon_client.get("/api/agent/v1/hello", headers=head(made["key"])).get_json()
+    assert hello["protocols"] == [1, 2] and hello["link"] == "/api/agent/v2/link"
+    # Agents of protocol 1 keep working: the link is an addition.
+    assert anon_client.get("/api/agent/v1/hello", headers={**head(made["key"]), "Floorbit-Agent-Protocol": "1"}
+                           ).status_code == 200
+
+
+def test_calls_and_answers_over_the_link(client, live_server):
+    import json
+
+    made = enrol(client)
+    ws = link_to(live_server, made["key"])
+    try:
+        first = json.loads(ws.receive(timeout=5))
+        assert first == {"type": "hello", "name": "Demo LAN 2026", "protocol": 2}
+        assert agent_link.tunnel.connected(agent=made["id"])
+
+        got = {}
+        caller = threading.Thread(target=lambda: got.update(r=agent_link.tunnel.call("devices", timeout=10)))
+        caller.start()
+        message = json.loads(ws.receive(timeout=5))
+        assert message["type"] == "calls" and message["calls"][0]["method"] == "devices"
+        call_id = message["calls"][0]["id"]
+        ws.send(json.dumps({"type": "answers", "answers": [{"id": call_id, "ok": True, "result": [{"name": "sw-1"}]}]}))
+        caller.join(5)
+        assert got["r"] == [{"name": "sw-1"}]
+        assert agent_link.tunnel.stats(made["id"])["calls"] == 1
+    finally:
+        ws.close()
+
+
+def test_the_link_refuses_a_wrong_key(client, live_server):
+    import simple_websocket
+
+    made = enrol(client)
+    with pytest.raises(simple_websocket.ConnectionError) as refused:
+        link_to(live_server, made["key"][:-2] + "xx")
+    assert refused.value.status_code == 401
+    client.delete(f"/api/agents/{made['id']}")
+    with pytest.raises(simple_websocket.ConnectionError):
+        link_to(live_server, made["key"])
+
+
+def test_calls_an_agent_could_not_deliver_go_back():
+    agent_link.tunnel.seen(agent="a1")
+    got = {}
+    caller = threading.Thread(target=lambda: got.update(r=agent_link.tunnel.call("devices", timeout=5)))
+    caller.start()
+    taken = agent_link.tunnel.take(2, agent="a1")
+    assert [c["method"] for c in taken] == ["devices"]
+    agent_link.tunnel.give_back(taken)
+    again = agent_link.tunnel.take(2, agent="a2")
+    assert again == taken
+    assert agent_link.tunnel.answer(again[0]["id"], True, ["sw-1"], agent="a2")
+    caller.join(5)
+    assert got["r"] == ["sw-1"]

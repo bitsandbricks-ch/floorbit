@@ -18,20 +18,36 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
 - ``GET /api/agent/v1/seats``: ``{"seat_of": {ip: seat}, "area_of": {seat: area}}`` for its flow
   collector; 409 while the traffic feature is off here.
 - ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
+- ``GET /api/agent/v2/link`` (WebSocket, protocol 2): the same calls and answers as the long poll,
+  over one open connection. The agent falls back to the long poll when it can't be opened.
 """
 import json
+import threading
 import time
 import zlib
 
 from flask import Blueprint, current_app, g, jsonify, request
+from flask_sock import Sock
+from simple_websocket import ConnectionClosed
 
 from integrations import events
 
 from .. import agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
+sock = Sock()
 HEADER = 'Floorbit-Agent-Key'
 PROTOCOL_HEADER = 'Floorbit-Agent-Protocol'
+LINK_PATH = '/api/agent/v2/link'
+LINK_TAKE = 5            # seconds the link waits for calls before it looks at the connection again
+LINK_PING = 20           # a message at least this often, so proxies keep the connection open
+LINK_IDLE = 60           # an agent silent for this long is gone: close, it reconnects
+
+
+@bp.record_once
+def _socket_options(state):
+    # WebSocket pings under the usual 60 s proxy idle timeouts; answers can be large inventories.
+    state.app.config.setdefault('SOCK_SERVER_OPTIONS', {'ping_interval': 25, 'max_message_size': 32 * 1024 * 1024})
 
 
 def _who():
@@ -99,6 +115,11 @@ def _same_protocol():
         return jsonify({'error': f'This Floorbit speaks agent protocol {agent_link.PROTOCOL}, the agent {spoken[:10]}. '
                                  'Update the agent (or this Floorbit) so they match.',
                         'protocol': agent_link.PROTOCOL}), 426
+    if request.path == LINK_PATH:
+        # Checked before the upgrade, so a wrong key gets a plain 401 the agent can read.
+        g.link_agent = _agent()
+        if g.link_agent is None:
+            return _refused()
     return None
 
 
@@ -140,7 +161,8 @@ def hello():
         return _refused()
     events.publish('agents.changed', {})
     return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0',
-                    'encodings': ['gzip'], 'protocol': agent_link.PROTOCOL})
+                    'encodings': ['gzip'], 'protocol': agent_link.PROTOCOL,
+                    'protocols': list(agent_link.PROTOCOLS), 'link': LINK_PATH})
 
 
 @bp.route('/api/agent/v1/calls', methods=['GET'])
@@ -236,6 +258,65 @@ def flows():
     return jsonify({'ok': True})
 
 
+def _link_answers(agent, message):
+    items = message.get('answers') if isinstance(message.get('answers'), list) else []
+    for a in items[:100]:
+        if isinstance(a, dict):
+            agent_link.tunnel.answer(a.get('id'), a.get('ok'), a.get('result'), a.get('error'), agent=agent['id'])
+
+
+def link(ws):
+    """Protocol 2: calls go out as ``{"type": "calls", "calls": [...]}`` the moment they are made,
+    answers come back as ``{"type": "answers", "answers": [...]}``, the same items as the long poll.
+    ``{"type": "ping"}`` both ways keeps it alive. Syslog and flows stay on their HTTPS posts."""
+    agent = g.link_agent
+    gone = threading.Event()
+
+    def read():
+        try:
+            while not gone.is_set():
+                raw = ws.receive(timeout=LINK_IDLE)
+                if raw is None:
+                    break
+                agent_link.tunnel.seen(agent=agent['id'])
+                try:
+                    message = json.loads(raw)
+                except (TypeError, ValueError):
+                    continue
+                if isinstance(message, dict) and message.get('type') == 'answers':
+                    _link_answers(agent, message)
+        except ConnectionClosed:
+            pass
+        finally:
+            gone.set()
+
+    threading.Thread(target=read, name='agent-link-read', daemon=True).start()
+    events.publish('agents.changed', {})
+    ws.send(json.dumps({'type': 'hello', 'name': agent['name'], 'protocol': agent_link.PROTOCOL}))
+    quiet_since = time.monotonic()
+    try:
+        while not gone.is_set():
+            agent_link.tunnel.seen(agent=agent['id'])
+            calls = agent_link.tunnel.take(LINK_TAKE, agent=agent['id'])
+            if calls and gone.is_set():
+                agent_link.tunnel.give_back(calls)
+                break
+            if calls:
+                try:
+                    ws.send(json.dumps({'type': 'calls', 'calls': calls}))
+                except ConnectionClosed:
+                    agent_link.tunnel.give_back(calls)
+                    raise
+                quiet_since = time.monotonic()
+            elif time.monotonic() - quiet_since >= LINK_PING:
+                ws.send(json.dumps({'type': 'ping'}))
+                quiet_since = time.monotonic()
+    finally:
+        gone.set()
+
+
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers, syslog, flow_seats, flows):
+for _view in (hello, calls, answers, syslog, flow_seats, flows, link):
     _view._auth_public = True
+# After _auth_public is set: the route's wrapper copies the attribute.
+sock.route(LINK_PATH, bp=bp)(link)

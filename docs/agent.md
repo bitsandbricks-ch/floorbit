@@ -259,18 +259,41 @@ answering, but it names the agent: "The local agent is away", with when it was l
 ## The protocol
 
 The agent sends its key in the `Floorbit-Agent-Key` header, its version in
-`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (now `1`; no header
-counts as `1`). It needs no account and no session.
+`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (`1` or `2`; no
+header counts as `1`). It needs no account and no session.
 
 The protocol has its own number because the agent and Floorbit are released apart. A change the other
 side can't follow gets a new number. A Floorbit that doesn't speak the agent's protocol answers every
 agent request with **426** and says which one it speaks. The agent then stops with exit code 1, like
 for a revoked key, because retrying won't help: update the agent or Floorbit. `hello` says which
-protocol the hosted Floorbit speaks (`"protocol"`).
+protocol the hosted Floorbit speaks (`"protocol"`) and which ones it understands (`"protocols"`).
+
+### The WebSocket link (protocol 2)
+
+When `hello` lists `2` in `protocols`, the agent opens a WebSocket to `"link"`
+(`wss://…/api/agent/v2/link`, TLS like everything else) with the same headers. Calls reach it the
+moment they are made, over one connection that stays open, instead of one long poll after another.
+The messages are JSON:
+
+| From | Message |
+| --- | --- |
+| Floorbit | `{"type": "hello", "name", "protocol"}` once, when the link opens |
+| Floorbit | `{"type": "calls", "calls": [{"id", "method", "args"}]}`: the same calls as the long poll |
+| agent | `{"type": "answers", "answers": [{"id", "ok", "result", "error"}]}`: the same answers |
+| both | `{"type": "ping"}` at least every 20 seconds, plus WebSocket pings, so proxies keep it open |
+
+A wrong or revoked key gets a plain 401 before the upgrade. An agent silent for a minute is closed
+and reconnects. Syslog and flow summaries stay on their HTTPS posts below.
+
+If the link can't be opened, say a proxy on the way doesn't pass WebSockets, the agent falls back
+to the long poll by itself and tries the link again later. The reverse proxy in front of a hosted
+Floorbit needs to pass the upgrade for `/api/agent/v2/link` (nginx: `proxy_http_version 1.1` and the
+`Upgrade` and `Connection` headers; Caddy and Traefik do it by themselves).
 
 | Request | What |
 | --- | --- |
-| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol"}`, or 401 |
+| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol", "protocols", "link"}`, or 401 |
+| `GET /api/agent/v2/link` | the WebSocket link (protocol 2, above), or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
 | `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
