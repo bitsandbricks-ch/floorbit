@@ -92,6 +92,7 @@ nav:
       - Post-event report: report.md
       - Event replay: replay.md
       - Event changelog: timeline.md
+      - Network status page: status-page.md
       - Teardown checklist: teardown.md
       - Past events: events.md
   - Extend:

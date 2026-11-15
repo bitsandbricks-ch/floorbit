@@ -41,6 +41,7 @@ from . import (
                setup,
                speedtest,
                stats,
+               status_page,
                switches,
                teardown,
                terminal,
@@ -58,4 +59,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        cables.bp, teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, webhooks.bp, wifi.bp,
-       speedtest.bp, timeline.bp]
+       speedtest.bp, timeline.bp, status_page.bp]

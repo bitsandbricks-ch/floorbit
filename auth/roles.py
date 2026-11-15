@@ -244,6 +244,10 @@ RULES = (
     ('/gear', READ, 'incidents.work'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     ('/api/cables', WRITE, 'floorplan.edit'),
+    # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).
+    ('/api/status-page', READ, 'incidents.work'),
+    ('/api/status-page', WRITE, 'incidents.assign'),
+    ('/network-status', READ, 'incidents.work'),
     # Pre-flight checks ask the monitoring source and the health plugins now (floorbit/preflight.py).
     ('/api/preflight/run', WRITE, 'incidents.work'),
     # Build planner: the configs are the network's design (floorbit/planner.py).

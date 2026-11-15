@@ -34,6 +34,7 @@
     "planner": "Build planner",
     "preflight": "Pre-flight check",
     "teardown": "Teardown checklist",
+    "status_page": "Network status page",
     "public_hall": "Public hall map"
   },
   "desc": {
@@ -64,6 +65,7 @@
     "planner": "Plan switches per seat block and render their configs.",
     "preflight": "The go or no-go board before doors open.",
     "teardown": "Gear back, configs archived and the event exported.",
+    "status_page": "A public page that tells attendees whether the network is fine, which areas an outage hits, and the crew's updates.",
     "public_hall": "The hall map players see without signing in."
   }
 }

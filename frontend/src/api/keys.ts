@@ -20,6 +20,7 @@ export const qk = {
   cables: ['cables'] as const,
   wifi: (hall: string) => ['wifi', hall] as const,
   timeline: (query: string) => ['timeline', query] as const,
+  statusPage: ['status-page'] as const,
   teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,

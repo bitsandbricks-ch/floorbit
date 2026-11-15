@@ -50,6 +50,8 @@ FEATURES = (
     {'id': 'planner', 'paths': ('/planner', '/api/planner'), 'needs': ()},
     {'id': 'preflight', 'paths': ('/preflight', '/api/preflight', '/api/preflight.pdf'), 'needs': ()},
     {'id': 'teardown', 'paths': ('/teardown', '/api/teardown'), 'needs': ()},
+    {'id': 'status_page', 'paths': ('/status', '/status.json', '/network-status', '/api/status-page'),
+     'needs': ()},
     {'id': 'public_hall', 'paths': ('/hall', '/api/public'), 'needs': ()},
 )
 BY_ID = {f['id']: f for f in FEATURES}

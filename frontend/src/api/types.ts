@@ -1032,3 +1032,37 @@ export interface TimelineEntry {
   severity?: 'up' | 'down' | 'warn' | 'info'; version?: string; id?: string
 }
 export interface TimelineData { entries: TimelineEntry[]; total: number; counts: Record<TimelineKind, number>; kinds: TimelineKind[]; more: boolean }
+
+/** The public network status page (issue #101), as GET /api/status-page gives it. */
+export type StatusState = 'operational' | 'degraded' | 'outage' | 'maintenance' | 'unknown'
+
+export interface StatusArea {
+  hall: string
+  block: string
+  /** Row numbers, for example "1-3, 5". Empty when Floorbit only knows the nearest block. */
+  rows: string
+  seats: number | null
+  switches?: string[]
+}
+
+export interface StatusUpdate {
+  id: string
+  at: number
+  text: string
+  state: StatusState | null
+  area: string
+}
+
+export interface StatusPageData {
+  state: StatusState
+  auto_state: StatusState
+  override: { state: StatusState; note: string; by: string | null; at: number } | null
+  since: number | null
+  areas: StatusArea[]
+  crew_areas: StatusArea[]
+  updates: StatusUpdate[]
+  checked_at: number
+  /** Is /status switched on (Settings > Public)? */
+  public: boolean
+  switch_names: boolean
+}

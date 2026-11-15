@@ -119,6 +119,9 @@ each seat is plugged into.
   with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
 - **Attendee view:** `/hall`, a public hall plan with every seat online or offline (seat numbers only,
   off until switched on in Settings). See [docs/kiosk.md](docs/kiosk.md#attendee-view).
+- **Network status page:** `/status` tells attendees whether the network is running, which halls,
+  blocks and rows an outage hits, and the crew's updates. No switch names or IPs unless an admin
+  turns them on. See [docs/status-page.md](docs/status-page.md).
 - **Electrics:** distribution boards and the circuits they feed (rows, seat blocks, switches), the load
   on each from typed-in or metered readings, and an incident for the Electrics team before a breaker
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).
