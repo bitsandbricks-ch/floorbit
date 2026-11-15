@@ -283,6 +283,8 @@ export interface Incident {
   speedtest?: SpeedtestResult | null
   created_at: number
   updated_at: number
+  /** When it was marked fixed; null while not fixed. */
+  fixed_at?: number | null
   dispatched_at?: number | null
   taken_at?: number | null
   match?: string | null
@@ -700,7 +702,7 @@ export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
   counts: HandoverCounts
 }
-export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number }
+export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number; median_fix_s?: number | null }
 export interface HandoverData {
   since: number; now: number; previous: HandoverRecord | null
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }

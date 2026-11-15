@@ -23,3 +23,11 @@ export function waitedFor(seconds: number, t: (k: string, o?: Record<string, unk
   const mins = Math.floor(seconds / 60)
   return mins < 60 ? t('incidents.waiting', { count: mins }) : t('incidents.waitingLong', { h: Math.floor(mins / 60), m: mins % 60 })
 }
+
+/** How long an incident took from filed to fixed (issue #332), e.g. "fixed after 1 h 5 min".
+ * ``alone`` starts the sentence, for a card with nobody named on it. */
+export function fixedAfter(seconds: number, t: (k: string, o?: Record<string, unknown>) => string, alone = false) {
+  const mins = Math.max(0, Math.round(seconds / 60))
+  const key = alone ? 'incidents.fixedAfterAlone' : 'incidents.fixedAfter'
+  return mins < 1 ? t(`${key}Now`) : mins < 60 ? t(key, { count: mins }) : t(`${key}Long`, { h: Math.floor(mins / 60), m: mins % 60 })
+}

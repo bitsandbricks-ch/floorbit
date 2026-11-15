@@ -104,7 +104,8 @@ export default function Handover() {
               <Figure label={t('handover.open')} value={d.counts.open} tone="down"
                 sub={d.counts.waiting ? t('handover.waiting', { count: d.counts.waiting }) : undefined} />
               <Figure label={t('handover.opened')} value={d.counts.opened} />
-              <Figure label={t('handover.fixed')} value={d.counts.fixed} tone="up" />
+              <Figure label={t('handover.fixed')} value={d.counts.fixed} tone="up"
+                sub={d.counts.median_fix_s != null ? t('handover.halfWithin', { d: duration(Math.max(60, d.counts.median_fix_s)) }) : undefined} />
               <Figure label={t('handover.outages')} value={d.counts.outages} tone="warn" />
               <Figure label={t('handover.problems')} value={d.counts.problems} tone="warn" />
               <Figure label={t('handover.changes')} value={d.counts.changes} />
