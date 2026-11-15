@@ -226,6 +226,8 @@ class Auth:
             return None
         if tokens.bearer(request.headers) is not None:
             return self._guard_token()
+        if request.path.startswith('/api/agent/v1/'):
+            return None   # the local agent: no browser, its key is checked by each view (blueprints/agent.py)
         if request.method not in SAFE_METHODS and not _same_origin():
             abort(403, description='Cross-site request refused.')
         if self.is_public():

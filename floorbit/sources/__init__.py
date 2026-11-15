@@ -3,7 +3,8 @@
 ``monitoring()``: switch status, port counters, and which switch port an IP is on. The answer
 comes from the monitoring plugin that is on (the built-in LibreNMS plugin,
 ``floorbit/builtin_plugins/librenms``), so nothing in the core talks to an NMS directly.
-``use()`` swaps in another source (a local agent feeding a hosted instance, a fake in tests).
+``use()`` swaps in another source (a fake in tests). With a local agent enrolled, a hosted
+instance asks the agent instead (floorbit/agent_link.py).
 See docs/architecture.md.
 
 Which devices exist is the inventory's job (``floorbit/inventory.py``), fed by plugins such as
@@ -193,9 +194,19 @@ class PluginMonitoring(NoMonitoring):
         return None
 
 
+_agent = None
+
+
 def monitoring():
+    global _agent
     if _override is not None:
         return _override
+    # A hosted instance: the event's own LibreNMS is reached through the local agent (issue #2).
+    from .. import agent_link
+    if agent_link.active():
+        if _agent is None:
+            _agent = agent_link.monitoring_source()
+        return _agent
     spec = registry.monitoring_source() if registry is not None else None
     return PluginMonitoring(registry, spec) if spec else NoMonitoring()
 
