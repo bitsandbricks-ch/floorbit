@@ -26,6 +26,9 @@ last handover. It also gives them a place to leave a note for the next shift. Is
   [crew notice](crew-notice.md) that is up is shown at the top.
 - **Gear still out:** who holds [gear](gear.md) and which pieces, most first; each name opens the
   gear page on that person's pieces. Only shown when something is out and the gear page is on.
+- **Coming up this shift:** the [programme](schedule.md) items that start in the next 8 hours,
+  earliest first, with where; tournaments are marked, since a final means more calls. In the
+  copied text too. Only shown when there are some.
 
 The first summary looks back 8 hours. After that, each summary starts where the last handover
 ended.
@@ -40,7 +43,7 @@ incidents and the note. The message mentions nobody.
 
 **Copy as text** at the top puts the summary on the clipboard as plain text, for a crew that hands
 over in another chat or by mail: the figures, every open incident, those fixed this shift, the
-switch outages, the crew notice, what is muted, the gear still out and the note as written so far. Changes and seat notes stay on the page.
+switch outages, the crew notice, what is muted, the gear still out, what is coming up and the note as written so far. Changes and seat notes stay on the page.
 
 ## Who can use it
 

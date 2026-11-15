@@ -1,0 +1,19 @@
+{
+  "title": "Speed tests",
+  "intro": "The speed tests attendees ran from their seat's help page, side by side per switch: a switch that is slow for every seat on it is the switch or its uplink, not the seats.",
+  "since": "Each seat's latest test of the last {{hours}} hours.",
+  "tests": "Seats tested",
+  "down": "Download (median)",
+  "up": "Upload (median)",
+  "ping": "Ping (median)",
+  "mbps": "{{n}} Mbit/s",
+  "ms": "{{n}} ms",
+  "none": "No speed tests in the last {{hours}} hours. Attendees run them from the help page behind their seat's QR code.",
+  "switch": "Switch",
+  "seats": "Seats",
+  "slow": "Slow",
+  "slowHint": "Slow: under half the hall's median download, with at least 2 seats tested.",
+  "unknown": "Seats with no known switch",
+  "seatResult": "{{seat}}: {{down}} down",
+  "noSwitches": "No tested seat has a known switch yet: the port reads haven't found them."
+}

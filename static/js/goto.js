@@ -43,8 +43,18 @@
     }
     const shortcuts = document.getElementById('shortcuts-backdrop');
     if (shortcuts) out.push({ href: '#shortcuts', label: 'Keyboard shortcuts', run: () => shortcuts.classList.remove('hidden') });
-    const signOut = document.querySelector('form.user-menu');
-    if (signOut) out.push({ href: '#sign-out', label: 'Sign out', run: () => signOut.submit() });
+    // Sign-in on and signed in: the sidebar's data says so (templates/_nav.html).
+    let boot = {};
+    try { boot = JSON.parse((document.getElementById('fb-nav-data') || {}).textContent || '{}'); } catch (_) { /* no sidebar */ }
+    if (document.querySelector('form.user-menu') || (boot.signOut && boot.user)) {
+      out.push({ href: '#sign-out', label: 'Sign out', run: () => {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = '/logout';
+        document.body.append(form);
+        form.submit();
+      } });
+    }
     return out;
   }
 

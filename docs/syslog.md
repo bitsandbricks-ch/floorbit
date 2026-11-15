@@ -7,6 +7,9 @@ names a switch port shows the seat on that port, with a link to it on the floor 
 Code: [`floorbit/syslog.py`](../floorbit/syslog.py) (receiving, parsing, keeping, searching),
 [`floorbit/blueprints/logs.py`](../floorbit/blueprints/logs.py), [`frontend/src/pages/Logs.tsx`](../frontend/src/pages/Logs.tsx).
 
+On a hosted Floorbit, let the [local agent](agent.md#syslog-through-the-agent) take the syslog on
+the event network and send it on.
+
 ## Turning it on
 
 The receiver is **off** until `SYSLOG_ENABLED` is set. It listens inside the app on udp/5514
@@ -94,7 +97,7 @@ search and level filter:
 - **Audit log:** who changed what ([audit.md](audit.md)), newest first, one line per change.
   Failed sign-ins show as warnings.
 
-The Logs button in the top bar shows for them even while the syslog receiver is off.
+**Logs** in the sidebar shows for them even while the syslog receiver is off.
 
 ## Keeping it longer: Grafana Loki
 

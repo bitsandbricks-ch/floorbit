@@ -13,14 +13,14 @@ def test_a_feature_that_is_off_is_gone_and_back_when_on(client):
     answer = client.get("/api/power")
     assert answer.status_code == 404 and answer.get_json()["error"] == "This feature is turned off."
     assert client.get("/power").status_code == 404
-    assert 'href="/power"' not in client.get("/").get_data(as_text=True)
+    assert "/power" not in {p["href"] for p in client.get("/api/pages").get_json()["pages"]}   # sidebar and Go to
 
     entries = client.get("/api/settings/audit").get_json()["entries"]
     assert entries[0]["action"] == "Turned features on or off" and entries[0]["target"] == "power off"
 
     client.put("/api/settings/features", json={"power": True})
     assert client.get("/api/power").status_code == 200
-    assert 'href="/power"' in client.get("/").get_data(as_text=True)
+    assert "/power" in {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
 
 
 def test_features_need_the_ones_they_build_on(client):
@@ -63,13 +63,14 @@ def test_the_netflow_collector_keeps_nothing_while_traffic_is_off(app_module, mo
     assert collector.enabled(now=100) is True
 
 
-def test_settings_lists_its_pages_and_only_the_tools_that_are_on(client):
-    # Issue #236: the links sit in a card on the page, not in the header.
+def test_settings_pages_and_tools_are_in_the_sidebar_only_when_on(client):
+    # Issue #236 put the links in a card; now the sidebar lists them, like on every crew page.
     page = client.get("/settings").get_data(as_text=True)
     header = page[page.index('<header'):page.index('</header>')]
-    assert 'href="/settings/users"' not in header and 'href="/settings/users"' in page
-    assert 'href="/runbooks"' in page
+    assert 'href="/settings/users"' not in header
+    hrefs = {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
+    assert {"/settings/users", "/runbooks"} <= hrefs
 
     client.put("/api/settings/features", json={"runbooks": False})
-    assert 'href="/runbooks"' not in client.get("/settings").get_data(as_text=True)
+    assert "/runbooks" not in {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
     client.put("/api/settings/features", json={"runbooks": True})

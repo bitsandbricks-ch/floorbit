@@ -9,12 +9,14 @@ signed link and no account:
 - ``POST /help/<seat>/speed/result``: ``{down_mbps, up_mbps, ping_ms, jitter_ms}``, kept for the seat.
 
 ``GET /api/speedtests?seat=``: the latest results per seat, for the crew (``incidents.work``).
+``GET /speedtests`` and ``GET /api/speedtests/summary``: the crew's page, the results side by side per
+switch (issue #434).
 """
 from flask import Blueprint, Response, abort, jsonify, request
 
 from integrations import events
 
-from .. import audit, incidents, speedtest
+from .. import audit, incidents, spa, speedtest
 from ..store import load_data
 
 bp = Blueprint('speedtest', __name__)
@@ -106,3 +108,15 @@ def recent():
     if seat:
         return jsonify({'seats': {seat: kept.get(seat) or []}})
     return jsonify({'seats': kept})
+
+
+@bp.route('/speedtests')
+def speedtests_page():
+    return spa.render('Speed tests')
+
+
+@bp.route('/api/speedtests/summary', methods=['GET'])
+def summary():
+    from .. import seat_view
+    data = load_data()
+    return jsonify(speedtest.summary(lambda seat: seat_view._switches_of(seat, data), data))

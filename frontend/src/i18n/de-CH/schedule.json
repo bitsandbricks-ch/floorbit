@@ -23,6 +23,7 @@
   "publicOn": "Das öffentliche Programm ist eingeschaltet:",
   "publicOff": "Die öffentliche Programmseite ist ausgeschaltet. Ein Admin schaltet sie unter Einstellungen > Attendee pages ein.",
   "bigScreen": "Leinwand",
+  "calendarFeed": "Kalender-Abo",
   "empty": "Noch nichts geplant. Füge einen Punkt hinzu oder importiere eine iCal-Datei.",
   "editNamed": "{{title}} ändern",
   "deleteNamed": "{{title}} entfernen",

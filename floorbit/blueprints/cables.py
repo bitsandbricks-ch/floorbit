@@ -12,7 +12,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import audit, cables, spa
+from .. import agent_link, audit, cables, spa
 
 bp = Blueprint('cables', __name__)
 
@@ -51,6 +51,8 @@ def cables_page():
 @bp.route('/api/cables', methods=['GET'])
 def list_cables():
     sources = [s.name for s in cables.sources(_registry())]
+    if agent_link.active():
+        sources.append('Local agent')
     return jsonify({'cables': _picked(), 'sources': sources})
 
 
@@ -89,7 +91,7 @@ def delete_cable(cable_id):
 
 @bp.route('/api/cables/import', methods=['POST'])
 def import_cables():
-    if not cables.sources(_registry()):
+    if not cables.sources(_registry()) and not agent_link.active():
         return jsonify({'error': 'No plugin that is on can tell Floorbit about cables. Turn on NetBox first.'}), 409
     try:
         count, errors = cables.import_from(_registry(), _who())

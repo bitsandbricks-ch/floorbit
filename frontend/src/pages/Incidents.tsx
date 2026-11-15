@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconArrowsExchange, IconBook, IconBox, IconFilter, IconHandGrab, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconArrowsExchange, IconBook, IconBox, IconDownload, IconFilter, IconHandGrab, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -143,6 +143,10 @@ export default function Incidents() {
                 {t('incidents.qrCodes')}
               </Button>
             )}
+            <Button variant="default" component="a" href={`/api/incidents.csv?tz=${new Date().getTimezoneOffset()}`}
+              leftSection={<IconDownload size={16} />}>
+              {t('incidents.csv')}
+            </Button>
             <Button leftSection={<IconPlus size={16} />} onClick={() => { setFormError(null); form.open() }} disabled={!board.data}>
               {t('incidents.new')}
             </Button>

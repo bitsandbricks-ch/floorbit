@@ -1,0 +1,39 @@
+# The local agent for a hosted Floorbit (docs/agent.md). Run it on the event network, next to
+# LibreNMS and NetBox, not on the hosted server:
+#
+#   cp agent.env.example agent.env      # FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
+#   docker compose -f docker-compose.agent.yml up -d
+#
+# It only connects out, over HTTPS: nothing has to be opened. Only to take the event's syslog
+# (FLOORBIT_AGENT_SYSLOG_PORT=5514 in agent.env) or flows (FLOORBIT_AGENT_FLOWS_PORT=2055),
+# uncomment the matching ports below.
+
+services:
+  agent:
+    # The agent has its own image and releases: bitsandbricks-ch/floorbit-agent.
+    image: ghcr.io/bitsandbricks-ch/floorbit-agent:${FLOORBIT_AGENT_VERSION:-latest}
+    env_file:
+      - path: agent.env
+        required: true
+    environment:
+      # Its own small settings file; it keeps no floor plan.
+      FLOORBIT_DATA_FILE: /app/state/agent-data.json
+    volumes:
+      - agent_state:/app/state
+    # ports:
+    #   - "514:5514/udp"
+    #   - "2055:2055/udp"
+    # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
+    # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
+    restart: on-failure:3
+    # Whether the hosted Floorbit answered in the last two minutes, so `docker ps` shows a lost
+    # uplink. The image has the same check; it's here so it can be tuned.
+    healthcheck:
+      test: ["CMD", "python", "-m", "floorbit_agent", "health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 2
+
+volumes:
+  agent_state:

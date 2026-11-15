@@ -41,5 +41,10 @@
   "allBack_other": "Alles zurück ({{count}})",
   "allBackTitle": "Alles von {{to}} zurücknehmen",
   "allBackDo_one": "{{count}} Stück zurücknehmen",
-  "allBackDo_other": "{{count}} Stück zurücknehmen"
+  "allBackDo_other": "{{count}} Stück zurücknehmen",
+  "backBy": "Zurück bis (optional)",
+  "dueBy": "Zurück bis {{when}}",
+  "overdue": "Überfällig seit {{when}}",
+  "lateTab_one": "Überfällig ({{count}})",
+  "lateTab_other": "Überfällig ({{count}})"
 }

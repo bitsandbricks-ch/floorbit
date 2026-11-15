@@ -61,7 +61,10 @@ kbd {
 .hidden { display: none !important; }
 
 /* ── App layout ──────────────────────────────────────────────────────────── */
-.app { display: flex; flex-direction: column; height: 100vh; }
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+/* The crew sidebar (templates/_nav.html) beside the floor plan; on phones a bar at the bottom. */
+body.fb-has-nav { display: flex; }
+body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .main-layout { display: flex; flex: 1; min-height: 0; }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
@@ -76,15 +79,8 @@ kbd {
   border-bottom: 1px solid var(--border);
   z-index: 30;
 }
-.topbar-brand { display: flex; align-items: center; gap: 10px; width: calc(var(--sidebar-w) - var(--sp-4)); flex-shrink: 0; }
-.topbar-brand .fb-brand-name { font-size: var(--fs-lg); }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
-/* The page links: with many pages on they scroll sideways here instead of pushing Sign out and
-   Settings off the screen, where the body's overflow: hidden made them unreachable (issue #238). */
-.topbar-nav { position: relative; display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
-/* position: relative keeps the visually hidden labels (position: absolute) inside the strip. */
-.topbar-nav .btn { flex-shrink: 0; }
-.topbar-actions > :not(.topbar-nav) { flex-shrink: 0; }
+.topbar-actions > * { flex-shrink: 0; }
 
 .status-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
 .status-chip {
@@ -889,11 +885,6 @@ kbd {
   box-shadow: 0 0 0 1px var(--border); display: flex;
 }
 .switch-muted svg { width: 100%; height: 100%; }
-.nav-count {
-  display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 2px; border-radius: 9px;
-  background: var(--color-down); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
-}
-.nav-count[hidden] { display: none; }
 
 /* Port action dialog (static/js/editor/ports.js) */
 .modal-error { margin: 8px 0 0; color: var(--color-down); font-size: var(--fs-sm); }
@@ -904,7 +895,6 @@ kbd {
 /* Security findings (static/js/editor/security.js): a dashed amber ring, distinct from incidents. */
 .seat-block-seat.has-finding { outline: 2px dashed var(--color-warn); outline-offset: 2px; border-radius: 4px; }
 .switch-marker.has-finding .switch-pin { outline: 2px dashed var(--color-warn); outline-offset: 3px; border-radius: 50%; }
-.nav-count-warn { background: var(--color-warn); color: #000; }
 
 /* Syslog warnings of the last 10 minutes (static/js/editor/logs.js): a cyan underline, so it can sit
    with a security ring or an incident. */
@@ -933,31 +923,24 @@ kbd {
 .legend-swatch.power-swatch.crit { --power: var(--color-down); }
 .legend-swatch.power-swatch.unknown { --power: var(--color-muted); }
 
-/* Top bar: below this width the links show only their icon (the title says what they are), so
-   the counts stay visible instead of the bar running off the screen. */
-@media (max-width: 1600px) {
-  .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-}
-
 /* ── Phones (issue #11): the floor plan full width, the sidebar a drawer, the
    inspector a sheet at the bottom, and the top bar a row that scrolls sideways. ──────────── */
 .sidebar-toggle { display: none; }
 .floorplan-wrapper, .canvas-area { touch-action: none; }   /* our own pan and pinch (touch.js) */
-@media (max-width: 760px) {
+@media (max-width: 767.98px) {
   :root { --topbar-h: 52px; }
   .sidebar-toggle { display: inline-flex; flex-shrink: 0; }
   .topbar { gap: var(--sp-2); padding: 0 var(--sp-2); }
-  .topbar-brand { width: auto; }
-  .topbar-brand .fb-brand-name, .status-chips, .user-menu-name, .last-updated { display: none; }
-  .topbar-actions { position: relative; overflow-x: auto; scrollbar-width: none; gap: 2px; min-width: 0; }
-  .topbar-actions::-webkit-scrollbar { display: none; }
-  .topbar-actions .btn { flex-shrink: 0; min-height: 40px; }
-  /* Here the whole row scrolls, so the page links keep their width (issue #238). */
-  .topbar-nav { flex-shrink: 0; overflow-x: visible; }
-  .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Only the online/offline counts stay: they are the reason to look at the plan on a phone. */
+  .status-chip[data-status="all"], .status-chip[data-status="unknown"], .last-updated { display: none; }
+  .status-chips { min-width: 0; }
+  .topbar-actions .btn { min-height: 40px; }
+  /* The page sits above the sidebar's bar at the bottom (templates/_nav.html). */
+  body.fb-has-nav > .app { height: calc(100dvh - var(--fb-tabbar-h, 60px) - env(safe-area-inset-bottom)); }
+  body.fb-has-nav { padding-bottom: 0; }
 
   .sidebar {
-    position: fixed; top: var(--topbar-h); bottom: 0; left: 0; z-index: 40;
+    position: fixed; top: var(--topbar-h); bottom: calc(var(--fb-tabbar-h, 0px) + env(safe-area-inset-bottom)); left: 0; z-index: 40;
     width: min(320px, 86vw); transform: translateX(-100%); transition: transform .18s ease;
     box-shadow: var(--shadow-sm);
   }
@@ -967,7 +950,7 @@ kbd {
   }
 
   .detail-panel {
-    position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 55vh; z-index: 45;
+    position: fixed; left: 0; right: 0; bottom: calc(var(--fb-tabbar-h, 0px) + env(safe-area-inset-bottom)); width: auto; max-height: 55vh; z-index: 45;
     border-left: 0; border-top: 1px solid var(--border); border-radius: 14px 14px 0 0;
     overflow-y: auto; animation: sheetUp .16s ease;
   }
@@ -979,7 +962,7 @@ kbd {
   .zoom-bar { bottom: var(--sp-2); right: var(--sp-2); }
   .switch-pin { min-width: 28px; min-height: 28px; }
 }
-@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+@media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
   .sidebar { transition: none; }
   .detail-panel { animation: none; }
 }

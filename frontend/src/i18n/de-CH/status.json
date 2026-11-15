@@ -38,5 +38,10 @@
     "unknown": "Unbekannt"
   },
   "recovered": "Wieder da",
-  "recoveredAt": "Seit {{time}} wieder da. Die Besucher sehen das eine halbe Stunde lang."
+  "recoveredAt": "Seit {{time}} wieder da. Die Besucher sehen das eine halbe Stunde lang.",
+  "suggestions": "Vorlage",
+  "suggestDown": "Aus: {{where}}",
+  "suggestBack": "Wieder da: {{where}}",
+  "suggestDownText": "{{where}} hat gerade kein Netzwerk. Die Crew ist dran.",
+  "suggestBackText": "{{where}} hat wieder Netzwerk. Geht es an deinem Platz immer noch nicht? Melde es über den QR-Code an deinem Platz."
 }

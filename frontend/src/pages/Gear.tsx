@@ -13,7 +13,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
 
-type Show = 'all' | 'out' | 'in'
+type Show = 'all' | 'out' | 'in' | 'late'
 
 function ItemModal({ item, people, onClose, onDone }: {
   item: GearItem; people: GearData['people']; onClose: () => void; onDone: () => void
@@ -22,10 +22,12 @@ function ItemModal({ item, people, onClose, onDone }: {
   const [to, setTo] = useState('')
   const [kind, setKind] = useState<'person' | 'area'>('person')
   const [note, setNote] = useState('')
+  const [until, setUntil] = useState('')
   const act = useMutation({
     mutationFn: () => item.loan
       ? post(`/api/gear/${item.id}/in`, { note: note.trim() })
-      : post(`/api/gear/${item.id}/out`, { to: to.trim(), kind, note: note.trim() }),
+      : post(`/api/gear/${item.id}/out`, { to: to.trim(), kind, note: note.trim(),
+        until: until ? new Date(until).getTime() / 1000 : null }),
     onSuccess: onDone,
   })
   return (
@@ -33,7 +35,10 @@ function ItemModal({ item, people, onClose, onDone }: {
       <Stack gap="sm">
         <Text size="sm" c="dimmed">{[t(`gear.role.${item.role}`, { defaultValue: item.role }), item.model, item.serial].filter(Boolean).join(' · ')}</Text>
         {item.loan ? (
-          <Alert color="warn">{t('gear.outWith', { to: item.loan.to, when: when(item.loan.at) })}{item.loan.note ? ` · ${item.loan.note}` : ''}</Alert>
+          <Alert color={item.loan.overdue ? 'down' : 'warn'}>
+            {t('gear.outWith', { to: item.loan.to, when: when(item.loan.at) })}{item.loan.note ? ` · ${item.loan.note}` : ''}
+            {item.loan.until ? ` · ${t(item.loan.overdue ? 'gear.overdue' : 'gear.dueBy', { when: when(item.loan.until) })}` : ''}
+          </Alert>
         ) : (
           <>
             <SegmentedControl value={kind} onChange={(v) => setKind(v as 'person' | 'area')}
@@ -43,6 +48,7 @@ function ItemModal({ item, people, onClose, onDone }: {
             ) : (
               <TextInput label={t('gear.where')} placeholder={t('gear.wherePlaceholder')} value={to} onChange={(e) => setTo(e.currentTarget.value)} />
             )}
+            <TextInput type="datetime-local" label={t('gear.backBy')} value={until} onChange={(e) => setUntil(e.currentTarget.value)} />
           </>
         )}
         <TextInput label={t('gear.note')} value={note} maxLength={300} onChange={(e) => setNote(e.currentTarget.value)} />
@@ -101,10 +107,11 @@ export default function Gear() {
   const roles = d ? [...new Set(d.items.map((i) => i.role))] : []
   const q = search.trim().toLowerCase()
   const rows = (d?.items ?? []).filter((i) => (!role || i.role === role)
-    && (show === 'all' || (show === 'out') === !!i.loan)
+    && (show === 'all' || (show === 'late' ? !!i.loan?.overdue : (show === 'out') === !!i.loan))
     && (!q || [i.name, i.model, i.serial, i.loan?.to ?? ''].some((v) => v.toLowerCase().includes(q))))
   const current = d?.items.find((i) => i.id === open)
   const outCount = d?.items.filter((i) => i.loan).length ?? 0
+  const lateCount = d?.items.filter((i) => i.loan?.overdue).length ?? 0
   // Who has how much, most first (issue #318): at teardown the question is "who still has our stuff".
   const holders = Object.entries((d?.items ?? []).reduce<Record<string, number>>((acc, i) => {
     if (i.loan) acc[i.loan.to] = (acc[i.loan.to] ?? 0) + 1
@@ -132,7 +139,9 @@ export default function Gear() {
               <Select aria-label={t('gear.kind')} placeholder={t('gear.allKinds')} clearable value={role} onChange={setRole} w={180}
                 data={roles.map((r) => ({ value: r, label: t(`gear.role.${r}`, { defaultValue: r }) }))} />
               <SegmentedControl value={show} onChange={(v) => setShow(v as Show)}
-                data={[{ value: 'all', label: t('gear.all') }, { value: 'out', label: t('gear.out', { count: outCount }) }, { value: 'in', label: t('gear.in') }]} />
+                data={[{ value: 'all', label: t('gear.all') }, { value: 'out', label: t('gear.out', { count: outCount }) },
+                  ...(lateCount || show === 'late' ? [{ value: 'late', label: t('gear.lateTab', { count: lateCount }) }] : []),
+                  { value: 'in', label: t('gear.in') }]} />
             </Group>
             {holders.length > 0 && (
               <Group gap={6} role="group" aria-label={t('gear.holders')}>
@@ -164,7 +173,14 @@ export default function Gear() {
                           <Table.Td>{[t(`gear.role.${i.role}`, { defaultValue: i.role }), i.model].filter(Boolean).join(' · ')}</Table.Td>
                           <Table.Td>
                             {i.loan
-                              ? <Badge variant="light" color="warn" tt="none">{t('gear.outWith', { to: i.loan.to, when: when(i.loan.at) })}</Badge>
+                              ? (
+                                <Group gap={6}>
+                                  <Badge variant="light" color="warn" tt="none">{t('gear.outWith', { to: i.loan.to, when: when(i.loan.at) })}</Badge>
+                                  {i.loan.until && (i.loan.overdue
+                                    ? <Badge variant="filled" color="down" tt="none">{t('gear.overdue', { when: when(i.loan.until) })}</Badge>
+                                    : <Text span size="xs" c="dimmed">{t('gear.dueBy', { when: when(i.loan.until) })}</Text>)}
+                                </Group>
+                              )
                               : <Badge variant="light" color="up" tt="none">{t('gear.here')}</Badge>}
                           </Table.Td>
                           <Table.Td>

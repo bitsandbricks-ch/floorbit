@@ -47,6 +47,7 @@ validation:
   links: {not_found: warn, anchors: warn}
 nav:
   - Home: index.md
+  - Navigation: navigation.md
   - Set up:
       - Install with Docker Compose: install.md
       - Sign-in, roles and teams: auth.md
@@ -106,6 +107,7 @@ nav:
   - Extend:
       - Plugins: plugins.md
       - Integrations: integrations.md
+      - Local agent (hosted): agent.md
       - The API: api.md
       - API reference: api-reference.md
       - Architecture: architecture.md
