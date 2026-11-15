@@ -1,0 +1,136 @@
+"""The local agent program (issue #2) against the hosted side, all in one process.
+
+The agent's HTTP goes through the Flask test client, so nothing leaves the process."""
+import threading
+import time
+
+import pytest
+
+from floorbit import agent as agent_mod
+from floorbit import agent_link, sources
+from tests.test_agent import clean_tunnel, enrol  # noqa: F401  # the fixture resets the tunnel
+
+
+class _Resp:
+    def __init__(self, r):
+        self.status_code = r.status_code
+        self._r = r
+
+    def json(self):
+        return self._r.get_json()
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f'HTTP {self.status_code}')
+
+
+class ClientHttp:
+    """What the agent needs from requests.Session, backed by the Flask test client."""
+
+    def __init__(self, client):
+        self.client = client
+
+    def get(self, url, params=None, headers=None, timeout=None):
+        return _Resp(self.client.get(url.replace('http://hosted.example.com', ''), query_string=params,
+                                     headers=headers))
+
+    def post(self, url, data=None, headers=None, timeout=None):
+        return _Resp(self.client.post(url.replace('http://hosted.example.com', ''), data=data, headers=headers))
+
+
+def fake_execute(method, args):
+    if method == 'devices':
+        return [{'hostname': 'sw-a-01', 'status': 1}]
+    if method == 'device_details':
+        return {'status': 'online', 'hostname': args[0]}
+    raise RuntimeError('LibreNMS said no')
+
+
+def make(app_module, key, execute=fake_execute):
+    return agent_mod.Agent('http://hosted.example.com/', key, execute,
+                           http=ClientHttp(app_module.app.test_client()), version='9.9.9', log=lambda *_: None)
+
+
+def test_the_agent_answers_the_hosted_monitoring(client, app_module):
+    key = enrol(client)['key']
+    a = make(app_module, key)
+    a.poll_wait = 0.5          # so stop() is quick
+    assert a.hello()['name'] == 'Demo LAN 2026'
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        assert sources.monitoring().devices() == [{'hostname': 'sw-a-01', 'status': 1}]
+        assert sources.monitoring().device_details('sw-a-01')['status'] == 'online'
+        assert sources.monitoring().resolve_ip('192.0.2.10') is None     # the plugin's error: no answer
+        listed = client.get('/api/agents').get_json()['agents'][0]
+        assert listed['connected'] and listed['version'] == '9.9.9'
+    finally:
+        a.stop()
+        worker.join(30)
+    assert not worker.is_alive()
+    assert a.answered >= 3
+
+
+def test_odd_answers_still_go_back(client, app_module):
+    """A plugin answer JSON doesn't know (a date, say) is sent as text, not dropped."""
+    import datetime
+    key = enrol(client)['key']
+    a = make(app_module, key, lambda m, args: {'when': datetime.date(2026, 11, 15)})
+    agent_link.tunnel.seen()
+    got = {}
+
+    def ask():
+        got['answer'] = agent_link.tunnel.call('devices', timeout=5)
+
+    asker = threading.Thread(target=ask)
+    asker.start()
+    deadline = time.time() + 5
+    while not got and time.time() < deadline:
+        a.poll(wait=0.2)
+        time.sleep(0.05)
+    asker.join(5)
+    assert got['answer'] == {'when': '2026-11-15'}
+
+
+def test_a_revoked_key_stops_the_agent(client, app_module):
+    made = enrol(client)
+    client.delete(f"/api/agents/{made['id']}")
+    with pytest.raises(agent_mod.Refused):
+        make(app_module, made['key']).run()
+
+
+def test_an_unreachable_host_is_retried(app_module):
+    tries = []
+
+    class Down:
+        def get(self, *a, **k):
+            tries.append(1)
+            if len(tries) >= 2:
+                agent.stop()
+            raise ConnectionError('no route to host')
+
+    agent = agent_mod.Agent('https://hosted.example.com', 'fba_x', fake_execute, http=Down(), log=lambda *_: None)
+    started = time.time()
+    agent.run()
+    assert len(tries) == 2 and time.time() - started < 5     # waited 1 s between tries, then stopped
+
+
+def test_main_wants_its_settings(monkeypatch, capsys):
+    monkeypatch.delenv('FLOORBIT_URL', raising=False)
+    monkeypatch.delenv('FLOORBIT_AGENT_KEY', raising=False)
+    assert agent_mod.main() == 2
+    monkeypatch.setenv('FLOORBIT_URL', 'http://hosted.example.com')
+    monkeypatch.setenv('FLOORBIT_AGENT_KEY', 'fba_00000000_' + 'x' * 30)
+    monkeypatch.delenv('FLOORBIT_AGENT_INSECURE', raising=False)
+    assert agent_mod.main() == 2
+    assert 'https://' in capsys.readouterr().err
+
+
+def test_the_local_executor_only_runs_monitoring_methods(app_module):
+    from floorbit.plugins.base import PluginError
+    execute = agent_mod.local_executor(app_module.app)
+    with pytest.raises(PluginError):
+        execute('delete_everything', [])

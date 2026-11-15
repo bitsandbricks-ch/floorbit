@@ -10,8 +10,7 @@ opened. The hosted Floorbit hands the agent its LibreNMS questions (which switch
 port an IP is on, a port's traffic). The agent asks the event's own LibreNMS and sends the answers back.
 
 !!! note "Work in progress"
-    This page describes the hosted side. The agent program itself, NetBox through the agent and
-    a Compose file for it follow in the next pull requests.
+    NetBox through the agent and a Compose file for it follow in the next pull requests.
 
 ## Enrolling an agent
 
@@ -28,6 +27,33 @@ Revoking the agent stops it at its next request: it has to be enrolled again wit
 
 While at least one agent is enrolled, the hosted Floorbit asks the agent instead of its own
 monitoring plugin. Revoke every agent to go back to the plugins.
+
+## Running the agent
+
+The agent is the Floorbit image with another command, `python -m floorbit.agent`. Set up the
+event's monitoring plugin on it the usual way (for LibreNMS: `LIBRENMS_URL` and `LIBRENMS_TOKEN`)
+and tell it where the hosted Floorbit is:
+
+```sh
+docker run -d --restart unless-stopped --name floorbit-agent \
+  -e FLOORBIT_URL=https://floor.example.com \
+  -e FLOORBIT_AGENT_KEY=fba_… \
+  -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \
+  ghcr.io/bitsandbricks-ch/floorbit python -m floorbit.agent
+```
+
+| Setting | What |
+| --- | --- |
+| `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
+| `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
+| `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
+| `FLOORBIT_DATA_FILE` | the agent's own settings file (default `agent-data.json` in its working directory). It keeps no floor plan |
+
+The agent only makes outgoing requests; nothing listens on it. It runs up to 4 calls side by side,
+so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
+it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
+try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
+start it with the new key.
 
 ## When the agent is away
 
