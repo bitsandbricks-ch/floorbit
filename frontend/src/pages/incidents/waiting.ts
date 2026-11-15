@@ -12,3 +12,8 @@ export function openOrder<T extends Pick<Incident, 'status' | 'assignee' | 'crea
   const waiting = items.filter((i) => isWaiting(i, now)).sort((a, b) => a.created_at - b.created_at)
   return [...waiting, ...items.filter((i) => !isWaiting(i, now))]
 }
+
+/** What "Take the next one" takes: the oldest open incident nobody has that this account may work (issue #306). */
+export function nextToTake<T extends Pick<Incident, 'status' | 'assignee' | 'created_at' | 'can_work'>>(items: T[]): T | undefined {
+  return items.filter((i) => i.status === 'open' && !i.assignee && i.can_work).sort((a, b) => a.created_at - b.created_at)[0]
+}
