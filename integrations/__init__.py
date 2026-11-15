@@ -69,7 +69,8 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
     crew = CrewBridge(users=auth.users if auth else None, app=app)
     crew.attach()
     app.extensions['floorbit_crew'] = crew
-    discord = DiscordNotifier(crew=crew)
+    discord = DiscordNotifier(crew=crew, app=app)
+    discord.monitor = monitor
     discord.attach()
     app.extensions['floorbit_discord'] = discord
 
