@@ -58,11 +58,13 @@ def _view(user, incident, match=None, books=None, notes=None, outages=None):
             'runbook': {'id': book['id'], 'title': book['title']} if book else None,
             'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None,
             # The seat's switch is down right now (issue #386): part of an outage, not a cable.
-            'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None}
+            'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None,
+            'back_up': (outages or {}).get(('back', incident.get('id'))) if incident.get('status') != 'fixed' else None}
 
 
 def _outages(items):
-    """{seat: {switch, since}} for open incidents whose seat's switch is down now."""
+    """{seat: {switch, since}} for open incidents whose seat's switch is down now, and
+    {('back', incident id): {switch, since}} for ones whose switch came back after they were filed."""
     from .. import seat_view
     statuses = seat_view.monitor_statuses()
     if not statuses:
@@ -73,6 +75,12 @@ def _outages(items):
         found = seat_view.outage_of(seat, data, statuses)
         if found:
             out[seat] = {'switch': found[0], 'since': found[1]}
+    # Reported while its switch was down, and the switch is back since (issue #390): maybe fixed already.
+    for i in items:
+        if i.get('seat') and i['status'] != 'fixed' and i.get('seat') not in out:
+            back = seat_view.back_up(i['seat'], i.get('created_at') or 0, data, statuses)
+            if back:
+                out[('back', i['id'])] = {'switch': back[0], 'since': back[1]}
     return out
 
 

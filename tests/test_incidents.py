@@ -315,3 +315,24 @@ def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_
     cards = {i["seat"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
     assert cards["A-1"]["outage"] == {"switch": "sw-a-01", "since": since}
     assert cards["A-2"]["outage"] is None
+
+
+def test_the_board_says_when_the_switch_came_back(client, app_module, floor, monkeypatch):
+    # Issue #390: filed during the outage, the switch is back since: maybe fixed already.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    filed = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    sid = floor["switch_id"]
+    # Up since before it was filed, or up since a restart: nothing to say.
+    monkeypatch.setattr(monitor, "statuses", {sid: {"status": "online", "since": filed["created_at"] - 60,
+                                                    "previous": "offline"}})
+    assert client.get("/api/incidents").get_json()["incidents"][0]["back_up"] is None
+    monitor.statuses = {sid: {"status": "online", "since": filed["created_at"] + 60}}
+    assert client.get("/api/incidents").get_json()["incidents"][0]["back_up"] is None
+    monitor.statuses = {sid: {"status": "online", "since": filed["created_at"] + 60, "previous": "offline"}}
+    card = client.get("/api/incidents").get_json()["incidents"][0]
+    assert card["back_up"] == {"switch": "sw-a-01", "since": filed["created_at"] + 60} and card["outage"] is None

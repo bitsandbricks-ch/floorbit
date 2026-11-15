@@ -291,6 +291,8 @@ export interface Incident {
   seat_ok_at?: number | null
   /** The seat's switch is down right now (issue #386). */
   outage?: { switch: string; since: number } | null
+  /** Filed while the seat's switch was down, and the switch is back since (issue #390). */
+  back_up?: { switch: string; since: number } | null
   match?: string | null
   can_work: boolean
   can_assign: boolean
