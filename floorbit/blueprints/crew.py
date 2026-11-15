@@ -5,7 +5,8 @@
   (``DISCORD_APP_PUBLIC_KEY``), so only Discord can call it.
 
 "Mute … for 1 h" under a switch or service alert mutes it for an hour (issues #272, #274).
-Slash commands (``/status``) are answered by floorbit/discord_commands.py.
+Slash commands (``/status``, ``/seat``, ``/switch``) and their autocomplete are answered by
+floorbit/discord_commands.py.
 
 A click acts as the Floorbit account linked to the clicking Discord user, with that account's
 permissions, exactly as if they had clicked on the incident board. Clicks from another server or
@@ -21,8 +22,8 @@ from .. import audit, discord_commands, incidents
 
 bp = Blueprint('crew', __name__)
 
-PING, COMMAND, COMPONENT = 1, 2, 3
-PONG, MESSAGE = 1, 4
+PING, COMMAND, COMPONENT, AUTOCOMPLETE = 1, 2, 3, 4
+PONG, MESSAGE, CHOICES = 1, 4, 8
 EPHEMERAL = 64
 MAX_SKEW = 300            # seconds; an older signed request is a replay
 
@@ -60,7 +61,7 @@ def interactions():
     body = request.get_json(silent=True) or {}
     if body.get('type') == PING:
         return jsonify({'type': PONG})
-    if body.get('type') == COMMAND:
+    if body.get('type') in (COMMAND, AUTOCOMPLETE):
         return _command(body)
     if body.get('type') != COMPONENT:
         return _say('Floorbit only knows its own buttons.')
@@ -76,7 +77,11 @@ def _command(body):
     provider = auth.providers.get('discord')
     guild = getattr(provider, 'guild_id', '') if provider else ''
     if guild and str(body.get('guild_id') or '') != guild:
+        if body.get('type') == AUTOCOMPLETE:
+            return jsonify({'type': CHOICES, 'data': {'choices': []}})
         return _say('Floorbit only answers on its own server.')
+    if body.get('type') == AUTOCOMPLETE:
+        return jsonify({'type': CHOICES, 'data': {'choices': discord_commands.autocomplete(body)}})
     answer = discord_commands.handle(body)
     return _say(answer if answer is not None else 'Floorbit does not know this command.')
 

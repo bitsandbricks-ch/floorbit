@@ -35,8 +35,8 @@ def floor(client, app_module, monkeypatch):
         client.post("/api/switches", json={"name": f"sw-z-0{n}", "x": 900 + n * 40, "y": 600})
     monitor = app_module.app.extensions["lal_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "last_poll", time.time())
-    monkeypatch.setattr(monitor, "statuses",
-                        {sw["id"]: {"id": sw["id"], "status": "offline", "since": time.time() - 300}})
+    down = {"id": sw["id"], "name": "sw-b-01", "status": "offline", "since": time.time() - 300}
+    monkeypatch.setattr(monitor, "statuses", {sw["id"]: down})
     monkeypatch.setattr(status_page, "_seats_of", {})
     status_page.learn_seats({("sw-b-01", "Gi1/0/1"): "B-1"})
     sources.mark_ok("test")
@@ -91,3 +91,45 @@ def test_commands_are_registered_once_per_change(bridge, monkeypatch):
     monkeypatch.setattr(bridge, "commands_for", None)
     with bridge.app.app_context():
         assert bridge.register_commands() is False   # nothing could answer them
+
+
+def _opt(name, value, focused=False):
+    return [{"type": 3, "name": name, "value": value, **({"focused": True} if focused else {})}]
+
+
+def test_seat_shows_state_port_and_incidents_but_no_people(bridge, client, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "_port_of_seat", lambda: {"B-1": ("sw-b-01", "Gi1/0/1")})
+    client.post("/api/incidents", json={"seat": "B-1", "title": "No link at all"})
+    text = _ask(anon_client, key, _command("seat", options=_opt("seat", "b-1")))
+    assert text.startswith("**Seat B-1**") and "Port: sw-b-01 Gi1/0/1" in text
+    assert "No link at all" in text and "https://floor.example.com/plan?seat=B-1" in text
+    assert "192.0.2" not in text and "nick" not in text.lower()
+    assert "no seat Z-9" in _ask(anon_client, key, _command("seat", options=_opt("seat", "Z-9")))
+    assert "works incidents" in _ask(anon_client, key, _command("seat", user_id="222", options=_opt("seat", "B-1")))
+    assert "not linked" in _ask(anon_client, key, _command("seat", user_id="333", options=_opt("seat", "B-1")))
+
+
+def test_switch_lists_its_seats_that_are_not_online(bridge, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "_port_of_seat", lambda: {"B-1": ("sw-b-01", "Gi1/0/1"),
+                                                             "B-2": ("sw-b-01", "Gi1/0/2")})
+    text = _ask(anon_client, key, _command("switch", options=_opt("name", "SW-B-01")))
+    assert text.startswith("**sw-b-01** · 🔴 down since <t:")
+    assert "Seats online: 0 of 2" in text and "B-1 (Gi1/0/1), B-2 (Gi1/0/2)" in text
+    assert "no switch called sw-x" in _ask(anon_client, key, _command("switch", options=_opt("name", "sw-x")))
+
+
+def test_autocomplete_suggests_seats_and_switches_to_crew_only(bridge, anon_client, key, floor):
+    def choices(name, opt, typed, user_id="111"):
+        body = {**_command(name, user_id=user_id, options=_opt(opt, typed, focused=True)), "type": 4}
+        resp = anon_client.post("/api/discord/interactions", **_interaction(key, body)).get_json()
+        assert resp["type"] == 8
+        return [c["value"] for c in resp["data"]["choices"]]
+
+    seats = choices("seat", "seat", "b-1")
+    assert seats[0] == "B-1" and "B-10" in seats and all(s.startswith("B-1") for s in seats)
+    assert len(choices("seat", "seat", "")) == 16   # blocks A (4) and B (12)
+    assert choices("switch", "name", "sw-b") == ["sw-b-01"]
+    assert choices("switch", "name", "sw-b", user_id="222") == []   # not crew
+    assert choices("seat", "seat", "B", user_id="333") == []         # not linked
