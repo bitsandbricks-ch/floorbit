@@ -15,7 +15,9 @@ Who may do what:
 from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import audit, spa
+from .. import dashboard_core as core
 from ..plugins import SETTING_TYPES, PluginError
+from ..plugins.widgets import check_widget
 
 bp = Blueprint('plugins', __name__)
 
@@ -246,7 +248,33 @@ def dashboard():
                 tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'id': a['id'], 'label': a['label'],
                               'kind': 'action', 'danger': bool(a.get('danger')),
                               'url': f"/api/plugins/{spec.id}/actions/{a['id']}"})
-    return jsonify({'tiles': tiles})
+    # Floorbit's own tiles first: they work with no plugin set up (issue #302).
+    return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user)) + tiles})
+
+
+def _lang():
+    return request.accept_languages.best_match(['en', 'de'], default='en')
+
+
+def _may_see_board(user):
+    from .. import incidents
+    return not current_app.extensions['auth'].enabled or incidents.can_see_board(user)
+
+
+@bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
+def core_widget(tile):
+    refused = _allowed('floorplan.view')
+    if refused:
+        return refused
+    from auth import roles
+    user = _user()
+    item = {'id': tile, 'label': '', 'size': 'small', 'refresh': 30}
+    if tile == 'problems':
+        may_see_people = not current_app.extensions['auth'].enabled or bool(user and roles.can(user, 'seats.view'))
+        return jsonify(check_widget(core.problems_widget(_lang(), may_see_people), item))
+    if tile == 'incidents' and _may_see_board(user):
+        return jsonify(check_widget(core.incidents_widget(_lang()), item))
+    return _error('No such widget', 404)
 
 
 # Saved layouts (issue #103): which tiles a screen shows, in which order (floorbit/dashboard_layouts.py).
