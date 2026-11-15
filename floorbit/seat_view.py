@@ -21,6 +21,8 @@ from . import halls, incidents, inventory, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
+HISTORY = 6 * 3600   # the inspector's link history (issue #167): long enough for "it keeps dropping"
+
 
 def _ext(name):
     return current_app.extensions.get(name)
@@ -174,6 +176,9 @@ def details(seat, people):
         'last_read': last,
         'people': bool(people),
     }
+    stats = _ext('floorbit_stats')
+    if stats:
+        out['history'] = {**stats.seat_history(seat, now - HISTORY), 'to': now}
     if people:
         row = (seat_sources.load() or {}).get(seat) or {}
         out['nick'] = row.get('username') or None

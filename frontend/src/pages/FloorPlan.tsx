@@ -1,8 +1,8 @@
-import { Alert, Anchor, Drawer, Group, Loader, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Drawer, Group, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
@@ -24,6 +24,9 @@ export default function FloorPlan() {
   const hall = params.get('hall') ?? ''
   const selected = params.get('seat')
   const screen = params.get('screen') === '1'
+  const traffic = params.get('traffic') === '1'
+  // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
+  const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
   const phone = useMediaQuery('(max-width: 48em)')
   const qc = useQueryClient()
   const q = useQuery({
@@ -70,10 +73,26 @@ export default function FloorPlan() {
   const total = data ? Object.keys(data.seats).length : 0
   const online = data ? Object.values(data.seats).filter((s) => s.state === 'online').length : 0
   const problems = data ? Object.values(data.seats).filter((s) => s.problems).length : 0
+  const halls = data?.halls
+  const rotating = cycle > 0 && (halls?.length ?? 0) > 1
+  // A hall with problems stays up twice as long: that's the one the crew needs to look at.
+  const dwell = rotating ? cycle * 1000 * (problems ? 2 : 1) : 0
+  const current = data?.hall
+  useEffect(() => {
+    if (!dwell || !current || !halls) return
+    const timer = window.setTimeout(() => {
+      const i = halls.findIndex((h) => h.id === current)
+      const next = new URLSearchParams(params)
+      next.set('hall', halls[(i + 1) % halls.length].id)
+      setParams(next, { replace: true })
+    }, dwell)
+    return () => window.clearTimeout(timer)
+  }, [dwell, current, halls, params, setParams])
   const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
 
   const map = data?.drawing && view && (
-    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected}
+    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic}
+      onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }} />
   )
   const summary = data && (
@@ -87,9 +106,13 @@ export default function FloorPlan() {
   if (screen) {
     return (
       <main className="fb-plan-screen">
-        {summary}
+        <div>
+          {rotating && <Text className="fb-plan-hall" fw={800}>{halls?.find((h) => h.id === current)?.name}</Text>}
+          {summary}
+          {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
+        </div>
         {map}
-        {data && <Legend checkin={data.checkin} />}
+        {data && <Legend checkin={data.checkin} traffic={traffic} />}
       </main>
     )
   }
@@ -117,8 +140,11 @@ export default function FloorPlan() {
             </Group>
           </Group>
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
-          <SegmentedControl mb="sm" size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
-            data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({ value: f, label: t(`plan.filter.${f}`) }))} />
+          <Group mb="sm" gap="lg" wrap="wrap">
+            <SegmentedControl size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}
+              data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({ value: f, label: t(`plan.filter.${f}`) }))} />
+            <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />
+          </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
@@ -126,7 +152,7 @@ export default function FloorPlan() {
             {map}
             {selected && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
-          <Legend checkin={data.checkin} />
+          <Legend checkin={data.checkin} traffic={traffic} />
           <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>
           {phone && (
             <Drawer opened={!!selected} onClose={() => set('seat', null)} position="bottom" size="55%" withCloseButton={false}

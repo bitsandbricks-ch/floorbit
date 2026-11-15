@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import FloorPlan from './FloorPlan'
-import { density, findSeat, matches, parseBox, seatCenter, zoom } from './plan/model'
+import axe from 'axe-core'
+import { density, findSeat, heatColor, heatLevel, linkSpans, matches, nearestSeat, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -23,6 +24,7 @@ const details: SeatDetails = {
   seat: 'D-2', block: 'D', state: 'offline', bps: null, switch: 'sw-d-01', port: 'Gi1/0/2',
   incidents: [{ id: 'i1', title: 'No link', status: 'open', created_at: 1_800_000_000 }], attention: [],
   match: null, checked_in: false, last_read: 1_800_000_000, people: false,
+  history: { from: 1_800_000_000 - 6 * 3600, to: 1_800_000_000, start: true, changes: [[1_799_990_000, 0], [1_799_991_000, 1], [1_799_995_000, 0]] },
 }
 const me = { enabled: true, user: { username: 'tia', display_name: 'Tia', role: 'tech', permissions: ['floorplan.view'] } }
 
@@ -52,6 +54,55 @@ describe('seat map model', () => {
   })
 })
 
+describe('keyboard', () => {
+  it('moves from seat to seat by where seats are, in rotated blocks too', () => {
+    expect(nextSeat(drawing, 'D-1', 'right')).toBe('D-2')
+    expect(nextSeat(drawing, 'D-4', 'right')).toBeNull()
+    expect(nextSeat(drawing, 'D-2', 'up')).toBeNull()
+    const upright = { ...drawing, shapes: [{ ...drawing.shapes[0], rotation: 90 }] }
+    expect(nextSeat(upright, 'D-1', 'down')).toBe('D-2')
+    expect(nextSeat(upright, 'D-1', 'right')).toBeNull()
+    expect(nearestSeat(drawing, { x: 700, y: 480 })).toBe('D-4')
+  })
+
+  it('keeps the view until the seat nears its edge, then centres it', () => {
+    const view = parseBox('0 0 400 200')
+    expect(reveal(view, { x: 200, y: 100 }, 64)).toBe(view)
+    expect(reveal(view, { x: 380, y: 100 }, 64)).toEqual({ x: 180, y: 0, w: 400, h: 200 })
+  })
+})
+
+describe('link history', () => {
+  it('turns changes into spans, not-known-yet included', () => {
+    expect(linkSpans({ from: 0, to: 100, start: true, changes: [[40, 0], [70, 1]] })).toEqual([
+      { from: 0, to: 40, on: true }, { from: 40, to: 70, on: false }, { from: 70, to: 100, on: true }])
+    expect(linkSpans({ from: 0, to: 100, start: null, changes: [[30, 1]] })).toEqual([
+      { from: 0, to: 30, on: null }, { from: 30, to: 100, on: true }])
+    expect(linkSpans({ from: 0, to: 100, start: false, changes: [] })).toEqual([{ from: 0, to: 100, on: false }])
+  })
+})
+
+describe('traffic overlay', () => {
+  it('uses a fixed log scale and viridis', () => {
+    expect([undefined, 1e5, 1e6, 1e7, 1e9, 1e10].map(heatLevel)).toEqual([0, 0, 0.25, 0.5, 1, 1])
+    expect(heatColor(0)).toBe('rgb(68, 1, 84)')
+    expect(heatColor(1)).toBe('rgb(253, 231, 37)')
+    expect(heatColor(0.5)).toBe('rgb(33, 145, 140)')
+  })
+
+  it('fills online seats by traffic and keeps the other shapes', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    const toggle = await screen.findByRole('switch', { name: 'Traffic' })
+    expect(container.querySelector('.seat.heat')).toBeNull()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('heat'))
+    expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveStyle({ fill: heatColor(heatLevel(6_000_000)) })
+    expect(container.querySelector('[data-seat="D-2"] .slash')).not.toBeNull()
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('100 kbit/s')
+  })
+})
+
 describe('Seats page', () => {
   it('draws every state with its own shape and opens the inspector', async () => {
     const api = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details })
@@ -73,6 +124,7 @@ describe('Seats page', () => {
     expect(screen.getByText('No link')).toBeInTheDocument()
     expect(screen.getByText(/your role can't see nicks/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Show in the editor' })).toHaveAttribute('href', '/?seat=D-2')
+    expect(screen.getByRole('img', { name: /^Offline since .+\. 3 changes in 6 h$/ })).toBeInTheDocument()
   })
 
   it('dims seats a filter leaves out and finds a seat', async () => {
@@ -87,6 +139,61 @@ describe('Seats page', () => {
     fireEvent.change(find, { target: { value: 'd4' } })
     fireEvent.submit(find.closest('form')!)
     await waitFor(() => expect(container.querySelector('[data-seat="D-4"]')).toHaveClass('sel'))
+  })
+
+  it('goes from seat to seat with the keyboard and opens one with Enter', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    const map = await screen.findByRole('application', { name: 'Seat map' })
+    expect(map).toHaveAccessibleDescription(/Arrow keys move from seat to seat.*Block D: 2 of 4 seats online, 1 problem\./)
+    map.focus()
+    fireEvent.keyDown(map, { key: 'ArrowRight' })   // the first press starts on the seat in the middle
+    const cursor = () => container.querySelector('.cell.kb')?.getAttribute('data-seat')
+    expect(cursor()).toBe('D-2')
+    expect(map.getAttribute('aria-activedescendant')).toBe(container.querySelector('[data-seat="D-2"]')!.id)
+    expect(screen.getByRole('status')).toHaveTextContent('D-2: Offline · 1 problem')
+    fireEvent.keyDown(map, { key: 'ArrowRight' })
+    fireEvent.keyDown(map, { key: 'ArrowLeft' })
+    expect(cursor()).toBe('D-2')
+    fireEvent.keyDown(map, { key: 'Enter' })
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    fireEvent.keyDown(map, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByText('sw-d-01 · Gi1/0/2')).toBeNull())
+  })
+
+  it('passes an axe check', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?seat=D-2')
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    // jsdom does no layout, so colour contrast is checked in the browser, not here.
+    const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
+    expect(result.passes.length).toBeGreaterThan(10)
+    expect(result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
+  })
+
+  it('rotates through the halls on a big screen, longer where there are problems', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const two = [{ id: 'main', name: 'Hall' }, { id: 'annex', name: 'Annex' }]
+      const quiet = Object.fromEntries(Object.keys(data.seats).map((k) => [k, { state: 'online' as const }]))
+      const api = fakeFetch({
+        'GET /api/plan?hall=main': { ...data, halls: two },
+        'GET /api/plan?hall=annex': { ...data, halls: two, hall: 'annex', seats: quiet },
+      })
+      vi.stubGlobal('fetch', api.fn)
+      const { container } = renderWithApp(<FloorPlan />, '/plan?screen=1&cycle=10&hall=main')
+      expect(await screen.findByText('Hall')).toBeInTheDocument()
+      expect(container.querySelector('.fb-plan-cycle')).toHaveStyle({ animationDuration: '20000ms' })   // Hall has a problem
+      await vi.advanceTimersByTimeAsync(19_000)
+      expect(api.calls.some((c) => c.path === '/api/plan?hall=annex')).toBe(false)
+      await vi.advanceTimersByTimeAsync(1_500)
+      expect(await screen.findByText('Annex')).toBeInTheDocument()
+      expect(container.querySelector('.fb-plan-cycle')).toHaveStyle({ animationDuration: '10000ms' })
+      await vi.advanceTimersByTimeAsync(10_500)
+      await waitFor(() => expect(screen.getByText('Hall')).toBeInTheDocument())
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('says so when there is no recent port read', async () => {

@@ -24,8 +24,8 @@ offline that might be fine.
 
 ## Zoom levels
 
-Drag to move, scroll or pinch to zoom; **+**, **-**, **0** and the arrow keys work when the plan has
-focus. What is drawn depends on how big a seat is on screen:
+Drag to move, scroll or pinch to zoom; **+**, **-**, **0** and **Shift** with the arrow keys work
+when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-readers)). What is drawn depends on how big a seat is on screen:
 
 - **Far** (a seat under 12 px): each block's name with its online and total seats and its
   problems.
@@ -35,11 +35,41 @@ focus. What is drawn depends on how big a seat is on screen:
 **Show** dims every seat except the ones with problems, offline seats, match seats or checked-in
 seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
+## Keyboard and screen readers
+
+Tab to the plan, then:
+
+| Key | Does |
+| --- | --- |
+| Arrow keys | Move a dashed cursor to the next seat in that direction, in rotated blocks too. The first press starts on the open seat or the one in the middle of the view. The view follows the cursor. |
+| Enter or Space | Open the seat under the cursor in the inspector. |
+| Escape | Close the inspector. |
+| Shift + arrow keys | Move the map. |
+| **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
+
+A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the
+plan's description, one line per block ("Block D: 21 of 24 seats online, 1 problem."). The page is
+checked with axe in the frontend tests.
+
+## Traffic
+
+**Traffic** fills each online seat by its traffic now, on a fixed scale from 100 kbit/s to
+1 Gbit/s (log scale, so the same colour means the same traffic in every hall and at every hour).
+The colours run from dark purple to yellow (viridis), which stay in order for colour-blind eyes
+and in grey scale. Offline and unknown seats keep their shapes. Only each seat's volume is shown,
+never what it is. `/plan?traffic=1` opens with it on, also on big screens.
+
 ## The inspector
 
 Clicking a seat opens one panel with everything about it: state, block, switch and port, traffic
 now, check-in, match zone, open incidents and needs-attention items, and links to the seat in the
 editor and to the incidents. On a phone it opens from the bottom.
+
+**Link** shows the seat's port over the last 6 hours: a full green bar while it was up, a thin red
+one while it was down, and nothing before Floorbit's first read. Below it: since when the seat is
+online or offline and how often the link changed. It is built from the changes Floorbit already
+keeps for the [replay](replay.md), so it needs nothing new. When a player says "my internet keeps
+dropping", this answers whether the port did.
 
 Techs can act from the panel too, with the same rules as the editor:
 
@@ -63,3 +93,7 @@ the seat colours while it is on.
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
 the totals. It reloads every 30 seconds and with each port read.
+
+With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
+hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A
+hall with seats with problems stays up twice as long. Add `&traffic=1` to rotate the traffic overlay.

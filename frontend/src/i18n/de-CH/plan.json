@@ -19,7 +19,7 @@
   "noMonitoring": "Keine aktuelle Port-Abfrage, darum zeigen alle Plätze «unbekannt». Prüfe das Monitoring-Plugin unter Einstellungen > Plugins.",
   "empty": "Diese Halle hat noch keine Platzblöcke.",
   "emptyLink": "Platzblöcke im Hallenplan-Editor anlegen",
-  "help": "Ziehen zum Verschieben, scrollen oder mit zwei Fingern zoomen, + und - und die Pfeiltasten gehen auch. Nah sieht man die Platznummern, weit weg die Summen pro Block.",
+  "help": "Ziehen zum Verschieben, scrollen oder mit zwei Fingern zoomen. Mit der Tastatur: die Pfeiltasten gehen von Platz zu Platz, Enter öffnet einen, Shift und die Pfeiltasten verschieben den Plan, + und - zoomen. Nah sieht man die Platznummern, weit weg die Summen pro Block.",
   "mapLabel": "Platzplan",
   "mapRole": "Karte",
   "zoomIn": "Hineinzoomen",
@@ -48,7 +48,7 @@
   "block": "Block",
   "port": "Switch-Port",
   "noPort": "Noch nicht bekannt",
-  "traffic": "Verkehr jetzt",
+  "traffic": "Verkehr",
   "checkin": "Eingecheckt",
   "yes": "Ja",
   "no": "Nein",
@@ -68,5 +68,24 @@
   "flag": "Für Techniker markieren",
   "flagNote": "Was soll sich der Techniker anschauen?",
   "flagSend": "Platz markieren",
-  "flagged": "Platz {{seat}} ist für einen Techniker markiert."
+  "flagged": "Platz {{seat}} ist für einen Techniker markiert.",
+  "trafficScale": "Verkehr pro Platz",
+  "blockSummary_one": "Block {{name}}: {{online}} von {{count}} Platz online",
+  "blockSummary_other": "Block {{name}}: {{online}} von {{count}} Plätzen online",
+  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen.",
+  "history": {
+    "title": "Verbindung",
+    "onlineSince": "Online seit {{time}}",
+    "offlineSince": "Offline seit {{time}}",
+    "onlineAll_one": "Die ganze Stunde online",
+    "onlineAll_other": "Die ganzen {{count}} Stunden online",
+    "offlineAll_one": "Die ganze Stunde offline",
+    "offlineAll_other": "Die ganzen {{count}} Stunden offline",
+    "changes_zero": "Kein Wechsel in {{hours}} h",
+    "changes_one": "1 Wechsel in {{hours}} h",
+    "changes_other": "{{count}} Wechsel in {{hours}} h",
+    "ago_one": "vor 1 h",
+    "ago_other": "vor {{count}} h",
+    "now": "jetzt"
+  }
 }

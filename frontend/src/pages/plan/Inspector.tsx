@@ -6,7 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
-import { rate } from './model'
+import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
 
 const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown: 'gray' }
@@ -50,6 +50,7 @@ export function Inspector({ seat, onClose }: { seat: string; onClose: () => void
               {d.people && row(t('plan.mac'), d.mac ? <code>{d.mac}</code> : '–')}
             </Table.Tbody>
           </Table>
+          {d.history && d.switch && <LinkHistory history={d.history} />}
           {!d.people && <Text size="sm" c="dimmed">{t('plan.noPeople')}</Text>}
           {(d.incidents.length > 0 || d.attention.length > 0) && (
             <Stack gap={4}>
@@ -71,6 +72,39 @@ export function Inspector({ seat, onClose }: { seat: string; onClose: () => void
   )
 }
 
+/** The seat's link over the last hours (issue #167). Offline is a thin red bar under the line and
+ *  online a full green one, so the two differ by shape too; not known yet is left empty. */
+function LinkHistory({ history }: { history: NonNullable<SeatDetails['history']> }) {
+  const { t, i18n } = useTranslation()
+  const spans = linkSpans(history)
+  const span = Math.max(1, history.to - history.from)
+  const x = (ts: number) => ((ts - history.from) / span) * 1000
+  const time = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+  const last = spans[spans.length - 1]
+  const hours = Math.round(span / 3600)
+  const changes = history.changes.filter(([ts]) => ts > history.from).length
+  const since = last && last.on !== null && last.from > history.from
+    ? t(last.on ? 'plan.history.onlineSince' : 'plan.history.offlineSince', { time: time(last.from) })
+    : last && last.on !== null ? t(last.on ? 'plan.history.onlineAll' : 'plan.history.offlineAll', { count: hours }) : null
+  return (
+    <Stack gap={4}>
+      <Title order={3} size="h5">{t('plan.history.title')}</Title>
+      <svg className="fb-link-history" viewBox="0 0 1000 16" preserveAspectRatio="none" role="img"
+        aria-label={[since, t('plan.history.changes', { count: changes, hours })].filter(Boolean).join('. ')}>
+        <line x1={0} x2={1000} y1={15.5} y2={15.5} className="axis" />
+        {spans.filter((s) => s.on !== null).map((s, i) => (
+          <rect key={i} className={s.on ? 'on' : 'off'} x={x(s.from)} width={Math.max(4, x(s.to) - x(s.from))} y={s.on ? 0 : 11} height={s.on ? 16 : 5} />
+        ))}
+      </svg>
+      <Group justify="space-between" gap="xs">
+        <Text size="xs" c="dimmed">{t('plan.history.ago', { count: hours })}</Text>
+        <Text size="xs" c="dimmed">{t('plan.history.now')}</Text>
+      </Group>
+      <Text size="sm">{[since, t('plan.history.changes', { count: changes, hours })].filter(Boolean).join(' · ')}</Text>
+    </Stack>
+  )
+}
+
 const SAMPLES: { key: string; seat: PlanSeat }[] = [
   { key: 'online', seat: { state: 'online' } },
   { key: 'offline', seat: { state: 'offline' } },
@@ -81,10 +115,15 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
 ]
 
 /** The same shapes as on the plan, so the legend can't drift from it. */
-export function Legend({ checkin }: { checkin: boolean }) {
+export function Legend({ checkin, traffic = false }: { checkin: boolean; traffic?: boolean }) {
   const { t } = useTranslation()
   return (
     <ul className="fb-plan-legend" aria-label={t('plan.legend')}>
+      {traffic && (
+        <li className="heat">
+          {t('plan.trafficScale')} <span>{rate(HEAT_MIN)}</span><i style={{ background: HEAT_GRADIENT }} aria-hidden="true" /><span>{rate(HEAT_MAX)}</span>
+        </li>
+      )}
       {SAMPLES.filter((x) => checkin || x.key !== 'checkedIn').map((x) => (
         <li key={x.key}>
           <svg viewBox="-4 -4 40 40" width={22} height={22} aria-hidden="true" className="fb-plan"><SeatGlyph seat={x.seat} size={32} detail /></svg>
