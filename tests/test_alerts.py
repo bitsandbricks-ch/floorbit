@@ -114,6 +114,7 @@ def test_problems_gather_everything(app_module, client, floor, monkeypatch):
     assert {"switch", "security"} <= kinds
     switch = next(p for p in body["problems"] if p["kind"] == "switch")
     assert switch["muted"]["by"] == "tester" and body["counts"]["muted"] == 1
+    assert switch["link"] == "/plan?switch=sw-a-01"   # opens its hall on the floor plan (issue #212)
     assert body["mutes"][0]["name"] == "sw-a-01"
     # Without seats.view, security problems say where, not who.
     app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")

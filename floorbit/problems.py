@@ -15,6 +15,7 @@ come as a list of their own under ``attention``, newest first.
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
 """
 import time
+from urllib.parse import quote
 
 from flask import current_app
 
@@ -36,6 +37,11 @@ def _monitoring():
     return []
 
 
+def _on_plan(seat=None, switch=None):
+    """The floor plan opens the hall the seat or switch is in and selects it (issue #212)."""
+    return f'/plan?seat={quote(seat)}' if seat else f'/plan?switch={quote(switch)}'
+
+
 def _switches(muted):
     monitor = (current_app.extensions.get('lal_integrations') or {}).get('monitor')
     out = []
@@ -44,7 +50,8 @@ def _switches(muted):
             continue
         mute = muted.get(s['id'])
         out.append({'id': f"switch:{s['id']}", 'kind': 'switch', 'level': 'down', 'title': f"{s['name']} is offline",
-                    'where': s['name'], 'since': s.get('since'), 'link': '/', 'switch_id': s['id'],
+                    'where': s['name'], 'since': s.get('since'), 'link': _on_plan(switch=s['name']),
+                    'switch_id': s['id'],
                     'muted': {'until': mute['until'], 'by': mute.get('by'), 'reason': mute.get('reason')}
                     if mute else None})
     return out
@@ -114,14 +121,12 @@ def _forecast():
 
 
 def _attention():
-    from urllib.parse import quote
-
     from .tournament import match_seats
     watch = current_app.extensions.get('floorbit_attention')
     match = match_seats()
     out = []
     for a in (watch.snapshot()['items'] if watch else []):
-        link = f"/?seat={quote(a['seat'])}" if a.get('seat') else f"/?switch={quote(a['switch_id'])}"
+        link = _on_plan(seat=a.get('seat'), switch=a.get('switch') or a['switch_id'])
         out.append({'id': f"attention:{a['id']}", 'kind': a['kind'], 'level': 'warn', 'title': a['title'],
                     'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id'],
                     'match': match.get(a.get('seat') or '')})
@@ -130,8 +135,6 @@ def _attention():
 
 def _logs(may_see_people):
     """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
-    from urllib.parse import quote
-
     from . import features, inventory
     from .store import load_data
     from .tournament import match_seats
@@ -148,10 +151,8 @@ def _logs(may_see_people):
         if may_see_people:
             query = f"seat={quote(a['seat'])}" if a['seat'] else f"device={quote(a['device'])}"
             link = f'/logs?{query}'
-        elif a['seat']:
-            link = f"/?seat={quote(a['seat'])}"
         else:
-            link = f'/?switch={quote(switch_id)}' if switch_id else ''
+            link = _on_plan(seat=a['seat'], switch=a['device']) if a['seat'] or switch_id else ''
         out.append({'id': a['id'], 'kind': 'log', 'level': 'warn', 'title': title, 'where': where,
                     'since': a['since'], 'link': link, 'switch_id': switch_id, 'match': match.get(a['seat'] or '')})
     return out
