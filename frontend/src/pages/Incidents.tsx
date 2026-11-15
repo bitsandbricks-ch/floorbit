@@ -166,7 +166,7 @@ export default function Incidents() {
           {crew.data.crew.length === 0 && <Text size="sm" c="dimmed">{t('incidents.crewNone')}</Text>}
           {crew.data.crew.map((c) => (
             <Badge key={c.username} variant="light" color={c.jobs ? 'warn' : 'up'} tt="none">
-              {c.display_name}{c.at ? ` · ${c.at}` : ''} · {c.jobs ? t('incidents.crewJobs', { count: c.jobs }) : t('incidents.crewFree')}
+              {c.display_name}{c.at ? ` · ${c.at}` : ''} · {c.jobs ? t('incidents.crewJobs', { count: c.jobs }) : t('incidents.crewFree')}{c.done ? ` · ${t('incidents.crewDone', { count: c.done })}` : ''}
             </Badge>
           ))}
         </Group>

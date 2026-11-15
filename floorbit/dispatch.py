@@ -20,6 +20,7 @@ from .store import load_data, save_data
 KEY = 'dispatch'
 OTHER_HALL = 100_000     # a tech in another hall is only sent when nobody is in this one
 UNKNOWN = 1_000_000      # nor one who never said where they are
+DONE_WINDOW = 12 * 3600  # about one shift
 
 _lock = threading.Lock()
 
@@ -123,6 +124,13 @@ def open_jobs(username, items):
     return [i for i in items if i.get('assignee') == username and i['status'] != 'fixed']
 
 
+def fixed_lately(username, items, now=None):
+    """How many incidents assigned to the user were fixed in the last DONE_WINDOW seconds."""
+    since = (now if now is not None else time.time()) - DONE_WINDOW
+    return sum(1 for i in items if i.get('status') == 'fixed' and i.get('assignee') == username
+               and (i.get('fixed_at') or 0) >= since)
+
+
 def crew(data=None):
     """Everyone on duty: where they are and how many jobs they have."""
     data = data if data is not None else load_data()
@@ -133,7 +141,8 @@ def crew(data=None):
         if not entry.get('on_duty') or name not in users:
             continue
         out.append({'username': name, 'display_name': users[name].get('display_name') or name,
-                    'at': entry.get('at'), 'since': entry.get('since'), 'jobs': len(open_jobs(name, items))})
+                    'at': entry.get('at'), 'since': entry.get('since'), 'jobs': len(open_jobs(name, items)),
+                    'done': fixed_lately(name, items)})
     return out
 
 

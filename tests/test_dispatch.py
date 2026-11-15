@@ -75,6 +75,8 @@ def test_tech_takes_and_finishes_a_job_from_the_phone(client, floor):
     assert ben.get("/api/jobs").get_json()["me"]["at"] == "B-6"
     notes = next(i for i in client.get("/api/incidents").get_json()["incidents"] if i["id"] == job)["notes"]
     assert notes[-1]["text"] == "Cable was loose" and notes[-1]["by"] == "ben"
+    crew = {c["username"]: c for c in client.get("/api/dispatch/crew").get_json()["crew"]}
+    assert crew["ben"]["done"] == 1 and crew["ben"]["jobs"] == 0   # issue #344
     actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
     assert {"Sent incident to the nearest tech", "Took job", "Finished job"} <= set(actions)
 

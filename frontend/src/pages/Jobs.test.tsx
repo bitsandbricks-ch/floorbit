@@ -70,12 +70,12 @@ describe('Board dispatch', () => {
     const api = fakeFetch({
       'GET /api/auth/me': { enabled: true, user: { username: 'lea', display_name: 'Lea', role: 'lead', permissions: ['incidents.work', 'incidents.assign'] } },
       'GET /api/incidents': board, 'GET /api/incidents/people': {}, 'GET /api/switches': [],
-      'GET /api/dispatch/crew': { crew: [{ username: 'ben', display_name: 'Ben', at: 'A-1', since: now, jobs: 0 }] },
+      'GET /api/dispatch/crew': { crew: [{ username: 'ben', display_name: 'Ben', at: 'A-1', since: now, jobs: 0, done: 2 }] },
       'POST /api/incidents/i1/dispatch': { id: 'i1', assignee: 'ben', display_name: 'Ben' },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Incidents />)
-    expect(await screen.findByText('Ben · A-1 · free')).toBeInTheDocument()
+    expect(await screen.findByText('Ben · A-1 · free · 2 fixed')).toBeInTheDocument()
     fireEvent.click(await screen.findByRole('button', { name: 'Send to nearest tech' }))
     expect(await screen.findByText('Sent to Ben.')).toBeInTheDocument()
   })

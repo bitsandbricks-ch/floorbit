@@ -678,7 +678,7 @@ export interface Job {
   runbook?: { id: string; title: string; body: string } | null
 }
 export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number }
-export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number }
+export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number; done?: number }
 
 /** Tournament awareness (issue #31). */
 export interface MatchZone { id: string; name: string; blocks: string[]; seats: string[]; note: string }

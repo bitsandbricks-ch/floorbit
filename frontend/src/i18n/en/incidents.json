@@ -99,5 +99,6 @@
   "fixedAfterAlone_one": "Fixed after {{count}} min",
   "fixedAfterAlone_other": "Fixed after {{count}} min",
   "fixedAfterAloneLong": "Fixed after {{h}} h {{m}} min",
-  "fixedAfterAloneNow": "Fixed within a minute"
+  "fixedAfterAloneNow": "Fixed within a minute",
+  "crewDone": "{{count}} fixed"
 }

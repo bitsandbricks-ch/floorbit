@@ -99,5 +99,6 @@
   "fixedAfterAlone_one": "Behoben nach {{count}} Min.",
   "fixedAfterAlone_other": "Behoben nach {{count}} Min.",
   "fixedAfterAloneLong": "Behoben nach {{h}} Std. {{m}} Min.",
-  "fixedAfterAloneNow": "Innert einer Minute behoben"
+  "fixedAfterAloneNow": "Innert einer Minute behoben",
+  "crewDone": "{{count}} behoben"
 }
