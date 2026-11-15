@@ -60,6 +60,11 @@ button click. There is no Discord role mapping.
 | Command | What it answers |
 | --- | --- |
 | `/status` | how the network is doing: the state and since when, the affected areas, areas back up recently and the latest crew update. Crew with `incidents.work` also see the switch names. Anyone else sees only what the public [status page](status-page.md) shows, and only while that page is on. |
+| `/seat <seat>` | one seat: online or not and how fast, its switch port, open incidents, needs-attention items and how often it was fixed before, with a link to it on the floor plan. Needs `incidents.work`. |
+| `/switch <name>` | one switch: up or down and since when, its model, how many of its seats are online and which are not (with their ports). Needs `incidents.work`. |
+
+`/seat` and `/switch` suggest seat numbers and switch names as you type, to crew only. They never
+show nicks, IPs or MACs: those stay in Floorbit.
 
 ## Privacy
 
