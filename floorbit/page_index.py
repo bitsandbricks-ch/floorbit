@@ -91,8 +91,8 @@ def _squash(text):
 def places(query, data=None, limit=5):
     """Seats and switches for "Go to" (issue #252): "b8" finds seat B-8, "core" the switch core-01.
 
-    Seat numbers and switch names only, which every crew role sees on the floor plan anyway; nicks,
-    IPs and MACs stay in the floor plan's own search, which checks ``seats.view``."""
+    Seat numbers and switch names only, which every crew role sees on the floor plan anyway; the
+    route adds players by nick, IP or MAC only for ``seats.view`` (issue #292)."""
     q = _squash(query)
     if len(q) < 2:
         return []

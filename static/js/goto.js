@@ -122,7 +122,7 @@
       active = 0;
       paint();
       clearTimeout(timer);
-      // Seats and switches from the server (issue #252), once typing pauses.
+      // Seats, switches and players (#292) from the server (issue #252), once typing pauses.
       if (q.length >= 2) timer = setTimeout(() => findPlaces(input.value), 150);
     }
     async function findPlaces(text) {
@@ -132,7 +132,7 @@
         body = r.ok ? await r.json() : { places: [] };
       } catch (_) { return; }
       if (input.value !== text || !(body.places || []).length) return;
-      const kinds = { seat: 'Seat', switch: 'Switch' };
+      const kinds = { seat: 'Seat', switch: 'Switch', player: 'Player' };
       shown = [...shown, ...body.places.map((p) => ({ href: p.href, label: `${kinds[p.kind] || ''} ${p.name}`.trim() }))];
       paint();
     }

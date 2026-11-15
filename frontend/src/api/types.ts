@@ -1314,7 +1314,8 @@ export interface PageLink {
 
 /** A seat or switch for "Go to", from GET /api/pages/find (issue #252). */
 export interface Place {
-  kind: 'seat' | 'switch'
+  /** player: a nick, IP or MAC and its seat, only for seats.view (issue #292). */
+  kind: 'seat' | 'switch' | 'player'
   name: string
   href: string
 }

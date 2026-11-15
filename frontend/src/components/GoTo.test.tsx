@@ -88,6 +88,7 @@ describe('Go to', () => {
       'GET /api/pages/find?q=b8': { places: [
         { kind: 'seat', name: 'B-8', href: '/plan?seat=B-8' },
         { kind: 'switch', name: 'sw-b8', href: '/plan?switch=sw-b8' },
+        { kind: 'player', name: 'b8ster · C-3', href: '/plan?seat=C-3' },
       ] },
     })
     vi.stubGlobal('fetch', fake.fn)
@@ -100,6 +101,8 @@ describe('Go to', () => {
     fireEvent.change(box, { target: { value: 'b8' } })
     const seat = await screen.findByRole('option', { name: /Seat B-8/ })
     expect(screen.getByRole('option', { name: /Switch sw-b8/ })).toBeInTheDocument()
+    // A player by nick, IP or MAC, when the account may see people (issue #292).
+    expect(screen.getByRole('option', { name: /Player b8ster · C-3/ })).toBeInTheDocument()
     // One character never asks the server.
     expect(fake.calls.some((c) => c.path === '/api/pages/find?q=b')).toBe(false)
     expect(seat).toHaveAttribute('aria-selected', 'true')

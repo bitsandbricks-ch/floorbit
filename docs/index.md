@@ -26,8 +26,9 @@ with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose 
 pages your role can't open and pages this server has nothing for yet (Wi-Fi without a Wi-Fi source,
 Electrics without power boards), the same way the floor plan's top bar does.
 Type a seat number or a switch name too: `b8` offers seat B-8 and `core` the switches named core-something,
-and each opens on the floor plan. Seat numbers and switch names only: to find a player by nick, IP or MAC,
-use the floor plan's search.
+and each opens on the floor plan. If your role may see people (`seats.view`), a player's nick, IP or MAC
+works too: `198.51.100.7` offers "Player 198.51.100.7 · A-2" and opens that seat. Other roles only get
+seat numbers and switch names.
 It also does what the buttons around it do, once you type them: `dark` switches the theme, `sign` signs you
 out, `notice` lets a lead put up a [crew notice](crew-notice.md) and `shortcuts` lists the floor plan's keys. Before you type, the five pages you opened last on this browser come first.
 

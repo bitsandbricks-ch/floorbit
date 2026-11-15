@@ -7,6 +7,7 @@
   "recent": "recent",
   "seat": "Seat",
   "switch": "Switch",
+  "player": "Player",
   "action": "Action",
   "actions": {
     "notice": "Put up a crew notice",

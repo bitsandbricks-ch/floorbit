@@ -1,7 +1,9 @@
 """The HTML pages of the editor and the kiosk view, and the list of pages for "Go to"."""
+from urllib.parse import quote
+
 from flask import Blueprint, current_app, jsonify, render_template, request
 
-from .. import page_index
+from .. import page_index, seat_view
 
 bp = Blueprint('pages', __name__)
 
@@ -29,4 +31,20 @@ def page_list():
 @bp.route('/api/pages/find')
 def find_place():
     """Seats and switches for "Go to" as you type (issue #252): ``?q=b8`` finds seat B-8."""
-    return jsonify({'places': page_index.places(request.args.get('q', ''))})
+    q = request.args.get('q', '')[:100]
+    found = page_index.places(q)
+    # Players by nick, IP or MAC, like the floor plan's own search, for those who may see people
+    # (issue #292). Seat numbers alone are already in the list above.
+    if len(q.strip()) >= 2 and _can('seats.view'):
+        found += [{'kind': 'player', 'name': f"{r['nick'] if r['matched'] == 'nick' else q.strip()} · {r['seat']}",
+                   'href': f"/plan?seat={quote(r['seat'])}"}
+                  for r in seat_view.find_player(q)['results'] if r['matched'] != 'seat'][:5]
+    return jsonify({'places': found})
+
+
+def _can(permission):
+    from auth import current_user, roles  # late: auth imports floorbit while it loads
+    if not current_app.extensions['auth'].enabled:
+        return True
+    user = current_user()
+    return bool(user and roles.can(user, permission))
