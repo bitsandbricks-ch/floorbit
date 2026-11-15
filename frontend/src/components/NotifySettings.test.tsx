@@ -54,6 +54,32 @@ describe('notify.js', () => {
   })
 })
 
+describe('quiet hours', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('holds back everything but my jobs during quiet hours, past midnight too', async () => {
+    const shown: { title: string; body: string; tag: string }[] = []
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 14, 23, 30))
+    loadNotify(shown)
+    await window.floorNotify!.set({ on: true, quiet: true, quietFrom: '22:00', quietTo: '07:00' })
+    await waitFor(() => expect(FakeSource.last?.handlers['switch.status']).toBeTruthy())
+    expect(window.floorNotify!.quietNow!()).toBe(true)
+    const src = FakeSource.last!
+    src.emit('switch.status', { id: 's1', name: 'sw-d-01', status: 'offline' })
+    src.emit('incident.changed', { id: 'i1', action: 'created' })
+    src.emit('incident.dispatched', { id: 'i1', assignee: 'tia' })
+    await waitFor(() => expect(shown.map((n) => n.tag)).toEqual(['job-i1']))
+
+    await window.floorNotify!.set({ jobsInQuiet: false })
+    FakeSource.last!.emit('incident.dispatched', { id: 'i2', assignee: 'tia' })
+    vi.setSystemTime(new Date(2026, 10, 15, 7, 0))
+    expect(window.floorNotify!.quietNow!()).toBe(false)
+    FakeSource.last!.emit('switch.status', { id: 's2', name: 'sw-d-02', status: 'offline' })
+    await waitFor(() => expect(shown.map((n) => n.tag)).toEqual(['job-i1', 'switch-s2']))
+  })
+})
+
 describe('NotifySettings', () => {
   it('switches notifications on through notify.js', async () => {
     const set = vi.fn(async (c: object) => ({ on: true, incidents: true, jobs: true, switches: true, ...c }))
@@ -65,5 +91,17 @@ describe('NotifySettings', () => {
     fireEvent.click(await screen.findByRole('switch', { name: 'Notifications on this device' }))
     await waitFor(() => expect(set).toHaveBeenCalledWith({ on: true }))
     expect(await screen.findByRole('checkbox', { name: 'A switch going down' })).not.toBeDisabled()
+  })
+
+  it('sets quiet hours', async () => {
+    let prefs = { on: true, incidents: true, jobs: true, switches: true, quiet: false }
+    const set = vi.fn(async (c: object) => (prefs = { ...prefs, ...c }))
+    window.floorNotify = { supported: () => true, permission: () => 'granted', set, settings: () => prefs, quietNow: () => true }
+    renderWithApp(<NotifySettings opened onClose={() => {}} />)
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Quiet hours' }))
+    await waitFor(() => expect(set).toHaveBeenCalledWith({ quiet: true }))
+    fireEvent.change(await screen.findByLabelText('From'), { target: { value: '23:00' } })
+    await waitFor(() => expect(set).toHaveBeenCalledWith({ quietFrom: '23:00' }))
+    expect(screen.getByText(/only jobs sent to you come through/)).toBeInTheDocument()
   })
 })
