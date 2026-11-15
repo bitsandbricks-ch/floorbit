@@ -17,7 +17,8 @@ quantities, because those live in NetBox. It only tracks loans.
 - **Filters:** search by name, model, serial or who has it, by kind, and by what is out or here.
 - **Who has what:** a row of buttons names everyone who holds gear and how many pieces.
   Click one to see only their pieces; click it again to see everything. **All back** then checks
-  in all their pieces at once, with one note (handy at teardown).
+  in all their pieces at once, with one note (handy at teardown). `/gear?holder=<name>` opens the
+  page on one holder; the teardown checklist links there.
 
 Loans and their history (the newest 2000 entries) are kept in `data.json` under `loans`. The
 teardown checklist (#37) reads what is still out. Using the page needs **Work incidents** (techs,

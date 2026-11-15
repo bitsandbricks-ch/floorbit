@@ -91,8 +91,9 @@ export default function Gear() {
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.gear })
   useLiveEvent('gear.changed', refresh)
   useLiveEvent('data.changed', refresh)
-  const [search, setSearch] = useState('')
-  const [show, setShow] = useState<Show>('all')
+  // ?holder= comes from the teardown list (issue #322): open straight on that person's pieces.
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('holder') ?? '')
+  const [show, setShow] = useState<Show>(() => new URLSearchParams(window.location.search).get('holder') ? 'out' : 'all')
   const [role, setRole] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(() => new URLSearchParams(window.location.search).get('item'))
   const [allBack, setAllBack] = useState(false)

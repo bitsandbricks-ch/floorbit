@@ -73,4 +73,14 @@ describe('Gear', () => {
     ]))
     expect(api.calls.some((c) => c.path === '/api/gear/d2/in')).toBe(false)
   })
+
+  it('opens on one holder from ?holder=', async () => {
+    window.history.pushState({}, '', '/gear?holder=Hall%202%20stage')
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/gear': data }).fn)
+    renderWithApp(<Gear />)
+    expect(await screen.findByText('ap-hall2-01')).toBeInTheDocument()
+    expect(screen.queryByText('sw-spare-01')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hall 2 stage · 1 piece' })).toHaveAttribute('aria-pressed', 'true')
+    window.history.pushState({}, '', '/')
+  })
 })

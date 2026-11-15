@@ -64,7 +64,9 @@ export default function Teardown() {
               {d.parts.gear.out.length === 0 ? <Text size="sm" c="dimmed">{t('teardown.gearBack')}</Text> : (
                 <Stack gap={4}>
                   {d.parts.gear.out.map((g) => (
-                    <Text key={g.id} size="sm"><b>{g.name}</b> · {t('teardown.with', { to: g.to, when: when(g.at) })}</Text>
+                    <Text key={g.id} size="sm"><b>{g.name}</b> · {gearOn
+                      ? <Anchor href={`/gear?holder=${encodeURIComponent(g.to)}`} size="sm">{t('teardown.with', { to: g.to, when: when(g.at) })}</Anchor>
+                      : t('teardown.with', { to: g.to, when: when(g.at) })}</Text>
                   ))}
                   {gearOn && (
                     <Anchor href="/gear" size="sm" mt={4}>{t('teardown.openGear')}</Anchor>

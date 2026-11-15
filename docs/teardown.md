@@ -5,7 +5,7 @@ what is left, with a progress bar. Issue #37.
 
 | Part | Done when |
 |---|---|
-| Gear back | nothing is checked out on the [gear page](gear.md). It lists who still has what. |
+| Gear back | nothing is checked out on the [gear page](gear.md). It lists who still has what; each name opens the gear page on that person's pieces. |
 | Switch configs archived | every switch placed on the floor plan is ticked. Tick a switch once its config is saved (downloaded or pushed to NetBox). Until Floorbit can read configs from the switches itself (#96), a person ticks them. |
 | Event data exported | the export was downloaded at least once |
 | Our own steps | every step the team added is ticked ("return the rented switches", "power down hall 2") |
