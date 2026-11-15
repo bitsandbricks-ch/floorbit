@@ -84,5 +84,8 @@
   "handover": "Shift handover",
   "gear": "Gear",
   "runbook": "Runbook: {{title}}",
-  "runbooks": "Runbooks"
+  "runbooks": "Runbooks",
+  "takeNext": "Take the next one",
+  "tookNext": "You have it: {{title}}",
+  "nothingNext": "Nothing open that you can work"
 }

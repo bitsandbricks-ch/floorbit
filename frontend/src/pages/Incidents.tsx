@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconArrowsExchange, IconBook, IconBox, IconFilter, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconArrowsExchange, IconBook, IconBox, IconFilter, IconHandGrab, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,7 +16,7 @@ import { useNowSeconds } from '@/components/useNowSeconds'
 import { matchesFilter } from './incidents/filter'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
-import { openOrder } from './incidents/waiting'
+import { nextToTake, openOrder } from './incidents/waiting'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
 const FIXED_SHOWN = 20
@@ -86,12 +86,16 @@ export default function Incidents() {
     onError: (e) => setFormError(e.message),
   })
   const change = useMutation({
-    mutationFn: (v: { id: string; change: IncidentChange }) => patch<Incident>(`/api/incidents/${v.id}`, v.change),
-    onSuccess: refresh,
+    mutationFn: (v: { id: string; change: IncidentChange; next?: boolean }) => patch<Incident>(`/api/incidents/${v.id}`, v.change),
+    onSuccess: (r, v) => {
+      if (v.next) setMessage({ ok: true, text: t('incidents.tookNext', { title: r.title }) })
+      refresh()
+    },
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
   const teamNames = Object.fromEntries((board.data?.teams ?? []).map((x) => [x.id, x.name]))
+  const next = nextToTake(board.data?.incidents ?? [])
   const items = (board.data?.incidents ?? []).filter((i) => (!mineOnly || i.can_work) && matchesFilter(i, filter, teamNames))
   return (
     <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
@@ -138,6 +142,13 @@ export default function Incidents() {
             leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
             onChange={(e) => setFilter(e.currentTarget.value)} />
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
+          {me.data?.user && (
+            <Button variant="default" leftSection={<IconHandGrab size={16} />} disabled={!next} loading={change.isPending && change.variables?.next}
+              title={next ? next.title : t('incidents.nothingNext')}
+              onClick={() => next && change.mutate({ id: next.id, change: { status: 'assigned', assignee: me.data?.user?.username ?? null }, next: true })}>
+              {t('incidents.takeNext')}
+            </Button>
+          )}
         </Group>
         <Text size="sm" role="status" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
           {message?.text}
