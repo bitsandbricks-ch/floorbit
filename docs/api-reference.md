@@ -181,6 +181,7 @@ Source: [`floorbit/blueprints/dispatch.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| PUT | `/api/dispatch/auto` | `incidents.assign` | `dispatch` |
 | GET | `/api/dispatch/crew` | `incidents.assign` | `dispatch` |
 | POST | `/api/incidents/<incident_id>/dispatch` | `floorplan.view` | `incidents` |
 | GET | `/api/jobs` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dispatch` |
