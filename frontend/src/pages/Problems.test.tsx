@@ -72,6 +72,14 @@ describe('Problems', () => {
       .toEqual({ switch_id: 's1', minutes: 60, reason: 'Swapping the PSU' }))
   })
 
+  it('makes a running mute last half an hour longer', async () => {
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list(), 'PATCH /api/alerts/mutes/s2': { body: {} } })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Mute sw-d-01 30 minutes longer' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ minutes: 30 }))
+  })
+
   it('mutes a service on the health wall, and lists it with the muted switches', async () => {
     const service = { id: 'health:demo:game-1', kind: 'health' as const, level: 'down' as const, title: 'Game server 1: down', where: 'Not answering',
       since: now, link: '/health', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }

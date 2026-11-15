@@ -31,6 +31,8 @@
   "open": "Öffnen",
   "mute": "Stumm",
   "unmute": "Wieder laut",
+  "extend": "+30 Min.",
+  "extendLabel": "{{name}} 30 Minuten länger stumm schalten",
   "mutedUntil": "Stumm bis {{time}}, von {{who}}",
   "quiet": "Ruhezeit: Discord-Nachrichten gehen still raus, ohne Erwähnung.",
   "mutes": "Stumme Switches und Dienste",

@@ -123,3 +123,22 @@ def test_problems_gather_everything(app_module, client, floor, monkeypatch):
     titles = [p["title"] for p in viewer.get("/api/problems").get_json()["problems"] if p["kind"] == "security"]
     assert titles and all("192.0.2" not in t and ":" not in t for t in titles)
     sec.reset()
+
+
+def test_a_running_mute_can_last_longer(app_module, client, floor):
+    """+30 min on the Problems page keeps who muted it and why (issue #264)."""
+    client.post("/api/alerts/mutes", json={"switch_id": floor["a"], "minutes": 30, "reason": "PSU swap"})
+    until = alerting.mutes()[floor["a"]]["until"]
+    resp = client.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 30})
+    assert resp.status_code == 200
+    entry = alerting.mutes()[floor["a"]]
+    assert entry["until"] == pytest.approx(until + 1800) and entry["reason"] == "PSU swap" and entry["by"] == "tester"
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Extended mute" and entries[0]["target"] == "sw-a-01"
+
+    assert client.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 0}).status_code == 400
+    assert client.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 7 * 24 * 60}).status_code == 400
+    assert client.patch(f"/api/alerts/mutes/{floor['b']}", json={"minutes": 30}).status_code == 404
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi1", "viewer")
+    assert viewer.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 30}).status_code == 403

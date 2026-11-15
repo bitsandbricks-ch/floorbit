@@ -3,7 +3,7 @@ import { IconBellOff } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, post } from '@/api/client'
+import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useProblems } from '@/api/queries'
@@ -126,8 +126,13 @@ export default function Problems() {
     mutationFn: (id: string) => del(`/api/alerts/mutes/${encodeURIComponent(id)}`),
     onSuccess: refresh,
   })
+  // Still at it when the mute nears its end: half an hour more, same reason (issue #264).
+  const extend = useMutation({
+    mutationFn: (id: string) => patch(`/api/alerts/mutes/${encodeURIComponent(id)}`, { minutes: 30 }),
+    onSuccess: refresh,
+  })
   const data = list.data
-  const error = list.error ?? unmute.error
+  const error = list.error ?? unmute.error ?? extend.error
 
   return (
     // Muted problems stay out of the tab count: someone is already on them (issue #214).
@@ -173,9 +178,15 @@ export default function Problems() {
                   <Group key={m.switch_id} gap="sm">
                     <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {data.can_mute && (
-                      <Button size="compact-xs" variant="subtle" onClick={() => unmute.mutate(m.switch_id)} disabled={unmute.isPending}>
-                        {t('problems.unmute')}
-                      </Button>
+                      <Group gap={4}>
+                        <Button size="compact-xs" variant="subtle" onClick={() => extend.mutate(m.switch_id)} disabled={extend.isPending}
+                          aria-label={t('problems.extendLabel', { name: m.name })}>
+                          {t('problems.extend')}
+                        </Button>
+                        <Button size="compact-xs" variant="subtle" onClick={() => unmute.mutate(m.switch_id)} disabled={unmute.isPending}>
+                          {t('problems.unmute')}
+                        </Button>
+                      </Group>
                     )}
                   </Group>
                 ))}

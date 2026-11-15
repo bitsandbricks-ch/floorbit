@@ -69,6 +69,30 @@ def mute(switch_id, name, minutes, user, reason=''):
     return entry
 
 
+def extend(switch_id, minutes):
+    """Push a running mute's end out by ``minutes``, keeping who set it and why (issue #264).
+    Returns the entry, or None when it isn't muted (or already ran out)."""
+    try:
+        minutes = int(minutes)
+    except (TypeError, ValueError):
+        raise MuteError('Say for how many minutes.') from None
+    if not 1 <= minutes <= MAX_MINUTES:
+        raise MuteError('A mute lasts between 1 minute and 7 days.')
+    now = time.time()
+    with _lock:
+        store = _store()
+        data = store.load_data()
+        entry = (data.get(KEY) or {}).get(switch_id)
+        if not isinstance(entry, dict) or float(entry.get('until') or 0) <= now:
+            return None
+        until = float(entry['until']) + minutes * 60
+        if until > now + MAX_MINUTES * 60:
+            raise MuteError('A mute lasts at most 7 days.')
+        entry['until'] = until
+        store.save_data(data)
+    return entry
+
+
 def unmute(switch_id):
     with _lock:
         store = _store()

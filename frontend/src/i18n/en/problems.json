@@ -31,6 +31,8 @@
   "open": "Open",
   "mute": "Mute",
   "unmute": "Unmute",
+  "extend": "+30 min",
+  "extendLabel": "Mute {{name}} 30 minutes longer",
   "mutedUntil": "Muted until {{time}} by {{who}}",
   "quiet": "Quiet hours: Discord messages go out silently, without the mention.",
   "mutes": "Muted switches and services",

@@ -51,7 +51,8 @@ Code: [`floorbit/attention.py`](../floorbit/attention.py).
 A switch someone is working on, or that is off on purpose, can be muted for 30 minutes up to a day
 (**Mute** on its problem). While muted, it sends no "offline" or "back online" message; it stays on
 the Problems page, marked muted, and under **Muted switches and services** until the mute ends or someone presses
-**Unmute**.
+**Unmute**. Still at it when the time is nearly up? **+30 min** next to it makes the mute last half an
+hour longer and keeps who set it and why (at most 7 days from now).
 
 A service on the [health wall](health.md) that is red or amber has the same **Mute**: while muted, Discord
 gets no "is down" or "is back" message for it, and it stays out of the counts in the browser tab.

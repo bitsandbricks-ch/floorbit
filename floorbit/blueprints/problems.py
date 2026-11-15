@@ -4,6 +4,7 @@
 - ``GET /api/problems``: the list (floorbit/problems.py), with the running mutes.
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
   ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256).
+- ``PATCH /api/alerts/mutes/<id>``: ``{"minutes"}`` makes a running mute last longer (issue #264).
 - ``DELETE /api/alerts/mutes/<id>``: ends a mute (a switch id, or ``health:<service id>``).
 Mutes need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
 """
@@ -62,6 +63,19 @@ def add_mute():
     audit.record('alerts', label, user=g.get('audit_user'), target=name)
     events.publish('alerts.changed', {})
     return jsonify({'switch_id': key, **mute}), 201
+
+
+@bp.route('/api/alerts/mutes/<path:switch_id>', methods=['PATCH'])
+def extend_mute(switch_id):
+    try:
+        found = alerting.extend(switch_id, (request.get_json(silent=True) or {}).get('minutes'))
+    except alerting.MuteError as exc:
+        return jsonify({'error': str(exc)}), 400
+    if not found:
+        return jsonify({'error': 'That switch is not muted.'}), 404
+    audit.record('alerts', 'Extended mute', user=g.get('audit_user'), target=found.get('name'))
+    events.publish('alerts.changed', {})
+    return jsonify({'switch_id': switch_id, **found})
 
 
 @bp.route('/api/alerts/mutes/<path:switch_id>', methods=['DELETE'])
