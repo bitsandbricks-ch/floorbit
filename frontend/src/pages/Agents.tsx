@@ -115,6 +115,8 @@ export default function Agents() {
                             {a.connected ? t('agents.connected') : t('agents.notConnected')}
                           </Badge>
                           {a.outdated && <Badge variant="light" color="warn" tt="none">{t('agents.outdated')}</Badge>}
+                          {a.relays?.syslog && <Badge variant="light" color="gray" tt="none">{t('agents.relaySyslog')}</Badge>}
+                          {a.relays?.flows && <Badge variant="light" color="gray" tt="none">{t('agents.relayFlows')}</Badge>}
                         </Group>
                         <Text size="xs" c="dimmed">
                           {a.last_seen ? t('agents.seen', { when: ago(a.last_seen, i18n.language) }) : t('agents.neverSeen')}
