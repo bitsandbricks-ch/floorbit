@@ -35,7 +35,7 @@ def run_sync():
     # A hosted Floorbit: the agent first. A plugin it feeds (NetBox) is skipped here, since this
     # side can't reach it and would only log a failed sync every time.
     reports = _sync_from_agent() if agent_link.active() else []
-    fed = {r['plugin'] for r in reports if not r.get('error')}
+    fed = {r.get('base') or r['plugin'] for r in reports if not r.get('error')}
     for spec in _feeders():
         if spec.id in fed:
             continue
@@ -79,7 +79,7 @@ def _sync_from_agent():
         return [report]
     reports = []
     for feed in feeds:
-        base = {'name': feed['name'], 'via': 'agent'}
+        base = {'name': feed['name'], 'via': 'agent', 'base': feed.get('base', feed['plugin'])}
         try:
             if 'error' in feed:
                 raise inventory.InventoryError(feed['error'])
