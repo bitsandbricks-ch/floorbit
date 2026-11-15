@@ -161,3 +161,11 @@ def test_recently_back_areas(anon_client, floor, switched_on):
                                        "previous": "offline"}}
     assert anon_client.get("/status.json").get_json()["recovered"] == []
     assert "Back up recently" not in anon_client.get("/status").get_data(as_text=True)
+
+
+def test_crew_view_lists_recently_back_with_switches(client, floor):
+    # Issue #396: the crew page shows what the public page lists as back up, with switch names.
+    sid = floor["a"]["id"]
+    floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": time.time() - 60, "previous": "offline"}}
+    crew = client.get("/api/status-page").get_json()
+    assert crew["crew_recovered"][0]["switches"] == ["sw-a-01"] and "switches" not in crew["recovered"][0]
