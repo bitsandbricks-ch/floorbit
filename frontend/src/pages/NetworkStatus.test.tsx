@@ -53,4 +53,20 @@ describe('NetworkStatus', () => {
     expect(box).toHaveTextContent('Seat block C')
     expect(box).toHaveTextContent('switches: sw-c-02')
   })
+
+  it('offers updates to start from for areas down and back, without switch names', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false },
+      'GET /api/status-page': { ...data, recovered: [{ hall: '', block: 'C', rows: '', seats: null }], recovered_at: at - 120,
+        crew_recovered: [{ hall: '', block: 'C', rows: '', seats: null, switches: ['sw-c-02'] }] },
+    }).fn)
+    renderWithApp(<NetworkStatus />)
+    const box = await screen.findByTestId('suggestions')
+    expect(box).not.toHaveTextContent('sw-')
+    fireEvent.click(screen.getByRole('button', { name: 'Down: Seat block A' }))
+    expect(screen.getByLabelText('New update for attendees')).toHaveValue('Seat block A has no network right now. The crew is on it.')
+    expect(screen.getByLabelText('Area (optional)')).toHaveValue('Seat block A')
+    fireEvent.click(screen.getByRole('button', { name: 'Back: Seat block C' }))
+    expect((screen.getByLabelText('New update for attendees') as HTMLTextAreaElement).value).toMatch(/^Seat block C has network again\./)
+  })
 })

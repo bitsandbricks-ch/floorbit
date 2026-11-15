@@ -38,5 +38,10 @@
     "unknown": "Unknown"
   },
   "recovered": "Back up recently",
-  "recoveredAt": "Back since {{time}}. Attendees see this for half an hour."
+  "recoveredAt": "Back since {{time}}. Attendees see this for half an hour.",
+  "suggestions": "Start from",
+  "suggestDown": "Down: {{where}}",
+  "suggestBack": "Back: {{where}}",
+  "suggestDownText": "{{where}} has no network right now. The crew is on it.",
+  "suggestBackText": "{{where}} has network again. Still not working at your seat? Report it with the QR code at your seat."
 }
