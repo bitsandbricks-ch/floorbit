@@ -23,6 +23,7 @@ TEXTS = {
         'ports': 'Top problem ports', 'port': 'Port', 'seat': 'Seat', 'problems': 'Problems', 'kinds': 'What',
         'none_ports': 'No port problems were noticed.',
         'opened': 'Opened', 'where': 'Where', 'what': 'What', 'team': 'Team', 'took': 'Fixed after',
+        'repeat': 'Seats with more than one incident: {seats}.',
         'open': 'open', 'none_incidents': 'No incidents were filed.', 'reported_by': 'Reported by',
         'nick': 'Nick', 'ip': 'IP', 'cut': 'Showing the first {n} of {total}.',
         'people': 'Includes nicks and IPs (asked for by an admin). Handle as personal data.',
@@ -46,6 +47,7 @@ TEXTS = {
         'ports': 'Ports mit den meisten Problemen', 'port': 'Port', 'seat': 'Platz', 'problems': 'Probleme',
         'kinds': 'Was', 'none_ports': 'Keine Port-Probleme bemerkt.',
         'opened': 'Eröffnet', 'where': 'Wo', 'what': 'Was', 'team': 'Team', 'took': 'Behoben nach',
+        'repeat': 'Plätze mit mehr als einer Störung: {seats}.',
         'open': 'offen', 'none_incidents': 'Keine Störungen erfasst.', 'reported_by': 'Gemeldet von',
         'nick': 'Nick', 'ip': 'IP', 'cut': 'Die ersten {n} von {total}.',
         'people': 'Enthält Nicks und IPs (von einem Admin verlangt). Als Personendaten behandeln.',
@@ -318,6 +320,10 @@ def pdf(report, lang='en', tz=0):
             row += [i.get('reported_by'), i.get('nick')]
         rows.append(row)
     note = tx['cut'].format(n=len(rows), total=found['total']) if found['total'] > len(rows) else ''
+    repeats = found.get('repeat_seats') or []
+    if repeats:
+        seats = ', '.join(f"{r['seat']} ({r['count']}{TIMES})" for r in repeats)
+        note = ' '.join(x for x in (tx['repeat'].format(seats=seats), note) if x)
     _table(doc, tx['incidents'], cols, rows, tx['none_incidents'], note)
 
     for n, pg in enumerate(doc.pages, start=1):

@@ -51,6 +51,15 @@ describe('Report', () => {
     expect(screen.queryByRole('button', { name: 'Start a new event' })).not.toBeInTheDocument()
   })
 
+  it('lists seats with more than one incident, linked to the seat (issue #312)', async () => {
+    const repeats = { ...data, incidents: { ...data.incidents, repeat_seats: [{ seat: 'B-7', count: 3 }, { seat: 'A-2', count: 2 }] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/report': repeats }).fn)
+    renderWithApp(<Report />)
+    expect(await screen.findByText(/Seats with more than one incident:/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'B-7' })).toHaveAttribute('href', '/plan?seat=B-7')
+    expect(screen.getByRole('link', { name: 'A-2' })).toHaveAttribute('href', '/plan?seat=A-2')
+  })
+
   it('lets an admin add nicks and IPs', async () => {
     const withPeople = { ...data, people: true, may_add_people: true,
       problem_ports: [{ ...data.problem_ports[0], nick: 'player-seven', ip: '198.51.100.7' }] }

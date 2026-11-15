@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -201,6 +201,14 @@ export default function Report() {
                   {r.people && <><Table.Td>{i.reported_by ?? '–'}</Table.Td><Table.Td>{i.nick ?? '–'}</Table.Td></>}
                 </Table.Tr>
               ))} />
+            {!!r.incidents.repeat_seats?.length && (
+              <Text size="sm">
+                {t('report.repeatSeats')}{' '}
+                {r.incidents.repeat_seats.map((x, n) => (
+                  <span key={x.seat}>{n > 0 && ', '}<Anchor href={`/plan?seat=${encodeURIComponent(x.seat)}`}>{x.seat}</Anchor> ({x.count}×)</span>
+                ))}
+              </Text>
+            )}
             {r.incidents.total > r.incidents.items.length && (
               <Text size="xs" c="dimmed">{t('report.cut', { count: r.incidents.items.length, total: r.incidents.total })}</Text>
             )}

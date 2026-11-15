@@ -155,3 +155,14 @@ def test_time_until_someone_takes_an_incident(client, stats, monkeypatch):
     # Taken after 120 s and 600 s: the middle of the sorted list is the later one.
     assert found["median_take_s"] == 600
     assert found["total"] == 3
+
+
+def test_seats_with_more_than_one_incident(client, stats):
+    # A seat that keeps coming back points at a cable or port (issue #312).
+    for seat, title in (("D-1", "No link"), ("D-2", "Slow"), ("D-1", "No link again"), ("D-3", "Power"),
+                        ("D-1", "Drops"), ("D-2", "Slow again")):
+        client.post("/api/incidents", json={"seat": seat, "title": title})
+    found = client.get("/api/report").get_json()["incidents"]
+    assert found["repeat_seats"] == [{"seat": "D-1", "count": 3}, {"seat": "D-2", "count": 2}]
+    pdf = client.get("/api/report.pdf")
+    assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")

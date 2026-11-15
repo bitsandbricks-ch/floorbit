@@ -62,6 +62,16 @@ def _outages(events, now):
     return sorted(out, key=lambda r: (-r['down_s'], r['switch']))
 
 
+def _repeat_seats(items, limit=10):
+    """Seats with more than one incident (issue #312): a bad cable or port tends to come back."""
+    counts = {}
+    for i in items:
+        if i.get('seat'):
+            counts[i['seat']] = counts.get(i['seat'], 0) + 1
+    repeats = sorted(((n, seat) for seat, n in counts.items() if n > 1), key=lambda x: (-x[0], x[1]))
+    return [{'seat': seat, 'count': n} for n, seat in repeats[:limit]]
+
+
 def _incidents(since, people):
     items = [i for i in incidents.list_all() if since is None or i['created_at'] >= since]
     items.sort(key=lambda i: i['created_at'])
@@ -83,6 +93,7 @@ def _incidents(since, people):
         'from_seats': sum(1 for i in items if i.get('source') == 'helpdesk'),
         'median_fix_s': round(took[len(took) // 2]) if took else None,
         'median_take_s': round(taken[len(taken) // 2]) if taken else None,
+        'repeat_seats': _repeat_seats(items),
         'items': rows,
     }
 

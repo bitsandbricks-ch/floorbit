@@ -661,7 +661,7 @@ export interface EventReport {
   hours: ReportHour[]
   outages: ReportOutage[]
   problem_ports: ReportPort[]
-  incidents: { total: number; fixed: number; open: number; from_seats: number; median_fix_s: number | null; median_take_s?: number | null; items: ReportIncident[] }
+  incidents: { total: number; fixed: number; open: number; from_seats: number; median_fix_s: number | null; median_take_s?: number | null; repeat_seats?: { seat: string; count: number }[]; items: ReportIncident[] }
 }
 
 /** GET /api/jobs: the tech's own jobs and duty status (issue #30). Plan points are in the drawing's units. */

@@ -58,5 +58,6 @@
   "kind_duplex": "half duplex",
   "kind_checkin": "no check-in",
   "kept": "Port reads are folded into one row per hour and kept for 21 days, switch outages and problem ports since the last new event.",
-  "pastEvents": "Past events"
+  "pastEvents": "Past events",
+  "repeatSeats": "Seats with more than one incident:"
 }

@@ -58,5 +58,6 @@
   "kind_duplex": "Halbduplex",
   "kind_checkin": "kein Check-in",
   "kept": "Port-Abfragen werden pro Stunde zusammengefasst und 21 Tage behalten, Switch-Ausfälle und Problem-Ports seit dem letzten neuen Event.",
-  "pastEvents": "Vergangene Events"
+  "pastEvents": "Vergangene Events",
+  "repeatSeats": "Plätze mit mehr als einer Störung:"
 }
