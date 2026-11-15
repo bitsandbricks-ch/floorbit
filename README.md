@@ -95,6 +95,9 @@ each seat is plugged into.
   [docs/forecast.md](docs/forecast.md).
 - **Replay:** play the event back on the floor plan with a time slider: the hall filling up, the
   bandwidth peak and the incidents. See [docs/replay.md](docs/replay.md).
+- **Event changelog:** one timeline of every change during the LAN: floor plan and settings edits,
+  switch outages, incidents, alerts and Floorbit updates, filterable and exportable as CSV or JSON.
+  See [docs/timeline.md](docs/timeline.md).
 - **Event report:** after the event, a report to read or download as PDF: attendance over time, peak
   bandwidth, switch outages, the top problem ports and the incidents. No nicks or IPs unless an admin
   asks. See [docs/report.md](docs/report.md).
@@ -177,6 +180,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `FLOORBIT_THEME` | `floorbit` | Site theme: `floorbit`, `ops`, `kiosk`, `classic` or `custom` ([docs/themes.md](docs/themes.md)). |
 | `FLOORBIT_EVENT_NAME` | empty | Event name in the top bar and on the kiosk. |
 | `AUDIT_FILE` | next to `data.json` | Where the audit log is kept ([docs/audit.md](docs/audit.md)). |
+| `TIMELINE_FILE` | next to `data.json` | Where the event changelog keeps alerts and starts ([docs/timeline.md](docs/timeline.md)). |
 | `PLUGINS_FILE` | next to `data.json` | Which plugins are on, and their state ([docs/plugins.md](docs/plugins.md)). |
 | `SECRET_KEY` | generated | Signs the session cookie. Empty: generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | Creates the first account when there is none. |

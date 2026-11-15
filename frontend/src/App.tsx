@@ -33,6 +33,7 @@ const Preflight = lazy(() => import('@/pages/Preflight'))
 const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const Wifi = lazy(() => import('@/pages/Wifi'))
+const Timeline = lazy(() => import('@/pages/Timeline'))
 const Teardown = lazy(() => import('@/pages/Teardown'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
@@ -75,6 +76,7 @@ export default function App() {
         <Route path="/gear" element={<Gear />} />
         <Route path="/cables" element={<Cables />} />
         <Route path="/wifi" element={<Wifi />} />
+        <Route path="/timeline" element={<Timeline />} />
         <Route path="/teardown" element={<Teardown />} />
         <Route path="/events" element={<Events />} />
         <Route path="/settings/features" element={<Features />} />

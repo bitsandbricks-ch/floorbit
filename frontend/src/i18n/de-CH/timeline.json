@@ -1,0 +1,23 @@
+{
+  "title": "Ereignis-Chronik",
+  "intro": "Alles, was sich während der LAN geändert hat, auf einer Zeitachse: Änderungen am Hallenplan und an den Einstellungen aus dem Audit-Log, Switch-Ausfälle, Störungen, Alarme und Floorbit-Updates. Filtern und exportieren.",
+  "search": "Suchen nach was, wo oder wer",
+  "range": "Zeitraum",
+  "hours": {
+    "6": "Letzte 6 h",
+    "24": "Letzte 24 h",
+    "0": "Alles"
+  },
+  "kind": {
+    "change": "Änderungen",
+    "sign-in": "Anmeldungen",
+    "outage": "Ausfälle",
+    "incident": "Störungen",
+    "alert": "Alarme",
+    "deploy": "Deploys"
+  },
+  "by": "von {{who}}",
+  "empty": "Nichts in diesem Zeitraum mit diesen Filtern.",
+  "showing": "{{shown}} von {{total}}",
+  "older": "Ältere Einträge"
+}

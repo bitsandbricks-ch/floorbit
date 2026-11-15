@@ -1024,3 +1024,11 @@ export interface WifiData {
   sources: string[]; errors: string[]; thresholds: { busy: number; crowded: number }
   drawing: PlanDrawing | null; hall: string; halls: { id: string; name: string }[]
 }
+
+/** Event changelog (issue #100). */
+export type TimelineKind = 'change' | 'sign-in' | 'outage' | 'incident' | 'alert' | 'deploy'
+export interface TimelineEntry {
+  t: number; kind: TimelineKind; title: string; target?: string; who?: string; area?: string
+  severity?: 'up' | 'down' | 'warn' | 'info'; version?: string; id?: string
+}
+export interface TimelineData { entries: TimelineEntry[]; total: number; counts: Record<TimelineKind, number>; kinds: TimelineKind[]; more: boolean }

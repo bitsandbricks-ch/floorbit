@@ -189,6 +189,10 @@ WRITE = ('POST', 'PUT', 'PATCH', 'DELETE')
 # a new route is closed until someone gives it a rule here.
 RULES = (
     ('/api/settings/audit', READ, 'audit.read'),
+    # The event changelog has the audit log in it, with who (floorbit/timeline.py).
+    ('/api/timeline', READ, 'audit.read'),
+    ('/api/timeline.csv', READ, 'audit.read'),
+    ('/timeline', READ, 'audit.read'),
     ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
     ('/settings/users', None, 'accounts.manage'),
