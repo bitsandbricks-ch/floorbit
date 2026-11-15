@@ -16,6 +16,7 @@ export const qk = {
   qos: ['tournament', 'qos'] as const,
   crew: ['crew'] as const,
   handover: ['handover'] as const,
+  preflight: ['preflight'] as const,
   planner: ['planner'] as const,
   plannerConfig: (name: string) => ['planner', 'config', name] as const,
   plannerTemplate: (id: string) => ['planner', 'template', id] as const,

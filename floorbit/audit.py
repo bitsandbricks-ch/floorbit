@@ -76,6 +76,7 @@ ACTIONS = {
     ('PUT', '/api/planner/templates/<template_id>'): ('floor plan', 'Saved a switch config template'),
     ('DELETE', '/api/planner/templates/<template_id>'): ('floor plan', 'Removed a switch config template'),
     ('POST', '/api/planner/apply'): ('floor plan', 'Added the planned switches'),
+    ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
     ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
