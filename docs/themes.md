@@ -31,10 +31,10 @@ from the same server. `?theme=default` goes back to the site default.
 
 ## Event name and logo
 
-- **Event name** (`FLOORBIT_EVENT_NAME`): shown in the top bar next to the Floorbit mark and as the
+- **Event name** (`FLOORBIT_EVENT_NAME`): shown at the top of the sidebar next to the Floorbit mark and as the
   kiosk heading (the kiosk's `?title=` still wins).
 - **Event logo**: SVG, PNG, JPEG or WebP up to 256 KB, uploaded in settings. It replaces the Floorbit
-  logo in the top bar and on the kiosk; the powered-by footer stays. It is stored inside `data.json`,
+  logo at the top of the sidebar and on the kiosk; the powered-by footer stays. It is stored inside `data.json`,
   so a backup carries it and an offline LAN needs no image host. It is served from `/brand/logo`
   with a sandboxing Content-Security-Policy, so an uploaded SVG can't run script.
 
@@ -62,7 +62,7 @@ uses the muted colour (`--color-muted`), which passes 4.5:1 in both themes.
 | `static/css/brand/tokens.css` | Seeds (`--theme-*`), tokens (`--color-*`, `--heat-*`, `--plan-*`), the light theme, the Geist fonts. |
 | `static/css/brand/themes.css` | The presets and the custom derivation. |
 | `static/css/brand/legacy-map.css` | Maps the older `--bg-primary`-style names to the tokens. Remove once the page CSS uses `--color-*` directly. |
-| `static/css/brand/brand.css` | The logo in the top bar. |
+| `static/css/brand/brand.css` | The logo in the sidebar and the phone header. |
 | `static/brand/` | Logos, icons, favicon and link preview image. |
 | `static/fonts/` | Geist and Geist Mono (SIL OFL, `OFL.txt`), shipped so a LAN without internet renders them. |
 | `floorbit/theme.py` | Which preset and colours a page renders with, the `?theme=` cookie, `/brand/logo`. |

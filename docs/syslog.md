@@ -94,7 +94,7 @@ search and level filter:
 - **Audit log:** who changed what ([audit.md](audit.md)), newest first, one line per change.
   Failed sign-ins show as warnings.
 
-The Logs button in the top bar shows for them even while the syslog receiver is off.
+**Logs** in the sidebar shows for them even while the syslog receiver is off.
 
 ## Keeping it longer: Grafana Loki
 

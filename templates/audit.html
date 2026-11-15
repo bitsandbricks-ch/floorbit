@@ -11,24 +11,24 @@
   <link rel="stylesheet" href="/static/css/user-menu.css" />
   <link rel="stylesheet" href="/static/css/audit.css" />
 </head>
-<body>
-  <header class="st-header">
-    <a class="st-back" href="/settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      Settings
-    </a>
-    <h1>Audit log</h1>
+<body class="fb-has-nav">
+  {% include "_nav.html" %}
+  <div class="st-page">
+  {#- Pages, theme and account are in the sidebar (templates/_nav.html). Phones get the brand
+      and "Go to" on top, like the React pages. #}
+  <header class="st-header st-header-phone">
+    <a class="st-home" href="/" aria-label="Floor plan">{% include "_brand.html" %}</a>
     <span class="st-header-spacer"></span>
     <span data-goto="st-btn"></span>
-    {% if current_user %}
-    <form class="user-menu" method="post" action="/logout">
-      <span class="user-menu-name" title="Signed in as {{ current_user.username }}">{{ current_user.display_name }}</span>
-      <button type="submit" class="st-btn">Sign out</button>
-    </form>
-    {% endif %}
   </header>
 
   <main class="st-main au-main">
+    <div class="st-head">
+      <a class="st-up" href="/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Settings</a>
+      <div class="st-head-row">
+        <h1 class="st-title">Audit log</h1>
+      </div>
+    </div>
     <p class="st-intro">
       Every change to the floor plan, settings and accounts, and every sign-in, newest first.
       It names what changed, never the values: tokens and passwords stay out.
@@ -62,5 +62,6 @@
   <script src="/static/js/goto.js"></script>
   <script src="/static/js/audit.js"></script>
   {% include "_attribution.html" %}
+  </div>
 </body>
 </html>

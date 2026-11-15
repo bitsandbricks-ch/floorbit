@@ -3,9 +3,15 @@ from urllib.parse import quote
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
-from .. import page_index, seat_view
+from .. import nav, page_index, seat_view
 
 bp = Blueprint('pages', __name__)
+
+
+@bp.app_context_processor
+def nav_context():
+    # The sidebar on every crew page (templates/_nav.html).
+    return nav.context()
 
 
 @bp.route('/')

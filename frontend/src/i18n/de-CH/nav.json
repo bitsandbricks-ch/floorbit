@@ -1,0 +1,23 @@
+{
+  "label": "Hauptnavigation",
+  "goTo": "Gehe zu…",
+  "home": "Hallenplan",
+  "collapse": "Seitenleiste einklappen",
+  "expand": "Seitenleiste ausklappen",
+  "menu": "Menü",
+  "closeMenu": "Menü schliessen",
+  "account": "Konto",
+  "appearance": "Darstellung",
+  "problemsDown": "{{count}} ausgefallen",
+  "sections": {
+    "helpdesk": "Helpdesk",
+    "network": "Netzwerk",
+    "build": "Aufbau und Abbau",
+    "event": "Event",
+    "admin": "Einstellungen",
+    "more": "Weitere"
+  },
+  "search": "Seiten, Plätze und Switches suchen",
+  "quick": "Wichtigste Seiten",
+  "homeBrand": "Floorbit, zum Hallenplan"
+}

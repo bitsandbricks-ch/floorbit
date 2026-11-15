@@ -88,7 +88,8 @@ def test_sign_in_and_out(anon_client, user):
 
     page = anon_client.get("/")
     assert page.status_code == 200
-    assert b"Test Person" in page.data and b"Sign out" in page.data
+    # The sidebar's account menu: name and "Sign out" (templates/_nav.html).
+    assert b'"name": "Test Person"' in page.data and b'"signOut": true' in page.data
     assert anon_client.get("/api/auth/me").get_json()["user"]["username"] == TEST_USER
     assert anon_client.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
 

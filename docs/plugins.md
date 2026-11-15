@@ -12,7 +12,7 @@ Settings > Plugins lists every plugin, what it may touch, and whether it is on. 
 start on and do nothing until they're configured. Turning one on or off is in the audit log. A plugin's settings are on the settings page,
 in a section called *Plugin: <name>*. Secrets are write-only there, as everywhere.
 
-The **Dashboard** (top bar of the floor plan, `/dashboard`) shows the tiles of the plugins that are
+The **Dashboard** (in the sidebar, `/dashboard`) shows the tiles of the plugins that are
 on, for anyone signed in whose role is allowed to see them. Layouts save which tiles a screen shows
 ([Dashboards](dashboard.md)).
 
