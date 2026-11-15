@@ -129,6 +129,57 @@ def _short(hostname):
     return (hostname or '').lower().split('.')[0]
 
 
+class DemoShell:
+    """A pretend switch CLI for the browser terminal: echoes keys and answers the show commands."""
+
+    HELP = ('show interfaces status', 'show interface <port>', 'show mac address-table', 'show version', 'exit')
+
+    def __init__(self, plugin, name):
+        self.plugin, self.name, self.line, self.closed = plugin, name, '', False
+        self.pending = (f'\r\n{name} (demo: no switch is touched)\r\n'
+                        f'Type ? for the commands this pretend switch knows.\r\n\r\n{name}#')
+
+    def recv(self):
+        if self.closed and not self.pending:
+            return None
+        out, self.pending = self.pending, ''
+        return out
+
+    def send(self, data):
+        for ch in data:
+            if ch in '\r\n':
+                self._enter()
+            elif ch in '\x7f\b':
+                if self.line:
+                    self.line = self.line[:-1]
+                    self.pending += '\b \b'
+            elif ch == '?':
+                self.pending += '?\r\n' + '\r\n'.join(f'  {c}' for c in self.HELP) + f'\r\n{self.name}#{self.line}'
+            elif ch == '\x03':
+                self.line = ''
+                self.pending += f'^C\r\n{self.name}#'
+            elif ch >= ' ':
+                self.line += ch
+                self.pending += ch
+
+    def _enter(self):
+        command, self.line = ' '.join(self.line.split()), ''
+        if command in ('exit', 'quit', 'logout'):
+            self.pending += '\r\n'
+            self.closed = True
+            return
+        out = ''
+        if command:
+            out = self.plugin.send_commands({'switch': self.name, 'commands': [command]})['output']
+        self.pending += '\r\n' + (out.replace('\n', '\r\n') + '\r\n' if out else '') + f'{self.name}#'
+
+    def resize(self, cols, rows):
+        pass
+
+    def close(self):
+        self.closed = True
+
+
 class Plugin(Plugin):
     # inventory --------------------------------------------------------------------------
     def inventory(self):
@@ -276,6 +327,12 @@ class Plugin(Plugin):
                 parts.append(f'% Invalid input detected at \'^\' marker. (demo: "{command}")')
                 return {'output': '\n\n'.join(parts), 'refused': command}
         return {'output': '\n\n'.join(parts) or '(demo: no switch was touched)', 'refused': None}
+
+    def open_shell(self, target):
+        name = _short(target['switch'])
+        if not any(n == name for n, _r, _i in _switches()):
+            raise PluginError(f"{target['switch']} is not a demo switch.")
+        return DemoShell(self, name)
 
     def _demo_ports(self, name):
         return [(s, b, n, i, _switch_for(b, n)[1]) for s, b, n, i in _seats() if _switch_for(b, n)[0] == name]

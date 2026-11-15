@@ -13,7 +13,10 @@
   "run_one": "Auf {{count}} Switch ausführen",
   "run_other": "Auf {{count}} Switches ausführen",
   "changes": "Ändert etwas",
-  "kind": { "show": "Show", "change": "Ändern" },
+  "kind": {
+    "show": "Show",
+    "change": "Ändern"
+  },
   "kindHint": {
     "show": "Jeder Befehl muss mit show, display, ping, traceroute oder get beginnen. Techniker können ihn ausführen.",
     "change": "Nur Leads und Admins können ihn ausführen, und sie bestätigen ihn ein zweites Mal."
@@ -38,5 +41,7 @@
   "idHint": "Kleinbuchstaben, Ziffern, - oder _",
   "commands": "Befehle",
   "commandsHint": "Einer pro Zeile. {port} ist der Port, den die Crew eingibt.",
-  "save": "Speichern"
+  "save": "Speichern",
+  "terminal": "Terminal",
+  "openTerminal": "Terminal auf {{name}} öffnen"
 }

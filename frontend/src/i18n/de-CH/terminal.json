@@ -1,0 +1,19 @@
+{
+  "title": "Switch-Terminal",
+  "intro": "Ein Terminal auf einem Switch, mit deinem eigenen Switch-Login. Es schliesst nach {{idle}} Minuten ohne Eingabe oder nach insgesamt {{max}} Minuten.",
+  "noPlugin": "Kein Plugin, das ein Switch-Terminal öffnen kann, ist eingeschaltet. Ein Admin schaltet SSH-Port-Aktionen unter Einstellungen > Plugins ein.",
+  "switch": "Switch",
+  "pick": "Switch wählen",
+  "username": "Dein Switch-Benutzername",
+  "password": "Dein Switch-Passwort",
+  "passwordHint": "Nur zum Verbinden verwendet, nie gespeichert.",
+  "open": "Terminal öffnen",
+  "audited": "Jede Zeile, die du eingibst, steht mit deinem Namen im Audit-Log. Zeilen bei einer Passwortabfrage werden als verborgen protokolliert.",
+  "connected": "Verbunden",
+  "closed": "Geschlossen",
+  "close": "Schliessen",
+  "back": "Zurück",
+  "gone": "Dieses Terminal ist geschlossen.",
+  "yours": "Deine offenen Terminals",
+  "reattach": "Zurück dazu"
+}

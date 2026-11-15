@@ -39,8 +39,8 @@ def test_bad_changes_and_the_server_switch(client, monkeypatch):
     assert client.put("/api/settings/features", json={}).status_code == 400
 
     monkeypatch.setenv(features.ENV, "traffic, ports")
-    # Switch commands need port actions, so they go off with them.
-    assert set(client.get("/api/features").get_json()["off"]) == {"traffic", "ports", "commands"}
+    # Switch commands and the terminal need port actions, so they go off with them.
+    assert set(client.get("/api/features").get_json()["off"]) == {"traffic", "ports", "commands", "terminal"}
     refused = client.put("/api/settings/features", json={"traffic": True})
     assert refused.status_code == 400 and features.ENV in refused.get_json()["error"]
     assert client.get("/api/flows").status_code == 404

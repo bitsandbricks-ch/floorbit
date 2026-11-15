@@ -13,7 +13,10 @@
   "run_one": "Run on {{count}} switch",
   "run_other": "Run on {{count}} switches",
   "changes": "Changes something",
-  "kind": { "show": "Show", "change": "Change" },
+  "kind": {
+    "show": "Show",
+    "change": "Change"
+  },
   "kindHint": {
     "show": "Each command has to start with show, display, ping, traceroute or get. Techs can run it.",
     "change": "Only leads and admins can run it, and they confirm it a second time."
@@ -38,5 +41,7 @@
   "idHint": "Lower-case letters, digits, - or _",
   "commands": "Commands",
   "commandsHint": "One per line. {port} is the port the crew types.",
-  "save": "Save"
+  "save": "Save",
+  "terminal": "Terminal",
+  "openTerminal": "Open a terminal on {{name}}"
 }

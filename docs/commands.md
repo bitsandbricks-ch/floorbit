@@ -46,7 +46,8 @@ words above is refused: make it a change template instead. Custom templates are 
 The port the crew types is checked like a port action's (`Gi1/0/3`, `ethernet1/1/12`, `xe-0/0/1.0`):
 nothing else can ride along. Switches must be in the inventory with a management IP.
 
-A link can fill the form: `/commands?template=port_status&switch=sw-a-01&switch=sw-a-02&port=Gi1/0/3`.
+Accounts with `terminal.open` get a button on each answer that opens a [terminal](terminal.md) on
+that switch. A link can fill the form: `/commands?template=port_status&switch=sw-a-01&switch=sw-a-02&port=Gi1/0/3`.
 
 ## The login
 

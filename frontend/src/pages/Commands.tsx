@@ -2,13 +2,14 @@ import {
   ActionIcon, Alert, Badge, Button, Code, Group, Loader, Modal, MultiSelect, Paper, PasswordInput, ScrollArea,
   SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title, Tooltip,
 } from '@mantine/core'
-import { IconPlayerPlay, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { ApiError, del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
+import { useCan } from '@/api/queries'
 import type { CommandInfo, CommandRun, CommandTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -36,6 +37,7 @@ export default function Commands() {
   const [password, setPassword] = useState('')
   const [confirming, setConfirming] = useState<RunBody | null>(null)
   const [editing, setEditing] = useState(false)
+  const canTerminal = useCan('terminal.open')
   const run = useMutation({
     mutationFn: (body: RunBody) => post<CommandRun>('/api/commands/run', body),
     onError: (err, body) => {
@@ -70,11 +72,20 @@ export default function Commands() {
   return (
     <Layout title={t('commands.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('commands.title')} desc={t('commands.intro')}
-        actions={info?.may_edit && (
-          <Button variant="default" leftSection={<IconPlus size={16} />} onClick={() => setEditing(true)}>
-            {t('commands.newTemplate')}
-          </Button>
-        )} />
+        actions={
+          <>
+            {canTerminal && (
+              <Button variant="default" component="a" href="/terminal" leftSection={<IconTerminal2 size={16} />}>
+                {t('commands.terminal')}
+              </Button>
+            )}
+            {info?.may_edit && (
+              <Button variant="default" leftSection={<IconPlus size={16} />} onClick={() => setEditing(true)}>
+                {t('commands.newTemplate')}
+              </Button>
+            )}
+          </>
+        } />
       <Stack gap="md">
         {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
         {query.isPending ? <Loader aria-label={t('common.loading')} /> : info && !info.available ? (
@@ -129,7 +140,7 @@ export default function Commands() {
           </Paper>
         )}
         {runError && <Alert color="down" role="alert">{runError.message}</Alert>}
-        {run.data && <Results run={run.data} />}
+        {run.data && <Results run={run.data} terminal={canTerminal} />}
         {info?.may_edit && custom.length > 0 && (
           <Paper withBorder radius="lg" p="md">
             <Title order={2} size="h4" mb="xs">{t('commands.yourTemplates')}</Title>
@@ -174,7 +185,7 @@ export default function Commands() {
   )
 }
 
-function Results({ run }: { run: CommandRun }) {
+function Results({ run, terminal }: { run: CommandRun; terminal: boolean }) {
   const { t } = useTranslation()
   const failed = run.results.filter((r) => !r.ok).length
   return (
@@ -191,6 +202,14 @@ function Results({ run }: { run: CommandRun }) {
             <Group justify="space-between" mb={6} wrap="nowrap">
               <Text fw={700} ff="monospace">{r.switch}</Text>
               <Group gap={6} wrap="nowrap">
+                {terminal && (
+                  <Tooltip label={t('commands.openTerminal', { name: r.switch })}>
+                    <ActionIcon variant="subtle" component="a" href={`/terminal?switch=${encodeURIComponent(r.switch)}`}
+                      aria-label={t('commands.openTerminal', { name: r.switch })}>
+                      <IconTerminal2 size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
                 {r.ms !== undefined && <Text size="xs" c="dimmed">{t('commands.took', { s: (r.ms / 1000).toFixed(1) })}</Text>}
                 <Badge size="sm" variant="light" color={r.ok ? 'up' : 'down'} tt="none" miw="max-content">
                   {r.ok ? t('commands.ok') : t('commands.failed')}
