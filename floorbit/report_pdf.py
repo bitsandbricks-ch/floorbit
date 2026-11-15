@@ -290,7 +290,7 @@ def pdf(report, lang='en', tz=0):
         if any(r.get('incidents') for r in report['hours']):
             doc.need(190)
             _chart(doc, tx['chart_incidents'], report['hours'], [], [(tx['legend_incidents'], WARN)],
-                   lambda v: f'{v:.0f}', bars=('incidents', WARN))
+                   lambda v: f'{v:g}', bars=('incidents', WARN))   # 2.5 on a 0-10 axis, not a rounded 2
     else:
         page.text(MARGIN, doc.y + 10, tx['no_data'], size=9, color=MUTED)
         doc.y += 30
