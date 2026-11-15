@@ -1,5 +1,5 @@
 import { Alert, Anchor, Button, Group, Loader, Text } from '@mantine/core'
-import { IconMaximize, IconRefresh } from '@tabler/icons-react'
+import { IconBellOff, IconMaximize, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type CSSProperties, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -55,6 +55,11 @@ function Tile({ check }: { check: HealthCheck }) {
       )}
       <footer>
         {t('health.since')} <Ago since={check.since} />
+        {check.muted_until && (
+          <span className="fb-health-muted">
+            {' · '}<IconBellOff size={13} aria-hidden="true" /> {t('health.mutedUntil', { time: new Date(check.muted_until * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
+          </span>
+        )}
       </footer>
     </article>
   )
@@ -132,7 +137,10 @@ export default function Health() {
     )
   }
   return (
-    <Layout title={t('health.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    // Red and amber services show in a background tab, like the floor plan (issue #216).
+    <Layout title={t('health.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      // Muted services stay out of the tab count, as on the Problems page (issue #260).
+      count={health.data ? health.data.checks.filter((c) => (c.status === 'down' || c.status === 'warn') && !c.muted_until).length : undefined}>
       <PageHead
         title={t('health.title')}
         desc={t('health.intro')}

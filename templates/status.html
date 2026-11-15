@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
-  {% if not off %}<meta http-equiv="refresh" content="60" />{% endif %}
+  {% if not off %}
+  <noscript><meta http-equiv="refresh" content="60" /></noscript>
+  <script src="/static/js/refresh.js" data-every="60" defer></script>
+  {% endif %}
   <title>{{ t.title }} · Floorbit</title>
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
@@ -30,6 +33,7 @@
     ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
     li { border-left: 3px solid var(--k, var(--color-line)); padding: 2px 0 2px 12px; }
     li b { display: block; }
+    .recovered-at { margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -47,17 +51,27 @@
         </div>
       </div>
     </section>
-    {% if s.areas %}
-    <section class="card">
-      <h2>{{ t.areas }}</h2>
-      <ul class="{{ s.state }}">
-        {% for a in s.areas %}
+    {% macro area_list(areas, cls) %}
+      <ul class="{{ cls }}">
+        {% for a in areas %}
         <li>
           <b>{% if a.block %}{{ t.block.format(name=a.block) }}{% elif a.hall %}{{ t.hall_wide.format(name=a.hall) }}{% else %}{{ t.somewhere }}{% endif %}{% if a.block and a.hall %} · {{ a.hall }}{% endif %}</b>
           <span class="muted">{{ [t.rows.format(rows=a.rows) if a.rows else '', t.seats.format(n=a.seats) if a.seats else '', t.switches.format(names=a.switches|join(', ')) if a.switches else '']|select|join(' · ') }}</span>
         </li>
         {% endfor %}
       </ul>
+    {% endmacro %}
+    {% if s.areas %}
+    <section class="card">
+      <h2>{{ t.areas }}</h2>
+      {{ area_list(s.areas, s.state) }}
+    </section>
+    {% endif %}
+    {% if s.recovered %}
+    <section class="card" id="status-recovered">
+      <h2>{{ t.recovered }}</h2>
+      <p class="muted recovered-at">{{ stamp(t.recovered_at, s.recovered_at) }}</p>
+      {{ area_list(s.recovered, 'operational') }}
     </section>
     {% endif %}
     <section class="card">

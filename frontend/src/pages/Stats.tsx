@@ -15,6 +15,7 @@ import { StatCard } from '@/components/StatCard'
 import { Compare } from './stats/Compare'
 import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
+import { onPlan } from './plan/links'
 
 const HOUR = 3600
 
@@ -94,7 +95,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
               const pct = Math.round((u.utilization ?? 0) * 100)
               return (
                 <li key={u.switch_id} className={pct >= 80 ? 'down' : pct >= 60 ? 'warn' : ''}>
-                  <span className="name">{screen ? u.switch : <a href={`/?switch=${encodeURIComponent(u.switch_id)}`}>{u.switch}</a>} <small>{u.port}</small></span>
+                  <span className="name">{screen ? u.switch : <a href={onPlan({ switch: u.switch })}>{u.switch}</a>} <small>{u.port}</small></span>
                   <span className="bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
                     aria-label={`${u.switch} ${u.port}`}><i style={{ width: `${Math.min(100, pct)}%` }} /></span>
                   <span className="value">{pct} % · {bps(u.bps)}</span>
@@ -113,7 +114,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
               <li key={`${r.switch_id}:${r.port}`}>
                 <span className="name">
                   {screen ? (r.seat ? t('stats.seat', { seat: r.seat }) : `${r.switch} ${r.port}`) : (
-                    <a href={r.seat ? `/?seat=${encodeURIComponent(r.seat)}` : `/?switch=${encodeURIComponent(r.switch_id)}`}>
+                    <a href={onPlan({ seat: r.seat, switch: r.switch })}>
                       {r.seat ? t('stats.seat', { seat: r.seat }) : `${r.switch} ${r.port}`}
                     </a>
                   )}

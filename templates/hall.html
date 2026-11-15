@@ -54,7 +54,7 @@
     {% elif state == 'empty' %}
     <p>{{ t.empty }}</p>
     {% else %}
-    <p>{{ t.intro }}{% if finder %} <a href="{{ url_for('screen.find_page') }}">{{ t.find }}</a>{% endif %}</p>
+    <p>{{ t.intro }}{% if finder %} <a href="{{ url_for('screen.find_page') }}">{{ t.find }}</a>{% endif %}{% if agenda %} <a href="/agenda">{{ t.agenda }}</a>{% endif %}</p>
     <div class="bar">
       <p class="count" id="hall-count" data-text="{{ t.count }}" aria-live="polite">
         {% if state == 'ok' %}{{ t.count.format(online=count, total=total) }}{% endif %}

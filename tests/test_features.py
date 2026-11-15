@@ -61,3 +61,15 @@ def test_the_netflow_collector_keeps_nothing_while_traffic_is_off(app_module, mo
     monkeypatch.delenv(features.ENV)
     assert collector.enabled(now=1) is False   # asked again only every half minute
     assert collector.enabled(now=100) is True
+
+
+def test_settings_lists_its_pages_and_only_the_tools_that_are_on(client):
+    # Issue #236: the links sit in a card on the page, not in the header.
+    page = client.get("/settings").get_data(as_text=True)
+    header = page[page.index('<header'):page.index('</header>')]
+    assert 'href="/settings/users"' not in header and 'href="/settings/users"' in page
+    assert 'href="/runbooks"' in page
+
+    client.put("/api/settings/features", json={"runbooks": False})
+    assert 'href="/runbooks"' not in client.get("/settings").get_data(as_text=True)
+    client.put("/api/settings/features", json={"runbooks": True})

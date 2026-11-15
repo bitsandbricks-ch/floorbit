@@ -62,11 +62,31 @@ def _outages(events, now):
     return sorted(out, key=lambda r: (-r['down_s'], r['switch']))
 
 
+def _repeat_seats(items, limit=10):
+    """Seats with more than one incident (issue #312): a bad cable or port tends to come back."""
+    counts = {}
+    for i in items:
+        if i.get('seat'):
+            counts[i['seat']] = counts.get(i['seat'], 0) + 1
+    repeats = sorted(((n, seat) for seat, n in counts.items() if n > 1), key=lambda x: (-x[0], x[1]))
+    return [{'seat': seat, 'count': n} for n, seat in repeats[:limit]]
+
+
+def _seat_problems(items):
+    """What attendees pressed on the help page (issue #370), every report counted, help page order."""
+    counts = {}
+    for i in items:
+        if i.get('source') == 'helpdesk' and i.get('problem') in incidents.PROBLEMS:
+            counts[i['problem']] = counts.get(i['problem'], 0) + int(i.get('reports') or 1)
+    return [{'problem': p, 'count': counts[p]} for p in incidents.PROBLEMS if counts.get(p)]
+
+
 def _incidents(since, people):
     items = [i for i in incidents.list_all() if since is None or i['created_at'] >= since]
     items.sort(key=lambda i: i['created_at'])
     fixed = [i for i in items if i.get('fixed_at')]
     took = sorted(i['fixed_at'] - i['created_at'] for i in fixed)
+    taken = sorted(i['picked_up_at'] - i['created_at'] for i in items if i.get('picked_up_at'))
     rows = []
     for i in items[:MAX_INCIDENTS]:
         row = {'title': i['title'], 'seat': i.get('seat'), 'switch': i.get('switch_name'),
@@ -81,6 +101,9 @@ def _incidents(since, people):
         'total': len(items), 'fixed': len(fixed), 'open': len(items) - len(fixed),
         'from_seats': sum(1 for i in items if i.get('source') == 'helpdesk'),
         'median_fix_s': round(took[len(took) // 2]) if took else None,
+        'median_take_s': round(taken[len(taken) // 2]) if taken else None,
+        'repeat_seats': _repeat_seats(items),
+        'seat_problems': _seat_problems(items),
         'items': rows,
     }
 

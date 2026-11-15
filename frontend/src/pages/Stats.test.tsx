@@ -68,7 +68,9 @@ describe('Stats', () => {
     expect(within(row).getAllByText('2.6 Gbps')).toHaveLength(2)   // the day's and the event's peak
     expect(within(row).getByText('84')).toBeInTheDocument()
     expect(screen.getByRole('meter', { name: 'sw-a-01 Te1/1/1' })).toHaveAttribute('aria-valuenow', '85')
-    expect(screen.getByText('Seat A-12')).toBeInTheDocument()
+    // Seats and switches open on the Seats page, in their hall (issue #228).
+    expect(screen.getByRole('link', { name: 'Seat A-12' })).toHaveAttribute('href', '/plan?seat=A-12')
+    expect(screen.getByRole('link', { name: 'sw-a-01' })).toHaveAttribute('href', '/plan?switch=sw-a-01')
     expect(screen.getByText(/player-one/)).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Traffic over time' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reset peak' })).toBeInTheDocument()

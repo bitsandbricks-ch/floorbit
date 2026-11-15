@@ -253,7 +253,12 @@
     }
     card.append(...fields.map(renderField));
     if (result) card.append(result);
-    if (section.id === 'appearance') card.append(el('div', { class: 'st-test-result', id: 'st-theme-hint' }));
+    if (section.id === 'appearance') {
+      // Above the Custom-only colours, which its text ("the colours below") points at (issue #234).
+      const hint = el('div', { class: 'st-test-result', id: 'st-theme-hint' });
+      const first = card.querySelector('[data-theme-only="custom"]');
+      if (first) card.insertBefore(hint, first); else card.append(hint);
+    }
     return card;
   }
 

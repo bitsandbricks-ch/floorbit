@@ -83,6 +83,20 @@ def for_incident(incident, books):
     return next((b for b in books if kind in b.get('kinds', ())), None)
 
 
+def usage(incident_list, books):
+    """How often each runbook was shown on an incident, and incidents of a kind no runbook covers
+    (issue #340): tells the leads which runbooks matter and which are missing."""
+    used, missing = {}, {}
+    for i in incident_list:
+        book = for_incident(i, books)
+        if book:
+            used[book['id']] = used.get(book['id'], 0) + 1
+        else:
+            kind = kind_of(i)
+            missing[kind] = missing.get(kind, 0) + 1
+    return {'used': used, 'missing': missing}
+
+
 def _clean(body):
     title = ' '.join(str(body.get('title') or '').split())[:MAX_TITLE]
     if not title:

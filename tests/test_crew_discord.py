@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from integrations import crew
 from tests.conftest import TEST_USER
+from tests.test_health import fake_checks, registry, wall  # noqa: F401 (fixtures)
+from tests.test_service_mutes import red_wall
 
 CHANNEL = "900000000000000001"
 
@@ -198,3 +200,203 @@ def test_no_buttons_without_the_public_key(bridge, client, anon_client, app_modu
     labels = [b["label"] for b in bridge.fake.calls[0][2]["components"][0]["components"]]
     assert labels == ["Open in Floorbit"]
     assert anon_client.post("/api/discord/interactions", **_interaction(key, {"type": 1})).status_code == 404
+
+
+def test_a_crew_notice_is_posted_once_put_up(bridge, client, monkeypatch):
+    # Issue #248: what a lead puts up also reaches people who aren't looking at Floorbit.
+    # "@everyone" stays in the text, but allowed_mentions keeps it from pinging anyone.
+    monkeypatch.setattr(bridge, "_ensure_worker", lambda: None)
+    client.put("/api/notice", json={"text": "Hall B: power work at 14:00 @everyone leave row C alone",
+                                    "level": "warn", "hours": 2})
+    kind, notice = bridge._queue.get_nowait()
+    assert kind == "notice" and notice["level"] == "warn"
+    bridge._handle((kind, notice))
+    ((method, path, body),) = bridge.fake.calls
+    assert method == "POST" and path.endswith("/messages")
+    assert body["allowed_mentions"] == {"parse": []}   # "@everyone" in the text pings no one
+    assert body["content"].startswith("⚠️ **Crew notice** (from ")
+    assert body["content"].endswith(", for 2 hours)\n> Hall B: power work at 14:00 @everyone leave row C alone")
+
+    client.delete("/api/notice")   # taking it down posts nothing
+    assert bridge._queue.empty()
+    monkeypatch.setenv("DISCORD_CREW_NOTICES", "false")
+    client.put("/api/notice", json={"text": "Doors open at 18:00"})
+    assert bridge._queue.empty()
+
+
+def test_notice_message_without_an_end():
+    from integrations.crew import CrewBridge
+    notice = {"text": "Doors open at 18:00", "level": "info", "until": None, "by": None, "at": 0}
+    text = CrewBridge.notice_message(notice)
+    assert text == "📣 **Crew notice** (until taken down)\n> Doors open at 18:00"
+
+
+def test_a_switch_alert_can_be_muted_from_discord(bridge, client, anon_client, app_module, monkeypatch, key):
+    """Issue #272: "Mute … for 1 h" under a switch-offline alert, for crew who work incidents."""
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations import alerting
+    from integrations.discord import DiscordNotifier
+    sw = client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10}).get_json()["id"]
+    change = {"id": sw, "name": "sw-a-01", "status": "offline", "previous": "online"}
+    notifier = DiscordNotifier(crew=bridge)
+    notifier.send(notifier.build_status_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    (button,) = body["components"][0]["components"]
+    assert button["label"] == "Mute sw-a-01 for 1 h" and button["custom_id"] == f"fb:mute:{sw}"
+    assert "_mute" not in body
+
+    users = app_module.app.extensions["auth"].users
+    users.add("tech-ana", "example-pass-1", role="tech", identities={"discord": "111"})
+    users.add("viewer-vi", "example-pass-1", role="viewer", identities={"discord": "222"})
+
+    def press(user_id, switch_id=sw):
+        resp = anon_client.post("/api/discord/interactions", **_interaction(key, _click("mute", switch_id, user_id)))
+        return resp.get_json()["data"]["content"]
+
+    assert "works incidents" in press("222") and alerting.mutes() == {}
+    assert "not on the floor plan" in press("111", "gone-switch")
+    assert press("111").startswith("Muted sw-a-01 until ")
+    entry = alerting.mutes()[sw]
+    assert entry["by"] == "tech-ana" and entry["reason"] == "Muted from Discord"
+    assert 3500 < entry["until"] - time.time() <= 3600
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Muted switch alerts from Discord" and entries[0]["target"] == "sw-a-01"
+
+
+def test_no_mute_button_without_the_public_key_or_through_a_webhook(bridge, client, monkeypatch):
+    monkeypatch.delenv("DISCORD_APP_PUBLIC_KEY")
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations.discord import DiscordNotifier
+    notifier = DiscordNotifier(crew=bridge)
+    change = {"id": "s1", "name": "sw-a-01", "status": "offline", "previous": "online"}
+    notifier.send(notifier.build_status_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    assert "components" not in body and "_mute" not in body
+
+    # A webhook gets the alert without the private hint.
+    sent = []
+    monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.example.com/api/webhooks/1/x")
+    import integrations.discord as discord_module
+
+    class Ok:
+        status_code = 204
+    monkeypatch.setattr(discord_module.requests, "post", lambda url, json, timeout: sent.append(json) or Ok())
+    notifier._last_alert.clear()
+    notifier.send(notifier.build_status_message([change]))
+    assert sent and "_mute" not in sent[0] and "components" not in sent[0]
+
+
+def test_the_mute_button_id_takes_switch_ids_but_nothing_odd():
+    assert crew.parse_custom_id("fb:mute:3f2b9c1e-7a4d-4e8f-9b1a-2c3d4e5f6a7b") == (
+        "mute", "3f2b9c1e-7a4d-4e8f-9b1a-2c3d4e5f6a7b")
+    assert crew.parse_custom_id("fb:mute:a/b") is None
+    assert crew.parse_custom_id("fb:take:a-b") is None
+
+
+def test_a_service_alert_can_be_muted_from_discord(bridge, client, anon_client, app_module, monkeypatch, key,
+                                                   wall, fake_checks):  # noqa: F811
+    """Issue #274: the same button under a red service on the health wall."""
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations import alerting
+    from integrations.discord import DiscordNotifier
+    # The app's own notifier would post the red wall too, from its thread: keep it out of the count.
+    monkeypatch.setattr(app_module.app.extensions["floorbit_discord"], "post", lambda payload: None)
+    red_wall(wall, fake_checks, monkeypatch)
+
+    notifier = DiscordNotifier(crew=bridge)
+    change = {"id": "demo:game-1", "name": "Game server 1", "status": "down", "previous": "up"}
+    notifier.send(notifier.build_health_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    (button,) = body["components"][0]["components"]
+    assert button["label"] == "Mute Game server 1 for 1 h" and button["custom_id"] == "fb:mute:health:demo:game-1"
+    assert crew.parse_custom_id(button["custom_id"]) == ("mute", "health:demo:game-1")
+
+    users = app_module.app.extensions["auth"].users
+    users.add("tech-ana", "example-pass-1", role="tech", identities={"discord": "111"})
+
+    def press(target):
+        resp = anon_client.post("/api/discord/interactions", **_interaction(key, _click("mute", target)))
+        return resp.get_json()["data"]["content"]
+
+    assert press("health:demo:game-1").startswith("Muted Game server 1 until ")
+    assert alerting.mutes()["health:demo:game-1"]["by"] == "tech-ana"
+    assert "health wall" in press("health:demo:nope")
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Muted service alerts from Discord"
+
+
+def test_an_incident_nobody_takes_gets_one_nudge(bridge, client, app_module, monkeypatch):
+    monkeypatch.setenv("DISCORD_CREW_WAITING_ROLE", "<@&900000000000000077>")
+    waiting = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    taken = client.post("/api/incidents", json={"seat": "A-2", "title": "Slow"}).get_json()
+    client.patch(f"/api/incidents/{taken['id']}", json={"assignee": TEST_USER})
+    with app_module.app.app_context():
+        record = bridge.sync(waiting["id"])
+        bridge.sync(taken["id"])
+        before = len(bridge.fake.calls)
+        assert bridge.nudge_waiting(now=waiting["created_at"] + 9 * 60) == []
+        assert bridge.nudge_waiting(now=waiting["created_at"] + 75 * 60) == [waiting["id"]]
+        # Once only.
+        assert bridge.nudge_waiting(now=waiting["created_at"] + 90 * 60) == []
+    (call,) = bridge.fake.calls[before:]
+    assert call[1] == f"/channels/{record['thread']}/messages"
+    assert call[2]["content"] == "<@&900000000000000077> ⏳ Waiting 1 h 15 min. Nobody has taken it yet."
+    assert call[2]["allowed_mentions"] == {"parse": [], "roles": ["900000000000000077"]}
+
+
+def test_the_nudge_can_be_turned_off_and_pings_nobody_by_default(bridge, client, app_module, monkeypatch):
+    inc = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    with app_module.app.app_context():
+        bridge.sync(inc["id"])
+        monkeypatch.setenv("DISCORD_CREW_WAITING_MINUTES", "0")
+        assert bridge.nudge_waiting(now=inc["created_at"] + 3600) == []
+        monkeypatch.delenv("DISCORD_CREW_WAITING_MINUTES")
+        assert bridge.nudge_waiting(now=inc["created_at"] + 11 * 60) == [inc["id"]]
+    call = bridge.fake.calls[-1]
+    assert call[2]["content"] == "⏳ Waiting 11 min. Nobody has taken it yet."
+    assert call[2]["allowed_mentions"] == {"parse": [], "roles": []}
+
+
+def test_a_sent_job_nobody_sees_gets_one_line_per_sending(bridge, client, app_module, monkeypatch):
+    # Issue #366: same rule as the board's "not seen for"; no ping.
+    inc = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    client.patch(f"/api/incidents/{inc['id']}", json={"assignee": TEST_USER})
+    with app_module.app.app_context():
+        from floorbit import incidents
+        sent = time.time()
+        incidents.stamp(inc["id"], dispatched_at=sent, taken_at=None)
+        record = bridge.sync(inc["id"])
+        before = len(bridge.fake.calls)
+        assert bridge.nudge_unseen(now=sent + 4 * 60) == []
+        assert bridge.nudge_unseen(now=sent + 7 * 60) == [inc["id"]]
+        assert bridge.nudge_unseen(now=sent + 9 * 60) == []
+        (call,) = bridge.fake.calls[before:]
+        assert call[1] == f"/channels/{record['thread']}/messages"
+        assert call[2] == {"content": f"📵 Sent to {TEST_USER} 7 min ago, not seen yet.",
+                           "allowed_mentions": {"parse": []}}
+        # Sent again: it may say so again. Seen: nothing.
+        incidents.stamp(inc["id"], dispatched_at=sent + 20 * 60)
+        assert bridge.nudge_unseen(now=sent + 26 * 60) == [inc["id"]]
+        incidents.stamp(inc["id"], dispatched_at=sent + 40 * 60, taken_at=sent + 41 * 60)
+        assert bridge.nudge_unseen(now=sent + 50 * 60) == []
+        monkeypatch.setenv("DISCORD_CREW_UNSEEN_MINUTES", "0")
+        incidents.stamp(inc["id"], dispatched_at=sent + 60 * 60, taken_at=None)
+        assert bridge.nudge_unseen(now=sent + 90 * 60) == []
+
+
+def test_the_thread_hears_when_the_seat_says_it_works_again(bridge, client, app_module, monkeypatch):
+    # Issue #374: one line when the attendee taps "It works again", and no waiting nudge after it.
+    from floorbit import incidents
+    with app_module.app.app_context():
+        incident, _ = incidents.report_from_seat("A-1", "no-internet", {})
+        record = bridge.sync(incident["id"])
+        incidents.seat_says_ok("A-1")
+        before = len(bridge.fake.calls)
+        bridge.sync(incident["id"])
+        thread = f"/channels/{record['thread']}/messages"
+        lines = [c[2].get("content") for c in bridge.fake.calls[before:] if c[1] == thread]
+        assert lines == ["👍 The seat says it works again. Check or ask before marking it fixed."]
+        before = len(bridge.fake.calls)
+        bridge.sync(incident["id"])                       # once only
+        assert bridge.nudge_waiting(now=incident["created_at"] + 75 * 60) == []
+        assert not [c for c in bridge.fake.calls[before:] if c[1] == f"/channels/{record['thread']}/messages"]

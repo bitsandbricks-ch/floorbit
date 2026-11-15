@@ -308,6 +308,53 @@ class Stats:
             self.peak = {'bps': busiest['down'] + busiest['up'], 'at': busiest['t']}
             self._save()
 
+    def seat_history(self, seat, since):
+        """One seat's link since ``since`` (issue #167): whether it was online then (None while
+        nothing was read yet) and every change after, as [t, 1|0]."""
+        with self._lock:
+            self._load()
+            base_t = self.seat_base['t']
+            if base_t is None:
+                return {'from': since, 'start': None, 'changes': []}
+            state = seat in self.seat_base['online']
+            start = max(since, base_t)
+            changes = []
+            for t, s, on in self.seat_events:
+                if s != seat:
+                    continue
+                if t <= start:
+                    state = bool(on)
+                else:
+                    changes.append([t, on])
+            return {'from': start, 'start': state, 'changes': changes}
+
+    def changes_at(self, t):
+        """The seats that went online (1) or offline (0) at the read at ``t``, as [[seat, 1|0]]
+        (issue #178). The first read is not a change."""
+        with self._lock:
+            if self.seat_base['t'] is not None and t <= self.seat_base['t']:
+                return []
+            out = []
+            for when, seat, on in reversed(self.seat_events):
+                if when < t:
+                    break
+                if when == t:
+                    out.append([seat, on])
+            return sorted(out)
+
+    def changed_since(self, since):
+        """Seats whose link changed after ``since`` (issue #171), with the time of their last change.
+        The first read is not a change: before it, nothing was known."""
+        with self._lock:
+            self._load()
+            first = self.seat_base['t']
+            out = {}
+            for t, seat, _on in reversed(self.seat_events):
+                if t <= since or (first is not None and t <= first):
+                    break
+                out.setdefault(seat, t)
+            return out
+
     def seats(self):
         """Traffic per online seat from the latest read: seat numbers and numbers, nothing else."""
         with self._lock:

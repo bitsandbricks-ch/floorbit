@@ -30,12 +30,14 @@ async function init() {
   doRefreshAll().catch(() => {});
   loadIncidentMarkers();
   loadMatchSeats();
+  initSeatStates();
   loadPortInfo();
   loadSecurityMarkers();
   loadLogMarkers();
   if (powerOn) setPowerLayer(readJSON('layer-power', false));
   loadPowerMarkers();
   loadProblemCount();
+  loadNotice();
   focusFromUrl();
 }
 

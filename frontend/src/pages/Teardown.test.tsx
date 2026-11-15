@@ -29,6 +29,7 @@ describe('Teardown', () => {
     renderWithApp(<Teardown />)
     expect(await screen.findByText('3 things left')).toBeInTheDocument()
     expect(screen.getByText('sw-spare-01')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /with tech-ana/ })).toHaveAttribute('href', '/gear?holder=tech-ana')
     expect(screen.getByText(/An admin downloads the export/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox', { name: 'sw-a-01' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'PUT' && JSON.stringify(c.body) === '{"done":true}')).toBe(true))

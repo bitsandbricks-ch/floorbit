@@ -36,7 +36,7 @@ describe('Traffic', () => {
     expect(screen.getByText('Steam')).toBeInTheDocument()
     expect(screen.getByText(/once 5 different seats used it/)).toBeInTheDocument()
     const seats = screen.getByRole('table')
-    expect(within(seats).getByRole('link', { name: 'A-12' })).toHaveAttribute('href', '/?seat=A-12')
+    expect(within(seats).getByRole('link', { name: 'A-12' })).toHaveAttribute('href', '/plan?seat=A-12')
     expect(within(seats).getByText(/mostly Gaming/)).toBeInTheDocument()
     expect(screen.getByText('P2P or torrent traffic from seat D-5')).toBeInTheDocument()
   })

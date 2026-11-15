@@ -9,9 +9,9 @@ afterEach(() => vi.unstubAllGlobals())
 const now = Date.now() / 1000
 const list = (over: Partial<ProblemList> = {}): ProblemList => ({
   problems: [
-    { id: 'switch:s1', kind: 'switch', level: 'down', title: 'sw-c-02 is offline', where: 'sw-c-02', since: now - 300, link: '/', switch_id: 's1', muted: null },
+    { id: 'switch:s1', kind: 'switch', level: 'down', title: 'sw-c-02 is offline', where: 'sw-c-02', since: now - 300, link: '/plan?switch=sw-c-02', switch_id: 's1', muted: null },
     { id: 'power:c1', kind: 'power', level: 'warn', title: 'Circuit B row 2 getting close (86.9 %)', where: 'Feeds 12 seats', since: now, link: '/power' },
-    { id: 'switch:s2', kind: 'switch', level: 'down', title: 'sw-d-01 is offline', where: 'sw-d-01', since: now - 60, link: '/', switch_id: 's2',
+    { id: 'switch:s2', kind: 'switch', level: 'down', title: 'sw-d-01 is offline', where: 'sw-d-01', since: now - 60, link: '/plan?switch=sw-d-01', switch_id: 's2',
       muted: { until: now + 3600, by: 'kim', reason: 'Recabling' } },
   ],
   counts: { down: 1, warn: 1, muted: 1 },
@@ -30,19 +30,23 @@ describe('Problems', () => {
     const card = (label: string) => screen.getByText(label, { selector: 'dt' }).closest('dl')
     expect(card('Down')).toHaveTextContent('Down1')
     expect(card('Muted')).toHaveTextContent('Muted1')
+    // Down and warn show in a background tab; the muted switch doesn't (issue #214).
+    expect(document.title).toBe('(2) Problems · Floorbit')
     const muted = screen.getByRole('article', { name: 'sw-d-01 is offline' })
     expect(within(muted).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     expect(within(muted).getByText(/Recabling/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Muted switches' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Muted switches and services' })).toBeInTheDocument()
+    // The muted switch opens on the floor plan, in its hall (issue #212).
+    expect(screen.getByRole('link', { name: 'sw-d-01' })).toHaveAttribute('href', '/plan?switch=sw-d-01')
   })
 
   it('lists ports that need attention, linked to the floor plan', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
       attention: [
         { id: 'attention:checkin:s1:Gi1/0/12', kind: 'checkin', level: 'warn', title: 'Seat A-12 is online without a check-in',
-          where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/?seat=A-12', switch_id: 's1' },
+          where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/plan?seat=A-12', switch_id: 's1' },
         { id: 'attention:flapping:s1:Gi1/0/9', kind: 'flapping', level: 'warn', title: 'Port flapping: 4 link changes in 10 minutes',
-          where: 'sw-a-01 Gi1/0/9', since: now - 120, link: '/?switch=s1', switch_id: 's1' },
+          where: 'sw-a-01 Gi1/0/9', since: now - 120, link: '/plan?switch=sw-a-01', switch_id: 's1' },
       ],
     }) }).fn)
     renderWithApp(<Problems />)
@@ -51,7 +55,7 @@ describe('Problems', () => {
     expect(items.map((a) => a.getAttribute('aria-label'))).toEqual([
       'Seat A-12 is online without a check-in', 'Port flapping: 4 link changes in 10 minutes'])
     expect(within(items[0]).getByText('Check-in')).toBeInTheDocument()
-    expect(within(items[1]).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/?switch=s1')
+    expect(within(items[1]).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/plan?switch=sw-a-01')
     expect(within(section).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
   })
 
@@ -68,9 +72,93 @@ describe('Problems', () => {
       .toEqual({ switch_id: 's1', minutes: 60, reason: 'Swapping the PSU' }))
   })
 
+  it('makes a running mute last half an hour longer', async () => {
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list(), 'PATCH /api/alerts/mutes/s2': { body: {} } })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Mute sw-d-01 30 minutes longer' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ minutes: 30 }))
+  })
+
+  it('shows one kind at a time, with counts, and keeps it in the link', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />, '/problems?kind=power')
+    expect(await screen.findByRole('article', { name: /Circuit B row 2/ })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Switch'))
+    expect(await screen.findAllByRole('article')).toHaveLength(2)
+    expect(screen.queryByRole('article', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('All'))
+    expect(await screen.findAllByRole('article')).toHaveLength(3)
+  })
+
+  it('makes an incident from an offline switch, or links the open one', async () => {
+    const problems = list().problems.map((p) => p.id === 'switch:s1' ? { ...p, name: 'sw-c-02', incident: null }
+      : p.id === 'switch:s2' ? { ...p, name: 'sw-d-01', incident: 'abc123' } : p)
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems, can_report: true }),
+      'POST /api/incidents': { status: 201, body: {} } })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const open = await screen.findByRole('article', { name: 'sw-d-01 is offline' })
+    expect(within(open).getByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents?q=switch%3Asw-d-01')
+    const down = screen.getByRole('article', { name: 'sw-c-02 is offline' })
+    fireEvent.click(within(down).getByRole('button', { name: 'Make an incident' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/incidents')?.body)
+      .toEqual({ switch_id: 's1', title: 'sw-c-02 is offline' }))
+  })
+
+  it('says when a mute is about to end, and only then', async () => {
+    const mutes = [
+      { switch_id: 's2', name: 'sw-d-01', until: now + 240, at: now, by: 'kim', reason: '' },
+      { switch_id: 's3', name: 'sw-d-02', until: now + 3600, at: now, by: 'kim', reason: '' },
+    ]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ mutes }) }).fn)
+    renderWithApp(<Problems />)
+    expect(await screen.findByText('ends in 4 minutes')).toBeInTheDocument()
+    expect(screen.getAllByText(/^ends in/)).toHaveLength(1)
+  })
+
+  it('mutes a service on the health wall, and lists it with the muted switches', async () => {
+    const service = { id: 'health:demo:game-1', kind: 'health' as const, level: 'down' as const, title: 'Game server 1: down', where: 'Not answering',
+      since: now, link: '/health', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/problems': list({ problems: [service], mutes: [{ switch_id: 'health:demo:dns', kind: 'health', name: 'DNS', until: now + 600, at: now, by: 'kim', reason: '' }] }),
+      'POST /api/alerts/mutes': { status: 201, body: {} },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const row = await screen.findByRole('article', { name: 'Game server 1: down' })
+    expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/health')
+    fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for Game server 1' })
+    expect(within(dialog).getByText(/this service going down/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
+      .toEqual({ service_id: 'demo:game-1', minutes: 60, reason: '' }))
+  })
+
   it('says when all is well', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems: [], mutes: [], counts: { down: 0, warn: 0, muted: 0 } }) }).fn)
     renderWithApp(<Problems />)
     expect(await screen.findByText('Nothing is wrong right now.')).toBeInTheDocument()
+    expect(document.title).toBe('Problems · Floorbit')
+  })
+
+  it('copies what is shown as text for the crew chat', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy list' }))
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    const text: string = writeText.mock.calls[0][0]
+    const lines = text.split('\n')
+    expect(lines[0]).toMatch(/^Problems [^:]+:\d\d[^:]*: 1 down · 1 to look at · 1 muted$/)
+    expect(lines[1]).toBe('- [Switch] sw-c-02 is offline (sw-c-02, since 5 min)')
+    expect(lines[2]).toBe('- [Power] Circuit B row 2 getting close (86.9 %) (Feeds 12 seats, since just now)')
+    expect(lines[3]).toMatch(/^- \[Switch\] sw-d-01 is offline \(sw-d-01, since 1 min, Muted until .+ by kim\)$/)
+    expect(text).toContain('Muted switches and services:\n- sw-d-01, Muted until')
+    expect(text).toContain('(Recabling)')
   })
 })

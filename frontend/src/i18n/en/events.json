@@ -12,6 +12,7 @@
     "bytes_moved": "Data moved (estimate)",
     "incidents": "Incidents",
     "median_fix_s": "Median time to fix",
+    "median_take_s": "Median time until someone takes it",
     "outages": "Switch outages",
     "down_s": "Switch downtime in all",
     "cache_saved_bytes": "Cache savings"

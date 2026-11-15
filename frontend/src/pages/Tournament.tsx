@@ -3,6 +3,7 @@ import { IconTrophy } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -118,7 +119,8 @@ export default function Tournament() {
 
   return (
     <Layout title={t('tournament.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      <PageHead title={t('tournament.title')} desc={t('tournament.intro')} />
+      <PageHead title={t('tournament.title')} desc={t('tournament.intro')}
+        actions={<Button component={Link} to="/tournament/brackets" variant="default" leftSection={<IconTrophy size={16} />}>{t('tournament.brackets')}</Button>} />
       <Stack gap="md">
         {(query.error ?? remove.error) && <Alert color="down" role="alert">{t('common.error', { message: (query.error ?? remove.error)!.message })}</Alert>}
         {query.isPending ? <Loader aria-label={t('common.loading')} /> : data && (

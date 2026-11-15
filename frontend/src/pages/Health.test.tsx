@@ -36,6 +36,8 @@ describe('Health wall', () => {
     expect(within(tile).getByText('Leases left')).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Game server 3: Down' })).toBeInTheDocument()
     expect(screen.getByText('1 down')).toBeInTheDocument()
+    // One down and one degraded: a background tab shows two (issue #216).
+    expect(document.title).toBe('(2) Service health · Floorbit')
     // Only accounts that may run plugins can ask for a check now.
     expect(screen.queryByRole('button', { name: 'Check now' })).not.toBeInTheDocument()
   })
@@ -51,6 +53,15 @@ describe('Health wall', () => {
     renderWithApp(<Health />)
     fireEvent.click(await screen.findByRole('button', { name: 'Check now' }))
     await waitFor(() => expect(screen.queryByText('Game server 3')).not.toBeInTheDocument())
+  })
+
+  it('marks a muted service and leaves it out of the tab count (issue #260)', async () => {
+    const muted = { ...wall, checks: wall.checks.map((c) => c.id === 'demo:game-3' ? { ...c, muted_until: now + 1800 } : c) }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me(['floorplan.view']), 'GET /api/health': muted }).fn)
+    renderWithApp(<Health />)
+    const tile = await screen.findByRole('article', { name: 'Game server 3: Down' })
+    expect(within(tile).getByText(/alerts muted until/)).toBeInTheDocument()
+    await waitFor(() => expect(document.title).toBe('(1) Service health · Floorbit'))
   })
 
   it('says how to get services onto the wall', async () => {

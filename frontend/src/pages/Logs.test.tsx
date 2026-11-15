@@ -27,7 +27,7 @@ describe('Logs', () => {
     renderWithApp(<Logs />)
     expect(await screen.findByText('Interface Gi1/0/4, changed state to down')).toBeInTheDocument()
     expect(screen.getByText('Error')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'seat A-4' })).toHaveAttribute('href', '/?seat=A-4')
+    expect(screen.getByRole('link', { name: 'seat A-4' })).toHaveAttribute('href', '/plan?seat=A-4')
     expect(screen.getByText('Listening on UDP 5514')).toBeInTheDocument()
     expect(screen.getByText(/2 from senders not allowed/)).toBeInTheDocument()
   })

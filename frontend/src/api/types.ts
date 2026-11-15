@@ -283,13 +283,23 @@ export interface Incident {
   speedtest?: SpeedtestResult | null
   created_at: number
   updated_at: number
+  /** When it was marked fixed; null while not fixed. */
+  fixed_at?: number | null
   dispatched_at?: number | null
   taken_at?: number | null
+  /** The attendee said on the help page that it works again (issue #372); the crew still decides. */
+  seat_ok_at?: number | null
+  /** The seat's switch is down right now (issue #386). */
+  outage?: { switch: string; since: number } | null
+  /** Filed while the seat's switch was down, and the switch is back since (issue #390). */
+  back_up?: { switch: string; since: number } | null
   match?: string | null
   can_work: boolean
   can_assign: boolean
   /** The first runbook for this kind of incident (issue #102). */
   runbook?: { id: string; title: string } | null
+  /** The seat's crew note (issue #204). */
+  seat_note?: { text: string; by: string | null; at: number } | null
 }
 export interface IncidentBoard {
   incidents: Incident[]
@@ -325,6 +335,8 @@ export interface HealthCheck {
   plugin: string
   plugin_name: string
   since: number
+  /** Until when its alerts are muted (issue #260), or null. */
+  muted_until?: number | null
 }
 export interface HealthWall {
   checks: HealthCheck[]
@@ -430,7 +442,9 @@ export interface PowerOverview {
 export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
+  /** The switch id, or ``health:<service id>`` for a service (issue #256). */
   switch_id: string
+  kind?: 'switch' | 'health'
   name: string
   until: number
   at: number
@@ -446,9 +460,14 @@ export interface Problem {
   since: number | null
   link: string
   switch_id?: string
+  /** What /api/alerts/mutes takes to mute it: switches and services only. */
+  mute_id?: string
+  name?: string
   muted?: { until: number; by: string | null; reason: string } | null
   /** The match zone, when the problem is at a tournament seat (issue #31). */
   match?: string | null
+  /** An offline switch's open incident, for people who see the board (issue #278). */
+  incident?: string | null
 }
 export interface ProblemList {
   problems: Problem[]
@@ -458,6 +477,7 @@ export interface ProblemList {
   quiet_hours: boolean
   checked_at: number
   can_mute: boolean
+  can_report?: boolean
 }
 export type SetupStep = 'netbox' | 'librenms' | 'switches' | 'theme'
 export interface SetupState {
@@ -649,7 +669,7 @@ export interface EventReport {
   hours: ReportHour[]
   outages: ReportOutage[]
   problem_ports: ReportPort[]
-  incidents: { total: number; fixed: number; open: number; from_seats: number; median_fix_s: number | null; items: ReportIncident[] }
+  incidents: { total: number; fixed: number; open: number; from_seats: number; median_fix_s: number | null; median_take_s?: number | null; repeat_seats?: { seat: string; count: number }[]; seat_problems?: { problem: string; count: number }[]; items: ReportIncident[] }
 }
 
 /** GET /api/jobs: the tech's own jobs and duty status (issue #30). Plan points are in the drawing's units. */
@@ -659,12 +679,14 @@ export interface Job {
   circuit_id: string | null; circuit_name: string | null; status: IncidentStatus; team: string | null
   source: string; reports: number; created_at: number; dispatched_at: number | null; taken_at: number | null
   notes: { by: string | null; at: number; text: string }[]
+  /** The attendee tapped "It works again" on the seat's help page (issue #382). */
+  seat_ok_at?: number | null
   drawing: PlanDrawing | null; target: [number, number] | null; from: [number, number] | null; hall: string | null
   /** The steps for this kind of incident, right on the job (issue #102). */
   runbook?: { id: string; title: string; body: string } | null
 }
-export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean }
-export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number }
+export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number; auto?: boolean }
+export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number; done?: number }
 
 /** Tournament awareness (issue #31). */
 export interface MatchZone { id: string; name: string; blocks: string[]; seats: string[]; note: string }
@@ -688,12 +710,19 @@ export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
   counts: HandoverCounts
 }
-export interface HandoverCounts { open: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number }
+export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number; median_fix_s?: number | null }
 export interface HandoverData {
   since: number; now: number; previous: HandoverRecord | null
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
   outages: { switch_id: string; name: string; down_at: number; back_at: number | null; down_s: number }[]
   changes: { at: number; user: string | null; area: string; action: string; target: string | null }[]
+  /** Crew notes on seats written or changed this shift (issue #202). */
+  seat_notes: { seat: string; text: string; by: string | null; at: number }[]
+  /** What is muted right now, and the crew notice that is up (issue #258). */
+  mutes?: { kind: 'switch' | 'health'; name: string; until: number; by: string | null; reason: string }[]
+  notice?: CrewNotice | null
+  /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
+  gear?: { to: string; count: number; names: string[] }[]
   counts: HandoverCounts
   history: HandoverRecord[]
   discord: boolean
@@ -760,6 +789,8 @@ export interface EventFigures {
   incidents_fixed: number
   from_seats: number
   median_fix_s: number | null
+  /** From reported to first taken by someone (issue #294); null for events archived before it. */
+  median_take_s: number | null
   outages: number
   down_s: number
   problem_ports: number
@@ -1074,6 +1105,10 @@ export interface StatusPageData {
   since: number | null
   areas: StatusArea[]
   crew_areas: StatusArea[]
+  /** Areas whose switch came back in the last half hour, with switch names (issue #396). */
+  recovered: StatusArea[]
+  recovered_at: number | null
+  crew_recovered: StatusArea[]
   updates: StatusUpdate[]
   checked_at: number
   /** Is /status switched on (Settings > Public)? */
@@ -1094,4 +1129,213 @@ export interface Runbook {
   starter: boolean
   updated_at: number | null
   by: string | null
+}
+
+/** One frame of the whole-event recording (issue #104). blocks: name -> [seats, online, bps, open incidents]. */
+export interface EventFrame {
+  t: number
+  down: number
+  up: number
+  online: number
+  seats: string[]
+  incidents: string[]
+  blocks: Record<string, [number, number, number, number]>
+}
+
+/** GET /api/replay/event: the whole event of one hall, a frame every 5 minutes, thinned out as it ages. */
+export interface EventReplayData {
+  halls: { id: string; name: string }[]
+  hall: string
+  drawing: PlanDrawing | null
+  frames: EventFrame[]
+  start: number | null
+  end: number | null
+  step: number
+}
+
+/** The event schedule (issue #106): talks, tournaments, meals and quiet hours. */
+export type ScheduleKind = 'talk' | 'tournament' | 'meal' | 'quiet' | 'other'
+export interface ScheduleItem {
+  id: string
+  title: string
+  kind: ScheduleKind
+  start: number
+  end: number | null
+  where: string
+  note: string
+  source: 'floorbit' | 'ical'
+  uid: string | null
+  updated_at: number | null
+  by: string | null
+}
+export interface ScheduleData {
+  event: { start: number | null; end: number | null }
+  items: ScheduleItem[]
+  kinds: ScheduleKind[]
+  public: boolean
+}
+
+/** Tournament brackets (issue #107): single elimination, entered here or imported from a plugin. */
+export interface BracketSide { name: string | null; score: number | null }
+export interface BracketMatch {
+  id: string
+  a: BracketSide
+  b: BracketSide
+  status: 'waiting' | 'live' | 'done'
+  winner: 'a' | 'b' | null
+  seats: string[]
+  station: string
+  zones: string[]
+}
+export interface Bracket {
+  id: string
+  name: string
+  zone_id: string | null
+  source: 'floorbit' | 'import'
+  plugin: string | null
+  rounds: BracketMatch[][]
+  updated_at: number | null
+  by: string | null
+}
+export interface BracketsData {
+  brackets: Bracket[]
+  zones: { id: string; name: string }[]
+  sources: string[]
+  public: boolean
+}
+
+/** GET /api/plan (issue #55): every seat with one state, for the floor plan view. No nicks or IPs. */
+export type SeatState = 'online' | 'offline' | 'unknown'
+
+export interface PlanSeat {
+  state: SeatState
+  checked_in?: boolean
+  taken?: boolean
+  problems?: number
+  match?: string
+  bps?: number
+  /** When the link last changed, if within the last 15 minutes (issue #171). */
+  changed?: number
+  /** The crew left a note on the seat (issue #180); its text is in SeatDetails. */
+  note?: boolean
+}
+
+export interface PlanBlock {
+  name: string
+  seats: number
+  online: number
+  problems: number
+}
+
+export interface PlanSwitch {
+  id: string
+  name: string
+  status: string
+  x: number
+  y: number
+}
+
+export interface SeatViewData {
+  /** Each hall's totals, for the hall picker (issue #196). */
+  halls: { id: string; name: string; seats: number; online: number; problems: number }[]
+  hall: string
+  drawing: PlanDrawing | null
+  size: { w: number; h: number; cell: number }
+  background: string | null
+  switches: PlanSwitch[]
+  seats: Record<string, PlanSeat>
+  blocks: PlanBlock[]
+  monitoring: boolean
+  checkin: boolean
+  last_read: number | null
+}
+
+/** GET /api/plan/seats/<seat>: one seat for the inspector. nick, ip and mac only with seats.view. */
+export interface SeatDetails {
+  seat: string
+  block: string
+  state: SeatState
+  bps: number | null
+  switch: string | null
+  port: string | null
+  incidents: { id: string; title: string; status: string; created_at: number }[]
+  /** Incidents fixed at this seat before, and the latest one (issue #330). */
+  fixed_before?: { count: number; last: { title: string; fixed_at: number | null } | null }
+  attention: { kind: string; title: string; since: number }[]
+  /** The link over the last hours (issue #167): online at ``from`` (null: not read yet), then each change. */
+  history?: { from: number; to: number; start: boolean | null; changes: [number, number][] }
+  match: string | null
+  checked_in: boolean | null
+  last_read: number | null
+  people: boolean
+  /** May this account read and write the seat's note (incidents.work)? */
+  crew: boolean
+  note?: SeatNote | null
+  /** The player's speed tests from the help page, newest first (issue #182); crew only. */
+  speedtests?: SeatSpeedTest[]
+  nick?: string | null
+  ip?: string | null
+  mac?: string | null
+}
+
+/** One speed test the player ran from the seat's help page (issue #99). */
+export interface SeatSpeedTest { down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; jitter_ms?: number | null; at: number }
+
+/** GET /api/plan/find: a player by nick, IP or MAC, and the hall their seat is in (issue #186). */
+export interface PlayerHit { seat: string; nick: string; matched: string; hall: string }
+
+/** A crew note on a seat (issue #180). */
+export interface SeatNote { text: string; by: string | null; at: number }
+
+/** One seat block for the Seats view's block panel (issue #174). */
+export interface BlockDetails {
+  name: string
+  hall: string
+  seats: number
+  online: number
+  offline: number
+  unknown: number
+  checked_in: number | null
+  bps: number
+  problems: { seat: string; state: SeatState; problems: number }[]
+  switches: { name: string; seats: number; online: number; status: string }[]
+  no_port: number
+}
+
+/** One switch for the Seats view's switch panel (issue #176). */
+export interface SwitchDetails {
+  name: string
+  status: string
+  since: number | null
+  model: string | null
+  online: number
+  seats: { seat: string; port: string; state: SeatState; problems: number }[]
+}
+
+/** GET /api/notice (issue #246): the lead's message to the whole crew. */
+export interface CrewNotice {
+  text: string
+  level: 'info' | 'warn'
+  /** Unix time it ends, or null: until a lead takes it down. */
+  until: number | null
+  by: string | null
+  at: number
+}
+
+/** A page for the "Go to" palette, from GET /api/pages (issues #242, #250): the server picks the
+ *  pages this account may open with the features and set-up this event has, so the floor plan,
+ *  Settings and the React pages all offer the same list. */
+export interface PageLink {
+  href: string
+  /** Key under goto.pages in the i18n files; ``label`` is the English fallback. */
+  id: string
+  label: string
+}
+
+/** A seat or switch for "Go to", from GET /api/pages/find (issue #252). */
+export interface Place {
+  /** player: a nick, IP or MAC and its seat, only for seats.view (issue #292). */
+  kind: 'seat' | 'switch' | 'player'
+  name: string
+  href: string
 }

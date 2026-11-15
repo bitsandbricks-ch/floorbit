@@ -78,7 +78,13 @@ kbd {
 }
 .topbar-brand { display: flex; align-items: center; gap: 10px; width: calc(var(--sidebar-w) - var(--sp-4)); flex-shrink: 0; }
 .topbar-brand .fb-brand-name { font-size: var(--fs-lg); }
-.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+/* The page links: with many pages on they scroll sideways here instead of pushing Sign out and
+   Settings off the screen, where the body's overflow: hidden made them unreachable (issue #238). */
+.topbar-nav { position: relative; display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+/* position: relative keeps the visually hidden labels (position: absolute) inside the strip. */
+.topbar-nav .btn { flex-shrink: 0; }
+.topbar-actions > :not(.topbar-nav) { flex-shrink: 0; }
 
 .status-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
 .status-chip {
@@ -100,7 +106,7 @@ kbd {
 .status-glyph { font-size: 10px; font-weight: 700; }
 .chip-offline.has-items { border-color: color-mix(in srgb, var(--danger) 60%, transparent); background: var(--danger-dim); }
 
-.last-updated { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.last-updated { font-size: var(--fs-xs); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .last-updated.stale { color: var(--warning); }
 .last-updated.error { color: var(--danger); }
 /* Last good data while the monitoring source is down (docs/offline.md). */
@@ -270,7 +276,7 @@ kbd {
 .switch-item.active { background: var(--accent-dim); }
 .switch-item-glyph { width: 14px; text-align: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
 .switch-item-name { flex: 1; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.switch-item-status { font-size: var(--fs-xs); color: var(--text-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.switch-item-status { font-size: var(--fs-xs); color: var(--text-secondary); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .list-filter {
   display: flex; align-items: center; justify-content: space-between;
   font-size: var(--fs-xs); color: var(--text-secondary);
@@ -876,6 +882,13 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .seat-block-seat.has-incident, .switch-marker.has-incident .switch-pin { animation: none; }
 }
+/* Muted switches (static/js/editor/mutes.js): a bell-off badge on the pin's corner. */
+.switch-muted {
+  position: absolute; top: -6px; right: -9px; width: 12px; height: 12px; padding: 1px;
+  border-radius: 50%; background: var(--color-surface); color: var(--text-secondary);
+  box-shadow: 0 0 0 1px var(--border); display: flex;
+}
+.switch-muted svg { width: 100%; height: 100%; }
 .nav-count {
   display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 2px; border-radius: 9px;
   background: var(--color-down); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
@@ -939,6 +952,8 @@ kbd {
   .topbar-actions { position: relative; overflow-x: auto; scrollbar-width: none; gap: 2px; min-width: 0; }
   .topbar-actions::-webkit-scrollbar { display: none; }
   .topbar-actions .btn { flex-shrink: 0; min-height: 40px; }
+  /* Here the whole row scrolls, so the page links keep their width (issue #238). */
+  .topbar-nav { flex-shrink: 0; overflow-x: visible; }
   .topbar-actions .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   .sidebar {
@@ -1002,3 +1017,40 @@ kbd {
 .halls-add { display: flex; gap: var(--sp-2); }
 .halls-add .modal-input { flex: 1; margin: 0; }
 @media (max-width: 720px) { .hall-select { max-width: 110px; } }
+
+/* Seat states layer (static/js/editor/seat-states.js, issue #55): the same shapes as the Seats
+   view, so a state never relies on colour alone. The traffic heatmap wins while it is on. */
+.seat-block-seat.st-online:not(.heat) { background: var(--color-up); border-color: color-mix(in srgb, var(--color-up) 70%, var(--color-fg)); color: var(--color-ink); }
+.seat-block-seat.st-offline:not(.heat) {
+  background: linear-gradient(to top right, transparent calc(50% - 1px), var(--color-down) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)), var(--bg-tertiary);
+  border: 2px solid var(--color-down); color: var(--text-primary);
+}
+.seat-block-seat.st-unknown:not(.heat) { border-style: dashed; border-color: var(--text-secondary); }
+.seat-block-seat.st-checked { position: relative; }
+.seat-block-seat.st-checked::after {
+  content: ''; position: absolute; top: -1px; right: -1px; width: 0; height: 0;
+  border-top: 8px solid var(--color-trace); border-left: 8px solid transparent;
+}
+.seat-block-seat.st-online.selected, .seat-block-seat.st-offline.selected { outline: 3px solid var(--color-trace); outline-offset: 1px; }
+.seat-states-legend { flex-direction: row !important; flex-wrap: wrap; gap: 6px 12px !important; font-size: var(--fs-xs); color: var(--text-secondary); }
+.seat-states-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.seat-states-legend a { width: 100%; color: var(--accent); font-weight: 600; text-decoration: none; }
+.seat-key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--bg-tertiary); border: 1px solid var(--border); position: relative; }
+.seat-key.st-online { background: var(--color-up); border-color: var(--color-up); }
+.seat-key.st-offline { border: 2px solid var(--color-down); background: linear-gradient(to top right, transparent 45%, var(--color-down) 45% 55%, transparent 55%), var(--bg-tertiary); }
+.seat-key.st-unknown { border-style: dashed; border-color: var(--text-secondary); }
+.seat-key.st-checked::after { content: ''; position: absolute; top: -1px; right: -1px; border-top: 8px solid var(--color-trace); border-left: 8px solid transparent; }
+
+/* Crew notice under the top bar (issue #246); same message as the React pages' banner. */
+.crew-notice {
+  display: flex; align-items: flex-start; gap: var(--sp-3); padding: 8px var(--sp-4);
+  background: color-mix(in srgb, var(--color-trace) 12%, var(--bg-secondary));
+  border-bottom: 1px solid var(--border); color: var(--text-primary); flex-shrink: 0;
+}
+.crew-notice[hidden] { display: none; }
+.crew-notice > svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; color: var(--color-trace); }
+.crew-notice-warn { background: color-mix(in srgb, var(--color-warn) 14%, var(--bg-secondary)); }
+.crew-notice-warn > svg { color: var(--color-warn); }
+.crew-notice-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); align-items: baseline; }
+.crew-notice-text { overflow-wrap: anywhere; }
+.crew-notice-meta { color: var(--text-secondary); font-size: var(--fs-sm, 12px); }

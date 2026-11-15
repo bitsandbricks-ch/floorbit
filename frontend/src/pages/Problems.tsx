@@ -1,9 +1,10 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Modal, Paper, Select, Stack, Text, TextInput, Title } from '@mantine/core'
-import { IconBellOff } from '@tabler/icons-react'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { IconBellOff, IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, post } from '@/api/client'
+import { useSearchParams } from 'react-router-dom'
+import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useProblems } from '@/api/queries'
@@ -11,6 +12,8 @@ import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
+import { useNowSeconds } from '@/components/useNowSeconds'
+import { problemsText } from './problems/format'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
 type T = (k: string, o?: Record<string, unknown>) => string
@@ -22,9 +25,15 @@ function ago(ts: number, t: T) {
   return t('problems.hoursAgo', { count: Math.round(mins / 60) })
 }
 
+/** A mute this close to its end gets a badge, so +30 min is pressed before the alerts come back (issue #266). */
+const ENDING_SOON = 10 * 60
+
+
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy: boolean; onMute: () => void }) {
+function Row({ p, canMute, busy, onMute, onReport }: {
+  p: Problem; canMute: boolean; busy: boolean; onMute: () => void; onReport?: () => void
+}) {
   const { t } = useTranslation()
   return (
     <Paper withBorder radius="md" p="sm" component="article" aria-label={p.title}
@@ -48,7 +57,16 @@ function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy:
         <Group gap="xs" wrap="nowrap">
           {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since, t) })}</Text>}
           {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
-          {canMute && p.kind === 'switch' && !p.muted && (
+          {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
+          {p.incident && (
+            <Button size="xs" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.kind === 'switch' && p.name ? `switch:${p.name}` : p.name ?? p.where)}`}>
+              {t('problems.incidentOpen')}
+            </Button>
+          )}
+          {onReport && p.kind === 'switch' && p.incident === null && (
+            <Button size="xs" variant="subtle" onClick={onReport} disabled={busy}>{t('problems.report')}</Button>
+          )}
+          {canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
             <Button size="xs" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={onMute} disabled={busy}>{t('problems.mute')}</Button>
           )}
         </Group>
@@ -57,8 +75,10 @@ function Row({ p, canMute, busy, onMute }: { p: Problem; canMute: boolean; busy:
   )
 }
 
+type MuteTarget = { id: string; name: string; kind: 'switch' | 'health' }
+
 function MuteDialog({ target, busy, error, onClose, onSave }: {
-  target: { id: string; name: string } | null
+  target: MuteTarget | null
   busy: boolean
   error: string | null
   onClose: () => void
@@ -66,13 +86,15 @@ function MuteDialog({ target, busy, error, onClose, onSave }: {
 }) {
   const { t } = useTranslation()
   return (
-    <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })}>
-      <MuteForm busy={busy} error={error} onClose={onClose} onSave={onSave} />
+    <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })} closeButtonProps={{ 'aria-label': t('problems.cancel') }}>
+      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : 'problems.muteText')}
+        busy={busy} error={error} onClose={onClose} onSave={onSave} />
     </Modal>
   )
 }
 
-function MuteForm({ busy, error, onClose, onSave }: {
+function MuteForm({ text, busy, error, onClose, onSave }: {
+  text: string
   busy: boolean
   error: string | null
   onClose: () => void
@@ -84,7 +106,7 @@ function MuteForm({ busy, error, onClose, onSave }: {
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(Number(minutes), reason.trim()) }}>
       <Stack gap="sm">
-        <Text size="sm">{t('problems.muteText')}</Text>
+        <Text size="sm">{text}</Text>
         <Select label={t('problems.for')} data={MINUTES.map((m) => ({ value: m, label: t(`problems.minutes.${m}`) }))}
           value={minutes} onChange={setMinutes} allowDeselect={false} />
         <TextInput label={t('problems.reason')} value={reason} maxLength={200} onChange={(e) => setReason(e.currentTarget.value)} />
@@ -98,35 +120,70 @@ function MuteForm({ busy, error, onClose, onSave }: {
   )
 }
 
-/** Everything wrong right now, in one list, with mutes for switches someone is working on (issue #10). */
+/** Everything wrong right now, in one list, with mutes for switches and services someone is working on (issues #10, #256). */
 export default function Problems() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const list = useProblems()
-  const [target, setTarget] = useState<{ id: string; name: string } | null>(null)
+  const [target, setTarget] = useState<MuteTarget | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
+  const now = useNowSeconds()
+  // One kind at a time, kept in the address so a reload or a shared link keeps it (issue #276).
+  const [params, setParams] = useSearchParams()
+  const shown = params.get('kind') ?? 'all'
+  const showKind = (v: string) => setParams((prev) => {
+    const next = new URLSearchParams(prev)
+    if (v === 'all') next.delete('kind'); else next.set('kind', v)
+    return next
+  }, { replace: true })
   const refresh = () => void client.invalidateQueries({ queryKey: qk.problems })
   useLiveEvent('monitor.poll', refresh)
   useLiveEvent('alerts.changed', refresh)
   useLiveEvent('power.changed', refresh)
   useLiveEvent('attention.changed', refresh)
+  useLiveEvent('incident.changed', refresh)
 
   const mute = useMutation({
-    mutationFn: (v: { id: string; minutes: number; reason: string }) =>
-      post('/api/alerts/mutes', { switch_id: v.id, minutes: v.minutes, reason: v.reason }),
+    // A service on the health wall is muted by its own id (issue #256), a switch by its id.
+    mutationFn: (v: MuteTarget & { minutes: number; reason: string }) =>
+      post('/api/alerts/mutes', { [v.kind === 'health' ? 'service_id' : 'switch_id']: v.kind === 'health' ? v.id.replace(/^health:/, '') : v.id, minutes: v.minutes, reason: v.reason }),
     onSuccess: () => { setTarget(null); refresh() },
     onError: (e) => setDialogError(e.message),
+  })
+  const report = useMutation({
+    mutationFn: (p: Problem) => post('/api/incidents', { switch_id: p.switch_id, title: p.title }),
+    onSuccess: refresh,
   })
   const unmute = useMutation({
     mutationFn: (id: string) => del(`/api/alerts/mutes/${encodeURIComponent(id)}`),
     onSuccess: refresh,
   })
+  // Still at it when the mute nears its end: half an hour more, same reason (issue #264).
+  const extend = useMutation({
+    mutationFn: (id: string) => patch(`/api/alerts/mutes/${encodeURIComponent(id)}`, { minutes: 30 }),
+    onSuccess: refresh,
+  })
   const data = list.data
-  const error = list.error ?? unmute.error
+  // In the order they first appear, which is worst first.
+  const kinds: string[] = data ? [...new Set(data.problems.map((p) => p.kind))] : []
+  const visible = data ? data.problems.filter((p) => !kinds.includes(shown) || p.kind === shown) : []
+  const error = list.error ?? unmute.error ?? extend.error ?? report.error
 
   return (
-    <Layout title={t('problems.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      <PageHead title={t('problems.title')} desc={t('problems.intro')} />
+    // Muted problems stay out of the tab count: someone is already on them (issue #214).
+    <Layout title={t('problems.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      count={data ? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
+      <PageHead title={t('problems.title')} desc={t('problems.intro')} actions={data && (
+        // For pasting into the crew chat instead of a screenshot (issue #280).
+        <CopyButton value={problemsText(visible, data.mutes, t, (ts) => ago(ts, t))} timeout={2000}>
+          {({ copied, copy }) => (
+            <Button variant="default" size="xs" leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+              color={copied ? 'up' : undefined} onClick={copy}>
+              {copied ? t('problems.copied') : t('problems.copy')}
+            </Button>
+          )}
+        </CopyButton>
+      )} />
       {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
       {list.isPending || !data ? (
         <Loader size="sm" />
@@ -139,13 +196,23 @@ export default function Problems() {
                 tone={data.counts[k] && k !== 'muted' ? k : undefined} />
             ))}
           </div>
+          {kinds.length > 1 && (
+            <SegmentedControl size="xs" value={kinds.includes(shown) ? shown : 'all'} onChange={showKind} aria-label={t('problems.show')}
+              style={{ alignSelf: 'flex-start' }}
+              data={['all', ...kinds].map((k) => ({
+                value: k,
+                label: <span><span>{k === 'all' ? t('problems.all') : t(`problems.kind.${k}`)}</span>{' '}
+                  <span className="fb-filter-count">{k === 'all' ? data.problems.length : data.problems.filter((p) => p.kind === k).length}</span></span>,
+              }))} />
+          )}
           {!data.problems.length ? (
             <Text c="dimmed">{t('problems.none')}</Text>
           ) : (
             <Stack gap="xs">
-              {data.problems.map((p) => (
-                <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending}
-                  onMute={() => { setDialogError(null); setTarget({ id: p.switch_id ?? '', name: p.where }) }} />
+              {visible.map((p) => (
+                <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending || report.isPending}
+                  onReport={data.can_report ? () => report.mutate(p) : undefined}
+                  onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: p.kind === 'health' ? 'health' : 'switch' }) }} />
               ))}
             </Stack>
           )}
@@ -164,11 +231,22 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href="/">{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    {m.until - now < ENDING_SOON && (
+                      <Badge color="warn" variant="light" tt="none">
+                        {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}
+                      </Badge>
+                    )}
                     {data.can_mute && (
-                      <Button size="compact-xs" variant="subtle" onClick={() => unmute.mutate(m.switch_id)} disabled={unmute.isPending}>
-                        {t('problems.unmute')}
-                      </Button>
+                      <Group gap={4}>
+                        <Button size="compact-xs" variant="subtle" onClick={() => extend.mutate(m.switch_id)} disabled={extend.isPending}
+                          aria-label={t('problems.extendLabel', { name: m.name })}>
+                          {t('problems.extend')}
+                        </Button>
+                        <Button size="compact-xs" variant="subtle" onClick={() => unmute.mutate(m.switch_id)} disabled={unmute.isPending}>
+                          {t('problems.unmute')}
+                        </Button>
+                      </Group>
                     )}
                   </Group>
                 ))}
@@ -178,7 +256,7 @@ export default function Problems() {
         </Stack>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={dialogError} onClose={() => setTarget(null)}
-        onSave={(minutes, reason) => target && mute.mutate({ id: target.id, minutes, reason })} />
+        onSave={(minutes, reason) => target && mute.mutate({ ...target, minutes, reason })} />
     </Layout>
   )
 }

@@ -26,5 +26,9 @@
     "power": "Power",
     "switch-down": "Switch down",
     "other": "Other"
-  }
+  },
+  "used_one": "shown on {{count}} incident",
+  "used_other": "shown on {{count}} incidents",
+  "missing_one": "{{count}} incident of kind “{{kind}}” has no runbook.",
+  "missing_other": "{{count}} incidents of kind “{{kind}}” have no runbook."
 }

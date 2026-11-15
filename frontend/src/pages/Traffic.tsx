@@ -6,6 +6,7 @@ import type { FlowMix, FlowsData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { bytes, CATEGORIES, mostly, total } from './traffic/format'
+import { onPlan } from './plan/links'
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
@@ -54,7 +55,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
             const main = mostly(s.mix)
             return (
               <Table.Tr key={s.seat}>
-                <Table.Td><Anchor href={`/?seat=${encodeURIComponent(s.seat)}`}>{s.seat}</Anchor></Table.Td>
+                <Table.Td><Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor></Table.Td>
                 <Table.Td style={{ whiteSpace: 'nowrap' }}>{bytes(s.bytes)}{main && <Text span size="xs" c="dimmed"> · {t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</Table.Td>
                 <Table.Td style={{ width: '45%' }}><MixBar mix={s.mix} label={s.seat} /></Table.Td>
               </Table.Tr>
@@ -80,7 +81,7 @@ function Board({ data }: { data: FlowsData }) {
                 <Badge variant="light" color={a.kind === 'rogue-dhcp' || a.kind === 'burst' ? 'down' : 'warn'} tt="none">{t(`traffic.kind.${a.kind}`)}</Badge>
                 <span><strong>{a.title}</strong>{a.detail ? ` · ${a.detail}` : ''}{!a.seat && a.area ? ` · ${t('traffic.inArea', { area: a.area })}` : ''}</span>
                 <span className="when">{t('traffic.since', { time: clock(a.first_seen) })}</span>
-                {a.seat && <Anchor href={`/?seat=${encodeURIComponent(a.seat)}`} size="sm">{t('traffic.show')}</Anchor>}
+                {a.seat && <Anchor href={onPlan({ seat: a.seat })} size="sm">{t('traffic.show')}</Anchor>}
               </li>
             ))}
           </ul>

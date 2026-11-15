@@ -11,7 +11,7 @@ const admin = { enabled: true, user: { username: 'ada', display_name: 'Ada', rol
 const viewer = { enabled: true, user: { username: 'vic', display_name: 'Vic', role: 'viewer', permissions: ['floorplan.view'] } }
 const figures = (over: Partial<EventFigures>): EventFigures => ({
   seats: 400, online_max: 350, checked_in_max: 380, peak_bps: 4e9, bytes_moved: 12e12, hours: 48, incidents: 12,
-  incidents_fixed: 12, from_seats: 5, median_fix_s: 900, outages: 2, down_s: 600, problem_ports: 3, cache_saved_bytes: null, ...over,
+  incidents_fixed: 12, from_seats: 5, median_fix_s: 900, median_take_s: 120, outages: 2, down_s: 600, problem_ports: 3, cache_saved_bytes: null, ...over,
 })
 const data: EventsData = {
   current: { name: 'Example LAN 2026', start: 1_763_100_000, end: 1_763_200_000, figures: figures({ incidents: 4 }) },

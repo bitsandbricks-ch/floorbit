@@ -206,6 +206,8 @@ RULES = (
     # Starting a new event clears the report's history; adding nicks and IPs is checked in the blueprint.
     ('/api/report/new-event', WRITE, 'settings.manage'),
     ('/api/cache/invalid', WRITE, 'floorplan.edit'),
+    # Crew notes on a seat (floorbit/seat_notes.py); reading them is checked in the blueprint.
+    ('/api/plan/seats', WRITE, 'incidents.work'),
     ('/api/switches', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
@@ -223,6 +225,7 @@ RULES = (
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
     ('/api/seats/find', READ, 'seats.view'),
+    ('/api/plan/find', READ, 'seats.view'),
     ('/api/seats/sources', READ, 'seats.view'),
     ('/api/seats/resolve', WRITE, 'seats.view'),
     ('/api/resolve', READ, 'seats.view'),
@@ -234,6 +237,7 @@ RULES = (
     ('/api/speedtests', READ, 'incidents.work'),
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
+    ('/api/dispatch/auto', WRITE, 'incidents.assign'),   # automatic dispatch on or off (issue #358)
     ('/api/dispatch', READ, 'incidents.assign'),
     # Teardown: the export carries a backup, so it is an admin's, like Settings > Backup.
     ('/api/teardown/export.zip', READ, 'settings.manage'),
@@ -250,6 +254,8 @@ RULES = (
     ('/api/runbooks', READ, 'incidents.work'),
     ('/api/runbooks', WRITE, 'incidents.assign'),
     ('/runbooks', READ, 'incidents.work'),
+    # Schedule: everyone reads it, leads plan it; /agenda itself is public (floorbit/schedule.py).
+    ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).
     ('/api/status-page', READ, 'incidents.work'),
     ('/api/status-page', WRITE, 'incidents.assign'),
@@ -262,6 +268,8 @@ RULES = (
     # Past events: closing one clears the running event's history, and a backup is an admin's.
     ('/api/past-events/backup', READ, 'settings.manage'),
     ('/api/past-events', WRITE, 'settings.manage'),
+    # Crew notice: everyone who sees the floor plan reads it, leads put it up (floorbit/notice.py).
+    ('/api/notice', WRITE, 'incidents.assign'),
     # Shift handover: the crew's summary, with names from the audit log (floorbit/handover.py).
     ('/api/handover', None, 'incidents.work'),
     ('/handover', READ, 'incidents.work'),

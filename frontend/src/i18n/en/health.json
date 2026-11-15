@@ -36,5 +36,6 @@
     "uplink": "Internet uplink",
     "web": "Web services",
     "other": "Other"
-  }
+  },
+  "mutedUntil": "alerts muted until {{time}}"
 }

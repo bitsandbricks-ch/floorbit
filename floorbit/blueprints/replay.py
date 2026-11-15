@@ -4,13 +4,16 @@
 - ``GET /api/replay?hall=<id>``: one hall's seat blocks, and what the app kept about the event:
   bandwidth and online seats from the stats reads, which seats went online or offline when, check-ins
   and incidents. Seat numbers and times only: no nicks, IPs or MACs.
+- ``GET /api/replay/event?hall=<id>``: the whole event (issue #104), one frame every five minutes,
+  thinned out as it gets older (floorbit/recording.py), with per-block numbers for the heatmap.
+- ``GET /api/replay/event.json``: every frame of every hall, as a download.
 
 History it uses, all kept already: the stats samples and seat changes (24 hours, floorbit/stats.py),
 the check-in history (integrations/history.py) and the incident board.
 """
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
-from .. import halls, incidents, spa
+from .. import halls, incidents, recording, spa
 from ..store import load_data
 from .screen import plan
 
@@ -72,3 +75,34 @@ def replay_data():
         'checkins': checkins,
         'incidents': found,
     })
+
+
+@bp.route('/api/replay/event', methods=['GET'])
+def whole_event():
+    data = load_data()
+    all_halls = halls.halls(data)
+    hall = halls.find(data, request.args.get('hall') or '') or all_halls[0]
+    drawing, _ = plan(data, hall_id=hall['id'])
+    seats = {c['seat'] for b in (drawing or {}).get('shapes', []) for c in b['cells']}
+    names = {str(b.get('name') or '').upper() or '?' for b in (drawing or {}).get('shapes', [])}
+    frames = []
+    for f in recording.frames():
+        frames.append({**f, 'seats': [s for s in f.get('seats') or [] if s in seats],
+                       'incidents': [s for s in f.get('incidents') or [] if s in seats],
+                       'blocks': {k: v for k, v in (f.get('blocks') or {}).items() if k in names}})
+    return jsonify({
+        'halls': [{'id': h['id'], 'name': h['name']} for h in all_halls],
+        'hall': hall['id'],
+        'drawing': drawing,
+        'frames': frames,
+        'start': frames[0]['t'] if frames else None,
+        'end': frames[-1]['t'] if frames else None,
+        'step': recording.STEP,
+    })
+
+
+@bp.route('/api/replay/event.json', methods=['GET'])
+def whole_event_download():
+    body = jsonify({'frames': recording.frames(), 'step': recording.STEP}).get_data()
+    return Response(body, mimetype='application/json',
+                    headers={'Content-Disposition': 'attachment; filename="event-replay.json"'})

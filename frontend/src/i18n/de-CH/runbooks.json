@@ -26,5 +26,9 @@
     "power": "Strom",
     "switch-down": "Switch ausgefallen",
     "other": "Anderes"
-  }
+  },
+  "used_one": "bei {{count}} Störung gezeigt",
+  "used_other": "bei {{count}} Störungen gezeigt",
+  "missing_one": "{{count}} Störung der Art «{{kind}}» hat kein Runbook.",
+  "missing_other": "{{count}} Störungen der Art «{{kind}}» haben kein Runbook."
 }

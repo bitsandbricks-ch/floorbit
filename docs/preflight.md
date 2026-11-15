@@ -11,7 +11,8 @@ Issue #35.
 
 **Run all checks** runs every group. **Run again** on a group runs just that group after a fix,
 and the other groups keep their last result. The board says **Ready for doors** once every group
-has run and nothing failed.
+has run and nothing failed. The browser tab counts the failed checks, like "(2) Pre-flight check",
+so a tab left open in the background shows when a re-run still fails.
 
 The checks ask the monitoring source and the health plugins directly. They never move the status
 monitor's or the health wall's state, so running them sends no alerts. Without a monitoring

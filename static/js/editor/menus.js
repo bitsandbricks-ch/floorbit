@@ -60,6 +60,10 @@ function menuEntries(target) {
     const sw = switches.find(s => s.id === target.id);
     add('Show ports', () => selectSwitch(target.id));
     if (sw) add('Show in inventory', () => { window.location.href = `/inventory?q=${encodeURIComponent(sw.name)}`; });
+    if (typeof muteEntries === 'function') {
+      const mutes = muteEntries(sw);
+      if (mutes.length) { sep(); items.push(...mutes); }
+    }
     if (menuCanEdit()) {
       sep();
       add('Rename…', () => openRenameModal(target.id));

@@ -114,6 +114,7 @@ def test_problems_gather_everything(app_module, client, floor, monkeypatch):
     assert {"switch", "security"} <= kinds
     switch = next(p for p in body["problems"] if p["kind"] == "switch")
     assert switch["muted"]["by"] == "tester" and body["counts"]["muted"] == 1
+    assert switch["link"] == "/plan?switch=sw-a-01"   # opens its hall on the floor plan (issue #212)
     assert body["mutes"][0]["name"] == "sw-a-01"
     # Without seats.view, security problems say where, not who.
     app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")
@@ -122,3 +123,79 @@ def test_problems_gather_everything(app_module, client, floor, monkeypatch):
     titles = [p["title"] for p in viewer.get("/api/problems").get_json()["problems"] if p["kind"] == "security"]
     assert titles and all("192.0.2" not in t and ":" not in t for t in titles)
     sec.reset()
+
+
+def test_a_running_mute_can_last_longer(app_module, client, floor):
+    """+30 min on the Problems page keeps who muted it and why (issue #264)."""
+    client.post("/api/alerts/mutes", json={"switch_id": floor["a"], "minutes": 30, "reason": "PSU swap"})
+    until = alerting.mutes()[floor["a"]]["until"]
+    resp = client.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 30})
+    assert resp.status_code == 200
+    entry = alerting.mutes()[floor["a"]]
+    assert entry["until"] == pytest.approx(until + 1800) and entry["reason"] == "PSU swap" and entry["by"] == "tester"
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Extended mute" and entries[0]["target"] == "sw-a-01"
+
+    assert client.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 0}).status_code == 400
+    assert client.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 7 * 24 * 60}).status_code == 400
+    assert client.patch(f"/api/alerts/mutes/{floor['b']}", json={"minutes": 30}).status_code == 404
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi1", "viewer")
+    assert viewer.patch(f"/api/alerts/mutes/{floor['a']}", json={"minutes": 30}).status_code == 403
+
+
+def test_the_floor_plan_marks_muted_switches(client, floor):
+    """The badge script loads before problems.js, which hands it the mutes (issue #268)."""
+    page = client.get("/").get_data(as_text=True)
+    assert page.index("/static/js/editor/mutes.js") < page.index("/static/js/editor/problems.js")
+    client.post("/api/alerts/mutes", json={"switch_id": floor["a"], "minutes": 30})
+    mutes = client.get("/api/problems").get_json()["mutes"]
+    assert [(m["switch_id"], m["kind"]) for m in mutes] == [(floor["a"], "switch")] and mutes[0]["until"] > time.time()
+
+
+def test_the_floor_plan_can_mute_a_switch(client):
+    """The right-click menu opens this dialog; can_mute says who gets the entries (issue #270)."""
+    page = client.get("/").get_data(as_text=True)
+    assert 'id="mute-form"' in page and 'id="mute-minutes"' in page and 'id="mute-reason"' in page
+    assert client.get("/api/problems").get_json()["can_mute"] is True
+
+
+def test_an_offline_switch_links_its_incident(app_module, client, floor, monkeypatch):
+    """Issue #278: make an incident from the problem, then the problem links it."""
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monkeypatch.setattr(monitor, "statuses", {
+        floor["a"]: {"id": floor["a"], "name": "sw-a-01", "status": "offline", "since": time.time() - 600}})
+    body = client.get("/api/problems").get_json()
+    item = next(p for p in body["problems"] if p["kind"] == "switch")
+    assert body["can_report"] is True and item["incident"] is None
+
+    made = client.post("/api/incidents", json={"switch_id": floor["a"], "title": item["title"]}).get_json()
+    item = next(p for p in client.get("/api/problems").get_json()["problems"] if p["kind"] == "switch")
+    assert item["incident"] == made["id"]
+    client.patch(f"/api/incidents/{made['id']}", json={"status": "fixed"})
+    item = next(p for p in client.get("/api/problems").get_json()["problems"] if p["kind"] == "switch")
+    assert item["incident"] is None
+
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi1", "viewer")
+    body = viewer.get("/api/problems").get_json()
+    assert body["can_report"] is False and "incident" not in next(p for p in body["problems"] if p["kind"] == "switch")
+
+
+def test_back_online_counts_incidents_filed_while_down(client, app_module, floor, monkeypatch):
+    # Issue #398: reports from its seats during the outage are likely fixed now.
+    from floorbit import incidents, status_page
+    monkeypatch.setattr(status_page, "_seats_of", {"sw-a-01": {"A-1", "A-2"}})
+    for name, x in (("A", 40), ("B", 400)):
+        client.post("/api/seat-blocks", json={"name": name, "x": x, "y": 50, "cols": 2, "rows": 1})
+    client.post("/api/incidents", json={"seat": "A-1", "title": "No link"})
+    client.post("/api/incidents", json={"seat": "B-1", "title": "Elsewhere"})
+    old = client.post("/api/incidents", json={"seat": "A-2", "title": "From before"}).get_json()
+    with app_module.app.app_context():
+        incidents.stamp(old["id"], created_at=time.time() - 3600)
+        msg = DiscordNotifier().build_status_message([change(floor["a"], "sw-a-01", "online")])
+    fields = {f["name"]: f["value"] for f in msg["embeds"][0]["fields"]}
+    assert fields["Open incidents from its seats"].startswith("1 filed while it was down")
+    with app_module.app.app_context():
+        msg = DiscordNotifier().build_status_message([change(floor["b"], "sw-a-02", "online")])
+    assert "Open incidents from its seats" not in {f["name"] for f in msg["embeds"][0]["fields"]}

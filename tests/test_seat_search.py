@@ -88,3 +88,36 @@ def test_finding_people_needs_seats_view(app_module, hall):
     viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
     assert viewer.get("/api/seats/find?q=player").status_code == 403
     assert app_module.app.test_client().get("/api/seats/find?q=player").status_code in (401, 403)
+
+
+def test_resolve_every_seat_survives_one_failing_lookup(client, hall, monkeypatch):
+    class Flaky(Monitoring):
+        def resolve_ip(self, ip, search_device=None):
+            if ip == "198.51.100.44":
+                raise TimeoutError("LibreNMS timed out")
+            return super().resolve_ip(ip, search_device)
+    monkeypatch.setattr(sources, "monitoring", lambda: Flaky())
+    seats = client.post("/api/seats/resolve").get_json()["seats"]
+    assert set(seats) == {"A-2", "A-4"}   # A-3 has only a MAC
+    assert seats["A-2"]["resolved"] is True and seats["A-2"]["port"] == "Gi1/0/7"
+    assert seats["A-2"]["username"] == "player-two"
+    assert seats["A-4"]["resolved"] is False and "timed out" in seats["A-4"]["error"]
+
+
+def test_go_to_finds_players_for_those_who_may_see_them(app_module, client, hall):
+    # Go to (Ctrl+K) offers the seat of a nick, IP or MAC (issue #292), the same as the seat search.
+    def players(c, q):
+        found = c.get("/api/pages/find", query_string={"q": q}).get_json()["places"]
+        return [p for p in found if p["kind"] == "player"]
+    assert players(client, "player") == [
+        {"kind": "player", "name": "player-two · A-2", "href": "/plan?seat=A-2"},
+        {"kind": "player", "name": "Player-Three · A-3", "href": "/plan?seat=A-3"}]
+    assert players(client, "198.51.100.7") == [
+        {"kind": "player", "name": "198.51.100.7 · A-2", "href": "/plan?seat=A-2"}]
+    assert players(client, "02:00:00:00:00:09")[0]["href"] == "/plan?seat=A-3"
+    # A seat number is a seat, not a player.
+    assert players(client, "A-2") == []
+    app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")
+    viewer = app_module.app.test_client()
+    viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
+    assert players(viewer, "player") == [] and players(viewer, "198.51.100.7") == []
