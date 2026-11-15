@@ -675,6 +675,8 @@ export interface Job {
   circuit_id: string | null; circuit_name: string | null; status: IncidentStatus; team: string | null
   source: string; reports: number; created_at: number; dispatched_at: number | null; taken_at: number | null
   notes: { by: string | null; at: number; text: string }[]
+  /** The attendee tapped "It works again" on the seat's help page (issue #382). */
+  seat_ok_at?: number | null
   drawing: PlanDrawing | null; target: [number, number] | null; from: [number, number] | null; hall: string | null
   /** The steps for this kind of incident, right on the job (issue #102). */
   runbook?: { id: string; title: string; body: string } | null

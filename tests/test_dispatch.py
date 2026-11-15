@@ -81,6 +81,20 @@ def test_tech_takes_and_finishes_a_job_from_the_phone(client, floor):
     assert {"Sent incident to the nearest tech", "Took job", "Finished job"} <= set(actions)
 
 
+def test_the_job_says_when_the_seat_says_it_works_again(client, floor, app_module):
+    # Issue #382: the tech sees it before walking over.
+    from floorbit import incidents
+    ben = floor["ben"]
+    ben.put("/api/jobs/me", json={"on_duty": True, "at": "A-1"})
+    job = _incident(client, "B-6")
+    client.post(f"/api/incidents/{job}/dispatch")
+    assert ben.get("/api/jobs").get_json()["jobs"][0]["seat_ok_at"] is None
+    with app_module.app.app_context():
+        incidents.stamp(job, source="helpdesk")
+        incidents.seat_says_ok("B-6")
+    assert ben.get("/api/jobs").get_json()["jobs"][0]["seat_ok_at"]
+
+
 def test_give_back_puts_the_job_on_the_board(client, floor):
     floor["ana"].put("/api/jobs/me", json={"on_duty": True})
     job = _incident(client, "A-3")
