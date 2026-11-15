@@ -370,6 +370,18 @@ Source: [`floorbit/blueprints/network.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/seats/resolve` | `seats.view` |  |
 | GET | `/api/switches/<switch_id>/status` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.notice
+
+Crew notice (issue #246). Rules in floorbit/notice.py.
+
+Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/notice.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| DELETE | `/api/notice` | `incidents.assign` |  |
+| GET | `/api/notice` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/notice` | `incidents.assign` |  |
+
 ## floorbit.blueprints.past_events
 
 Past events and comparing them (issue #38). Rules in floorbit/event_archive.py.

@@ -14,6 +14,7 @@ def test_closing_an_event_archives_it_and_starts_the_next(client):
     client.patch(f"/api/teardown/items/{item['id']}", json={"done": True})
     client.put(f"/api/teardown/switches/{sw['id']}", json={"done": True})
     client.post("/api/incidents", json={"title": "No link", "switch_id": sw["id"]})
+    client.put("/api/notice", json={"text": "Doors open at 18:00"})
 
     body = client.get("/api/past-events").get_json()
     assert body["archived"] == []
@@ -34,6 +35,7 @@ def test_closing_an_event_archives_it_and_starts_the_next(client):
 
     # The floor plan, the gear still out and the lead's own steps carry over, unticked.
     assert client.get("/api/incidents").get_json()["incidents"] == []
+    assert client.get("/api/notice").get_json()["notice"] is None
     teardown = client.get("/api/teardown").get_json()["parts"]
     assert teardown["custom"]["items"][0]["text"] == "Return the rented switches"
     assert not teardown["custom"]["items"][0]["done_at"] and not teardown["configs"]["done"]

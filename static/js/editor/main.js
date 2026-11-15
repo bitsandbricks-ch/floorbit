@@ -37,6 +37,7 @@ async function init() {
   if (powerOn) setPowerLayer(readJSON('layer-power', false));
   loadPowerMarkers();
   loadProblemCount();
+  loadNotice();
   focusFromUrl();
 }
 
