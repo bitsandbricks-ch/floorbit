@@ -15,6 +15,8 @@ It needs no gateway connection.
 - With no webhook set, the switch, health, security and power alerts go to this channel too. A
   switch-offline or service-down alert then has a "Mute … for 1 h" button for crew with
   ``incidents.work`` (issues #272, #274); a webhook can't carry buttons.
+- An incident nobody has taken for ``DISCORD_CREW_WAITING_MINUTES`` gets one line in its
+  thread saying so, with a ping for ``DISCORD_CREW_WAITING_ROLE`` when that is set (issue #298).
 
 Talking to Discord runs on its own thread, so a slow Discord never holds up a request. Which
 Discord message and thread belong to which incident is kept in its own small file next to
@@ -44,6 +46,7 @@ ARCHIVE_AFTER = 1440      # minutes; Discord archives a quiet thread after this 
 ACTION_PREFIX = 'fb'      # custom_id: fb:<action>:<incident id>, or fb:mute:<switch id>
 ACTIONS = ('take', 'fixed', 'mute')
 MUTE_MINUTES = 60         # what "Mute 1 h" under a switch alert means (issue #272)
+CHECK_EVERY = 60          # seconds between looks for incidents nobody has taken (issue #298)
 
 
 class CrewError(RuntimeError):
@@ -111,6 +114,11 @@ def _name(username, users=None):
         return None
     found = users.get(username) if users else None
     return (found or {}).get('display_name') or username
+
+
+def _waited(seconds):
+    minutes = int(seconds // 60)
+    return f'{minutes} min' if minutes < 60 else f'{minutes // 60} h {minutes % 60} min'
 
 
 class CrewBridge:
@@ -187,15 +195,24 @@ class CrewBridge:
             self._thread = threading.Thread(target=self._worker, name='discord-crew', daemon=True)
             self._thread.start()
 
+    def start(self):
+        """Run the sender thread from the start, so the waiting check runs without an event first."""
+        self._ensure_worker()
+
     def _handle(self, item):
         # Incidents are queued by id; a crew notice as ('notice', notice).
         if isinstance(item, tuple):
             return self.post_notice(item[1])
+        if item == 'waiting':
+            return self.nudge_waiting()
         return self.sync(item)
 
     def _worker(self):
         while True:
-            item = self._queue.get()
+            try:
+                item = self._queue.get(timeout=CHECK_EVERY)
+            except queue.Empty:
+                item = 'waiting'
             try:
                 if self.app is not None:
                     with self.app.app_context():
@@ -354,6 +371,37 @@ class CrewBridge:
             if incident['status'] == 'fixed' and before.get('status') != 'fixed':
                 self._call('PATCH', f'/channels/{thread}', {'archived': True})
         return record
+
+    def nudge_waiting(self, now=None):
+        """Say once in each thread whose incident nobody has taken for a while (issue #298).
+
+        Same rule as the board's "Waiting" badge: open, nobody on it, opened that long ago. Only
+        once per incident, so a reopened one doesn't ping again."""
+        minutes = config.get_int('DISCORD_CREW_WAITING_MINUTES', 10, minimum=0)
+        if not minutes or not self.enabled():
+            return []
+        from floorbit import incidents
+        now = now or time.time()
+        role = ''.join(ch for ch in config.get('DISCORD_CREW_WAITING_ROLE', '') if ch.isdigit())
+        nudged = []
+        with self._file_lock:
+            state = self._read()
+            for incident in incidents.list_all():
+                record = state.get(incident['id'])
+                if not record or not record.get('thread') or record.get('nudged'):
+                    continue
+                waited = now - (incident.get('created_at') or now)
+                if incident.get('status') != 'open' or incident.get('assignee') or waited < minutes * 60:
+                    continue
+                text = f'⏳ Waiting {_waited(waited)}. Nobody has taken it yet.'
+                self._call('POST', f"/channels/{record['thread']}/messages",
+                           {'content': f'<@&{role}> {text}' if role else text,
+                            'allowed_mentions': {'parse': [], 'roles': [role] if role else []}})
+                record['nudged'] = True
+                nudged.append(incident['id'])
+            if nudged:
+                self._write(state)
+        return nudged
 
     def _thread_lines(self, thread, lines):
         if not thread or not lines:

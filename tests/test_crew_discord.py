@@ -323,3 +323,35 @@ def test_a_service_alert_can_be_muted_from_discord(bridge, client, anon_client, 
     assert "health wall" in press("health:demo:nope")
     entries = client.get("/api/settings/audit").get_json()["entries"]
     assert entries[0]["action"] == "Muted service alerts from Discord"
+
+
+def test_an_incident_nobody_takes_gets_one_nudge(bridge, client, app_module, monkeypatch):
+    monkeypatch.setenv("DISCORD_CREW_WAITING_ROLE", "<@&900000000000000077>")
+    waiting = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    taken = client.post("/api/incidents", json={"seat": "A-2", "title": "Slow"}).get_json()
+    client.patch(f"/api/incidents/{taken['id']}", json={"assignee": TEST_USER})
+    with app_module.app.app_context():
+        record = bridge.sync(waiting["id"])
+        bridge.sync(taken["id"])
+        before = len(bridge.fake.calls)
+        assert bridge.nudge_waiting(now=waiting["created_at"] + 9 * 60) == []
+        assert bridge.nudge_waiting(now=waiting["created_at"] + 75 * 60) == [waiting["id"]]
+        # Once only.
+        assert bridge.nudge_waiting(now=waiting["created_at"] + 90 * 60) == []
+    (call,) = bridge.fake.calls[before:]
+    assert call[1] == f"/channels/{record['thread']}/messages"
+    assert call[2]["content"] == "<@&900000000000000077> ⏳ Waiting 1 h 15 min. Nobody has taken it yet."
+    assert call[2]["allowed_mentions"] == {"parse": [], "roles": ["900000000000000077"]}
+
+
+def test_the_nudge_can_be_turned_off_and_pings_nobody_by_default(bridge, client, app_module, monkeypatch):
+    inc = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    with app_module.app.app_context():
+        bridge.sync(inc["id"])
+        monkeypatch.setenv("DISCORD_CREW_WAITING_MINUTES", "0")
+        assert bridge.nudge_waiting(now=inc["created_at"] + 3600) == []
+        monkeypatch.delenv("DISCORD_CREW_WAITING_MINUTES")
+        assert bridge.nudge_waiting(now=inc["created_at"] + 11 * 60) == [inc["id"]]
+    call = bridge.fake.calls[-1]
+    assert call[2]["content"] == "⏳ Waiting 11 min. Nobody has taken it yet."
+    assert call[2]["allowed_mentions"] == {"parse": [], "roles": []}

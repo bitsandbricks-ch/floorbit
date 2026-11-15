@@ -270,6 +270,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             started.set()
             monitor.start()
             refresher.start()
+            crew.start()
 
     app.extensions['lal_integrations'] = {'monitor': monitor, 'discord': discord,
                                           'checkin_refresher': refresher}
