@@ -61,6 +61,8 @@ each seat is plugged into.
   answering, as a go or no-go board to print and sign. See [docs/preflight.md](docs/preflight.md).
 - **Gear loans:** who has which switch or access point right now, with QR labels to check gear
   out and in from a phone. The gear itself comes from NetBox. See [docs/gear.md](docs/gear.md).
+- **Teardown checklist:** after the event, gear back, configs archived and the event's data exported
+  in one zip, plus the team's own steps. See [docs/teardown.md](docs/teardown.md).
 - **Shift handover:** what happened since the last handover, what is still open, and a note for the
   next shift, optionally posted to Discord. See [docs/handover.md](docs/handover.md).
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is
