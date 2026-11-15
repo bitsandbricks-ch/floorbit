@@ -15,6 +15,8 @@ quantities, because those live in NetBox. It only tracks loans.
   phone scan goes straight to that piece's check-out or check-in. The link uses `PUBLIC_URL` when it
   is set.
 - **Filters:** search by name, model, serial or who has it, by kind, and by what is out or here.
+- **Who has what:** a row of buttons names everyone who holds gear and how many pieces.
+  Click one to see only their pieces; click it again to see everything.
 
 Loans and their history (the newest 2000 entries) are kept in `data.json` under `loans`. The
 teardown checklist (#37) reads what is still out. Using the page needs **Work incidents** (techs,

@@ -76,6 +76,11 @@ export default function Gear() {
     && (!q || [i.name, i.model, i.serial, i.loan?.to ?? ''].some((v) => v.toLowerCase().includes(q))))
   const current = d?.items.find((i) => i.id === open)
   const outCount = d?.items.filter((i) => i.loan).length ?? 0
+  // Who has how much, most first (issue #318): at teardown the question is "who still has our stuff".
+  const holders = Object.entries((d?.items ?? []).reduce<Record<string, number>>((acc, i) => {
+    if (i.loan) acc[i.loan.to] = (acc[i.loan.to] ?? 0) + 1
+    return acc
+  }, {})).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
 
   return (
     <Layout title={t('gear.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
@@ -98,6 +103,17 @@ export default function Gear() {
               <SegmentedControl value={show} onChange={(v) => setShow(v as Show)}
                 data={[{ value: 'all', label: t('gear.all') }, { value: 'out', label: t('gear.out', { count: outCount }) }, { value: 'in', label: t('gear.in') }]} />
             </Group>
+            {holders.length > 0 && (
+              <Group gap={6} role="group" aria-label={t('gear.holders')}>
+                <Text size="sm" fw={600}>{t('gear.holders')}:</Text>
+                {holders.map(([to, n]) => (
+                  <Button key={to} size="compact-sm" variant={search === to ? 'filled' : 'light'} color="warn"
+                    aria-pressed={search === to} onClick={() => { setSearch(search === to ? '' : to); setShow(search === to ? 'all' : 'out') }}>
+                    {t('gear.holder', { to, count: n })}
+                  </Button>
+                ))}
+              </Group>
+            )}
             <Paper withBorder radius="lg" p="md">
               {rows.length === 0 ? <Text c="dimmed">{d.items.length ? t('gear.noMatch') : t('gear.empty')}</Text> : (
                 <Table.ScrollContainer minWidth={560}>

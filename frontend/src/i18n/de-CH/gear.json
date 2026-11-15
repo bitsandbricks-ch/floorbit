@@ -26,5 +26,15 @@
   "history": "Letzte Ausleihen und Rückgaben",
   "logOut": "{{name}} an {{to}} ausgeliehen ({{by}})",
   "logIn": "{{name}} von {{to}} zurück ({{by}})",
-  "role": { "switch": "Switch", "router": "Router", "firewall": "Firewall", "access-point": "Access Point", "server": "Server", "other": "Anderes" }
+  "role": {
+    "switch": "Switch",
+    "router": "Router",
+    "firewall": "Firewall",
+    "access-point": "Access Point",
+    "server": "Server",
+    "other": "Anderes"
+  },
+  "holders": "Wer hat was",
+  "holder_one": "{{to}} · {{count}} Stück",
+  "holder_other": "{{to}} · {{count}} Stück"
 }

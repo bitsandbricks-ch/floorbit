@@ -26,5 +26,15 @@
   "history": "Latest check-outs and check-ins",
   "logOut": "{{name}} out to {{to}} ({{by}})",
   "logIn": "{{name}} back from {{to}} ({{by}})",
-  "role": { "switch": "Switch", "router": "Router", "firewall": "Firewall", "access-point": "Access point", "server": "Server", "other": "Other" }
+  "role": {
+    "switch": "Switch",
+    "router": "Router",
+    "firewall": "Firewall",
+    "access-point": "Access point",
+    "server": "Server",
+    "other": "Other"
+  },
+  "holders": "Who has what",
+  "holder_one": "{{to}} · {{count}} piece",
+  "holder_other": "{{to}} · {{count}} pieces"
 }
