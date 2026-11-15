@@ -13,6 +13,8 @@ Send an incident to the nearest free tech, and let techs work their jobs from th
   The plan has no walls or aisles, so the line is the straight way, not a walking route.
 - **On my way** tells the board you saw the job. **Done** marks the incident fixed (with an optional
   note). **Give back** puts it back on the board, unassigned, for someone else.
+- When the attendee taps **It works again** on the seat's [help page](incidents.md#the-helpdesk-on-each-seat),
+  the job says so ("The seat said at 10:42 that it works again"): ask there before you fix anything.
 
 The page refreshes by itself when a job comes in, and the browser tab shows how many jobs you haven't
 answered with **On my way** yet, like "(2) My jobs". Once you have fixed something, it also says how many
