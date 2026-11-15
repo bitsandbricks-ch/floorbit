@@ -10,7 +10,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
-type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string }
+type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number }
 type Made = Agent & { key: string }
 
 function ago(ts: number, lang: string): string {
@@ -78,7 +78,7 @@ export default function Agents() {
     `  -e FLOORBIT_URL=${window.location.origin} \\`,
     `  -e FLOORBIT_AGENT_KEY=${made.key} \\`,
     '  -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \\',
-    '  ghcr.io/bitsandbricks-ch/floorbit python -m floorbit.agent',
+    '  ghcr.io/bitsandbricks-ch/floorbit-agent',
   ].join('\n') : ''
 
   return (
@@ -124,7 +124,7 @@ export default function Agents() {
                           {' · '}{t('agents.made', { date: date(a.created_at), who: a.created_by ?? '?' })}
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
-                        {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.server_version })}</Text>}
+                        {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.protocol ?? '' })}</Text>}
                         {hallOptions.length > 1 && (
                           <MultiSelect size="xs" mt={6} maw={420} label={t('agents.halls')} placeholder={a.halls?.length ? undefined : t('agents.allHalls')}
                             data={hallOptions} value={a.halls ?? []} clearable

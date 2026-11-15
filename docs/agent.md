@@ -51,9 +51,9 @@ The page lists every agent: **Connected** or not, when it was last seen, its ver
 enrolled it when. It updates every 10 seconds. For the last hour it also shows how many calls the
 agent answered, how long it took (the median, from handing a call out to getting its answer), how
 many failed, and the last error with its method. A slow LibreNMS or one that refuses the agent's
-token shows up there first. These numbers are kept in memory, so a restart starts them over. An agent older than the hosted
-Floorbit gets an **Update** badge: pull the new image and start it again (below). An agent that
-sends no version, or one Floorbit can't read, is never flagged. An agent that sent syslog or a
+token shows up there first. These numbers are kept in memory, so a restart starts them over. An agent that speaks an older
+agent protocol than the hosted Floorbit gets an **Update** badge: pull the new image and start it
+again (below). An agent that hasn't asked anything yet is never flagged. An agent that sent syslog or a
 traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
 agent forwards what.
 
@@ -86,10 +86,13 @@ Changing an agent's halls is written to the [audit log](audit.md).
 
 ## Running the agent
 
-The agent is the Floorbit image with another command, `python -m floorbit.agent`. Run it on the
-event network, where it can reach LibreNMS and NetBox. It needs no Redis, no port and no domain.
+The agent has its own repository, [bitsandbricks-ch/floorbit-agent](https://github.com/bitsandbricks-ch/floorbit-agent),
+with its own image (`ghcr.io/bitsandbricks-ch/floorbit-agent`) and releases. It carries Floorbit's
+plugins but no web pages. Run it on the event network, where it can reach LibreNMS and NetBox. It
+needs no Redis, no port and no domain. Any agent release works with any Floorbit that speaks its
+protocol (see [The protocol](#the-protocol)).
 
-**With Docker Compose** (the repository has a file for it):
+**With Docker Compose** (this repository and the agent's both have a file for it):
 
 ```sh
 cp agent.env.example agent.env     # fill in FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
@@ -105,7 +108,7 @@ docker run -d --restart on-failure:3 --name floorbit-agent \
   -e FLOORBIT_URL=https://floor.example.com \
   -e FLOORBIT_AGENT_KEY=fba_… \
   -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \
-  ghcr.io/bitsandbricks-ch/floorbit python -m floorbit.agent
+  ghcr.io/bitsandbricks-ch/floorbit-agent
 ```
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
@@ -114,7 +117,7 @@ hosted Floorbit takes syslog and flows), says which works and which doesn't, and
 everything works, 1 when something doesn't:
 
 ```sh
-docker compose -f docker-compose.agent.yml run --rm agent python -m floorbit.agent check
+docker compose -f docker-compose.agent.yml run --rm agent python -m floorbit_agent check
 ```
 
 ```text
@@ -146,14 +149,15 @@ start it with the new key. That's why the Compose file restarts it only on failu
 times, instead of `unless-stopped`. Stopping it (`docker stop`, Ctrl+C) first sends the syslog
 lines still waiting, so an update doesn't lose them.
 
-**Health.** `python -m floorbit.agent health` exits with 0 when the hosted Floorbit answered the
+**Health.** `python -m floorbit_agent health` exits with 0 when the hosted Floorbit answered the
 agent in the last two minutes, 1 otherwise. It reads a heartbeat file the agent writes after each
 poll that gets through, so it needs no network and no settings. The Compose file uses it as the
 container's health check, so `docker ps` shows the agent as *unhealthy* while the uplink is down.
 
 To update the agent, pull the new image and start it again (`docker compose -f
 docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
-**Local agents** page shows each agent's version.
+**Local agents** page shows each agent's version, and **Update** next to one that speaks an older
+agent protocol than this Floorbit.
 
 ## The inventory through the agent
 
@@ -313,7 +317,7 @@ For admins (**Manage settings**):
 
 | Request | What |
 | --- | --- |
-| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), and `server_version` |
+| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `protocol` (the one it spoke last), `outdated` (that protocol is older than this Floorbit's), and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), `server_version` and `protocol` |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
 | `PATCH /api/agents/<id>` | `{"halls": [ids]}`: the halls it answers for, empty for every hall |
 | `DELETE /api/agents/<id>` | revoke it |

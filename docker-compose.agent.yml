@@ -10,8 +10,8 @@
 
 services:
   agent:
-    image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
-    command: ["python", "-m", "floorbit.agent"]
+    # The agent has its own image and releases: bitsandbricks-ch/floorbit-agent.
+    image: ghcr.io/bitsandbricks-ch/floorbit-agent:${FLOORBIT_AGENT_VERSION:-latest}
     env_file:
       - path: agent.env
         required: true
@@ -26,10 +26,10 @@ services:
     # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
     # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
     restart: on-failure:3
-    # The image's own check asks the web app, which the agent doesn't run. This one asks whether
-    # the hosted Floorbit answered in the last two minutes, so `docker ps` shows a lost uplink.
+    # Whether the hosted Floorbit answered in the last two minutes, so `docker ps` shows a lost
+    # uplink. The image has the same check; it's here so it can be tuned.
     healthcheck:
-      test: ["CMD", "python", "-m", "floorbit.agent", "health"]
+      test: ["CMD", "python", "-m", "floorbit_agent", "health"]
       interval: 30s
       timeout: 10s
       start_period: 60s
