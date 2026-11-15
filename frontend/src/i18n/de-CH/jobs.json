@@ -23,5 +23,6 @@
   "backMsg": "Zurück auf dem Board.",
   "runbook": "Schritte: {{title}}",
   "doneLately_one": "Du hast in den letzten 12 Stunden {{count}} Auftrag erledigt.",
-  "doneLately_other": "Du hast in den letzten 12 Stunden {{count}} Aufträge erledigt."
+  "doneLately_other": "Du hast in den letzten 12 Stunden {{count}} Aufträge erledigt.",
+  "autoOn": "Neue Störungen gehen automatisch an den nächsten freien Techniker: Lass diese Seite offen."
 }

@@ -122,6 +122,7 @@ def test_auto_dispatch_sends_new_incidents_by_themselves(client, floor, app_modu
     assert floor["ben"].put("/api/dispatch/auto", json={"on": True}).status_code == 403
     assert client.put("/api/dispatch/auto", json={"on": True}).get_json() == {"auto": True}
     assert client.get("/api/dispatch/crew").get_json()["auto"] is True
+    assert floor["ben"].get("/api/jobs").get_json()["auto"] is True   # issue #360
     resp = client.post("/api/incidents", json={"seat": "B-7", "title": "Slow connection"})
     assert resp.status_code == 201 and resp.get_json()["assignee"] == "ben" and resp.get_json()["status"] == "assigned"
     [job] = floor["ben"].get("/api/jobs").get_json()["jobs"]

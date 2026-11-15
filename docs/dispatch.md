@@ -38,7 +38,8 @@ By default nothing is sent by itself: a lead decides. A lead (`incidents.assign`
 **Send new ones to the nearest free tech by themselves** next to the crew. Then every new incident
 (from the board, a seat's help page or a power alert) goes to the nearest free tech the moment it is
 filed, by the same rules. If nobody is free it stays on the board; incidents filed earlier are left
-alone, so a tech coming back on duty is not flooded with old jobs at once.
+alone, so a tech coming back on duty is not flooded with old jobs at once. While it is on, My jobs tells
+techs on duty that jobs come by themselves.
 
 Everything goes to the audit log (sent by hand or by itself, taken, finished, given back, and the
 switch turned on or off).

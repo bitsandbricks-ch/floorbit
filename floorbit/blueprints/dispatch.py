@@ -2,7 +2,7 @@
 
 - ``GET /jobs``: the tech's phone page (React).
 - ``GET /api/jobs``: my status, my jobs with the hall plan, where the job is and where I am, and how many
-  I fixed in the last 12 hours (``done``).
+  I fixed in the last 12 hours (``done``), and whether automatic dispatch is on (``auto``).
 - ``PUT /api/jobs/me``: go on or off duty, say where I am (``{"on_duty": true, "at": "B-7"}``).
 - ``POST /api/jobs/<id>/take``, ``/done``, ``/give-back``: the tech's answers to a job.
 - ``POST /api/incidents/<id>/dispatch``: send the incident to the nearest free tech (``incidents.assign``).
@@ -77,6 +77,7 @@ def my_jobs():
         'seats': sorted(seats),
         'jobs': [_job(i, data, seats, switches, me_at, runbooks.all_runbooks(data)) for i in mine],
         'can_dispatch': can_dispatch,
+        'auto': dispatch.auto_on(data),
     })
 
 

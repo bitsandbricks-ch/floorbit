@@ -106,6 +106,8 @@ export default function Jobs() {
               </Stack>
             </Paper>
             {!data.me.on_duty && <Text size="sm" c="dimmed">{t('jobs.offDuty')}</Text>}
+            {/* So a tech knows jobs can arrive without a lead sending them (issue #360). */}
+            {data.me.on_duty && data.auto && <Text size="sm" c="dimmed">{t('jobs.autoOn')}</Text>}
             {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
             {data.jobs.length === 0 ? (
               <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('jobs.none')}</Text></Paper>

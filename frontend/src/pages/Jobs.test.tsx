@@ -30,6 +30,7 @@ describe('My jobs', () => {
     const { container } = renderWithApp(<Jobs />)
     const card = await screen.findByRole('article', { name: 'No internet at the seat' })
     expect(document.title).toBe('(1) My jobs · Floorbit')
+    expect(screen.queryByText(/by themselves/)).toBeNull()
     expect(within(card).getByRole('img', { name: 'Floor plan with the job at Seat B-6' })).toBeInTheDocument()
     expect(container.querySelector('.cell.hit')).not.toBeNull()
     expect(container.querySelector('line.route')).not.toBeNull()
@@ -45,7 +46,7 @@ describe('My jobs', () => {
 
   it('goes off duty', async () => {
     const api = fakeFetch({
-      'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [], done: 3 },
+      'GET /api/auth/me': me, 'GET /api/jobs': { ...data, jobs: [], done: 3, auto: true },
       'PUT /api/jobs/me': { on_duty: false, at: 'A-1', since: now },
     })
     vi.stubGlobal('fetch', api.fn)
@@ -53,6 +54,7 @@ describe('My jobs', () => {
     expect(await screen.findByText('No jobs for you right now.')).toBeInTheDocument()
     expect(screen.getByText('You fixed 3 jobs in the last 12 hours.')).toBeInTheDocument()
     expect(document.title).toBe('My jobs · Floorbit')
+    expect(screen.getByText(/New incidents come to the nearest free tech by themselves/)).toBeInTheDocument()   // issue #360
     fireEvent.click(screen.getByRole('switch', { name: /On duty/ }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ on_duty: false }))
   })

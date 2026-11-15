@@ -677,7 +677,7 @@ export interface Job {
   /** The steps for this kind of incident, right on the job (issue #102). */
   runbook?: { id: string; title: string; body: string } | null
 }
-export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number }
+export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number; auto?: boolean }
 export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number; done?: number }
 
 /** Tournament awareness (issue #31). */
