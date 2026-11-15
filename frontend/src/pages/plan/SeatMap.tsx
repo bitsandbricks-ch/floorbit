@@ -1,19 +1,24 @@
-import { ActionIcon, Group, Tooltip } from '@mantine/core'
+import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanSeat, SeatViewData } from '@/api/types'
-import { type Density, type Filter, type View, density, matches, pan, parseBox, rate, scale, zoom } from './model'
+import {
+  type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, nearestSeat, nextSeat, pan, parseBox,
+  rate, reveal, scale, seatCenter, zoom,
+} from './model'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
-export function SeatGlyph({ seat, size, detail }: { seat: PlanSeat; size: number; detail: boolean }) {
+export function SeatGlyph({ seat, size, detail, traffic = false }: { seat: PlanSeat; size: number; detail: boolean; traffic?: boolean }) {
   const i = size * 0.08
   const s = size - 2 * i
+  // With the traffic overlay an online seat is filled by its traffic; the shapes stay the same.
+  const heat = traffic && seat.state === 'online' ? heatColor(heatLevel(seat.bps)) : undefined
   return (
     <>
       {seat.match && <rect className="match" x={i - 2.5} y={i - 2.5} width={s + 5} height={s + 5} rx={5} />}
-      <rect className={`seat s-${seat.state}`} x={i} y={i} width={s} height={s} rx={3} />
+      <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
       {detail && seat.checked_in && <polygon className="chk" points={`${i + s * 0.42},${i} ${i + s},${i} ${i + s},${i + s * 0.58}`} />}
       {seat.problems ? (
@@ -38,12 +43,16 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return px
 }
 
-/** The plan with pan (drag, arrow keys), zoom (wheel, pinch, + and -) and three levels of detail. */
-export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
-  data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; filter: Filter
-  view: View; setView: (v: View) => void
+const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
+
+/** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
+ *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
+export function SeatMap({ data, selected, onSelect, onClear, filter, view, setView, traffic = false }: {
+  data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void; filter: Filter
+  view: View; setView: (v: View) => void; traffic?: boolean
 }) {
   const { t } = useTranslation()
+  const ids = useId().replace(/:/g, '')
   const wrap = useRef<HTMLDivElement>(null)
   const svg = useRef<SVGSVGElement>(null)
   const px = useSize(wrap)
@@ -52,6 +61,7 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
   const level: Density = density(drawing.cell, view, px)
   const s = scale(view, px) || 1
   const [hover, setHover] = useState<{ seat: string; x: number; y: number } | null>(null)
+  const [cursor, setCursor] = useState<string | null>(null)
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const moved = useRef(false)
 
@@ -118,6 +128,30 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
     pointers.current.delete(e.pointerId)
   }
   const onKey = (e: React.KeyboardEvent) => {
+    const dir = ARROWS[e.key]
+    if (dir && !e.shiftKey) {
+      e.preventDefault()
+      // The first press starts on the open seat, else on the seat nearest the middle of the view.
+      const from = cursor ?? selected
+      const to = from && seatCenter(drawing, from) ? nextSeat(drawing, from, dir) : nearestSeat(drawing, centre())
+      const seat = to ?? from
+      if (!seat) return
+      setCursor(seat)
+      const at = seatCenter(drawing, seat)
+      if (at) setView(reveal(view, at, drawing.cell * 2))
+      return
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && (cursor ?? selected)) {
+      e.preventDefault()
+      onSelect((cursor ?? selected)!)
+      return
+    }
+    if (e.key === 'Escape' && (selected || cursor)) {
+      e.preventDefault()
+      if (selected) onClear?.()
+      else setCursor(null)
+      return
+    }
     const step = view.w * 0.1
     const moves: Record<string, () => View> = {
       '+': () => zoom(view, 1.25, centre(), fit), '=': () => zoom(view, 1.25, centre(), fit),
@@ -141,10 +175,14 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
   const tip = hover && data.seats[hover.seat]
+  const ringAt = cursor ? seatCenter(drawing, cursor) : null
+  const ring = ringAt && { at: ringAt, rotation: drawing.shapes.find((b) => b.cells.some((c) => c.seat === cursor))?.rotation ?? 0 }
+  const cursorSeat = cursor ? data.seats[cursor] ?? { state: 'unknown' as const } : null
   return (
     <div ref={wrap} className={`fb-plan-wrap d-${level}`}>
-      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="fb-plan" tabIndex={0} role="application"
-        aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} onKeyDown={onKey}
+      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} tabIndex={0} role="application"
+        aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} aria-describedby={`${ids}-keys ${ids}-blocks`}
+        aria-activedescendant={cursor ? `${ids}-${cursor}` : undefined} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
@@ -161,9 +199,11 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
               <rect className="blk" x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
               {b.cells.map((c) => {
                 const seat = data.seats[c.seat] ?? { state: 'unknown' as const }
-                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : ''].join(' ').trim()
+                const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
+                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
+                  cursor === c.seat ? 'kb' : ''].join(' ').trim()
                 return (
-                  <g key={c.seat} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
+                  <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
                     role="button" aria-label={`${c.seat}: ${stateText(seat)}`}
                     onPointerEnter={(e) => {
                       const box = wrap.current?.getBoundingClientRect()
@@ -172,7 +212,7 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
                     onPointerLeave={() => setHover(null)}
                     onClick={() => { if (!moved.current) onSelect(c.seat) }}>
                     <rect className="hit" width={drawing.cell} height={drawing.cell} />
-                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} />
+                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} />
                     {level === 'near' && (
                       <text className="num" x={drawing.cell / 2} y={drawing.cell / 2} dy="0.35em"
                         transform={b.rotation ? `rotate(${-b.rotation} ${drawing.cell / 2} ${drawing.cell / 2})` : undefined}>
@@ -198,12 +238,23 @@ export function SeatMap({ data, selected, onSelect, filter, view, setView }: {
             </g>
           )
         })}
+        {ring && (
+          // Drawn last so the neighbouring seats don't cover it.
+          <rect className="kb-ring" x={ring.at.x - drawing.cell / 2 - 1} y={ring.at.y - drawing.cell / 2 - 1}
+            width={drawing.cell + 2} height={drawing.cell + 2} rx={6} transform={`rotate(${ring.rotation} ${ring.at.x} ${ring.at.y})`} />
+        )}
       </svg>
       {tip && hover && level !== 'far' && (
-        <div className="fb-plan-tip" role="status" style={{ left: hover.x + 14, top: hover.y + 14 }}>
+        <div className="fb-plan-tip" aria-hidden="true" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <b>{hover.seat}</b> {stateText(tip)}
         </div>
       )}
+      <VisuallyHidden id={`${ids}-keys`}>{t('plan.keys')}</VisuallyHidden>
+      <VisuallyHidden id={`${ids}-blocks`}>
+        {data.blocks.map((b) => [t('plan.blockSummary', { name: b.name, online: b.online, count: b.seats }),
+          b.problems ? t('plan.problemsN', { count: b.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
+      </VisuallyHidden>
+      <VisuallyHidden role="status" aria-live="polite">{cursorSeat && `${cursor}: ${stateText(cursorSeat)}`}</VisuallyHidden>
       <Group gap={4} className="fb-plan-zoom">
         <Tooltip label={t('plan.zoomIn')}><ActionIcon variant="default" aria-label={t('plan.zoomIn')} onClick={() => setView(zoom(view, 1.4, centre(), fit))}><IconPlus size={16} /></ActionIcon></Tooltip>
         <Tooltip label={t('plan.zoomOut')}><ActionIcon variant="default" aria-label={t('plan.zoomOut')} onClick={() => setView(zoom(view, 1 / 1.4, centre(), fit))}><IconMinus size={16} /></ActionIcon></Tooltip>
