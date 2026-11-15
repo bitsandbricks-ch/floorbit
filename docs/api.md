@@ -2,7 +2,8 @@
 
 Everything the Floorbit pages show comes from a JSON API under `/api/`, and scripts and other tools
 can use the same API: a scoreboard, a Discord bot, your own dashboard (#40). This page covers
-signing in with a token, the version promise and how errors look. Each area's endpoints are listed
+signing in with a token, the version promise, how errors look, and webhooks, which tell other tools
+when something happens. Each area's endpoints are listed
 at the top of its blueprint in `floorbit/blueprints/` and in the area's own doc.
 
 ## API tokens
@@ -66,3 +67,60 @@ Errors are JSON with an `error` text meant for people, and the usual status code
 | Service health | `GET /api/health` | [health.md](health.md) |
 | The event report | `GET /api/report` | [report.md](report.md) |
 | Live changes as they happen | `GET /api/events` (server-sent events) | [integrations.md](integrations.md) |
+
+## Webhooks
+
+An admin adds webhooks under **Settings > Webhooks**: a name, a URL and the events to send.
+Floorbit POSTs each event as JSON as it happens:
+
+```json
+{"event": "switch.down", "delivery": "3f2a...", "ts": 1794652800.5,
+ "data": {"id": "sw1", "name": "sw-a-01", "since": 1794652790.1, "down_for": null, "reason": "ping"}}
+```
+
+| Event | When | `data` |
+| --- | --- | --- |
+| `switch.down`, `switch.up` | The status monitor saw a switch go down or come back | `id`, `name`, `since`, `down_for` (seconds, on `switch.up`), `reason` |
+| `monitoring.offline`, `monitoring.online` | The monitoring source stopped or started answering | `source`, `error`, `since`, `down_for` |
+| `incident.opened` | An incident was filed on the board, from a seat (helpdesk) or by a power alert | `id`, `title`, `status`, `seat`, `switch_name`, `circuit_name`, `team`, `assignee`, `source`, `created_at`, `updated_at` |
+| `incident.changed` | An incident was taken, assigned, noted or fixed | the same as `incident.opened` |
+| `seat.checked_in` | A player checked in at a seat | `seat`, `moved_from` |
+| `security.finding` | A security plugin reported something new | `id`, `kind`, `severity`, `switch`, `port`, `seat` |
+| `power.alert` | A circuit reached its critical load or tripped | `id`, `name`, `board`, `phase`, `state`, `pct`, `rating_a`, `seats` (how many), `switches` |
+| `health.changed` | A service on the health wall changed state | `changes` |
+
+Payloads never carry nicks, IPs or MACs: a check-in says which seat, not who. A feature that is
+turned off ([features.md](features.md)) sends nothing. **Send a test** sends `ping`.
+
+### Checking the signature
+
+Each delivery has these headers:
+
+- `Floorbit-Event`: the event's name.
+- `Floorbit-Delivery`: an id that stays the same across retries, so a receiver can drop duplicates.
+- `Floorbit-Signature`: `t=<unix time>,v1=<hex>`. The `<hex>` part is an HMAC-SHA256 over
+  `<t>.<raw body>` with the webhook's secret.
+
+The secret is shown once, when the webhook is added or given a new one. Check the signature, and
+reject old `t` values so a recorded delivery can't be replayed:
+
+```python
+import hashlib, hmac, time
+
+def valid(secret, header, body, max_age=300):
+    parts = dict(p.split("=", 1) for p in header.split(","))
+    want = hmac.new(secret.encode(), f"{parts['t']}.".encode() + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(want, parts["v1"]) and abs(time.time() - int(parts["t"])) < max_age
+```
+
+### Delivery
+
+- **Success:** any 2xx answer within 5 seconds. Redirects are not followed.
+- **Retries:** a failed delivery is tried again after 10 seconds, 1 minute and 5 minutes, then
+  given up.
+- **Recent deliveries:** the settings page shows each webhook's last 20 deliveries, kept in
+  memory, so they are gone after a restart. Turning a webhook off stops it without losing its
+  settings.
+- **Backups:** webhooks live in `data.json` but never go into backups, because of their secrets.
+- **Receivers on the LAN:** the URL may point inside the network, as receivers often do. Only an
+  admin can set it.

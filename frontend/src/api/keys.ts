@@ -22,6 +22,7 @@ export const qk = {
   features: ['features'] as const,
   featureSettings: ['features', 'settings'] as const,
   apiTokens: ['api-tokens'] as const,
+  webhooks: ['webhooks'] as const,
   preflight: ['preflight'] as const,
   planner: ['planner'] as const,
   plannerConfig: (name: string) => ['planner', 'config', name] as const,
