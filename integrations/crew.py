@@ -12,7 +12,9 @@ It needs no gateway connection.
   the app's Interactions Endpoint URL points at ``/api/discord/interactions``. A click counts
   as the Floorbit account that has that Discord user linked (Discord sign-in, #9). Discord
   users with no linked account are told how to link one, and nothing changes.
-- With no webhook set, the switch, health, security and power alerts go to this channel too.
+- With no webhook set, the switch, health, security and power alerts go to this channel too. A
+  switch-offline or service-down alert then has a "Mute … for 1 h" button for crew with
+  ``incidents.work`` (issues #272, #274); a webhook can't carry buttons.
 
 Talking to Discord runs on its own thread, so a slow Discord never holds up a request. Which
 Discord message and thread belong to which incident is kept in its own small file next to
@@ -39,8 +41,9 @@ STATUS_TEXT = {'open': 'Open', 'assigned': 'Taken', 'fixed': 'Fixed'}
 MAX_LINE = 1800           # under Discord's 2000-character message limit
 MAX_TRACKED = 3000        # oldest incidents are forgotten beyond this
 ARCHIVE_AFTER = 1440      # minutes; Discord archives a quiet thread after this anyway
-ACTION_PREFIX = 'fb'      # custom_id: fb:<action>:<incident id>
-ACTIONS = ('take', 'fixed')
+ACTION_PREFIX = 'fb'      # custom_id: fb:<action>:<incident id>, or fb:mute:<switch id>
+ACTIONS = ('take', 'fixed', 'mute')
+MUTE_MINUTES = 60         # what "Mute 1 h" under a switch alert means (issue #272)
 
 
 class CrewError(RuntimeError):
@@ -77,8 +80,16 @@ def custom_id(action, incident_id):
 
 def parse_custom_id(value):
     """(action, incident id), or None for a button this app didn't make."""
-    parts = str(value or '').split(':')
-    if len(parts) != 3 or parts[0] != ACTION_PREFIX or parts[1] not in ACTIONS or not parts[2].isalnum():
+    parts = str(value or '').split(':', 2)
+    if len(parts) != 3 or parts[0] != ACTION_PREFIX or parts[1] not in ACTIONS:
+        return None
+    # Incident ids are plain; switch ids may be uuids or NetBox names with dashes and dots, and a
+    # service's mute key is health:<plugin>:<check> (issue #274).
+    allowed = parts[2]
+    if parts[1] == 'mute':
+        for ch in '-_.:':
+            allowed = allowed.replace(ch, '')
+    if not allowed.isalnum():
         return None
     return parts[1], parts[2]
 
@@ -359,7 +370,13 @@ class CrewBridge:
     # alerts -------------------------------------------------------------------------------
     def post_alert(self, payload):
         """An alert from DiscordNotifier, when there is no webhook. Bots can't set a display name."""
-        body = {k: v for k, v in payload.items() if k not in ('username', 'avatar_url')}
+        body = {k: v for k, v in payload.items() if k not in ('username', 'avatar_url') and not k.startswith('_')}
+        if payload.get('_mute') and self.buttons():
+            row = [{'type': 2, 'style': 2, 'label': f'Mute {str(name)[:60]} for 1 h',
+                    'custom_id': custom_id('mute', sid)} for sid, name in payload['_mute']
+                   if len(custom_id('mute', sid)) <= 100]   # Discord's custom_id limit
+            if row:
+                body['components'] = [{'type': 1, 'components': row}]
         return self._call('POST', f'/channels/{channel_id()}/messages', body)
 
     # HTTP ---------------------------------------------------------------------------------

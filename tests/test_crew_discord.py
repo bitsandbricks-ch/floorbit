@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from integrations import crew
 from tests.conftest import TEST_USER
+from tests.test_health import fake_checks, registry, wall  # noqa: F401 (fixtures)
+from tests.test_service_mutes import red_wall
 
 CHANNEL = "900000000000000001"
 
@@ -227,3 +229,97 @@ def test_notice_message_without_an_end():
     notice = {"text": "Doors open at 18:00", "level": "info", "until": None, "by": None, "at": 0}
     text = CrewBridge.notice_message(notice)
     assert text == "📣 **Crew notice** (until taken down)\n> Doors open at 18:00"
+
+
+def test_a_switch_alert_can_be_muted_from_discord(bridge, client, anon_client, app_module, monkeypatch, key):
+    """Issue #272: "Mute … for 1 h" under a switch-offline alert, for crew who work incidents."""
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations import alerting
+    from integrations.discord import DiscordNotifier
+    sw = client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10}).get_json()["id"]
+    change = {"id": sw, "name": "sw-a-01", "status": "offline", "previous": "online"}
+    notifier = DiscordNotifier(crew=bridge)
+    notifier.send(notifier.build_status_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    (button,) = body["components"][0]["components"]
+    assert button["label"] == "Mute sw-a-01 for 1 h" and button["custom_id"] == f"fb:mute:{sw}"
+    assert "_mute" not in body
+
+    users = app_module.app.extensions["auth"].users
+    users.add("tech-ana", "example-pass-1", role="tech", identities={"discord": "111"})
+    users.add("viewer-vi", "example-pass-1", role="viewer", identities={"discord": "222"})
+
+    def press(user_id, switch_id=sw):
+        resp = anon_client.post("/api/discord/interactions", **_interaction(key, _click("mute", switch_id, user_id)))
+        return resp.get_json()["data"]["content"]
+
+    assert "works incidents" in press("222") and alerting.mutes() == {}
+    assert "not on the floor plan" in press("111", "gone-switch")
+    assert press("111").startswith("Muted sw-a-01 until ")
+    entry = alerting.mutes()[sw]
+    assert entry["by"] == "tech-ana" and entry["reason"] == "Muted from Discord"
+    assert 3500 < entry["until"] - time.time() <= 3600
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Muted switch alerts from Discord" and entries[0]["target"] == "sw-a-01"
+
+
+def test_no_mute_button_without_the_public_key_or_through_a_webhook(bridge, client, monkeypatch):
+    monkeypatch.delenv("DISCORD_APP_PUBLIC_KEY")
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations.discord import DiscordNotifier
+    notifier = DiscordNotifier(crew=bridge)
+    change = {"id": "s1", "name": "sw-a-01", "status": "offline", "previous": "online"}
+    notifier.send(notifier.build_status_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    assert "components" not in body and "_mute" not in body
+
+    # A webhook gets the alert without the private hint.
+    sent = []
+    monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.example.com/api/webhooks/1/x")
+    import integrations.discord as discord_module
+
+    class Ok:
+        status_code = 204
+    monkeypatch.setattr(discord_module.requests, "post", lambda url, json, timeout: sent.append(json) or Ok())
+    notifier._last_alert.clear()
+    notifier.send(notifier.build_status_message([change]))
+    assert sent and "_mute" not in sent[0] and "components" not in sent[0]
+
+
+def test_the_mute_button_id_takes_switch_ids_but_nothing_odd():
+    assert crew.parse_custom_id("fb:mute:3f2b9c1e-7a4d-4e8f-9b1a-2c3d4e5f6a7b") == (
+        "mute", "3f2b9c1e-7a4d-4e8f-9b1a-2c3d4e5f6a7b")
+    assert crew.parse_custom_id("fb:mute:a/b") is None
+    assert crew.parse_custom_id("fb:take:a-b") is None
+
+
+def test_a_service_alert_can_be_muted_from_discord(bridge, client, anon_client, app_module, monkeypatch, key,
+                                                   wall, fake_checks):  # noqa: F811
+    """Issue #274: the same button under a red service on the health wall."""
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+    from integrations import alerting
+    from integrations.discord import DiscordNotifier
+    # The app's own notifier would post the red wall too, from its thread: keep it out of the count.
+    monkeypatch.setattr(app_module.app.extensions["floorbit_discord"], "post", lambda payload: None)
+    red_wall(wall, fake_checks, monkeypatch)
+
+    notifier = DiscordNotifier(crew=bridge)
+    change = {"id": "demo:game-1", "name": "Game server 1", "status": "down", "previous": "up"}
+    notifier.send(notifier.build_health_message([change]))
+    ((_, _, body),) = bridge.fake.calls
+    (button,) = body["components"][0]["components"]
+    assert button["label"] == "Mute Game server 1 for 1 h" and button["custom_id"] == "fb:mute:health:demo:game-1"
+    assert crew.parse_custom_id(button["custom_id"]) == ("mute", "health:demo:game-1")
+
+    users = app_module.app.extensions["auth"].users
+    users.add("tech-ana", "example-pass-1", role="tech", identities={"discord": "111"})
+
+    def press(target):
+        resp = anon_client.post("/api/discord/interactions", **_interaction(key, _click("mute", target)))
+        return resp.get_json()["data"]["content"]
+
+    assert press("health:demo:game-1").startswith("Muted Game server 1 until ")
+    assert alerting.mutes()["health:demo:game-1"]["by"] == "tech-ana"
+    assert "health wall" in press("health:demo:nope")
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert entries[0]["action"] == "Muted service alerts from Discord"
