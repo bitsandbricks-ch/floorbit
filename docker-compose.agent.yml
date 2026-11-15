@@ -26,8 +26,14 @@ services:
     # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
     # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
     restart: on-failure:3
+    # The image's own check asks the web app, which the agent doesn't run. This one asks whether
+    # the hosted Floorbit answered in the last two minutes, so `docker ps` shows a lost uplink.
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "-m", "floorbit.agent", "health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 2
 
 volumes:
   agent_state:

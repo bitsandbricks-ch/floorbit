@@ -19,7 +19,9 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
   collector; 409 while the traffic feature is off here.
 - ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
 """
+import json
 import time
+import zlib
 
 from flask import Blueprint, current_app, g, jsonify, request
 
@@ -29,6 +31,7 @@ from .. import agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 HEADER = 'Floorbit-Agent-Key'
+PROTOCOL_HEADER = 'Floorbit-Agent-Protocol'
 
 
 def _who():
@@ -85,9 +88,45 @@ def revoke(agent_id):
     return jsonify({'ok': True})
 
 
+@bp.before_request
+def _same_protocol():
+    """An agent speaking another protocol gets one clear answer instead of odd failures later.
+    No header means protocol 1: every agent before the header was added spoke it."""
+    if not request.path.startswith('/api/agent/'):
+        return None
+    spoken = (request.headers.get(PROTOCOL_HEADER) or '1').strip()
+    if spoken not in {str(p) for p in agent_link.PROTOCOLS}:
+        return jsonify({'error': f'This Floorbit speaks agent protocol {agent_link.PROTOCOL}, the agent {spoken[:10]}. '
+                                 'Update the agent (or this Floorbit) so they match.',
+                        'protocol': agent_link.PROTOCOL}), 426
+    return None
+
+
 def _agent():
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
                             request.remote_addr)
+
+
+MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more
+
+
+def _agent_body():
+    """The JSON an agent posted, gzipped or not ({} when it isn't JSON). Gzip saves the event's
+    uplink most on syslog batches and inventories; agents use it once hello says it's understood."""
+    raw = request.get_data(cache=False)
+    if (request.headers.get('Content-Encoding') or '').lower() == 'gzip':
+        unzip = zlib.decompressobj(wbits=31)
+        try:
+            raw = unzip.decompress(raw, MAX_UNZIPPED)
+        except zlib.error:
+            return {}
+        if unzip.unconsumed_tail:
+            return {}
+    try:
+        body = json.loads(raw or b'{}')
+    except ValueError:
+        return {}
+    return body if isinstance(body, dict) else {}
 
 
 def _refused():
@@ -100,7 +139,8 @@ def hello():
     if agent is None:
         return _refused()
     events.publish('agents.changed', {})
-    return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0'})
+    return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0',
+                    'encodings': ['gzip'], 'protocol': agent_link.PROTOCOL})
 
 
 @bp.route('/api/agent/v1/calls', methods=['GET'])
@@ -120,7 +160,7 @@ def answers():
     agent = _agent()
     if agent is None:
         return _refused()
-    body = request.get_json(silent=True) or {}
+    body = _agent_body()
     items = body.get('answers') if isinstance(body.get('answers'), list) else []
     taken = sum(1 for a in items[:100] if isinstance(a, dict)
                 and agent_link.tunnel.answer(a.get('id'), a.get('ok'), a.get('result'), a.get('error'),
@@ -139,7 +179,7 @@ def syslog():
     receiver = current_app.extensions.get('floorbit_syslog')
     if receiver is None or not features.on('syslog'):
         return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Features).'}), 409
-    body = request.get_json(silent=True) or {}
+    body = _agent_body()
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
     taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
@@ -178,7 +218,7 @@ def flows():
         return _refused()
     if not features.on('traffic'):
         return _traffic_off()
-    body = request.get_json(silent=True) or {}
+    body = _agent_body()
     snap = body.get('snapshot')
     if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
         return jsonify({'error': 'snapshot is missing'}), 400

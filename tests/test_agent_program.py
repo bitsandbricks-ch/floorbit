@@ -816,3 +816,94 @@ def test_the_agents_page_shows_what_each_agent_relays(client, app_module, monkey
     assert list(shown["Hall 2"]) == ["flows"]
     later = time.time() + agent_link.RELAY_RECENT + 1
     assert agent_link.tunnel.relays(first["id"], now=later) == {}
+
+
+def test_health_says_whether_the_host_answered_lately(tmp_path):
+    beat = tmp_path / "agent-heartbeat"
+    said = []
+    assert agent_mod.health(str(beat), out=said.append) == 1 and "not reached" in said[-1]
+    a = agent_mod.Agent("http://hosted.example.com", "fba_x_y", fake_execute, http=object(), log=said.append)
+    a.heartbeat = str(beat)
+    a.beat(now=1000)
+    assert beat.read_text() == "1000\n"
+    assert agent_mod.health(str(beat), out=said.append) == 0 and said[-1].startswith("healthy")
+    later = os.path.getmtime(beat) + agent_mod.HEALTHY_FOR + 5
+    assert agent_mod.health(str(beat), now=later, out=said.append) == 1 and "last answered" in said[-1]
+    beat.write_text("")
+    a.beat(now=1005)                                    # too soon: not written again
+    assert beat.read_text() == ""
+    a.heartbeat = str(tmp_path / "missing" / "beat")
+    a.beat(now=2000)
+    assert a.heartbeat is None and "cannot write the heartbeat" in said[-1]
+
+
+def test_a_poll_that_gets_through_beats(client, app_module, tmp_path):
+    a = make(app_module, enrol(client)["key"])
+    a.heartbeat = str(tmp_path / "beat")
+    a.poll_wait = 0.2
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not os.path.exists(a.heartbeat) and time.time() < deadline:
+            time.sleep(0.05)
+        assert agent_mod.health(a.heartbeat, out=lambda *_: None) == 0
+    finally:
+        a.stop()
+        worker.join(5)
+
+
+def test_main_health_needs_no_settings(monkeypatch, tmp_path):
+    monkeypatch.delenv("FLOORBIT_URL", raising=False)
+    monkeypatch.setenv("FLOORBIT_AGENT_HEARTBEAT", str(tmp_path / "beat"))
+    assert agent_mod.main(["health"]) == 1
+    (tmp_path / "beat").write_text("1\n")
+    assert agent_mod.main(["health"]) == 0
+
+
+def test_big_bodies_go_gzipped_once_the_host_says_it_takes_them(client, app_module, monkeypatch):
+    receiver = _syslog_receiver(app_module, monkeypatch)
+    a = make(app_module, enrol(client)["key"])
+    sent = []
+    real_post = a.http.post
+    monkeypatch.setattr(a.http, "post", lambda url, data=None, headers=None, timeout=None: (
+        sent.append(dict(headers or {})), real_post(url, data=data, headers=headers))[1])
+    lines = [{"raw": f"<14>line {n} " + "x" * 40, "from": "192.0.2.9", "at": time.time()} for n in range(100)]
+    a.send_syslog(lines[:1])
+    assert "Content-Encoding" not in sent[-1]                   # before hello: plain, any host takes that
+    assert a.hello() and a.gzip
+    a.send_syslog(lines)
+    assert sent[-1]["Content-Encoding"] == "gzip" and len(receiver.lines) == 101
+    a.send_syslog(lines[:1])
+    assert "Content-Encoding" not in sent[-1]                   # too small to be worth it
+
+
+def test_broken_or_huge_gzip_is_refused(client, app_module, monkeypatch):
+    import gzip as gz
+
+    from floorbit.blueprints import agent as agent_bp
+    _syslog_receiver(app_module, monkeypatch)
+    key = enrol(client)["key"]
+    h = {"Floorbit-Agent-Key": key, "Content-Encoding": "gzip", "Content-Type": "application/json"}
+    post = app_module.app.test_client().post
+    assert post("/api/agent/v1/syslog", data=b"not gzip", headers=h).get_json() == {"taken": 0, "received": 0}
+    monkeypatch.setattr(agent_bp, "MAX_UNZIPPED", 1000)
+    bomb = gz.compress(b'{"lines": [' + b" " * 5000 + b"]}")
+    assert post("/api/agent/v1/syslog", data=bomb, headers=h).get_json()["received"] == 0
+    fine = gz.compress(b'{"lines": [{"raw": "<14>hi", "from": "192.0.2.9"}]}')
+    assert post("/api/agent/v1/syslog", data=fine, headers=h).get_json() == {"taken": 1, "received": 1}
+
+
+def test_another_protocol_gets_one_clear_answer(client, app_module, monkeypatch):
+    key = enrol(client)["key"]
+    agent = app_module.app.test_client()
+    h = {"Floorbit-Agent-Key": key}
+    hello = agent.get("/api/agent/v1/hello", headers=h).get_json()        # no header: protocol 1
+    assert hello["protocol"] == agent_link.PROTOCOL == agent_mod.PROTOCOL
+    res = agent.get("/api/agent/v1/calls?wait=0", headers={**h, "Floorbit-Agent-Protocol": "2"})
+    assert res.status_code == 426 and "protocol 1, the agent 2" in res.get_json()["error"]
+    assert client.get("/api/agents").status_code == 200                    # the admin side doesn't care
+    monkeypatch.setattr(agent_mod, "PROTOCOL", 2)
+    a = make(app_module, key)
+    with pytest.raises(agent_mod.Refused, match="Update the agent"):
+        a.run()                                                          # stops instead of retrying
