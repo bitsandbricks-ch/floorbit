@@ -179,3 +179,34 @@ def test_what_attendees_reported(client, stats):
     assert found["seat_problems"] == [{"problem": "no-internet", "count": 1}, {"problem": "slow", "count": 2}]
     pdf = client.get("/api/report.pdf")
     assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
+
+
+def test_incidents_per_hour(client, stats, monkeypatch):
+    # When trouble peaked over the event (issue #420): a bar per hour, on the page and in the PDF.
+    now = time.time()
+    _read(stats, {"D-1"}, now - 7200)
+    _read(stats, {"D-1", "D-2"}, now - 3600)
+    _read(stats, {"D-2"}, now - 60)
+    from floorbit import report_pdf
+    charts = []
+    real = report_pdf._chart
+
+    def spy(doc, title, *args, **kwargs):
+        charts.append(title)
+        real(doc, title, *args, **kwargs)
+    monkeypatch.setattr(report_pdf, "_chart", spy)
+    built = client.get("/api/report").get_json()
+    assert [h["incidents"] for h in built["hours"]] == [0, 0, 0]
+    client.get("/api/report.pdf")
+    assert "Incidents filed per hour" not in charts   # no bars, no chart
+    for seat in ("D-1", "D-2", "D-3"):
+        client.post("/api/incidents", json={"seat": seat, "title": "No link"})
+    hours = client.get("/api/report").get_json()["hours"]
+    assert [h["incidents"] for h in hours] == [0, 0, 3]
+    assert client.get("/api/report.pdf").status_code == 200 and charts[-1] == "Incidents filed per hour"
+    assert client.get("/api/report.pdf?lang=de").status_code == 200
+    assert charts[-1] == "Gemeldete Störungen pro Stunde"
+
+
+def test_incidents_outside_the_hours_are_not_counted():
+    assert report._per_hour([{"created_at": 7200 + 5}, {"created_at": 99999}], [3600, 7200]) == {3600: 0, 7200: 1}
