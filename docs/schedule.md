@@ -42,3 +42,17 @@ turns it on. It shows the programme only, never who planned it.
 | `PATCH` / `DELETE /api/schedule/items/<id>` | change or remove one |
 | `PUT /api/schedule/event` | `{"start", "end"}` |
 | `POST /api/schedule/import` | `{"ics": "<file text>", "tz": "Europe/Zurich"}` |
+
+## Discord
+
+Set **Settings > Discord > Attendee programme channel webhook** (`DISCORD_SCHEDULE_WEBHOOK_URL`) to a
+webhook in a channel attendees read, such as `#announcements` (the status channel's webhook works too).
+Ten minutes before an item starts (`SCHEDULE_ANNOUNCE_MINUTES`), Floorbit posts it there once:
+
+- the title, where, the note, and when it starts as a Discord timestamp, so everyone reads their own time;
+- items that start together share one message; quiet hours read "Quiet hours start in 10 minutes. Please keep it down.";
+- an item moved to a new time is announced again at the new time;
+- an item added less than ten minutes before it starts is announced right away.
+
+Only while the public schedule page is on, and only what the page shows. Nobody is mentioned. What
+was announced is kept in memory, so after a restart an item inside the window may come a second time.

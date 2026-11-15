@@ -96,6 +96,7 @@ class DiscordNotifier:
         events.subscribe('power.alert', self.on_power)
         events.subscribe('forecast.alert', self.on_forecast)
         events.subscribe('status_page.update', self.on_status_update)
+        events.subscribe('schedule.starting', self.on_schedule_starting)
 
     def _ensure_worker(self):
         with self._lock:
@@ -482,6 +483,33 @@ class DiscordNotifier:
         if page_url:
             embed['url'] = page_url
         return {'username': config.get('DISCORD_USERNAME', 'Floorbit') or 'Floorbit', 'embeds': [embed],
+                'allowed_mentions': {'parse': []}}
+
+    def on_schedule_starting(self, event):
+        url = config.get('DISCORD_SCHEDULE_WEBHOOK_URL', '') or ''
+        data = event['data']
+        if url and data.get('items'):
+            self.post({**self.build_schedule_message(data['items'], data.get('page_url')), '_webhook': url})
+
+    def build_schedule_message(self, items, page_url=None):
+        """What is about to start, for attendees. Times as Discord timestamps: each reader sees their own."""
+        colors = {'talk': 0x58A6FF, 'tournament': COLOR_INFO, 'meal': COLOR_ONLINE}   # else grey
+        embeds = []
+        for item in items[:10]:   # Discord takes ten embeds per message
+            at = int(item['start'])
+            if item['kind'] == 'quiet':
+                title, lines = 'Quiet hours', [f'Quiet hours start <t:{at}:R>, at <t:{at}:t>. Please keep it down.']
+            else:
+                title = item['title'][:256]
+                lines = [f'Starts <t:{at}:R>, at <t:{at}:t>' + (f" · {item['where']}" if item.get('where') else '')]
+            if item.get('note'):
+                lines.append(item['note'][:500])
+            embed = {'title': title, 'description': '\n'.join(lines), 'color': colors.get(item['kind'], 0x8B949E)}
+            if page_url:
+                embed['url'] = page_url
+            embeds.append(embed)
+        # Titles are the crew's text: no @everyone sneaks through them.
+        return {'username': config.get('DISCORD_USERNAME', 'Floorbit') or 'Floorbit', 'embeds': embeds,
                 'allowed_mentions': {'parse': []}}
 
     def _reports_from_outage(self, change, now):

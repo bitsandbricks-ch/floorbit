@@ -74,6 +74,8 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `DISCORD_WEBHOOK_URL` | | Channel settings → Integrations → Webhooks |
 | `DISCORD_ALERTS_ENABLED` | `true` | |
 | `DISCORD_STATUS_WEBHOOK_URL` | | a webhook in a channel attendees read: every update the crew posts on the network status page goes there too, while the public page is on ([status-page.md](status-page.md#discord)) |
+| `DISCORD_SCHEDULE_WEBHOOK_URL` | | a webhook in a channel attendees read: what is about to start on the public programme is announced there ([schedule.md](schedule.md#discord)) |
+| `SCHEDULE_ANNOUNCE_MINUTES` | `10` | how long before an item starts it is announced; `0` announces nothing |
 | `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime, and how many open incidents from its seats were filed while it was down |
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
 | `DISCORD_USERNAME` | `Floorbit` | |
