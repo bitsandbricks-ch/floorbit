@@ -38,7 +38,7 @@ def _job(incident, data, seats, switches, me_at, books=()):
     target = dispatch.where_is(incident, seats, switches)
     out = {k: incident.get(k) for k in ('id', 'title', 'seat', 'switch_id', 'switch_name', 'circuit_id',
                                         'circuit_name', 'status', 'team', 'source', 'reports', 'created_at',
-                                        'dispatched_at', 'taken_at', 'notes')}
+                                        'dispatched_at', 'taken_at', 'notes', 'seat_ok_at')}
     out['drawing'] = out['target'] = out['from'] = out['hall'] = None
     book = runbooks.for_incident(incident, books)
     out['runbook'] = {k: book[k] for k in ('id', 'title', 'body')} if book else None
