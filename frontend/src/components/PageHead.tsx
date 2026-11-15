@@ -17,7 +17,8 @@ export function PageHead({ title, desc, actions }: { title: ReactNode; desc?: Re
           )}
         </Stack>
         {actions && (
-          <Group gap="xs" wrap="wrap" align="center">
+          // Phones: one row that scrolls sideways, so the page starts on screen (app.css).
+          <Group gap="xs" wrap="wrap" align="center" className="fb-pagehead-actions">
             {actions}
           </Group>
         )}

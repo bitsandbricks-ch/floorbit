@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './Layout'
 
 afterEach(() => {
@@ -20,8 +21,17 @@ const pages = { pages: [
   { href: '/settings/status', id: 'newPage', label: 'Status settings' },
 ] }
 
+// Shows where the router went: React pages are routes now, so the sidebar stays (no page load).
+function Where() {
+  const at = useLocation()
+  return <output data-testid="where">{at.pathname + at.search}</output>
+}
+
 function page(route = '/problems') {
-  return renderWithApp(<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}>body</Layout>, route)
+  return renderWithApp(
+    <Routes><Route path="*" element={<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}><Where /></Layout>} /></Routes>,
+    route,
+  )
 }
 
 describe('Go to', () => {
@@ -57,7 +67,21 @@ describe('Go to', () => {
     expect(options[1]).toHaveAttribute('aria-selected', 'true')
     expect(box).toHaveAttribute('aria-activedescendant', options[1].id)
     fireEvent.keyDown(box, { key: 'Enter' })
-    expect(assign).toHaveBeenCalledWith(options[1].querySelector('.fb-goto-path')!.textContent)
+    expect(screen.getByTestId('where')).toHaveTextContent(options[1].querySelector('.fb-goto-path')!.textContent!)
+    expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('loads the floor plan, a page the server draws, in full', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
+    page()
+    fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
+    const box = await screen.findByRole('combobox')
+    fireEvent.change(box, { target: { value: 'floor' } })
+    await screen.findByRole('option', { name: /Floor plan/ })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(assign).toHaveBeenCalledWith('/')
   })
 
   it('says so when nothing matches', async () => {
@@ -92,8 +116,6 @@ describe('Go to', () => {
       ] },
     })
     vi.stubGlobal('fetch', fake.fn)
-    const assign = vi.fn()
-    vi.stubGlobal('location', { ...window.location, assign })
     page()
     fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
     const box = await screen.findByRole('combobox')
@@ -107,7 +129,7 @@ describe('Go to', () => {
     expect(fake.calls.some((c) => c.path === '/api/pages/find?q=b')).toBe(false)
     expect(seat).toHaveAttribute('aria-selected', 'true')
     fireEvent.keyDown(box, { key: 'Enter' })
-    expect(assign).toHaveBeenCalledWith('/plan?seat=B-8')
+    expect(screen.getByTestId('where')).toHaveTextContent('/plan?seat=B-8')
   })
 
   it('does what the user menu does, once you type it', async () => {

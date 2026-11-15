@@ -11,6 +11,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { PlayerHit, SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
+import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
@@ -205,6 +206,7 @@ export default function FloorPlan() {
   const panel = !!inspector
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere}>
+      <PageHead title={t('plan.title')} />
       {q.isPending && <Loader aria-label={t('common.loading')} />}
       {q.error && <Alert color="down" role="alert">{t('common.error', { message: q.error.message })}</Alert>}
       {data && (

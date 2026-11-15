@@ -125,6 +125,23 @@ describe('Shift handover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
     expect(writeText.mock.calls[0][0]).toContain('Gear still out (3 pieces):\n- player-12: sw-spare-01, sw-spare-02\n- Crew: ap-spare-01')
   })
+  it('lists what the programme has coming up this shift (issue #432)', async () => {
+    const at = Math.floor(Date.now() / 1000) + 3600
+    const extra = { coming_up: [
+      { id: 'f', title: 'Rocket Cup final', kind: 'tournament', start: at, end: null, where: 'Main stage' },
+      { id: 'p', title: 'Znacht: pizza', kind: 'meal', start: at + 1800, end: null, where: null },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': { ...data, ...extra } }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<Handover />)
+    const box = (await screen.findByRole('heading', { name: 'Coming up this shift' })).parentElement!
+    expect(within(box).getByText('Rocket Cup final')).toBeInTheDocument()
+    expect(within(box).getByText('Tournament')).toBeInTheDocument()
+    expect(within(box).getByRole('link', { name: 'Whole programme' })).toHaveAttribute('href', '/schedule')
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
+    expect(writeText.mock.calls[0][0]).toMatch(/Coming up this shift:\n- .+ Rocket Cup final \(Main stage\)\n- .+ Znacht: pizza/)
+  })
   it('marks incidents that have waited 10 minutes with nobody on them', async () => {
     const waiting: HandoverData = { ...data, counts: { ...counts, open: 2, waiting: 1 }, incidents: { ...data.incidents, open: [
       { ...data.incidents.open[0], id: 'w1', title: 'Old one', match: null, created_at: now - 25 * 60 },

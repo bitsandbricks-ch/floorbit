@@ -12,6 +12,7 @@ import { useCan, useDashboard, useWidget } from '@/api/queries'
 import type { ActionResult, ActionTile, DashboardLayout, Tile, WidgetTile } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
+import { PageHead } from '@/components/PageHead'
 import { WidgetBody } from '@/widgets/WidgetBody'
 
 function TileFrame({ title, from, wide, children }: { title: string; from: string; wide?: boolean; children: React.ReactNode }) {
@@ -205,19 +206,20 @@ export default function Dashboard() {
   if (screen) return <main className="fb-dashboard-screen">{body}</main>
   return (
     <Layout title={t('dashboard.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      {all.length > 0 && (
-        <Group justify="space-between" mb="md" wrap="wrap" gap="xs">
-          <Select aria-label={t('dashboard.layout')} w={240} allowDeselect={false} value={layout?.id ?? ''}
-            onChange={(v) => pick(v || null)}
-            data={[{ value: '', label: t('dashboard.allTiles') }, ...(layouts.data?.layouts ?? []).map((l) => ({ value: l.id, label: l.name }))]} />
-          <Group gap="xs">
+      <PageHead
+        title={t('dashboard.title')}
+        actions={all.length > 0 && (
+          <>
+            <Select aria-label={t('dashboard.layout')} w={220} allowDeselect={false} value={layout?.id ?? ''}
+              onChange={(v) => pick(v || null)}
+              data={[{ value: '', label: t('dashboard.allTiles') }, ...(layouts.data?.layouts ?? []).map((l) => ({ value: l.id, label: l.name }))]} />
             {canEdit && layout && <Button variant="default" leftSection={<IconPencil size={16} />} onClick={() => setEditing('current')}>{t('dashboard.editLayout')}</Button>}
             {canEdit && <Button variant="default" leftSection={<IconLayoutGridAdd size={16} />} onClick={() => setEditing('new')}>{t('dashboard.newLayout')}</Button>}
             <Button variant="default" component="a" href={`/dashboard?${layout ? `layout=${encodeURIComponent(layout.id)}&` : ''}screen=1`}
               leftSection={<IconMaximize size={16} />}>{t('dashboard.screen')}</Button>
-          </Group>
-        </Group>
-      )}
+          </>
+        )}
+      />
       {body}
     </Layout>
   )

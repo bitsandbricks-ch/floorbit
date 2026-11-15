@@ -19,7 +19,7 @@ The mark is Seatbit's 3×3 grid seen from above. The six lit cells are the corne
 | --- | --- |
 | `floorbit-logo.svg` | Horizontal lockup on dark grounds. The default. |
 | `floorbit-logo-light.svg` | Lockup on light grounds. |
-| `floorbit-mark.svg`, `-light.svg` | Mark alone: phone top bar, avatars, the kiosk corner. |
+| `floorbit-mark.svg`, `-light.svg` | Mark alone: the folded sidebar, avatars, the kiosk corner. |
 | `floorbit-mark-mono.svg` | One colour, `currentColor`, no open floor. |
 | `floorbit-wordmark*.svg` | Wordmark alone, when the mark is already on screen. |
 | `floorbit-icon.svg`, `icon-512.png` | App icon on an ink tile (PWA, Discord bot avatar). |
@@ -29,7 +29,7 @@ The mark is Seatbit's 3×3 grid seen from above. The six lit cells are the corne
 - Clear space is one cell width on every side. Minimum size: mark 16 px, lockup 96 px wide.
 - Don't recolour single cells, rotate the mark, add outlines or shadows, or set the wordmark in another font. With one colour available, use the mono files.
 - The wordmark is outlined Geist Bold at −2.5% tracking, the same construction as Seatbit's, so it needs no font. The brand files live in `static/brand/`; [docs/themes.md](themes.md) covers the theme tokens.
-- Event themes put the event's own logo in the top bar. Floorbit then moves to the footer as the powered-by pill; it never sits next to an event logo at the same size.
+- Event themes put the event's own logo at the top of the sidebar. Floorbit then moves to the footer as the powered-by pill; it never sits next to an event logo at the same size.
 
 ## Colour
 

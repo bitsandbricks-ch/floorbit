@@ -274,7 +274,7 @@ export interface Incident {
   team: string | null
   status: IncidentStatus
   assignee: string | null
-  source: 'board' | 'helpdesk' | 'power'
+  source: 'board' | 'helpdesk' | 'power' | 'discord'
   reported_by: string | null
   reports: number
   notes: IncidentNote[]
@@ -645,7 +645,7 @@ export interface ReplayData {
 }
 
 /** GET /api/report: the post-event report (issue #22). Nicks and IPs only when an admin asked. */
-export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number }
+export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number; incidents?: number }
 export interface ReportOutage { switch: string; times: number; down_s: number; longest_s: number; still_down: boolean }
 export interface ReportPort {
   switch: string; port: string; seat: string | null; count: number; kinds: Record<string, number>; last: number
@@ -725,6 +725,7 @@ export interface HandoverData {
   notice?: CrewNotice | null
   /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
   gear?: { to: string; count: number; names: string[] }[]
+  coming_up?: { id: string; title: string; kind: string; start: number; end: number | null; where: string | null }[]
   counts: HandoverCounts
   history: HandoverRecord[]
   discord: boolean
@@ -762,7 +763,11 @@ export interface PreflightBoard {
 }
 
 /** Gear loans (issue #36). */
-export interface GearLoan { to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string }
+export interface GearLoan {
+  to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string
+  /** Due back (issue #426), and whether that is past. */
+  until?: number | null; overdue?: boolean
+}
 export interface GearItem { id: string; name: string; role: string; model: string; serial: string; origin: string; placed: boolean; loan: GearLoan | null }
 export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
 export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
@@ -1362,3 +1367,9 @@ export interface AgentStats {
   calls: number; failed: number; median_ms: number | null
   last_error: { at: number; method: string; error: string | null } | null
 }
+
+/** GET /api/speedtests/summary (issue #434): each seat's latest test, for the hall and per switch. */
+export interface SpeedFigures { tests: number; down_mbps: number | null; up_mbps: number | null; ping_ms: number | null }
+export interface SpeedSeat { seat: string; down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; at: number }
+export interface SpeedSwitch extends SpeedFigures { id: string; name: string; seats: SpeedSeat[]; slow: boolean }
+export interface SpeedtestSummary { hours: number; hall: SpeedFigures; switches: SpeedSwitch[]; unknown: SpeedSeat[] }

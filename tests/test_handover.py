@@ -157,3 +157,16 @@ def test_the_summary_says_how_fast_the_shift_fixed_things(client, app_module, mo
     monkeypatch.setattr(notifier, "post", sent.append)
     client.post("/api/handover", json={"note": "", "discord": True})
     assert "3 fixed this shift, half within 1 min)" in sent[0]["embeds"][0]["description"]
+
+
+def test_summary_lists_what_the_programme_has_coming_up(client):
+    now = time.time()
+    for title, kind, at in (("Rocket Cup final", "tournament", now + 2 * 3600), ("Znacht", "meal", now + 3600),
+                            ("Opening", "talk", now - 600), ("Sunday brunch", "meal", now + 9 * 3600)):
+        assert client.post("/api/schedule/items", json={"title": title, "kind": kind, "start": at,
+                                                         "where": "Main stage"}).status_code == 201
+    coming = client.get("/api/handover").get_json()["coming_up"]
+    # Started already, or after the next shift: left out.
+    assert [(i["title"], i["kind"], i["where"]) for i in coming] == [
+        ("Znacht", "meal", "Main stage"), ("Rocket Cup final", "tournament", "Main stage")]
+    assert set(coming[0]) == {"id", "title", "kind", "start", "end", "where"}   # no who-edited-what

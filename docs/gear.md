@@ -9,6 +9,10 @@ quantities, because those live in NetBox. It only tracks loans.
 
 - **Check out** a piece to a person (an account, or any name) or an area, with an optional note.
   A piece that is out has to be checked in before it can go to someone else.
+- **Back by** (optional, issue #426): when it is due back, at most two weeks ahead. The list shows
+  *Back by …*, and once that time has passed, a red *Overdue since …* badge. **Overdue** next to
+  *Out* lists only those pieces (it shows while there are any). The history keeps how late it came
+  back (`late`, in seconds).
 - **Check in** brings it back. The history keeps how long it was out.
 - **QR labels:** **Print QR labels** gives an A4 sheet, 4 × 8 labels, with the name, model and
   serial. Pick a kind first to print only that kind. The QR code opens `/gear?item=<id>`, so a

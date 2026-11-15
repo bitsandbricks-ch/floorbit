@@ -16,7 +16,9 @@
   {% endfor %}
   {% endif %}
 </head>
-<body>
+<body class="fb-has-nav">
+  {#- The React app draws the sidebar itself; it needs only the data. #}
+  {% with include_slot=False %}{% include "_nav.html" %}{% endwith %}
   <div id="root">
     {% if not assets %}
     <main style="max-width:640px;margin:48px auto;padding:0 16px;font-family:var(--font-sans);color:var(--color-fg)">

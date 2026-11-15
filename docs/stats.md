@@ -1,6 +1,6 @@
 # Stats dashboard
 
-**Stats** in the top bar (`/stats`) has the numbers people ask for during the event:
+**Stats** in the sidebar (`/stats`, under Network) has the numbers people ask for during the event:
 
 | Tile | What it is |
 | --- | --- |

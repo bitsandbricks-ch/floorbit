@@ -1,11 +1,9 @@
-// Floor plan editor: the count of problems next to Problems in the top bar (issue #10): offline
+// Floor plan editor: mutes, and the count of problems next to Problems (issue #10): offline
 // switches that aren't muted, red services, high security findings and red power circuits.
 // Classic script sharing one global scope with the other editor/*.js files (see README.md).
 'use strict';
 
 async function loadProblemCount() {
-  const badge = document.getElementById('problems-count');
-  if (!badge) return;
   let body;
   try {
     body = await api('GET', '/api/problems');
@@ -13,6 +11,9 @@ async function loadProblemCount() {
     return;   // extra information; the floor plan works without it
   }
   if (typeof setMutes === 'function') setMutes(body.mutes, body.can_mute);
+  // The count itself shows in the sidebar (templates/_nav.html), which asks on its own.
+  const badge = document.getElementById('problems-count');
+  if (!badge) return;
   const down = (body.counts && body.counts.down) || 0;
   badge.textContent = String(down);
   badge.hidden = down === 0;

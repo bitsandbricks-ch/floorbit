@@ -51,6 +51,7 @@
     body.screen ol li.day { font-size: 1.3vw; }
     body.screen .programme .item b { font-size: 1.7vw; }
     .item + .item { margin-top: 10px; }
+    .subscribe { color: inherit; text-decoration: underline; }
   </style>
 </head>
 <body{% if screen %} class="screen"{% endif %}>
@@ -116,7 +117,8 @@
       <p class="muted">{{ t.empty }}</p>
       {% endif %}
     </section>
-    <p class="muted wide">{{ stamp(t.updated, now) }}</p>
+    <p class="muted wide">{{ stamp(t.updated, now) }}{% if not screen and s['items'] %}
+      · <a href="/agenda.ics" class="subscribe">{{ t.subscribe }}</a>{% endif %}</p>
     <script src="/static/js/agenda.js"></script>
     {% endif %}
     {% if not screen %}{% include "_attribution.html" %}{% endif %}
