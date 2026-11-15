@@ -35,7 +35,7 @@ TEXTS = {
                       'unknown': 'Floorbit cannot reach its monitoring right now, so it does not know.'},
            'since': 'Since {time}', 'areas': 'Affected areas', 'rows': 'rows {rows}', 'seats': '{n} seats',
            'switches': 'Switches: {names}', 'updates': 'Updates from the crew', 'none': 'No updates yet.',
-           'updated': 'Updated {time}. This page reloads every minute.', 'block': 'Seat block {name}',
+           'updated': 'Updated {time}. This page updates every minute.', 'block': 'Seat block {name}',
            'unnamed': 'A seat block', 'hall_wide': 'Hall {name}', 'somewhere': 'Somewhere in the hall'},
     'de': {'title': 'Netzwerkstatus', 'off': 'Diese Seite ist ausgeschaltet.',
            'state': {'operational': 'Alles läuft', 'degraded': 'Ein Teil des Netzwerks ist ausgefallen',
@@ -48,7 +48,7 @@ TEXTS = {
                       'unknown': 'Floorbit erreicht sein Monitoring gerade nicht und weiss es darum nicht.'},
            'since': 'Seit {time}', 'areas': 'Betroffene Bereiche', 'rows': 'Reihen {rows}',
            'seats': '{n} Plätze', 'switches': 'Switches: {names}', 'updates': 'Updates der Crew',
-           'none': 'Noch keine Updates.', 'updated': 'Stand {time}. Die Seite lädt jede Minute neu.',
+           'none': 'Noch keine Updates.', 'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.',
            'block': 'Platzblock {name}', 'unnamed': 'Ein Platzblock', 'hall_wide': 'Halle {name}',
            'somewhere': 'Irgendwo in der Halle'},
 }

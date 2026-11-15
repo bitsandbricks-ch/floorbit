@@ -30,7 +30,7 @@ TEXTS = {
            'running': 'Running for', 'hours': '{n} h',
            'nothing': 'Nothing to show yet. Check back once the event is running.',
            'privacy': 'Counts for the whole hall and per seat block only: no names, seats or addresses.',
-           'updated': 'Updated {time}. This page reloads every minute.'},
+           'updated': 'Updated {time}. This page updates every minute.'},
     'de': {'title': 'Der Event in Zahlen', 'off': 'Diese Seite ist ausgeschaltet.',
            'online': 'Plätze jetzt online', 'of': 'von {n}', 'unknown': 'gerade nicht bekannt',
            'online_max': 'Am meisten Plätze gleichzeitig online', 'downloaded': 'Bisher heruntergeladen',
@@ -41,7 +41,7 @@ TEXTS = {
            'running': 'Läuft seit', 'hours': '{n} h',
            'nothing': 'Noch nichts zu zeigen. Schau wieder rein, sobald der Event läuft.',
            'privacy': 'Zahlen für die ganze Halle und pro Platzblock: keine Namen, Plätze oder Adressen.',
-           'updated': 'Stand {time}. Die Seite lädt jede Minute neu.'},
+           'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.'},
 }
 
 

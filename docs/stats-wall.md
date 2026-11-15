@@ -16,7 +16,7 @@ What it shows, each only once there is something to show:
 | Served from the LAN cache | the [LAN cache](games.md) log, if one is set up |
 | What the hall plays | the top five launchers and games from [game insights](games.md) |
 
-It reloads every minute. `?screen=1` is the big-screen layout: larger type, no scrolling and no footer.
+It updates every minute in place, without reloading (see [Public pages stay current](status-page.md#staying-current)). `?screen=1` is the big-screen layout: larger type, no scrolling and no footer.
 `/wall.json` has the same numbers for the event website or a Discord bot.
 
 ## Privacy

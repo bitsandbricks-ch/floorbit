@@ -1,6 +1,6 @@
 // The public schedule page (templates/agenda.html, docs/schedule.md): times in the reader's own
 // time zone and language, a heading for each day, the countdown ticking every second. The page
-// reloads itself every minute (meta refresh) for anything new.
+// swaps in fresh content every minute (refresh.js) and runs this again.
 'use strict';
 
 (function () {
@@ -35,6 +35,8 @@
   const target = Number(box.dataset.target) * 1000;
   const pad = (n) => String(n).padStart(2, '0');
   const tick = () => {
+    // refresh.js swapped this countdown out for a new one, which has its own timer.
+    if (!box.isConnected) { window.clearInterval(id); return; }
     let left = Math.max(0, Math.floor((target - (Date.now() + skew)) / 1000));
     const d = Math.floor(left / 86400); left -= d * 86400;
     const h = Math.floor(left / 3600); left -= h * 3600;
@@ -42,6 +44,6 @@
     const parts = { d: String(d), h: pad(h), m: pad(m), s: pad(left - m * 60) };
     box.querySelectorAll('[data-unit]').forEach((el) => { el.textContent = parts[el.dataset.unit]; });
   };
+  const id = window.setInterval(tick, 1000);
   tick();
-  window.setInterval(tick, 1000);
 })();

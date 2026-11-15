@@ -30,14 +30,14 @@ TEXTS = {
            'programme': 'Programme', 'empty': 'The programme is not out yet.', 'until': 'until {time}',
            'kind': {'talk': 'Talk', 'tournament': 'Tournament', 'meal': 'Food', 'quiet': 'Quiet hours',
                     'other': 'Event'},
-           'updated': 'Updated {time}. This page reloads every minute.'},
+           'updated': 'Updated {time}. This page updates every minute.'},
     'de': {'title': 'Programm', 'off': 'Diese Seite ist ausgeschaltet.', 'starts_in': 'Der Event beginnt in',
            'days': 'T', 'now': 'Jetzt', 'next': 'Als Nächstes', 'nothing_now': 'Gerade steht nichts auf dem Programm.',
            'quiet': 'Nachtruhe bis {time}. Bitte leise sein.', 'over': 'Der Event ist vorbei. Danke fürs Kommen!',
            'programme': 'Programm', 'empty': 'Das Programm ist noch nicht draussen.', 'until': 'bis {time}',
            'kind': {'talk': 'Vortrag', 'tournament': 'Turnier', 'meal': 'Essen', 'quiet': 'Nachtruhe',
                     'other': 'Programmpunkt'},
-           'updated': 'Stand {time}. Die Seite lädt jede Minute neu.'},
+           'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.'},
 }
 
 
