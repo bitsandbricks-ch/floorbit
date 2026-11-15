@@ -710,3 +710,9 @@ export interface PreflightBoard {
   counts: Record<PreflightStatus, number>
   ready: boolean; complete: boolean
 }
+
+/** Gear loans (issue #36). */
+export interface GearLoan { to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string }
+export interface GearItem { id: string; name: string; role: string; model: string; serial: string; origin: string; placed: boolean; loan: GearLoan | null }
+export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
+export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
