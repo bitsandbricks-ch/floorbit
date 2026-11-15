@@ -1,4 +1,6 @@
-"""Slash commands for the Floorbit Discord bot (the full-bot epic #407: /status #408, /seat and /switch #410, /incident and /jobs #412).
+"""Slash commands for the Floorbit Discord bot (epic #407).
+
+/status is #408, /seat and /switch #410, /incident and /jobs #412.
 
 The bot answers over the same Interactions Endpoint as the crew channel's buttons
 (floorbit/blueprints/crew.py), so it still needs no gateway connection. integrations/crew.py
