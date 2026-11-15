@@ -4,6 +4,7 @@ from . import (
                attendee,
                audit,
                backup,
+               cables,
                cache,
                commands,
                config,
@@ -52,5 +53,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        flows.bp, dns.bp, games.bp,
        logs.bp, screen.bp, attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
-       teardown.bp, past_events.bp,
+       cables.bp, teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, webhooks.bp]

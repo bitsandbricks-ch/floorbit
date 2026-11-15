@@ -187,6 +187,17 @@ class Plugin(Plugin):
                  'serial': f'DEMO{i:05d}', 'mgmt_ip': f'198.51.100.{i}', 'hall': 'Demo hall',
                  'status': 'active'} for name, role, i in _switches()]
 
+    def cables(self):
+        # The first block's seats run through a patch panel, the rest go straight to the switch.
+        out = []
+        for seat, block, number, _i in _seats():
+            switch, port = _switch_for(block, number)
+            panel = f'PP-{block}' if block == BLOCKS[0] else ''
+            out.append({'label': f'NB-{seat}', 'switch': switch, 'port': port, 'panel': panel,
+                        'panel_port': str(number) if panel else '', 'seat': seat, 'color': 'blue',
+                        'length_m': 5 if panel else 10})
+        return out
+
     # seat mapping -----------------------------------------------------------------------
     def seat_mapping(self):
         return {seat: {'ip': _ip(i), 'mac': _mac(i), 'nick': f'player-{i + 1:02d}'}

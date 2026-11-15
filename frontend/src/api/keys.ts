@@ -17,6 +17,7 @@ export const qk = {
   crew: ['crew'] as const,
   handover: ['handover'] as const,
   gear: ['gear'] as const,
+  cables: ['cables'] as const,
   teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,

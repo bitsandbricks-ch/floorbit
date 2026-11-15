@@ -66,6 +66,9 @@ each seat is plugged into.
   answering, as a go or no-go board to print and sign. See [docs/preflight.md](docs/preflight.md).
 - **Gear loans:** who has which switch or access point right now, with QR labels to check gear
   out and in from a phone. The gear itself comes from NetBox. See [docs/gear.md](docs/gear.md).
+- **Cables and patching:** which switch port goes to which patch panel port and seat, with labels
+  for both ends (a QR code opens the cable). Cables in NetBox come in with an import. See
+  [docs/cables.md](docs/cables.md).
 - **Teardown checklist:** after the event, gear back, configs archived and the event's data exported
   in one zip, plus the team's own steps. See [docs/teardown.md](docs/teardown.md).
 - **Feature switches:** turn off what your event doesn't use. Its menus, pages, API and background
