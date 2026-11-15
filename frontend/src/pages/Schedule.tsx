@@ -129,7 +129,7 @@ export default function Schedule() {
         <Stack gap="md">
           <Text size="sm">
             {d.public
-              ? <>{t('schedule.publicOn')} <Anchor href="/agenda" target="_blank" underline="always">/agenda</Anchor> · <Anchor href="/agenda?screen=1" target="_blank" underline="always">{t('schedule.bigScreen')}</Anchor></>
+              ? <>{t('schedule.publicOn')} <Anchor href="/agenda" target="_blank" underline="always">/agenda</Anchor> · <Anchor href="/agenda?screen=1" target="_blank" underline="always">{t('schedule.bigScreen')}</Anchor> · <Anchor href="/agenda.ics" underline="always">{t('schedule.calendarFeed')}</Anchor></>
               : t('schedule.publicOff')}
           </Text>
           <EventTimes key={`${d.event.start}-${d.event.end}`} data={d} canEdit={canEdit} />

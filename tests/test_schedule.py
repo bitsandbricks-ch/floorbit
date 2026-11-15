@@ -147,3 +147,28 @@ def test_agenda_page(client, anon_client, agenda_on):
     assert "by" not in body["items"][0] and "updated_at" not in body["items"][0]
     de = anon_client.get("/agenda?screen=1", headers={"Accept-Language": "de-CH,de"}).get_data(as_text=True)
     assert "Der Event beginnt in" in de and 'class="screen"' in de
+
+
+def test_agenda_calendar_feed(client, anon_client, agenda_on):
+    assert client.put("/api/settings", json={"theme.name": "Demo LAN"}).status_code == 200
+    start = 1_800_000_000
+    client.post("/api/schedule/items", json={"title": "Opening; welcome, all", "kind": "talk", "start": start,
+                                             "where": "Main stage", "note": "Doors open, " + "long note " * 20})
+    client.post("/api/schedule/items", json={"title": "Quiet hours", "kind": "quiet", "start": start + 3600,
+                                             "end": start + 7200})
+    res = anon_client.get("/agenda.ics")
+    assert res.status_code == 200 and res.mimetype == "text/calendar"
+    text = res.get_data(as_text=True)
+    assert "X-WR-CALNAME:Demo LAN\r\n" in text and "SUMMARY:Opening\\; welcome\\, all\r\n" in text
+    assert "DTSTART:20270115T080000Z\r\nDTEND:20270115T083000Z" in text   # no end: half an hour
+    assert text.count("BEGIN:VEVENT") == 2 and "TRANSP:TRANSPARENT" in text
+    assert all(len(line.encode()) <= 75 for line in text.split("\r\n"))
+    back = schedule.parse_ics(text)   # what Floorbit itself would import
+    assert [(i["title"], i["kind"], i["start"], i["where"]) for i in back] == [
+        ("Opening; welcome, all", "talk", start, "Main stage"), ("Quiet hours", "quiet", start + 3600, "")]
+    assert back[0]["note"].startswith("Doors open, long note")
+    assert "/agenda.ics" in anon_client.get("/agenda").get_data(as_text=True)
+
+
+def test_agenda_calendar_feed_is_off_with_the_page(anon_client):
+    assert anon_client.get("/agenda.ics").status_code == 404
