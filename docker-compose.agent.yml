@@ -5,7 +5,8 @@
 #   docker compose -f docker-compose.agent.yml up -d
 #
 # It only connects out, over HTTPS: nothing has to be opened. Only to take the event's syslog
-# (FLOORBIT_AGENT_SYSLOG_PORT=5514 in agent.env), uncomment the ports below.
+# (FLOORBIT_AGENT_SYSLOG_PORT=5514 in agent.env) or flows (FLOORBIT_AGENT_FLOWS_PORT=2055),
+# uncomment the matching ports below.
 
 services:
   agent:
@@ -21,11 +22,18 @@ services:
       - agent_state:/app/state
     # ports:
     #   - "514:5514/udp"
+    #   - "2055:2055/udp"
     # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
     # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
     restart: on-failure:3
+    # The image's own check asks the web app, which the agent doesn't run. This one asks whether
+    # the hosted Floorbit answered in the last two minutes, so `docker ps` shows a lost uplink.
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "-m", "floorbit.agent", "health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 2
 
 volumes:
   agent_state:

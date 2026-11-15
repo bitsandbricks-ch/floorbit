@@ -541,6 +541,8 @@ export interface FlowsData {
   rules_error: string | null
   demo?: boolean
   stale?: boolean
+  /** The local agent whose collector sent this summary (issue #2). */
+  agent?: string
   updated?: number
   flows?: number
   exporters?: { address: string; flows: number; last: number | null }[]
@@ -1352,6 +1354,8 @@ export interface Agent {
   outdated?: boolean
   /** Hall ids it answers for; empty: every hall. */
   halls?: string[]
+  /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
+  relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
 }
 
 export interface AgentStats {
