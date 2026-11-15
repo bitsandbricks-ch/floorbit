@@ -289,6 +289,10 @@ export interface Incident {
   taken_at?: number | null
   /** The attendee said on the help page that it works again (issue #372); the crew still decides. */
   seat_ok_at?: number | null
+  /** The seat's switch is down right now (issue #386). */
+  outage?: { switch: string; since: number } | null
+  /** Filed while the seat's switch was down, and the switch is back since (issue #390). */
+  back_up?: { switch: string; since: number } | null
   match?: string | null
   can_work: boolean
   can_assign: boolean
@@ -1101,6 +1105,10 @@ export interface StatusPageData {
   since: number | null
   areas: StatusArea[]
   crew_areas: StatusArea[]
+  /** Areas whose switch came back in the last half hour, with switch names (issue #396). */
+  recovered: StatusArea[]
+  recovered_at: number | null
+  crew_recovered: StatusArea[]
   updates: StatusUpdate[]
   checked_at: number
   /** Is /status switched on (Settings > Public)? */

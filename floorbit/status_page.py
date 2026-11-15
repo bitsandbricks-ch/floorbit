@@ -27,6 +27,7 @@ STATES = ('operational', 'degraded', 'outage', 'maintenance', 'unknown')
 SET_BY_HAND = ('operational', 'degraded', 'outage', 'maintenance')
 CORE_ROLES = ('router', 'firewall')
 MAX_UPDATES = 50
+RECOVERED_FOR = 30 * 60   # how long an area stays under "Back up recently"
 MAX_TEXT = 500
 _lock = threading.Lock()
 _seats_of = {}   # switch name (lower case) -> seats it served when last read
@@ -194,6 +195,11 @@ def current(data, statuses, monitoring_up, show_names=False):
         auto = 'degraded'
     override = stored['override']
     since = [s.get('since') for s in statuses.values() if s.get('status') == 'offline' and s.get('since')]
+    # Back from offline in the last half hour (issue #394): attendees who saw the outage see it is over.
+    now = time.time()
+    back = [d for d in placed if (statuses.get(d['id']) or {}).get('status') == 'online'
+            and statuses[d['id']].get('previous') == 'offline'
+            and (statuses[d['id']].get('since') or 0) >= now - RECOVERED_FOR]
     return {
         'state': override['state'] if override else auto,
         'auto_state': auto,
@@ -201,5 +207,7 @@ def current(data, statuses, monitoring_up, show_names=False):
         'since': min(since) if since and down else None,
         'areas': affected(data, down, show_names) if down else [],
         'updates': [{k: u.get(k) for k in ('id', 'at', 'text', 'state', 'area')} for u in stored['updates']],
-        'checked_at': time.time(),
+        'recovered': affected(data, back, show_names) if back and monitoring_up else [],
+        'recovered_at': max(statuses[d['id']]['since'] for d in back) if back and monitoring_up else None,
+        'checked_at': now,
     }
