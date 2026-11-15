@@ -249,3 +249,57 @@ def test_buttons_outside_the_crew_channel_need_an_answer_message(bridge, client,
     inc = client.post("/api/incidents", json={"seat": "B-2", "title": "Flaky"}).get_json()
     shared = {**_press("fb:take:" + inc["id"]), "message": {"id": "1", "channel_id": "900000000000000009"}}
     assert "crew channel" in _answer(anon_client, key, shared)["data"]["content"]
+
+
+# ── /report for attendees (issue #424) ────────────────────────────────────────
+@pytest.fixture(autouse=True)
+def fresh_rate_limit():
+    from floorbit.blueprints import incidents as incidents_bp
+    incidents_bp._reports.clear()
+    yield
+    incidents_bp._reports.clear()
+
+
+def _report(seat, problem, user_id="333", locale=None):
+    body = _command("report", user_id=user_id, options=[{"type": 3, "name": "seat", "value": seat},
+                                                        {"type": 3, "name": "problem", "value": problem}])
+    if locale:
+        body["locale"] = locale
+    return body
+
+
+def test_attendee_reports_a_seat_without_an_account(bridge, client, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "outage_since", lambda seat, data=None: None)
+    assert _ask(anon_client, key, _report("b-3", "power")) == \
+        "Thanks, we know. Someone from the team will come to seat B-3."
+    assert "noted that you asked again" in _ask(anon_client, key, _report("B-3", "power", user_id="334"))
+    (inc,) = client.get("/api/incidents").get_json()["incidents"]
+    assert inc["seat"] == "B-3" and inc["source"] == "helpdesk" and inc["reports"] == 2 and inc["reported_by"] is None
+    entries = client.get("/api/settings/audit").get_json()["entries"]
+    assert any(e["action"] == "Reported from Discord" and e.get("target") == "B-3" for e in entries)
+    assert not any("333" in str(e) for e in entries)   # never who reported
+    assert "Platz Z-9 gibt es nicht" in _ask(anon_client, key, _report("Z-9", "power", locale="de"))
+    assert "There is no seat" in _ask(anon_client, key, _report("B-3", "fire"))
+    for _ in range(4):   # with B-3 above, five from this person
+        _ask(anon_client, key, _report("B-4", "other"))
+    assert "Too many reports" in _ask(anon_client, key, _report("B-4", "other"))   # 5 per 10 min per user
+
+
+def test_attendee_report_when_the_switch_is_known_down(bridge, client, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "outage_since", lambda seat, data=None: time.time() - 600)
+    text = _ask(anon_client, key, _report("B-1", "no-internet", locale="de"))
+    assert text.startswith("Wir wissen es") and "10 Min." in text
+    assert client.get("/api/incidents").get_json()["incidents"] == []
+    assert _ask(anon_client, key, _report("B-1", "power")).startswith("Thanks")   # something else still goes in
+
+
+def test_attendee_report_off_with_the_helpdesk_and_seats_suggested_to_anyone(bridge, client, anon_client, key,
+                                                                             floor):
+    body = {**_command("report", user_id="333", options=[{"type": 3, "name": "seat", "value": "b-1",
+                                                           "focused": True}]), "type": 4}
+    resp = anon_client.post("/api/discord/interactions", **_interaction(key, body)).get_json()
+    assert resp["data"]["choices"][0]["value"] == "B-1"
+    assert client.put("/api/settings/features", json={"helpdesk": False}).status_code == 200
+    assert "off at this event" in _ask(anon_client, key, _report("B-1", "power"))

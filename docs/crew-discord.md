@@ -66,10 +66,23 @@ button click. There is no Discord role mapping.
 | `/incident take <incident>` | takes an open incident. Start typing a seat or a few words, and Discord lists the open incidents you may work. |
 | `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
 | `/jobs` | the incidents you have, oldest first. |
+| `/report <seat> <problem>` | for **attendees**, no account needed: reports a problem at a seat to the crew, like the QR code on the seat (see below). |
 | `/statusupdate <text> [area]` | posts an update on the public [status page](status-page.md), as from the Network status page. Needs `incidents.assign` (lead or admin). With an attendee status channel set, it goes there too. |
 
 The incident commands follow the account's permissions exactly as on the board, and every change is
 in the [audit log](audit.md).
+
+### For attendees
+
+`/report` is the seat QR help page in Discord, for anyone on the server: pick the seat (Discord
+suggests seat numbers as you type) and what is wrong (no internet, slow, no power, something else).
+It files or counts up exactly like the help page, and automatic dispatch applies. If the seat's switch
+is already known to be down, it says so instead of filing *no internet* or *slow*. It is rate limited
+like the help page (5 reports per 10 minutes, per Discord user), never asks for a name and keeps
+nothing about who reported: the audit log only has the seat. The answer is in German for a German
+Discord client. It is off while the seat helpdesk is off (Settings > Features).
+
+`/status` also answers attendees, while the public status page is on, with what that page shows.
 
 Answers carry buttons for the next step, so you rarely need to type a second command:
 

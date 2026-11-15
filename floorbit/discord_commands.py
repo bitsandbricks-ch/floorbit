@@ -1,6 +1,7 @@
 """Slash commands for the Floorbit Discord bot (epic #407).
 
-/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414, buttons on the answers #416.
+/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414, buttons on the answers #416,
+/report for attendees #424.
 
 The bot answers over the same Interactions Endpoint as the crew channel's buttons
 (floorbit/blueprints/crew.py), so it still needs no gateway connection. integrations/crew.py
@@ -10,6 +11,8 @@ A command acts as the Floorbit account linked to the Discord user (Discord sign-
 account's permissions, like a button click. Answers are ephemeral: only the person who asked sees
 them, so a command in a busy channel adds no noise and shows crew detail to nobody else.
 """
+import time
+
 from flask import current_app
 
 GUILD_ONLY = [0]   # Discord's interaction context for a server, not a DM
@@ -45,6 +48,19 @@ COMMANDS = [
               'required': True, 'autocomplete': True, 'max_length': 100},
              {'type': STRING, 'name': 'note', 'description': 'What you did (optional)', 'max_length': 500}]},
      ]},
+    {'name': 'report', 'type': 1, 'contexts': GUILD_ONLY,
+     'description': 'No network at your seat? Tell the crew, like with the QR code on your seat.',
+     'description_localizations': {'de': 'Kein Netzwerk am Platz? Sag es der Crew, wie mit dem QR-Code am Platz.'},
+     'options': [{'type': STRING, 'name': 'seat', 'description': 'Your seat number, e.g. A-12', 'required': True,
+                  'autocomplete': True, 'max_length': 20},
+                 {'type': STRING, 'name': 'problem', 'description': 'What is wrong', 'required': True,
+                  'choices': [{'name': 'No internet', 'value': 'no-internet',
+                               'name_localizations': {'de': 'Kein Internet'}},
+                              {'name': 'Slow or dropping connection', 'value': 'slow',
+                               'name_localizations': {'de': 'Langsame oder abbrechende Verbindung'}},
+                              {'name': 'No power', 'value': 'power', 'name_localizations': {'de': 'Kein Strom'}},
+                              {'name': 'Something else, please come by', 'value': 'other',
+                               'name_localizations': {'de': 'Etwas anderes, bitte vorbeikommen'}}]}]},
     {'name': 'jobs', 'type': 1, 'contexts': GUILD_ONLY, 'description': 'The incidents you have, oldest first.'},
     {'name': 'statusupdate', 'type': 1, 'contexts': GUILD_ONLY,
      'description': 'Post an update for attendees on the public network status page.',
@@ -140,6 +156,8 @@ def handle(body):
     name = (body.get('data') or {}).get('name')
     if name == 'status':
         return _status(linked_user(body))
+    if name == 'report':
+        return _attendee_report(body)
     if name in ('seat', 'switch'):
         user = linked_user(body)
         if not user:
@@ -168,7 +186,8 @@ def autocomplete(body):
         opts = opts[0].get('options') or []
     focused = next((o for o in opts if o.get('focused')), None)
     user = linked_user(body)
-    if not focused or not _crew(user):
+    # Seat numbers are on every seat: /report suggests them to anyone (issue #424).
+    if not focused or not (_crew(user) or (data.get('name') == 'report' and focused.get('name') == 'seat')):
         return []
     typed = str(focused.get('value') or '').strip().lower()
     if focused.get('name') == 'incident':
@@ -297,6 +316,49 @@ def _status(user):
     if crew and s.get('override'):
         lines.append(f"State set by hand by {s['override'].get('by') or 'someone'}.")
     return '\n'.join(lines)
+
+
+# ── /report for attendees (#424) ─────────────────────────────────────────────
+# The seat QR help page in Discord: no account and nothing personal, rate limited per Discord user.
+# Its texts are the help page's, in German when the Discord client is.
+def _attendee_report(body):
+    from . import dispatch, features, incidents, seat_view
+    from .blueprints import incidents as page
+    from .blueprints.status_page import page_on
+    lang = 'de' if str(body.get('locale') or '').startswith('de') else 'en'
+    text = page.TEXTS[lang]
+    if not features.on('helpdesk'):
+        return OFF[lang]
+    given, _sub = _options(body)
+    seat, problem = given.get('seat', '').upper(), given.get('problem')
+    if seat not in incidents.seat_numbers() or problem not in incidents.PROBLEMS:
+        return NO_SEAT[lang].format(seat=seat or '?')
+    since = seat_view.outage_since(seat)
+    if since and problem in ('no-internet', 'slow'):
+        # Already known: the crew needs no extra report for every seat on a dead switch.
+        return KNOWN[lang].format(m=max(1, round((time.time() - since) / 60))) \
+            + (_link('/status') if page_on() else '')
+    discord_user = (body.get('member') or {}).get('user') or body.get('user') or {}
+    if page._rate_limited(f"discord:{discord_user.get('id') or '?'}"):
+        return text['busy']
+    incident, new = incidents.report_from_seat(seat, problem, incidents.seat_snapshot(seat))
+    page._changed(incident, 'reported')
+    if new:
+        dispatch.send_new(incident)
+    from . import audit
+    audit.record('incidents', 'Reported from Discord' if new else 'Reported again from Discord', target=seat,
+                 fields=[problem])
+    return text['thanks' if new else 'again'].format(seat=seat)
+
+
+OFF = {'en': 'Reporting from Discord is off at this event. Please ask at the info desk.',
+       'de': 'Melden über Discord ist an diesem Event aus. Frag bitte am Infodesk.'}
+KNOWN = {'en': 'We know: the network at your seat has been down for {m} min. The team is on it, no need to '
+              'report it.',
+         'de': 'Wir wissen es: Das Netz an deinem Platz ist seit {m} Min. ausgefallen. Das Team ist dran, du '
+               'musst es nicht melden.'}
+NO_SEAT = {'en': 'There is no seat {seat}. The number is on the label on your table, e.g. A-12.',
+           'de': 'Platz {seat} gibt es nicht. Die Nummer steht auf dem Schild an deinem Tisch, z. B. A-12.'}
 
 
 # ── incidents ─────────────────────────────────────────────────────────────────
