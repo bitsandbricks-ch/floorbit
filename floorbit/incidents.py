@@ -301,6 +301,13 @@ def seat_report_state(seat, now=None):
     return 'taken'
 
 
+def seat_open_since(seat):
+    """When the seat's oldest open helpdesk report was filed, or None (issue #392)."""
+    times = [i.get('created_at') or 0 for i in list_all() if i.get('seat') == seat and i.get('source') == 'helpdesk'
+             and i['status'] != 'fixed' and not i.get('seat_ok_at')]
+    return min(times) if times else None
+
+
 def seat_queue_ahead(seat):
     """How many open reports nobody has taken were filed before this seat's (issue #378).
 

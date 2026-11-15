@@ -93,6 +93,12 @@ export function IncidentCard({
               {t('incidents.outage', { switch: i.outage.switch, ago: ago(i.outage.since, t) })}
             </Badge>
           )}
+          {/* Filed during an outage that is over: it may work again already (issue #390). */}
+          {i.back_up && (
+            <Badge variant="light" color="up" tt="none" title={t('incidents.backUpHint')}>
+              {t('incidents.backUp', { switch: i.back_up.switch, ago: ago(i.back_up.since, t) })}
+            </Badge>
+          )}
           {/* Saves a walk: the attendee says it fixed itself. Only the crew marks it fixed (issue #372). */}
           {i.seat_ok_at && i.status !== 'fixed' && (
             <Badge variant="light" color="up" tt="none" title={t('incidents.seatOkHint')}>{t('incidents.seatOk', { ago: ago(i.seat_ok_at, t) })}</Badge>

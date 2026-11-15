@@ -116,5 +116,7 @@
   "seatOk": "Seat says it works again · {{ago}}",
   "seatOkHint": "The attendee tapped \"It works again\" on the seat's help page. Check or ask before you mark it fixed.",
   "outage": "{{switch}} down · {{ago}}",
-  "outageHint": "The switch this seat is on is down right now. Likely part of that outage rather than the seat's cable."
+  "outageHint": "The switch this seat is on is down right now. Likely part of that outage rather than the seat's cable.",
+  "backUp": "{{switch}} back up · {{ago}}",
+  "backUpHint": "The seat's switch was down and is back since this was filed. Check whether it works now before walking over."
 }
