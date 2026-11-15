@@ -24,6 +24,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | The health wall's checks (HTTP check, or any health plugin turned on there) | health |
 | DNS analytics (Pi-hole, AdGuard Home, turned on there) | dns |
 | The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
+| Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
@@ -34,7 +35,7 @@ so on a hosted Floorbit they only work when that service is reachable from it:
 
 | Feature | Why |
 | --- | --- |
-| Logs (Loki), syslog, NetFlow | syslog and flows are sent to Floorbit's own UDP ports |
+| NetFlow | flows are sent to Floorbit's own UDP port |
 | Port actions (SSH ports), switch commands and terminal | they connect to the switch directly |
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
@@ -128,10 +129,11 @@ for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorb
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
 | `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
 | `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
+| `FLOORBIT_AGENT_SYSLOG_PORT` | a UDP port to take syslog on, such as `5514`, sent on to the hosted Logs page. Unset: the agent doesn't listen. `FLOORBIT_AGENT_SYSLOG_BIND` picks the address (all of them by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
-The agent only makes outgoing requests; nothing listens on it. It runs up to 4 calls side by side,
+The agent only makes outgoing requests; nothing listens on it unless `FLOORBIT_AGENT_SYSLOG_PORT` is set. It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
@@ -188,6 +190,28 @@ With the UniFi plugin on on the agent (`FLOORBIT_AGENT_PLUGINS=unifi` and its
 channels and client counts, marked "UniFi (local agent)". The agent cleans the controller's answer
 first, so only counts leave the event network, never client names or MACs. The Wi-Fi link in the
 menu only shows when the hosted Floorbit has a Wi-Fi plugin of its own; open the page at `/wifi`.
+
+## Syslog through the agent
+
+Syslog is UDP, unencrypted and unauthenticated: the switches shouldn't send it across the internet
+to a hosted Floorbit. Let the agent take it instead. Set `FLOORBIT_AGENT_SYSLOG_PORT=5514`, publish
+the port (in `docker-compose.agent.yml`, uncomment the `ports` lines, which map the host's
+udp/514 to it) and point the switches, firewalls and DHCP servers at the agent's machine, as
+[Syslog](syslog.md) describes for a Floorbit of your own.
+
+The agent sends the lines on over its HTTPS connection every two seconds, each with the address
+it came from and when it arrived. The hosted Floorbit treats them as if they had come straight to it:
+
+- The **Syslog** feature has to be on there (it is by default). `SYSLOG_ENABLED` doesn't matter: it
+  only opens the hosted server's own port.
+- The **allow-list** applies to the original senders: the switches' management addresses from the
+  inventory, and `SYSLOG_ALLOW` set on the hosted Floorbit to the event's other senders (firewall,
+  DHCP servers). Lines from anyone else are dropped and counted, as usual.
+- The rate cap, retention and Loki forwarding are the hosted side's.
+
+While the hosted Floorbit can't be reached, the agent keeps up to 20,000 lines and sends them when
+it's back, with the time it got them. Past that it drops the newest and counts them; the Logs page
+shows the count next to "Through the local agent …".
 
 ## When the agent is away
 

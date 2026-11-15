@@ -582,3 +582,98 @@ def test_wifi_comes_through_the_agent_as_counts_only(client, app_module):
         a.stop()
         worker.join(30)
         wifi.reset()
+
+
+def _syslog_receiver(app_module, monkeypatch):
+    from floorbit import syslog
+    receiver = app_module.app.extensions["floorbit_syslog"]
+    monkeypatch.setattr(receiver, "lines", syslog.deque())
+    monkeypatch.setattr(receiver, "relayed", {})
+    monkeypatch.setattr(receiver, "_buckets", {})
+    receiver._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {})
+    return receiver
+
+
+def test_syslog_comes_through_the_agent(client, app_module, monkeypatch):
+    from floorbit.agent.syslog_relay import Relay
+    receiver = _syslog_receiver(app_module, monkeypatch)
+    a = make(app_module, enrol(client)["key"])
+    relay = Relay(a.send_syslog, 0, log=lambda *_: None)
+    started = time.time() - 120
+    relay.receive(b"<187>%LINK-3-UPDOWN: Interface Gi1/0/4, changed state to down\n", "192.0.2.9", now=started)
+    relay.receive(b"<190>dhcpd: DHCPACK on 192.0.2.40", "192.0.2.10")
+    relay.receive(b"<190>from outside the allow-list", "203.0.113.7")
+    relay.receive(b"   ", "192.0.2.9")                       # nothing to send
+    assert relay.flush_once() == 3 and not relay.lines
+    kept = list(receiver.lines)
+    assert [ln["message"] for ln in kept] == ["Interface Gi1/0/4, changed state to down", "DHCPACK on 192.0.2.40"]
+    assert kept[0]["sender"] == "192.0.2.9" and kept[0]["ts"] == pytest.approx(started)   # when the agent got it
+    assert receiver.counts["not_allowed"] >= 1
+    status = client.get("/api/logs").get_json()["status"]
+    assert status["relayed"][0]["agent"] == "Demo LAN 2026" and status["relayed"][0]["lines"] == 2
+
+
+def test_the_agent_keeps_syslog_while_the_host_is_away():
+    from floorbit.agent.syslog_relay import Relay
+    sent, up = [], {"ok": False}
+
+    def send(lines, dropped):
+        if not up["ok"]:
+            raise RuntimeError("no route to host")
+        sent.append((len(lines), dropped))
+
+    relay = Relay(send, 0, backlog=3, log=lambda *_: None)
+    for n in range(5):
+        relay.receive(f"<14>line {n}".encode(), "192.0.2.9")
+    with pytest.raises(RuntimeError):
+        relay.flush_once()
+    assert [ln["raw"] for ln in relay.lines] == ["<14>line 0", "<14>line 1", "<14>line 2"]   # the newest went
+    up["ok"] = True
+    assert relay.flush_once() == 3 and sent == [(3, 2)] and relay.sent == 3
+
+
+def test_the_host_says_when_syslog_is_off(client, app_module, monkeypatch):
+    from floorbit.agent.syslog_relay import Relay, TurnedOff
+    _syslog_receiver(app_module, monkeypatch)
+    a = make(app_module, enrol(client)["key"])
+    assert client.put("/api/settings/features", json={"syslog": False}).status_code == 200
+    relay = Relay(a.send_syslog, 0, log=lambda *_: None)
+    relay.receive(b"<14>hello", "192.0.2.9")
+    with pytest.raises(TurnedOff):
+        relay.flush_once()
+    assert not relay.lines                                    # not kept: they'd only fill the backlog
+    anon = app_module.app.test_client()
+    assert anon.post("/api/agent/v1/syslog", json={"lines": []}).status_code == 401
+
+
+def test_odd_relayed_lines_are_skipped(client, app_module, monkeypatch):
+    receiver = _syslog_receiver(app_module, monkeypatch)
+    key = enrol(client)["key"]
+    lines = [{"raw": "<14>fine", "from": "192.0.2.9", "at": "soon"}, {"raw": 5, "from": "192.0.2.9"},
+             {"raw": "<14>no sender"}, {"raw": "<14>bad sender", "from": "sw-a-01"}, "text",
+             {"raw": "<14>from the future", "from": "192.0.2.9", "at": time.time() + 9999}]
+    res = app_module.app.test_client().post("/api/agent/v1/syslog", json={"lines": lines, "dropped": "x"},
+                                            headers={"Floorbit-Agent-Key": key})
+    assert res.get_json() == {"taken": 2, "received": 6}
+    assert all(ln["ts"] <= time.time() for ln in receiver.lines)
+
+
+def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
+    import ipaddress
+    import socket
+    receiver = _syslog_receiver(app_module, monkeypatch)
+    receiver._allow_cache = (time.time() + 3600, [ipaddress.ip_network("127.0.0.1/32")], {})
+    a = make(app_module, enrol(client)["key"])
+    monkeypatch.setenv("FLOORBIT_AGENT_SYSLOG_BIND", "127.0.0.1")
+    assert agent_mod.start_syslog(a, "") is None
+    assert agent_mod.start_syslog(a, "not a port", out=lambda *_: None) is False
+    relay = agent_mod.start_syslog(a, "0", out=lambda *_: None)
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(b"<14>hello over the agent", ("127.0.0.1", relay._server.server_address[1]))
+        deadline = time.time() + 5
+        while not receiver.lines and time.time() < deadline:
+            time.sleep(0.05)
+        assert receiver.lines and receiver.lines[-1]["message"] == "hello over the agent"
+    finally:
+        relay.stop()

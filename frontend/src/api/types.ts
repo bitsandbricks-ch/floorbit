@@ -973,6 +973,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** Local agents that send the event network's syslog on (issue #2). */
+  relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]
   source: LogSource
   /** Logs plugins (Loki) that get every line, and how sending them goes. */

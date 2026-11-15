@@ -6,8 +6,9 @@ other monitoring plugin). It connects out to the hosted Floorbit (``FLOORBIT_URL
 (``FLOORBIT_AGENT_KEY``), asks for calls in a long poll, runs each one against the local plugin and
 posts the answer back. The hosted side is floorbit/agent_link.py.
 
-Nothing listens here: the agent only makes outgoing HTTPS requests. When the hosted Floorbit can't
-be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
+Nothing listens here unless asked: the agent makes outgoing HTTPS requests, and only with
+``FLOORBIT_AGENT_SYSLOG_PORT`` does it take syslog from the event network (syslog_relay.py).
+When the hosted Floorbit can't be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
 """
 import contextlib
 import io
@@ -178,6 +179,15 @@ class Agent:
         except Exception as exc:  # noqa: BLE001  # the call times out on the hosted side; nothing to keep
             self.log(f'[agent] could not send the answer to {call["method"]}: {exc}')
 
+    def send_syslog(self, lines, dropped=0):
+        """One batch for the hosted syslog (syslog_relay.Relay calls this)."""
+        from .syslog_relay import TurnedOff
+        resp = self.http.post(f'{self.url}/api/agent/v1/syslog', headers=self._headers(True),
+                              data=json.dumps({'lines': lines, 'dropped': dropped}), timeout=HTTP_TIMEOUT)
+        if resp.status_code == 409:
+            raise TurnedOff((resp.json() or {}).get('error') or 'Syslog is turned off on the hosted Floorbit.')
+        return self._check(resp)
+
     def stop(self):
         self._stop.set()
 
@@ -271,6 +281,22 @@ def check(agent, execute, out=print):
     return ok
 
 
+def start_syslog(agent, port, out=print):
+    """The syslog relay, when FLOORBIT_AGENT_SYSLOG_PORT is set: the Relay, None when it isn't set,
+    False when it can't start (a wrong port number, or one in use)."""
+    from .syslog_relay import Relay
+    port = str(port or '').strip()
+    if not port:
+        return None
+    try:
+        relay = Relay(agent.send_syslog, int(port), os.environ.get('FLOORBIT_AGENT_SYSLOG_BIND') or '0.0.0.0', log=out)
+        relay.start()
+    except (ValueError, OSError, OverflowError) as exc:
+        out(f'[agent] cannot listen for syslog on "{port}": {exc}')
+        return False
+    return relay
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv and argv[0] not in ('check', 'run'):
@@ -299,6 +325,9 @@ def main(argv=None):
     agent = Agent(url, key, local_executor(app), version=version)
     if argv and argv[0] == 'check':
         return 0 if check(agent, agent.execute) else 1
+    relay = start_syslog(agent, os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT', ''))
+    if relay is False:
+        return 2
     try:
         agent.run()
     except Refused as exc:
@@ -306,4 +335,7 @@ def main(argv=None):
         return 1
     except KeyboardInterrupt:
         agent.stop()
+    finally:
+        if relay:
+            relay.stop()
     return 0

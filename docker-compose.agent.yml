@@ -4,7 +4,8 @@
 #   cp agent.env.example agent.env      # FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
 #   docker compose -f docker-compose.agent.yml up -d
 #
-# It only connects out, over HTTPS: no port is published and nothing has to be opened.
+# It only connects out, over HTTPS: nothing has to be opened. Only to take the event's syslog
+# (FLOORBIT_AGENT_SYSLOG_PORT=5514 in agent.env), uncomment the ports below.
 
 services:
   agent:
@@ -18,6 +19,8 @@ services:
       FLOORBIT_DATA_FILE: /app/state/agent-data.json
     volumes:
       - agent_state:/app/state
+    # ports:
+    #   - "514:5514/udp"
     # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
     # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
     restart: on-failure:3

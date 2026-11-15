@@ -13,12 +13,14 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
 - ``GET /api/agent/v1/hello``: checks the key; ``{"name", "server_version"}``.
 - ``GET /api/agent/v1/calls?wait=25``: the calls waiting for it (a long poll).
 - ``POST /api/agent/v1/answers`` ``{"answers": [{"id", "ok", "result", "error"}]}``.
+- ``POST /api/agent/v1/syslog`` ``{"lines": [{"raw", "from", "at"}], "dropped"}``: syslog the agent
+  received on the event network; 409 while the syslog feature is off here.
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit, spa
+from .. import agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 HEADER = 'Floorbit-Agent-Key'
@@ -121,6 +123,24 @@ def answers():
     return jsonify({'taken': taken})
 
 
+SYSLOG_BATCH = 2000
+
+
+@bp.route('/api/agent/v1/syslog', methods=['POST'])
+def syslog():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    receiver = current_app.extensions.get('floorbit_syslog')
+    if receiver is None or not features.on('syslog'):
+        return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Features).'}), 409
+    body = request.get_json(silent=True) or {}
+    lines = body.get('lines') if isinstance(body.get('lines'), list) else []
+    dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
+    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
+    return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})
+
+
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers):
+for _view in (hello, calls, answers, syslog):
     _view._auth_public = True
