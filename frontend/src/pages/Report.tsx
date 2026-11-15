@@ -201,11 +201,12 @@ export default function Report() {
                   {r.people && <><Table.Td>{i.reported_by ?? '–'}</Table.Td><Table.Td>{i.nick ?? '–'}</Table.Td></>}
                 </Table.Tr>
               ))} />
+            {/* Underlined: in the dark theme the link colour alone is too close to the text around it (issue #356). */}
             {!!r.incidents.repeat_seats?.length && (
               <Text size="sm">
                 {t('report.repeatSeats')}{' '}
                 {r.incidents.repeat_seats.map((x, n) => (
-                  <span key={x.seat}>{n > 0 && ', '}<Anchor href={`/plan?seat=${encodeURIComponent(x.seat)}`}>{x.seat}</Anchor> ({x.count}×)</span>
+                  <span key={x.seat}>{n > 0 && ', '}<Anchor underline="always" href={`/plan?seat=${encodeURIComponent(x.seat)}`}>{x.seat}</Anchor> ({x.count}×)</span>
                 ))}
               </Text>
             )}

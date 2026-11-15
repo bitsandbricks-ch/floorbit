@@ -100,5 +100,6 @@
   "fixedAfterAlone_other": "Behoben nach {{count}} Min.",
   "fixedAfterAloneLong": "Behoben nach {{h}} Std. {{m}} Min.",
   "fixedAfterAloneNow": "Innert einer Minute behoben",
-  "crewDone": "{{count}} behoben"
+  "crewDone": "{{count}} behoben",
+  "autoDispatch": "Neue automatisch an den nächsten freien Techniker senden"
 }

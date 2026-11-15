@@ -113,7 +113,9 @@ export default function Security() {
   const data = list.data
 
   return (
-    <Layout title={t('security.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    // Findings nobody has acknowledged go in the tab title, like the board's open incidents (issue #352).
+    <Layout title={t('security.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      count={(data?.findings ?? []).filter((f) => !f.ack).length}>
       <PageHead
         title={t('security.title')}
         desc={t('security.intro')}

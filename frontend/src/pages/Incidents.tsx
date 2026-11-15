@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
-import { get, patch, post } from '@/api/client'
+import { get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useFeature, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
@@ -58,7 +58,7 @@ export default function Incidents() {
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const crew = useQuery({
-    queryKey: qk.crew, queryFn: () => get<{ crew: CrewMember[] }>('/api/dispatch/crew'),
+    queryKey: qk.crew, queryFn: () => get<{ crew: CrewMember[]; auto?: boolean }>('/api/dispatch/crew'),
     enabled: !!board.data?.can_assign_any, refetchInterval: 30_000,
   })
   const refresh = () => {
@@ -73,6 +73,13 @@ export default function Incidents() {
       refresh()
       setMessage({ ok: true, text: t('incidents.sentTo', { name: r.display_name }) })
     },
+    onError: (e) => setMessage({ ok: false, text: e.message }),
+  })
+
+  // New incidents go to the nearest free tech by themselves while this is on (issue #358).
+  const auto = useMutation({
+    mutationFn: (on: boolean) => put<{ auto: boolean }>('/api/dispatch/auto', { on }),
+    onSuccess: refresh,
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
@@ -173,6 +180,8 @@ export default function Incidents() {
               {c.display_name}{c.at ? ` · ${c.at}` : ''} · {c.jobs ? t('incidents.crewJobs', { count: c.jobs }) : t('incidents.crewFree')}{c.done ? ` · ${t('incidents.crewDone', { count: c.done })}` : ''}
             </Badge>
           ))}
+          <Switch ml="auto" size="sm" label={t('incidents.autoDispatch')} checked={!!crew.data.auto} disabled={auto.isPending}
+            onChange={(e) => auto.mutate(e.currentTarget.checked)} />
         </Group>
       )}
       {board.error && (

@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, jsonify, render_template, reque
 from auth import roles, teams
 from integrations import events
 
-from .. import audit, incidents, runbooks, seat_notes, spa
+from .. import audit, dispatch, incidents, runbooks, seat_notes, spa
 from ..store import load_data
 
 bp = Blueprint('incidents', __name__)
@@ -139,6 +139,7 @@ def add_incident():
     except incidents.IncidentError as exc:
         return _error(exc)
     _changed(incident, 'created')
+    incident = dispatch.send_new(incident)
     return jsonify(_view(user, incident)), 201
 
 
@@ -256,6 +257,8 @@ def help_page(seat):
         return render_template('help.html', lang=lang, t=text, seat=seat, state='busy'), 429
     incident, new = incidents.report_from_seat(seat, problem, incidents.seat_snapshot(seat))
     _changed(incident, 'reported')
+    if new:
+        dispatch.send_new(incident)
     audit.record('incidents', 'Reported from seat' if new else 'Reported again from seat', target=seat,
                  fields=[problem])
     return render_template('help.html', lang=lang, t=text, seat=seat, state='thanks' if new else 'again',
