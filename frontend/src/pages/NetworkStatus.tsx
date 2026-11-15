@@ -18,9 +18,15 @@ const COLOR: Record<StatusState, string> = {
   operational: 'up', degraded: 'warn', outage: 'down', maintenance: 'warn', unknown: 'gray',
 }
 
+type T = ReturnType<typeof useTranslation>['t']
+
+function whereOf(a: StatusArea, t: T) {
+  return a.block ? t('status.block', { name: a.block }) : a.hall ? t('status.hall', { name: a.hall }) : t('status.somewhere')
+}
+
 function AreaLine({ a }: { a: StatusArea }) {
   const { t } = useTranslation()
-  const where = a.block ? t('status.block', { name: a.block }) : a.hall ? t('status.hall', { name: a.hall }) : t('status.somewhere')
+  const where = whereOf(a, t)
   const bits = [a.hall && a.block ? a.hall : '', a.rows ? t('status.rows', { rows: a.rows }) : '',
     a.seats ? t('status.seats', { count: a.seats }) : ''].filter(Boolean)
   return (
@@ -56,6 +62,15 @@ export default function NetworkStatus() {
     onSuccess: () => { setPick(null); setNote(''); refresh() },
   })
   const d = query.data
+  // One-click starting points from what the public page shows (never switch names): edit, then post.
+  const suggestions = d ? [
+    ...d.areas.map((a) => ({ a, kind: 'Down', color: 'down' })),
+    ...d.recovered.map((a) => ({ a, kind: 'Back', color: 'up' })),
+  ].map(({ a, kind, color }) => {
+    const where = whereOf(a, t)
+    return { key: `${kind}-${a.hall}-${a.block}`, where, color, label: t(`status.suggest${kind}`, { where }),
+      text: t(`status.suggest${kind}Text`, { where }) }
+  }) : []
   const when = (at: number) => new Date(at * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
   const error = postUpdate.error || remove.error || override.error
 
@@ -127,6 +142,15 @@ export default function NetworkStatus() {
               <Title order={2} size="h5" mb="xs">{t('status.updates')}</Title>
               {canSet && (
                 <Stack gap="xs" mb="md">
+                  {suggestions.length > 0 && (
+                    <Group gap={6} data-testid="suggestions">
+                      <Text size="xs" c="dimmed">{t('status.suggestions')}</Text>
+                      {suggestions.map((s) => (
+                        <Button key={s.key} size="compact-xs" variant="light" color={s.color}
+                          onClick={() => { setText(s.text); setArea(s.where) }}>{s.label}</Button>
+                      ))}
+                    </Group>
+                  )}
                   <Textarea label={t('status.newUpdate')} placeholder={t('status.placeholder')} autosize minRows={2} maxLength={500}
                     value={text} onChange={(e) => setText(e.currentTarget.value)} />
                   <Group gap="xs" align="flex-end">

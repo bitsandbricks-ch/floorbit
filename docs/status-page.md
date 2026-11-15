@@ -57,6 +57,9 @@ the affected areas with the switch names, and the updates.
 
 - Reading it needs `incidents.work`.
 - Posting and removing updates and setting the state need `incidents.assign` (lead and admin).
+- Above the update box, **Start from** offers one button per area that is down and per area that is
+  back up. A click fills in a ready text and the area. Edit it, then post. The texts use the names
+  attendees see, never switch names.
 - Every change is in the audit log (area *status page*).
 
 ## API
