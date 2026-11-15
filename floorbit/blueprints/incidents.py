@@ -195,6 +195,7 @@ TEXTS = {
            'speed_saved': 'Saved for seat {seat}. The team sees it with your report.',
            'speed_failed': 'The test did not finish: {error}',
            'state_open': 'Your report is in. Nobody from the team has taken it yet; someone will come.',
+           'state_sent': 'Your report was sent to a tech nearby. They will be on their way shortly.',
            'state_taken': 'Someone from the team has your report and is on the way.',
            'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
@@ -213,6 +214,7 @@ TEXTS = {
            'speed_saved': 'Für Platz {seat} gespeichert. Das Team sieht es bei deiner Meldung.',
            'speed_failed': 'Der Test wurde nicht fertig: {error}',
            'state_open': 'Deine Meldung ist da. Noch hat sie niemand vom Team übernommen; jemand kommt.',
+           'state_sent': 'Deine Meldung ging an jemanden vom Team in der Nähe. Gleich ist jemand unterwegs.',
            'state_taken': 'Jemand vom Team hat deine Meldung und ist unterwegs.',
            'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.'},
 }

@@ -201,6 +201,14 @@ def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, a
     client.patch(f"/api/incidents/{incident['id']}", json={"assignee": TEST_USER})
     page = anon_client.get(url).data.decode()
     assert "Someone from the team has your report" in page and TEST_USER not in page   # no names
+    # Issue #362: sent by dispatch but not seen yet, the page doesn't promise anyone is on the way.
+    with app_module.app.app_context():
+        incidents.stamp(incident["id"], dispatched_at=time.time(), taken_at=None)
+    page = anon_client.get(url).data.decode()
+    assert "sent to a tech nearby" in page and "is on the way" not in page and TEST_USER not in page
+    with app_module.app.app_context():
+        incidents.stamp(incident["id"], taken_at=time.time())
+    assert "is on the way" in anon_client.get(url).data.decode()
     client.patch(f"/api/incidents/{incident['id']}", json={"status": "fixed"})
     assert "Jemand" not in anon_client.get(url).data.decode()
     german = anon_client.get(url, headers={"Accept-Language": "de-CH"}).data.decode()

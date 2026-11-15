@@ -257,7 +257,7 @@ def is_waiting(incident, now):
 
 
 def seat_report_state(seat, now=None):
-    """What a seat's help page says about its latest report (issue #308): open, taken or fixed.
+    """What a seat's help page says about its latest report (issue #308): open, sent, taken or fixed.
 
     Names stay out: whoever holds the seat's QR link sees only that someone has it."""
     now = time.time() if now is None else now
@@ -267,7 +267,14 @@ def seat_report_state(seat, now=None):
         return None
     # A report still being worked counts before one that was fixed.
     latest = max(found, key=lambda i: (i['status'] != 'fixed', i.get('created_at') or 0))
-    return 'fixed' if latest['status'] == 'fixed' else 'taken' if latest.get('assignee') else 'open'
+    if latest['status'] == 'fixed':
+        return 'fixed'
+    if not latest.get('assignee'):
+        return 'open'
+    # Sent by dispatch but the tech hasn't said "On my way" yet: don't promise someone is coming (issue #362).
+    if latest.get('dispatched_at') and not latest.get('taken_at'):
+        return 'sent'
+    return 'taken'
 
 
 def update(user, incident_id, body):
