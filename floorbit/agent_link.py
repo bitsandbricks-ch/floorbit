@@ -45,7 +45,8 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
 # inventory feeds of its inventory plugins (NetBox), nothing else.
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds')
+           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
+           'wifi_feeds')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -86,7 +87,8 @@ def outdated(agent_version, server_version):
 def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now
-    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now)} for a in data.get(KEY) or []]
+    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now)}
+            for a in data.get(KEY) or []]
 
 
 def active():
@@ -268,6 +270,11 @@ def check(key, version=None, address=None, now=None):
 
 # ── The call tunnel ────────────────────────────────────────────────────────────────────────────
 
+# The agent protocol (/api/agent/v1, docs/agent.md "The protocol"). The agent lives in its own
+# repository, so the two are released apart: a change the other side can't follow gets a new number.
+PROTOCOL = 1
+PROTOCOLS = (1,)          # what this Floorbit understands
+RELAY_RECENT = 600       # syslog or flows sent within this long count as relayed
 STATS_WINDOW = 3600      # the Local agents page shows the last hour's calls
 STATS_KEEP = 5000        # answers kept per agent for that, at most
 
@@ -291,6 +298,7 @@ class Tunnel:
         self._ids = itertools.count(1)
         self._stats = {}          # agent id -> deque of (when, ms, ok, method, error)
         self._seen = {}           # agent id -> when it last asked for work
+        self._relayed = {}        # agent id -> {"syslog" | "flows": {"at", "count"}}
         self.last_seen = None
 
     def reset(self):
@@ -299,7 +307,22 @@ class Tunnel:
             self._calls.clear()
             self._stats.clear()
             self._seen.clear()
+            self._relayed.clear()
             self.last_seen = None
+
+    def relayed(self, agent, kind, count=0, now=None):
+        """An agent sent syslog or a flow summary: the Local agents page shows what each one relays."""
+        now = time.time() if now is None else now
+        with self._cond:
+            seen = self._relayed.setdefault(agent, {}).setdefault(kind, {'at': now, 'count': 0})
+            seen['at'] = now
+            seen['count'] += count
+
+    def relays(self, agent, now=None):
+        """{kind: {"at", "count"}} for what the agent sent in the last RELAY_RECENT seconds."""
+        now = time.time() if now is None else now
+        with self._cond:
+            return {kind: dict(v) for kind, v in self._relayed.get(agent, {}).items() if now - v['at'] < RELAY_RECENT}
 
     def seen(self, now=None, agent=None):
         self.last_seen = time.time() if now is None else now

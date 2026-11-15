@@ -138,6 +138,7 @@ class SyslogReceiver:
         self.listening = None
         self.error = None
         self.demo = False
+        self.relayed = {}       # agent name -> {'at', 'lines', 'dropped'}: lines a local agent sent
         self._load()
 
     # ── storage: one JSON line per log line, a file per hour ────────────────────────────
@@ -242,7 +243,8 @@ class SyslogReceiver:
     def _rate_ok(self, sender, now):
         rate = settings()['rate']
         tokens, last = self._buckets.get(sender, (rate, now))
-        tokens = min(rate, tokens + (now - last) * rate)
+        # max(): relayed lines carry their own times, and two agents' lines can arrive out of order.
+        tokens = min(rate, tokens + max(0, now - last) * rate)
         if tokens < 1:
             self._buckets[sender] = (tokens, now)
             return False
@@ -276,6 +278,36 @@ class SyslogReceiver:
         self._write(line)
         self.alerts.observe(line, now)
         return line
+
+    def relay(self, agent_name, lines, now=None, dropped=0):
+        """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at"}]``.
+
+        The original sender is checked against the allow-list as if it had sent here, and a line
+        keeps the time the agent got it (at most an hour back: older ones were buffered too long
+        to be worth placing in the past). Returns how many were kept."""
+        now = time.time() if now is None else now
+        if not lines:
+            return 0     # the agent's check: nothing to count
+        kept = 0
+        for item in lines:
+            if not isinstance(item, dict) or not isinstance(item.get('raw'), str):
+                continue
+            try:
+                sender = str(ipaddress.ip_address(str(item.get('from') or '')))
+            except ValueError:
+                continue
+            try:
+                at = float(item.get('at') or now)
+            except (TypeError, ValueError):
+                at = now
+            if self.receive(item['raw'][:MAX_LINE], sender, now=min(now, max(now - 3600, at))) is not None:
+                kept += 1
+        with self._lock:
+            seen = self.relayed.setdefault(str(agent_name)[:80], {'lines': 0, 'dropped': 0})
+            seen['at'] = now
+            seen['lines'] += kept
+            seen['dropped'] = max(0, int(dropped or 0))
+        return kept
 
     def _seat_index(self):
         """{(switch, canonical port): seat}, rebuilt when the port watch has read the ports again."""
@@ -388,6 +420,9 @@ class SyslogReceiver:
             return {'enabled': settings()['enabled'], 'listening': self.listening, 'error': self.error,
                     'counts': dict(self.counts), 'lines': len(self.lines), 'devices': devices,
                     'retention_hours': settings()['retention_hours'], 'demo': self.demo,
+                    # recent: the agent sent within five minutes, so its syslog is getting through.
+                    'relayed': [{'agent': name, **seen, 'recent': time.time() - seen['at'] < 300}
+                                for name, seen in sorted(self.relayed.items())],
                     'last_id': self.lines[-1]['id'] if self.lines else 0,
                     'stores': [{'id': s.id, 'name': s.name, **{k: v for k, v in self.forwarded.get(s.id, {}).items()
                                                                if k != 'id'}} for s in self.log_plugins()]}
