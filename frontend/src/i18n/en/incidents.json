@@ -101,5 +101,8 @@
   "fixedAfterAloneLong": "Fixed after {{h}} h {{m}} min",
   "fixedAfterAloneNow": "Fixed within a minute",
   "crewDone": "{{count}} fixed",
-  "autoDispatch": "Send new ones to the nearest free tech by themselves"
+  "autoDispatch": "Send new ones to the nearest free tech by themselves",
+  "notSeenFor_one": "not seen for {{count}} min",
+  "notSeenFor_other": "not seen for {{count}} min",
+  "notSeenForLong": "not seen for {{h}} h {{m}} min"
 }

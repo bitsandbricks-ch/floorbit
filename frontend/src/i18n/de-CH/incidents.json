@@ -101,5 +101,8 @@
   "fixedAfterAloneLong": "Behoben nach {{h}} Std. {{m}} Min.",
   "fixedAfterAloneNow": "Innert einer Minute behoben",
   "crewDone": "{{count}} behoben",
-  "autoDispatch": "Neue automatisch an den nächsten freien Techniker senden"
+  "autoDispatch": "Neue automatisch an den nächsten freien Techniker senden",
+  "notSeenFor_one": "seit {{count}} Min. nicht gesehen",
+  "notSeenFor_other": "seit {{count}} Min. nicht gesehen",
+  "notSeenForLong": "seit {{h}} Std. {{m}} Min. nicht gesehen"
 }

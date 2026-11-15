@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
 import { useNowSeconds } from '@/components/useNowSeconds'
-import { fixedAfter, isWaiting, waitedFor } from './waiting'
+import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
@@ -16,6 +16,12 @@ function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) 
 }
 
 /** Open this long with nobody on it, an incident says so (issue #296). */
+
+/** "not seen for 7 min", or with hours. */
+function notSeenFor(seconds: number, t: (k: string, o?: Record<string, unknown>) => string) {
+  const mins = Math.floor(seconds / 60)
+  return mins < 60 ? t('incidents.notSeenFor', { count: mins }) : t('incidents.notSeenForLong', { h: Math.floor(mins / 60), m: mins % 60 })
+}
 
 /** Whole Mbit/s from 100 on: "912", not "912.4". */
 function mbit(n: number | null) {
@@ -54,6 +60,7 @@ export function IncidentCard({
   const assignable = (people?.[i.team ?? ''] ?? []).map((p) => ({ value: p.username, label: p.display_name }))
   const lastNote = i.notes[i.notes.length - 1]
   const now = useNowSeconds()
+  const unseen = unseenFor(i, now)
   const waiting = isWaiting(i, now)
 
   return (
@@ -114,7 +121,8 @@ export function IncidentCard({
         <Text size="sm" c="dimmed">
           {i.assignee ? t('incidents.assignedTo', { name: i.assignee })
             : i.status === 'fixed' && i.fixed_at ? fixedAfter(i.fixed_at - i.created_at, t, true) : t('incidents.unassigned')}
-          {i.assignee && i.dispatched_at && i.status !== 'fixed' && ` · ${i.taken_at ? t('incidents.onTheWay') : t('incidents.notSeenYet')}`}
+          {i.assignee && i.dispatched_at && i.status !== 'fixed' && unseen == null && ` · ${i.taken_at ? t('incidents.onTheWay') : t('incidents.notSeenYet')}`}
+          {unseen != null && <> · <Text span size="sm" c="warn" fw={600}>{notSeenFor(unseen, t)}</Text></>}
           {i.status === 'fixed' && i.fixed_at && i.assignee && ` · ${fixedAfter(i.fixed_at - i.created_at, t)}`}
         </Text>
         {i.can_work && (

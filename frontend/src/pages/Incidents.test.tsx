@@ -216,6 +216,23 @@ describe('Incident board', () => {
     expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
     expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
   })
+  it('flags a sent job nobody has seen for 5 minutes (issue #364)', async () => {
+    const now = Date.now() / 1000
+    const sent: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'u1', title: 'Sent a while ago', status: 'assigned', assignee: 'kim', dispatched_at: now - 7 * 60, taken_at: null },
+      { ...base, id: 'u2', title: 'Sent just now', status: 'assigned', assignee: 'kim', dispatched_at: now - 60, taken_at: null },
+      { ...base, id: 'u3', title: 'Seen', status: 'assigned', assignee: 'kim', dispatched_at: now - 20 * 60, taken_at: now - 15 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': sent }).fn)
+    renderWithApp(<Incidents />)
+    const old = (await screen.findByText('Sent a while ago')).closest('[data-incident]') as HTMLElement
+    expect(within(old).getByText('not seen for 7 min')).toBeInTheDocument()
+    const fresh = screen.getByText('Sent just now').closest('[data-incident]') as HTMLElement
+    expect(within(fresh).getByText('With kim · not seen yet')).toBeInTheDocument()
+    const seen = screen.getByText('Seen').closest('[data-incident]') as HTMLElement
+    expect(within(seen).getByText('With kim · on the way')).toBeInTheDocument()
+  })
+
   it('says how long a fixed incident took (issue #332)', async () => {
     const now = Date.now() / 1000
     const done: IncidentBoard = { ...board, incidents: [
