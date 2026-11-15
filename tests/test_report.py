@@ -166,3 +166,16 @@ def test_seats_with_more_than_one_incident(client, stats):
     assert found["repeat_seats"] == [{"seat": "D-1", "count": 3}, {"seat": "D-2", "count": 2}]
     pdf = client.get("/api/report.pdf")
     assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
+
+
+def test_what_attendees_reported(client, stats):
+    # Counts every press of a help page button (issue #370), not the incidents they landed on.
+    from floorbit import incidents
+    incidents.report_from_seat("D-1", "slow", {})
+    incidents.report_from_seat("D-1", "slow", {})
+    incidents.report_from_seat("D-2", "no-internet", {})
+    client.post("/api/incidents", json={"seat": "D-3", "title": "Filed on the board"})
+    found = client.get("/api/report").get_json()["incidents"]
+    assert found["seat_problems"] == [{"problem": "no-internet", "count": 1}, {"problem": "slow", "count": 2}]
+    pdf = client.get("/api/report.pdf")
+    assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")

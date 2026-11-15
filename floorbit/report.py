@@ -72,6 +72,15 @@ def _repeat_seats(items, limit=10):
     return [{'seat': seat, 'count': n} for n, seat in repeats[:limit]]
 
 
+def _seat_problems(items):
+    """What attendees pressed on the help page (issue #370), every report counted, help page order."""
+    counts = {}
+    for i in items:
+        if i.get('source') == 'helpdesk' and i.get('problem') in incidents.PROBLEMS:
+            counts[i['problem']] = counts.get(i['problem'], 0) + int(i.get('reports') or 1)
+    return [{'problem': p, 'count': counts[p]} for p in incidents.PROBLEMS if counts.get(p)]
+
+
 def _incidents(since, people):
     items = [i for i in incidents.list_all() if since is None or i['created_at'] >= since]
     items.sort(key=lambda i: i['created_at'])
@@ -94,6 +103,7 @@ def _incidents(since, people):
         'median_fix_s': round(took[len(took) // 2]) if took else None,
         'median_take_s': round(taken[len(taken) // 2]) if taken else None,
         'repeat_seats': _repeat_seats(items),
+        'seat_problems': _seat_problems(items),
         'items': rows,
     }
 
