@@ -39,9 +39,16 @@ export default function FloorPlan() {
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
   const phone = useMediaQuery('(max-width: 48em)')
   const qc = useQueryClient()
+  // A link with a seat or switch but no hall (from the incident board) opens the hall it is in (issue #206).
+  // Only the first load asks by seat, so clicking around keeps the same hall.
+  const [focus] = useState(() => {
+    if (hall) return ''
+    const seat = params.get('seat'), sw = params.get('switch')
+    return seat ? `seat=${encodeURIComponent(seat)}` : sw ? `switch=${encodeURIComponent(sw)}` : ''
+  })
   const q = useQuery({
-    queryKey: qk.plan(hall),
-    queryFn: () => get<SeatViewData>(`/api/plan${hall ? `?hall=${encodeURIComponent(hall)}` : ''}`),
+    queryKey: qk.plan(hall || focus),
+    queryFn: () => get<SeatViewData>(`/api/plan${hall ? `?hall=${encodeURIComponent(hall)}` : focus ? `?${focus}` : ''}`),
     refetchInterval: 30_000,
   })
   const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: qk.planAll }) }, [qc])

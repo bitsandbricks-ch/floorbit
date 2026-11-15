@@ -112,10 +112,37 @@ def _hall_counts(data, hall_id, online, ports, problems):
             'problems': sum(bool(problems.get(s)) for s in seats)}
 
 
-def view(hall_id=None, now=None):
+def _seat_halls(data):
+    """{seat: hall id} over every hall's seat blocks."""
+    hall_of = {}
+    for hall in halls.halls(data):
+        drawing, _ = plan(data, hall_id=hall['id'])
+        for shape in (drawing or {}).get('shapes', []):
+            for cell in shape['cells']:
+                hall_of.setdefault(cell['seat'], hall['id'])
+    return hall_of
+
+
+def hall_for(seat=None, switch=None, data=None):
+    """The hall a seat or a placed switch is in, for links that name only the seat (issue #206)."""
+    data = load_data() if data is None else data
+    if seat:
+        return _seat_halls(data).get(seat)
+    short = str(switch or '').lower().split('.')[0]
+    if short:
+        ids = {h['id'] for h in halls.halls(data)}
+        dev = next((d for d in inventory.devices(data) if str(d.get('name') or '').lower().split('.')[0] == short
+                    and d.get('x') is not None), None)
+        return halls.hall_of(dev, data, ids) if dev else None
+    return None
+
+
+def view(hall_id=None, now=None, seat=None, switch=None):
     now = time.time() if now is None else now
     data = load_data()
     all_halls = halls.halls(data)
+    if not hall_id and (seat or switch):
+        hall_id = hall_for(seat, switch, data)
     hall = halls.find(data, hall_id or '') or all_halls[0]
     drawing, _ = plan(data, hall_id=hall['id'])
     online, last = _fresh_online(now)
@@ -301,13 +328,7 @@ def _port_key(port):
 def find_player(query):
     """A player by nick, IP or MAC for the Seats page's search (issue #186), with the hall each seat
     is in so the page can switch to it. Names people: the route needs ``seats.view``."""
-    data = load_data()
-    hall_of = {}
-    for hall in halls.halls(data):
-        drawing, _ = plan(data, hall_id=hall['id'])
-        for shape in (drawing or {}).get('shapes', []):
-            for cell in shape['cells']:
-                hall_of.setdefault(cell['seat'], hall['id'])
+    hall_of = _seat_halls(load_data())
     found = seat_search.find(query)
     return {'query': found['query'], 'results': [
         {'seat': r['seat'], 'nick': r.get('username') or '', 'matched': r['matched'], 'hall': hall_of[r['seat']]}

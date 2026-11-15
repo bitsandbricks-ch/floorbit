@@ -36,7 +36,9 @@ def plan_page():
 
 @bp.route('/api/plan')
 def plan_view():
-    return jsonify(seat_view.view(request.args.get('hall') or None))
+    # Without a hall, a seat or switch picks the hall it is in (links from the incident board, issue #206).
+    a = request.args
+    return jsonify(seat_view.view(a.get('hall') or None, seat=a.get('seat') or None, switch=a.get('switch') or None))
 
 
 @bp.route('/api/plan/seats/<seat>')

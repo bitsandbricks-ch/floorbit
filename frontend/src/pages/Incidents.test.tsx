@@ -43,6 +43,7 @@ describe('Incident board', () => {
     expect(within(open).getByText('2 reports')).toBeInTheDocument()
     expect(within(open).getByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeInTheDocument()
     expect(within(open).getByText('Speed test at the seat, 2 min ago: 12.5 down, 9.1 up Mbit/s, 3.2 ms')).toBeInTheDocument()
+    expect(within(open).getAllByRole('link', { name: 'Seat A-1' })[0]).toHaveAttribute('href', '/plan?seat=A-1')
     expect(open.querySelector('[data-seat-note]')).toHaveTextContent('Crew note: Cable swapped, watch it ana · 10 min ago')
     expect(screen.getByRole('region', { name: 'Being worked' }).querySelector('[data-seat-note]')).toBeNull()
     const worked = screen.getByRole('region', { name: 'Being worked' })

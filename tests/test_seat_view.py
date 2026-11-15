@@ -232,3 +232,17 @@ def test_every_hall_has_its_totals_for_the_picker(client, hall):
     # The same from the other hall's side.
     other = client.get(f"/api/plan?hall={h2}").get_json()
     assert other["hall"] == h2 and [h["seats"] for h in other["halls"]] == [8, 3]
+
+
+def test_a_seat_or_switch_without_a_hall_opens_its_hall(client, hall):
+    h2 = client.post("/api/halls", json={"name": "Hall 2"}).get_json()["id"]
+    client.post("/api/seat-blocks", json={"name": "E", "x": 50, "y": 50, "cols": 3, "rows": 1, "hall_id": h2})
+    sw = client.post("/api/switches", json={"name": "sw-e-01", "x": 10, "y": 5, "hall_id": h2}).get_json()
+    assert sw.get("hall_id") == h2
+    assert client.get("/api/plan?seat=E-2").get_json()["hall"] == h2
+    assert client.get("/api/plan?switch=sw-e-01").get_json()["hall"] == h2
+    first = client.get("/api/plan").get_json()["hall"]
+    assert first != h2
+    assert client.get("/api/plan?seat=D-6").get_json()["hall"] == first
+    assert client.get("/api/plan?seat=Z-99").get_json()["hall"] == first      # unknown: the first hall
+    assert client.get(f"/api/plan?hall={first}&seat=E-2").get_json()["hall"] == first   # an explicit hall wins

@@ -14,6 +14,9 @@ floor plan as a red ring on the seat or switch, with a count next to **Incidents
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
 
+The seat or switch badge on a card opens it on the [Seats page](seats.md) (`/plan?seat=D-6`,
+`/plan?switch=sw-a-01`), in the hall it is in.
+
 Who can do what (permissions in [auth.md](auth.md)):
 
 | Action | Needs |
