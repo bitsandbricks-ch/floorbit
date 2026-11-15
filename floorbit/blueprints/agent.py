@@ -15,7 +15,12 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
 - ``POST /api/agent/v1/answers`` ``{"answers": [{"id", "ok", "result", "error"}]}``.
 - ``POST /api/agent/v1/syslog`` ``{"lines": [{"raw", "from", "at"}], "dropped"}``: syslog the agent
   received on the event network; 409 while the syslog feature is off here.
+- ``GET /api/agent/v1/seats``: ``{"seat_of": {ip: seat}, "area_of": {seat: area}}`` for its flow
+  collector; 409 while the traffic feature is off here.
+- ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
 """
+import time
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
@@ -141,6 +146,53 @@ def syslog():
     return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})
 
 
+# What the Traffic page reads from a summary (floorbit/flows/aggregate.py), with the most of each list.
+FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
+             'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
+             'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
+             'templates_missing': None, 'errors': None}
+
+
+def _traffic_off():
+    return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Features).'}), 409
+
+
+@bp.route('/api/agent/v1/seats', methods=['GET'])
+def flow_seats():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    if not features.on('traffic'):
+        return _traffic_off()
+    from ..flows import seat_maps
+    seat_of, area_of = seat_maps()
+    return jsonify({'seat_of': seat_of, 'area_of': area_of})
+
+
+@bp.route('/api/agent/v1/flows', methods=['POST'])
+def flows():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    if not features.on('traffic'):
+        return _traffic_off()
+    body = request.get_json(silent=True) or {}
+    snap = body.get('snapshot')
+    if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
+        return jsonify({'error': 'snapshot is missing'}), 400
+    clean = {}
+    for key, most in FLOW_KEYS.items():
+        if key in snap:
+            value = snap[key]
+            clean[key] = value[:most] if most and isinstance(value, list) else value
+    # The hosted clock decides whether the summary is stale, not the agent's.
+    clean['updated'] = time.time()
+    clean['agent'] = agent['name']
+    from ..flows import store
+    store.publish(clean, keep_locally=True)
+    return jsonify({'ok': True})
+
+
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers, syslog):
+for _view in (hello, calls, answers, syslog, flow_seats, flows):
     _view._auth_public = True

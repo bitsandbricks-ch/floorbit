@@ -25,6 +25,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | DNS analytics (Pi-hole, AdGuard Home, turned on there) | dns |
 | The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
 | Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
+| The Traffic page (NetFlow and IPFIX), when the agent collects flows (`FLOORBIT_AGENT_FLOWS_PORT`) | traffic |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
@@ -35,7 +36,6 @@ so on a hosted Floorbit they only work when that service is reachable from it:
 
 | Feature | Why |
 | --- | --- |
-| NetFlow | flows are sent to Floorbit's own UDP port |
 | Port actions (SSH ports), switch commands and terminal | they connect to the switch directly |
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
@@ -130,10 +130,11 @@ for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorb
 | `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
 | `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
 | `FLOORBIT_AGENT_SYSLOG_PORT` | a UDP port to take syslog on, such as `5514`, sent on to the hosted Logs page. Unset: the agent doesn't listen. `FLOORBIT_AGENT_SYSLOG_BIND` picks the address (all of them by default) |
+| `FLOORBIT_AGENT_FLOWS_PORT` | a UDP port to collect NetFlow and IPFIX on, such as `2055`, for the hosted Traffic page. Unset: no collector. `FLOORBIT_AGENT_FLOWS_BIND` picks the address; the `FLOWS_*` settings of [Traffic](flows.md) apply on the agent |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
-The agent only makes outgoing requests; nothing listens on it unless `FLOORBIT_AGENT_SYSLOG_PORT` is set. It runs up to 4 calls side by side,
+The agent only makes outgoing requests; nothing listens on it unless `FLOORBIT_AGENT_SYSLOG_PORT` or `FLOORBIT_AGENT_FLOWS_PORT` is set. It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
@@ -212,6 +213,25 @@ it came from and when it arrived. The hosted Floorbit treats them as if they had
 While the hosted Floorbit can't be reached, the agent keeps up to 20,000 lines and sends them when
 it's back, with the time it got them. Past that it drops the newest and counts them; the Logs page
 shows the count next to "Through the local agent …".
+
+## Traffic (NetFlow) through the agent
+
+Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
+the [flow collector](flows.md) itself: set `FLOORBIT_AGENT_FLOWS_PORT=2055`, publish the port
+(the `ports` lines in `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or
+IPFIX export at the agent's machine.
+
+- Every 10 seconds the agent sends the hosted Floorbit **only the summary** the Traffic page shows:
+  hall, area and service totals, services only once enough seats used them (`FLOWS_MIN_SEATS`), and
+  per seat the volume and category mix. The page says "collected by the local agent …".
+- The **flow records**, with addresses and ports, stay on the agent, in its state volume, for
+  `FLOWS_RETENTION_DAYS` (7). `FLOWS_KEEP_RAW=false` on the agent keeps none.
+- To count per seat the agent needs the seats' addresses. It asks the hosted Floorbit for them
+  every minute (`GET /api/agent/v1/seats`), so they reach the event network's own machine, and
+  nowhere else.
+- The **Traffic** feature has to be on on the hosted Floorbit. Own classification rules
+  (`FLOWS_RULES`) are read on the agent.
+- With several agents, let one of them collect flows: each summary replaces the last.
 
 ## When the agent is away
 

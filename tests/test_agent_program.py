@@ -1,6 +1,7 @@
 """The local agent program (issue #2) against the hosted side, all in one process.
 
 The agent's HTTP goes through the Flask test client, so nothing leaves the process."""
+import os
 import threading
 import time
 
@@ -677,3 +678,80 @@ def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
         assert receiver.lines and receiver.lines[-1]["message"] == "hello over the agent"
     finally:
         relay.stop()
+
+
+def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app_module, monkeypatch, tmp_path):
+    import floorbit.flows as flows_pkg
+    from floorbit.agent.flows_relay import FlowsRelay
+    from floorbit.flows import store
+    from floorbit.flows.aggregate import Aggregator
+    from floorbit.flows.classify import Classifier
+    from floorbit.flows.collector import Collector
+    from tests.test_flows import NOW, STEAM, v5
+    monkeypatch.setattr(flows_pkg, "seat_maps", lambda: ({"192.0.2.10": "A-1"}, {"A-1": "A"}))
+    a = make(app_module, enrol(client)["key"])
+    sent = []
+    collector = Collector(Aggregator(Classifier()), store.RawStore(str(tmp_path)), log=lambda *_: None)
+    relay = FlowsRelay(a, 0, collector=collector, log=lambda *_: None)
+    real_send = a.send_flows
+    monkeypatch.setattr(a, "send_flows", lambda snap: (sent.append(snap), real_send(snap))[1])
+    relay.tick(now=NOW)                                      # the seats come from the hosted Floorbit
+    assert collector.agg.seat_of == {"192.0.2.10": "A-1"}
+    collector.receive(v5([STEAM]), "198.51.100.1", now=NOW + 1)
+    collector._next["publish"] = 0
+    relay.tick(now=NOW + 2)
+    assert relay.sent == 2 and sent[-1]["mix_hour"] == {"gaming": 5_000_000}
+    body = client.get("/api/flows").get_json()
+    assert body["collector"] and body["agent"] == "Demo LAN 2026" and body["mix_hour"] == {"gaming": 5_000_000}
+    assert body["seats"][0]["seat"] == "A-1" and not body["stale"]
+    assert "192.0.2.10" not in str(body) and "203.0.113.30" not in str(body)
+    assert len(os.listdir(tmp_path / "raw")) == 1            # the flow records stay on the agent
+
+
+def test_flows_need_traffic_on_and_a_snapshot(client, app_module):
+    key = enrol(client)["key"]
+    agent = app_module.app.test_client()
+    h = {"Floorbit-Agent-Key": key}
+    assert agent.post("/api/agent/v1/flows", json={"snapshot": "x"}, headers=h).status_code == 400
+    assert agent.post("/api/agent/v1/flows", json={}, headers=h).status_code == 400
+    assert agent.get("/api/agent/v1/seats").status_code == 401
+    assert client.put("/api/settings/features", json={"traffic": False}).status_code == 200
+    assert agent.get("/api/agent/v1/seats", headers=h).status_code == 409
+    assert agent.post("/api/agent/v1/flows", json={"snapshot": {"updated": 1}}, headers=h).status_code == 409
+
+
+def test_a_failing_summary_is_logged_once(app_module):
+    from floorbit.agent.flows_relay import FlowsRelay
+
+    class Away:
+        def send_flows(self, snap):
+            raise RuntimeError("no route to host")
+
+    said = []
+    relay = FlowsRelay(Away(), 0, log=said.append)
+    assert relay._publish({}) is False and relay._publish({}) is False
+    assert len(said) == 1 and "no route to host" in said[0]
+
+
+def test_the_agent_starts_its_flow_collector(client, app_module, monkeypatch):
+    a = make(app_module, enrol(client)["key"])
+    monkeypatch.setenv("FLOORBIT_AGENT_FLOWS_BIND", "127.0.0.1")
+    assert agent_mod.start_flows(a, "") is None
+    assert agent_mod.start_flows(a, "x", out=lambda *_: None) is False
+    relay = agent_mod.start_flows(a, "0", out=lambda *_: None)
+    try:
+        assert relay._sock is not None
+    finally:
+        relay.stop()
+    assert relay._sock is None
+
+
+def test_without_redis_the_agents_summary_is_kept_in_memory(monkeypatch):
+    from floorbit import cache
+    from floorbit.flows import store
+    monkeypatch.setattr(cache, "get_redis_client", lambda: None)
+    monkeypatch.setattr(store, "_local", {"at": 0, "snapshot": None})
+    assert store.publish({"updated": 1}) is False and store.latest() is None   # the collector needs Redis
+    assert store.publish({"updated": 1}, keep_locally=True) and store.latest() == {"updated": 1}
+    store._local["at"] -= store.SNAPSHOT_TTL + 1
+    assert store.latest() is None

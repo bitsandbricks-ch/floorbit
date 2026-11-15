@@ -157,6 +157,7 @@ export default function Traffic() {
           <Text size="sm" c="dimmed" mb="sm">
             {data.updated ? t('traffic.updated', { time: clock(data.updated) }) : ''}
             {data.stale ? ` · ${t('traffic.stale')}` : ''}
+            {data.agent ? ` · ${t('traffic.viaAgent', { agent: data.agent })}` : ''}
             {' · '}{t('traffic.privacy', { days: data.retention_days ?? 7 })}
           </Text>
           <Board data={data} />

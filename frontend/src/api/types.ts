@@ -541,6 +541,8 @@ export interface FlowsData {
   rules_error: string | null
   demo?: boolean
   stale?: boolean
+  /** The local agent whose collector sent this summary (issue #2). */
+  agent?: string
   updated?: number
   flows?: number
   exporters?: { address: string; flows: number; last: number | null }[]

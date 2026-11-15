@@ -7,7 +7,8 @@ other monitoring plugin). It connects out to the hosted Floorbit (``FLOORBIT_URL
 posts the answer back. The hosted side is floorbit/agent_link.py.
 
 Nothing listens here unless asked: the agent makes outgoing HTTPS requests, and only with
-``FLOORBIT_AGENT_SYSLOG_PORT`` does it take syslog from the event network (syslog_relay.py).
+``FLOORBIT_AGENT_SYSLOG_PORT`` or ``FLOORBIT_AGENT_FLOWS_PORT`` does it take syslog or flows from
+the event network (syslog_relay.py, flows_relay.py).
 When the hosted Floorbit can't be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
 """
 import contextlib
@@ -188,6 +189,20 @@ class Agent:
             raise TurnedOff((resp.json() or {}).get('error') or 'Syslog is turned off on the hosted Floorbit.')
         return self._check(resp)
 
+    def _said(self, resp):
+        """409: the hosted side has the feature off, and says so."""
+        if resp.status_code == 409:
+            raise RuntimeError((resp.json() or {}).get('error') or 'turned off on the hosted Floorbit')
+        return self._check(resp)
+
+    def flow_seats(self):
+        return self._said(self.http.get(f'{self.url}/api/agent/v1/seats', headers=self._headers(),
+                                        timeout=HTTP_TIMEOUT))
+
+    def send_flows(self, snapshot):
+        return self._said(self.http.post(f'{self.url}/api/agent/v1/flows', headers=self._headers(True),
+                                         data=json.dumps({'snapshot': snapshot}, default=str), timeout=HTTP_TIMEOUT))
+
     def stop(self):
         self._stop.set()
 
@@ -297,6 +312,21 @@ def start_syslog(agent, port, out=print):
     return relay
 
 
+def start_flows(agent, port, out=print):
+    """The flow collector, when FLOORBIT_AGENT_FLOWS_PORT is set; as start_syslog."""
+    from .flows_relay import FlowsRelay
+    port = str(port or '').strip()
+    if not port:
+        return None
+    try:
+        relay = FlowsRelay(agent, int(port), os.environ.get('FLOORBIT_AGENT_FLOWS_BIND') or '0.0.0.0', log=out)
+        relay.start()
+    except (ValueError, OSError, OverflowError) as exc:
+        out(f'[agent] cannot listen for flows on "{port}": {exc}')
+        return False
+    return relay
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv and argv[0] not in ('check', 'run'):
@@ -325,8 +355,12 @@ def main(argv=None):
     agent = Agent(url, key, local_executor(app), version=version)
     if argv and argv[0] == 'check':
         return 0 if check(agent, agent.execute) else 1
-    relay = start_syslog(agent, os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT', ''))
-    if relay is False:
+    relays = [start_syslog(agent, os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT', '')),
+              start_flows(agent, os.environ.get('FLOORBIT_AGENT_FLOWS_PORT', ''))]
+    if False in relays:
+        for relay in relays:
+            if relay:
+                relay.stop()
         return 2
     try:
         agent.run()
@@ -336,6 +370,7 @@ def main(argv=None):
     except KeyboardInterrupt:
         agent.stop()
     finally:
-        if relay:
-            relay.stop()
+        for relay in relays:
+            if relay:
+                relay.stop()
     return 0
