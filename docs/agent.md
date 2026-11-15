@@ -85,6 +85,12 @@ the sync says so and nothing changes. A sync waits up to 25 seconds for the agen
 
 A plugin the agent feeds is not asked on the hosted Floorbit itself, which can't reach it anyway.
 
+## Cables through the agent
+
+**Cables > Import from NetBox** works the same way: the agent sends the cables of each plugin there
+that knows them (NetBox), and they replace the last import as usual. A plugin the agent answered for
+isn't asked on the hosted Floorbit too. The cable page lists "Local agent" among its sources.
+
 ## When the agent is away
 
 An agent counts as **connected** while it asked for work in the last 60 seconds. A page that needs
@@ -107,7 +113,7 @@ The agent sends its key in the `Floorbit-Agent-Key` header and its version in
 The methods are those of the monitoring source (see [architecture.md](architecture.md#inventory-and-data-sources)):
 `configured`, `devices`, `device_details`, `resolve_ip`, `port_stats`, `device_ports` and `arp`, plus
 `inventory_feeds`, which answers `[{"plugin", "name", "items"}]` (or `"error"` instead of `"items"`) for each
-inventory plugin that's on. Nothing else can be asked. The agent answers with what its own monitoring plugin returns.
+inventory plugin that's on, and `cable_feeds`, the same for each plugin that knows cables. Nothing else can be asked. The agent answers with what its own monitoring plugin returns.
 
 For admins (**Manage settings**):
 

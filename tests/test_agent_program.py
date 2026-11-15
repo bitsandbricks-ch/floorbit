@@ -202,3 +202,46 @@ def test_the_agent_sends_its_inventory_plugins(app_module):
     assert agent_mod.inventory_feeds(Registry()) == [
         {'plugin': 'netbox', 'name': 'Netbox', 'items': [{'id': '1', 'name': 'sw-01'}]},
         {'plugin': 'broken', 'name': 'Broken', 'error': 'down'}]
+
+
+def test_cables_come_through_the_agent(client, app_module):
+    """A hosted cable import takes the agent's NetBox cables and doesn't ask the hosted NetBox."""
+    key = enrol(client)['key']
+
+    def execute(method, args):
+        if method == 'cable_feeds':
+            return [{'plugin': 'netbox', 'name': 'NetBox', 'items': [
+                {'switch': 'sw-a-01', 'port': 'Gi1/0/5', 'seat': 'A-5', 'label': 'K-5'}]}]
+        return fake_execute(method, args)
+
+    a = make(app_module, key, execute)
+    a.poll_wait = 0.5
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        assert 'Local agent' in client.get('/api/cables').get_json()['sources']
+        res = client.post('/api/cables/import')
+        assert res.status_code == 200, res.get_json()
+        assert res.get_json() == {'imported': 1, 'errors': []}    # no "set up NetBox" from this side
+        cable = client.get('/api/cables').get_json()['cables'][0]
+        assert (cable['switch'], cable['port'], cable['plugin']) == ('sw-a-01', 'Gi1/0/5', 'NetBox')
+    finally:
+        a.stop()
+        worker.join(30)
+
+
+def test_cables_with_the_agent_away(client):
+    enrol(client)
+    res = client.post('/api/cables/import')
+    assert res.status_code == 502 and 'Local agent' in res.get_json()['error']
+
+
+def test_the_agent_sends_its_cable_plugins(app_module):
+    with app_module.app.app_context():
+        from floorbit import sources as srcs
+        feeds = agent_mod.cable_feeds(srcs.registry)
+    # NetBox is on by default but not set up here: its error comes back, not an exception.
+    assert [f['plugin'] for f in feeds] == ['netbox'] and 'error' in feeds[0]

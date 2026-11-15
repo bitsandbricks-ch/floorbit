@@ -13,7 +13,8 @@ Nothing on the event network has to be reachable from outside.
 - **The source:** with an agent enrolled, ``AgentMonitoring`` is what ``sources.monitoring()``
   returns, so the floor plan, status monitor and check-in page work as with a local LibreNMS.
 - **The inventory:** an inventory sync also asks the agent for its inventory plugins' devices
-  (``inventory_feeds``), merged under each plugin's own id (floorbit/blueprints/inventory.py).
+  (``inventory_feeds``), merged under each plugin's own id (floorbit/blueprints/inventory.py),
+  and a cable import for their cables (``cable_feeds``, floorbit/cables.py).
 
 One app process (gunicorn runs one worker), so the queue lives in memory.
 """
@@ -43,7 +44,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
 # inventory feeds of its inventory plugins (NetBox), nothing else.
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds')
+           'inventory_feeds', 'cable_feeds')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -240,10 +241,19 @@ tunnel = Tunnel()
 
 
 def inventory_feeds():
-    """The agent's inventory plugins and their devices: ``[{plugin, name, items | error}]``.
+    """The agent's inventory plugins and their devices: ``[{plugin, name, items | error}]``."""
+    return feeds('inventory_feeds')
 
-    Raises AgentUnavailable or AgentError. Feeds that don't look right are dropped."""
-    feeds = tunnel.call('inventory_feeds', timeout=INVENTORY_TIMEOUT)
+
+def cable_feeds():
+    """The agent's plugins that know cables (NetBox) and their cables, as ``inventory_feeds``."""
+    return feeds('cable_feeds')
+
+
+def feeds(method):
+    """``[{plugin, name, items | error}]`` from the agent. Raises AgentUnavailable or AgentError.
+    Feeds that don't look right are dropped."""
+    feeds = tunnel.call(method, timeout=INVENTORY_TIMEOUT)
     out = []
     for f in feeds if isinstance(feeds, list) else []:
         if not isinstance(f, dict) or not PLUGIN_ID_RE.match(str(f.get('plugin') or '')):

@@ -24,7 +24,7 @@ HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds')
+           'inventory_feeds', 'cable_feeds')
 
 
 class Refused(RuntimeError):
@@ -42,6 +42,8 @@ def local_executor(app):
             registry = sources.registry
             if method == 'inventory_feeds':
                 return inventory_feeds(registry)
+            if method == 'cable_feeds':
+                return cable_feeds(registry)
             spec = registry.monitoring_source() if registry is not None else None
             if spec is None:
                 raise PluginError('No monitoring plugin is set up on the agent (LIBRENMS_URL and LIBRENMS_TOKEN?)')
@@ -51,11 +53,21 @@ def local_executor(app):
 
 def inventory_feeds(registry):
     """Every inventory plugin that's on here (NetBox), each with its devices or its error."""
+    return _feeds(registry, registry.feeders('inventory') if registry is not None else [], 'inventory')
+
+
+def cable_feeds(registry):
+    """Every plugin that's on here and knows cables (NetBox), each with its cables or its error."""
+    from .. import cables
+    return _feeds(registry, cables.sources(registry) if registry is not None else [], 'cables')
+
+
+def _feeds(registry, specs, method):
     from ..plugins.base import PluginError
     out = []
-    for spec in registry.feeders('inventory') if registry is not None else []:
+    for spec in specs:
         try:
-            out.append({'plugin': spec.id, 'name': spec.name, 'items': registry.call(spec, 'inventory') or []})
+            out.append({'plugin': spec.id, 'name': spec.name, 'items': registry.call(spec, method) or []})
         except PluginError as exc:
             out.append({'plugin': spec.id, 'name': spec.name, 'error': str(exc)[:300]})
     return out

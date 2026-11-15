@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 
+from . import agent_link
 from .plugins import PluginError
 from .store import load_data, save_data
 
@@ -139,9 +140,25 @@ def sources(registry):
 def import_from(registry, by):
     """Replace the cables from plugins with what they have now. Returns (count, errors)."""
     found, errors, answered = [], [], set()
-    for spec in sources(registry):
+    if agent_link.active():
+        # A hosted Floorbit: the local agent asks the event's NetBox. A plugin it answered for
+        # isn't asked here too, since this side can't reach it.
         try:
-            found += [(spec, c) for c in registry.call(spec, 'cables') or []]
+            feeds = agent_link.cable_feeds()
+        except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+            feeds = []
+            errors.append(f'Local agent: {exc}')
+        for feed in feeds:
+            if 'error' in feed:
+                errors.append(f"{feed['name']} (local agent): {feed['error']}")
+            else:
+                found += [(feed['name'], c) for c in feed['items']]
+                answered.add(feed['name'])
+    for spec in sources(registry):
+        if spec.name in answered:
+            continue
+        try:
+            found += [(spec.name, c) for c in registry.call(spec, 'cables') or []]
             answered.add(spec.name)
         except PluginError as exc:
             errors.append(f'{spec.name}: {exc}')
@@ -153,13 +170,13 @@ def import_from(registry, by):
         # empty the cable list.
         kept = [c for c in data.get(KEY) or [] if c.get('source') != 'import' or c.get('plugin') not in answered]
         added, skipped = [], 0
-        for spec, raw in found:
+        for plugin, raw in found:
             try:
                 cable = clean(raw, kept + added)
             except CableError:
                 skipped += 1   # one bad cable in NetBox must not stop the rest
                 continue
-            added.append({'id': uuid.uuid4().hex[:12], **cable, 'source': 'import', 'plugin': spec.name,
+            added.append({'id': uuid.uuid4().hex[:12], **cable, 'source': 'import', 'plugin': plugin,
                           'updated_at': time.time(), 'by': by})
         data[KEY] = (kept + added)[:MAX_CABLES]
         save_data(data)
