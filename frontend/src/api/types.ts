@@ -723,6 +723,7 @@ export interface HandoverData {
   notice?: CrewNotice | null
   /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
   gear?: { to: string; count: number; names: string[] }[]
+  coming_up?: { id: string; title: string; kind: string; start: number; end: number | null; where: string | null }[]
   counts: HandoverCounts
   history: HandoverRecord[]
   discord: boolean
