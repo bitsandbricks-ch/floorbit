@@ -13,7 +13,8 @@
   "outdated": "Update",
   "outdatedHelp": "Older than this Floorbit ({{v}}). Pull the new image and start the agent again.",
   "made": "Enrolled {{date}} by {{who}}",
-  "stats": "{{count}} calls in the last hour, answered in {{ms}} ms (median)",
+  "stats_one": "1 call in the last hour, answered in {{ms}} ms",
+  "stats_other": "{{count}} calls in the last hour, answered in {{ms}} ms (median)",
   "statsNone": "No calls in the last hour",
   "statsFailed": "{{count}} failed",
   "lastError": "Last error, {{when}}: {{method}}: {{error}}",
@@ -31,5 +32,7 @@
   "copy": "Copy",
   "copied": "Copied",
   "runTitle": "Start the agent on the event network",
-  "docs": "How the agent works and what it is asked: docs/agent.md."
+  "docs": "How the agent works and what it is asked: docs/agent.md.",
+  "relaySyslog": "Syslog",
+  "relayFlows": "NetFlow"
 }

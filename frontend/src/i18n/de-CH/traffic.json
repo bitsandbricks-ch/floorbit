@@ -44,5 +44,6 @@
     "other": "Anderes"
   },
   "dns": "DNS-Anfragen",
-  "games": "Games"
+  "games": "Games",
+  "viaAgent": "gesammelt vom lokalen Agenten {{agent}}"
 }

@@ -60,5 +60,7 @@
     "720": "30 Tage"
   },
   "storeSent": "{{name}}: {{n}} Zeilen geschickt",
-  "storeError": "{{name}} hat die Zeilen nicht angenommen: {{error}}"
+  "storeError": "{{name}} hat die Zeilen nicht angenommen: {{error}}",
+  "relayed": "Über den lokalen Agenten {{agent}}",
+  "relayDropped": "{{n}} auf dem Agenten verworfen"
 }
