@@ -34,7 +34,7 @@ For the running event and every closed one:
 | --- | --- |
 | Most seats online, most checked in | the report's hours |
 | Peak bandwidth, data moved | the stats store (data moved is estimated from hourly averages) |
-| Incidents, median time to fix | the incident board |
+| Incidents, median time until someone takes it, median time to fix | the incident board |
 | Switch outages, downtime in all | the status monitor's switch changes |
 | Cache savings | empty until a game cache source reports them (#88) |
 

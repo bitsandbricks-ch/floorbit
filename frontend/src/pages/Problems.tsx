@@ -1,7 +1,7 @@
 import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff, IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { del, patch, post } from '@/api/client'
@@ -12,6 +12,7 @@ import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
+import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
@@ -27,15 +28,6 @@ function ago(ts: number, t: T) {
 /** A mute this close to its end gets a badge, so +30 min is pressed before the alerts come back (issue #266). */
 const ENDING_SOON = 10 * 60
 
-/** Now in unix seconds, ticking every 30 s: the mutes list doesn't change when only the clock does. */
-function useNowSeconds() {
-  const [now, setNow] = useState(() => Date.now() / 1000)
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now() / 1000), 30_000)
-    return () => window.clearInterval(id)
-  }, [])
-  return now
-}
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 

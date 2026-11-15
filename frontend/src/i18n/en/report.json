@@ -18,6 +18,7 @@
   "incidents": "Incidents",
   "incidentsSub": "{{fixed}} fixed, {{open}} open",
   "median": "half fixed within {{d}}",
+  "medianTaken": "half taken within {{d}}",
   "outages": "Switch outages",
   "outagesSub": "{{count}} switches",
   "ofSeats": "of {{count}} seats",

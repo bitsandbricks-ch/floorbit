@@ -18,6 +18,7 @@
   "incidents": "Störungen",
   "incidentsSub": "{{fixed}} behoben, {{open}} offen",
   "median": "die Hälfte in {{d}} behoben",
+  "medianTaken": "die Hälfte in {{d}} übernommen",
   "outages": "Switch-Ausfälle",
   "outagesSub": "{{count}} Switches",
   "ofSeats": "von {{count}} Plätzen",

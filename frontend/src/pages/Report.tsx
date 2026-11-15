@@ -121,7 +121,8 @@ export default function Report() {
               <Figure label={t('report.moved')} value={r.hours.length ? bytes(r.bytes_moved) : '–'} sub={t('report.movedHelp')} />
               <Figure label={t('report.incidents')} value={String(r.incidents.total)}
                 sub={t('report.incidentsSub', { fixed: r.incidents.fixed, open: r.incidents.open })
-                  + (r.incidents.median_fix_s ? ` · ${t('report.median', { d: duration(r.incidents.median_fix_s) })}` : '')} />
+                  + (r.incidents.median_fix_s ? ` · ${t('report.median', { d: duration(r.incidents.median_fix_s) })}` : '')
+                  + (r.incidents.median_take_s ? ` · ${t('report.medianTaken', { d: duration(r.incidents.median_take_s) })}` : '')} />
               <Figure label={t('report.outages')} value={String(r.outages.reduce((n, o) => n + o.times, 0))}
                 sub={t('report.outagesSub', { count: r.outages.length })} />
             </SimpleGrid>

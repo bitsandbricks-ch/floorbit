@@ -98,3 +98,13 @@ def test_off_duty_and_rights(client, floor):
     assert floor["ana"].get("/api/dispatch/crew").status_code == 403
     assert floor["vic"].get("/api/jobs").status_code == 403
     assert floor["vic"].put("/api/jobs/me", json={"on_duty": True}).status_code == 403
+
+
+def test_a_note_on_a_sent_job_does_not_say_the_tech_saw_it(client, floor):
+    # The report's "taken within" stamp (issue #294) must not fill in dispatch's taken_at.
+    floor["ben"].put("/api/jobs/me", json={"on_duty": True, "at": "A-1"})
+    job = _incident(client, "B-6")
+    client.post(f"/api/incidents/{job}/dispatch")
+    client.patch(f"/api/incidents/{job}", json={"note": "Player says it blinks"})
+    [mine] = floor["ben"].get("/api/jobs").get_json()["jobs"]
+    assert mine["taken_at"] is None

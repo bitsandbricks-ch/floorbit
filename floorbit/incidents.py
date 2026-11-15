@@ -290,6 +290,10 @@ def update(user, incident_id, body):
         title = _clean_text(body.get('title'), MAX_TITLE) if 'title' in body else None
         if title:
             incident['title'] = title
+        # The first time anyone has it, for "half taken within" in the report (issue #294). Not
+        # taken_at: that is dispatch's "the tech saw the job" and must stay empty until they do.
+        if incident['assignee'] and not incident.get('picked_up_at'):
+            incident['picked_up_at'] = now
         incident['updated_at'] = now
         _save(data, items)
         return incident
