@@ -1,41 +1,31 @@
-"""What the local agent takes from the rest of Floorbit (floorbit/agent/README.md).
+"""What the local agent (bitsandbricks-ch/floorbit-agent) takes from Floorbit.
 
-A new import from floorbit/ into the agent makes it harder to move to its own repository: add it to
-the README's table and to ALLOWED here, on purpose."""
+The agent runs Floorbit's plugins and flow collector instead of copying them, so every name it
+imports from floorbit/ is a promise: renaming or removing one breaks the agent. This walks the
+agent's source at AGENT_REF (tests/conftest.py) and checks each one still exists here."""
 import ast
+import importlib
 import pathlib
 
-AGENT = pathlib.Path(__file__).resolve().parent.parent / "floorbit" / "agent"
-ALLOWED = {"floorbit", "floorbit.sources", "floorbit.plugins.base", "floorbit.cables", "floorbit.dns",
-           "floorbit.wifi", "floorbit.flows.collector"}
-NAMES_FROM_FLOORBIT = {"ROOT", "create_app", "sources", "cables", "dns", "wifi"}
+import floorbit_agent
 
 
 def floorbit_imports():
-    """{(module, name)} for every import of floorbit code outside the agent package."""
+    """{(module, name)} for every import of floorbit code in the agent."""
     out = set()
-    for path in AGENT.glob("*.py"):
+    for path in pathlib.Path(floorbit_agent.__file__).parent.glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
-            if isinstance(node, ast.ImportFrom):
-                if node.level == 1 or (node.level == 0 and not (node.module or "").startswith("floorbit")):
-                    continue        # the agent's own modules, or the standard library and requests
-                base = "floorbit" + (f".{node.module}" if node.module and node.level == 2 else "")
-                if node.level == 0:
-                    base = node.module
-                out |= {(base, alias.name) for alias in node.names}
+            if isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").split(".")[0] == "floorbit":
+                out |= {(node.module, alias.name) for alias in node.names}
             elif isinstance(node, ast.Import):
-                out |= {(a.name, None) for a in node.names if a.name.startswith("floorbit")}
+                out |= {(a.name, None) for a in node.names if a.name.split(".")[0] == "floorbit"}
     return out
 
 
-def test_the_agent_only_takes_what_its_readme_lists():
+def test_everything_the_agent_takes_from_floorbit_is_still_here():
     found = floorbit_imports()
-    assert found, "the walk found nothing: is AGENT the right folder?"
-    assert {m for m, _ in found} <= ALLOWED
-    assert {n for m, n in found if m == "floorbit"} <= NAMES_FROM_FLOORBIT
-
-
-def test_the_readme_names_each_one():
-    readme = (AGENT / "README.md").read_text()
-    for module in ALLOWED - {"floorbit"}:
-        assert f"`{module.removeprefix('floorbit.')}" in readme, module
+    assert found, "the walk found nothing: is the agent on the path?"
+    for module, name in sorted(found, key=str):
+        loaded = importlib.import_module(module)
+        if name is not None:
+            assert hasattr(loaded, name) or importlib.util.find_spec(f"{module}.{name}"), f"{module}.{name}"

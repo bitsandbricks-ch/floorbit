@@ -1,13 +1,18 @@
 """The local agent program (issue #2) against the hosted side, all in one process.
 
-The agent's HTTP goes through the Flask test client, so nothing leaves the process."""
+The agent is bitsandbricks-ch/floorbit-agent at the commit in AGENT_REF (tests/conftest.py puts it
+on the path). Its HTTP goes through the Flask test client, so nothing leaves the process."""
 import os
 import threading
 import time
 
 import pytest
 
-from floorbit import agent as agent_mod
+try:
+    import floorbit_agent as agent_mod
+except ImportError as exc:     # fail loudly: a skipped hosted side would look green
+    raise ImportError('These tests run the agent from bitsandbricks-ch/floorbit-agent: clone it next to this '
+                      'repository (at the commit in AGENT_REF) or set FLOORBIT_AGENT_SRC.') from exc
 from floorbit import agent_link, sources
 from tests.test_agent import clean_tunnel, enrol  # noqa: F401  # the fixture resets the tunnel
 
@@ -48,8 +53,12 @@ def fake_execute(method, args):
 
 
 def make(app_module, key, execute=fake_execute):
-    return agent_mod.Agent('http://hosted.example.com/', key, execute,
-                           http=ClientHttp(app_module.app.test_client()), version='9.9.9', log=lambda *_: None)
+    a = agent_mod.Agent('http://hosted.example.com/', key, execute,
+                        http=ClientHttp(app_module.app.test_client()), version='9.9.9', log=lambda *_: None)
+    # The test client can't open a WebSocket (tests/test_agent.py tries the link on a real port):
+    # these run the long poll, which takes the same calls.
+    a.link_after = float('inf')
+    return a
 
 
 def test_the_agent_answers_the_hosted_monitoring(client, app_module):
@@ -596,7 +605,7 @@ def _syslog_receiver(app_module, monkeypatch):
 
 
 def test_syslog_comes_through_the_agent(client, app_module, monkeypatch):
-    from floorbit.agent.syslog_relay import Relay
+    from floorbit_agent.syslog_relay import Relay
     receiver = _syslog_receiver(app_module, monkeypatch)
     a = make(app_module, enrol(client)["key"])
     relay = Relay(a.send_syslog, 0, log=lambda *_: None)
@@ -615,7 +624,7 @@ def test_syslog_comes_through_the_agent(client, app_module, monkeypatch):
 
 
 def test_the_agent_keeps_syslog_while_the_host_is_away():
-    from floorbit.agent.syslog_relay import Relay
+    from floorbit_agent.syslog_relay import Relay
     sent, up = [], {"ok": False}
 
     def send(lines, dropped):
@@ -634,7 +643,7 @@ def test_the_agent_keeps_syslog_while_the_host_is_away():
 
 
 def test_the_host_says_when_syslog_is_off(client, app_module, monkeypatch):
-    from floorbit.agent.syslog_relay import Relay, TurnedOff
+    from floorbit_agent.syslog_relay import Relay, TurnedOff
     _syslog_receiver(app_module, monkeypatch)
     a = make(app_module, enrol(client)["key"])
     assert client.put("/api/settings/features", json={"syslog": False}).status_code == 200
@@ -681,8 +690,9 @@ def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
 
 
 def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app_module, monkeypatch, tmp_path):
+    from floorbit_agent.flows_relay import FlowsRelay
+
     import floorbit.flows as flows_pkg
-    from floorbit.agent.flows_relay import FlowsRelay
     from floorbit.flows import store
     from floorbit.flows.aggregate import Aggregator
     from floorbit.flows.classify import Classifier
@@ -721,7 +731,7 @@ def test_flows_need_traffic_on_and_a_snapshot(client, app_module):
 
 
 def test_a_failing_summary_is_logged_once(app_module):
-    from floorbit.agent.flows_relay import FlowsRelay
+    from floorbit_agent.flows_relay import FlowsRelay
 
     class Away:
         def send_flows(self, snap):
@@ -780,7 +790,7 @@ def test_check_tries_syslog_and_flows_when_set(client, app_module, monkeypatch):
 
 
 def test_stopping_sends_the_syslog_backlog():
-    from floorbit.agent.syslog_relay import Relay
+    from floorbit_agent.syslog_relay import Relay
     sent = []
     relay = Relay(lambda lines, dropped: sent.extend(lines), 0, log=lambda *_: None)
     relay.receive(b"<14>last words", "192.0.2.9")
@@ -903,7 +913,10 @@ def test_another_protocol_gets_one_clear_answer(client, app_module, monkeypatch)
     res = agent.get("/api/agent/v1/calls?wait=0", headers={**h, "Floorbit-Agent-Protocol": "9"})
     assert res.status_code == 426 and "protocol 2, the agent 9" in res.get_json()["error"]
     assert client.get("/api/agents").status_code == 200                    # the admin side doesn't care
-    monkeypatch.setattr(agent_mod, "PROTOCOL", 9)
     a = make(app_module, key)
+    a.hello()
+    assert a.protocol == 2 and a.link_path == "/api/agent/v2/link"     # it moves up once hello says so
+    # A Floorbit that no longer speaks the agent's first protocol: the agent stops instead of retrying.
+    monkeypatch.setattr(agent_link, "PROTOCOLS", (2,))
     with pytest.raises(agent_mod.Refused, match="Update the agent"):
-        a.run()                                                          # stops instead of retrying
+        make(app_module, key).run()

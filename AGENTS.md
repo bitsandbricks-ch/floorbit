@@ -32,7 +32,8 @@ users: [README.md](README.md).
 2. **Before you push**, run what CI runs and make it pass locally:
    - `pip install -r requirements.txt -r requirements-dev.txt`
    - `ruff check .`
-   - `pytest -q`
+   - `pytest -q` (the agent tests need bitsandbricks-ch/floorbit-agent cloned next to this repository,
+     at the commit in `AGENT_REF`, or `FLOORBIT_AGENT_SRC` pointing at it)
    - `find static -path static/app -prune -o -name '*.js' -exec node --check {} \;`
    - in `frontend/`: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`
    - `docker build .`

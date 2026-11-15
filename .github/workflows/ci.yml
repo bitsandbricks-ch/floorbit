@@ -84,7 +84,18 @@ jobs:
             requirements.txt
             requirements-dev.txt
       - run: pip install --quiet -r requirements.txt -r requirements-dev.txt
+      # The agent has its own repository; the hosted side is tested against the commit in AGENT_REF.
+      - run: echo "AGENT_REF=$(tr -d '[:space:]' < AGENT_REF)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: bitsandbricks-ch/floorbit-agent
+          ref: ${{ env.AGENT_REF }}
+          path: floorbit-agent-src
+          persist-credentials: false
+      - run: pip install --quiet "simple-websocket>=1.0"
       - run: pytest -q
+        env:
+          FLOORBIT_AGENT_SRC: floorbit-agent-src
 
   screenshots:
     # Every pull request has screenshots: this takes them, desktop and phone, of every page.
