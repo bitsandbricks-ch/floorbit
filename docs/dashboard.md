@@ -21,9 +21,12 @@ link seats the same way. On a big screen (`?screen=1`) the links are left out.
   Red while one is offline.
 - **Seats online:** how many seats are online, of how many, from the last port read. It shows **?**
   when there has been no read lately, rather than an old number.
+- **Gear out:** how many pieces of [gear](gear.md) are checked out, of how many, and who has the
+  most; it links to the gear page opened on that holder. Only people who may use the gear page get
+  this tile, and only while the page is on.
 
 Their texts follow the browser's language. In a layout they are `floorbit/w/problems`,
-`floorbit/w/incidents`, `floorbit/w/switches` and `floorbit/w/seats`; no plugin may use the id `floorbit`. By default the dashboard
+`floorbit/w/incidents`, `floorbit/w/switches`, `floorbit/w/seats` and `floorbit/w/gear`; no plugin may use the id `floorbit`. By default the dashboard
 shows every tile this account may see. A **layout** picks some of them, in an order, in 1 to 4
 columns, for one screen: the ops desk might show DHCP and the uplink in two columns, the NOC wall
 everything.
