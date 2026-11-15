@@ -1,0 +1,19 @@
+{
+  "title": "Speedtests",
+  "intro": "Die Speedtests, die Teilnehmende auf der Hilfeseite ihres Platzes gemacht haben, nebeneinander pro Switch: Ist ein Switch für alle Plätze daran langsam, liegt es am Switch oder seinem Uplink, nicht an den Plätzen.",
+  "since": "Der letzte Test jedes Platzes aus den letzten {{hours}} Stunden.",
+  "tests": "Plätze getestet",
+  "down": "Download (Median)",
+  "up": "Upload (Median)",
+  "ping": "Ping (Median)",
+  "mbps": "{{n}} Mbit/s",
+  "ms": "{{n}} ms",
+  "none": "Keine Speedtests in den letzten {{hours}} Stunden. Teilnehmende machen sie auf der Hilfeseite hinter dem QR-Code ihres Platzes.",
+  "switch": "Switch",
+  "seats": "Plätze",
+  "slow": "Langsamer als die Halle",
+  "slowHint": "Unter der Hälfte des Download-Medians der Halle, mit mindestens 2 getesteten Plätzen.",
+  "unknown": "Plätze ohne bekannten Switch",
+  "seatResult": "{{seat}}: {{down}} Download",
+  "noSwitches": "Für keinen getesteten Platz ist der Switch bekannt: Die Port-Abfragen haben sie noch nicht gefunden."
+}

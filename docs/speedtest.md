@@ -31,6 +31,21 @@ For each seat: download and upload in Mbit/s, latency and jitter in ms, and when
 address, browser or name. The last 5 results per seat are kept in `data.json` (`speedtests`). The
 crew can read them at `GET /api/speedtests?seat=` (`incidents.work`).
 
+## Side by side per switch
+
+**Speed tests** (`/speedtests`, for accounts with **Work incidents**) puts the results next to each
+other, so a switch or uplink that is slow for every seat on it shows up as one row instead of many
+separate "slow" reports. It takes each seat's latest test of the last 12 hours and shows:
+
+- the hall: seats tested and the median download, upload and ping;
+- one row per switch (from the port reads, as on the floor plan): seats tested, the medians, and
+  each seat with its download, slowest first, linking to the seat on the floor plan;
+- **Slower than the hall** on a switch whose median download is under half the hall's, with at least
+  2 seats tested (one slow seat is that seat, not the switch). Those rows come first;
+- seats no switch is known for, in a list of their own.
+
+It updates when a new result comes in. `GET /api/speedtests/summary` has the same.
+
 ## Limits
 
 Each test stream holds one of the server's threads, and the live updates need those too, so:

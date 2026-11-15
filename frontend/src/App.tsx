@@ -40,6 +40,7 @@ const Schedule = lazy(() => import('@/pages/Schedule'))
 const Brackets = lazy(() => import('@/pages/Brackets'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
 const Teardown = lazy(() => import('@/pages/Teardown'))
+const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
 const Webhooks = lazy(() => import('@/pages/Webhooks'))
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="/tournament/brackets" element={<Brackets />} />
         <Route path="/plan" element={<FloorPlan />} />
         <Route path="/teardown" element={<Teardown />} />
+        <Route path="/speedtests" element={<Speedtests />} />
         <Route path="/events" element={<Events />} />
         <Route path="/settings/features" element={<Features />} />
         <Route path="/settings/api" element={<ApiTokens />} />
