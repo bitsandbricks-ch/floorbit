@@ -287,6 +287,8 @@ export interface Incident {
   fixed_at?: number | null
   dispatched_at?: number | null
   taken_at?: number | null
+  /** The attendee said on the help page that it works again (issue #372); the crew still decides. */
+  seat_ok_at?: number | null
   match?: string | null
   can_work: boolean
   can_assign: boolean

@@ -197,7 +197,10 @@ TEXTS = {
            'state_open': 'Your report is in. Nobody from the team has taken it yet; someone will come.',
            'state_sent': 'Your report was sent to a tech nearby. They will be on their way shortly.',
            'state_taken': 'Someone from the team has your report and is on the way.',
-           'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.'},
+           'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.',
+           'state_ok': 'You told us it works again. Thanks! Broken again? Tap it below.',
+           'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
+           'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
            'nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.',
            'no-internet': 'Kein Internet', 'slow': 'Langsame oder abbrechende Verbindung', 'power': 'Kein Strom',
@@ -216,7 +219,11 @@ TEXTS = {
            'state_open': 'Deine Meldung ist da. Noch hat sie niemand vom Team übernommen; jemand kommt.',
            'state_sent': 'Deine Meldung ging an jemanden vom Team in der Nähe. Gleich ist jemand unterwegs.',
            'state_taken': 'Jemand vom Team hat deine Meldung und ist unterwegs.',
-           'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.'},
+           'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.',
+           'state_ok': 'Du hast gemeldet, dass es wieder geht. Danke! Wieder kaputt? Tippe unten.',
+           'works': 'Es geht wieder',
+           'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
+           'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.'},
 }
 
 
@@ -251,6 +258,8 @@ def help_page(seat):
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
                                problems=list(incidents.PROBLEMS), k=request.args.get('k'),
                                report=incidents.seat_report_state(seat))
+    if request.form.get('works'):
+        return _works_again(lang, text, seat)
     problem = request.form.get('problem')
     if problem not in incidents.PROBLEMS:
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
@@ -265,6 +274,18 @@ def help_page(seat):
                  fields=[problem])
     return render_template('help.html', lang=lang, t=text, seat=seat, state='thanks' if new else 'again',
                            k=request.args.get('k'))
+
+
+def _works_again(lang, text, seat):
+    # Rate limited like reports: it only tags the incidents, but it still writes to the board.
+    if _rate_limited():
+        return render_template('help.html', lang=lang, t=text, seat=seat, state='busy'), 429
+    marked = incidents.seat_says_ok(seat)
+    for incident in marked:
+        _changed(incident, 'seat-ok')
+    if marked:
+        audit.record('incidents', 'Seat says it works again', target=seat)
+    return render_template('help.html', lang=lang, t=text, seat=seat, state='ok', k=request.args.get('k'))
 
 
 help_page._auth_public = True   # what auth.public_endpoint sets; open to attendees without an account

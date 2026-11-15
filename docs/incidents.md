@@ -68,6 +68,10 @@ language, with four buttons (no internet, slow connection, no power, something e
 - **Where it stands:** opening the page again shows the seat's latest report: nobody has taken it
   yet, it was [sent to a tech](dispatch.md) who hasn't said "On my way" yet, someone from the team
   has it and is on the way, or it was marked fixed (for half an hour after the fix). It never says who.
+- **It works again:** while the seat has an open report, the page has an **It works again** button
+  for problems that fixed themselves. It tags the seat's open reports on the board (**Seat says it
+  works again · 3 min ago**) but doesn't mark them fixed: the link is anonymous, so the crew checks
+  or asks first. Reporting again clears the tag. Rate limited like reports.
 - **Located and checked:** the incident arrives with the seat, and with the switch, port, link
   state and whether a device is seen on the port, looked up through the monitoring source when it
   is reported. No IP, MAC or nick is stored with it.
@@ -79,6 +83,6 @@ Electrics, something else → Operations. Otherwise they wait without a team for
 Set **Public URL** (Settings › General, `PUBLIC_URL`) when Floorbit runs behind a reverse proxy, so the QR codes point
 at the address attendees can reach.
 
-Every change (filed, changed, reported from a seat) goes to the audit log under **Incidents**.
+Every change (filed, changed, reported from a seat, "works again" from a seat) goes to the audit log under **Incidents**.
 
 To send incidents to the nearest free tech and work them from a phone, see [dispatch](dispatch.md).

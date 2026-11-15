@@ -233,6 +233,7 @@ def report_from_seat(seat, problem, snapshot):
                     and incident['status'] != 'fixed' and incident.get('problem') == problem:
                 incident['reports'] = int(incident.get('reports') or 1) + 1
                 incident['updated_at'] = time.time()
+                incident.pop('seat_ok_at', None)   # asked again: it is broken after all
                 if snapshot:
                     incident['snapshot'] = snapshot
                 if test:
@@ -246,6 +247,25 @@ def report_from_seat(seat, problem, snapshot):
                   snapshot=snapshot, source='helpdesk', speedtest=test), True
 
 
+def seat_says_ok(seat, now=None):
+    """The attendee says it works again (issue #372). Marks the seat's open reports; the crew still decides.
+
+    Returns the incidents it marked, so the caller can tell the board. Fixing stays with the crew: an
+    anonymous QR link can't close incidents, only save someone a walk."""
+    now = time.time() if now is None else now
+    with _lock:
+        data = load_data()
+        marked = []
+        for incident in _all(data):
+            if incident.get('seat') == seat and incident.get('source') == 'helpdesk' and incident['status'] != 'fixed':
+                incident['seat_ok_at'] = now
+                incident['updated_at'] = now
+                marked.append(incident)
+        if marked:
+            _save(data, _all(data))
+        return marked
+
+
 WAITING_AFTER = 10 * 60     # the board's "Waiting" tag (issue #296)
 FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
 
@@ -257,7 +277,7 @@ def is_waiting(incident, now):
 
 
 def seat_report_state(seat, now=None):
-    """What a seat's help page says about its latest report (issue #308): open, sent, taken or fixed.
+    """What a seat's help page says about its latest report (issue #308): open, sent, taken, ok or fixed.
 
     Names stay out: whoever holds the seat's QR link sees only that someone has it."""
     now = time.time() if now is None else now
@@ -269,6 +289,8 @@ def seat_report_state(seat, now=None):
     latest = max(found, key=lambda i: (i['status'] != 'fixed', i.get('created_at') or 0))
     if latest['status'] == 'fixed':
         return 'fixed'
+    if latest.get('seat_ok_at'):
+        return 'ok'
     if not latest.get('assignee'):
         return 'open'
     # Sent by dispatch but the tech hasn't said "On my way" yet: don't promise someone is coming (issue #362).

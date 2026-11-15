@@ -233,6 +233,20 @@ describe('Incident board', () => {
     expect(within(seen).getByText('With kim · on the way')).toBeInTheDocument()
   })
 
+  it('says when the seat reports it works again (issue #372)', async () => {
+    const now = Date.now() / 1000
+    const ok: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'k1', title: 'Fixed itself', status: 'open', source: 'helpdesk', seat_ok_at: now - 3 * 60 },
+      { ...base, id: 'k2', title: 'Still broken', status: 'open', source: 'helpdesk' },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': ok }).fn)
+    renderWithApp(<Incidents />)
+    const said = (await screen.findByText('Fixed itself')).closest('[data-incident]') as HTMLElement
+    expect(within(said).getByText('Seat says it works again · 3 min ago')).toBeInTheDocument()
+    const broken = screen.getByText('Still broken').closest('[data-incident]') as HTMLElement
+    expect(within(broken).queryByText(/works again/)).not.toBeInTheDocument()
+  })
+
   it('says how long a fixed incident took (issue #332)', async () => {
     const now = Date.now() / 1000
     const done: IncidentBoard = { ...board, incidents: [

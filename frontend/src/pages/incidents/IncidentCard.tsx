@@ -87,6 +87,10 @@ export function IncidentCard({
               title={t('incidents.againHint')} style={{ cursor: 'pointer' }}>{t('incidents.again', { n: atSeat })}</Badge>
           )}
           {waiting && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
+          {/* Saves a walk: the attendee says it fixed itself. Only the crew marks it fixed (issue #372). */}
+          {i.seat_ok_at && i.status !== 'fixed' && (
+            <Badge variant="light" color="up" tt="none" title={t('incidents.seatOkHint')}>{t('incidents.seatOk', { ago: ago(i.seat_ok_at, t) })}</Badge>
+          )}
         </Group>
         {snap && (
           <Text size="sm" c={snap.known && snap.link && snap.link !== 'up' ? 'var(--color-down)' : 'dimmed'}>

@@ -192,6 +192,34 @@ def test_board_shows_the_seat_s_crew_note(client, floor):
     assert cards["A-3"]["seat_note"] is None
 
 
+def test_attendee_says_it_works_again(anon_client, client, app_module, floor):
+    # Issue #372: tags the seat's open reports for the crew; only the crew can mark them fixed.
+    url = help_url(app_module, "A-3")
+    assert b'name="works"' not in anon_client.get(url).data        # nothing reported, nothing to call off
+    anon_client.post(url, data={"problem": "no-internet"})
+    assert b'name="works"' in anon_client.get(url).data
+    resp = anon_client.post(url, data={"works": "1"})
+    assert resp.status_code == 200 and b"we told the team it works again" in resp.data
+    (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-3"]
+    assert incident["seat_ok_at"] and incident["status"] == "open"
+    page = anon_client.get(url).data.decode()
+    assert "You told us it works again" in page and 'name="works"' not in page
+    rows, _ = audit.read(area="incidents")
+    assert rows[0]["action"] == "Seat says it works again" and rows[0]["target"] == "A-3"
+    # Broken again: a new report clears it.
+    anon_client.post(url, data={"problem": "no-internet"})
+    (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-3"]
+    assert not incident.get("seat_ok_at") and incident["reports"] == 2
+
+
+def test_works_again_without_a_report_changes_nothing(anon_client, client, app_module, floor):
+    client.post("/api/incidents", json={"seat": "A-4", "title": "Filed by the crew"})
+    assert anon_client.post(help_url(app_module, "A-4"), data={"works": "1"}).status_code == 200
+    (incident,) = client.get("/api/incidents").get_json()["incidents"]
+    assert not incident.get("seat_ok_at")      # the QR link only speaks for the seat's own reports
+    assert not [r for r in audit.read(area="incidents")[0] if r["action"] == "Seat says it works again"]
+
+
 def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, app_module, floor):
     url = help_url(app_module, "A-2")
     assert b'class="report' not in anon_client.get(url).data
