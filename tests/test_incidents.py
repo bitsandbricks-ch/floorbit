@@ -336,3 +336,31 @@ def test_the_board_says_when_the_switch_came_back(client, app_module, floor, mon
     monitor.statuses = {sid: {"status": "online", "since": filed["created_at"] + 60, "previous": "offline"}}
     card = client.get("/api/incidents").get_json()["incidents"][0]
     assert card["back_up"] == {"switch": "sw-a-01", "since": filed["created_at"] + 60} and card["outage"] is None
+
+
+def test_the_help_page_asks_when_the_switch_came_back(anon_client, app_module, floor, monkeypatch):
+    # Issue #392: reported during the outage, the switch is back: ask before a tech walks over.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    sid = floor["switch_id"]
+    back = {sid: {"status": "online", "since": time.time() - 3 * 60, "previous": "offline"}}
+    monkeypatch.setattr(monitor, "statuses", back)
+    url = help_url(app_module, "A-1")
+    assert b"has been back" not in anon_client.get(url).data          # nothing reported
+    with app_module.app.app_context():
+        incident, _ = incidents.report_from_seat("A-1", "no-internet", {})
+        incidents.stamp(incident["id"], created_at=time.time() - 10 * 60)
+    page = anon_client.get(url).data.decode()
+    assert "has been back for 3 min" in page and "sw-a-01" not in page and 'name="works"' in page
+    assert "wieder da" in anon_client.get(url, headers={"Accept-Language": "de"}).data.decode()
+    # Back since before the report: the report is about something else.
+    monitor.statuses = {sid: {**back[sid], "since": time.time() - 20 * 60}}
+    assert b"has been back" not in anon_client.get(url).data
+    # Once the seat said it works again, there is nothing left to ask.
+    monitor.statuses = back
+    anon_client.post(url, data={"works": "1"})
+    assert b"has been back" not in anon_client.get(url).data

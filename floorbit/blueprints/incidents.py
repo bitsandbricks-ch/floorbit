@@ -230,7 +230,9 @@ TEXTS = {
            'no need to report it. Something else? Tap it below.',
            'status_link': 'Updates on the network status page',
            'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
-           'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.'},
+           'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.',
+           'back_up': 'The network at your seat has been back for {m} min. Does it work again? Then tap '
+           '"It works again" below.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
            'nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.',
            'no-internet': 'Kein Internet', 'slow': 'Langsame oder abbrechende Verbindung', 'power': 'Kein Strom',
@@ -257,7 +259,9 @@ TEXTS = {
            'status_link': 'Neuigkeiten auf der Netzwerk-Statusseite',
            'works': 'Es geht wieder',
            'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
-           'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.'},
+           'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.',
+           'back_up': 'Das Netz an deinem Platz ist seit {m} Min. wieder da. Geht es wieder? Dann tippe unten '
+           'auf «Es geht wieder».'},
 }
 
 
@@ -296,8 +300,12 @@ def help_page(seat):
         from .status_page import page_on
         # Point at the public status page for updates, when there is one (issue #388).
         status_url = url_for('status_page.status_public') if outage and page_on() else None
+        # The switch came back after they reported (issue #392): ask them to check before a tech walks over.
+        filed = None if outage else incidents.seat_open_since(seat)
+        back = seat_view.back_up(seat, filed) if filed else None
+        back_up = max(1, round((time.time() - back[1]) / 60)) if back else None
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask', outage=outage,
-                               status_url=status_url,
+                               status_url=status_url, back_up=back_up,
                                problems=list(incidents.PROBLEMS), k=request.args.get('k'),
                                report=incidents.seat_report_state(seat), ahead=incidents.seat_queue_ahead(seat))
     if request.form.get('works'):
