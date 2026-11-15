@@ -5,6 +5,7 @@
   (``DISCORD_APP_PUBLIC_KEY``), so only Discord can call it.
 
 "Mute … for 1 h" under a switch or service alert mutes it for an hour (issues #272, #274).
+Slash commands (``/status``) are answered by floorbit/discord_commands.py.
 
 A click acts as the Floorbit account linked to the clicking Discord user, with that account's
 permissions, exactly as if they had clicked on the incident board. Clicks from another server or
@@ -16,11 +17,11 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import crew, events
 
-from .. import audit, incidents
+from .. import audit, discord_commands, incidents
 
 bp = Blueprint('crew', __name__)
 
-PING, COMPONENT = 1, 3
+PING, COMMAND, COMPONENT = 1, 2, 3
 PONG, MESSAGE = 1, 4
 EPHEMERAL = 64
 MAX_SKEW = 300            # seconds; an older signed request is a replay
@@ -59,12 +60,25 @@ def interactions():
     body = request.get_json(silent=True) or {}
     if body.get('type') == PING:
         return jsonify({'type': PONG})
+    if body.get('type') == COMMAND:
+        return _command(body)
     if body.get('type') != COMPONENT:
         return _say('Floorbit only knows its own buttons.')
     return _click(body)
 
 
 interactions._auth_public = True   # what auth.public_endpoint sets: Discord signs it instead
+
+
+def _command(body):
+    """A slash command (floorbit/discord_commands.py). Any channel on the crew's server."""
+    auth = current_app.extensions['auth']
+    provider = auth.providers.get('discord')
+    guild = getattr(provider, 'guild_id', '') if provider else ''
+    if guild and str(body.get('guild_id') or '') != guild:
+        return _say('Floorbit only answers on its own server.')
+    answer = discord_commands.handle(body)
+    return _say(answer if answer is not None else 'Floorbit does not know this command.')
 
 
 def _click(body):
