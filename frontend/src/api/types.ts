@@ -1105,6 +1105,10 @@ export interface StatusPageData {
   since: number | null
   areas: StatusArea[]
   crew_areas: StatusArea[]
+  /** Areas whose switch came back in the last half hour, with switch names (issue #396). */
+  recovered: StatusArea[]
+  recovered_at: number | null
+  crew_recovered: StatusArea[]
   updates: StatusUpdate[]
   checked_at: number
   /** Is /status switched on (Settings > Public)? */

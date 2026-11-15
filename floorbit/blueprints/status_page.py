@@ -131,7 +131,9 @@ def crew_view():
     body['public'] = page_on()
     body['switch_names'] = bool(_settings().get('public.status_switch_names'))
     # The crew always sees which switches; the public page only when an admin allows it.
-    body['crew_areas'] = _now(show_names=True)['areas']
+    crew = _now(show_names=True)
+    body['crew_areas'] = crew['areas']
+    body['crew_recovered'] = crew['recovered']   # issue #396: what the public page lists as back up
     return jsonify(body)
 
 
