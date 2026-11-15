@@ -13,6 +13,8 @@ Send an incident to the nearest free tech, and let techs work their jobs from th
   The plan has no walls or aisles, so the line is the straight way, not a walking route.
 - **On my way** tells the board you saw the job. **Done** marks the incident fixed (with an optional
   note). **Give back** puts it back on the board, unassigned, for someone else.
+- When the attendee taps **It works again** on the seat's [help page](incidents.md#the-helpdesk-on-each-seat),
+  the job says so ("The seat said at 10:42 that it works again"): ask there before you fix anything.
 
 The page refreshes by itself when a job comes in, and the browser tab shows how many jobs you haven't
 answered with **On my way** yet, like "(2) My jobs". Once you have fixed something, it also says how many
@@ -31,7 +33,9 @@ gives the incident to the free tech nearest to it:
   tech can get them; a tie goes to whoever has waited longest.
 
 The board shows who is on duty, where, how many jobs they have and how many they fixed in the last
-12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not. Click a
+12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not. A job nobody has seen 5 minutes after it
+was sent says so in amber ("not seen for 7 min"): their phone may be in a pocket, and a lead can
+send it to someone else. Click a
 tech to filter the board to what they are on (`with:kim`); click again to clear it.
 
 By default nothing is sent by itself: a lead decides. A lead (`incidents.assign`) can turn on

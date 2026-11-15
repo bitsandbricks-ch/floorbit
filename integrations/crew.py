@@ -17,6 +17,8 @@ It needs no gateway connection.
   ``incidents.work`` (issues #272, #274); a webhook can't carry buttons.
 - An incident nobody has taken for ``DISCORD_CREW_WAITING_MINUTES`` gets one line in its
   thread saying so, with a ping for ``DISCORD_CREW_WAITING_ROLE`` when that is set (issue #298).
+- A job sent to a tech who hasn't said "On my way" after ``DISCORD_CREW_UNSEEN_MINUTES`` gets one
+  line in its thread too, so a lead can send it to someone else (issue #366).
 
 Talking to Discord runs on its own thread, so a slow Discord never holds up a request. Which
 Discord message and thread belong to which incident is kept in its own small file next to
@@ -211,8 +213,10 @@ class CrewBridge:
                 if self.app is not None:
                     with self.app.app_context():
                         self.nudge_waiting()
+                        self.nudge_unseen()
                 else:
                     self.nudge_waiting()
+                    self.nudge_unseen()
             except Exception as exc:  # noqa: BLE001  # keep checking after a failed send
                 self.last_error = str(exc)[:300]
 
@@ -314,6 +318,10 @@ class CrewBridge:
                 lines.append(f'📟 Sent to {who}.' if sent else f'🙋 {who} has it.')
             elif status == 'open':
                 lines.append('↩️ Back on the board. Nobody has it.')
+        ok = incident.get('seat_ok_at')
+        if ok and ok != before.get('seat_ok') and incident.get('status') != 'fixed':
+            # Issue #374: the attendee says it fixed itself. Tell the thread so nobody walks over for nothing.
+            lines.append('👍 The seat says it works again. Check or ask before marking it fixed.')
         for note in (incident.get('notes') or [])[int(before.get('notes') or 0):]:
             by = _name(note.get('by'), self.users) or 'Seat report'
             lines.append(f"💬 **{by}**: {note.get('text') or ''}"[:MAX_LINE])
@@ -344,7 +352,8 @@ class CrewBridge:
         ch = channel_id()
         msg = self._call('POST', f'/channels/{ch}/messages', body)
         record = {'message': msg['id'], 'thread': None, 'status': incident['status'],
-                  'assignee': incident.get('assignee'), 'notes': 0, 'at': time.time(), 'shown': digest(body)}
+                  'assignee': incident.get('assignee'), 'notes': 0, 'at': time.time(), 'shown': digest(body),
+                  'seat_ok': incident.get('seat_ok_at')}
         try:
             thread = self._call('POST', f"/channels/{ch}/messages/{msg['id']}/threads",
                                 {'name': f"{where(incident)}: {incident.get('title') or 'Incident'}"[:100],
@@ -364,7 +373,8 @@ class CrewBridge:
     def _update(self, incident, before, body):
         ch = channel_id()
         record = {**before, 'status': incident['status'], 'assignee': incident.get('assignee'),
-                  'notes': len(incident.get('notes') or []), 'at': time.time(), 'shown': digest(body)}
+                  'notes': len(incident.get('notes') or []), 'at': time.time(), 'shown': digest(body),
+                  'seat_ok': incident.get('seat_ok_at')}
         lines = self.changes(before, incident)
         if not lines and before.get('shown') == record['shown']:
             return {**record, 'at': before.get('at', record['at'])}
@@ -405,11 +415,43 @@ class CrewBridge:
                 waited = now - (incident.get('created_at') or now)
                 if incident.get('status') != 'open' or incident.get('assignee') or waited < minutes * 60:
                     continue
+                if incident.get('seat_ok_at'):
+                    continue   # the seat says it works again: no reason to ping the crew about it
                 text = f'⏳ Waiting {_waited(waited)}. Nobody has taken it yet.'
                 self._call('POST', f"/channels/{record['thread']}/messages",
                            {'content': f'<@&{role}> {text}' if role else text,
                             'allowed_mentions': {'parse': [], 'roles': [role] if role else []}})
                 record['nudged'] = True
+                nudged.append(incident['id'])
+            if nudged:
+                self._write(state)
+        return nudged
+
+    def nudge_unseen(self, now=None):
+        """Say once in a thread when the tech a job was sent to hasn't seen it for a while (issue #366).
+
+        Same rule as the board's "not seen for" line. Once per sending: sent again, it can say so again.
+        No ping: the tech's phone is the problem, and the lead reads the thread."""
+        minutes = config.get_int('DISCORD_CREW_UNSEEN_MINUTES', 5, minimum=0)
+        if not minutes or not self.enabled():
+            return []
+        from floorbit import incidents
+        now = now or time.time()
+        nudged = []
+        with self._file_lock:
+            state = self._read()
+            for incident in incidents.list_all():
+                record = state.get(incident['id'])
+                sent = incident.get('dispatched_at')
+                if not record or not record.get('thread') or not sent or record.get('unseen_for') == sent:
+                    continue
+                if incident.get('status') == 'fixed' or not incident.get('assignee') or incident.get('taken_at') \
+                        or now - sent < minutes * 60:
+                    continue
+                text = f"📵 Sent to {incident['assignee']} {_waited(now - sent)} ago, not seen yet."
+                self._call('POST', f"/channels/{record['thread']}/messages",
+                           {'content': text, 'allowed_mentions': {'parse': []}})
+                record['unseen_for'] = sent
                 nudged.append(incident['id'])
             if nudged:
                 self._write(state)

@@ -355,3 +355,48 @@ def test_the_nudge_can_be_turned_off_and_pings_nobody_by_default(bridge, client,
     call = bridge.fake.calls[-1]
     assert call[2]["content"] == "⏳ Waiting 11 min. Nobody has taken it yet."
     assert call[2]["allowed_mentions"] == {"parse": [], "roles": []}
+
+
+def test_a_sent_job_nobody_sees_gets_one_line_per_sending(bridge, client, app_module, monkeypatch):
+    # Issue #366: same rule as the board's "not seen for"; no ping.
+    inc = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    client.patch(f"/api/incidents/{inc['id']}", json={"assignee": TEST_USER})
+    with app_module.app.app_context():
+        from floorbit import incidents
+        sent = time.time()
+        incidents.stamp(inc["id"], dispatched_at=sent, taken_at=None)
+        record = bridge.sync(inc["id"])
+        before = len(bridge.fake.calls)
+        assert bridge.nudge_unseen(now=sent + 4 * 60) == []
+        assert bridge.nudge_unseen(now=sent + 7 * 60) == [inc["id"]]
+        assert bridge.nudge_unseen(now=sent + 9 * 60) == []
+        (call,) = bridge.fake.calls[before:]
+        assert call[1] == f"/channels/{record['thread']}/messages"
+        assert call[2] == {"content": f"📵 Sent to {TEST_USER} 7 min ago, not seen yet.",
+                           "allowed_mentions": {"parse": []}}
+        # Sent again: it may say so again. Seen: nothing.
+        incidents.stamp(inc["id"], dispatched_at=sent + 20 * 60)
+        assert bridge.nudge_unseen(now=sent + 26 * 60) == [inc["id"]]
+        incidents.stamp(inc["id"], dispatched_at=sent + 40 * 60, taken_at=sent + 41 * 60)
+        assert bridge.nudge_unseen(now=sent + 50 * 60) == []
+        monkeypatch.setenv("DISCORD_CREW_UNSEEN_MINUTES", "0")
+        incidents.stamp(inc["id"], dispatched_at=sent + 60 * 60, taken_at=None)
+        assert bridge.nudge_unseen(now=sent + 90 * 60) == []
+
+
+def test_the_thread_hears_when_the_seat_says_it_works_again(bridge, client, app_module, monkeypatch):
+    # Issue #374: one line when the attendee taps "It works again", and no waiting nudge after it.
+    from floorbit import incidents
+    with app_module.app.app_context():
+        incident, _ = incidents.report_from_seat("A-1", "no-internet", {})
+        record = bridge.sync(incident["id"])
+        incidents.seat_says_ok("A-1")
+        before = len(bridge.fake.calls)
+        bridge.sync(incident["id"])
+        thread = f"/channels/{record['thread']}/messages"
+        lines = [c[2].get("content") for c in bridge.fake.calls[before:] if c[1] == thread]
+        assert lines == ["👍 The seat says it works again. Check or ask before marking it fixed."]
+        before = len(bridge.fake.calls)
+        bridge.sync(incident["id"])                       # once only
+        assert bridge.nudge_waiting(now=incident["created_at"] + 75 * 60) == []
+        assert not [c for c in bridge.fake.calls[before:] if c[1] == f"/channels/{record['thread']}/messages"]

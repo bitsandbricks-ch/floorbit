@@ -67,6 +67,11 @@ def test_monitor_baseline_then_change(monkeypatch):
     assert changes[0]['status'] == 'offline' and changes[0]['previous'] == 'online'
     assert got and got[0]['data']['id'] == '1'
     assert m.snapshot() == {'1': 'offline'}
+    # The status remembers what it was before, so "came back" differs from "was always up" (issue #390).
+    assert 'previous' not in m.statuses['1'] or m.statuses['1']['previous'] == 'online'
+    devices[0]['status'] = 1
+    m.poll_once()
+    assert m.statuses['1']['status'] == 'online' and m.statuses['1']['previous'] == 'offline'
 
 
 def test_monitor_confirm_ignores_flap(monkeypatch):

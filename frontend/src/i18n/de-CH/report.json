@@ -59,5 +59,10 @@
   "kind_checkin": "kein Check-in",
   "kept": "Port-Abfragen werden pro Stunde zusammengefasst und 21 Tage behalten, Switch-Ausfälle und Problem-Ports seit dem letzten neuen Event.",
   "pastEvents": "Vergangene Events",
-  "repeatSeats": "Plätze mit mehr als einer Störung:"
+  "repeatSeats": "Plätze mit mehr als einer Störung:",
+  "seatProblems": "Was an den Plätzen gemeldet wurde: {{what}}",
+  "problem_no-internet": "Kein Internet",
+  "problem_slow": "Langsame Verbindung",
+  "problem_power": "Kein Strom",
+  "problem_other": "Anderes"
 }
