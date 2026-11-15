@@ -88,7 +88,7 @@ each seat is plugged into.
   Aggregate only, with an optional collector container. See [docs/flows.md](docs/flows.md).
 - **DNS:** what the hall looks up, from the event's resolver: lookups per hour, top sites,
   categories, new sites and blocked lookups. Hall-wide only: a site is named once 5 seats looked it
-  up. See [docs/dns.md](docs/dns.md).
+  up. Built-in plugins read AdGuard Home and Pi-hole. See [docs/dns.md](docs/dns.md).
 - **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer,
   with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
 - **Attendee view:** `/hall`, a public hall plan with every seat online or offline (seat numbers only,

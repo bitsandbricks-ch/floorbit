@@ -1,0 +1,16 @@
+# Lookups from AdGuard Home's query log for DNS analytics (docs/dns.md). Hall-wide counts only.
+# Off until turned on under Settings > Plugins. It only reads.
+id: adguard-home
+name: AdGuard Home
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Reads AdGuard Home's query log for DNS analytics: what the hall looks up and what AdGuard blocks. Floorbit keeps hall-wide counts only, never who looked up what."
+author: Floorbit
+homepage: https://adguard.com/adguard-home/overview.html
+uses: [settings, http, dns]
+settings:
+  - {key: url, label: AdGuard Home URL, type: url, placeholder: "http://dns.example.com:3000",
+     help: "The address of AdGuard Home's web interface. The query log must be on (Settings > General settings)."}
+  - {key: username, label: Username, type: string}
+  - {key: password, label: Password, type: secret}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}

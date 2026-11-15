@@ -162,6 +162,23 @@ poll that kept them open would lock the account out. Give Floorbit a local user 
 read-only `operators` group. **VLANs** limits the MAC lookup to the seat VLANs; without it every
 VLAN on the switch is asked, which takes longer on big switches.
 
+## Built in: AdGuard Home
+
+Reads AdGuard Home's query log for [DNS analytics](dns.md). Turn it on under Settings > Plugins and
+set the URL of its web interface (for example `http://dns.example.com:3000`), a username and a
+password. The query log must be on in AdGuard Home. Floorbit reads `GET /control/querylog` back to
+where it was the last time, at most 10,000 lookups a poll, and counts as blocked what AdGuard
+filtered by a block list, safe browsing, parental control or a blocked service. Rewrites and safe
+search are not blocks.
+
+## Built in: Pi-hole
+
+Reads Pi-hole's query log (Pi-hole 6 and newer) for [DNS analytics](dns.md). Set the URL of its web
+interface (without `/admin`) and an app password (Settings > Web interface / API in Pi-hole). Each
+poll signs in, reads `GET /api/queries` since the last poll (at most 20,000 lookups) and signs out
+again, because Pi-hole allows only a few sessions at once. Lookups blocked by gravity, regex or deny
+lists, or blocked upstream, count as blocked.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
