@@ -9,6 +9,35 @@ over HTTPS. Nothing on the event network has to be reachable from outside, and n
 opened. The hosted Floorbit hands the agent its LibreNMS questions (which switches are up, which
 port an IP is on, a port's traffic). The agent asks the event's own LibreNMS and sends the answers back.
 
+## What works on a hosted Floorbit
+
+The agent answers for the **monitoring** plugin (LibreNMS, or whichever monitoring plugin is on
+there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and cable** plugins
+(NetBox). Everything built on those works as with a local install:
+
+| Works through the agent | Asks |
+| --- | --- |
+| Floor plan switch status, the status monitor and its alerts, the status page | monitoring |
+| Port traffic, port lists, needs attention, "which port is this seat on" | monitoring |
+| Check-in and seat search (IP to switch port, ARP) | monitoring |
+| Inventory sync and cable import | inventory, cables |
+
+Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
+readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
+inside the hall), and so on.
+
+**Not through the agent yet.** These need the hosted Floorbit itself to reach the event network,
+so on a hosted Floorbit they only work when that service is reachable from it:
+
+| Feature | Why |
+| --- | --- |
+| DNS analytics (Pi-hole, AdGuard Home) | the DNS plugin runs on the hosted side |
+| Health checks (HTTP check plugin) | they check from where Floorbit runs |
+| Logs (Loki), syslog, NetFlow | syslog and flows are sent to Floorbit's own UDP ports |
+| Wi-Fi details (UniFi as a Wi-Fi source), port actions (SSH ports), switch commands and terminal | they connect to the controller or switch directly |
+
+[Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
+
 ## Enrolling an agent
 
 **Settings > Local agents** (`/settings/agents`): give the agent a name, such as the event or the
