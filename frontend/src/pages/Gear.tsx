@@ -1,7 +1,7 @@
 import {
   Alert, Autocomplete, Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Table, Text, TextInput, Title,
 } from '@mantine/core'
-import { IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconArrowBackUp, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -57,6 +57,33 @@ function ItemModal({ item, people, onClose, onDone }: {
 }
 
 /** Who has which piece of gear. The gear itself comes from the inventory (NetBox). */
+// Teardown: a helper brings back a whole box at once (issue #320). One request per piece keeps the
+// log and the live events the same as checking each in by hand.
+function CheckInAll({ to, items, onClose, onDone }: {
+  to: string; items: GearItem[]; onClose: () => void; onDone: () => void
+}) {
+  const { t } = useTranslation()
+  const [note, setNote] = useState('')
+  const act = useMutation({
+    mutationFn: async () => {
+      for (const i of items) await post(`/api/gear/${i.id}/in`, { note: note.trim() })
+    },
+    onSuccess: onDone,
+  })
+  return (
+    <Modal opened onClose={onClose} title={t('gear.allBackTitle', { to })}>
+      <Stack gap="sm">
+        <Text size="sm">{items.map((i) => i.name).join(', ')}</Text>
+        <TextInput label={t('gear.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
+        {act.error && <Alert color="down" role="alert">{t('common.error', { message: act.error.message })}</Alert>}
+        <Button fullWidth loading={act.isPending} onClick={() => act.mutate()}>
+          {t('gear.allBackDo', { count: items.length })}
+        </Button>
+      </Stack>
+    </Modal>
+  )
+}
+
 export default function Gear() {
   const { t } = useTranslation()
   const qc = useQueryClient()
@@ -68,6 +95,7 @@ export default function Gear() {
   const [show, setShow] = useState<Show>('all')
   const [role, setRole] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(() => new URLSearchParams(window.location.search).get('item'))
+  const [allBack, setAllBack] = useState(false)
   const d = query.data
   const roles = d ? [...new Set(d.items.map((i) => i.role))] : []
   const q = search.trim().toLowerCase()
@@ -76,6 +104,13 @@ export default function Gear() {
     && (!q || [i.name, i.model, i.serial, i.loan?.to ?? ''].some((v) => v.toLowerCase().includes(q))))
   const current = d?.items.find((i) => i.id === open)
   const outCount = d?.items.filter((i) => i.loan).length ?? 0
+  // Who has how much, most first (issue #318): at teardown the question is "who still has our stuff".
+  const holders = Object.entries((d?.items ?? []).reduce<Record<string, number>>((acc, i) => {
+    if (i.loan) acc[i.loan.to] = (acc[i.loan.to] ?? 0) + 1
+    return acc
+  }, {})).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  const holder = holders.some(([to]) => to === search) ? search : null
+  const held = holder ? (d?.items ?? []).filter((i) => i.loan?.to === holder) : []
 
   return (
     <Layout title={t('gear.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
@@ -98,6 +133,22 @@ export default function Gear() {
               <SegmentedControl value={show} onChange={(v) => setShow(v as Show)}
                 data={[{ value: 'all', label: t('gear.all') }, { value: 'out', label: t('gear.out', { count: outCount }) }, { value: 'in', label: t('gear.in') }]} />
             </Group>
+            {holders.length > 0 && (
+              <Group gap={6} role="group" aria-label={t('gear.holders')}>
+                <Text size="sm" fw={600}>{t('gear.holders')}:</Text>
+                {holders.map(([to, n]) => (
+                  <Button key={to} size="compact-sm" variant={search === to ? 'filled' : 'light'} color="warn"
+                    aria-pressed={search === to} onClick={() => { setSearch(search === to ? '' : to); setShow(search === to ? 'all' : 'out') }}>
+                    {t('gear.holder', { to, count: n })}
+                  </Button>
+                ))}
+                {holder && (
+                  <Button size="compact-sm" variant="default" leftSection={<IconArrowBackUp size={14} />} onClick={() => setAllBack(true)}>
+                    {t('gear.allBack', { count: held.length })}
+                  </Button>
+                )}
+              </Group>
+            )}
             <Paper withBorder radius="lg" p="md">
               {rows.length === 0 ? <Text c="dimmed">{d.items.length ? t('gear.noMatch') : t('gear.empty')}</Text> : (
                 <Table.ScrollContainer minWidth={560}>
@@ -145,6 +196,8 @@ export default function Gear() {
       </Stack>
       {current && d && <ItemModal key={current.id + String(!!current.loan)} item={current} people={d.people}
         onClose={() => setOpen(null)} onDone={() => { setOpen(null); refresh() }} />}
+      {allBack && holder && <CheckInAll to={holder} items={held} onClose={() => setAllBack(false)}
+        onDone={() => { setAllBack(false); setSearch(''); setShow('all'); refresh() }} />}
     </Layout>
   )
 }
