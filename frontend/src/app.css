@@ -426,3 +426,17 @@ body {
 /* Counts on the Seats page filters (issue #190). */
 /* The count sets itself apart by weight, not by a fainter colour: faded text failed contrast (issue #230). */
 .fb-filter-count { font-variant-numeric: tabular-nums; font-weight: 400; }
+
+/* "Go to" palette (issue #242). */
+.fb-goto-list { list-style: none; margin: 12px 0 0; padding: 0; max-height: min(60vh, 420px); overflow-y: auto; }
+.fb-goto-item {
+  display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 6px;
+  color: var(--color-fg); cursor: pointer;
+}
+.fb-goto-item[aria-selected='true'] { background: var(--color-bit-soft); }
+.fb-goto-path { color: var(--color-muted); font-size: 13px; font-family: var(--font-mono); }
+.fb-goto-empty { margin: 12px 0 0; color: var(--color-muted); }
+/* On a phone the button shows only its icon; the label stays for screen readers. */
+@media (max-width: 600px) {
+  .fb-goto-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

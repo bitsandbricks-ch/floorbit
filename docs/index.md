@@ -18,6 +18,13 @@ These pages are for people running Floorbit at their own LAN.
 
 No network to try it on? [Demo mode](demo.md) fills a made-up hall.
 
+## Getting around
+
+Every page with a header (Problems, Health, Incidents and the other newer pages) has a **Go to**
+button, also on <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>⌘</kbd>+<kbd>K</kbd> on a Mac). Type part of a page's name, pick it
+with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose [feature](features.md) is off
+and pages your role can't open.
+
 ## Build on it
 
 - [Plugins](plugins.md): monitoring sources, health checks, actions and dashboard tiles.

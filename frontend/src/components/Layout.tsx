@@ -3,6 +3,7 @@ import { Anchor, Group } from '@mantine/core'
 import { IconChevronLeft } from '@tabler/icons-react'
 import { useEffect } from 'react'
 import { Attribution } from './Attribution'
+import { GoTo } from './GoTo'
 import { ThemeToggle, UserMenu } from './UserMenu'
 
 /** Header with a way back, the page title, theme and user menu; the attribution at the end.
@@ -17,12 +18,13 @@ export function Layout({ title, back, count, children }: {
     <>
       <header className="fb-header">
         {/* The floor plan and settings are still server pages: a full page load, not a route. */}
-        <Anchor href={back.href} c="dimmed" size="sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Anchor href={back.href} c="dimmed" size="sm" style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
           <IconChevronLeft size={16} aria-hidden="true" />
           {back.label}
         </Anchor>
         <h1>{title}</h1>
         <Group gap={4} ml="auto" wrap="nowrap">
+          <GoTo />
           <ThemeToggle />
           <UserMenu />
         </Group>

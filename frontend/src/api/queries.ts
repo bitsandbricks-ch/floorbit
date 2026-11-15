@@ -34,8 +34,13 @@ export function useMe() {
 /** Is this feature switched on (Settings > Features)? On until the server says otherwise, so a slow
  *  answer never hides a link. Only hides links: a feature that is off answers 404 anyway. */
 export function useFeature(feature: string) {
+  return !useFeaturesOff().includes(feature)
+}
+
+/** The features that are switched off; empty until the server answers. */
+export function useFeaturesOff(): string[] {
   const off = useQuery({ queryKey: qk.features, queryFn: () => get<{ off: string[] }>('/api/features'), staleTime: 60_000, retry: false })
-  return !off.data?.off.includes(feature)
+  return off.data?.off ?? []
 }
 
 export function useDashboard() {
