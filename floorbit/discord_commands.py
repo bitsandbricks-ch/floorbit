@@ -1,6 +1,6 @@
 """Slash commands for the Floorbit Discord bot (epic #407).
 
-/status is #408, /seat and /switch #410, /incident and /jobs #412.
+/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414.
 
 The bot answers over the same Interactions Endpoint as the crew channel's buttons
 (floorbit/blueprints/crew.py), so it still needs no gateway connection. integrations/crew.py
@@ -46,6 +46,12 @@ COMMANDS = [
              {'type': STRING, 'name': 'note', 'description': 'What you did (optional)', 'max_length': 500}]},
      ]},
     {'name': 'jobs', 'type': 1, 'contexts': GUILD_ONLY, 'description': 'The incidents you have, oldest first.'},
+    {'name': 'statusupdate', 'type': 1, 'contexts': GUILD_ONLY,
+     'description': 'Post an update for attendees on the public network status page.',
+     'options': [
+         {'type': STRING, 'name': 'text', 'description': 'What attendees should know', 'required': True,
+          'max_length': 500},
+         {'type': STRING, 'name': 'area', 'description': 'Where, e.g. Hall B (optional)', 'max_length': 80}]},
 ]
 
 STATE_TEXT = {'operational': 'All systems running', 'degraded': 'Part of the network is down',
@@ -100,6 +106,8 @@ def handle(body):
         if not _crew(user):
             return f'/{name} needs a Floorbit account that works incidents.'
         return _seat(_option(body, 'seat')) if name == 'seat' else _switch(_option(body, 'name'))
+    if name == 'statusupdate':
+        return _statusupdate(linked_user(body), _options(body)[0])
     if name in ('incident', 'jobs'):
         user = linked_user(body)
         if not user:
@@ -308,3 +316,23 @@ def _jobs(user):
     if len(mine) > MAX_JOBS:
         lines.append(f"…and {len(mine) - MAX_JOBS} more")
     return '\n'.join(lines) + _link('/jobs')
+
+
+def _statusupdate(user, given):
+    from auth import roles
+
+    from . import status_page
+    from .blueprints import status_page as page
+    if not user:
+        return NOT_LINKED
+    if not roles.can(user, 'incidents.assign'):
+        return 'Posting status updates needs a Floorbit account that assigns incidents (lead or admin).'
+    try:
+        update = page.publish_update({'text': given.get('text'), 'area': given.get('area')},
+                                     user.get('display_name') or user['username'], user['username'],
+                                     label='Posted status update from Discord')
+    except status_page.StatusError as exc:
+        return str(exc)
+    shown = 'Attendees see it on the status page.' if page.page_on() \
+        else 'The public status page is off, so only the crew sees it on Network status.'
+    return f"Posted: {update['text']}\n{shown}" + _link('/network-status')

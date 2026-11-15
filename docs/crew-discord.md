@@ -68,6 +68,8 @@ button click. There is no Discord role mapping.
 | `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
 | `/jobs` | the incidents you have, oldest first. |
 
+| `/statusupdate <text> [area]` | posts an update on the public [status page](status-page.md), as from the Network status page. Needs `incidents.assign` (lead or admin). With an attendee status channel set, it goes there too. |
+
 The incident commands follow the account's permissions exactly as on the board, and every change is
 in the [audit log](audit.md).
 

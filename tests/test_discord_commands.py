@@ -171,3 +171,17 @@ def test_incident_commands_follow_the_accounts_permissions(bridge, client, anon_
                                                                                      problem="x")))
     assert "Pick the incident" in _ask(anon_client, key, _command("incident", options=_sub("take", incident="nope")))
     assert client.get("/api/incidents").get_json()["incidents"] == []
+
+
+def test_statusupdate_posts_for_attendees_as_a_lead(bridge, client, anon_client, key, floor, app_module):
+    users = app_module.app.extensions["auth"].users
+    users.add("lead-lu", "example-pass-1", role="lead", identities={"discord": "444"})
+    post = [{"type": 3, "name": "text", "value": "Block B is back."}, {"type": 3, "name": "area", "value": "Hall B"}]
+    assert "assigns incidents" in _ask(anon_client, key, _command("statusupdate", options=post))   # a tech can't
+    assert "not linked" in _ask(anon_client, key, _command("statusupdate", user_id="333", options=post))
+    text = _ask(anon_client, key, _command("statusupdate", user_id="444", options=post))
+    assert text.startswith("Posted: Block B is back.") and "status page is off" in text
+    (update,) = client.get("/api/status-page").get_json()["updates"]
+    assert update["text"] == "Block B is back." and update["area"] == "Hall B"
+    actions = {e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]}
+    assert "Posted status update from Discord" in actions
