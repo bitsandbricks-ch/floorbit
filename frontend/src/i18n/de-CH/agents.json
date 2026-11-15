@@ -10,7 +10,17 @@
   "neverSeen": "noch nie verbunden",
   "seen": "zuletzt gesehen {{when}}",
   "version": "Version {{v}}",
+  "outdated": "Update",
+  "outdatedHelp": "Älter als dieses Floorbit ({{v}}). Neues Image holen und den Agent neu starten.",
   "made": "Eingetragen am {{date}} von {{who}}",
+  "stats_one": "1 Anfrage in der letzten Stunde, beantwortet in {{ms}} ms",
+  "stats_other": "{{count}} Anfragen in der letzten Stunde, beantwortet in {{ms}} ms (Median)",
+  "statsNone": "Keine Anfragen in der letzten Stunde",
+  "statsFailed": "{{count}} fehlgeschlagen",
+  "lastError": "Letzter Fehler, {{when}}: {{method}}: {{error}}",
+  "halls": "Zuständig für",
+  "allHalls": "Alle Hallen",
+  "hallsHelp": "Mit einem Agent pro Halle beantwortet jeder die Fragen zu seinen Switches; die Geräteliste kommt von allen.",
   "revoke": "Widerrufen",
   "revokeQuestion": "{{name}} widerrufen? Er hört bei der nächsten Anfrage auf und braucht einen neuen Schlüssel.",
   "new": "Agent eintragen",
@@ -22,5 +32,7 @@
   "copy": "Kopieren",
   "copied": "Kopiert",
   "runTitle": "Agent im Eventnetz starten",
-  "docs": "Wie der Agent funktioniert und was er gefragt wird: docs/agent.md."
+  "docs": "Wie der Agent funktioniert und was er gefragt wird: docs/agent.md.",
+  "relaySyslog": "Syslog",
+  "relayFlows": "NetFlow"
 }

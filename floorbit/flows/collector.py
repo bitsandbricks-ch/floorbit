@@ -29,6 +29,7 @@ class Collector:
         self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0}
         self._pending = []
         self._on = True
+        self.publish = store.publish   # the local agent sends the summary to the hosted Floorbit instead
 
     def enabled(self, now=None):
         """Is Traffic switched on (Settings > Features)? Asked every half minute, not per packet."""
@@ -78,7 +79,7 @@ class Collector:
             snap['raw'] = self.raw.usage()
             snap['templates_missing'] = self.templates.missing
             snap['errors'] = self.errors
-            store.publish(snap)
+            self.publish(snap)
 
     def serve(self, host='0.0.0.0', port=2055):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

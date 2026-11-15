@@ -60,5 +60,7 @@
     "720": "30 days"
   },
   "storeSent": "{{name}}: {{n}} lines sent",
-  "storeError": "{{name}} couldn't take the lines: {{error}}"
+  "storeError": "{{name}} couldn't take the lines: {{error}}",
+  "relayed": "Through the local agent {{agent}}",
+  "relayDropped": "{{n}} dropped on the agent"
 }
