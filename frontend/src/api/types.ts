@@ -893,3 +893,37 @@ export interface CompareData {
   day: { now: CompareSide; then: CompareSide; series: ComparePoint[]; has_then: boolean }
   event: { name: string; id: string; then_start: number; elapsed_s: number; now: CompareSide; then: CompareSide; series: ComparePoint[] } | null
 }
+
+export type LogSeverity = 'emerg' | 'alert' | 'crit' | 'err' | 'warning' | 'notice' | 'info' | 'debug'
+
+/** One syslog line as GET /api/logs answers it (floorbit/syslog.py). */
+export interface SyslogLine {
+  id: number
+  ts: number
+  facility: number
+  severity: LogSeverity
+  host: string | null
+  program: string | null
+  message: string
+  sender: string
+  device: string
+  port: string | null
+  seat: string | null
+}
+
+export interface LogStatus {
+  enabled: boolean
+  listening: { port: number; tcp: boolean; bind: string } | null
+  error: string | null
+  counts: { received: number; kept: number; not_allowed: number; rate_limited: number }
+  lines: number
+  devices: string[]
+  retention_hours: number
+  demo: boolean
+  last_id: number
+}
+
+export interface LogsData {
+  lines: SyslogLine[]
+  status: LogStatus
+}

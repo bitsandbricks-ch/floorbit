@@ -19,6 +19,7 @@ const Stats = lazy(() => import('@/pages/Stats'))
 const Traffic = lazy(() => import('@/pages/Traffic'))
 const Dns = lazy(() => import('@/pages/Dns'))
 const Games = lazy(() => import('@/pages/Games'))
+const Logs = lazy(() => import('@/pages/Logs'))
 const Templates = lazy(() => import('@/pages/Templates'))
 const Replay = lazy(() => import('@/pages/Replay'))
 const Report = lazy(() => import('@/pages/Report'))
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/traffic" element={<Traffic />} />
         <Route path="/dns" element={<Dns />} />
         <Route path="/games" element={<Games />} />
+        <Route path="/logs" element={<Logs />} />
         <Route path="/templates" element={<Templates />} />
         <Route path="/replay" element={<Replay />} />
         <Route path="/report" element={<Report />} />

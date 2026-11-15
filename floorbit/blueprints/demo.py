@@ -112,6 +112,10 @@ def seed_on_start(app):
         lancache = app.extensions.get('floorbit_lancache')
         if lancache is not None:
             lancache.start_demo()
+        receiver = app.extensions.get('floorbit_syslog')
+        if receiver is not None:
+            from ..syslog import start_demo
+            start_demo(receiver)
 
 
 def demo_history(now=None, step=120):

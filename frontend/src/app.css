@@ -271,3 +271,7 @@ body {
 .fb-compare-chart .then { stroke: var(--color-muted); stroke-dasharray: 6 4; }
 .fb-compare-key { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--color-bit); vertical-align: 3px; }
 .fb-compare-key.then { border-top: 2px dashed var(--color-muted); }
+
+/* Logs page on phones (pages/Logs.tsx) */
+.fb-log-lines { list-style: none; margin: 0; padding: 0; }
+.fb-log-line { padding: 8px 0; border-bottom: 1px solid var(--mantine-color-default-border); }

@@ -287,6 +287,16 @@ Source: [`floorbit/blueprints/layout_templates.py`](https://github.com/bitsandbr
 | POST | `/api/templates/<template_id>/versions` | `floorplan.edit` |  |
 | POST | `/api/templates/import` | `floorplan.edit` |  |
 
+## floorbit.blueprints.logs
+
+Logs (issue #91): what switches, firewalls and DHCP servers sent by syslog. Receiving and keeping lives in floorbit/syslog.py.
+
+Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/logs.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/logs` | `seats.view` | `syslog` |
+
 ## floorbit.blueprints.network
 
 Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap.
