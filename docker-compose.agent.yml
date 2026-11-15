@@ -1,0 +1,28 @@
+# The local agent for a hosted Floorbit (docs/agent.md). Run it on the event network, next to
+# LibreNMS and NetBox, not on the hosted server:
+#
+#   cp agent.env.example agent.env      # FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
+#   docker compose -f docker-compose.agent.yml up -d
+#
+# It only connects out, over HTTPS: no port is published and nothing has to be opened.
+
+services:
+  agent:
+    image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
+    command: ["python", "-m", "floorbit.agent"]
+    env_file:
+      - path: agent.env
+        required: true
+    environment:
+      # Its own small settings file; it keeps no floor plan.
+      FLOORBIT_DATA_FILE: /app/state/agent-data.json
+    volumes:
+      - agent_state:/app/state
+    # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
+    # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
+    restart: on-failure:3
+    healthcheck:
+      disable: true
+
+volumes:
+  agent_state:

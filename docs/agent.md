@@ -9,9 +9,6 @@ over HTTPS. Nothing on the event network has to be reachable from outside, and n
 opened. The hosted Floorbit hands the agent its LibreNMS questions (which switches are up, which
 port an IP is on, a port's traffic). The agent asks the event's own LibreNMS and sends the answers back.
 
-!!! note "Work in progress"
-    A Compose file for the agent follows in the next pull request.
-
 ## Enrolling an agent
 
 **Settings > Local agents** (`/settings/agents`): give the agent a name, such as the event or the
@@ -30,30 +27,48 @@ monitoring plugin. Revoke every agent to go back to the plugins.
 
 ## Running the agent
 
-The agent is the Floorbit image with another command, `python -m floorbit.agent`. Set up the
-event's monitoring plugin on it the usual way (for LibreNMS: `LIBRENMS_URL` and `LIBRENMS_TOKEN`)
-and tell it where the hosted Floorbit is:
+The agent is the Floorbit image with another command, `python -m floorbit.agent`. Run it on the
+event network, where it can reach LibreNMS and NetBox. It needs no Redis, no port and no domain.
+
+**With Docker Compose** (the repository has a file for it):
 
 ```sh
-docker run -d --restart unless-stopped --name floorbit-agent \
+cp agent.env.example agent.env     # fill in FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
+chmod 600 agent.env
+docker compose -f docker-compose.agent.yml up -d
+docker compose -f docker-compose.agent.yml logs -f    # "[agent] connected to … as …"
+```
+
+**With `docker run`**, as the **Local agents** page shows it:
+
+```sh
+docker run -d --restart on-failure:3 --name floorbit-agent \
   -e FLOORBIT_URL=https://floor.example.com \
   -e FLOORBIT_AGENT_KEY=fba_… \
   -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \
   ghcr.io/bitsandbricks-ch/floorbit python -m floorbit.agent
 ```
 
+Set up the event's plugins on it the usual way (for LibreNMS `LIBRENMS_URL` and `LIBRENMS_TOKEN`,
+for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorbit is:
+
 | Setting | What |
 | --- | --- |
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
 | `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
-| `FLOORBIT_DATA_FILE` | the agent's own settings file (default `agent-data.json` in its working directory). It keeps no floor plan |
+| `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
 The agent only makes outgoing requests; nothing listens on it. It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
-start it with the new key.
+start it with the new key. That's why the Compose file restarts it only on failure, at most 3
+times, instead of `unless-stopped`.
+
+To update the agent, pull the new image and start it again (`docker compose -f
+docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
+**Local agents** page shows each agent's version.
 
 ## The inventory through the agent
 

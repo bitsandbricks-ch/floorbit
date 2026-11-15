@@ -50,7 +50,7 @@ export default function Agents() {
   const error = query.error ?? revoke.error
   const date = (ts: number) => new Date(ts * 1000).toLocaleDateString(i18n.language)
   const run = made ? [
-    'docker run -d --restart unless-stopped --name floorbit-agent \\',
+    'docker run -d --restart on-failure:3 --name floorbit-agent \\',
     `  -e FLOORBIT_URL=${window.location.origin} \\`,
     `  -e FLOORBIT_AGENT_KEY=${made.key} \\`,
     '  -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \\',
