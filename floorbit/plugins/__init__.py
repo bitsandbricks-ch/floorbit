@@ -55,7 +55,10 @@ AREAS = {
     'ports': 'act on switch ports (bounce, shut, turn on), with the tech\'s own login (one plugin at a time)',
     'security': 'security findings: rogue DHCP, ARP spoofing, MAC flapping, loops and storms',
     'power': 'load readings per circuit from smart PDUs and meters',
+    'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
 }
+# What a context_menu entry can be on, and the action parameter that carries the target.
+MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -164,7 +167,7 @@ def validate(m):
     if unknown:
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
-             'endpoints': 'endpoints', 'hooks': 'hooks'}
+             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
@@ -200,12 +203,41 @@ def validate(m):
                     return f"widgets.{item['id']}: size must be small or wide"
                 item['refresh'] = max(10, int(item.get('refresh') or 60))
     actions = {a['id'] for a in m.get('actions') or []}
+    err = _check_menu(m)
+    if err:
+        return err
     for h in m.get('hooks') or []:
         if not isinstance(h, dict) or h.get('action') not in actions:
             return f'hooks: unknown action {h!r}'
         events = h.get('events') or []
         if not events or any(e not in EVENTS for e in events):
             return f"hooks: events must be some of {', '.join(EVENTS)}"
+    return ''
+
+
+def _check_menu(m):
+    """context_menu entries: an action of the plugin, on seats and/or switches, which takes the target."""
+    entries = m.get('context_menu') or []
+    if not isinstance(entries, list):
+        return 'context_menu: a list of entries'
+    actions = {a['id']: a for a in m.get('actions') or [] if isinstance(a, dict)}
+    for entry in entries:
+        action = actions.get(entry.get('action')) if isinstance(entry, dict) else None
+        if action is None:
+            return f'context_menu: unknown action {entry!r}'
+        # "targets", not "on": YAML reads a bare on as true.
+        on = entry.get('targets')
+        on = [on] if isinstance(on, str) else on
+        if not isinstance(on, list) or not on or any(t not in MENU_TARGETS for t in on):
+            return f"context_menu.{action['id']}: targets must be seat, switch or both"
+        params = {f.get('key') for f in action.get('params') or []}
+        missing = [MENU_TARGETS[t] for t in on if MENU_TARGETS[t] not in params]
+        if missing:
+            return f"context_menu.{action['id']}: the action needs a {' and a '.join(missing)} parameter"
+        entry['targets'] = on
+        entry.setdefault('label', action['label'])
+        if not isinstance(entry['label'], str) or not 1 <= len(entry['label']) <= 60:
+            return f"context_menu.{action['id']}: label is 1 to 60 characters"
     return ''
 
 

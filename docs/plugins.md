@@ -242,6 +242,7 @@ class Plugin(Base):
 | `widgets` | add dashboard tiles |
 | `endpoints` | serve JSON at `GET /api/plugins/<id>/endpoints/<endpoint>` |
 | `hooks` | run an action on `change` (any audited change: area, action, target, fields, user) `switch.status` (a switch went offline or came back) `health.status` (a service on the health wall changed colour: id, name, kind, status, previous, summary) `security.finding` (a new security finding: id, kind, severity, switch, port, seat) or `power.alert` (a circuit turned red or tripped: id, name, board, phase, state, pct, seats, switches) |
+| `context_menu` | add entries to the floor plan's [right-click menu](context-menu.md) that run one of its actions on a seat or switch: `context_menu: [{action: lookup, targets: [seat], label: "Look up ticket"}]`. The action gets the seat number as its `seat` parameter, or the switch name as `switch`, so it must declare that parameter. An entry shows only to accounts that may run the action; `danger: true` on the action asks first |
 | `http` | make outgoing requests with `self.ctx.http(...)` |
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device |
