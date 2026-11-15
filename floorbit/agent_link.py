@@ -245,11 +245,12 @@ class Tunnel:
                 out.append({'id': call.id, 'method': call.method, 'args': call.args})
             return out
 
-    def answer(self, call_id, ok, result=None, error=None):
-        """The agent's answer to one call. False when nobody waits for it any more."""
+    def answer(self, call_id, ok, result=None, error=None, agent=None):
+        """The agent's answer to one call. False when nobody waits for it any more, or when another
+        agent took it: one site's agent must not answer for another's."""
         with self._cond:
             call = self._calls.get(str(call_id))
-        if call is None:
+        if call is None or (agent is not None and call.agent is not None and call.agent != agent):
             return False
         call.ok, call.result, call.error = bool(ok), result, (str(error)[:300] if error else None)
         call.done.set()

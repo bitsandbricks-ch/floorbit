@@ -96,12 +96,14 @@ def calls():
 
 @bp.route('/api/agent/v1/answers', methods=['POST'])
 def answers():
-    if _agent() is None:
+    agent = _agent()
+    if agent is None:
         return _refused()
     body = request.get_json(silent=True) or {}
     items = body.get('answers') if isinstance(body.get('answers'), list) else []
     taken = sum(1 for a in items[:100] if isinstance(a, dict)
-                and agent_link.tunnel.answer(a.get('id'), a.get('ok'), a.get('result'), a.get('error')))
+                and agent_link.tunnel.answer(a.get('id'), a.get('ok'), a.get('result'), a.get('error'),
+                                                     agent=agent['id']))
     return jsonify({'taken': taken})
 
 

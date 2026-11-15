@@ -129,3 +129,26 @@ def test_an_older_agent_is_flagged(client, anon_client, app_module):
     listed = client.get("/api/agents").get_json()
     assert listed["server_version"] == app_module.app.config["FLOORBIT_VERSION"]
     assert listed["agents"][0]["outdated"] is (listed["server_version"] != "0.0.1")
+
+
+def test_an_agent_answers_only_its_own_calls(client, anon_client):
+    """With two agents, one can't answer (or spoil) a call the other took."""
+    first, second = enrol(client, "Hall 1"), enrol(client, "Hall 2")
+    anon_client.get("/api/agent/v1/hello", headers=head(first["key"]))
+    got = {}
+
+    def ask():
+        got["answer"] = agent_link.tunnel.call("devices", timeout=5)
+
+    asker = threading.Thread(target=ask)
+    asker.start()
+    calls = []
+    deadline = time.time() + 5
+    while not calls and time.time() < deadline:
+        calls = anon_client.get("/api/agent/v1/calls?wait=0.2", headers=head(first["key"])).get_json()["calls"]
+    wrong = {"answers": [{"id": calls[0]["id"], "ok": True, "result": ["from the wrong hall"]}]}
+    assert anon_client.post("/api/agent/v1/answers", json=wrong, headers=head(second["key"])).get_json()["taken"] == 0
+    right = {"answers": [{"id": calls[0]["id"], "ok": True, "result": ["sw-a-01"]}]}
+    assert anon_client.post("/api/agent/v1/answers", json=right, headers=head(first["key"])).get_json()["taken"] == 1
+    asker.join(5)
+    assert got["answer"] == ["sw-a-01"]

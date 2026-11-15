@@ -30,6 +30,14 @@ Revoking the agent stops it at its next request: it has to be enrolled again wit
 While at least one agent is enrolled, the hosted Floorbit asks the agent instead of its own
 monitoring plugin. Revoke every agent to go back to the plugins.
 
+### Several agents
+
+Every connected agent takes calls from the same queue: whichever asks first gets the next call. That
+suits a spare (a second agent on another box, for when the first one goes down), and each answer is
+only taken from the agent that took the call. It doesn't suit two sites with **different**
+LibreNMS servers yet: a call about a switch at one site may go to the other site's agent, which
+doesn't know it. Run one agent per hosted Floorbit there.
+
 ## Running the agent
 
 The agent is the Floorbit image with another command, `python -m floorbit.agent`. Run it on the
