@@ -33,6 +33,8 @@
   "unmute": "Unmute",
   "extend": "+30 min",
   "extendLabel": "Mute {{name}} 30 minutes longer",
+  "endsIn_one": "ends in {{count}} minute",
+  "endsIn_other": "ends in {{count}} minutes",
   "mutedUntil": "Muted until {{time}} by {{who}}",
   "quiet": "Quiet hours: Discord messages go out silently, without the mention.",
   "mutes": "Muted switches and services",

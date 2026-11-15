@@ -23,6 +23,11 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
   ([integrations.md](integrations.md#discord-alerts)) go to the crew channel through the bot.
   With a webhook URL set, they still go to the webhook. You can use one channel for
   incidents and another for alerts.
+- **Mute from the alert:** when a switch-offline or service-down alert comes through the bot and the
+  buttons are set up, it has a "Mute sw-a-01 for 1 h" button per switch or red service (up to five;
+  a grouped big-outage message has none). It mutes those alerts for an hour as the linked account, which needs
+  `incidents.work`, with the reason "Muted from Discord". It is in the audit log, and the
+  [Problems page](alerts.md) shows it with **+30 min** and **Unmute**. A webhook can't carry buttons.
 
 - **Crew notices:** when a lead puts up a [crew notice](crew-notice.md), it is posted in the crew
   channel too: warning or info, who put it up and for how long. Taking it down posts nothing.

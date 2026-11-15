@@ -80,6 +80,17 @@ describe('Problems', () => {
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ minutes: 30 }))
   })
 
+  it('says when a mute is about to end, and only then', async () => {
+    const mutes = [
+      { switch_id: 's2', name: 'sw-d-01', until: now + 240, at: now, by: 'kim', reason: '' },
+      { switch_id: 's3', name: 'sw-d-02', until: now + 3600, at: now, by: 'kim', reason: '' },
+    ]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ mutes }) }).fn)
+    renderWithApp(<Problems />)
+    expect(await screen.findByText('ends in 4 minutes')).toBeInTheDocument()
+    expect(screen.getAllByText(/^ends in/)).toHaveLength(1)
+  })
+
   it('mutes a service on the health wall, and lists it with the muted switches', async () => {
     const service = { id: 'health:demo:game-1', kind: 'health' as const, level: 'down' as const, title: 'Game server 1: down', where: 'Not answering',
       since: now, link: '/health', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }

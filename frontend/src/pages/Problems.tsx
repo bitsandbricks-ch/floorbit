@@ -1,7 +1,7 @@
 import { Alert, Anchor, Badge, Button, Group, Loader, Modal, Paper, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -20,6 +20,19 @@ function ago(ts: number, t: T) {
   if (mins < 1) return t('problems.justNow')
   if (mins < 60) return t('problems.minutesAgo', { count: mins })
   return t('problems.hoursAgo', { count: Math.round(mins / 60) })
+}
+
+/** A mute this close to its end gets a badge, so +30 min is pressed before the alerts come back (issue #266). */
+const ENDING_SOON = 10 * 60
+
+/** Now in unix seconds, ticking every 30 s: the mutes list doesn't change when only the clock does. */
+function useNowSeconds() {
+  const [now, setNow] = useState(() => Date.now() / 1000)
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now() / 1000), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
+  return now
 }
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -109,6 +122,7 @@ export default function Problems() {
   const list = useProblems()
   const [target, setTarget] = useState<MuteTarget | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
+  const now = useNowSeconds()
   const refresh = () => void client.invalidateQueries({ queryKey: qk.problems })
   useLiveEvent('monitor.poll', refresh)
   useLiveEvent('alerts.changed', refresh)
@@ -177,6 +191,11 @@ export default function Problems() {
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
                     <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    {m.until - now < ENDING_SOON && (
+                      <Badge color="warn" variant="light" tt="none">
+                        {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}
+                      </Badge>
+                    )}
                     {data.can_mute && (
                       <Group gap={4}>
                         <Button size="compact-xs" variant="subtle" onClick={() => extend.mutate(m.switch_id)} disabled={extend.isPending}

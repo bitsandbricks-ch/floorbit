@@ -12,6 +12,7 @@ async function loadProblemCount() {
   } catch {
     return;   // extra information; the floor plan works without it
   }
+  if (typeof setMutes === 'function') setMutes(body.mutes, body.can_mute);
   const down = (body.counts && body.counts.down) || 0;
   badge.textContent = String(down);
   badge.hidden = down === 0;

@@ -18,6 +18,7 @@ function renderAll() {
   if (typeof markFindings === 'function') markFindings();
   if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
+  if (typeof markMutes === 'function') markMutes();
   if (typeof markMatchSeats === 'function') markMatchSeats();
   if (typeof markSeatStates === 'function') markSeatStates();
 }
@@ -36,6 +37,7 @@ function renderOverlay() {
   if (typeof markFindings === 'function') markFindings();
   if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
+  if (typeof markMutes === 'function') markMutes();
 }
 
 function renderSeats() {

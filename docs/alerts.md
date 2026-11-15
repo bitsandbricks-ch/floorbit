@@ -52,7 +52,12 @@ A switch someone is working on, or that is off on purpose, can be muted for 30 m
 (**Mute** on its problem). While muted, it sends no "offline" or "back online" message; it stays on
 the Problems page, marked muted, and under **Muted switches and services** until the mute ends or someone presses
 **Unmute**. Still at it when the time is nearly up? **+30 min** next to it makes the mute last half an
-hour longer and keeps who set it and why (at most 7 days from now).
+hour longer and keeps who set it and why (at most 7 days from now). In its last 10 minutes a mute
+shows "ends in N minutes", so nobody is surprised when the alerts come back.
+On the floor plan a muted switch has a small bell-off badge on its pin, and its tooltip says until
+when, so a red pin someone is already on doesn't send a second tech. Right-click a switch to
+**Mute alerts…**, or on a muted one **Mute 30 minutes longer** and **Unmute**, without leaving the
+floor plan (crew with `incidents.work`).
 
 A service on the [health wall](health.md) that is red or amber has the same **Mute**: while muted, Discord
 gets no "is down" or "is back" message for it, and it stays out of the counts in the browser tab.
