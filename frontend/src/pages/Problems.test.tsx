@@ -92,6 +92,21 @@ describe('Problems', () => {
     expect(await screen.findAllByRole('article')).toHaveLength(3)
   })
 
+  it('makes an incident from an offline switch, or links the open one', async () => {
+    const problems = list().problems.map((p) => p.id === 'switch:s1' ? { ...p, name: 'sw-c-02', incident: null }
+      : p.id === 'switch:s2' ? { ...p, name: 'sw-d-01', incident: 'abc123' } : p)
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems, can_report: true }),
+      'POST /api/incidents': { status: 201, body: {} } })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const open = await screen.findByRole('article', { name: 'sw-d-01 is offline' })
+    expect(within(open).getByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents?q=sw-d-01')
+    const down = screen.getByRole('article', { name: 'sw-c-02 is offline' })
+    fireEvent.click(within(down).getByRole('button', { name: 'Make an incident' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/incidents')?.body)
+      .toEqual({ switch_id: 's1', title: 'sw-c-02 is offline' }))
+  })
+
   it('says when a mute is about to end, and only then', async () => {
     const mutes = [
       { switch_id: 's2', name: 'sw-d-01', until: now + 240, at: now, by: 'kim', reason: '' },
@@ -128,5 +143,22 @@ describe('Problems', () => {
     renderWithApp(<Problems />)
     expect(await screen.findByText('Nothing is wrong right now.')).toBeInTheDocument()
     expect(document.title).toBe('Problems · Floorbit')
+  })
+
+  it('copies what is shown as text for the crew chat', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy list' }))
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    const text: string = writeText.mock.calls[0][0]
+    const lines = text.split('\n')
+    expect(lines[0]).toMatch(/^Problems [^:]+:\d\d[^:]*: 1 down · 1 to look at · 1 muted$/)
+    expect(lines[1]).toBe('- [Switch] sw-c-02 is offline (sw-c-02, since 5 min)')
+    expect(lines[2]).toBe('- [Power] Circuit B row 2 getting close (86.9 %) (Feeds 12 seats, since just now)')
+    expect(lines[3]).toMatch(/^- \[Switch\] sw-d-01 is offline \(sw-d-01, since 1 min, Muted until .+ by kim\)$/)
+    expect(text).toContain('Muted switches and services:\n- sw-d-01, Muted until')
+    expect(text).toContain('(Recabling)')
   })
 })

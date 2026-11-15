@@ -158,3 +158,25 @@ def test_the_floor_plan_can_mute_a_switch(client):
     page = client.get("/").get_data(as_text=True)
     assert 'id="mute-form"' in page and 'id="mute-minutes"' in page and 'id="mute-reason"' in page
     assert client.get("/api/problems").get_json()["can_mute"] is True
+
+
+def test_an_offline_switch_links_its_incident(app_module, client, floor, monkeypatch):
+    """Issue #278: make an incident from the problem, then the problem links it."""
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monkeypatch.setattr(monitor, "statuses", {
+        floor["a"]: {"id": floor["a"], "name": "sw-a-01", "status": "offline", "since": time.time() - 600}})
+    body = client.get("/api/problems").get_json()
+    item = next(p for p in body["problems"] if p["kind"] == "switch")
+    assert body["can_report"] is True and item["incident"] is None
+
+    made = client.post("/api/incidents", json={"switch_id": floor["a"], "title": item["title"]}).get_json()
+    item = next(p for p in client.get("/api/problems").get_json()["problems"] if p["kind"] == "switch")
+    assert item["incident"] == made["id"]
+    client.patch(f"/api/incidents/{made['id']}", json={"status": "fixed"})
+    item = next(p for p in client.get("/api/problems").get_json()["problems"] if p["kind"] == "switch")
+    assert item["incident"] is None
+
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi1", "viewer")
+    body = viewer.get("/api/problems").get_json()
+    assert body["can_report"] is False and "incident" not in next(p for p in body["problems"] if p["kind"] == "switch")

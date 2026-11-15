@@ -458,6 +458,8 @@ export interface Problem {
   muted?: { until: number; by: string | null; reason: string } | null
   /** The match zone, when the problem is at a tournament seat (issue #31). */
   match?: string | null
+  /** An offline switch's open incident, for people who see the board (issue #278). */
+  incident?: string | null
 }
 export interface ProblemList {
   problems: Problem[]
@@ -467,6 +469,7 @@ export interface ProblemList {
   quiet_hours: boolean
   checked_at: number
   can_mute: boolean
+  can_report?: boolean
 }
 export type SetupStep = 'netbox' | 'librenms' | 'switches' | 'theme'
 export interface SetupState {
