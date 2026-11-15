@@ -44,15 +44,16 @@
         <button type="button" class="goto-close" aria-label="Close">×</button>
       </div>
       <input class="goto-input" type="text" role="combobox" aria-expanded="true" aria-controls="goto-list"
-        aria-autocomplete="list" aria-label="Type a page name" placeholder="Type a page name" autocomplete="off" />
+        aria-autocomplete="list" aria-label="Type a page, seat or switch" placeholder="Type a page, seat or switch" autocomplete="off" />
       <ul class="goto-list" id="goto-list" role="listbox" aria-label="Go to a page"></ul>
-      <p class="goto-empty" hidden>No page matches.</p>`;
+      <p class="goto-empty" hidden>Nothing matches.</p>`;
     document.body.appendChild(dialog);
     const input = dialog.querySelector('.goto-input');
     const list = dialog.querySelector('.goto-list');
     const empty = dialog.querySelector('.goto-empty');
     let shown = [];
     let active = 0;
+    let timer = null;
 
     function paint() {
       list.textContent = '';
@@ -103,6 +104,20 @@
           .sort((a, b) => Number(!byLabel(a)) - Number(!byLabel(b)));
       }
       active = 0;
+      paint();
+      clearTimeout(timer);
+      // Seats and switches from the server (issue #252), once typing pauses.
+      if (q.length >= 2) timer = setTimeout(() => findPlaces(input.value), 150);
+    }
+    async function findPlaces(text) {
+      let body;
+      try {
+        const r = await fetch(`/api/pages/find?q=${encodeURIComponent(text.trim())}`, { credentials: 'same-origin' });
+        body = r.ok ? await r.json() : { places: [] };
+      } catch (_) { return; }
+      if (input.value !== text || !(body.places || []).length) return;
+      const kinds = { seat: 'Seat', switch: 'Switch' };
+      shown = [...shown, ...body.places.map((p) => ({ href: p.href, label: `${kinds[p.kind] || ''} ${p.name}`.trim() }))];
       paint();
     }
     function go(href) {

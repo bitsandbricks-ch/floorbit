@@ -1298,3 +1298,10 @@ export interface PageLink {
   id: string
   label: string
 }
+
+/** A seat or switch for "Go to", from GET /api/pages/find (issue #252). */
+export interface Place {
+  kind: 'seat' | 'switch'
+  name: string
+  href: string
+}

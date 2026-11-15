@@ -24,7 +24,10 @@ Every page with a header, the floor plan and Settings included, has a **Go to** 
 <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>⌘</kbd>+<kbd>K</kbd> on a Mac). Type part of a page's name, pick it
 with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose [feature](features.md) is off,
 pages your role can't open and pages this server has nothing for yet (Wi-Fi without a Wi-Fi source,
-Electrics without power boards), the same way the floor plan's top bar does. Before you type, the five pages you opened last on this browser come first.
+Electrics without power boards), the same way the floor plan's top bar does.
+Type a seat number or a switch name too: `b8` offers seat B-8 and `core` the switches named core-something,
+and each opens on the floor plan. Seat numbers and switch names only: to find a player by nick, IP or MAC,
+use the floor plan's search. Before you type, the five pages you opened last on this browser come first.
 
 ## Build on it
 

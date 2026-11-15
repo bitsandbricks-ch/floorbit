@@ -391,6 +391,7 @@ Source: [`floorbit/blueprints/pages.py`](https://github.com/bitsandbricks-ch/flo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/pages` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/pages/find` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.past_events
 

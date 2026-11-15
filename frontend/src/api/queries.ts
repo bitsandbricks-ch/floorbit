@@ -3,6 +3,7 @@ import { get } from './client'
 import { qk } from './keys'
 import type {
   PageLink,
+  Place,
   CrewNotice,
   AccountSummary,
   IncidentBoard,
@@ -49,6 +50,16 @@ export function useFeaturesOff(): string[] {
 export function usePageList(): PageLink[] {
   const pages = useQuery({ queryKey: qk.pages, queryFn: () => get<{ pages: PageLink[] }>('/api/pages'), staleTime: 60_000, retry: false })
   return pages.data?.pages ?? []
+}
+
+/** Seats and switches whose number or name matches, for "Go to" (issue #252); needs two characters. */
+export function usePlaces(query: string): Place[] {
+  const q = query.trim()
+  const places = useQuery({
+    queryKey: qk.places(q), queryFn: () => get<{ places: Place[] }>(`/api/pages/find?q=${encodeURIComponent(q)}`),
+    enabled: q.length >= 2, staleTime: 30_000, retry: false,
+  })
+  return q.length >= 2 ? places.data?.places ?? [] : []
 }
 
 export function useDashboard() {

@@ -29,6 +29,7 @@ export const qk = {
   events: ['events'] as const,
   features: ['features'] as const,
   pages: ['pages'] as const,
+  places: (q: string) => ['pages', 'find', q] as const,
   featureSettings: ['features', 'settings'] as const,
   apiTokens: ['api-tokens'] as const,
   webhooks: ['webhooks'] as const,

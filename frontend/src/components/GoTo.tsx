@@ -1,9 +1,9 @@
 import { Button, Kbd, Modal, TextInput } from '@mantine/core'
 import { useHotkeys } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { usePageList } from '@/api/queries'
+import { usePageList, usePlaces } from '@/api/queries'
 import { useLocation } from 'react-router-dom'
 import { fold, RECENT_MAX, recentPages } from './pages'
 
@@ -40,6 +40,13 @@ function Palette({ onDone }: { onDone: () => void }) {
   const here = useLocation().pathname
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
+  // Ask the server for seats and switches once typing pauses, not on every key.
+  const [asked, setAsked] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setAsked(query), 150)
+    return () => clearTimeout(timer)
+  }, [query])
+  const places = usePlaces(asked)
   const listId = useId()
   const list = useRef<HTMLUListElement>(null)
 
@@ -51,10 +58,13 @@ function Palette({ onDone }: { onDone: () => void }) {
     // Nothing typed yet: the pages opened last come first, newest on top (issue #244).
     if (!q) return [...named.filter((p) => p.recent).sort((a, b) => recent.indexOf(a.href) - recent.indexOf(b.href)), ...named.filter((p) => !p.recent)]
     // Label first, then the path, so "set" finds Settings before /settings/... pages named otherwise.
-    return named
+    const found = named
       .filter((p) => fold(p.label).includes(q) || p.href.includes(q))
       .sort((a, b) => Number(!fold(a.label).includes(q)) - Number(!fold(b.label).includes(q)))
-  }, [pages, query, t, here])
+    // Then the seats and switches the server found (issue #252), once it answered for this text.
+    const spots = asked === query ? places.map((p) => ({ href: p.href, id: p.kind, label: `${t(`goto.${p.kind}`)} ${p.name}`, recent: false })) : []
+    return [...found, ...spots]
+  }, [pages, query, t, here, places, asked])
   const current = Math.min(active, shown.length - 1)
 
   // A full page load: the floor plan and the settings pages are server pages, not routes.

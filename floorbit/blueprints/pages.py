@@ -1,5 +1,5 @@
 """The HTML pages of the editor and the kiosk view, and the list of pages for "Go to"."""
-from flask import Blueprint, current_app, jsonify, render_template
+from flask import Blueprint, current_app, jsonify, render_template, request
 
 from .. import page_index
 
@@ -24,3 +24,9 @@ def page_list():
     # The same context the floor plan's top bar is drawn with: features, permissions, set-up flags.
     current_app.update_template_context(ctx)
     return jsonify({'pages': page_index.for_context(ctx)})
+
+
+@bp.route('/api/pages/find')
+def find_place():
+    """Seats and switches for "Go to" as you type (issue #252): ``?q=b8`` finds seat B-8."""
+    return jsonify({'places': page_index.places(request.args.get('q', ''))})

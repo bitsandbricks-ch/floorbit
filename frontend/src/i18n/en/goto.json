@@ -1,10 +1,12 @@
 {
   "button": "Go to",
   "title": "Go to a page",
-  "placeholder": "Type a page name",
-  "none": "No page matches.",
+  "placeholder": "Type a page, seat or switch",
+  "none": "Nothing matches.",
   "close": "Close",
   "recent": "recent",
+  "seat": "Seat",
+  "switch": "Switch",
   "pages": {
     "floorPlan": "Floor plan",
     "seats": "Seats",

@@ -65,7 +65,7 @@ describe('Go to', () => {
     page()
     fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
     fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'zzz' } })
-    expect(screen.getByText('No page matches.')).toBeInTheDocument()
+    expect(await screen.findByText('Nothing matches.')).toBeInTheDocument()
   })
 
   it('puts the pages opened last first while nothing is typed', async () => {
@@ -80,5 +80,30 @@ describe('Go to', () => {
     expect(options.some((o) => o.textContent?.startsWith('Stats · recent'))).toBe(false)
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'health' } })
     expect(screen.getAllByRole('option')[0]).toHaveTextContent(/^Service health\/health$/)
+  })
+
+  it('finds seats and switches once you type two characters', async () => {
+    const fake = fakeFetch({
+      'GET /api/auth/me': tech, 'GET /api/pages': pages,
+      'GET /api/pages/find?q=b8': { places: [
+        { kind: 'seat', name: 'B-8', href: '/plan?seat=B-8' },
+        { kind: 'switch', name: 'sw-b8', href: '/plan?switch=sw-b8' },
+      ] },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
+    page()
+    fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
+    const box = await screen.findByRole('combobox')
+    fireEvent.change(box, { target: { value: 'b' } })
+    fireEvent.change(box, { target: { value: 'b8' } })
+    const seat = await screen.findByRole('option', { name: /Seat B-8/ })
+    expect(screen.getByRole('option', { name: /Switch sw-b8/ })).toBeInTheDocument()
+    // One character never asks the server.
+    expect(fake.calls.some((c) => c.path === '/api/pages/find?q=b')).toBe(false)
+    expect(seat).toHaveAttribute('aria-selected', 'true')
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(assign).toHaveBeenCalledWith('/plan?seat=B-8')
   })
 })

@@ -1,10 +1,12 @@
 {
   "button": "Gehe zu",
   "title": "Zu einer Seite",
-  "placeholder": "Seitenname eingeben",
-  "none": "Keine Seite passt.",
+  "placeholder": "Seite, Platz oder Switch eingeben",
+  "none": "Nichts passt.",
   "close": "Schliessen",
   "recent": "zuletzt",
+  "seat": "Platz",
+  "switch": "Switch",
   "pages": {
     "floorPlan": "Hallenplan",
     "seats": "Plätze",

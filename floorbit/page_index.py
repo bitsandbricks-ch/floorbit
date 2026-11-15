@@ -5,6 +5,11 @@ conditions match the floor plan's top bar (templates/index.html): the features t
 account's permissions, and what this server has set up (a Wi-Fi source, power boards, ...).
 The server still checks every page; this only keeps the list honest.
 """
+import re
+from urllib.parse import quote
+
+from . import incidents, inventory
+from .store import load_data
 
 # (href, id, English label, needs): ``needs`` maps the page's template context and a ``can``
 # function to True when the page belongs in the list. ``id`` names its texts in the React app
@@ -72,3 +77,31 @@ def for_context(ctx):
 
     return [{'href': href, 'id': page_id, 'label': label}
             for href, page_id, label, needs in PAGES if needs is None or needs(ctx, can)]
+
+
+def _seat_key(seat):
+    # B-8 before B-10: letters as text, numbers as numbers.
+    return [(0, int(part), '') if part.isdigit() else (1, 0, part) for part in re.split(r'(\d+)', seat)]
+
+
+def _squash(text):
+    return re.sub(r'[\s\-_.]', '', str(text or '')).lower()
+
+
+def places(query, data=None, limit=5):
+    """Seats and switches for "Go to" (issue #252): "b8" finds seat B-8, "core" the switch core-01.
+
+    Seat numbers and switch names only, which every crew role sees on the floor plan anyway; nicks,
+    IPs and MACs stay in the floor plan's own search, which checks ``seats.view``."""
+    q = _squash(query)
+    if len(q) < 2:
+        return []
+    data = data if data is not None else load_data()
+    seats = sorted(incidents.seat_numbers(data), key=_seat_key)
+    hits = [s for s in seats if _squash(s) == q] + [s for s in seats if _squash(s).startswith(q) and _squash(s) != q]
+    out = [{'kind': 'seat', 'name': s, 'href': f'/plan?seat={quote(s)}'} for s in hits[:limit]]
+    names = sorted({str(d.get('name')) for d in inventory.devices(data) if d.get('name')}, key=_seat_key)
+    matches = [n for n in names if q in _squash(n)]
+    matches.sort(key=lambda n: not _squash(n).startswith(q))
+    out += [{'kind': 'switch', 'name': n, 'href': f'/plan?switch={quote(n)}'} for n in matches[:limit]]
+    return out
