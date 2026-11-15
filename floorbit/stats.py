@@ -308,6 +308,26 @@ class Stats:
             self.peak = {'bps': busiest['down'] + busiest['up'], 'at': busiest['t']}
             self._save()
 
+    def seat_history(self, seat, since):
+        """One seat's link since ``since`` (issue #167): whether it was online then (None while
+        nothing was read yet) and every change after, as [t, 1|0]."""
+        with self._lock:
+            self._load()
+            base_t = self.seat_base['t']
+            if base_t is None:
+                return {'from': since, 'start': None, 'changes': []}
+            state = seat in self.seat_base['online']
+            start = max(since, base_t)
+            changes = []
+            for t, s, on in self.seat_events:
+                if s != seat:
+                    continue
+                if t <= start:
+                    state = bool(on)
+                else:
+                    changes.append([t, on])
+            return {'from': start, 'start': state, 'changes': changes}
+
     def seats(self):
         """Traffic per online seat from the latest read: seat numbers and numbers, nothing else."""
         with self._lock:

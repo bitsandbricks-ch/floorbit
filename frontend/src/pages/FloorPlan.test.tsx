@@ -4,7 +4,7 @@ import type { SeatDetails, SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import FloorPlan from './FloorPlan'
 import axe from 'axe-core'
-import { density, findSeat, heatColor, heatLevel, matches, nearestSeat, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
+import { density, findSeat, heatColor, heatLevel, linkSpans, matches, nearestSeat, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -24,6 +24,7 @@ const details: SeatDetails = {
   seat: 'D-2', block: 'D', state: 'offline', bps: null, switch: 'sw-d-01', port: 'Gi1/0/2',
   incidents: [{ id: 'i1', title: 'No link', status: 'open', created_at: 1_800_000_000 }], attention: [],
   match: null, checked_in: false, last_read: 1_800_000_000, people: false,
+  history: { from: 1_800_000_000 - 6 * 3600, to: 1_800_000_000, start: true, changes: [[1_799_990_000, 0], [1_799_991_000, 1], [1_799_995_000, 0]] },
 }
 const me = { enabled: true, user: { username: 'tia', display_name: 'Tia', role: 'tech', permissions: ['floorplan.view'] } }
 
@@ -71,6 +72,16 @@ describe('keyboard', () => {
   })
 })
 
+describe('link history', () => {
+  it('turns changes into spans, not-known-yet included', () => {
+    expect(linkSpans({ from: 0, to: 100, start: true, changes: [[40, 0], [70, 1]] })).toEqual([
+      { from: 0, to: 40, on: true }, { from: 40, to: 70, on: false }, { from: 70, to: 100, on: true }])
+    expect(linkSpans({ from: 0, to: 100, start: null, changes: [[30, 1]] })).toEqual([
+      { from: 0, to: 30, on: null }, { from: 30, to: 100, on: true }])
+    expect(linkSpans({ from: 0, to: 100, start: false, changes: [] })).toEqual([{ from: 0, to: 100, on: false }])
+  })
+})
+
 describe('traffic overlay', () => {
   it('uses a fixed log scale and viridis', () => {
     expect([undefined, 1e5, 1e6, 1e7, 1e9, 1e10].map(heatLevel)).toEqual([0, 0, 0.25, 0.5, 1, 1])
@@ -113,6 +124,7 @@ describe('Seats page', () => {
     expect(screen.getByText('No link')).toBeInTheDocument()
     expect(screen.getByText(/your role can't see nicks/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Show in the editor' })).toHaveAttribute('href', '/?seat=D-2')
+    expect(screen.getByRole('img', { name: /^Offline since .+\. 3 changes in 6 h$/ })).toBeInTheDocument()
   })
 
   it('dims seats a filter leaves out and finds a seat', async () => {

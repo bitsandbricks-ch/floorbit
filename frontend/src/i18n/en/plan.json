@@ -72,5 +72,20 @@
   "trafficScale": "Traffic per seat",
   "blockSummary_one": "Block {{name}}: {{online}} of {{count}} seat online",
   "blockSummary_other": "Block {{name}}: {{online}} of {{count}} seats online",
-  "keys": "Arrow keys move from seat to seat, Enter opens the seat, Escape closes it. Shift and the arrow keys move the map, + and - zoom."
+  "keys": "Arrow keys move from seat to seat, Enter opens the seat, Escape closes it. Shift and the arrow keys move the map, + and - zoom.",
+  "history": {
+    "title": "Link",
+    "onlineSince": "Online since {{time}}",
+    "offlineSince": "Offline since {{time}}",
+    "onlineAll_one": "Online the whole hour",
+    "onlineAll_other": "Online the whole {{count}} hours",
+    "offlineAll_one": "Offline the whole hour",
+    "offlineAll_other": "Offline the whole {{count}} hours",
+    "changes_zero": "No change in {{hours}} h",
+    "changes_one": "1 change in {{hours}} h",
+    "changes_other": "{{count}} changes in {{hours}} h",
+    "ago_one": "1 h ago",
+    "ago_other": "{{count}} h ago",
+    "now": "now"
+  }
 }
