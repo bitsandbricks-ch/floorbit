@@ -271,8 +271,10 @@ FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
 
 
 def is_waiting(incident, now):
-    """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared."""
-    return incident.get('status') == 'open' and not incident.get('assignee') \
+    """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared.
+
+    Not once the seat says it works again (issue #376): nobody is waiting on it any more."""
+    return incident.get('status') == 'open' and not incident.get('assignee') and not incident.get('seat_ok_at') \
         and now - (incident.get('created_at') or now) >= WAITING_AFTER
 
 
@@ -297,6 +299,28 @@ def seat_report_state(seat, now=None):
     if latest.get('dispatched_at') and not latest.get('taken_at'):
         return 'sent'
     return 'taken'
+
+
+def seat_open_since(seat):
+    """When the seat's oldest open helpdesk report was filed, or None (issue #392)."""
+    times = [i.get('created_at') or 0 for i in list_all() if i.get('seat') == seat and i.get('source') == 'helpdesk'
+             and i['status'] != 'fixed' and not i.get('seat_ok_at')]
+    return min(times) if times else None
+
+
+def seat_queue_ahead(seat):
+    """How many open reports nobody has taken were filed before this seat's (issue #378).
+
+    Only a count, so the attendee knows roughly how long to wait; nothing about the others leaks.
+    Counts the whole board, since the crew works one queue; ones the seat behind them called off don't count."""
+    items = list_all()
+    mine = [i for i in items if i.get('seat') == seat and i.get('source') == 'helpdesk'
+            and i['status'] == 'open' and not i.get('assignee') and not i.get('seat_ok_at')]
+    if not mine:
+        return None
+    since = min(i.get('created_at') or 0 for i in mine)
+    return sum(1 for i in items if i['status'] == 'open' and not i.get('assignee') and not i.get('seat_ok_at')
+               and (i.get('created_at') or 0) < since)
 
 
 def update(user, incident_id, body):

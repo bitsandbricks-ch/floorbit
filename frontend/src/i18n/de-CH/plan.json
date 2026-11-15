@@ -74,6 +74,7 @@
   },
   "openEditor": "Im Editor zeigen",
   "incidents": "Störungen",
+  "qrCode": "QR-Code",
   "flag": "Für Techniker markieren",
   "flagNote": "Was soll sich der Techniker anschauen?",
   "flagSend": "Platz markieren",
@@ -124,7 +125,8 @@
     "carries_other": "{{online}} von {{count}} Plätzen online",
     "noPort_one": "{{count}} Platz an keinem bekannten Port",
     "noPort_other": "{{count}} Plätze an keinem bekannten Port",
-    "open": "Block {{name}} öffnen"
+    "open": "Block {{name}} öffnen",
+    "qrCodes": "QR-Codes drucken"
   },
   "switchPanel": {
     "seats": "Plätze an diesem Switch",
