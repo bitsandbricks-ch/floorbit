@@ -30,12 +30,13 @@ def put_notice():
         posted = notice.post(request.get_json(silent=True) or {}, _who())
     except notice.NoticeError as exc:
         return jsonify({'error': str(exc)}), 400
-    events.publish('notice.changed', {})
+    # The notice goes along so the crew Discord channel can post it (integrations/crew.py).
+    events.publish('notice.changed', {'notice': posted})
     return jsonify({'notice': posted})
 
 
 @bp.route('/api/notice', methods=['DELETE'])
 def delete_notice():
     notice.clear()
-    events.publish('notice.changed', {})
+    events.publish('notice.changed', {'notice': None})
     return jsonify({'notice': None})

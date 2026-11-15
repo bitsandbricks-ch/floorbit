@@ -23,6 +23,10 @@ notice shows again.
 
 Putting a notice up and taking it down are in the [audit log](audit.md), under *incidents*.
 
+With the [crew Discord channel](crew-discord.md) set up, each notice is posted there too, so people
+away from Floorbit see it. Turn that off with `DISCORD_CREW_NOTICES=false` or under **Settings >
+Crew Discord channel**.
+
 ## API
 
 `GET /api/notice` returns `{"notice": {...}}` or `{"notice": null}`. `PUT /api/notice` with

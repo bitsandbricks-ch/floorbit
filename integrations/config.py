@@ -156,6 +156,9 @@ SCHEMA = [
     {'key': 'DISCORD_CREW_INCIDENTS', 'group': 'crew', 'type': 'bool', 'default': True,
      'label': 'Incidents in the crew channel',
      'help': 'Post each incident with a thread that follows it until it is fixed.'},
+    {'key': 'DISCORD_CREW_NOTICES', 'group': 'crew', 'type': 'bool', 'default': True,
+     'label': 'Crew notices in the crew channel',
+     'help': 'Post each crew notice a lead puts up, so people away from Floorbit see it too.'},
 
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',

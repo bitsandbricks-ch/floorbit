@@ -198,3 +198,32 @@ def test_no_buttons_without_the_public_key(bridge, client, anon_client, app_modu
     labels = [b["label"] for b in bridge.fake.calls[0][2]["components"][0]["components"]]
     assert labels == ["Open in Floorbit"]
     assert anon_client.post("/api/discord/interactions", **_interaction(key, {"type": 1})).status_code == 404
+
+
+def test_a_crew_notice_is_posted_once_put_up(bridge, client, monkeypatch):
+    # Issue #248: what a lead puts up also reaches people who aren't looking at Floorbit.
+    # "@everyone" stays in the text, but allowed_mentions keeps it from pinging anyone.
+    monkeypatch.setattr(bridge, "_ensure_worker", lambda: None)
+    client.put("/api/notice", json={"text": "Hall B: power work at 14:00 @everyone leave row C alone",
+                                    "level": "warn", "hours": 2})
+    kind, notice = bridge._queue.get_nowait()
+    assert kind == "notice" and notice["level"] == "warn"
+    bridge._handle((kind, notice))
+    ((method, path, body),) = bridge.fake.calls
+    assert method == "POST" and path.endswith("/messages")
+    assert body["allowed_mentions"] == {"parse": []}   # "@everyone" in the text pings no one
+    assert body["content"].startswith("⚠️ **Crew notice** (from ")
+    assert body["content"].endswith(", for 2 hours)\n> Hall B: power work at 14:00 @everyone leave row C alone")
+
+    client.delete("/api/notice")   # taking it down posts nothing
+    assert bridge._queue.empty()
+    monkeypatch.setenv("DISCORD_CREW_NOTICES", "false")
+    client.put("/api/notice", json={"text": "Doors open at 18:00"})
+    assert bridge._queue.empty()
+
+
+def test_notice_message_without_an_end():
+    from integrations.crew import CrewBridge
+    notice = {"text": "Doors open at 18:00", "level": "info", "until": None, "by": None, "at": 0}
+    text = CrewBridge.notice_message(notice)
+    assert text == "📣 **Crew notice** (until taken down)\n> Doors open at 18:00"

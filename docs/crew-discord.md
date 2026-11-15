@@ -24,6 +24,9 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
   With a webhook URL set, they still go to the webhook. You can use one channel for
   incidents and another for alerts.
 
+- **Crew notices:** when a lead puts up a [crew notice](crew-notice.md), it is posted in the crew
+  channel too: warning or info, who put it up and for how long. Taking it down posts nothing.
+
 What people write in Discord threads is not copied back into Floorbit. That needs a gateway
 connection and Discord's message content permission. Notes are added on the incident board.
 
@@ -58,6 +61,7 @@ never mention anyone (`allowed_mentions` is empty).
 | `DISCORD_APP_PUBLIC_KEY` | | turns on the buttons |
 | `DISCORD_CREW_ENABLED` | `true` | turn the channel off without removing the token |
 | `DISCORD_CREW_INCIDENTS` | `true` | post incidents (off: only alerts, when there is no webhook) |
+| `DISCORD_CREW_NOTICES` | `true` | post each [crew notice](crew-notice.md) a lead puts up |
 | `DISCORD_CREW_FILE` | next to `data.json` | which message and thread belong to which incident |
 
 `GET /api/integrations` shows the bridge's state under `crew`: whether it is configured, whether the

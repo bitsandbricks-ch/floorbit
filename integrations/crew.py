@@ -130,6 +130,7 @@ class CrewBridge:
     # wiring -------------------------------------------------------------------------------
     def attach(self):
         events.subscribe('incident.changed', self.on_incident)
+        events.subscribe('notice.changed', self.on_notice)
 
     def on_incident(self, event):
         if not self.enabled() or not config.get_bool('DISCORD_CREW_INCIDENTS', True):
@@ -143,6 +144,31 @@ class CrewBridge:
         except queue.Full:
             self.last_error = 'crew channel queue full, an update was dropped'
 
+    def on_notice(self, event):
+        """A lead put up a crew notice (issue #248). Taking one down posts nothing."""
+        notice = (event.get('data') or {}).get('notice')
+        if not notice or not self.enabled() or not config.get_bool('DISCORD_CREW_NOTICES', True):
+            return
+        self._ensure_worker()
+        try:
+            self._queue.put_nowait(('notice', notice))
+        except queue.Full:
+            self.last_error = 'crew channel queue full, a notice was dropped'
+
+    @staticmethod
+    def notice_message(notice):
+        # Durations, not clock times: the server's time zone may not be the hall's.
+        hours = round((notice['until'] - notice['at']) / 3600) if notice.get('until') else 0
+        head = '⚠️ **Crew notice**' if notice.get('level') == 'warn' else '📣 **Crew notice**'
+        meta = [f"from {notice['by']}" if notice.get('by') else '',
+                f"for {hours} hour{'s' if hours != 1 else ''}" if hours else 'until taken down']
+        quoted = '\n'.join('> ' + line for line in notice['text'].splitlines() or [''])
+        return f"{head} ({', '.join(m for m in meta if m)})\n{quoted}"
+
+    def post_notice(self, notice):
+        return self._call('POST', f'/channels/{channel_id()}/messages',
+                          {'content': self.notice_message(notice), 'allowed_mentions': {'parse': []}})
+
     def _ensure_worker(self):
         with self._lock:
             if self._thread and self._thread.is_alive():
@@ -150,15 +176,21 @@ class CrewBridge:
             self._thread = threading.Thread(target=self._worker, name='discord-crew', daemon=True)
             self._thread.start()
 
+    def _handle(self, item):
+        # Incidents are queued by id; a crew notice as ('notice', notice).
+        if isinstance(item, tuple):
+            return self.post_notice(item[1])
+        return self.sync(item)
+
     def _worker(self):
         while True:
-            incident_id = self._queue.get()
+            item = self._queue.get()
             try:
                 if self.app is not None:
                     with self.app.app_context():
-                        self.sync(incident_id)
+                        self._handle(item)
                 else:
-                    self.sync(incident_id)
+                    self._handle(item)
             except Exception as exc:  # noqa: BLE001  # keep the sender thread alive
                 self.last_error = str(exc)[:300]
                 print(f'[integrations] crew channel update failed: {exc}')
