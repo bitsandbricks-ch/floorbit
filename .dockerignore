@@ -64,3 +64,4 @@ temp/
 # The React app: built in the image, never copied from the host
 frontend/node_modules/
 static/app/
+agent.env
