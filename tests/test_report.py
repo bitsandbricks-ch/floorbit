@@ -148,7 +148,9 @@ def test_time_until_someone_takes_an_incident(client, stats, monkeypatch):
     client.patch(f"/api/incidents/{first}", json={"status": "open"})
     client.patch(f"/api/incidents/{first}", json={"status": "fixed"})
     from floorbit import incidents
-    assert incidents.get(first)["taken_at"] == start + 120
+    assert incidents.get(first)["picked_up_at"] == start + 120
+    # Dispatch's own "the tech saw the job" stays untouched by this.
+    assert incidents.get(second).get("taken_at") is None
     found = client.get("/api/report").get_json()["incidents"]
     # Taken after 120 s and 600 s: the middle of the sorted list is the later one.
     assert found["median_take_s"] == 600

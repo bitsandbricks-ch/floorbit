@@ -67,7 +67,7 @@ def _incidents(since, people):
     items.sort(key=lambda i: i['created_at'])
     fixed = [i for i in items if i.get('fixed_at')]
     took = sorted(i['fixed_at'] - i['created_at'] for i in fixed)
-    taken = sorted(i['taken_at'] - i['created_at'] for i in items if i.get('taken_at'))
+    taken = sorted(i['picked_up_at'] - i['created_at'] for i in items if i.get('picked_up_at'))
     rows = []
     for i in items[:MAX_INCIDENTS]:
         row = {'title': i['title'], 'seat': i.get('seat'), 'switch': i.get('switch_name'),
