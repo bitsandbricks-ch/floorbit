@@ -103,9 +103,15 @@ class Relay:
         self.log(f'[agent] listening for syslog on UDP {self._server.server_address[1]}')
         return self._server.server_address[1]
 
-    def stop(self):
+    def stop(self, flush=True):
         self._stop.set()
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
             self._server = None
+        if flush and self.lines:
+            # On the way out (docker stop): one last try, so a restart doesn't lose the backlog.
+            try:
+                self.flush_once()
+            except Exception as exc:  # noqa: BLE001
+                self.log(f'[agent] {len(self.lines)} syslog lines could not be sent before stopping: {exc}')

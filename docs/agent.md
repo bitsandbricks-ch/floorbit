@@ -107,7 +107,8 @@ docker run -d --restart on-failure:3 --name floorbit-agent \
 ```
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
-monitoring plugin, the inventory plugins), says which works and which doesn't, and exits with 0 when
+monitoring plugin, the inventory and health plugins, and, when their ports are set, whether the
+hosted Floorbit takes syslog and flows), says which works and which doesn't, and exits with 0 when
 everything works, 1 when something doesn't:
 
 ```sh
@@ -139,7 +140,8 @@ so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
 start it with the new key. That's why the Compose file restarts it only on failure, at most 3
-times, instead of `unless-stopped`.
+times, instead of `unless-stopped`. Stopping it (`docker stop`, Ctrl+C) first sends the syslog
+lines still waiting, so an update doesn't lose them.
 
 To update the agent, pull the new image and start it again (`docker compose -f
 docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The

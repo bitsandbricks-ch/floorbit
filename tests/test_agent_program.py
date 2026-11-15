@@ -755,3 +755,49 @@ def test_without_redis_the_agents_summary_is_kept_in_memory(monkeypatch):
     assert store.publish({"updated": 1}, keep_locally=True) and store.latest() == {"updated": 1}
     store._local["at"] -= store.SNAPSHOT_TTL + 1
     assert store.latest() is None
+
+
+def test_check_tries_syslog_and_flows_when_set(client, app_module, monkeypatch):
+    import floorbit.flows as flows_pkg
+    monkeypatch.setattr(flows_pkg, "seat_maps", lambda: ({"192.0.2.10": "A-1"}, {"A-1": "A"}))
+    monkeypatch.setenv("FLOORBIT_AGENT_SYSLOG_PORT", "5514")
+    monkeypatch.setenv("FLOORBIT_AGENT_FLOWS_PORT", "2055")
+    a = make(app_module, enrol(client)["key"])
+
+    def execute(method, args):
+        return [] if method in ("inventory_feeds", "health_feeds") else fake_execute(method, args)
+
+    lines = []
+    assert agent_mod.check(a, execute, lines.append) is True
+    assert any(x.startswith("OK   the hosted Floorbit takes syslog") and "UDP 5514" in x for x in lines)
+    assert any(x.startswith("OK   the hosted Floorbit takes flows and knows 1 seat") for x in lines)
+    assert client.get("/api/logs").get_json()["status"]["relayed"] == []   # a check isn't an agent sending
+    assert client.put("/api/settings/features", json={"syslog": False, "traffic": False}).status_code == 200
+    lines.clear()
+    assert agent_mod.check(a, execute, lines.append) is False
+    assert any(x.startswith("FAIL syslog: Syslog is turned off") for x in lines)
+    assert any(x.startswith("FAIL flows: Traffic is turned off") for x in lines)
+
+
+def test_stopping_sends_the_syslog_backlog():
+    from floorbit.agent.syslog_relay import Relay
+    sent = []
+    relay = Relay(lambda lines, dropped: sent.extend(lines), 0, log=lambda *_: None)
+    relay.receive(b"<14>last words", "192.0.2.9")
+    relay.stop()
+    assert [x["raw"] for x in sent] == ["<14>last words"] and not relay.lines
+
+    said = []
+
+    def down(lines, dropped):
+        raise RuntimeError("no route to host")
+
+    relay = Relay(down, 0, log=said.append)
+    relay.receive(b"<14>lost", "192.0.2.9")
+    relay.stop()
+    assert said == ["[agent] 1 syslog lines could not be sent before stopping: no route to host"]
+
+
+def test_sigterm_stops_like_ctrl_c():
+    with pytest.raises(KeyboardInterrupt):
+        agent_mod._stop_on_term(15, None)

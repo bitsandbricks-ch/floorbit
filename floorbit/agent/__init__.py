@@ -15,6 +15,7 @@ import contextlib
 import io
 import json
 import os
+import signal
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -292,6 +293,20 @@ def check(agent, execute, out=print):
                 line(True, f"{feed['name']} answers: {len(feed['items'])} health checks")
     except Exception as exc:  # noqa: BLE001
         line(False, f'the health plugins: {exc}')
+    if os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT'):
+        try:
+            agent.send_syslog([])
+            line(True, f'the hosted Floorbit takes syslog (the agent will listen on UDP '
+                       f'{os.environ["FLOORBIT_AGENT_SYSLOG_PORT"]})')
+        except Exception as exc:  # noqa: BLE001
+            line(False, f'syslog: {exc}')
+    if os.environ.get('FLOORBIT_AGENT_FLOWS_PORT'):
+        try:
+            seats = agent.flow_seats().get('seat_of') or {}
+            line(True, f'the hosted Floorbit takes flows and knows {len(seats)} seat addresses (the agent will '
+                       f'listen on UDP {os.environ["FLOORBIT_AGENT_FLOWS_PORT"]})')
+        except Exception as exc:  # noqa: BLE001
+            line(False, f'flows: {exc}')
     out('All good: start the agent without "check".' if ok else 'Fix what failed, then run the check again.')
     return ok
 
@@ -325,6 +340,10 @@ def start_flows(agent, port, out=print):
         out(f'[agent] cannot listen for flows on "{port}": {exc}')
         return False
     return relay
+
+
+def _stop_on_term(_signum, _frame):
+    raise KeyboardInterrupt
 
 
 def main(argv=None):
@@ -362,6 +381,8 @@ def main(argv=None):
             if relay:
                 relay.stop()
         return 2
+    # docker stop sends SIGTERM: leave the way Ctrl+C does, so the syslog backlog goes out first.
+    signal.signal(signal.SIGTERM, _stop_on_term)
     try:
         agent.run()
     except Refused as exc:
@@ -369,6 +390,7 @@ def main(argv=None):
         return 1
     except KeyboardInterrupt:
         agent.stop()
+        print('[agent] stopping')
     finally:
         for relay in relays:
             if relay:
