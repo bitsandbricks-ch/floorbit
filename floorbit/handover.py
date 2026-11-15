@@ -9,7 +9,8 @@ hands over. What happened is put together from what Floorbit already keeps:
 - changes from the audit log: port actions, settings, the floor plan, power, plugins and accounts;
 - crew notes on seats written or changed since (issue #202);
 - what is muted right now and the crew notice that is up (issue #258), so a mute set by the last
-  shift is not forgotten.
+  shift is not forgotten;
+- what the programme has coming up in the next shift (issue #432): a final means more calls.
 
 Each handover is kept in data.json under ``handover`` (the newest ``MAX_KEPT``): when, who, the note
 and the counts. The next summary starts where the last handover ended.
@@ -26,6 +27,7 @@ MAX_KEPT = 100
 MAX_NOTE = 4000
 FIRST_SHIFT_HOURS = 8          # with no handover yet, look back this far
 MAX_CHANGES = 100
+MAX_COMING_UP = 12
 # Audit areas a shift wants to know about. Incidents have their own section; sign-ins are noise.
 CHANGE_AREAS = ('ports', 'settings', 'floor plan', 'power', 'plugins', 'accounts', 'security', 'check-in', 'gear')
 
@@ -129,6 +131,15 @@ def _gear_out(data):
             for to, names in sorted(held.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))]
 
 
+def _coming_up(data, now):
+    """Programme items that start within the next shift (issue #432), earliest first."""
+    from . import schedule
+    until = now + FIRST_SHIFT_HOURS * 3600
+    items = [i for i in schedule.public(data, now)['items'] if now <= i['start'] < until]
+    return [{k: i.get(k) for k in ('id', 'title', 'kind', 'start', 'end', 'where')}
+            for i in sorted(items, key=lambda i: i['start'])[:MAX_COMING_UP]]
+
+
 def summary(switch_events, problems_now, since=None, now=None):
     from . import incidents, notice, seat_notes, tournament
     now = time.time() if now is None else now
@@ -158,6 +169,7 @@ def summary(switch_events, problems_now, since=None, now=None):
         'seat_notes': notes,
         'mutes': mutes,
         'gear': gear_out,
+        'coming_up': _coming_up(data, now),
         'notice': notice.current(data, now),
         'counts': {'open': len(still_open), 'waiting': sum(1 for i in items if incidents.is_waiting(i, now)),
                    'opened': opened, 'fixed': len(fixed),

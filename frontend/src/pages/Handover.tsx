@@ -197,6 +197,24 @@ export default function Handover() {
               </Paper>
             )}
 
+            {!!d.coming_up?.length && (
+              <Paper withBorder radius="lg" p="md">
+                <Title order={2} size="h4" mb="xs">{t('handover.comingUp')}</Title>
+                <Stack gap={6}>
+                  {d.coming_up.map((i) => (
+                    <Group key={i.id} gap="sm" wrap="nowrap" align="baseline">
+                      <Text size="sm" c="dimmed" style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{when(i.start)}</Text>
+                      <Text size="sm" fw={600} style={{ flex: 1, overflowWrap: 'anywhere' }}>
+                        {i.title}{i.where ? <Text span size="sm" fw={400} c="dimmed"> · {i.where}</Text> : null}
+                      </Text>
+                      {i.kind === 'tournament' && <Badge size="sm" variant="light" color="warn">{t('handover.tournament')}</Badge>}
+                    </Group>
+                  ))}
+                </Stack>
+                <Anchor href="/schedule" size="sm" mt="xs" display="inline-block">{t('handover.fullSchedule')}</Anchor>
+              </Paper>
+            )}
+
             {d.seat_notes.length > 0 && (
               <Paper withBorder radius="lg" p="md">
                 <Title order={2} size="h4" mb="xs">{t('handover.seatNotes')}</Title>

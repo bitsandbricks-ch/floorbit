@@ -46,6 +46,34 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
 What people write in Discord threads is not copied back into Floorbit. That needs a gateway
 connection and Discord's message content permission. Notes are added on the incident board.
 
+## Slash commands
+
+With the bot token and the app public key set, the bot also answers slash commands (epic #407).
+Floorbit registers them with Discord by itself within a minute: on the crew's server when Discord
+sign-in has a server ID (they show up at once), else in every server the bot is in. When you add the
+bot to your server, give it the **applications.commands** scope as well as **bot**.
+
+Answers are only shown to the person who asked, and they never ping anyone. A command counts as
+the Floorbit account linked to that Discord user, with that account's permissions, the same as a
+button click. There is no Discord role mapping.
+
+| Command | What it answers |
+| --- | --- |
+| `/status` | how the network is doing: the state and since when, the affected areas, areas back up recently and the latest crew update. Crew with `incidents.work` also see the switch names. Anyone else sees only what the public [status page](status-page.md) shows, and only while that page is on. |
+| `/seat <seat>` | one seat: online or not and how fast, its switch port, open incidents, needs-attention items and how often it was fixed before, with a link to it on the floor plan. Needs `incidents.work`. |
+| `/switch <name>` | one switch: up or down and since when, its model, how many of its seats are online and which are not (with their ports). Needs `incidents.work`. |
+
+| `/incident report <seat> <problem>` | files an incident for a seat, like the incident board does. It shows up there marked *From Discord*, and automatic dispatch applies. |
+| `/incident take <incident>` | takes an open incident. Start typing a seat or a few words, and Discord lists the open incidents you may work. |
+| `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
+| `/jobs` | the incidents you have, oldest first. |
+
+The incident commands follow the account's permissions exactly as on the board, and every change is
+in the [audit log](audit.md).
+
+`/seat` and `/switch` suggest seat numbers and switch names as you type, to crew only. They never
+show nicks, IPs or MACs: those stay in Floorbit.
+
 ## Privacy
 
 Messages show the seat, switch or circuit and what the crew wrote. They never show IPs, MACs or nicks.
@@ -91,5 +119,6 @@ buttons are on, the last error and the interactions URL to paste into the portal
 `POST /api/discord/interactions` has no session. Discord calls it from its own servers. Floorbit
 checks each request's Ed25519 signature against the app's public key and refuses requests signed
 more than five minutes ago. When Discord sign-in has a server ID, clicks from other servers are
-refused. Clicks from any channel other than the crew channel are refused too. Every click that
+refused. Clicks from any channel other than the crew channel are refused too. Slash commands work in
+any channel on that server. Every click that
 changes an incident is written to the [audit log](audit.md) under the linked account.

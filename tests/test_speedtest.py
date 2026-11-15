@@ -95,3 +95,45 @@ def test_help_page_has_the_test(anon_client, app_module, floor):
 def test_results_are_for_the_crew(app_module, floor):
     viewer = sign_in_as(app_module, "vi1", "viewer")
     assert viewer.get("/api/speedtests").status_code == 403
+    assert viewer.get("/api/speedtests/summary").status_code == 403
+    assert viewer.get("/speedtests").status_code in (302, 403)
+    tech = sign_in_as(app_module, "te1", "tech")
+    assert tech.get("/api/speedtests/summary").status_code == 200
+
+
+def _result(down, at, up=None, ping=1.0):
+    return {"down_mbps": down, "up_mbps": up if up is not None else down, "ping_ms": ping, "jitter_ms": 0.2, "at": at}
+
+
+def test_summary_per_switch():
+    now = 1_800_000_000
+    data = {speedtest.KEY: {
+        "A-1": [_result(940, now - 60), _result(10, now - 7200)],   # only the latest counts
+        "A-2": [_result(920, now - 120)],
+        "B-1": [_result(90, now - 60, ping=6)],
+        "B-2": [_result(110, now - 300)],
+        "C-1": [_result(5, now - 13 * 3600)],                        # too old
+        "D-1": [_result(900, now - 60)],                              # no known switch
+    }}
+    sw = {"A": [{"id": "s1", "name": "sw-a-01"}], "B": [{"id": "s2", "name": "sw-b-01"}]}
+    out = speedtest.summary(lambda seat: sw.get(seat[0], []), data, now)
+    assert out["hall"] == {"tests": 5, "down_mbps": 900.0, "up_mbps": 900.0, "ping_ms": 1.0}
+    first, second = out["switches"]
+    assert (first["name"], first["slow"], first["tests"], first["down_mbps"]) == ("sw-b-01", True, 2, 100.0)
+    assert [s["seat"] for s in first["seats"]] == ["B-1", "B-2"] and first["ping_ms"] == 3.5
+    assert (second["name"], second["slow"], second["down_mbps"]) == ("sw-a-01", False, 930.0)
+    assert [r["seat"] for r in out["unknown"]] == ["D-1"]
+    assert set(first["seats"][0]) == {"seat", "down_mbps", "up_mbps", "ping_ms", "at"}
+
+
+def test_one_slow_seat_does_not_mark_its_switch():
+    now = 1_800_000_000
+    data = {speedtest.KEY: {"A-1": [_result(900, now)], "A-2": [_result(910, now)], "B-1": [_result(20, now)]}}
+    out = speedtest.summary(lambda seat: [{"id": seat[0], "name": f"sw-{seat[0].lower()}"}], data, now)
+    assert not any(s["slow"] for s in out["switches"])
+
+
+def test_summary_endpoint(client, floor):
+    body = client.get("/api/speedtests/summary").get_json()
+    assert body["hours"] == 12 and body["hall"]["tests"] == 0 and body["switches"] == []
+    assert client.get("/speedtests").status_code in (200, 503)   # 503: no frontend build (CI)

@@ -2,7 +2,7 @@
 
 One screen for the services a LAN lives on: DHCP (leases left per scope), DNS, the LAN cache (hit
 rate, traffic saved), game servers and the internet uplink, each **green** (up), **amber**
-(degraded), **red** (down) or grey (unknown). Open it at **Health** in the top bar (`/health`).
+(degraded), **red** (down) or grey (unknown). Open it at **Service health** in the sidebar (`/health`, under Network).
 Its browser tab starts with the number of red and amber services, e.g. "(2) Service health · Floorbit",
 so a tab in the background shows when a service needs a look.
 Code: [`floorbit/health.py`](../floorbit/health.py) and
@@ -68,3 +68,5 @@ Turn health messages off with **Health wall alerts** (`DISCORD_HEALTH_ALERTS=0`)
 | --- | --- |
 | See the wall (`GET /health`, `GET /api/health`) | `floorplan.view` (every role, kiosk included) |
 | **Check now** (`POST /api/health/check`) | `plugins.run`: it sends the plugins' requests out right away |
+
+On a hosted Floorbit, the health plugins can run on the [local agent](agent.md#health-checks-through-the-agent) instead, so services inside the hall are checked from inside the hall.

@@ -49,5 +49,8 @@
   "gearTitle_other": "Material noch draussen ({{count}} Stück)",
   "halfWithin": "die Hälfte innert {{d}}",
   "fixedBy": "Von: {{list}}",
-  "nobodyNamed": "niemand genannt"
+  "nobodyNamed": "niemand genannt",
+  "comingUp": "Kommt in dieser Schicht",
+  "tournament": "Turnier",
+  "fullSchedule": "Ganzes Programm"
 }

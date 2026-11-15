@@ -8,13 +8,14 @@
 - ``GET /agenda``: the public page, for big screens (``?screen=1``) and phones, no account. Off unless
   Settings > Attendee pages turns it on.
 - ``GET /agenda.json``: the same as JSON.
+- ``GET /agenda.ics``: the programme as a calendar feed attendees subscribe to on their phones.
 
 Reading the crew's page needs ``floorplan.view``, changing it ``floorplan.edit`` (auth/roles.py).
 """
 import time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from flask import Blueprint, current_app, g, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
 
 from integrations import events
 
@@ -30,14 +31,16 @@ TEXTS = {
            'programme': 'Programme', 'empty': 'The programme is not out yet.', 'until': 'until {time}',
            'kind': {'talk': 'Talk', 'tournament': 'Tournament', 'meal': 'Food', 'quiet': 'Quiet hours',
                     'other': 'Event'},
-           'updated': 'Updated {time}. This page updates every minute.'},
+           'updated': 'Updated {time}. This page updates every minute.',
+           'subscribe': 'Add the programme to your calendar'},
     'de': {'title': 'Programm', 'off': 'Diese Seite ist ausgeschaltet.', 'starts_in': 'Der Event beginnt in',
            'days': 'T', 'now': 'Jetzt', 'next': 'Als Nächstes', 'nothing_now': 'Gerade steht nichts auf dem Programm.',
            'quiet': 'Nachtruhe bis {time}. Bitte leise sein.', 'over': 'Der Event ist vorbei. Danke fürs Kommen!',
            'programme': 'Programm', 'empty': 'Das Programm ist noch nicht draussen.', 'until': 'bis {time}',
            'kind': {'talk': 'Vortrag', 'tournament': 'Turnier', 'meal': 'Essen', 'quiet': 'Nachtruhe',
                     'other': 'Programmpunkt'},
-           'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.'},
+           'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.',
+           'subscribe': 'Programm im eigenen Kalender abonnieren'},
 }
 
 
@@ -162,5 +165,16 @@ def agenda_json():
     return jsonify(schedule.public())
 
 
-for _view in (agenda_page, agenda_json):
+@bp.route('/agenda.ics')
+def agenda_ics():
+    if not page_on():
+        return jsonify({'error': 'The schedule page is switched off.'}), 404
+    name = current_app.extensions['floorbit_settings'].get('theme.name') or TEXTS['en']['title']
+    body = schedule.to_ics(schedule.public()['items'], name, request.host.split(':')[0])
+    # inline, not a download: calendar apps subscribe to the URL and fetch it again every hour
+    return Response(body, mimetype='text/calendar', headers={'Content-Disposition': 'inline; filename="agenda.ics"',
+                                                              'Cache-Control': 'public, max-age=300'})
+
+
+for _view in (agenda_page, agenda_json, agenda_ics):
     _view._auth_public = True   # what auth.public_endpoint sets: attendees have no account

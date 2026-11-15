@@ -131,7 +131,9 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/report/new-event",   # starting the report's history again
                         "/api/past-events/",       # closing, renaming or deleting a past event
                         "/api/commands/templates/",   # which commands the crew may send to switches
-                        "/api/discord/interactions")   # signed by Discord, acts with the linked account
+                        "/api/discord/interactions",   # signed by Discord, acts with the linked account
+                        "/api/agents",                 # enrolling a local agent hands out a key to the event's data
+                        "/api/agent/v1/")              # the local agent, with its own key (blueprints/agent.py)
     loose = []
     for rule in app_module.app.url_map.iter_rules():
         writes = (rule.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}

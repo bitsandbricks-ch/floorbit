@@ -117,6 +117,13 @@ SCHEMA = [
      'label': 'Attendee status channel webhook',
      'help': 'A webhook in a channel attendees read. Every update the crew posts on Network status goes '
              'there too, while the public status page is on. Leave empty to post nothing.'},
+    {'key': 'DISCORD_SCHEDULE_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
+     'label': 'Attendee programme channel webhook',
+     'help': 'A webhook in a channel attendees read (it can be the status channel\'s). Shortly before a talk, '
+             'tournament or meal starts, it is announced there, while the public schedule page is on.'},
+    {'key': 'SCHEDULE_ANNOUNCE_MINUTES', 'group': 'discord', 'type': 'int', 'default': 10,
+     'label': 'Announce the programme (minutes ahead)',
+     'help': 'How long before an item starts it is announced in the programme channel. 0 announces nothing.'},
     {'key': 'DISCORD_ALERTS_ENABLED', 'group': 'discord', 'type': 'bool', 'default': True,
      'label': 'Discord alerts', 'help': 'Post a message when a placed switch goes offline or comes back.'},
     {'key': 'DISCORD_NOTIFY_RECOVERY', 'group': 'discord', 'type': 'bool', 'default': True,

@@ -81,7 +81,7 @@ Floorbit POSTs each event as JSON as it happens:
 | Event | When | `data` |
 | --- | --- | --- |
 | `switch.down`, `switch.up` | The status monitor saw a switch go down or come back | `id`, `name`, `since`, `down_for` (seconds, on `switch.up`), `reason` |
-| `monitoring.offline`, `monitoring.online` | The monitoring source stopped or started answering | `source`, `error`, `since`, `down_for` |
+| `monitoring.offline`, `monitoring.online` | The monitoring source stopped or started answering | `source`, `error`, `since`, `down_for`; for a [local agent](agent.md) also `agent: true` and `last_seen` |
 | `incident.opened` | An incident was filed on the board, from a seat (helpdesk) or by a power alert | `id`, `title`, `status`, `seat`, `switch_name`, `circuit_name`, `team`, `assignee`, `source`, `created_at`, `updated_at` |
 | `incident.changed` | An incident was taken, assigned, noted or fixed | the same as `incident.opened` |
 | `seat.checked_in` | A player checked in at a seat | `seat`, `moved_from` |

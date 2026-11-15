@@ -112,6 +112,10 @@ def create_app(start_background=True):
     from .health import init_health
     init_health(app, registry, start_background=start_background)
 
+    # Discord posts what is about to start on the public programme (docs/schedule.md).
+    from .schedule_announce import init_schedule_announce
+    init_schedule_announce(app, start_background=start_background)
+
     # Security findings from security plugins, polled in the background (docs/security.md).
     from .security import init_security
     init_security(app, registry, start_background=start_background)

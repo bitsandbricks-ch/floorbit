@@ -1,6 +1,6 @@
 # Security detection
 
-The **Security** page (`/security`, in the top bar) lists what the security plugins see on the hall
+The **Security** page (`/security`, in the sidebar under Network) lists what the security plugins see on the hall
 network: **rogue DHCP servers**, **ARP spoofing** (one IP answered by several MACs), **MAC flapping**
 between ports, **loops** and **broadcast storms**. Each finding points at a switch port and, where
 Floorbit can tell, a seat. Active findings also show on the floor plan as a dashed amber ring on

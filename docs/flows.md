@@ -1,6 +1,6 @@
 # Traffic insights (NetFlow and IPFIX)
 
-**Traffic** in the top bar (`/traffic`) shows what the hall's traffic is made of: gaming, streaming,
+**Traffic** in the sidebar (`/traffic`, under Network) shows what the hall's traffic is made of: gaming, streaming,
 downloads, updates, web and other, for the whole hall and per seat block, the services most seats
 use, and things ops should look at. It stays aggregate: nobody can see what a person visited.
 
@@ -8,6 +8,9 @@ Code: [`floorbit/flows/`](../floorbit/flows/) (parsing, classifying, aggregating
 [`floorbit/blueprints/flows.py`](../floorbit/blueprints/flows.py), [`frontend/src/pages/Traffic.tsx`](../frontend/src/pages/Traffic.tsx).
 
 ## Setting it up
+
+On a hosted Floorbit, the [local agent](agent.md#traffic-netflow-through-the-agent) collects the
+flows on the event network and sends only the summary.
 
 The collector is its own optional container, so installs without NetFlow keep working as before:
 

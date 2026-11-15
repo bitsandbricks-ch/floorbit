@@ -274,7 +274,7 @@ export interface Incident {
   team: string | null
   status: IncidentStatus
   assignee: string | null
-  source: 'board' | 'helpdesk' | 'power'
+  source: 'board' | 'helpdesk' | 'power' | 'discord'
   reported_by: string | null
   reports: number
   notes: IncidentNote[]
@@ -541,6 +541,8 @@ export interface FlowsData {
   rules_error: string | null
   demo?: boolean
   stale?: boolean
+  /** The local agent whose collector sent this summary (issue #2). */
+  agent?: string
   updated?: number
   flows?: number
   exporters?: { address: string; flows: number; last: number | null }[]
@@ -643,7 +645,7 @@ export interface ReplayData {
 }
 
 /** GET /api/report: the post-event report (issue #22). Nicks and IPs only when an admin asked. */
-export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number }
+export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number; incidents?: number }
 export interface ReportOutage { switch: string; times: number; down_s: number; longest_s: number; still_down: boolean }
 export interface ReportPort {
   switch: string; port: string; seat: string | null; count: number; kinds: Record<string, number>; last: number
@@ -723,6 +725,7 @@ export interface HandoverData {
   notice?: CrewNotice | null
   /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
   gear?: { to: string; count: number; names: string[] }[]
+  coming_up?: { id: string; title: string; kind: string; start: number; end: number | null; where: string | null }[]
   counts: HandoverCounts
   history: HandoverRecord[]
   discord: boolean
@@ -760,7 +763,11 @@ export interface PreflightBoard {
 }
 
 /** Gear loans (issue #36). */
-export interface GearLoan { to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string }
+export interface GearLoan {
+  to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string
+  /** Due back (issue #426), and whether that is past. */
+  until?: number | null; overdue?: boolean
+}
 export interface GearItem { id: string; name: string; role: string; model: string; serial: string; origin: string; placed: boolean; loan: GearLoan | null }
 export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
 export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
@@ -973,6 +980,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** Local agents that send the event network's syslog on (issue #2). */
+  relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]
   source: LogSource
   /** Logs plugins (Loki) that get every line, and how sending them goes. */
@@ -1344,3 +1353,30 @@ export interface Place {
   name: string
   href: string
 }
+
+/** GET /api/agents (issue #2): the local agents enrolled for a hosted Floorbit. */
+export interface Agent {
+  id: string; name: string; created_at: number; created_by: string | null
+  last_seen: number | null; version: string | null; address: string | null; connected: boolean
+  /** The last hour of answers, kept in memory on the server (missing right after enrolling). */
+  stats?: AgentStats
+  /** The agent protocol it spoke last (1 or 2; null before its first request). */
+  protocol?: number | null
+  /** Speaks an older agent protocol than this Floorbit: time to pull the new image. */
+  outdated?: boolean
+  /** Hall ids it answers for; empty: every hall. */
+  halls?: string[]
+  /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
+  relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
+}
+
+export interface AgentStats {
+  calls: number; failed: number; median_ms: number | null
+  last_error: { at: number; method: string; error: string | null } | null
+}
+
+/** GET /api/speedtests/summary (issue #434): each seat's latest test, for the hall and per switch. */
+export interface SpeedFigures { tests: number; down_mbps: number | null; up_mbps: number | null; ping_ms: number | null }
+export interface SpeedSeat { seat: string; down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; at: number }
+export interface SpeedSwitch extends SpeedFigures { id: string; name: string; seats: SpeedSeat[]; slow: boolean }
+export interface SpeedtestSummary { hours: number; hall: SpeedFigures; switches: SpeedSwitch[]; unknown: SpeedSeat[] }

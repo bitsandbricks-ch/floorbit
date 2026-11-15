@@ -32,6 +32,14 @@ describe('Logs', () => {
     expect(screen.getByText(/2 from senders not allowed/)).toBeInTheDocument()
   })
 
+  it('says which local agent sends the syslog', async () => {
+    const relayed = [{ agent: 'Hall 2', at: now, lines: 40, dropped: 3, recent: true }]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': logs([line(1)], { enabled: false, listening: null, relayed }) }).fn)
+    renderWithApp(<Logs />)
+    expect(await screen.findByText('Through the local agent Hall 2 · 3 dropped on the agent')).toBeInTheDocument()
+    expect(screen.queryByText(/The syslog receiver is off/)).not.toBeInTheDocument()
+  })
+
   it('filters by device when one is clicked', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': me,

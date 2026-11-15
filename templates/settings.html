@@ -10,88 +10,33 @@
   <link rel="stylesheet" href="/static/css/goto.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
-<body>
-  <header class="st-header">
-    <!-- Theme toggle: first in source, shown at the right edge via CSS order -->
-    <button class="st-theme" type="button" data-theme-toggle title="Switch theme">
-      <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="12" cy="12" r="4"/>
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-      </svg>
-      <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
-    <a class="st-back" href="/">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      Floor plan
-    </a>
-    <h1>Settings</h1>
+<body class="fb-has-nav">
+  {% include "_nav.html" %}
+  <div class="st-page">
+  {#- Pages, theme and account are in the sidebar (templates/_nav.html). Phones get the brand
+      and "Go to" on top, like the React pages. #}
+  <header class="st-header st-header-phone">
+    <a class="st-home" href="/" aria-label="Floor plan">{% include "_brand.html" %}</a>
     <span class="st-header-spacer"></span>
     <span data-goto="st-btn"></span>
-    {% if current_user %}
-    <form class="user-menu" method="post" action="/logout">
-      <span class="user-menu-name" title="Signed in as {{ current_user.username }}">{{ current_user.display_name }}</span>
-      <button type="submit" class="st-btn">Sign out</button>
-    </form>
-    {% endif %}
   </header>
 
   <main class="st-main">
+    <div class="st-head">
+      <div class="st-head-row">
+        <h1 class="st-title">Settings</h1>
+      </div>
+    </div>
     <p class="st-intro">
       Saved values are stored on the server and override environment variables.
       Use <em>Reset</em> on a field to go back to its environment or default value.
     </p>
 
-    {% if current_user %}
-    {# The links used to sit in the header and ran off its right edge. #}
-    <nav class="st-card st-nav" aria-labelledby="st-nav-title">
-      <h2 id="st-nav-title">More settings and tools</h2>
-      <div class="st-nav-groups">
-        <div class="st-nav-group">
-          <h3>Setup</h3>
-          <ul>
-            <li><a href="/settings/plugins">Plugins</a></li>
-            <li><a href="/settings/features">Features</a></li>
-            <li><a href="/settings/api">API tokens</a></li>
-            <li><a href="/settings/webhooks">Webhooks</a></li>
-            <li><a href="/templates">Floor plan templates</a></li>
-          </ul>
-        </div>
-        <div class="st-nav-group">
-          <h3>People and access</h3>
-          <ul>
-            <li><a href="/settings/users">Users</a></li>
-            <li><a href="/settings/teams">Roles and teams</a></li>
-            <li><a href="/settings/sign-in">Sign-in providers</a></li>
-            <li><a href="/settings/audit">Audit log</a></li>
-          </ul>
-        </div>
-        {% set tools = [
-          ('tournament', '/tournament', 'Tournament seats'),
-          ('planner', '/planner', 'Build planner'),
-          ('cables', '/cables', 'Cables'),
-          ('preflight', '/preflight', 'Pre-flight check'),
-          ('teardown', '/teardown', 'Teardown'),
-          ('timeline', '/timeline', 'Event changelog'),
-          ('status_page', '/network-status', 'Network status'),
-          ('runbooks', '/runbooks', 'Runbooks'),
-          ('schedule', '/schedule', 'Schedule'),
-          ('stats_wall', '/wall', 'Stats wall'),
-        ] %}
-        {% set on = namespace(tools=[]) %}
-        {% for t in tools if feature_on(t[0]) %}{% set on.tools = on.tools + [t] %}{% endfor %}
-        {% if on.tools %}
-        <div class="st-nav-group">
-          <h3>Event tools</h3>
-          <ul>
-            {% for _, href, label in on.tools %}<li><a href="{{ href }}">{{ label }}</a></li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %}
-      </div>
-    </nav>
+
+    {#- The other settings pages are in the sidebar's Settings section; the stats wall is a public
+        screen, so it has no entry there. #}
+    {% if feature_on('stats_wall') %}
+    <p class="st-intro">Stats wall for a big screen: <a href="/wall">/wall</a></p>
     {% endif %}
 
     <section class="st-card" id="st-status">
@@ -140,5 +85,6 @@
   <script src="/static/js/settings.js"></script>
   <script src="/static/js/backup.js"></script>
   {% include "_attribution.html" %}
+  </div>
 </body>
 </html>
