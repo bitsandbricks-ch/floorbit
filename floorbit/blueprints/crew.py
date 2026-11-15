@@ -22,8 +22,8 @@ from .. import audit, discord_commands, incidents
 
 bp = Blueprint('crew', __name__)
 
-PING, COMMAND, COMPONENT, AUTOCOMPLETE = 1, 2, 3, 4
-PONG, MESSAGE, CHOICES = 1, 4, 8
+PING, COMMAND, COMPONENT, AUTOCOMPLETE, MODAL_SUBMIT = 1, 2, 3, 4, 5
+PONG, MESSAGE, CHOICES, MODAL = 1, 4, 8, 9
 EPHEMERAL = 64
 MAX_SKEW = 300            # seconds; an older signed request is a replay
 
@@ -41,7 +41,9 @@ def verify(key_hex, signature_hex, timestamp, body):
 
 
 def _say(text):
-    return jsonify({'type': MESSAGE, 'data': {'content': text[:1900], 'flags': EPHEMERAL,
+    """An answer only the asker sees; ``text`` may be discord_commands.answer() with buttons."""
+    data = text if isinstance(text, dict) else {'content': text}
+    return jsonify({'type': MESSAGE, 'data': {**data, 'content': data['content'][:1900], 'flags': EPHEMERAL,
                                                'allowed_mentions': {'parse': []}}})
 
 
@@ -63,7 +65,7 @@ def interactions():
         return jsonify({'type': PONG})
     if body.get('type') in (COMMAND, AUTOCOMPLETE):
         return _command(body)
-    if body.get('type') != COMPONENT:
+    if body.get('type') not in (COMPONENT, MODAL_SUBMIT):
         return _say('Floorbit only knows its own buttons.')
     return _click(body)
 
@@ -92,8 +94,11 @@ def _click(body):
     guild = getattr(provider, 'guild_id', '') if provider else ''
     if guild and str(body.get('guild_id') or '') != guild:
         return _say('This button only works on the crew server.')
-    channel = str(body.get('channel_id') or '')
-    if channel != crew.channel_id() and str((body.get('message') or {}).get('channel_id') or '') != crew.channel_id():
+    message = body.get('message') or {}
+    in_channel = crew.channel_id() in (str(body.get('channel_id') or ''), str(message.get('channel_id') or ''))
+    # Buttons on a bot answer (#416) live on an ephemeral message only its asker sees, in any channel.
+    on_answer = bool(int(message.get('flags') or 0) & EPHEMERAL)
+    if not (in_channel or on_answer):
         return _say('This button only works in the crew channel.')
     found = crew.parse_custom_id((body.get('data') or {}).get('custom_id'))
     if not found:
@@ -108,6 +113,8 @@ def _click(body):
     user = public(account)
     if action == 'mute':
         return _mute(user, incident_id)
+    if action == 'report':
+        return _report(body, user, incident_id)
     change = {'assignee': user['username']} if action == 'take' else {'status': 'fixed'}
     try:
         incident = incidents.update(user, incident_id, change)
@@ -117,6 +124,16 @@ def _click(body):
     label = 'Took an incident from Discord' if action == 'take' else 'Marked an incident fixed from Discord'
     audit.record('incidents', label, user=user['username'], target=incident_id)
     return _say('You have it. Notes go on the incident board.' if action == 'take' else 'Marked fixed. Thanks!')
+
+
+def _report(body, user, seat):
+    """"Report a problem" under a /seat answer: a one-line form, then the same as /incident report."""
+    from auth import roles
+    if not roles.can(user, 'incidents.work'):
+        return _say('Reporting from Discord needs a Floorbit account that works incidents.')
+    if body.get('type') == COMPONENT:
+        return jsonify({'type': MODAL, 'data': discord_commands.report_modal(seat)})
+    return _say(discord_commands.report(user, seat, discord_commands.modal_value(body)))
 
 
 def _mute(user, switch_id):

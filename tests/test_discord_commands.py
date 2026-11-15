@@ -185,3 +185,67 @@ def test_statusupdate_posts_for_attendees_as_a_lead(bridge, client, anon_client,
     assert update["text"] == "Block B is back." and update["area"] == "Hall B"
     actions = {e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]}
     assert "Posted status update from Discord" in actions
+
+
+def _answer(anon_client, key, payload):
+    """The whole ephemeral answer: content and any buttons."""
+    resp = anon_client.post("/api/discord/interactions", **_interaction(key, payload))
+    assert resp.status_code == 200
+    return resp.get_json()
+
+
+def _buttons(data):
+    return [b for row in data.get("components") or [] for b in row["components"]]
+
+
+def _press(custom_id, user_id="111", kind=3, components=None):
+    """A click on (or a form sent from) a bot answer: an ephemeral message outside the crew channel."""
+    data = {"custom_id": custom_id, **({"components": components} if components else {})}
+    return {"type": kind, "channel_id": "900000000000000009", "data": data,
+            "message": {"id": "1", "channel_id": "900000000000000009", "flags": 64},
+            "member": {"user": {"id": user_id, "username": "someone"}}}
+
+
+def test_seat_answer_reports_a_problem_through_a_form(bridge, client, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "_port_of_seat", lambda: {"B-1": ("sw-b-01", "Gi1/0/1")})
+    data = _answer(anon_client, key, _command("seat", options=_opt("seat", "B-1")))["data"]
+    assert [b["custom_id"] for b in _buttons(data)] == ["fb:report:B-1"]
+
+    form = _answer(anon_client, key, _press("fb:report:B-1"))
+    assert form["type"] == 9 and form["data"]["custom_id"] == "fb:report:B-1"
+    assert form["data"]["components"][0]["components"][0]["custom_id"] == "problem"
+    assert "works incidents" in _answer(anon_client, key, _press("fb:report:B-1", user_id="222"))["data"]["content"]
+
+    sent = _press("fb:report:B-1", kind=5, components=[{"type": 1, "components": [
+        {"type": 4, "custom_id": "problem", "value": "  Port light off  "}]}])
+    data = _answer(anon_client, key, sent)["data"]
+    assert data["content"].startswith("Filed: seat B-1 · Port light off") and data["flags"] == 64
+    (inc,) = client.get("/api/incidents").get_json()["incidents"]
+    assert inc["source"] == "discord" and inc["reported_by"] == "tech-ana"
+    assert [b["custom_id"] for b in _buttons(data)] == ["fb:take:" + inc["id"]]
+
+    # The seat now offers to take it; taking offers "Fixed".
+    data = _answer(anon_client, key, _command("seat", options=_opt("seat", "B-1")))["data"]
+    assert "fb:take:" + inc["id"] in [b["custom_id"] for b in _buttons(data)]
+    assert "You have it" in _answer(anon_client, key, _press("fb:take:" + inc["id"]))["data"]["content"]
+    data = _answer(anon_client, key, _command("jobs"))["data"]
+    assert [b["custom_id"] for b in _buttons(data)] == ["fb:fixed:" + inc["id"]]
+
+
+def test_take_answer_offers_fixed_and_switch_answer_offers_mute(bridge, client, anon_client, key, floor):
+    inc = client.post("/api/incidents", json={"seat": "B-2", "title": "Flaky"}).get_json()
+    data = _answer(anon_client, key, _command("incident", options=_sub("take", incident=inc["id"])))["data"]
+    assert [(b["label"], b["custom_id"]) for b in _buttons(data)] == [("Fixed", "fb:fixed:" + inc["id"])]
+    sw = next(s for s in client.get("/api/switches").get_json() if s["name"] == "sw-b-01")
+    data = _answer(anon_client, key, _command("switch", options=_opt("name", "sw-b-01")))["data"]
+    assert [b["custom_id"] for b in _buttons(data)] == ["fb:mute:" + sw["id"]]
+    assert "Muted sw-b-01" in _answer(anon_client, key, _press("fb:mute:" + sw["id"]))["data"]["content"]
+    up = _answer(anon_client, key, _command("switch", options=_opt("name", "sw-z-00")))["data"]
+    assert _buttons(up) == []
+
+
+def test_buttons_outside_the_crew_channel_need_an_answer_message(bridge, client, anon_client, key, floor):
+    inc = client.post("/api/incidents", json={"seat": "B-2", "title": "Flaky"}).get_json()
+    shared = {**_press("fb:take:" + inc["id"]), "message": {"id": "1", "channel_id": "900000000000000009"}}
+    assert "crew channel" in _answer(anon_client, key, shared)["data"]["content"]

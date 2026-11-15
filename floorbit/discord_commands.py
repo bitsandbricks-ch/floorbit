@@ -1,6 +1,6 @@
 """Slash commands for the Floorbit Discord bot (epic #407).
 
-/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414.
+/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414, buttons on the answers #416.
 
 The bot answers over the same Interactions Endpoint as the crew channel's buttons
 (floorbit/blueprints/crew.py), so it still needs no gateway connection. integrations/crew.py
@@ -94,8 +94,49 @@ def _crew(user):
     return bool(user) and roles.can(user, 'incidents.work')
 
 
+# ── buttons (#416) ───────────────────────────────────────────────────────────
+# They reuse the crew channel's custom_ids (integrations/crew.py), so a click on an answer is handled
+# like a click in the channel: as the clicker's linked account, with its permissions.
+BLUE, GREEN, GREY = 1, 3, 2   # Discord button styles
+MAX_BUTTONS = 5               # per row
+
+
+def answer(text, buttons=()):
+    """An answer with buttons under it. Plain strings stay plain answers."""
+    buttons = [b for b in buttons if len(b['custom_id']) <= 100][:MAX_BUTTONS]   # Discord's custom_id limit
+    if not buttons:
+        return text
+    return {'content': text, 'components': [{'type': 1, 'components': buttons}]}
+
+
+def _button(label, action, ref, style=BLUE):
+    from integrations.crew import custom_id
+    return {'type': 2, 'style': style, 'label': label[:80], 'custom_id': custom_id(action, ref)}
+
+
+REPORT_INPUT = 'problem'
+
+
+def report_modal(seat):
+    """The form "Report a problem" opens: one line, like /incident report's problem."""
+    from integrations.crew import custom_id
+    return {'custom_id': custom_id('report', seat), 'title': f'Report a problem at seat {seat}'[:45],
+            'components': [{'type': 1, 'components': [
+                {'type': 4, 'custom_id': REPORT_INPUT, 'style': 1, 'label': 'What is wrong',
+                 'placeholder': 'e.g. No link at all', 'required': True, 'max_length': 120}]}]}
+
+
+def modal_value(body, name=REPORT_INPUT):
+    for row in (body.get('data') or {}).get('components') or []:
+        for field in row.get('components') or []:
+            if field.get('custom_id') == name:
+                return str(field.get('value') or '').strip()
+    return ''
+
+
 def handle(body):
-    """The answer text for an application command, or None for a command Floorbit doesn't know."""
+    """The answer for an application command (text, or ``answer()`` with buttons), or None for a
+    command Floorbit doesn't know."""
     name = (body.get('data') or {}).get('name')
     if name == 'status':
         return _status(linked_user(body))
@@ -185,7 +226,10 @@ def _seat(seat):
     if fixed.get('count'):
         times = 'once' if fixed['count'] == 1 else f"{fixed['count']} times"
         lines.append(f"Fixed here before: {times} (last: {fixed['last']['title']})")
-    return '\n'.join(lines) + _link(f"/plan?seat={d['seat']}")
+    buttons = [_button('Report a problem', 'report', d['seat'], GREY)]
+    buttons += [_button(f"Take: {i['title']}", 'take', i['id']) for i in d['incidents']
+                if i['status'] == 'open'][:2]
+    return answer('\n'.join(lines) + _link(f"/plan?seat={d['seat']}"), buttons)
 
 
 def _switch(name):
@@ -209,7 +253,9 @@ def _switch(name):
             lines.append(f"Not online: {listed}{more}")
     else:
         lines.append('No seats known on this switch yet.')
-    return '\n'.join(lines) + _link(f"/plan?switch={d['name']}")
+    buttons = [_button('Mute alerts for 1 h', 'mute', d['id'], GREY)] if d['status'] == 'offline' and d.get('id') \
+        else []
+    return answer('\n'.join(lines) + _link(f"/plan?switch={d['name']}"), buttons)
 
 
 def _area_name(a):
@@ -278,23 +324,33 @@ def _changed(incident, action, user, label):
     audit.record('incidents', label, user=user['username'], target=incident.get('seat') or incident['id'])
 
 
-def _incident(user, sub, given):
+def report(user, seat, problem):
+    """File an incident for a seat, from /incident report or the "Report a problem" form."""
     from . import dispatch, incidents
     try:
-        if sub == 'report':
-            incident = incidents.create(user, {'seat': given.get('seat'), 'title': given.get('problem')},
-                                        source='discord')
-            _changed(incident, 'created', user, 'Filed an incident from Discord')
-            dispatch.send_new(incident)
-            return f"Filed: {_where_text(incident)} · {incident['title']}. It is on the incident board." \
-                + _link('/incidents')
+        incident = incidents.create(user, {'seat': seat, 'title': problem}, source='discord')
+    except incidents.IncidentError as exc:
+        return str(exc)
+    _changed(incident, 'created', user, 'Filed an incident from Discord')
+    dispatch.send_new(incident)
+    buttons = [] if incident.get('assignee') else [_button('Take it', 'take', incident['id'])]
+    return answer(f"Filed: {_where_text(incident)} · {incident['title']}. It is on the incident board."
+                  + _link('/incidents'), buttons)
+
+
+def _incident(user, sub, given):
+    from . import incidents
+    if sub == 'report':
+        return report(user, given.get('seat'), given.get('problem'))
+    try:
         ref = given.get('incident', '')
         if not incidents.get(ref):
             return 'Pick the incident from the list Discord shows while you type.'
         if sub == 'take':
             incident = incidents.update(user, ref, {'assignee': user['username']})
             _changed(incident, 'changed', user, 'Took an incident from Discord')
-            return f"You have it: {_where_text(incident)} · {incident['title']}."
+            return answer(f"You have it: {_where_text(incident)} · {incident['title']}.",
+                          [_button('Fixed', 'fixed', incident['id'], GREEN)])
         if sub == 'fixed':
             incident = incidents.update(user, ref, {'status': 'fixed', 'note': given.get('note') or ''})
             _changed(incident, 'changed', user, 'Marked an incident fixed from Discord')
@@ -315,7 +371,8 @@ def _jobs(user):
     lines += [f"• {_where_text(i)} · {i['title']} ({_ago(i.get('created_at'))})" for i in mine[:MAX_JOBS]]
     if len(mine) > MAX_JOBS:
         lines.append(f"…and {len(mine) - MAX_JOBS} more")
-    return '\n'.join(lines) + _link('/jobs')
+    buttons = [_button(f"Fixed: {_where_text(i)}", 'fixed', i['id'], GREEN) for i in mine[:MAX_BUTTONS]]
+    return answer('\n'.join(lines) + _link('/jobs'), buttons)
 
 
 def _statusupdate(user, given):
