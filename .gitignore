@@ -76,3 +76,4 @@ frontend/node_modules/
 
 # A local redis-server started inside the repo writes its snapshot here.
 dump.rdb
+agent.env

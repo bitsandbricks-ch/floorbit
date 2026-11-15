@@ -54,6 +54,7 @@
     "plugins": "Plugins",
     "features": "Features",
     "apiTokens": "API tokens",
+    "agents": "Local agents",
     "webhooks": "Webhooks",
     "users": "Users",
     "teams": "Roles and teams",

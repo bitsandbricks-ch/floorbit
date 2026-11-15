@@ -359,11 +359,23 @@ class DiscordNotifier:
         now = now or time.time()
         down = kind == 'monitoring.offline'
         source = data.get('source') or 'The monitoring source'
+        if data.get('agent'):
+            # A hosted Floorbit lost its local agent: the fix is on the event network, not in LibreNMS.
+            seen = data.get('last_seen')
+            title = f"{'⚠️' if down else '✅'} The local agent is {'away' if down else 'back'}"
+            description = (('The local agent on the event network stopped asking for work'
+                            + (f' (last heard <t:{int(seen)}:R>)' if seen else '') + '. Check that it runs and '
+                            'can reach this Floorbit; its log says why. Switch status is frozen at the last good '
+                            'data until it is back.') if down else
+                           f"Away for {_fmt_duration(data.get('down_for') or 0)}. Switch alerts are back on.")
+        else:
+            title = f"{'⚠️' if down else '✅'} {source} is {'unreachable' if down else 'back'}"
+            description = ('Switch status is frozen at the last good data and no switch alerts are sent '
+                           'until it answers again.' if down else
+                           f"Down for {_fmt_duration(data.get('down_for') or 0)}. Switch alerts are back on.")
         embed = {
-            'title': f"{'⚠️' if down else '✅'} {source} is {'unreachable' if down else 'back'}",
-            'description': ('Switch status is frozen at the last good data and no switch alerts are sent '
-                            'until it answers again.' if down else
-                            f"Down for {_fmt_duration(data.get('down_for') or 0)}. Switch alerts are back on."),
+            'title': title,
+            'description': description,
             'color': COLOR_OFFLINE if down else COLOR_ONLINE,
             'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat(),
         }

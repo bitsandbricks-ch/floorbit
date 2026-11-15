@@ -9,6 +9,9 @@ Code: [`floorbit/flows/`](../floorbit/flows/) (parsing, classifying, aggregating
 
 ## Setting it up
 
+On a hosted Floorbit, the [local agent](agent.md#traffic-netflow-through-the-agent) collects the
+flows on the event network and sends only the summary.
+
 The collector is its own optional container, so installs without NetFlow keep working as before:
 
 ```sh

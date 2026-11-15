@@ -43,6 +43,7 @@ const Teardown = lazy(() => import('@/pages/Teardown'))
 const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
+const Agents = lazy(() => import('@/pages/Agents'))
 const Webhooks = lazy(() => import('@/pages/Webhooks'))
 const Features = lazy(() => import('@/pages/Features'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/settings/features" element={<Features />} />
         <Route path="/settings/api" element={<ApiTokens />} />
+        <Route path="/settings/agents" element={<Agents />} />
         <Route path="/settings/webhooks" element={<Webhooks />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -68,3 +68,5 @@ Turn health messages off with **Health wall alerts** (`DISCORD_HEALTH_ALERTS=0`)
 | --- | --- |
 | See the wall (`GET /health`, `GET /api/health`) | `floorplan.view` (every role, kiosk included) |
 | **Check now** (`POST /api/health/check`) | `plugins.run`: it sends the plugins' requests out right away |
+
+On a hosted Floorbit, the health plugins can run on the [local agent](agent.md#health-checks-through-the-agent) instead, so services inside the hall are checked from inside the hall.

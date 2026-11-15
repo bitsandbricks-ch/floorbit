@@ -13,6 +13,7 @@ const pages = [
   { href: '/traffic', id: 'traffic', label: 'Traffic' },
   { href: '/settings', id: 'settings', label: 'Settings' },
   { href: '/settings/agents', id: 'agents', label: 'Local agents' },
+  { href: '/brand-new', id: 'brandNew', label: 'Brand new page' },
 ]
 const boot: NavBoot = { pages, brand: { logo: null, name: null }, user: { name: 'Kim', username: 'kim' }, signOut: true }
 const link = ({ children, ...rest }: LinkProps) => <a {...rest}>{children}</a>
@@ -32,7 +33,7 @@ describe('sections', () => {
     const g = group(pages)
     expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan', 'problems', 'incidents'])
     expect(g.sections.map((s) => [s.id, s.pages.map((p) => p.id)])).toEqual([
-      ['network', ['stats', 'traffic']], ['admin', ['settings']], ['more', ['agents']],
+      ['network', ['stats', 'traffic']], ['admin', ['settings', 'agents']], ['more', ['brandNew']],
     ])
   })
 

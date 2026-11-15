@@ -43,6 +43,26 @@ Source: [`auth/admin.py`](https://github.com/bitsandbricks-ch/floorbit/blob/mast
 | DELETE | `/api/users/<username>` | `accounts.manage` |  |
 | PATCH | `/api/users/<username>` | `accounts.manage` |  |
 
+## floorbit.blueprints.agent
+
+The local agent (issue #2). Rules in floorbit/agent_link.py, docs in docs/agent.md.
+
+Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/agent/v1/answers` | anyone |  |
+| GET | `/api/agent/v1/calls` | anyone |  |
+| POST | `/api/agent/v1/flows` | anyone |  |
+| GET | `/api/agent/v1/hello` | anyone |  |
+| GET | `/api/agent/v1/seats` | anyone |  |
+| POST | `/api/agent/v1/syslog` | anyone |  |
+| GET | `/api/agent/v2/link` | anyone |  |
+| GET | `/api/agents` | `settings.manage` |  |
+| POST | `/api/agents` | `settings.manage` |  |
+| DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
+| PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
+
 ## floorbit.blueprints.api_tokens
 
 API tokens and the API's version (issue #40). Rules in auth/tokens.py, docs in docs/api.md.

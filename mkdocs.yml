@@ -107,6 +107,7 @@ nav:
   - Extend:
       - Plugins: plugins.md
       - Integrations: integrations.md
+      - Local agent (hosted): agent.md
       - The API: api.md
       - API reference: api-reference.md
       - Architecture: architecture.md

@@ -195,6 +195,8 @@ RULES = (
     ('/timeline', READ, 'audit.read'),
     ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
+    # Local agents (floorbit/agent_link.py): enrolling one hands out a key to the event's data.
+    ('/api/agents', None, 'settings.manage'),
     ('/settings/users', None, 'accounts.manage'),
     ('/settings/teams', None, 'accounts.manage'),
     ('/settings', None, 'settings.manage'),

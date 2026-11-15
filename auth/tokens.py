@@ -25,7 +25,8 @@ NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}$')
 TOKEN_RE = re.compile(r'^fbt_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})$')
 TOUCH_EVERY = 60   # seconds between "last used" writes, so a busy script doesn't rewrite the file
 # Never reachable with a token: a token can't widen its own access.
-BLOCKED = ('/api/users', '/api/roles', '/api/teams', '/api/settings/api-tokens', '/api/settings/webhooks')
+BLOCKED = ('/api/users', '/api/roles', '/api/teams', '/api/settings/api-tokens', '/api/settings/webhooks',
+           '/api/agents')
 
 _lock = threading.Lock()
 _path = None
