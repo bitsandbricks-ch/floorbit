@@ -32,6 +32,7 @@
               border-left: 4px solid var(--color-warn); }
     .report-taken, .report-sent { border-left-color: var(--color-bit); }
     .report-fixed, .report-ok { border-left-color: var(--color-up); }
+    .report-outage { border-left-color: var(--color-down); }
     .works { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-line); }
     .works p { margin-bottom: 10px; }
     .works button { text-align: center; }
@@ -51,6 +52,7 @@
   <main class="card">
     <h1>{{ t.title.format(seat=seat) }}</h1>
     {% if state == 'ask' %}
+    {% if outage %}<p class="report report-outage" role="status">{{ t.outage.format(m=outage) }}</p>{% endif %}
     {% if report %}<p class="report report-{{ report }}" role="status">{{ t['state_' + report] }}
       {%- if report == 'open' and ahead %} {{ (t.ahead_one if ahead == 1 else t.ahead_other).format(n=ahead) }}{% endif %}</p>{% endif %}
     <p>{{ t.intro }}</p>

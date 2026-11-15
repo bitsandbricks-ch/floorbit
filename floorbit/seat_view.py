@@ -54,6 +54,29 @@ def _port_of_seat():
     return out
 
 
+def outage_since(seat, data=None):
+    """Since when the switch serving ``seat`` is down, or None (issue #384).
+
+    The seat's switch comes from the last port read, or from what the status page remembered while
+    the switch went down. Only a known link counts: better say nothing than blame the wrong switch."""
+    from . import status_page
+    short = lambda name: str(name or '').lower().split('.')[0]   # noqa: E731
+    names = set()
+    port = _port_of_seat().get(seat)
+    if port:
+        names.add(short(port[0]))
+    with status_page._lock:
+        names |= {short(sw) for sw, seats in status_page._seats_of.items() if seat in seats}
+    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    if not names or not monitor or not getattr(monitor, 'last_poll', None):
+        return None
+    statuses = getattr(monitor, 'statuses', None) or {}
+    since = [(statuses.get(d['id']) or {}).get('since') or time.time()
+             for d in inventory.devices(data if data is not None else load_data())
+             if short(d.get('name')) in names and (statuses.get(d['id']) or {}).get('status') == 'offline']
+    return min(since) if since else None
+
+
 def _problems():
     """{seat: count} of open incidents and port trouble from the needs-attention list.
 

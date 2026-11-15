@@ -200,6 +200,8 @@ TEXTS = {
            'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.',
            'state_ok': 'You told us it works again. Thanks! Broken again? Tap it below.',
            'ahead_one': 'One report is ahead of yours.', 'ahead_other': '{n} reports are ahead of yours.',
+           'outage': 'We know: the network at your seat has been down for {m} min. The team is on it, '
+           'no need to report it. Something else? Tap it below.',
            'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
            'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
@@ -223,6 +225,8 @@ TEXTS = {
            'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.',
            'state_ok': 'Du hast gemeldet, dass es wieder geht. Danke! Wieder kaputt? Tippe unten.',
            'ahead_one': 'Vor deiner ist noch eine Meldung.', 'ahead_other': 'Vor deiner sind noch {n} Meldungen.',
+           'outage': 'Wir wissen es: Das Netz an deinem Platz ist seit {m} Min. ausgefallen. Das Team ist dran, '
+           'du musst es nicht melden. Etwas anderes? Tippe es unten an.',
            'works': 'Es geht wieder',
            'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
            'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.'},
@@ -257,7 +261,11 @@ def help_page(seat):
     if not valid:
         return render_template('help.html', lang=lang, t=text, seat=seat, state='invalid'), 404
     if request.method == 'GET':
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
+        from .. import seat_view
+        # A known outage at this seat (issue #384): say so before people report it one by one.
+        since = seat_view.outage_since(seat)
+        outage = max(1, round((time.time() - since) / 60)) if since else None
+        return render_template('help.html', lang=lang, t=text, seat=seat, state='ask', outage=outage,
                                problems=list(incidents.PROBLEMS), k=request.args.get('k'),
                                report=incidents.seat_report_state(seat), ahead=incidents.seat_queue_ahead(seat))
     if request.form.get('works'):

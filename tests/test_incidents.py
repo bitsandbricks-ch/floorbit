@@ -273,3 +273,23 @@ def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, a
     with app_module.app.app_context():
         assert incidents.seat_report_state("A-2", now=time.time() + 31 * 60) is None
         assert incidents.seat_report_state("A-3") is None
+
+
+def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, app_module, floor, monkeypatch):
+    # Issue #384: a known outage, so attendees don't each report it.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    monkeypatch.setattr(monitor, "statuses", {})
+    assert b"has been down" not in anon_client.get(help_url(app_module, "A-1")).data
+    monitor.statuses = {floor["switch_id"]: {"status": "offline", "since": time.time() - 12 * 60}}
+    page = anon_client.get(help_url(app_module, "A-1")).data.decode()
+    assert "has been down for 12 min" in page and "sw-a-01" not in page
+    assert b"has been down" not in anon_client.get(help_url(app_module, "A-2")).data   # its port isn't known
+    # Remembered by the status page once the port read no longer has it.
+    monkeypatch.setattr(watch, "port_seats", {}, raising=False)
+    status_page.learn_seats({("sw-a-01", "Gi1/0/2"): "A-2"})
+    assert b"has been down" in anon_client.get(help_url(app_module, "A-2")).data
