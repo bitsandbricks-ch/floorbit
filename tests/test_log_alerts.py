@@ -76,6 +76,7 @@ def test_markers_count_recent_warnings_per_seat_and_switch(receiver):
 def test_problems_and_api(client, app_module, monkeypatch):
     receiver = app_module.app.extensions["floorbit_syslog"]
     monkeypatch.setattr(receiver, "alerts", log_alerts.LogAlerts())
+    client.post("/api/switches", json={"name": "sw-b-01", "x": 10, "y": 10})
     receiver.receive(b"<188>%PM-4-ERR_DISABLE: bpduguard error detected on Gi1/0/3, putting Gi1/0/3 in "
                      b"err-disable state", "198.51.100.11", check=False, device="sw-b-01")
     attention = client.get("/api/problems").get_json()["attention"]
@@ -83,6 +84,12 @@ def test_problems_and_api(client, app_module, monkeypatch):
     assert len(log) == 1 and log[0]["title"] == "Port shut down by the switch (err-disable)"
     assert log[0]["link"] == "/logs?device=sw-b-01" and log[0]["where"] == "sw-b-01 gi1/0/3"
     assert client.get("/api/logs/alerts").get_json()["alerts"][0]["pattern"] == "err_disable"
+    # Someone who may not read the logs gets the switch on the floor plan instead (issue #212).
+    app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")
+    viewer = app_module.app.test_client()
+    viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
+    seen = [a for a in viewer.get("/api/problems").get_json()["attention"] if a["kind"] == "log"]
+    assert [a["link"] for a in seen] == ["/plan?switch=sw-b-01"]
     assert client.get("/api/logs/markers").get_json()["minutes"] == 10
     # The feature off: no log items.
     assert client.put("/api/settings/features", json={"syslog": False}).status_code == 200

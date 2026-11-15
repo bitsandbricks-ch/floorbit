@@ -152,8 +152,8 @@ def test_problems_list_them_newest_first_with_a_floor_plan_link(hall, client):
     assert body["counts"]["attention"] == 2
     first, second = body["attention"]
     assert first["where"] == "sw-a-01 Gi1/0/5 (seat A-2)"
-    assert first["link"] == "/?seat=A-2" and first["kind"] == "duplex" and first["level"] == "warn"
-    assert second["link"] == f"/?switch={hall['switch']['id']}"
+    assert first["link"] == "/plan?seat=A-2" and first["kind"] == "duplex" and first["level"] == "warn"
+    assert second["link"] == f"/plan?switch={hall['switch']['name']}"
 
 
 def test_the_background_thread_runs_in_the_app_context(hall, monkeypatch):

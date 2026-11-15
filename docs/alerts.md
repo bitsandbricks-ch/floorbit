@@ -8,7 +8,8 @@ and [`floorbit/blueprints/problems.py`](../floorbit/blueprints/problems.py).
 ## Problems page
 
 **Problems** in the top bar (`/problems`) lists everything wrong right now, worst and oldest first,
-with a count of what is down next to the link:
+with a count of what is down next to the link. Its browser tab starts with the number of problems
+that are down or need a look, muted ones left out, e.g. "(2) Problems · Floorbit":
 
 - the monitoring source (LibreNMS) not answering;
 - placed switches that are offline;
@@ -19,7 +20,8 @@ with a count of what is down next to the link:
 - the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours.
 
 It asks nothing new: it reads what the status monitor, the health wall, the security watch and the
-power layer already know. Anyone with `floorplan.view` may see it.
+power layer already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
+and its name in the list of muted switches, open that switch on the floor plan (`/plan`), in its hall.
 
 ## Needs attention
 
@@ -38,7 +40,8 @@ it saw last time:
 
 A port belongs to a seat when its description (ifAlias) names the seat, such as `Seat A-12` or
 `A-12 desk`; **Open** then goes to that seat on the floor plan, otherwise to the switch
-(`/?seat=A-12`, `/?switch=<id>`). Entries clear on their own once the port behaves. They hold the
+(`/plan?seat=A-12`, `/plan?switch=sw-a-01`). The floor plan opens the hall the seat or switch is in
+and shows its panel. Entries clear on their own once the port behaves. They hold the
 switch, port and seat, never who sits there, so everyone who may see the floor plan may see them.
 They don't go to Discord: there can be dozens during an event. Live updates send `attention.changed`.
 Code: [`floorbit/attention.py`](../floorbit/attention.py).

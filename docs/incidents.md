@@ -12,6 +12,10 @@ The board refreshes on its own and as soon as anything changes. Open incidents a
 floor plan as a red ring on the seat or switch, with a count next to **Incidents** in the top bar.
 The board's browser tab starts with the number of open incidents, e.g. "(2) Incidents · Floorbit".
 
+**Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
+notes contain the text, ignoring case. It is kept in the address (`/incidents?q=B-7`), so a link can
+open the board filtered, and it works together with **Only what I can work**.
+
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
 
