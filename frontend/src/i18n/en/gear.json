@@ -36,5 +36,10 @@
   },
   "holders": "Who has what",
   "holder_one": "{{to}} · {{count}} piece",
-  "holder_other": "{{to}} · {{count}} pieces"
+  "holder_other": "{{to}} · {{count}} pieces",
+  "allBack_one": "All back ({{count}})",
+  "allBack_other": "All back ({{count}})",
+  "allBackTitle": "Check in everything from {{to}}",
+  "allBackDo_one": "Check in {{count}} piece",
+  "allBackDo_other": "Check in {{count}} pieces"
 }
