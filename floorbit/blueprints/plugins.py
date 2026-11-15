@@ -274,6 +274,17 @@ def core_widget(tile):
         return jsonify(check_widget(core.problems_widget(_lang(), may_see_people), item))
     if tile == 'incidents' and _may_see_board(user):
         return jsonify(check_widget(core.incidents_widget(_lang()), item))
+    if tile == 'switches':
+        counts = current_app.extensions['lal_integrations']['monitor'].counts()
+        return jsonify(check_widget(core.switches_widget(_lang(), counts), item))
+    if tile == 'seats':
+        from .. import incidents
+        from ..store import load_data
+        from .attendee import _online
+        online, _last = _online()
+        seats = set(incidents.seat_numbers(load_data()))
+        return jsonify(check_widget(core.seats_widget(_lang(), None if online is None else len(online & seats),
+                                                      len(seats)), item))
     return _error('No such widget', 404)
 
 
