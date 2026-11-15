@@ -1,5 +1,7 @@
 # Install with Docker Compose
 
+On Kubernetes or k3s, see [kubernetes.md](kubernetes.md) instead.
+
 Floorbit and Redis in two containers, on any machine with Docker. It works without NetBox or
 LibreNMS: you place switches by hand and connect those later.
 

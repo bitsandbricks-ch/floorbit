@@ -1,0 +1,131 @@
+# Floorbit on Kubernetes or k3s, one replica. Guide: docs/kubernetes.md.
+#
+#   kubectl create namespace floorbit
+#   kubectl -n floorbit create secret generic floorbit --from-literal=SECRET_KEY="$(openssl rand -hex 32)"
+#   kubectl -n floorbit apply -f deploy/kubernetes/floorbit.yaml
+#
+# Everything Floorbit keeps (data.json, accounts, the audit log, plugin state, check-ins) is in
+# /app/state. Without the volume below, every new pod (an update, a restart, a moved node) starts
+# empty: that's the claim `floorbit-state`, so keep it.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: floorbit-state
+spec:
+  accessModes: ["ReadWriteOnce"]
+  # k3s: local-path, the default class. Elsewhere, leave it out for the cluster's default.
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: floorbit
+spec:
+  # One replica: the agent link and the live updates are held in the pod's memory (docs/kubernetes.md, "More than one pod").
+  replicas: 1
+  # The old pod lets go of the volume before the new one starts: a ReadWriteOnce volume can't be shared.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {app: floorbit}
+  template:
+    metadata:
+      labels: {app: floorbit}
+    spec:
+      securityContext:
+        # The image runs as this user; the volume is made writable for it.
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: floorbit
+          image: ghcr.io/bitsandbricks-ch/floorbit:latest   # pin a version for events: floorbit:1.2.3
+          ports:
+            - {name: http, containerPort: 5000}
+          env:
+            - {name: REDIS_HOST, value: floorbit-redis}
+            - {name: PUBLIC_URL, value: "https://floor.example.com"}
+            - name: SECRET_KEY
+              valueFrom: {secretKeyRef: {name: floorbit, key: SECRET_KEY}}
+          volumeMounts:
+            - {name: state, mountPath: /app/state}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 1Gi}
+      volumes:
+        - name: state
+          persistentVolumeClaim: {claimName: floorbit-state}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: floorbit
+spec:
+  selector: {app: floorbit}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+---
+# The cache for LibreNMS answers. Nothing in it needs keeping, so no volume.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: floorbit-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: floorbit-redis}
+  template:
+    metadata:
+      labels: {app: floorbit-redis}
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          args: ["--save", "", "--appendonly", "no"]
+          ports:
+            - {name: redis, containerPort: 6379}
+          readinessProbe:
+            exec: {command: ["redis-cli", "ping"]}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: floorbit-redis
+spec:
+  selector: {app: floorbit-redis}
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}
+---
+# k3s ships Traefik: this routes floor.example.com to Floorbit. It passes WebSockets (the local
+# agent's link) and Server-Sent Events (live updates) as they are.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: floorbit
+spec:
+  rules:
+    - host: floor.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: floorbit, port: {name: http}}
+  # tls:
+  #   - hosts: [floor.example.com]
+  #     secretName: floorbit-tls     # cert-manager, or a certificate you add yourself
