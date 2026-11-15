@@ -235,6 +235,7 @@ RULES = (
     ('/api/incidents', WRITE, 'floorplan.view'),
     # Speed tests from the seats' help pages: the crew's, like the board (floorbit/speedtest.py).
     ('/api/speedtests', READ, 'incidents.work'),
+    ('/speedtests', READ, 'incidents.work'),
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch/auto', WRITE, 'incidents.assign'),   # automatic dispatch on or off (issue #358)

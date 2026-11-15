@@ -639,6 +639,7 @@ Source: [`floorbit/blueprints/speedtest.py`](https://github.com/bitsandbricks-ch
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/speedtests` | `incidents.work` | `helpdesk` |
+| GET | `/api/speedtests/summary` | `incidents.work` | `helpdesk` |
 
 ## floorbit.blueprints.stats
 

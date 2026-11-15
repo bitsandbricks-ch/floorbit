@@ -40,6 +40,8 @@ PAGES = (
     ('/inventory', 'inventory', 'Inventory', None),
     ('/seat-mapping', 'seatMapping', 'Seat mapping', lambda c, can: can('seats.view')),
     ('/cables', 'cables', 'Cables', lambda c, can: c['feature_on']('cables')),
+    ('/speedtests', 'speedtests', 'Speed tests',
+     lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/gear', 'gear', 'Gear', lambda c, can: c['feature_on']('gear') and can('incidents.work')),
     ('/planner', 'planner', 'Build planner', lambda c, can: c['feature_on']('planner') and can('floorplan.edit')),
     ('/preflight', 'preflight', 'Pre-flight check', lambda c, can: c['feature_on']('preflight')),

@@ -157,3 +157,57 @@ def results(seat, data=None):
 def latest(seat, data=None, max_age=FRESH):
     found = results(seat, data)
     return found[0] if found and time.time() - found[0]['at'] < max_age else None
+
+
+# ── Side by side, per switch (issue #434) ──────────────────────────────────────────────────────
+
+SUMMARY_HOURS = 12
+SLOW_SHARE = 0.5          # a switch under half the hall's median download is "slower than the hall"
+MIN_SEATS_TO_FLAG = 2     # one seat's slow test is that seat, not the switch
+
+
+def _median(values):
+    values = sorted(v for v in values if v is not None)
+    if not values:
+        return None
+    mid = len(values) // 2
+    return round(values[mid] if len(values) % 2 else (values[mid - 1] + values[mid]) / 2, 1)
+
+
+def _figures(rows):
+    return {'tests': len(rows), 'down_mbps': _median(r['down_mbps'] for r in rows),
+            'up_mbps': _median(r['up_mbps'] for r in rows), 'ping_ms': _median(r['ping_ms'] for r in rows)}
+
+
+def summary(switches_of, data=None, now=None):
+    """Each seat's latest test of the last ``SUMMARY_HOURS``, for the hall and per switch.
+
+    ``switches_of(seat)`` gives the inventory devices serving the seat (seat_view knows the ports).
+    Seats no switch is known for are counted for the hall and listed under ``unknown``.
+    """
+    data = load_data() if data is None else data
+    now = time.time() if now is None else now
+    since = now - SUMMARY_HOURS * 3600
+    latest_rows = []
+    for seat, kept in (data.get(KEY) or {}).items():
+        if kept and kept[0].get('at', 0) >= since:
+            latest_rows.append({'seat': seat, **{k: kept[0].get(k) for k in ('down_mbps', 'up_mbps', 'ping_ms', 'at')}})
+    hall = _figures(latest_rows)
+    groups, unknown = {}, []
+    for row in latest_rows:
+        devices = switches_of(row['seat'])
+        if not devices:
+            unknown.append(row)
+        for d in devices:
+            group = groups.setdefault(d['id'], {'id': d['id'], 'name': d.get('name') or d['id'], 'seats': []})
+            group['seats'].append(row)
+    switches = []
+    for g in groups.values():
+        g['seats'].sort(key=lambda r: (r['down_mbps'] is None, r['down_mbps'] or 0, r['seat']))
+        figures = _figures(g['seats'])
+        slow = (len(g['seats']) >= MIN_SEATS_TO_FLAG and hall['down_mbps'] and figures['down_mbps'] is not None
+                and figures['down_mbps'] < hall['down_mbps'] * SLOW_SHARE)
+        switches.append({**g, **figures, 'slow': bool(slow)})
+    switches.sort(key=lambda s: (not s['slow'], s['down_mbps'] is None, s['down_mbps'] or 0, s['name']))
+    unknown.sort(key=lambda r: r['seat'])
+    return {'hours': SUMMARY_HOURS, 'hall': hall, 'switches': switches, 'unknown': unknown}
