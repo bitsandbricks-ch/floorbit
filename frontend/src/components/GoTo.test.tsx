@@ -10,26 +10,37 @@ afterEach(() => {
 
 const tech = { enabled: true, user: { username: 'kim', display_name: 'Kim', role: 'tech', permissions: ['floorplan.view', 'incidents.work'] } }
 
+// What GET /api/pages answers a tech with the power feature off (the server filters, see tests/test_page_index.py).
+const pages = { pages: [
+  { href: '/', id: 'floorPlan', label: 'Floor plan' },
+  { href: '/problems', id: 'problems', label: 'Problems' },
+  { href: '/handover', id: 'handover', label: 'Shift handover' },
+  { href: '/health', id: 'health', label: 'Service health' },
+  { href: '/stats', id: 'stats', label: 'Stats' },
+  { href: '/settings/status', id: 'newPage', label: 'Status settings' },
+] }
+
 function page(route = '/problems') {
   return renderWithApp(<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}>body</Layout>, route)
 }
 
 describe('Go to', () => {
-  it('lists the pages this account may open, without the features that are off', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/features': { off: ['power'] } }).fn)
+  it('lists the pages the server offers this account, in this language', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     page()
     await screen.findByRole('button', { name: /Signed in as kim/ })
     fireEvent.click(screen.getByRole('button', { name: /Go to/ }))
     const list = await screen.findByRole('listbox')
     const names = () => within(list).getAllByRole('option').map((o) => o.textContent)
-    await waitFor(() => expect(names().some((n) => n?.startsWith('Electrics'))).toBe(false)) // feature off
-    expect(names()).toContain('Problems/problems')
+    await waitFor(() => expect(names()).toContain('Problems/problems'))
     expect(names()).toContain('Shift handover/handover')
-    expect(names().some((n) => n?.startsWith('Settings'))).toBe(false) // needs settings.manage
+    // A page this version has no text for yet keeps the server's English name.
+    expect(names()).toContain('Status settings/settings/status')
+    expect(names()).toHaveLength(pages.pages.length)
   })
 
   it('filters as you type, moves with the arrows and opens on Enter', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/features': { off: [] } }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
     page()
@@ -38,7 +49,7 @@ describe('Go to', () => {
     fireEvent.keyDown(document.documentElement, { key: 'k', code: 'KeyK', ctrlKey: true })
     const box = await screen.findByRole('combobox')
     fireEvent.change(box, { target: { value: 'st' } })
-    const options = within(screen.getByRole('listbox')).getAllByRole('option')
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option')
     // Label matches first: Stats before pages that only match by path.
     expect(options[0]).toHaveTextContent('Stats')
     expect(options[0]).toHaveAttribute('aria-selected', 'true')
@@ -50,7 +61,7 @@ describe('Go to', () => {
   })
 
   it('says so when nothing matches', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/features': { off: [] } }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     page()
     fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
     fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'zzz' } })
@@ -58,7 +69,7 @@ describe('Go to', () => {
   })
 
   it('puts the pages opened last first while nothing is typed', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/features': { off: [] } }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     localStorage.setItem('floorbit-recent-pages', JSON.stringify(['/health', '/nope']))
     // Opening this page remembers it, but the list leaves out the page you are on.
     page('/stats')

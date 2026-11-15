@@ -28,6 +28,7 @@ export const qk = {
   teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,
+  pages: ['pages'] as const,
   featureSettings: ['features', 'settings'] as const,
   apiTokens: ['api-tokens'] as const,
   webhooks: ['webhooks'] as const,

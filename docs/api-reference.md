@@ -382,6 +382,16 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/notice` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/notice` | `incidents.assign` |  |
 
+## floorbit.blueprints.pages
+
+The HTML pages of the editor and the kiosk view, and the list of pages for "Go to".
+
+Source: [`floorbit/blueprints/pages.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/pages.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/pages` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.past_events
 
 Past events and comparing them (issue #38). Rules in floorbit/event_archive.py.

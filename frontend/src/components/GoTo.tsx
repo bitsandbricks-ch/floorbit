@@ -3,20 +3,9 @@ import { useHotkeys } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useFeaturesOff, useMe } from '@/api/queries'
+import { usePageList } from '@/api/queries'
 import { useLocation } from 'react-router-dom'
-import { fold, PAGES, recentPages, type PageLink } from './pages'
-
-/** The pages this account may open with the features that are on. */
-function usePages(): PageLink[] {
-  const off = useFeaturesOff()
-  const me = useMe().data
-  return PAGES.filter((p) => {
-    if (p.feature && off.includes(p.feature)) return false
-    if (!p.can || !me || !me.enabled) return true
-    return !!me.user?.permissions?.includes(p.can)
-  })
-}
+import { fold, RECENT_MAX, recentPages } from './pages'
 
 /** "Go to" button in every React page's header, and Ctrl+K / ⌘K, to jump to any page
  *  without the detour through the floor plan (issue #242). */
@@ -47,7 +36,7 @@ export function GoTo() {
 
 function Palette({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation()
-  const pages = usePages()
+  const pages = usePageList()
   const here = useLocation().pathname
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
@@ -56,8 +45,9 @@ function Palette({ onDone }: { onDone: () => void }) {
 
   const shown = useMemo(() => {
     const q = fold(query.trim())
-    const recent = recentPages().filter((href) => href !== here)
-    const named = pages.map((p) => ({ ...p, label: t(`goto.pages.${p.id}`), recent: recent.includes(p.href) }))
+    const recent = recentPages().filter((href) => href !== here && pages.some((p) => p.href === href)).slice(0, RECENT_MAX)
+    // The server's English label stands in for a page this version has no translation for yet.
+    const named = pages.map((p) => ({ ...p, label: t(`goto.pages.${p.id}`, { defaultValue: p.label }), recent: recent.includes(p.href) }))
     // Nothing typed yet: the pages opened last come first, newest on top (issue #244).
     if (!q) return [...named.filter((p) => p.recent).sort((a, b) => recent.indexOf(a.href) - recent.indexOf(b.href)), ...named.filter((p) => !p.recent)]
     // Label first, then the path, so "set" finds Settings before /settings/... pages named otherwise.
