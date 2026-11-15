@@ -45,6 +45,10 @@ SECTIONS = [
     {'id': 'public', 'title': 'Attendee pages',
      'description': 'Pages for attendees, open without an account. They show seat numbers only: '
                     'no nicks, addresses, switches or ports.'},
+    {'id': 'metrics', 'title': 'Prometheus metrics',
+     'description': 'GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, '
+                    'incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an '
+                    'API token (Settings > API) that has a read-only viewer role.'},
     {'id': 'appearance', 'title': 'Appearance',
      'description': 'The look of every page. A screen can pick its own preset with ?theme= '
                     '(for example /kiosk?theme=kiosk); ?theme=default goes back to this one.'},
@@ -132,6 +136,17 @@ FIELDS = [
          help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
               'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
               'Off by default.'),
+    dict(key='public.brackets', section='public', label='Tournament brackets', type='bool',
+         env='BRACKET_VIEW', default=False,
+         help='/bracket shows the tournament brackets with teams and scores for big screens (/bracket?screen=1) '
+              'and phones. Never seats. Off by default.'),
+    dict(key='metrics.enabled', section='metrics', label='Prometheus metrics', type='bool',
+         env='METRICS_ENABLED', default=False,
+         help='Serve /api/metrics. Off by default.'),
+    dict(key='public.schedule', section='public', label='Schedule and countdown', type='bool',
+         env='SCHEDULE_PAGE', default=False,
+         help='/agenda shows the countdown to the event, what is on now and next, and the programme, for big '
+              'screens (/agenda?screen=1) and phones. Off by default.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),

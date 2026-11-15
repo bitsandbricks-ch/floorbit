@@ -24,6 +24,31 @@ needs `floorplan.edit` and goes to the audit log.
 team can give them priority on the switches. Seats not found on any port are listed too. Floorbit
 doesn't change the switch configuration itself.
 
+## Brackets
+
+**Brackets** (`/tournament/brackets`, from the Tournament seats page) are single-elimination
+tournament trees for the crew and the big screens.
+
+- **New bracket:** a name, an optional match zone and the teams, one per line, best seed first. The
+  teams are seeded 1 against the last, 2 against the second-to-last and so on, and byes fill the
+  bracket up to 4, 8, 16 … teams: the top seeds get them and move on by themselves.
+- **Results:** click a match to enter the scores, the winner, whether it is live, its station and its
+  seats ("A-1..A-5, B-1..B-5"). The winner moves to the next round; changing a result takes the
+  wrong team back out of the later rounds. A match's seats link to the floor plan and name the
+  match zone they are in.
+- **From a tournament tool:** a plugin that uses `brackets` (see [plugins](plugins.md#areas-uses))
+  sends brackets; **Import from …** asks it again. Imported brackets are read-only here and replaced
+  on every import; only their match zone can be set. The demo data has one.
+
+Changing brackets needs `floorplan.edit`; every change is in the audit log.
+
+### The public view
+
+`/bracket` shows the brackets for attendees and the big screens (`?screen=1`, `?id=<bracket>` for
+one of several): team names, scores, which match is live, the station and the champion, and the
+match zone's name. Never seats. It reloads every 30 seconds; `/bracket.json` has the same. It is off
+until **Settings > Attendee pages > Tournament brackets** (or `BRACKET_VIEW=true`) turns it on.
+
 ## API
 
 | Request | Needs | What |
@@ -33,5 +58,10 @@ doesn't change the switch configuration itself.
 | `POST /api/tournament/zones` | `floorplan.edit` | `{"name", "seats": "B, A-1..A-4", "note"}` |
 | `PATCH`/`DELETE /api/tournament/zones/<id>` | `floorplan.edit` | Change or remove a zone |
 | `GET /api/tournament/qos` | `floorplan.view` | Ports behind match seats per switch, uplinks, seats not found |
+| `GET /api/tournament/brackets` | `floorplan.view` | Every bracket, its matches with their seats and zones, the plugins that send brackets |
+| `POST /api/tournament/brackets` | `floorplan.edit` | `{"name", "teams": ["..."], "zone_id"}` |
+| `PATCH`/`DELETE /api/tournament/brackets/<id>` | `floorplan.edit` | Rename it, set its zone, or remove it |
+| `PATCH /api/tournament/brackets/<id>/matches/<match>` | `floorplan.edit` | `a_score`, `b_score`, `winner` (`a`/`b`/null), `status` (`waiting`/`live`), `seats`, `station` |
+| `POST /api/tournament/brackets/import` | `floorplan.edit` | Ask the bracket plugins again |
 
 Port actions take `"confirm_match": true` as the second confirmation.

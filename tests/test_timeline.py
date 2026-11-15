@@ -79,3 +79,10 @@ def test_needs_audit_read(app_module, client):
     tech = sign_in_as(app_module, 'te1', 'tech')
     assert tech.get('/api/timeline').status_code == 403
     assert tech.get('/api/timeline.csv').status_code == 403
+
+
+def test_entries_in_the_same_millisecond_keep_the_newest_first(app_module):
+    timeline.write('deploy', 'first', t=1_800_000_000.0)
+    timeline.write('deploy', 'second', t=1_800_000_000.0)
+    rows, _, _ = timeline.build(kinds={'deploy'})
+    assert [r['title'] for r in rows[:2]] == ['second', 'first']

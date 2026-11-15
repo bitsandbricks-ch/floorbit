@@ -43,7 +43,7 @@ FEATURES = (
     {'id': 'commands', 'paths': ('/commands', '/api/commands'), 'needs': ('ports',)},
     {'id': 'terminal', 'paths': ('/terminal', '/api/terminal'), 'needs': ('ports',)},
     {'id': 'power', 'paths': ('/power', '/api/power'), 'needs': ()},
-    {'id': 'tournament', 'paths': ('/tournament', '/api/tournament'), 'needs': ()},
+    {'id': 'tournament', 'paths': ('/tournament', '/api/tournament', '/bracket', '/bracket.json'), 'needs': ()},
     {'id': 'replay', 'paths': ('/replay', '/api/replay'), 'needs': ()},
     {'id': 'timeline', 'paths': ('/timeline', '/api/timeline', '/api/timeline.csv'), 'needs': ()},
     {'id': 'report', 'paths': ('/report', '/api/report', '/api/report.pdf'), 'needs': ()},
@@ -55,6 +55,7 @@ FEATURES = (
      'needs': ()},
     {'id': 'public_hall', 'paths': ('/hall', '/api/public'), 'needs': ()},
     {'id': 'stats_wall', 'paths': ('/wall', '/wall.json'), 'needs': ()},
+    {'id': 'schedule', 'paths': ('/schedule', '/api/schedule', '/agenda', '/agenda.json'), 'needs': ()},
 )
 BY_ID = {f['id']: f for f in FEATURES}
 

@@ -26,6 +26,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `heatmap.js` | The traffic heatmap layer. |
 | `incidents.js` | Open incidents as rings on seats and switches, and the count in the top bar. |
 | `tournament.js` | Match seats (tournament zones) with a gold outline. |
+| `seat-states.js` | The seat states layer: seats online, offline or unknown, and checked in, drawn like the Seats view (`/plan`). |
 | `security.js` | Active security findings as dashed rings on seats and switches, and the count in the top bar. |
 | `logs.js` | Seats and switches with syslog warnings in the last 10 minutes, underlined in cyan. |
 | `power.js` | The power layer: seats and switches coloured by their circuit's load, distribution boards, and the count of red circuits in the top bar. |

@@ -58,6 +58,7 @@ AREAS = {
     'dns': 'lookups from the event\'s DNS resolver, for hall-wide DNS analytics (never per seat)',
     'wifi': 'access point load and client counts per radio, for the Wi-Fi view (never client names or MACs)',
     'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
+    'brackets': 'tournament brackets from a tournament tool, shown read-only on the bracket view',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
 }
 # What a context_menu entry can be on, and the action parameter that carries the target.
@@ -74,6 +75,7 @@ AREA_METHODS = {
     'dns': ('dns_queries',),
     'logs': ('push_logs', 'query_logs'),
     'wifi': ('wifi_aps',),
+    'brackets': ('brackets',),
 }
 # Methods a plugin of the area may have but doesn't need: without them the feature says the plugin
 # can't do it (switch commands, issue #94; the browser terminal, issue #95).
