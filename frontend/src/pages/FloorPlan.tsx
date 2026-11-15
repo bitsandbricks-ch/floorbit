@@ -1,4 +1,4 @@
-import { Alert, Anchor, Drawer, Group, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Drawer, Group, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,7 +8,8 @@ import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import type { SeatViewData } from '@/api/types'
+import { useCan } from '@/api/queries'
+import type { PlayerHit, SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
@@ -70,16 +71,38 @@ export default function FloorPlan() {
     if (value && PANELS.includes(key)) PANELS.filter((k) => k !== key).forEach((k) => next.delete(k))
     setParams(next, { replace: true })
   }
-  const go = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!data?.drawing || !view) return
-    const seat = findSeat(search, data.seats)
-    const at = seat && seatCenter(data.drawing, seat)
-    if (!seat || !at) return
+  // With seats.view the search also finds players by nick, IP or MAC (issue #186).
+  const canPeople = useCan('seats.view')
+  const [players, setPlayers] = useState<{ query: string; hits: PlayerHit[] } | null>(null)
+  const jump = (seat: string, hall?: string) => {
+    setPlayers(null)
+    if (hall && data && hall !== data.hall) {
+      const next = new URLSearchParams(params)
+      next.set('hall', hall)
+      next.set('seat', seat)
+      PANELS.filter((k) => k !== 'seat').forEach((k) => next.delete(k))
+      setParams(next)
+      return
+    }
+    const at = data?.drawing && seatCenter(data.drawing, seat)
+    if (!at || !view || !data?.drawing) return
     set('seat', seat)
     setView(around(at, Math.max(parseBox(data.drawing.box).w / 2, 480), view))
   }
-  const notFound = search.trim() !== '' && data ? !findSeat(search, data.seats) : false
+  const go = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!data?.drawing || !view) return
+    const seat = findSeat(search, data.seats)
+    if (seat) return jump(seat)
+    if (!canPeople || search.trim().length < 2) return
+    const q = search.trim()
+    const found = await get<{ results: PlayerHit[] }>(`/api/plan/find?q=${encodeURIComponent(q)}`).catch(() => ({ results: [] }))
+    if (found.results.length === 1) return jump(found.results[0].seat, found.results[0].hall)
+    setPlayers({ query: q, hits: found.results })
+  }
+  const searched = players && players.query === search.trim()
+  const notFound = search.trim() !== '' && data && !findSeat(search, data.seats)
+    ? (canPeople ? !!searched && players.hits.length === 0 : true) : false
   const total = data ? Object.keys(data.seats).length : 0
   const online = data ? Object.values(data.seats).filter((s) => s.state === 'online').length : 0
   const problems = data ? Object.values(data.seats).filter((s) => s.problems).length : 0
@@ -148,12 +171,23 @@ export default function FloorPlan() {
                   onChange={(v) => { const next = new URLSearchParams(); if (v) next.set('hall', v); setParams(next) }} />
               )}
               <form onSubmit={go} role="search">
-                <TextInput aria-label={t('plan.find')} placeholder={t('plan.findHint')} w={160} value={search}
-                  leftSection={<IconSearch size={14} />} error={notFound ? t('plan.notFound') : undefined}
+                <TextInput aria-label={t('plan.find')} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
+                  leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
                   onChange={(e) => setSearch(e.currentTarget.value)} />
               </form>
             </Group>
           </Group>
+          {searched && players.hits.length > 1 && (
+            <Group gap={6} mb="sm" justify="flex-end" role="list" aria-label={t('plan.players')}>
+              {players.hits.map((h) => (
+                <div key={h.seat} role="listitem">
+                  <Button size="compact-sm" variant="default" onClick={() => jump(h.seat, h.hall)}>
+                    {h.nick ? `${h.nick} · ${h.seat}` : h.seat}
+                  </Button>
+                </div>
+              ))}
+            </Group>
+          )}
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
           <Group mb="sm" gap="lg" wrap="wrap">
             <SegmentedControl size="xs" value={filter} onChange={(v) => setFilter(v as Filter)} aria-label={t('plan.show')}

@@ -19,7 +19,7 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import halls, incidents, inventory, seat_notes, speedtest, tournament
+from . import halls, incidents, inventory, seat_notes, seat_search, speedtest, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
@@ -282,3 +282,19 @@ def switch(name, now=None):
 def _port_key(port):
     """Gi1/0/2 before Gi1/0/10."""
     return [int(p) if p.isdigit() else p for p in re.split(r'(\d+)', str(port))]
+
+
+def find_player(query):
+    """A player by nick, IP or MAC for the Seats page's search (issue #186), with the hall each seat
+    is in so the page can switch to it. Names people: the route needs ``seats.view``."""
+    data = load_data()
+    hall_of = {}
+    for hall in halls.halls(data):
+        drawing, _ = plan(data, hall_id=hall['id'])
+        for shape in (drawing or {}).get('shapes', []):
+            for cell in shape['cells']:
+                hall_of.setdefault(cell['seat'], hall['id'])
+    found = seat_search.find(query)
+    return {'query': found['query'], 'results': [
+        {'seat': r['seat'], 'nick': r.get('username') or '', 'matched': r['matched'], 'hall': hall_of[r['seat']]}
+        for r in found['results'] if r.get('seat') in hall_of]}

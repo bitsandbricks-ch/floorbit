@@ -105,7 +105,8 @@
     "changed": "Changed",
     "ago_zero": "just now",
     "ago_one": "{{count}} min ago",
-    "ago_other": "{{count}} min ago"
+    "ago_other": "{{count}} min ago",
+    "note": "Note"
   },
   "changedAgo_one": "changed {{count}} min ago",
   "changedAgo_other": "changed {{count}} min ago",
@@ -153,5 +154,8 @@
     "minAgo_other": "{{count}} min ago",
     "hAgo_one": "{{count}} h ago",
     "hAgo_other": "{{count}} h ago"
-  }
+  },
+  "findPlayerHint": "Seat or nick, e.g. D-6",
+  "players": "Players found",
+  "notFoundPlayer": "No seat or player found"
 }

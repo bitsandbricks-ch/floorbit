@@ -5,6 +5,7 @@
 - ``GET /api/plan/seats/<seat>``: one seat for the inspector. Nicks, IPs and MACs only with ``seats.view``.
 - ``GET /api/plan/blocks/<name>``: one seat block for the block panel: states, problems, switches.
 - ``GET /api/plan/switches/<name>``: one switch for the switch panel: status and the seats it serves.
+- ``GET /api/plan/find?q=``: a player by nick, IP or MAC, with their seat and hall (``seats.view``).
 - ``PUT /api/plan/seats/<seat>/note`` ``{text}``: the crew's note on the seat; empty text removes it.
 
 Reading needs ``floorplan.view`` (the default rule in auth/roles.py), the note ``incidents.work``.
@@ -76,3 +77,8 @@ def seat_note(seat):
     audit.record('incidents', 'Wrote a seat note' if note else 'Removed a seat note', g.get('audit_user'), seat)
     events.publish('plan.changed', {'seat': seat})
     return jsonify({'note': note})
+
+
+@bp.route('/api/plan/find')
+def find_player():
+    return jsonify(seat_view.find_player(request.args.get('q', '')[:100]))

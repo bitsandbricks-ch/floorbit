@@ -410,4 +410,4 @@ body {
 .fb-block-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 6px; }
 .fb-plan .sw.link { cursor: pointer; }
 
-.fb-speed-tests td, .fb-speed-tests th { white-space: nowrap; }
+.fb-speed-tests td { white-space: nowrap; }

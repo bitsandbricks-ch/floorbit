@@ -217,7 +217,7 @@ describe('Seats page', () => {
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => { created.push(b); return 'blob:x' }, revokeObjectURL: () => {} }))
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     fireEvent.click(screen.getByRole('button', { name: 'CSV' }))
-    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,match\nD-2,offline,1,,no,\n')
+    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,match,note\nD-2,offline,1,,no,,no\n')
     click.mockRestore()
 
     fireEvent.click(within(table).getByRole('button', { name: 'D-2' }))
@@ -372,5 +372,50 @@ describe('Seats page', () => {
     expect(await screen.findByText('480')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Ping (ms)' })).toBeInTheDocument()
     expect(screen.getAllByText(/before the last link change/)).toHaveLength(1)
+  })
+
+  it('lists which seats have a crew note and sorts them first', async () => {
+    const noted = { ...data, seats: { ...data.seats, 'D-3': { ...data.seats['D-3'], note: true } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': noted }).fn)
+    renderWithApp(<FloorPlan />, '/plan?view=list')
+    const table = await screen.findByRole('table', { name: 'Seats' })
+    fireEvent.click(within(table).getByRole('button', { name: 'Note' }))
+    const first = within(table).getAllByRole('row')[1]
+    expect(within(first).getByRole('button', { name: 'D-3' })).toBeInTheDocument()
+    expect(within(first).getByText('Yes')).toBeInTheDocument()
+  })
+
+  it('finds players by nick for seats.view and jumps to their seat', async () => {
+    const lead = { enabled: true, user: { username: 'lea', display_name: 'Lea', role: 'lead', permissions: ['floorplan.view', 'seats.view'] } }
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details, 'GET /api/plan/seats/D-3': { ...details, seat: 'D-3' },
+      'GET /api/plan/find?q=sam': { results: [{ seat: 'D-2', nick: 'sam', matched: 'nick', hall: 'main' }, { seat: 'D-3', nick: 'samira', matched: 'nick', hall: 'main' }] },
+      'GET /api/plan/find?q=sami': { results: [{ seat: 'D-3', nick: 'samira', matched: 'nick', hall: 'main' }] },
+      'GET /api/plan/find?q=zz': { results: [] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    const box = await screen.findByRole('textbox', { name: 'Find a seat' })
+    await waitFor(() => expect(box).toHaveAttribute('placeholder', 'Seat or nick, e.g. D-6'))
+    fireEvent.change(box, { target: { value: 'sam' } })
+    fireEvent.submit(box.closest('form')!)
+    const list = await screen.findByRole('list', { name: 'Players found' })
+    fireEvent.click(within(list).getByRole('button', { name: 'samira · D-3' }))
+    expect(await screen.findByRole('heading', { name: 'Seat D-3' })).toBeInTheDocument()
+
+    fireEvent.change(box, { target: { value: 'zz' } })
+    fireEvent.submit(box.closest('form')!)
+    expect(await screen.findByText('No seat or player found')).toBeInTheDocument()
+  })
+
+  it('keeps the seat-only search without seats.view', async () => {
+    const api = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    const box = await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.change(box, { target: { value: 'sam' } })
+    fireEvent.submit(box.closest('form')!)
+    expect(await screen.findByText('No such seat here')).toBeInTheDocument()
+    expect(api.calls.some((c) => c.path.startsWith('/api/plan/find'))).toBe(false)
   })
 })

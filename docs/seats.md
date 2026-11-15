@@ -67,10 +67,19 @@ stays still for people who turned motion off), and its label says "changed 4 min
 Changed lately** keeps only those seats, on the map and in the list, so "what just went down?" is
 one click during an outage. Floorbit's first port read after a start doesn't count as a change.
 
+## Finding a seat or a player
+
+The search box takes a seat number (`d6`, `D 6` and `D-06` all find D-6). Accounts with `seats.view`
+can also type a nick, an IP or a MAC: one match opens that seat, switching hall if needed, and
+several show a short list to pick from. It is the same search as the seat mapping's
+([Finding a player](seat-mapping.md#finding-a-player)). Everyone else searches by seat number only, and the plan
+itself never carries names.
+
 ## List
 
 **Map / List** switches the plan for a table of the hall's seats: seat, state, problems, traffic,
-check-in and match zone. Click a column to sort (problems and traffic start with the most), and the
+check-in, match zone and whether the crew left a note. Click a column to sort (problems, traffic and
+notes start with the most), and the
 **Show** filter applies here too, so "every offline seat" is two clicks. Click a seat to open the
 inspector. **CSV** downloads what the list shows. `/plan?view=list` opens the page as a list; it is
 also the plain way through the hall for screen readers and small phones.

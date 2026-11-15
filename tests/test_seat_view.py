@@ -207,3 +207,17 @@ def test_inspector_shows_the_seats_speed_tests_to_the_crew(client, app_module, h
     kiosk = app_module.app.test_client()
     kiosk.post("/login", data={"username": "kim", "password": "kim-password-1"})
     assert "speedtests" not in kiosk.get("/api/plan/seats/D-6").get_json()
+
+
+def test_find_a_player_on_the_seats_page(client, app_module, hall):
+    got = client.get("/api/plan/find?q=player-s").get_json()
+    [hit] = got["results"]
+    assert {k: hit[k] for k in ("seat", "nick", "matched")} == {"seat": "D-6", "nick": "player-six", "matched": "nick"}
+    assert hit["hall"]
+    assert client.get("/api/plan/find?q=198.51.100.7").get_json()["results"][0]["seat"] == "D-6"
+    assert client.get("/api/plan/find?q=nobody").get_json()["results"] == []
+
+    app_module.app.extensions["auth"].users.add("kim", "kim-password-1", role="kiosk")
+    kiosk = app_module.app.test_client()
+    kiosk.post("/login", data={"username": "kim", "password": "kim-password-1"})
+    assert kiosk.get("/api/plan/find?q=player").status_code == 403
