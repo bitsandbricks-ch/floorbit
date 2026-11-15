@@ -156,6 +156,7 @@ class StatusMonitor:
             }
             current['status'] = status
             current['since'] = now
+            current['previous'] = change['previous']   # tells "came back" apart from "was always up" (issue #390)
             changes.append(change)
 
         # Forget switches that were removed from the floor plan

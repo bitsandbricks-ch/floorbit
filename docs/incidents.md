@@ -31,6 +31,8 @@ A fixed incident says how long it took from filed to fixed, e.g. **With kim · f
 An open incident whose seat is on a switch that is down right now gets a red tag, e.g.
 **sw-c-02 down · 5 min ago**: likely part of that outage rather than the seat's cable. The seat's
 switch comes from the last port read or the status page's memory; no tag when it isn't known.
+Once that switch is back, an incident filed while it was down gets a green tag instead,
+**sw-c-02 back up · 2 min ago**: check whether it works now before walking over.
 
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
@@ -82,6 +84,10 @@ language, with four buttons (no internet, slow connection, no power, something e
   port read or from what the [status page](status-page.md) remembered; a seat with no known port
   gets no message. No switch names. When the status page is public, the note links to it for the
   crew's updates.
+- **Switch back up:** when the seat has an open report and its switch came back after the report was
+  filed, the page says "The network at your seat has been back for 3 min. Does it work again?" and
+  points at the **It works again** button, so a tech doesn't walk over for something that fixed
+  itself. No switch names.
 - **It works again:** while the seat has an open report, the page has an **It works again** button
   for problems that fixed themselves. It tags the seat's open reports on the board (**Seat says it
   works again · 3 min ago**) but doesn't mark them fixed: the link is anonymous, so the crew checks
