@@ -51,7 +51,8 @@
   <main class="card">
     <h1>{{ t.title.format(seat=seat) }}</h1>
     {% if state == 'ask' %}
-    {% if report %}<p class="report report-{{ report }}" role="status">{{ t['state_' + report] }}</p>{% endif %}
+    {% if report %}<p class="report report-{{ report }}" role="status">{{ t['state_' + report] }}
+      {%- if report == 'open' and ahead %} {{ (t.ahead_one if ahead == 1 else t.ahead_other).format(n=ahead) }}{% endif %}</p>{% endif %}
     <p>{{ t.intro }}</p>
     <form method="post" action="{{ url_for('incidents.help_page', seat=seat, k=k) }}">
       {% for problem in problems %}

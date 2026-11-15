@@ -68,6 +68,8 @@ language, with four buttons (no internet, slow connection, no power, something e
 - **Where it stands:** opening the page again shows the seat's latest report: nobody has taken it
   yet, it was [sent to a tech](dispatch.md) who hasn't said "On my way" yet, someone from the team
   has it and is on the way, or it was marked fixed (for half an hour after the fix). It never says who.
+  While nobody has it, it also says how many open reports nobody has taken were filed before it
+  ("3 reports are ahead of yours"), across the whole board: only the number.
 - **It works again:** while the seat has an open report, the page has an **It works again** button
   for problems that fixed themselves. It tags the seat's open reports on the board (**Seat says it
   works again · 3 min ago**) but doesn't mark them fixed: the link is anonymous, so the crew checks

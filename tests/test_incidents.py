@@ -223,6 +223,23 @@ def test_a_seat_that_works_again_is_not_waiting(anon_client, app_module, floor):
         assert not incidents.is_waiting(incidents.get(incident["id"]), later)
 
 
+def test_the_help_page_says_how_many_reports_are_ahead(anon_client, client, app_module, floor):
+    # Issue #378: a count only, from the whole board's open queue.
+    now = time.time()
+    first = client.post("/api/incidents", json={"seat": "A-1", "title": "Filed first"}).get_json()
+    taken = client.post("/api/incidents", json={"seat": "A-2", "title": "Someone has it"}).get_json()
+    client.patch(f"/api/incidents/{taken['id']}", json={"assignee": TEST_USER})
+    with app_module.app.app_context():
+        incidents.stamp(first["id"], created_at=now - 300)
+        incidents.stamp(taken["id"], created_at=now - 200)
+    url = help_url(app_module, "A-4")
+    anon_client.post(url, data={"problem": "slow"})
+    page = anon_client.get(url).data.decode()
+    assert "One report is ahead of yours." in page and "Filed first" not in page
+    client.patch(f"/api/incidents/{first['id']}", json={"assignee": TEST_USER})
+    assert "ahead of yours" not in anon_client.get(url).data.decode()
+
+
 def test_works_again_without_a_report_changes_nothing(anon_client, client, app_module, floor):
     client.post("/api/incidents", json={"seat": "A-4", "title": "Filed by the crew"})
     assert anon_client.post(help_url(app_module, "A-4"), data={"works": "1"}).status_code == 200

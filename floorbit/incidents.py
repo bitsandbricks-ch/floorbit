@@ -301,6 +301,21 @@ def seat_report_state(seat, now=None):
     return 'taken'
 
 
+def seat_queue_ahead(seat):
+    """How many open reports nobody has taken were filed before this seat's (issue #378).
+
+    Only a count, so the attendee knows roughly how long to wait; nothing about the others leaks.
+    Counts the whole board, since the crew works one queue; ones the seat behind them called off don't count."""
+    items = list_all()
+    mine = [i for i in items if i.get('seat') == seat and i.get('source') == 'helpdesk'
+            and i['status'] == 'open' and not i.get('assignee') and not i.get('seat_ok_at')]
+    if not mine:
+        return None
+    since = min(i.get('created_at') or 0 for i in mine)
+    return sum(1 for i in items if i['status'] == 'open' and not i.get('assignee') and not i.get('seat_ok_at')
+               and (i.get('created_at') or 0) < since)
+
+
 def update(user, incident_id, body):
     with _lock:
         data = load_data()

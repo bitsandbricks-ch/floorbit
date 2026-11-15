@@ -199,6 +199,7 @@ TEXTS = {
            'state_taken': 'Someone from the team has your report and is on the way.',
            'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.',
            'state_ok': 'You told us it works again. Thanks! Broken again? Tap it below.',
+           'ahead_one': 'One report is ahead of yours.', 'ahead_other': '{n} reports are ahead of yours.',
            'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
            'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
@@ -221,6 +222,7 @@ TEXTS = {
            'state_taken': 'Jemand vom Team hat deine Meldung und ist unterwegs.',
            'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.',
            'state_ok': 'Du hast gemeldet, dass es wieder geht. Danke! Wieder kaputt? Tippe unten.',
+           'ahead_one': 'Vor deiner ist noch eine Meldung.', 'ahead_other': 'Vor deiner sind noch {n} Meldungen.',
            'works': 'Es geht wieder',
            'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
            'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.'},
@@ -257,7 +259,7 @@ def help_page(seat):
     if request.method == 'GET':
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
                                problems=list(incidents.PROBLEMS), k=request.args.get('k'),
-                               report=incidents.seat_report_state(seat))
+                               report=incidents.seat_report_state(seat), ahead=incidents.seat_queue_ahead(seat))
     if request.form.get('works'):
         return _works_again(lang, text, seat)
     problem = request.form.get('problem')
