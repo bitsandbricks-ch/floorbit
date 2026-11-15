@@ -263,9 +263,16 @@ The agent sends its key in the `Floorbit-Agent-Key` header and its version in
 
 | Request | What |
 | --- | --- |
-| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version"}`, or 401 |
+| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings"}`, or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
+| `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
+| `GET /api/agent/v1/seats` | `{"seat_of", "area_of"}`: the seat addresses for the flow collector, or 409 while Traffic is off |
+| `POST /api/agent/v1/flows` | `{"snapshot"}`: the flow collector's summary, or 409 while Traffic is off |
+
+When `hello` lists `gzip` in `encodings`, the agent sends POST bodies over 2 KB gzipped
+(`Content-Encoding: gzip`), which saves most of the uplink on syslog batches and inventories. A body
+that doesn't unpack, or unpacks to more than 32 MB, counts as empty.
 
 The methods are those of the monitoring source (see [architecture.md](architecture.md#inventory-and-data-sources)):
 `configured`, `devices`, `device_details`, `resolve_ip`, `port_stats`, `device_ports` and `arp`, plus

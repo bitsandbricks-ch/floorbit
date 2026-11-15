@@ -859,3 +859,36 @@ def test_main_health_needs_no_settings(monkeypatch, tmp_path):
     assert agent_mod.main(["health"]) == 1
     (tmp_path / "beat").write_text("1\n")
     assert agent_mod.main(["health"]) == 0
+
+
+def test_big_bodies_go_gzipped_once_the_host_says_it_takes_them(client, app_module, monkeypatch):
+    receiver = _syslog_receiver(app_module, monkeypatch)
+    a = make(app_module, enrol(client)["key"])
+    sent = []
+    real_post = a.http.post
+    monkeypatch.setattr(a.http, "post", lambda url, data=None, headers=None, timeout=None: (
+        sent.append(dict(headers or {})), real_post(url, data=data, headers=headers))[1])
+    lines = [{"raw": f"<14>line {n} " + "x" * 40, "from": "192.0.2.9", "at": time.time()} for n in range(100)]
+    a.send_syslog(lines[:1])
+    assert "Content-Encoding" not in sent[-1]                   # before hello: plain, any host takes that
+    assert a.hello() and a.gzip
+    a.send_syslog(lines)
+    assert sent[-1]["Content-Encoding"] == "gzip" and len(receiver.lines) == 101
+    a.send_syslog(lines[:1])
+    assert "Content-Encoding" not in sent[-1]                   # too small to be worth it
+
+
+def test_broken_or_huge_gzip_is_refused(client, app_module, monkeypatch):
+    import gzip as gz
+
+    from floorbit.blueprints import agent as agent_bp
+    _syslog_receiver(app_module, monkeypatch)
+    key = enrol(client)["key"]
+    h = {"Floorbit-Agent-Key": key, "Content-Encoding": "gzip", "Content-Type": "application/json"}
+    post = app_module.app.test_client().post
+    assert post("/api/agent/v1/syslog", data=b"not gzip", headers=h).get_json() == {"taken": 0, "received": 0}
+    monkeypatch.setattr(agent_bp, "MAX_UNZIPPED", 1000)
+    bomb = gz.compress(b'{"lines": [' + b" " * 5000 + b"]}")
+    assert post("/api/agent/v1/syslog", data=bomb, headers=h).get_json()["received"] == 0
+    fine = gz.compress(b'{"lines": [{"raw": "<14>hi", "from": "192.0.2.9"}]}')
+    assert post("/api/agent/v1/syslog", data=fine, headers=h).get_json() == {"taken": 1, "received": 1}

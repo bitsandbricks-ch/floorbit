@@ -12,6 +12,7 @@ the event network (syslog_relay.py, flows_relay.py).
 When the hosted Floorbit can't be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
 """
 import contextlib
+import gzip
 import io
 import json
 import os
@@ -26,6 +27,7 @@ VERSION_HEADER = 'Floorbit-Agent-Version'
 POLL_WAIT = 25            # the hosted side holds a poll at most this long
 HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
+GZIP_FROM = 2048          # bytes: smaller bodies aren't worth packing
 BEAT_EVERY = 10           # seconds between heartbeat writes
 HEALTHY_FOR = 120         # `health`: the last poll that got through is at most this old
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
@@ -142,6 +144,7 @@ class Agent:
         self._stop = threading.Event()
         self.answered = 0
         self.poll_wait = POLL_WAIT
+        self.gzip = False         # once hello says the hosted Floorbit takes gzipped bodies
         self.heartbeat = None     # a file touched after each poll that got through, for `health`
         self._beat_at = 0
 
@@ -159,8 +162,20 @@ class Agent:
         return resp.json()
 
     def hello(self):
-        return self._check(self.http.get(f'{self.url}/api/agent/v1/hello', headers=self._headers(),
+        body = self._check(self.http.get(f'{self.url}/api/agent/v1/hello', headers=self._headers(),
                                          timeout=HTTP_TIMEOUT))
+        self.gzip = 'gzip' in (body.get('encodings') or [])
+        return body
+
+    def _post(self, path, payload):
+        """POST JSON to the hosted Floorbit, gzipped when it takes that and the body is worth it."""
+        # default=str: a plugin answer may hold dates or other things JSON doesn't know.
+        data = json.dumps(payload, default=str).encode()
+        headers = self._headers(True)
+        if self.gzip and len(data) > GZIP_FROM:
+            data = gzip.compress(data, compresslevel=6)
+            headers['Content-Encoding'] = 'gzip'
+        return self.http.post(f'{self.url}{path}', data=data, headers=headers, timeout=HTTP_TIMEOUT)
 
     def poll(self, wait=POLL_WAIT):
         """One long poll; runs the calls it brings. Returns how many it got."""
@@ -177,11 +192,8 @@ class Agent:
             answer = {'id': call['id'], 'ok': True, 'result': result}
         except Exception as exc:  # noqa: BLE001  # the hosted side gets the message, the agent goes on
             answer = {'id': call['id'], 'ok': False, 'error': str(exc)[:300] or type(exc).__name__}
-        # default=str: a plugin answer may hold dates or other things JSON doesn't know.
-        payload = json.dumps({'answers': [answer]}, default=str)
         try:
-            self._check(self.http.post(f'{self.url}/api/agent/v1/answers', data=payload,
-                                       headers=self._headers(True), timeout=HTTP_TIMEOUT))
+            self._check(self._post('/api/agent/v1/answers', {'answers': [answer]}))
             self.answered += 1
         except Exception as exc:  # noqa: BLE001  # the call times out on the hosted side; nothing to keep
             self.log(f'[agent] could not send the answer to {call["method"]}: {exc}')
@@ -189,8 +201,7 @@ class Agent:
     def send_syslog(self, lines, dropped=0):
         """One batch for the hosted syslog (syslog_relay.Relay calls this)."""
         from .syslog_relay import TurnedOff
-        resp = self.http.post(f'{self.url}/api/agent/v1/syslog', headers=self._headers(True),
-                              data=json.dumps({'lines': lines, 'dropped': dropped}), timeout=HTTP_TIMEOUT)
+        resp = self._post('/api/agent/v1/syslog', {'lines': lines, 'dropped': dropped})
         if resp.status_code == 409:
             raise TurnedOff((resp.json() or {}).get('error') or 'Syslog is turned off on the hosted Floorbit.')
         return self._check(resp)
@@ -206,8 +217,7 @@ class Agent:
                                         timeout=HTTP_TIMEOUT))
 
     def send_flows(self, snapshot):
-        return self._said(self.http.post(f'{self.url}/api/agent/v1/flows', headers=self._headers(True),
-                                         data=json.dumps({'snapshot': snapshot}, default=str), timeout=HTTP_TIMEOUT))
+        return self._said(self._post('/api/agent/v1/flows', {'snapshot': snapshot}))
 
     def beat(self, now=None):
         """The hosted Floorbit answered: say so in the heartbeat file (at most every few seconds)."""
