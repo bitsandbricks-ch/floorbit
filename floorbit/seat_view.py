@@ -54,6 +54,60 @@ def _port_of_seat():
     return out
 
 
+def _switches_of(seat, data):
+    """The inventory devices serving ``seat``: from the last port read, or what the status page
+    remembered while a switch went down. Only a known link counts: better say nothing than blame the
+    wrong switch."""
+    from . import status_page
+    short = lambda name: str(name or '').lower().split('.')[0]   # noqa: E731
+    names = set()
+    port = _port_of_seat().get(seat)
+    if port:
+        names.add(short(port[0]))
+    with status_page._lock:
+        names |= {short(sw) for sw, seats in status_page._seats_of.items() if seat in seats}
+    if not names:
+        return []
+    return [d for d in inventory.devices(data if data is not None else load_data()) if short(d.get('name')) in names]
+
+
+def outage_of(seat, data=None, statuses=None):
+    """(switch name, down since) for the down switch serving ``seat``, or None (issues #384, #386)."""
+    statuses = monitor_statuses() if statuses is None else statuses
+    if not statuses:
+        return None
+    down = [(d.get('name'), (statuses.get(d['id']) or {}).get('since') or time.time())
+            for d in _switches_of(seat, data) if (statuses.get(d['id']) or {}).get('status') == 'offline']
+    return min(down, key=lambda x: x[1]) if down else None
+
+
+def back_up(seat, after, data=None, statuses=None):
+    """(switch name, up since) when the seat's switch came back from offline after ``after``, or None
+    (issue #390): a report from during the outage may be fixed already."""
+    statuses = monitor_statuses() if statuses is None else statuses
+    if not statuses:
+        return None
+    for d in _switches_of(seat, data):
+        st = statuses.get(d['id']) or {}
+        if st.get('status') == 'online' and st.get('previous') == 'offline' and (st.get('since') or 0) > after:
+            return d.get('name'), st['since']
+    return None
+
+
+def monitor_statuses():
+    """The status monitor's {device id: status}, or None before its first poll."""
+    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    if not monitor or not getattr(monitor, 'last_poll', None):
+        return None
+    return dict(getattr(monitor, 'statuses', None) or {})
+
+
+def outage_since(seat, data=None):
+    """Since when the switch serving ``seat`` is down, or None (issue #384). No names: for attendees."""
+    found = outage_of(seat, data)
+    return found[1] if found else None
+
+
 def _problems():
     """{seat: count} of open incidents and port trouble from the needs-attention list.
 

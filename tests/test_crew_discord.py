@@ -382,3 +382,21 @@ def test_a_sent_job_nobody_sees_gets_one_line_per_sending(bridge, client, app_mo
         monkeypatch.setenv("DISCORD_CREW_UNSEEN_MINUTES", "0")
         incidents.stamp(inc["id"], dispatched_at=sent + 60 * 60, taken_at=None)
         assert bridge.nudge_unseen(now=sent + 90 * 60) == []
+
+
+def test_the_thread_hears_when_the_seat_says_it_works_again(bridge, client, app_module, monkeypatch):
+    # Issue #374: one line when the attendee taps "It works again", and no waiting nudge after it.
+    from floorbit import incidents
+    with app_module.app.app_context():
+        incident, _ = incidents.report_from_seat("A-1", "no-internet", {})
+        record = bridge.sync(incident["id"])
+        incidents.seat_says_ok("A-1")
+        before = len(bridge.fake.calls)
+        bridge.sync(incident["id"])
+        thread = f"/channels/{record['thread']}/messages"
+        lines = [c[2].get("content") for c in bridge.fake.calls[before:] if c[1] == thread]
+        assert lines == ["👍 The seat says it works again. Check or ask before marking it fixed."]
+        before = len(bridge.fake.calls)
+        bridge.sync(incident["id"])                       # once only
+        assert bridge.nudge_waiting(now=incident["created_at"] + 75 * 60) == []
+        assert not [c for c in bridge.fake.calls[before:] if c[1] == f"/channels/{record['thread']}/messages"]

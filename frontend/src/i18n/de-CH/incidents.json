@@ -112,5 +112,11 @@
   "autoDispatch": "Neue automatisch an den nächsten freien Techniker senden",
   "notSeenFor_one": "seit {{count}} Min. nicht gesehen",
   "notSeenFor_other": "seit {{count}} Min. nicht gesehen",
-  "notSeenForLong": "seit {{h}} Std. {{m}} Min. nicht gesehen"
+  "notSeenForLong": "seit {{h}} Std. {{m}} Min. nicht gesehen",
+  "seatOk": "Platz meldet: geht wieder · {{ago}}",
+  "seatOkHint": "Am Platz wurde auf der Hilfeseite \"Es geht wieder\" getippt. Prüf oder frag nach, bevor du sie als erledigt markierst.",
+  "outage": "{{switch}} ausgefallen · {{ago}}",
+  "outageHint": "Der Switch dieses Platzes ist gerade ausgefallen. Eher Teil dieses Ausfalls als das Kabel am Platz.",
+  "backUp": "{{switch}} wieder da · {{ago}}",
+  "backUpHint": "Der Switch des Platzes war aus und läuft wieder, seit das gemeldet wurde. Prüf, ob es jetzt geht, bevor du hingehst."
 }

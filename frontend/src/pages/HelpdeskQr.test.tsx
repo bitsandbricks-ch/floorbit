@@ -31,4 +31,17 @@ describe('HelpdeskQr', () => {
     expect(screen.getByText(/No seat matches/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Print' })).toBeDisabled()
   })
+
+  it('starts from the seats or block in the address (issue #380)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/helpdesk/qr': sheet }).fn)
+    renderWithApp(<HelpdeskQr />, '/incidents/qr?seats=D-7')
+    expect(await screen.findByText('1 of 5 codes')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Only these seats' })).toHaveValue('D-7')
+  })
+
+  it('starts from a block in the address', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/helpdesk/qr': sheet }).fn)
+    renderWithApp(<HelpdeskQr />, '/incidents/qr?block=a')
+    expect(await screen.findByText('2 of 5 codes')).toBeInTheDocument()
+  })
 })

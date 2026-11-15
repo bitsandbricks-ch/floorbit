@@ -21,6 +21,9 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
 - **Not seen:** when a job [sent to a tech](dispatch.md) is still not seen 5 minutes later
   (`DISCORD_CREW_UNSEEN_MINUTES`), its thread gets one line, "📵 Sent to kim 5 min ago, not seen
   yet.", the same rule as the board. It pings nobody. Sent again, it can say so again.
+- **Works again:** when the attendee taps "It works again" on the seat's [help page](incidents.md#the-helpdesk-on-each-seat),
+  the thread gets "👍 The seat says it works again. Check or ask before marking it fixed." and no
+  waiting nudge follows. The incident stays open until someone marks it fixed.
 - **Fixed:** the buttons go away and the thread is archived. When the incident is reopened, the
   thread opens again.
 - **Buttons:** "Take it" and "Fixed" act as the Floorbit account linked to whoever clicks. That account
