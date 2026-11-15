@@ -55,7 +55,7 @@ the Problems page, marked muted, and under **Muted switches and services** until
 
 A service on the [health wall](health.md) that is red or amber has the same **Mute**: while muted, Discord
 gets no "is down" or "is back" message for it, and it stays out of the counts in the browser tab.
-It is still on the health wall as it is. Muting needs `incidents.work` and is in the audit log under **alerts**. Mutes are stored
+It stays on the health wall in its colour, with "alerts muted until" and the time on its tile (who muted it and why are on the Problems page), and out of the health wall's tab count. Muting needs `incidents.work` and is in the audit log under **alerts**. Mutes are stored
 in `data.json` under `alert_mutes` and survive a restart.
 
 ## Big outages are one message
