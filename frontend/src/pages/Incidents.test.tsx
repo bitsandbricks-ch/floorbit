@@ -124,6 +124,12 @@ describe('Incident board', () => {
     expect(matchesFilter(at('D-20'), 'seat:D-2')).toBe(false)
     expect(matchesFilter(at('D-20'), 'D-2')).toBe(true)
   })
+  it('matches one switch exactly with switch: (issue #336)', () => {
+    const on = (name: string) => ({ ...base, id: name, title: `${name} is offline`, status: 'open' as const, seat: null, switch_id: `id-${name}`, switch_name: name })
+    expect(matchesFilter(on('sw-a-01'), 'switch:SW-A-01')).toBe(true)
+    expect(matchesFilter(on('sw-a-01'), 'switch:id-sw-a-01')).toBe(true)
+    expect(matchesFilter(on('sw-a-010'), 'switch:sw-a-01')).toBe(false)
+  })
   it('matches title, place, people, team and notes', () => {
     const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
     expect(matchesFilter(i, '')).toBe(true)

@@ -29,7 +29,7 @@ so a reload or a shared link shows the same.
 
 For people who see the [incident board](incidents.md), an offline switch has **Make an incident**:
 one click puts it on the board with the switch and the problem's title. Once an incident for that
-switch is open, the button becomes **Incident open**, which opens the board filtered to the switch.
+switch is open, the button becomes **Incident open**, which opens the board filtered to the switch (`/incidents?q=switch:sw-a-01`).
 
 **Copy list** in the page header copies the problems shown (after the kind filter) as plain text,
 with the time, the counts and the mutes, for pasting into the crew chat or a ticket.

@@ -1,11 +1,16 @@
 import type { Incident } from '@/api/types'
 
 /** Does the incident match the board filter? Title, place, people, team and notes, ignoring case.
- * ``seat:D-2`` matches that seat only, so links from a seat don't also catch D-20 to D-24. */
+ * ``seat:D-2`` matches that seat only, so links from a seat don't also catch D-20 to D-24;
+ * ``switch:sw-a-01`` likewise matches one switch by name or id (issue #336). */
 export function matchesFilter(i: Incident, filter: string, teamNames: Record<string, string> = {}): boolean {
   const q = filter.trim().toLowerCase()
   if (!q) return true
   if (q.startsWith('seat:')) return (i.seat ?? '').toLowerCase() === q.slice(5).trim()
+  if (q.startsWith('switch:')) {
+    const want = q.slice(7).trim()
+    return [i.switch_name, i.switch_id].some((f) => typeof f === 'string' && f.toLowerCase() === want)
+  }
   const fields = [i.title, i.seat, i.switch_name, i.switch_id, i.circuit_name, i.assignee, i.team, teamNames[i.team ?? ''],
     ...i.notes.map((n) => n.text)]
   return fields.some((f) => typeof f === 'string' && f.toLowerCase().includes(q))

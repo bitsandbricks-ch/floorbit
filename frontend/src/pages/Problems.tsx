@@ -59,7 +59,7 @@ function Row({ p, canMute, busy, onMute, onReport }: {
           {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
           {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
           {p.incident && (
-            <Button size="xs" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.name ?? p.where)}`}>
+            <Button size="xs" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.kind === 'switch' && p.name ? `switch:${p.name}` : p.name ?? p.where)}`}>
               {t('problems.incidentOpen')}
             </Button>
           )}
