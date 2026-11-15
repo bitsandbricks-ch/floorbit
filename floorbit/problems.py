@@ -51,20 +51,24 @@ def _switches(muted):
         mute = muted.get(s['id'])
         out.append({'id': f"switch:{s['id']}", 'kind': 'switch', 'level': 'down', 'title': f"{s['name']} is offline",
                     'where': s['name'], 'since': s.get('since'), 'link': _on_plan(switch=s['name']),
-                    'switch_id': s['id'],
-                    'muted': {'until': mute['until'], 'by': mute.get('by'), 'reason': mute.get('reason')}
-                    if mute else None})
+                    'switch_id': s['id'], 'mute_id': s['id'], 'name': s['name'], 'muted': _muted(mute)})
     return out
 
 
-def _health():
+def _muted(mute):
+    return {'until': mute['until'], 'by': mute.get('by'), 'reason': mute.get('reason')} if mute else None
+
+
+def _health(muted):
     wall = current_app.extensions.get('floorbit_health')
     out = []
     for c in (wall.snapshot()['checks'] if wall else []):
         if c['status'] in ('down', 'warn'):
-            out.append({'id': f"health:{c['id']}", 'kind': 'health', 'level': c['status'],
+            key = alerting.service_key(c['id'])
+            out.append({'id': key, 'kind': 'health', 'level': c['status'],
                         'title': f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}",
-                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/health'})
+                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/health',
+                        'mute_id': key, 'name': c['name'], 'muted': _muted(muted.get(key))})
     return out
 
 
@@ -160,11 +164,11 @@ def _logs(may_see_people):
 
 def current(may_see_people):
     muted = alerting.mutes()
-    items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power() + _forecast()
+    items = _monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
-              'warn': sum(p['level'] == 'warn' for p in items),
+              'warn': sum(p['level'] == 'warn' and not p.get('muted') for p in items),
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
@@ -172,6 +176,7 @@ def current(may_see_people):
     attention = sorted(_attention() + _logs(may_see_people), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
     counts['match'] = sum(bool(p.get('match')) for p in attention)
     counts['attention'] = len(attention)
-    mutes = [{'switch_id': k, **v} for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
+    mutes = [{'switch_id': k, 'kind': 'health' if k.startswith(alerting.service_key('')) else 'switch', **v}
+             for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
     return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,
             'quiet_hours': alerting.quiet_now(), 'checked_at': now}

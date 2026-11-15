@@ -145,17 +145,21 @@ class DiscordNotifier:
             self.post(payload)
 
     def build_health_message(self, changes, now=None):
-        """Red services, and (if wanted) services that were red and are back. Amber pages nobody."""
+        """Red services, and (if wanted) services that were red and are back. Amber pages nobody,
+        and a muted service nobody either."""
         now = now or time.time()
         cooldown = config.get_int('DISCORD_COOLDOWN', 300, minimum=0)
         notify_recovery = config.get_bool('DISCORD_NOTIFY_RECOVERY', True)
+        muted = alerting.mutes(now) if changes else {}
         selected = []
         for c in changes:
             down = c.get('status') == 'down'
             back = c.get('previous') == 'down' and c.get('status') in ('up', 'warn')
             if not down and not (back and notify_recovery):
                 continue
-            key = 'health:' + str(c.get('id'))
+            key = alerting.service_key(c.get('id'))
+            if key in muted:
+                continue  # someone is on it (issue #256)
             last = self._last_alert.get(key)
             if down and last is not None and now - last < cooldown:
                 continue

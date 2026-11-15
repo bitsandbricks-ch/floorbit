@@ -516,7 +516,7 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | POST | `/api/alerts/mutes` | `incidents.work` |  |
-| DELETE | `/api/alerts/mutes/<switch_id>` | `incidents.work` |  |
+| DELETE | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.replay

@@ -7,15 +7,7 @@ import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n'
 import { CrewNoticeEditor } from './CrewNotice'
 import { NotifySettings } from './NotifySettings'
-
-function signOut() {
-  // A plain form post: /logout clears the session and redirects to the sign-in page.
-  const form = document.createElement('form')
-  form.method = 'post'
-  form.action = '/logout'
-  document.body.append(form)
-  form.submit()
-}
+import { signOut } from './signOut'
 
 export function ThemeToggle() {
   const { t } = useTranslation()

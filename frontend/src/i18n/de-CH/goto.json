@@ -7,6 +7,11 @@
   "recent": "zuletzt",
   "seat": "Platz",
   "switch": "Switch",
+  "action": "Aktion",
+  "actions": {
+    "notice": "Crew-Hinweis aufhängen",
+    "notify": "Benachrichtigungen einstellen"
+  },
   "pages": {
     "floorPlan": "Hallenplan",
     "seats": "Plätze",

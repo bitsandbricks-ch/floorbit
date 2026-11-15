@@ -2,8 +2,9 @@
 
 - ``GET /problems``: everything wrong right now.
 - ``GET /api/problems``: the list (floorbit/problems.py), with the running mutes.
-- ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts.
-- ``DELETE /api/alerts/mutes/<switch_id>``: ends a mute.
+- ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
+  ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256).
+- ``DELETE /api/alerts/mutes/<id>``: ends a mute (a switch id, or ``health:<service id>``).
 Mutes need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
 """
 from flask import Blueprint, current_app, g, jsonify, request
@@ -42,21 +43,28 @@ def list_problems():
 @bp.route('/api/alerts/mutes', methods=['POST'])
 def add_mute():
     body = request.get_json(silent=True) or {}
-    device = next((d for d in inventory.devices(load_data(), include_hidden=True)
-                   if d['id'] == body.get('switch_id')), None)
-    if not device:
-        return jsonify({'error': 'There is no such switch.'}), 400
+    if body.get('service_id'):
+        wall = current_app.extensions.get('floorbit_health')
+        check = next((c for c in (wall.snapshot()['checks'] if wall else []) if c['id'] == body['service_id']), None)
+        if not check:
+            return jsonify({'error': 'There is no such service.'}), 400
+        key, name, label = alerting.service_key(check['id']), check['name'], 'Muted service alerts'
+    else:
+        device = next((d for d in inventory.devices(load_data(), include_hidden=True)
+                       if d['id'] == body.get('switch_id')), None)
+        if not device:
+            return jsonify({'error': 'There is no such switch.'}), 400
+        key, name, label = device['id'], device['name'], 'Muted switch alerts'
     try:
-        mute = alerting.mute(device['id'], device['name'], body.get('minutes'), g.get('audit_user'),
-                             body.get('reason'))
+        mute = alerting.mute(key, name, body.get('minutes'), g.get('audit_user'), body.get('reason'))
     except alerting.MuteError as exc:
         return jsonify({'error': str(exc)}), 400
-    audit.record('alerts', 'Muted switch alerts', user=g.get('audit_user'), target=device['name'])
+    audit.record('alerts', label, user=g.get('audit_user'), target=name)
     events.publish('alerts.changed', {})
-    return jsonify({'switch_id': device['id'], **mute}), 201
+    return jsonify({'switch_id': key, **mute}), 201
 
 
-@bp.route('/api/alerts/mutes/<switch_id>', methods=['DELETE'])
+@bp.route('/api/alerts/mutes/<path:switch_id>', methods=['DELETE'])
 def end_mute(switch_id):
     found = alerting.unmute(switch_id)
     if not found:
