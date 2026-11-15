@@ -258,14 +258,28 @@ answering, but it names the agent: "The local agent is away", with when it was l
 
 ## The protocol
 
-The agent sends its key in the `Floorbit-Agent-Key` header and its version in
-`Floorbit-Agent-Version`. It needs no account and no session.
+The agent sends its key in the `Floorbit-Agent-Key` header, its version in
+`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (now `1`; no header
+counts as `1`). It needs no account and no session.
+
+The protocol has its own number because the agent and Floorbit are released apart. A change the other
+side can't follow gets a new number. A Floorbit that doesn't speak the agent's protocol answers every
+agent request with **426** and says which one it speaks. The agent then stops with exit code 1, like
+for a revoked key, because retrying won't help: update the agent or Floorbit. `hello` says which
+protocol the hosted Floorbit speaks (`"protocol"`).
 
 | Request | What |
 | --- | --- |
-| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version"}`, or 401 |
+| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol"}`, or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
+| `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
+| `GET /api/agent/v1/seats` | `{"seat_of", "area_of"}`: the seat addresses for the flow collector, or 409 while Traffic is off |
+| `POST /api/agent/v1/flows` | `{"snapshot"}`: the flow collector's summary, or 409 while Traffic is off |
+
+When `hello` lists `gzip` in `encodings`, the agent sends POST bodies over 2 KB gzipped
+(`Content-Encoding: gzip`), which saves most of the uplink on syslog batches and inventories. A body
+that doesn't unpack, or unpacks to more than 32 MB, counts as empty.
 
 The methods are those of the monitoring source (see [architecture.md](architecture.md#inventory-and-data-sources)):
 `configured`, `devices`, `device_details`, `resolve_ip`, `port_stats`, `device_ports` and `arp`, plus
