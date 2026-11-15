@@ -9,6 +9,8 @@ posts the answer back. The hosted side is floorbit/agent_link.py.
 Nothing listens here: the agent only makes outgoing HTTPS requests. When the hosted Floorbit can't
 be reached it waits and tries again, a little longer each time (up to ``MAX_BACKOFF``).
 """
+import contextlib
+import io
 import json
 import os
 import sys
@@ -139,7 +141,10 @@ def main(argv=None):
     # The agent keeps no floor plan: its settings file is its own, next to nothing else.
     os.environ.setdefault('FLOORBIT_DATA_FILE', os.path.abspath('agent-data.json'))
     from .. import ROOT, create_app
-    app = create_app(start_background=False)
+    # The agent serves no pages, so the web app's first-run hints (make an account, a setup code)
+    # would only mislead whoever reads its log.
+    with contextlib.redirect_stdout(io.StringIO()):
+        app = create_app(start_background=False)
     version_file = ROOT / 'VERSION'
     version = version_file.read_text().strip() if version_file.is_file() else '0'
     agent = Agent(url, key, local_executor(app), version=version)
