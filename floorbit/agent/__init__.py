@@ -18,6 +18,7 @@ import os
 import signal
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 KEY_HEADER = 'Floorbit-Agent-Key'
@@ -25,6 +26,8 @@ VERSION_HEADER = 'Floorbit-Agent-Version'
 POLL_WAIT = 25            # the hosted side holds a poll at most this long
 HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
+BEAT_EVERY = 10           # seconds between heartbeat writes
+HEALTHY_FOR = 120         # `health`: the last poll that got through is at most this old
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
@@ -139,6 +142,8 @@ class Agent:
         self._stop = threading.Event()
         self.answered = 0
         self.poll_wait = POLL_WAIT
+        self.heartbeat = None     # a file touched after each poll that got through, for `health`
+        self._beat_at = 0
 
     def _headers(self, json_body=False):
         h = {KEY_HEADER: self.key, VERSION_HEADER: self.version}
@@ -204,6 +209,19 @@ class Agent:
         return self._said(self.http.post(f'{self.url}/api/agent/v1/flows', headers=self._headers(True),
                                          data=json.dumps({'snapshot': snapshot}, default=str), timeout=HTTP_TIMEOUT))
 
+    def beat(self, now=None):
+        """The hosted Floorbit answered: say so in the heartbeat file (at most every few seconds)."""
+        now = time.time() if now is None else now
+        if not self.heartbeat or now - self._beat_at < BEAT_EVERY:
+            return
+        try:
+            with open(self.heartbeat, 'w', encoding='utf-8') as f:
+                f.write(f'{now:.0f}\n')
+            self._beat_at = now
+        except OSError as exc:
+            self.log(f'[agent] cannot write the heartbeat file {self.heartbeat}: {exc}')
+            self.heartbeat = None
+
     def stop(self):
         self._stop.set()
 
@@ -218,6 +236,7 @@ class Agent:
                              f'(Floorbit {hello.get("server_version")})')
                     connected, backoff = True, 1
                 self.poll(self.poll_wait)
+                self.beat()
             except Refused:
                 raise
             except Exception as exc:  # noqa: BLE001  # network trouble: wait and try again
@@ -346,11 +365,35 @@ def _stop_on_term(_signum, _frame):
     raise KeyboardInterrupt
 
 
+def heartbeat_file():
+    return os.environ.get('FLOORBIT_AGENT_HEARTBEAT') or os.path.join(
+        os.path.dirname(os.path.abspath(os.environ.get('FLOORBIT_DATA_FILE') or 'agent-data.json')), 'agent-heartbeat')
+
+
+def health(path=None, now=None, out=print):
+    """``python -m floorbit.agent health``, the container's health check: 0 when the agent got through
+    to the hosted Floorbit in the last HEALTHY_FOR seconds, 1 otherwise. Fast: no app, no network."""
+    path = path or heartbeat_file()
+    now = time.time() if now is None else now
+    try:
+        age = now - os.path.getmtime(path)
+    except OSError:
+        out('unhealthy: the agent has not reached the hosted Floorbit yet')
+        return 1
+    if age > HEALTHY_FOR:
+        out(f'unhealthy: the hosted Floorbit last answered {age:.0f} s ago')
+        return 1
+    out(f'healthy: the hosted Floorbit answered {age:.0f} s ago')
+    return 0
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
-    if argv and argv[0] not in ('check', 'run'):
-        print('Usage: python -m floorbit.agent [run | check]', file=sys.stderr)
+    if argv and argv[0] not in ('check', 'run', 'health'):
+        print('Usage: python -m floorbit.agent [run | check | health]', file=sys.stderr)
         return 2
+    if argv and argv[0] == 'health':
+        return health()
     url = os.environ.get('FLOORBIT_URL', '').strip()
     key = os.environ.get('FLOORBIT_AGENT_KEY', '').strip()
     if not url or not key:
@@ -372,6 +415,7 @@ def main(argv=None):
     version_file = ROOT / 'VERSION'
     version = version_file.read_text().strip() if version_file.is_file() else '0'
     agent = Agent(url, key, local_executor(app), version=version)
+    agent.heartbeat = heartbeat_file()
     if argv and argv[0] == 'check':
         return 0 if check(agent, agent.execute) else 1
     relays = [start_syslog(agent, os.environ.get('FLOORBIT_AGENT_SYSLOG_PORT', '')),

@@ -816,3 +816,46 @@ def test_the_agents_page_shows_what_each_agent_relays(client, app_module, monkey
     assert list(shown["Hall 2"]) == ["flows"]
     later = time.time() + agent_link.RELAY_RECENT + 1
     assert agent_link.tunnel.relays(first["id"], now=later) == {}
+
+
+def test_health_says_whether_the_host_answered_lately(tmp_path):
+    beat = tmp_path / "agent-heartbeat"
+    said = []
+    assert agent_mod.health(str(beat), out=said.append) == 1 and "not reached" in said[-1]
+    a = agent_mod.Agent("http://hosted.example.com", "fba_x_y", fake_execute, http=object(), log=said.append)
+    a.heartbeat = str(beat)
+    a.beat(now=1000)
+    assert beat.read_text() == "1000\n"
+    assert agent_mod.health(str(beat), out=said.append) == 0 and said[-1].startswith("healthy")
+    later = os.path.getmtime(beat) + agent_mod.HEALTHY_FOR + 5
+    assert agent_mod.health(str(beat), now=later, out=said.append) == 1 and "last answered" in said[-1]
+    beat.write_text("")
+    a.beat(now=1005)                                    # too soon: not written again
+    assert beat.read_text() == ""
+    a.heartbeat = str(tmp_path / "missing" / "beat")
+    a.beat(now=2000)
+    assert a.heartbeat is None and "cannot write the heartbeat" in said[-1]
+
+
+def test_a_poll_that_gets_through_beats(client, app_module, tmp_path):
+    a = make(app_module, enrol(client)["key"])
+    a.heartbeat = str(tmp_path / "beat")
+    a.poll_wait = 0.2
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not os.path.exists(a.heartbeat) and time.time() < deadline:
+            time.sleep(0.05)
+        assert agent_mod.health(a.heartbeat, out=lambda *_: None) == 0
+    finally:
+        a.stop()
+        worker.join(5)
+
+
+def test_main_health_needs_no_settings(monkeypatch, tmp_path):
+    monkeypatch.delenv("FLOORBIT_URL", raising=False)
+    monkeypatch.setenv("FLOORBIT_AGENT_HEARTBEAT", str(tmp_path / "beat"))
+    assert agent_mod.main(["health"]) == 1
+    (tmp_path / "beat").write_text("1\n")
+    assert agent_mod.main(["health"]) == 0

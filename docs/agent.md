@@ -134,6 +134,7 @@ for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorb
 | `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
 | `FLOORBIT_AGENT_SYSLOG_PORT` | a UDP port to take syslog on, such as `5514`, sent on to the hosted Logs page. Unset: the agent doesn't listen. `FLOORBIT_AGENT_SYSLOG_BIND` picks the address (all of them by default) |
 | `FLOORBIT_AGENT_FLOWS_PORT` | a UDP port to collect NetFlow and IPFIX on, such as `2055`, for the hosted Traffic page. Unset: no collector. `FLOORBIT_AGENT_FLOWS_BIND` picks the address; the `FLOWS_*` settings of [Traffic](flows.md) apply on the agent |
+| `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
@@ -144,6 +145,11 @@ try. When the key is refused (wrong or revoked), it stops with exit code 1: enro
 start it with the new key. That's why the Compose file restarts it only on failure, at most 3
 times, instead of `unless-stopped`. Stopping it (`docker stop`, Ctrl+C) first sends the syslog
 lines still waiting, so an update doesn't lose them.
+
+**Health.** `python -m floorbit.agent health` exits with 0 when the hosted Floorbit answered the
+agent in the last two minutes, 1 otherwise. It reads a heartbeat file the agent writes after each
+poll that gets through, so it needs no network and no settings. The Compose file uses it as the
+container's health check, so `docker ps` shows the agent as *unhealthy* while the uplink is down.
 
 To update the agent, pull the new image and start it again (`docker compose -f
 docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
