@@ -421,6 +421,11 @@ class DiscordNotifier:
                 fields = [{'name': 'Was', 'value': c.get('previous') or 'unknown', 'inline': True}]
                 if not down and c.get('down_for'):
                     fields.append({'name': 'Down for', 'value': _fmt_duration(c['down_for']), 'inline': True})
+                    waiting = self._reports_from_outage(c, now)
+                    if waiting:
+                        fields.append({'name': 'Open incidents from its seats',
+                                       'value': f'{waiting} filed while it was down: check whether they work now',
+                                       'inline': False})
                 if down and c.get('reason'):
                     fields.append({'name': 'Reason', 'value': str(c['reason'])[:200], 'inline': True})
                 embed = {
@@ -451,6 +456,26 @@ class DiscordNotifier:
             # Mute buttons, for the crew bot only: a webhook can't carry them (issue #272).
             payload['_mute'] = [(c['id'], c['name']) for c in offline[:MAX_BUTTONS]]
         return payload
+
+    def _reports_from_outage(self, change, now):
+        """Open incidents at the switch's seats filed while it was down (issue #398): likely fixed now."""
+        from contextlib import nullcontext
+
+        from flask import has_app_context
+        if not has_app_context() and self.app is None:
+            return 0
+        try:
+            with nullcontext() if has_app_context() else self.app.app_context():
+                from floorbit import incidents, seat_view
+                from floorbit.store import load_data
+                data = load_data()
+                start = now - change['down_for']
+                return sum(1 for i in incidents.list_all()
+                           if i['status'] != 'fixed' and i.get('seat') and (i.get('created_at') or 0) >= start
+                           and any(d['id'] == change['id'] for d in seat_view._switches_of(i['seat'], data)))
+        except Exception as exc:  # noqa: BLE001  # a hint is not worth losing the alert over
+            print(f"[integrations] Discord: counting open incidents failed: {exc}")
+            return 0
 
     def build_test_message(self):
         public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')

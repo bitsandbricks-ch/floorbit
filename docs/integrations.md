@@ -73,7 +73,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 |---|---|---|
 | `DISCORD_WEBHOOK_URL` | | Channel settings → Integrations → Webhooks |
 | `DISCORD_ALERTS_ENABLED` | `true` | |
-| `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime |
+| `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime, and how many open incidents from its seats were filed while it was down |
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
 | `DISCORD_USERNAME` | `Floorbit` | |
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |

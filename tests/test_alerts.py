@@ -180,3 +180,22 @@ def test_an_offline_switch_links_its_incident(app_module, client, floor, monkeyp
     viewer = sign_in_as(app_module, "vi1", "viewer")
     body = viewer.get("/api/problems").get_json()
     assert body["can_report"] is False and "incident" not in next(p for p in body["problems"] if p["kind"] == "switch")
+
+
+def test_back_online_counts_incidents_filed_while_down(client, app_module, floor, monkeypatch):
+    # Issue #398: reports from its seats during the outage are likely fixed now.
+    from floorbit import incidents, status_page
+    monkeypatch.setattr(status_page, "_seats_of", {"sw-a-01": {"A-1", "A-2"}})
+    for name, x in (("A", 40), ("B", 400)):
+        client.post("/api/seat-blocks", json={"name": name, "x": x, "y": 50, "cols": 2, "rows": 1})
+    client.post("/api/incidents", json={"seat": "A-1", "title": "No link"})
+    client.post("/api/incidents", json={"seat": "B-1", "title": "Elsewhere"})
+    old = client.post("/api/incidents", json={"seat": "A-2", "title": "From before"}).get_json()
+    with app_module.app.app_context():
+        incidents.stamp(old["id"], created_at=time.time() - 3600)
+        msg = DiscordNotifier().build_status_message([change(floor["a"], "sw-a-01", "online")])
+    fields = {f["name"]: f["value"] for f in msg["embeds"][0]["fields"]}
+    assert fields["Open incidents from its seats"].startswith("1 filed while it was down")
+    with app_module.app.app_context():
+        msg = DiscordNotifier().build_status_message([change(floor["b"], "sw-a-02", "online")])
+    assert "Open incidents from its seats" not in {f["name"] for f in msg["embeds"][0]["fields"]}
