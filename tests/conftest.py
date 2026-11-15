@@ -3,12 +3,20 @@
 Nothing here talks to NetBox, LibreNMS or a real Redis.
 """
 
+import os
 import sys
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# The local agent lives in bitsandbricks-ch/floorbit-agent; the hosted side's end-to-end tests run
+# it. CI checks out the commit in AGENT_REF; locally, a clone next to this one is used.
+_HERE = Path(__file__).resolve().parent.parent
+_AGENT_SRC = Path(os.environ.get("FLOORBIT_AGENT_SRC") or _HERE.parent / "floorbit-agent")
+if (_AGENT_SRC / "floorbit_agent" / "__init__.py").is_file():
+    sys.path.insert(1, str(_AGENT_SRC.resolve()))
 
 TEST_USER = "tester"
 TEST_PASSWORD = "correct-horse-battery"
