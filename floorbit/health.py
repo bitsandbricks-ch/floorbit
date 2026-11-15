@@ -69,6 +69,13 @@ def clean(spec, raw):
     return out
 
 
+class _FeedSpec:
+    """What ``clean`` needs of a plugin, for checks that came from the local agent."""
+
+    def __init__(self, plugin_id, name):
+        self.id, self.name = plugin_id, name
+
+
 class HealthWall:
     def __init__(self, registry):
         self.registry = registry
@@ -104,17 +111,53 @@ class HealthWall:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('health') and self.registry.feeders('health'):
+            if features.on('health') and (self.registry.feeders('health') or self._agent_active()):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                     print(f'[health] poll failed: {exc}')
             self._stop.wait(self.interval())
 
+    @staticmethod
+    def _agent_active():
+        from . import agent_link
+        return agent_link.active()
+
     # ── polling ───────────────────────────────────────────────────────────────
+    def _from_agent(self):
+        """A hosted Floorbit: the health plugins on the local agent, checking from the event
+        network. Returns (checks, errors, plugin ids the agent answered for)."""
+        from . import agent_link
+        found, errors, answered = [], {}, set()
+        try:
+            feeds = agent_link.feeds('health_feeds')
+        except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+            errors['agent'] = str(exc)
+            found.append({'id': 'agent:*', 'name': 'Local agent', 'kind': 'other', 'status': 'unknown',
+                          'summary': 'The local agent did not answer, so its checks are unknown.', 'metrics': [],
+                          'link': '/settings/agents', 'plugin': 'agent', 'plugin_name': 'Local agent'})
+            return found, errors, answered
+        for feed in feeds:
+            spec = _FeedSpec(feed['plugin'], f"{feed['name']} (local agent)")
+            if 'error' in feed:
+                errors[spec.id] = feed['error']
+                found.append({'id': f'{spec.id}:*', 'name': spec.name, 'kind': 'other', 'status': 'unknown',
+                              'summary': 'The check failed on the local agent.', 'metrics': [], 'link': '',
+                              'plugin': spec.id, 'plugin_name': spec.name})
+                continue
+            try:
+                found += clean(spec, feed['items'])
+                answered.add(feed.get('base', feed['plugin']))
+            except PluginError as exc:
+                errors[spec.id] = str(exc)
+        return found, errors, answered
+
     def _collect(self):
-        found, errors = [], {}
+        from . import agent_link
+        found, errors, answered = self._from_agent() if agent_link.active() else ([], {}, set())
         for spec in self.registry.feeders('health'):
+            if spec.id in answered:    # the agent checks it from the event network; this side can't
+                continue
             try:
                 found += clean(spec, self.registry.call(spec, 'health_checks'))
             except PluginError as exc:
@@ -176,7 +219,8 @@ class HealthWall:
             checks = sorted(self.checks.values(), key=lambda c: (KINDS.index(c['kind']), c['name'].lower()))
             counts = {s: sum(c['status'] == s for c in checks) for s in STATES}
             return {'checks': checks, 'counts': counts, 'last_poll': self.last_poll,
-                    'interval': self.interval(), 'plugins': len(self.registry.feeders('health'))}
+                    'interval': self.interval(),
+                    'plugins': len(self.registry.feeders('health')) + (1 if self._agent_active() else 0)}
 
 
 def init_health(app, registry, start_background=True):
