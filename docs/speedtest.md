@@ -40,7 +40,7 @@ separate "slow" reports. It takes each seat's latest test of the last 12 hours a
 - the hall: seats tested and the median download, upload and ping;
 - one row per switch (from the port reads, as on the floor plan): seats tested, the medians, and
   each seat with its download, slowest first, linking to the seat on the floor plan;
-- **Slower than the hall** on a switch whose median download is under half the hall's, with at least
+- **Slow** on a switch whose median download is under half the hall's, with at least
   2 seats tested (one slow seat is that seat, not the switch). Those rows come first;
 - seats no switch is known for, in a list of their own.
 

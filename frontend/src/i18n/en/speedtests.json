@@ -11,8 +11,8 @@
   "none": "No speed tests in the last {{hours}} hours. Attendees run them from the help page behind their seat's QR code.",
   "switch": "Switch",
   "seats": "Seats",
-  "slow": "Slower than the hall",
-  "slowHint": "Under half the hall's median download, with at least 2 seats tested.",
+  "slow": "Slow",
+  "slowHint": "Slow: under half the hall's median download, with at least 2 seats tested.",
   "unknown": "Seats with no known switch",
   "seatResult": "{{seat}}: {{down}} down",
   "noSwitches": "No tested seat has a known switch yet: the port reads haven't found them."

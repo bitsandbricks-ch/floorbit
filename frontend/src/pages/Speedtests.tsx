@@ -72,9 +72,9 @@ export default function Speedtests() {
                       {d.switches.map((s) => (
                         <Table.Tr key={s.id}>
                           <Table.Td>
-                            <Group gap="xs" wrap="nowrap">
+                            <Group gap="xs" wrap="wrap">
                               <Anchor fw={600} href={`/plan?switch=${encodeURIComponent(s.name)}`} style={{ whiteSpace: 'nowrap' }}>{s.name}</Anchor>
-                              {s.slow && <Badge size="sm" color="warn" variant="light" title={t('speedtests.slowHint')}>{t('speedtests.slow')}</Badge>}
+                              {s.slow && <Badge size="sm" color="warn" variant="light" title={t('speedtests.slowHint')} style={{ flexShrink: 0 }}>{t('speedtests.slow')}</Badge>}
                             </Group>
                           </Table.Td>
                           <Table.Td ta="right">{num(s.tests)}</Table.Td>

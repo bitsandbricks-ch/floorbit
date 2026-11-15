@@ -11,8 +11,8 @@
   "none": "Keine Speedtests in den letzten {{hours}} Stunden. Teilnehmende machen sie auf der Hilfeseite hinter dem QR-Code ihres Platzes.",
   "switch": "Switch",
   "seats": "Plätze",
-  "slow": "Langsamer als die Halle",
-  "slowHint": "Unter der Hälfte des Download-Medians der Halle, mit mindestens 2 getesteten Plätzen.",
+  "slow": "Langsam",
+  "slowHint": "Langsam: unter der Hälfte des Download-Medians der Halle, mit mindestens 2 getesteten Plätzen.",
   "unknown": "Plätze ohne bekannten Switch",
   "seatResult": "{{seat}}: {{down}} Download",
   "noSwitches": "Für keinen getesteten Platz ist der Switch bekannt: Die Port-Abfragen haben sie noch nicht gefunden."
