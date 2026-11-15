@@ -7,6 +7,7 @@
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/settings.css" />
+  <link rel="stylesheet" href="/static/css/goto.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
   <link rel="stylesheet" href="/static/css/users.css" />
 </head>
@@ -18,6 +19,7 @@
     </a>
     <h1>Users</h1>
     <span class="st-header-spacer"></span>
+    <span data-goto="st-btn"></span>
     <a class="st-btn" href="/settings/teams">Roles and teams</a>
     {% if current_user %}
     <form class="user-menu" method="post" action="/logout">
@@ -56,6 +58,7 @@
   </main>
 
   <script src="/static/js/auth.js"></script>
+  <script src="/static/js/goto.js"></script>
   <script src="/static/js/users.js"></script>
   {% include "_attribution.html" %}
 </body>

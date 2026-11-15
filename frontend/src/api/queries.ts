@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
 import type {
+  PageLink,
   CrewNotice,
   AccountSummary,
   IncidentBoard,
@@ -42,6 +43,12 @@ export function useFeature(feature: string) {
 export function useFeaturesOff(): string[] {
   const off = useQuery({ queryKey: qk.features, queryFn: () => get<{ off: string[] }>('/api/features'), staleTime: 60_000, retry: false })
   return off.data?.off ?? []
+}
+
+/** The pages this account may open, for "Go to" (issue #250); empty until the server answers. */
+export function usePageList(): PageLink[] {
+  const pages = useQuery({ queryKey: qk.pages, queryFn: () => get<{ pages: PageLink[] }>('/api/pages'), staleTime: 60_000, retry: false })
+  return pages.data?.pages ?? []
 }
 
 export function useDashboard() {

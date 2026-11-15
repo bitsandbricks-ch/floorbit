@@ -1288,3 +1288,13 @@ export interface CrewNotice {
   by: string | null
   at: number
 }
+
+/** A page for the "Go to" palette, from GET /api/pages (issues #242, #250): the server picks the
+ *  pages this account may open with the features and set-up this event has, so the floor plan,
+ *  Settings and the React pages all offer the same list. */
+export interface PageLink {
+  href: string
+  /** Key under goto.pages in the i18n files; ``label`` is the English fallback. */
+  id: string
+  label: string
+}

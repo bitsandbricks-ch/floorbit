@@ -20,10 +20,11 @@ No network to try it on? [Demo mode](demo.md) fills a made-up hall.
 
 ## Getting around
 
-Every page with a header (Problems, Health, Incidents and the other newer pages) has a **Go to**
-button, also on <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>⌘</kbd>+<kbd>K</kbd> on a Mac). Type part of a page's name, pick it
-with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose [feature](features.md) is off
-and pages your role can't open. Before you type, the five pages you opened last on this browser come first.
+Every page with a header, the floor plan and Settings included, has a **Go to** button, also on
+<kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>⌘</kbd>+<kbd>K</kbd> on a Mac). Type part of a page's name, pick it
+with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose [feature](features.md) is off,
+pages your role can't open and pages this server has nothing for yet (Wi-Fi without a Wi-Fi source,
+Electrics without power boards), the same way the floor plan's top bar does. Before you type, the five pages you opened last on this browser come first.
 
 ## Build on it
 

@@ -7,6 +7,7 @@
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/settings.css" />
+  <link rel="stylesheet" href="/static/css/goto.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
 </head>
 <body>
@@ -27,6 +28,7 @@
     </a>
     <h1>Settings</h1>
     <span class="st-header-spacer"></span>
+    <span data-goto="st-btn"></span>
     {% if current_user %}
     <form class="user-menu" method="post" action="/logout">
       <span class="user-menu-name" title="Signed in as {{ current_user.username }}">{{ current_user.display_name }}</span>
@@ -134,6 +136,7 @@
   </main>
 
   <script src="/static/js/auth.js"></script>
+  <script src="/static/js/goto.js"></script>
   <script src="/static/js/settings.js"></script>
   <script src="/static/js/backup.js"></script>
   {% include "_attribution.html" %}
