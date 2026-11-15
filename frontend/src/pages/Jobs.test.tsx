@@ -77,7 +77,12 @@ describe('Board dispatch', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Incidents />)
-    expect(await screen.findByText('Ben · A-1 · free · 2 fixed')).toBeInTheDocument()
+    const ben = await screen.findByRole('button', { name: 'Ben · A-1 · free · 2 fixed' })
+    fireEvent.click(ben)   // issue #350: the board shows what Ben is on, which here is nothing yet
+    expect(ben).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('with:ben')
+    fireEvent.click(ben)
+    expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('')
     fireEvent.click(await screen.findByRole('button', { name: 'Send to nearest tech' }))
     expect(await screen.findByText('Sent to Ben.')).toBeInTheDocument()
   })

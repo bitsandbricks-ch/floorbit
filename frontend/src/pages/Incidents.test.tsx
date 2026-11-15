@@ -130,6 +130,13 @@ describe('Incident board', () => {
     expect(matchesFilter(on('sw-a-01'), 'switch:id-sw-a-01')).toBe(true)
     expect(matchesFilter(on('sw-a-010'), 'switch:sw-a-01')).toBe(false)
   })
+  it('matches the tech on it with with: (issue #350)', () => {
+    const on = (assignee: string | null) => ({ ...base, id: String(assignee), title: 'x', status: 'assigned' as const, assignee,
+      notes: [{ by: 'kim', at: 1, text: 'asked kim' }] })
+    expect(matchesFilter(on('kim'), 'with:Kim')).toBe(true)
+    expect(matchesFilter(on('kimi'), 'with:kim')).toBe(false)
+    expect(matchesFilter(on(null), 'with:kim')).toBe(false)
+  })
   it('matches title, place, people, team and notes', () => {
     const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
     expect(matchesFilter(i, '')).toBe(true)

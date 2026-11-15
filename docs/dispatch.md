@@ -31,7 +31,8 @@ gives the incident to the free tech nearest to it:
   tech can get them; a tie goes to whoever has waited longest.
 
 The board shows who is on duty, where, how many jobs they have and how many they fixed in the last
-12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not.
+12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not. Click a tech to filter the board to what they
+are on (`with:kim`); click again to clear it.
 
 Nothing is sent by itself: a lead decides. Everything goes to the audit log (sent, taken, finished,
 given back).

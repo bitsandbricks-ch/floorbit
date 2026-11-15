@@ -165,7 +165,11 @@ export default function Incidents() {
           <Text size="sm" fw={600}>{t('incidents.crew')}:</Text>
           {crew.data.crew.length === 0 && <Text size="sm" c="dimmed">{t('incidents.crewNone')}</Text>}
           {crew.data.crew.map((c) => (
-            <Badge key={c.username} variant="light" color={c.jobs ? 'warn' : 'up'} tt="none">
+            // A tech's badge filters the board to what they are on (issue #350); again to clear.
+            <Badge key={c.username} component="button" type="button" variant={filter === `with:${c.username}` ? 'filled' : 'light'}
+              color={c.jobs ? 'warn' : 'up'} tt="none" style={{ cursor: 'pointer' }}
+              aria-pressed={filter === `with:${c.username}`}
+              onClick={() => setFilter(filter === `with:${c.username}` ? '' : `with:${c.username}`)}>
               {c.display_name}{c.at ? ` · ${c.at}` : ''} · {c.jobs ? t('incidents.crewJobs', { count: c.jobs }) : t('incidents.crewFree')}{c.done ? ` · ${t('incidents.crewDone', { count: c.done })}` : ''}
             </Badge>
           ))}
