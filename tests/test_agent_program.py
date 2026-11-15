@@ -245,3 +245,47 @@ def test_the_agent_sends_its_cable_plugins(app_module):
         feeds = agent_mod.cable_feeds(srcs.registry)
     # NetBox is on by default but not set up here: its error comes back, not an exception.
     assert [f['plugin'] for f in feeds] == ['netbox'] and 'error' in feeds[0]
+
+
+def test_an_away_agent_is_one_alert_that_says_so(client, app_module, monkeypatch):
+    """The status monitor's outage message names the agent, not LibreNMS, and when it was last heard."""
+    from floorbit import timeline, webhooks
+    from integrations import events
+    from integrations.discord import DiscordNotifier
+    from integrations.monitor import StatusMonitor
+    monkeypatch.setattr(events, '_subscribers', [])
+    got = []
+    events.subscribe('*', lambda ev: got.append(ev))
+    key = enrol(client)['key']
+    monitor = StatusMonitor(lambda: [{'id': '1', 'name': 'sw-a-01'}])
+    agent_link.tunnel.last_seen = time.time() - 120      # it was here two minutes ago, then went away
+    from floorbit.plugins.base import PluginError
+    for _ in range(2):
+        with pytest.raises(PluginError):
+            monitor.poll_once()
+    away = [e for e in got if e['type'] == 'monitoring.offline']
+    assert len(away) == 1 and away[0]['data']['agent'] is True and away[0]['data']['last_seen']
+
+    embed = DiscordNotifier().build_source_message('monitoring.offline', away[0]['data'])['embeds'][0]
+    assert embed['title'] == '⚠️ The local agent is away' and '<t:' in embed['description']
+    assert 'LibreNMS' not in embed['description']
+    assert timeline.describe(away[0])[0] == 'Local agent away'
+    assert webhooks.translate(away[0])[0][1]['agent'] is True
+
+    # Back: the agent answers the next poll.
+    a = make(app_module, key)
+    a.poll_wait = 0.5
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        monitor.poll_once()
+    finally:
+        a.stop()
+        worker.join(30)
+    back = [e for e in got if e['type'] == 'monitoring.online']
+    assert len(back) == 1 and back[0]['data']['agent'] is True
+    embed = DiscordNotifier().build_source_message('monitoring.online', back[0]['data'])['embeds'][0]
+    assert embed['title'] == '✅ The local agent is back'

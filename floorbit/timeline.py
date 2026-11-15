@@ -103,8 +103,12 @@ def describe(event):
             where = ' '.join(p for p in (d.get('device'), d.get('port')) if p)
             return f"Log alert: {d.get('title') or d.get('pattern')}", where, 'warn'
         if name == 'monitoring.offline':
+            if d.get('agent'):
+                return 'Local agent away', 'no answers from the event network', 'down'
             return 'Monitoring source unreachable', d.get('source') or '', 'down'
         if name == 'monitoring.online':
+            if d.get('agent'):
+                return 'Local agent back', '', 'up'
             return 'Monitoring source back', d.get('source') or '', 'up'
     return None
 

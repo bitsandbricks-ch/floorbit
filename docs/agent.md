@@ -99,6 +99,11 @@ answer in time, Floorbit answers from the last good data it has, marked as stale
 it does when a local LibreNMS stops answering ([offline mode](offline.md)). Switches it knows
 nothing about show as unknown.
 
+When the agent goes away, the status monitor sends one alert, as for a LibreNMS that stops
+answering, but it names the agent: "The local agent is away", with when it was last heard, on
+[Discord](integrations.md), in the [timeline](timeline.md) and as a `monitoring.offline` webhook with
+`"agent": true` and `last_seen`. One more when it is back.
+
 ## The protocol
 
 The agent sends its key in the `Floorbit-Agent-Key` header and its version in
