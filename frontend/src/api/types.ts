@@ -1339,3 +1339,9 @@ export interface Place {
   name: string
   href: string
 }
+
+/** GET /api/agents (issue #2): the local agents enrolled for a hosted Floorbit. */
+export interface Agent {
+  id: string; name: string; created_at: number; created_by: string | null
+  last_seen: number | null; version: string | null; address: string | null; connected: boolean
+}

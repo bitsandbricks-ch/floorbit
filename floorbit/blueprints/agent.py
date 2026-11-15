@@ -2,6 +2,7 @@
 
 For admins (``settings.manage``):
 
+- ``GET /settings/agents``: the page (React).
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
 - ``DELETE /api/agents/<id>``: revoke it.
@@ -16,7 +17,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit
+from .. import agent_link, audit, spa
 
 bp = Blueprint('agent', __name__)
 HEADER = 'Floorbit-Agent-Key'
@@ -26,6 +27,11 @@ def _who():
     from auth import current_user  # late: auth imports floorbit while it loads
     user = current_user() or {}
     return user.get('display_name') or user.get('username')
+
+
+@bp.route('/settings/agents')
+def agents_page():
+    return spa.render('Local agents')
 
 
 @bp.route('/api/agents', methods=['GET'])

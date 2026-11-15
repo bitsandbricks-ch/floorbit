@@ -112,3 +112,9 @@ def test_unanswered_calls_time_out():
 
 def test_without_an_agent_the_plugins_answer(client):
     assert sources.monitoring().name != "agent"
+
+
+def test_the_page_is_for_admins(app_module, client):
+    assert client.get("/settings/agents").status_code in (200, 503)   # 503: no frontend build (CI)
+    lead = sign_in_as(app_module, "le2", "lead")
+    assert lead.get("/settings/agents").status_code in (302, 403)

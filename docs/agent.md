@@ -15,9 +15,13 @@ port an IP is on, a port's traffic). The agent asks the event's own LibreNMS and
 
 ## Enrolling an agent
 
-An admin enrols the agent and gets its **key**, `fba_<id>_<secret>`. The key is shown once; Floorbit
-keeps only a hash of it (in `data.json`, under `agents`). Give the key to the agent, for example as
-an environment variable, never in a file anyone can read.
+**Settings > Local agents** (`/settings/agents`): give the agent a name, such as the event or the
+site, and press **Enrol**. An admin enrols the agent and gets its **key**, `fba_<id>_<secret>`. The key is shown once; Floorbit
+keeps only a hash of it (in `data.json`, under `agents`). Give the key to the agent as `FLOORBIT_AGENT_KEY`, never in a file anyone can read. The page shows
+the `docker run` line to start the agent with it.
+
+The page lists every agent: **Connected** or not, when it was last seen, its version, and who
+enrolled it when. It updates every 10 seconds.
 
 Revoking the agent stops it at its next request: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
