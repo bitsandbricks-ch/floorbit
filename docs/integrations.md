@@ -110,6 +110,10 @@ the order listed in `SEAT_SOURCES`; the first one with a value for a field wins.
 from the [seat mapping](seat-mapping.md) page and plugins with `uses: [mapping]` always come
 before them.
 
+`/api/seats/resolve` and `/api/seats/heatmap` look up each seat's IP in the monitoring source in
+parallel (eight at a time). A lookup that fails marks only that seat (`resolved: false` with the
+error); the rest of the answer is still there.
+
 | Source | What it reads |
 |---|---|
 | `json` | `SEAT_SOURCE_JSON_PATH` (default `seats.json`), the current behaviour |

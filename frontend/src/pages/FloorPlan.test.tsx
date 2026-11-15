@@ -12,7 +12,7 @@ afterEach(() => vi.unstubAllGlobals())
 const cells = ['D-1', 'D-2', 'D-3', 'D-4'].map((seat, i) => ({ x: i * 32 - 64, y: -16, hit: false, seat, on: null }))
 const drawing = { shapes: [{ cx: 640, cy: 500, rotation: 0, w: 128, h: 32, name: 'D', cells }], box: '544 420 192 128', cell: 32 }
 const data: SeatViewData = {
-  halls: [{ id: 'main', name: 'Hall' }], hall: 'main', drawing, size: { w: 1600, h: 1000, cell: 32 }, background: null, switches: [],
+  halls: [{ id: 'main', name: 'Hall', seats: 4, online: 2, problems: 1 }], hall: 'main', drawing, size: { w: 1600, h: 1000, cell: 32 }, background: null, switches: [],
   seats: {
     'D-1': { state: 'online', checked_in: true, bps: 6_000_000 },
     'D-2': { state: 'offline', problems: 1, taken: true },
@@ -176,7 +176,7 @@ describe('Seats page', () => {
   it('rotates through the halls on a big screen, longer where there are problems', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      const two = [{ id: 'main', name: 'Hall' }, { id: 'annex', name: 'Annex' }]
+      const two = [{ ...data.halls[0] }, { id: 'annex', name: 'Annex', seats: 0, online: 0, problems: 0 }]
       const quiet = Object.fromEntries(Object.keys(data.seats).map((k) => [k, { state: 'online' as const }]))
       const api = fakeFetch({
         'GET /api/plan?hall=main': { ...data, halls: two },
@@ -444,6 +444,31 @@ describe('Seats page', () => {
     expect(link).toHaveAttribute('href', '/plan?print=1&hall=main')
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Offline'))
     await waitFor(() => expect(link).toHaveAttribute('href', '/plan?print=1&hall=main&show=offline'))
+  })
+
+  it('puts the cursor in Find on /', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    const box = await screen.findByRole('textbox', { name: 'Find a seat' })
+    expect(box).toHaveAttribute('aria-keyshortcuts', '/')
+    fireEvent.change(box, { target: { value: 'D-2' } })
+    box.blur()
+    fireEvent.keyDown(document.documentElement, { key: '/', code: 'Slash' })
+    expect(box).toHaveFocus()
+    const input = box as HTMLInputElement
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 3])
+  })
+
+  it('shows every hall with its totals in the picker', async () => {
+    const halls = [data.halls[0], { id: 'annex', name: 'Annex', seats: 40, online: 38, problems: 2 }]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': { ...data, halls } }).fn)
+    renderWithApp(<FloorPlan />, '/plan?hall=main')
+    expect(await screen.findByText('2 seats with problems in other halls')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Hall', { selector: 'input' }))
+    // The dropdown is still fading in under jsdom, so look the options up by their text.
+    const option = async (name: string) => (await screen.findByText(name, { selector: 'p' })).closest('[role=option]')
+    expect(await option('Annex')).toHaveTextContent('Annex38/40 online · 2 with problems')
+    expect(await option('Hall')).toHaveTextContent('Hall2/4 online · 1 with problems')
   })
 
   it('keeps the filter in the address', async () => {
