@@ -318,8 +318,9 @@ def _texts():
     return lang, TEXTS[lang]
 
 
-def _rate_limited():
-    ip = request.remote_addr or '?'
+def _rate_limited(key=None):
+    """Too many reports from this client (an IP, or ``discord:<user id>`` for the bot, issue #424)."""
+    ip = key or request.remote_addr or '?'
     now = time.time()
     with _reports_lock:
         recent = [t for t in _reports.get(ip, []) if now - t < RATE_WINDOW]

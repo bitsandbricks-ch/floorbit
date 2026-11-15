@@ -371,6 +371,7 @@ def switch(name, now=None):
     rows.sort(key=lambda r: _port_key(r['port']))
     return {
         'name': (dev or {}).get('name') or name,
+        'id': (dev or {}).get('id'),
         'status': st.get('status') or 'unknown',
         'since': st.get('since'),
         'model': (dev or {}).get('model') or None,

@@ -160,16 +160,22 @@ def crew_view():
 @bp.route('/api/status-page/updates', methods=['POST'])
 def add_update():
     try:
-        update = status_page.post_update(request.get_json(silent=True) or {}, _who())
+        update = publish_update(request.get_json(silent=True) or {}, _who(), g.get('audit_user'))
     except status_page.StatusError as exc:
         return jsonify({'error': str(exc)}), exc.status
-    audit.record('status page', 'Posted status update', g.get('audit_user'), update['text'][:120])
+    return jsonify(update), 201
+
+
+def publish_update(body, by, audit_user, label='Posted status update'):
+    """Post a crew update and tell everyone who listens. Also used by the Discord bot's /statusupdate."""
+    update = status_page.post_update(body, by)
+    audit.record('status page', label, audit_user, update['text'][:120])
     _changed()
     # For the attendees' Discord channel (integrations/discord.py): never who posted.
     events.publish('status_page.update', {
         'update': {k: update[k] for k in ('at', 'text', 'state', 'area')}, 'public': page_on(),
         'page_url': _base_url() + '/status'})
-    return jsonify(update), 201
+    return update
 
 
 @bp.route('/api/status-page/updates/<update_id>', methods=['DELETE'])

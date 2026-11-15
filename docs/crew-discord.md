@@ -62,14 +62,40 @@ button click. There is no Discord role mapping.
 | `/status` | how the network is doing: the state and since when, the affected areas, areas back up recently and the latest crew update. Crew with `incidents.work` also see the switch names. Anyone else sees only what the public [status page](status-page.md) shows, and only while that page is on. |
 | `/seat <seat>` | one seat: online or not and how fast, its switch port, open incidents, needs-attention items and how often it was fixed before, with a link to it on the floor plan. Needs `incidents.work`. |
 | `/switch <name>` | one switch: up or down and since when, its model, how many of its seats are online and which are not (with their ports). Needs `incidents.work`. |
-
 | `/incident report <seat> <problem>` | files an incident for a seat, like the incident board does. It shows up there marked *From Discord*, and automatic dispatch applies. |
 | `/incident take <incident>` | takes an open incident. Start typing a seat or a few words, and Discord lists the open incidents you may work. |
 | `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
 | `/jobs` | the incidents you have, oldest first. |
+| `/report <seat> <problem>` | for **attendees**, no account needed: reports a problem at a seat to the crew, like the QR code on the seat (see below). |
+| `/statusupdate <text> [area]` | posts an update on the public [status page](status-page.md), as from the Network status page. Needs `incidents.assign` (lead or admin). With an attendee status channel set, it goes there too. |
 
 The incident commands follow the account's permissions exactly as on the board, and every change is
 in the [audit log](audit.md).
+
+### For attendees
+
+`/report` is the seat QR help page in Discord, for anyone on the server: pick the seat (Discord
+suggests seat numbers as you type) and what is wrong (no internet, slow, no power, something else).
+It files or counts up exactly like the help page, and automatic dispatch applies. If the seat's switch
+is already known to be down, it says so instead of filing *no internet* or *slow*. It is rate limited
+like the help page (5 reports per 10 minutes, per Discord user), never asks for a name and keeps
+nothing about who reported: the audit log only has the seat. The answer is in German for a German
+Discord client. It is off while the seat helpdesk is off (Settings > Features).
+
+`/status` also answers attendees, while the public status page is on, with what that page shows.
+
+Answers carry buttons for the next step, so you rarely need to type a second command:
+
+| Answer | Buttons |
+| --- | --- |
+| `/seat` | **Report a problem** opens a one-line form and files an incident for that seat, like `/incident report`. **Take: …** takes an open incident at the seat (up to two). |
+| `/switch` | **Mute alerts for 1 h** while the switch is down, the same as under the crew channel's alert. |
+| `/incident report` and the form | **Take it**, unless automatic dispatch already gave it to someone. |
+| `/incident take` | **Fixed**. |
+| `/jobs` | **Fixed: …** for your first five incidents. |
+
+A button works for whoever clicks it, as their own linked account. Since answers are only shown to
+the one who asked, that is in practice the same person.
 
 `/seat` and `/switch` suggest seat numbers and switch names as you type, to crew only. They never
 show nicks, IPs or MACs: those stay in Floorbit.
