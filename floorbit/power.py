@@ -25,6 +25,7 @@ import uuid
 
 from integrations import config, events
 
+from . import features
 from .plugins import PluginError
 from .store import load_data, save_data
 
@@ -318,7 +319,7 @@ class PowerWatch:
 
     def _run(self):
         while not self._stop.is_set():
-            if enabled() and self.registry.feeders('power'):
+            if enabled() and features.on('power') and self.registry.feeders('power'):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what

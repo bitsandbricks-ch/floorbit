@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useCan } from '@/api/queries'
+import { useCan, useFeature } from '@/api/queries'
 import type { Teardown as TeardownData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -28,6 +28,7 @@ function Part({ title, done, left, children }: { title: string; done: boolean; l
 /** After the event: gear back, configs archived, data exported, and the team's own steps. */
 export default function Teardown() {
   const { t, i18n } = useTranslation()
+  const gearOn = useFeature('gear')
   const qc = useQueryClient()
   const canExport = useCan('settings.manage')
   const query = useQuery({ queryKey: qk.teardown, queryFn: () => get<TeardownData>('/api/teardown') })
@@ -65,7 +66,9 @@ export default function Teardown() {
                   {d.parts.gear.out.map((g) => (
                     <Text key={g.id} size="sm"><b>{g.name}</b> · {t('teardown.with', { to: g.to, when: when(g.at) })}</Text>
                   ))}
-                  <Anchor href="/gear" size="sm" mt={4}>{t('teardown.openGear')}</Anchor>
+                  {gearOn && (
+                    <Anchor href="/gear" size="sm" mt={4}>{t('teardown.openGear')}</Anchor>
+                  )}
                 </Stack>
               )}
             </Part>

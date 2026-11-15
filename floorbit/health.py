@@ -19,6 +19,7 @@ import time
 
 from integrations import config, events
 
+from . import features
 from .plugins import PluginError
 
 KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'web', 'other')
@@ -103,7 +104,7 @@ class HealthWall:
 
     def _run(self):
         while not self._stop.is_set():
-            if self.registry.feeders('health'):
+            if features.on('health') and self.registry.feeders('health'):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
