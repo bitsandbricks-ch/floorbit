@@ -2,6 +2,7 @@ import { Alert, Button, Group, Loader, Select, Text, TextInput } from '@mantine/
 import { IconPrinter } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { useHelpdeskQr } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -11,8 +12,10 @@ import { parseSeats, seatBlock } from './incidents/qrFilter'
 export default function HelpdeskQr() {
   const { t } = useTranslation()
   const qr = useHelpdeskQr()
-  const [block, setBlock] = useState<string | null>(null)
-  const [only, setOnly] = useState('')
+  // The seat and block panels on the Seats page link here with ?seats= or ?block= (issue #380).
+  const [params] = useSearchParams()
+  const [block, setBlock] = useState<string | null>(params.get('block')?.toUpperCase() || null)
+  const [only, setOnly] = useState(params.get('seats') ?? '')
   const seats = useMemo(() => qr.data?.seats ?? [], [qr.data])
   // Reprinting a torn sticker or one rebuilt block shouldn't mean printing the whole hall.
   const blocks = useMemo(() => [...new Set(seats.map((s) => seatBlock(s.seat)).filter(Boolean))], [seats])
