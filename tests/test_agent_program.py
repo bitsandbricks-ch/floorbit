@@ -164,9 +164,11 @@ def test_the_inventory_comes_through_the_agent(client, app_module):
         devices = client.get('/api/inventory').get_json()
         assert [d['name'] for d in devices['devices']] == ['sw-a-01']
         by_id = {s['id']: s for s in devices['sources']}
-        # NetBox's own row (it is on here too) shows the agent's sync; Other only came from the agent.
+        # NetBox is on here too, but the agent fed it, so it isn't asked here (it would only fail).
         assert by_id['netbox']['last_sync']['via'] == 'agent'
-        assert by_id['other']['name'] == 'Other (local agent)'
+        assert by_id['netbox']['name'] == 'NetBox (local agent)'
+        assert not [r for r in res.get_json()['reports'] if r['plugin'] == 'netbox' and r.get('via') != 'agent']
+        assert by_id['other']['name'] == 'Other (local agent)' and 'agent' not in by_id
     finally:
         a.stop()
         worker.join(30)

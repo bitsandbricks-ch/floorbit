@@ -68,8 +68,7 @@ The inventory page lists the agent's plugins as, for example, "NetBox (local age
 sync. A plugin that fails on the agent fails on its own; the others still sync. If the agent is away,
 the sync says so and nothing changes. A sync waits up to 25 seconds for the agent.
 
-Turn the inventory plugins off on the hosted Floorbit itself (**Settings > Plugins**): it can't
-reach NetBox, so they would only add a failed sync each time.
+A plugin the agent feeds is not asked on the hosted Floorbit itself, which can't reach it anyway.
 
 ## When the agent is away
 

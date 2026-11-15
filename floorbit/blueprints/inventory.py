@@ -32,8 +32,13 @@ def _feeders():
 def run_sync():
     """Every inventory plugin that's on, one after the other. Returns their reports."""
     registry = _registry()
-    reports = []
+    # A hosted Floorbit: the agent first. A plugin it feeds (NetBox) is skipped here, since this
+    # side can't reach it and would only log a failed sync every time.
+    reports = _sync_from_agent() if agent_link.active() else []
+    fed = {r['plugin'] for r in reports if not r.get('error')}
     for spec in _feeders():
+        if spec.id in fed:
+            continue
         try:
             items, skipped = inventory.clean_feed(registry.call(spec, 'inventory'))
         except (PluginError, inventory.InventoryError) as exc:
@@ -52,8 +57,6 @@ def run_sync():
         registry.log(spec.id, 'inventory sync: {added} added, {updated} updated, {joined} joined, '
                               '{gone} gone, {locked} locked fields kept'.format(**report))
         reports.append(report)
-    if agent_link.active():
-        reports += _sync_from_agent()
     return reports
 
 
@@ -100,13 +103,16 @@ def _sources(data):
     out = []
     for spec in _feeders():
         last = next((r for r in log if r.get('plugin') == spec.id), None)
-        out.append({'id': spec.id, 'name': spec.name, 'last_sync': last})
+        via = ' (local agent)' if last and last.get('via') == 'agent' else ''
+        out.append({'id': spec.id, 'name': spec.name + via, 'last_sync': last})
     if agent_link.active():
         known, via_agent = {o['id'] for o in out}, False
         for r in log:       # newest first: the agent's feeds as of its last sync
-            if r.get('via') == 'agent' and r.get('plugin') not in known and r.get('plugin') != 'agent':
+            if r.get('via') != 'agent' or r.get('plugin') == 'agent':
+                continue
+            via_agent = True
+            if r.get('plugin') not in known:
                 known.add(r['plugin'])
-                via_agent = True
                 out.append({'id': r['plugin'], 'name': f"{r.get('name') or r['plugin']} (local agent)", 'last_sync': r})
         if not via_agent:   # nothing came from it yet: show it, with its last error if any
             last = next((r for r in log if r.get('plugin') == 'agent'), None)
