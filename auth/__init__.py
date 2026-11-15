@@ -26,7 +26,7 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
 
-from . import oidc, roles, teams
+from . import oidc, roles, teams, tokens
 from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
 from .users import UserError, UserStore, public
@@ -83,6 +83,10 @@ def _load_session_user():
     auth = current_app.extensions.get('auth')
     if not auth or not auth.enabled:
         return None
+    token = tokens.bearer(request.headers)
+    if token is not None:   # a script with an API token: the session cookie doesn't count
+        record = tokens.check(token)
+        return tokens.as_user(record) if record else None
     username = session.get('user')
     if not username:
         return None
@@ -149,6 +153,7 @@ class Auth:
         roles.configure(lambda: self.users.path)
         teams.configure(lambda: self.users.path)
         oidc.configure(lambda: self.users.path)
+        tokens.configure(lambda: self.users.path)
         self.providers = Registry()
         self.providers.register(LocalProvider(self.users))
         self.providers.add_source(oidc.providers)
@@ -219,6 +224,8 @@ class Auth:
     def guard(self):
         if not self.enabled:
             return None
+        if tokens.bearer(request.headers) is not None:
+            return self._guard_token()
         if request.method not in SAFE_METHODS and not _same_origin():
             abort(403, description='Cross-site request refused.')
         if self.is_public():
@@ -227,6 +234,23 @@ class Auth:
         if not user:
             return _deny()
         needed = roles.needed_for(request.path.rstrip('/') or '/', request.method, SAFE_METHODS)
+        if not roles.can(user, needed):
+            return _forbidden(needed)
+        return None
+
+    @staticmethod
+    def _guard_token():
+        # No same-origin check: a browser can't send another site's Authorization header without CORS,
+        # which Floorbit never allows.
+        user = current_user()
+        if not user:
+            return jsonify({'error': 'The API token is wrong, expired or revoked.'}), 401
+        path = request.path.rstrip('/') or '/'
+        if not path.startswith('/api/') or tokens.blocked(path):
+            return jsonify({'error': "API tokens can't be used here."}), 403
+        if user['read_only'] and request.method not in SAFE_METHODS:
+            return jsonify({'error': 'This API token can only read.'}), 403
+        needed = roles.needed_for(path, request.method, SAFE_METHODS)
         if not roles.can(user, needed):
             return _forbidden(needed)
         return None
