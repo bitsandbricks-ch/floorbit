@@ -2,16 +2,20 @@
 
 - ``GET /api/incidents``: the board, for accounts with ``incidents.work`` in their role or a team.
 - ``POST /api/incidents``, ``PATCH /api/incidents/<id>``: file and work incidents.
+- ``GET /api/incidents.csv?tz=<minutes>``: the board as a spreadsheet for the debrief after the event
+  (issue #418). Same people as the board; never attendee data. The download goes to the audit log.
 - ``GET /api/incidents/markers``: open incidents per seat and switch, for the floor plan.
 - ``GET /api/helpdesk/qr``: the signed help link and QR code of every seat (``incidents.assign``).
 - ``GET``/``POST /help/<seat>?k=<signature>``: the attendee's page. No account, nothing personal,
   rate limited; only links printed from the QR sheet work.
 """
+import csv
+import io
 import threading
 import time
 
 import segno
-from flask import Blueprint, abort, current_app, jsonify, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, jsonify, render_template, request, url_for
 
 from auth import roles, teams
 from integrations import events
@@ -127,6 +131,50 @@ def list_incidents():
         'can_assign_any': roles.can(user, 'incidents.assign'),
         'problems': list(incidents.PROBLEMS),
     })
+
+
+CSV_COLUMNS = ('id', 'created', 'where', 'title', 'team', 'status', 'source', 'reports', 'reported_by',
+               'assignee', 'picked_up', 'fixed', 'minutes_to_fix', 'notes')
+
+
+def _cell(value):
+    # A cell starting with = + - @ runs as a formula in Excel or LibreOffice: titles are free text.
+    text = '' if value is None else str(value)
+    return "'" + text if text[:1] in ('=', '+', '-', '@', '\t', '\r') else text
+
+
+def csv_rows(items, team_names, tz=0):
+    """The board as rows for a spreadsheet. No snapshot (nicks, IPs) and no note texts: notes can
+    name people, so only their count goes in."""
+    def when(at):
+        return time.strftime('%Y-%m-%d %H:%M', time.gmtime(at - tz * 60)) if at else ''
+    rows = [CSV_COLUMNS]
+    for i in sorted(items, key=lambda i: i.get('created_at') or 0):
+        where = f"seat {i['seat']}" if i.get('seat') else i.get('switch_name') or i.get('circuit_name') or ''
+        fixed = i.get('fixed_at') if i.get('status') == 'fixed' else None
+        took = round((fixed - i['created_at']) / 60) if fixed and i.get('created_at') else ''
+        rows.append((i['id'], when(i.get('created_at')), where, i.get('title'), team_names.get(i.get('team'), ''),
+                     i.get('status'), i.get('source'), i.get('reports') or 1, i.get('reported_by') or '',
+                     i.get('assignee') or '', when(i.get('picked_up_at')), when(fixed), took,
+                     len(i.get('notes') or [])))
+    return [[_cell(v) for v in row] for row in rows]
+
+
+@bp.route('/api/incidents.csv', methods=['GET'])
+def incidents_csv():
+    user = _board_user()
+    try:
+        tz = max(-14 * 60, min(14 * 60, int(request.args.get('tz') or 0)))
+    except ValueError:
+        tz = 0
+    names = {t['id']: t['name'] for t in teams.tree()}
+    out = io.StringIO()
+    csv.writer(out).writerows(csv_rows(incidents.list_all(), names, tz))
+    audit.record('incidents', 'Downloaded the incident list', user=user['username'])
+    stamp = time.strftime('%Y-%m-%d', time.gmtime(time.time() - tz * 60))
+    # A BOM so Excel reads the umlauts as UTF-8.
+    return Response('\ufeff' + out.getvalue(), mimetype='text/csv',
+                    headers={'Content-Disposition': f'attachment; filename="incidents-{stamp}.csv"'})
 
 
 @bp.route('/api/incidents/people', methods=['GET'])

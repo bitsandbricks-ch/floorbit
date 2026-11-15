@@ -92,6 +92,13 @@ describe('Incident board', () => {
     expect(screen.queryByRole('link', { name: 'Seat QR codes' })).toBeNull()
   })
 
+  it('offers the board as a CSV in the browser time zone (issue #418)', async () => {
+    vi.stubGlobal('fetch', fakeFetch(routes).fn)
+    renderWithApp(<Incidents />)
+    const link = await screen.findByRole('link', { name: 'Download as CSV' })
+    expect(link).toHaveAttribute('href', `/api/incidents.csv?tz=${new Date().getTimezoneOffset()}`)
+  })
+
   it('filters the board from the address', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     renderWithApp(<Incidents />, '/incidents?q=KIM')

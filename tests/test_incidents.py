@@ -364,3 +364,38 @@ def test_the_help_page_asks_when_the_switch_came_back(anon_client, app_module, f
     monitor.statuses = back
     anon_client.post(url, data={"works": "1"})
     assert b"has been back" not in anon_client.get(url).data
+
+
+# ── CSV export (issue #418) ────────────────────────────────────────────────────
+def test_csv_export_for_the_debrief(client, anon_client, app_module, floor):
+    import csv
+    import io
+    a = client.post("/api/incidents", json={"seat": "A-1", "title": "=HYPERLINK(\"x\")", "team": "core",
+                                            "note": "Swapped the cable for Kim"}).get_json()
+    client.patch(f"/api/incidents/{a['id']}", json={"status": "assigned"})
+    client.patch(f"/api/incidents/{a['id']}", json={"status": "fixed"})
+    client.post("/api/incidents", json={"switch_id": floor["switch_id"], "title": "Fan noise"})
+    resp = client.get("/api/incidents.csv?tz=-60")
+    assert resp.status_code == 200 and resp.mimetype == "text/csv"
+    assert resp.headers["Content-Disposition"].startswith('attachment; filename="incidents-')
+    text = resp.get_data(as_text=True)
+    assert text.startswith("﻿")
+    rows = list(csv.DictReader(io.StringIO(text.lstrip("﻿"))))
+    assert [r["where"] for r in rows] == ["seat A-1", "sw-a-01"]   # oldest first
+    first = rows[0]
+    assert first["title"] == "'=HYPERLINK(\"x\")"   # never a formula in a spreadsheet
+    assert first["status"] == "fixed" and first["fixed"] and first["minutes_to_fix"] == "0"
+    assert first["team"] and first["notes"] == "1" and "Kim" not in text   # note texts stay out
+    assert first["assignee"] == TEST_USER and rows[1]["fixed"] == ""
+    entries, _ = audit.read(area="incidents")
+    assert any(e["action"] == "Downloaded the incident list" for e in entries)
+
+    assert anon_client.get("/api/incidents.csv").status_code == 401
+    assert sign_in_as(app_module, "vi2", "viewer").get("/api/incidents.csv").status_code == 403
+    assert client.get("/api/incidents.csv?tz=abc").status_code == 200
+
+
+def test_csv_times_follow_the_browser_clock():
+    rows = incidents_bp.csv_rows([{"id": "x", "seat": "A-1", "title": "t", "status": "open", "created_at": 3600}],
+                                 {}, tz=-120)
+    assert rows[1][1] == "1970-01-01 03:00"
