@@ -6,7 +6,8 @@ Gathered from what is already watched, without asking anything new:
 - placed switches that are offline (from the status monitor), marked when their alerts are muted;
 - red and amber services on the health wall;
 - high and medium security findings (where only, unless the account has ``seats.view``);
-- power circuits that tripped, are about to, or are getting close.
+- power circuits that tripped, are about to, or are getting close;
+- the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
 come as a list of their own under ``attention``, newest first.
@@ -98,6 +99,20 @@ def _power():
     return out
 
 
+def _forecast():
+    from . import features
+    watch = current_app.extensions.get('floorbit_forecast')
+    if not watch or not features.on('forecast'):
+        return []
+    alert = (watch.last or {}).get('alert')
+    if not alert or alert['t'] < time.time() - 3600:
+        return []
+    at = time.strftime('%H:%M', time.localtime(alert['t']))
+    return [{'id': f"forecast:{alert['t']}", 'kind': 'forecast', 'level': 'down' if alert['pct'] >= 100 else 'warn',
+             'title': f"Bandwidth expected at {alert['pct']} % of the line around {at}",
+             'where': 'Forecast from the hours so far', 'since': None, 'link': '/stats'}]
+
+
 def _attention():
     from urllib.parse import quote
 
@@ -115,7 +130,7 @@ def _attention():
 
 def current(may_see_people):
     muted = alerting.mutes()
-    items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power()
+    items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power() + _forecast()
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),

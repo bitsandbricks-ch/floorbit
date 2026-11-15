@@ -78,6 +78,9 @@ each seat is plugged into.
   fixed, and Take it / Fixed buttons for linked crew. See [docs/crew-discord.md](docs/crew-discord.md).
 - **Stats:** bandwidth now and at its peak (last hour, 24 hours, the event), uplink load per switch,
   seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
+- **Bandwidth forecast:** the next 12 hours from the event's hours so far (a profile per hour of
+  the day times how the last hours ran), with a warning before the line fills. See
+  [docs/forecast.md](docs/forecast.md).
 - **Replay:** play the event back on the floor plan with a time slider: the hall filling up, the
   bandwidth peak and the incidents. See [docs/replay.md](docs/replay.md).
 - **Event report:** after the event, a report to read or download as PDF: attendance over time, peak

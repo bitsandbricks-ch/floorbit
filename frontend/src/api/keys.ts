@@ -38,6 +38,7 @@ export const qk = {
   flows: ['flows'] as const,
   dns: (hours: number) => ['dns', hours] as const,
   games: (hours: number) => ['games', hours] as const,
+  forecast: ['forecast'] as const,
   stats: (screen: boolean) => ['stats', screen] as const,
   setup: ['setup'] as const,
   halls: ['halls'] as const,

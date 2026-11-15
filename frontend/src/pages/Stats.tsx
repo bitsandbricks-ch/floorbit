@@ -11,6 +11,7 @@ import type { StatsData, StatsSample } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
 
 const HOUR = 3600
@@ -56,6 +57,7 @@ function Chart({ series, label }: { series: StatsSample[]; label: string }) {
 
 function Board({ data, screen }: { data: StatsData; screen: boolean }) {
   const { t } = useTranslation()
+  const forecastOn = useFeature('forecast')
   const [range, setRange] = useState<'hour' | 'day'>(screen ? 'hour' : 'day')
   const now = data.now
   const since = (data.last_poll ?? data.series.at(-1)?.t ?? 0) - (range === 'hour' ? HOUR : 24 * HOUR)
@@ -86,6 +88,8 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
         <Chart series={series} label={t('stats.chartLabel')} />
         <OnlineLine series={series} />
       </section>
+
+      {forecastOn && !screen && <Forecast />}
 
       <section className="fb-stats-panel" aria-labelledby="stats-uplinks">
         <h2 id="stats-uplinks">{t('stats.uplinks')}</h2>

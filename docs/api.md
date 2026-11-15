@@ -87,6 +87,7 @@ Floorbit POSTs each event as JSON as it happens:
 | `seat.checked_in` | A player checked in at a seat | `seat`, `moved_from` |
 | `security.finding` | A security plugin reported something new | `id`, `kind`, `severity`, `switch`, `port`, `seat` |
 | `power.alert` | A circuit reached its critical load or tripped | `id`, `name`, `board`, `phase`, `state`, `pct`, `rating_a`, `seats` (how many), `switches` |
+| `forecast.alert` | The [bandwidth forecast](forecast.md) reaches the warning share of the line within the next hours (once per expected peak) | `t` (the hour), `bps`, `pct`, `capacity_bps` |
 | `health.changed` | A service on the health wall changed state | `changes` |
 
 Payloads never carry nicks, IPs or MACs: a check-in says which seat, not who. A feature that is

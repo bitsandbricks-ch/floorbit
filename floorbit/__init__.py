@@ -130,6 +130,10 @@ def create_app(start_background=True):
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
 
+    # Bandwidth forecast from the stats' hours, with a warning before the line fills (docs/forecast.md).
+    from .forecast import init_forecast
+    init_forecast(app, start_background=start_background)
+
     # Outgoing webhooks: chosen events POSTed to other tools, signed (docs/api.md#webhooks).
     from .webhooks import init_webhooks
     init_webhooks(app, start_background=start_background)

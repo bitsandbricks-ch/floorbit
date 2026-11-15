@@ -33,7 +33,8 @@ LOG_SIZE = 20
 NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}$')
 # The events a hook can pick, in the order the settings page lists them.
 EVENTS = ('switch.down', 'switch.up', 'monitoring.offline', 'monitoring.online', 'incident.opened',
-          'incident.changed', 'seat.checked_in', 'security.finding', 'power.alert', 'health.changed')
+          'incident.changed', 'seat.checked_in', 'security.finding', 'power.alert', 'health.changed',
+          'forecast.alert')
 
 _lock = threading.Lock()
 _queue = collections.deque()          # jobs waiting to be sent
@@ -161,6 +162,8 @@ def translate(event):
         return [(kind, {k: v for k, v in data.items() if k not in ('ips', 'nicks')})]
     if kind == 'health.changed':
         return [(kind, {'changes': data.get('changes') or []})]
+    if kind == 'forecast.alert':
+        return [(kind, {k: data.get(k) for k in ('t', 'bps', 'pct', 'capacity_bps')})]
     return []
 
 

@@ -30,6 +30,19 @@ describe('Stats', () => {
     expect(bps(0)).toBe('0 bps')
   })
 
+  it('shows the bandwidth forecast, how it was made and a warning', async () => {
+    const t0 = 1_800_000_000
+    const points = Array.from({ length: 12 }, (_, k) => ({ t: t0 + k * 3600, bps: (k === 2 ? 9 : 4) * 1e9, low: 3e9,
+      high: 9.5e9, basis: 'profile' as const, pct: k === 2 ? 90 : 40 }))
+    const forecast = { ready: true, history_hours: 40, min_hours: 6, capacity_bps: 10e9, warn_pct: 80, lead_hours: 3,
+      points, alert: { t: t0 + 7200, bps: 9e9, pct: 90 }, level: 1.2, days: 2, peak: points[2] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/stats': stats(), 'GET /api/forecast': forecast }).fn)
+    renderWithApp(<Stats />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Expected at 90 % of the line')
+    expect(screen.getByRole('img', { name: /Bandwidth forecast: busiest expected 9.0 Gbps/ })).toBeInTheDocument()
+    expect(screen.getByText(/from 2 days of this event\. The last 3 hours ran 20 % busier/)).toBeInTheDocument()
+  })
+
   it('shows bandwidth, peaks, uplinks and top talkers', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/stats': stats() }).fn)
     renderWithApp(<Stats />)

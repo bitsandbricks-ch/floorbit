@@ -36,5 +36,22 @@
   "noTop": "No traffic right now.",
   "seat": "Seat {{seat}}",
   "report": "Event report",
-  "replay": "Replay the event"
+  "replay": "Replay the event",
+  "forecast": {
+    "title": "Bandwidth forecast, next 12 hours",
+    "expected": "Expected",
+    "range": "Quietest to busiest day",
+    "capacity": "The line",
+    "notYet_one": "A forecast needs {{count}} hour of history; there is {{have}} so far.",
+    "notYet_other": "A forecast needs {{count}} hours of history; there are {{have}} so far.",
+    "alert": "Expected at {{pct}} % of the line around {{time}} ({{value}}).",
+    "chartLabel": "Bandwidth forecast: busiest expected {{value}} around {{time}}",
+    "how_one": "Each hour is the average busiest read at that time of day, from {{count}} day of this event.",
+    "how_other": "Each hour is the average busiest read at that time of day, from {{count}} days of this event.",
+    "noLevel": "Hours not seen yet use the last 3 hours.",
+    "level": "The last 3 hours ran {{pct}} % {{dir}} than on earlier days, so the forecast is scaled by that.",
+    "busier": "busier",
+    "quieter": "quieter",
+    "noCapacity": "Set FORECAST_CAPACITY_MBPS to warn before the line fills."
+  }
 }

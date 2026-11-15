@@ -38,6 +38,7 @@
     "seat.checked_in": "Seat checked in",
     "security.finding": "Security finding",
     "power.alert": "Power alert",
-    "health.changed": "Service health changed"
+    "health.changed": "Service health changed",
+    "forecast.alert": "Bandwidth forecast warning"
   }
 }

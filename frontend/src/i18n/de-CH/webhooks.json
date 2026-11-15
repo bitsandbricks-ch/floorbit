@@ -38,6 +38,7 @@
     "seat.checked_in": "Platz eingecheckt",
     "security.finding": "Sicherheitsbefund",
     "power.alert": "Stromalarm",
-    "health.changed": "Dienststatus geändert"
+    "health.changed": "Dienststatus geändert",
+    "forecast.alert": "Warnung der Bandbreiten-Prognose"
   }
 }
