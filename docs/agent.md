@@ -36,7 +36,7 @@ Every connected agent takes calls from the same queue: whichever asks first gets
 suits a spare (a second agent on another box, for when the first one goes down), and each answer is
 only taken from the agent that took the call. It doesn't suit two sites with **different**
 LibreNMS servers yet: a call about a switch at one site may go to the other site's agent, which
-doesn't know it. Run one agent per hosted Floorbit there.
+doesn't know it. For now, give each such site its own hosted Floorbit.
 
 ## Running the agent
 
