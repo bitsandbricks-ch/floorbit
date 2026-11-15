@@ -25,6 +25,9 @@ It is **off** until an admin turns on **Network status page** under **Settings >
   seats a switch serves from the port descriptions it reads (the port watch, see [alerts.md](alerts.md)) and
   keeps that while the switch is down. A switch whose seats it doesn't know counts for the seat
   block nearest to it on the floor plan.
+- **Back up recently**: for half an hour after a switch comes back from being down, its areas are
+  listed with "The network here has been back since 14:05.", so attendees who saw the outage see
+  that it is over. A switch that was simply up since Floorbit started doesn't count.
 - **Updates** the crew posts, newest first (at most 50 are kept).
 
 The page updates every minute and shows times in the reader's own time zone.

@@ -36,7 +36,8 @@ TEXTS = {
            'since': 'Since {time}', 'areas': 'Affected areas', 'rows': 'rows {rows}', 'seats': '{n} seats',
            'switches': 'Switches: {names}', 'updates': 'Updates from the crew', 'none': 'No updates yet.',
            'updated': 'Updated {time}. This page updates every minute.', 'block': 'Seat block {name}',
-           'unnamed': 'A seat block', 'hall_wide': 'Hall {name}', 'somewhere': 'Somewhere in the hall'},
+           'unnamed': 'A seat block', 'hall_wide': 'Hall {name}', 'somewhere': 'Somewhere in the hall',
+           'recovered': 'Back up recently', 'recovered_at': 'The network here has been back since {time}.'},
     'de': {'title': 'Netzwerkstatus', 'off': 'Diese Seite ist ausgeschaltet.',
            'state': {'operational': 'Alles läuft', 'degraded': 'Ein Teil des Netzwerks ist ausgefallen',
                      'outage': 'Netzwerkausfall', 'maintenance': 'Wartung',
@@ -50,7 +51,8 @@ TEXTS = {
            'seats': '{n} Plätze', 'switches': 'Switches: {names}', 'updates': 'Updates der Crew',
            'none': 'Noch keine Updates.', 'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.',
            'block': 'Platzblock {name}', 'unnamed': 'Ein Platzblock', 'hall_wide': 'Halle {name}',
-           'somewhere': 'Irgendwo in der Halle'},
+           'somewhere': 'Irgendwo in der Halle', 'recovered': 'Wieder da',
+           'recovered_at': 'Das Netzwerk hier läuft seit {time} wieder.'},
 }
 
 

@@ -139,3 +139,25 @@ def test_german(anon_client, floor, switched_on):
 def test_rows_text():
     assert status_page._rows_text({1, 2, 3, 5, 7, 8}) == "1-3, 5, 7-8"
     assert status_page._rows_text(set()) == ""
+
+
+def test_recently_back_areas(anon_client, floor, switched_on):
+    # Issue #394: attendees who saw the outage see that it is over.
+    status_page.learn_seats({("sw-a-01", "Gi1/0/1"): "A-1"})
+    sid = floor["a"]["id"]
+    back = time.time() - 5 * 60
+    floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": back, "previous": "offline"}}
+    data = anon_client.get("/status.json").get_json()
+    assert data["state"] == "operational" and data["areas"] == []
+    assert data["recovered"] == [{"hall": "", "block": "A", "rows": "1", "seats": 1}]
+    assert data["recovered_at"] == back
+    page = anon_client.get("/status").get_data(as_text=True)
+    assert "Back up recently" in page and "Seat block A" in page and "sw-a-01" not in page
+    assert "Wieder da" in anon_client.get("/status", headers={"Accept-Language": "de"}).get_data(as_text=True)
+    # Up since a restart, or back more than half an hour ago: nothing to say.
+    floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": back}}
+    assert anon_client.get("/status.json").get_json()["recovered"] == []
+    floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": time.time() - 31 * 60,
+                                       "previous": "offline"}}
+    assert anon_client.get("/status.json").get_json()["recovered"] == []
+    assert "Back up recently" not in anon_client.get("/status").get_data(as_text=True)
