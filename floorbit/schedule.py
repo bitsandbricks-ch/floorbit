@@ -280,3 +280,48 @@ def public(data=None, now=None):
         'items': items,
         'server_time': now,
     }
+
+
+# ── The calendar feed (/agenda.ics) ────────────────────────────────────────────────────────────
+
+def _escape(value):
+    return re.sub(r'([\;,])', r'\\\1', str(value)).replace('\r\n', '\\n').replace('\n', '\\n')
+
+
+def _fold(line):
+    """Lines longer than 75 bytes continue on the next one, after a space (RFC 5545 3.1)."""
+    out, cur = [], b''
+    for ch in line:
+        b = ch.encode()
+        if len(cur) + len(b) > (75 if not out else 74):
+            out.append(cur)
+            cur = b''
+        cur += b
+    out.append(cur)
+    return '\r\n '.join(part.decode() for part in out)
+
+
+def _utc(epoch):
+    return dt.datetime.fromtimestamp(epoch, dt.UTC).strftime('%Y%m%dT%H%M%SZ')
+
+
+def to_ics(items, name, host, now=None):
+    """The programme as an iCal calendar people subscribe to. Times are in UTC so every calendar app
+    shows them in the reader's own zone. An item without an end lasts half an hour, as on /agenda."""
+    now = time.time() if now is None else now
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BitsAndBricks//Floorbit//EN', 'CALSCALE:GREGORIAN',
+             'METHOD:PUBLISH', f'X-WR-CALNAME:{_escape(name)}', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+             'X-PUBLISHED-TTL:PT1H']
+    for i in items:
+        lines += ['BEGIN:VEVENT', f"UID:{i['id']}@{host}", f'DTSTAMP:{_utc(now)}', f"DTSTART:{_utc(i['start'])}",
+                  f"DTEND:{_utc(i['end'] or i['start'] + 1800)}", f"SUMMARY:{_escape(i['title'])}",
+                  f"CATEGORIES:{i['kind'].upper()}"]
+        if i.get('where'):
+            lines.append(f"LOCATION:{_escape(i['where'])}")
+        if i.get('note'):
+            lines.append(f"DESCRIPTION:{_escape(i['note'])}")
+        if i['kind'] == 'quiet':
+            lines.append('TRANSP:TRANSPARENT')   # quiet hours shouldn't mark the reader as busy
+        lines.append('END:VEVENT')
+    lines.append('END:VCALENDAR')
+    return '\r\n'.join(_fold(line) for line in lines) + '\r\n'
