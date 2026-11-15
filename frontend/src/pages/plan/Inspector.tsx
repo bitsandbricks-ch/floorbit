@@ -92,7 +92,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           <Group gap="xs">
             {d.switch && <WatchSeat seat={seat} />}
             <Button component="a" href={`/?seat=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconMapPin size={14} />}>{t('plan.openEditor')}</Button>
-            <Button component="a" href={`/incidents?q=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>
+            <Button component="a" href={`/incidents?q=${encodeURIComponent(`seat:${seat}`)}`} variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>
           </Group>
         </>
       )}

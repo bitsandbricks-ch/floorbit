@@ -118,6 +118,12 @@ describe('Incident board', () => {
     expect(box).toHaveFocus()
   })
 
+  it('matches one seat exactly with seat:', () => {
+    const at = (seat: string) => ({ ...base, id: seat, title: 'x', status: 'open' as const, seat })
+    expect(matchesFilter(at('D-2'), 'seat:d-2')).toBe(true)
+    expect(matchesFilter(at('D-20'), 'seat:D-2')).toBe(false)
+    expect(matchesFilter(at('D-20'), 'D-2')).toBe(true)
+  })
   it('matches title, place, people, team and notes', () => {
     const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
     expect(matchesFilter(i, '')).toBe(true)

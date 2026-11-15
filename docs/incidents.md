@@ -20,7 +20,7 @@ you type in a field). The [event report](report.md) shows how long incidents wai
 on average.
 
 **Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
-notes contain the text, ignoring case. It is kept in the address (`/incidents?q=B-7`), so a link can
+notes contain the text, ignoring case. `seat:D-2` matches that seat only (not D-20). It is kept in the address (`/incidents?q=B-7`), so a link can
 open the board filtered, and it works together with **Only what I can work**. **/** anywhere on the
 board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen-readers).
 

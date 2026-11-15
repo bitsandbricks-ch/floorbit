@@ -137,7 +137,7 @@ describe('Seats page', () => {
     await screen.findByRole('list', { name: 'Legend' })
     fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
     expect(await screen.findByText(/^Fixed here 2 times before, last: Cable loose \(/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=D-2')
+    expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=seat%3AD-2')
   })
 
   it('dims seats a filter leaves out and finds a seat', async () => {
