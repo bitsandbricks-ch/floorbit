@@ -15,6 +15,11 @@ export function fixedBy(fixed: HandoverIncident[]): { who: string | null; count:
     .sort((a, b) => b.count - a.count || (a.who === null ? 1 : b.who === null ? -1 : a.who.localeCompare(b.who)))
 }
 
+/** "By: kim 2 · ana 1 · nobody named 1", for the page and the copied text alike. */
+export function byLine(fixed: HandoverIncident[], t: T): string {
+  return t('handover.fixedBy', { list: fixedBy(fixed).map((f) => `${f.who ?? t('handover.nobodyNamed')} ${f.count}`).join(' · ') })
+}
+
 /** The summary as plain text, for crews that hand over in a chat or by mail rather than Discord (issue #220). */
 export function summaryText(d: HandoverData, note: string, t: T, length: (s: number) => string): string {
   const where = (i: HandoverIncident) => i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
@@ -30,7 +35,7 @@ export function summaryText(d: HandoverData, note: string, t: T, length: (s: num
     `${t('handover.stillOpen')}:`,
     ...(d.incidents.open.length ? d.incidents.open.map(item) : [t('handover.noneOpen')]),
   ]
-  if (d.incidents.fixed.length) lines.push('', `${t('handover.fixedThisShift')}:`, ...d.incidents.fixed.map(item))
+  if (d.incidents.fixed.length) lines.push('', `${t('handover.fixedThisShift')}:`, byLine(d.incidents.fixed, t), ...d.incidents.fixed.map(item))
   if (d.outages.length) {
     lines.push('', `${t('handover.outagesTitle')}:`, ...d.outages.map((o) => `- ${o.name}: ${o.back_at
       ? t('handover.wasDown', { when: when(o.down_at), for: length(o.down_s) })

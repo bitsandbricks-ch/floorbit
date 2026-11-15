@@ -10,7 +10,7 @@ import type { HandoverData, HandoverIncident, HandoverRecord } from '@/api/types
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { duration } from './report/format'
-import { fixedBy, summaryText, when } from './handover/format'
+import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
 
 function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
@@ -122,8 +122,7 @@ export default function Handover() {
               <Paper withBorder radius="lg" p="md">
                 <Title order={2} size="h4" mb="xs">{t('handover.fixedThisShift')}</Title>
                 <Text size="sm" c="dimmed" mb="xs">
-                  {t('handover.fixedBy', { list: fixedBy(d.incidents.fixed)
-                    .map((f) => `${f.who ?? t('handover.nobodyNamed')} ${f.count}`).join(' · ') })}
+                  {byLine(d.incidents.fixed, t)}
                 </Text>
                 <Stack gap="sm">{d.incidents.fixed.map((i) => <IncidentRow key={i.id} i={i} now={d.now} />)}</Stack>
               </Paper>
