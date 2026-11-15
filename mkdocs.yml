@@ -77,6 +77,7 @@ nav:
       - Service health: health.md
       - Security detection: security.md
       - Electrics: power.md
+      - Dashboards and layouts: dashboard.md
       - Stats dashboard: stats.md
       - Bandwidth forecast: forecast.md
       - Traffic insights: flows.md

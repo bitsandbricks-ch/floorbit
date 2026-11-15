@@ -12,7 +12,7 @@ Who may do what:
 - Widgets and endpoints: a signed-in account with the permission they name (floorplan.view by
   default). They are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
 """
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import audit, spa
 from ..plugins import SETTING_TYPES, PluginError
@@ -247,3 +247,36 @@ def dashboard():
                               'kind': 'action', 'danger': bool(a.get('danger')),
                               'url': f"/api/plugins/{spec.id}/actions/{a['id']}"})
     return jsonify({'tiles': tiles})
+
+
+# Saved layouts (issue #103): which tiles a screen shows, in which order (floorbit/dashboard_layouts.py).
+@bp.route('/api/dashboard/layouts', methods=['GET'])
+def dashboard_layouts():
+    refused = _allowed('floorplan.view')
+    if refused:
+        return refused
+    from .. import dashboard_layouts as layouts
+    return jsonify({'layouts': layouts.all_layouts()})
+
+
+@bp.route('/api/dashboard/layouts/<layout_id>', methods=['PUT'])
+def save_dashboard_layout(layout_id):
+    from .. import dashboard_layouts as layouts
+    user = _user() or {}
+    try:
+        layout = layouts.save(layout_id, request.get_json(silent=True) or {}, user.get('username'))
+    except layouts.LayoutError as exc:
+        return _error(str(exc), exc.status)
+    audit.record('settings', 'Saved dashboard layout', g.get('audit_user'), layout['name'])
+    return jsonify(layout)
+
+
+@bp.route('/api/dashboard/layouts/<layout_id>', methods=['DELETE'])
+def delete_dashboard_layout(layout_id):
+    from .. import dashboard_layouts as layouts
+    try:
+        layouts.delete(layout_id)
+    except layouts.LayoutError as exc:
+        return _error(str(exc), exc.status)
+    audit.record('settings', 'Removed dashboard layout', g.get('audit_user'), layout_id)
+    return jsonify({'ok': True})

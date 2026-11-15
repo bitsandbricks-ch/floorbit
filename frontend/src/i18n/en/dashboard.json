@@ -3,5 +3,20 @@
   "empty": "Nothing here yet. Tiles come from plugins: an admin turns them on under Settings > Plugins.",
   "emptyLink": "Open Settings > Plugins",
   "cantDraw": "This tile can't be drawn.",
-  "from": "from {{plugin}}"
+  "from": "from {{plugin}}",
+  "layout": "Layout",
+  "allTiles": "All tiles",
+  "newLayout": "New layout",
+  "editLayout": "Edit layout",
+  "layoutName": "Layout name",
+  "layoutPlaceholder": "Ops desk",
+  "columns": "Columns",
+  "pickTiles": "Pick the tiles for this screen and their order.",
+  "up": "Move {{tile}} up",
+  "down": "Move {{tile}} down",
+  "saveLayout": "Save layout",
+  "cancel": "Cancel",
+  "deleteLayout": "Delete layout",
+  "screen": "Full screen",
+  "layoutEmpty": "None of this layout's tiles is available: their plugin is off, or this account may not see them."
 }

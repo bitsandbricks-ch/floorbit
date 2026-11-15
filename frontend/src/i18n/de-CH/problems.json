@@ -51,5 +51,10 @@
   "minutesAgo_other": "{{count}} Min.",
   "hoursAgo_one": "{{count}} Std.",
   "hoursAgo_other": "{{count}} Std.",
-  "match": "Match-Platz · {{zone}}"
+  "match": "Match-Platz · {{zone}}",
+  "card": {
+    "down": "Down",
+    "warn": "Anzuschauen",
+    "muted": "Stumm"
+  }
 }

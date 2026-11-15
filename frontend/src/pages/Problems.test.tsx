@@ -26,8 +26,10 @@ describe('Problems', () => {
     renderWithApp(<Problems />)
     const sw = await screen.findByRole('article', { name: 'sw-c-02 is offline' })
     expect(within(sw).getByText('Switch')).toBeInTheDocument()
-    expect(screen.getByText('1 down')).toBeInTheDocument()
-    expect(screen.getByText('1 muted')).toBeInTheDocument()
+    // The counts are cards now (issue #103): label, then the number.
+    const card = (label: string) => screen.getByText(label, { selector: 'dt' }).closest('dl')
+    expect(card('Down')).toHaveTextContent('Down1')
+    expect(card('Muted')).toHaveTextContent('Muted1')
     const muted = screen.getByRole('article', { name: 'sw-d-01 is offline' })
     expect(within(muted).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     expect(within(muted).getByText(/Recabling/)).toBeInTheDocument()

@@ -51,5 +51,10 @@
   "minutesAgo_other": "{{count}} min",
   "hoursAgo_one": "{{count}} h",
   "hoursAgo_other": "{{count}} h",
-  "match": "Match seat · {{zone}}"
+  "match": "Match seat · {{zone}}",
+  "card": {
+    "down": "Down",
+    "warn": "To look at",
+    "muted": "Muted"
+  }
 }

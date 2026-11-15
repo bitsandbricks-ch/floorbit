@@ -10,6 +10,7 @@ import { useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { StatCard } from '@/components/StatCard'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
 type T = (k: string, o?: Record<string, unknown>) => string
@@ -132,14 +133,12 @@ export default function Problems() {
       ) : (
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
-          <Group gap="xs" aria-live="polite">
-            {(['down', 'warn', 'muted'] as const).filter((k) => data.counts[k]).map((k) => (
-              <Badge key={k} size="lg" tt="none" color={k === 'down' ? 'down' : k === 'warn' ? 'warn' : 'gray'}
-                variant={k === 'muted' ? 'light' : 'filled'}>
-                {t(`problems.count.${k}`, { count: data.counts[k] })}
-              </Badge>
+          <div className="fb-stat-row" aria-live="polite">
+            {(['down', 'warn', 'muted'] as const).map((k) => (
+              <StatCard key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
+                tone={data.counts[k] && k !== 'muted' ? k : undefined} />
             ))}
-          </Group>
+          </div>
           {!data.problems.length ? (
             <Text c="dimmed">{t('problems.none')}</Text>
           ) : (
