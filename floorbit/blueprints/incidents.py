@@ -192,7 +192,10 @@ TEXTS = {
            'speed_run': 'Start the test', 'speed_again': 'Test again', 'speed_running': 'Testing…',
            'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latency',
            'speed_saved': 'Saved for seat {seat}. The team sees it with your report.',
-           'speed_failed': 'The test did not finish: {error}'},
+           'speed_failed': 'The test did not finish: {error}',
+           'state_open': 'Your report is in. Nobody from the team has taken it yet; someone will come.',
+           'state_taken': 'Someone from the team has your report and is on the way.',
+           'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.'},
     'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
            'nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.',
            'no-internet': 'Kein Internet', 'slow': 'Langsame oder abbrechende Verbindung', 'power': 'Kein Strom',
@@ -207,7 +210,10 @@ TEXTS = {
            'speed_run': 'Test starten', 'speed_again': 'Nochmals testen', 'speed_running': 'Teste…',
            'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latenz',
            'speed_saved': 'Für Platz {seat} gespeichert. Das Team sieht es bei deiner Meldung.',
-           'speed_failed': 'Der Test wurde nicht fertig: {error}'},
+           'speed_failed': 'Der Test wurde nicht fertig: {error}',
+           'state_open': 'Deine Meldung ist da. Noch hat sie niemand vom Team übernommen; jemand kommt.',
+           'state_taken': 'Jemand vom Team hat deine Meldung und ist unterwegs.',
+           'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.'},
 }
 
 
@@ -240,7 +246,8 @@ def help_page(seat):
         return render_template('help.html', lang=lang, t=text, seat=seat, state='invalid'), 404
     if request.method == 'GET':
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
-                               problems=list(incidents.PROBLEMS), k=request.args.get('k'))
+                               problems=list(incidents.PROBLEMS), k=request.args.get('k'),
+                               report=incidents.seat_report_state(seat))
     problem = request.form.get('problem')
     if problem not in incidents.PROBLEMS:
         return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',

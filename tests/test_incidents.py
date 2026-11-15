@@ -1,8 +1,11 @@
 """Incident board and seat QR helpdesk (issue #27)."""
+import time
+
 import pytest
 
 from floorbit import audit, incidents
 from floorbit.blueprints import incidents as incidents_bp
+from tests.conftest import TEST_USER
 
 
 def sign_in_as(app_module, username, role, teams=None, password="role-password-1"):
@@ -187,3 +190,22 @@ def test_board_shows_the_seat_s_crew_note(client, floor):
     cards = {i["seat"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
     assert cards["A-2"]["seat_note"]["text"] == "Cable swapped at 14:20" and cards["A-2"]["seat_note"]["at"]
     assert cards["A-3"]["seat_note"] is None
+
+
+def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, app_module, floor):
+    url = help_url(app_module, "A-2")
+    assert b'class="report' not in anon_client.get(url).data
+    anon_client.post(url, data={"problem": "slow"})
+    assert b"Nobody from the team has taken it yet" in anon_client.get(url).data
+    (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-2"]
+    client.patch(f"/api/incidents/{incident['id']}", json={"assignee": TEST_USER})
+    page = anon_client.get(url).data.decode()
+    assert "Someone from the team has your report" in page and TEST_USER not in page   # no names
+    client.patch(f"/api/incidents/{incident['id']}", json={"status": "fixed"})
+    assert "Jemand" not in anon_client.get(url).data.decode()
+    german = anon_client.get(url, headers={"Accept-Language": "de-CH"}).data.decode()
+    assert "Deine Meldung wurde als erledigt markiert" in german
+    # Half an hour after the fix the page forgets it.
+    with app_module.app.app_context():
+        assert incidents.seat_report_state("A-2", now=time.time() + 31 * 60) is None
+        assert incidents.seat_report_state("A-3") is None

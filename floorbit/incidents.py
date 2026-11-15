@@ -246,6 +246,23 @@ def report_from_seat(seat, problem, snapshot):
                   snapshot=snapshot, source='helpdesk', speedtest=test), True
 
 
+FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
+
+
+def seat_report_state(seat, now=None):
+    """What a seat's help page says about its latest report (issue #308): open, taken or fixed.
+
+    Names stay out: whoever holds the seat's QR link sees only that someone has it."""
+    now = time.time() if now is None else now
+    found = [i for i in list_all() if i.get('seat') == seat and i.get('source') == 'helpdesk'
+             and (i['status'] != 'fixed' or (i.get('fixed_at') or 0) >= now - FIXED_SHOWN_FOR)]
+    if not found:
+        return None
+    # A report still being worked counts before one that was fixed.
+    latest = max(found, key=lambda i: (i['status'] != 'fixed', i.get('created_at') or 0))
+    return 'fixed' if latest['status'] == 'fixed' else 'taken' if latest.get('assignee') else 'open'
+
+
 def update(user, incident_id, body):
     with _lock:
         data = load_data()

@@ -54,6 +54,9 @@ language, with four buttons (no internet, slow connection, no power, something e
 - **Rate limited:** 5 reports per client IP per 10 minutes.
 - **No duplicates:** a second report of the same problem at the same seat counts up ("2 reports")
   on the open incident instead of filing another one.
+- **Where it stands:** opening the page again shows the seat's latest report: nobody has taken it
+  yet, someone from the team has it and is on the way, or it was marked fixed (for half an hour
+  after the fix). It never says who.
 - **Located and checked:** the incident arrives with the seat, and with the switch, port, link
   state and whether a device is seen on the port, looked up through the monitoring source when it
   is reported. No IP, MAC or nick is stored with it.
