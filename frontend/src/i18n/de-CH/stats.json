@@ -53,5 +53,28 @@
     "busier": "strenger",
     "quieter": "ruhiger",
     "noCapacity": "Setze FORECAST_CAPACITY_MBPS, um zu warnen, bevor die Leitung voll ist."
+  },
+  "compare": {
+    "title": "Vergleich",
+    "dayView": "Heute und gestern",
+    "eventView": "Dieser Event und {{name}}",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "thisEvent": "Dieser Event",
+    "change": "Änderung",
+    "dayFair": "Heute bis jetzt, und gestern bis zur gleichen Zeit.",
+    "eventFair_one": "Die erste {{count}} Stunde dieses Events und von {{name}}.",
+    "eventFair_other": "Die ersten {{count}} Stunden dieses Events und von {{name}}.",
+    "noYesterday": "Noch nichts von gestern zum Vergleichen.",
+    "chartLabel": "Durchschnittliche Bandbreite pro Stunde: {{now}} und {{then}}",
+    "hourN": "Stunde {{n}}",
+    "row": {
+      "peak_bps": "Höchster Moment",
+      "avg_bps": "Durchschnittliche Bandbreite",
+      "bytes_moved": "Übertragene Daten",
+      "online_max": "Meiste Plätze online",
+      "incidents": "Incidents",
+      "outages": "Switch-Ausfälle"
+    }
   }
 }

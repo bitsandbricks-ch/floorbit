@@ -11,6 +11,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
+import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
 
 const W = 1000
@@ -124,6 +125,8 @@ export default function Report() {
               <Figure label={t('report.outages')} value={String(r.outages.reduce((n, o) => n + o.times, 0))}
                 sub={t('report.outagesSub', { count: r.outages.length })} />
             </SimpleGrid>
+
+            {pastEventsOn && <div className="fb-stats"><Compare only="event" /></div>}
 
             {r.hours.length < 2 ? (
               <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('report.empty')}</Text></Paper>

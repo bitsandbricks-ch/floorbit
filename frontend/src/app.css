@@ -265,3 +265,9 @@ body {
 .fb-dns-key.hit { background: var(--color-up); }
 .fb-dns-key.miss { background: color-mix(in srgb, var(--color-trace) 55%, transparent); }
 .fb-dns-chart .capacity { stroke: var(--color-down); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+/* Compare views: now as a line, then dashed. */
+.fb-compare-chart polyline { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-compare-chart .now { stroke: var(--color-bit); }
+.fb-compare-chart .then { stroke: var(--color-muted); stroke-dasharray: 6 4; }
+.fb-compare-key { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--color-bit); vertical-align: 3px; }
+.fb-compare-key.then { border-top: 2px dashed var(--color-muted); }

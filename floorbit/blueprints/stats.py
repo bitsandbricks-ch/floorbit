@@ -4,6 +4,8 @@
 - ``GET /api/stats``: bandwidth now, the hour, the day and the event's peak, uplinks, online seats,
   port counts and top talkers. Nicks are added to the top talkers only for ``seats.view`` and never
   with ``?screen=1``, which a kiosk shows to everyone.
+- ``GET /api/stats/compare``: today against yesterday, and this event against the last archived one, each
+  cut to the same length (floorbit/compare.py).
 - ``GET /api/forecast``: the bandwidth forecast for the next hours (floorbit/forecast.py).
 - ``GET /api/stats/seats``: traffic per online seat right now (seat numbers only), for the kiosk.
 - ``POST /api/stats/peak/reset``: start the event's peak again (``settings.manage``), e.g. after
@@ -46,6 +48,19 @@ def get_stats():
         for t in out['top']:
             if t['seat']:
                 t['nick'] = (seats.get(t['seat']) or {}).get('username') or None
+    return jsonify(out)
+
+
+@bp.route('/api/stats/compare', methods=['GET'])
+def get_compare():
+    from .. import compare, features, incidents, report
+    from ..store import load_data
+    from .replay import _checkins
+    stats_event = _stats().event()
+    out = {'day': compare.day(stats_event), 'event': None}
+    if features.on('report') and features.on('past_events'):
+        built = report.build(stats_event, _checkins(), len(incidents.seat_numbers(load_data())))
+        out['event'] = compare.event(built)
     return jsonify(out)
 
 
