@@ -37,6 +37,10 @@ match seats, seats with a note or checked-in seats. Each choice shows how many s
 this hall, so "Offline 0" answers the question without a click. The choice is kept in the address
 (`/plan?show=offline`), so a reload or a link sent to another tech keeps it, and switching halls does too. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
+With more than one hall, the hall picker shows each hall's seats online and seats with problems,
+and the header says how many seats have problems in the other halls, so trouble there shows before
+you switch.
+
 ## Keyboard and screen readers
 
 Tab to the plan, then:

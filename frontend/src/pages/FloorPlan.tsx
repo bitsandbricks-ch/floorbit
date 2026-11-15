@@ -112,6 +112,8 @@ export default function FloorPlan() {
     ? (canPeople ? !!searched && players.hits.length === 0 : true) : false
   const total = data ? Object.keys(data.seats).length : 0
   const counts = Object.fromEntries(FILTERS.map((f) => [f, data ? Object.values(data.seats).filter((x) => matches(x, f)).length : 0])) as Record<Filter, number>
+  // Seats with problems in the halls not on screen (issue #196).
+  const elsewhere = data ? data.halls.filter((h) => h.id !== data.hall).reduce((n, h) => n + (h.problems ?? 0), 0) : 0
   const online = data ? Object.values(data.seats).filter((s) => s.state === 'online').length : 0
   const problems = data ? Object.values(data.seats).filter((s) => s.problems).length : 0
   const halls = data?.halls
@@ -198,10 +200,13 @@ export default function FloorPlan() {
             {summary}
             <Group gap="xs" wrap="wrap">
               {data.halls.length > 1 && (
-                <Select aria-label={t('plan.hall')} w={180} allowDeselect={false} value={data.hall}
+                <Select aria-label={t('plan.hall')} w={180} comboboxProps={{ width: 'max-content', position: 'bottom-start' }}
+                  allowDeselect={false} value={data.hall}
                   data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
+                  renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
                   onChange={(v) => { const next = new URLSearchParams(); if (v) next.set('hall', v); if (filter !== 'all') next.set('show', filter); setParams(next) }} />
               )}
+              {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
                 href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
               <form onSubmit={go} role="search">
@@ -252,6 +257,20 @@ export default function FloorPlan() {
         </>
       )}
     </Layout>
+  )
+}
+
+/** A hall in the picker with its totals, so trouble in another hall shows before switching to it. */
+function HallOption({ hall }: { hall: SeatViewData['halls'][number] }) {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <Text size="sm">{hall.name}</Text>
+      <Text size="xs" c="dimmed">
+        {t('plan.hallTotals', { online: hall.online, seats: hall.seats })}
+        {hall.problems > 0 && <Text span size="xs" c="down" fw={600}> · {hall.problems} {t('plan.withProblems')}</Text>}
+      </Text>
+    </div>
   )
 }
 

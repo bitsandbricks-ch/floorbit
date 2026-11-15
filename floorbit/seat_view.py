@@ -96,6 +96,22 @@ def _switches(data, hall_id, box):
     return out
 
 
+def _state(seat, online, ports):
+    if online is None:
+        return 'unknown'
+    if seat in online:
+        return 'online'
+    return 'offline' if seat in ports else 'unknown'
+
+
+def _hall_counts(data, hall_id, online, ports, problems):
+    """Totals for a hall that isn't on screen, for the hall picker (issue #196)."""
+    drawing, _ = plan(data, hall_id=hall_id)
+    seats = [c['seat'] for shape in (drawing or {}).get('shapes', []) for c in shape['cells']]
+    return {'seats': len(seats), 'online': sum(_state(s, online, ports) == 'online' for s in seats),
+            'problems': sum(bool(problems.get(s)) for s in seats)}
+
+
 def view(hall_id=None, now=None):
     now = time.time() if now is None else now
     data = load_data()
@@ -116,12 +132,7 @@ def view(hall_id=None, now=None):
         counts = {'seats': 0, 'online': 0, 'problems': 0}
         for cell in shape['cells']:
             s = cell['seat']
-            if online is None:
-                state = 'unknown'
-            elif s in online:
-                state = 'online'
-            else:
-                state = 'offline' if s in ports else 'unknown'
+            state = _state(s, online, ports)
             row = {'state': state}
             if checked is not None and s in checked:
                 row['checked_in'] = True
@@ -143,8 +154,11 @@ def view(hall_id=None, now=None):
             counts['problems'] += bool(problems.get(s))
         blocks.append({'name': shape['name'], **counts})
     bg = hall.get('background')
+    here = {k: sum(b[k] for b in blocks) for k in ('seats', 'online', 'problems')}
     return {
-        'halls': [{'id': h['id'], 'name': h['name']} for h in all_halls],
+        'halls': [{'id': h['id'], 'name': h['name'],
+                   **(here if h['id'] == hall['id'] else _hall_counts(data, h['id'], online, ports, problems))}
+                  for h in all_halls],
         'hall': hall['id'],
         'drawing': drawing,
         'size': {'w': PLAN_W, 'h': PLAN_H, 'cell': CELL},
