@@ -409,3 +409,5 @@ body {
 .fb-plan .name.link:hover { text-decoration: underline; }
 .fb-block-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 6px; }
 .fb-plan .sw.link { cursor: pointer; }
+
+.fb-speed-tests td { white-space: nowrap; }

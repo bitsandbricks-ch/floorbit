@@ -395,6 +395,7 @@ Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | GET | `/api/plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plan/blocks/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plan/find` | `seats.view` |  |
 | GET | `/api/plan/seats/<seat>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/plan/seats/<seat>/note` | `incidents.work` |  |
 | GET | `/api/plan/switches/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |

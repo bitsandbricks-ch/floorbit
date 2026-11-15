@@ -7,6 +7,7 @@ import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
 import { SeatNoteBox } from './SeatNoteBox'
+import { SeatSpeedTests } from './SeatSpeedTests'
 import { WatchSeat } from './WatchSeat'
 import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
@@ -55,6 +56,9 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
             </Table.Tbody>
           </Table>
           {d.history && d.switch && <LinkHistory history={d.history} />}
+          {d.speedtests && d.speedtests.length > 0 && (
+            <SeatSpeedTests tests={d.speedtests} lastChange={d.history?.changes.at(-1)?.[0] ?? null} />
+          )}
           {!d.people && <Text size="sm" c="dimmed">{t('plan.noPeople')}</Text>}
           {d.crew && <SeatNoteBox key={seat} seat={seat} note={d.note} />}
           {(d.incidents.length > 0 || d.attention.length > 0) && (
