@@ -758,6 +758,33 @@
     </div>
   </div>
 
+  <!-- ── Mute a switch's alerts (static/js/editor/mutes.js) ─────────────────── -->
+  <div class="modal-backdrop hidden" id="mute-backdrop">
+    <form class="modal" role="dialog" aria-modal="true" aria-labelledby="mute-title" id="mute-form" autocomplete="off">
+      <h3 class="modal-title" id="mute-title">Mute alerts</h3>
+      <p class="modal-text">No Discord messages about this switch going offline or coming back until the mute ends. It stays on the Problems page.</p>
+      <label class="field">
+        <span class="field-label">For</span>
+        <select class="modal-input" id="mute-minutes">
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="240">4 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">1 day</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Why (shown with the mute)</span>
+        <input class="modal-input" type="text" id="mute-reason" maxlength="200" />
+      </label>
+      <p class="modal-error" id="mute-error" role="alert" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="mute-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="mute-ok">Mute</button>
+      </div>
+    </form>
+  </div>
+
   <!-- ── Seat Block Modal ─────────────────────────────────────────────────── -->
   <div class="modal-backdrop hidden" id="block-backdrop">
     <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="block-modal-title">
