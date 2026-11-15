@@ -19,6 +19,7 @@ function renderAll() {
   if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
   if (typeof markMatchSeats === 'function') markMatchSeats();
+  if (typeof markSeatStates === 'function') markSeatStates();
 }
 
 function matchesStatusFilter(sw) {

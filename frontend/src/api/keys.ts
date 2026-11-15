@@ -15,6 +15,7 @@ export const qk = {
   jobs: ['jobs'] as const,
   tournament: ['tournament'] as const,
   qos: ['tournament', 'qos'] as const,
+  brackets: ['tournament', 'brackets'] as const,
   crew: ['crew'] as const,
   handover: ['handover'] as const,
   gear: ['gear'] as const,
@@ -60,4 +61,8 @@ export const qk = {
   report: (people: boolean) => ['report', people] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
+  planAll: ['plan'] as const,
+  ports: ['ports'] as const,
+  plan: (hall: string) => ['plan', hall] as const,
+  planSeat: (seat: string) => ['plan', 'seat', seat] as const,
 }

@@ -1139,3 +1139,94 @@ export interface ScheduleData {
   kinds: ScheduleKind[]
   public: boolean
 }
+
+/** Tournament brackets (issue #107): single elimination, entered here or imported from a plugin. */
+export interface BracketSide { name: string | null; score: number | null }
+export interface BracketMatch {
+  id: string
+  a: BracketSide
+  b: BracketSide
+  status: 'waiting' | 'live' | 'done'
+  winner: 'a' | 'b' | null
+  seats: string[]
+  station: string
+  zones: string[]
+}
+export interface Bracket {
+  id: string
+  name: string
+  zone_id: string | null
+  source: 'floorbit' | 'import'
+  plugin: string | null
+  rounds: BracketMatch[][]
+  updated_at: number | null
+  by: string | null
+}
+export interface BracketsData {
+  brackets: Bracket[]
+  zones: { id: string; name: string }[]
+  sources: string[]
+  public: boolean
+}
+
+/** GET /api/plan (issue #55): every seat with one state, for the floor plan view. No nicks or IPs. */
+export type SeatState = 'online' | 'offline' | 'unknown'
+
+export interface PlanSeat {
+  state: SeatState
+  checked_in?: boolean
+  taken?: boolean
+  problems?: number
+  match?: string
+  bps?: number
+}
+
+export interface PlanBlock {
+  name: string
+  seats: number
+  online: number
+  problems: number
+}
+
+export interface PlanSwitch {
+  id: string
+  name: string
+  status: string
+  x: number
+  y: number
+}
+
+export interface SeatViewData {
+  halls: { id: string; name: string }[]
+  hall: string
+  drawing: PlanDrawing | null
+  size: { w: number; h: number; cell: number }
+  background: string | null
+  switches: PlanSwitch[]
+  seats: Record<string, PlanSeat>
+  blocks: PlanBlock[]
+  monitoring: boolean
+  checkin: boolean
+  last_read: number | null
+}
+
+/** GET /api/plan/seats/<seat>: one seat for the inspector. nick, ip and mac only with seats.view. */
+export interface SeatDetails {
+  seat: string
+  block: string
+  state: SeatState
+  bps: number | null
+  switch: string | null
+  port: string | null
+  incidents: { id: string; title: string; status: string; created_at: number }[]
+  attention: { kind: string; title: string; since: number }[]
+  /** The link over the last hours (issue #167): online at ``from`` (null: not read yet), then each change. */
+  history?: { from: number; to: number; start: boolean | null; changes: [number, number][] }
+  match: string | null
+  checked_in: boolean | null
+  last_read: number | null
+  people: boolean
+  nick?: string | null
+  ip?: string | null
+  mac?: string | null
+}

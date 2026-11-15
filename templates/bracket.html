@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  {% if not off %}<meta http-equiv="refresh" content="30" />{% endif %}
+  <title>{{ b.name if b else t.title }} · Floorbit</title>
+  {% include "_theme_head.html" %}
+  <link rel="stylesheet" href="/static/css/attribution.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 16px; background: var(--color-ink); color: var(--color-fg); font: 16px/1.4 var(--font-sans); }
+    main { max-width: 1400px; margin: 2vh auto 0; display: grid; gap: 16px; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 40px); line-height: 1.15; }
+    .muted { color: var(--color-muted); font-size: 14px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tabs a { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--color-line); color: var(--color-fg); text-decoration: none; background: var(--color-surface); }
+    .tabs a[aria-current] { background: var(--color-bit); border-color: var(--color-bit); color: var(--color-on-bit); }
+    .scroll { overflow-x: auto; padding-bottom: 6px; }
+    .bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 28px; min-width: min-content; }
+    .round { display: flex; flex-direction: column; }
+    .round h2 { margin: 0 0 8px; font-size: 13px; color: var(--color-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .matches { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
+    .match { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; position: relative; }
+    .match.live { border-color: var(--color-warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warn) 35%, transparent); }
+    .team { display: flex; justify-content: space-between; gap: 10px; padding: 7px 12px; }
+    .team + .team { border-top: 1px solid var(--color-line); }
+    .team .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 3px; }
+    .team .s { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .team.won { font-weight: 800; background: color-mix(in srgb, var(--color-up) 14%, transparent); }
+    .team.lost { color: var(--color-muted); }
+    .team.tbd .n { color: var(--color-muted); font-style: italic; }
+    .match.live { padding-top: 16px; }
+    .tag { position: absolute; top: -1px; left: 12px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 0 0 6px 6px; background: var(--color-warn); color: #fff; }
+    .station { font-size: 12px; color: var(--color-muted); padding: 0 12px 6px; }
+    .champion { align-self: center; text-align: center; background: var(--color-surface); border: 2px solid var(--color-up); border-radius: 14px; padding: 18px; }
+    .champion b { display: block; font-size: clamp(20px, 2.4vw, 34px); }
+    body.screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; }
+    body.screen main { max-width: none; margin: 0; }
+    body.screen .scroll { height: 78vh; overflow: hidden; }
+    body.screen .bracket { height: 100%; }
+    body.screen .team { font-size: 1.25vw; padding: .5vw .8vw; }
+    body.screen .round h2 { font-size: .9vw; }
+    body.screen .station { font-size: .9vw; padding: 0 .8vw .4vw; }
+    body.screen .muted { font-size: 1vw; }
+  </style>
+</head>
+<body{% if screen %} class="screen"{% endif %}>
+  <main>
+    {% if off %}
+    <div class="match"><div class="team"><span>{{ t.title }}: {{ t.off }}</span></div></div>
+    {% elif not b %}
+    <h1>{{ t.title }}</h1><p class="muted">{{ t.empty }}</p>
+    {% else %}
+    <header>
+      <h1>{{ b.name }}</h1>
+      {% if b.zone %}<p class="muted">{{ b.zone }}</p>{% endif %}
+    </header>
+    {% if all|length > 1 and not screen %}
+    <nav class="tabs" aria-label="{{ t.title }}">
+      {% for x in all %}<a href="?id={{ x.id }}"{% if x.id == b.id %} aria-current="page"{% endif %}>{{ x.name }}</a>{% endfor %}
+    </nav>
+    {% endif %}
+    <div class="scroll">
+      <section class="bracket" aria-label="{{ b.name }}">
+        {% for r in b.rounds %}
+        <div class="round">
+          <h2>{{ t[r.label] if r.label else t.round.format(n=r.n) }}</h2>
+          <div class="matches">
+            {% for m in r.matches %}
+            <div class="match {{ m.status }}" data-match="{{ m.id }}">
+              {% if m.status == 'live' %}<span class="tag">{{ t.live }}</span>{% endif %}
+              {% for side in ('a', 'b') %}
+              {% set team = m[side] %}
+              <div class="team {{ 'won' if m.winner == side else 'lost' if m.winner else '' }} {{ 'tbd' if not team.name else '' }}">
+                <span class="n">{{ team.name or (t.bye if r.n == 1 and m.winner else t.tbd) }}</span>
+                <span class="s">{{ team.score if team.score is not none else '' }}</span>
+              </div>
+              {% endfor %}
+              {% if m.station %}<div class="station">{{ m.station }}</div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        {% if b.champion %}
+        <div class="round"><h2>&nbsp;</h2><div class="matches"><div class="champion"><span class="muted">{{ t.champion }}</span><b>{{ b.champion }}</b></div></div></div>
+        {% endif %}
+      </section>
+    </div>
+    <p class="muted">{{ stamp(t.updated, now) }}</p>
+    <script src="/static/js/status.js"></script>
+    {% endif %}
+    {% if not screen %}{% include "_attribution.html" %}{% endif %}
+  </main>
+</body>
+</html>
