@@ -1,19 +1,43 @@
-import { Alert, Button, Group, Loader, Text } from '@mantine/core'
+import { Alert, Button, Group, Loader, Select, Text, TextInput } from '@mantine/core'
 import { IconPrinter } from '@tabler/icons-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHelpdeskQr } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { parseSeats, seatBlock } from './incidents/qrFilter'
 
 /** A printable sheet: one QR code per seat, each opening that seat's signed help page. */
 export default function HelpdeskQr() {
   const { t } = useTranslation()
   const qr = useHelpdeskQr()
+  const [block, setBlock] = useState<string | null>(null)
+  const [only, setOnly] = useState('')
+  const seats = useMemo(() => qr.data?.seats ?? [], [qr.data])
+  // Reprinting a torn sticker or one rebuilt block shouldn't mean printing the whole hall.
+  const blocks = useMemo(() => [...new Set(seats.map((s) => seatBlock(s.seat)).filter(Boolean))], [seats])
+  const wanted = parseSeats(only)
+  const shown = seats.filter((s) => (!block || seatBlock(s.seat) === block) && (!wanted.size || wanted.has(s.seat)))
+  const filtered = !!block || wanted.size > 0
   return (
     <Layout title={t('incidents.qrTitle')} back={{ href: '/incidents', label: t('incidents.title') }}>
       <div className="fb-no-print">
         <PageHead title={t('incidents.qrTitle')} desc={t('incidents.qrIntro')}
-          actions={<Button leftSection={<IconPrinter size={16} />} onClick={() => window.print()}>{t('incidents.print')}</Button>} />
+          actions={<Button leftSection={<IconPrinter size={16} />} disabled={!shown.length} onClick={() => window.print()}>
+            {t('incidents.print')}</Button>} />
+        {seats.length > 0 && (
+          <Group align="flex-end" gap="sm" mb="md" wrap="wrap">
+            {blocks.length > 1 && (
+              <Select label={t('incidents.qrBlock')} placeholder={t('incidents.qrAllBlocks')} data={blocks} value={block}
+                onChange={setBlock} clearable w={160} />
+            )}
+            <TextInput label={t('incidents.qrOnly')} placeholder="D-6, D-7" value={only}
+              onChange={(e) => setOnly(e.currentTarget.value)} w={240} />
+            <Text size="sm" c="dimmed" aria-live="polite">
+              {filtered ? t('incidents.qrShown', { count: shown.length, total: seats.length }) : t('incidents.qrAll', { count: seats.length })}
+            </Text>
+          </Group>
+        )}
       </div>
       {qr.error && (
         <Alert color="down" role="alert" mb="md">
@@ -22,11 +46,13 @@ export default function HelpdeskQr() {
       )}
       {qr.isPending ? (
         <Loader size="sm" />
-      ) : !qr.data?.seats.length ? (
+      ) : !seats.length ? (
         <Text c="dimmed">{t('incidents.qrNone')}</Text>
+      ) : !shown.length ? (
+        <Text c="dimmed">{t('incidents.qrNoMatch')}</Text>
       ) : (
         <div className="fb-qr-sheet">
-          {qr.data.seats.map((s) => (
+          {shown.map((s) => (
             <figure key={s.seat} className="fb-qr">
               <img className="fb-qr-code" src={s.image} alt={t('incidents.qrAlt', { seat: s.seat })} />
               <figcaption>

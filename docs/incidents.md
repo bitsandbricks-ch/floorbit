@@ -54,7 +54,8 @@ assignee doesn't work for puts it back to open.
 ## The helpdesk on each seat
 
 **Incidents › Seat QR codes** (`/incidents/qr`) prints one QR code per seat, for every seat on the
-floor plan. Scanning one opens `/help/<seat>`: a small page, in English or German after the phone's
+floor plan. To replace a torn sticker or reprint one block, pick a **Block** or type the seats under
+**Only these seats** (`D-6, D-7`): **Print** prints only the codes shown. Scanning one opens `/help/<seat>`: a small page, in English or German after the phone's
 language, with four buttons (no internet, slow connection, no power, something else), and a
 [speed test](speedtest.md) whose result goes with the report.
 
