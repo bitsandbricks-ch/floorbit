@@ -12,9 +12,11 @@ import { useFeature, useIncidentPeople, useIncidents, useMe } from '@/api/querie
 import type { CrewMember, Incident, IncidentStatus } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { useNowSeconds } from '@/components/useNowSeconds'
 import { matchesFilter } from './incidents/filter'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
+import { openOrder } from './incidents/waiting'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
 const FIXED_SHOWN = 20
@@ -33,6 +35,7 @@ export default function Incidents() {
   const me = useMe()
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
   const [mineOnly, setMineOnly] = useState(false)
+  const now = useNowSeconds()
   // The filter lives in the address, so a link can open the board filtered (issue #210).
   // The box keeps its own state: the address updates a moment later, and typing fast against it lost letters (issue #226).
   const [params, setParams] = useSearchParams()
@@ -163,7 +166,7 @@ export default function Incidents() {
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
             {COLUMNS.map((status) => {
               const column = items.filter((i) => i.status === status)
-              const shown = status === 'fixed' ? column.slice(0, FIXED_SHOWN) : column
+              const shown = status === 'fixed' ? column.slice(0, FIXED_SHOWN) : status === 'open' ? openOrder(column, now) : column
               return (
                 <Stack key={status} gap="sm" aria-label={t(`incidents.status.${status}`)} role="region">
                   <Group gap="xs">

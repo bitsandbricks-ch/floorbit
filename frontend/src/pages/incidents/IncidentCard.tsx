@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
 import { useNowSeconds } from '@/components/useNowSeconds'
+import { isWaiting } from './waiting'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
@@ -15,8 +16,6 @@ function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) 
 }
 
 /** Open this long with nobody on it, an incident says so (issue #296). */
-export const WAITING_AFTER = 10 * 60
-
 function waitedFor(seconds: number, t: (k: string, o?: Record<string, unknown>) => string) {
   const mins = Math.floor(seconds / 60)
   return mins < 60 ? t('incidents.waiting', { count: mins }) : t('incidents.waitingLong', { h: Math.floor(mins / 60), m: mins % 60 })
@@ -57,7 +56,7 @@ export function IncidentCard({
   const assignable = (people?.[i.team ?? ''] ?? []).map((p) => ({ value: p.username, label: p.display_name }))
   const lastNote = i.notes[i.notes.length - 1]
   const now = useNowSeconds()
-  const waiting = i.status === 'open' && !i.assignee && now - i.created_at >= WAITING_AFTER
+  const waiting = isWaiting(i, now)
 
   return (
     <Paper withBorder radius="lg" p="sm" data-incident={i.id}>

@@ -55,6 +55,23 @@ describe('Incident board', () => {
     expect(within(night).getByText('Waiting 13 h 38 min')).toBeInTheDocument()
   })
 
+  it('puts waiting incidents on top of the open column, longest first', async () => {
+    const now = Date.now() / 1000
+    const queue: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'q1', title: 'Newest', status: 'open', created_at: now - 60 },
+      { ...base, id: 'q2', title: 'Waiting a bit', status: 'open', created_at: now - 15 * 60 },
+      { ...base, id: 'q3', title: 'Recent', status: 'open', created_at: now - 4 * 60 },
+      { ...base, id: 'q4', title: 'Waiting longest', status: 'open', created_at: now - 50 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': queue }).fn)
+    renderWithApp(<Incidents />)
+    const open = await screen.findByRole('region', { name: 'Open' })
+    await within(open).findByText('Newest')
+    const titles = Array.from(open.querySelectorAll('[data-incident]')).map((el) => el.textContent ?? '')
+    const order = ['Waiting longest', 'Waiting a bit', 'Newest', 'Recent'].map((x) => titles.findIndex((tt) => tt.includes(x)))
+    expect(order).toEqual([0, 1, 2, 3])
+  })
+
   it('sorts incidents into columns with the seat report details', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     renderWithApp(<Incidents />)

@@ -12,7 +12,8 @@ The board refreshes on its own and as soon as anything changes. Open incidents a
 floor plan as a red ring on the seat or switch, with a count next to **Incidents** in the top bar.
 The board's browser tab starts with the number of open incidents, e.g. "(2) Incidents · Floorbit".
 An open incident that nobody has taken for 10 minutes gets an orange **Waiting 25 min** tag, so the
-ones that slipped through stand out. The [event report](report.md) shows how long incidents waited
+ones that slipped through stand out. They move to the top of the **Open** column, the one waiting
+longest first; the rest stay newest first. The [event report](report.md) shows how long incidents waited
 on average.
 
 **Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
