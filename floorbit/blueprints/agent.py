@@ -5,6 +5,7 @@ For admins (``settings.manage``):
 - ``GET /settings/agents``: the page (React).
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
+- ``PATCH /api/agents/<id>`` ``{"halls": [ids]}``: the halls it answers for (empty: every hall).
 - ``DELETE /api/agents/<id>``: revoke it.
 
 For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
@@ -12,15 +13,25 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
 - ``GET /api/agent/v1/hello``: checks the key; ``{"name", "server_version"}``.
 - ``GET /api/agent/v1/calls?wait=25``: the calls waiting for it (a long poll).
 - ``POST /api/agent/v1/answers`` ``{"answers": [{"id", "ok", "result", "error"}]}``.
+- ``POST /api/agent/v1/syslog`` ``{"lines": [{"raw", "from", "at"}], "dropped"}``: syslog the agent
+  received on the event network; 409 while the syslog feature is off here.
+- ``GET /api/agent/v1/seats``: ``{"seat_of": {ip: seat}, "area_of": {seat: area}}`` for its flow
+  collector; 409 while the traffic feature is off here.
+- ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
 """
+import json
+import time
+import zlib
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit, spa
+from .. import agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 HEADER = 'Floorbit-Agent-Key'
+PROTOCOL_HEADER = 'Floorbit-Agent-Protocol'
 
 
 def _who():
@@ -53,6 +64,19 @@ def enrol():
     return jsonify({**record, 'key': key}), 201
 
 
+@bp.route('/api/agents/<agent_id>', methods=['PATCH'])
+def set_halls(agent_id):
+    body = request.get_json(silent=True) or {}
+    try:
+        name, halls = agent_link.set_halls(agent_id, body.get('halls', []))
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('agents', f"Set the halls of a local agent: {', '.join(halls) or 'every hall'}",
+                 g.get('audit_user'), name, fields=['halls'])
+    events.publish('agents.changed', {})
+    return jsonify({'id': agent_id, 'halls': halls})
+
+
 @bp.route('/api/agents/<agent_id>', methods=['DELETE'])
 def revoke(agent_id):
     try:
@@ -64,9 +88,45 @@ def revoke(agent_id):
     return jsonify({'ok': True})
 
 
+@bp.before_request
+def _same_protocol():
+    """An agent speaking another protocol gets one clear answer instead of odd failures later.
+    No header means protocol 1: every agent before the header was added spoke it."""
+    if not request.path.startswith('/api/agent/'):
+        return None
+    spoken = (request.headers.get(PROTOCOL_HEADER) or '1').strip()
+    if spoken not in {str(p) for p in agent_link.PROTOCOLS}:
+        return jsonify({'error': f'This Floorbit speaks agent protocol {agent_link.PROTOCOL}, the agent {spoken[:10]}. '
+                                 'Update the agent (or this Floorbit) so they match.',
+                        'protocol': agent_link.PROTOCOL}), 426
+    return None
+
+
 def _agent():
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
                             request.remote_addr)
+
+
+MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more
+
+
+def _agent_body():
+    """The JSON an agent posted, gzipped or not ({} when it isn't JSON). Gzip saves the event's
+    uplink most on syslog batches and inventories; agents use it once hello says it's understood."""
+    raw = request.get_data(cache=False)
+    if (request.headers.get('Content-Encoding') or '').lower() == 'gzip':
+        unzip = zlib.decompressobj(wbits=31)
+        try:
+            raw = unzip.decompress(raw, MAX_UNZIPPED)
+        except zlib.error:
+            return {}
+        if unzip.unconsumed_tail:
+            return {}
+    try:
+        body = json.loads(raw or b'{}')
+    except ValueError:
+        return {}
+    return body if isinstance(body, dict) else {}
 
 
 def _refused():
@@ -79,7 +139,8 @@ def hello():
     if agent is None:
         return _refused()
     events.publish('agents.changed', {})
-    return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0'})
+    return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0',
+                    'encodings': ['gzip'], 'protocol': agent_link.PROTOCOL})
 
 
 @bp.route('/api/agent/v1/calls', methods=['GET'])
@@ -96,15 +157,85 @@ def calls():
 
 @bp.route('/api/agent/v1/answers', methods=['POST'])
 def answers():
-    if _agent() is None:
+    agent = _agent()
+    if agent is None:
         return _refused()
-    body = request.get_json(silent=True) or {}
+    body = _agent_body()
     items = body.get('answers') if isinstance(body.get('answers'), list) else []
     taken = sum(1 for a in items[:100] if isinstance(a, dict)
-                and agent_link.tunnel.answer(a.get('id'), a.get('ok'), a.get('result'), a.get('error')))
+                and agent_link.tunnel.answer(a.get('id'), a.get('ok'), a.get('result'), a.get('error'),
+                                                     agent=agent['id']))
     return jsonify({'taken': taken})
 
 
+SYSLOG_BATCH = 2000
+
+
+@bp.route('/api/agent/v1/syslog', methods=['POST'])
+def syslog():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    receiver = current_app.extensions.get('floorbit_syslog')
+    if receiver is None or not features.on('syslog'):
+        return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Features).'}), 409
+    body = _agent_body()
+    lines = body.get('lines') if isinstance(body.get('lines'), list) else []
+    dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
+    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
+    if lines:
+        agent_link.tunnel.relayed(agent['id'], 'syslog', taken)
+    return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})
+
+
+# What the Traffic page reads from a summary (floorbit/flows/aggregate.py), with the most of each list.
+FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
+             'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
+             'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
+             'templates_missing': None, 'errors': None}
+
+
+def _traffic_off():
+    return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Features).'}), 409
+
+
+@bp.route('/api/agent/v1/seats', methods=['GET'])
+def flow_seats():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    if not features.on('traffic'):
+        return _traffic_off()
+    from ..flows import seat_maps
+    seat_of, area_of = seat_maps()
+    return jsonify({'seat_of': seat_of, 'area_of': area_of})
+
+
+@bp.route('/api/agent/v1/flows', methods=['POST'])
+def flows():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    if not features.on('traffic'):
+        return _traffic_off()
+    body = _agent_body()
+    snap = body.get('snapshot')
+    if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
+        return jsonify({'error': 'snapshot is missing'}), 400
+    clean = {}
+    for key, most in FLOW_KEYS.items():
+        if key in snap:
+            value = snap[key]
+            clean[key] = value[:most] if most and isinstance(value, list) else value
+    # The hosted clock decides whether the summary is stale, not the agent's.
+    clean['updated'] = time.time()
+    clean['agent'] = agent['name']
+    from ..flows import store
+    store.publish(clean, keep_locally=True)
+    agent_link.tunnel.relayed(agent['id'], 'flows', 1)
+    return jsonify({'ok': True})
+
+
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers):
+for _view in (hello, calls, answers, syslog, flow_seats, flows):
     _view._auth_public = True
