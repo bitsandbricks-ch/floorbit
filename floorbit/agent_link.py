@@ -68,20 +68,16 @@ def _hash(secret):
 def _public(a, now):
     seen = a.get('last_seen')
     return {'id': a['id'], 'name': a['name'], 'created_at': a['created_at'], 'created_by': a.get('created_by'),
-            'last_seen': seen, 'version': a.get('version'), 'address': a.get('address'),
+            'last_seen': seen, 'version': a.get('version'), 'address': a.get('address'), 'protocol': a.get('protocol'),
             'connected': bool(seen and now - seen < CONNECTED_FOR), 'halls': list(a.get('halls') or [])}
 
 
-def _version(v):
-    """'1.12.3', 'v1.12.3-rc1' -> (1, 12, 3); None when it isn't a version."""
-    m = re.match(r'^v?(\d+)\.(\d+)(?:\.(\d+))?', str(v or '').strip())
-    return tuple(int(x or 0) for x in m.groups()) if m else None
-
-
-def outdated(agent_version, server_version):
-    """Is the agent older than this Floorbit? Unknown versions are not flagged: no false alarms."""
-    a, s = _version(agent_version), _version(server_version)
-    return bool(a and s and a < s)
+def outdated(agent_protocol, server_protocol=None):
+    """Does the agent speak an older protocol than this Floorbit? The agent is released apart
+    (bitsandbricks-ch/floorbit-agent), so its version number says nothing next to Floorbit's; the
+    protocol does. Unknown: not flagged, no false alarms."""
+    server_protocol = PROTOCOL if server_protocol is None else server_protocol
+    return isinstance(agent_protocol, int) and agent_protocol < server_protocol
 
 
 def all_agents(data=None, now=None):
@@ -245,7 +241,7 @@ def set_halls(agent_id, hall_ids):
     return found['name'], wanted
 
 
-def check(key, version=None, address=None, now=None):
+def check(key, version=None, address=None, now=None, protocol=None):
     """The agent a key belongs to, or None. Notes when it was last seen (now and then)."""
     m = KEY_RE.match(str(key or '').strip())
     if not m:
@@ -257,13 +253,18 @@ def check(key, version=None, address=None, now=None):
     if not found or not hmac.compare_digest(found['hash'], _hash(secret)):
         return None
     tunnel.seen(now, agent_id)
-    if not found.get('last_seen') or now - found['last_seen'] >= TOUCH_EVERY or found.get('version') != version:
+    try:
+        protocol = int(protocol) if protocol is not None else None
+    except (TypeError, ValueError):
+        protocol = None
+    if (not found.get('last_seen') or now - found['last_seen'] >= TOUCH_EVERY or found.get('version') != version
+            or found.get('protocol') != protocol):
         with _lock:
             data = load_data()
             for a in data.get(KEY) or []:
                 if a['id'] == agent_id:
                     a.update(last_seen=now, version=(str(version)[:40] if version else None),
-                             address=(str(address)[:64] if address else None))
+                             address=(str(address)[:64] if address else None), protocol=protocol)
             save_data(data)
     return {'id': found['id'], 'name': found['name']}
 
@@ -272,8 +273,9 @@ def check(key, version=None, address=None, now=None):
 
 # The agent protocol (/api/agent/v1, docs/agent.md "The protocol"). The agent lives in its own
 # repository, so the two are released apart: a change the other side can't follow gets a new number.
-PROTOCOL = 1
-PROTOCOLS = (1,)          # what this Floorbit understands
+# 2 adds the WebSocket link (/api/agent/v2/link); everything from 1 stays as it was.
+PROTOCOL = 2
+PROTOCOLS = (1, 2)        # what this Floorbit understands
 RELAY_RECENT = 600       # syslog or flows sent within this long count as relayed
 STATS_WINDOW = 3600      # the Local agents page shows the last hour's calls
 STATS_KEEP = 5000        # answers kept per agent for that, at most
@@ -391,6 +393,17 @@ class Tunnel:
                     call.taken, call.agent, call.taken_at = True, agent, time.monotonic()
                     out.append({'id': call.id, 'method': call.method, 'args': call.args})
             return out
+
+    def give_back(self, taken):
+        """Calls an agent took but can't deliver (its link closed meanwhile): another agent, or
+        this one once it is back, takes them instead of the caller waiting out its timeout."""
+        with self._cond:
+            for item in reversed(taken):
+                call = self._calls.get(str(item['id']))
+                if call is not None and call.taken and not call.done.is_set():
+                    call.taken, call.agent, call.taken_at = False, None, None
+                    self._pending.appendleft(call)
+            self._cond.notify_all()
 
     def answer(self, call_id, ok, result=None, error=None, agent=None):
         """The agent's answer to one call. False when nobody waits for it any more, or when another

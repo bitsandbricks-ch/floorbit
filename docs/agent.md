@@ -51,9 +51,9 @@ The page lists every agent: **Connected** or not, when it was last seen, its ver
 enrolled it when. It updates every 10 seconds. For the last hour it also shows how many calls the
 agent answered, how long it took (the median, from handing a call out to getting its answer), how
 many failed, and the last error with its method. A slow LibreNMS or one that refuses the agent's
-token shows up there first. These numbers are kept in memory, so a restart starts them over. An agent older than the hosted
-Floorbit gets an **Update** badge: pull the new image and start it again (below). An agent that
-sends no version, or one Floorbit can't read, is never flagged. An agent that sent syslog or a
+token shows up there first. These numbers are kept in memory, so a restart starts them over. An agent that speaks an older
+agent protocol than the hosted Floorbit gets an **Update** badge: pull the new image and start it
+again (below). An agent that hasn't asked anything yet is never flagged. An agent that sent syslog or a
 traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
 agent forwards what.
 
@@ -86,10 +86,13 @@ Changing an agent's halls is written to the [audit log](audit.md).
 
 ## Running the agent
 
-The agent is the Floorbit image with another command, `python -m floorbit.agent`. Run it on the
-event network, where it can reach LibreNMS and NetBox. It needs no Redis, no port and no domain.
+The agent has its own repository, [bitsandbricks-ch/floorbit-agent](https://github.com/bitsandbricks-ch/floorbit-agent),
+with its own image (`ghcr.io/bitsandbricks-ch/floorbit-agent`) and releases. It carries Floorbit's
+plugins but no web pages. Run it on the event network, where it can reach LibreNMS and NetBox. It
+needs no Redis, no port and no domain. Any agent release works with any Floorbit that speaks its
+protocol (see [The protocol](#the-protocol)).
 
-**With Docker Compose** (the repository has a file for it):
+**With Docker Compose** (this repository and the agent's both have a file for it):
 
 ```sh
 cp agent.env.example agent.env     # fill in FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
@@ -105,7 +108,7 @@ docker run -d --restart on-failure:3 --name floorbit-agent \
   -e FLOORBIT_URL=https://floor.example.com \
   -e FLOORBIT_AGENT_KEY=fba_… \
   -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \
-  ghcr.io/bitsandbricks-ch/floorbit python -m floorbit.agent
+  ghcr.io/bitsandbricks-ch/floorbit-agent
 ```
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
@@ -114,7 +117,7 @@ hosted Floorbit takes syslog and flows), says which works and which doesn't, and
 everything works, 1 when something doesn't:
 
 ```sh
-docker compose -f docker-compose.agent.yml run --rm agent python -m floorbit.agent check
+docker compose -f docker-compose.agent.yml run --rm agent python -m floorbit_agent check
 ```
 
 ```text
@@ -146,14 +149,15 @@ start it with the new key. That's why the Compose file restarts it only on failu
 times, instead of `unless-stopped`. Stopping it (`docker stop`, Ctrl+C) first sends the syslog
 lines still waiting, so an update doesn't lose them.
 
-**Health.** `python -m floorbit.agent health` exits with 0 when the hosted Floorbit answered the
+**Health.** `python -m floorbit_agent health` exits with 0 when the hosted Floorbit answered the
 agent in the last two minutes, 1 otherwise. It reads a heartbeat file the agent writes after each
 poll that gets through, so it needs no network and no settings. The Compose file uses it as the
 container's health check, so `docker ps` shows the agent as *unhealthy* while the uplink is down.
 
 To update the agent, pull the new image and start it again (`docker compose -f
 docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
-**Local agents** page shows each agent's version.
+**Local agents** page shows each agent's version, and **Update** next to one that speaks an older
+agent protocol than this Floorbit.
 
 ## The inventory through the agent
 
@@ -259,18 +263,41 @@ answering, but it names the agent: "The local agent is away", with when it was l
 ## The protocol
 
 The agent sends its key in the `Floorbit-Agent-Key` header, its version in
-`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (now `1`; no header
-counts as `1`). It needs no account and no session.
+`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (`1` or `2`; no
+header counts as `1`). It needs no account and no session.
 
 The protocol has its own number because the agent and Floorbit are released apart. A change the other
 side can't follow gets a new number. A Floorbit that doesn't speak the agent's protocol answers every
 agent request with **426** and says which one it speaks. The agent then stops with exit code 1, like
 for a revoked key, because retrying won't help: update the agent or Floorbit. `hello` says which
-protocol the hosted Floorbit speaks (`"protocol"`).
+protocol the hosted Floorbit speaks (`"protocol"`) and which ones it understands (`"protocols"`).
+
+### The WebSocket link (protocol 2)
+
+When `hello` lists `2` in `protocols`, the agent opens a WebSocket to `"link"`
+(`wss://…/api/agent/v2/link`, TLS like everything else) with the same headers. Calls reach it the
+moment they are made, over one connection that stays open, instead of one long poll after another.
+The messages are JSON:
+
+| From | Message |
+| --- | --- |
+| Floorbit | `{"type": "hello", "name", "protocol"}` once, when the link opens |
+| Floorbit | `{"type": "calls", "calls": [{"id", "method", "args"}]}`: the same calls as the long poll |
+| agent | `{"type": "answers", "answers": [{"id", "ok", "result", "error"}]}`: the same answers |
+| both | `{"type": "ping"}` at least every 20 seconds, plus WebSocket pings, so proxies keep it open |
+
+A wrong or revoked key gets a plain 401 before the upgrade. An agent silent for a minute is closed
+and reconnects. Syslog and flow summaries stay on their HTTPS posts below.
+
+If the link can't be opened, say a proxy on the way doesn't pass WebSockets, the agent falls back
+to the long poll by itself and tries the link again later. The reverse proxy in front of a hosted
+Floorbit needs to pass the upgrade for `/api/agent/v2/link` (nginx: `proxy_http_version 1.1` and the
+`Upgrade` and `Connection` headers; Caddy and Traefik do it by themselves).
 
 | Request | What |
 | --- | --- |
-| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol"}`, or 401 |
+| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol", "protocols", "link"}`, or 401 |
+| `GET /api/agent/v2/link` | the WebSocket link (protocol 2, above), or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
 | `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
@@ -290,7 +317,7 @@ For admins (**Manage settings**):
 
 | Request | What |
 | --- | --- |
-| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), and `server_version` |
+| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `protocol` (the one it spoke last), `outdated` (that protocol is older than this Floorbit's), and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), `server_version` and `protocol` |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
 | `PATCH /api/agents/<id>` | `{"halls": [ids]}`: the halls it answers for, empty for every hall |
 | `DELETE /api/agents/<id>` | revoke it |
