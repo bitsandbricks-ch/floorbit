@@ -135,6 +135,7 @@ class CrewBridge:
         self._file_lock = threading.Lock()
         self.last_sent = None
         self.last_error = None
+        self.commands_for = None    # (app id, server id, digest) the slash commands were last sent for
 
     # config -------------------------------------------------------------------------------
     def enabled(self):
@@ -212,6 +213,7 @@ class CrewBridge:
             try:
                 if self.app is not None:
                     with self.app.app_context():
+                        self.register_commands()
                         self.nudge_waiting()
                         self.nudge_unseen()
                 else:
@@ -238,6 +240,33 @@ class CrewBridge:
             except Exception as exc:  # noqa: BLE001  # keep the sender thread alive
                 self.last_error = str(exc)[:300]
                 print(f'[integrations] crew channel update failed: {exc}')
+
+    # slash commands -----------------------------------------------------------------------
+    def _guild_id(self):
+        auth = self.app.extensions.get('auth') if self.app is not None else None
+        provider = auth.providers.get('discord') if auth else None
+        return str(getattr(provider, 'guild_id', '') or '')
+
+    def register_commands(self, commands=None):
+        """Tell Discord which slash commands the bot has, once per change (floorbit/discord_commands.py).
+
+        Only with the public key set, since without it nothing can answer them. On the crew's server
+        when Discord sign-in names one (they show up at once there), else for every server the bot is in.
+        """
+        if not (bot_token() and public_key()):
+            return False
+        if commands is None:
+            from floorbit.discord_commands import COMMANDS as commands
+        guild = self._guild_id()
+        wanted = digest({'token': hashlib.sha256(bot_token().encode()).hexdigest(), 'guild': guild,
+                          'commands': commands})
+        if self.commands_for == wanted:
+            return False
+        app_id = self._call('GET', '/applications/@me').get('id')
+        path = f'/applications/{app_id}/guilds/{guild}/commands' if guild else f'/applications/{app_id}/commands'
+        self._call('PUT', path, commands)
+        self.commands_for = wanted
+        return True
 
     # state file ---------------------------------------------------------------------------
     def _read(self):
