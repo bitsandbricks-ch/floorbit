@@ -31,11 +31,17 @@ gives the incident to the free tech nearest to it:
   tech can get them; a tie goes to whoever has waited longest.
 
 The board shows who is on duty, where, how many jobs they have and how many they fixed in the last
-12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not. Click a tech to filter the board to what they
-are on (`with:kim`); click again to clear it.
+12 hours, and on each sent incident whether the tech has seen it yet ("on the way") or not. Click a
+tech to filter the board to what they are on (`with:kim`); click again to clear it.
 
-Nothing is sent by itself: a lead decides. Everything goes to the audit log (sent, taken, finished,
-given back).
+By default nothing is sent by itself: a lead decides. A lead (`incidents.assign`) can turn on
+**Send new ones to the nearest free tech by themselves** next to the crew. Then every new incident
+(from the board, a seat's help page or a power alert) goes to the nearest free tech the moment it is
+filed, by the same rules. If nobody is free it stays on the board; incidents filed earlier are left
+alone, so a tech coming back on duty is not flooded with old jobs at once.
+
+Everything goes to the audit log (sent by hand or by itself, taken, finished, given back, and the
+switch turned on or off).
 
 ## What is kept
 
@@ -52,4 +58,5 @@ at, and since when. No GPS, no phone location: a position is always a seat numbe
 | `POST /api/jobs/<id>/done` | the job's tech | Fixed, with an optional `note` |
 | `POST /api/jobs/<id>/give-back` | the job's tech | Back on the board, with an optional `note` |
 | `POST /api/incidents/<id>/dispatch` | `incidents.assign` | Send to the nearest free tech; 409 if there is none |
-| `GET /api/dispatch/crew` | `incidents.assign` | Who is on duty, where, with how many open jobs and how many fixed in the last 12 hours (`done`) |
+| `PUT /api/dispatch/auto` | `incidents.assign` | `{"on": true}`: send new incidents by themselves |
+| `GET /api/dispatch/crew` | `incidents.assign` | Who is on duty, where, with how many open jobs and how many fixed in the last 12 hours (`done`), and whether `auto` is on |
