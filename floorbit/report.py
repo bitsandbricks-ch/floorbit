@@ -67,6 +67,7 @@ def _incidents(since, people):
     items.sort(key=lambda i: i['created_at'])
     fixed = [i for i in items if i.get('fixed_at')]
     took = sorted(i['fixed_at'] - i['created_at'] for i in fixed)
+    taken = sorted(i['taken_at'] - i['created_at'] for i in items if i.get('taken_at'))
     rows = []
     for i in items[:MAX_INCIDENTS]:
         row = {'title': i['title'], 'seat': i.get('seat'), 'switch': i.get('switch_name'),
@@ -81,6 +82,7 @@ def _incidents(since, people):
         'total': len(items), 'fixed': len(fixed), 'open': len(items) - len(fixed),
         'from_seats': sum(1 for i in items if i.get('source') == 'helpdesk'),
         'median_fix_s': round(took[len(took) // 2]) if took else None,
+        'median_take_s': round(taken[len(taken) // 2]) if taken else None,
         'items': rows,
     }
 

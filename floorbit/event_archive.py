@@ -57,6 +57,7 @@ def figures(report):
         'incidents_fixed': inc.get('fixed') or 0,
         'from_seats': inc.get('from_seats') or 0,
         'median_fix_s': inc.get('median_fix_s'),
+        'median_take_s': inc.get('median_take_s'),
         'outages': sum(o['times'] for o in outages),
         'down_s': sum(o['down_s'] for o in outages),
         'problem_ports': len(report.get('problem_ports') or []),

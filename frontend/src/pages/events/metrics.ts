@@ -11,6 +11,7 @@ export const METRICS: Metric[] = [
   { key: 'peak_bps', format: (v) => bps(v), better: null },
   { key: 'bytes_moved', format: bytes, better: null },
   { key: 'incidents', format: String, better: 'less' },
+  { key: 'median_take_s', format: duration, better: 'less' },
   { key: 'median_fix_s', format: duration, better: 'less' },
   { key: 'outages', format: String, better: 'less' },
   { key: 'down_s', format: duration, better: 'less' },

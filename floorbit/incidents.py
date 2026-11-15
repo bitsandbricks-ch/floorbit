@@ -290,6 +290,9 @@ def update(user, incident_id, body):
         title = _clean_text(body.get('title'), MAX_TITLE) if 'title' in body else None
         if title:
             incident['title'] = title
+        # The first time anyone takes it, for "half picked up within" in the report (issue #294).
+        if incident['assignee'] and not incident.get('taken_at'):
+            incident['taken_at'] = now
         incident['updated_at'] = now
         _save(data, items)
         return incident
