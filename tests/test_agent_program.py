@@ -322,12 +322,15 @@ def test_check_says_what_works(client, app_module):
     def execute(method, args):
         if method == 'inventory_feeds':
             return [{'plugin': 'netbox', 'name': 'NetBox', 'items': [{'id': '1', 'name': 'sw-01'}]}]
+        if method == 'health_feeds':
+            return [{'plugin': 'http-check', 'name': 'HTTP check', 'items': [{'id': 'cache'}]}]
         return fake_execute(method, args)
 
     assert agent_mod.check(make(app_module, key), execute, lines.append) is True
     assert lines[0].startswith('OK') and 'Demo LAN 2026' in lines[0]
     assert 'OK   the monitoring plugin answers: 1 devices' in lines
     assert 'OK   NetBox answers: 1 devices' in lines and lines[-1].startswith('All good')
+    assert 'OK   HTTP check answers: 1 health checks' in lines
 
 
 def test_check_names_what_fails(client, app_module, monkeypatch):
@@ -337,7 +340,7 @@ def test_check_names_what_fails(client, app_module, monkeypatch):
     lines = []
 
     def execute(method, args):
-        if method == 'inventory_feeds':
+        if method in ('inventory_feeds', 'health_feeds'):
             return []
         raise RuntimeError('LibreNMS answered 401')
 
@@ -450,3 +453,48 @@ def test_each_sites_netbox_keeps_its_own_devices(client, app_module):
             a.stop()
         for w in workers:
             w.join(30)
+
+
+def test_health_checks_run_on_the_agent(client, app_module):
+    """The health wall shows the agent's HTTP checks, made from the event network."""
+    wall = app_module.app.extensions['floorbit_health']
+    wall.stop()
+    wall.reset()
+    key = enrol(client)['key']
+
+    def execute(method, args):
+        if method == 'health_feeds':
+            return [{'plugin': 'http-check', 'name': 'HTTP check', 'items': [
+                {'id': 'cache', 'name': 'Cache', 'kind': 'cache', 'status': 'up', 'summary': '200 in 12 ms'}]}]
+        return fake_execute(method, args)
+
+    a = make(app_module, key, execute)
+    a.poll_wait = 0.5
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        wall.poll_once()
+        checks = {c['id']: c for c in wall.snapshot()['checks']}
+        assert checks['http-check:cache']['status'] == 'up'
+        assert checks['http-check:cache']['plugin_name'] == 'HTTP check (local agent)'
+    finally:
+        a.stop()
+        worker.join(30)
+        wall.reset()
+    # Away: one grey tile that says so, not silently missing services.
+    agent_link.tunnel.reset()
+    wall.poll_once()
+    assert [c['id'] for c in wall.snapshot()['checks']] == ['agent:*']
+    wall.reset()
+
+
+def test_the_agent_turns_plugins_on(app_module):
+    from floorbit import sources as srcs
+    said = []
+    agent_mod.turn_on(app_module.app, 'http-check, no-such-plugin', said.append)
+    with app_module.app.app_context():
+        assert srcs.registry.enabled(srcs.registry.specs['http-check'])
+    assert len(said) == 1 and 'no-such-plugin' in said[0]

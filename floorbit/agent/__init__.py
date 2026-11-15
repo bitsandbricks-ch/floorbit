@@ -24,7 +24,7 @@ HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds')
+           'inventory_feeds', 'cable_feeds', 'health_feeds')
 
 
 class Refused(RuntimeError):
@@ -44,6 +44,8 @@ def local_executor(app):
                 return inventory_feeds(registry)
             if method == 'cable_feeds':
                 return cable_feeds(registry)
+            if method == 'health_feeds':
+                return _feeds(registry, registry.feeders('health') if registry is not None else [], 'health_checks')
             spec = registry.monitoring_source() if registry is not None else None
             if spec is None:
                 raise PluginError('No monitoring plugin is set up on the agent (LIBRENMS_URL and LIBRENMS_TOKEN?)')
@@ -154,6 +156,21 @@ class Agent:
                 backoff = min(backoff * 2, MAX_BACKOFF)
 
 
+def turn_on(app, names, out=print):
+    """FLOORBIT_AGENT_PLUGINS=http-check,pihole: plugins the agent turns on at start. The agent has
+    no settings page, and only LibreNMS and NetBox are on by default; settings come from
+    FLOORBIT_PLUGIN_<ID>_<KEY> variables as everywhere."""
+    from .. import sources
+    from ..plugins.base import PluginError
+    registry = sources.registry
+    for name in [n.strip() for n in str(names or '').split(',') if n.strip()]:
+        try:
+            with app.app_context():
+                registry.set_enabled(name, True)
+        except (KeyError, PluginError) as exc:   # an unknown id, or a plugin with an error
+            out(f'[agent] cannot turn on the plugin "{name}": {exc}')
+
+
 def check(agent, execute, out=print):
     """``python -m floorbit.agent check``: try each part once and say what works. True when all do.
 
@@ -194,6 +211,14 @@ def check(agent, execute, out=print):
             line(False, f"{feed['name']}: {feed['error']}{hint}")
         else:
             line(True, f"{feed['name']} answers: {len(feed['items'])} devices")
+    try:
+        for feed in execute('health_feeds', []):
+            if 'error' in feed:
+                line(False, f"{feed['name']}: {feed['error']}")
+            else:
+                line(True, f"{feed['name']} answers: {len(feed['items'])} health checks")
+    except Exception as exc:  # noqa: BLE001
+        line(False, f'the health plugins: {exc}')
     out('All good: start the agent without "check".' if ok else 'Fix what failed, then run the check again.')
     return ok
 
@@ -220,6 +245,7 @@ def main(argv=None):
     # would only mislead whoever reads its log.
     with contextlib.redirect_stdout(io.StringIO()):
         app = create_app(start_background=False)
+    turn_on(app, os.environ.get('FLOORBIT_AGENT_PLUGINS', ''))
     version_file = ROOT / 'VERSION'
     version = version_file.read_text().strip() if version_file.is_file() else '0'
     agent = Agent(url, key, local_executor(app), version=version)

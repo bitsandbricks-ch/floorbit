@@ -21,6 +21,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | Port traffic, port lists, needs attention, "which port is this seat on" | monitoring |
 | Check-in and seat search (IP to switch port, ARP) | monitoring |
 | Inventory sync and cable import | inventory, cables |
+| The health wall's checks (HTTP check, or any health plugin turned on there) | health |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
@@ -32,7 +33,6 @@ so on a hosted Floorbit they only work when that service is reachable from it:
 | Feature | Why |
 | --- | --- |
 | DNS analytics (Pi-hole, AdGuard Home) | the DNS plugin runs on the hosted side |
-| Health checks (HTTP check plugin) | they check from where Floorbit runs |
 | Logs (Loki), syslog, NetFlow | syslog and flows are sent to Floorbit's own UDP ports |
 | Wi-Fi details (UniFi as a Wi-Fi source), port actions (SSH ports), switch commands and terminal | they connect to the controller or switch directly |
 
@@ -126,6 +126,7 @@ for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorb
 | --- | --- |
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
 | `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
+| `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
@@ -160,6 +161,15 @@ A plugin the agent feeds is not asked on the hosted Floorbit itself, which can't
 **Cables > Import from NetBox** works the same way: the agent sends the cables of each plugin there
 that knows them (NetBox), and they replace the last import as usual. A plugin the agent answered for
 isn't asked on the hosted Floorbit too. The cable page lists "Local agent" among its sources.
+
+## Health checks through the agent
+
+The [health wall](health.md) checks services such as the LAN cache or a game server's web panel,
+which are usually only reachable inside the hall. Turn the health plugins on on the agent
+(`FLOORBIT_AGENT_PLUGINS=http-check` and `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=…`) and the hosted
+health wall shows their checks, made from the event network, as "HTTP check (local agent)". A
+plugin the agent checks with isn't also asked on the hosted side. While the agent is away, the
+wall shows one grey "Local agent" tile instead of the checks.
 
 ## When the agent is away
 
