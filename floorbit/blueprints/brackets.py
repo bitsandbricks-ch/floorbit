@@ -29,11 +29,11 @@ TEXTS = {
     'en': {'title': 'Brackets', 'off': 'This page is switched off.', 'empty': 'No brackets yet.',
            'round': 'Round {n}', 'final': 'Final', 'semi': 'Semi-finals', 'quarter': 'Quarter-finals',
            'live': 'Live', 'tbd': 'to be decided', 'champion': 'Champion', 'bye': 'bye',
-           'updated': 'Updated {time}. This page reloads every 30 seconds.'},
+           'updated': 'Updated {time}. This page updates every 30 seconds.'},
     'de': {'title': 'Turnierbäume', 'off': 'Diese Seite ist ausgeschaltet.', 'empty': 'Noch keine Turnierbäume.',
            'round': 'Runde {n}', 'final': 'Final', 'semi': 'Halbfinals', 'quarter': 'Viertelfinals',
            'live': 'Live', 'tbd': 'offen', 'champion': 'Sieger', 'bye': 'Freilos',
-           'updated': 'Stand {time}. Die Seite lädt alle 30 Sekunden neu.'},
+           'updated': 'Stand {time}. Die Seite aktualisiert sich alle 30 Sekunden.'},
 }
 
 

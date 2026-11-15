@@ -312,6 +312,7 @@ body {
 .fb-heatmap .label { fill: var(--color-muted); font: 600 12px var(--font-sans); text-anchor: end; }
 .fb-heatmap rect.cursor { fill: none; stroke: var(--color-fg); stroke-width: 2; pointer-events: none; }
 .fb-bracket-scroll { overflow-x: auto; padding-bottom: 6px; }
+.fb-bracket-scroll:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; }
 .fb-bracket { display: grid; gap: 24px; min-width: min-content; }
 .fb-bracket-round { display: flex; flex-direction: column; }
 .fb-bracket-matches { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
@@ -327,9 +328,12 @@ body {
 .fb-bracket-team.lost { color: var(--color-muted); }
 .fb-bracket-team.tbd span { color: var(--color-muted); font-style: italic; padding-right: 3px; }
 .fb-bracket-match.live { padding-top: 14px; }
-.fb-bracket-live { position: absolute; top: 0; left: 10px; font-size: 10px; font-weight: 800; padding: 0 6px; border-radius: 0 0 6px 6px; background: var(--color-warn); color: #fff; }
+.fb-bracket-live { position: absolute; top: 0; left: 10px; font-size: 10px; font-weight: 800; padding: 0 6px; border-radius: 0 0 6px 6px; background: color-mix(in srgb, var(--color-warn) 24%, var(--color-surface)); color: var(--color-fg); border: 1px solid var(--color-warn); border-top: 0; }
 .fb-bracket-meta { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 6px; font-size: 12px; color: var(--color-muted); border-top: 1px dashed var(--color-line); }
 .fb-bracket-champion { text-align: center; font-weight: 800; font-size: 18px; padding: 14px; border: 2px solid var(--color-up); border-radius: 12px; background: var(--color-surface); }
+
+/* Tables that scroll sideways on a phone take keyboard focus (theme.ts, issue #286). */
+.mantine-TableScrollContainer-scrollContainer .mantine-ScrollArea-viewport:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }
 
 /* Seats (pages/FloorPlan.tsx, issue #55). Each state has its own shape as well as its own colour,
    so it reads in grey scale and for colour-blind eyes: filled, hollow with a slash, dashed. */
