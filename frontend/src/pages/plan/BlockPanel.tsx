@@ -1,7 +1,9 @@
 import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
+import { IconQrcode } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
+import { useCan } from '@/api/queries'
 import { qk } from '@/api/keys'
 import type { BlockDetails } from '@/api/types'
 import { rate } from './model'
@@ -13,6 +15,7 @@ export function BlockPanel({ name, onSeat, onSwitch, onClose }: {
   name: string; onSeat: (seat: string) => void; onSwitch?: (name: string) => void; onClose: () => void
 }) {
   const { t } = useTranslation()
+  const canQr = useCan('incidents.assign')
   const q = useQuery({ queryKey: qk.planBlock(name), queryFn: () => get<BlockDetails>(`/api/plan/blocks/${encodeURIComponent(name)}`) })
   const b = q.data
   const part = (n: number, total: number) => `${total ? (n / total) * 100 : 0}%`
@@ -58,6 +61,12 @@ export function BlockPanel({ name, onSeat, onSwitch, onClose }: {
             ))}
             {b.no_port > 0 && <Text size="xs" c="dimmed">{t('plan.blockPanel.noPort', { count: b.no_port })}</Text>}
           </Stack>
+          {canQr && (
+            <Group>
+              <Button component="a" href={`/incidents/qr?block=${encodeURIComponent(name)}`} variant="default" size="xs"
+                leftSection={<IconQrcode size={14} />}>{t('plan.blockPanel.qrCodes')}</Button>
+            </Group>
+          )}
           {b.problems.length > 0 && (
             <Stack gap={4}>
               <Title order={3} size="h5">{t('plan.problems')}</Title>

@@ -59,5 +59,10 @@
   "kind_checkin": "no check-in",
   "kept": "Port reads are folded into one row per hour and kept for 21 days, switch outages and problem ports since the last new event.",
   "pastEvents": "Past events",
-  "repeatSeats": "Seats with more than one incident:"
+  "repeatSeats": "Seats with more than one incident:",
+  "seatProblems": "What attendees reported at their seats: {{what}}",
+  "problem_no-internet": "No internet",
+  "problem_slow": "Slow connection",
+  "problem_power": "No power",
+  "problem_other": "Something else"
 }
