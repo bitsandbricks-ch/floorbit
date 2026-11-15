@@ -3,6 +3,7 @@
 - **Mutes**: a switch someone is working on (or knows is off) can be muted for a while. Its
   offline and back-online alerts go nowhere until the mute ends; the Problems page still lists it,
   marked muted. Stored in data.json under ``alert_mutes``: ``{switch id: {name, until, by, reason}}``.
+  A service on the health wall can be muted the same way (issue #256), under ``health:<service id>``.
 - **Quiet hours** (``ALERT_QUIET_HOURS``, e.g. ``02:00-08:00`` in the server's time zone): Discord
   messages still go out, but silently and without the mention, so the night shift reads them and
   nobody's phone rings.
@@ -34,6 +35,11 @@ def mutes(now=None):
     now = now or time.time()
     raw = _store().load_data().get(KEY) or {}
     return {k: v for k, v in raw.items() if isinstance(v, dict) and float(v.get('until') or 0) > now}
+
+
+def service_key(service_id):
+    """The mute key of a service on the health wall, next to the switch ids."""
+    return f'health:{service_id}'
 
 
 def is_muted(switch_id, now=None):

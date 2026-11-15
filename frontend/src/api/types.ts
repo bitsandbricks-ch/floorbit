@@ -432,7 +432,9 @@ export interface PowerOverview {
 export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
+  /** The switch id, or ``health:<service id>`` for a service (issue #256). */
   switch_id: string
+  kind?: 'switch' | 'health'
   name: string
   until: number
   at: number
@@ -448,6 +450,9 @@ export interface Problem {
   since: number | null
   link: string
   switch_id?: string
+  /** What /api/alerts/mutes takes to mute it: switches and services only. */
+  mute_id?: string
+  name?: string
   muted?: { until: number; by: string | null; reason: string } | null
   /** The match zone, when the problem is at a tournament seat (issue #31). */
   match?: string | null

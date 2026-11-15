@@ -9,7 +9,7 @@ and [`floorbit/blueprints/problems.py`](../floorbit/blueprints/problems.py).
 
 **Problems** in the top bar (`/problems`) lists everything wrong right now, worst and oldest first,
 with a count of what is down next to the link. Its browser tab starts with the number of problems
-that are down or need a look, muted ones left out, e.g. "(2) Problems · Floorbit":
+that are down or need a look, muted ones (switches and services) left out, e.g. "(2) Problems · Floorbit":
 
 - the monitoring source (LibreNMS) not answering;
 - placed switches that are offline;
@@ -46,12 +46,16 @@ switch, port and seat, never who sits there, so everyone who may see the floor p
 They don't go to Discord: there can be dozens during an event. Live updates send `attention.changed`.
 Code: [`floorbit/attention.py`](../floorbit/attention.py).
 
-## Muting a switch
+## Muting a switch or a service
 
 A switch someone is working on, or that is off on purpose, can be muted for 30 minutes up to a day
 (**Mute** on its problem). While muted, it sends no "offline" or "back online" message; it stays on
-the Problems page, marked muted, and under **Muted switches** until the mute ends or someone presses
-**Unmute**. Muting needs `incidents.work` and is in the audit log under **alerts**. Mutes are stored
+the Problems page, marked muted, and under **Muted switches and services** until the mute ends or someone presses
+**Unmute**.
+
+A service on the [health wall](health.md) that is red or amber has the same **Mute**: while muted, Discord
+gets no "is down" or "is back" message for it, and it stays out of the counts in the browser tab.
+It is still on the health wall as it is. Muting needs `incidents.work` and is in the audit log under **alerts**. Mutes are stored
 in `data.json` under `alert_mutes` and survive a restart.
 
 ## Big outages are one message
