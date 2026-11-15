@@ -6,7 +6,7 @@
 
 (function () {
   const KEY = 'floorbit-notify';
-  const DEFAULTS = { on: false, incidents: true, jobs: true, switches: true,
+  const DEFAULTS = { on: false, incidents: true, jobs: true, switches: true, services: true,
                      quiet: false, quietFrom: '22:00', quietTo: '08:00', jobsInQuiet: true, watch: [] };
   let source = null;
   let me = null;
@@ -14,10 +14,10 @@
   // The React pages keep the language in floorbit-lang; the editor follows the browser.
   const TEXTS = {
     en: { incident: 'New incident', seat: 'Seat', sw: 'Switch', job: 'A job for you', jobText: 'An incident was sent to you.',
-          down: 'Switch down', downText: '{name} went offline.',
+          down: 'Switch down', downText: '{name} went offline.', service: 'Service down',
           watched: 'Watched seat', seatDown: 'Seat {seat} went offline.', seatUp: 'Seat {seat} is online again.' },
     de: { incident: 'Neue Störung', seat: 'Platz', sw: 'Switch', job: 'Ein Auftrag für dich', jobText: 'Dir wurde eine Störung zugeteilt.',
-          down: 'Switch ausgefallen', downText: '{name} ist offline.',
+          down: 'Switch ausgefallen', downText: '{name} ist offline.', service: 'Dienst ausgefallen',
           watched: 'Beobachteter Platz', seatDown: 'Platz {seat} ist offline.', seatUp: 'Platz {seat} ist wieder online.' },
   };
   function text() {
@@ -93,10 +93,30 @@
     show(text().job, text().jobText, `job-${data.id}`, '/jobs');
   }
 
-  function onSwitch(data) {
+  // A mute means "stop paging me about this" (issue #282). If the list can't be read, notify anyway.
+  async function muted(key) {
+    try {
+      return ((await json('/api/problems')).mutes || []).some((m) => m.switch_id === key);
+    } catch {
+      return false;
+    }
+  }
+
+  async function onSwitch(data) {
     const s = read();
     if (!s.switches || quietNow(s) || !data || data.status !== 'offline') return;
+    if (data.id && await muted(String(data.id))) return;
     show(text().down, text().downText.replace('{name}', data.name || 'Switch'), `switch-${data.id || data.name}`, '/');
+  }
+
+  // The health wall only sends confirmed changes, so a blip doesn't notify (issue #282).
+  async function onHealth(data) {
+    const s = read();
+    if (!s.services || quietNow(s) || !Array.isArray(data.changes)) return;
+    for (const c of data.changes) {
+      if (c.status !== 'down' || c.previous === 'down' || await muted(`health:${c.id}`)) continue;
+      show(text().service, [c.name, c.summary].filter(Boolean).join(': '), `health-${c.id}`, '/health');
+    }
   }
 
   // Watched seats (issue #178): like a job sent to me, they come through quiet hours unless that is off.
@@ -135,6 +155,7 @@
     listen('incident.changed', onIncident);
     listen('incident.dispatched', onDispatched);
     listen('switch.status', onSwitch);
+    listen('health.changed', onHealth);
     listen('seats.changed', onSeats);
   }
 

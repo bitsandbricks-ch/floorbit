@@ -30,6 +30,7 @@
     "jobs": "A job sent to me",
     "incidents": "Every new incident (needs the incident board)",
     "switches": "A switch going down",
+    "services": "A service going down (health wall)",
     "done": "Done",
     "unsupported": "This browser can't show notifications.",
     "quiet": "Quiet hours",

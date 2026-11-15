@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export interface NotifyPrefs {
-  on: boolean; incidents: boolean; jobs: boolean; switches: boolean
+  on: boolean; incidents: boolean; jobs: boolean; switches: boolean; services?: boolean
   quiet?: boolean; quietFrom?: string; quietTo?: string; jobsInQuiet?: boolean
   /** Seats to notify about when their link changes (issue #178). */
   watch?: string[]
@@ -34,7 +34,7 @@ export function NotifySettings({ opened, onClose }: { opened: boolean; onClose: 
     setPermission(api.permission())
   }
   return (
-    <Modal opened={opened} onClose={onClose} title={t('common.notify.title')}>
+    <Modal opened={opened} onClose={onClose} title={t('common.notify.title')} closeButtonProps={{ 'aria-label': t('goto.close') }}>
       {!api || !api.supported() || !prefs ? (
         <Text>{t('common.notify.unsupported')}</Text>
       ) : (
@@ -45,6 +45,7 @@ export function NotifySettings({ opened, onClose }: { opened: boolean; onClose: 
           <Checkbox label={t('common.notify.jobs')} checked={prefs.jobs} disabled={!prefs.on} onChange={(e) => void change({ jobs: e.currentTarget.checked })} />
           <Checkbox label={t('common.notify.incidents')} checked={prefs.incidents} disabled={!prefs.on} onChange={(e) => void change({ incidents: e.currentTarget.checked })} />
           <Checkbox label={t('common.notify.switches')} checked={prefs.switches} disabled={!prefs.on} onChange={(e) => void change({ switches: e.currentTarget.checked })} />
+          <Checkbox label={t('common.notify.services')} checked={prefs.services !== false} disabled={!prefs.on} onChange={(e) => void change({ services: e.currentTarget.checked })} />
           <Checkbox label={t('common.notify.quiet')} checked={!!prefs.quiet} disabled={!prefs.on} onChange={(e) => void change({ quiet: e.currentTarget.checked })} />
           {prefs.on && prefs.quiet && (
             <Stack gap="xs" pl="xl">

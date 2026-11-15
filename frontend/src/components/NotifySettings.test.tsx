@@ -19,7 +19,7 @@ class FakeSource {
   emit(type: string, data: unknown) { this.handlers[type]?.({ data: JSON.stringify({ type, data }) }) }
 }
 
-function loadNotify(shown: { title: string; body: string; tag: string }[]) {
+function loadNotify(shown: { title: string; body: string; tag: string }[], mutes: { switch_id: string }[] = []) {
   const Note = vi.fn(function (this: object, title: string, opts: { body: string; tag: string }) { shown.push({ title, ...opts }) }) as unknown as typeof Notification
   Object.assign(Note, { permission: 'granted', requestPermission: async () => 'granted' })
   vi.stubGlobal('Notification', Note)
@@ -28,6 +28,7 @@ function loadNotify(shown: { title: string; body: string; tag: string }[]) {
     ok: true,
     json: async () => path === '/api/auth/me'
       ? { user: { username: 'tia' } }
+      : path === '/api/problems' ? { mutes }
       : { incidents: [{ id: 'i1', seat: 'D-6', title: 'No link' }] },
   })))
   // static/js/notify.js is a classic script for the editor and the React pages alike.
@@ -51,6 +52,39 @@ describe('notify.js', () => {
     expect(shown.map((n) => n.tag).sort()).toEqual(['incident-i1', 'job-i1', 'switch-s1'])
     expect(shown.find((n) => n.tag === 'incident-i1')?.body).toBe('Seat D-6: No link')
     expect(JSON.parse(localStorage.getItem('floorbit-notify')!).on).toBe(true)
+  })
+})
+
+describe('services and mutes', () => {
+  it('shows a service going down and skips what is muted', async () => {
+    const shown: { title: string; body: string; tag: string }[] = []
+    loadNotify(shown, [{ switch_id: 's2' }, { switch_id: 'health:dns' }])
+    await window.floorNotify!.set({ on: true })
+    await waitFor(() => expect(FakeSource.last?.handlers['health.changed']).toBeTruthy())
+    const src = FakeSource.last!
+    src.emit('health.changed', { changes: [
+      { id: 'game3', name: 'Game server 3', status: 'down', previous: 'up', summary: 'Not answering' },
+      { id: 'dns', name: 'DNS players', status: 'down', previous: 'up', summary: 'Timeout' },
+      { id: 'dhcp', name: 'DHCP players', status: 'up', previous: 'down', summary: '' },
+    ] })
+    src.emit('switch.status', { id: 's2', name: 'sw-d-02', status: 'offline' })
+    src.emit('switch.status', { id: 's1', name: 'sw-d-01', status: 'offline' })
+    await waitFor(() => expect(shown).toHaveLength(2))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(shown.map((n) => [n.title, n.body, n.tag]).sort()).toEqual([
+      ['Service down', 'Game server 3: Not answering', 'health-game3'],
+      ['Switch down', 'sw-d-01 went offline.', 'switch-s1'],
+    ])
+  })
+
+  it('leaves services out when that box is off', async () => {
+    const shown: { title: string; body: string; tag: string }[] = []
+    loadNotify(shown)
+    await window.floorNotify!.set({ on: true, services: false })
+    await waitFor(() => expect(FakeSource.last?.handlers['health.changed']).toBeTruthy())
+    FakeSource.last!.emit('health.changed', { changes: [{ id: 'game3', name: 'Game server 3', status: 'down', previous: 'up', summary: '' }] })
+    FakeSource.last!.emit('switch.status', { id: 's1', name: 'sw-d-01', status: 'offline' })
+    await waitFor(() => expect(shown.map((n) => n.tag)).toEqual(['switch-s1']))
   })
 })
 
