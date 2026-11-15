@@ -125,7 +125,9 @@ export default function Problems() {
   const error = list.error ?? unmute.error
 
   return (
-    <Layout title={t('problems.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    // Muted problems stay out of the tab count: someone is already on them (issue #214).
+    <Layout title={t('problems.title')} back={{ href: '/', label: t('common.floorPlan') }}
+      count={data ? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
       <PageHead title={t('problems.title')} desc={t('problems.intro')} />
       {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
       {list.isPending || !data ? (
