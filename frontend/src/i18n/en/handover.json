@@ -49,5 +49,8 @@
   "gearTitle_other": "Gear still out ({{count}} pieces)",
   "halfWithin": "half within {{d}}",
   "fixedBy": "By: {{list}}",
-  "nobodyNamed": "nobody named"
+  "nobodyNamed": "nobody named",
+  "comingUp": "Coming up this shift",
+  "tournament": "Tournament",
+  "fullSchedule": "Whole programme"
 }
