@@ -37,6 +37,7 @@
     .recovered-at { margin-bottom: 10px; }
     .feed { margin-top: 12px; }
     .feed a { color: inherit; }
+    .now { display: inline; color: var(--color-fg); }
   </style>
 </head>
 <body>
@@ -50,7 +51,11 @@
         <span class="dot" aria-hidden="true"></span>
         <div>
           <strong id="status-state" data-state="{{ s.state }}">{{ t.state[s.state] }}</strong>
+          {% if s.maintenance_now and s.state == 'maintenance' and not s.override %}
+          <p id="status-maintenance-now">{{ s.maintenance_now.text }} <span class="muted">{{ stamp(t.until, s.maintenance_now.end) }}{% if s.maintenance_now.area %} · {{ s.maintenance_now.area }}{% endif %}</span></p>
+          {% else %}
           <p class="muted">{{ t.detail[s.state] }}{% if s.since %} {{ stamp(t.since, s.since) }}{% endif %}</p>
+          {% endif %}
         </div>
       </div>
     </section>
@@ -68,6 +73,19 @@
     <section class="card">
       <h2>{{ t.areas }}</h2>
       {{ area_list(s.areas, s.state) }}
+    </section>
+    {% endif %}
+    {% if s.planned %}
+    <section class="card" id="status-planned">
+      <h2>{{ t.planned }}</h2>
+      <ul>
+        {% for m in s.planned %}
+        <li class="maintenance">
+          <span class="muted">{% if s.maintenance_now and m.id == s.maintenance_now.id %}<b class="now">{{ t.now }}</b> · {% endif %}{{ stamp('{time}', m.start) }} – {{ stamp('{time}', m.end) }}{% if m.area %} · {{ m.area }}{% endif %}</span>
+          <p>{{ m.text }}</p>
+        </li>
+        {% endfor %}
+      </ul>
     </section>
     {% endif %}
     {% if s.recovered %}

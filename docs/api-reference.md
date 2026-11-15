@@ -684,6 +684,8 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/status-page` | `incidents.work` | `status_page` |
+| POST | `/api/status-page/maintenance` | `incidents.assign` | `status_page` |
+| DELETE | `/api/status-page/maintenance/<item_id>` | `incidents.assign` | `status_page` |
 | PUT | `/api/status-page/override` | `incidents.assign` | `status_page` |
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |

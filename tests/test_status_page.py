@@ -198,3 +198,56 @@ def test_atom_feed_off_and_empty(client, anon_client, floor):
     feed = ET.fromstring(anon_client.get("/status.atom").data)
     assert feed.find("{http://www.w3.org/2005/Atom}updated").text.endswith("Z")
     assert feed.findall("{http://www.w3.org/2005/Atom}entry") == []
+
+
+# ── Planned maintenance (issue #422) ──────────────────────────────────────────
+def test_planned_maintenance_is_announced_then_runs(client, anon_client, floor, switched_on, monkeypatch):
+    now = time.time()
+    plan = {"start": now + 3600, "end": now + 5400, "text": "Switch swap in hall B", "area": "Hall B"}
+    item = client.post("/api/status-page/maintenance", json=plan).get_json()
+    page = anon_client.get("/status.json").get_json()
+    assert page["state"] == "operational" and page["maintenance_now"] is None
+    assert page["planned"] == [{"id": item["id"], "start": plan["start"], "end": plan["end"],
+                                "text": "Switch swap in hall B", "area": "Hall B"}]   # never who planned it
+    html = anon_client.get("/status").get_data(as_text=True)
+    assert "Planned maintenance" in html and "Switch swap in hall B" in html
+
+    # An hour later it runs: the page says Maintenance by itself, with the plan's text.
+    monkeypatch.setattr(time, "time", lambda: now + 3700)
+    page = anon_client.get("/status.json").get_json()
+    assert page["state"] == "maintenance" and page["maintenance_now"]["id"] == item["id"]
+    assert 'id="status-maintenance-now"' in anon_client.get("/status").get_data(as_text=True)
+    # A state set by hand still wins.
+    client.put("/api/status-page/override", json={"state": "outage"})
+    assert anon_client.get("/status.json").get_json()["state"] == "outage"
+    client.put("/api/status-page/override", json={"state": None})
+
+    # Once over, it is gone and the automatic state is back.
+    monkeypatch.setattr(time, "time", lambda: now + 5500)
+    page = anon_client.get("/status.json").get_json()
+    assert page["state"] == "operational" and page["planned"] == []
+    actions = {e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]}
+    assert "Planned maintenance" in actions
+
+
+def test_planned_maintenance_checks_and_cancel(client, app_module, floor):
+    now = time.time()
+
+    def plan(**body):
+        return client.post("/api/status-page/maintenance", json={"text": "Work", **body})
+    assert plan(start=now + 60, end=now).status_code == 400            # ends before it starts
+    assert plan(start=now - 7200, end=now - 3600).status_code == 400   # already over
+    assert plan(start=now + 30 * 86400, end=now + 30 * 86400 + 60).status_code == 400   # too far ahead
+    assert plan(start="soon", end=now + 60).status_code == 400
+    assert client.post("/api/status-page/maintenance", json={"start": now, "end": now + 60}).status_code == 400
+    item = plan(start=now + 60, end=now + 120).get_json()
+    assert client.get("/api/status-page").get_json()["planned"][0]["id"] == item["id"]
+    tech = app_module.app.extensions["auth"].users
+    tech.add("tech-ti", "example-pass-1", role="tech")
+    c = app_module.app.test_client()
+    c.post("/login", data={"username": "tech-ti", "password": "example-pass-1"})
+    assert c.post("/api/status-page/maintenance", json={"start": now + 60, "end": now + 120, "text": "x"},
+                  headers={"X-Requested-With": "fetch"}).status_code == 403
+    assert client.delete(f"/api/status-page/maintenance/{item['id']}").status_code == 200
+    assert client.delete(f"/api/status-page/maintenance/{item['id']}").status_code == 404
+    assert client.get("/api/status-page").get_json()["planned"] == []
