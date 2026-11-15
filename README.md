@@ -55,6 +55,8 @@ each seat is plugged into.
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
   working on, quiet hours, one Discord message for a big outage, and the ports that need a look
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
+- **Build planner:** before the event, switches, ports and VLANs per seat block, switch configs
+  from templates per model, and cable labels to print. See [docs/planner.md](docs/planner.md).
 - **Shift handover:** what happened since the last handover, what is still open, and a note for the
   next shift, optionally posted to Discord. See [docs/handover.md](docs/handover.md).
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is
