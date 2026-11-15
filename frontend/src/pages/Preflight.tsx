@@ -55,7 +55,7 @@ export default function Preflight() {
                 <Title order={2} size="h3">{t(`preflight.verdict.${verdict}`)}</Title>
                 <Group gap={6}>
                   {(['pass', 'warn', 'fail', 'skip'] as const).map((s) => (
-                    <Badge key={s} size="lg" variant="light" color={COLOR[s]} tt="none">{t(`preflight.count.${s}`, { count: b.counts[s] })}</Badge>
+                    <Badge key={s} size="lg" variant="light" color={COLOR[s]} tt="none" className="fb-on-tint">{t(`preflight.count.${s}`, { count: b.counts[s] })}</Badge>
                   ))}
                 </Group>
               </Group>
