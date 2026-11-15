@@ -71,7 +71,9 @@ language, with four buttons (no internet, slow connection, no power, something e
 - **It works again:** while the seat has an open report, the page has an **It works again** button
   for problems that fixed themselves. It tags the seat's open reports on the board (**Seat says it
   works again · 3 min ago**) but doesn't mark them fixed: the link is anonymous, so the crew checks
-  or asks first. Reporting again clears the tag. Rate limited like reports.
+  or asks first. Reporting again clears the tag. Rate limited like reports. A report the seat called
+  off doesn't count as waiting (no **Waiting** tag, not in the handover's or dashboard's waiting
+  count), and **Take the next one** takes it last.
 - **Located and checked:** the incident arrives with the seat, and with the switch, port, link
   state and whether a device is seen on the port, looked up through the monitoring source when it
   is reported. No IP, MAC or nick is stored with it.

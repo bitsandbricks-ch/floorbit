@@ -271,8 +271,10 @@ FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
 
 
 def is_waiting(incident, now):
-    """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared."""
-    return incident.get('status') == 'open' and not incident.get('assignee') \
+    """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared.
+
+    Not once the seat says it works again (issue #376): nobody is waiting on it any more."""
+    return incident.get('status') == 'open' and not incident.get('assignee') and not incident.get('seat_ok_at') \
         and now - (incident.get('created_at') or now) >= WAITING_AFTER
 
 

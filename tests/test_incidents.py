@@ -212,6 +212,17 @@ def test_attendee_says_it_works_again(anon_client, client, app_module, floor):
     assert not incident.get("seat_ok_at") and incident["reports"] == 2
 
 
+def test_a_seat_that_works_again_is_not_waiting(anon_client, app_module, floor):
+    # Issue #376: the board's "Waiting" rule, also counted by the handover and the dashboard.
+    anon_client.post(help_url(app_module, "A-2"), data={"problem": "slow"})
+    with app_module.app.app_context():
+        (incident,) = incidents.list_all()
+        later = incident["created_at"] + 20 * 60
+        assert incidents.is_waiting(incident, later)
+        incidents.seat_says_ok("A-2")
+        assert not incidents.is_waiting(incidents.get(incident["id"]), later)
+
+
 def test_works_again_without_a_report_changes_nothing(anon_client, client, app_module, floor):
     client.post("/api/incidents", json={"seat": "A-4", "title": "Filed by the crew"})
     assert anon_client.post(help_url(app_module, "A-4"), data={"works": "1"}).status_code == 200
