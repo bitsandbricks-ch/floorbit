@@ -44,5 +44,7 @@
   "noticeBy": "from {{who}}",
   "mutedUntil": "muted until {{until}} by {{who}}",
   "waiting_one": "{{count}} waiting 10+ min",
-  "waiting_other": "{{count}} waiting 10+ min"
+  "waiting_other": "{{count}} waiting 10+ min",
+  "gearTitle_one": "Gear still out ({{count}} piece)",
+  "gearTitle_other": "Gear still out ({{count}} pieces)"
 }

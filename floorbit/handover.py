@@ -117,6 +117,18 @@ def _mutes(now):
             for key, m in sorted(alerting.mutes(now).items(), key=lambda kv: kv[1]['until'])]
 
 
+def _gear_out(data):
+    """Who still holds gear, most pieces first (issue #324): a loan outlives the shift that made it."""
+    from . import features, gear
+    if 'gear' in features.off(data):
+        return []
+    held = {}
+    for r in gear.outstanding(data):
+        held.setdefault(r['loan']['to'], []).append(r['name'])
+    return [{'to': to, 'count': len(names), 'names': sorted(names)}
+            for to, names in sorted(held.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))]
+
+
 def summary(switch_events, problems_now, since=None, now=None):
     from . import incidents, notice, seat_notes, tournament
     now = time.time() if now is None else now
@@ -134,6 +146,7 @@ def summary(switch_events, problems_now, since=None, now=None):
     notes = [{'seat': seat, **n} for seat, n in seat_notes.all_notes(data).items() if (n.get('at') or 0) >= since]
     notes.sort(key=lambda n: -(n.get('at') or 0))
     mutes = _mutes(now)
+    gear_out = _gear_out(data)
     return {
         'since': since, 'now': now, 'previous': last(data),
         'incidents': {'open': still_open, 'opened': opened, 'fixed': fixed},
@@ -142,11 +155,13 @@ def summary(switch_events, problems_now, since=None, now=None):
         'changes': changes,
         'seat_notes': notes,
         'mutes': mutes,
+        'gear': gear_out,
         'notice': notice.current(data, now),
         'counts': {'open': len(still_open), 'waiting': sum(1 for i in items if incidents.is_waiting(i, now)),
                    'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
-                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes)},
+                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes),
+                   'gear_out': sum(g['count'] for g in gear_out)},
     }
 
 
@@ -174,6 +189,10 @@ def discord_message(record, summary_, public_url='', username='Floorbit'):
         lines.append(f"🔕 **{len(muted)}** muted: " + ', '.join(
             f"{m['name']} (until {datetime.fromtimestamp(m['until']).astimezone():%H:%M})" for m in muted[:5])
             + (', ...' if len(muted) > 5 else ''))
+    gear_out = summary_.get('gear') or []
+    if gear_out:
+        lines.append(f"🎒 **{sum(g['count'] for g in gear_out)}** pieces of gear out: " + ', '.join(
+            f"{g['to']} ({g['count']})" for g in gear_out[:5]) + (', ...' if len(gear_out) > 5 else ''))
     top = summary_['incidents']['open'][:5]
     if top:
         lines.append('')
