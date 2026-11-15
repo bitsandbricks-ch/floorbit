@@ -1090,6 +1090,9 @@ export interface StatusArea {
   switches?: string[]
 }
 
+/** Maintenance announced ahead (issue #422). */
+export interface StatusPlanned { id: string; start: number; end: number; text: string; area: string }
+
 export interface StatusUpdate {
   id: string
   at: number
@@ -1110,6 +1113,8 @@ export interface StatusPageData {
   recovered_at: number | null
   crew_recovered: StatusArea[]
   updates: StatusUpdate[]
+  planned?: StatusPlanned[]
+  maintenance_now?: StatusPlanned | null
   checked_at: number
   /** Is /status switched on (Settings > Public)? */
   public: boolean

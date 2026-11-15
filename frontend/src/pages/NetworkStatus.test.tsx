@@ -40,6 +40,38 @@ describe('NetworkStatus', () => {
     await waitFor(() => expect(sent.some((s) => s.method === 'DELETE' && s.path === '/api/status-page/updates/u1')).toBe(true))
   })
 
+  it('announces planned maintenance and marks the one running now (issue #422)', async () => {
+    const sent: { method: string; path: string; body: unknown }[] = []
+    const auth = fakeFetch({ 'GET /api/auth/me': { enabled: false } })
+    const running = { id: 'm1', start: at - 600, end: at + 600, text: 'Switch swap in hall B', area: 'Hall B' }
+    const later = { id: 'm2', start: at + 7200, end: at + 9000, text: 'Firewall update', area: '' }
+    const withPlans = { ...data, state: 'maintenance', planned: [running, later], maintenance_now: running }
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input)
+      if (!path.startsWith('/api/status-page')) return auth.fn(input, init)
+      const method = init?.method ?? 'GET'
+      if (method !== 'GET') sent.push({ method, path, body: init?.body ? JSON.parse(String(init.body)) : null })
+      return new Response(JSON.stringify(method === 'GET' ? withPlans : { ok: true }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } })
+    })
+    renderWithApp(<NetworkStatus />)
+    const box = await screen.findByTestId('planned')
+    expect(box).toHaveTextContent('Switch swap in hall B')
+    expect(box).toHaveTextContent('Firewall update')
+    expect(screen.getAllByText('Now')).toHaveLength(1)
+    const add = screen.getByRole('button', { name: 'Announce' })
+    expect(add).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2030-01-02T10:00' } })
+    fireEvent.change(screen.getByLabelText('Until'), { target: { value: '2030-01-02T10:30' } })
+    fireEvent.change(screen.getByLabelText('What attendees should know'), { target: { value: 'Core swap' } })
+    fireEvent.click(add)
+    await waitFor(() => expect(sent).toContainEqual({ method: 'POST', path: '/api/status-page/maintenance', body: {
+      start: new Date('2030-01-02T10:00').getTime() / 1000, end: new Date('2030-01-02T10:30').getTime() / 1000,
+      text: 'Core swap', area: '' } }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cancel this maintenance' })[1])
+    await waitFor(() => expect(sent.some((s) => s.method === 'DELETE' && s.path === '/api/status-page/maintenance/m2')).toBe(true))
+  })
+
   it('lists the areas that are back up recently, with their switches (issue #396)', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': { enabled: false },

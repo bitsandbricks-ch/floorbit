@@ -60,6 +60,15 @@ the affected areas with the switch names, and the updates.
 - Posting and removing updates and setting the state need `incidents.assign` (lead and admin).
 - Every change is in the audit log (area *status page*).
 
+### Planned maintenance
+
+Under **Planned maintenance** you announce work ahead: from when until when, what attendees should
+know and, optionally, where. Attendees see it under *Planned maintenance* on `/status` (and in
+`/status.json` as `planned`), with the times in their own time zone. While it runs, the page shows
+**Maintenance** by itself, with your text and when it ends, unless you set a state by hand, which
+always wins. Once it is over it disappears and the automatic state is back. You can cancel it any
+time. Up to 20 at a time, at most two weeks ahead. Like updates, it never says who planned it.
+
 ## Discord
 
 Set **Attendee status channel webhook** (Settings > Integrations > Discord,
@@ -77,6 +86,8 @@ nobody. This is separate from the crew's alert webhook, which says much more.
 | `GET /api/status-page` | the crew's view: the public one plus the state set by hand and the switch names |
 | `POST /api/status-page/updates` | `{"text": "...", "area": "Hall B"}` |
 | `DELETE /api/status-page/updates/<id>` | removes an update |
+| `POST /api/status-page/maintenance` | `{"start": <unix time>, "end": <unix time>, "text": "...", "area": "Hall B"}` |
+| `DELETE /api/status-page/maintenance/<id>` | cancels planned maintenance |
 | `PUT /api/status-page/override` | `{"state": "maintenance", "note": "..."}`, or `{"state": null}` for automatic |
 
 The states are `operational`, `degraded`, `outage`, `maintenance` and `unknown`.

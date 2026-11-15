@@ -12,6 +12,7 @@ import { useCan } from '@/api/queries'
 import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { PlannedMaintenance } from './status/PlannedMaintenance'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
 const COLOR: Record<StatusState, string> = {
@@ -123,6 +124,7 @@ export default function NetworkStatus() {
                 <Text size="xs" c="dimmed" mt="sm">{d.switch_names ? t('status.namesShown') : t('status.namesHidden')}</Text>
               </Paper>
             </SimpleGrid>
+            <PlannedMaintenance planned={d.planned ?? []} running={d.maintenance_now?.id ?? null} canSet={canSet} onChange={refresh} />
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h5" mb="xs">{t('status.updates')}</Title>
               {canSet && (

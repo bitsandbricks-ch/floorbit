@@ -7,6 +7,8 @@
   set by hand.
 - ``GET /api/status-page``: what the public page shows, plus who set what.
 - ``POST /api/status-page/updates``, ``DELETE /api/status-page/updates/<id>``: the crew's updates.
+- ``POST /api/status-page/maintenance``, ``DELETE /api/status-page/maintenance/<id>``: planned
+  maintenance, announced ahead (issue #422).
 - ``PUT /api/status-page/override``: ``{"state": "maintenance"}`` sets the state, ``{"state": null}``
   goes back to the automatic one.
 
@@ -39,7 +41,8 @@ TEXTS = {
            'updated': 'Updated {time}. This page updates every minute.', 'block': 'Seat block {name}',
            'unnamed': 'A seat block', 'hall_wide': 'Hall {name}', 'somewhere': 'Somewhere in the hall',
            'recovered': 'Back up recently', 'recovered_at': 'The network here has been back since {time}.',
-           'feed': 'Follow the updates in a feed reader (Atom)'},
+           'feed': 'Follow the updates in a feed reader (Atom)',
+           'planned': 'Planned maintenance', 'until': 'until {time}', 'now': 'Now'},
     'de': {'title': 'Netzwerkstatus', 'off': 'Diese Seite ist ausgeschaltet.',
            'state': {'operational': 'Alles läuft', 'degraded': 'Ein Teil des Netzwerks ist ausgefallen',
                      'outage': 'Netzwerkausfall', 'maintenance': 'Wartung',
@@ -55,7 +58,8 @@ TEXTS = {
            'block': 'Platzblock {name}', 'unnamed': 'Ein Platzblock', 'hall_wide': 'Halle {name}',
            'somewhere': 'Irgendwo in der Halle', 'recovered': 'Wieder da',
            'recovered_at': 'Das Netzwerk hier läuft seit {time} wieder.',
-           'feed': 'Updates im Feedreader folgen (Atom)'},
+           'feed': 'Updates im Feedreader folgen (Atom)',
+           'planned': 'Geplante Wartung', 'until': 'bis {time}', 'now': 'Jetzt'},
 }
 
 
@@ -179,6 +183,29 @@ def remove_update(update_id):
     except status_page.StatusError as exc:
         return jsonify({'error': str(exc)}), exc.status
     audit.record('status page', 'Removed status update', g.get('audit_user'), update_id)
+    _changed()
+    return jsonify({'ok': True})
+
+
+@bp.route('/api/status-page/maintenance', methods=['POST'])
+def plan_maintenance():
+    try:
+        item = status_page.plan_maintenance(request.get_json(silent=True) or {}, _who())
+    except status_page.StatusError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    when = time.strftime('%d.%m. %H:%M', time.localtime(item['start']))
+    audit.record('status page', 'Planned maintenance', g.get('audit_user'), f"{when}: {item['text'][:100]}")
+    _changed()
+    return jsonify(item), 201
+
+
+@bp.route('/api/status-page/maintenance/<item_id>', methods=['DELETE'])
+def cancel_maintenance(item_id):
+    try:
+        status_page.cancel_maintenance(item_id)
+    except status_page.StatusError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('status page', 'Cancelled planned maintenance', g.get('audit_user'), item_id)
     _changed()
     return jsonify({'ok': True})
 

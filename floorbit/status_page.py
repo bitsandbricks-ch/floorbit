@@ -9,6 +9,9 @@ some down is ``degraded``; a router or firewall down, or half the switches or mo
 the monitoring source unreachable is ``unknown`` (better than claiming all is fine). The crew can set
 the state by hand (for example ``maintenance``) until they clear it.
 
+Planned maintenance (issue #422) is announced ahead with a start and an end: attendees see it coming,
+and while it runs the state is ``maintenance`` by itself, unless the crew set one by hand.
+
 Which seats a switch serves comes from the port reads (a port's description names its seat, see
 floorbit/attention.py), remembered while the switch is down. A switch with no seats known counts
 for the seat block nearest to it on the floor plan.
@@ -30,6 +33,8 @@ CORE_ROLES = ('router', 'firewall')
 MAX_UPDATES = 50
 RECOVERED_FOR = 30 * 60   # how long an area stays under "Back up recently"
 MAX_TEXT = 500
+MAX_PLANNED = 20
+MAX_PLANNED_AHEAD = 14 * 24 * 3600   # a typo in the date shouldn't announce something for next year
 _lock = threading.Lock()
 _seats_of = {}   # switch name (lower case) -> seats it served when last read
 
@@ -43,7 +48,8 @@ class StatusError(ValueError):
 def _stored(data):
     raw = data.get(KEY)
     raw = raw if isinstance(raw, dict) else {}
-    return {'override': raw.get('override'), 'updates': [u for u in raw.get('updates') or [] if isinstance(u, dict)]}
+    return {'override': raw.get('override'), 'updates': [u for u in raw.get('updates') or [] if isinstance(u, dict)],
+            'planned': [m for m in raw.get('planned') or [] if isinstance(m, dict)]}
 
 
 def _text(value, limit):
@@ -77,6 +83,52 @@ def delete_update(update_id):
         if len(kept) == len(stored['updates']):
             raise StatusError('No such update.', 404)
         stored['updates'] = kept
+        data[KEY] = stored
+        save_data(data)
+
+
+def _when(value, name):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise StatusError(f'Give the {name} as a time.') from None
+
+
+def plan_maintenance(body, by, now=None):
+    """``{"start", "end", "text", "area"}`` (Unix times): announce maintenance attendees see coming."""
+    now = time.time() if now is None else now
+    start, end = _when(body.get('start'), 'start'), _when(body.get('end'), 'end')
+    text = _text(body.get('text'), MAX_TEXT)
+    if not text:
+        raise StatusError('Write what attendees should know.')
+    if end <= start:
+        raise StatusError('The end has to be after the start.')
+    if end <= now:
+        raise StatusError('That time is already over.')
+    if start > now + MAX_PLANNED_AHEAD:
+        raise StatusError('Plan at most two weeks ahead.')
+    item = {'id': uuid.uuid4().hex[:10], 'start': start, 'end': end, 'text': text,
+            'area': _text(body.get('area'), 80), 'by': by, 'at': now}
+    with _lock:
+        data = load_data()
+        stored = _stored(data)
+        planned = [m for m in stored['planned'] if (m.get('end') or 0) > now]   # what is over goes
+        if len(planned) >= MAX_PLANNED:
+            raise StatusError(f'At most {MAX_PLANNED} planned at a time.')
+        stored['planned'] = sorted([*planned, item], key=lambda m: m['start'])
+        data[KEY] = stored
+        save_data(data)
+    return item
+
+
+def cancel_maintenance(item_id):
+    with _lock:
+        data = load_data()
+        stored = _stored(data)
+        kept = [m for m in stored['planned'] if m.get('id') != item_id]
+        if len(kept) == len(stored['planned']):
+            raise StatusError('No such maintenance.', 404)
+        stored['planned'] = kept
         data[KEY] = stored
         save_data(data)
 
@@ -181,8 +233,9 @@ def affected(data, down, show_names=False):
     return sorted(out, key=lambda a: (-(a['seats'] or 0), a['hall'], a['block']))
 
 
-def current(data, statuses, monitoring_up, show_names=False):
+def current(data, statuses, monitoring_up, show_names=False, now=None):
     """The page: state, why, areas and updates. ``statuses`` is the monitor's {id: {'status'}}."""
+    now = time.time() if now is None else now
     stored = _stored(data)
     placed = [d for d in inventory.devices(data) if d.get('x') is not None]
     down = [d for d in placed if (statuses.get(d['id']) or {}).get('status') == 'offline']
@@ -195,14 +248,15 @@ def current(data, statuses, monitoring_up, show_names=False):
     else:
         auto = 'degraded'
     override = stored['override']
+    planned = sorted((m for m in stored['planned'] if (m.get('end') or 0) > now), key=lambda m: m['start'])
+    running = next((m for m in planned if m['start'] <= now), None)
     since = [s.get('since') for s in statuses.values() if s.get('status') == 'offline' and s.get('since')]
     # Back from offline in the last half hour (issue #394): attendees who saw the outage see it is over.
-    now = time.time()
     back = [d for d in placed if (statuses.get(d['id']) or {}).get('status') == 'online'
             and statuses[d['id']].get('previous') == 'offline'
             and (statuses[d['id']].get('since') or 0) >= now - RECOVERED_FOR]
     return {
-        'state': override['state'] if override else auto,
+        'state': override['state'] if override else 'maintenance' if running else auto,
         'auto_state': auto,
         'override': override,
         'since': min(since) if since and down else None,
@@ -210,6 +264,8 @@ def current(data, statuses, monitoring_up, show_names=False):
         'updates': [{k: u.get(k) for k in ('id', 'at', 'text', 'state', 'area')} for u in stored['updates']],
         'recovered': affected(data, back, show_names) if back and monitoring_up else [],
         'recovered_at': max(statuses[d['id']]['since'] for d in back) if back and monitoring_up else None,
+        'planned': [{k: m.get(k) for k in ('id', 'start', 'end', 'text', 'area')} for m in planned],
+        'maintenance_now': {k: running.get(k) for k in ('id', 'start', 'end', 'text', 'area')} if running else None,
         'checked_at': now,
     }
 

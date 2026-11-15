@@ -38,5 +38,15 @@
     "unknown": "Unbekannt"
   },
   "recovered": "Wieder da",
-  "recoveredAt": "Seit {{time}} wieder da. Die Besucher sehen das eine halbe Stunde lang."
+  "recoveredAt": "Seit {{time}} wieder da. Die Besucher sehen das eine halbe Stunde lang.",
+  "planned": "Geplante Wartung",
+  "plannedIntro": "Arbeiten im Voraus ankündigen: Die Besucher sehen sie auf der Statusseite kommen, und solange sie laufen, zeigt die Seite von selbst Wartung (ausser ihr setzt den Status von Hand).",
+  "plannedStart": "Von",
+  "plannedEnd": "Bis",
+  "plannedText": "Was die Besucher wissen sollen",
+  "plannedPlaceholder": "z. B. Switch-Tausch in Halle B, ein paar Minuten ohne Netzwerk",
+  "plannedAdd": "Ankündigen",
+  "plannedNone": "Nichts geplant.",
+  "plannedNow": "Jetzt",
+  "plannedCancel": "Diese Wartung absagen"
 }
