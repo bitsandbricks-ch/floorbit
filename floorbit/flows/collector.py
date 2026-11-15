@@ -16,6 +16,7 @@ from .parse import ParseError, Templates, parse
 PUBLISH_EVERY = 10
 SEATS_EVERY = 60
 PRUNE_EVERY = 3600
+FEATURE_EVERY = 30
 
 
 class Collector:
@@ -25,8 +26,21 @@ class Collector:
         self.templates = Templates()
         self.log = log
         self.errors = 0
-        self._next = {'publish': 0, 'seats': 0, 'prune': 0}
+        self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0}
         self._pending = []
+        self._on = True
+
+    def enabled(self, now=None):
+        """Is Traffic switched on (Settings > Features)? Asked every half minute, not per packet."""
+        now = time.time() if now is None else now
+        if now >= self._next['feature']:
+            self._next['feature'] = now + FEATURE_EVERY
+            from .. import features
+            try:
+                self._on = features.on('traffic')
+            except (OSError, ValueError) as exc:
+                self.log(f'[flows] could not read the feature switches: {exc}')
+        return self._on
 
     def receive(self, data, exporter, now=None):
         now = time.time() if now is None else now
@@ -74,7 +88,8 @@ class Collector:
         while True:
             try:
                 data, (addr, _p) = sock.recvfrom(65535)
-                self.receive(data, addr)
+                if self.enabled():   # switched off: packets are read and dropped, nothing is kept
+                    self.receive(data, addr)
             except TimeoutError:
                 pass
             self.housekeeping()

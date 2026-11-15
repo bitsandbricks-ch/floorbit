@@ -248,3 +248,39 @@ body {
 .fb-match-plan .cell.match { fill: var(--color-warn); stroke: var(--color-warn); }
 .fb-match-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
 .fb-match-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-warn); }
+
+/* Pre-flight verdict (issue #35): the whole banner says go or no-go. */
+.fb-preflight-verdict.ready { border-color: var(--color-up); background: color-mix(in srgb, var(--color-up) 10%, transparent); }
+.fb-preflight-verdict.notReady { border-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 10%, transparent); }
+/* DNS analytics: lookups per hour, the blocked part on top. */
+.fb-dns-chart { width: 100%; height: 140px; display: block; }
+.fb-dns-chart .grid { stroke: var(--color-line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.fb-dns-chart .ok { fill: color-mix(in srgb, var(--color-bit) 55%, transparent); }
+.fb-dns-chart .blocked { fill: var(--color-down); }
+.fb-dns-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: color-mix(in srgb, var(--color-bit) 55%, transparent); }
+.fb-dns-key.blocked { background: var(--color-down); }
+/* Games: what the LAN cache served per hour, from disk below and from the internet on top. */
+.fb-dns-chart .hit { fill: var(--color-up); }
+.fb-dns-chart .miss { fill: color-mix(in srgb, var(--color-trace) 55%, transparent); }
+.fb-dns-key.hit { background: var(--color-up); }
+.fb-dns-key.miss { background: color-mix(in srgb, var(--color-trace) 55%, transparent); }
+.fb-dns-chart .capacity { stroke: var(--color-down); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+/* Compare views: now as a line, then dashed. */
+.fb-compare-chart polyline { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-compare-chart .now { stroke: var(--color-bit); }
+.fb-compare-chart .then { stroke: var(--color-muted); stroke-dasharray: 6 4; }
+.fb-compare-key { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--color-bit); vertical-align: 3px; }
+.fb-compare-key.then { border-top: 2px dashed var(--color-muted); }
+
+/* Logs page on phones (pages/Logs.tsx) */
+.fb-log-lines { list-style: none; margin: 0; padding: 0; }
+.fb-log-line { padding: 8px 0; border-bottom: 1px solid var(--mantine-color-default-border); }
+.fb-wifi-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: 10px; display: block; }
+.fb-wifi-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-wifi-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-wifi-plan .heat { pointer-events: none; }
+.fb-wifi-plan .ap { stroke: var(--color-surface); stroke-width: 4; }
+.fb-wifi-plan .ap.down { stroke-dasharray: 6 4; stroke: var(--color-down); }
+.fb-wifi-plan .clash { fill: none; stroke: var(--color-down); stroke-width: 5; stroke-dasharray: 10 6; }
+.fb-wifi-plan .val { fill: #fff; font: 700 20px var(--font-sans); text-anchor: middle; paint-order: stroke; stroke: rgb(0 0 0 / .35); stroke-width: 3px; }
+.fb-wifi-plan .ap-name { fill: var(--color-fg); font: 600 22px var(--font-sans); text-anchor: middle; }

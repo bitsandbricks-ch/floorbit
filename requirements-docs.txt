@@ -1,0 +1,2 @@
+# Only for building the documentation site (mkdocs.yml); the app doesn't need it.
+mkdocs-material==9.8.1

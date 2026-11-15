@@ -36,5 +36,45 @@
   "noTop": "No traffic right now.",
   "seat": "Seat {{seat}}",
   "report": "Event report",
-  "replay": "Replay the event"
+  "replay": "Replay the event",
+  "forecast": {
+    "title": "Bandwidth forecast, next 12 hours",
+    "expected": "Expected",
+    "range": "Quietest to busiest day",
+    "capacity": "The line",
+    "notYet_one": "A forecast needs {{count}} hour of history; there is {{have}} so far.",
+    "notYet_other": "A forecast needs {{count}} hours of history; there are {{have}} so far.",
+    "alert": "Expected at {{pct}} % of the line around {{time}} ({{value}}).",
+    "chartLabel": "Bandwidth forecast: busiest expected {{value}} around {{time}}",
+    "how_one": "Each hour is the average busiest read at that time of day, from {{count}} day of this event.",
+    "how_other": "Each hour is the average busiest read at that time of day, from {{count}} days of this event.",
+    "noLevel": "Hours not seen yet use the last 3 hours.",
+    "level": "The last 3 hours ran {{pct}} % {{dir}} than on earlier days, so the forecast is scaled by that.",
+    "busier": "busier",
+    "quieter": "quieter",
+    "noCapacity": "Set FORECAST_CAPACITY_MBPS to warn before the line fills."
+  },
+  "compare": {
+    "title": "Compare",
+    "dayView": "Today and yesterday",
+    "eventView": "This event and {{name}}",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisEvent": "This event",
+    "change": "Change",
+    "dayFair": "Today so far, and yesterday until the same time.",
+    "eventFair_one": "The first {{count}} hour of this event, and of {{name}}.",
+    "eventFair_other": "The first {{count}} hours of this event, and of {{name}}.",
+    "noYesterday": "Nothing from yesterday to compare with yet.",
+    "chartLabel": "Average bandwidth per hour: {{now}} and {{then}}",
+    "hourN": "Hour {{n}}",
+    "row": {
+      "peak_bps": "Busiest moment",
+      "avg_bps": "Average bandwidth",
+      "bytes_moved": "Data moved",
+      "online_max": "Most seats online",
+      "incidents": "Incidents",
+      "outages": "Switch outages"
+    }
+  }
 }

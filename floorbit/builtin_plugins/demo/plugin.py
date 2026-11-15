@@ -1,5 +1,5 @@
 """Made-up data for every data area: inventory, seat mapping, monitoring, the health wall, port actions,
-security findings and power readings.
+security findings, power readings and DNS lookups.
 
 Everything is computed from the seat and switch numbers plus the clock, so it needs no state,
 moves a little on every poll and looks the same on every instance. Names are generic, IPs come
@@ -25,13 +25,22 @@ _bounced = {}                 # (switch, port) -> time the port comes back
 _shut = set()                 # (switch, port) shut until turned on again
 DHCP_POOL = 100               # small enough that the player scope shows amber
 
+# Access points: (name, where on the plan, (2.4 GHz channel or None, 5 GHz channel)). ap-02 and
+# ap-03 share channel 44 a little too close together, so the Wi-Fi view has an overlap to show. The
+# stage AP is 5 GHz only, as high-density APs often are.
+APS = (('ap-01', (14, 30), (1, 36)), ('ap-02', (40, 30), (6, 44)), ('ap-03', (60, 30), (11, 44)),
+       ('ap-04', (86, 30), (1, 52)), ('ap-05', (14, 92), (6, 100)), ('ap-06', (40, 92), (11, 116)),
+       ('ap-07', (60, 92), (1, 132)), ('ap-08', (86, 92), (6, 149)), ('ap-stage', (50, 60), (None, 60)))
+CROWDED_AP = 'ap-stage'     # the stage: always busy
+
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
 # Blocks in a 2 x 2 grid (12 seats of 3.5 % each are 42 % wide), their switches just above them.
 _CENTRES = {'A': (27, 42), 'B': (73, 42), 'C': (27, 78), 'D': (73, 78)}
 LAYOUT = {
     'devices': {'core-01': (50, 8), 'dist-01': (27, 20), 'dist-02': (73, 20),
                 **{f'sw-{b.lower()}-{n:02d}': (x + (n - 2) * 13, y - 12)
-                   for b, (x, y) in _CENTRES.items() for n in range(1, SWITCHES_PER_BLOCK + 1)}},
+                   for b, (x, y) in _CENTRES.items() for n in range(1, SWITCHES_PER_BLOCK + 1)},
+                **{name: pos for name, pos, _ch in APS}},
     'blocks': [{'name': b, 'x': x, 'y': y, 'cols': COLS, 'rows': ROWS} for b, (x, y) in _CENTRES.items()],
     # Two boards, one 16 A circuit per seat row (phases in turn) and one for the network rack.
     'power': {
@@ -45,6 +54,25 @@ LAYOUT = {
             'switches': ['core-01', 'dist-01', 'dist-02']}],
     },
 }
+
+
+# (name, weight, blocked by the resolver) for the demo lookups.
+DNS_SITES = (
+    ('cdn.steamcontent.com', 18, False), ('api.steampowered.com', 8, False), ('gateway.discord.gg', 10, False),
+    ('cdn.discordapp.com', 5, False), ('video-edge.ttvnw.net', 8, False), ('www.twitch.tv', 3, False),
+    ('rr3.googlevideo.com', 5, False), ('www.youtube.com', 3, False), ('eu.battle.net', 4, False),
+    ('auth.riotgames.com', 3, False), ('download.windowsupdate.com', 3, False), ('api.spotify.com', 2, False),
+    ('ads.doubleclick.net', 4, True), ('telemetry.tracker.example', 2, True), ('www.wikipedia.org', 2, False),
+)
+
+
+def _dns_pick(pick, index):
+    """(domain, blocked) for a number below the weights' sum plus 6: past the sum, the seat's own."""
+    for domain, weight, blocked in DNS_SITES:
+        if pick < weight:
+            return domain, blocked
+        pick -= weight
+    return (f'www.hobby-{index}.example' if pick < 4 else f'pc-{index}.lan'), False
 
 
 def _seats():
@@ -110,12 +138,91 @@ def _short(hostname):
     return (hostname or '').lower().split('.')[0]
 
 
+class DemoShell:
+    """A pretend switch CLI for the browser terminal: echoes keys and answers the show commands."""
+
+    HELP = ('show interfaces status', 'show interface <port>', 'show mac address-table', 'show version', 'exit')
+
+    def __init__(self, plugin, name):
+        self.plugin, self.name, self.line, self.closed = plugin, name, '', False
+        self.pending = (f'\r\n{name} (demo: no switch is touched)\r\n'
+                        f'Type ? for the commands this pretend switch knows.\r\n\r\n{name}#')
+
+    def recv(self):
+        if self.closed and not self.pending:
+            return None
+        out, self.pending = self.pending, ''
+        return out
+
+    def send(self, data):
+        for ch in data:
+            if ch in '\r\n':
+                self._enter()
+            elif ch in '\x7f\b':
+                if self.line:
+                    self.line = self.line[:-1]
+                    self.pending += '\b \b'
+            elif ch == '?':
+                self.pending += '?\r\n' + '\r\n'.join(f'  {c}' for c in self.HELP) + f'\r\n{self.name}#{self.line}'
+            elif ch == '\x03':
+                self.line = ''
+                self.pending += f'^C\r\n{self.name}#'
+            elif ch >= ' ':
+                self.line += ch
+                self.pending += ch
+
+    def _enter(self):
+        command, self.line = ' '.join(self.line.split()), ''
+        if command in ('exit', 'quit', 'logout'):
+            self.pending += '\r\n'
+            self.closed = True
+            return
+        out = ''
+        if command:
+            out = self.plugin.send_commands({'switch': self.name, 'commands': [command]})['output']
+        self.pending += '\r\n' + (out.replace('\n', '\r\n') + '\r\n' if out else '') + f'{self.name}#'
+
+    def resize(self, cols, rows):
+        pass
+
+    def close(self):
+        self.closed = True
+
+
 class Plugin(Plugin):
     # inventory --------------------------------------------------------------------------
     def inventory(self):
+        aps = [{'id': name, 'name': name, 'role': 'access-point', 'model': 'Example AP 6', 'serial': f'DEMOAP{i:03d}',
+                'mgmt_ip': f'198.51.100.{100 + i}', 'hall': 'Demo hall', 'status': 'active'}
+               for i, (name, _pos, _ch) in enumerate(APS, 1)]
         return [{'id': name, 'name': name, 'role': role, 'model': _model(name),
                  'serial': f'DEMO{i:05d}', 'mgmt_ip': f'198.51.100.{i}', 'hall': 'Demo hall',
-                 'status': 'active'} for name, role, i in _switches()]
+                 'status': 'active'} for name, role, i in _switches()] + aps
+
+    # wifi -------------------------------------------------------------------------------
+    def wifi_aps(self):
+        out = []
+        for i, (name, _pos, (ch24, ch5)) in enumerate(APS):
+            busy = name == CROWDED_AP
+            load = 0.8 + 0.2 * _wave(i, period=600) if busy else 0.15 + 0.45 * _wave(i, period=900)
+            n24, n5 = round(4 + 10 * load), round(8 + (40 if busy else 30) * load)
+            out.append({'name': name, 'model': 'Example AP 6', 'status': 'up',
+                        'radios': ([{'band': '2.4', 'channel': ch24, 'width': 20,
+                                     'utilization': round(30 + 55 * load), 'clients': n24}] if ch24 else [])
+                        + [{'band': '5', 'channel': ch5, 'width': 80, 'utilization': round(10 + 75 * load),
+                            'clients': n5}]})
+        return out
+
+    def cables(self):
+        # The first block's seats run through a patch panel, the rest go straight to the switch.
+        out = []
+        for seat, block, number, _i in _seats():
+            switch, port = _switch_for(block, number)
+            panel = f'PP-{block}' if block == BLOCKS[0] else ''
+            out.append({'label': f'NB-{seat}', 'switch': switch, 'port': port, 'panel': panel,
+                        'panel_port': str(number) if panel else '', 'seat': seat, 'color': 'blue',
+                        'length_m': 5 if panel else 10})
+        return out
 
     # seat mapping -----------------------------------------------------------------------
     def seat_mapping(self):
@@ -129,11 +236,17 @@ class Plugin(Plugin):
     def devices(self):
         return [{'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name,
                  'status': 0 if _down(name) else 1, 'status_reason': 'icmp' if _down(name) else ''}
-                for name, _role, _i in _switches()]
+                for name, _role, _i in _switches()] + [
+            {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': 1, 'status_reason': ''}
+            for name, _pos, _ch in APS]
 
     def device_details(self, hostname):
         name = _short(hostname)
         found = next(((n, i) for n, _r, i in _switches() if n == name), None)
+        ap = next((i for i, (n, _p, _c) in enumerate(APS, 1) if n == name), None)
+        if ap:
+            return {'status': 'online', 'hostname': hostname, 'ip': f'198.51.100.{100 + ap}',
+                    'cpu_load': round(10 + 20 * _wave(ap)), 'total_ports': 1, 'up_ports': 1}
         if not found:
             return {'status': 'unknown', 'hostname': hostname}
         name, i = found
@@ -227,6 +340,85 @@ class Plugin(Plugin):
         state = 'on again' if target.get('enabled') else 'shut'
         return {'message': f"{target['port']} on {name} is {state} (demo: no switch was touched)."}
 
+    # switch commands (issue #94) ---------------------------------------------------------
+    def command_platform(self):
+        return 'cisco_ios'
+
+    def send_commands(self, target):
+        """Made-up answers in Cisco IOS style, from the same seats the floor plan shows."""
+        name = _short(target['switch'])
+        if not any(n == name for n, _r, _i in _switches()):
+            raise PluginError(f"{target['switch']} is not a demo switch.")
+        parts = []
+        for command in target.get('commands') or []:
+            words = command.split()
+            port = words[-1] if words and '/' in words[-1] else None
+            if words[:1] == ['clear']:
+                parts.append('')
+            elif 'mac' in command:
+                parts.append(self._demo_macs(name, port))
+            elif words[:2] == ['show', 'interfaces'] and 'status' in words:
+                parts.append(self._demo_status(name))
+            elif 'errors' in words:
+                parts.append(self._demo_errors(name))
+            elif words[:2] == ['show', 'interface'] and port:
+                parts.append(self._demo_interface(name, port))
+            elif words[:2] == ['show', 'version']:
+                parts.append(f'Example Switch Software, Version 17.9.4 (demo)\n{name} uptime is 3 days, 4 hours\n'
+                             f'Model number: {_model(name)}')
+            else:
+                parts.append(f'% Invalid input detected at \'^\' marker. (demo: "{command}")')
+                return {'output': '\n\n'.join(parts), 'refused': command}
+        return {'output': '\n\n'.join(parts) or '(demo: no switch was touched)', 'refused': None}
+
+    def open_shell(self, target):
+        name = _short(target['switch'])
+        if not any(n == name for n, _r, _i in _switches()):
+            raise PluginError(f"{target['switch']} is not a demo switch.")
+        return DemoShell(self, name)
+
+    def _demo_ports(self, name):
+        return [(s, b, n, i, _switch_for(b, n)[1]) for s, b, n, i in _seats() if _switch_for(b, n)[0] == name]
+
+    def _demo_status(self, name):
+        rows = ['Port      Name          Status       Vlan  Duplex  Speed Type']
+        for seat, _b, _n, _i, port in self._demo_ports(name):
+            st = self.port_stats(name, port) or {}
+            up = st.get('state') == 'up'
+            rows.append(f"{port:<9} {'Seat ' + seat:<13} {'connected' if up else 'notconnect':<12} 100   "
+                        f"{'a-full' if up else 'auto':<7} {'a-1000' if up else 'auto':<5} 10/100/1000BaseTX")
+        return '\n'.join(rows)
+
+    def _demo_macs(self, name, port):
+        rows = ['          Mac Address Table', '-------------------------------------------',
+                'Vlan    Mac Address       Type        Ports', '----    -----------       --------    -----']
+        for _seat, _b, _n, i, p in self._demo_ports(name):
+            if _taken(i) and (not port or p.lower() == port.lower()):
+                mac = _mac(i).replace(':', '')
+                rows.append(f' 100    {mac[0:4]}.{mac[4:8]}.{mac[8:12]}    DYNAMIC     {p}')
+        rows.append(f'Total Mac Addresses for this criterion: {len(rows) - 4}')
+        return '\n'.join(rows)
+
+    def _demo_errors(self, name):
+        rows = ['Port        Align-Err     FCS-Err    Xmit-Err     Rcv-Err  UnderSize  OutDiscards']
+        for _seat, b, n, _i, port in self._demo_ports(name):
+            errors = 1200 + int(time.time() // 2) % 100000 if (b, n) == ERRORS else 0
+            rows.append(f'{port:<11} {0:>9} {errors:>10} {0:>11} {errors:>11} {0:>10} {0:>12}')
+        return '\n'.join(rows)
+
+    def _demo_interface(self, name, port):
+        st = self.port_stats(name, port)
+        if not st:
+            return f"% Invalid input detected at '^' marker. (demo: {port} is no seat port on {name})"
+        up = st.get('state') == 'up'
+        return (f"{port} is {'up' if up else 'down'}, line protocol is {'up' if up else 'down'}"
+                f"{'' if up else ' (notconnect)'}\n"
+                f"  Description: {st.get('description') or ''}\n"
+                f"  {'Half' if st.get('duplex') == 'half' else 'Full'}-duplex, 1000Mb/s, media 1000BaseTX\n"
+                f"  5 minute input rate {int(st.get('upload_bps') or 0)} bits/sec\n"
+                f"  5 minute output rate {int(st.get('download_bps') or 0)} bits/sec\n"
+                f"  {int(st.get('errors_in') or 0)} input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored")
+
     # security findings ------------------------------------------------------------------
     def security_findings(self):
         """A few made-up findings; the rogue DHCP server comes and goes so alerts can be tried."""
@@ -318,6 +510,25 @@ class Plugin(Plugin):
             else:
                 amps = 6 + 5 * _wave(30 + i, now, period=900)
             out.append({'meter': c['meter'], 'amps': round(amps, 1)})
+        return out
+
+    # dns --------------------------------------------------------------------------------
+    def dns_queries(self, since):
+        """Lookups from every player, about two a minute each. Busy sites are looked up by many seats,
+        each seat also looks up a site of its own (never named: too few clients) and its own PC."""
+        now = time.time()
+        total = sum(w for _d, w, _b in DNS_SITES)
+        out = []
+        for minute in range(int(max(since, now - 600) // 60), int(now // 60) + 1):
+            for _seat, _b, _n, i in _seats():
+                if not _taken(i):
+                    continue
+                for k in range(2):
+                    ts = minute * 60 + (i * 7 + k * 29) % 60
+                    if not since < ts <= now:
+                        continue
+                    domain, blocked = _dns_pick((i * 31 + minute * 17 + k * 13) % (total + 6), i)
+                    out.append({'ts': ts, 'domain': domain, 'client': _ip(i), 'blocked': blocked})
         return out
 
     def test(self):

@@ -25,6 +25,7 @@ import uuid
 
 from integrations import config, events
 
+from . import features
 from .plugins import PluginError
 from .store import load_data, save_data
 
@@ -318,7 +319,7 @@ class PowerWatch:
 
     def _run(self):
         while not self._stop.is_set():
-            if enabled() and self.registry.feeders('power'):
+            if enabled() and features.on('power') and self.registry.feeders('power'):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
@@ -459,7 +460,7 @@ def _file_incident(circuit, alert, feeds):
                 if parts else f"Board {alert['board']}, phase {circuit['phase']}.")
         incident = incidents.create(None, {'circuit_id': circuit['id'], 'title': title, 'problem': 'power',
                                            'team': team, 'note': note}, source='power')
-        events.publish('incident.changed', {'id': incident['id'], 'status': incident['status']})
+        events.publish('incident.changed', {'id': incident['id'], 'status': incident['status'], 'action': 'created'})
         return incident
     except Exception as exc:  # noqa: BLE001  # the alert still goes out when the board can't take it
         print(f'[power] could not file the incident for {circuit.get("name")}: {exc}')

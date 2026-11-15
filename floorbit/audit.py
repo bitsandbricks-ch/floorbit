@@ -21,10 +21,18 @@ _lock = threading.Lock()
 # (method, URL rule) -> (area, action). Requests not listed here aren't logged: reads, the
 # attendee check-in (it has its own history), lookups sent as POST, connection tests.
 ACTIONS = {
+    ('POST', '/api/settings/webhooks'): ('settings', 'Added webhook'),
+    ('PATCH', '/api/settings/webhooks/<hook_id>'): ('settings', 'Changed webhook'),
+    ('DELETE', '/api/settings/webhooks/<hook_id>'): ('settings', 'Removed webhook'),
+    ('POST', '/api/settings/webhooks/<hook_id>/secret'): ('settings', 'Made a new webhook secret'),
+    ('POST', '/api/settings/api-tokens'): ('accounts', 'Created API token'),
+    ('DELETE', '/api/settings/api-tokens/<token_id>'): ('accounts', 'Revoked API token'),
     ('POST', '/api/tournament/zones'): ('floor plan', 'Added match zone'),
     ('PATCH', '/api/tournament/zones/<zone_id>'): ('floor plan', 'Changed match zone'),
     ('DELETE', '/api/tournament/zones/<zone_id>'): ('floor plan', 'Removed match zone'),
     ('POST', '/api/report/new-event'): ('report', 'Started a new event'),
+    ('PATCH', '/api/past-events/<event_id>'): ('report', 'Renamed a past event'),
+    ('DELETE', '/api/past-events/<event_id>'): ('report', 'Deleted a past event'),
     ('POST', '/api/switches'): ('floor plan', 'Added switch'),
     ('PUT', '/api/switches/<switch_id>'): ('floor plan', 'Changed switch'),
     ('DELETE', '/api/switches/<switch_id>'): ('floor plan', 'Deleted switch'),
@@ -72,6 +80,18 @@ ACTIONS = {
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
     ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
     ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
+    ('PUT', '/api/planner/settings'): ('floor plan', 'Changed the build plan'),
+    ('PUT', '/api/planner/templates/<template_id>'): ('floor plan', 'Saved a switch config template'),
+    ('DELETE', '/api/planner/templates/<template_id>'): ('floor plan', 'Removed a switch config template'),
+    ('POST', '/api/planner/apply'): ('floor plan', 'Added the planned switches'),
+    ('POST', '/api/gear/<device_id>/out'): ('gear', 'Checked out gear'),
+    ('POST', '/api/gear/<device_id>/in'): ('gear', 'Checked in gear'),
+    ('PUT', '/api/teardown/switches/<device_id>'): ('floor plan', 'Ticked a switch config as archived'),
+    ('POST', '/api/teardown/items'): ('floor plan', 'Added a teardown step'),
+    ('PATCH', '/api/teardown/items/<item_id>'): ('floor plan', 'Ticked a teardown step'),
+    ('DELETE', '/api/teardown/items/<item_id>'): ('floor plan', 'Removed a teardown step'),
+    ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
+    ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
     ('POST', '/api/jobs/<incident_id>/take'): ('incidents', 'Took job'),
@@ -81,7 +101,7 @@ ACTIONS = {
     ('POST', '/api/stats/peak/reset'): ('settings', 'Reset the bandwidth peak'),
 }
 AREAS = ('floor plan', 'inventory', 'seat mapping', 'settings', 'accounts', 'check-in', 'sign-in', 'plugins',
-         'incidents', 'ports', 'security', 'power', 'alerts')
+         'incidents', 'ports', 'security', 'power', 'alerts', 'gear', 'cables')
 # Called with each logged change (not sign-ins): plugins hook in here, see floorbit/plugins.
 listeners = []
 
@@ -148,6 +168,44 @@ def read(limit=100, offset=0, user=None, area=None, query=None):
             continue
         rows.append(e)
     return rows[offset:offset + limit], len(rows)
+
+
+def as_log_lines(q='', severity='', before=None, limit=200):
+    """The audit log as lines for the Logs page (issue #93), newest first. A line's id is its line
+    number in the file, enough to page back."""
+    from datetime import datetime
+
+    from .syslog import SEVERITIES
+    try:
+        with open(path(), encoding='utf-8') as f:
+            rows = f.readlines()
+    except FileNotFoundError:
+        return []
+    words = [w for w in str(q or '').lower().split() if w]
+    worst = SEVERITIES.index(severity) if severity in SEVERITIES else len(SEVERITIES) - 1
+    out = []
+    for n in range(len(rows), 0, -1):
+        if before is not None and n >= before:
+            continue
+        try:
+            e = json.loads(rows[n - 1])
+            ts = datetime.strptime(e['time'], '%Y-%m-%dT%H:%M:%S%z').timestamp()
+        except (ValueError, KeyError, TypeError):
+            continue
+        level = 'notice' if e.get('ok', True) else 'warning'
+        if SEVERITIES.index(level) > worst:
+            continue
+        message = ' '.join(str(x) for x in (e.get('action'), e.get('target')) if x)
+        if e.get('fields'):
+            message += f" ({', '.join(e['fields'])})"
+        user = e.get('user') or 'anonymous'
+        if words and not all(w in f"{user} {e.get('area')} {message}".lower() for w in words):
+            continue
+        out.append({'id': n, 'ts': ts, 'severity': level, 'device': user, 'program': e.get('area'),
+                    'message': message, 'port': None, 'seat': None})
+        if len(out) >= limit:
+            break
+    return out
 
 
 # ── Request hook ─────────────────────────────────────────────────────────────────────

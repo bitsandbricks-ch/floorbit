@@ -1,0 +1,16 @@
+# Lookups from Pi-hole's query log for DNS analytics (docs/dns.md). Hall-wide counts only.
+# Off until turned on under Settings > Plugins. It only reads.
+id: pihole
+name: Pi-hole
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Reads Pi-hole's query log (Pi-hole 6 and newer) for DNS analytics: what the hall looks up and what Pi-hole blocks. Floorbit keeps hall-wide counts only, never who looked up what."
+author: Floorbit
+homepage: https://pi-hole.net
+uses: [settings, http, dns]
+settings:
+  - {key: url, label: Pi-hole URL, type: url, placeholder: "https://pihole.example.com",
+     help: "The address of Pi-hole's web interface, without /admin."}
+  - {key: password, label: App password, type: secret,
+     help: "Settings > Web interface / API > Configure app password. The web password works too."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}

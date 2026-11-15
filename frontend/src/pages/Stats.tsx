@@ -6,11 +6,13 @@ import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useCan, useStats } from '@/api/queries'
+import { useCan, useFeature, useStats } from '@/api/queries'
 import type { StatsData, StatsSample } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { Compare } from './stats/Compare'
+import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
 
 const HOUR = 3600
@@ -56,6 +58,7 @@ function Chart({ series, label }: { series: StatsSample[]; label: string }) {
 
 function Board({ data, screen }: { data: StatsData; screen: boolean }) {
   const { t } = useTranslation()
+  const forecastOn = useFeature('forecast')
   const [range, setRange] = useState<'hour' | 'day'>(screen ? 'hour' : 'day')
   const now = data.now
   const since = (data.last_poll ?? data.series.at(-1)?.t ?? 0) - (range === 'hour' ? HOUR : 24 * HOUR)
@@ -86,6 +89,9 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
         <Chart series={series} label={t('stats.chartLabel')} />
         <OnlineLine series={series} />
       </section>
+
+      {forecastOn && !screen && <Forecast />}
+      {!screen && <Compare />}
 
       <section className="fb-stats-panel" aria-labelledby="stats-uplinks">
         <h2 id="stats-uplinks">{t('stats.uplinks')}</h2>
@@ -140,6 +146,8 @@ function OnlineLine({ series }: { series: StatsSample[] }) {
  *  ``?screen=1`` is the big version for a kiosk or ops screen: no header and no nicks. */
 export default function Stats() {
   const { t } = useTranslation()
+  const replayOn = useFeature('replay')
+  const reportOn = useFeature('report')
   const client = useQueryClient()
   const screen = new URLSearchParams(window.location.search).get('screen') === '1'
   const stats = useStats(screen)
@@ -177,12 +185,16 @@ export default function Stats() {
             <Button variant="default" component="a" href="/stats?screen=1" leftSection={<IconMaximize size={16} />}>
               {t('stats.screen')}
             </Button>
-            <Button variant="default" component="a" href="/replay" leftSection={<IconPlayerPlay size={16} />}>
-              {t('stats.replay')}
-            </Button>
-            <Button variant="default" component="a" href="/report" leftSection={<IconFileText size={16} />}>
-              {t('stats.report')}
-            </Button>
+            {replayOn && (
+              <Button variant="default" component="a" href="/replay" leftSection={<IconPlayerPlay size={16} />}>
+                {t('stats.replay')}
+              </Button>
+            )}
+            {reportOn && (
+              <Button variant="default" component="a" href="/report" leftSection={<IconFileText size={16} />}>
+                {t('stats.report')}
+              </Button>
+            )}
             {canReset && stats.data?.peak && (
               <ConfirmButton variant="default" danger label={t('stats.resetPeak')} question={t('stats.resetConfirm')}
                 onConfirm={() => reset.mutate()} loading={reset.isPending} />

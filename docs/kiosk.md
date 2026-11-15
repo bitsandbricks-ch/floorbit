@@ -12,7 +12,7 @@ Add them to the URL, for example `/kiosk?title=LAN%20Party&refresh=10`.
 | Option    | Default      | What it does |
 |-----------|--------------|--------------|
 | `title`   | event name, else `Floor plan` | Heading in the top bar. The event name is set under Settings > Appearance. |
-| `theme`   | `kiosk`      | Theme preset for this screen, remembered by the browser ([docs/themes.md](docs/themes.md)). |
+| `theme`   | `kiosk`      | Theme preset for this screen, remembered by the browser ([themes.md](themes.md)). |
 | `hall`    | the first hall | Which hall to show, by its id ([halls.md](halls.md)). |
 | `refresh` | `15`         | Seconds between status polls when live updates are off (5 to 300). |
 | `labels`  | `1`          | `0` hides switch names on the map. |

@@ -6,7 +6,8 @@ Gathered from what is already watched, without asking anything new:
 - placed switches that are offline (from the status monitor), marked when their alerts are muted;
 - red and amber services on the health wall;
 - high and medium security findings (where only, unless the account has ``seats.view``);
-- power circuits that tripped, are about to, or are getting close.
+- power circuits that tripped, are about to, or are getting close;
+- the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
 come as a list of their own under ``attention``, newest first.
@@ -98,6 +99,20 @@ def _power():
     return out
 
 
+def _forecast():
+    from . import features
+    watch = current_app.extensions.get('floorbit_forecast')
+    if not watch or not features.on('forecast'):
+        return []
+    alert = (watch.last or {}).get('alert')
+    if not alert or alert['t'] < time.time() - 3600:
+        return []
+    at = time.strftime('%H:%M', time.localtime(alert['t']))
+    return [{'id': f"forecast:{alert['t']}", 'kind': 'forecast', 'level': 'down' if alert['pct'] >= 100 else 'warn',
+             'title': f"Bandwidth expected at {alert['pct']} % of the line around {at}",
+             'where': 'Forecast from the hours so far', 'since': None, 'link': '/stats'}]
+
+
 def _attention():
     from urllib.parse import quote
 
@@ -113,9 +128,38 @@ def _attention():
     return out
 
 
+def _logs(may_see_people):
+    """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
+    from urllib.parse import quote
+
+    from . import features, inventory
+    from .store import load_data
+    from .tournament import match_seats
+    receiver = current_app.extensions.get('floorbit_syslog')
+    if not receiver or not features.on('syslog'):
+        return []
+    by_name = {d['name'].lower(): d['id'] for d in inventory.devices(load_data())}
+    match = match_seats()
+    out = []
+    for a in receiver.alert_items():
+        switch_id = by_name.get(a['device'].lower())
+        where = ' '.join(x for x in (a['device'], a['port']) if x) + (f" (seat {a['seat']})" if a['seat'] else '')
+        title = a['title'] + (f" ({a['count']} lines)" if a['count'] > 1 else '')
+        if may_see_people:
+            query = f"seat={quote(a['seat'])}" if a['seat'] else f"device={quote(a['device'])}"
+            link = f'/logs?{query}'
+        elif a['seat']:
+            link = f"/?seat={quote(a['seat'])}"
+        else:
+            link = f'/?switch={quote(switch_id)}' if switch_id else ''
+        out.append({'id': a['id'], 'kind': 'log', 'level': 'warn', 'title': title, 'where': where,
+                    'since': a['since'], 'link': link, 'switch_id': switch_id, 'match': match.get(a['seat'] or '')})
+    return out
+
+
 def current(may_see_people):
     muted = alerting.mutes()
-    items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power()
+    items = _monitoring() + _switches(muted) + _health() + _security(may_see_people) + _power() + _forecast()
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
@@ -124,7 +168,7 @@ def current(may_see_people):
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
     # Match seats (issue #31) first: a tournament player losing their link can't wait.
-    attention = sorted(_attention(), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
+    attention = sorted(_attention() + _logs(may_see_people), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
     counts['match'] = sum(bool(p.get('match')) for p in attention)
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, **v} for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]

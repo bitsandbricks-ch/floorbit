@@ -33,3 +33,6 @@ It is not in a backup (see [backup.md](backup.md)): it records what happened on 
 | --- | --- |
 | `GET /api/settings/audit?area=&user=&q=&limit=&offset=` | Entries, newest first, and the total that match. |
 | `GET /api/settings/audit.csv?area=&user=&q=` | The same as a CSV download. |
+
+The audit log can also be read on the Logs page, next to the syslog and Floorbit's own log, with
+the same search ([syslog.md](syslog.md#floorbits-own-log-and-the-audit-log)).

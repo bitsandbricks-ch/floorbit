@@ -12,6 +12,11 @@ function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) 
   return t('incidents.hoursAgo', { count: Math.round(mins / 60) })
 }
 
+/** Whole Mbit/s from 100 on: "912", not "912.4". */
+function mbit(n: number | null) {
+  return n == null ? '?' : n >= 100 ? String(Math.round(n)) : String(n)
+}
+
 /** One incident on the board, with the actions this account may take on it. */
 export function IncidentCard({
   incident: i,
@@ -63,6 +68,13 @@ export function IncidentCard({
                   mac: snap.mac_seen ? t('incidents.macSeen') : t('incidents.macMissing'),
                 })
               : t('incidents.snapshotUnknown', { reason: snap.reason })}
+          </Text>
+        )}
+        {i.speedtest && (
+          <Text size="sm" c="dimmed" data-speedtest>
+            {t('incidents.speedtest', {
+              down: mbit(i.speedtest.down_mbps), up: mbit(i.speedtest.up_mbps), ping: i.speedtest.ping_ms ?? '?', ago: ago(i.speedtest.at, t),
+            })}
           </Text>
         )}
         {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}

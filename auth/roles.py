@@ -19,7 +19,9 @@ PERMISSIONS = {
     'seats.edit': 'Change the seat mapping and check-ins',
     'incidents.work': 'Work incidents assigned to their teams',
     'incidents.assign': 'Assign incidents to any team',
-    'ports.act': 'Run port actions on switches',
+    'ports.act': 'Run port actions and show commands on switches',
+    'commands.change': 'Run switch commands that change something, such as clearing counters',
+    'terminal.open': 'Open a terminal on a switch in the browser, with their own switch login',
     'power.edit': 'Change power boards and circuits, enter readings and trips',
     'plugins.run': 'Run plugin actions',
     'audit.read': 'Read the audit log',
@@ -34,7 +36,8 @@ BUILTIN = {
              'description': 'Everything a tech can, plus the floor plan, assigning incidents to any team '
                             'and reading the audit log.',
              'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
-                             'incidents.assign', 'ports.act', 'power.edit', 'plugins.run', 'audit.read']},
+                             'incidents.assign', 'ports.act', 'commands.change', 'terminal.open', 'power.edit',
+                             'plugins.run', 'audit.read']},
     'tech': {'label': 'Tech',
              'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
              'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act']},
@@ -223,15 +226,46 @@ RULES = (
     ('/api/helpdesk/qr', READ, 'incidents.assign'),
     ('/incidents/qr', READ, 'incidents.assign'),
     ('/api/incidents', WRITE, 'floorplan.view'),
+    # Speed tests from the seats' help pages: the crew's, like the board (floorbit/speedtest.py).
+    ('/api/speedtests', READ, 'incidents.work'),
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch', READ, 'incidents.assign'),
+    # Teardown: the export carries a backup, so it is an admin's, like Settings > Backup.
+    ('/api/teardown/export.zip', READ, 'settings.manage'),
+    ('/api/teardown', None, 'floorplan.edit'),
+    ('/teardown', READ, 'floorplan.edit'),
+    # Gear loans name people and are the crew's (floorbit/gear.py).
+    ('/api/gear', None, 'incidents.work'),
+    ('/gear', READ, 'incidents.work'),
+    # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
+    ('/api/cables', WRITE, 'floorplan.edit'),
+    # Pre-flight checks ask the monitoring source and the health plugins now (floorbit/preflight.py).
+    ('/api/preflight/run', WRITE, 'incidents.work'),
+    # Build planner: the configs are the network's design (floorbit/planner.py).
+    ('/api/planner', None, 'floorplan.edit'),
+    ('/planner', READ, 'floorplan.edit'),
+    # Past events: closing one clears the running event's history, and a backup is an admin's.
+    ('/api/past-events/backup', READ, 'settings.manage'),
+    ('/api/past-events', WRITE, 'settings.manage'),
+    # Shift handover: the crew's summary, with names from the audit log (floorbit/handover.py).
+    ('/api/handover', None, 'incidents.work'),
+    ('/handover', READ, 'incidents.work'),
     # Port actions: the switch login is the tech's own, typed for each action (floorbit/ports.py).
     ('/api/ports', None, 'ports.act'),
+    # Switch commands: change templates also need commands.change, checked in the blueprint.
+    ('/api/commands/templates', WRITE, 'settings.manage'),
+    ('/api/commands', None, 'ports.act'),
+    ('/commands', READ, 'ports.act'),
+    # The browser terminal: every line typed is audited (floorbit/terminal.py).
+    ('/api/terminal', None, 'terminal.open'),
+    ('/terminal', READ, 'terminal.open'),
     # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.
     ('/api/security/check', WRITE, 'plugins.run'),
     ('/api/security', None, 'seats.view'),
     ('/security', READ, 'seats.view'),
+    ('/api/logs', None, 'seats.view'),   # logs name MACs and IPs
+    ('/logs', READ, 'seats.view'),
     # Asking every health plugin now sends requests out: the same as running a plugin action.
     ('/api/health', WRITE, 'plugins.run'),
     # Power: changes need power.edit, readings and trips also incidents.work in the Electrics team;

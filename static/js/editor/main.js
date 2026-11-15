@@ -32,6 +32,7 @@ async function init() {
   loadMatchSeats();
   loadPortInfo();
   loadSecurityMarkers();
+  loadLogMarkers();
   if (powerOn) setPowerLayer(readJSON('layer-power', false));
   loadPowerMarkers();
   loadProblemCount();

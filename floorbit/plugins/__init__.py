@@ -55,7 +55,13 @@ AREAS = {
     'ports': 'act on switch ports (bounce, shut, turn on), with the tech\'s own login (one plugin at a time)',
     'security': 'security findings: rogue DHCP, ARP spoofing, MAC flapping, loops and storms',
     'power': 'load readings per circuit from smart PDUs and meters',
+    'dns': 'lookups from the event\'s DNS resolver, for hall-wide DNS analytics (never per seat)',
+    'wifi': 'access point load and client counts per radio, for the Wi-Fi view (never client names or MACs)',
+    'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
+    'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
 }
+# What a context_menu entry can be on, and the action parameter that carries the target.
+MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -65,6 +71,15 @@ AREA_METHODS = {
     'security': ('security_findings',),
     'ports': ('port_login', 'bounce_port', 'set_port'),
     'power': ('power_readings',),
+    'dns': ('dns_queries',),
+    'logs': ('push_logs', 'query_logs'),
+    'wifi': ('wifi_aps',),
+}
+# Methods a plugin of the area may have but doesn't need: without them the feature says the plugin
+# can't do it (switch commands, issue #94; the browser terminal, issue #95).
+OPTIONAL_METHODS = {
+    'inventory': ('cables',),
+    'ports': ('send_commands', 'command_platform', 'open_shell'),
 }
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
@@ -164,7 +179,7 @@ def validate(m):
     if unknown:
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
-             'endpoints': 'endpoints', 'hooks': 'hooks'}
+             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
@@ -200,12 +215,41 @@ def validate(m):
                     return f"widgets.{item['id']}: size must be small or wide"
                 item['refresh'] = max(10, int(item.get('refresh') or 60))
     actions = {a['id'] for a in m.get('actions') or []}
+    err = _check_menu(m)
+    if err:
+        return err
     for h in m.get('hooks') or []:
         if not isinstance(h, dict) or h.get('action') not in actions:
             return f'hooks: unknown action {h!r}'
         events = h.get('events') or []
         if not events or any(e not in EVENTS for e in events):
             return f"hooks: events must be some of {', '.join(EVENTS)}"
+    return ''
+
+
+def _check_menu(m):
+    """context_menu entries: an action of the plugin, on seats and/or switches, which takes the target."""
+    entries = m.get('context_menu') or []
+    if not isinstance(entries, list):
+        return 'context_menu: a list of entries'
+    actions = {a['id']: a for a in m.get('actions') or [] if isinstance(a, dict)}
+    for entry in entries:
+        action = actions.get(entry.get('action')) if isinstance(entry, dict) else None
+        if action is None:
+            return f'context_menu: unknown action {entry!r}'
+        # "targets", not "on": YAML reads a bare on as true.
+        on = entry.get('targets')
+        on = [on] if isinstance(on, str) else on
+        if not isinstance(on, list) or not on or any(t not in MENU_TARGETS for t in on):
+            return f"context_menu.{action['id']}: targets must be seat, switch or both"
+        params = {f.get('key') for f in action.get('params') or []}
+        missing = [MENU_TARGETS[t] for t in on if MENU_TARGETS[t] not in params]
+        if missing:
+            return f"context_menu.{action['id']}: the action needs a {' and a '.join(missing)} parameter"
+        entry['targets'] = on
+        entry.setdefault('label', action['label'])
+        if not isinstance(entry['label'], str) or not 1 <= len(entry['label']) <= 60:
+            return f"context_menu.{action['id']}: label is 1 to 60 characters"
     return ''
 
 
@@ -218,12 +262,14 @@ def _check_methods(spec):
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
     allowed |= {'test'}
-    for area, methods in AREA_METHODS.items():
-        for method in methods:
-            if area in spec.uses:
-                allowed.add(method)
-            elif callable(getattr(cls, method, None)):
-                return f'plugin.py: {method}() needs "{area}" under uses:'
+    optional = set()
+    for table in (AREA_METHODS, OPTIONAL_METHODS):
+        for area, methods in table.items():
+            for method in methods:
+                if area in spec.uses:
+                    (allowed if table is AREA_METHODS else optional).add(method)
+                elif callable(getattr(cls, method, None)):
+                    return f'plugin.py: {method}() needs "{area}" under uses:'
     for name in dir(cls):
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
@@ -457,10 +503,20 @@ class Registry:
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
 
     def monitoring_source(self):
-        """The monitoring plugin in use: the first one that is on, in id order (or None)."""
+        """The monitoring plugin in use: the first one that is on and set up, in id order (or None).
+
+        LibreNMS is on by default, so a hall that switched to Prometheus would otherwise still ask an
+        empty LibreNMS. Only one is used at a time: a mix of two sources would be nonsense.
+        """
         found = self.feeders('monitoring')
-        # Demo data, once on, replaces the live source: a mix of both would be nonsense.
-        found.sort(key=lambda spec: spec.id != 'demo')
+
+        def set_up(spec):
+            try:
+                return bool(self.call(spec, 'configured'))
+            except PluginError:
+                return False
+        # Demo data, once on, replaces the live source.
+        found.sort(key=lambda spec: (spec.id != 'demo', not set_up(spec)))
         return found[0] if found else None
 
     def demo_on(self):

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Floorbit">
+  <title>Floorbit</title>
+  <rect width="32" height="32" rx="7" fill="#0B0B0F"/>
+  <rect x="3" y="3" width="7.42857" height="7.42857" rx="1.63429" fill="#2EE59D"/>
+  <rect x="12.2857" y="3" width="7.42857" height="7.42857" rx="1.63429" fill="#2EE59D"/>
+  <rect x="21.5714" y="3" width="7.42857" height="7.42857" rx="1.63429" fill="#2EE59D"/>
+  <rect x="3" y="12.2857" width="7.42857" height="7.42857" rx="1.63429" fill="#2EE59D"/>
+  <rect x="12.2857" y="12.2857" width="7.42857" height="7.42857" rx="1.63429" fill="#2EE59D"/>
+  <rect x="3" y="21.5714" width="7.42857" height="7.42857" rx="1.63429" fill="#2EE59D"/></svg>

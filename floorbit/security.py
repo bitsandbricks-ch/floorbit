@@ -21,6 +21,7 @@ import time
 
 from integrations import config, events
 
+from . import features
 from .plugins import PluginError
 
 KINDS = ('rogue-dhcp', 'arp-spoof', 'mac-flap', 'loop', 'storm', 'other')
@@ -116,7 +117,7 @@ class SecurityWatch:
 
     def _run(self):
         while not self._stop.is_set():
-            if self.registry.feeders('security'):
+            if features.on('security') and self.registry.feeders('security'):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what

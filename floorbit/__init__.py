@@ -78,8 +78,16 @@ def create_app(start_background=True):
     # Who changed what: every successful change and sign-in, see floorbit/audit.py.
     init_audit(app)
 
+    # Floorbit's own log lines, for the Logs page next to the syslog (docs/syslog.md).
+    from .app_log import init_app_log
+    init_app_log(app, start_background=start_background)
+
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
+
+    # Features an admin turned off answer 404 and leave the navigation (docs/features.md).
+    from .features import init_features
+    init_features(app)
 
     # /settings page plus GET/PUT /api/settings and POST /api/settings/test/<service>
     app.register_blueprint(create_settings_blueprint(
@@ -97,7 +105,8 @@ def create_app(start_background=True):
 
     # Plugins: actions, widgets, endpoints and hooks from floorbit/builtin_plugins (see docs/plugins.md).
     version_file = ROOT / 'VERSION'
-    registry = init_plugins(app, settings_store, version_file.read_text().strip() if version_file.is_file() else '0')
+    app.config['FLOORBIT_VERSION'] = version_file.read_text().strip() if version_file.is_file() else '0'
+    registry = init_plugins(app, settings_store, app.config['FLOORBIT_VERSION'])
 
     # The service health wall: health plugins polled in the background (docs/health.md).
     from .health import init_health
@@ -111,11 +120,31 @@ def create_app(start_background=True):
     from .power import init_power
     init_power(app, registry, start_background=start_background)
 
+    # DNS analytics: what the hall looks up, hall-wide only (docs/dns.md).
+    from .dns import init_dns
+    init_dns(app, registry, start_background=start_background)
+
+    # What the LAN cache served, from its access log (docs/games.md).
+    from .lancache import init_lancache
+    init_lancache(app, start_background=start_background)
+
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
     from .stats import init_stats
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
+
+    # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
+    from .syslog import init_syslog
+    init_syslog(app, registry, start_background=start_background)
+
+    # Bandwidth forecast from the stats' hours, with a warning before the line fills (docs/forecast.md).
+    from .forecast import init_forecast
+    init_forecast(app, start_background=start_background)
+
+    # Outgoing webhooks: chosen events POSTed to other tools, signed (docs/api.md#webhooks).
+    from .webhooks import init_webhooks
+    init_webhooks(app, start_background=start_background)
 
     # FLOORBIT_DEMO=1: lay the demo hall out on an empty floor plan (docs/demo.md).
     from .blueprints.demo import seed_on_start

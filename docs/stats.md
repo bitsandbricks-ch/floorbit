@@ -38,6 +38,30 @@ so a restart doesn't lose them. Without Redis they live in memory until the next
 **Reset peak** (needs `settings.manage`, in the audit log under settings) starts the event's peak
 again from the latest read: use it after load tests, before doors open.
 
+## Compare
+
+Under the charts, **Compare** puts today next to yesterday and, once an event has been archived
+([past events](events.md)), this event next to the last one. Both sides are cut to the same
+length, so the numbers are fair. At 15:00, today is compared with yesterday until 15:00, and an
+event in its 20th hour with the last event's first 20 hours.
+
+It shows six rows, each with the change in percent:
+
+- the busiest moment;
+- the average bandwidth;
+- the data moved;
+- the most seats online;
+- incidents;
+- switch outages.
+
+A dashed line shows the other side's average bandwidth per hour over the whole day or event. The
+archive keeps outages per switch but not when they happened, so the event comparison has no "so
+far" outage count. The same comparison is on the [report](report.md).
+
+`GET /api/stats/compare` answers `day` (`now`, `then`, `series` per hour of the day, `has_then`) and
+`event` (the last event's `name`, `elapsed_s`, `now`, `then`, `series` per hour since the start), or
+`null` when no event is archived or past events are turned off.
+
 ## On a big screen
 
 **Big screen** (`/stats?screen=1`) drops the header, makes the numbers readable from across the

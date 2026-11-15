@@ -41,6 +41,9 @@ each seat is plugged into.
   (Authentik, Keycloak, Entra ID, ...) with groups mapped to roles. See [docs/auth.md](docs/auth.md).
 - **Incidents:** a board for problems at seats and switches, worked by your teams, with a QR code on
   every seat so attendees can report "no internet" in one tap. See [docs/incidents.md](docs/incidents.md).
+- **Speedtest at the seat:** the seat's help page also measures download, upload and latency to the
+  Floorbit server, and the result goes with the seat's report. Numbers only. See
+  [docs/speedtest.md](docs/speedtest.md).
 - **Tech dispatch:** send an incident to the nearest free tech; techs see their jobs on their phone
   with the seat on the hall plan. See [docs/dispatch.md](docs/dispatch.md).
 - **Tournament seats:** mark match seats; their problems come first, port actions on them ask twice,
@@ -50,15 +53,46 @@ each seat is plugged into.
   See [docs/health.md](docs/health.md).
 - **Port actions:** bounce a seat's switch port from the floor plan over SSH with the tech's own login
   (never stored), or flag the seat for a tech. See [docs/ports.md](docs/ports.md).
+- **Switch commands:** saved show commands (port status, MAC table, errors) on one or many switches,
+  the answers side by side; leads also clear counters, after a second confirm. Every run is
+  audited. See [docs/commands.md](docs/commands.md).
+- **Switch terminal:** a terminal on one switch in the browser, for leads, with their own login;
+  every line typed goes to the audit log. See [docs/terminal.md](docs/terminal.md).
 - **Security detection:** rogue DHCP, ARP spoofing, MAC flapping, loops and storms from security plugins,
   pointing at the seat and port, with one-click port shutdown. See [docs/security.md](docs/security.md).
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
   working on, quiet hours, one Discord message for a big outage, and the ports that need a look
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
+- **Build planner:** before the event, switches, ports and VLANs per seat block, switch configs
+  from templates per model, and cable labels to print. See [docs/planner.md](docs/planner.md).
+- **Pre-flight check:** before doors open, every switch reachable, every uplink up, DHCP and DNS
+  answering, as a go or no-go board to print and sign. See [docs/preflight.md](docs/preflight.md).
+- **Gear loans:** who has which switch or access point right now, with QR labels to check gear
+  out and in from a phone. The gear itself comes from NetBox. See [docs/gear.md](docs/gear.md).
+- **Cables and patching:** which switch port goes to which patch panel port and seat, with labels
+  for both ends (a QR code opens the cable). Cables in NetBox come in with an import. See
+  [docs/cables.md](docs/cables.md).
+- **Teardown checklist:** after the event, gear back, configs archived and the event's data exported
+  in one zip, plus the team's own steps. See [docs/teardown.md](docs/teardown.md).
+- **Feature switches:** turn off what your event doesn't use. Its menus, pages, API and background
+  checks go away until you turn it back on. See [docs/features.md](docs/features.md).
+- **Past events:** close an event to keep it with its report and floor plan, start the next one from
+  it, and compare events side by side (attendance, bandwidth, incidents, time to fix). See
+  [docs/events.md](docs/events.md).
+- **API tokens:** scripts and other tools use the same API as the pages, with a token that has a role,
+  is read-only by default and can expire. See [docs/api.md](docs/api.md).
+- **Webhooks:** switch down, incident opened, seat checked in and more, sent to other tools as signed
+  JSON as they happen. See [docs/api.md](docs/api.md#webhooks).
+- **Shift handover:** what happened since the last handover, what is still open, and a note for the
+  next shift, optionally posted to Discord. See [docs/handover.md](docs/handover.md).
 - **Crew Discord channel:** every incident as a message with a thread that follows it until it is
   fixed, and Take it / Fixed buttons for linked crew. See [docs/crew-discord.md](docs/crew-discord.md).
 - **Stats:** bandwidth now and at its peak (last hour, 24 hours, the event), uplink load per switch,
-  seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
+  seats online and the busiest ports, with a big-screen version, and today next to yesterday or this
+  event next to the last one. See [docs/stats.md](docs/stats.md).
+- **Bandwidth forecast:** the next 12 hours from the event's hours so far (a profile per hour of
+  the day times how the last hours ran), with a warning before the line fills. See
+  [docs/forecast.md](docs/forecast.md).
 - **Replay:** play the event back on the floor plan with a time slider: the hall filling up, the
   bandwidth peak and the incidents. See [docs/replay.md](docs/replay.md).
 - **Event report:** after the event, a report to read or download as PDF: attendance over time, peak
@@ -67,6 +101,17 @@ each seat is plugged into.
 - **Traffic:** what the hall's traffic is made of from NetFlow or IPFIX (gaming, streaming,
   downloads, updates), per area, the services most seats use, and P2P floods or rogue servers.
   Aggregate only, with an optional collector container. See [docs/flows.md](docs/flows.md).
+- **DNS:** what the hall looks up, from the event's resolver: lookups per hour, top sites,
+  categories, new sites and blocked lookups. Hall-wide only: a site is named once 5 seats looked it
+  up. Built-in plugins read AdGuard Home and Pi-hole. See [docs/dns.md](docs/dns.md).
+- **Wi-Fi view:** how busy each access point is, clients per AP and which channel it is on, drawn
+  on the floor plan, with access points on the same channel near each other flagged. From UniFi
+  (or any plugin with `uses: [wifi]`); client counts only. See [docs/wifi.md](docs/wifi.md).
+- **Games:** what the hall plays and downloads per launcher (Steam, Battle.net, Riot, Epic and
+  more), and how much the LAN cache saved, from its access log. See [docs/games.md](docs/games.md).
+- **Logs:** a syslog receiver for the switches, firewalls and DHCP servers: search by device, seat,
+  port and level, and follow along live. Off until turned on, allow-listed and capped. See
+  [docs/syslog.md](docs/syslog.md).
 - **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer,
   with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
 - **Attendee view:** `/hall`, a public hall plan with every seat online or offline (seat numbers only,
@@ -76,6 +121,8 @@ each seat is plugged into.
   trips. A power layer on the floor plan shows what goes dark. See [docs/power.md](docs/power.md).
 - **Find a player:** search by nick, seat, IP or MAC, jump to the seat and see the switch port it is
   plugged into, even through the ARP table. See [docs/seat-mapping.md](docs/seat-mapping.md#finding-a-player).
+- **Right-click menu:** right-click (or long-press) a seat, switch or the empty floor for what you can
+  do with it, from seat details to bouncing its port. See [docs/context-menu.md](docs/context-menu.md).
 - **Phones and tablets:** tap, drag and pinch on the floor plan, search in a drawer and details in a
   bottom sheet, so a tech on the floor can look up a seat or switch. See [docs/mobile.md](docs/mobile.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
@@ -155,7 +202,10 @@ ruff check .
 pytest -q                                      # NetBox, LibreNMS and Redis are faked
 find static -name '*.js' -exec node --check {} \;
 docker build .
+python scripts/api_reference.py                # after adding or changing an API route
 ```
+
+The documentation site: `pip install -r requirements-docs.txt`, then `mkdocs serve`.
 
 | Path | What lives there |
 | --- | --- |
@@ -169,7 +219,7 @@ docker build .
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |
 | `scripts/screenshots.py` | Desktop and phone screenshots for pull requests. |
-| `docs/` | Design notes and plans. |
+| `docs/` | The documentation, also built as a site (`mkdocs.yml`); `docs/api-reference.md` is written by `scripts/api_reference.py`. Design notes are in `docs/plans/`. |
 
 ### CI
 
@@ -183,10 +233,12 @@ GitHub Actions in [`.github/workflows/`](.github/workflows/), set up like the
 | `ci.yml` `frontend` | always | The React app: `npm audit` (production packages), ESLint, TypeScript, Vitest and a production build. |
 | `ci.yml` `pytest` | always | Smoke tests. |
 | `ci.yml` `screenshots` | pull requests | Runs the app with demo data and screenshots every page, desktop and phone (artifact). |
+| `ci.yml` `docs` | always | Builds the documentation site with `mkdocs build --strict`, so a broken link fails. |
 | `ci.yml` `workflows` | always | actionlint over the workflow files. |
 | `ci.yml` `CI passed` | always | Green when every job above is; the one check the `master` ruleset requires. |
 | `image.yml` | always | Builds the Docker image; pushes it to GHCR from `master` (`latest`) and `v*` tags (the version). |
 | `release.yml` | `v*` tags | Checks the tag against `VERSION` and publishes the GitHub release with its changelog section. |
+| `docs.yml` | `v*` tags, by hand | Publishes the documentation site to GitHub Pages. |
 
 Branch and tag protection live in [`.github/rulesets/`](.github/rulesets/) (`mason doctor --fix` applies them).
 

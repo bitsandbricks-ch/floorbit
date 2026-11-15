@@ -29,8 +29,15 @@
     <span class="st-header-spacer"></span>
     {% if current_user %}
     <a class="st-btn" href="/settings/plugins">Plugins</a>
+    <a class="st-btn" href="/settings/features">Features</a>
+    <a class="st-btn" href="/settings/api">API tokens</a>
+    <a class="st-btn" href="/settings/webhooks">Webhooks</a>
     <a class="st-btn" href="/templates">Floor plan templates</a>
-    <a class="st-btn" href="/tournament">Tournament seats</a>
+    {% if feature_on('tournament') %}<a class="st-btn" href="/tournament">Tournament seats</a>{% endif %}
+    {% if feature_on('planner') %}<a class="st-btn" href="/planner">Build planner</a>{% endif %}
+    {% if feature_on('cables') %}<a class="st-btn" href="/cables">Cables</a>{% endif %}
+    {% if feature_on('preflight') %}<a class="st-btn" href="/preflight">Pre-flight check</a>{% endif %}
+    {% if feature_on('teardown') %}<a class="st-btn" href="/teardown">Teardown</a>{% endif %}
     <a class="st-btn" href="/settings/audit">Audit log</a>
     <a class="st-btn" href="/settings/users">Users</a>
     <a class="st-btn" href="/settings/teams">Roles and teams</a>

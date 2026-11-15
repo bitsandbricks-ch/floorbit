@@ -16,6 +16,7 @@ function renderAll() {
   if (selectedType === 'multi') applySelection();
   if (typeof markIncidents === 'function') markIncidents();
   if (typeof markFindings === 'function') markFindings();
+  if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
   if (typeof markMatchSeats === 'function') markMatchSeats();
 }
@@ -32,6 +33,7 @@ function renderOverlay() {
   scheduleHeatRender(); // re-tint the new switch cards
   if (typeof markIncidents === 'function') markIncidents();
   if (typeof markFindings === 'function') markFindings();
+  if (typeof markLogLines === 'function') markLogLines();
   if (typeof markPower === 'function') markPower();
 }
 
@@ -116,7 +118,6 @@ function createMarker(sw) {
     ${hideLabel ? '' : `<div class="switch-label">${escHtml(sw.name)}</div>`}
     <div class="switch-heat-card"><span class="switch-heat-name">${escHtml(sw.name)}</span><span class="switch-heat-rate"></span></div>`;
   el.addEventListener('mousedown', onMarkerMouseDown);
-  el.addEventListener('contextmenu', onMarkerContextMenu);
   return el;
 }
 
@@ -167,6 +168,5 @@ function createBlockMarker(block) {
   el.innerHTML = html;
 
   el.addEventListener('mousedown', onBlockMouseDown);
-  el.addEventListener('contextmenu', onBlockContextMenu);
   return el;
 }

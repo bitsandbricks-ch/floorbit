@@ -1,0 +1,14 @@
+/* Floorbit's colours on the documentation site (static/css/brand/tokens.css). */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #111118;
+  --md-primary-bg-color: #f4f4f5;
+  --md-accent-fg-color: #0e7490;
+  --md-typeset-a-color: #047857;
+}
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0b0b0f;
+  --md-primary-fg-color: #16161d;
+  --md-primary-bg-color: #f4f4f5;
+  --md-accent-fg-color: #22d3ee;
+  --md-typeset-a-color: #2ee59d;
+}

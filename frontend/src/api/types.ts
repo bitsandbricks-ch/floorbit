@@ -237,6 +237,9 @@ export interface IncidentNote {
   at: number
   text: string
 }
+/** Speed test at the seat (issue #99): Mbit/s and ms, nothing personal. */
+export interface SpeedtestResult { down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; jitter_ms: number | null; at: number }
+
 export interface SeatSnapshot {
   known: boolean
   reason?: string
@@ -266,6 +269,8 @@ export interface Incident {
   reports: number
   notes: IncidentNote[]
   snapshot: SeatSnapshot | null
+  /** The latest speed test from the seat's help page (issue #99). */
+  speedtest?: SpeedtestResult | null
   created_at: number
   updated_at: number
   dispatched_at?: number | null
@@ -658,4 +663,364 @@ export interface QosHints {
   available: boolean
   switches: { switch: string; switch_id: string; ports: { port: string; seat: string; zone: string }[]; uplinks: string[] }[]
   missing: string[]
+}
+
+/** Shift handover (issue #33). */
+export interface HandoverIncident {
+  id: string; title: string; where: { kind: 'seat' | 'switch' | 'circuit'; name: string }; status: IncidentStatus
+  assignee: string | null; team: string | null; created_at: number; fixed_at: number | null; match: string | null
+}
+export interface HandoverRecord {
+  id: string; at: number; since: number; by: string | null; note: string
+  counts: HandoverCounts
+}
+export interface HandoverCounts { open: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number }
+export interface HandoverData {
+  since: number; now: number; previous: HandoverRecord | null
+  incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
+  outages: { switch_id: string; name: string; down_at: number; back_at: number | null; down_s: number }[]
+  changes: { at: number; user: string | null; area: string; action: string; target: string | null }[]
+  counts: HandoverCounts
+  history: HandoverRecord[]
+  discord: boolean
+}
+
+/** Build planner (issue #34). */
+export interface PlannerSettings {
+  model: string; access_ports: number; uplink_ports: number; spare: number
+  vlan_mode: 'block' | 'hall' | 'one'; vlan_base: number; name: string
+  mgmt_net: string; mgmt_first: number; mgmt_gateway: string; mgmt_vlan: number
+}
+export interface PlannerModel { id: string; label: string; access: string; uplink: string; builtin: boolean; text?: string }
+export interface PlannedPort { n: number; name: string; seat: string; vlan: number }
+export interface PlannedSwitch {
+  name: string; block: string; hall_id: string; hall: string; vlan: number; mgmt_ip: string | null; exists: boolean
+  ports: PlannedPort[]; spare: { n: number; name: string }[]; uplinks: { n: number; name: string }[]
+}
+export interface BuildPlan {
+  settings: PlannerSettings; model: Omit<PlannerModel, 'builtin' | 'text'>
+  blocks: { name: string; hall: string; seats: number; vlan: number; switches: string[] }[]
+  switches: PlannedSwitch[]; vlans: { id: number; name: string }[]; problems: string[]
+  totals: { seats: number; switches: number; new: number; vlans: number; uplinks: number }
+}
+export interface PlannerData { plan: BuildPlan; models: PlannerModel[] }
+
+/** Pre-flight check board (issue #35). */
+export type PreflightStatus = 'pass' | 'warn' | 'fail' | 'skip'
+export type PreflightGroupId = 'switches' | 'uplinks' | 'services'
+export interface PreflightItem { id: string; name: string; status: PreflightStatus; detail: string; switch_id?: string; kind?: string }
+export interface PreflightGroup { at: number; by: string | null; items: PreflightItem[] }
+export interface PreflightBoard {
+  groups: Record<PreflightGroupId, PreflightGroup | null>
+  counts: Record<PreflightStatus, number>
+  ready: boolean; complete: boolean
+}
+
+/** Gear loans (issue #36). */
+export interface GearLoan { to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string }
+export interface GearItem { id: string; name: string; role: string; model: string; serial: string; origin: string; placed: boolean; loan: GearLoan | null }
+export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
+export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
+
+/** Teardown checklist (issue #37). */
+export interface TeardownStep { id: string; text: string; added_by: string | null; added_at: number; done_by: string | null; done_at: number | null }
+export interface Teardown {
+  done: boolean; left: number; total: number
+  parts: {
+    gear: { done: boolean; left: number; out: { id: string; name: string; to: string; at: number }[] }
+    configs: { done: boolean; left: number; switches: { id: string; name: string; archived: { by: string | null; at: number } | null }[] }
+    export: { done: boolean; left: number; last: { by: string | null; at: number } | null }
+    custom: { done: boolean; left: number; items: TeardownStep[] }
+  }
+}
+
+/** GET /api/events (issue #38): the running event and the archived ones, for comparing. */
+export interface EventFigures {
+  seats: number
+  online_max: number
+  checked_in_max: number
+  peak_bps: number | null
+  bytes_moved: number
+  hours: number
+  incidents: number
+  incidents_fixed: number
+  from_seats: number
+  median_fix_s: number | null
+  outages: number
+  down_s: number
+  problem_ports: number
+  cache_saved_bytes: number | null
+}
+
+export interface PastEvent {
+  id: string
+  name: string
+  start: number | null
+  end: number | null
+  archived_at: number
+  archived_by: string | null
+  figures: EventFigures
+}
+
+export interface EventsData {
+  current: { name: string; start: number | null; end: number | null; figures: EventFigures }
+  archived: PastEvent[]
+}
+
+/** GET /api/settings/features (issue #114). */
+export interface FeatureState {
+  id: string
+  on: boolean
+  /** What the admin chose; a feature can still be off when one it needs is. */
+  chosen: boolean
+  forced_off: boolean
+  needs: string[]
+}
+
+// API tokens (auth/tokens.py, floorbit/blueprints/api_tokens.py)
+export interface ApiToken {
+  id: string
+  name: string
+  role: string
+  role_label: string
+  read_only: boolean
+  created_at: number
+  created_by: string | null
+  expires_at: number | null
+  expired: boolean
+  last_used_at: number | null
+}
+
+// Outgoing webhooks (floorbit/webhooks.py)
+export interface WebhookDelivery {
+  at: number
+  event: string
+  delivery: string
+  ok: boolean
+  status: number | null
+  error: string | null
+  attempt: number
+}
+export interface Webhook {
+  id: string
+  name: string
+  url: string
+  events: string[]
+  active: boolean
+  created_at: number
+  created_by: string | null
+  last: WebhookDelivery | null
+  deliveries: WebhookDelivery[]
+}
+
+export type DnsCategory = 'gaming' | 'streaming' | 'social' | 'updates' | 'other'
+export interface DnsSite {
+  site: string
+  category: DnsCategory
+  lookups: number
+  blocked: number
+  clients_max: number
+  first_seen?: number
+}
+export interface DnsData {
+  hours: { t: number; lookups: number; blocked: number }[]
+  lookups: number
+  blocked: number
+  block_share: number | null
+  sites: DnsSite[]
+  categories: { id: DnsCategory; lookups: number }[]
+  unnamed_lookups: number
+  new: DnsSite[]
+  blocked_sites: DnsSite[]
+  min_clients: number
+  plugins: number
+  last_poll: number | null
+  error: string | null
+}
+
+export interface CacheRow { cache: string; hit_bytes: number; miss_bytes: number; requests: number }
+export interface LancacheData {
+  configured: boolean
+  demo: boolean
+  hours: { t: number; hit_bytes: number; miss_bytes: number }[]
+  hit_bytes: number
+  miss_bytes: number
+  hit_ratio: number | null
+  caches: CacheRow[]
+  last_read: number | null
+  error: string | null
+}
+export interface LauncherRow {
+  id: string
+  name: string
+  lookups: number | null
+  dns_seats_max: number
+  traffic_bytes: number | null
+  traffic_seats: number | null
+  cache_hit_bytes: number | null
+  cache_miss_bytes: number | null
+}
+export interface GamesData {
+  launchers: LauncherRow[]
+  games: { name: string; bytes: number; seats: number }[]
+  other_caches: CacheRow[]
+  cache: LancacheData
+  sources: { dns: boolean; traffic: boolean; cache: boolean }
+  min_seats: { dns: number; traffic: number | null }
+}
+
+export interface ForecastPoint { t: number; bps: number; low: number; high: number; basis: 'profile' | 'recent'; pct?: number }
+export interface ForecastData {
+  ready: boolean
+  history_hours: number
+  min_hours: number
+  capacity_bps: number | null
+  warn_pct: number
+  lead_hours: number
+  points: ForecastPoint[]
+  alert: { t: number; bps: number; pct: number } | null
+  level: number | null
+  days: number
+  peak: ForecastPoint | null
+}
+
+export interface CompareSide {
+  peak_bps: number | null
+  avg_bps: number | null
+  bytes_moved: number
+  online_max: number
+  hours: number
+  incidents: number
+  outages: number | null
+}
+export interface ComparePoint { hour: number; now_avg_bps: number | null; then_avg_bps: number | null; now_online: number | null; then_online: number | null }
+export interface CompareData {
+  day: { now: CompareSide; then: CompareSide; series: ComparePoint[]; has_then: boolean }
+  event: { name: string; id: string; then_start: number; elapsed_s: number; now: CompareSide; then: CompareSide; series: ComparePoint[] } | null
+}
+
+export type LogSeverity = 'emerg' | 'alert' | 'crit' | 'err' | 'warning' | 'notice' | 'info' | 'debug'
+
+/** One syslog line as GET /api/logs answers it (floorbit/syslog.py). */
+export interface SyslogLine {
+  id: number
+  ts: number
+  facility: number
+  severity: LogSeverity
+  host: string | null
+  program: string | null
+  message: string
+  sender: string
+  device: string
+  port: string | null
+  seat: string | null
+}
+
+export type LogSource = 'syslog' | 'app' | 'audit' | `plugin:${string}`
+
+export interface LogStatus {
+  enabled: boolean
+  listening: { port: number; tcp: boolean; bind: string } | null
+  error: string | null
+  counts: { received: number; kept: number; not_allowed: number; rate_limited: number }
+  lines: number
+  devices: string[]
+  retention_hours: number
+  demo: boolean
+  last_id: number
+  sources: LogSource[]
+  source: LogSource
+  /** Logs plugins (Loki) that get every line, and how sending them goes. */
+  stores?: { id: string; name: string; at?: number | null; sent?: number; error?: string | null }[]
+  query?: string
+  query_error?: string
+}
+
+export interface LogsData {
+  lines: SyslogLine[]
+  status: LogStatus
+}
+
+/** A saved switch command template (floorbit/commands.py, issue #94). */
+export interface CommandTemplate {
+  id: string
+  kind: 'show' | 'change'
+  label: string
+  commands: string[]
+  builtin: boolean
+  needs_port: boolean
+}
+
+/** GET /api/commands. */
+export interface CommandInfo {
+  available: boolean
+  plugin: string | null
+  needs_login: boolean
+  platform: string
+  templates: CommandTemplate[]
+  may_change: boolean
+  may_edit: boolean
+  switches: string[]
+  max_switches: number
+}
+
+/** One switch's answer in POST /api/commands/run. */
+export interface CommandResult {
+  switch: string
+  ok: boolean
+  output: string
+  error: string | null
+  ms?: number
+}
+
+export interface CommandRun {
+  template: string
+  label: string
+  kind: 'show' | 'change'
+  port: string | null
+  commands: string[]
+  results: CommandResult[]
+}
+
+/** GET /api/terminal (floorbit/terminal.py, issue #95). */
+export interface TerminalInfo {
+  available: boolean
+  plugin: string | null
+  needs_login: boolean
+  switches: string[]
+  sessions: { id: string; switch: string; opened: number }[]
+  idle_minutes: number
+  max_minutes: number
+}
+
+/** GET /api/terminal/<id>/output. */
+export interface TerminalOutput {
+  data: string
+  next: number
+  skipped: number
+  closed: string | null
+}
+
+/** Cables and patching (issue #97). */
+export interface Cable {
+  id: string; label: string; switch: string; port: string; panel: string; panel_port: string; seat: string
+  color: string; length_m: number | null; note: string; source: 'floorbit' | 'import'; plugin?: string
+  updated_at: number; by: string | null
+}
+export interface CableList { cables: Cable[]; sources: string[] }
+export interface CableImport { imported: number; errors: string[] }
+
+/** Wi-Fi view (issue #98). Client counts only. */
+export type WifiBand = '2.4' | '5' | '6'
+export interface WifiRadio { band: WifiBand; channel: number | null; width: number | null; utilization: number | null; clients: number }
+export interface WifiAp {
+  name: string; model: string; status: 'up' | 'down'; clients: number; radios: WifiRadio[]; source: string
+  placed: boolean; on_plan: boolean; px: number | null; py: number | null; busy: boolean
+}
+export interface WifiData {
+  aps: WifiAp[]; clients: number; up: number; down: string[]; busy: string[]
+  overlaps: { band: WifiBand; channel: number; aps: [string, string] }[]
+  bands: Partial<Record<WifiBand, { clients: number; radios: number; utilization: number | null }>>
+  sources: string[]; errors: string[]; thresholds: { busy: number; crowded: number }
+  drawing: PlanDrawing | null; hall: string; halls: { id: string; name: string }[]
 }

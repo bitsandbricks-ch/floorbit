@@ -17,11 +17,27 @@ const Problems = lazy(() => import('@/pages/Problems'))
 const Setup = lazy(() => import('@/pages/Setup'))
 const Stats = lazy(() => import('@/pages/Stats'))
 const Traffic = lazy(() => import('@/pages/Traffic'))
+const Dns = lazy(() => import('@/pages/Dns'))
+const Games = lazy(() => import('@/pages/Games'))
+const Logs = lazy(() => import('@/pages/Logs'))
+const Commands = lazy(() => import('@/pages/Commands'))
+const TerminalPage = lazy(() => import('@/pages/Terminal'))
 const Templates = lazy(() => import('@/pages/Templates'))
 const Replay = lazy(() => import('@/pages/Replay'))
 const Report = lazy(() => import('@/pages/Report'))
 const Jobs = lazy(() => import('@/pages/Jobs'))
 const Tournament = lazy(() => import('@/pages/Tournament'))
+const Handover = lazy(() => import('@/pages/Handover'))
+const Planner = lazy(() => import('@/pages/Planner'))
+const Preflight = lazy(() => import('@/pages/Preflight'))
+const Gear = lazy(() => import('@/pages/Gear'))
+const Cables = lazy(() => import('@/pages/Cables'))
+const Wifi = lazy(() => import('@/pages/Wifi'))
+const Teardown = lazy(() => import('@/pages/Teardown'))
+const Events = lazy(() => import('@/pages/Events'))
+const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
+const Webhooks = lazy(() => import('@/pages/Webhooks'))
+const Features = lazy(() => import('@/pages/Features'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -43,11 +59,27 @@ export default function App() {
         <Route path="/setup" element={<Setup />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/traffic" element={<Traffic />} />
+        <Route path="/dns" element={<Dns />} />
+        <Route path="/games" element={<Games />} />
+        <Route path="/logs" element={<Logs />} />
+        <Route path="/commands" element={<Commands />} />
+        <Route path="/terminal" element={<TerminalPage />} />
         <Route path="/templates" element={<Templates />} />
         <Route path="/replay" element={<Replay />} />
         <Route path="/report" element={<Report />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/tournament" element={<Tournament />} />
+        <Route path="/handover" element={<Handover />} />
+        <Route path="/planner" element={<Planner />} />
+        <Route path="/preflight" element={<Preflight />} />
+        <Route path="/gear" element={<Gear />} />
+        <Route path="/cables" element={<Cables />} />
+        <Route path="/wifi" element={<Wifi />} />
+        <Route path="/teardown" element={<Teardown />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/settings/features" element={<Features />} />
+        <Route path="/settings/api" element={<ApiTokens />} />
+        <Route path="/settings/webhooks" element={<Webhooks />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

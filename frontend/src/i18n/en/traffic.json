@@ -42,5 +42,7 @@
     "updates": "Updates",
     "web": "Web",
     "other": "Other"
-  }
+  },
+  "dns": "DNS lookups",
+  "games": "Games"
 }

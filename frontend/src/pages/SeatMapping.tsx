@@ -39,7 +39,8 @@ export default function SeatMapping() {
   const { data, error, isPending } = useSeatMap()
   // Techs see the mapping (seats.view) but only leads and admins change it (seats.edit).
   const canEdit = useCan('seats.edit')
-  const [query, setQuery] = useState('')
+  // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
+  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [onlyManual, setOnlyManual] = useState(false)
   const [editing, setEditing] = useState<SeatRow | null>(null)
   const [formOpen, form] = useDisclosure(false)

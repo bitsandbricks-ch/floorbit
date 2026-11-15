@@ -11,6 +11,8 @@ services:
     image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
     ports:
       - "${FLOORBIT_PORT:-8080}:5000"
+      # Syslog from switches, firewalls and DHCP servers, only used with SYSLOG_ENABLED (docs/syslog.md).
+      - "${SYSLOG_PUBLISH_PORT:-514}:5514/udp"
     env_file:
       - path: .env
         required: false

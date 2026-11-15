@@ -71,6 +71,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
     app.extensions['floorbit_crew'] = crew
     discord = DiscordNotifier(crew=crew)
     discord.attach()
+    app.extensions['floorbit_discord'] = discord
 
     bp = Blueprint('integrations', __name__)
 
