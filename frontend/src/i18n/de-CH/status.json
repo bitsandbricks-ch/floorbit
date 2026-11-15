@@ -36,5 +36,7 @@
     "outage": "Netzwerkausfall",
     "maintenance": "Wartung",
     "unknown": "Unbekannt"
-  }
+  },
+  "recovered": "Wieder da",
+  "recoveredAt": "Seit {{time}} wieder da. Die Besucher sehen das eine halbe Stunde lang."
 }
