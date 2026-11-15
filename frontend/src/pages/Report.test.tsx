@@ -67,6 +67,21 @@ describe('Report', () => {
     expect(await screen.findByText('What attendees reported at their seats: No internet 6×, Slow connection 3×')).toBeInTheDocument()
   })
 
+  it('draws incidents per hour only when there were some (issue #420)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/report': data }).fn)
+    const { unmount } = renderWithApp(<Report />)
+    expect(await screen.findByRole('img', { name: 'Busiest read and average bandwidth, per hour' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Incidents filed in each hour of the event' })).not.toBeInTheDocument()
+    unmount()
+    const busy = { ...data, hours: data.hours.map((h, i) => ({ ...h, incidents: [1, 4][i] })) }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/report': busy }).fn)
+    renderWithApp(<Report />)
+    const chart = await screen.findByRole('img', { name: 'Incidents filed in each hour of the event' })
+    const bars = chart.querySelectorAll('rect.incidents')
+    expect(bars).toHaveLength(2)
+    expect(Number(bars[1].getAttribute('height'))).toBeGreaterThan(Number(bars[0].getAttribute('height')))
+  })
+
   it('lets an admin add nicks and IPs', async () => {
     const withPeople = { ...data, people: true, may_add_people: true,
       problem_ports: [{ ...data.problem_ports[0], nick: 'player-seven', ip: '198.51.100.7' }] }

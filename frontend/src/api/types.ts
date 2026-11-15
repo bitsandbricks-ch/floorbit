@@ -643,7 +643,7 @@ export interface ReplayData {
 }
 
 /** GET /api/report: the post-event report (issue #22). Nicks and IPs only when an admin asked. */
-export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number }
+export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number; incidents?: number }
 export interface ReportOutage { switch: string; times: number; down_s: number; longest_s: number; still_down: boolean }
 export interface ReportPort {
   switch: string; port: string; seat: string | null; count: number; kinds: Record<string, number>; last: number

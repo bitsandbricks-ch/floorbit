@@ -9,6 +9,7 @@ most problems and every incident.
 | Most seats online, per hour | The port reads ([stats](stats.md)): seat ports that were up |
 | Most seats checked in, per hour | The check-in history |
 | Peak bandwidth, bandwidth per hour, data moved | The port reads; data moved is estimated from the hourly averages |
+| Incidents per hour | The incident board: how many were filed in each hour of the event, so you see when trouble peaked. The chart only shows when there were some (page and PDF) |
 | Switch outages | The status monitor: each time a switch went offline and came back |
 | Top problem ports | The needs-attention watch: how often each port started flapping, rising errors, half duplex or online without a check-in |
 | Incidents | The incident board: opened, where, what, team, how long until fixed; how long until someone took them (the first time an incident was assigned or taken, kept from now on: older incidents don't count); the seats with more than one incident, most first, which often points at a cable or port; what attendees reported from their seat QR codes (no internet, slow, no power, something else, every report counted) (page and PDF) |

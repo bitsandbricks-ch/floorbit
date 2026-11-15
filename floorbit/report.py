@@ -81,6 +81,16 @@ def _seat_problems(items):
     return [{'problem': p, 'count': counts[p]} for p in incidents.PROBLEMS if counts.get(p)]
 
 
+def _per_hour(items, hour_keys):
+    """Incidents filed in each hour of the event (issue #420), every attendee report counted once."""
+    counts = dict.fromkeys(hour_keys, 0)
+    for i in items:
+        key = int(i['created_at'] // HOUR * HOUR)
+        if key in counts:
+            counts[key] += 1
+    return counts
+
+
 def _incidents(since, people):
     items = [i for i in incidents.list_all() if since is None or i['created_at'] >= since]
     items.sort(key=lambda i: i['created_at'])
@@ -105,6 +115,7 @@ def _incidents(since, people):
         'repeat_seats': _repeat_seats(items),
         'seat_problems': _seat_problems(items),
         'items': rows,
+        '_all': items,
     }
 
 
@@ -128,6 +139,8 @@ def build(stats_event, checkins, seats_total, people=False, seat_info=None, even
     ports = sorted(stats_event['problem_ports'], key=lambda p: (-p['count'], -(p.get('last') or 0)))[:TOP_PORTS]
     ports = [{k: p.get(k) for k in ('switch', 'port', 'seat', 'count', 'kinds', 'last')} for p in ports]
     found = _incidents(start, people)
+    filed = _per_hour(found.pop('_all'), hour_keys)
+    rows = [dict(r, incidents=filed.get(r['t'], 0)) for r in rows]
     if people:
         info = seat_info or {}
         for row in ports + found['items']:

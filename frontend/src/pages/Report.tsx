@@ -160,6 +160,23 @@ export default function Report() {
                     )
                   }}
                 </Chart>
+                {r.hours.some((h) => h.incidents) && (
+                  <Chart title={t('report.chartIncidents')} label={t('report.chartIncidentsLabel')} hours={r.hours}
+                    keys={[{ cls: 'incidents', text: t('report.legendIncidents') }]}>
+                    {() => {
+                      const top = Math.max(1, ...r.hours.map((h) => h.incidents ?? 0))
+                      const start = r.hours[0].t
+                      const span = r.hours[r.hours.length - 1].t + 3600 - start
+                      const bw = (W * 3600) / span
+                      return r.hours.map((h) => (
+                        <rect key={h.t} className="incidents" x={((h.t - start) / span) * W + bw * 0.15} width={bw * 0.7}
+                          y={H - ((h.incidents ?? 0) / top) * H} height={((h.incidents ?? 0) / top) * H}>
+                          <title>{`${stamp(h.t)}: ${h.incidents ?? 0}`}</title>
+                        </rect>
+                      ))
+                    }}
+                  </Chart>
+                )}
               </SimpleGrid>
             )}
 

@@ -16,6 +16,7 @@ TEXTS = {
         'of_seats': 'of {n} seats', 'fixed': '{fixed} fixed, {open} open', 'switches': '{n} switches',
         'median': 'half fixed within {d}', 'from_hourly': 'from the hourly averages',
         'chart_seats': 'Seats over the event', 'chart_bw': 'Bandwidth per hour',
+        'chart_incidents': 'Incidents filed per hour', 'legend_incidents': 'Incidents',
         'legend_online': 'Online (port up)', 'legend_checked': 'Checked in',
         'legend_peak': 'Busiest read', 'legend_avg': 'Average',
         'switch': 'Switch', 'times': 'Times down', 'down_all': 'Down in all', 'longest': 'Longest',
@@ -42,6 +43,7 @@ TEXTS = {
         'of_seats': 'von {n} Plätzen', 'fixed': '{fixed} behoben, {open} offen', 'switches': '{n} Switches',
         'median': 'die Hälfte in {d} behoben', 'from_hourly': 'aus den Stundenmitteln',
         'chart_seats': 'Plätze über das Event', 'chart_bw': 'Bandbreite pro Stunde',
+        'chart_incidents': 'Gemeldete Störungen pro Stunde', 'legend_incidents': 'Störungen',
         'legend_online': 'Online (Port aktiv)', 'legend_checked': 'Eingecheckt',
         'legend_peak': 'Stärkste Abfrage', 'legend_avg': 'Mittel',
         'switch': 'Switch', 'times': 'Ausfälle', 'down_all': 'Gesamt down', 'longest': 'Am längsten',
@@ -69,6 +71,7 @@ GREEN = '#047857'
 CYAN = '#0e7490'
 LIGHT_GREEN = '#a7e9cf'
 DOWN = '#c81e1e'
+WARN = '#d97706'
 MARGIN = 48
 DASH = '\u2013'    # for a missing value
 TIMES = '\u00d7'
@@ -284,6 +287,10 @@ def pdf(report, lang='en', tz=0):
                [(tx['legend_online'], GREEN), (tx['legend_checked'], CYAN)], lambda v: f'{v:.0f}')
         _chart(doc, tx['chart_bw'], report['hours'], [('avg_bps', GREEN)],
                [(tx['legend_peak'], LIGHT_GREEN), (tx['legend_avg'], GREEN)], bps, bars=('peak_bps', LIGHT_GREEN))
+        if any(r.get('incidents') for r in report['hours']):
+            doc.need(190)
+            _chart(doc, tx['chart_incidents'], report['hours'], [], [(tx['legend_incidents'], WARN)],
+                   lambda v: f'{v:.0f}', bars=('incidents', WARN))
     else:
         page.text(MARGIN, doc.y + 10, tx['no_data'], size=9, color=MUTED)
         doc.y += 30

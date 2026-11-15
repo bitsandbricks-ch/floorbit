@@ -247,6 +247,8 @@ body {
 .fb-report-chart .bar { fill: color-mix(in srgb, var(--color-bit) 30%, transparent); }
 .fb-report-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-bit); }
 .fb-report-key.checked { background: var(--color-trace); }
+.fb-report-chart .incidents { fill: var(--color-warn); }
+.fb-report-key.incidents { background: var(--color-warn); }
 .fb-report-key.bar { background: color-mix(in srgb, var(--color-bit) 30%, transparent); }
 .fb-job-plan { width: 100%; height: auto; max-height: 55vh; background: var(--color-raised); border-radius: 10px; }
 .fb-job-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
