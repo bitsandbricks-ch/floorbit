@@ -246,8 +246,6 @@ class SettingsStore:
 
     # file IO -------------------------------------------------------------
     def _read_file(self, strict=False):
-        if not os.path.exists(self.data_file):
-            return {}
         try:
             from .store import read_json
             return read_json(self.data_file, {})
@@ -258,10 +256,8 @@ class SettingsStore:
             return {}
 
     def _current_mtime(self):
-        try:
-            return os.path.getmtime(self.data_file)
-        except OSError:
-            return None
+        from .store import stamp
+        return stamp(self.data_file)
 
     @staticmethod
     def _overrides_from(data):

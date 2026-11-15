@@ -6,7 +6,6 @@ of Infra leads Core, Access and Wi-Fi too, and Infra's members see what is route
 sub-teams. Team roles only add permissions inside those teams; the account's own role still
 decides everything else.
 """
-import os
 import re
 import threading
 import uuid
@@ -36,7 +35,7 @@ def configure(path_getter):
 
 def _read():
     path = _path() if _path else None
-    if not path or not os.path.exists(path):
+    if not path:
         return {}
     from floorbit.store import read_json  # late: floorbit imports auth while it loads
     return read_json(path, {})

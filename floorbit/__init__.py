@@ -44,7 +44,10 @@ def create_app(start_background=True):
     app = Flask(__name__, root_path=str(ROOT))
     app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 
-    stuck = store.unwritable()
+    from . import database
+    where = database.wait_until_ready()
+    print(f"[store] Keeping documents in {where['where']}")
+    stuck = store.unwritable() if where['kind'] == 'files' else []
     if stuck:
         print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
               "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")

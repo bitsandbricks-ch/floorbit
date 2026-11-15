@@ -45,15 +45,19 @@ def _path():
 
 def load_all():
     with _lock:
+        from floorbit import store
         try:
-            with open(_path()) as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+            return store.read_json(_path(), {})
+        except json.JSONDecodeError:
             return {}
 
 
 def _save_all(rows):
+    from floorbit import database, store
     path = _path()
+    if database.backend().kind != 'files':
+        store.write_json(path, rows)
+        return
     directory = os.path.dirname(os.path.abspath(path))
     os.makedirs(directory, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=directory, prefix='.checkins-')

@@ -3,7 +3,7 @@
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-from conftest import TEST_PASSWORD, TEST_USER
+from conftest import TEST_PASSWORD, TEST_USER, stored
 
 from auth.providers import AuthError, Identity, RedirectProvider
 
@@ -146,8 +146,7 @@ def test_accounts_survive_floor_plan_saves(client, auth):
 
 
 def test_passwords_are_hashed(auth, user):
-    with open(auth.users.path) as f:
-        raw = f.read()
+    raw = stored(auth.users.path)
     assert TEST_PASSWORD not in raw
     assert "scrypt:" in raw or "pbkdf2:" in raw
 

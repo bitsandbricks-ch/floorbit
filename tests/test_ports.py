@@ -2,6 +2,7 @@
 import json
 
 import pytest
+from conftest import stored
 
 from floorbit import audit, ports
 
@@ -201,8 +202,7 @@ def test_ssh_bounce_runs_the_platform_commands_and_keeps_no_password(client, ssh
             json.dumps(client.get("/api/settings/plugins/ssh-ports/log").get_json() or {})]
     from floorbit import store
     for path in (registry.path(), store.DATA_FILE):
-        with open(path, encoding="utf-8") as f:
-            kept.append(f.read())
+        kept.append(stored(path))
     assert not any(FakeSwitch.password in text for text in kept)
     assert list(registry.state_of("ssh-ports")["hosts"]) == ["198.51.100.4"]
 
