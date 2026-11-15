@@ -73,3 +73,29 @@ def test_the_shift_s_seat_notes_are_in_the_summary(client):
     assert client.get("/api/handover").get_json()["seat_notes"] == []   # the next shift starts empty
     client.put("/api/plan/seats/A-2/note", json={"text": "Cable swapped again"})
     assert [n["seat"] for n in client.get("/api/handover").get_json()["seat_notes"]] == ["A-2"]
+
+
+def test_the_summary_says_what_is_muted_and_the_crew_notice(client, app_module, monkeypatch):
+    # A mute set by the last shift must not be forgotten by the next one (issue #258).
+    from integrations import alerting
+    alerting.mute("s1", "sw-a-01", 60, "kim", "Swapping the PSU")
+    alerting.mute(alerting.service_key("demo:dns"), "DNS", 30, "kim")
+    client.put("/api/notice", json={"text": "Row C has no power until 14:00", "hours": 2})
+    body = client.get("/api/handover").get_json()
+    assert [(m["kind"], m["name"], m["reason"]) for m in body["mutes"]] == [
+        ("health", "DNS", ""), ("switch", "sw-a-01", "Swapping the PSU")]
+    assert body["counts"]["muted"] == 2
+    assert body["notice"]["text"] == "Row C has no power until 14:00"
+
+    notifier = app_module.app.extensions["floorbit_discord"]
+    sent = []
+    monkeypatch.setattr(notifier, "enabled", lambda: True)
+    monkeypatch.setattr(notifier, "post", sent.append)
+    client.post("/api/handover", json={"note": "", "discord": True})
+    assert "🔕 **2** muted: DNS (until " in sent[0]["embeds"][0]["description"]
+
+    alerting.unmute("s1")
+    alerting.unmute(alerting.service_key("demo:dns"))
+    client.delete("/api/notice")
+    body = client.get("/api/handover").get_json()
+    assert body["mutes"] == [] and body["notice"] is None and body["counts"]["muted"] == 0

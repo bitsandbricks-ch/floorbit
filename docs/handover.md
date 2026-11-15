@@ -18,6 +18,9 @@ last handover. It also gives them a place to leave a note for the next shift. Is
 - **Seat notes from this shift:** the [crew notes on seats](seats.md#the-inspector) written or changed since the
   last handover, newest first, each linking to its seat. Only shown when there are some; they are
   not posted to Discord.
+- **Muted right now:** every switch and service whose [alerts are muted](alerts.md#muting-a-switch-or-a-service),
+  until when, by whom and why, so a mute set by the last shift is not forgotten. The
+  [crew notice](crew-notice.md) that is up is shown at the top.
 
 The first summary looks back 8 hours. After that, each summary starts where the last handover
 ended.
@@ -27,12 +30,12 @@ ended.
 Write the note and press **Hand over**. The handover is saved with its figures (the newest 100 are
 kept in `data.json` under `handover`). The next summary starts from that moment, and the handover
 is written to the audit log. With Discord alerts or the [crew channel](crew-discord.md) set up,
-**Also post the summary to Discord** posts the figures, the five oldest open incidents and the
-note. The message mentions nobody.
+**Also post the summary to Discord** posts the figures, what is muted, the five oldest open
+incidents and the note. The message mentions nobody.
 
 **Copy as text** at the top puts the summary on the clipboard as plain text, for a crew that hands
 over in another chat or by mail: the figures, every open incident, those fixed this shift, the
-switch outages and the note as written so far. Changes and seat notes stay on the page.
+switch outages, the crew notice, what is muted and the note as written so far. Changes and seat notes stay on the page.
 
 ## Who can use it
 

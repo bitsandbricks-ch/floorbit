@@ -27,6 +27,11 @@ export function summaryText(d: HandoverData, note: string, t: T, length: (s: num
       ? t('handover.wasDown', { when: when(o.down_at), for: length(o.down_s) })
       : t('handover.stillDown', { when: when(o.down_at), for: length(o.down_s) })}`))
   }
+  if (d.notice) lines.push('', `${t('handover.noticeUp')}: ${d.notice.text}`)
+  if (d.mutes?.length) {
+    lines.push('', `${t('handover.mutedTitle')}:`, ...d.mutes.map((m) => `- ${m.name}, ${t('handover.mutedUntil', { until: when(m.until), who: m.by ?? '?' })}`
+      + (m.reason ? ` (${m.reason})` : '')))
+  }
   if (note.trim()) lines.push('', `${t('handover.note')}:`, note.trim())
   return lines.join('\n')
 }

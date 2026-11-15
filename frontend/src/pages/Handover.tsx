@@ -92,6 +92,11 @@ export default function Handover() {
           <>
             <Text size="sm" c="dimmed">{t('handover.since', { when: when(d.since) })}</Text>
             {d.previous && <Note record={d.previous} title={t('handover.lastNote')} />}
+            {d.notice && (
+              <Alert color={d.notice.level === 'warn' ? 'warn' : 'gray'} variant="light" title={t('handover.noticeUp')}>
+                {d.notice.text}{d.notice.by ? ` (${t('handover.noticeBy', { who: d.notice.by })})` : ''}
+              </Alert>
+            )}
             <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }}>
               <Figure label={t('handover.open')} value={d.counts.open} tone="down" />
               <Figure label={t('handover.opened')} value={d.counts.opened} />
@@ -153,6 +158,22 @@ export default function Handover() {
                 </Table.ScrollContainer>
               )}
             </Paper>
+
+            {!!d.mutes?.length && (
+              <Paper withBorder radius="lg" p="md">
+                <Title order={2} size="h4" mb="xs">{t('handover.mutedTitle')}</Title>
+                <Stack gap={6}>
+                  {d.mutes.map((m) => (
+                    <Group key={`${m.kind}-${m.name}`} gap="sm" wrap="nowrap" align="baseline">
+                      <Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
+                      <Text size="sm" style={{ flex: 1, overflowWrap: 'anywhere' }}>
+                        {t('handover.mutedUntil', { until: when(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}
+                      </Text>
+                    </Group>
+                  ))}
+                </Stack>
+              </Paper>
+            )}
 
             {d.seat_notes.length > 0 && (
               <Paper withBorder radius="lg" p="md">

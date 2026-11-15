@@ -32,7 +32,15 @@
   "doneDiscord": "Handed over and posted to Discord. The next summary starts now.",
   "earlier": "Earlier handovers",
   "counts": "{{open}} open, {{fixed}} fixed, {{outages}} outages",
-  "status": { "open": "Open", "assigned": "Taken", "fixed": "Fixed" },
+  "status": {
+    "open": "Open",
+    "assigned": "Taken",
+    "fixed": "Fixed"
+  },
   "copy": "Copy as text",
-  "copied": "Copied"
+  "copied": "Copied",
+  "mutedTitle": "Muted right now",
+  "noticeUp": "Crew notice up",
+  "noticeBy": "from {{who}}",
+  "mutedUntil": "muted until {{until}} by {{who}}"
 }

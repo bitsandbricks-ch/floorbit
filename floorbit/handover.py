@@ -7,7 +7,9 @@ hands over. What happened is put together from what Floorbit already keeps:
 - switch outages since (the stats store's switch events);
 - what is wrong right now (the Problems list);
 - changes from the audit log: port actions, settings, the floor plan, power, plugins and accounts;
-- crew notes on seats written or changed since (issue #202).
+- crew notes on seats written or changed since (issue #202);
+- what is muted right now and the crew notice that is up (issue #258), so a mute set by the last
+  shift is not forgotten.
 
 Each handover is kept in data.json under ``handover`` (the newest ``MAX_KEPT``): when, who, the note
 and the counts. The next summary starts where the last handover ended.
@@ -108,8 +110,15 @@ def _incident(i, match):
             'fixed_at': i.get('fixed_at'), 'match': match.get(i.get('seat') or '')}
 
 
+def _mutes(now):
+    from integrations import alerting
+    return [{'kind': 'health' if key.startswith(alerting.service_key('')) else 'switch', 'name': m.get('name'),
+             'until': m['until'], 'by': m.get('by'), 'reason': m.get('reason') or ''}
+            for key, m in sorted(alerting.mutes(now).items(), key=lambda kv: kv[1]['until'])]
+
+
 def summary(switch_events, problems_now, since=None, now=None):
-    from . import incidents, seat_notes, tournament
+    from . import incidents, notice, seat_notes, tournament
     now = time.time() if now is None else now
     data = load_data()
     since = since_default(now, data) if since is None else since
@@ -124,6 +133,7 @@ def summary(switch_events, problems_now, since=None, now=None):
     changes = _changes(since)
     notes = [{'seat': seat, **n} for seat, n in seat_notes.all_notes(data).items() if (n.get('at') or 0) >= since]
     notes.sort(key=lambda n: -(n.get('at') or 0))
+    mutes = _mutes(now)
     return {
         'since': since, 'now': now, 'previous': last(data),
         'incidents': {'open': still_open, 'opened': opened, 'fixed': fixed},
@@ -131,9 +141,11 @@ def summary(switch_events, problems_now, since=None, now=None):
         'problems': problems_now,
         'changes': changes,
         'seat_notes': notes,
+        'mutes': mutes,
+        'notice': notice.current(data, now),
         'counts': {'open': len(still_open), 'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
-                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0)},
+                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes)},
     }
 
 
@@ -155,6 +167,11 @@ def discord_message(record, summary_, public_url='', username='Floorbit'):
     lines = [f"**{c['open']}** incidents open ({c['opened']} new, {c['fixed']} fixed this shift)",
              f"**{c['outages']}** switch outages" + (f", **{c['still_down']}** still down" if c['still_down'] else ''),
              f"**{c['problems']}** problems right now, **{c['changes']}** changes in the audit log"]
+    muted = summary_.get('mutes') or []
+    if muted:
+        lines.append(f"🔕 **{len(muted)}** muted: " + ', '.join(
+            f"{m['name']} (until {datetime.fromtimestamp(m['until']).astimezone():%H:%M})" for m in muted[:5])
+            + (', ...' if len(muted) > 5 else ''))
     top = summary_['incidents']['open'][:5]
     if top:
         lines.append('')

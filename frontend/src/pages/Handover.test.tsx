@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { HandoverData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -68,5 +68,26 @@ describe('Shift handover', () => {
     expect(text).toMatch(/Switch outages:\n- sw-b-01: down since .+ \(2 min\)/)
     expect(text.endsWith('Note for the next shift:\nWatch row B')).toBe(true)
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
+
+  it('says what is muted and which crew notice is up (issue #258)', async () => {
+    const extra = {
+      mutes: [{ kind: 'switch' as const, name: 'sw-a-01', until: now + 3600, by: 'kim', reason: 'Swapping the PSU' },
+        { kind: 'health' as const, name: 'DNS', until: now + 600, by: 'ana', reason: '' }],
+      notice: { text: 'Row C has no power until 14:00', level: 'warn' as const, until: null, by: 'kim', at: now },
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': { ...data, ...extra } }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<Handover />)
+    expect(await screen.findByText(/Row C has no power until 14:00/)).toBeInTheDocument()
+    const muted = screen.getByRole('heading', { name: 'Muted right now' }).parentElement!
+    expect(within(muted).getByRole('link', { name: 'sw-a-01' })).toHaveAttribute('href', '/plan?switch=sw-a-01')
+    expect(within(muted).getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/health')
+    expect(within(muted).getByText(/Swapping the PSU/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
+    const text = writeText.mock.calls[0][0] as string
+    expect(text).toContain('Crew notice up: Row C has no power until 14:00')
+    expect(text).toMatch(/Muted right now:\n- sw-a-01, muted until .+ by kim \(Swapping the PSU\)\n- DNS, muted until .+ by ana/)
   })
 })
