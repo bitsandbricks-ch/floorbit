@@ -187,7 +187,7 @@ describe('Incident board', () => {
     vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': repeats }).fn)
     renderWithApp(<Incidents />)
     const third = (await screen.findByText('Third time')).closest('[data-incident]') as HTMLElement
-    expect(within(third).getByText('Incident no. 3 at this seat')).toBeInTheDocument()
+    expect(within(third).getByRole('link', { name: 'Incident no. 3 at this seat' })).toHaveAttribute('href', '/incidents?q=seat%3AB-7')
     const second = screen.getByText('Second time').closest('[data-incident]') as HTMLElement
     expect(within(second).getByText('Incident no. 2 at this seat')).toBeInTheDocument()
     for (const title of ['First time', 'Elsewhere']) {

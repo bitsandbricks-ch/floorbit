@@ -14,7 +14,8 @@ The board's browser tab starts with the number of open incidents, e.g. "(2) Inci
 An open incident that nobody has taken for 10 minutes gets an orange **Waiting 25 min** tag, so the
 ones that slipped through stand out. They move to the top of the **Open** column, the one waiting
 longest first; the rest stay newest first. A seat with more than one incident on the board says so on each later one, e.g. **Incident no. 3
-at this seat**: a seat that keeps coming back often has a cable or port to check. **Take the next one** gives you the oldest open incident
+at this seat**: a seat that keeps coming back often has a cable or port to check. The badge opens
+the board on every incident at that seat (`seat:D-6`), fixed ones too, to see what was tried. **Take the next one** gives you the oldest open incident
 nobody has that you may work, and says which one it was; the **n** key does the same (not while
 you type in a field). The [event report](report.md) shows how long incidents waited
 on average.

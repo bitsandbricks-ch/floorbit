@@ -74,7 +74,11 @@ export function IncidentCard({
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {i.source === 'power' && <Badge variant="light" color="warn" tt="none">{t('incidents.fromPower')}</Badge>}
           {i.reports > 1 && <Badge variant="light" color="warn" tt="none">{t('incidents.reports', { count: i.reports })}</Badge>}
-          {atSeat > 1 && <Badge variant="outline" color="warn" tt="none" title={t('incidents.againHint')}>{t('incidents.again', { n: atSeat })}</Badge>}
+          {/* Opens every incident at this seat (issue #338), fixed ones too, to see what was tried. */}
+          {atSeat > 1 && (
+            <Badge component="a" href={`/incidents?q=${encodeURIComponent(`seat:${i.seat}`)}`} variant="outline" color="warn" tt="none"
+              title={t('incidents.againHint')} style={{ cursor: 'pointer' }}>{t('incidents.again', { n: atSeat })}</Badge>
+          )}
           {waiting && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
         </Group>
         {snap && (
