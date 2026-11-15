@@ -76,6 +76,33 @@ nothing typed on the floor plan can change a query.
 Prometheus keeps no ARP or MAC tables. Finding which port an IP is on (the check-in page, a seat's
 port) needs a seat source or the seat mapping.
 
+## Built in: UniFi
+
+For halls built from UniFi switches (#39). Off until an admin turns it on under **Settings >
+Plugins**. It reads the UniFi Network controller's own API and needs a local account with the
+**View Only** role. It signs in for each read and signs out again.
+
+| Floorbit needs | From |
+| --- | --- |
+| Is the switch online | `stat/device`: `state` (switches only, `type` `usw`) |
+| CPU, memory, temperature | `system-stats`, `general_temperature` |
+| Port state, speed, duplex, traffic, errors | the switch's `port_table` |
+| Which port an IP or MAC is on | `stat/sta`: the client's `sw_mac` and `sw_port` |
+
+UniFi calls a port "Port 7". A name given to it in the controller, like "Seat A1", becomes the
+port's description, and the seat inspector finds the port by either. Players on Wi-Fi have no switch
+port.
+
+Settings:
+
+- **Controller URL:** the console or the Network application, with no path.
+- **UniFi OS console:** on for a Dream Machine, a Cloud Key Gen2 or a UniFi OS server; off for the
+  older Network application on port 8443.
+- **Username and password:** the View Only account.
+- **Site:** the short name from the controller's URL. Default `default`.
+- **Verify TLS:** consoles ship with a self-signed certificate. Turn this off only on a network you
+  trust.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it
