@@ -74,7 +74,7 @@
   "trafficScale": "Traffic per seat",
   "blockSummary_one": "Block {{name}}: {{online}} of {{count}} seat online",
   "blockSummary_other": "Block {{name}}: {{online}} of {{count}} seats online",
-  "keys": "Arrow keys move from seat to seat, Enter opens the seat, Escape closes it. Shift and the arrow keys move the map, + and - zoom.",
+  "keys": "Arrow keys move from seat to seat, Enter opens the seat, Escape closes it, B opens its block. Shift and the arrow keys move the map, + and - zoom.",
   "history": {
     "title": "Link",
     "onlineSince": "Online since {{time}}",
@@ -107,5 +107,15 @@
   },
   "changedAgo_one": "changed {{count}} min ago",
   "changedAgo_other": "changed {{count}} min ago",
-  "changedAgo_zero": "changed just now"
+  "changedAgo_zero": "changed just now",
+  "blockPanel": {
+    "title": "Block {{name}}",
+    "switches": "Switches",
+    "noSwitches": "No switch port is known for these seats yet.",
+    "carries_one": "{{online}} of {{count}} seat online",
+    "carries_other": "{{online}} of {{count}} seats online",
+    "noPort_one": "{{count}} seat on no known port",
+    "noPort_other": "{{count}} seats on no known port",
+    "open": "Open block {{name}}"
+  }
 }

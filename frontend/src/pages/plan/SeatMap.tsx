@@ -48,8 +48,9 @@ const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'righ
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
-export function SeatMap({ data, selected, onSelect, onClear, filter, view, setView, traffic = false }: {
-  data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void; filter: Filter
+export function SeatMap({ data, selected, onSelect, onClear, onBlock, filter, view, setView, traffic = false }: {
+  data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
+  onBlock?: (block: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
 }) {
   const { t } = useTranslation()
@@ -147,6 +148,16 @@ export function SeatMap({ data, selected, onSelect, onClear, filter, view, setVi
       onSelect((cursor ?? selected)!)
       return
     }
+    if ((e.key === 'b' || e.key === 'B') && onBlock && (cursor ?? selected)) {
+      // The block of the seat under the cursor (issue #174).
+      const seat = (cursor ?? selected)!
+      const shape = drawing.shapes.find((s) => s.cells.some((c) => c.seat === seat))
+      if (shape?.name) {
+        e.preventDefault()
+        onBlock(shape.name)
+        return
+      }
+    }
     if (e.key === 'Escape' && (selected || cursor)) {
       e.preventDefault()
       if (selected) onClear?.()
@@ -225,14 +236,14 @@ export function SeatMap({ data, selected, onSelect, onClear, filter, view, setVi
                 )
               })}
             </g>
-            {b.name && level !== 'far' && <text className="name" x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 16} fontSize={Math.max(18, label)}>{b.name}</text>}
+            {b.name && level !== 'far' && <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 16} fontSize={Math.max(18, label)}>{b.name}</text>}
           </g>
         ))}
         {level === 'far' && drawing.shapes.map((b, bi) => {
           const sum = data.blocks.find((x) => x.name === b.name)
           if (!sum) return null
           return (
-            <g key={`sum${bi}`} className="sum" transform={`translate(${b.cx} ${b.cy - Math.max(b.w, b.h) / 2 - 10})`} fontSize={label}>
+            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${b.cx} ${b.cy - Math.max(b.w, b.h) / 2 - 10})`} fontSize={label}>
               <text y={-label * 1.3}>{b.name}</text>
               <text y={-label * 0.2} className="sub">
                 {sum.online}/{sum.seats}{sum.problems ? ` · ! ${sum.problems}` : ''}

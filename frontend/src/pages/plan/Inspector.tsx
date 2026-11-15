@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
 import { IconExternalLink, IconMapPin } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +13,7 @@ const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown
 
 /** Everything about one seat in one place: state, port, check-in, match, incidents and, with
  *  seats.view, who sits there. */
-export function Inspector({ seat, onClose }: { seat: string; onClose: () => void }) {
+export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: () => void; onBlock?: (block: string) => void }) {
   const { t, i18n } = useTranslation()
   const q = useQuery({ queryKey: qk.planSeat(seat), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seat)}`) })
   const d = q.data
@@ -41,7 +41,9 @@ export function Inspector({ seat, onClose }: { seat: string; onClose: () => void
           </Group>
           <Table withRowBorders={false} verticalSpacing={4}>
             <Table.Tbody>
-              {row(t('plan.block'), d.block || '–')}
+              {row(t('plan.block'), d.block && onBlock
+                ? <Anchor component="button" type="button" onClick={() => onBlock(d.block)} aria-label={t('plan.blockPanel.open', { name: d.block })}>{d.block}</Anchor>
+                : d.block || '–')}
               {row(t('plan.port'), d.switch ? `${d.switch} · ${d.port}` : <Text span c="dimmed">{t('plan.noPort')}</Text>)}
               {d.bps !== null && row(t('plan.traffic'), rate(d.bps))}
               {d.checked_in !== null && row(t('plan.checkin'), d.checked_in ? t('plan.yes') : t('plan.no'))}

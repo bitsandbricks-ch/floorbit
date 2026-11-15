@@ -190,3 +190,48 @@ def details(seat, people):
         out['ip'] = row.get('ip_address') or None
         out['mac'] = row.get('mac_address') or row.get('mac') or None
     return out
+
+
+def block(name, now=None):
+    """One seat block for the block panel (issue #174): its seats by state, the ones with problems,
+    and the switches that serve it. States only, never who sits there."""
+    now = time.time() if now is None else now
+    data = load_data()
+    for hall in halls.halls(data):
+        drawing, _ = plan(data, hall_id=hall['id'])
+        shape = next((s for s in (drawing or {}).get('shapes', []) if s['name'] == name), None)
+        if shape:
+            break
+    else:
+        return None
+    seats = view(hall['id'], now=now)['seats']
+    cells = [c['seat'] for c in shape['cells']]
+    rows = {s: seats.get(s) or {'state': 'unknown'} for s in cells}
+    counts = dict.fromkeys(('online', 'offline', 'unknown'), 0)
+    for row in rows.values():
+        counts[row['state']] += 1
+    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    status = {str(st.get('name') or '').lower().split('.')[0]: st.get('status') or 'unknown'
+              for st in (getattr(monitor, 'statuses', None) or {}).values()}
+    ports = _port_of_seat()
+    switches = {}
+    for s in cells:
+        if s not in ports:
+            continue
+        sw = switches.setdefault(ports[s][0], {'name': ports[s][0], 'seats': 0, 'online': 0,
+                                               'status': status.get(ports[s][0].lower().split('.')[0], 'unknown')})
+        sw['seats'] += 1
+        sw['online'] += rows[s]['state'] == 'online'
+    checked = [s for s, r in rows.items() if r.get('checked_in')]
+    return {
+        'name': name,
+        'hall': hall['id'],
+        'seats': len(cells),
+        **counts,
+        'checked_in': len(checked) if _checked_in() is not None else None,
+        'bps': sum(int(r.get('bps') or 0) for r in rows.values()),
+        'problems': [{'seat': s, 'state': r['state'], 'problems': r['problems']}
+                     for s, r in rows.items() if r.get('problems')],
+        'switches': sorted(switches.values(), key=lambda w: w['name']),
+        'no_port': sum(1 for s in cells if s not in ports),
+    }
