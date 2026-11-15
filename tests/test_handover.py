@@ -138,3 +138,22 @@ def test_the_summary_says_who_still_has_gear(client, app_module, monkeypatch):
     client.put("/api/settings/features", json={"gear": False})
     body = client.get("/api/handover").get_json()
     assert body["gear"] == [] and body["counts"]["gear_out"] == 0
+
+
+def test_the_summary_says_how_fast_the_shift_fixed_things(client, app_module, monkeypatch):
+    # Issue #334: the middle fix time of this shift, on the page and in the Discord post.
+    from floorbit import handover
+    _floor(client)
+    assert client.get("/api/handover").get_json()["counts"]["median_fix_s"] is None
+    for seat in ("A-1", "A-2", "A-3"):
+        i = client.post("/api/incidents", json={"seat": seat, "title": "No link"}).get_json()
+        client.patch(f"/api/incidents/{i['id']}", json={"status": "fixed"})
+    assert client.get("/api/handover").get_json()["counts"]["median_fix_s"] == 0
+    assert handover._minutes(0) == "1 min" and handover._minutes(65 * 60) == "1 h 5 min"
+
+    notifier = app_module.app.extensions["floorbit_discord"]
+    sent = []
+    monkeypatch.setattr(notifier, "enabled", lambda: True)
+    monkeypatch.setattr(notifier, "post", sent.append)
+    client.post("/api/handover", json={"note": "", "discord": True})
+    assert "3 fixed this shift, half within 1 min)" in sent[0]["embeds"][0]["description"]

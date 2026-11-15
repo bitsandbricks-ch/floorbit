@@ -147,6 +147,8 @@ def summary(switch_events, problems_now, since=None, now=None):
     notes.sort(key=lambda n: -(n.get('at') or 0))
     mutes = _mutes(now)
     gear_out = _gear_out(data)
+    # How fast this shift fixed things (issue #334): the middle value, so one long job doesn't skew it.
+    took = sorted(i['fixed_at'] - i['created_at'] for i in fixed if i['fixed_at'] and i['created_at'])
     return {
         'since': since, 'now': now, 'previous': last(data),
         'incidents': {'open': still_open, 'opened': opened, 'fixed': fixed},
@@ -158,7 +160,8 @@ def summary(switch_events, problems_now, since=None, now=None):
         'gear': gear_out,
         'notice': notice.current(data, now),
         'counts': {'open': len(still_open), 'waiting': sum(1 for i in items if incidents.is_waiting(i, now)),
-                   'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
+                   'opened': opened, 'fixed': len(fixed),
+                   'median_fix_s': round(took[len(took) // 2]) if took else None, 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
                    'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes),
                    'gear_out': sum(g['count'] for g in gear_out)},
@@ -177,11 +180,17 @@ def hand_over(user, note, counts, since, now=None):
         return record
 
 
+def _minutes(seconds):
+    mins = max(1, round(seconds / 60))
+    return f'{mins} min' if mins < 60 else f'{mins // 60} h {mins % 60} min'
+
+
 def discord_message(record, summary_, public_url='', username='Floorbit'):
     """One embed for the crew channel: the counts, what is still open, and the note."""
     c = record['counts']
     waiting = f"{c['waiting']} waiting 10+ min, " if c.get('waiting') else ''   # older records have no count
-    lines = [f"**{c['open']}** incidents open ({waiting}{c['opened']} new, {c['fixed']} fixed this shift)",
+    half = f", half within {_minutes(c['median_fix_s'])}" if c.get('median_fix_s') is not None else ''
+    lines = [f"**{c['open']}** incidents open ({waiting}{c['opened']} new, {c['fixed']} fixed this shift{half})",
              f"**{c['outages']}** switch outages" + (f", **{c['still_down']}** still down" if c['still_down'] else ''),
              f"**{c['problems']}** problems right now, **{c['changes']}** changes in the audit log"]
     muted = summary_.get('mutes') or []
