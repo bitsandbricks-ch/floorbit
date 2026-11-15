@@ -274,7 +274,7 @@ export interface Incident {
   team: string | null
   status: IncidentStatus
   assignee: string | null
-  source: 'board' | 'helpdesk' | 'power'
+  source: 'board' | 'helpdesk' | 'power' | 'discord'
   reported_by: string | null
   reports: number
   notes: IncidentNote[]

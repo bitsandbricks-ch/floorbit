@@ -63,6 +63,14 @@ button click. There is no Discord role mapping.
 | `/seat <seat>` | one seat: online or not and how fast, its switch port, open incidents, needs-attention items and how often it was fixed before, with a link to it on the floor plan. Needs `incidents.work`. |
 | `/switch <name>` | one switch: up or down and since when, its model, how many of its seats are online and which are not (with their ports). Needs `incidents.work`. |
 
+| `/incident report <seat> <problem>` | files an incident for a seat, like the incident board does. It shows up there marked *From Discord*, and automatic dispatch applies. |
+| `/incident take <incident>` | takes an open incident. Start typing a seat or a few words, and Discord lists the open incidents you may work. |
+| `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
+| `/jobs` | the incidents you have, oldest first. |
+
+The incident commands follow the account's permissions exactly as on the board, and every change is
+in the [audit log](audit.md).
+
 `/seat` and `/switch` suggest seat numbers and switch names as you type, to crew only. They never
 show nicks, IPs or MACs: those stay in Floorbit.
 

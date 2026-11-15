@@ -21,6 +21,7 @@
   "noTeam": "Kein Team",
   "fromSeat": "Vom Platz",
   "fromPower": "Vom Stromlayer",
+  "fromDiscord": "Aus Discord",
   "reports_one": "{{count}} Meldung",
   "reports_other": "{{count}} Meldungen",
   "snapshot": "{{switch}} {{port}}: {{link}}, {{mac}}",
