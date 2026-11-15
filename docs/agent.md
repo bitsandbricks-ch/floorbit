@@ -53,7 +53,9 @@ agent answered, how long it took (the median, from handing a call out to getting
 many failed, and the last error with its method. A slow LibreNMS or one that refuses the agent's
 token shows up there first. These numbers are kept in memory, so a restart starts them over. An agent older than the hosted
 Floorbit gets an **Update** badge: pull the new image and start it again (below). An agent that
-sends no version, or one Floorbit can't read, is never flagged.
+sends no version, or one Floorbit can't read, is never flagged. An agent that sent syslog or a
+traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
+agent forwards what.
 
 Revoking the agent stops it at its next request: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
@@ -107,7 +109,8 @@ docker run -d --restart on-failure:3 --name floorbit-agent \
 ```
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
-monitoring plugin, the inventory plugins), says which works and which doesn't, and exits with 0 when
+monitoring plugin, the inventory and health plugins, and, when their ports are set, whether the
+hosted Floorbit takes syslog and flows), says which works and which doesn't, and exits with 0 when
 everything works, 1 when something doesn't:
 
 ```sh
@@ -131,6 +134,7 @@ for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorb
 | `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
 | `FLOORBIT_AGENT_SYSLOG_PORT` | a UDP port to take syslog on, such as `5514`, sent on to the hosted Logs page. Unset: the agent doesn't listen. `FLOORBIT_AGENT_SYSLOG_BIND` picks the address (all of them by default) |
 | `FLOORBIT_AGENT_FLOWS_PORT` | a UDP port to collect NetFlow and IPFIX on, such as `2055`, for the hosted Traffic page. Unset: no collector. `FLOORBIT_AGENT_FLOWS_BIND` picks the address; the `FLOWS_*` settings of [Traffic](flows.md) apply on the agent |
+| `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
@@ -139,7 +143,13 @@ so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
 start it with the new key. That's why the Compose file restarts it only on failure, at most 3
-times, instead of `unless-stopped`.
+times, instead of `unless-stopped`. Stopping it (`docker stop`, Ctrl+C) first sends the syslog
+lines still waiting, so an update doesn't lose them.
+
+**Health.** `python -m floorbit.agent health` exits with 0 when the hosted Floorbit answered the
+agent in the last two minutes, 1 otherwise. It reads a heartbeat file the agent writes after each
+poll that gets through, so it needs no network and no settings. The Compose file uses it as the
+container's health check, so `docker ps` shows the agent as *unhealthy* while the uplink is down.
 
 To update the agent, pull the new image and start it again (`docker compose -f
 docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
@@ -248,14 +258,28 @@ answering, but it names the agent: "The local agent is away", with when it was l
 
 ## The protocol
 
-The agent sends its key in the `Floorbit-Agent-Key` header and its version in
-`Floorbit-Agent-Version`. It needs no account and no session.
+The agent sends its key in the `Floorbit-Agent-Key` header, its version in
+`Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (now `1`; no header
+counts as `1`). It needs no account and no session.
+
+The protocol has its own number because the agent and Floorbit are released apart. A change the other
+side can't follow gets a new number. A Floorbit that doesn't speak the agent's protocol answers every
+agent request with **426** and says which one it speaks. The agent then stops with exit code 1, like
+for a revoked key, because retrying won't help: update the agent or Floorbit. `hello` says which
+protocol the hosted Floorbit speaks (`"protocol"`).
 
 | Request | What |
 | --- | --- |
-| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version"}`, or 401 |
+| `GET /api/agent/v1/hello` | checks the key: `{"name", "server_version", "encodings", "protocol"}`, or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
+| `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
+| `GET /api/agent/v1/seats` | `{"seat_of", "area_of"}`: the seat addresses for the flow collector, or 409 while Traffic is off |
+| `POST /api/agent/v1/flows` | `{"snapshot"}`: the flow collector's summary, or 409 while Traffic is off |
+
+When `hello` lists `gzip` in `encodings`, the agent sends POST bodies over 2 KB gzipped
+(`Content-Encoding: gzip`), which saves most of the uplink on syslog batches and inventories. A body
+that doesn't unpack, or unpacks to more than 32 MB, counts as empty.
 
 The methods are those of the monitoring source (see [architecture.md](architecture.md#inventory-and-data-sources)):
 `configured`, `devices`, `device_details`, `resolve_ip`, `port_stats`, `device_ports` and `arp`, plus
@@ -266,7 +290,7 @@ For admins (**Manage settings**):
 
 | Request | What |
 | --- | --- |
-| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`), and `server_version` |
+| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), and `server_version` |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
 | `PATCH /api/agents/<id>` | `{"halls": [ids]}`: the halls it answers for, empty for every hall |
 | `DELETE /api/agents/<id>` | revoke it |

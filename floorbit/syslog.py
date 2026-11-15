@@ -286,6 +286,8 @@ class SyslogReceiver:
         keeps the time the agent got it (at most an hour back: older ones were buffered too long
         to be worth placing in the past). Returns how many were kept."""
         now = time.time() if now is None else now
+        if not lines:
+            return 0     # the agent's check: nothing to count
         kept = 0
         for item in lines:
             if not isinstance(item, dict) or not isinstance(item.get('raw'), str):
