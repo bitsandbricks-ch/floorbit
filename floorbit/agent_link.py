@@ -45,7 +45,8 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
 # inventory feeds of its inventory plugins (NetBox), nothing else.
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds')
+           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
+           'wifi_feeds')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()

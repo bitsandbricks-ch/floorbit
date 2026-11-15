@@ -544,3 +544,41 @@ def test_dns_lookups_come_through_the_agent_without_addresses(client, app_module
     finally:
         a.stop()
         worker.join(30)
+
+
+def test_wifi_comes_through_the_agent_as_counts_only(client, app_module):
+    from floorbit import wifi
+    wifi.reset()
+
+    class Spec:
+        id, name = 'unifi', 'UniFi'
+
+    class Registry:
+        def feeders(self, area):
+            return [Spec()] if area == 'wifi' else []
+
+        def call(self, spec, method):
+            return [{'name': 'ap-hall-01', 'model': 'U6-Pro', 'status': 'up',
+                     'clients_list': [{'hostname': 'gamer-laptop', 'mac': '02:00:00:00:00:01'}],
+                     'radios': [{'band': '5', 'channel': 36, 'width': 80, 'utilization': 42, 'clients': 18}]}]
+
+    sent = agent_mod.wifi_feeds(Registry())[0]['items']
+    assert sent[0]['clients'] == 18 and 'gamer-laptop' not in str(sent) and '02:00' not in str(sent)
+
+    key = enrol(client)['key']
+    a = make(app_module, key, lambda method, args: agent_mod.wifi_feeds(Registry())
+             if method == 'wifi_feeds' else fake_execute(method, args))
+    a.poll_wait = 0.5
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        body = client.get('/api/wifi').get_json()
+        assert [ap['name'] for ap in body['aps']] == ['ap-hall-01'] and body['clients'] == 18
+        assert body['aps'][0]['source'] == 'UniFi (local agent)' and 'Local agent' in body['sources']
+    finally:
+        a.stop()
+        worker.join(30)
+        wifi.reset()

@@ -24,7 +24,8 @@ HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds')
+           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
+           'wifi_feeds')
 
 
 class Refused(RuntimeError):
@@ -44,6 +45,8 @@ def local_executor(app):
                 return inventory_feeds(registry)
             if method == 'cable_feeds':
                 return cable_feeds(registry)
+            if method == 'wifi_feeds':
+                return wifi_feeds(registry)
             if method == 'dns_feeds':
                 return dns_feeds(registry, *args)
             if method == 'health_feeds':
@@ -88,6 +91,18 @@ def dns_feeds(registry, since=0):
                           'client': hmac.new(_DNS_KEY, str(client).encode(), hashlib.sha256).hexdigest()[:24]
                           if client else None})
         out.append({'plugin': spec.id, 'name': spec.name, 'items': items})
+    return out
+
+
+def wifi_feeds(registry):
+    """Every Wi-Fi plugin's access points, cleaned here already: counts only, so client names and
+    MACs a controller sends never leave the event network (docs/wifi.md)."""
+    from .. import wifi
+    out = []
+    for feed in _feeds(registry, registry.feeders('wifi') if registry is not None else [], 'wifi_aps'):
+        if 'items' in feed:
+            feed['items'] = [ap for ap in (wifi.clean_ap(raw) for raw in feed['items'] or []) if ap][:wifi.MAX_APS]
+        out.append(feed)
     return out
 
 

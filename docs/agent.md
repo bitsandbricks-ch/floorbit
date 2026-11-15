@@ -23,6 +23,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | Inventory sync and cable import | inventory, cables |
 | The health wall's checks (HTTP check, or any health plugin turned on there) | health |
 | DNS analytics (Pi-hole, AdGuard Home, turned on there) | dns |
+| The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
@@ -34,7 +35,7 @@ so on a hosted Floorbit they only work when that service is reachable from it:
 | Feature | Why |
 | --- | --- |
 | Logs (Loki), syslog, NetFlow | syslog and flows are sent to Floorbit's own UDP ports |
-| Wi-Fi details (UniFi as a Wi-Fi source), port actions (SSH ports), switch commands and terminal | they connect to the controller or switch directly |
+| Port actions (SSH ports), switch commands and terminal | they connect to the switch directly |
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
 
@@ -179,6 +180,14 @@ the hall's lookups as with a local resolver. The agent makes them safe to send f
 address becomes a keyed hash (the key lives only in the agent's memory), and names are cut to the
 site, with local names (a machine's name says whose it is) left out. So neither addresses nor
 machine names leave the event network; the hosted side applies the same 5-client rule as always.
+
+## Wi-Fi through the agent
+
+With the UniFi plugin on on the agent (`FLOORBIT_AGENT_PLUGINS=unifi` and its
+`FLOORBIT_PLUGIN_UNIFI_…` settings), the hosted [Wi-Fi page](wifi.md) shows the access points, their
+channels and client counts, marked "UniFi (local agent)". The agent cleans the controller's answer
+first, so only counts leave the event network, never client names or MACs. The Wi-Fi link in the
+menu only shows when the hosted Floorbit has a Wi-Fi plugin of its own; open the page at `/wifi`.
 
 ## When the agent is away
 
