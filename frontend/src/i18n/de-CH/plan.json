@@ -13,6 +13,7 @@
     "all": "Alle",
     "problems": "Probleme",
     "offline": "Offline",
+    "recent": "Kürzlich geändert",
     "match": "Matchplätze",
     "checked_in": "Eingecheckt"
   },
@@ -41,7 +42,8 @@
     "unknown": "Unbekannt: keine aktuelle Abfrage oder Port nicht bekannt",
     "checkedIn": "Eingecheckt",
     "problem": "Offenes Problem",
-    "match": "Matchplatz"
+    "match": "Matchplatz",
+    "recent": "Verbindung in den letzten 15 Minuten geändert"
   },
   "seat": "Platz {{seat}}",
   "close": "Schliessen",
@@ -72,7 +74,7 @@
   "trafficScale": "Verkehr pro Platz",
   "blockSummary_one": "Block {{name}}: {{online}} von {{count}} Platz online",
   "blockSummary_other": "Block {{name}}: {{online}} von {{count}} Plätzen online",
-  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen.",
+  "keys": "Die Pfeiltasten gehen von Platz zu Platz, Enter öffnet den Platz, Escape schliesst ihn, B öffnet seinen Block. Shift und die Pfeiltasten verschieben den Plan, + und - zoomen.",
   "history": {
     "title": "Verbindung",
     "onlineSince": "Online seit {{time}}",
@@ -97,6 +99,23 @@
     "state": "Zustand",
     "match": "Match",
     "count_one": "{{count}} Platz",
-    "count_other": "{{count}} Plätze"
+    "count_other": "{{count}} Plätze",
+    "changed": "Geändert",
+    "ago_zero": "gerade eben",
+    "ago_one": "vor {{count}} Min.",
+    "ago_other": "vor {{count}} Min."
+  },
+  "changedAgo_one": "vor {{count}} Min. geändert",
+  "changedAgo_other": "vor {{count}} Min. geändert",
+  "changedAgo_zero": "gerade geändert",
+  "blockPanel": {
+    "title": "Block {{name}}",
+    "switches": "Switches",
+    "noSwitches": "Für diese Plätze ist noch kein Switch-Port bekannt.",
+    "carries_one": "{{online}} von {{count}} Platz online",
+    "carries_other": "{{online}} von {{count}} Plätzen online",
+    "noPort_one": "{{count}} Platz an keinem bekannten Port",
+    "noPort_other": "{{count}} Plätze an keinem bekannten Port",
+    "open": "Block {{name}} öffnen"
   }
 }

@@ -1179,6 +1179,8 @@ export interface PlanSeat {
   problems?: number
   match?: string
   bps?: number
+  /** When the link last changed, if within the last 15 minutes (issue #171). */
+  changed?: number
 }
 
 export interface PlanBlock {
@@ -1229,4 +1231,19 @@ export interface SeatDetails {
   nick?: string | null
   ip?: string | null
   mac?: string | null
+}
+
+/** One seat block for the Seats view's block panel (issue #174). */
+export interface BlockDetails {
+  name: string
+  hall: string
+  seats: number
+  online: number
+  offline: number
+  unknown: number
+  checked_in: number | null
+  bps: number
+  problems: { seat: string; state: SeatState; problems: number }[]
+  switches: { name: string; seats: number; online: number; status: string }[]
+  no_port: number
 }

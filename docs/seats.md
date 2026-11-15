@@ -32,8 +32,8 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 - **Middle:** seat states and their marks.
 - **Near** (a seat 30 px or more): seat numbers and switch names too.
 
-**Show** dims every seat except the ones with problems, offline seats, match seats or checked-in
-seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
+**Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
+match seats or checked-in seats. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 ## Keyboard and screen readers
 
@@ -44,6 +44,7 @@ Tab to the plan, then:
 | Arrow keys | Move a dashed cursor to the next seat in that direction, in rotated blocks too. The first press starts on the open seat or the one in the middle of the view. The view follows the cursor. |
 | Enter or Space | Open the seat under the cursor in the inspector. |
 | Escape | Close the inspector. |
+| B | Open the block of the seat under the cursor. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 
@@ -58,6 +59,13 @@ checked with axe in the frontend tests.
 The colours run from dark purple to yellow (viridis), which stay in order for colour-blind eyes
 and in grey scale. Offline and unknown seats keep their shapes. Only each seat's volume is shown,
 never what it is. `/plan?traffic=1` opens with it on, also on big screens.
+
+## Changed lately
+
+A seat whose link went up or down in the last 15 minutes gets a dashed cyan ring that pulses (it
+stays still for people who turned motion off), and its label says "changed 4 min ago". **Show >
+Changed lately** keeps only those seats, on the map and in the list, so "what just went down?" is
+one click during an outage. Floorbit's first port read after a start doesn't count as a change.
 
 ## List
 
@@ -90,6 +98,15 @@ Techs can act from the panel too, with the same rules as the editor:
 Who sits there (nick, IP and MAC) is only shown to accounts with `seats.view` (techs, leads and
 admins). Everyone with `floorplan.view` sees the states. The link `/plan?seat=D-6` opens the page
 on that seat.
+
+## The block panel
+
+Click a block's name (or its totals when zoomed out), click **Block** in the seat inspector, or press
+**B** on a seat to open the block instead of a seat: online, offline and unknown seats with a bar,
+check-ins, traffic in total, the switches that serve the block with how many of their seats are
+online, and the seats with problems (click one to open it). When half a block goes dark, it shows
+at a glance whether it is one switch. `/plan?block=D` opens it. It shows states only, never who
+sits where.
 
 ## In the floor plan editor
 

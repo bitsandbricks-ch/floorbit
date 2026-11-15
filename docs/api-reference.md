@@ -394,6 +394,7 @@ Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plan/blocks/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plan/seats/<seat>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.planner

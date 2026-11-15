@@ -114,7 +114,7 @@ export function reveal(view: View, point: { x: number; y: number }, margin: numb
   return x === view.x && y === view.y ? view : { ...view, x, y }
 }
 
-export type Filter ='all' | 'problems' | 'offline' | 'match' | 'checked_in'
+export type Filter = 'all' | 'problems' | 'offline' | 'recent' | 'match' | 'checked_in'
 
 export function matches(seat: PlanSeat | undefined, filter: Filter) {
   if (filter === 'all') return true
@@ -122,6 +122,7 @@ export function matches(seat: PlanSeat | undefined, filter: Filter) {
   if (filter === 'problems') return !!seat.problems
   if (filter === 'offline') return seat.state === 'offline'
   if (filter === 'match') return !!seat.match
+  if (filter === 'recent') return !!seat.changed
   return !!seat.checked_in
 }
 
@@ -140,6 +141,11 @@ export function findSeat(query: string, seats: Record<string, unknown>) {
   const m = q.match(/^([A-Z0-9]+?)-?0*(\d+)$/)
   if (m && `${m[1]}-${m[2]}` in seats) return `${m[1]}-${m[2]}`
   return null
+}
+
+/** Whole minutes since a time in seconds, for "changed 4 min ago". */
+export function minutesAgo(ts: number, now = Date.now() / 1000) {
+  return Math.max(0, Math.round((now - ts) / 60))
 }
 
 /** Bits per second as a short text: 6 Mbit/s. */

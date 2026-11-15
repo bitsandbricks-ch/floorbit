@@ -10,12 +10,13 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
+import { BlockPanel } from './plan/BlockPanel'
 import { Inspector, Legend } from './plan/Inspector'
 import { type Filter, type View, around, findSeat, parseBox, seatCenter } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 
-const FILTERS: Filter[] = ['all', 'problems', 'offline', 'match', 'checked_in']
+const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'checked_in']
 
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
  *  for colour-blind eyes, three zoom levels, and one inspector for a seat. ``?screen=1`` for a kiosk. */
@@ -24,6 +25,7 @@ export default function FloorPlan() {
   const [params, setParams] = useSearchParams()
   const hall = params.get('hall') ?? ''
   const selected = params.get('seat')
+  const blockSel = selected ? null : params.get('block')
   const screen = params.get('screen') === '1'
   const traffic = params.get('traffic') === '1'
   const list = !screen && params.get('view') === 'list'
@@ -60,6 +62,9 @@ export default function FloorPlan() {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
     else next.delete(key)
+    // One panel at a time: a seat or a block.
+    if (value && key === 'seat') next.delete('block')
+    if (value && key === 'block') next.delete('seat')
     setParams(next, { replace: true })
   }
   const go = (e: React.FormEvent) => {
@@ -95,7 +100,8 @@ export default function FloorPlan() {
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic}
       onClear={() => set('seat', null)}
-      onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }} />
+      onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
+      onBlock={screen ? undefined : (b) => set('block', b)} />
   )
   const summary = data && (
     <Group gap="lg" className="fb-plan-summary" wrap="wrap">
@@ -119,7 +125,10 @@ export default function FloorPlan() {
     )
   }
 
-  const inspector = selected && <Inspector key={selected} seat={selected} onClose={() => set('seat', null)} />
+  const inspector = selected
+    ? <Inspector key={selected} seat={selected} onClose={() => set('seat', null)} onBlock={(b) => set('block', b)} />
+    : blockSel ? <BlockPanel key={blockSel} name={blockSel} onSeat={(s) => set('seat', s)} onClose={() => set('block', null)} /> : null
+  const panel = !!inspector
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }}>
       {q.isPending && <Loader aria-label={t('common.loading')} />}
@@ -152,15 +161,15 @@ export default function FloorPlan() {
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
-          <div className={`fb-plan-layout${selected && !phone ? ' with-inspector' : ''}`}>
+          <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
-            {selected && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
+            {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
           {!list && <Legend checkin={data.checkin} traffic={traffic} />}
           {!list && <Text size="sm" c="dimmed" mt="xs">{t('plan.help')}</Text>}
           {phone && (
-            <Drawer opened={!!selected} onClose={() => set('seat', null)} position="bottom" size="55%" withCloseButton={false}
-              title={null} aria-label={selected ?? ''}>
+            <Drawer opened={panel} onClose={() => set(selected ? 'seat' : 'block', null)} position="bottom" size="55%" withCloseButton={false}
+              title={null} aria-label={selected ?? blockSel ?? ''}>
               {inspector}
             </Drawer>
           )}

@@ -3,10 +3,10 @@ import { IconChevronDown, IconChevronUp, IconDownload } from '@tabler/icons-reac
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanSeat, SeatViewData } from '@/api/types'
-import { type Filter, matches, rate, seatOrder } from './model'
+import { type Filter, matches, minutesAgo, rate, seatOrder } from './model'
 import { SeatGlyph } from './SeatMap'
 
-type Key = 'seat' | 'state' | 'problems' | 'bps'
+type Key = 'seat' | 'state' | 'problems' | 'bps' | 'changed'
 const STATE_ORDER = { offline: 0, unknown: 1, online: 2 }
 
 /** The hall's seats as a sortable table (issue #169): the plain way through the hall for screen
@@ -23,6 +23,7 @@ export function SeatList({ data, filter, selected, onSelect }: {
       state: (a, b) => STATE_ORDER[a[1].state] - STATE_ORDER[b[1].state] || seatOrder(a[0], b[0]),
       problems: (a, b) => (a[1].problems ?? 0) - (b[1].problems ?? 0) || seatOrder(b[0], a[0]),
       bps: (a, b) => (a[1].bps ?? 0) - (b[1].bps ?? 0) || seatOrder(b[0], a[0]),
+      changed: (a, b) => (a[1].changed ?? 0) - (b[1].changed ?? 0) || seatOrder(b[0], a[0]),
     }
     list.sort(by[sort.key])
     return sort.desc ? list.reverse() : list
@@ -30,8 +31,8 @@ export function SeatList({ data, filter, selected, onSelect }: {
 
   const head = (key: Key, label: string, numeric = false) => {
     const on = sort.key === key
-    // Problems and traffic start with the most, seats and states with the first.
-    const flip = () => setSort(on ? { key, desc: !sort.desc } : { key, desc: key === 'problems' || key === 'bps' })
+    // Problems, traffic and changes start with the most (or latest), seats and states with the first.
+    const flip = () => setSort(on ? { key, desc: !sort.desc } : { key, desc: key === 'problems' || key === 'bps' || key === 'changed' })
     return (
       <Table.Th aria-sort={on ? (sort.desc ? 'descending' : 'ascending') : 'none'} ta={numeric ? 'right' : undefined}>
         <UnstyledButton onClick={flip} fw={600} fz="sm">
@@ -72,6 +73,7 @@ export function SeatList({ data, filter, selected, onSelect }: {
               {head('state', t('plan.list.state'))}
               {head('problems', t('plan.problems'), true)}
               {head('bps', t('plan.traffic'), true)}
+              {head('changed', t('plan.list.changed'))}
               {data.checkin && <Table.Th>{t('plan.checkin')}</Table.Th>}
               <Table.Th>{t('plan.list.match')}</Table.Th>
             </Table.Tr>
@@ -90,6 +92,7 @@ export function SeatList({ data, filter, selected, onSelect }: {
                 </Table.Td>
                 <Table.Td ta="right" c={s.problems ? 'down' : 'dimmed'}>{s.problems ?? 0}</Table.Td>
                 <Table.Td ta="right">{s.bps ? rate(s.bps) : '–'}</Table.Td>
+                <Table.Td>{s.changed ? t('plan.list.ago', { count: minutesAgo(s.changed) }) : '–'}</Table.Td>
                 {data.checkin && <Table.Td>{s.checked_in ? t('plan.yes') : t('plan.no')}</Table.Td>}
                 <Table.Td>{s.match ?? '–'}</Table.Td>
               </Table.Tr>

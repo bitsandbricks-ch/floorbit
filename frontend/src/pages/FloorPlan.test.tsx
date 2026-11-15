@@ -226,6 +226,44 @@ describe('Seats page', () => {
     expect(result.violations.map((v) => v.id)).toEqual([])
   })
 
+  it('marks seats whose link changed lately and filters to them', async () => {
+    const recent = { ...data, seats: { ...data.seats, 'D-3': { state: 'offline' as const, changed: Date.now() / 1000 - 240 } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': recent }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    expect(await screen.findByRole('button', { name: 'D-3: Offline · changed 4 min ago' })).toBeInTheDocument()
+    expect(container.querySelectorAll('.cell .recent')).toHaveLength(1)
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Link changed in the last 15 minutes')
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Changed lately'))
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
+    expect(container.querySelector('[data-seat="D-3"]')).not.toHaveClass('dim')
+  })
+
+  it('opens a block panel from the block name, the inspector and the B key', async () => {
+    const block = {
+      name: 'D', hall: 'main', seats: 4, online: 2, offline: 1, unknown: 1, checked_in: 1, bps: 6_000_000,
+      problems: [{ seat: 'D-2', state: 'offline', problems: 1 }],
+      switches: [{ name: 'sw-d-01', seats: 3, online: 2, status: 'online' }], no_port: 1,
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/blocks/D': block, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('application', { name: 'Seat map' })
+    fireEvent.click(container.querySelector('text.name.link')!)
+    expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
+    expect(await screen.findByText('2 of 3 seats online')).toBeInTheDocument()
+    expect(screen.getByText('1 seat on no known port')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('D-2 · 1'))
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Block D' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Open block D' }))
+    expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
+    const map = screen.getByRole('application', { name: 'Seat map' })
+    fireEvent.keyDown(map, { key: 'ArrowRight' })
+    fireEvent.keyDown(map, { key: 'Enter' })
+    expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()
+    fireEvent.keyDown(map, { key: 'b' })
+    expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
+  })
+
   it('says so when there is no recent port read', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, monitoring: false } }).fn)
     renderWithApp(<FloorPlan />, '/plan')
