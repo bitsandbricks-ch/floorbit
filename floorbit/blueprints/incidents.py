@@ -47,7 +47,7 @@ def _board_user():
     return user
 
 
-def _view(user, incident, match=None, books=None, notes=None):
+def _view(user, incident, match=None, books=None, notes=None, outages=None):
     book = runbooks.for_incident(incident, runbooks.all_runbooks() if books is None else books)
     seat = incident.get('seat') or ''
     # The seat's crew note (issue #204). Everyone on the board works incidents, which is what notes need.
@@ -56,7 +56,24 @@ def _view(user, incident, match=None, books=None, notes=None):
             'can_assign': incidents.can_assign(user, incident.get('team')),
             'match': (match or {}).get(seat),
             'runbook': {'id': book['id'], 'title': book['title']} if book else None,
-            'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None}
+            'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None,
+            # The seat's switch is down right now (issue #386): part of an outage, not a cable.
+            'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None}
+
+
+def _outages(items):
+    """{seat: {switch, since}} for open incidents whose seat's switch is down now."""
+    from .. import seat_view
+    statuses = seat_view.monitor_statuses()
+    if not statuses:
+        return {}
+    data = load_data()
+    out = {}
+    for seat in {i.get('seat') for i in items if i.get('seat') and i['status'] != 'fixed'}:
+        found = seat_view.outage_of(seat, data, statuses)
+        if found:
+            out[seat] = {'switch': found[0], 'since': found[1]}
+    return out
 
 
 def _changed(incident, action):
@@ -93,8 +110,9 @@ def list_incidents():
     notes = seat_notes.all_notes()
     # Match seats (issue #31) on top of each column; the board keeps the newest-first order otherwise.
     items = sorted(incidents.list_all(), key=lambda i: (i['status'] == 'fixed', not match.get(i.get('seat') or '')))
+    outages = _outages(items)
     return jsonify({
-        'incidents': [_view(user, i, match, books, notes) for i in items],
+        'incidents': [_view(user, i, match, books, notes, outages) for i in items],
         'teams': [{'id': t['id'], 'name': t['name'], 'depth': t['depth']} for t in teams.tree()],
         'workable_teams': sorted(incidents.workable_teams(user)),
         'assign_teams': sorted(t for t in all_teams if incidents.can_assign(user, t)),

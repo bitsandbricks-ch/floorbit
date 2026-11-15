@@ -293,3 +293,22 @@ def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, app_modu
     monkeypatch.setattr(watch, "port_seats", {}, raising=False)
     status_page.learn_seats({("sw-a-01", "Gi1/0/2"): "A-2"})
     assert b"has been down" in anon_client.get(help_url(app_module, "A-2")).data
+
+
+def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_module, floor, monkeypatch):
+    # Issue #386: the crew sees it is part of an outage, not a cable.
+    from floorbit import status_page
+    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    watch = app_module.app.extensions["floorbit_attention"]
+    monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
+    monkeypatch.setattr(status_page, "_seats_of", {})
+    monkeypatch.setattr(monitor, "last_poll", time.time())
+    monkeypatch.setattr(monitor, "statuses", {})
+    client.post("/api/incidents", json={"seat": "A-1", "title": "No link"})
+    client.post("/api/incidents", json={"seat": "A-2", "title": "Slow"})
+    assert all(i["outage"] is None for i in client.get("/api/incidents").get_json()["incidents"])
+    since = time.time() - 300
+    monitor.statuses = {floor["switch_id"]: {"status": "offline", "since": since}}
+    cards = {i["seat"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
+    assert cards["A-1"]["outage"] == {"switch": "sw-a-01", "since": since}
+    assert cards["A-2"]["outage"] is None

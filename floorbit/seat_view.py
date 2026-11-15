@@ -54,8 +54,8 @@ def _port_of_seat():
     return out
 
 
-def outage_since(seat, data=None):
-    """Since when the switch serving ``seat`` is down, or None (issue #384).
+def outage_of(seat, data=None, statuses=None):
+    """(switch name, down since) for the down switch serving ``seat``, or None (issues #384, #386).
 
     The seat's switch comes from the last port read, or from what the status page remembered while
     the switch went down. Only a known link counts: better say nothing than blame the wrong switch."""
@@ -67,14 +67,31 @@ def outage_since(seat, data=None):
         names.add(short(port[0]))
     with status_page._lock:
         names |= {short(sw) for sw, seats in status_page._seats_of.items() if seat in seats}
-    monitor = (_ext('lal_integrations') or {}).get('monitor')
-    if not names or not monitor or not getattr(monitor, 'last_poll', None):
+    if statuses is None:
+        monitor = (_ext('lal_integrations') or {}).get('monitor')
+        if not monitor or not getattr(monitor, 'last_poll', None):
+            return None
+        statuses = getattr(monitor, 'statuses', None) or {}
+    if not names:
         return None
-    statuses = getattr(monitor, 'statuses', None) or {}
-    since = [(statuses.get(d['id']) or {}).get('since') or time.time()
-             for d in inventory.devices(data if data is not None else load_data())
-             if short(d.get('name')) in names and (statuses.get(d['id']) or {}).get('status') == 'offline']
-    return min(since) if since else None
+    down = [(d.get('name'), (statuses.get(d['id']) or {}).get('since') or time.time())
+            for d in inventory.devices(data if data is not None else load_data())
+            if short(d.get('name')) in names and (statuses.get(d['id']) or {}).get('status') == 'offline']
+    return min(down, key=lambda x: x[1]) if down else None
+
+
+def monitor_statuses():
+    """The status monitor's {device id: status}, or None before its first poll."""
+    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    if not monitor or not getattr(monitor, 'last_poll', None):
+        return None
+    return dict(getattr(monitor, 'statuses', None) or {})
+
+
+def outage_since(seat, data=None):
+    """Since when the switch serving ``seat`` is down, or None (issue #384). No names: for attendees."""
+    found = outage_of(seat, data)
+    return found[1] if found else None
 
 
 def _problems():

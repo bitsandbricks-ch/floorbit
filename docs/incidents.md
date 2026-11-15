@@ -28,6 +28,10 @@ board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen
 A fixed incident says how long it took from filed to fixed, e.g. **With kim · fixed after 12 min**
 (or **Fixed after 1 h 5 min** when nobody was named on it).
 
+An open incident whose seat is on a switch that is down right now gets a red tag, e.g.
+**sw-c-02 down · 5 min ago**: likely part of that outage rather than the seat's cable. The seat's
+switch comes from the last port read or the status page's memory; no tag when it isn't known.
+
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
 
