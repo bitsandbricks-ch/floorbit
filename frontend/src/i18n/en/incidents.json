@@ -21,6 +21,7 @@
   "noTeam": "No team",
   "fromSeat": "From the seat",
   "fromPower": "From the power layer",
+  "fromDiscord": "From Discord",
   "reports_one": "{{count}} report",
   "reports_other": "{{count}} reports",
   "snapshot": "{{switch}} {{port}}: {{link}}, {{mac}}",

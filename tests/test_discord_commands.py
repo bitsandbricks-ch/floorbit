@@ -133,3 +133,41 @@ def test_autocomplete_suggests_seats_and_switches_to_crew_only(bridge, anon_clie
     assert choices("switch", "name", "sw-b") == ["sw-b-01"]
     assert choices("switch", "name", "sw-b", user_id="222") == []   # not crew
     assert choices("seat", "seat", "B", user_id="333") == []         # not linked
+
+
+def _sub(sub, **values):
+    focused = values.pop("_focused", None)
+    return [{"type": 1, "name": sub, "options": [
+        {"type": 3, "name": k, "value": v, **({"focused": True} if k == focused else {})} for k, v in values.items()]}]
+
+
+def test_report_take_and_fix_an_incident_from_discord(bridge, client, anon_client, key, floor):
+    text = _ask(anon_client, key, _command("incident", options=_sub("report", seat="b-2", problem="Cable cut")))
+    assert text.startswith("Filed: seat B-2 · Cable cut")
+    (inc,) = client.get("/api/incidents").get_json()["incidents"]
+    assert inc["source"] == "discord" and inc["reported_by"] == "tech-ana"
+
+    body = {**_command("incident", options=_sub("take", incident="cable", _focused="incident")), "type": 4}
+    choices = anon_client.post("/api/discord/interactions", **_interaction(key, body)).get_json()["data"]["choices"]
+    assert choices == [{"name": "seat B-2 · Cable cut (open)", "value": inc["id"]}]
+
+    assert "You have it" in _ask(anon_client, key, _command("incident", options=_sub("take", incident=inc["id"])))
+    assert "seat B-2 · Cable cut" in _ask(anon_client, key, _command("jobs"))
+    done = _command("incident", options=_sub("fixed", incident=inc["id"], note="New cable"))
+    assert "Marked fixed" in _ask(anon_client, key, done)
+    (inc,) = client.get("/api/incidents").get_json()["incidents"]
+    assert inc["status"] == "fixed" and inc["notes"][-1]["text"] == "New cable"
+    assert "no incidents right now" in _ask(anon_client, key, _command("jobs"))
+    actions = {e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]}
+    assert {"Filed an incident from Discord", "Took an incident from Discord",
+            "Marked an incident fixed from Discord"} <= actions
+
+
+def test_incident_commands_follow_the_accounts_permissions(bridge, client, anon_client, key, floor):
+    assert "not linked" in _ask(anon_client, key, _command("jobs", user_id="333"))
+    report = _command("incident", user_id="222", options=_sub("report", seat="B-2", problem="Broken"))
+    assert "can't" in _ask(anon_client, key, report)          # a viewer can't file
+    assert "no seat Z-1" in _ask(anon_client, key, _command("incident", options=_sub("report", seat="Z-1",
+                                                                                     problem="x")))
+    assert "Pick the incident" in _ask(anon_client, key, _command("incident", options=_sub("take", incident="nope")))
+    assert client.get("/api/incidents").get_json()["incidents"] == []

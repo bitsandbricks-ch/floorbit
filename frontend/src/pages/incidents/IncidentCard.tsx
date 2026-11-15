@@ -80,6 +80,7 @@ export function IncidentCard({
           {teamName ? <Badge variant="outline" tt="none">{teamName}</Badge> : <Badge variant="outline" color="warn" tt="none">{t('incidents.noTeam')}</Badge>}
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {i.source === 'power' && <Badge variant="light" color="warn" tt="none">{t('incidents.fromPower')}</Badge>}
+          {i.source === 'discord' && <Badge variant="light" color="gray" tt="none">{t('incidents.fromDiscord')}</Badge>}
           {i.reports > 1 && <Badge variant="light" color="warn" tt="none">{t('incidents.reports', { count: i.reports })}</Badge>}
           {/* Opens every incident at this seat (issue #338), fixed ones too, to see what was tried. */}
           {atSeat > 1 && (
