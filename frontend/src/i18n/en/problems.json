@@ -65,5 +65,7 @@
   "show": "Show",
   "all": "All",
   "report": "Make an incident",
-  "incidentOpen": "Incident open"
+  "incidentOpen": "Incident open",
+  "copy": "Copy list",
+  "copied": "Copied"
 }

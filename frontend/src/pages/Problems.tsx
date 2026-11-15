@@ -1,5 +1,5 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
-import { IconBellOff } from '@tabler/icons-react'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { IconBellOff, IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +12,7 @@ import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
+import { problemsText } from './problems/format'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
 type T = (k: string, o?: Record<string, unknown>) => string
@@ -180,7 +181,17 @@ export default function Problems() {
     // Muted problems stay out of the tab count: someone is already on them (issue #214).
     <Layout title={t('problems.title')} back={{ href: '/', label: t('common.floorPlan') }}
       count={data ? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
-      <PageHead title={t('problems.title')} desc={t('problems.intro')} />
+      <PageHead title={t('problems.title')} desc={t('problems.intro')} actions={data && (
+        // For pasting into the crew chat instead of a screenshot (issue #280).
+        <CopyButton value={problemsText(visible, data.mutes, t, (ts) => ago(ts, t))} timeout={2000}>
+          {({ copied, copy }) => (
+            <Button variant="default" size="xs" leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+              color={copied ? 'up' : undefined} onClick={copy}>
+              {copied ? t('problems.copied') : t('problems.copy')}
+            </Button>
+          )}
+        </CopyButton>
+      )} />
       {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
       {list.isPending || !data ? (
         <Loader size="sm" />

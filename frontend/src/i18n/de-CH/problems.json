@@ -65,5 +65,7 @@
   "show": "Anzeigen",
   "all": "Alle",
   "report": "Störung erfassen",
-  "incidentOpen": "Störung offen"
+  "incidentOpen": "Störung offen",
+  "copy": "Liste kopieren",
+  "copied": "Kopiert"
 }

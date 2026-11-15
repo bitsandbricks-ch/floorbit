@@ -144,4 +144,21 @@ describe('Problems', () => {
     expect(await screen.findByText('Nothing is wrong right now.')).toBeInTheDocument()
     expect(document.title).toBe('Problems · Floorbit')
   })
+
+  it('copies what is shown as text for the crew chat', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy list' }))
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    const text: string = writeText.mock.calls[0][0]
+    const lines = text.split('\n')
+    expect(lines[0]).toMatch(/^Problems [^:]+:\d\d[^:]*: 1 down · 1 to look at · 1 muted$/)
+    expect(lines[1]).toBe('- [Switch] sw-c-02 is offline (sw-c-02, since 5 min)')
+    expect(lines[2]).toBe('- [Power] Circuit B row 2 getting close (86.9 %) (Feeds 12 seats, since just now)')
+    expect(lines[3]).toMatch(/^- \[Switch\] sw-d-01 is offline \(sw-d-01, since 1 min, Muted until .+ by kim\)$/)
+    expect(text).toContain('Muted switches and services:\n- sw-d-01, Muted until')
+    expect(text).toContain('(Recabling)')
+  })
 })

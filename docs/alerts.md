@@ -31,6 +31,9 @@ For people who see the [incident board](incidents.md), an offline switch has **M
 one click puts it on the board with the switch and the problem's title. Once an incident for that
 switch is open, the button becomes **Incident open**, which opens the board filtered to the switch.
 
+**Copy list** in the page header copies the problems shown (after the kind filter) as plain text,
+with the time, the counts and the mutes, for pasting into the crew chat or a ticket.
+
 ## Needs attention
 
 Below the problems, **Needs attention** lists ports an ops person should look at, newest first.
