@@ -1,0 +1,21 @@
+{
+  "menu": "Crew notice",
+  "title": "Crew notice",
+  "editTitle": "Crew notice",
+  "intro": "One short message for the whole crew. It shows at the top of every crew page and on the floor plan, and replaces the notice before it.",
+  "text": "Message",
+  "left_one": "{{count}} character left",
+  "left_other": "{{count}} characters left",
+  "level": "Level",
+  "info": "Info",
+  "warn": "Warning",
+  "for": "Show it for",
+  "untilCleared": "Until I take it down",
+  "hours_one": "{{count}} hour",
+  "hours_other": "{{count}} hours",
+  "post": "Put up",
+  "takeDown": "Take down",
+  "by": "{{name}}, {{time}}",
+  "until": "until {{time}}",
+  "hide": "Hide this notice"
+}

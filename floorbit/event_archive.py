@@ -20,7 +20,7 @@ FOLDER = 'events'
 ID_RE = re.compile(r'^[0-9]{8}-[0-9a-f]{8}$')
 MAX_NAME = 120
 # The parts of data.json that belong to one event and start empty for the next.
-RESET_KEYS = ('incidents', 'handover', 'preflight')
+RESET_KEYS = ('incidents', 'handover', 'preflight', 'crew_notice')
 
 _lock = threading.Lock()
 

@@ -4,6 +4,7 @@
   "placeholder": "Type a page name",
   "none": "No page matches.",
   "close": "Close",
+  "recent": "recent",
   "pages": {
     "floorPlan": "Floor plan",
     "seats": "Seats",

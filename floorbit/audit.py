@@ -92,6 +92,8 @@ ACTIONS = {
     ('DELETE', '/api/teardown/items/<item_id>'): ('floor plan', 'Removed a teardown step'),
     ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
     ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
+    ('PUT', '/api/notice'): ('incidents', 'Put up a crew notice'),
+    ('DELETE', '/api/notice'): ('incidents', 'Took down the crew notice'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
     ('POST', '/api/jobs/<incident_id>/take'): ('incidents', 'Took job'),

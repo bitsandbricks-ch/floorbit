@@ -2,8 +2,11 @@ import type { ReactNode } from 'react'
 import { Anchor, Group } from '@mantine/core'
 import { IconChevronLeft } from '@tabler/icons-react'
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Attribution } from './Attribution'
+import { CrewNoticeBanner } from './CrewNotice'
 import { GoTo } from './GoTo'
+import { rememberPage } from './pages'
 import { ThemeToggle, UserMenu } from './UserMenu'
 
 /** Header with a way back, the page title, theme and user menu; the attribution at the end.
@@ -11,6 +14,8 @@ import { ThemeToggle, UserMenu } from './UserMenu'
 export function Layout({ title, back, count, children }: {
   title: string; back: { href: string; label: string }; count?: number; children: ReactNode
 }) {
+  const path = useLocation().pathname
+  useEffect(() => rememberPage(path), [path])
   useEffect(() => {
     document.title = `${count ? `(${count}) ` : ''}${title} · Floorbit`
   }, [title, count])
@@ -29,6 +34,7 @@ export function Layout({ title, back, count, children }: {
           <UserMenu />
         </Group>
       </header>
+      <CrewNoticeBanner />
       <main className="fb-main">{children}</main>
       <Attribution />
     </>

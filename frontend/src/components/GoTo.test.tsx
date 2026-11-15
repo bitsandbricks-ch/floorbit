@@ -3,12 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { Layout } from './Layout'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+})
 
 const tech = { enabled: true, user: { username: 'kim', display_name: 'Kim', role: 'tech', permissions: ['floorplan.view', 'incidents.work'] } }
 
-function page() {
-  return renderWithApp(<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}>body</Layout>)
+function page(route = '/problems') {
+  return renderWithApp(<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}>body</Layout>, route)
 }
 
 describe('Go to', () => {
@@ -52,5 +55,19 @@ describe('Go to', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
     fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'zzz' } })
     expect(screen.getByText('No page matches.')).toBeInTheDocument()
+  })
+
+  it('puts the pages opened last first while nothing is typed', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/features': { off: [] } }).fn)
+    localStorage.setItem('floorbit-recent-pages', JSON.stringify(['/health', '/nope']))
+    // Opening this page remembers it, but the list leaves out the page you are on.
+    page('/stats')
+    expect(JSON.parse(localStorage.getItem('floorbit-recent-pages')!)).toEqual(['/stats', '/health', '/nope'])
+    fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option')
+    expect(options[0]).toHaveTextContent('Service health · recent/health')
+    expect(options.some((o) => o.textContent?.startsWith('Stats · recent'))).toBe(false)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'health' } })
+    expect(screen.getAllByRole('option')[0]).toHaveTextContent(/^Service health\/health$/)
   })
 })
