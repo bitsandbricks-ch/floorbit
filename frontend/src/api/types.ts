@@ -700,7 +700,7 @@ export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
   counts: HandoverCounts
 }
-export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number }
+export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number }
 export interface HandoverData {
   since: number; now: number; previous: HandoverRecord | null
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
@@ -711,6 +711,8 @@ export interface HandoverData {
   /** What is muted right now, and the crew notice that is up (issue #258). */
   mutes?: { kind: 'switch' | 'health'; name: string; until: number; by: string | null; reason: string }[]
   notice?: CrewNotice | null
+  /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
+  gear?: { to: string; count: number; names: string[] }[]
   counts: HandoverCounts
   history: HandoverRecord[]
   discord: boolean

@@ -5,6 +5,7 @@ layouts, the wall view and the widget renderer treat them like any plugin's. Tex
 browser's language, like the other pages the server writes text for.
 """
 import time
+from urllib.parse import quote
 
 PLUGIN = 'floorbit'
 NAME = 'Floorbit'
@@ -16,24 +17,45 @@ TEXTS = {
            'seats': 'Seats online', 'seats_unit': 'of {n}', 'seats_sub': 'From the last port read',
            'unknown': 'Not known right now: no recent port read',
            'problems_sub': '{warn} to look at · {attention} port trouble · {muted} muted',
-           'incidents_sub': '{waiting} waiting 10+ min · {worked} being worked'},
+           'incidents_sub': '{waiting} waiting 10+ min · {worked} being worked',
+           'gear': 'Gear out', 'gear_unit': 'of {n}', 'gear_sub': 'Most with {top}', 'gear_none': 'Everything is here'},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
            'switches': 'Switches', 'switches_unit': 'von {n} online',
            'switches_sub': '{offline} offline · {unknown} unbekannt',
            'seats': 'Plätze online', 'seats_unit': 'von {n}', 'seats_sub': 'Aus der letzten Port-Abfrage',
            'unknown': 'Gerade nicht bekannt: keine aktuelle Port-Abfrage',
            'problems_sub': '{warn} zum Anschauen · {attention} Port-Probleme · {muted} stumm',
-           'incidents_sub': '{waiting} warten seit 10+ Min. · {worked} in Arbeit'},
+           'incidents_sub': '{waiting} warten seit 10+ Min. · {worked} in Arbeit',
+           'gear': 'Material draussen', 'gear_unit': 'von {n}', 'gear_sub': 'Am meisten bei {top}',
+           'gear_none': 'Alles ist da'},
 }
-TILES = ('problems', 'incidents', 'switches', 'seats')   # issue #304 added the last two
+TILES = ('problems', 'incidents', 'switches', 'seats', 'gear')   # #304 added switches and seats, #326 gear
 
 
-def tiles(lang, may_see_board):
+def tiles(lang, may_see_board, may_see_gear=False):
     """The tile list entries, next to the plugins' in ``GET /api/dashboard``."""
     text = TEXTS.get(lang, TEXTS['en'])
+    hidden = {t for t, ok in (('incidents', may_see_board), ('gear', may_see_gear)) if not ok}
     return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[tile], 'size': 'small',
              'refresh': 30, 'url': f'/api/dashboard/floorbit/{tile}'}
-            for tile in TILES if tile != 'incidents' or may_see_board]
+            for tile in TILES if tile not in hidden]
+
+
+def gear_widget(lang, data=None):
+    """How many pieces are out and who has the most (issue #326). Names a holder, so crew only."""
+    from . import gear
+    text = TEXTS.get(lang, TEXTS['en'])
+    rows = gear.items(data)
+    held = {}
+    for r in rows:
+        if r['loan']:
+            held[r['loan']['to']] = held.get(r['loan']['to'], 0) + 1
+    out = sum(held.values())
+    top = min(held.items(), key=lambda kv: (-kv[1], kv[0].lower())) if held else None
+    return {'type': 'stat', 'value': out, 'unit': text['gear_unit'].format(n=len(rows)),
+            'tone': 'warn' if out else 'ok',
+            'sub': text['gear_sub'].format(top=f'{top[0]} ({top[1]})') if top else text['gear_none'],
+            'link': f'/gear?holder={quote(top[0])}' if top else '/gear'}
 
 
 def switches_widget(lang, counts):
