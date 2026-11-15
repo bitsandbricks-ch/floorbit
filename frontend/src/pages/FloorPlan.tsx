@@ -246,7 +246,7 @@ export default function FloorPlan() {
               data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                 value: f,
                 // Each filter says how many seats it holds (issue #190), so the row doubles as a summary.
-                label: <span className={counts[f] ? undefined : 'fb-filter-empty'}><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
+                label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
               }))} />
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
