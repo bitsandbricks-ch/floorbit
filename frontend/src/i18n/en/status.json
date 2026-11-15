@@ -36,5 +36,7 @@
     "outage": "Network outage",
     "maintenance": "Maintenance",
     "unknown": "Unknown"
-  }
+  },
+  "recovered": "Back up recently",
+  "recoveredAt": "Back since {{time}}. Attendees see this for half an hour."
 }

@@ -74,6 +74,7 @@
   },
   "openEditor": "Show in the editor",
   "incidents": "Incidents",
+  "qrCode": "QR code",
   "flag": "Flag for a tech",
   "flagNote": "What should the tech look at?",
   "flagSend": "Flag the seat",
@@ -124,7 +125,8 @@
     "carries_other": "{{online}} of {{count}} seats online",
     "noPort_one": "{{count}} seat on no known port",
     "noPort_other": "{{count}} seats on no known port",
-    "open": "Open block {{name}}"
+    "open": "Open block {{name}}",
+    "qrCodes": "Print QR codes"
   },
   "switchPanel": {
     "seats": "Seats on this switch",
