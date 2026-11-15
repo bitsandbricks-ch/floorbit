@@ -3,7 +3,8 @@
 The **Electrics** page (`/power`, **Power** in the top bar) is for the Electrics team. It lists the
 distribution boards, the circuits each one feeds and the load on every circuit as a percentage of its
 fuse. The **Power circuits** layer on the floor plan colours every seat and switch by its circuit, so
-ops can see what goes dark when a breaker trips. Code: [`floorbit/power.py`](../floorbit/power.py)
+ops can see what goes dark when a breaker trips. The page's browser tab starts with the number of circuits that are
+getting close, about to trip or tripped, e.g. "(2) Electrics · Floorbit". Code: [`floorbit/power.py`](../floorbit/power.py)
 and [`floorbit/blueprints/power.py`](../floorbit/blueprints/power.py).
 
 ## Boards and circuits
