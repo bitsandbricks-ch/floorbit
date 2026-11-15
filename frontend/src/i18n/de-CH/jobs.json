@@ -20,5 +20,6 @@
   "planLabel": "Hallenplan mit dem Auftrag bei {{where}}",
   "otherHall": "In {{hall}}",
   "doneMsg": "Als behoben markiert.",
-  "backMsg": "Zurück auf dem Board."
+  "backMsg": "Zurück auf dem Board.",
+  "runbook": "Schritte: {{title}}"
 }

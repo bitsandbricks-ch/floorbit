@@ -1,4 +1,5 @@
-import { Badge, Button, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
+import { Anchor, Badge, Button, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
+import { IconBook } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
@@ -76,6 +77,11 @@ export function IncidentCard({
               down: mbit(i.speedtest.down_mbps), up: mbit(i.speedtest.up_mbps), ping: i.speedtest.ping_ms ?? '?', ago: ago(i.speedtest.at, t),
             })}
           </Text>
+        )}
+        {i.runbook && (
+          <Anchor size="sm" href={`/runbooks?open=${encodeURIComponent(i.runbook.id)}`} data-runbook>
+            <IconBook size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{t('incidents.runbook', { title: i.runbook.title })}
+          </Anchor>
         )}
         {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}
         <Text size="sm" c="dimmed">

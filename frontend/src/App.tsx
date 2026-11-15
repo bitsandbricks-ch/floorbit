@@ -35,6 +35,7 @@ const Cables = lazy(() => import('@/pages/Cables'))
 const Wifi = lazy(() => import('@/pages/Wifi'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
+const Runbooks = lazy(() => import('@/pages/Runbooks'))
 const Teardown = lazy(() => import('@/pages/Teardown'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/wifi" element={<Wifi />} />
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/network-status" element={<NetworkStatus />} />
+        <Route path="/runbooks" element={<Runbooks />} />
         <Route path="/teardown" element={<Teardown />} />
         <Route path="/events" element={<Events />} />
         <Route path="/settings/features" element={<Features />} />

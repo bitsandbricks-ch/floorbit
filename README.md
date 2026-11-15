@@ -41,6 +41,8 @@ each seat is plugged into.
   (Authentik, Keycloak, Entra ID, ...) with groups mapped to roles. See [docs/auth.md](docs/auth.md).
 - **Incidents:** a board for problems at seats and switches, worked by your teams, with a QR code on
   every seat so attendees can report "no internet" in one tap. See [docs/incidents.md](docs/incidents.md).
+- **Runbooks:** step-by-step fix guides per kind of incident, written by leads, linked on the incident and
+  shown on the tech's job. See [docs/runbooks.md](docs/runbooks.md).
 - **Speedtest at the seat:** the seat's help page also measures download, upload and latency to the
   Floorbit server, and the result goes with the seat's report. Numbers only. See
   [docs/speedtest.md](docs/speedtest.md).

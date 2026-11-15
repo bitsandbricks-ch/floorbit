@@ -20,5 +20,6 @@
   "planLabel": "Floor plan with the job at {{where}}",
   "otherHall": "In {{hall}}",
   "doneMsg": "Marked fixed.",
-  "backMsg": "Back on the board."
+  "backMsg": "Back on the board.",
+  "runbook": "Steps: {{title}}"
 }

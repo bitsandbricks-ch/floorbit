@@ -278,6 +278,8 @@ export interface Incident {
   match?: string | null
   can_work: boolean
   can_assign: boolean
+  /** The first runbook for this kind of incident (issue #102). */
+  runbook?: { id: string; title: string } | null
 }
 export interface IncidentBoard {
   incidents: Incident[]
@@ -648,6 +650,8 @@ export interface Job {
   source: string; reports: number; created_at: number; dispatched_at: number | null; taken_at: number | null
   notes: { by: string | null; at: number; text: string }[]
   drawing: PlanDrawing | null; target: [number, number] | null; from: [number, number] | null; hall: string | null
+  /** The steps for this kind of incident, right on the job (issue #102). */
+  runbook?: { id: string; title: string; body: string } | null
 }
 export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean }
 export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number }
@@ -1065,4 +1069,19 @@ export interface StatusPageData {
   /** Is /status switched on (Settings > Public)? */
   public: boolean
   switch_names: boolean
+}
+
+/** A step-by-step fix guide for kinds of incident (issue #102). */
+export type RunbookKind = 'no-internet' | 'slow' | 'power' | 'switch-down' | 'other'
+
+export interface Runbook {
+  id: string
+  title: string
+  kinds: RunbookKind[]
+  /** Markdown. */
+  body: string
+  /** One of the general first steps Floorbit offers until the crew saves its own. */
+  starter: boolean
+  updated_at: number | null
+  by: string | null
 }
