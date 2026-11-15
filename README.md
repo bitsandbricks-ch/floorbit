@@ -55,6 +55,8 @@ each seat is plugged into.
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
   working on, quiet hours, one Discord message for a big outage, and the ports that need a look
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
+- **Crew Discord channel:** every incident as a message with a thread that follows it until it is
+  fixed, and Take it / Fixed buttons for linked crew. See [docs/crew-discord.md](docs/crew-discord.md).
 - **Stats:** bandwidth now and at its peak (last hour, 24 hours, the event), uplink load per switch,
   seats online and the busiest ports, with a big-screen version. See [docs/stats.md](docs/stats.md).
 - **Replay:** play the event back on the floor plan with a time slider: the hall filling up, the
