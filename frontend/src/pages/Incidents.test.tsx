@@ -136,4 +136,32 @@ describe('Incident board', () => {
     fireEvent.click(within(open).getByRole('button', { name: 'Take it' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'assigned', assignee: 'sam' }))
   })
+  it('takes the oldest open incident this account can work', async () => {
+    const now = Date.now() / 1000
+    const queue: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'n1', title: 'Newer', status: 'open', created_at: now - 120 },
+      { ...base, id: 'n2', title: 'Oldest but not mine', status: 'open', created_at: now - 3600, can_work: false },
+      { ...base, id: 'n3', title: 'Oldest I can work', status: 'open', created_at: now - 1800 },
+      { ...base, id: 'n4', title: 'Taken', status: 'assigned', assignee: 'kim', created_at: now - 7200 },
+    ] }
+    const api = fakeFetch({ ...routes, 'GET /api/incidents': queue,
+      'PATCH /api/incidents/n3': { ...queue.incidents[2], status: 'assigned', assignee: 'sam' } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: 'Take the next one' })
+    await waitFor(() => expect(take).toBeEnabled())
+    fireEvent.click(take)
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.path).toBe('/api/incidents/n3'))
+    expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'assigned', assignee: 'sam' })
+    expect(await screen.findByText('You have it: Oldest I can work')).toBeInTheDocument()
+  })
+
+  it('has nothing to take when nothing open is workable', async () => {
+    const none: IncidentBoard = { ...board, incidents: [board.incidents[1], board.incidents[2]] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': none }).fn)
+    renderWithApp(<Incidents />)
+    const take = await screen.findByRole('button', { name: 'Take the next one' })
+    expect(take).toBeDisabled()
+    expect(take).toHaveAttribute('title', 'Nothing open that you can work')
+  })
 })
