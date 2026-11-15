@@ -75,9 +75,16 @@ class RawStore:
                 f.write(json.dumps({'hour': start, **hour}, separators=(',', ':')) + '\n')
 
 
-def publish(snapshot):
+# A local agent's summary when there is no Redis: one process, so memory will do (issue #2).
+_local = {'at': 0, 'snapshot': None}
+
+
+def publish(snapshot, keep_locally=False):
     client = cache.get_redis_client()
     if not client:
+        if keep_locally:
+            _local.update(at=time.time(), snapshot=snapshot)
+            return True
         return False
     client.setex(REDIS_KEY, SNAPSHOT_TTL, json.dumps(snapshot, separators=(',', ':')))
     return True
@@ -86,7 +93,8 @@ def publish(snapshot):
 def latest():
     client = cache.get_redis_client()
     if not client:
-        return None
+        fresh = _local['snapshot'] is not None and time.time() - _local['at'] < SNAPSHOT_TTL
+        return _local['snapshot'] if fresh else None
     try:
         raw = client.get(REDIS_KEY)
         return json.loads(raw) if raw else None

@@ -58,6 +58,7 @@ PAGES = (
     ('/settings/plugins', 'plugins', 'Plugins', lambda c, can: can('settings.manage')),
     ('/settings/features', 'features', 'Features', lambda c, can: can('settings.manage')),
     ('/settings/api', 'apiTokens', 'API tokens', lambda c, can: can('settings.manage')),
+    ('/settings/agents', 'agents', 'Local agents', lambda c, can: can('settings.manage')),
     ('/settings/webhooks', 'webhooks', 'Webhooks', lambda c, can: can('settings.manage')),
     ('/settings/users', 'users', 'Users', lambda c, can: can('accounts.manage')),
     ('/settings/teams', 'teams', 'Roles and teams', lambda c, can: can('accounts.manage')),

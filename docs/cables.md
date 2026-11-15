@@ -42,6 +42,9 @@ edited in Floorbit. Cables typed in Floorbit are kept, and one on the same switc
 NetBox's, which is then skipped and counted in the import's message. If NetBox doesn't answer, the
 last import stays.
 
+On a hosted Floorbit, the [local agent](agent.md#cables-through-the-agent) reads NetBox on the event
+network and sends the cables.
+
 Other inventory plugins can offer cables too, with a `cables()` method (see
 [plugins.md](plugins.md)). The demo plugin has a cable for every demo seat.
 

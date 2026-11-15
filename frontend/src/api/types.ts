@@ -541,6 +541,8 @@ export interface FlowsData {
   rules_error: string | null
   demo?: boolean
   stale?: boolean
+  /** The local agent whose collector sent this summary (issue #2). */
+  agent?: string
   updated?: number
   flows?: number
   exporters?: { address: string; flows: number; last: number | null }[]
@@ -973,6 +975,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** Local agents that send the event network's syslog on (issue #2). */
+  relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]
   source: LogSource
   /** Logs plugins (Loki) that get every line, and how sending them goes. */
@@ -1338,4 +1342,23 @@ export interface Place {
   kind: 'seat' | 'switch' | 'player'
   name: string
   href: string
+}
+
+/** GET /api/agents (issue #2): the local agents enrolled for a hosted Floorbit. */
+export interface Agent {
+  id: string; name: string; created_at: number; created_by: string | null
+  last_seen: number | null; version: string | null; address: string | null; connected: boolean
+  /** The last hour of answers, kept in memory on the server (missing right after enrolling). */
+  stats?: AgentStats
+  /** Older than the hosted Floorbit: time to pull the new image. */
+  outdated?: boolean
+  /** Hall ids it answers for; empty: every hall. */
+  halls?: string[]
+  /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
+  relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
+}
+
+export interface AgentStats {
+  calls: number; failed: number; median_ms: number | null
+  last_error: { at: number; method: string; error: string | null } | null
 }
