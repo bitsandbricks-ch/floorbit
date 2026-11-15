@@ -106,4 +106,23 @@ describe('Go to', () => {
     fireEvent.keyDown(box, { key: 'Enter' })
     expect(assign).toHaveBeenCalledWith('/plan?seat=B-8')
   })
+
+  it('does what the user menu does, once you type it', async () => {
+    const lead = { enabled: true, user: { ...tech.user, role: 'lead', permissions: [...tech.user.permissions, 'incidents.assign'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/pages': pages, 'GET /api/notice': { notice: null } }).fn)
+    page()
+    await screen.findByRole('button', { name: /Signed in as kim/ })
+    fireEvent.click(screen.getByRole('button', { name: /Go to/ }))
+    const box = await screen.findByRole('combobox')
+    // Nothing typed: pages only.
+    expect(screen.queryByRole('option', { name: /Sign out/ })).toBeNull()
+    fireEvent.change(box, { target: { value: 'sign' } })
+    expect(await screen.findByRole('option', { name: /Sign outAction/ })).toBeInTheDocument()
+    fireEvent.change(box, { target: { value: 'notice' } })
+    expect(await screen.findByRole('option', { name: /Put up a crew notice/ })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.keyDown(box, { key: 'Enter' })
+    // The palette closes and the crew notice editor opens.
+    expect(await screen.findByRole('dialog', { name: 'Crew notice' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: /Type a page/ })).toBeNull())
+  })
 })

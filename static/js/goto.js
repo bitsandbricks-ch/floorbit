@@ -34,6 +34,20 @@
     return pages;
   }
 
+  // The page's own buttons, typed instead of clicked (issue #254).
+  function actions() {
+    const out = [];
+    if (window.floorTheme && !document.documentElement.dataset.themeLock) {
+      const dark = window.floorTheme.current() === 'light';
+      out.push({ href: '#theme', label: dark ? 'Switch to dark theme' : 'Switch to light theme', run: () => window.floorTheme.toggle() });
+    }
+    const shortcuts = document.getElementById('shortcuts-backdrop');
+    if (shortcuts) out.push({ href: '#shortcuts', label: 'Keyboard shortcuts', run: () => shortcuts.classList.remove('hidden') });
+    const signOut = document.querySelector('form.user-menu');
+    if (signOut) out.push({ href: '#sign-out', label: 'Sign out', run: () => signOut.submit() });
+    return out;
+  }
+
   function build() {
     dialog = document.createElement('dialog');
     dialog.className = 'goto-dialog';
@@ -73,10 +87,10 @@
         }
         const path = document.createElement('span');
         path.className = 'goto-path';
-        path.textContent = p.href;
+        path.textContent = p.run ? 'Action' : p.href;
         li.append(name, path);
         li.addEventListener('mouseenter', () => { active = i; mark(); });
-        li.addEventListener('click', () => go(p.href));
+        li.addEventListener('click', () => pick(p));
         list.appendChild(li);
       });
       list.hidden = !shown.length;
@@ -102,6 +116,8 @@
         const byLabel = (p) => fold(p.label).includes(q);
         shown = all.filter((p) => byLabel(p) || p.href.includes(q))
           .sort((a, b) => Number(!byLabel(a)) - Number(!byLabel(b)));
+        // Then what this page's buttons do (issue #254), only once typed.
+        shown = [...shown, ...actions().filter(byLabel)];
       }
       active = 0;
       paint();
@@ -120,6 +136,11 @@
       shown = [...shown, ...body.places.map((p) => ({ href: p.href, label: `${kinds[p.kind] || ''} ${p.name}`.trim() }))];
       paint();
     }
+    function pick(item) {
+      if (!item.run) return go(item.href);
+      dialog.close();
+      item.run();
+    }
     function go(href) {
       dialog.close();
       location.assign(href);
@@ -130,7 +151,7 @@
       if (!shown.length) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); active = (active + 1) % shown.length; mark(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); active = (active - 1 + shown.length) % shown.length; mark(); }
-      else if (e.key === 'Enter') { e.preventDefault(); go(shown[active].href); }
+      else if (e.key === 'Enter') { e.preventDefault(); pick(shown[active]); }
     });
     dialog.querySelector('.goto-close').addEventListener('click', () => dialog.close());
     // A click on the backdrop (outside the box) closes it, like the other dialogs.

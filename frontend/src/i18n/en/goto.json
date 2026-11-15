@@ -7,6 +7,11 @@
   "recent": "recent",
   "seat": "Seat",
   "switch": "Switch",
+  "action": "Action",
+  "actions": {
+    "notice": "Put up a crew notice",
+    "notify": "Notification settings"
+  },
   "pages": {
     "floorPlan": "Floor plan",
     "seats": "Seats",

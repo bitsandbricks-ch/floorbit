@@ -27,7 +27,9 @@ pages your role can't open and pages this server has nothing for yet (Wi-Fi with
 Electrics without power boards), the same way the floor plan's top bar does.
 Type a seat number or a switch name too: `b8` offers seat B-8 and `core` the switches named core-something,
 and each opens on the floor plan. Seat numbers and switch names only: to find a player by nick, IP or MAC,
-use the floor plan's search. Before you type, the five pages you opened last on this browser come first.
+use the floor plan's search.
+It also does what the buttons around it do, once you type them: `dark` switches the theme, `sign` signs you
+out, `notice` lets a lead put up a [crew notice](crew-notice.md) and `shortcuts` lists the floor plan's keys. Before you type, the five pages you opened last on this browser come first.
 
 ## Build on it
 
