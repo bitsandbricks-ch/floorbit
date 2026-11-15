@@ -100,6 +100,14 @@ describe('Shift handover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
     expect(writeText.mock.calls[0][0]).toContain('Fixed this shift: 1 (half within 14 min) · Switch outages: 1')
   })
+  it('says who fixed how many (issue #348)', async () => {
+    const i = data.incidents.fixed[0]
+    const fixed = [i, { ...i, id: 'i3', assignee: 'kim' }, { ...i, id: 'i4', assignee: 'kim' }, { ...i, id: 'i5', assignee: null }]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech,
+      'GET /api/handover': { ...data, incidents: { ...data.incidents, fixed } } }).fn)
+    renderWithApp(<Handover />)
+    expect(await screen.findByText('By: kim 2 · ana 1 · nobody named 1')).toBeInTheDocument()
+  })
   it('says who still has gear (issue #324)', async () => {
     const extra = { counts: { ...counts, gear_out: 3 },
       gear: [{ to: 'player-12', count: 2, names: ['sw-spare-01', 'sw-spare-02'] }, { to: 'Crew', count: 1, names: ['ap-spare-01'] }] }

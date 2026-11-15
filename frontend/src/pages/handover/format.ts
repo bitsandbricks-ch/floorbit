@@ -7,6 +7,14 @@ export function when(ts: number): string {
 
 type T = (k: string, o?: Record<string, unknown>) => string
 
+/** Who fixed how many this shift, most first; null is the incidents nobody was named on (issue #348). */
+export function fixedBy(fixed: HandoverIncident[]): { who: string | null; count: number }[] {
+  const by = new Map<string | null, number>()
+  for (const i of fixed) by.set(i.assignee || null, (by.get(i.assignee || null) ?? 0) + 1)
+  return [...by].map(([who, count]) => ({ who, count }))
+    .sort((a, b) => b.count - a.count || (a.who === null ? 1 : b.who === null ? -1 : a.who.localeCompare(b.who)))
+}
+
 /** The summary as plain text, for crews that hand over in a chat or by mail rather than Discord (issue #220). */
 export function summaryText(d: HandoverData, note: string, t: T, length: (s: number) => string): string {
   const where = (i: HandoverIncident) => i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
