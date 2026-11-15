@@ -882,6 +882,13 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .seat-block-seat.has-incident, .switch-marker.has-incident .switch-pin { animation: none; }
 }
+/* Muted switches (static/js/editor/mutes.js): a bell-off badge on the pin's corner. */
+.switch-muted {
+  position: absolute; top: -6px; right: -9px; width: 12px; height: 12px; padding: 1px;
+  border-radius: 50%; background: var(--color-surface); color: var(--text-secondary);
+  box-shadow: 0 0 0 1px var(--border); display: flex;
+}
+.switch-muted svg { width: 100%; height: 100%; }
 .nav-count {
   display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 2px; border-radius: 9px;
   background: var(--color-down); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
