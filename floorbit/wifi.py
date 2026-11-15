@@ -67,8 +67,27 @@ def ask(registry):
     with _lock:
         if _cache['value'] is not None and time.time() - _cache['at'] < CACHE_SECONDS:
             return _cache['value']
-    aps, errors = {}, []
+    aps, errors, answered = {}, [], set()
+    if agent_active():
+        # A hosted Floorbit: the controller is on the event network, the local agent asks it.
+        from . import agent_link
+        try:
+            feeds = agent_link.feeds('wifi_feeds')
+        except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+            feeds = []
+            errors.append(f'Local agent: {exc}')
+        for feed in feeds:
+            if 'error' in feed:
+                errors.append(f"{feed['name']} (local agent): {feed['error']}")
+                continue
+            answered.add(feed.get('base', feed['plugin']))
+            for raw in feed['items']:
+                ap = clean_ap(raw)
+                if ap and ap['name'].lower() not in aps and len(aps) < MAX_APS:
+                    aps[ap['name'].lower()] = {**ap, 'source': f"{feed['name']} (local agent)"}
     for spec in registry.feeders('wifi'):
+        if spec.id in answered:
+            continue
         try:
             for raw in registry.call(spec, 'wifi_aps') or []:
                 ap = clean_ap(raw)
@@ -80,6 +99,11 @@ def ask(registry):
     with _lock:
         _cache.update(at=time.time(), value=value)
     return value
+
+
+def agent_active():
+    from . import agent_link
+    return agent_link.active()
 
 
 def reset():
@@ -135,7 +159,7 @@ def overview(registry, data):
         'busy': [a['name'] for a in aps if a['busy']],
         'overlaps': _overlaps([a for a in aps if a['placed']]),
         'bands': bands,
-        'sources': [s.name for s in registry.feeders('wifi')],
+        'sources': [s.name for s in registry.feeders('wifi')] + (['Local agent'] if agent_active() else []),
         'errors': errors,
         'thresholds': {'busy': BUSY, 'crowded': CROWDED},
     }
