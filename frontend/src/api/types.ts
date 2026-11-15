@@ -702,7 +702,7 @@ export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
   counts: HandoverCounts
 }
-export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number }
+export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number; median_fix_s?: number | null }
 export interface HandoverData {
   since: number; now: number; previous: HandoverRecord | null
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
