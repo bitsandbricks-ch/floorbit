@@ -84,6 +84,10 @@ language, with four buttons (no internet, slow connection, no power, something e
   port read or from what the [status page](status-page.md) remembered; a seat with no known port
   gets no message. No switch names. When the status page is public, the note links to it for the
   crew's updates.
+- **Switch back up:** when the seat has an open report and its switch came back after the report was
+  filed, the page says "The network at your seat has been back for 3 min. Does it work again?" and
+  points at the **It works again** button, so a tech doesn't walk over for something that fixed
+  itself. No switch names.
 - **It works again:** while the seat has an open report, the page has an **It works again** button
   for problems that fixed themselves. It tags the seat's open reports on the board (**Seat says it
   works again · 3 min ago**) but doesn't mark them fixed: the link is anonymous, so the crew checks
