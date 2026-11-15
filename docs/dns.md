@@ -70,3 +70,6 @@ Floorbit can read over HTTP.
 `GET /api/dns?hours=24` (1 to 168) answers the numbers above as JSON: `hours`, `lookups`, `blocked`,
 `block_share`, `sites`, `categories`, `unnamed_lookups`, `new`, `blocked_sites`, `min_clients`,
 `plugins`, `last_poll` and `error`. Anyone who may see the floor plan may read it.
+
+On a hosted Floorbit, the [local agent](agent.md#dns-analytics-through-the-agent) reads the resolver and sends
+the lookups with hashed clients and names already cut to the site.

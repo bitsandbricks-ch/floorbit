@@ -53,6 +53,11 @@ function StatusLine({ status }: { status: LogStatus }) {
       ) : status.demo ? (
         <Badge color="gray" variant="light" tt="none">{t('logs.demo')}</Badge>
       ) : null}
+      {(status.relayed ?? []).map((r) => (
+        <Badge key={r.agent} color={r.recent ? 'up' : 'gray'} variant="light" tt="none">
+          {t('logs.relayed', { agent: r.agent })}{r.dropped > 0 && ` · ${t('logs.relayDropped', { n: num(r.dropped) })}`}
+        </Badge>
+      ))}
       <Text size="xs" c="dimmed">
         {t('logs.kept', { count: status.lines, n: num(status.lines), hours: status.retention_hours })}
         {dropped > 0 && ` · ${t('logs.dropped', { allow: num(status.counts.not_allowed), rate: num(status.counts.rate_limited) })}`}

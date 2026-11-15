@@ -10,7 +10,7 @@ import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import inventory, spa
+from .. import agent_link, inventory, spa
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -32,8 +32,13 @@ def _feeders():
 def run_sync():
     """Every inventory plugin that's on, one after the other. Returns their reports."""
     registry = _registry()
-    reports = []
+    # A hosted Floorbit: the agent first. A plugin it feeds (NetBox) is skipped here, since this
+    # side can't reach it and would only log a failed sync every time.
+    reports = _sync_from_agent() if agent_link.active() else []
+    fed = {r.get('base') or r['plugin'] for r in reports if not r.get('error')}
     for spec in _feeders():
+        if spec.id in fed:
+            continue
         try:
             items, skipped = inventory.clean_feed(registry.call(spec, 'inventory'))
         except (PluginError, inventory.InventoryError) as exc:
@@ -55,12 +60,63 @@ def run_sync():
     return reports
 
 
+def _record(report):
+    with data_lock:
+        data = load_data()
+        inventory.record_log(data, report)
+        save_data(data)
+
+
+def _sync_from_agent():
+    """A hosted Floorbit: the local agent's inventory plugins, merged under their own ids, so
+    moving from a local install to a hosted one keeps the devices (docs/agent.md)."""
+    try:
+        feeds = agent_link.inventory_feeds()
+    except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+        report = {'plugin': 'agent', 'name': 'Local agent', 'via': 'agent', 'at': inventory.now(),
+                  'error': str(exc)[:300]}
+        _record(report)
+        return [report]
+    reports = []
+    for feed in feeds:
+        base = {'name': feed['name'], 'via': 'agent', 'base': feed.get('base', feed['plugin'])}
+        try:
+            if 'error' in feed:
+                raise inventory.InventoryError(feed['error'])
+            items, skipped = inventory.clean_feed(feed['items'])
+        except inventory.InventoryError as exc:
+            report = {'plugin': feed['plugin'], 'at': inventory.now(), 'error': str(exc)[:300], **base}
+            _record(report)
+            reports.append(report)
+            continue
+        with data_lock:
+            data = load_data()
+            report = inventory.sync(data, feed['plugin'], items, skipped)
+            report.update(base)
+            save_data(data)
+        reports.append(report)
+    return reports
+
+
 def _sources(data):
     log = inventory.sync_log(data)
     out = []
     for spec in _feeders():
         last = next((r for r in log if r.get('plugin') == spec.id), None)
-        out.append({'id': spec.id, 'name': spec.name, 'last_sync': last})
+        via = ' (local agent)' if last and last.get('via') == 'agent' else ''
+        out.append({'id': spec.id, 'name': spec.name + via, 'last_sync': last})
+    if agent_link.active():
+        known, via_agent = {o['id'] for o in out}, False
+        for r in log:       # newest first: the agent's feeds as of its last sync
+            if r.get('via') != 'agent' or r.get('plugin') == 'agent':
+                continue
+            via_agent = True
+            if r.get('plugin') not in known:
+                known.add(r['plugin'])
+                out.append({'id': r['plugin'], 'name': f"{r.get('name') or r['plugin']} (local agent)", 'last_sync': r})
+        if not via_agent:   # nothing came from it yet: show it, with its last error if any
+            last = next((r for r in log if r.get('plugin') == 'agent'), None)
+            out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
     return out
 
 
@@ -123,7 +179,7 @@ def delete_device(device_id):
 
 @bp.route('/api/inventory/sync', methods=['POST'])
 def sync_now():
-    if not _feeders():
+    if not _feeders() and not agent_link.active():
         return jsonify({'error': 'No inventory source is on. Turn one on under Settings > Plugins.'}), 400
     reports = run_sync()
     return jsonify({'reports': reports, 'sources': _sources(load_data())})

@@ -149,7 +149,8 @@ def translate(event):
         name = 'switch.down' if data['status'] == 'offline' else 'switch.up'
         return [(name, {k: data.get(k) for k in ('id', 'name', 'since', 'down_for', 'reason')})]
     if kind in ('monitoring.offline', 'monitoring.online'):
-        return [(kind, {k: data.get(k) for k in ('source', 'error', 'since', 'down_for') if k in data})]
+        return [(kind, {k: data.get(k) for k in ('source', 'error', 'since', 'down_for', 'agent', 'last_seen')
+                        if k in data})]
     if kind == 'incident.changed':
         incident = _incident(data)
         opened = data.get('action') in ('created', 'reported')
