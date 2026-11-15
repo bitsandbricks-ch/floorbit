@@ -28,6 +28,14 @@ describe('Security findings', () => {
     expect(within(card).getByText('ARP spoofing')).toBeInTheDocument()
     expect(within(card).getByText('Seat B-4 (sw-b-01 · Gi1/0/4)')).toBeInTheDocument()
     expect(within(card).getByText('02:00:00:00:00:1b on Gi1/0/4')).toBeInTheDocument()
+    expect(document.title).toBe('(1) Security · Floorbit')
+  })
+  it('leaves acknowledged findings out of the tab title (issue #352)', async () => {
+    const acked = { ...finding, ack: { by: 'sam', at: now } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/security': list({ findings: [acked] }) }).fn)
+    renderWithApp(<Security />)
+    await screen.findByRole('article', { name: finding.title })
+    expect(document.title).toBe('Security · Floorbit')
   })
 
   it('shuts a finding’s port with the tech’s own login, naming only the finding', async () => {

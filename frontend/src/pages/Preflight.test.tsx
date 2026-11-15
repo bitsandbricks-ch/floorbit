@@ -31,8 +31,10 @@ describe('Pre-flight check', () => {
     expect(await screen.findByText('Not every check has run')).toBeInTheDocument()
     expect(screen.getByText('Not reachable')).toBeInTheDocument()
     expect(screen.getByText('Not run yet.')).toBeInTheDocument()
+    expect(document.title).toBe('(1) Pre-flight check · Floorbit')   // issue #352
     fireEvent.click(screen.getAllByRole('button', { name: 'Run again' })[0])
     expect(await screen.findByText('Ready for doors')).toBeInTheDocument()
+    expect(document.title).toBe('Pre-flight check · Floorbit')
     await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && JSON.stringify(c.body) === '{"group":"switches"}')).toBe(true))
   })
 

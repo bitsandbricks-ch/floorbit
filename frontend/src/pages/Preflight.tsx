@@ -30,7 +30,8 @@ export default function Preflight() {
   const verdict = !b ? null : b.ready ? 'ready' : b.complete ? 'notReady' : 'incomplete'
 
   return (
-    <Layout title={t('preflight.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    // Failed checks go in the tab title, so a background tab shows when a re-run still fails (issue #352).
+    <Layout title={t('preflight.title')} back={{ href: '/', label: t('common.floorPlan') }} count={b?.counts.fail ?? 0}>
       <PageHead title={t('preflight.title')} desc={t('preflight.intro')}
         actions={
           <>
