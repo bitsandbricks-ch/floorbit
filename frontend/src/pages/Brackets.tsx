@@ -156,7 +156,8 @@ function BracketView({ bracket, data, canEdit, onRemoved }: { bracket: Bracket; 
         </Group>
       </Group>
       {(move.error || remove.error) && <Alert color="down" role="alert" mb="sm">{(move.error || remove.error)!.message}</Alert>}
-      <div className="fb-bracket-scroll">
+      {/* Scrolls sideways on a phone: focusable so keyboard users can scroll it too (issue #286). */}
+      <div className="fb-bracket-scroll" tabIndex={0} role="region" aria-label={bracket.name}>
         <div className="fb-bracket" style={{ gridTemplateColumns: `repeat(${bracket.rounds.length + (champion ? 1 : 0)}, minmax(190px, 1fr))` }}>
           {bracket.rounds.map((rnd, r) => (
             <div key={r} className="fb-bracket-round">
@@ -221,7 +222,7 @@ export default function Brackets() {
         <Stack gap="md">
           <Text size="sm">
             {d.public
-              ? <>{t('brackets.publicOn')} <Anchor href="/bracket" target="_blank">/bracket</Anchor> · <Anchor href="/bracket?screen=1" target="_blank">{t('brackets.bigScreen')}</Anchor></>
+              ? <>{t('brackets.publicOn')} <Anchor href="/bracket" target="_blank" underline="always">/bracket</Anchor> · <Anchor href="/bracket?screen=1" target="_blank" underline="always">{t('brackets.bigScreen')}</Anchor></>
               : t('brackets.publicOff')}
           </Text>
           {adding && <NewBracket zones={d.zones} onDone={(id) => { setAdding(false); refresh(); if (id) pick(id) }} />}
