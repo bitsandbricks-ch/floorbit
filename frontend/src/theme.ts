@@ -3,6 +3,7 @@
 // a rebuild. Built after Hubra's (by Mike) packages/ui/src/theme.ts.
 import {
   createTheme,
+  TableScrollContainer,
   defaultVariantColorsResolver,
   type CSSVariablesResolver,
   type MantineColorsTuple,
@@ -55,6 +56,12 @@ export const theme = createTheme({
     warn: token('warn'),
   },
   radius: { md: 'var(--radius-bit)', lg: 'var(--radius-card)' },
+  components: {
+    // A wide table scrolls sideways on a phone; without focus a keyboard can't scroll it (issue #286).
+    TableScrollContainer: TableScrollContainer.extend({
+      defaultProps: { scrollAreaProps: { viewportProps: { tabIndex: 0 } } },
+    }),
+  },
 })
 
 const shared = {
