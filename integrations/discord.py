@@ -2,7 +2,8 @@
 
 Listens for ``monitor.poll`` events and posts one message per poll that had
 changes, so a whole row losing power is one message, not twenty. ``health.changed`` (the
-service health wall) posts when a service goes red and when it is back; ``security.finding``
+service health wall) posts when a service goes red and when it is back, and a mute that runs out
+on something still down is said once; ``security.finding``
 and ``power.alert`` post new findings and circuits that turn red or trip. Sending runs
 on its own thread so a slow Discord never delays the status monitor.
 """
@@ -62,8 +63,10 @@ def _grouped(changes):
 
 
 class DiscordNotifier:
-    def __init__(self, crew=None):
+    def __init__(self, crew=None, app=None):
         self.crew = crew          # CrewBridge: with no webhook, alerts go to the crew channel
+        self.app = app            # to find the health wall, which starts after us
+        self.monitor = None       # StatusMonitor, for what a switch is doing when its mute ends
         self._queue = queue.Queue(maxsize=100)
         self._last_alert = {}     # switch id -> ts
         self._thread = None
@@ -125,11 +128,58 @@ class DiscordNotifier:
 
     # ── message building ─────────────────────────────────────────────────────────────
     def on_poll(self, event):
+        ended = self.check_mutes()
         if not self.enabled():
             return
         payload = self.build_status_message(event['data'].get('changes', []))
         if payload:
             self.post(payload)
+        if ended:
+            self.post(ended)
+
+    def _still_down(self, key):
+        """Whether what a mute covered is still down right now, as the monitor or wall last saw it."""
+        if key.startswith('health:'):
+            wall = self.app.extensions.get('floorbit_health') if self.app else None
+            return bool(wall) and wall.confirmed.get(key[len('health:'):]) == 'down'
+        status = (self.monitor.statuses.get(key) or {}).get('status') if self.monitor else None
+        return status == 'offline'
+
+    def check_mutes(self, now=None):
+        """Mutes that ran out while their switch or service is still down (issue #262). The down
+        alert was swallowed while muted and nothing changes when the mute ends, so without this
+        nobody would hear of it again. Returns the message, or None. A mute lifted by hand says
+        nothing: whoever lifted it knows."""
+        now = now or time.time()
+        ended = alerting.take_expired(now)
+        health_alerts = config.get_bool('DISCORD_HEALTH_ALERTS', True)
+        down = [(k, v) for k, v in ended.items()
+                if (health_alerts or not k.startswith('health:')) and self._still_down(k)]
+        if not down:
+            return None
+        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
+        embeds = []
+        for key, entry in down[:MAX_EMBEDS]:
+            service = key.startswith('health:')
+            self._last_alert[key] = now  # the cooldown starts here, like a fresh down alert
+            embed = {'title': f"🔔 Mute on {str(entry.get('name') or key)[:100]} ended: still "
+                              f"{'down' if service else 'offline'}",
+                     'color': COLOR_OFFLINE, 'timestamp': ts}
+            reason = str(entry.get('reason') or '')[:150]
+            embed['description'] = (f'Muted because: {reason}' if reason
+                                    else 'The mute ran out and it has not come back.')
+            if public_url:
+                embed['url'] = public_url + ('/health' if service else '/problems')
+            embeds.append(embed)
+        payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': embeds,
+                   'allowed_mentions': {'parse': ['roles', 'everyone', 'users']}}
+        mention = config.get('DISCORD_MENTION', '') or ''
+        if mention:
+            payload['content'] = mention
+        else:
+            payload['allowed_mentions'] = {'parse': []}
+        return payload
 
     def on_source(self, event):
         """The monitoring source itself went away or came back: one message, not one per switch."""
@@ -138,7 +188,12 @@ class DiscordNotifier:
         self.post(self.build_source_message(event['type'], event.get('data') or {}))
 
     def on_health(self, event):
-        if not self.enabled() or not config.get_bool('DISCORD_HEALTH_ALERTS', True):
+        ended = self.check_mutes()
+        if not self.enabled():
+            return
+        if ended:
+            self.post(ended)
+        if not config.get_bool('DISCORD_HEALTH_ALERTS', True):
             return
         payload = self.build_health_message((event.get('data') or {}).get('changes', []))
         if payload:

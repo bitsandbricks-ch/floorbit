@@ -58,6 +58,13 @@ gets no "is down" or "is back" message for it, and it stays out of the counts in
 It stays on the health wall in its colour, with "alerts muted until" and the time on its tile (who muted it and why are on the Problems page), and out of the health wall's tab count. Muting needs `incidents.work` and is in the audit log under **alerts**. Mutes are stored
 in `data.json` under `alert_mutes` and survive a restart.
 
+When a mute runs out and the switch is still offline (or the service still red), Discord gets one
+"🔔 Mute on … ended: still offline" message with the reason the mute was given, and the usual
+mention. Without it nobody would hear again: the down message was held back while muted, and
+nothing changes when the mute ends. The check runs with every switch status poll and health wall
+change. A mute someone lifts with **Unmute** says nothing, and a switch that came back while muted
+says nothing either.
+
 ## Big outages are one message
 
 When more switches change in one poll than `ALERT_GROUP_AFTER` (3), Discord gets one message per
