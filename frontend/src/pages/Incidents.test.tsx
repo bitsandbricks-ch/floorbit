@@ -35,6 +35,26 @@ const routes = {
 }
 
 describe('Incident board', () => {
+  it('says when an open incident has waited 10 minutes with nobody on it', async () => {
+    const now = Date.now() / 1000
+    const waiting: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'w1', title: 'Waiting long', status: 'open', created_at: now - 25 * 60 },
+      { ...base, id: 'w2', title: 'Just in', status: 'open', created_at: now - 5 * 60 },
+      { ...base, id: 'w3', title: 'Old but taken', status: 'assigned', assignee: 'sam', created_at: now - 40 * 60 },
+      { ...base, id: 'w4', title: 'Overnight', status: 'open', created_at: now - (13 * 60 + 38) * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': waiting }).fn)
+    renderWithApp(<Incidents />)
+    const long = (await screen.findByText('Waiting long')).closest('[data-incident]') as HTMLElement
+    expect(within(long).getByText('Waiting 25 min')).toBeInTheDocument()
+    const fresh = screen.getByText('Just in').closest('[data-incident]') as HTMLElement
+    expect(within(fresh).queryByText(/^Waiting/)).toBeNull()
+    const taken = screen.getByText('Old but taken').closest('[data-incident]') as HTMLElement
+    expect(within(taken).queryByText(/^Waiting/)).toBeNull()
+    const night = screen.getByText('Overnight').closest('[data-incident]') as HTMLElement
+    expect(within(night).getByText('Waiting 13 h 38 min')).toBeInTheDocument()
+  })
+
   it('sorts incidents into columns with the seat report details', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     renderWithApp(<Incidents />)

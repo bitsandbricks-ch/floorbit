@@ -3,6 +3,7 @@ import { IconBook, IconNote } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
+import { useNowSeconds } from '@/components/useNowSeconds'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
@@ -11,6 +12,14 @@ function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) 
   if (mins < 1) return t('incidents.justNow')
   if (mins < 60) return t('incidents.minutesAgo', { count: mins })
   return t('incidents.hoursAgo', { count: Math.round(mins / 60) })
+}
+
+/** Open this long with nobody on it, an incident says so (issue #296). */
+export const WAITING_AFTER = 10 * 60
+
+function waitedFor(seconds: number, t: (k: string, o?: Record<string, unknown>) => string) {
+  const mins = Math.floor(seconds / 60)
+  return mins < 60 ? t('incidents.waiting', { count: mins }) : t('incidents.waitingLong', { h: Math.floor(mins / 60), m: mins % 60 })
 }
 
 /** Whole Mbit/s from 100 on: "912", not "912.4". */
@@ -47,6 +56,8 @@ export function IncidentCard({
   const snap = i.snapshot
   const assignable = (people?.[i.team ?? ''] ?? []).map((p) => ({ value: p.username, label: p.display_name }))
   const lastNote = i.notes[i.notes.length - 1]
+  const now = useNowSeconds()
+  const waiting = i.status === 'open' && !i.assignee && now - i.created_at >= WAITING_AFTER
 
   return (
     <Paper withBorder radius="lg" p="sm" data-incident={i.id}>
@@ -66,6 +77,7 @@ export function IncidentCard({
           {i.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {i.source === 'power' && <Badge variant="light" color="warn" tt="none">{t('incidents.fromPower')}</Badge>}
           {i.reports > 1 && <Badge variant="light" color="warn" tt="none">{t('incidents.reports', { count: i.reports })}</Badge>}
+          {waiting && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
         </Group>
         {snap && (
           <Text size="sm" c={snap.known && snap.link && snap.link !== 'up' ? 'var(--color-down)' : 'dimmed'}>
