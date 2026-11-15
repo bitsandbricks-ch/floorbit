@@ -31,6 +31,12 @@
     "incidents": "Jede neue Störung (braucht das Störungsboard)",
     "switches": "Ein Switch fällt aus",
     "done": "Fertig",
-    "unsupported": "Dieser Browser kann keine Benachrichtigungen zeigen."
+    "unsupported": "Dieser Browser kann keine Benachrichtigungen zeigen.",
+    "quiet": "Ruhezeit",
+    "quietFrom": "Von",
+    "quietTo": "Bis",
+    "jobsInQuiet": "Aufträge für mich kommen trotzdem",
+    "quietNow": "Jetzt ist Ruhezeit: nur Aufträge für dich kommen durch.",
+    "quietNowAll": "Jetzt ist Ruhezeit: nichts kommt durch."
   }
 }

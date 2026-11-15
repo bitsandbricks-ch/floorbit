@@ -86,3 +86,31 @@ def test_editor_has_the_seat_states_layer(client):
 def test_notifications_script_is_on_the_editor(client):
     page = client.get("/").get_data(as_text=True)
     assert "/static/js/notify.js" in page
+
+
+def test_inspector_link_history(client, app_module):
+    """Issue #167: the seat's link over the last hours, from the changes the replay keeps."""
+    stats = app_module.app.extensions["floorbit_stats"]
+    stats.reset()
+    now = time.time()
+    dev = {"id": "s1", "name": "sw-d-01"}
+
+    def read(t, up):
+        port = {"name": "Gi1/0/6", "state": "up" if up else "down", "download_bps": 1e6 if up else 0}
+        stats.record([(dev, port, "D-6")], ["sw-d-01"], now=t)
+
+    for minutes, up in ((400, True), (300, False), (90, True), (60, False), (30, True)):
+        read(now - minutes * 60, up)
+    hist = stats.seat_history("D-6", now - 6 * 3600)
+    # The read 400 minutes ago is before the window: it only sets the starting state.
+    assert hist["start"] is True and hist["from"] == pytest.approx(now - 6 * 3600)
+    assert [on for _, on in hist["changes"]] == [0, 1, 0, 1]
+    assert [round((now - t) / 60) for t, _ in hist["changes"]] == [300, 90, 60, 30]
+    assert stats.seat_history("D-99", now - 3600)["changes"] == []
+
+
+def test_inspector_details_carry_history(client, hall):
+    d = client.get("/api/plan/seats/D-6").get_json()
+    # One read so far: the history starts there, online, with no change yet.
+    assert d["history"]["start"] is True and d["history"]["changes"] == []
+    assert d["history"]["to"] >= d["history"]["from"]
