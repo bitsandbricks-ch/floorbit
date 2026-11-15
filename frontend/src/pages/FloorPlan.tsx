@@ -64,7 +64,9 @@ export default function FloorPlan() {
   // "/" jumps to the Find box, as on most sites with a search (issue #194). Mantine skips it while typing elsewhere.
   const findBox = useRef<HTMLInputElement>(null)
   const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
-  useHotkeys([['/', () => { findBox.current?.focus(); findBox.current?.select() }]])
+  const toFind = () => { findBox.current?.focus(); findBox.current?.select() }
+  // Swiss and German keyboards type "/" with Shift (Shift+7), and Mantine matches Shift exactly (issue #222).
+  useHotkeys([['/', toFind], ['shift+/', toFind]])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
