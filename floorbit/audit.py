@@ -25,6 +25,8 @@ ACTIONS = {
     ('PATCH', '/api/tournament/zones/<zone_id>'): ('floor plan', 'Changed match zone'),
     ('DELETE', '/api/tournament/zones/<zone_id>'): ('floor plan', 'Removed match zone'),
     ('POST', '/api/report/new-event'): ('report', 'Started a new event'),
+    ('PATCH', '/api/past-events/<event_id>'): ('report', 'Renamed a past event'),
+    ('DELETE', '/api/past-events/<event_id>'): ('report', 'Deleted a past event'),
     ('POST', '/api/switches'): ('floor plan', 'Added switch'),
     ('PUT', '/api/switches/<switch_id>'): ('floor plan', 'Changed switch'),
     ('DELETE', '/api/switches/<switch_id>'): ('floor plan', 'Deleted switch'),

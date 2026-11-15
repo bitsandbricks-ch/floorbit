@@ -129,6 +129,7 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/setup",              # first-run setup: admins, or the setup code
                         "/api/stats/peak/reset",   # starting the event's bandwidth peak again
                         "/api/report/new-event",   # starting the report's history again
+                        "/api/past-events/",       # closing, renaming or deleting a past event
                         "/api/discord/interactions")   # signed by Discord, acts with the linked account
     loose = []
     for rule in app_module.app.url_map.iter_rules():

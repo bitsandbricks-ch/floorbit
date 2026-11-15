@@ -92,6 +92,7 @@ export default function Report() {
               href={pdfUrl(i18n.language, people, new Date().getTimezoneOffset())}>
               {t('report.download')}
             </Button>
+            <Button variant="default" component="a" href="/events">{t('report.pastEvents')}</Button>
             {canReset && (
               <ConfirmButton variant="default" danger label={t('report.newEvent')} question={t('report.newEventQuestion')}
                 onConfirm={() => reset.mutate()} loading={reset.isPending} />

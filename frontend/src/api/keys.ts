@@ -18,6 +18,7 @@ export const qk = {
   handover: ['handover'] as const,
   gear: ['gear'] as const,
   teardown: ['teardown'] as const,
+  events: ['events'] as const,
   preflight: ['preflight'] as const,
   planner: ['planner'] as const,
   plannerConfig: (name: string) => ['planner', 'config', name] as const,
