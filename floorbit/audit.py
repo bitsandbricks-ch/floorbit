@@ -96,6 +96,7 @@ ACTIONS = {
     ('DELETE', '/api/notice'): ('incidents', 'Took down the crew notice'),
     ('PATCH', '/api/incidents/<incident_id>'): ('incidents', 'Changed incident'),
     ('POST', '/api/incidents/<incident_id>/dispatch'): ('incidents', 'Sent incident to the nearest tech'),
+    ('PUT', '/api/dispatch/auto'): ('incidents', 'Turned automatic dispatch on or off'),
     ('POST', '/api/jobs/<incident_id>/take'): ('incidents', 'Took job'),
     ('POST', '/api/jobs/<incident_id>/done'): ('incidents', 'Finished job'),
     ('POST', '/api/jobs/<incident_id>/give-back'): ('incidents', 'Gave job back'),

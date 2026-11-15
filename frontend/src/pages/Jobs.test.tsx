@@ -74,6 +74,7 @@ describe('Board dispatch', () => {
       'GET /api/incidents': board, 'GET /api/incidents/people': {}, 'GET /api/switches': [],
       'GET /api/dispatch/crew': { crew: [{ username: 'ben', display_name: 'Ben', at: 'A-1', since: now, jobs: 0, done: 2 }] },
       'POST /api/incidents/i1/dispatch': { id: 'i1', assignee: 'ben', display_name: 'Ben' },
+      'PUT /api/dispatch/auto': { auto: true },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Incidents />)
@@ -85,5 +86,8 @@ describe('Board dispatch', () => {
     expect(screen.getByRole('textbox', { name: 'Filter incidents' })).toHaveValue('')
     fireEvent.click(await screen.findByRole('button', { name: 'Send to nearest tech' }))
     expect(await screen.findByText('Sent to Ben.')).toBeInTheDocument()
+    // Issue #358: a lead can let new incidents go out by themselves.
+    fireEvent.click(screen.getByRole('switch', { name: 'Send new ones to the nearest free tech by themselves' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT' && c.path === '/api/dispatch/auto')?.body).toEqual({ on: true }))
   })
 })

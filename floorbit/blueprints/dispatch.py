@@ -6,6 +6,8 @@
 - ``PUT /api/jobs/me``: go on or off duty, say where I am (``{"on_duty": true, "at": "B-7"}``).
 - ``POST /api/jobs/<id>/take``, ``/done``, ``/give-back``: the tech's answers to a job.
 - ``POST /api/incidents/<id>/dispatch``: send the incident to the nearest free tech (``incidents.assign``).
+- ``PUT /api/dispatch/auto``: ``{"on": true}`` sends new incidents to the nearest free tech by themselves
+  (``incidents.assign``).
 - ``GET /api/dispatch/crew``: who is on duty, where, with how many jobs, and how many they fixed in the last
   12 hours (``incidents.assign``).
 
@@ -137,4 +139,16 @@ def crew():
     user = _board_user()
     if not roles.can(user, 'incidents.assign'):
         return jsonify({'error': 'Needs the "assign incidents" permission.'}), 403
-    return jsonify({'crew': dispatch.crew()})
+    return jsonify({'crew': dispatch.crew(), 'auto': dispatch.auto_on()})
+
+
+@bp.route('/api/dispatch/auto', methods=['PUT'])
+def set_auto():
+    user = _board_user()
+    try:
+        on = dispatch.set_auto(user, (request.get_json(silent=True) or {}).get('on'))
+    except dispatch.DispatchError as exc:
+        return _error(exc)
+    events.publish('dispatch.changed', {'auto': on})
+    return jsonify({'auto': on})
+

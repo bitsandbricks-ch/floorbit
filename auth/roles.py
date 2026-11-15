@@ -237,6 +237,7 @@ RULES = (
     ('/api/speedtests', READ, 'incidents.work'),
     # Tech dispatch: the blueprint checks incidents.work, and incidents.assign for sending (floorbit/dispatch.py).
     ('/api/jobs', WRITE, 'floorplan.view'),
+    ('/api/dispatch/auto', WRITE, 'incidents.assign'),   # automatic dispatch on or off (issue #358)
     ('/api/dispatch', READ, 'incidents.assign'),
     # Teardown: the export carries a backup, so it is an admin's, like Settings > Backup.
     ('/api/teardown/export.zip', READ, 'settings.manage'),

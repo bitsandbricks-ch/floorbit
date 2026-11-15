@@ -112,3 +112,38 @@ def test_a_note_on_a_sent_job_does_not_say_the_tech_saw_it(client, floor):
     client.patch(f"/api/incidents/{job}", json={"note": "Player says it blinks"})
     [mine] = floor["ben"].get("/api/jobs").get_json()["jobs"]
     assert mine["taken_at"] is None
+
+
+def test_auto_dispatch_sends_new_incidents_by_themselves(client, floor, app_module):
+    # Issue #358: off by default, a lead's switch, and only for new incidents.
+    floor["ben"].put("/api/jobs/me", json={"on_duty": True, "at": "B-1"})
+    assert client.get("/api/dispatch/crew").get_json()["auto"] is False
+    waiting = _incident(client, "B-6")
+    assert floor["ben"].put("/api/dispatch/auto", json={"on": True}).status_code == 403
+    assert client.put("/api/dispatch/auto", json={"on": True}).get_json() == {"auto": True}
+    assert client.get("/api/dispatch/crew").get_json()["auto"] is True
+    resp = client.post("/api/incidents", json={"seat": "B-7", "title": "Slow connection"})
+    assert resp.status_code == 201 and resp.get_json()["assignee"] == "ben" and resp.get_json()["status"] == "assigned"
+    [job] = floor["ben"].get("/api/jobs").get_json()["jobs"]
+    assert job["title"] == "Slow connection" and job["dispatched_at"] and job["taken_at"] is None
+    # The one filed before stays on the board; with Ben busy, the next new one does too.
+    board = {i["id"]: i for i in client.get("/api/incidents").get_json()["incidents"]}
+    assert board[waiting]["assignee"] is None
+    later = _incident(client, "A-2", "Needs help")
+    assert next(i for i in client.get("/api/incidents").get_json()["incidents"] if i["id"] == later)["assignee"] is None
+    actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
+    assert {"Turned automatic dispatch on or off", "Sent incident to the nearest tech by itself"} <= set(actions)
+    assert client.put("/api/dispatch/auto", json={"on": False}).get_json() == {"auto": False}
+
+
+def test_auto_dispatch_takes_seat_reports_too(client, floor, app_module):
+    # A seat report goes to the access team; a lead may work any team's incident.
+    lea = _login(app_module, "lea", "lead")
+    lea.put("/api/jobs/me", json={"on_duty": True, "at": "A-1"})
+    client.put("/api/dispatch/auto", json={"on": True})
+    with app_module.app.test_request_context():
+        from floorbit import incidents
+        incident, new = incidents.report_from_seat("A-3", "no-internet", {})
+        assert new
+        sent = dispatch.send_new(incident)
+    assert sent["assignee"] == "lea" and sent["source"] == "helpdesk"
