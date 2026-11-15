@@ -64,9 +64,9 @@ def agents_page():
 @bp.route('/api/agents', methods=['GET'])
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
-    agents = [{**a, 'outdated': agent_link.outdated(a.get('version'), server)} for a in agent_link.all_agents()]
+    agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
-                    'max': agent_link.MAX_AGENTS, 'server_version': server})
+                    'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL})
 
 
 @bp.route('/api/agents', methods=['POST'])
@@ -125,7 +125,7 @@ def _same_protocol():
 
 def _agent():
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
-                            request.remote_addr)
+                            request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip())
 
 
 MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more

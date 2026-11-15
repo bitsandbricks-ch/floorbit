@@ -11,7 +11,7 @@
   "seen": "zuletzt gesehen {{when}}",
   "version": "Version {{v}}",
   "outdated": "Update",
-  "outdatedHelp": "Älter als dieses Floorbit ({{v}}). Neues Image holen und den Agent neu starten.",
+  "outdatedHelp": "Spricht ein älteres Agent-Protokoll als dieses Floorbit ({{v}}). Neues floorbit-agent-Image holen und den Agent neu starten.",
   "made": "Eingetragen am {{date}} von {{who}}",
   "stats_one": "1 Anfrage in der letzten Stunde, beantwortet in {{ms}} ms",
   "stats_other": "{{count}} Anfragen in der letzten Stunde, beantwortet in {{ms}} ms (Median)",

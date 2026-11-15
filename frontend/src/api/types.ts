@@ -1355,7 +1355,9 @@ export interface Agent {
   last_seen: number | null; version: string | null; address: string | null; connected: boolean
   /** The last hour of answers, kept in memory on the server (missing right after enrolling). */
   stats?: AgentStats
-  /** Older than the hosted Floorbit: time to pull the new image. */
+  /** The agent protocol it spoke last (1 or 2; null before its first request). */
+  protocol?: number | null
+  /** Speaks an older agent protocol than this Floorbit: time to pull the new image. */
   outdated?: boolean
   /** Hall ids it answers for; empty: every hall. */
   halls?: string[]

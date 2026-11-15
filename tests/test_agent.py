@@ -121,14 +121,18 @@ def test_the_page_is_for_admins(app_module, client):
 
 
 def test_an_older_agent_is_flagged(client, anon_client, app_module):
-    assert agent_link.outdated('0.9.0', '0.10.0') and agent_link.outdated('v1.2', '1.2.1')
-    assert not agent_link.outdated('1.2.3', '1.2.3') and not agent_link.outdated('2.0.0', '1.9.9')
-    assert not agent_link.outdated(None, '1.0.0') and not agent_link.outdated('dev', '1.0.0')
+    """By protocol: the agent has its own releases, so its version says nothing next to Floorbit's."""
+    assert agent_link.outdated(1, 2) and not agent_link.outdated(2, 2) and not agent_link.outdated(3, 2)
+    assert not agent_link.outdated(None, 2) and not agent_link.outdated("1", 2)
     key = enrol(client)['key']
-    anon_client.get("/api/agent/v1/hello", headers={"Floorbit-Agent-Key": key, "Floorbit-Agent-Version": "0.0.1"})
+    h = {"Floorbit-Agent-Key": key, "Floorbit-Agent-Version": "0.1.0"}
+    anon_client.get("/api/agent/v1/hello", headers=h)                      # no header: protocol 1
     listed = client.get("/api/agents").get_json()
-    assert listed["server_version"] == app_module.app.config["FLOORBIT_VERSION"]
-    assert listed["agents"][0]["outdated"] is (listed["server_version"] != "0.0.1")
+    assert listed["protocol"] == agent_link.PROTOCOL == 2
+    assert listed["agents"][0]["protocol"] == 1 and listed["agents"][0]["outdated"] is True
+    anon_client.get("/api/agent/v1/hello", headers={**h, "Floorbit-Agent-Protocol": "2"})
+    listed = client.get("/api/agents").get_json()
+    assert listed["agents"][0]["protocol"] == 2 and listed["agents"][0]["outdated"] is False
 
 
 def test_an_agent_answers_only_its_own_calls(client, anon_client):
