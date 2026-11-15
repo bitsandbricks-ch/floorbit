@@ -1,8 +1,8 @@
-import { Alert, Badge, Button, Group, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconArrowsExchange, IconBook, IconBox, IconFilter, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { get, patch, post } from '@/api/client'
@@ -34,14 +34,23 @@ export default function Incidents() {
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
   const [mineOnly, setMineOnly] = useState(false)
   // The filter lives in the address, so a link can open the board filtered (issue #210).
+  // The box keeps its own state: the address updates a moment later, and typing fast against it lost letters (issue #226).
   const [params, setParams] = useSearchParams()
-  const filter = params.get('q') ?? ''
+  const [filter, setFilterText] = useState(() => params.get('q') ?? '')
   const setFilter = (v: string) => {
-    const next = new URLSearchParams(params)
-    if (v) next.set('q', v)
-    else next.delete('q')
-    setParams(next, { replace: true })
+    setFilterText(v)
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (v) next.set('q', v)
+      else next.delete('q')
+      return next
+    }, { replace: true })
   }
+  // "/" jumps to the filter, as on the Seats page; with Shift for Swiss and German keyboards (issue #226).
+  const filterBox = useRef<HTMLInputElement>(null)
+  const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
+  const toFilter = () => { filterBox.current?.focus(); filterBox.current?.select() }
+  useHotkeys([['/', toFilter], ['shift+/', toFilter]])
   const [formOpen, form] = useDisclosure(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -122,8 +131,9 @@ export default function Incidents() {
       />
       <Group justify="space-between" mb="sm">
         <Group gap="md">
-          <TextInput aria-label={t('incidents.filter')} placeholder={t('incidents.filterHint')} w={240} value={filter}
-            leftSection={<IconFilter size={14} />} onChange={(e) => setFilter(e.currentTarget.value)} />
+          <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={240} value={filter}
+            leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
+            onChange={(e) => setFilter(e.currentTarget.value)} />
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
         </Group>
         <Text size="sm" role="status" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>

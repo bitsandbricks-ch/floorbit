@@ -14,7 +14,8 @@ The board's browser tab starts with the number of open incidents, e.g. "(2) Inci
 
 **Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
 notes contain the text, ignoring case. It is kept in the address (`/incidents?q=B-7`), so a link can
-open the board filtered, and it works together with **Only what I can work**.
+open the board filtered, and it works together with **Only what I can work**. **/** anywhere on the
+board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen-readers).
 
 An incident on a seat that has a [crew note](seats.md#the-inspector) shows the note on its card,
 with who wrote it and when, so whoever takes it knows what was already done there.
