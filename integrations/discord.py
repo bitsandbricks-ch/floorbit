@@ -20,6 +20,7 @@ COLOR_OFFLINE = 0xF85149
 COLOR_ONLINE = 0x3FB950
 COLOR_INFO = 0xF0883E   # the app's orange accent
 MAX_EMBEDS = 10         # Discord limit per message
+MAX_BUTTONS = 5         # Discord limit per row of buttons
 SILENT = 4096           # Discord's SUPPRESS_NOTIFICATIONS flag: posted, but no push or sound
 SECURITY_KINDS = {'rogue-dhcp': 'Rogue DHCP server', 'arp-spoof': 'ARP spoofing', 'mac-flap': 'MAC flapping',
                   'loop': 'Network loop', 'storm': 'Broadcast storm', 'other': 'Security finding'}
@@ -442,6 +443,9 @@ class DiscordNotifier:
         }
         if content.strip():
             payload['content'] = content.strip()
+        if offline and len(embeds) == len(selected):
+            # Mute buttons, for the crew bot only: a webhook can't carry them (issue #272).
+            payload['_mute'] = [(c['id'], c['name']) for c in offline[:MAX_BUTTONS]]
         return payload
 
     def build_test_message(self):
@@ -470,6 +474,7 @@ class DiscordNotifier:
             return True
         if not url:
             raise RuntimeError('DISCORD_WEBHOOK_URL is not set')
+        payload = {k: v for k, v in payload.items() if not k.startswith('_')}
         for attempt in range(retries + 1):
             resp = requests.post(url, json=payload, timeout=10)
             if resp.status_code == 429 and attempt < retries:
