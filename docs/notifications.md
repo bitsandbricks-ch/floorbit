@@ -17,3 +17,11 @@ board, your jobs or the floor plan. The texts follow the language chosen in Floo
 
 If the browser blocks notifications for the site, allow them in its site settings and switch them
 on again.
+
+## Quiet hours
+
+Tick **Quiet hours** and set **From** and **To** (this device's local time; they may run past
+midnight, like 22:00 to 08:00). During them new incidents and switches going down stay quiet.
+**Jobs sent to me still come through** is on by default, so a job dispatched to you at 3 AM still
+reaches you; untick it for full quiet. Turning notifications off altogether is the switch at the
+top.
