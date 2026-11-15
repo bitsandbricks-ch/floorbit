@@ -174,7 +174,10 @@ ruff check .
 pytest -q                                      # NetBox, LibreNMS and Redis are faked
 find static -name '*.js' -exec node --check {} \;
 docker build .
+python scripts/api_reference.py                # after adding or changing an API route
 ```
+
+The documentation site: `pip install -r requirements-docs.txt`, then `mkdocs serve`.
 
 | Path | What lives there |
 | --- | --- |
@@ -188,7 +191,7 @@ docker build .
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |
 | `scripts/screenshots.py` | Desktop and phone screenshots for pull requests. |
-| `docs/` | Design notes and plans. |
+| `docs/` | The documentation, also built as a site (`mkdocs.yml`); `docs/api-reference.md` is written by `scripts/api_reference.py`. Design notes are in `docs/plans/`. |
 
 ### CI
 
@@ -202,10 +205,12 @@ GitHub Actions in [`.github/workflows/`](.github/workflows/), set up like the
 | `ci.yml` `frontend` | always | The React app: `npm audit` (production packages), ESLint, TypeScript, Vitest and a production build. |
 | `ci.yml` `pytest` | always | Smoke tests. |
 | `ci.yml` `screenshots` | pull requests | Runs the app with demo data and screenshots every page, desktop and phone (artifact). |
+| `ci.yml` `docs` | always | Builds the documentation site with `mkdocs build --strict`, so a broken link fails. |
 | `ci.yml` `workflows` | always | actionlint over the workflow files. |
 | `ci.yml` `CI passed` | always | Green when every job above is; the one check the `master` ruleset requires. |
 | `image.yml` | always | Builds the Docker image; pushes it to GHCR from `master` (`latest`) and `v*` tags (the version). |
 | `release.yml` | `v*` tags | Checks the tag against `VERSION` and publishes the GitHub release with its changelog section. |
+| `docs.yml` | `v*` tags, by hand | Publishes the documentation site to GitHub Pages. |
 
 Branch and tag protection live in [`.github/rulesets/`](.github/rulesets/) (`mason doctor --fix` applies them).
 
