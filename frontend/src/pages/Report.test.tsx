@@ -60,6 +60,13 @@ describe('Report', () => {
     expect(screen.getByRole('link', { name: 'A-2' })).toHaveAttribute('href', '/plan?seat=A-2')
   })
 
+  it('says what attendees reported at their seats (issue #370)', async () => {
+    const asked = { ...data, incidents: { ...data.incidents, seat_problems: [{ problem: 'no-internet', count: 6 }, { problem: 'slow', count: 3 }] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/report': asked }).fn)
+    renderWithApp(<Report />)
+    expect(await screen.findByText('What attendees reported at their seats: No internet 6×, Slow connection 3×')).toBeInTheDocument()
+  })
+
   it('lets an admin add nicks and IPs', async () => {
     const withPeople = { ...data, people: true, may_add_people: true,
       problem_ports: [{ ...data.problem_ports[0], nick: 'player-seven', ip: '198.51.100.7' }] }

@@ -233,6 +233,37 @@ describe('Incident board', () => {
     expect(within(seen).getByText('With kim · on the way')).toBeInTheDocument()
   })
 
+  it('says when the seat reports it works again (issue #372)', async () => {
+    const now = Date.now() / 1000
+    const ok: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'k1', title: 'Fixed itself', status: 'open', source: 'helpdesk', seat_ok_at: now - 3 * 60 },
+      { ...base, id: 'k2', title: 'Still broken', status: 'open', source: 'helpdesk' },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': ok }).fn)
+    renderWithApp(<Incidents />)
+    const said = (await screen.findByText('Fixed itself')).closest('[data-incident]') as HTMLElement
+    expect(within(said).getByText('Seat says it works again · 3 min ago')).toBeInTheDocument()
+    const broken = screen.getByText('Still broken').closest('[data-incident]') as HTMLElement
+    expect(within(broken).queryByText(/works again/)).not.toBeInTheDocument()
+  })
+
+  it('says when the seat\'s switch is down (issue #386)', async () => {
+    const now = Date.now() / 1000
+    const down: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'o1', title: 'On the down switch', status: 'open', outage: { switch: 'sw-c-02', since: now - 5 * 60 } },
+      { ...base, id: 'o2', title: 'Elsewhere', status: 'open' },
+      { ...base, id: 'o3', title: 'Filed during it', status: 'open', back_up: { switch: 'sw-b-01', since: now - 2 * 60 } },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': down }).fn)
+    renderWithApp(<Incidents />)
+    const card = (await screen.findByText('On the down switch')).closest('[data-incident]') as HTMLElement
+    expect(within(card).getByText('sw-c-02 down · 5 min ago')).toBeInTheDocument()
+    const other = screen.getByText('Elsewhere').closest('[data-incident]') as HTMLElement
+    expect(within(other).queryByText(/ down · /)).not.toBeInTheDocument()
+    const back = screen.getByText('Filed during it').closest('[data-incident]') as HTMLElement
+    expect(within(back).getByText('sw-b-01 back up · 2 min ago')).toBeInTheDocument()   // issue #390
+  })
+
   it('says how long a fixed incident took (issue #332)', async () => {
     const now = Date.now() / 1000
     const done: IncidentBoard = { ...board, incidents: [

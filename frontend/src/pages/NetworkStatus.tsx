@@ -111,6 +111,15 @@ export default function NetworkStatus() {
                 {d.crew_areas.length === 0 ? <Text size="sm" c="dimmed">{t('status.noAreas')}</Text> : (
                   <Stack gap="xs">{d.crew_areas.map((a) => <AreaLine key={`${a.hall}-${a.block}`} a={a} />)}</Stack>
                 )}
+                {d.crew_recovered.length > 0 && (
+                  <Stack gap="xs" mt="md" data-testid="recovered">
+                    <div>
+                      <Title order={3} size="h6">{t('status.recovered')}</Title>
+                      {d.recovered_at && <Text size="xs" c="dimmed">{t('status.recoveredAt', { time: when(d.recovered_at) })}</Text>}
+                    </div>
+                    {d.crew_recovered.map((a) => <AreaLine key={`back-${a.hall}-${a.block}`} a={a} />)}
+                  </Stack>
+                )}
                 <Text size="xs" c="dimmed" mt="sm">{d.switch_names ? t('status.namesShown') : t('status.namesHidden')}</Text>
               </Paper>
             </SimpleGrid>

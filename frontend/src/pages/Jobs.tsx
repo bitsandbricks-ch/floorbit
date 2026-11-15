@@ -35,6 +35,10 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
           {job.source === 'helpdesk' && <Badge variant="light" color="bit" tt="none">{t('incidents.fromSeat')}</Badge>}
           {job.taken_at && <Badge variant="light" color="up" tt="none">{t('jobs.taken', { when: since(job.taken_at) })}</Badge>}
         </Group>
+        {/* Before the walk: the seat may have fixed itself (issue #382). */}
+        {job.seat_ok_at && (
+          <Text size="sm" fw={600} c="up" data-seat-ok>{t('jobs.seatOk', { when: since(job.seat_ok_at) })}</Text>
+        )}
         {last && <Text size="sm">“{last.text}”</Text>}
         {job.runbook && (
           <Accordion variant="contained" radius="md">

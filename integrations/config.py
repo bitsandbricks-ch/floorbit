@@ -162,6 +162,10 @@ SCHEMA = [
     {'key': 'DISCORD_CREW_WAITING_MINUTES', 'group': 'crew', 'type': 'int', 'default': 10,
      'label': 'Nudge after (minutes)',
      'help': "Say once in an incident's thread when nobody has taken it for this long. 0 turns it off."},
+    {'key': 'DISCORD_CREW_UNSEEN_MINUTES', 'group': 'crew', 'type': 'int', 'default': 5,
+     'label': 'Say a sent job is unseen after (minutes)',
+     'help': "Say once in an incident's thread when the tech it was sent to hasn't seen it for this long. "
+             '0 turns it off.'},
     {'key': 'DISCORD_CREW_WAITING_ROLE', 'group': 'crew', 'type': 'string', 'default': '',
      'label': 'Role to ping when waiting',
      'help': 'Optional. Right-click the role in Server Settings → Roles → Copy Role ID. Its members get '
