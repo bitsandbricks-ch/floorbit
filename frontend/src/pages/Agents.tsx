@@ -1,16 +1,16 @@
-import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Loader, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Loader, MultiSelect, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, get, post } from '@/api/client'
+import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent, AgentStats } from '@/api/types'
+import type { Agent, AgentStats, Hall } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
-type Answer = { agents: Agent[]; connected: boolean; max: number }
+type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string }
 type Made = Agent & { key: string }
 
 function ago(ts: number, lang: string): string {
@@ -64,8 +64,14 @@ export default function Agents() {
     onSuccess: (m) => { setMade(m); setName(''); refresh() },
   })
   const revoke = useMutation({ mutationFn: (id: string) => del(`/api/agents/${id}`), onSuccess: refresh })
+  const halls = useQuery({ queryKey: qk.halls, queryFn: () => get<{ halls: Hall[] }>('/api/halls') })
+  const hallOptions = (halls.data?.halls ?? []).map((h) => ({ value: h.id, label: h.name }))
+  const setHalls = useMutation({
+    mutationFn: ({ id, ids }: { id: string; ids: string[] }) => patch(`/api/agents/${id}`, { halls: ids }),
+    onSuccess: refresh,
+  })
   const d = query.data
-  const error = query.error ?? revoke.error
+  const error = query.error ?? revoke.error ?? setHalls.error
   const date = (ts: number) => new Date(ts * 1000).toLocaleDateString(i18n.language)
   const run = made ? [
     'docker run -d --restart on-failure:3 --name floorbit-agent \\',
@@ -108,6 +114,9 @@ export default function Agents() {
                           <Badge variant="light" color={a.connected ? 'up' : 'gray'} tt="none">
                             {a.connected ? t('agents.connected') : t('agents.notConnected')}
                           </Badge>
+                          {a.outdated && <Badge variant="light" color="warn" tt="none">{t('agents.outdated')}</Badge>}
+                          {a.relays?.syslog && <Badge variant="light" color="gray" tt="none">{t('agents.relaySyslog')}</Badge>}
+                          {a.relays?.flows && <Badge variant="light" color="gray" tt="none">{t('agents.relayFlows')}</Badge>}
                         </Group>
                         <Text size="xs" c="dimmed">
                           {a.last_seen ? t('agents.seen', { when: ago(a.last_seen, i18n.language) }) : t('agents.neverSeen')}
@@ -115,12 +124,19 @@ export default function Agents() {
                           {' · '}{t('agents.made', { date: date(a.created_at), who: a.created_by ?? '?' })}
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
+                        {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.server_version })}</Text>}
+                        {hallOptions.length > 1 && (
+                          <MultiSelect size="xs" mt={6} maw={420} label={t('agents.halls')} placeholder={a.halls?.length ? undefined : t('agents.allHalls')}
+                            data={hallOptions} value={a.halls ?? []} clearable
+                            onChange={(ids) => setHalls.mutate({ id: a.id, ids })} />
+                        )}
                       </Stack>
                       <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.revoke')}
                         question={t('agents.revokeQuestion', { name: a.name })} onConfirm={() => revoke.mutate(a.id)} />
                     </Group>
                   ))}
                   <Text size="xs" c="dimmed">{t('agents.inUse')}</Text>
+                  {hallOptions.length > 1 && <Text size="xs" c="dimmed">{t('agents.hallsHelp')}</Text>}
                 </Stack>
               )}
             </Paper>
