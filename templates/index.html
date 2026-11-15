@@ -110,6 +110,12 @@
           <span class="nav-label">Logs</span>
         </a>
         {% endif %}
+        {% if 'ports.act' in current_user.permissions and commands_on and feature_on('commands') %}
+        <a class="btn btn-ghost" href="/commands" title="Switch commands: saved show commands on one or many switches">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>
+          <span class="nav-label">Commands</span>
+        </a>
+        {% endif %}
         {% if power_on and feature_on('power') %}
         <a class="btn btn-ghost" href="/power" title="Electrics: boards, circuits and their load">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>

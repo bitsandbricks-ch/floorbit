@@ -99,6 +99,19 @@ Source: [`floorbit/blueprints/cache.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/cache/invalid` | `floorplan.edit` |  |
 | GET | `/api/cache/stats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.commands
+
+Switch commands (issue #94). The rules live in floorbit/commands.py.
+
+Source: [`floorbit/blueprints/commands.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/commands.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/commands` | `ports.act` | `commands` |
+| POST | `/api/commands/run` | `ports.act` | `commands` |
+| DELETE | `/api/commands/templates/<tid>` | `settings.manage` | `commands` |
+| PUT | `/api/commands/templates/<tid>` | `settings.manage` | `commands` |
+
 ## floorbit.blueprints.config
 
 What the browser needs to know about the server: which integrations are on, display defaults.

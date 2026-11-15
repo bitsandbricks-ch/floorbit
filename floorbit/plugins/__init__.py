@@ -73,6 +73,11 @@ AREA_METHODS = {
     'dns': ('dns_queries',),
     'logs': ('push_logs', 'query_logs'),
 }
+# Methods a plugin of the area may have but doesn't need: without them the feature says the plugin
+# can't do it (switch commands, issue #94).
+OPTIONAL_METHODS = {
+    'ports': ('send_commands', 'command_platform'),
+}
 # Builtin plugins only: on until an admin turns them off, and settings kept under a core section
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
 # ``enable_env`` names a variable that forces it on (FLOORBIT_DEMO for the demo data).
@@ -254,12 +259,14 @@ def _check_methods(spec):
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
     allowed |= {'test'}
-    for area, methods in AREA_METHODS.items():
-        for method in methods:
-            if area in spec.uses:
-                allowed.add(method)
-            elif callable(getattr(cls, method, None)):
-                return f'plugin.py: {method}() needs "{area}" under uses:'
+    optional = set()
+    for table in (AREA_METHODS, OPTIONAL_METHODS):
+        for area, methods in table.items():
+            for method in methods:
+                if area in spec.uses:
+                    (allowed if table is AREA_METHODS else optional).add(method)
+                elif callable(getattr(cls, method, None)):
+                    return f'plugin.py: {method}() needs "{area}" under uses:'
     for name in dir(cls):
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
