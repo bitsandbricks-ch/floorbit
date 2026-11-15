@@ -251,6 +251,7 @@ class Plugin(Base):
 | `ports` | act on switch ports (one plugin at a time): define `port_login()`, `bounce_port(target)` and `set_port(target)` (`target["enabled"]` says shut or on). See [ports.md](ports.md) and the built-in SSH port actions plugin |
 | `security` | report [security findings](security.md): define `security_findings()` returning `[{"id", "kind", "severity", "title", "switch", "port", "mac", "ip", "evidence"}]` |
 | `power` | send [load readings](power.md) from smart PDUs and meters: define `power_readings()` returning `[{"meter": "db1-1", "amps": 12.4}]` (or `"watts"`) |
+| `dns` | send lookups from the event's resolver for [DNS analytics](dns.md): define `dns_queries(since)` returning `[{"ts", "domain", "client", "blocked"}]` after that unix time. Floorbit keeps only hall-wide counts |
 | `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link"}]`. See the built-in HTTP check plugin |
 
 Three manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until

@@ -1,7 +1,7 @@
-import { Alert, Anchor, Badge, Group, Loader, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Table, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useFlows } from '@/api/queries'
+import { useFeature, useFlows } from '@/api/queries'
 import type { FlowMix, FlowsData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -135,10 +135,12 @@ function Board({ data }: { data: FlowsData }) {
 export default function Traffic() {
   const { t } = useTranslation()
   const flows = useFlows()
+  const dnsOn = useFeature('dns')
   const data = flows.data
   return (
     <Layout title={t('traffic.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      <PageHead title={t('traffic.title')} desc={t('traffic.intro')} />
+      <PageHead title={t('traffic.title')} desc={t('traffic.intro')}
+        actions={dnsOn && <Button variant="default" component="a" href="/dns">{t('traffic.dns')}</Button>} />
       {flows.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: flows.error.message })}</Alert>}
       {data?.rules_error && <Alert color="warn" mb="md">{t('traffic.rulesError', { message: data.rules_error })}</Alert>}
       {flows.isPending || !data ? <Loader size="sm" /> : !data.collector ? (

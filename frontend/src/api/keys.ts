@@ -36,6 +36,7 @@ export const qk = {
   problems: ['problems'] as const,
   statsAll: ['stats'] as const,
   flows: ['flows'] as const,
+  dns: (hours: number) => ['dns', hours] as const,
   stats: (screen: boolean) => ['stats', screen] as const,
   setup: ['setup'] as const,
   halls: ['halls'] as const,
