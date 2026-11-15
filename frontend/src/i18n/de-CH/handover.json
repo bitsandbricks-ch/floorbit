@@ -42,5 +42,7 @@
   "mutedTitle": "Gerade stumm",
   "noticeUp": "Crew-Hinweis hängt",
   "noticeBy": "von {{who}}",
-  "mutedUntil": "stumm bis {{until}} von {{who}}"
+  "mutedUntil": "stumm bis {{until}} von {{who}}",
+  "waiting_one": "{{count}} wartet seit 10+ Min.",
+  "waiting_other": "{{count}} warten seit 10+ Min."
 }

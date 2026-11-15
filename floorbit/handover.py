@@ -143,7 +143,8 @@ def summary(switch_events, problems_now, since=None, now=None):
         'seat_notes': notes,
         'mutes': mutes,
         'notice': notice.current(data, now),
-        'counts': {'open': len(still_open), 'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
+        'counts': {'open': len(still_open), 'waiting': sum(1 for i in items if incidents.is_waiting(i, now)),
+                   'opened': opened, 'fixed': len(fixed), 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
                    'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes)},
     }
@@ -164,7 +165,8 @@ def hand_over(user, note, counts, since, now=None):
 def discord_message(record, summary_, public_url='', username='Floorbit'):
     """One embed for the crew channel: the counts, what is still open, and the note."""
     c = record['counts']
-    lines = [f"**{c['open']}** incidents open ({c['opened']} new, {c['fixed']} fixed this shift)",
+    waiting = f"{c['waiting']} waiting 10+ min, " if c.get('waiting') else ''   # older records have no count
+    lines = [f"**{c['open']}** incidents open ({waiting}{c['opened']} new, {c['fixed']} fixed this shift)",
              f"**{c['outages']}** switch outages" + (f", **{c['still_down']}** still down" if c['still_down'] else ''),
              f"**{c['problems']}** problems right now, **{c['changes']}** changes in the audit log"]
     muted = summary_.get('mutes') or []

@@ -7,9 +7,11 @@ last handover. It also gives them a place to leave a note for the next shift. Is
 
 - **The last shift's note**, who wrote it and when.
 - **Figures:** incidents open, new this shift, fixed this shift, switch outages, problems right
-  now and changes.
+  now and changes. Under incidents open it says how many have waited 10 minutes or more with
+  nobody on them; the copied text and the Discord post say it too.
 - **Still open:** every incident not fixed yet. Those on [match seats](tournament.md) are listed
-  first, then open before taken, oldest first.
+  first, then open before taken, oldest first. One nobody has taken for 10 minutes has the
+  board's **Waiting 25 min** tag.
 - **Fixed this shift.**
 - **Switch outages** since the last handover, how long they lasted, and those still down.
 - **Changes from the [audit log](audit.md):** port actions, settings, the floor plan, power,

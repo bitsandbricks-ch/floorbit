@@ -8,7 +8,6 @@ import time
 
 PLUGIN = 'floorbit'
 NAME = 'Floorbit'
-WAITING_AFTER = 10 * 60      # the board's "Waiting" tag (issue #296)
 
 TEXTS = {
     'en': {'problems': 'Problems right now', 'incidents': 'Incidents', 'down': 'down', 'open': 'open',
@@ -69,8 +68,7 @@ def incidents_widget(lang, now=None):
     now = time.time() if now is None else now
     items = incidents.list_all()
     still_open = [i for i in items if i.get('status') == 'open']
-    waiting = sum(1 for i in still_open
-                  if not i.get('assignee') and now - (i.get('created_at') or now) >= WAITING_AFTER)
+    waiting = sum(1 for i in still_open if incidents.is_waiting(i, now))
     worked = sum(1 for i in items if i.get('status') == 'assigned')
     return {'type': 'stat', 'value': len(still_open), 'unit': text['open'],
             'tone': 'warn' if waiting else '' if still_open else 'ok',

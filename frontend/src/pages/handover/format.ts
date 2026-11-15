@@ -15,7 +15,7 @@ export function summaryText(d: HandoverData, note: string, t: T, length: (s: num
   const c = d.counts
   const lines = [
     `${t('handover.title')}: ${t('handover.since', { when: when(d.since) })}`,
-    `${t('handover.open')}: ${c.open} · ${t('handover.opened')}: ${c.opened} · ${t('handover.fixed')}: ${c.fixed} · `
+    `${t('handover.open')}: ${c.open}${c.waiting ? ` (${t('handover.waiting', { count: c.waiting })})` : ''} · ${t('handover.opened')}: ${c.opened} · ${t('handover.fixed')}: ${c.fixed} · `
       + `${t('handover.outages')}: ${c.outages} · ${t('handover.problems')}: ${c.problems}`,
     '',
     `${t('handover.stillOpen')}:`,

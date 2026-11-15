@@ -99,3 +99,18 @@ def test_the_summary_says_what_is_muted_and_the_crew_notice(client, app_module, 
     client.delete("/api/notice")
     body = client.get("/api/handover").get_json()
     assert body["mutes"] == [] and body["notice"] is None and body["counts"]["muted"] == 0
+
+
+def test_the_summary_counts_incidents_waiting_with_nobody_on_them(client, app_module, monkeypatch):
+    _floor(client)
+    old = client.post("/api/incidents", json={"seat": "A-1", "title": "No link"}).get_json()
+    client.post("/api/incidents", json={"seat": "A-2", "title": "Slow"})
+    from floorbit import handover
+    with app_module.app.test_request_context():
+        body = handover.summary([], {}, now=old["created_at"] + 11 * 60)
+    assert body["counts"]["open"] == 2 and body["counts"]["waiting"] == 2
+    assert client.get("/api/handover").get_json()["counts"]["waiting"] == 0
+    record = {"by": "ana", "note": "", "at": body["now"], "counts": {**body["counts"], "waiting": 2}}
+    assert "(2 waiting 10+ min, 2 new" in handover.discord_message(record, body)["embeds"][0]["description"]
+    record["counts"].pop("waiting")   # a record from before the count existed
+    assert "**2** incidents open (2 new" in handover.discord_message(record, body)["embeds"][0]["description"]

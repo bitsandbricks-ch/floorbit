@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
 import { useNowSeconds } from '@/components/useNowSeconds'
-import { isWaiting } from './waiting'
+import { isWaiting, waitedFor } from './waiting'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
@@ -16,10 +16,6 @@ function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) 
 }
 
 /** Open this long with nobody on it, an incident says so (issue #296). */
-function waitedFor(seconds: number, t: (k: string, o?: Record<string, unknown>) => string) {
-  const mins = Math.floor(seconds / 60)
-  return mins < 60 ? t('incidents.waiting', { count: mins }) : t('incidents.waitingLong', { h: Math.floor(mins / 60), m: mins % 60 })
-}
 
 /** Whole Mbit/s from 100 on: "912", not "912.4". */
 function mbit(n: number | null) {

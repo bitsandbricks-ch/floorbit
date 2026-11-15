@@ -17,3 +17,9 @@ export function openOrder<T extends Pick<Incident, 'status' | 'assignee' | 'crea
 export function nextToTake<T extends Pick<Incident, 'status' | 'assignee' | 'created_at' | 'can_work'>>(items: T[]): T | undefined {
   return items.filter((i) => i.status === 'open' && !i.assignee && i.can_work).sort((a, b) => a.created_at - b.created_at)[0]
 }
+
+/** "Waiting 25 min", or with hours once it has waited an hour. */
+export function waitedFor(seconds: number, t: (k: string, o?: Record<string, unknown>) => string) {
+  const mins = Math.floor(seconds / 60)
+  return mins < 60 ? t('incidents.waiting', { count: mins }) : t('incidents.waitingLong', { h: Math.floor(mins / 60), m: mins % 60 })
+}

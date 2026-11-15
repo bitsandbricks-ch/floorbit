@@ -90,4 +90,19 @@ describe('Shift handover', () => {
     expect(text).toContain('Crew notice up: Row C has no power until 14:00')
     expect(text).toMatch(/Muted right now:\n- sw-a-01, muted until .+ by kim \(Swapping the PSU\)\n- DNS, muted until .+ by ana/)
   })
+  it('marks incidents that have waited 10 minutes with nobody on them', async () => {
+    const waiting: HandoverData = { ...data, counts: { ...counts, open: 2, waiting: 1 }, incidents: { ...data.incidents, open: [
+      { ...data.incidents.open[0], id: 'w1', title: 'Old one', match: null, created_at: now - 25 * 60 },
+      data.incidents.open[0],
+    ] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': waiting }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<Handover />)
+    expect(await screen.findByText('Waiting 25 min')).toBeInTheDocument()
+    expect(screen.getAllByText(/^Waiting/)).toHaveLength(1)   // the one opened a minute ago is not
+    expect(screen.getByText('1 waiting 10+ min')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
+    expect(writeText.mock.calls[0][0]).toContain(': 2 (1 waiting 10+ min) · ')
+  })
 })

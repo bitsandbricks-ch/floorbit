@@ -246,7 +246,14 @@ def report_from_seat(seat, problem, snapshot):
                   snapshot=snapshot, source='helpdesk', speedtest=test), True
 
 
+WAITING_AFTER = 10 * 60     # the board's "Waiting" tag (issue #296)
 FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
+
+
+def is_waiting(incident, now):
+    """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared."""
+    return incident.get('status') == 'open' and not incident.get('assignee') \
+        and now - (incident.get('created_at') or now) >= WAITING_AFTER
 
 
 def seat_report_state(seat, now=None):

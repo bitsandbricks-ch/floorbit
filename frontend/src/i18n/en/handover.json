@@ -42,5 +42,7 @@
   "mutedTitle": "Muted right now",
   "noticeUp": "Crew notice up",
   "noticeBy": "from {{who}}",
-  "mutedUntil": "muted until {{until}} by {{who}}"
+  "mutedUntil": "muted until {{until}} by {{who}}",
+  "waiting_one": "{{count}} waiting 10+ min",
+  "waiting_other": "{{count}} waiting 10+ min"
 }

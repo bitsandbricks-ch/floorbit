@@ -11,17 +11,19 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { duration } from './report/format'
 import { summaryText, when } from './handover/format'
+import { isWaiting, waitedFor } from './incidents/waiting'
 
-function Figure({ label, value, tone }: { label: string; value: number; tone?: 'down' | 'warn' | 'up' }) {
+function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
   return (
     <Paper withBorder radius="lg" p="sm">
       <Text size="xs" c="dimmed">{label}</Text>
       <Text fz={28} fw={700} c={tone && value > 0 ? tone : undefined}>{value}</Text>
+      {sub && <Text size="xs" c="warn">{sub}</Text>}
     </Paper>
   )
 }
 
-function IncidentRow({ i }: { i: HandoverIncident }) {
+function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
   const { t } = useTranslation()
   const where = i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
     : i.where.kind === 'circuit' ? t('incidents.circuit', { name: i.where.name }) : t('incidents.switch', { name: i.where.name })
@@ -33,6 +35,7 @@ function IncidentRow({ i }: { i: HandoverIncident }) {
       </Stack>
       <Group gap={4} wrap="nowrap">
         {i.match && <Badge variant="light" color="warn" tt="none">{i.match}</Badge>}
+        {isWaiting(i, now) && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
         <Badge variant="light" color={i.status === 'open' ? 'down' : i.status === 'fixed' ? 'up' : 'trace'} tt="none">
           {t(`handover.status.${i.status}`)}
         </Badge>
@@ -98,7 +101,8 @@ export default function Handover() {
               </Alert>
             )}
             <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }}>
-              <Figure label={t('handover.open')} value={d.counts.open} tone="down" />
+              <Figure label={t('handover.open')} value={d.counts.open} tone="down"
+                sub={d.counts.waiting ? t('handover.waiting', { count: d.counts.waiting }) : undefined} />
               <Figure label={t('handover.opened')} value={d.counts.opened} />
               <Figure label={t('handover.fixed')} value={d.counts.fixed} tone="up" />
               <Figure label={t('handover.outages')} value={d.counts.outages} tone="warn" />
@@ -109,14 +113,14 @@ export default function Handover() {
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('handover.stillOpen')}</Title>
               {d.incidents.open.length === 0 ? <Text size="sm" c="dimmed">{t('handover.noneOpen')}</Text> : (
-                <Stack gap="sm">{d.incidents.open.map((i) => <IncidentRow key={i.id} i={i} />)}</Stack>
+                <Stack gap="sm">{d.incidents.open.map((i) => <IncidentRow key={i.id} i={i} now={d.now} />)}</Stack>
               )}
             </Paper>
 
             {d.incidents.fixed.length > 0 && (
               <Paper withBorder radius="lg" p="md">
                 <Title order={2} size="h4" mb="xs">{t('handover.fixedThisShift')}</Title>
-                <Stack gap="sm">{d.incidents.fixed.map((i) => <IncidentRow key={i.id} i={i} />)}</Stack>
+                <Stack gap="sm">{d.incidents.fixed.map((i) => <IncidentRow key={i.id} i={i} now={d.now} />)}</Stack>
               </Paper>
             )}
 
