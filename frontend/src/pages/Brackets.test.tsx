@@ -40,7 +40,7 @@ describe('Brackets page', () => {
     renderWithApp(<Brackets />)
     expect(await screen.findByText('Rocket Cup')).toBeInTheDocument()
     expect(screen.getByText('Semi-finals')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'A-1' })).toHaveAttribute('href', '/?seat=A-1')
+    expect(screen.getByRole('link', { name: 'A-1' })).toHaveAttribute('href', '/plan?seat=A-1')
     expect(screen.getByRole('link', { name: 'Main stage' })).toHaveAttribute('href', '/tournament')
     expect(screen.getByRole('button', { name: 'Import from Demo data' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Enter the result of Team Aurora against Lag Busters' }))

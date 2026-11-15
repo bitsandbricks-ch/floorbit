@@ -48,6 +48,11 @@ Set the accent and, for a full look, the background. Empty fields are derived:
 
 Settings warns when the accent has less than 3:1 contrast against the background.
 
+On the React pages, coloured badges and tinted buttons pull their text 20 % towards the page's
+text colour, so small labels keep 4.5:1 against their own tint with the built-in colours in both
+the light and the dark theme. The pages are checked with axe in the browser (`color-contrast`
+included) before a change to colours goes in.
+
 ## Files
 
 | File | What it holds |

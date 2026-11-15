@@ -16,6 +16,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { roundName } from './tournament/brackets'
+import { onPlan } from './plan/links'
 
 function NewBracket({ zones, onDone }: { zones: BracketsData['zones']; onDone: (id?: string) => void }) {
   const { t } = useTranslation()
@@ -118,7 +119,7 @@ function MatchCard({ match, onOpen, roundOne }: { match: BracketMatch; onOpen?: 
       {(match.station || match.seats.length > 0) && (
         <div className="fb-bracket-meta">
           {match.station && <span>{match.station}</span>}
-          {match.seats.slice(0, 3).map((s) => <Anchor key={s} href={`/?seat=${encodeURIComponent(s)}`} size="xs">{s}</Anchor>)}
+          {match.seats.slice(0, 3).map((s) => <Anchor key={s} href={onPlan({ seat: s })} size="xs">{s}</Anchor>)}
           {match.seats.length > 3 && <span>+{match.seats.length - 3}</span>}
           {match.zones.map((z) => <Anchor key={z} href="/tournament" size="xs">{z}</Anchor>)}
         </div>

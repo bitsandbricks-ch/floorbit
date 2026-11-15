@@ -10,12 +10,18 @@ export function StatCard({ label, value, sub, trend, tone, href, trendLabel }: {
   href?: string
   trendLabel?: string
 }) {
+  const spark = !!trend && trend.length > 1
   const card = (
     <dl className={`fb-stat${tone ? ` fb-stat-${tone}` : ''}`}>
       <dt>{label}</dt>
       <dd>{value}</dd>
-      {sub && <span>{sub}</span>}
-      {trend && trend.length > 1 && <Spark points={trend} label={trendLabel ?? label} />}
+      {/* A <dl> may only hold dt and dd, so the line under the figure and the trend share a second dd (axe). */}
+      {(sub || spark) && (
+        <dd className="fb-stat-more">
+          {sub && <span>{sub}</span>}
+          {spark && <Spark points={trend!} label={trendLabel ?? label} />}
+        </dd>
+      )}
     </dl>
   )
   return href ? <a className="fb-stat-link" href={href}>{card}</a> : card
