@@ -170,6 +170,44 @@ def read(limit=100, offset=0, user=None, area=None, query=None):
     return rows[offset:offset + limit], len(rows)
 
 
+def as_log_lines(q='', severity='', before=None, limit=200):
+    """The audit log as lines for the Logs page (issue #93), newest first. A line's id is its line
+    number in the file, enough to page back."""
+    from datetime import datetime
+
+    from .syslog import SEVERITIES
+    try:
+        with open(path(), encoding='utf-8') as f:
+            rows = f.readlines()
+    except FileNotFoundError:
+        return []
+    words = [w for w in str(q or '').lower().split() if w]
+    worst = SEVERITIES.index(severity) if severity in SEVERITIES else len(SEVERITIES) - 1
+    out = []
+    for n in range(len(rows), 0, -1):
+        if before is not None and n >= before:
+            continue
+        try:
+            e = json.loads(rows[n - 1])
+            ts = datetime.strptime(e['time'], '%Y-%m-%dT%H:%M:%S%z').timestamp()
+        except (ValueError, KeyError, TypeError):
+            continue
+        level = 'notice' if e.get('ok', True) else 'warning'
+        if SEVERITIES.index(level) > worst:
+            continue
+        message = ' '.join(str(x) for x in (e.get('action'), e.get('target')) if x)
+        if e.get('fields'):
+            message += f" ({', '.join(e['fields'])})"
+        user = e.get('user') or 'anonymous'
+        if words and not all(w in f"{user} {e.get('area')} {message}".lower() for w in words):
+            continue
+        out.append({'id': n, 'ts': ts, 'severity': level, 'device': user, 'program': e.get('area'),
+                    'message': message, 'port': None, 'seat': None})
+        if len(out) >= limit:
+            break
+    return out
+
+
 # ── Request hook ─────────────────────────────────────────────────────────────────────
 def _target(response):
     """A human name for what changed: the switch or block name, else the id in the URL."""

@@ -36,5 +36,17 @@
     "notice": "Notice",
     "info": "Info",
     "debug": "Debug"
+  },
+  "source": "Log",
+  "noneHere": "No lines yet.",
+  "sources": {
+    "syslog": "Network (syslog)",
+    "app": "Floorbit",
+    "audit": "Audit log"
+  },
+  "who": "Who",
+  "intros": {
+    "app": "What Floorbit itself printed: plugins that couldn't reach their server, files that couldn't be written. The last lines, in memory.",
+    "audit": "Who changed what, and when: every change through the app and every sign-in."
   }
 }

@@ -36,5 +36,17 @@
     "notice": "Hinweis",
     "info": "Info",
     "debug": "Debug"
+  },
+  "source": "Log",
+  "noneHere": "Noch keine Zeilen.",
+  "sources": {
+    "syslog": "Netzwerk (Syslog)",
+    "app": "Floorbit",
+    "audit": "Audit-Log"
+  },
+  "who": "Wer",
+  "intros": {
+    "app": "Was Floorbit selbst ausgegeben hat: Plugins, die ihren Server nicht erreicht haben, Dateien, die nicht geschrieben werden konnten. Die letzten Zeilen, im Speicher.",
+    "audit": "Wer was wann geändert hat: jede Änderung in der App und jede Anmeldung."
   }
 }

@@ -78,6 +78,10 @@ def create_app(start_background=True):
     # Who changed what: every successful change and sign-in, see floorbit/audit.py.
     init_audit(app)
 
+    # Floorbit's own log lines, for the Logs page next to the syslog (docs/syslog.md).
+    from .app_log import init_app_log
+    init_app_log(app, start_background=start_background)
+
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
 

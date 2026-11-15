@@ -911,6 +911,8 @@ export interface SyslogLine {
   seat: string | null
 }
 
+export type LogSource = 'syslog' | 'app' | 'audit'
+
 export interface LogStatus {
   enabled: boolean
   listening: { port: number; tcp: boolean; bind: string } | null
@@ -921,6 +923,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  sources: LogSource[]
+  source: LogSource
 }
 
 export interface LogsData {
