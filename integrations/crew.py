@@ -46,7 +46,7 @@ MAX_LINE = 1800           # under Discord's 2000-character message limit
 MAX_TRACKED = 3000        # oldest incidents are forgotten beyond this
 ARCHIVE_AFTER = 1440      # minutes; Discord archives a quiet thread after this anyway
 ACTION_PREFIX = 'fb'      # custom_id: fb:<action>:<incident id>, or fb:mute:<switch id>
-ACTIONS = ('take', 'fixed', 'mute')
+ACTIONS = ('take', 'fixed', 'mute', 'report')   # report: a seat, from the bot's /seat answer
 MUTE_MINUTES = 60         # what "Mute 1 h" under a switch alert means (issue #272)
 CHECK_EVERY = 60          # seconds between looks for incidents nobody has taken (issue #298)
 
@@ -91,7 +91,7 @@ def parse_custom_id(value):
     # Incident ids are plain; switch ids may be uuids or NetBox names with dashes and dots, and a
     # service's mute key is health:<plugin>:<check> (issue #274).
     allowed = parts[2]
-    if parts[1] == 'mute':
+    if parts[1] in ('mute', 'report'):   # seat numbers have dashes too
         for ch in '-_.:':
             allowed = allowed.replace(ch, '')
     if not allowed.isalnum():
