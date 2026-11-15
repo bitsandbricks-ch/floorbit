@@ -3,8 +3,9 @@
 - ``GET /plan``: the page (React): every seat with one state, zoom levels and a seat inspector.
 - ``GET /api/plan?hall=<id>``: the hall's drawing, a state per seat and counts per block.
 - ``GET /api/plan/seats/<seat>``: one seat for the inspector. Nicks, IPs and MACs only with ``seats.view``.
+- ``GET /api/plan/blocks/<name>``: one seat block for the block panel: states, problems, switches.
 
-Both need ``floorplan.view`` (the default rule in auth/roles.py). The rules live in floorbit/seat_view.py.
+All need ``floorplan.view`` (the default rule in auth/roles.py). The rules live in floorbit/seat_view.py.
 """
 from flask import Blueprint, current_app, jsonify, request
 
@@ -36,4 +37,12 @@ def seat_details(seat):
     out = seat_view.details(seat, people=_can('seats.view'))
     if out is None:
         return jsonify({'error': 'No such seat.'}), 404
+    return jsonify(out)
+
+
+@bp.route('/api/plan/blocks/<name>')
+def block_details(name):
+    out = seat_view.block(name)
+    if out is None:
+        return jsonify({'error': 'No such block.'}), 404
     return jsonify(out)

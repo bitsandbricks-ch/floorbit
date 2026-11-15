@@ -44,6 +44,7 @@ Tab to the plan, then:
 | Arrow keys | Move a dashed cursor to the next seat in that direction, in rotated blocks too. The first press starts on the open seat or the one in the middle of the view. The view follows the cursor. |
 | Enter or Space | Open the seat under the cursor in the inspector. |
 | Escape | Close the inspector. |
+| B | Open the block of the seat under the cursor. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 
@@ -97,6 +98,15 @@ Techs can act from the panel too, with the same rules as the editor:
 Who sits there (nick, IP and MAC) is only shown to accounts with `seats.view` (techs, leads and
 admins). Everyone with `floorplan.view` sees the states. The link `/plan?seat=D-6` opens the page
 on that seat.
+
+## The block panel
+
+Click a block's name (or its totals when zoomed out), click **Block** in the seat inspector, or press
+**B** on a seat to open the block instead of a seat: online, offline and unknown seats with a bar,
+check-ins, traffic in total, the switches that serve the block with how many of their seats are
+online, and the seats with problems (click one to open it). When half a block goes dark, it shows
+at a glance whether it is one switch. `/plan?block=D` opens it. It shows states only, never who
+sits where.
 
 ## In the floor plan editor
 

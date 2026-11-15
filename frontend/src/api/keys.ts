@@ -65,4 +65,5 @@ export const qk = {
   ports: ['ports'] as const,
   plan: (hall: string) => ['plan', hall] as const,
   planSeat: (seat: string) => ['plan', 'seat', seat] as const,
+  planBlock: (name: string) => ['plan', 'block', name] as const,
 }

@@ -138,3 +138,16 @@ def test_changed_lately(client, app_module):
     assert set(stats.changed_since(now - 7200)) == {"D-6", "D-7"}
     seats = client.get("/api/plan").get_json()["seats"]
     assert seats["D-6"]["changed"] == pytest.approx(now - 240) and "changed" not in seats["D-7"]
+
+
+def test_block_panel(client, hall):
+    """Issue #174: one block's states, problem seats and the switches that serve it."""
+    client.post("/api/incidents", json={"title": "No link", "seat": "D-7"})
+    b = client.get("/api/plan/blocks/D").get_json()
+    assert (b["seats"], b["online"], b["offline"], b["unknown"]) == (8, 1, 1, 6)
+    assert b["bps"] == 6_000_000
+    assert [p["seat"] for p in b["problems"]] == ["D-7"]
+    assert b["switches"] == [{"name": "sw-d-01", "seats": 2, "online": 1, "status": "unknown"}]
+    assert b["no_port"] == 6
+    assert "player-six" not in str(b) and "198.51.100.7" not in str(b)
+    assert client.get("/api/plan/blocks/Z").status_code == 404
