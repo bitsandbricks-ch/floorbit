@@ -13,7 +13,7 @@ last handover. It also gives them a place to leave a note for the next shift. Is
 - **Still open:** every incident not fixed yet. Those on [match seats](tournament.md) are listed
   first, then open before taken, oldest first. One nobody has taken for 10 minutes has the
   board's **Waiting 25 min** tag.
-- **Fixed this shift.**
+- **Fixed this shift**, with who fixed how many: **By: kim 4 · ana 2 · nobody named 1** (in the copied text too).
 - **Switch outages** since the last handover, how long they lasted, and those still down.
 - **Changes from the [audit log](audit.md):** port actions, settings, the floor plan, power,
   plugins, accounts, security and check-ins. Incidents have their own sections, and sign-ins are

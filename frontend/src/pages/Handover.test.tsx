@@ -64,7 +64,7 @@ describe('Shift handover', () => {
     expect(text).toMatch(/^Shift handover: Since /)
     expect(text).toContain('Incidents open: 1 · New this shift: 2 · Fixed this shift: 1 · Switch outages: 1 · Problems now: 3')
     expect(text).toContain('Still open:\n- No link (Seat A-1, Main stage)')
-    expect(text).toContain('Fixed this shift:\n- Slow (Seat A-2, ana)')
+    expect(text).toContain('Fixed this shift:\nBy: ana 1\n- Slow (Seat A-2, ana)')
     expect(text).toMatch(/Switch outages:\n- sw-b-01: down since .+ \(2 min\)/)
     expect(text.endsWith('Note for the next shift:\nWatch row B')).toBe(true)
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
@@ -99,6 +99,18 @@ describe('Shift handover', () => {
     expect(await screen.findByText('half within 14 min')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
     expect(writeText.mock.calls[0][0]).toContain('Fixed this shift: 1 (half within 14 min) · Switch outages: 1')
+  })
+  it('says who fixed how many (issue #348)', async () => {
+    const i = data.incidents.fixed[0]
+    const fixed = [i, { ...i, id: 'i3', assignee: 'kim' }, { ...i, id: 'i4', assignee: 'kim' }, { ...i, id: 'i5', assignee: null }]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech,
+      'GET /api/handover': { ...data, incidents: { ...data.incidents, fixed } } }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<Handover />)
+    expect(await screen.findByText('By: kim 2 · ana 1 · nobody named 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
+    expect(writeText.mock.calls[0][0]).toContain('Fixed this shift:\nBy: kim 2 · ana 1 · nobody named 1\n- Slow')
   })
   it('says who still has gear (issue #324)', async () => {
     const extra = { counts: { ...counts, gear_out: 3 },

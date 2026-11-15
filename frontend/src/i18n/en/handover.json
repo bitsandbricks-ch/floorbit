@@ -47,5 +47,7 @@
   "waiting_other": "{{count}} waiting 10+ min",
   "gearTitle_one": "Gear still out ({{count}} piece)",
   "gearTitle_other": "Gear still out ({{count}} pieces)",
-  "halfWithin": "half within {{d}}"
+  "halfWithin": "half within {{d}}",
+  "fixedBy": "By: {{list}}",
+  "nobodyNamed": "nobody named"
 }

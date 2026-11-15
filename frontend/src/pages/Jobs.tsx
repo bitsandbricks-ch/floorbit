@@ -87,7 +87,9 @@ export default function Jobs() {
   const error = jobs.error ?? duty.error ?? answer.error
 
   return (
-    <Layout title={t('jobs.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
+    // Jobs nobody has said "On my way" to go in the tab title, so a phone with the tab in the background shows them (issue #346).
+    <Layout title={t('jobs.title')} back={{ href: '/incidents', label: t('incidents.title') }}
+      count={(data?.jobs ?? []).filter((j) => !j.taken_at).length}>
       <PageHead title={t('jobs.title')} desc={t('jobs.intro')} />
       <Stack gap="md">
         {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
