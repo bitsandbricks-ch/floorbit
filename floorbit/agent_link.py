@@ -73,7 +73,7 @@ def _public(a, now):
 def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now
-    return [_public(a, now) for a in data.get(KEY) or []]
+    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now)} for a in data.get(KEY) or []]
 
 
 def active():
@@ -155,13 +155,18 @@ def check(key, version=None, address=None, now=None):
 
 # ── The call tunnel ────────────────────────────────────────────────────────────────────────────
 
+STATS_WINDOW = 3600      # the Local agents page shows the last hour's calls
+STATS_KEEP = 5000        # answers kept per agent for that, at most
+
+
 class _Call:
-    __slots__ = ('args', 'done', 'error', 'id', 'method', 'ok', 'result', 'taken')
+    __slots__ = ('agent', 'args', 'done', 'error', 'id', 'method', 'ok', 'result', 'taken', 'taken_at')
 
     def __init__(self, call_id, method, args):
         self.id, self.method, self.args = call_id, method, args
         self.done = threading.Event()
         self.ok, self.result, self.error, self.taken = False, None, None, False
+        self.agent, self.taken_at = None, None
 
 
 class Tunnel:
@@ -170,12 +175,14 @@ class Tunnel:
         self._pending = collections.deque()
         self._calls = {}
         self._ids = itertools.count(1)
+        self._stats = {}          # agent id -> deque of (when, ms, ok, method, error)
         self.last_seen = None
 
     def reset(self):
         with self._cond:
             self._pending.clear()
             self._calls.clear()
+            self._stats.clear()
             self.last_seen = None
 
     def seen(self, now=None):
@@ -210,7 +217,7 @@ class Tunnel:
             raise AgentError(call.error or f'{method} failed on the agent.')
         return call.result
 
-    def take(self, wait=MAX_WAIT, limit=20):
+    def take(self, wait=MAX_WAIT, limit=20, agent=None):
         """The calls waiting for the agent, waiting up to ``wait`` seconds for the first one."""
         deadline = time.monotonic() + max(0.0, min(float(wait), MAX_WAIT))
         with self._cond:
@@ -222,7 +229,7 @@ class Tunnel:
             out = []
             while self._pending and len(out) < limit:
                 call = self._pending.popleft()
-                call.taken = True
+                call.taken, call.agent, call.taken_at = True, agent, time.monotonic()
                 out.append({'id': call.id, 'method': call.method, 'args': call.args})
             return out
 
@@ -234,7 +241,26 @@ class Tunnel:
             return False
         call.ok, call.result, call.error = bool(ok), result, (str(error)[:300] if error else None)
         call.done.set()
+        if call.agent is not None and call.taken_at is not None:
+            ms = (time.monotonic() - call.taken_at) * 1000
+            with self._cond:
+                log = self._stats.setdefault(call.agent, collections.deque(maxlen=STATS_KEEP))
+                log.append((time.time(), ms, call.ok, call.method, call.error))
         return True
+
+    def stats(self, agent, now=None):
+        """The last hour of one agent's answers: how many, how many failed, the median time, the
+        last error. Kept in memory only, so a restart starts over."""
+        now = time.time() if now is None else now
+        with self._cond:
+            recent = [r for r in self._stats.get(agent) or () if now - r[0] < STATS_WINDOW]
+        if not recent:
+            return {'calls': 0, 'failed': 0, 'median_ms': None, 'last_error': None}
+        times = sorted(r[1] for r in recent)
+        failed = [r for r in recent if not r[2]]
+        last = failed[-1] if failed else None
+        return {'calls': len(recent), 'failed': len(failed), 'median_ms': round(times[len(times) // 2]),
+                'last_error': {'at': last[0], 'method': last[3], 'error': last[4]} if last else None}
 
 
 tunnel = Tunnel()

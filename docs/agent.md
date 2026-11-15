@@ -17,7 +17,10 @@ keeps only a hash of it (in `data.json`, under `agents`). Give the key to the ag
 the `docker run` line to start the agent with it.
 
 The page lists every agent: **Connected** or not, when it was last seen, its version, and who
-enrolled it when. It updates every 10 seconds.
+enrolled it when. It updates every 10 seconds. For the last hour it also shows how many calls the
+agent answered, how long it took (the median, from handing a call out to getting its answer), how
+many failed, and the last error with its method. A slow LibreNMS or one that refuses the agent's
+token shows up there first. These numbers are kept in memory, so a restart starts them over.
 
 Revoking the agent stops it at its next request: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
@@ -124,7 +127,7 @@ For admins (**Manage settings**):
 
 | Request | What |
 | --- | --- |
-| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected) |
+| `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`) |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
 | `DELETE /api/agents/<id>` | revoke it |
 

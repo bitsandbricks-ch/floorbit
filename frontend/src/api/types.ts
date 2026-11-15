@@ -1344,4 +1344,11 @@ export interface Place {
 export interface Agent {
   id: string; name: string; created_at: number; created_by: string | null
   last_seen: number | null; version: string | null; address: string | null; connected: boolean
+  /** The last hour of answers, kept in memory on the server (missing right after enrolling). */
+  stats?: AgentStats
+}
+
+export interface AgentStats {
+  calls: number; failed: number; median_ms: number | null
+  last_error: { at: number; method: string; error: string | null } | null
 }

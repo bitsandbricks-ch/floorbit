@@ -67,6 +67,9 @@ def test_the_agent_answers_the_hosted_monitoring(client, app_module):
         assert sources.monitoring().resolve_ip('192.0.2.10') is None     # the plugin's error: no answer
         listed = client.get('/api/agents').get_json()['agents'][0]
         assert listed['connected'] and listed['version'] == '9.9.9'
+        stats = listed['stats']    # the page's "calls in the last hour"
+        assert stats['calls'] >= 3 and stats['failed'] >= 1 and stats['median_ms'] is not None
+        assert stats['last_error']['method'] == 'resolve_ip' and 'said no' in stats['last_error']['error']
     finally:
         a.stop()
         worker.join(30)
@@ -289,3 +292,24 @@ def test_an_away_agent_is_one_alert_that_says_so(client, app_module, monkeypatch
     assert len(back) == 1 and back[0]['data']['agent'] is True
     embed = DiscordNotifier().build_source_message('monitoring.online', back[0]['data'])['embeds'][0]
     assert embed['title'] == '✅ The local agent is back'
+
+
+def test_stats_forget_the_last_hour():
+    agent_link.tunnel.seen()
+    done = threading.Event()
+
+    def ask():
+        with pytest.raises(agent_link.AgentError):
+            agent_link.tunnel.call('arp', ('sw-a-01',), timeout=5)
+        done.set()
+
+    threading.Thread(target=ask).start()
+    deadline = time.time() + 5
+    got = []
+    while not got and time.time() < deadline:
+        got = agent_link.tunnel.take(wait=0.2, agent='abcd1234')
+    agent_link.tunnel.answer(got[0]['id'], False, error='no ARP here')
+    done.wait(5)
+    assert agent_link.tunnel.stats('abcd1234')['failed'] == 1
+    assert agent_link.tunnel.stats('abcd1234', now=time.time() + 3601)['calls'] == 0
+    assert agent_link.tunnel.stats('someone-else')['calls'] == 0

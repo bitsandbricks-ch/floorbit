@@ -82,13 +82,14 @@ def hello():
 
 @bp.route('/api/agent/v1/calls', methods=['GET'])
 def calls():
-    if _agent() is None:
+    agent = _agent()
+    if agent is None:
         return _refused()
     try:
         wait = float(request.args.get('wait') or agent_link.MAX_WAIT)
     except ValueError:
         wait = agent_link.MAX_WAIT
-    return jsonify({'calls': agent_link.tunnel.take(wait)})
+    return jsonify({'calls': agent_link.tunnel.take(wait, agent=agent['id'])})
 
 
 @bp.route('/api/agent/v1/answers', methods=['POST'])

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent } from '@/api/types'
+import type { Agent, AgentStats } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -30,6 +30,24 @@ function Copy({ value }: { value: string }) {
         <Button size="compact-sm" variant="default" onClick={copy}>{copied ? t('agents.copied') : t('agents.copy')}</Button>
       )}
     </CopyButton>
+  )
+}
+
+function Stats({ stats, lang }: { stats?: AgentStats; lang: string }) {
+  const { t } = useTranslation()
+  if (!stats) return null
+  return (
+    <>
+      <Text size="xs" c="dimmed">
+        {stats.calls ? t('agents.stats', { count: stats.calls, ms: stats.median_ms }) : t('agents.statsNone')}
+        {stats.failed > 0 && <>{' · '}<Text span size="xs" c="down">{t('agents.statsFailed', { count: stats.failed })}</Text></>}
+      </Text>
+      {stats.last_error && (
+        <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
+          {t('agents.lastError', { when: ago(stats.last_error.at, lang), method: stats.last_error.method, error: stats.last_error.error ?? '?' })}
+        </Text>
+      )}
+    </>
   )
 }
 
@@ -96,6 +114,7 @@ export default function Agents() {
                           {a.version && <>{' · '}{t('agents.version', { v: a.version })}</>}
                           {' · '}{t('agents.made', { date: date(a.created_at), who: a.created_by ?? '?' })}
                         </Text>
+                        <Stats stats={a.stats} lang={i18n.language} />
                       </Stack>
                       <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.revoke')}
                         question={t('agents.revokeQuestion', { name: a.name })} onConfirm={() => revoke.mutate(a.id)} />
