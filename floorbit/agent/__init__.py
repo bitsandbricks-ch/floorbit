@@ -24,6 +24,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 KEY_HEADER = 'Floorbit-Agent-Key'
 VERSION_HEADER = 'Floorbit-Agent-Version'
+PROTOCOL_HEADER = 'Floorbit-Agent-Protocol'
+PROTOCOL = 1              # the agent protocol this agent speaks; the hosted side says which it does
 POLL_WAIT = 25            # the hosted side holds a poll at most this long
 HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
@@ -149,7 +151,7 @@ class Agent:
         self._beat_at = 0
 
     def _headers(self, json_body=False):
-        h = {KEY_HEADER: self.key, VERSION_HEADER: self.version}
+        h = {KEY_HEADER: self.key, VERSION_HEADER: self.version, PROTOCOL_HEADER: str(PROTOCOL)}
         if json_body:
             h['Content-Type'] = 'application/json'
         return h
@@ -158,6 +160,9 @@ class Agent:
         if resp.status_code == 401:
             raise Refused('The hosted Floorbit refused the agent key: it is wrong or was revoked. '
                           'Enrol the agent again.')
+        if resp.status_code == 426:
+            # Retrying won't help: one of the two has to be updated.
+            raise Refused((resp.json() or {}).get('error') or 'The hosted Floorbit speaks another agent protocol.')
         resp.raise_for_status()
         return resp.json()
 
