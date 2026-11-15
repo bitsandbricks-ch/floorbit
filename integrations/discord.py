@@ -95,6 +95,7 @@ class DiscordNotifier:
         events.subscribe('security.finding', self.on_security)
         events.subscribe('power.alert', self.on_power)
         events.subscribe('forecast.alert', self.on_forecast)
+        events.subscribe('status_page.update', self.on_status_update)
 
     def _ensure_worker(self):
         with self._lock:
@@ -457,6 +458,32 @@ class DiscordNotifier:
             payload['_mute'] = [(c['id'], c['name']) for c in offline[:MAX_BUTTONS]]
         return payload
 
+    @staticmethod
+    def status_webhook():
+        return config.get('DISCORD_STATUS_WEBHOOK_URL', '') or ''
+
+    def on_status_update(self, event):
+        # Attendees' channel, not the crew's: only what the public status page shows.
+        data = event['data']
+        url = self.status_webhook()
+        if not url or not data.get('public') or not data.get('update'):
+            return
+        self.post({**self.build_status_update_message(data['update'], data.get('page_url')), '_webhook': url})
+
+    def build_status_update_message(self, update, page_url=None):
+        colors = {'outage': COLOR_OFFLINE, 'degraded': COLOR_INFO, 'maintenance': COLOR_INFO,
+                  'operational': COLOR_ONLINE}
+        names = {'outage': 'Network outage', 'degraded': 'Part of the network is down',
+                 'maintenance': 'Maintenance', 'operational': 'All systems running'}
+        title = ' · '.join(p for p in (names.get(update.get('state')), update.get('area')) if p)
+        embed = {'title': title or 'Network status', 'description': (update.get('text') or '')[:4000],
+                 'color': colors.get(update.get('state'), COLOR_INFO),
+                 'timestamp': datetime.fromtimestamp(update.get('at') or time.time(), UTC).isoformat()}
+        if page_url:
+            embed['url'] = page_url
+        return {'username': config.get('DISCORD_USERNAME', 'Floorbit') or 'Floorbit', 'embeds': [embed],
+                'allowed_mentions': {'parse': []}}
+
     def _reports_from_outage(self, change, now):
         """Open incidents at the switch's seats filed while it was down (issue #398): likely fixed now."""
         from contextlib import nullcontext
@@ -496,7 +523,7 @@ class DiscordNotifier:
 
     # ── sending ───────────────────────────────────────────────────────────────────────────
     def send(self, payload, retries=2):
-        url = self.webhook()
+        url = payload.get('_webhook') or self.webhook()
         if not url and self._via_crew():
             self.crew.post_alert(payload)
             self.last_sent, self.last_error = time.time(), None
