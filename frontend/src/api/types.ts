@@ -327,6 +327,8 @@ export interface HealthCheck {
   plugin: string
   plugin_name: string
   since: number
+  /** Until when its alerts are muted (issue #260), or null. */
+  muted_until?: number | null
 }
 export interface HealthWall {
   checks: HealthCheck[]

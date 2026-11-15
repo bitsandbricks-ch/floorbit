@@ -45,3 +45,13 @@ def test_only_services_on_the_wall_and_only_crew(app_module, client, wall, fake_
     assert client.post("/api/alerts/mutes", json={"service_id": "demo:game-1", "minutes": 0}).status_code == 400
     viewer = sign_in_as(app_module, "vi1", "viewer")
     assert viewer.post("/api/alerts/mutes", json={"service_id": "demo:game-1", "minutes": 30}).status_code == 403
+
+
+def test_the_wall_says_until_when_a_service_is_muted(client, wall, fake_checks, monkeypatch):  # noqa: F811
+    red_wall(wall, fake_checks, monkeypatch)
+    assert client.get("/api/health").get_json()["checks"][0]["muted_until"] is None
+    client.post("/api/alerts/mutes", json={"service_id": "demo:game-1", "minutes": 30, "reason": "Restarting it"})
+    check = client.get("/api/health").get_json()["checks"][0]
+    # Until when only: who and why are on the Problems page, not on a wall screen.
+    assert check["muted_until"] > 0 and "Restarting it" not in str(check)
+    assert client.post("/api/health/check").get_json()["checks"][0]["muted_until"] == check["muted_until"]

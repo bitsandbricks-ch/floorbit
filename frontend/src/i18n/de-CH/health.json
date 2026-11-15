@@ -36,5 +36,6 @@
     "uplink": "Internet-Uplink",
     "web": "Webdienste",
     "other": "Weiteres"
-  }
+  },
+  "mutedUntil": "Alarme stumm bis {{time}}"
 }

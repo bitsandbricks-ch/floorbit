@@ -55,6 +55,15 @@ describe('Health wall', () => {
     await waitFor(() => expect(screen.queryByText('Game server 3')).not.toBeInTheDocument())
   })
 
+  it('marks a muted service and leaves it out of the tab count (issue #260)', async () => {
+    const muted = { ...wall, checks: wall.checks.map((c) => c.id === 'demo:game-3' ? { ...c, muted_until: now + 1800 } : c) }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me(['floorplan.view']), 'GET /api/health': muted }).fn)
+    renderWithApp(<Health />)
+    const tile = await screen.findByRole('article', { name: 'Game server 3: Down' })
+    expect(within(tile).getByText(/alerts muted until/)).toBeInTheDocument()
+    await waitFor(() => expect(document.title).toBe('(1) Service health · Floorbit'))
+  })
+
   it('says how to get services onto the wall', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': me(['floorplan.view']),
