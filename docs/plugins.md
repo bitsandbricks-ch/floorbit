@@ -44,7 +44,37 @@ or MAC is on (ARP, then the MAC tables). The floor plan, the seat heatmap, the s
 the check-in page all get their live data from it. It is on by default and uses the settings
 under **Settings > LibreNMS** (`LIBRENMS_URL`, `LIBRENMS_TOKEN`, `LIBRENMS_VERIFY_SSL`,
 `LIBRENMS_FDB_EXCLUDE`), as before it became a plugin. Turn it off and the floor plan shows every
-switch as unknown. Only one monitoring plugin is used at a time: the first one that is on.
+switch as unknown. Only one monitoring plugin is used at a time: demo data when it is on, then
+the first one that is on and set up (so turning on Prometheus is enough while LibreNMS has no URL).
+
+## Built in: Prometheus
+
+For halls that scrape their switches with the SNMP exporter instead of running LibreNMS (#39). Off
+until an admin turns it on under **Settings > Plugins**. It reads the `if_mib` series of one scrape
+job:
+
+| Floorbit needs | From |
+| --- | --- |
+| Is the switch reachable | `up` |
+| Port up, down or disabled | `ifOperStatus`, `ifAdminStatus` |
+| Speed | `ifHighSpeed` |
+| Traffic | `rate(ifHCInOctets[…])`, `rate(ifHCOutOctets[…])` |
+| Errors | `ifInErrors`, `ifOutErrors` and their rates |
+| Port name and description | the `ifName` (or `ifDescr`) and `ifAlias` labels |
+
+Settings:
+
+- **URL:** Thanos and VictoriaMetrics work too.
+- **Bearer token:** optional.
+- **Job:** default `snmp`.
+- **Switch name label:** default `instance`. It has to match the switch names on the floor plan.
+- **Rate window:** default `2m`. Make it at least twice the scrape interval.
+
+Switch names are quoted and escaped in every query, and the label and job settings are checked, so
+nothing typed on the floor plan can change a query.
+
+Prometheus keeps no ARP or MAC tables. Finding which port an IP is on (the check-in page, a seat's
+port) needs a seat source or the seat mapping.
 
 ## Built in: Demo data
 

@@ -457,10 +457,20 @@ class Registry:
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
 
     def monitoring_source(self):
-        """The monitoring plugin in use: the first one that is on, in id order (or None)."""
+        """The monitoring plugin in use: the first one that is on and set up, in id order (or None).
+
+        LibreNMS is on by default, so a hall that switched to Prometheus would otherwise still ask an
+        empty LibreNMS. Only one is used at a time: a mix of two sources would be nonsense.
+        """
         found = self.feeders('monitoring')
-        # Demo data, once on, replaces the live source: a mix of both would be nonsense.
-        found.sort(key=lambda spec: spec.id != 'demo')
+
+        def set_up(spec):
+            try:
+                return bool(self.call(spec, 'configured'))
+            except PluginError:
+                return False
+        # Demo data, once on, replaces the live source.
+        found.sort(key=lambda spec: (spec.id != 'demo', not set_up(spec)))
         return found[0] if found else None
 
     def demo_on(self):
