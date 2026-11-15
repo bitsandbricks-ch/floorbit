@@ -87,5 +87,7 @@
   "runbooks": "Runbooks",
   "takeNext": "Take the next one",
   "tookNext": "You have it: {{title}}",
-  "nothingNext": "Nothing open that you can work"
+  "nothingNext": "Nothing open that you can work",
+  "again": "Incident no. {{n}} at this seat",
+  "againHint": "A seat that keeps coming back often has a cable or port to check."
 }

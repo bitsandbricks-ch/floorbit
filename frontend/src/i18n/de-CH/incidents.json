@@ -87,5 +87,7 @@
   "runbooks": "Anleitungen",
   "takeNext": "Nächste übernehmen",
   "tookNext": "Du hast sie: {{title}}",
-  "nothingNext": "Nichts offen, das du bearbeiten kannst"
+  "nothingNext": "Nichts offen, das du bearbeiten kannst",
+  "again": "{{n}}. Störung an diesem Platz",
+  "againHint": "Ein Platz, der immer wieder kommt, hat oft ein Kabel oder einen Port zum Prüfen."
 }
