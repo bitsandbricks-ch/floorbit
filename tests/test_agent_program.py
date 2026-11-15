@@ -354,3 +354,99 @@ def test_check_names_what_fails(client, app_module, monkeypatch):
 
 def test_main_knows_its_commands():
     assert agent_mod.main(['delete-everything']) == 2
+
+
+def _two_halls_two_agents(client, app_module):
+    """Hall 1 (main) with sw-a-01, hall 2 with sw-h2-01, and an agent for each hall."""
+    from floorbit import inventory, store
+    hall2 = client.post('/api/halls', json={'name': 'Hall 2'}).get_json()['id']
+    data = store.load_data()
+    inventory.create(data, {'name': 'sw-a-01', 'role': 'switch'})
+    dev = inventory.create(data, {'name': 'sw-h2-01', 'role': 'switch'})
+    dev['hall_id'] = hall2
+    store.save_data(data)
+    main = client.get('/api/halls').get_json()['halls'][0]['id']
+    one, two = enrol(client, 'Hall 1 agent'), enrol(client, 'Hall 2 agent')
+    assert client.patch(f"/api/agents/{one['id']}", json={'halls': [main]}).status_code == 200
+    assert client.patch(f"/api/agents/{two['id']}", json={'halls': [hall2]}).get_json()['halls'] == [hall2]
+    return one, two
+
+
+def test_calls_go_to_the_agent_for_the_hall(client, app_module):
+    one, two = _two_halls_two_agents(client, app_module)
+    assert client.patch(f"/api/agents/{one['id']}", json={'halls': ['nope']}).status_code == 400
+    assert client.patch('/api/agents/00000000', json={'halls': []}).status_code == 404
+
+    def site(name, switch):
+        def execute(method, args):
+            if method == 'devices':
+                return [{'hostname': switch, 'status': 1}]
+            if method == 'device_details':
+                return {'status': 'online', 'hostname': args[0], 'answered_by': name}
+            if method == 'resolve_ip':
+                return {'device': switch} if name == 'two' else None
+            raise RuntimeError('not here')
+        return execute
+
+    agents = [make(app_module, one['key'], site('one', 'sw-a-01')),
+              make(app_module, two['key'], site('two', 'sw-h2-01'))]
+    workers = []
+    for a in agents:
+        a.poll_wait = 0.5
+        workers.append(threading.Thread(target=a.run, daemon=True))
+        workers[-1].start()
+    try:
+        deadline = time.time() + 5
+        while len(agent_link.tunnel.connected_agents()) < 2 and time.time() < deadline:
+            time.sleep(0.05)
+        mon = sources.monitoring()
+        for _ in range(4):      # whichever agent polls first, the hall decides
+            assert mon.device_details('sw-a-01')['answered_by'] == 'one'
+            assert mon.device_details('sw-h2-01.example.com')['answered_by'] == 'two'
+        assert sorted(d['hostname'] for d in mon.devices()) == ['sw-a-01', 'sw-h2-01']   # both sites
+        assert mon.resolve_ip('192.0.2.20') == {'device': 'sw-h2-01'}                     # the one that knows
+        listed = {a['name']: a for a in client.get('/api/agents').get_json()['agents']}
+        assert listed['Hall 2 agent']['halls'] and listed['Hall 2 agent']['stats']['calls'] >= 4
+    finally:
+        for a in agents:
+            a.stop()
+        for w in workers:
+            w.join(30)
+
+
+def test_each_sites_netbox_keeps_its_own_devices(client, app_module):
+    """With agents per hall, two NetBox servers sync under their own ids and don't mark each
+    other's devices gone."""
+    one, two = _two_halls_two_agents(client, app_module)
+
+    def feeds(switch):
+        def execute(method, args):
+            if method == 'inventory_feeds':
+                items = [{'id': '1', 'name': switch, 'role': 'switch'}]
+                return [{'plugin': 'netbox', 'name': 'NetBox', 'items': items}]
+            return []
+        return execute
+
+    agents = [make(app_module, one['key'], feeds('nb-a-01')), make(app_module, two['key'], feeds('nb-h2-01'))]
+    workers = []
+    for a in agents:
+        a.poll_wait = 0.5
+        workers.append(threading.Thread(target=a.run, daemon=True))
+        workers[-1].start()
+    try:
+        deadline = time.time() + 5
+        while len(agent_link.tunnel.connected_agents()) < 2 and time.time() < deadline:
+            time.sleep(0.05)
+        for _ in range(2):
+            reports = client.post('/api/inventory/sync').get_json()['reports']
+        mine = sorted(r['plugin'] for r in reports if r.get('via') == 'agent')
+        assert mine == sorted([f"netbox.{one['id']}", f"netbox.{two['id']}"])
+        assert all(r['gone'] == 0 and not r.get('error') for r in reports if r.get('via') == 'agent')
+        assert not [r for r in reports if r['plugin'] == 'netbox']        # the hosted NetBox isn't asked
+        names = {d['name'] for d in client.get('/api/inventory').get_json()['devices']}
+        assert {'nb-a-01', 'nb-h2-01'} <= names
+    finally:
+        for a in agents:
+            a.stop()
+        for w in workers:
+            w.join(30)

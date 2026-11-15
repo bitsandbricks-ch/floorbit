@@ -18,6 +18,8 @@ describe('Agents', () => {
     const api = fakeFetch({
       'GET /api/auth/me': admin,
       'GET /api/agents': { agents: [agent, { ...agent, id: 'b', name: 'Old site', connected: false, last_seen: null, version: null, stats: { calls: 0, failed: 0, median_ms: null, last_error: null } }, { ...agent, id: 'c', name: 'Old box', connected: false, version: '0.0.9', outdated: true, stats: undefined }], connected: true, max: 10, server_version: '0.1.0' },
+      'GET /api/halls': { halls: [{ id: 'main', name: 'Main hall' }, { id: 'h2', name: 'Hall 2' }] },
+      'PATCH /api/agents/a1b2c3d4': { id: 'a1b2c3d4', halls: ['h2'] },
       'POST /api/agents': { ...agent, id: 'e5f6a7b8', name: 'Autumn LAN', connected: false, last_seen: null, key: 'fba_e5f6a7b8_example-key-0123456789' },
     })
     vi.stubGlobal('fetch', api.fn)
@@ -33,6 +35,8 @@ describe('Agents', () => {
     expect(screen.getByText('No calls in the last hour')).toBeInTheDocument()
     expect(screen.getByText('Update')).toBeInTheDocument()
     expect(screen.getByText(/Older than this Floorbit \(0\.1\.0\)/)).toBeInTheDocument()
+    expect(await screen.findAllByText('Answers for')).toHaveLength(3)
+    expect(screen.getByText(/With an agent per hall/)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Autumn LAN' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enrol' }))
     expect(await screen.findByText('fba_e5f6a7b8_example-key-0123456789')).toBeInTheDocument()

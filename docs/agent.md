@@ -32,11 +32,24 @@ monitoring plugin. Revoke every agent to go back to the plugins.
 
 ### Several agents
 
-Every connected agent takes calls from the same queue: whichever asks first gets the next call. That
-suits a spare (a second agent on another box, for when the first one goes down), and each answer is
-only taken from the agent that took the call. It doesn't suit two sites with **different**
-LibreNMS servers yet: a call about a switch at one site may go to the other site's agent, which
-doesn't know it. For now, give each such site its own hosted Floorbit.
+Every agent answers for every hall until you say otherwise. Several agents for the same hall share
+the work: whichever asks first gets the next call, which suits a spare on another box for when the
+first one goes down. An answer is only taken from the agent that took the call.
+
+**An agent per hall or site.** With more than one hall, each agent has an **Answers for** field on
+the page: pick the halls whose switches it can reach (empty means every hall). Once any agent is
+limited like that:
+
+- a question about one switch (its status, ports, port traffic) goes to an agent for that switch's
+  hall, matched by the switch's name in the [inventory](inventory.md). A switch Floorbit doesn't know
+  goes to any agent;
+- a question about everything (the device list, which switch an IP is on, ARP) goes to every
+  connected agent, and their answers are put together: the device lists are joined, and the first
+  agent that knows an IP answers;
+- each agent's inventory and cable plugins are synced under their own id (`netbox.<agent id>`, shown as
+  "NetBox, Hall 2 agent"), so two sites' NetBox servers don't mark each other's devices as gone.
+
+Changing an agent's halls is written to the [audit log](audit.md).
 
 ## Running the agent
 
@@ -154,6 +167,7 @@ For admins (**Manage settings**):
 | --- | --- |
 | `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `outdated`, and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`), and `server_version` |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
+| `PATCH /api/agents/<id>` | `{"halls": [ids]}`: the halls it answers for, empty for every hall |
 | `DELETE /api/agents/<id>` | revoke it |
 
 API tokens can't reach `/api/agents`, so a leaked token can't enrol an agent.

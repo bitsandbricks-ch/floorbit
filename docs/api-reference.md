@@ -57,6 +57,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents` | `settings.manage` |  |
 | POST | `/api/agents` | `settings.manage` |  |
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
+| PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
 
 ## floorbit.blueprints.api_tokens
 

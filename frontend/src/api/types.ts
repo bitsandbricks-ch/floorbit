@@ -1348,6 +1348,8 @@ export interface Agent {
   stats?: AgentStats
   /** Older than the hosted Floorbit: time to pull the new image. */
   outdated?: boolean
+  /** Hall ids it answers for; empty: every hall. */
+  halls?: string[]
 }
 
 export interface AgentStats {

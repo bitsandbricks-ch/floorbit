@@ -5,6 +5,7 @@ For admins (``settings.manage``):
 - ``GET /settings/agents``: the page (React).
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
+- ``PATCH /api/agents/<id>`` ``{"halls": [ids]}``: the halls it answers for (empty: every hall).
 - ``DELETE /api/agents/<id>``: revoke it.
 
 For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
@@ -51,6 +52,19 @@ def enrol():
     audit.record('settings', 'Enrolled a local agent', g.get('audit_user'), record['name'])
     events.publish('agents.changed', {})
     return jsonify({**record, 'key': key}), 201
+
+
+@bp.route('/api/agents/<agent_id>', methods=['PATCH'])
+def set_halls(agent_id):
+    body = request.get_json(silent=True) or {}
+    try:
+        name, halls = agent_link.set_halls(agent_id, body.get('halls', []))
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('agents', f"Set the halls of a local agent: {', '.join(halls) or 'every hall'}",
+                 g.get('audit_user'), name, fields=['halls'])
+    events.publish('agents.changed', {})
+    return jsonify({'id': agent_id, 'halls': halls})
 
 
 @bp.route('/api/agents/<agent_id>', methods=['DELETE'])
