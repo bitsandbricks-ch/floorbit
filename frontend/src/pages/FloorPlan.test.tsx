@@ -130,6 +130,16 @@ describe('Seats page', () => {
     expect(screen.getByRole('img', { name: /^Offline since .+\. 3 changes in 6 h$/ })).toBeInTheDocument()
   })
 
+  it('says what was fixed at the seat before and links its incidents (issue #330)', async () => {
+    const again = { ...details, fixed_before: { count: 2, last: { title: 'Cable loose', fixed_at: 1_799_990_000 } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': again }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('list', { name: 'Legend' })
+    fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
+    expect(await screen.findByText(/^Fixed here 2 times before, last: Cable loose \(/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=seat%3AD-2')
+  })
+
   it('dims seats a filter leaves out and finds a seat', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-4': { ...details, seat: 'D-4' } }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')

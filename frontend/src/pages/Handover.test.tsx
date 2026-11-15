@@ -90,6 +90,16 @@ describe('Shift handover', () => {
     expect(text).toContain('Crew notice up: Row C has no power until 14:00')
     expect(text).toMatch(/Muted right now:\n- sw-a-01, muted until .+ by kim \(Swapping the PSU\)\n- DNS, muted until .+ by ana/)
   })
+  it('says how fast this shift fixed things (issue #334)', async () => {
+    const fast = { ...data, counts: { ...counts, median_fix_s: 14 * 60 } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': fast }).fn)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderWithApp(<Handover />)
+    expect(await screen.findByText('half within 14 min')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
+    expect(writeText.mock.calls[0][0]).toContain('Fixed this shift: 1 (half within 14 min) · Switch outages: 1')
+  })
   it('says who still has gear (issue #324)', async () => {
     const extra = { counts: { ...counts, gear_out: 3 },
       gear: [{ to: 'player-12', count: 2, names: ['sw-spare-01', 'sw-spare-02'] }, { to: 'Crew', count: 1, names: ['ap-spare-01'] }] }

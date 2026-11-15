@@ -118,6 +118,18 @@ describe('Incident board', () => {
     expect(box).toHaveFocus()
   })
 
+  it('matches one seat exactly with seat:', () => {
+    const at = (seat: string) => ({ ...base, id: seat, title: 'x', status: 'open' as const, seat })
+    expect(matchesFilter(at('D-2'), 'seat:d-2')).toBe(true)
+    expect(matchesFilter(at('D-20'), 'seat:D-2')).toBe(false)
+    expect(matchesFilter(at('D-20'), 'D-2')).toBe(true)
+  })
+  it('matches one switch exactly with switch: (issue #336)', () => {
+    const on = (name: string) => ({ ...base, id: name, title: `${name} is offline`, status: 'open' as const, seat: null, switch_id: `id-${name}`, switch_name: name })
+    expect(matchesFilter(on('sw-a-01'), 'switch:SW-A-01')).toBe(true)
+    expect(matchesFilter(on('sw-a-01'), 'switch:id-sw-a-01')).toBe(true)
+    expect(matchesFilter(on('sw-a-010'), 'switch:sw-a-01')).toBe(false)
+  })
   it('matches title, place, people, team and notes', () => {
     const i = { ...board.incidents[1], notes: [{ by: 'kim', at: 1, text: 'Breaker 3 tripped' }] }
     expect(matchesFilter(i, '')).toBe(true)
@@ -196,6 +208,20 @@ describe('Incident board', () => {
     expect(within(dialog).getByText('2 already open here')).toBeInTheDocument()
     expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
     expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
+  })
+  it('says how long a fixed incident took (issue #332)', async () => {
+    const now = Date.now() / 1000
+    const done: IncidentBoard = { ...board, incidents: [
+      { ...base, id: 'f1', title: 'Quick one', status: 'fixed', assignee: 'kim', created_at: now - 3600, fixed_at: now - 3600 + 12 * 60 },
+      { ...base, id: 'f2', title: 'Long one', status: 'fixed', created_at: now - 7200, fixed_at: now - 7200 + 65 * 60 },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': done }).fn)
+    renderWithApp(<Incidents />)
+    const quick = (await screen.findByText('Quick one')).closest('[data-incident]') as HTMLElement
+    expect(within(quick).getByText('With kim · fixed after 12 min')).toBeInTheDocument()
+    const long = screen.getByText('Long one').closest('[data-incident]') as HTMLElement
+    expect(within(long).getByText('Fixed after 1 h 5 min')).toBeInTheDocument()
+    expect(within(long).queryByText(/Nobody on it/)).toBeNull()
   })
   it('takes the next one with the n key, but not while typing', async () => {
     const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0], status: 'assigned', assignee: 'sam' } })

@@ -246,3 +246,16 @@ def test_a_seat_or_switch_without_a_hall_opens_its_hall(client, hall):
     assert client.get("/api/plan?seat=D-6").get_json()["hall"] == first
     assert client.get("/api/plan?seat=Z-99").get_json()["hall"] == first      # unknown: the first hall
     assert client.get(f"/api/plan?hall={first}&seat=E-2").get_json()["hall"] == first   # an explicit hall wins
+
+
+def test_inspector_says_what_was_fixed_at_the_seat_before(client, hall):
+    # Issue #330: a seat that keeps breaking needs its cable or port swapped.
+    assert client.get("/api/plan/seats/D-6").get_json()["fixed_before"] == {"count": 0, "last": None}
+    first = client.post("/api/incidents", json={"seat": "D-6", "title": "No link"}).get_json()
+    client.patch(f"/api/incidents/{first['id']}", json={"status": "fixed"})
+    second = client.post("/api/incidents", json={"seat": "D-6", "title": "Slow again"}).get_json()
+    client.patch(f"/api/incidents/{second['id']}", json={"status": "fixed"})
+    client.post("/api/incidents", json={"seat": "D-6", "title": "Down"})
+    d = client.get("/api/plan/seats/D-6").get_json()
+    assert d["fixed_before"]["count"] == 2 and d["fixed_before"]["last"]["title"] == "Slow again"
+    assert d["fixed_before"]["last"]["fixed_at"] and [i["title"] for i in d["incidents"]] == ["Down"]

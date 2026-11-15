@@ -73,20 +73,26 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           )}
           {!d.people && <Text size="sm" c="dimmed">{t('plan.noPeople')}</Text>}
           {d.crew && <SeatNoteBox key={seat} seat={seat} note={d.note} />}
-          {(d.incidents.length > 0 || d.attention.length > 0) && (
+          {(d.incidents.length > 0 || d.attention.length > 0 || !!d.fixed_before?.count) && (
             <Stack gap={4}>
               <Title order={3} size="h5">{t('plan.problems')}</Title>
               {d.incidents.map((i) => (
                 <Text key={i.id} size="sm">{i.title} <Text span c="dimmed" size="xs">({t(`plan.incidentStatus.${i.status}`, { defaultValue: i.status })}, {clock(i.created_at)})</Text></Text>
               ))}
               {d.attention.map((a, n) => <Text key={n} size="sm">{a.title} <Text span c="dimmed" size="xs">({t('plan.since', { time: clock(a.since) })})</Text></Text>)}
+              {d.fixed_before?.last && (
+                <Text size="sm" c="dimmed">
+                  {t('plan.fixedBefore', { count: d.fixed_before.count, title: d.fixed_before.last.title,
+                    time: d.fixed_before.last.fixed_at ? clock(d.fixed_before.last.fixed_at) : '?' })}
+                </Text>
+              )}
             </Stack>
           )}
           <SeatActions seat={seat} hasPort={!!d.switch} />
           <Group gap="xs">
             {d.switch && <WatchSeat seat={seat} />}
             <Button component="a" href={`/?seat=${encodeURIComponent(seat)}`} variant="default" size="xs" leftSection={<IconMapPin size={14} />}>{t('plan.openEditor')}</Button>
-            <Button component="a" href="/incidents" variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>
+            <Button component="a" href={`/incidents?q=${encodeURIComponent(`seat:${seat}`)}`} variant="default" size="xs" leftSection={<IconExternalLink size={14} />}>{t('plan.incidents')}</Button>
           </Group>
         </>
       )}

@@ -182,5 +182,7 @@
     "zoom": "Zoom in, out, or show the whole hall",
     "find": "Find a seat",
     "help": "Show this list"
-  }
+  },
+  "fixedBefore_one": "Fixed here once before: {{title}} ({{time}})",
+  "fixedBefore_other": "Fixed here {{count}} times before, last: {{title}} ({{time}})"
 }

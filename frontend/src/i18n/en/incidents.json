@@ -91,5 +91,13 @@
   "again": "Incident no. {{n}} at this seat",
   "againHint": "A seat that keeps coming back often has a cable or port to check.",
   "alreadyOpen_one": "Already open here",
-  "alreadyOpen_other": "{{count}} already open here"
+  "alreadyOpen_other": "{{count}} already open here",
+  "fixedAfter_one": "fixed after {{count}} min",
+  "fixedAfter_other": "fixed after {{count}} min",
+  "fixedAfterLong": "fixed after {{h}} h {{m}} min",
+  "fixedAfterNow": "fixed within a minute",
+  "fixedAfterAlone_one": "Fixed after {{count}} min",
+  "fixedAfterAlone_other": "Fixed after {{count}} min",
+  "fixedAfterAloneLong": "Fixed after {{h}} h {{m}} min",
+  "fixedAfterAloneNow": "Fixed within a minute"
 }
