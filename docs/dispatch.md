@@ -14,7 +14,8 @@ Send an incident to the nearest free tech, and let techs work their jobs from th
 - **On my way** tells the board you saw the job. **Done** marks the incident fixed (with an optional
   note). **Give back** puts it back on the board, unassigned, for someone else.
 
-The page refreshes by itself when a job comes in. Once you have fixed something, it also says how many
+The page refreshes by itself when a job comes in, and the browser tab shows how many jobs you haven't
+answered with **On my way** yet, like "(2) My jobs". Once you have fixed something, it also says how many
 jobs you fixed in the last 12 hours, about one shift.
 
 ## For leads: Send to nearest tech
