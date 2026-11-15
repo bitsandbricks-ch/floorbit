@@ -21,5 +21,7 @@
   "otherHall": "In {{hall}}",
   "doneMsg": "Als behoben markiert.",
   "backMsg": "Zurück auf dem Board.",
-  "runbook": "Schritte: {{title}}"
+  "runbook": "Schritte: {{title}}",
+  "doneLately_one": "Du hast in den letzten 12 Stunden {{count}} Auftrag erledigt.",
+  "doneLately_other": "Du hast in den letzten 12 Stunden {{count}} Aufträge erledigt."
 }
