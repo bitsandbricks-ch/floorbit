@@ -6,6 +6,9 @@ Each piece gets a QR label that opens it on the phone, to check it out or back i
 
 Kept in data.json under ``loans``: ``{"out": {device_id: {...}}, "log": [...]}``. The log (newest
 ``MAX_LOG``) is the history the teardown checklist (#37) and the event report can read.
+
+A loan can say when it is due back (issue #426): an access point lent for the tournament until
+20:00. Past that, it is overdue on the gear page.
 """
 import threading
 import time
@@ -16,6 +19,7 @@ KEY = 'loans'
 MAX_LOG = 2000
 MAX_TO = 80
 MAX_NOTE = 300
+MAX_AHEAD = 14 * 24 * 3600   # "back by" at most two weeks out: a typo shouldn't hide a loan for a year
 
 _lock = threading.Lock()
 
@@ -36,16 +40,20 @@ def _text(value, limit):
     return ' '.join(str(value or '').split())[:limit]
 
 
-def items(data=None):
-    """Every piece of gear with its loan, if it is out."""
+def items(data=None, now=None):
+    """Every piece of gear with its loan, if it is out, and whether that loan is overdue."""
     from . import inventory
     data = data if data is not None else load_data()
+    now = time.time() if now is None else now
     out = _stored(data)['out']
     rows = []
     for d in inventory.devices(data):
+        loan = out.get(d['id'])
+        if loan:
+            loan = {**loan, 'overdue': bool(loan.get('until') and loan['until'] < now)}
         rows.append({'id': d['id'], 'name': d.get('name') or '', 'role': d.get('role') or 'other',
                      'model': d.get('model') or '', 'serial': d.get('serial') or '', 'origin': d.get('origin'),
-                     'placed': d.get('x') is not None, 'loan': out.get(d['id'])})
+                     'placed': d.get('x') is not None, 'loan': loan})
     return sorted(rows, key=lambda r: (r['role'], r['name'].lower()))
 
 
@@ -67,6 +75,18 @@ def check_out(device_id, body, by, now=None):
         raise GearError('Say who or where it goes to: a person or an area.')
     kind = body.get('kind') if body.get('kind') in ('person', 'area') else 'person'
     now = time.time() if now is None else now
+    until = body.get('until')
+    if until not in (None, ''):
+        try:
+            until = float(until)
+        except (TypeError, ValueError):
+            raise GearError('Give "back by" as a time.') from None
+        if until <= now:
+            raise GearError('"Back by" has to be in the future.')
+        if until > now + MAX_AHEAD:
+            raise GearError('"Back by" is at most two weeks ahead.')
+    else:
+        until = None
     with _lock:
         data = load_data()
         dev = _device(data, device_id)
@@ -74,7 +94,7 @@ def check_out(device_id, body, by, now=None):
         if device_id in state['out']:
             raise GearError(f"{dev.get('name')} is already out with {state['out'][device_id]['to']}. "
                             'Check it in first.', 409)
-        loan = {'to': to, 'kind': kind, 'by': by, 'at': now, 'note': _text(body.get('note'), MAX_NOTE)}
+        loan = {'to': to, 'kind': kind, 'by': by, 'at': now, 'note': _text(body.get('note'), MAX_NOTE), 'until': until}
         state['out'][device_id] = loan
         state['log'] = [{'device_id': device_id, 'name': dev.get('name'), 'action': 'out', 'to': to, 'kind': kind,
                          'by': by, 'at': now, 'note': loan['note']}, *state['log']][:MAX_LOG]
@@ -94,7 +114,9 @@ def check_in(device_id, body, by, now=None):
             raise GearError(f"{dev.get('name')} is not checked out.", 409)
         state['log'] = [{'device_id': device_id, 'name': dev.get('name'), 'action': 'in', 'to': loan['to'],
                          'kind': loan['kind'], 'by': by, 'at': now, 'note': _text(body.get('note'), MAX_NOTE),
-                         'out_for': round(now - loan['at'])}, *state['log']][:MAX_LOG]
+                         'out_for': round(now - loan['at']),
+                         'late': round(now - loan['until']) if loan.get('until') and now > loan['until'] else None},
+                        *state['log']][:MAX_LOG]
         data[KEY] = state
         save_data(data)
         return {'device_id': device_id, 'returned_from': loan['to']}

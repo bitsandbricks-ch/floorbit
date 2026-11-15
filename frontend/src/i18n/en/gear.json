@@ -41,5 +41,10 @@
   "allBack_other": "All back ({{count}})",
   "allBackTitle": "Check in everything from {{to}}",
   "allBackDo_one": "Check in {{count}} piece",
-  "allBackDo_other": "Check in {{count}} pieces"
+  "allBackDo_other": "Check in {{count}} pieces",
+  "backBy": "Back by (optional)",
+  "dueBy": "Back by {{when}}",
+  "overdue": "Overdue since {{when}}",
+  "lateTab_one": "Overdue ({{count}})",
+  "lateTab_other": "Overdue ({{count}})"
 }
