@@ -154,5 +154,8 @@
     "minAgo_other": "vor {{count}} Min.",
     "hAgo_one": "vor {{count}} Std.",
     "hAgo_other": "vor {{count}} Std."
-  }
+  },
+  "findPlayerHint": "Platz oder Nick, z. B. D-6",
+  "players": "Gefundene Spieler",
+  "notFoundPlayer": "Kein Platz und kein Spieler gefunden"
 }

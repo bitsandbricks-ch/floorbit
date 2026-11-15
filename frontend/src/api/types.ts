@@ -1243,6 +1243,9 @@ export interface SeatDetails {
 /** One speed test the player ran from the seat's help page (issue #99). */
 export interface SeatSpeedTest { down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; jitter_ms?: number | null; at: number }
 
+/** GET /api/plan/find: a player by nick, IP or MAC, and the hall their seat is in (issue #186). */
+export interface PlayerHit { seat: string; nick: string; matched: string; hall: string }
+
 /** A crew note on a seat (issue #180). */
 export interface SeatNote { text: string; by: string | null; at: number }
 

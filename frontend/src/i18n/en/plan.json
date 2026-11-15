@@ -154,5 +154,8 @@
     "minAgo_other": "{{count}} min ago",
     "hAgo_one": "{{count}} h ago",
     "hAgo_other": "{{count}} h ago"
-  }
+  },
+  "findPlayerHint": "Seat or nick, e.g. D-6",
+  "players": "Players found",
+  "notFoundPlayer": "No seat or player found"
 }
