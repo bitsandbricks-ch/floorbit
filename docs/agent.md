@@ -22,6 +22,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | Check-in and seat search (IP to switch port, ARP) | monitoring |
 | Inventory sync and cable import | inventory, cables |
 | The health wall's checks (HTTP check, or any health plugin turned on there) | health |
+| DNS analytics (Pi-hole, AdGuard Home, turned on there) | dns |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
@@ -32,7 +33,6 @@ so on a hosted Floorbit they only work when that service is reachable from it:
 
 | Feature | Why |
 | --- | --- |
-| DNS analytics (Pi-hole, AdGuard Home) | the DNS plugin runs on the hosted side |
 | Logs (Loki), syslog, NetFlow | syslog and flows are sent to Floorbit's own UDP ports |
 | Wi-Fi details (UniFi as a Wi-Fi source), port actions (SSH ports), switch commands and terminal | they connect to the controller or switch directly |
 
@@ -170,6 +170,15 @@ which are usually only reachable inside the hall. Turn the health plugins on on 
 health wall shows their checks, made from the event network, as "HTTP check (local agent)". A
 plugin the agent checks with isn't also asked on the hosted side. While the agent is away, the
 wall shows one grey "Local agent" tile instead of the checks.
+
+## DNS analytics through the agent
+
+Turn the DNS plugin on on the agent (`FLOORBIT_AGENT_PLUGINS=pihole` with
+`FLOORBIT_PLUGIN_PIHOLE_URL` and so on, or `adguard-home`) and the hosted [DNS page](dns.md) counts
+the hall's lookups as with a local resolver. The agent makes them safe to send first: each client's
+address becomes a keyed hash (the key lives only in the agent's memory), and names are cut to the
+site, with local names (a machine's name says whose it is) left out. So neither addresses nor
+machine names leave the event network; the hosted side applies the same 5-client rule as always.
 
 ## When the agent is away
 

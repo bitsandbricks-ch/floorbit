@@ -45,7 +45,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
 # inventory feeds of its inventory plugins (NetBox), nothing else.
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds')
+           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -413,7 +413,7 @@ def cable_feeds():
     return feeds('cable_feeds')
 
 
-def feeds(method):
+def feeds(method, args=()):
     """``[{plugin, name, base, base_name, items | error}]`` from the agent. Raises AgentUnavailable
     or AgentError. Feeds that don't look right are dropped.
 
@@ -422,14 +422,14 @@ def feeds(method):
     devices gone. ``base`` and ``base_name`` stay the plugin's own."""
     scoped, everyone, _ = _routing()
     if not scoped:
-        return _clean_feeds(tunnel.call(method, timeout=INVENTORY_TIMEOUT))
+        return _clean_feeds(tunnel.call(method, args, timeout=INVENTORY_TIMEOUT))
     agents = sorted(tunnel.connected_agents() & set(everyone))
     if not agents:
         raise AgentUnavailable('No local agent is connected.')
     names = {a['id']: a['name'] for a in load_data().get(KEY) or []}
     out = []
     with ThreadPoolExecutor(len(agents)) as pool:
-        futures = [(a, pool.submit(tunnel.call, method, (), INVENTORY_TIMEOUT, {a})) for a in agents]
+        futures = [(a, pool.submit(tunnel.call, method, args, INVENTORY_TIMEOUT, {a})) for a in agents]
         for agent, fut in futures:
             try:
                 got = _clean_feeds(fut.result())

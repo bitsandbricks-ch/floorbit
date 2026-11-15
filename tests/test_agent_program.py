@@ -498,3 +498,49 @@ def test_the_agent_turns_plugins_on(app_module):
     with app_module.app.app_context():
         assert srcs.registry.enabled(srcs.registry.specs['http-check'])
     assert len(said) == 1 and 'no-such-plugin' in said[0]
+
+
+def test_dns_lookups_come_through_the_agent_without_addresses(client, app_module, tmp_path):
+    """The agent sends lookups with hashed clients and names cut to the site; the hosted stats count them."""
+    from floorbit import dns
+
+    class Spec:
+        def __init__(self, i):
+            self.id, self.name = i, 'Pi-hole'
+
+    now = time.time()
+
+    class Registry:
+        def feeders(self, area):
+            return [Spec('pihole')] if area == 'dns' else []
+
+        def call(self, spec, method, since):
+            return [{'ts': now - 5, 'domain': 'cdn.steamcontent.example', 'client': f'198.51.100.{i}', 'blocked': False}
+                    for i in range(6)] + [{'ts': now - 5, 'domain': 'gamer-pc.lan', 'client': '198.51.100.9'}]
+
+    sent = agent_mod.dns_feeds(Registry(), now - 60)[0]['items']
+    assert {e['domain'] for e in sent} == {'steamcontent.example', None}       # the machine name stays home
+    assert not any('198.51.100' in str(e) for e in sent)                         # so do the addresses
+    assert len({e['client'] for e in sent}) == 7                                 # but distinct clients still count
+
+    key = enrol(client)['key']
+    a = make(app_module, key, lambda method, args: agent_mod.dns_feeds(Registry(), *args)
+             if method == 'dns_feeds' else fake_execute(method, args))
+    a.poll_wait = 0.5
+    worker = threading.Thread(target=a.run, daemon=True)
+    worker.start()
+    try:
+        deadline = time.time() + 5
+        while not agent_link.tunnel.connected() and time.time() < deadline:
+            time.sleep(0.05)
+        stats = dns.DnsStats(path=str(tmp_path / 'dns.json'))
+        stats.registry = None
+        stats.poll_once(now=now)
+        stats.poll_once(now=now + 1)                     # the cursor keeps it from counting twice
+        stats.add([], now=now + 3600)                    # close the hour
+        snap = stats.snapshot(hours=2, now=now + 3600)
+        assert snap['lookups'] == 7 and snap['plugins'] == 1 and snap['error'] is None
+        assert 'steamcontent.example' in [s['site'] for s in snap['sites']]   # 6 clients: named
+    finally:
+        a.stop()
+        worker.join(30)

@@ -24,7 +24,7 @@ HTTP_TIMEOUT = 40         # a bit more than a poll
 MAX_BACKOFF = 60
 WORKERS = 4               # calls run side by side: one slow port lookup mustn't hold up the rest
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds')
+           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds')
 
 
 class Refused(RuntimeError):
@@ -44,6 +44,8 @@ def local_executor(app):
                 return inventory_feeds(registry)
             if method == 'cable_feeds':
                 return cable_feeds(registry)
+            if method == 'dns_feeds':
+                return dns_feeds(registry, *args)
             if method == 'health_feeds':
                 return _feeds(registry, registry.feeders('health') if registry is not None else [], 'health_checks')
             spec = registry.monitoring_source() if registry is not None else None
@@ -56,6 +58,37 @@ def local_executor(app):
 def inventory_feeds(registry):
     """Every inventory plugin that's on here (NetBox), each with its devices or its error."""
     return _feeds(registry, registry.feeders('inventory') if registry is not None else [], 'inventory')
+
+
+_DNS_KEY = os.urandom(32)   # lives in memory only: client hashes can't be turned back into addresses
+
+
+def dns_feeds(registry, since=0):
+    """The lookups of every DNS plugin here since ``since``, made safe to send first: the client is
+    a keyed hash (its address never leaves the event network) and the name is cut to the site, or
+    left out for local names (a machine's name says whose it is). See docs/dns.md."""
+    import hashlib
+    import hmac
+
+    from .. import dns
+    from ..plugins.base import PluginError
+    out = []
+    for spec in registry.feeders('dns') if registry is not None else []:
+        try:
+            raw = registry.call(spec, 'dns_queries', float(since or 0))
+        except PluginError as exc:
+            out.append({'plugin': spec.id, 'name': spec.name, 'error': str(exc)[:300]})
+            continue
+        items = []
+        for e in (raw if isinstance(raw, list) else [])[:dns.MAX_PER_POLL]:
+            if not isinstance(e, dict):
+                continue
+            client = e.get('client')
+            items.append({'ts': e.get('ts'), 'domain': dns.site(e.get('domain')), 'blocked': bool(e.get('blocked')),
+                          'client': hmac.new(_DNS_KEY, str(client).encode(), hashlib.sha256).hexdigest()[:24]
+                          if client else None})
+        out.append({'plugin': spec.id, 'name': spec.name, 'items': items})
+    return out
 
 
 def cable_feeds(registry):

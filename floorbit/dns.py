@@ -190,10 +190,39 @@ class DnsStats:
                 self._close()
 
     # ── polling ──────────────────────────────────────────────────────────────
+    def _from_agent(self, now):
+        """A hosted Floorbit: the DNS plugins on the local agent. It sends clients as hashes and names
+        cut to the site already. Returns (errors, plugin ids it answered for)."""
+        from . import agent_link
+        since = self.cursors.get('agent', now - 2 * settings()['interval'])
+        try:
+            feeds = agent_link.feeds('dns_feeds', (since,))
+        except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+            return [f'Local agent: {exc}'], set()
+        errors, answered, fresh = [], set(), []
+        for feed in feeds:
+            if 'error' in feed:
+                errors.append(f"{feed['name']} (local agent): {feed['error']}")
+                continue
+            answered.add(feed.get('base', feed['plugin']))
+            for e in feed['items'][:MAX_PER_POLL]:
+                try:
+                    if isinstance(e, dict) and float(e.get('ts') or 0) > since:
+                        fresh.append(e)
+                except (TypeError, ValueError):
+                    continue
+        if fresh:
+            self.cursors['agent'] = max(float(e['ts']) for e in fresh)
+        self.add(fresh, now)
+        return errors, answered
+
     def poll_once(self, now=None):
+        from . import agent_link
         now = time.time() if now is None else now
-        errors = []
+        errors, answered = self._from_agent(now) if agent_link.active() else ([], set())
         for spec in self.registry.feeders('dns') if self.registry else []:
+            if spec.id in answered:     # the agent reads that resolver; this side can't reach it
+                continue
             since = self.cursors.get(spec.id, now - 2 * settings()['interval'])
             try:
                 raw = self.registry.call(spec, 'dns_queries', since)
@@ -230,7 +259,7 @@ class DnsStats:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('dns') and dns_plugins(self.registry):
+            if features.on('dns') and (dns_plugins(self.registry) or _agent_active()):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
@@ -305,9 +334,14 @@ class DnsStats:
             'unnamed_lookups': max(0, lookups - named),
             'new': sorted(new, key=lambda r: -r['first_seen'])[:20],
             'blocked_sites': sorted((r for r in sites.values() if r['blocked']), key=lambda r: -r['blocked'])[:10],
-            'min_clients': floor, 'plugins': len(dns_plugins(self.registry)),
+            'min_clients': floor, 'plugins': len(dns_plugins(self.registry)) + (1 if _agent_active() else 0),
             'last_poll': self.last_poll, 'error': self.last_error,
         }
+
+
+def _agent_active():
+    from . import agent_link
+    return agent_link.active()
 
 
 def dns_plugins(registry):
