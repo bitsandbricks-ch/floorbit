@@ -36,5 +36,10 @@
   },
   "holders": "Wer hat was",
   "holder_one": "{{to}} · {{count}} Stück",
-  "holder_other": "{{to}} · {{count}} Stück"
+  "holder_other": "{{to}} · {{count}} Stück",
+  "allBack_one": "Alles zurück ({{count}})",
+  "allBack_other": "Alles zurück ({{count}})",
+  "allBackTitle": "Alles von {{to}} zurücknehmen",
+  "allBackDo_one": "{{count}} Stück zurücknehmen",
+  "allBackDo_other": "{{count}} Stück zurücknehmen"
 }

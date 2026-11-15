@@ -51,4 +51,26 @@ describe('Gear', () => {
     fireEvent.click(within(holders).getByRole('button', { name: 'Ana · 2 pieces' }))
     expect(screen.getByText('sw-spare-01')).toBeInTheDocument()
   })
+
+  it('checks in everything one holder has', async () => {
+    const loan = (to: string) => ({ to, kind: 'person' as const, by: 'Ben', at, note: '' })
+    const lots: GearData = { ...data, items: [
+      ...data.items,
+      { ...data.items[0], id: 'd3', name: 'ap-spare-02', loan: loan('Ana') },
+      { ...data.items[0], id: 'd4', name: 'sw-spare-03', loan: loan('Ana') },
+    ] }
+    const api = fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/gear': lots, 'POST /api/gear/d3/in': {}, 'POST /api/gear/d4/in': {} })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Gear />)
+    const holders = await screen.findByRole('group', { name: 'Who has what' })
+    expect(within(holders).queryByRole('button', { name: /All back/ })).not.toBeInTheDocument()
+    fireEvent.click(within(holders).getByRole('button', { name: 'Ana · 2 pieces' }))
+    fireEvent.click(within(holders).getByRole('button', { name: 'All back (2)' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Note' }), { target: { value: 'teardown' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Check in 2 pieces' }))
+    await waitFor(() => expect(api.calls.filter((c) => c.method === 'POST').map((c) => [c.path, c.body])).toEqual([
+      ['/api/gear/d3/in', { note: 'teardown' }], ['/api/gear/d4/in', { note: 'teardown' }],
+    ]))
+    expect(api.calls.some((c) => c.path === '/api/gear/d2/in')).toBe(false)
+  })
 })
