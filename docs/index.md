@@ -23,7 +23,7 @@ No network to try it on? [Demo mode](demo.md) fills a made-up hall.
 Every page with a header (Problems, Health, Incidents and the other newer pages) has a **Go to**
 button, also on <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>⌘</kbd>+<kbd>K</kbd> on a Mac). Type part of a page's name, pick it
 with the arrow keys and press <kbd>Enter</kbd>. The list leaves out pages whose [feature](features.md) is off
-and pages your role can't open.
+and pages your role can't open. Before you type, the five pages you opened last on this browser come first.
 
 ## Build on it
 

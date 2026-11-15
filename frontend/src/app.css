@@ -440,3 +440,4 @@ body {
 @media (max-width: 600px) {
   .fb-goto-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+.fb-goto-recent { color: var(--color-muted); font-size: 13px; }

@@ -62,3 +62,25 @@ export const PAGES: PageLink[] = [
 export function fold(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
+
+const RECENT_KEY = 'floorbit-recent-pages'
+const RECENT_MAX = 5
+
+/** The pages opened last on this browser, newest first (issue #244). */
+export function recentPages(): string[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]')
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, RECENT_MAX) : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberPage(path: string) {
+  if (!PAGES.some((p) => p.href === path)) return
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify([path, ...recentPages().filter((p) => p !== path)].slice(0, RECENT_MAX)))
+  } catch {
+    /* private mode: no history, the list keeps its usual order */
+  }
+}

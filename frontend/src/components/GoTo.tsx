@@ -4,7 +4,8 @@ import { IconSearch } from '@tabler/icons-react'
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFeaturesOff, useMe } from '@/api/queries'
-import { fold, PAGES, type PageLink } from './pages'
+import { useLocation } from 'react-router-dom'
+import { fold, PAGES, recentPages, type PageLink } from './pages'
 
 /** The pages this account may open with the features that are on. */
 function usePages(): PageLink[] {
@@ -47,6 +48,7 @@ export function GoTo() {
 function Palette({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation()
   const pages = usePages()
+  const here = useLocation().pathname
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const listId = useId()
@@ -54,13 +56,15 @@ function Palette({ onDone }: { onDone: () => void }) {
 
   const shown = useMemo(() => {
     const q = fold(query.trim())
-    const named = pages.map((p) => ({ ...p, label: t(`goto.pages.${p.id}`) }))
-    if (!q) return named
+    const recent = recentPages().filter((href) => href !== here)
+    const named = pages.map((p) => ({ ...p, label: t(`goto.pages.${p.id}`), recent: recent.includes(p.href) }))
+    // Nothing typed yet: the pages opened last come first, newest on top (issue #244).
+    if (!q) return [...named.filter((p) => p.recent).sort((a, b) => recent.indexOf(a.href) - recent.indexOf(b.href)), ...named.filter((p) => !p.recent)]
     // Label first, then the path, so "set" finds Settings before /settings/... pages named otherwise.
     return named
       .filter((p) => fold(p.label).includes(q) || p.href.includes(q))
       .sort((a, b) => Number(!fold(a.label).includes(q)) - Number(!fold(b.label).includes(q)))
-  }, [pages, query, t])
+  }, [pages, query, t, here])
   const current = Math.min(active, shown.length - 1)
 
   // A full page load: the floor plan and the settings pages are server pages, not routes.
@@ -102,7 +106,10 @@ function Palette({ onDone }: { onDone: () => void }) {
               key={p.href} id={`${listId}-${i}`} role="option" aria-selected={i === current}
               className="fb-goto-item" onMouseEnter={() => setActive(i)} onClick={() => go(p.href)}
             >
-              <span>{p.label}</span>
+              <span>
+                {p.label}
+                {p.recent && !query.trim() && <span className="fb-goto-recent"> · {t('goto.recent')}</span>}
+              </span>
               <span className="fb-goto-path">{p.href}</span>
             </li>
           ))}
