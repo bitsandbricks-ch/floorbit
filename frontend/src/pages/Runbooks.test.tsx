@@ -37,4 +37,15 @@ describe('Runbooks', () => {
       method: 'PATCH', path: '/api/runbooks/r1', body: { title: 'No internet at the seat', kinds: ['no-internet'], body: '1. Call the access team' },
     }))
   })
+
+  it('says how often each runbook was shown and what has none (issue #340)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false },
+      'GET /api/runbooks': { runbooks: books, kinds: ['no-internet', 'slow', 'power', 'switch-down', 'other'], used: { r1: 3 }, missing: { power: 2 } },
+    }).fn)
+    renderWithApp(<Runbooks />, '/runbooks')
+    expect(await screen.findByText('No internet · shown on 3 incidents')).toBeInTheDocument()
+    expect(screen.getByText('Slow connection, No internet')).toBeInTheDocument()
+    expect(screen.getByText('2 incidents of kind “Power” have no runbook.')).toBeInTheDocument()
+  })
 })

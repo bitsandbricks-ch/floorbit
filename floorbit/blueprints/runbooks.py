@@ -38,7 +38,10 @@ def runbooks_page():
 
 @bp.route('/api/runbooks', methods=['GET'])
 def list_runbooks():
-    return jsonify({'runbooks': runbooks.all_runbooks(), 'kinds': list(runbooks.KINDS)})
+    from .. import incidents
+    books = runbooks.all_runbooks()
+    return jsonify({'runbooks': books, 'kinds': list(runbooks.KINDS),
+                    **runbooks.usage(incidents.list_all(), books)})
 
 
 @bp.route('/api/runbooks', methods=['POST'])
