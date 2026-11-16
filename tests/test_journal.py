@@ -58,5 +58,5 @@ def test_the_audit_log_lives_in_the_database_when_there_is_one(state, monkeypatc
     monkeypatch.setenv("AUDIT_FILE", str(state / "audit.jsonl"))
     audit.record("settings", "change", "admin", "theme")
     assert not (state / "audit.jsonl").exists()
-    [entry], total = audit.read()
+    [entry], _total = audit.read()
     assert (entry["area"], entry["target"]) == ("settings", "theme")
