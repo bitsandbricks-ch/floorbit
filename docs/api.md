@@ -119,7 +119,8 @@ def valid(secret, header, body, max_age=300):
 
 - **Success:** any 2xx answer within 5 seconds. Redirects are not followed.
 - **Never sent** to a link-local address (`169.254.0.0/16`, `fe80::/10`, where clouds keep their metadata
-  service), unspecified or multicast addresses: the delivery fails with "Refused: link-local address".
+  service), unspecified or multicast addresses, also not through IPv6 that carries one inside (`::ffff:`,
+  NAT64 `64:ff9b::`, 6to4 `2002::`): the delivery fails with "Refused: link-local address".
 - **Retries:** a failed delivery is tried again after 10 seconds, 1 minute and 5 minutes, then
   given up.
 - **Recent deliveries:** the settings page shows each webhook's last 20 deliveries, kept in

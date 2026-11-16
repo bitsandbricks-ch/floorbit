@@ -132,6 +132,17 @@ def test_the_server_never_probes_link_local_and_only_probe_nets_when_set(monkeyp
     assert probes.target("::ffff:192.0.2.10") == "192.0.2.10"           # mapped is checked as the IPv4 it is
 
 
+def test_ipv6_that_reaches_the_metadata_service_is_refused(monkeypatch):
+    monkeypatch.delenv("PROBE_NETS", raising=False)
+    # NAT64 (64:ff9b::/96 and the local-use /48) and 6to4 carry an IPv4 address inside.
+    for host in ("64:ff9b::a9fe:a9fe", "64:ff9b:1::a9fe:a9fe", "2002:a9fe:a9fe::1"):
+        with pytest.raises(probes.ProbeError):
+            probes.target(host)
+        assert probes.unreachable(host)
+    assert probes.target("64:ff9b::c000:20a") == "64:ff9b::c000:20a"   # 192.0.2.10 through NAT64 is fine
+    assert probes.target("2001:db8::1") == "2001:db8::1"
+
+
 def test_a_game_server_outside_probe_nets_is_not_queried(monkeypatch):
     from floorbit import game_query, game_servers
     monkeypatch.setattr(game_servers, "_via_agent", lambda: False)
