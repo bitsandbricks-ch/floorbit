@@ -13,6 +13,7 @@ import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
+import { History } from './checkins/History'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat-mapping.md'
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }
@@ -63,8 +64,7 @@ export default function Checkins() {
 
   return (
     <Layout title={t('crewCheckin.title')} back={{ href: '/seats', label: t('crewCheckin.seats') }}>
-      <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')}
-        actions={<Button component="a" href="/checkins/history" variant="default">{t('crewCheckin.history')}</Button>} />
+      <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')} />
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         <ErrorBanner error={act.error} />
@@ -84,12 +84,16 @@ export default function Checkins() {
               <StatCard label={t('crewCheckin.count.review')} value={num(d.counts.conflicts)} tone={d.counts.conflicts ? 'warn' : undefined}
                 sub={t('crewCheckin.count.reviewSub')} />
             </div>
-            <Tabs defaultValue="checkins" keepMounted={false}>
+            <Tabs defaultValue={new URLSearchParams(window.location.search).get('tab') ?? 'checkins'} keepMounted={false}>
               <Tabs.List>
                 <Tabs.Tab value="checkins">{t('crewCheckin.tab.checkins', { count: d.rows.length })}</Tabs.Tab>
                 <Tabs.Tab value="review">{t('crewCheckin.tab.review', { count: d.conflicts.length })}</Tabs.Tab>
                 <Tabs.Tab value="portal">{t('crewCheckin.tab.portal')}</Tabs.Tab>
+                <Tabs.Tab value="history">{t('crewCheckin.tab.history')}</Tabs.Tab>
               </Tabs.List>
+              <Tabs.Panel value="history" pt="md">
+                <History />
+              </Tabs.Panel>
               <Tabs.Panel value="checkins" pt="md">
                 <Group gap="xs" mb="sm" wrap="wrap">
                   <TextInput aria-label={t('crewCheckin.search')} placeholder={t('crewCheckin.search')} value={q}

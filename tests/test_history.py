@@ -169,7 +169,8 @@ def test_history_api_and_csv(env, client):
 
     assert client.get('/api/checkins/history?view=nope').status_code == 400
     assert client.get('/api/checkins/history?since=saturday').status_code == 400
-    assert b'Check-in history' in client.get('/checkins/history').data
+    page = client.get('/checkins/history')   # now a tab of the crew's Check-ins page
+    assert page.status_code == 302 and page.headers['Location'].endswith('/checkins?tab=history')
 
 
 def test_history_stays_readable_when_checkin_closes(env, client, monkeypatch):

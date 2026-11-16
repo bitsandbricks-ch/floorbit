@@ -1,7 +1,51 @@
 {
   "title": "Check-in",
   "seats": "Seats",
-  "history": "History",
+  "history": {
+    "sessions": "Who sat where",
+    "events": "All events",
+    "export": "Export CSV",
+    "seat": "Seat",
+    "user": "Username",
+    "contains": "contains…",
+    "from": "From",
+    "to": "To",
+    "any": "Any",
+    "event": {
+      "label": "Event",
+      "checkin": "Check-in",
+      "moved": "Moved seat",
+      "removed": "Removed",
+      "ip_changed": "IP changed",
+      "mac_found": "MAC found"
+    },
+    "clear": "Clear filters",
+    "off": "History is turned off in settings; new check-ins are not logged.",
+    "count": {
+      "sessions_one": "{{count}} session",
+      "sessions_other": "{{count}} sessions",
+      "events_one": "{{count}} event",
+      "events_other": "{{count}} events"
+    },
+    "showing": "Showing {{shown}} of {{total}}. Export CSV for all.",
+    "none": "No check-ins match these filters.",
+    "here": "Still here",
+    "col": {
+      "seat": "Seat",
+      "user": "Username",
+      "mac": "MAC",
+      "ips": "IPs",
+      "in": "Checked in",
+      "left": "Left",
+      "duration": "Duration",
+      "time": "Time",
+      "event": "Event",
+      "ip": "IP",
+      "details": "Details"
+    },
+    "toSeat": "to {{seat}}",
+    "wasIp": "was {{ip}}"
+  },
   "intro": "Who checked in at which seat, and whether the background found their switch port. A PIN check-in from a PC on its own port teaches Floorbit the seat's port.",
   "verifierError": "The port lookup failed last time: {{error}}. It tries again by itself.",
   "count": {
@@ -19,7 +63,8 @@
   "tab": {
     "checkins": "Check-ins ({{count}})",
     "review": "Review ({{count}})",
-    "portal": "Captive portal"
+    "portal": "Captive portal",
+    "history": "History"
   },
   "search": "Seat, nick, IP, MAC or port",
   "state": {
