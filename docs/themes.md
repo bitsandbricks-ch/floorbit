@@ -55,11 +55,26 @@ included) before a change to colours goes in. The faint text colour (`--color-fa
 decoration only; text people need to read, such as help lines, timestamps and past agenda items,
 uses the muted colour (`--color-muted`), which passes 4.5:1 in both themes.
 
+## Controls
+
+Dropdowns, tabs, inputs, menus and tooltips look the same on every page. Their sizes, radii, popup
+shadow and option colours are the `--ui-*` tokens in `tokens.css`; the React pages apply them to
+Mantine's controls in `frontend/src/ui.css` and set the defaults (search, check mark on the right,
+a short pop-in) in `frontend/src/theme.ts`. A page never restyles a dropdown or a tab itself, and the
+React lint refuses a native `<select>` or `NativeSelect`.
+
+A field that names something Floorbit already knows (a switch, a port, a seat, a block, a hall, a
+firewall, an agent, a user or a team) is never typed in. It is an `EntitySelect`
+(`frontend/src/components/EntitySelect.tsx`), a searchable list filled from
+`GET /api/options/<kind>`. Port lists show only free ports unless the field asks for all of them;
+taken ports say which seat or cable holds them.
+
 ## Files
 
 | File | What it holds |
 | --- | --- |
 | `static/css/brand/tokens.css` | Seeds (`--theme-*`), tokens (`--color-*`, `--heat-*`, `--plan-*`), the light theme, the Geist fonts. |
+| `frontend/src/ui.css` | The `--ui-*` tokens applied to Mantine's dropdowns, tabs, inputs, tooltips and modals. |
 | `static/css/brand/themes.css` | The presets and the custom derivation. |
 | `static/css/brand/legacy-map.css` | Maps the older `--bg-primary`-style names to the tokens. Remove once the page CSS uses `--color-*` directly. |
 | `static/css/brand/brand.css` | The logo in the sidebar and the phone header. |

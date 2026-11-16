@@ -472,6 +472,16 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/notice` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/notice` | `incidents.assign` |  |
 
+## floorbit.blueprints.options
+
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users and teams.
+
+Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/options/<kind>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.pages
 
 The HTML pages of the editor and the kiosk view, and the list of pages for "Go to".

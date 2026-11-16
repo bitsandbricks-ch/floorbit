@@ -1,0 +1,11 @@
+{
+  "noPortList": "Die Monitoring-Quelle kennt keine Ports für diesen Switch: Port eintippen.",
+  "pickSwitchFirst": "Zuerst den Switch wählen",
+  "nothingFound": "Nichts gefunden",
+  "usedBy": "belegt von {{who}}",
+  "group": {
+    "switches": "Switches",
+    "infrastructure": "Infrastruktur",
+    "other": "Andere"
+  }
+}

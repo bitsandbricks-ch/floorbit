@@ -100,6 +100,26 @@
 
   --shadow: 0 8px 28px rgb(0 0 0 / 0.55);
   --focus-ring: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-bit);
+
+  /* Controls, shared by the React pages (frontend/src/ui.css) and the editor (static/css/ui.css):
+   * one look for inputs, dropdowns, menus and tabs everywhere. */
+  --ui-font: var(--fs-md);
+  --ui-radius: var(--radius-bit);
+  --ui-control-h: 2.25rem;
+  --ui-control-h-sm: 1.875rem;
+  --ui-pad-x: 0.75rem;
+  --ui-gap: 0.5rem;
+  --ui-focus: 0 0 0 2px var(--color-ink), 0 0 0 4px color-mix(in srgb, var(--color-bit) 70%, transparent);
+  --ui-pop-radius: 0.625rem;
+  --ui-pop-pad: 0.25rem;
+  --ui-pop-bg: var(--color-surface);
+  --ui-pop-border: 1px solid var(--color-line);
+  --ui-pop-shadow: 0 12px 32px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+  --ui-option-h: 2rem;
+  --ui-option-radius: calc(var(--ui-radius) - 2px);
+  --ui-option-hover: var(--color-raised);
+  --ui-option-selected: color-mix(in srgb, var(--color-bit) 14%, transparent);
+  --ui-tab-indicator: 2px;
 }
 
 /*
@@ -133,6 +153,7 @@
   --heat-5: #dc2626;
   --plan-cell: #ececf0;
   --shadow: 0 8px 28px rgb(17 17 24 / 0.14);
+  --ui-pop-shadow: 0 12px 32px rgb(17 17 24 / 0.14), 0 2px 6px rgb(17 17 24 / 0.06);
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
@@ -163,5 +184,6 @@
     --heat-5: #dc2626;
     --plan-cell: #ececf0;
     --shadow: 0 8px 28px rgb(17 17 24 / 0.14);
+  --ui-pop-shadow: 0 12px 32px rgb(17 17 24 / 0.14), 0 2px 6px rgb(17 17 24 / 0.06);
   }
 }

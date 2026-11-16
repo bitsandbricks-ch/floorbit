@@ -59,6 +59,7 @@ export const qk = {
   walk: (switchName: string, since: number) => ['walk', switchName, since] as const,
   walkOrder: (form: object) => ['walk-order', form] as const,
   blockPlan: (form: object) => ['block-plan', form] as const,
+  options: (kind: string, scope: string) => ['options', kind, scope] as const,
   health: ['health'] as const,
   security: ['security'] as const,
   power: ['power'] as const,

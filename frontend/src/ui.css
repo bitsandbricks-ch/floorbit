@@ -1,0 +1,91 @@
+/* One look for Mantine's controls on every React page, from the shared --ui-* tokens
+ * (static/css/brand/tokens.css). The editor's vanilla controls (static/css/ui.css) read the same
+ * tokens, so a dropdown on the floor plan and one on a page look alike. Pages never restyle these. */
+
+/* ── Inputs ─────────────────────────────────────────────────────────────── */
+.mantine-Input-input {
+  font-size: var(--ui-font);
+  border-radius: var(--ui-radius);
+  background: var(--color-raised);
+  border-color: var(--color-line);
+  transition: border-color 0.12s, box-shadow 0.12s, background-color 0.12s;
+}
+.mantine-Input-input:hover:not(:disabled):not(:focus) { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); }
+.mantine-Input-input:focus,
+.mantine-Input-input:focus-within { border-color: var(--color-bit); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-bit) 22%, transparent); outline: none; }
+.mantine-InputWrapper-label { font-size: var(--ui-font); font-weight: 550; margin-bottom: 4px; }
+.mantine-InputWrapper-description { font-size: var(--fs-sm); }
+.mantine-InputWrapper-error { font-size: var(--fs-sm); }
+/* The open select's chevron turns, like a native app's. */
+.mantine-Select-section[data-position="right"] svg,
+.mantine-Autocomplete-section[data-position="right"] svg { transition: transform 0.15s; }
+.mantine-Select-input[aria-expanded="true"] ~ .mantine-Select-section[data-position="right"] svg { transform: rotate(180deg); }
+
+/* ── Dropdowns: Select, Autocomplete, MultiSelect, Combobox, Menu, Popover ── */
+.mantine-Combobox-dropdown,
+.mantine-Menu-dropdown,
+.mantine-Popover-dropdown {
+  background: var(--ui-pop-bg);
+  border: var(--ui-pop-border);
+  border-radius: var(--ui-pop-radius);
+  box-shadow: var(--ui-pop-shadow);
+}
+.mantine-Combobox-dropdown,
+.mantine-Menu-dropdown { padding: var(--ui-pop-pad); }
+.mantine-Combobox-option,
+.mantine-Menu-item {
+  min-height: var(--ui-option-h);
+  padding: 0 calc(var(--ui-pad-x) - 2px);
+  border-radius: var(--ui-option-radius);
+  font-size: var(--ui-font);
+  display: flex;
+  align-items: center;
+  gap: var(--ui-gap);
+}
+.mantine-Combobox-option[data-combobox-selected],
+.mantine-Combobox-option:hover:not([data-combobox-disabled]),
+.mantine-Menu-item[data-hovered] { background: var(--ui-option-hover); color: var(--color-fg); }
+.mantine-Combobox-option[data-combobox-active] { background: var(--ui-option-selected); color: var(--color-fg); font-weight: 600; }
+.mantine-Combobox-option[data-combobox-active] .mantine-Combobox-optionsDropdownCheckIcon { color: var(--color-bit); }
+.mantine-Combobox-group + .mantine-Combobox-group { margin-top: var(--ui-pop-pad); }
+.mantine-Combobox-groupLabel,
+.mantine-Menu-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-faint); font-weight: 650; }
+.mantine-Combobox-empty { font-size: var(--ui-font); color: var(--color-muted); padding: 8px; }
+.mantine-Menu-divider { border-color: var(--color-line); }
+
+/* ── Tabs: an underline, never a pill ───────────────────────────────────── */
+.mantine-Tabs-list { --tab-border-color: var(--color-line); gap: 2px; }
+.mantine-Tabs-list::before { border-bottom-width: 1px !important; }
+.mantine-Tabs-tab {
+  font-size: var(--ui-font);
+  font-weight: 550;
+  color: var(--color-muted);
+  padding: 10px 14px;
+  border-bottom-width: var(--ui-tab-indicator) !important;
+  border-radius: var(--ui-radius) var(--ui-radius) 0 0;
+  transition: color 0.12s, background-color 0.12s;
+}
+.mantine-Tabs-tab:hover { background: var(--ui-option-hover); color: var(--color-fg); border-color: transparent; }
+.mantine-Tabs-tab[data-active] { color: var(--color-fg); border-color: var(--color-bit) !important; background: transparent; }
+.mantine-Tabs-tab:focus-visible { box-shadow: var(--ui-focus); outline: none; }
+
+/* ── Segmented control: the "tabs inside a panel" look ─────────────────── */
+.mantine-SegmentedControl-root { background: var(--color-raised); border: 1px solid var(--color-line); padding: 3px; border-radius: calc(var(--ui-radius) + 2px); }
+.mantine-SegmentedControl-indicator { background: var(--color-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18); border-radius: var(--ui-radius); }
+.mantine-SegmentedControl-label { font-size: var(--ui-font); font-weight: 550; color: var(--color-muted); }
+.mantine-SegmentedControl-label[data-active] { color: var(--color-fg); }
+
+/* ── Buttons, badges, tooltips, modals, tables ─────────────────────────── */
+.mantine-Button-root { font-weight: 600; }
+.mantine-Button-root:focus-visible,
+.mantine-ActionIcon-root:focus-visible,
+.mantine-Anchor-root:focus-visible { box-shadow: var(--ui-focus); outline: none; }
+.mantine-Badge-root { font-size: var(--fs-sm); letter-spacing: 0.02em; }
+.mantine-Tooltip-tooltip { font-size: var(--fs-sm); background: var(--color-fg); color: var(--color-ink); border-radius: var(--ui-option-radius); padding: 5px 8px; }
+.mantine-Modal-content, .mantine-Drawer-content { background: var(--color-surface); border: var(--ui-pop-border); }
+.mantine-Modal-content { border-radius: var(--radius-card); box-shadow: var(--ui-pop-shadow); }
+.mantine-Modal-header, .mantine-Drawer-header { background: var(--color-surface); }
+.mantine-Modal-title, .mantine-Drawer-title { font-size: var(--fs-lg); font-weight: 650; }
+.mantine-Table-th { font-size: var(--ui-font); color: var(--color-muted); font-weight: 600; }
+.mantine-Table-td { font-size: var(--ui-font); }
+.mantine-Checkbox-label, .mantine-Switch-label, .mantine-Radio-label { font-size: var(--ui-font); }
