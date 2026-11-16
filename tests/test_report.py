@@ -183,10 +183,13 @@ def test_what_attendees_reported(client, stats):
 
 def test_incidents_per_hour(client, stats, monkeypatch):
     # When trouble peaked over the event (issue #420): a bar per hour, on the page and in the PDF.
+    # One reading in each of the last three hours: "now - 60" fell into the hour before when the
+    # test ran in an hour's first minute, so the readings are pinned to the hours themselves.
     now = time.time()
-    _read(stats, {"D-1"}, now - 7200)
-    _read(stats, {"D-1", "D-2"}, now - 3600)
-    _read(stats, {"D-2"}, now - 60)
+    hour = now // 3600 * 3600
+    _read(stats, {"D-1"}, hour - 7200 + 1)
+    _read(stats, {"D-1", "D-2"}, hour - 3600 + 1)
+    _read(stats, {"D-2"}, max(hour, now - 60))
     from floorbit import report_pdf
     charts = []
     real = report_pdf._chart

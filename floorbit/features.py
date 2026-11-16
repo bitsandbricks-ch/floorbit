@@ -43,6 +43,7 @@ FEATURES = (
     {'id': 'ports', 'paths': ('/api/ports',), 'needs': ()},
     {'id': 'commands', 'paths': ('/commands', '/api/commands'), 'needs': ('ports',)},
     {'id': 'terminal', 'paths': ('/terminal', '/api/terminal'), 'needs': ('ports',)},
+    {'id': 'configs', 'paths': ('/configs', '/api/configs'), 'needs': ('ports',)},
     {'id': 'power', 'paths': ('/power', '/api/power'), 'needs': ()},
     {'id': 'tournament', 'paths': ('/tournament', '/api/tournament', '/bracket', '/bracket.json'), 'needs': ()},
     {'id': 'replay', 'paths': ('/replay', '/api/replay'), 'needs': ()},

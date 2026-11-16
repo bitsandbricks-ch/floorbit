@@ -166,6 +166,8 @@ def create_app(start_background=True):
     # Outgoing webhooks: chosen events POSTed to other tools, signed (docs/api.md#webhooks).
     from .webhooks import init_webhooks
     init_webhooks(app, start_background=start_background)
+    from .config_backup import init_nightly
+    init_nightly(app, start_background=start_background)
 
     # The event changelog: alerts from the event bus and each start go into its journal (docs/timeline.md).
     from .timeline import init_timeline

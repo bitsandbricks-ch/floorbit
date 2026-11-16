@@ -10,6 +10,7 @@ from . import (
                cache,
                commands,
                config,
+               configs,
                credentials,
                crew,
                demo,
@@ -66,8 +67,8 @@ from . import (
 
 ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
        inventory.bp, seat_map.bp, demo.bp, incidents.bp,
-       health.bp, ports.bp, commands.bp, terminal.bp, security.bp, power.bp, problems.bp, setup.bp, stats.bp,
-       flows.bp, dns.bp, games.bp, game_servers.bp, services.bp,
+       health.bp, ports.bp, commands.bp, terminal.bp, configs.bp, security.bp, power.bp, problems.bp, setup.bp,
+       stats.bp, flows.bp, dns.bp, games.bp, game_servers.bp, services.bp,
        logs.bp, screen.bp, attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        cables.bp, teardown.bp, past_events.bp,
