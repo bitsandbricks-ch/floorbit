@@ -18,6 +18,8 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
 - ``GET /api/agent/v1/seats``: ``{"seat_of": {ip: seat}, "area_of": {seat: area}}`` for its flow
   collector; 409 while the traffic feature is off here.
 - ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
+- ``GET /api/agent/v1/captive``: ``{"done": [ip], "portal_url"}`` for its Captive Portal API
+  (floorbit/captive.py); 409 while check-in is off here.
 - ``GET /api/agent/v2/link`` (WebSocket, protocol 2): the same calls and answers as the long poll,
   over one open connection. The agent falls back to the long poll when it can't be opened.
 """
@@ -233,6 +235,18 @@ def flow_seats():
     return jsonify({'seat_of': seat_of, 'area_of': area_of})
 
 
+@bp.route('/api/agent/v1/captive', methods=['GET'])
+def captive():
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    from integrations import config
+    if not config.get_bool('CHECKIN_ENABLED', False):
+        return jsonify({'error': 'Check-in is turned off on this Floorbit.'}), 409
+    from .. import captive as captive_mod
+    return jsonify(captive_mod.answer(current_app))
+
+
 @bp.route('/api/agent/v1/report', methods=['POST'])
 def report():
     """The agent's own numbers, from an agent on the long poll (on the link they come as a
@@ -333,7 +347,7 @@ def link(ws):
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers, syslog, flow_seats, flows, link, report):
+for _view in (hello, calls, answers, syslog, flow_seats, captive, flows, link, report):
     _view._auth_public = True
 # After _auth_public is set: the route's wrapper copies the attribute.
 sock.route(LINK_PATH, bp=bp)(link)
