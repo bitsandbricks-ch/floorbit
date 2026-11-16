@@ -116,8 +116,12 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 
 - **Far** (a seat under 12 px): each block's name with its online and total seats and its
   problems.
-- **Middle:** seat states and their marks.
+- **Middle:** seat states and their marks, and next to each block's name how many of its seats have
+  problems ("C ! 7").
 - **Near** (a seat 30 px or more): seat numbers and switch names too.
+
+A block where a quarter of its seats or more have problems (two at least) gets a red outline at
+every zoom level. That many at once usually has one cause, such as the block's switch or its power.
 
 **Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
 match seats, seats with a note or checked-in seats. Each choice shows how many seats it matches in
