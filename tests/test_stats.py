@@ -127,8 +127,11 @@ def test_nothing_yet(client, hall):
     assert body["now"] is None and body["series"] == [] and body["monitoring"] is True
 
 
-def test_demo_history_backfills_only_an_empty_day():
+def test_demo_history_backfills_only_an_empty_day(monkeypatch):
     from floorbit.blueprints.demo import demo_history
+    # No app here, so no fresh fake Redis: an earlier test's client (and the samples its
+    # background reader saved) would otherwise make this day "not empty".
+    monkeypatch.setattr(cache, "get_redis_client", lambda: None)
     s = stats.Stats()
     day = demo_history(now=100_000)
     s.backfill(day)
