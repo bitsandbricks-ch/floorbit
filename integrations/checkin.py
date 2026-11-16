@@ -250,6 +250,17 @@ PORT_CACHE_SECONDS = 60
 EDGE_PORT_MACS = 4
 
 
+def cached_port(ip):
+    """``port_of`` from the cache only. A miss is looked up in the background, at the set rate."""
+    hit = _port_cache.get(ip) if ip else None
+    if hit and time.time() - hit[0] < PORT_CACHE_SECONDS:
+        return hit[1]
+    if ip and len(_warm) < 10000:
+        _warm.add(ip)
+        _wake.set()
+    return None
+
+
 def port_of(ip):
     """The switch port an IP is plugged into, from the monitoring source (ARP and MAC tables).
     None when it doesn't know. Cached for a minute: the check-in page asks on every load."""
@@ -380,7 +391,8 @@ def suggest_seat(ip, load_data, app=None):
     finder = (app.extensions if app else {}).get('floorbit_port_clients')
     if finder is not None and ip in (finder.seat_ips or {}):
         return finder.seat_ips[ip]
-    port = port_of(ip)
+    # Never wait for LibreNMS here: at doors-open a thousand pages load at once. A reload shows it.
+    port = cached_port(ip)
     if not port:
         return None
     from floorbit import cables
@@ -499,15 +511,38 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
 VERIFY_EVERY = 10          # seconds between tries while check-ins wait
 VERIFY_GIVE_UP = 15 * 60   # LibreNMS polls ARP and MAC tables every few minutes: give it time
 _wake = threading.Event()
+_bucket = {'tokens': None, 'at': None}
+_warm = set()              # IPs the check-in page asked about: their port is looked up when there's room
+
+
+def _budget(now, wanted):
+    """Port lookups allowed this round, up to ``wanted``: CHECKIN_VERIFY_RATE a second, saved up
+    to VERIFY_EVERY seconds' worth, taken from the bucket."""
+    rate = config.get_int('CHECKIN_VERIFY_RATE', 10, minimum=1)
+    cap = rate * VERIFY_EVERY
+    tokens, at = _bucket['tokens'], _bucket['at']
+    tokens = cap if tokens is None else min(cap, tokens + max(0, now - at) * rate)
+    allowed = min(int(tokens), wanted)
+    _bucket.update(tokens=tokens - allowed, at=now)
+    return allowed
+
+
+def queue_depth():
+    """Check-ins waiting for their port lookup."""
+    return sum(1 for r in load_all().values() if r.get('wired') == 'pending')
 
 
 def verify_pending(now=None):
     """Look up the switch port of each check-in that waits for it. Found on one access port:
     ``verified``, and with a PIN the seat learns that port. Returns the seats that changed."""
     now = time.time() if now is None else now
-    pending = {s: r for s, r in load_all().items() if r.get('wired') == 'pending'}
+    everyone = load_all()
+    pending = {s: r for s, r in everyone.items() if r.get('wired') == 'pending'}
     found = {}
-    for seat, row in pending.items():
+    # Oldest first, and only as many as the rate allows: a burst at doors-open waits its turn
+    # instead of sending LibreNMS a thousand lookups at once. The rest come next round.
+    queue = sorted(pending.items(), key=lambda kv: kv[1].get('checked_in_at') or 0)
+    for seat, row in queue[:_budget(now, len(queue))]:
         port = port_of(row.get('ip'))
         mac = row.get('mac') or (port or {}).get('mac') or lookup_mac(row.get('ip'))
         if port and port.get('edge'):
@@ -516,6 +551,12 @@ def verify_pending(now=None):
             found[seat] = ('unverified', None, mac)
         elif mac and not row.get('mac'):
             found[seat] = ('pending', None, mac)
+    # What's left of the budget warms the cache for the check-in page's seat hint. A PC that has
+    # checked in meanwhile needs no hint.
+    _warm.difference_update(r.get('ip') for r in everyone.values())
+    for ip in list(_warm)[:_budget(now, len(_warm))]:
+        _warm.discard(ip)
+        port_of(ip)
     if not found:
         return []
     changed = []
@@ -597,12 +638,16 @@ class CheckinVerifier:
             self._thread.start()
 
     def _run(self):
+        wait = VERIFY_EVERY
         while True:
-            _wake.wait(VERIFY_EVERY)
+            _wake.wait(wait)
             _wake.clear()
+            wait = VERIFY_EVERY
             try:
                 if config.get_bool('CHECKIN_ENABLED', False) and _monitoring().enabled():
                     verify_pending()
+                    if queue_depth() or _warm:
+                        wait = 1      # a burst drains at the rate, not one batch per VERIFY_EVERY
                     self.last_error = None
             except Exception as exc:  # noqa: BLE001  # keep the thread alive, try again next round
                 self.last_error = str(exc)

@@ -154,6 +154,8 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For`; only behind a proxy you control |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
+| `CHECKIN_VERIFY_RATE` | `10` | port lookups a second for new check-ins; a burst waits its turn ([sizing](sizing.md#doors-open)) |
+| `CAPTIVE_ENABLED` | `false` | answer the agents' captive portal (DHCP option 114), see below |
 | `CHECKIN_ADMIN_TOKEN` | | if set, `GET/DELETE /api/checkins` need `X-Admin-Token` |
 | `CHECKIN_FILE` | `checkins.json` | |
 
@@ -168,7 +170,9 @@ user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refr
 ### The "sign in to network" note (Captive Portal API)
 
 With a [local agent](agent.md), phones and laptops can be reminded to check in without blocking
-anything. Set `FLOORBIT_AGENT_CAPTIVE=0.0.0.0:8908` on the agent and let your DHCP server hand out
+anything. It is off until you turn on **Captive portal (DHCP option 114)** in the check-in
+settings (`CAPTIVE_ENABLED`); until then agents asking get a 409 and say nothing. Set
+`FLOORBIT_AGENT_CAPTIVE=0.0.0.0:8908` on the agent and let your DHCP server hand out
 option 114 (RFC 8910) with the URL of the agent's `/.well-known/captive-portal`. Clients that
 support it ask that URL, and until their seat has checked in they show a quiet "sign in to
 network" note that opens the check-in page. Gaming PCs that ignore it lose nothing, because

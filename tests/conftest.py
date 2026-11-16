@@ -113,6 +113,10 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     from floorbit import port_clients  # its last MAC table read feeds the seat mapping
     if port_clients._finder is not None:
         port_clients._finder.reset()
+    from integrations import checkin  # the port lookup budget is per process
+    checkin._bucket.update(tokens=None, at=None)
+    checkin._warm.clear()
+    checkin._port_cache.clear()
 
 
 @pytest.fixture

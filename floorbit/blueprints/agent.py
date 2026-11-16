@@ -19,7 +19,7 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
   collector; 409 while the traffic feature is off here.
 - ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
 - ``GET /api/agent/v1/captive``: ``{"done": [ip], "portal_url"}`` for its Captive Portal API
-  (floorbit/captive.py); 409 while check-in is off here.
+  (floorbit/captive.py); 409 while check-in or the captive portal (``CAPTIVE_ENABLED``) is off here.
 - ``GET /api/agent/v2/link`` (WebSocket, protocol 2): the same calls and answers as the long poll,
   over one open connection. The agent falls back to the long poll when it can't be opened.
 """
@@ -243,6 +243,8 @@ def captive():
     from integrations import config
     if not config.get_bool('CHECKIN_ENABLED', False):
         return jsonify({'error': 'Check-in is turned off on this Floorbit.'}), 409
+    if not config.get_bool('CAPTIVE_ENABLED', False):
+        return jsonify({'error': 'The captive portal is turned off on this Floorbit.'}), 409
     from .. import captive as captive_mod
     name = agent.get('name') if isinstance(agent, dict) else getattr(agent, 'name', None)
     return jsonify(captive_mod.answer(current_app, agent=name))
