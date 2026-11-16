@@ -71,7 +71,8 @@ users: [README.md](README.md).
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
   `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
-  feature is a new file in `static/js/editor/`. NetBox and LibreNMS calls live in their
+  feature is a new file in `static/js/editor/`. A new error message from the server gets its German text
+  in `floorbit/locales/de-CH.json` (`tests/test_i18n_server.py` checks). NetBox and LibreNMS calls live in their
   plugins; the core asks the inventory and `floorbit.sources.monitoring()`, never the API itself. Nothing names one particular event:
   event names, branding and hosts are settings.
 - Write short comments that explain why, not what.

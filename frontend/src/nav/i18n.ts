@@ -2,6 +2,7 @@
 // the floor plan's download.
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { germanyBundle } from '@/i18n/germany'
 import { initialLang } from '@/i18n/lang'
 
 type Texts = Record<string, unknown>
@@ -17,7 +18,11 @@ function bundle(lang: string): Texts {
 }
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: bundle('en') }, 'de-CH': { translation: bundle('de-CH') } },
+  resources: {
+    en: { translation: bundle('en') },
+    'de-CH': { translation: bundle('de-CH') },
+    de: { translation: germanyBundle(bundle('de-CH')) },
+  },
   lng: initialLang(),
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
