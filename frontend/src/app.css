@@ -384,6 +384,15 @@ body {
    so it reads in grey scale and for colour-blind eyes: filled, hollow with a slash, dashed. */
 .fb-plan-layout { display: grid; gap: 12px; }
 .fb-plan-layout.with-inspector { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+/* The plan's Edit mode (pages/plan/edit/): hit areas over every item, selection, the drag box. */
+.fb-edit-bg { fill: transparent; cursor: default; }
+.fb-edit-hit { fill: transparent; cursor: move; }
+.fb-edit-hit:hover { fill: color-mix(in srgb, var(--color-bit) 8%, transparent); }
+.fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
+.fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.fb-edit-marquee { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1; pointer-events: none; }
+.fb-plan-editor .fb-plan-wrap { min-height: 70vh; }
+.fb-edit-panel { position: sticky; top: 12px; }
 .fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; }
 .fb-plan-wrap > svg.fb-plan { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
 .fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--color-bit); }

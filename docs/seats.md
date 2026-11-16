@@ -13,11 +13,25 @@ The top of the page switches between modes of the same plan, kept in the address
 | **Live** | Seats with their state, the network, traffic, the crew's incidents and check-ins. |
 | **Check-in** | Labels and check-ins only, filtered to the seats that checked in (only when check-in is on). |
 | **Network** | Switches and uplinks, traffic, firewalls and Wi-Fi. |
+| **Edit** | The editor, for crew who may edit the plan (`floorplan.edit`): see below. |
 
 **Kiosk** opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
-you were looking at. **Edit** (crew who may edit the plan) opens the floor plan editor on the same
-hall; the editor's top bar has the same switch to come back. The editor is moving into this page
-as its Edit mode.
+you were looking at. The older floor plan editor (`/`) has the same switch in its top bar.
+
+### Edit mode
+
+The floor plan editor is moving into this page. Edit mode already does:
+
+- **Select:** click an item (seat block, switch, label, icon, wall, zone); Shift-click adds or
+  removes; dragging on empty plan selects everything inside the box; Ctrl+A selects all.
+- **Move:** drag, or the arrow keys (Shift for five steps). Items land on the editor's 0.5 % grid;
+  hold Alt while dragging to place freely. Space + drag (or the middle mouse button) moves the view.
+- **Change:** a block's name and rotation, a label's or zone's text.
+- **Delete** (Del) seat blocks and marks; switches stay (remove them in the editor).
+- **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes.
+
+Every change is saved at once. Tools not moved yet (new blocks, labels, cables, power, groups)
+are in the classic editor, linked from the panel.
 
 ## What a seat shows
 

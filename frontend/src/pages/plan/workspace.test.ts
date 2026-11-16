@@ -21,6 +21,14 @@ describe('plan workspace modes', () => {
     expect(live.get('hall')).toBe('main')
   })
 
+  it('drops the live panels when switching to edit', () => {
+    const start = new URLSearchParams('hall=main&seat=A-1&view=list')
+    const edit = switchMode(start, 'edit', readLayers(start))
+    expect(edit.get('mode')).toBe('edit')
+    expect(edit.has('seat')).toBe(false)
+    expect(edit.has('view')).toBe(false)
+  })
+
   it('opens the kiosk on the same hall and layers', () => {
     expect(kioskHref('main', new URLSearchParams('layers=grid,marks&seat=A-1'))).toBe('/plan?screen=1&hall=main&layers=grid%2Cmarks')
   })

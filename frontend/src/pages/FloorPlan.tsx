@@ -22,6 +22,7 @@ import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { Shortcuts } from './plan/Shortcuts'
 import { Modes } from './plan/Modes'
+import { PlanEditor } from './plan/edit/PlanEditor'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
@@ -148,6 +149,7 @@ export default function FloorPlan() {
   // With seats.view the search also finds players by nick, IP or MAC (issue #186).
   const canPeople = useCan('seats.view')
   const canEdit = useCan('floorplan.edit')
+  const editing = mode === 'edit' && canEdit
   const [players, setPlayers] = useState<{ query: string; hits: PlayerHit[] } | null>(null)
   const jump = (seat: string, hall?: string) => {
     setPlayers(null)
@@ -307,6 +309,7 @@ export default function FloorPlan() {
           )}
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
           <Group mb="sm" gap="lg" wrap="wrap">
+            {!editing && <>
             <SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
               data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                 value: f,
@@ -315,17 +318,21 @@ export default function FloorPlan() {
               }))} />
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
+            </>}
             {!list && <LayersPanel state={layers} onChange={setLayers} available={available} />}
           </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
-          <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
+          {editing && data.drawing && view && (
+            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} />
+          )}
+          {!editing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
-          </div>
-          {!list && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
-          {!list && (
+          </div>}
+          {!list && !editing && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
+          {!list && !editing && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}
               {keyboard && <>{' '}<Anchor component="button" type="button" size="sm" onClick={showShortcuts}>{t('plan.shortcuts.show')}</Anchor> <Kbd size="xs">?</Kbd></>}

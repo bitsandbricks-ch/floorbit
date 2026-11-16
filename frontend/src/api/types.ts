@@ -621,6 +621,8 @@ export interface PlanCell {
 }
 
 export interface PlanShape {
+  /** The seat block's id, for the editor; missing on older answers. */
+  id?: string
   cx: number
   cy: number
   rotation: number
@@ -634,6 +636,7 @@ export interface PlanShape {
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
 export interface PlanMark {
+  id?: string
   kind: 'text' | 'icon' | 'wall' | 'zone'
   /** Drawing order, higher on top (floorbit/stacking.py). */
   z?: number
