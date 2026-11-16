@@ -228,5 +228,6 @@
       "label": "Text",
       "help": "Empty: near white or near black, by background."
     }
-  }
+  },
+  "pickColour": "Pick a colour from the screen"
 }
