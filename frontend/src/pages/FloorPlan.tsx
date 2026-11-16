@@ -21,6 +21,8 @@ import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { Shortcuts } from './plan/Shortcuts'
+import { Modes } from './plan/Modes'
+import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const PANELS = ['seat', 'block', 'switch']
@@ -40,8 +42,13 @@ export default function FloorPlan() {
   const print = !screen && params.get('print') === '1'
   // Which layers are drawn over the seats, and how strong (issue: floor plan layers). Old ?traffic=1 links still work.
   const paramText = params.toString()
+  // A mode link without its own layers (``/plan?mode=network``) shows the mode's layers.
+  const mode = readMode(params)
+  const layers = useMemo(() => {
+    const read = readLayers(params)
+    return params.has('mode') && !params.has('layers') ? { ...read, on: new Set(MODE_LAYERS[mode]) } : read
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const layers = useMemo(() => readLayers(params), [paramText])
+  }, [paramText])
   const traffic = layers.on.has('status')
   const powerOn = layers.on.has('electrical')
   const firewallOn = layers.on.has('firewalls')
@@ -140,6 +147,7 @@ export default function FloorPlan() {
   }
   // With seats.view the search also finds players by nick, IP or MAC (issue #186).
   const canPeople = useCan('seats.view')
+  const canEdit = useCan('floorplan.edit')
   const [players, setPlayers] = useState<{ query: string; hits: PlayerHit[] } | null>(null)
   const jump = (seat: string, hall?: string) => {
     setPlayers(null)
@@ -263,7 +271,11 @@ export default function FloorPlan() {
       {data && (
         <>
           <Group justify="space-between" mb="sm" gap="sm" wrap="wrap">
-            {summary}
+            <Group gap="lg" wrap="wrap">
+              <Modes mode={mode} hall={data.hall} params={params} checkin={data.checkin} canEdit={canEdit}
+                onMode={(m) => setParams(switchMode(params, m, layers), { replace: true })} />
+              {summary}
+            </Group>
             <Group gap="xs" wrap="wrap">
               {data.halls.length > 1 && (
                 <Select aria-label={t('plan.hall')} w={180} comboboxProps={{ width: 'max-content', position: 'bottom-start' }}

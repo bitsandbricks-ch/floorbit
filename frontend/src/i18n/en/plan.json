@@ -230,5 +230,14 @@
       "services": "Services: servers, LANcache, DNS"
     },
     "hint": "Safety and services are marks you draw in the editor on their layer."
+  },
+  "modes": {
+    "label": "Mode",
+    "live": "Live",
+    "checkin": "Check-in",
+    "network": "Network",
+    "kiosk": "Kiosk",
+    "kioskHint": "The same plan full screen, for a big screen",
+    "edit": "Edit"
   }
 }
