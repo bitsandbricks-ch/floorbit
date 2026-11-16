@@ -9,19 +9,12 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ago } from '@/lib/time'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
 type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number }
 type Made = Agent & { key: string }
 
-function ago(ts: number, lang: string): string {
-  const s = Math.max(0, Date.now() / 1000 - ts)
-  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' })
-  if (s < 60) return rtf.format(-Math.round(s), 'second')
-  if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute')
-  if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour')
-  return rtf.format(-Math.round(s / 86400), 'day')
-}
 
 function Copy({ value }: { value: string }) {
   const { t } = useTranslation()

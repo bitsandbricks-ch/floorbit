@@ -14,6 +14,7 @@ import { PageHead } from '@/components/PageHead'
 import { Sparkline } from '@/widgets/Sparkline'
 import { bps } from './stats/format'
 import { bytes } from './traffic/format'
+import { EntitySelect } from '@/components/EntitySelect'
 
 const TONE: Record<ServiceStatus, string> = { up: 'up', warn: 'warn', down: 'down', unknown: 'gray' }
 
@@ -209,8 +210,9 @@ function UplinkModal({ uplink, ports, devices, onClose }: { uplink: IspUplink | 
         <TextInput label={t('services.name')} placeholder={t('services.uplinkPlaceholder')} value={form.name} onChange={(e) => set({ name: e.currentTarget.value })} />
         <SimpleGrid cols={2} spacing="sm">
           <Select label={t('services.device')} placeholder="core-01" data={devices} searchable value={form.device || null}
-            onChange={(v) => set({ device: v ?? '' })} />
-          <TextInput label={t('services.port')} placeholder="Te1/0/48" value={form.port} onChange={(e) => set({ port: e.currentTarget.value })} />
+            onChange={(v) => set({ device: v ?? '', port: v === form.device ? form.port : '' })} />
+          <EntitySelect kind="ports" label={t('services.port')} switchName={form.device} showUsed value={form.port}
+            onChange={(v) => set({ port: v })} />
         </SimpleGrid>
         <NumberInput label={t('services.capacity')} min={1} max={400000} value={form.capacity_mbps}
           onChange={(v) => set({ capacity_mbps: typeof v === 'number' ? v : 0 })} />

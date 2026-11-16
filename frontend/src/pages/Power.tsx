@@ -12,22 +12,15 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BoardDialog, CircuitDialog, ReadingDialog } from './power/Dialogs'
 import { ErrorBanner } from '@/components/ui'
+import { ago } from '@/lib/time'
 
 const TONE: Record<PowerState, string> = { ok: 'up', warn: 'warn', crit: 'down', tripped: 'down', unknown: 'gray' }
 const ORDER: PowerState[] = ['tripped', 'crit', 'warn', 'ok', 'unknown']
-type T = (k: string, o?: Record<string, unknown>) => string
-
-function ago(ts: number, t: T) {
-  const mins = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60))
-  if (mins < 1) return t('power.justNow')
-  if (mins < 60) return t('power.minutesAgo', { count: mins })
-  return t('power.hoursAgo', { count: Math.round(mins / 60) })
-}
 
 function Load({ c }: { c: Circuit }) {
   const { t } = useTranslation()
   if (c.state === 'tripped') {
-    return <Text size="sm" c="var(--color-down)" fw={600}>{t('power.trippedNote', { who: c.tripped?.by ?? '?', ago: ago(c.tripped?.at ?? 0, t) })}</Text>
+    return <Text size="sm" c="var(--color-down)" fw={600}>{t('power.trippedNote', { who: c.tripped?.by ?? '?', ago: ago(c.tripped?.at ?? 0) })}</Text>
   }
   if (!c.reading || c.load_pct === null) return <Text size="sm" c="dimmed">{t('power.state.unknown')}</Text>
   const r = c.reading
@@ -37,7 +30,7 @@ function Load({ c }: { c: Circuit }) {
         aria-label={t('power.loadOf', { amps: r.amps, rating: c.rating_a, pct: c.load_pct })} />
       <Text size="xs">{t('power.loadOf', { amps: r.amps, rating: c.rating_a, pct: c.load_pct })}</Text>
       <Text size="xs" c="dimmed">
-        {r.source === 'plugin' ? t('power.readFrom', { plugin: r.plugin, ago: ago(r.at, t) }) : t('power.readBy', { who: r.by ?? '?', ago: ago(r.at, t) })}
+        {r.source === 'plugin' ? t('power.readFrom', { plugin: r.plugin, ago: ago(r.at) }) : t('power.readBy', { who: r.by ?? '?', ago: ago(r.at) })}
       </Text>
     </Stack>
   )

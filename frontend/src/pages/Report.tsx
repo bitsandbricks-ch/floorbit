@@ -14,19 +14,11 @@ import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
 import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { StatCard } from '@/components/StatCard'
 
 const W = 1000
 const H = 140
 
-function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Paper withBorder radius="lg" p="sm">
-      <Text size="xs" c="dimmed">{label}</Text>
-      <Text fw={700} size="xl">{value}</Text>
-      {sub && <Text size="xs" c="dimmed">{sub}</Text>}
-    </Paper>
-  )
-}
 
 function Chart({ title, label, hours, children, keys }: {
   title: string; label: string; hours: ReportHour[]; children: (top: number) => ReactNode; keys: { cls: string; text: string }[]
@@ -116,15 +108,15 @@ export default function Report() {
           <>
             {r.start && r.end && <Text size="sm" c="dimmed">{t('report.period', { start: stamp(r.start), end: stamp(r.end) })}</Text>}
             <SimpleGrid cols={{ base: 2, sm: 3 }}>
-              <Figure label={t('report.peak')} value={r.peak ? bps(r.peak.bps) : '–'} sub={r.peak ? stamp(r.peak.at) : undefined} />
-              <Figure label={t('report.online')} value={String(r.online_max)} sub={seatsSub} />
-              <Figure label={t('report.checkedIn')} value={String(r.checked_in_max)} sub={seatsSub} />
-              <Figure label={t('report.moved')} value={r.hours.length ? bytes(r.bytes_moved) : '–'} sub={t('report.movedHelp')} />
-              <Figure label={t('report.incidents')} value={String(r.incidents.total)}
+              <StatCard label={t('report.peak')} value={r.peak ? bps(r.peak.bps) : '–'} sub={r.peak ? stamp(r.peak.at) : undefined} />
+              <StatCard label={t('report.online')} value={String(r.online_max)} sub={seatsSub} />
+              <StatCard label={t('report.checkedIn')} value={String(r.checked_in_max)} sub={seatsSub} />
+              <StatCard label={t('report.moved')} value={r.hours.length ? bytes(r.bytes_moved) : '–'} sub={t('report.movedHelp')} />
+              <StatCard label={t('report.incidents')} value={String(r.incidents.total)}
                 sub={t('report.incidentsSub', { fixed: r.incidents.fixed, open: r.incidents.open })
                   + (r.incidents.median_fix_s ? ` · ${t('report.median', { d: duration(r.incidents.median_fix_s) })}` : '')
                   + (r.incidents.median_take_s ? ` · ${t('report.medianTaken', { d: duration(r.incidents.median_take_s) })}` : '')} />
-              <Figure label={t('report.outages')} value={String(r.outages.reduce((n, o) => n + o.times, 0))}
+              <StatCard label={t('report.outages')} value={String(r.outages.reduce((n, o) => n + o.times, 0))}
                 sub={t('report.outagesSub', { count: r.outages.length })} />
             </SimpleGrid>
 

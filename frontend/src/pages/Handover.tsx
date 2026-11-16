@@ -13,15 +13,11 @@ import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
 import { LoadingState } from '@/components/ui'
+import { StatCard } from '@/components/StatCard'
 
+/** A count that only takes its colour when there is something to count. */
 function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
-  return (
-    <Paper withBorder radius="lg" p="sm">
-      <Text size="xs" c="dimmed">{label}</Text>
-      <Text fz={28} fw={700} c={tone && value > 0 ? tone : undefined}>{value}</Text>
-      {sub && <Text size="xs" c="warn">{sub}</Text>}
-    </Paper>
-  )
+  return <StatCard label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
 }
 
 function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
