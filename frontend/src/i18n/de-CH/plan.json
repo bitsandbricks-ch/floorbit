@@ -165,6 +165,10 @@
   "findPlayerHint": "Platz oder Nick, z. B. D-6",
   "players": "Gefundene Spieler",
   "notFoundPlayer": "Kein Platz und kein Spieler gefunden",
+  "stale": {
+    "since": "Nicht aktualisiert seit {{time}}",
+    "help": "Floorbit hat eine Weile nicht geantwortet, die Platzzustände hier sind vielleicht alt. Es versucht es weiter; prüf das Netz oder den Server."
+  },
   "print": {
     "title": "Plätze: {{hall}}",
     "only": "Nur: {{filter}}",

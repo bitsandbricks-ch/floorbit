@@ -631,3 +631,4 @@ body {
 .fb-item-row { display: flex; align-items: center; width: 100%; min-height: 28px; padding-right: 4px; border-radius: 6px; }
 .fb-item-row:hover { background: var(--color-raised); }
 .fb-item-row[data-selected] { background: color-mix(in srgb, var(--color-bit) 16%, transparent); }
+.fb-plan-screen .fb-plan-stale { font-size: 1.2vw; height: auto; padding: 0.4vw 0.9vw; }
