@@ -58,6 +58,23 @@ class Files:
         return f'files in {self.root}'
 
 
+def _wal(conn, tries=50):
+    """WAL mode, so readers don't wait for a writer. It is kept in the file: only the first
+    connection switches it. Switching needs the file to itself and SQLite answers "locked" at
+    once instead of waiting, so while another connection writes, try again a little later."""
+    import sqlite3
+    for attempt in range(tries):
+        try:
+            if conn.execute('PRAGMA journal_mode').fetchone()[0].lower() == 'wal':
+                return
+            conn.execute('PRAGMA journal_mode=WAL')
+            return
+        except sqlite3.OperationalError:
+            if attempt == tries - 1:
+                raise
+            time.sleep(0.05 + 0.01 * attempt)
+
+
 class Sql:
     """SQLite or Postgres: one table of documents. ``connect()`` gives a DB-API connection."""
 
@@ -86,8 +103,8 @@ class Sql:
             # isolation_level=None: we say BEGIN ourselves. A busy timeout instead of "database is
             # locked" when the flow collector and the web app write at the same moment.
             conn = sqlite3.connect(self.path, timeout=10, isolation_level=None, check_same_thread=False)
-            conn.execute('PRAGMA journal_mode=WAL')
             conn.execute('PRAGMA busy_timeout=10000')
+            _wal(conn)
             return conn
         try:
             import psycopg
