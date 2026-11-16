@@ -44,7 +44,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
 # inventory feeds of its inventory plugins (NetBox), nothing else.
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
+           'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
            'wifi_feeds')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
@@ -140,7 +140,7 @@ REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 
-HOST_METHODS = ('device_details', 'port_stats', 'device_ports')   # the first argument is a switch
+HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients')   # the first argument is a switch
 
 
 def _hall_of(by_name, hostname):
@@ -556,5 +556,8 @@ def monitoring_source():
             except PluginError as exc:
                 print(f'[agent] device_ports failed: {exc}')
                 return []
+
+        def port_clients(self, hostname):
+            return self._call('port_clients', hostname) or []
 
     return AgentMonitoring()

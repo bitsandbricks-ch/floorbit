@@ -14,18 +14,20 @@ import type { BlockPlan, Cable, CableImport, CableList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
+import { PatchCheck } from '@/components/PatchCheck'
+import { PortClients } from '@/components/PortClients'
 
 type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string }
 
 const EMPTY: Draft = { label: '', switch: '', port: '', panel: '', panel_port: '', seat: '', color: '', note: '', length_m: '' }
 
-function CableModal({ cable, all, canEdit, onClose, onDone }: {
-  cable: Cable | null; all: Cable[]; canEdit: boolean; onClose: () => void; onDone: () => void
+function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
+  cable: Cable | null; all: Cable[]; canEdit: boolean; initial?: Partial<Draft>; onClose: () => void; onDone: () => void
 }) {
   const { t } = useTranslation()
   const imported = cable?.source === 'import'
   const readOnly = !canEdit || imported
-  const [d, setD] = useState<Draft>(() => cable ? { ...cable, length_m: cable.length_m ?? '' } : EMPTY)
+  const [d, setD] = useState<Draft>(() => cable ? { ...cable, length_m: cable.length_m ?? '' } : { ...EMPTY, ...initial })
   const set = (k: keyof Draft) => (v: string | number) => setD((x) => ({ ...x, [k]: v }))
   const text = (k: keyof Draft) => ({
     value: String(d[k]), readOnly,
@@ -84,17 +86,19 @@ export default function Cables() {
   const qc = useQueryClient()
   const [params, setParams] = useSearchParams()
   const canEdit = useCan('floorplan.edit')
+  const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.cables })
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
-  const [adding, setAdding] = useState(false)
+  // A new cable, maybe started from a machine on an unexplained port (its switch and port filled in).
+  const [adding, setAdding] = useState<Partial<Draft> | null>(null)
   const [patching, setPatching] = useState(false)
   const [patched, setPatched] = useState<BlockPlan | null>(null)
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
     enabled: canEdit })
   const openId = params.get('cable')
-  const close = () => { setAdding(false); if (openId) setParams({}, { replace: true }) }
+  const close = () => { setAdding(null); if (openId) setParams({}, { replace: true }) }
   const doImport = useMutation({ mutationFn: () => post<CableImport>('/api/cables/import'), onSuccess: refresh })
 
   const d = query.data
@@ -111,7 +115,7 @@ export default function Cables() {
       <PageHead title={t('cables.title')} desc={t('cables.intro')}
         actions={
           <Group gap="xs">
-            {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding(true)}>{t('cables.add')}</Button>}
+            {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding({})}>{t('cables.add')}</Button>}
             {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
               {t('cables.patchBlock')}</Button>}
             {canEdit && d && d.sources.length > 0 && (
@@ -138,6 +142,8 @@ export default function Cables() {
             {doImport.data.errors.map((e) => <Text key={e} size="sm">{e}</Text>)}
           </Alert>
         )}
+        <PatchCheck />
+        {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => setAdding({ switch: c.switch, port: c.port, seat: c.ip_seat })} />}
         {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
@@ -188,7 +194,7 @@ export default function Cables() {
           onClose={() => setPatching(false)} onDone={(made) => { setPatching(false); setPatched(made); refresh() }} />
       )}
       {(adding || current) && d && (
-        <CableModal key={current?.id ?? 'new'} cable={adding ? null : current ?? null} all={d.cables} canEdit={canEdit}
+        <CableModal key={current?.id ?? 'new'} cable={adding ? null : current ?? null} all={d.cables} canEdit={canEdit} initial={adding ?? undefined}
           onClose={close} onDone={() => { close(); refresh() }} />
       )}
     </Layout>

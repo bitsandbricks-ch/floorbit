@@ -37,6 +37,36 @@ A cable to a seat is how Floorbit knows which port is that seat: port problems n
 syslog lines from that port are tied to it. Where no cable says so, the port's description on the
 switch (`Seat A-12`) still does. A cable wins over the description: it is what the crew patched.
 
+## Against the network
+
+Once switches are up, the Cables page checks the plan against what LibreNMS says about the ports
+(the port watch's last read, so it asks LibreNMS nothing extra):
+
+- per block, how many seat ports are **up**;
+- cables that name a **port the switch doesn't have**: a typo, or the wrong switch;
+- **port descriptions naming another seat** than the cable does;
+- **ports up that no cable explains**, on switches that have seats: a seat outside the plan, or a
+  device the crew didn't note. An uplink shows here until it has a cable (one without a seat says
+  what it is);
+- seat ports **not up yet** (normal before doors), and switches that weren't read.
+
+## Machines on the seat ports
+
+The port check says which ports are up; **Machines on the seat ports** says what is on them. It reads
+the MAC table of every switch that has seats (LibreNMS FDB, through the agent on a hosted Floorbit)
+and the ARP table for the seats' networks, and lists:
+
+- **machines on another seat's port**: the port is cabled to A-2, but the machine on it has A-3's IP
+  (from the seat mapping). Players swapped seats, or two cables are swapped at the switch;
+- **machines on a port no cable explains**, with their MAC and IP, and the seat that IP belongs to.
+  **Patch to a seat** opens a new cable with the port and that seat filled in; **Infrastructure**
+  adds a cable without a seat (a crew laptop, an access point), so the port isn't asked about again.
+
+Ports with more than 4 MACs are uplinks or a switch under a desk, and ports cabled without a seat are
+infrastructure: neither is listed. Opening the page starts a read in the background, at most every two
+minutes (LibreNMS itself refreshes MAC tables only when it polls), so 4000 seats don't mean 4000 calls.
+A switch that doesn't answer is named. This list names MACs and IPs, so it needs `seats.view`.
+
 ## Labels
 
 **Print labels** makes an A4 PDF of 3 × 8 labels, two per cable: the switch end first, then the far
@@ -82,6 +112,11 @@ under **cables**, with the cable's label and route.
 - `GET /api/cables?q=&seat=&ids=`: the cables, and `sources`, the plugins that can import them.
 - `POST /api/cables`, `PATCH /api/cables/<id>`, `DELETE /api/cables/<id>`.
 - `POST /api/cables/import`: answers `{"imported", "errors"}`.
+- `GET /api/cables/check`: the plan against the last port read: `{"last_poll", "blocks", "missing", "down",
+  "unplanned", "conflicts", "unread"}`; each list is `{"count", "rows"}` (at most 200 rows).
+- `GET /api/cables/clients?read=1`: the last MAC table read, `{"as_of", "reading", "started", "error",
+  "switches", "clients", "failed", "unplanned", "moved"}`; `read=1` starts a new read when the last is
+  two minutes old. Needs `seats.view`.
 - `POST /api/cables/block`: `{"block", "switch", "first_port", "order": "rows" | "snake", "reverse", "rows",
   "dry_run", "replace"}`. Answers `{"block", "cables": [{"seat", "switch", "port"}], "clashes", "created", "removed"}`;
   409 when cables are in the way and `replace` isn't set.

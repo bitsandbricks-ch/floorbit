@@ -67,6 +67,8 @@ class AttentionWatch:
         self.ports = {}       # (switch_id, port) -> {'oper', 'last_change', 'errors', 'changes': deque}
         self.items = {}       # id -> entry
         self.port_seats = {}  # (switch name, port) -> seat, from the last read, for the syslog (floorbit/syslog.py)
+        self.port_reads = {}  # (switch lowercase, canonical port) -> what the last read said, for patch_check.py
+        self.read_switches = set()   # switches (lowercase) read in the last poll
         self.last_poll = None
 
     # ── lifecycle ─────────────────────────────────────────────────────────────
@@ -111,6 +113,7 @@ class AttentionWatch:
         found = {}
         reads = []   # every port read, for the stats dashboard (stats.py)
         port_seats = {}
+        port_reads, read_switches = {}, set()
         # A cable to a seat (cables.py, the block patch plan) wins over the port's description:
         # it is what the crew patched, the description is what someone typed on the switch.
         from .syslog import canonical_port  # syslog reads this module's seats: imported late
@@ -119,10 +122,14 @@ class AttentionWatch:
         for dev in devices:
             if dev.get('x') is None or (statuses.get(dev['id']) or {}).get('status') == 'offline':
                 continue
+            read_switches.add(str(dev['name']).lower())
             for port in monitor.device_ports(dev['name']) or []:
                 name = port.get('name')
                 if not name:
                     continue
+                port_reads[(str(dev['name']).lower(), canonical_port(name))] = {
+                    'switch': dev['name'], 'port': name, 'state': port.get('state'),
+                    'described_seat': seat_of(port.get('description'), names)}
                 seat = (cabled.get((str(dev['name']).lower(), canonical_port(name)))
                         or seat_of(port.get('description'), names))
                 reads.append((dev, port, seat))
@@ -140,6 +147,7 @@ class AttentionWatch:
             changed = bool(new) or found.keys() != self.items.keys()
             self.items = found
             self.port_seats = port_seats
+            self.port_reads, self.read_switches = port_reads, read_switches
             self.last_poll = now
         status_page.learn_seats(port_seats)
         if changed:
