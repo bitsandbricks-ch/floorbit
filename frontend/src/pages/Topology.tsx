@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { LinkSuggestion, SwitchLink, Topology as TopologyData } from '@/api/types'
+import type { LinkSuggestion, SwitchLink, Topology as TopologyData, TopologyNode } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -41,7 +41,7 @@ export default function Topology() {
   const problems = data?.links.filter((l) => l.issue) ?? []
 
   const panel = link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
-    : node ? <NodePanel name={node.name} role={node.role} links={data!.links.filter((l) => l.a === node.name || l.b === node.name)}
+    : node ? <NodePanel name={node.name} role={node.role} status={node.status} links={data!.links.filter((l) => l.a === node.name || l.b === node.name)}
       onPick={(id) => setPicked({ kind: 'link', id })} />
       : <Text c="dimmed" size="sm">{t('topology.pickHint')}</Text>
 
@@ -95,8 +95,13 @@ export default function Topology() {
                   return (
                     <g key={p.node.id} transform={`translate(${p.x} ${p.y})`} onClick={() => setPicked({ kind: 'node', name: p.node.name })}
                       style={{ cursor: 'pointer' }}>
-                      <rect width={NODE_W} height={NODE_H} rx={8} fill="var(--mantine-color-body)"
-                        stroke={chosen ? 'var(--mantine-primary-color-filled)' : 'var(--mantine-color-default-border)'} strokeWidth={chosen ? 2.5 : 1.2} />
+                      <title>{`${p.node.name}: ${t(`topology.status.${p.node.status}`)}`}</title>
+                      {/* A box that is down: red, dashed and struck through, so it doesn't rely on colour. */}
+                      <rect width={NODE_W} height={NODE_H} rx={8} fill={p.node.status === 'offline' ? 'var(--mantine-color-red-light)' : 'var(--mantine-color-body)'}
+                        stroke={chosen ? 'var(--mantine-primary-color-filled)' : p.node.status === 'offline' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-default-border)'}
+                        strokeWidth={chosen || p.node.status === 'offline' ? 2.5 : 1.2} strokeDasharray={p.node.status === 'offline' ? '6 4' : undefined}
+                        data-status={p.node.status} />
+                      <circle cx={10} cy={10} r={4} fill={p.node.status === 'online' ? 'var(--mantine-color-green-6)' : p.node.status === 'offline' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-gray-5)'} />
                       <text x={NODE_W / 2} y={NODE_H / 2} dominantBaseline="central" textAnchor="middle" fontSize={13}
                         fill="var(--mantine-color-text)" fontWeight={p.node.role === 'switch' ? 400 : 600}>
                         {p.node.name.length > 15 ? `${p.node.name.slice(0, 14)}…` : p.node.name}
@@ -195,11 +200,16 @@ function LinkPanel({ link: l, canEdit, onEdit, onGone }: { link: SwitchLink; can
   )
 }
 
-function NodePanel({ name, role, links, onPick }: { name: string; role: string; links: SwitchLink[]; onPick: (id: string) => void }) {
+function NodePanel({ name, role, status, links, onPick }: {
+  name: string; role: string; status: TopologyNode['status']; links: SwitchLink[]; onPick: (id: string) => void
+}) {
   const { t } = useTranslation()
   return (
     <Stack gap="xs">
-      <Title order={3} size="h5">{name}</Title>
+      <Group justify="space-between" wrap="nowrap">
+        <Title order={3} size="h5">{name}</Title>
+        <Badge color={status === 'online' ? 'up' : status === 'offline' ? 'down' : 'gray'} variant="light">{t(`topology.status.${status}`)}</Badge>
+      </Group>
       <Text size="sm" c="dimmed">{t(`topology.roles.${role}`, { defaultValue: role })} · {t('topology.links', { count: links.length })}</Text>
       {links.map((l) => {
         const [mine, other, otherPort] = l.a === name ? [l.a_port, l.b, l.b_port] : [l.b_port, l.a, l.a_port]

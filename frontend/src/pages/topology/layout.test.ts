@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SwitchLink, TopologyNode } from '@/api/types'
 import { gbit, layout } from './layout'
 
-const node = (name: string, role = 'switch'): TopologyNode => ({ id: name, name, role, hall: '', unread: false })
+const node = (name: string, role = 'switch'): TopologyNode => ({ id: name, name, role, hall: '', unread: false, status: 'online' })
 const link = (a: string, b: string): SwitchLink => ({
   id: `${a}-${b}`, a, a_port: 'x1', b, b_port: 'x2', type: '', speed: null, note: '', media: '', state: 'up', speed_bps: null, issue: '',
 })

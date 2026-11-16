@@ -11,7 +11,7 @@ const base = { note: '', media: 'fiber', state: 'up', issue: '' } as const
 const up: SwitchLink = { ...base, id: 'l1', a: 'dist-01', a_port: 'Fo1/1/1', b: 'core-01', b_port: 'Fo1/0/1', type: 'fiber-sm', speed: 40, speed_bps: 4e10 }
 const slow: SwitchLink = { ...base, id: 'l2', a: 'sw-c-02', a_port: 'Te1/1/1', b: 'dist-01', b_port: 'Te1/0/2', type: 'fiber-mm', speed: 10, speed_bps: 1e9, issue: 'slow' }
 const data: TopologyData = {
-  nodes: ['core-01', 'dist-01', 'sw-c-02', 'sw-d-01'].map((name) => ({ id: name, name, role: name === 'core-01' ? 'router' : 'switch', hall: '', unread: false })),
+  nodes: ['core-01', 'dist-01', 'sw-c-02', 'sw-d-01'].map((name) => ({ id: name, name, role: name === 'core-01' ? 'router' : 'switch', hall: '', unread: false, status: name === 'dist-01' ? 'offline' as const : 'online' as const })),
   links: [up, slow],
   suggestions: [{ a: 'sw-d-01', a_port: 'Te1/1/1', b: 'dist-01', b_port: 'Te1/0/3', protocol: 'lldp', speed: 10 }],
   counts: { links: 2, down: 0, slow: 1 }, types: ['cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac'], speeds: [1, 10, 25, 40, 100],
@@ -40,5 +40,15 @@ describe('Topology', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
       a: 'sw-d-01', a_port: 'Te1/1/1', b: 'dist-01', b_port: 'Te1/0/3', type: 'fiber-mm', speed: 10, note: '',
     }))
+  })
+
+  it('marks a box that is down and says so in its panel', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    const { container } = renderWithApp(<Topology />)
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    expect(container.querySelector('rect[data-status="offline"]')).not.toBeNull()
+    expect(container.querySelectorAll('rect[data-status="online"]')).toHaveLength(2)     // sw-d-01 has no links, so it isn't drawn
+    fireEvent.click(screen.getByText('dist-01', { selector: 'text' }))
+    expect(await screen.findByText('Down', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
   })
 })

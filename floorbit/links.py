@@ -313,8 +313,11 @@ def topology(now=None, suggest=True):
             guess = next((s for s in SPEEDS if isinstance(speed, (int, float)) and speed == s * 1e9), None)
             suggestions.append({'a': a[0], 'a_port': a[1], 'b': b[0], 'b_port': b[1],
                                 'protocol': str(n.get('protocol') or '')[:8], 'speed': guess})
+    # Whether each box is up, from the same cached device list the firewalls view reads.
+    from .firewalls import health
     nodes = [{'id': d['id'], 'name': d['name'], 'role': d.get('role'), 'hall': d.get('hall') or '',
-              'unread': ports.get(str(d['name']).lower()) is None} for d in devices]
+              'unread': ports.get(str(d['name']).lower()) is None, 'status': health.status(d['name'], now)}
+             for d in devices]
     return {'nodes': sorted(nodes, key=lambda n: n['name'].lower()), 'links': rows,
             'suggestions': sorted(suggestions, key=lambda s: (s['a'].lower(), s['a_port'])),
             'counts': {'links': len(rows), 'down': sum(r['issue'] == 'down' for r in rows),

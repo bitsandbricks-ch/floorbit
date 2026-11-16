@@ -39,6 +39,7 @@
   "slow": "Langsamer als geplant",
   "thicker": "Dicker ist schneller.",
   "state": { "up": "Läuft", "down": "Down", "unknown": "Nicht gelesen" },
+  "status": { "online": "Läuft", "offline": "Down", "unknown": "Nicht gelesen" },
   "media": { "copper": "Kupfer" },
   "types": { "cat5e": "Kupfer Cat5e", "cat6": "Kupfer Cat6", "cat6a": "Kupfer Cat6a", "fiber-sm": "Glasfaser Singlemode", "fiber-mm": "Glasfaser Multimode", "dac": "DAC" },
   "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" }

@@ -39,6 +39,7 @@
   "slow": "Slower than planned",
   "thicker": "Thicker is faster.",
   "state": { "up": "Up", "down": "Down", "unknown": "Not read" },
+  "status": { "online": "Up", "offline": "Down", "unknown": "Not read" },
   "media": { "copper": "Copper" },
   "types": { "cat5e": "Copper Cat5e", "cat6": "Copper Cat6", "cat6a": "Copper Cat6a", "fiber-sm": "Fiber single-mode", "fiber-mm": "Fiber multi-mode", "dac": "DAC" },
   "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" }

@@ -1503,7 +1503,7 @@ export interface SwitchLink {
   media: 'copper' | 'fiber' | 'dac' | ''
   state: 'up' | 'down' | 'unknown'; speed_bps: number | null; issue: '' | 'down' | 'slow'
 }
-export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean }
+export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean; status: 'online' | 'offline' | 'unknown' }
 export interface LinkSuggestion { a: string; a_port: string; b: string; b_port: string; protocol: string; speed: number | null }
 export interface Topology {
   nodes: TopologyNode[]; links: SwitchLink[]; suggestions: LinkSuggestion[]
