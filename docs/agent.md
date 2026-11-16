@@ -225,9 +225,19 @@ it came from and when it arrived. The hosted Floorbit treats them as if they had
   DHCP servers). Lines from anyone else are dropped and counted, as usual.
 - The rate cap, retention and Loki forwarding are the hosted side's.
 
-While the hosted Floorbit can't be reached, the agent keeps up to 20,000 lines and sends them when
-it's back, with the time it got them. Past that it drops the newest and counts them; the Logs page
-shows the count next to "Through the local agent …".
+While the hosted Floorbit can't be reached, the agent keeps the lines on disk (up to 2 GB and 24
+hours, floorbit-agent's README) and sends them when it's back: the live lines first, the backlog
+behind them, oldest first. An agent from before the disk buffer keeps up to 20,000 lines in memory.
+Lines it had to drop are counted; the Logs page shows the count next to "Through the local
+agent …".
+
+Lines that come late keep their own time, back to `SYSLOG_RETENTION_HOURS`, so the Logs page shows
+them when they happened. They don't raise [log alerts](syslog.md) (that was hours ago), and they
+have a rate cap of their own, so a backlog neither gets cut nor crowds out the live lines.
+
+Each line carries an ID made of its sender and text, the same on every agent that heard it. A second
+copy within ten seconds of the first (two agents, or a batch sent again after a crash) is dropped
+and counted as `duplicates` in the syslog status.
 
 ## Traffic (NetFlow) through the agent
 
