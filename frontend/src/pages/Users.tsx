@@ -8,6 +8,7 @@ import type { Account, AccountsList } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { ErrorBanner } from '@/components/ui'
 
 type Open = 'password' | 'discord' | 'sign-in' | null
 
@@ -162,7 +163,7 @@ export default function Users() {
       <PageHead title={t('users.title')} desc={t('users.intro')}
         actions={<Button component="a" href="/settings/teams" variant="default">{t('users.rolesAndTeams')}</Button>} />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {list && (
           <>
             <Text size="sm" c="dimmed">

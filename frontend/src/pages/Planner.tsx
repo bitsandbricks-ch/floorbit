@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Code, Group, Loader, Modal, NumberInput, Paper, ScrollArea, Select, SimpleGrid, Stack, Table, Text,
+  Alert, Badge, Button, Code, Group, Modal, NumberInput, Paper, ScrollArea, Select, SimpleGrid, Stack, Table, Text,
   TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconDownload, IconFileTypePdf, IconPlus } from '@tabler/icons-react'
@@ -14,6 +14,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { seatRange } from './planner/seats'
+import { LoadingState } from '@/components/ui'
 
 function SettingsForm({ initial, models, onSaved }: { initial: PlannerSettings; models: PlannerModel[]; onSaved: () => void }) {
   const { t } = useTranslation()
@@ -57,7 +58,7 @@ function ConfigModal({ name, onClose }: { name: string; onClose: () => void }) {
   return (
     <Modal opened onClose={onClose} title={t('planner.configOf', { name })} size="xl">
       {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
-      {q.isPending ? <Loader aria-label={t('common.loading')} /> : q.data && (
+      {q.isPending ? <LoadingState /> : q.data && (
         <ScrollArea h={480}><Code block>{q.data.config}</Code></ScrollArea>
       )}
     </Modal>
@@ -146,7 +147,7 @@ export default function Planner() {
             {added.length ? t('planner.added', { count: added.length, names: added.join(', ') }) : t('planner.addedNone')}
           </Alert>
         )}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && plan && (
+        {query.isPending ? <LoadingState /> : d && plan && (
           <>
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('planner.settings')}</Title>

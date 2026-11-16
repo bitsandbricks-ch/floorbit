@@ -14,6 +14,7 @@ import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
+import { ErrorBanner } from '@/components/ui'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
 type T = (k: string, o?: Record<string, unknown>) => string
@@ -185,7 +186,7 @@ export default function Problems() {
           )}
         </CopyButton>
       )} />
-      {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
+      <ErrorBanner error={error} mb="md" />
       {list.isPending || !data ? (
         <Loader size="sm" />
       ) : (

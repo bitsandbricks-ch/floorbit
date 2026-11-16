@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Paper, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Badge, Button, Group, Paper, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconDownload, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ import { PageHead } from '@/components/PageHead'
 import { ImportDialog } from './seatmap/ImportDialog'
 import { matches } from './seatmap/model'
 import { SeatForm, type SeatDraft } from './seatmap/SeatForm'
+import { LoadingState } from '@/components/ui'
 
 function Cell({ value, source, label, mono }: { value: string; source?: string; label: (s: string) => string; mono?: boolean }) {
   if (!value) return <Text c="dimmed">–</Text>
@@ -121,7 +122,7 @@ export default function SeatMapping() {
         />
         <Switch label={t('seatmap.onlyManual')} checked={onlyManual} onChange={(e) => setOnlyManual(e.currentTarget.checked)} mb={8} />
       </Group>
-      {isPending && <Loader aria-label={t('common.loading')} />}
+      {isPending && <LoadingState />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

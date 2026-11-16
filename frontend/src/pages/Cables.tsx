@@ -1,5 +1,5 @@
 import {
-  Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput,
+  Alert, Autocomplete, Badge, Button, Group, Modal, NumberInput, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput,
 } from '@mantine/core'
 import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -16,6 +16,7 @@ import { PageHead } from '@/components/PageHead'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortClients } from '@/components/PortClients'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string; type: string; speed: string }
 const TYPES = ['cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac']
@@ -139,7 +140,7 @@ export default function Cables() {
           </Group>
         } />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {patched && (
           <Alert color="up" withCloseButton onClose={() => setPatched(null)}>
             {t('cables.created', { created: patched.created ?? 0, removed: patched.removed ?? 0 })}
@@ -154,7 +155,7 @@ export default function Cables() {
         )}
         <PatchCheck />
         {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => setAdding({ switch: c.switch, port: c.port, seat: c.ip_seat })} />}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
               value={search} onChange={(e) => setSearch(e.currentTarget.value)} />

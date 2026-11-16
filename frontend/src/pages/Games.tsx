@@ -8,6 +8,7 @@ import type { CacheRow, GamesData, LancacheData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { bytes } from './traffic/format'
+import { ErrorBanner } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -186,7 +187,7 @@ export default function Games() {
           <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('games.range')}
             data={RANGES.map((h) => ({ value: String(h), label: t(`games.hours.${h}`) }))} />
         } />
-      {query.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: query.error.message })}</Alert>}
+      <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.cache.error && <Alert color="warn" mb="md">{t('games.cacheError', { message: data.cache.error })}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : none ? (
         <Alert color="gray" variant="light">{t('games.noSources')} <Anchor href={DOCS}>docs/games.md</Anchor></Alert>

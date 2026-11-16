@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Chip, Group, Loader, Paper, SegmentedControl, Stack, Text, TextInput, Title,
+  Badge, Button, Chip, Group, Paper, SegmentedControl, Stack, Text, TextInput, Title,
 } from '@mantine/core'
 import { IconDownload, IconSearch } from '@tabler/icons-react'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { useLiveEvent } from '@/api/live'
 import type { TimelineData, TimelineEntry, TimelineKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const KINDS: TimelineKind[] = ['change', 'outage', 'incident', 'alert', 'deploy', 'sign-in']
 const RANGES = ['6', '24', '0'] as const
@@ -97,8 +98,8 @@ export default function Timeline() {
             ))}
           </Group>
         </Chip.Group>
-        {list.error && <Alert color="down" role="alert">{t('common.error', { message: list.error.message })}</Alert>}
-        {list.isPending ? <Loader aria-label={t('common.loading')} /> : rows.length === 0 ? (
+        <ErrorBanner error={list.error} onRetry={() => void list.refetch()} />
+        {list.isPending ? <LoadingState /> : rows.length === 0 ? (
           <Text c="dimmed">{t('timeline.empty')}</Text>
         ) : (
           <>

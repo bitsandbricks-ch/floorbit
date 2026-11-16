@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, Select, Stack, Table, Text, Title,
+  Alert, Anchor, Badge, Group, Paper, SegmentedControl, Select, Stack, Table, Text, Title,
 } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -11,6 +11,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { channelColor, loadColor } from './wifi/colors'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/wifi.md'
 const RADIUS = 80   // an AP's circle on the plan, in plan units
@@ -102,9 +103,9 @@ export default function Wifi() {
             data={d.halls.map((h) => ({ value: h.id, label: h.name }))} />
         ) : undefined} />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {d?.errors.map((e) => <Alert key={e} color="warn">{t('wifi.pluginError', { message: e })}</Alert>)}
-        {query.isPending || !d ? <Loader aria-label={t('common.loading')} /> : d.sources.length === 0 ? (
+        {query.isPending || !d ? <LoadingState /> : d.sources.length === 0 ? (
           <Alert color="gray" variant="light">{t('wifi.noPlugin')} <Anchor href={DOCS}>docs/wifi.md</Anchor></Alert>
         ) : (
           <>

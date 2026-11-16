@@ -9,6 +9,7 @@ import { useSetup } from '@/api/queries'
 import type { ConnectionTest, SetupState, SetupStep } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { ErrorBanner } from '@/components/ui'
 
 const STEPS: SetupStep[] = ['netbox', 'librenms', 'switches', 'theme']
 const THEMES = ['floorbit', 'ops', 'kiosk', 'classic'] as const
@@ -222,7 +223,7 @@ export default function Setup() {
   return (
     <Layout title={t('setup.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('setup.title')} desc={data?.needs_account ? t('setup.introAccount') : t('setup.intro')} />
-      {setup.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: setup.error.message })}</Alert>}
+      <ErrorBanner error={setup.error} mb="md" />
       {body}
     </Layout>
   )

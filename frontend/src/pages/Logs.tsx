@@ -10,6 +10,7 @@ import type { LogSeverity, LogSource, LogStatus, LogsData, SyslogLine } from '@/
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { onPlan } from './plan/links'
+import { ErrorBanner } from '@/components/ui'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/syslog.md'
 const SEVERITIES: LogSeverity[] = ['emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug']
@@ -183,7 +184,7 @@ export default function Logs() {
     <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }}>
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={<Switch label={t('logs.live')} checked={live} onChange={(e) => setLive(e.currentTarget.checked)} />} />
-      {query.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: query.error.message })}</Alert>}
+      <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
       {sources.length > 1 && (
         <SegmentedControl mb="sm" value={source} onChange={(v) => setSource(v as LogSource)} aria-label={t('logs.source')}

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
+import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
 import { IconQrcode } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { useCan } from '@/api/queries'
 import { qk } from '@/api/keys'
 import type { BlockDetails } from '@/api/types'
 import { rate } from './model'
+import { ErrorBanner } from '@/components/ui'
 
 const TONE: Record<string, string> = { online: 'up', offline: 'down' }
 
@@ -26,7 +27,7 @@ export function BlockPanel({ name, onSeat, onSwitch, onClose }: {
         <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
       </Group>
       {q.isPending && <Loader size="sm" aria-label={t('common.loading')} />}
-      {q.error && <Alert color="down" role="alert">{t('common.error', { message: q.error.message })}</Alert>}
+      <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {b && (
         <>
           <Text>{t('plan.blockPanel.carries', { online: b.online, count: b.seats })}</Text>

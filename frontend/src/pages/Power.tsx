@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Paper, Progress, Stack, Table, Text, Title } from '@mantine/core'
+import { Badge, Button, Group, Loader, Paper, Progress, Stack, Table, Text, Title } from '@mantine/core'
 import { IconBolt, IconPlus, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -11,6 +11,7 @@ import type { Circuit, PowerBoard, PowerOverview, PowerState } from '@/api/types
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BoardDialog, CircuitDialog, ReadingDialog } from './power/Dialogs'
+import { ErrorBanner } from '@/components/ui'
 
 const TONE: Record<PowerState, string> = { ok: 'up', warn: 'warn', crit: 'down', tripped: 'down', unknown: 'gray' }
 const ORDER: PowerState[] = ['tripped', 'crit', 'warn', 'ok', 'unknown']
@@ -207,7 +208,7 @@ export default function Power() {
           </Group>
         )}
       />
-      {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
+      <ErrorBanner error={error} mb="md" />
       {power.isPending || !data ? (
         <Loader size="sm" />
       ) : !data.enabled ? (

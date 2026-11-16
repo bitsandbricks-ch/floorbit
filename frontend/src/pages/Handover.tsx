@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
 import { IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -12,6 +12,7 @@ import { PageHead } from '@/components/PageHead'
 import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
+import { LoadingState } from '@/components/ui'
 
 function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
   return (
@@ -91,7 +92,7 @@ export default function Handover() {
             {done.posted ? t('handover.doneDiscord') : t('handover.done')}
           </Alert>
         )}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <Text size="sm" c="dimmed">{t('handover.since', { when: when(d.since) })}</Text>
             {d.previous && <Note record={d.previous} title={t('handover.lastNote')} />}

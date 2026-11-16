@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Badge, Button, Chip, Grid, Group, Loader, NavLink, Paper, Stack, Tabs, Text, TextInput, Textarea, Title,
+  ActionIcon, Alert, Badge, Button, Chip, Grid, Group, NavLink, Paper, Stack, Tabs, Text, TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconArrowDown, IconArrowUp, IconPlus } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ import type { Runbook, RunbookKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Draft = { title: string; kinds: RunbookKind[]; body: string }
 
@@ -78,9 +79,9 @@ export default function Runbooks() {
     <Layout title={t('runbooks.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
       <PageHead title={t('runbooks.title')} desc={t('runbooks.intro')}
         actions={canEdit ? <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing('new')}>{t('runbooks.add')}</Button> : undefined} />
-      {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+      <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {(remove.error || move.error) && <Alert color="down" role="alert">{(remove.error || move.error)!.message}</Alert>}
-      {query.isPending || !d ? <Loader aria-label={t('common.loading')} /> : (
+      {query.isPending || !d ? <LoadingState /> : (
         <Grid gap="md">
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Paper withBorder radius="lg" p="xs">

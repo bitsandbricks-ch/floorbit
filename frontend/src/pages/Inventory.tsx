@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, Select, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Paper, Select, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { DeviceForm } from './inventory/DeviceForm'
 import { matches, type Draft } from './inventory/model'
+import { LoadingState } from '@/components/ui'
 
 function when(iso: string, lang: string) {
   const d = new Date(iso)
@@ -157,7 +158,7 @@ export default function Inventory() {
         />
         <Switch label={t('inventory.showHidden')} checked={showHidden} onChange={(e) => setShowHidden(e.currentTarget.checked)} mb={8} />
       </Group>
-      {isPending && <Loader aria-label={t('common.loading')} />}
+      {isPending && <LoadingState />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Code, Group, Loader, Paper, Stack, Table, Text, TextInput, Textarea, Title } from '@mantine/core'
+import { Alert, Badge, Button, Code, Group, Paper, Stack, Table, Text, TextInput, Textarea, Title } from '@mantine/core'
 import { IconTrophy } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -13,6 +13,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { compact } from './tournament/seats'
+import { LoadingState } from '@/components/ui'
 
 function HallPlan({ drawing, label }: { drawing: PlanDrawing; label: string }) {
   return (
@@ -123,7 +124,7 @@ export default function Tournament() {
         actions={<Button component={Link} to="/tournament/brackets" variant="default" leftSection={<IconTrophy size={16} />}>{t('tournament.brackets')}</Button>} />
       <Stack gap="md">
         {(query.error ?? remove.error) && <Alert color="down" role="alert">{t('common.error', { message: (query.error ?? remove.error)!.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : data && (
+        {query.isPending ? <LoadingState /> : data && (
           <>
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb={4}>{t('tournament.what')}</Title>

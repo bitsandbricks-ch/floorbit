@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Paper, Select, Stack, Table, Text, TextInput } from '@mantine/core'
+import { Badge, Button, Group, Paper, Select, Stack, Table, Text, TextInput } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import type { AuditEntry, AuditPage } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 
 const PAGE = 100
 const FILTERS = ['area', 'user', 'q'] as const
@@ -71,7 +72,8 @@ export default function Audit() {
               {t('audit.csv')}
             </Button>
           </Group>
-          {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+          <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+          {query.isPending && <LoadingState rows={2} />}
           <Text size="sm" c="dimmed" role="status" aria-live="polite">
             {total ? t('audit.showing', { shown: rows.length, total }) : ''}
           </Text>

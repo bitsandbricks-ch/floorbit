@@ -1,4 +1,4 @@
-import { Alert, Badge, Box, Button, Group, Loader, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Badge, Box, Button, Group, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { IconPlugConnected, IconX } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -10,6 +10,7 @@ import type { TerminalInfo, TerminalOutput } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { type TerminalHandle, TerminalView } from './terminal/TerminalView'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 interface Open {
   id: string
@@ -50,8 +51,8 @@ export default function TerminalPage() {
     <Layout title={t('terminal.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('terminal.title')} desc={t('terminal.intro', { idle: info?.idle_minutes ?? 10, max: info?.max_minutes ?? 60 })} />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : info && !info.available ? (
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {query.isPending ? <LoadingState /> : info && !info.available ? (
           <Alert color="warn">{t('terminal.noPlugin')}</Alert>
         ) : info && !open && (
           <Paper withBorder radius="lg" p="md">

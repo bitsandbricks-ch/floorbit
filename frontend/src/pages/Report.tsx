@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Group, Loader, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -13,6 +13,7 @@ import { PageHead } from '@/components/PageHead'
 import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
 import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -105,13 +106,13 @@ export default function Report() {
         } />
       <Stack gap="md">
         {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
+        <ErrorBanner error={error} />
         {r?.may_add_people && (
           <Switch checked={people} onChange={(e) => setPeople(e.currentTarget.checked)} label={t('report.people')}
             description={t('report.peopleHelp')} />
         )}
         {r?.people && <Alert color="warn" role="note">{t('report.peopleOn')}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : r && (
+        {query.isPending ? <LoadingState /> : r && (
           <>
             {r.start && r.end && <Text size="sm" c="dimmed">{t('report.period', { start: stamp(r.start), end: stamp(r.end) })}</Text>}
             <SimpleGrid cols={{ base: 2, sm: 3 }}>

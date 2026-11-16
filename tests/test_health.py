@@ -149,9 +149,11 @@ def test_kiosk_sees_the_wall_page(app_module, wall):
     kiosk = app_module.app.test_client()
     kiosk.post("/login", data={"username": "hall-screen", "password": "kiosk-password-1"})
     assert kiosk.get("/api/health").status_code == 200
-    page = kiosk.get("/health")
+    page = kiosk.get("/health?screen=1")
     assert page.status_code in (200, 503)   # 503 only when the React app isn't built
     assert b'data-preset="kiosk"' in page.data
+    # Inside the app, without ?screen=1, it looks like every other crew page.
+    assert b'data-preset="kiosk"' not in kiosk.get("/health").data
 
 
 def test_http_check_feeds_the_wall(client, wall, monkeypatch):

@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Badge, Button, Group, Loader, Modal, Paper, Progress, Stack, Table, Text, TextInput, Title,
+  ActionIcon, Alert, Badge, Button, Group, Modal, Paper, Progress, Stack, Table, Text, TextInput, Title,
 } from '@mantine/core'
 import { IconDownload, IconPencil } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { dates, METRICS, share } from './events/metrics'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
 
@@ -130,9 +131,9 @@ export default function Events() {
     <Layout title={t('events.title')} back={{ href: '/report', label: t('report.title') }}>
       <PageHead title={t('events.title')} desc={t('events.intro')} />
       <Stack gap="md">
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
+        <ErrorBanner error={error} />
         {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <Comparison columns={columns} />
             <Paper withBorder radius="lg" p="md">

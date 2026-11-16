@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
+import { Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
 import { IconFileText, IconMaximize, IconPlayerPlay } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -16,6 +16,7 @@ import { Compare } from './stats/Compare'
 import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
 import { onPlan } from './plan/links'
+import { ErrorBanner } from '@/components/ui'
 
 const HOUR = 3600
 
@@ -158,7 +159,7 @@ export default function Stats() {
   const error = stats.error ?? reset.error
   const body = (
     <>
-      {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
+      <ErrorBanner error={error} mb="md" />
       {stats.isPending ? <Loader size="sm" /> : stats.data && <Board data={stats.data} screen={screen} />}
     </>
   )

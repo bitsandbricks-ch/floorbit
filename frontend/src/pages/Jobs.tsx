@@ -1,4 +1,4 @@
-import { Accordion, Alert, Badge, Button, Group, Loader, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Accordion, Alert, Badge, Button, Group, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,7 @@ import { Layout } from '@/components/Layout'
 import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 function since(ts: number) {
   return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -96,9 +97,9 @@ export default function Jobs() {
       count={(data?.jobs ?? []).filter((j) => !j.taken_at).length}>
       <PageHead title={t('jobs.title')} desc={t('jobs.intro')} />
       <Stack gap="md">
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
+        <ErrorBanner error={error} />
         {message && <Alert color="up" role="status" withCloseButton onClose={() => setMessage(null)}>{message}</Alert>}
-        {jobs.isPending ? <Loader aria-label={t('common.loading')} /> : data && (
+        {jobs.isPending ? <LoadingState /> : data && (
           <>
             <Paper withBorder radius="lg" p="sm">
               <Stack gap="sm">

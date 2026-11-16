@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Anchor, Badge, Button, Checkbox, Group, Loader, Paper, Progress, Stack, Text, TextInput, Title } from '@mantine/core'
+import { ActionIcon, Anchor, Badge, Button, Checkbox, Group, Paper, Progress, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconDownload, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -11,6 +11,7 @@ import type { Teardown as TeardownData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 function Part({ title, done, left, children }: { title: string; done: boolean; left: number; children: ReactNode }) {
   const { t } = useTranslation()
@@ -48,8 +49,8 @@ export default function Teardown() {
     <Layout title={t('teardown.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('teardown.title')} desc={t('teardown.intro')} />
       <Stack gap="md">
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        <ErrorBanner error={error} />
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <Paper withBorder radius="lg" p="md">
               <Group justify="space-between" mb={6}>

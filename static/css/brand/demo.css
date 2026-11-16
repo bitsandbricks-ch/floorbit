@@ -3,9 +3,9 @@
 body::after {
   content: "Demo data";
   position: fixed;
-  left: 50%;
+  /* Bottom right: the attribution sits in the middle and the account at the left. */
+  right: 16px;
   bottom: 12px;
-  transform: translateX(-50%);
   z-index: 10000;
   padding: 4px 12px;
   border-radius: 999px;
