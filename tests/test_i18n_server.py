@@ -119,6 +119,12 @@ def test_api_errors_come_in_the_asked_language(client):
     ('18/20 players', '18/20 Spieler'),
     ('The cache disk is 95 % full.', 'Die Cache-Disk ist zu 95 % voll.'),
     ('850 / 1000 Mbit/s in', '850 / 1000 Mbit/s eingehend'),
+    ('DHCP players: needs a look', 'DHCP players: braucht einen Blick'),       # not the catch-all "{}: {}"
+    ('Fiber multi-mode, 10G planned', 'Glasfaser Multimode, 10G geplant'),
+    ('Feeds 12 seats', 'Speist 12 Plätze'),
+    ('Seat A-2 is online without a check-in', 'Platz A-2 ist online ohne Check-in'),
+    ('sw-a-01 Gi1/0/2 (seat A-2)', 'sw-a-01 Gi1/0/2 (Platz A-2)'),
+    ('Loop detected (3 lines)', 'Schleife erkannt (3 Zeilen)'),
 ])
 def test_health_tiles_built_in_speak_german(english, german):
     assert i18n.translate(english, 'de-CH') == german

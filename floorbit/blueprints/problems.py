@@ -13,7 +13,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import alerting, events
 
-from .. import audit, incidents, inventory, problems, spa
+from .. import audit, i18n, incidents, inventory, problems, spa
 from ..store import load_data
 
 bp = Blueprint('problems', __name__)
@@ -40,6 +40,11 @@ def problems_page():
 @bp.route('/api/problems', methods=['GET'])
 def list_problems():
     body = {**problems.current(_can('seats.view')), 'can_mute': _can('incidents.work')}
+    # Titles and places in the reader's language (issue #467); names, ports and plugin texts stay.
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    for key in ('problems', 'attention'):
+        body[key] = [{**p, 'title': i18n.translate(p.get('title'), lang),
+                      'where': i18n.translate(p.get('where'), lang)} for p in body.get(key) or []]
     # An offline switch can become an incident in one click, or links the one already open (issue #278).
     body['can_report'] = not current_app.extensions['auth'].enabled or incidents.can_see_board(_user())
     if body['can_report']:
