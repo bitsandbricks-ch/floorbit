@@ -255,8 +255,10 @@ def cached_port(ip):
     hit = _port_cache.get(ip) if ip else None
     if hit and time.time() - hit[0] < PORT_CACHE_SECONDS:
         return hit[1]
-    if ip and len(_warm) < 10000:
-        _warm.add(ip)
+    if ip:
+        with _warm_lock:      # the page's threads add while the verifier takes
+            if len(_warm) < 10000:
+                _warm.add(ip)
         _wake.set()
     return None
 
@@ -513,6 +515,7 @@ VERIFY_GIVE_UP = 15 * 60   # LibreNMS polls ARP and MAC tables every few minutes
 _wake = threading.Event()
 _bucket = {'tokens': None, 'at': None}
 _warm = set()              # IPs the check-in page asked about: their port is looked up when there's room
+_warm_lock = threading.Lock()
 
 
 def _budget(now, wanted):
@@ -553,9 +556,11 @@ def verify_pending(now=None):
             found[seat] = ('pending', None, mac)
     # What's left of the budget warms the cache for the check-in page's seat hint. A PC that has
     # checked in meanwhile needs no hint.
-    _warm.difference_update(r.get('ip') for r in everyone.values())
-    for ip in list(_warm)[:_budget(now, len(_warm))]:
-        _warm.discard(ip)
+    with _warm_lock:
+        _warm.difference_update(r.get('ip') for r in everyone.values())
+        take = list(_warm)[:_budget(now, len(_warm))]
+        _warm.difference_update(take)
+    for ip in take:
         port_of(ip)
     if not found:
         return []
