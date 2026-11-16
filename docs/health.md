@@ -51,6 +51,10 @@ Like widgets, checks are data: text is shown as text and links only go to this s
 fails shows as one grey tile; the error is in its log under **Settings › Plugins**. The plugin
 decides what amber and red mean, since a "low" lease count depends on the scope.
 
+Write `summary` and metric labels in English. On a German page the wall shows the German text from
+`floorbit/locales/de-CH.json` when there is one (Floorbit's own checks and the demo have them), and
+the plugin's own words otherwise.
+
 ## Polling and alerts
 
 A background thread asks every health plugin every **Check interval** seconds (30 by default,

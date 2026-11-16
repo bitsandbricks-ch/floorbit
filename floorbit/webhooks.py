@@ -7,7 +7,8 @@ The events come from the live event bus (integrations/events.py) and are reshape
 stable set, so the bus can change without breaking anybody's receiver. Payloads carry no nicks, IPs
 or MACs: a check-in says which seat, not who.
 
-Delivery runs in a background thread with retries (10 s, 1 min, 5 min). Redirects are not followed.
+Delivery runs in a background thread with retries (10 s, 1 min, 5 min). Redirects are not followed,
+and nothing goes to a link-local address.
 The last deliveries of each hook are kept in memory for Settings > Webhooks. Kept in data.json under
 ``webhooks``; backups never include them, because of the secrets.
 """
@@ -196,8 +197,27 @@ def enqueue(hook, name, payload):
     _wake.set()
 
 
+def _addresses(host):
+    import socket
+    return {info[4][0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
+
+
+def _refused(url):
+    """Why Floorbit won't post to ``url``, or None. A webhook may go anywhere an admin likes, except
+    an address nothing outside the machine answers on, like the cloud metadata service."""
+    from . import probes
+    try:
+        addrs = _addresses(urlsplit(url).hostname or '')
+    except (OSError, UnicodeError):
+        return None         # requests says it better
+    return 'Refused: link-local address' if any(probes.unreachable(a) for a in addrs) else None
+
+
 def _send(hook, job):
     import requests
+    refused = _refused(hook['url'])
+    if refused:
+        return False, None, refused
     ts = str(int(time.time()))
     headers = {'Content-Type': 'application/json', 'User-Agent': 'Floorbit-Webhooks/1',
                'Floorbit-Event': job['event'], 'Floorbit-Delivery': job['delivery'],
