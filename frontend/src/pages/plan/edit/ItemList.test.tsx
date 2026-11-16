@@ -20,9 +20,9 @@ const groups: PlanGroup[] = [
 ]
 
 function setup() {
-  const onSelect = vi.fn(), onRename = vi.fn(), onUngroup = vi.fn()
-  renderWithApp(<ItemList data={data} groups={groups} selected={[]} onSelect={onSelect} onRename={onRename} onUngroup={onUngroup} />)
-  return { onSelect, onRename, onUngroup }
+  const onSelect = vi.fn(), onRename = vi.fn(), onUngroup = vi.fn(), onFrame = vi.fn()
+  renderWithApp(<ItemList data={data} groups={groups} selected={[]} onSelect={onSelect} onRename={onRename} onUngroup={onUngroup} onFrame={onFrame} />)
+  return { onSelect, onRename, onUngroup, onFrame }
 }
 
 describe('Items list', () => {
@@ -42,6 +42,12 @@ describe('Items list', () => {
     expect(onSelect).toHaveBeenLastCalledWith([{ kind: 'mark', id: 'm2' }], false)
     fireEvent.click(screen.getByText('Front'), { shiftKey: true })
     expect(onSelect).toHaveBeenLastCalledWith([{ kind: 'block', id: 'A' }, { kind: 'mark', id: 'm1' }], true)
+  })
+
+  it('zooms to an item on double-click', () => {
+    const { onFrame } = setup()
+    fireEvent.doubleClick(screen.getByText('Zone: Bar'))
+    expect(onFrame).toHaveBeenCalledWith([{ kind: 'mark', id: 'm2' }])
   })
 
   it('finds by name, also inside groups', () => {

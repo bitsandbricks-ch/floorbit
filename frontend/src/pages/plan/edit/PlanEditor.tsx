@@ -817,7 +817,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           <ItemList data={data} groups={groups} selected={selected}
             onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
             onRename={(g, name) => void renameGroup(g, name)}
-            onUngroup={(g) => void regroup(g.members, false)} />
+            onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
           <Text size="xs" c="dimmed">
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
           </Text>
