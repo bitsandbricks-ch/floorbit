@@ -212,6 +212,21 @@ def test_qr_sheet_needs_assign_and_holds_signed_links(client, app_module, floor)
     assert seats[0]["url"].endswith(help_url(app_module, "A-1")) and seats[0]["image"].startswith("data:image/svg+xml")
 
 
+def test_each_qr_code_is_made_once(client, floor, monkeypatch):
+    # A 4000-seat sheet took 15 s on every load while each code was drawn again.
+    made = []
+    real = incidents_bp.segno.make
+    monkeypatch.setattr(incidents_bp.segno, "make", lambda *a, **kw: made.append(a[0]) or real(*a, **kw))
+    incidents_bp._qr_image.cache_clear()
+    first = client.get("/api/helpdesk/qr").get_json()["seats"]
+    again = client.get("/api/helpdesk/qr").get_json()["seats"]
+    assert len(made) == 4 and first == again
+    # A new address is a new link, so a new code.
+    monkeypatch.setenv("QR_URL", "https://help.example.com")
+    client.get("/api/helpdesk/qr")
+    assert len(made) == 8 and all("help.example.com" in u for u in made[4:])
+
+
 def test_qr_codes_can_point_at_their_own_address(client, app_module, floor, monkeypatch, tmp_path):
     # Attendees often reach Floorbit under an event DNS name, not the crew's public URL.
     monkeypatch.setenv("CHECKIN_ENABLED", "true")

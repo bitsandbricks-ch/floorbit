@@ -10,6 +10,7 @@
   rate limited; only links printed from the QR sheet work.
 """
 import csv
+import functools
 import io
 import re
 import threading
@@ -249,6 +250,13 @@ def _help_url(seat):
     return _card_url('incidents.help_page', seat=seat, k=incidents.signature(seat))
 
 
+@functools.lru_cache(maxsize=10000)
+def _qr_image(url):
+    # segno tries all eight masks for the best scan, about 4 ms a code: 15 s for a 4000-seat sheet.
+    # A seat's link only changes with the secret key or the address, so each code is made once.
+    return segno.make(url, error='m').svg_data_uri(scale=4, border=2)
+
+
 def _seat_key(seat):
     head, _, tail = seat.rpartition('-')
     return (head, int(tail)) if tail.isdigit() else (seat, 0)
@@ -265,7 +273,7 @@ def qr_codes():
     out = []
     for seat in seats:
         url = _help_url(seat)
-        row = {'seat': seat, 'url': url, 'image': segno.make(url, error='m').svg_data_uri(scale=4, border=2)}
+        row = {'seat': seat, 'url': url, 'image': _qr_image(url)}
         if checkin_on:
             row['pin'] = pins.get(seat)
         out.append(row)
