@@ -93,6 +93,32 @@ seat names and numbers carry on across them, and the Seats view, the kiosk and t
 same spacing. Undo works as usual. In the API a block has `col_gaps` and `row_gaps`, each a list of
 `{"after": n, "size": s}`; gaps after the last column or row are dropped when a block gets smaller.
 
+## Alignment guides, groups and merging
+
+**Alignment guides:** while you drag a seat block (or a selection of blocks), it snaps when its edges,
+its middle or its rows of seats line up with another block, and a red line shows which. Between two
+blocks, it also snaps where the space on both sides is the same, and shows that space in seats. The guides
+win over the grid on the axis they snap. Hold <kbd>Alt</kbd> while dragging to place freely.
+
+**Groups** keep several blocks together while you lay out the hall. Select the blocks (<kbd>Shift</kbd>+click
+or a box with <kbd>Shift</kbd>+drag) and press <kbd>Ctrl</kbd>+<kbd>G</kbd>, or use **Group** in the selection
+panel or the right-click menu. From then on a click on any of them selects the whole group (a dashed frame
+shows it), and the group moves, turns (<kbd>R</kbd>, <kbd>Shift</kbd>+<kbd>R</kbd>) and copies
+(<kbd>Ctrl</kbd>+<kbd>D</kbd>) as one. Each block keeps its own seat names. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>
+or **Ungroup** splits it again; <kbd>Shift</kbd>+click still picks a single block out of a group.
+
+**Merge** makes one block of blocks next to each other, as if it had been made that size:
+
+- Blocks **stacked** with the same columns become one block with more rows. With a letter per row, the rows
+  keep their letters (E, F, then G).
+- Blocks **side by side** with the same rows become one wider block, and the seat numbers carry on
+  (A-1 to A-12, then A-13 to A-18).
+
+The blocks have to be turned the same way, use the same kind of seat names and stand in line. The top or
+left block keeps its name and settings, so the other blocks' seats get new names. Space between them
+becomes a gap. Undo brings the separate blocks back. For scripts: `POST /api/seat-blocks/merge` with
+`{"ids": [...]}`; a block's `group` is a free text id.
+
 ## The editor's menu
 
 The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block

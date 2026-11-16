@@ -677,7 +677,7 @@
       <aside class="detail-panel hidden" id="multi-detail-panel" aria-label="Selection details">
         <div class="detail-header">
           <div class="detail-heading">
-            <span class="detail-kind">Selection</span>
+            <span class="detail-kind" id="multi-detail-kind">Selection</span>
             <div class="detail-name" id="multi-detail-name">—</div>
             <span class="detail-status-badge badge-plain" id="multi-detail-summary">—</span>
           </div>
@@ -691,6 +691,22 @@
               Drag any selected item to move them all, or nudge with the arrow keys
               (<kbd>Shift</kbd> for bigger steps). One <kbd>Ctrl</kbd> <kbd>Z</kbd> undoes the whole move.
             </p>
+          </section>
+          {# Group, merge, turn and copy seat blocks (static/js/editor/groups.js). #}
+          <section class="detail-section edit-only hidden" id="multi-group-actions">
+            <h4 class="detail-section-title">Seat blocks</h4>
+            <p class="multi-hint">
+              <b>Group</b> keeps the blocks together: a click selects all, they move, turn and copy as one,
+              each keeps its seat names. <b>Merge</b> makes one block of blocks next to each other: rows or
+              seat numbers carry on.
+            </p>
+            <div class="multi-actions">
+              <button type="button" class="btn btn-ghost" id="multi-group" title="Group (Ctrl+G)">Group</button>
+              <button type="button" class="btn btn-ghost" id="multi-ungroup" title="Ungroup (Ctrl+Shift+G)">Ungroup</button>
+              <button type="button" class="btn btn-ghost" id="multi-merge">Merge</button>
+              <button type="button" class="btn btn-ghost" id="multi-rotate" title="Turn a quarter (R)">Turn</button>
+              <button type="button" class="btn btn-ghost" id="multi-duplicate" title="Copy (Ctrl+D)">Copy</button>
+            </div>
           </section>
           <section class="detail-section">
             <h4 class="detail-section-title">Items</h4>
@@ -945,7 +961,10 @@
         <dt><kbd>B</kbd></dt><dd>Add seat block</dd>
         <dt><kbd>D</kbd></dt><dd>Draw: a label, wall, zone or icon</dd>
         <dt><kbd>G</kbd></dt><dd>Toggle snap to grid</dd>
-        <dt><kbd>R</kbd></dt><dd>Turn the selected seat block a quarter (<kbd>Shift</kbd> the other way)</dd>
+        <dt><kbd>R</kbd></dt><dd>Turn the selected seat block or selection a quarter (<kbd>Shift</kbd> the other way)</dd>
+        <dt><kbd>Ctrl</kbd> <kbd>G</kbd></dt><dd>Group the selected seat blocks (<kbd>Shift</kbd> ungroups)</dd>
+        <dt><kbd>Ctrl</kbd> <kbd>D</kbd></dt><dd>Copy the selected seat blocks</dd>
+        <dt><kbd>Alt</kbd> while dragging</dt><dd>Place freely, without the alignment guides</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Z</kbd></dt><dd>Undo</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></dt><dd>Redo</dd>
         <dt><kbd>Del</kbd></dt><dd>Delete selection</dd>
@@ -1005,6 +1024,8 @@
   <script src="/static/js/editor/notice.js" defer></script>
   <script src="/static/js/editor/marks.js" defer></script>
   <script src="/static/js/editor/gaps.js" defer></script>
+  <script src="/static/js/editor/align.js" defer></script>
+  <script src="/static/js/editor/groups.js" defer></script>
   <script src="/static/js/editor/panels.js" defer></script>
   <script src="/static/js/editor/main.js" defer></script>
   <script src="/static/js/live.js" defer></script>

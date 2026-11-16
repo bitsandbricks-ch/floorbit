@@ -1147,3 +1147,19 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .gap-field { display: grid; gap: 2px; font-size: var(--fs-xs); color: var(--text-secondary); }
 .gap-field .modal-input { width: 100%; }
 .gap-remove { align-self: end; }
+
+/* ── Alignment guides while dragging (static/js/editor/align.js) ─────────────── */
+#align-guides, #group-frames { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+#align-guides { z-index: 6; }
+.align-line { position: absolute; background: var(--color-down); }
+.align-line.align-space { background: var(--color-trace); }
+.align-gap {
+  position: absolute; white-space: nowrap; padding: 1px 6px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; color: var(--bg-primary); background: var(--color-trace);
+}
+/* ── Seat block groups (static/js/editor/groups.js) ─────────────────────────── */
+.group-frame {
+  position: absolute; border: 1.5px dashed var(--color-trace); border-radius: 10px;
+  background: color-mix(in srgb, var(--color-trace) 5%, transparent);
+}
+.multi-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
