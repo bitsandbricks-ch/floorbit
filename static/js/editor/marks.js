@@ -98,7 +98,7 @@ function renderMarks() {
         `<line class="hit" x1="${m.x}" y1="${m.y}" x2="${m.x2}" y2="${m.y2}" vector-effect="non-scaling-stroke"/>` +
         `<line x1="${m.x}" y1="${m.y}" x2="${m.x2}" y2="${m.y2}" vector-effect="non-scaling-stroke"/></g>`);
     } else {
-      const turn = m.rotation ? ` rotate(${m.rotation}deg)` : '';
+      const turn = (m.rotation ? ` rotate(${m.rotation}deg)` : '') + (m.scale ? ` scale(${+m.scale})` : '');
       const inner = m.kind === 'text' ? escHtml(m.text) : iconSvg(m.icon);
       html.push(`<div class="mark-${m.kind} size-${m.size}${sel}" style="left:${m.x}%;top:${m.y}%;transform:translate(-50%,-50%)${turn}" data-mark="${m.id}"` +
         `${m.kind === 'icon' ? ` title="${escHtml(MARK_ICON_NAMES[m.icon] || m.icon)}"` : ''}>${inner}</div>`);

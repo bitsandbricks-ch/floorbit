@@ -647,6 +647,8 @@ export interface PlanMark {
   text?: string
   icon?: string
   size?: 's' | 'm' | 'l'
+  /** Stretch on top of ``size`` for a label or icon (0.25 to 8; missing is 1). */
+  scale?: number
   rotation?: number
   x2?: number
   y2?: number

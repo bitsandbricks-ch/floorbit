@@ -3,8 +3,11 @@ lines, zones, and icons for exits, toilets, the bar and the like.
 
 Each mark is in one hall (``hall_id``) at ``x``/``y`` in percent of the plan, like a seat block:
 
-- ``text``: ``text``, ``size`` (s, m, l), ``rotation`` (0, 90, 180, 270);
-- ``icon``: ``icon`` (one of :data:`ICONS`), ``size``, ``rotation``;
+- ``text``: ``text``, ``size`` (s, m, l), ``rotation`` (0, 90, 180, 270), ``scale``;
+- ``icon``: ``icon`` (one of :data:`ICONS`), ``size``, ``rotation``, ``scale``;
+
+``scale`` (optional, :data:`SCALE` range) stretches a label or icon beyond its size step: the editor
+sets it when someone drags the corner handle. Missing means 1.
 - ``wall``: a line from ``x``/``y`` to ``x2``/``y2``, ``style`` solid or dashed (a wall, a fence, a door gap);
 - ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label`` and ``color``.
 
@@ -30,6 +33,7 @@ COLORS = ('muted', 'bit', 'trace', 'warn', 'down')
 LAYERS = ('overview', 'safety', 'network', 'electrical', 'services')
 PUBLIC_LAYERS = ('overview', 'safety')   # what attendee pages show; the rest is for the crew
 TEXT_MAX, LABEL_MAX = 60, 40
+SCALE = (0.25, 8)
 MAX_MARKS = 2000
 
 class MarkError(ValueError):
@@ -85,10 +89,12 @@ def clean(body, old=None):
             raise MarkError(f'A label has 1 to {TEXT_MAX} characters')
         out.update(text=text, size=_pick(m.get('size'), SIZES, 'm', 'size'),
                    rotation=_pick(_int(m.get('rotation')), ROTATIONS, 0, 'rotation'))
+        _scale(out, m.get('scale'))
     elif kind == 'icon':
         out.update(icon=_pick(m.get('icon'), tuple(ICONS), None, 'icon') or _missing('icon'),
                    size=_pick(m.get('size'), SIZES, 'm', 'size'),
                    rotation=_pick(_int(m.get('rotation')), ROTATIONS, 0, 'rotation'))
+        _scale(out, m.get('scale'))
     elif kind == 'wall':
         out.update(x2=_pct(m.get('x2'), 'x2'), y2=_pct(m.get('y2'), 'y2'),
                    style=_pick(m.get('style'), STYLES, 'solid', 'style'))
@@ -103,6 +109,20 @@ def clean(body, old=None):
             raise MarkError(f'A zone label has at most {LABEL_MAX} characters')
         out.update(w=w, h=h, label=label, color=_pick(m.get('color'), COLORS, 'muted', 'color'))
     return out
+
+
+def _scale(out, value):
+    # 1 is the default and isn't stored, so marks that were never resized stay as they were.
+    if value in (None, ''):
+        return
+    try:
+        n = round(float(value), 2)
+        if not SCALE[0] <= n <= SCALE[1]:   # also false for NaN
+            raise ValueError(value)
+    except (TypeError, ValueError):
+        raise MarkError('scale is a number from {} to {}'.format(*SCALE)) from None
+    if n != 1:
+        out['scale'] = n
 
 
 def _int(value):

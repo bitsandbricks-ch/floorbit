@@ -385,7 +385,11 @@
         "m": "Mittel",
         "l": "Gross"
       },
-      "place": "Platzieren"
+      "place": "Platzieren",
+      "scaled": "Auf {{pct}} % gestreckt. Wähle eine Grösse, um das aufzuheben.",
+      "scaleHelp": "Für jede Grösse dazwischen den Eckgriff auf dem Plan ziehen.",
+      "handleSize": "Ziehen zum Ändern der Grösse (Alt: ohne Raster)",
+      "handleEnd": "Ziehen, um dieses Ende zu verschieben (Alt: ohne Raster)"
     },
     "copied_one": "Kopiert",
     "copied_other": "{{count}} Elemente kopiert",

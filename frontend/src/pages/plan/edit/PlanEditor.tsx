@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Cable, Circuit, PlanCable, PowerMarkers, SeatViewData } from '@/api/types'
+import type { Cable, Circuit, PlanCable, PlanMark, PowerMarkers, SeatViewData } from '@/api/types'
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { cablePath, useCablePlan } from '../cablePlan'
 import type { LayerState } from '../layers'
@@ -19,10 +19,12 @@ import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
 import { HallsDialog } from './HallsDialog'
+import { MarkHandles } from './MarkHandles'
+import { shapeBody } from './reshape'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
-import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
+import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, outlineOf, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
 import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
@@ -64,6 +66,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [drag, setDrag] = useState<{ d: Point } | null>(null)
   // A move the server has saved but the plan hasn't fetched again yet: keep drawing it moved.
   const [pending, setPending] = useState<{ moves: [ItemRef, Point][]; data: SeatViewData } | null>(null)
+  // A mark being resized with its handles: drawn as it is now, and after the drop until the plan comes back.
+  const [shaping, setShaping] = useState<{ mark: PlanMark; data: SeatViewData; done?: boolean } | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>('select')
@@ -93,6 +97,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }, [])
 
   if (pending && pending.data !== data) setPending(null)
+  if (shaping?.done && shaping.data !== data) setShaping(null)
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
   const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
@@ -101,8 +106,12 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     let d = data
     if (pending) for (const [r, m] of pending.moves) d = moved(d, [r], m)
     if (drag) d = moved(d, selected, drag.d)
+    if (shaping && d.drawing) {
+      const marks = d.drawing.marks?.map((m) => (m.id === shaping.mark.id ? shaping.mark : m))
+      d = { ...d, drawing: { ...d.drawing, marks } }
+    }
     return d
-  }, [data, pending, drag, selected])
+  }, [data, pending, drag, selected, shaping])
 
   // Boards drawn where the editor has them (dragged or just moved), not where the markers last said.
   const power = useMemo(() => {
@@ -566,6 +575,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
 
   const one = selected.length === 1 ? selected[0] : null
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
+  const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
+  const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
+  const reshaped = (m: PlanMark) => {
+    const was = data.drawing?.marks?.find((x) => x.id === m.id)
+    setShaping({ mark: m, data, done: true })
+    if (was) void change({ kind: 'mark', id: m.id! }, shapeBody(was, data.size), shapeBody(m, data.size))
+  }
   const routeOf = (c: PlanCable): Route => c.points.map(([x, y]) => fromPct(data.size, { x, y }))
   const pathOf = (r: Route) => cablePath(r.map((p) => { const v = toPct(data.size, p); return [v.x, v.y] as [number, number] }), data.size, oneCable?.corners)
   // One board with seat blocks or switches: the panel offers to feed them from one of its circuits.
@@ -590,6 +606,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
+          {oneMark && markBox && tool === 'select' && !drag && (
+            <MarkHandles key={oneMark.id} ctx={ctx} mark={oneMark} corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size}
+              onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
+          )}
           {oneCable && tool === 'select' && (
             <BendHandles key={JSON.stringify(oneCable.points)} ctx={ctx} route={routeOf(oneCable)} cell={data.drawing?.cell ?? 32} path={pathOf}
               onChange={(r) => void setRoute(oneCable, { points: bendsPct(r, data.size), corners: oneCable.corners }, t('plan.edit.step.bend'))} />
@@ -743,8 +763,13 @@ function ItemFields({ data, item, onChange }: {
   const size = (
     <div>
       <Text size="sm" fw={500} mb={4}>{t('plan.edit.mark.size')}</Text>
-      <SegmentedControl fullWidth value={mark.size ?? 'm'} onChange={(v) => set('size', mark.size ?? 'm', v)}
+      {/* Picking a size step also drops a stretch from the corner handle. */}
+      <SegmentedControl fullWidth value={mark.size ?? 'm'}
+        onChange={(v) => void onChange(item, { size: mark.size ?? 'm', scale: mark.scale ?? 1 }, { size: v, scale: 1 })}
         data={['s', 'm', 'l'].map((x) => ({ value: x, label: t(`plan.edit.mark.sizes.${x}`) }))} />
+      <Text size="xs" c="dimmed" mt={4}>
+        {(mark.scale ?? 1) !== 1 ? t('plan.edit.mark.scaled', { pct: Math.round((mark.scale ?? 1) * 100) }) : t('plan.edit.mark.scaleHelp')}
+      </Text>
     </div>
   )
   if (mark.kind === 'text' || mark.kind === 'zone') {

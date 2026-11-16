@@ -32,6 +32,9 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Change:** in the panel on the right: a block's name, rotation, seats per row and rows; a label's
   text, size and rotation; an icon's size and rotation; a zone's label and colour; a wall's style;
   which layer a mark is on.
+- **Resize:** select one label, icon, zone or wall and drag its handles: a label's or icon's corner
+  makes it any size (shown in %, picking Small, Medium or Large again undoes the stretch), a zone's
+  corners resize the box, a wall's ends move. Handles snap to the grid unless you hold Alt.
 - **Copy and paste:** Ctrl+C, Ctrl+X and Ctrl+V. Paste puts the copy where the pointer is; Ctrl+D
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.

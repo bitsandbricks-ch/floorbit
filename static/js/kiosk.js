@@ -125,7 +125,7 @@
       } else if (m.kind === 'wall') {
         svg.push(`<g class="mark-wall${m.style === 'dashed' ? ' dashed' : ''}"><line x1="${+m.x}" y1="${+m.y}" x2="${+m.x2}" y2="${+m.y2}" vector-effect="non-scaling-stroke"/></g>`);
       } else if (m.kind === 'text' || m.kind === 'icon') {
-        const turn = m.rotation ? ` rotate(${+m.rotation}deg)` : '';
+        const turn = (m.rotation ? ` rotate(${+m.rotation}deg)` : '') + (m.scale ? ` scale(${+m.scale})` : '');
         const inner = m.kind === 'text' ? escHtml(m.text)
           : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${
             (markIcons[m.icon] || []).map(d => `<path d="${escHtml(d)}"/>`).join('')}</svg>`;
