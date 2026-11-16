@@ -39,6 +39,12 @@ so and every range shows its planned firewall.
 
 Firewalls don't need to be on the floor plan: most stand in the rack behind the core.
 
+## On the health wall
+
+Each firewall is also a tile on the service health wall (`/health`, under **Firewalls**): green
+while it is up, red when it is down, saying which of its ranges failed over or have no firewall left.
+So a firewall going down pages the crew on Discord like any other service.
+
 ## Not yet
 
 - Importing the ranges from NetBox (prefixes with a firewall field) is not built yet.

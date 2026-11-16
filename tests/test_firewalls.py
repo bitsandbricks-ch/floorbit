@@ -100,3 +100,13 @@ def test_viewers_see_the_firewalls_but_do_not_change_them(app_module):
     viewer = sign_in_as(app_module, "vi9", "viewer")
     assert viewer.get("/api/firewalls").status_code == 200
     assert viewer.post("/api/firewalls/ranges", json={}).status_code == 403
+
+
+def test_a_down_firewall_is_red_on_the_health_wall(client, net):
+    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    _add(client, "192.0.2.32/27", "fw-01")
+    net.up["fw-01"] = False
+    tiles = {t["name"]: t for t in firewalls.health_checks()}
+    assert (tiles["fw-01"]["kind"], tiles["fw-01"]["status"]) == ("firewall", "down")
+    assert tiles["fw-01"]["summary"] == "192.0.2.32/27 without a firewall"
+    assert (tiles["fw-02"]["status"], tiles["fw-02"]["summary"]) == ("up", "Serves 1 range, 1 seat")

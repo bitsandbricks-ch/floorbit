@@ -226,6 +226,46 @@ def overview(now=None):
             'unread': health.devices(now) is None}
 
 
+def configured(data=None):
+    """Are there firewalls in the inventory? Cheap: the health wall asks on every poll."""
+    data = load_data() if data is None else data
+    return any(d.get('role') == 'firewall' for d in inventory.devices(data))
+
+
+def health_checks(now=None):
+    """The firewalls as tiles of the service health wall (floorbit/health.py), so one going down, and
+    its ranges failing over, reaches Discord like any other service."""
+    if not configured():
+        return []
+    view = overview(now)
+    by_planned = {}
+    for r in view['ranges']:
+        by_planned.setdefault(r['intended'], []).append(r)
+    out = []
+    for fw in view['firewalls']:
+        status = {'online': 'up', 'offline': 'down'}.get(fw['status'], 'unknown')
+        if fw['status'] == 'offline':
+            moved = by_planned.get(fw['name'], [])
+            lost = [r['cidr'] for r in moved if r['state'] == 'down']
+            if lost:
+                summary = f"{', '.join(lost)} without a firewall"
+            elif moved:
+                summary = f"{len(moved)} range{'s' if len(moved) != 1 else ''} failed over"
+            else:
+                summary = 'Down, serves no range'
+        elif fw['serving']:
+            n, seats = len(fw['serving']), fw['seats']
+            summary = f"Serves {n} range{'s' if n != 1 else ''}, {seats} seat{'s' if seats != 1 else ''}"
+        else:
+            summary = 'Serves no range now'
+        out.append({'id': f"firewall:{fw['id']}", 'name': fw['name'], 'kind': 'firewall', 'status': status,
+                    'summary': summary, 'link': '/firewalls',
+                    'metrics': [{'label': 'Seats', 'value': fw['seats'], 'unit': '', 'tone': ''}]
+                    if status == 'up' else [],
+                    'plugin': 'firewalls', 'plugin_name': 'Firewalls'})
+    return out
+
+
 def for_seat(seat, data=None, now=None):
     """Which firewall a seat's traffic should take and which it takes now, or None when no range
     covers its IP. Firewall names only: for the crew's seat panel."""

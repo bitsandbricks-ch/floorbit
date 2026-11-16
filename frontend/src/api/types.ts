@@ -317,7 +317,7 @@ export interface QrSeat {
 }
 
 // The service health wall (floorbit/health.py).
-export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'web' | 'other'
+export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'firewall' | 'web' | 'other'
 export interface HealthMetric {
   label: string
   value: number | string

@@ -18,7 +18,8 @@ a service changes colour.
 
 ## Where the checks come from
 
-Floorbit checks nothing itself, except the [game servers](game-servers.md) set up on their own page.
+Floorbit checks nothing itself, except the [game servers](game-servers.md), the internet lines and
+resolvers on the [Services](services.md) page and the [firewalls](firewalls.md), each set up on its own page.
 Every other service on the wall comes from a plugin with `uses: [health]` (see [plugins.md](plugins.md)):
 
 - **HTTP check** (built in) puts each of its web services on the wall: red when it doesn't answer
@@ -39,7 +40,7 @@ A plugin's `health_checks()` returns a list:
 | --- | --- |
 | `id` | unique within the plugin (Floorbit puts the plugin id in front) |
 | `name` | what the tile says, up to 60 characters |
-| `kind` | `dhcp`, `dns`, `cache`, `game`, `uplink`, `web` or `other`: the wall groups by it |
+| `kind` | `dhcp`, `dns`, `cache`, `game`, `uplink`, `firewall`, `web` or `other`: the wall groups by it |
 | `status` | `up`, `warn`, `down` or `unknown` (anything else is `unknown`) |
 | `summary` | one line, up to 120 characters |
 | `metrics` | up to 6 `{label, value, unit, tone}`; `tone` is `ok`, `warn`, `err` or empty |

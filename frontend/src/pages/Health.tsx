@@ -11,7 +11,7 @@ import type { HealthCheck, HealthKind, HealthWall, State } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 
-const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'web', 'other']
+const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other']
 const STATES: State[] = ['down', 'warn', 'up', 'unknown']
 
 /** Seconds since a unix time, ticking once every few seconds. */
