@@ -661,6 +661,7 @@
  "Seats {} and {} checked in on the same port": "Plätze {} und {} haben am selben Port eingecheckt",
  "Seat {} checked in on the port the patch plan gives to seat {}": "Platz {} hat am Port eingecheckt, den der Patchplan Platz {} gibt",
  "Seat {} was taken over by another nick": "Platz {} wurde von einem anderen Nick übernommen",
+ "Seat {} checked in on a port meant for seats {}": "Platz {} hat an einem Port eingecheckt, der für die Plätze {} gedacht ist",
  "That PIN is not on any seat card. Check the card at your seat.": "Diese PIN steht auf keiner Platzkarte. Schau auf die Karte an deinem Platz.",
  "Enter the PIN from the card at your seat.": "Gib die PIN von der Karte an deinem Platz ein.",
  "That PIN was already used. Ask the crew if this is your seat.": "Diese PIN wurde schon verwendet. Frag die Crew, wenn das dein Platz ist.",
@@ -742,5 +743,14 @@
  "The database isn't answering right now. Floorbit keeps trying; until it's back, pages show what was last read and changes can't be saved.": "Die Datenbank antwortet gerade nicht. Floorbit versucht es weiter; bis sie zurück ist, zeigen die Seiten den zuletzt gelesenen Stand und Änderungen können nicht gespeichert werden.",
  "Database unavailable": "Datenbank nicht erreichbar",
  "Trying again by itself…": "Versucht es von selbst wieder …",
- "That seat has no learned port": "Für diesen Platz ist kein Port gelernt"
+ "That seat has no learned port": "Für diesen Platz ist kein Port gelernt",
+ "No such port area.": "Diesen Port-Bereich gibt es nicht.",
+ "Batch size, first port and seats per batch are numbers.": "Ports pro Gruppe, erster Port und Plätze pro Gruppe sind Zahlen.",
+ "A batch is 1 to {} ports.": "Eine Gruppe hat 1 bis {} Ports.",
+ "One switch has at most {} ports here.": "Ein Switch hat hier höchstens {} Ports.",
+ "\"{}\" is not a seat number like A-11.": "\"{}\" ist keine Platznummer wie A-11.",
+ "{} is not on the plan.": "{} ist nicht im Plan.",
+ "{} are not on the plan.": "{} sind nicht im Plan.",
+ "Give a first seat for at least one batch.": "Gib für mindestens eine Gruppe einen ersten Platz an.",
+ "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche."
 }

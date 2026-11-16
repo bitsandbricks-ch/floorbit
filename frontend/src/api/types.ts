@@ -1141,14 +1141,17 @@ export interface PatchCheck {
   missing: PatchList; down: PatchList; unplanned: PatchList; conflicts: PatchList; unread: string[]
 }
 /** Clients on seat ports the patch plan doesn't explain (issue #473), from MAC tables and ARP. */
-export interface PortClient { switch: string; port: string; mac: string; ip: string; ip_seat: string; seat?: string; cable?: string }
+/** The rough area a port goes to (floorbit/port_areas.py). */
+export interface PortAreaHint { label: string; seats: string[] }
+export interface PortArea { id: string; switch: string; first: number; last: number; seats: string[]; label: string; updated_at?: number; by?: string | null }
+export interface PortClient { switch: string; port: string; mac: string; ip: string; ip_seat: string; seat?: string; cable?: string; area?: PortAreaHint | null }
 export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
 }
 /** Walking the row (issue #473): ports that came up since the walk began. */
-export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll' }
+export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
@@ -1697,12 +1700,14 @@ export interface CrewCheckin {
   /** The port the seat is learned on (seat_ports.json), from a PIN check-in. */
   learned: { switch: string; port: string; learned_at: number; username?: string } | null
   pin: boolean
+  /** The rough area the found port goes to, when the crew gave one. */
+  area?: PortAreaHint | null
   checked_in_at: number | null
   verified_at: number | null
 }
 
 export interface CheckinConflict {
-  kind: 'shared' | 'plan' | 'taken'
+  kind: 'shared' | 'plan' | 'taken' | 'area'
   seat: string
   /** The other seats on that port (shared), or the seat the patch plan gives it to (plan). */
   other: string[]
