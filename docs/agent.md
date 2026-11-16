@@ -57,7 +57,8 @@ again (below). An agent that hasn't asked anything yet is never flagged. An agen
 traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
 agent forwards what.
 
-Revoking the agent stops it at its next request: it has to be enrolled again with a new key. Up to
+Revoking the agent stops it at its next request, and an open WebSocket link is closed within a few
+seconds: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
 
 While at least one agent is enrolled, the hosted Floorbit asks the agent instead of its own
