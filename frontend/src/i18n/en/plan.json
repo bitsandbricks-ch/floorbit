@@ -190,6 +190,11 @@
   "firewall": "Firewall",
   "firewallFailover": "{{now}} (failed over from {{intended}})",
   "firewallNone": "None up (planned {{name}})",
+  "firewallLayer": {
+    "layer": "Firewalls",
+    "failover": "Seat failed over to a backup firewall",
+    "down": "Seat has no firewall up"
+  },
   "power": {
     "layer": "Power",
     "ok": "Circuit fine",

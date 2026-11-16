@@ -263,6 +263,7 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | POST | `/api/firewalls/ranges/split` | `floorplan.edit` |  |
+| GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.flows
 
