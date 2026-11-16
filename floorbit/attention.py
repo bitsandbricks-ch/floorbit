@@ -7,7 +7,8 @@ online, from the monitoring source (``device_ports``), and keeps what it sees be
 - **errors rising:** the error counters grew by ``ATTENTION_ERRORS`` (10) or more since the last poll;
 - **half duplex:** an up port at half duplex (a bad cable or a forced setting);
 - **no check-in:** with check-in on, a seat port that is up while nobody checked in at that seat.
-  A port belongs to a seat when its description (ifAlias) names the seat, e.g. "Seat A-12".
+  A port belongs to a seat when a cable goes from it to the seat (cables.py), or else when its
+  description (ifAlias) names the seat, e.g. "Seat A-12".
 
 Entries clear on their own once the port behaves. They hold switch, port and seat, never who sits
 there, so everyone who sees the floor plan may see them.
@@ -19,7 +20,7 @@ from collections import deque
 
 from integrations import checkin, config, events
 
-from . import inventory, recording, sources, status_page
+from . import cables, inventory, recording, sources, status_page
 from .power import block_rows
 from .store import load_data
 
@@ -110,6 +111,10 @@ class AttentionWatch:
         found = {}
         reads = []   # every port read, for the stats dashboard (stats.py)
         port_seats = {}
+        # A cable to a seat (cables.py, the block patch plan) wins over the port's description:
+        # it is what the crew patched, the description is what someone typed on the switch.
+        from .syslog import canonical_port  # syslog reads this module's seats: imported late
+        cabled = cables.port_seats(data)
         devices = inventory.devices(data)
         for dev in devices:
             if dev.get('x') is None or (statuses.get(dev['id']) or {}).get('status') == 'offline':
@@ -118,10 +123,12 @@ class AttentionWatch:
                 name = port.get('name')
                 if not name:
                     continue
-                reads.append((dev, port, seat_of(port.get('description'), names)))
-                if reads[-1][2]:
-                    port_seats[(str(dev['name']).lower(), name)] = reads[-1][2]
-                for entry in self._judge(dev, name, port, now, flaps, error_step, names, checked_in):
+                seat = (cabled.get((str(dev['name']).lower(), canonical_port(name)))
+                        or seat_of(port.get('description'), names))
+                reads.append((dev, port, seat))
+                if seat:
+                    port_seats[(str(dev['name']).lower(), name)] = seat
+                for entry in self._judge(dev, name, port, now, flaps, error_step, seat, checked_in):
                     found[entry['id']] = entry
         new = []
         with self._lock:
@@ -149,7 +156,7 @@ class AttentionWatch:
                 events.publish('seats.changed', {'seats': changes})
         return new
 
-    def _judge(self, dev, name, port, now, flaps, error_step, names, checked_in):
+    def _judge(self, dev, name, port, now, flaps, error_step, seat, checked_in):
         key = (dev['id'], name)
         oper = 'up' if port.get('state') in ('up', 'errors') else port.get('state')
         errors = sum(v or 0 for v in (port.get('errors_in'), port.get('errors_out')))
@@ -166,7 +173,6 @@ class AttentionWatch:
         while seen['changes'] and now - seen['changes'][0] > FLAP_WINDOW:
             seen['changes'].popleft()
 
-        seat = seat_of(port.get('description'), names)
         where = f"{dev['name']} {name}" + (f' (seat {seat})' if seat else '')
         base = {'switch_id': dev['id'], 'switch': dev['name'], 'port': name, 'seat': seat, 'where': where}
         out = []

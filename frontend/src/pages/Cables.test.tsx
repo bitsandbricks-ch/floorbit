@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Cable, CableList } from '@/api/types'
+import type { BlockPlan, Cable, CableList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Cables from './Cables'
 
@@ -53,5 +53,34 @@ describe('Cables', () => {
     expect(await screen.findByText('This cable comes from NetBox. Change it there and import again.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add cable' })).not.toBeInTheDocument()
+  })
+
+  it('patches a whole block after a preview, and asks before replacing cables in the way', async () => {
+    const cables = Array.from({ length: 16 }, (_, n) => ({ seat: `A-${n + 1}`, switch: 'sw-a-01', port: `Gi1/0/${n + 1}`, block: 'b1' }))
+    const plan: BlockPlan = { block: 'A', cables, clashes: [{ seat: 'A-3', port: 'Gi1/0/3', kind: 'port', cable: 'C-0001', other_seat: 'B-9', imported: false }] }
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/cables': data, 'GET /api/switches': [{ id: 's1', name: 'sw-a-01' }],
+      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 8, rows: 2, hall_id: 'h' }],
+      'POST /api/cables/block': (init?: RequestInit) => ({
+        body: JSON.parse(String(init?.body)).dry_run ? plan : { ...plan, created: 16, removed: 1 } }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Cables />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Patch a block' }))
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'A (16)', hidden: true }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Switch' }), { target: { value: 'sw-a-01' } })
+    expect(await screen.findByText('16 seats get a cable:')).toBeInTheDocument()
+    expect(screen.getByText('… A-16')).toBeInTheDocument()                      // a long block is cut short
+    expect(screen.getByText('Gi1/0/3 already has cable C-0001 to seat B-9.')).toBeInTheDocument()
+    const make = screen.getByRole('button', { name: 'Make 16 cables' })
+    expect(make).toBeDisabled()                                                   // not without saying so
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Replace the cables in the way' }))
+    await waitFor(() => expect(make).toBeEnabled())
+    fireEvent.click(make)
+    expect(await screen.findByText('Made 16 cables, replaced 1.')).toBeInTheDocument()
+    const sent = api.calls.filter((c) => c.path === '/api/cables/block').map((c) => c.body as Record<string, unknown>)
+    expect(sent[0]).toMatchObject({ block: 'b1', switch: 'sw-a-01', first_port: 'Gi1/0/1', order: 'rows', dry_run: true })
+    expect(sent.filter((b) => !b.dry_run)).toEqual([expect.objectContaining({ block: 'b1', replace: true })])
   })
 })

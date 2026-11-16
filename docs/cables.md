@@ -14,6 +14,29 @@ patched straight into the switch has no panel, and an uplink has no seat.
 | Label | Printed on both ends. Left empty, Floorbit numbers the cables `C-0001`, `C-0002`, ... Labels are unique. |
 | Colour, length, note | Optional. The length is 0.1 to 500 metres. |
 
+## A whole block at once
+
+**Patch a block** makes a cable for every seat of a seat block, so a hall is a few dozen of these
+instead of thousands of cables typed one by one (issue #473). Say once:
+
+- the **seat block** and the **switch** it is patched to,
+- the **port of the first seat** (`Gi1/0/1`); the last number counts up, keeping leading zeros (`Eth1/09`, `Eth1/10`),
+- the **order**: along each row the same way, or **snake** (every other row back),
+- whether to **start at the last seat**, and which **rows** (`1-2`; all when empty). A block on
+  two switches is two plans, one per range of rows.
+
+The preview shows which seat gets which port, and every cable already in the way: on one of those
+ports, or on one of those seats. Nothing is made until you press **Make**, and then all or none.
+Cables in the way stop it unless you tick **Replace the cables in the way**; ones from NetBox always
+stop it (change them in NetBox). Planning the same block and rows again (shifted by a port, another
+switch) moves that block's own cables without asking. Each plan is written to the audit log.
+
+## Seats on the floor plan and in the logs
+
+A cable to a seat is how Floorbit knows which port is that seat: port problems name the seat, and
+syslog lines from that port are tied to it. Where no cable says so, the port's description on the
+switch (`Seat A-12`) still does. A cable wins over the description: it is what the crew patched.
+
 ## Labels
 
 **Print labels** makes an A4 PDF of 3 × 8 labels, two per cable: the switch end first, then the far
@@ -59,6 +82,9 @@ under **cables**, with the cable's label and route.
 - `GET /api/cables?q=&seat=&ids=`: the cables, and `sources`, the plugins that can import them.
 - `POST /api/cables`, `PATCH /api/cables/<id>`, `DELETE /api/cables/<id>`.
 - `POST /api/cables/import`: answers `{"imported", "errors"}`.
+- `POST /api/cables/block`: `{"block", "switch", "first_port", "order": "rows" | "snake", "reverse", "rows",
+  "dry_run", "replace"}`. Answers `{"block", "cables": [{"seat", "switch", "port"}], "clashes", "created", "removed"}`;
+  409 when cables are in the way and `replace` isn't set.
 - `GET /api/cables/labels.pdf?q=&ids=`, `GET /api/cables.csv?q=`.
 
 The feature can be turned off under Settings > Features (`cables`).

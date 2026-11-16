@@ -1,7 +1,7 @@
 import {
   Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput,
 } from '@mantine/core'
-import { IconCloudDownload, IconDownload, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,9 +10,10 @@ import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { Cable, CableImport, CableList } from '@/api/types'
+import type { BlockPlan, Cable, CableImport, CableList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { PatchBlockModal } from '@/components/PatchBlockModal'
 
 type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string }
 
@@ -88,6 +89,10 @@ export default function Cables() {
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
   const [adding, setAdding] = useState(false)
+  const [patching, setPatching] = useState(false)
+  const [patched, setPatched] = useState<BlockPlan | null>(null)
+  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
+    enabled: canEdit })
   const openId = params.get('cable')
   const close = () => { setAdding(false); if (openId) setParams({}, { replace: true }) }
   const doImport = useMutation({ mutationFn: () => post<CableImport>('/api/cables/import'), onSuccess: refresh })
@@ -107,6 +112,8 @@ export default function Cables() {
         actions={
           <Group gap="xs">
             {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding(true)}>{t('cables.add')}</Button>}
+            {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
+              {t('cables.patchBlock')}</Button>}
             {canEdit && d && d.sources.length > 0 && (
               <Button variant="default" leftSection={<IconCloudDownload size={16} />} loading={doImport.isPending}
                 onClick={() => doImport.mutate()}>{t('cables.import', { source: d.sources.join(', ') })}</Button>
@@ -119,6 +126,11 @@ export default function Cables() {
         } />
       <Stack gap="md">
         {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        {patched && (
+          <Alert color="up" withCloseButton onClose={() => setPatched(null)}>
+            {t('cables.created', { created: patched.created ?? 0, removed: patched.removed ?? 0 })}
+          </Alert>
+        )}
         {doImport.error && <Alert color="down" role="alert">{doImport.error.message}</Alert>}
         {doImport.data && (
           <Alert color={doImport.data.errors.length ? 'warn' : 'up'} withCloseButton onClose={() => doImport.reset()}>
@@ -170,6 +182,11 @@ export default function Cables() {
           </>
         )}
       </Stack>
+      {patching && d && (
+        <PatchBlockModal
+          switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...d.cables.map((c) => c.switch)])].sort()}
+          onClose={() => setPatching(false)} onDone={(made) => { setPatching(false); setPatched(made); refresh() }} />
+      )}
       {(adding || current) && d && (
         <CableModal key={current?.id ?? 'new'} cable={adding ? null : current ?? null} all={d.cables} canEdit={canEdit}
           onClose={close} onDone={() => { close(); refresh() }} />

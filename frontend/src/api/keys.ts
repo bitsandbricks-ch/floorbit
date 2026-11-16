@@ -42,6 +42,8 @@ export const qk = {
   incidentPeople: ['incidents', 'people'] as const,
   helpdeskQr: ['helpdesk', 'qr'] as const,
   switches: ['switches'] as const,
+  seatBlocks: ['seat-blocks'] as const,
+  blockPlan: (form: object) => ['block-plan', form] as const,
   health: ['health'] as const,
   security: ['security'] as const,
   power: ['power'] as const,

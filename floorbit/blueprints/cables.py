@@ -4,6 +4,9 @@
 - ``GET /api/cables?q=&seat=``: the cables, and whether a plugin can import them.
 - ``POST /api/cables``, ``PATCH /api/cables/<id>``, ``DELETE /api/cables/<id>``: the crew's own cables.
 - ``POST /api/cables/import``: read the cables from NetBox again (replaces the last import).
+- ``POST /api/cables/block``: patch a whole seat block to a switch (issue #473). With ``dry_run``
+  it only says which seat gets which port and what is in the way; ``replace`` moves the crew's
+  cables that are in the way.
 - ``GET /api/cables/labels.pdf?ids=&q=``: two labels per cable to print. ``GET /api/cables.csv``.
 
 Reading needs ``floorplan.view``, changing ``floorplan.edit`` (auth/roles.py).
@@ -101,6 +104,24 @@ def import_cables():
     audit.record('cables', f'Imported {count} cables', g.get('audit_user'), 'NetBox')
     events.publish('cables.changed', {})
     return jsonify({'imported': count, 'errors': errors})
+
+
+@bp.route('/api/cables/block', methods=['POST'])
+def patch_block():
+    body = request.get_json(silent=True) or {}
+    try:
+        if body.get('dry_run'):
+            return jsonify(cables.plan_block(body))
+        plan, removed = cables.add_block(body, _who(), replace=bool(body.get('replace')))
+    except cables.CableError as exc:
+        return _error(exc)
+    made = plan['cables']
+    if made:
+        audit.record('cables', f"Patched block {plan['block'] or '?'}", g.get('audit_user'),
+                     f"{len(made)} seats to {made[0]['switch']} {made[0]['port']}-{made[-1]['port']}"
+                     + (f', replaced {removed} cables' if removed else ''))
+        events.publish('cables.changed', {})
+    return jsonify({**plan, 'created': len(made), 'removed': removed})
 
 
 @bp.route('/api/cables/labels.pdf', methods=['GET'])

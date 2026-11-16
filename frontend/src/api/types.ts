@@ -1059,10 +1059,18 @@ export interface TerminalOutput {
 export interface Cable {
   id: string; label: string; switch: string; port: string; panel: string; panel_port: string; seat: string
   color: string; length_m: number | null; note: string; source: 'floorbit' | 'import'; plugin?: string
-  updated_at: number; by: string | null
+  updated_at: number; by: string | null; block?: string
 }
 export interface CableList { cables: Cable[]; sources: string[] }
 export interface CableImport { imported: number; errors: string[] }
+/** A seat block patched to a switch in one go (issue #473). */
+export interface PlannedCable { seat: string; switch: string; port: string; block: string }
+export interface CableClash {
+  seat: string; port: string; kind: 'port' | 'seat'; cable: string; imported: boolean
+  other_seat?: string; other_port?: string
+}
+export interface BlockPlan { block: string; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
+export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'
