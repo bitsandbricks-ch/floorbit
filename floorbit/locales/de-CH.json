@@ -768,5 +768,6 @@
  "No switch port or IP address": "Kein Switch-Port und keine IP-Adresse",
  "No switch port, IP or MAC known for this seat": "Für diesen Platz ist kein Switch-Port, keine IP und keine MAC bekannt",
  "hostnames is a list of switch names": "hostnames ist eine Liste von Switch-Namen",
- "LibreNMS did not answer a moment ago ({})": "LibreNMS hat vor einem Moment nicht geantwortet ({})"
+ "LibreNMS did not answer a moment ago ({})": "LibreNMS hat vor einem Moment nicht geantwortet ({})",
+ "Too many wrong PINs. Try again in {} min or ask the crew.": "Zu viele falsche PINs. Versuche es in {} Min. nochmals oder frag die Crew."
 }

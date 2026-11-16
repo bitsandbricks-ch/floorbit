@@ -150,6 +150,10 @@ The phone page can still take a typed seat number (the QR code case). That recor
 teaches no port. Turn on **Always ask for the seat PIN** (`CHECKIN_REQUIRE_PIN`) to refuse typed
 seats without their PIN.
 
+Wrong PINs are counted per PC: after 10 in ten minutes (`CHECKIN_PIN_TRIES`), that PC waits out the
+ten minutes before it may try another PIN, so nobody can script their way through the cards. A check-in
+from outside `CHECKIN_ALLOWED_NETWORKS` is refused before its PIN is even looked at.
+
 ## The crew's Check-in page
 
 **Helpdesk › Check-in** (`/checkins`, needs `seats.view`; listed while check-in is on) is where the crew

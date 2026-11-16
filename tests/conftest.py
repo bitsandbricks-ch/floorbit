@@ -200,3 +200,10 @@ def _librenms_answers_again():
     StatusMonitor.latest.update(polled=None, at=None, devices=None)
     yield
     breaker.reset()
+
+
+@pytest.fixture(autouse=True)
+def _no_wrong_pins_yet(monkeypatch):
+    """Wrong check-in PINs count per PC for ten minutes; one test's guesses don't lock the next."""
+    from integrations import checkin
+    monkeypatch.setattr(checkin, "_wrong_pins", {})
