@@ -135,6 +135,7 @@ class Sql:
         # what they get, so each read parses its own copy.
         self._docs = {}
         self._keys = {}
+        self._gen = 0         # bumped by close(): connections borrowed before it don't come back
         self.down = None      # {'since', 'error', 'wait', 'next_try'} while it doesn't answer
         if url.startswith('sqlite:///'):
             self.kind, self.mark = 'sqlite', '?'
@@ -225,6 +226,7 @@ class Sql:
         c = None
         try:
             with self._lock:
+                gen = self._gen
                 c = self._idle.pop() if self._idle else None
             if c is None:
                 c = self._open()
@@ -238,7 +240,11 @@ class Sql:
         finally:
             if c is not None and not getattr(c, 'closed', False):
                 with self._lock:
-                    self._idle.append(c)
+                    keep = gen == self._gen
+                    if keep:
+                        self._idle.append(c)
+                if not keep:
+                    _close_quietly(c)
             self._slots.release()
 
     def run(self, sql, args=(), fetch=False):
@@ -361,8 +367,10 @@ class Sql:
             raise DatabaseError(f'{self.describe()}: {exc}') from exc
 
     def close(self):
-        """Close the idle connections (ones in use are closed when they come back broken)."""
+        """Close the idle connections; ones in use are closed when they come back, so none
+        opened before the close is handed out again."""
         with self._lock:
+            self._gen += 1
             idle, self._idle = self._idle, []
         for c in idle:
             _close_quietly(c)
