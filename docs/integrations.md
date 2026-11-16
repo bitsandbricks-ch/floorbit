@@ -79,6 +79,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime, and how many open incidents from its seats were filed while it was down |
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
 | `DISCORD_USERNAME` | `Floorbit` | |
+| `DISCORD_LANGUAGE` | `en` | `de-CH` or `de` for German: alerts, the crew bot and the attendee channels. Slash command answers follow each user's own Discord language ([crew-discord.md](crew-discord.md#language)) |
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
 | `ALERT_GROUP_AFTER` | `3` | more switch changes than this in one poll become one message, grouped by power circuit ([alerts.md](alerts.md)) |
 | `ALERT_QUIET_HOURS` | | e.g. `02:00-08:00`: messages go out silently and without the mention |

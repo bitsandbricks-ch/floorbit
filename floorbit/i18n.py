@@ -47,11 +47,13 @@ def to_germany(text):
     return text
 
 
-@lru_cache(maxsize=1)
-def catalog():
-    """(exact texts, [(pattern, German)] for texts with values)."""
-    with open(os.path.join(HERE, 'de-CH.json'), encoding='utf-8') as f:
-        texts = json.load(f)
+@lru_cache(maxsize=2)
+def catalog(files=('de-CH.json',)):
+    """(exact texts, [(pattern, German)] for texts with values), from ``files`` (later ones win)."""
+    texts = {}
+    for name in files:
+        with open(os.path.join(HERE, name), encoding='utf-8') as f:
+            texts.update(json.load(f))
     exact, patterns = {}, []
     for english, german in texts.items():
         if english.startswith('//'):
@@ -76,11 +78,14 @@ def _fill(german, values):
     return _HOLE.sub(hole, german)
 
 
-def translate(text, lang):
+DISCORD = ('de-CH.json', 'discord.de-CH.json')
+
+
+def translate(text, lang, files=('de-CH.json',)):
     """``text`` in ``lang`` ('de-CH', 'de', or anything else for English as it is)."""
     if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
         return text
-    exact, patterns = catalog()
+    exact, patterns = catalog(files)
     german = exact.get(text)
     if german is None:
         for pattern, target in patterns:
@@ -91,6 +96,26 @@ def translate(text, lang):
     if german is None:
         return text
     return german if lang.lower() in ('de-ch', 'de-li') else to_germany(german)
+
+
+_TEXT_KEYS = ('content', 'title', 'description', 'name', 'value', 'text', 'label', 'placeholder')
+
+
+def translate_payload(payload, lang):
+    """A Discord message (embeds, fields, buttons) with its texts in ``lang``, line by line. Values
+    that aren't Floorbit's own texts (switch names, the crew's notes) match nothing and stay."""
+    if not lang or not lang.lower().startswith('de'):
+        return payload
+
+    def walk(value, key=None):
+        if isinstance(value, dict):
+            return {k: walk(v, k) for k, v in value.items()}
+        if isinstance(value, list):
+            return [walk(v, key) for v in value]
+        if isinstance(value, str) and key in _TEXT_KEYS:
+            return '\n'.join(translate(line, lang, DISCORD) for line in value.split('\n'))
+        return value
+    return walk(payload)
 
 
 def language(accept):

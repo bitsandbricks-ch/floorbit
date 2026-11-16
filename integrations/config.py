@@ -132,6 +132,10 @@ SCHEMA = [
      'label': 'Mention on outage', 'help': 'Optional text put in front of outage alerts, e.g. <@&ROLE_ID> or @here.'},
     {'key': 'DISCORD_USERNAME', 'group': 'discord', 'type': 'string', 'default': 'Floorbit',
      'label': 'Bot name', 'help': 'Name shown on the webhook messages.'},
+    {'key': 'DISCORD_LANGUAGE', 'group': 'discord', 'type': 'string', 'default': 'en',
+     'label': 'Language of the messages',
+     'help': 'en (English), de-CH (Swiss German spelling) or de (German for Germany and Austria): alerts, '
+             'the crew bot and the attendee channels. Slash command answers follow each user\'s Discord language.'},
     {'key': 'DISCORD_COOLDOWN', 'group': 'discord', 'type': 'int', 'default': 300,
      'label': 'Per-switch cooldown (seconds)', 'help': 'Do not alert about the same switch more often than this.'},
     {'key': 'ALERT_GROUP_AFTER', 'group': 'discord', 'type': 'int', 'default': 3,

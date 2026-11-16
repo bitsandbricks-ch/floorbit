@@ -100,6 +100,14 @@ the one who asked, that is in practice the same person.
 `/seat` and `/switch` suggest seat numbers and switch names as you type, to crew only. They never
 show nicks, IPs or MACs: those stay in Floorbit.
 
+## Language
+
+Alerts, the crew channel's incident messages and the attendee channels (status updates, the
+programme) are in English unless **`DISCORD_LANGUAGE`** says `de-CH` (Swiss spelling) or `de`
+(Germany and Austria, with ß). What the crew types, switch names and seat numbers stay as they are.
+Slash command answers and buttons on them follow the language the asker set in Discord: German for
+German, English for anything else. The German texts are in `floorbit/locales/discord.de-CH.json`.
+
 ## Privacy
 
 Messages show the seat, switch or circuit and what the crew wrote. They never show IPs, MACs or nicks.

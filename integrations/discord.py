@@ -116,6 +116,8 @@ class DiscordNotifier:
 
     def post(self, payload):
         """Queue a message. In quiet hours it goes out silently, without the mention."""
+        from floorbit import i18n
+        payload = i18n.translate_payload(payload, config.get('DISCORD_LANGUAGE', 'en'))
         if alerting.quiet_now():
             mention = config.get('DISCORD_MENTION', '') or ''
             content = (payload.get('content') or '').replace(mention, '').strip() if mention else payload.get('content')
