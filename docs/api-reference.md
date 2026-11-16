@@ -55,6 +55,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agent/v1/calls` | anyone |  |
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
+| POST | `/api/agent/v1/report` | anyone |  |
 | GET | `/api/agent/v1/seats` | anyone |  |
 | POST | `/api/agent/v1/syslog` | anyone |  |
 | GET | `/api/agent/v2/link` | anyone |  |
@@ -136,8 +137,13 @@ Source: [`floorbit/blueprints/cables.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/cables.csv` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | DELETE | `/api/cables/<cable_id>` | `floorplan.edit` | `cables` |
 | PATCH | `/api/cables/<cable_id>` | `floorplan.edit` | `cables` |
+| POST | `/api/cables/assign` | `floorplan.edit` | `cables` |
+| POST | `/api/cables/block` | `floorplan.edit` | `cables` |
+| GET | `/api/cables/check` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
+| GET | `/api/cables/clients` | `seats.view` | `cables` |
 | POST | `/api/cables/import` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/labels.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
+| GET | `/api/cables/walk` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 
 ## floorbit.blueprints.cache
 
@@ -172,6 +178,18 @@ Source: [`floorbit/blueprints/config.py`](https://github.com/bitsandbricks-ch/fl
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/config` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
+## floorbit.blueprints.credentials
+
+Stored switch logins (issue #474). Rules in floorbit/credentials.py, docs in docs/credentials.md.
+
+Source: [`floorbit/blueprints/credentials.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/credentials.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/credentials` | `settings.manage` |  |
+| DELETE | `/api/settings/credentials/<cred_id>` | `settings.manage` |  |
+| PUT | `/api/settings/credentials/ssh` | `settings.manage` |  |
 
 ## floorbit.blueprints.crew
 
@@ -232,6 +250,21 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
 
+## floorbit.blueprints.firewalls
+
+Firewalls and the seat ranges they serve (issue #470). Rules in floorbit/firewalls.py, docs in docs/firewalls.md.
+
+Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/firewalls.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/firewalls` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
+| DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
+| PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
+| POST | `/api/firewalls/ranges/split` | `floorplan.edit` |  |
+| GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.flows
 
 Traffic insights from NetFlow and IPFIX (issue #25). See docs/flows.md.
@@ -241,6 +274,21 @@ Source: [`floorbit/blueprints/flows.py`](https://github.com/bitsandbricks-ch/flo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/flows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `traffic` |
+
+## floorbit.blueprints.game_servers
+
+Game servers (issue #472). Rules in floorbit/game_servers.py, docs in docs/game-servers.md.
+
+Source: [`floorbit/blueprints/game_servers.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/game_servers.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/game-servers` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/game-servers` | `settings.manage` |  |
+| DELETE | `/api/game-servers/<server_id>` | `settings.manage` |  |
+| PUT | `/api/game-servers/<server_id>` | `settings.manage` |  |
+| POST | `/api/game-servers/check/<server_id>` | `games.rcon` |  |
+| POST | `/api/game-servers/rcon/<server_id>` | `games.rcon` |  |
 
 ## floorbit.blueprints.games
 
@@ -637,6 +685,20 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
 
+## floorbit.blueprints.services
+
+Servers and services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. Rules in floorbit/services.py, docs in docs/services.md.
+
+Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/services.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/services` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/services/<kind>` | `floorplan.edit` |  |
+| DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
+| PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
+| POST | `/api/services/check` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.setup
 
 First-run setup (issue #13, floorbit/setup.py).
@@ -744,6 +806,19 @@ Source: [`floorbit/blueprints/timeline.py`](https://github.com/bitsandbricks-ch/
 | --- | --- | --- | --- |
 | GET | `/api/timeline` | `audit.read` | `timeline` |
 | GET | `/api/timeline.csv` | `audit.read` | `timeline` |
+
+## floorbit.blueprints.topology
+
+Links between switches and the topology (issue #468). Rules in floorbit/links.py, docs in docs/topology.md.
+
+Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/topology.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/links` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/links` | `floorplan.edit` |  |
+| DELETE | `/api/links/<link_id>` | `floorplan.edit` |  |
+| PUT | `/api/links/<link_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.tournament
 

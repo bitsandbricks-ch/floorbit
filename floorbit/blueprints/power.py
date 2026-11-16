@@ -80,7 +80,7 @@ def overview():
 @bp.route('/api/power/markers', methods=['GET'])
 def markers():
     if not power.enabled():
-        return jsonify({'enabled': False, 'seats': {}, 'switches': {}, 'boards': [], 'counts': {}})
+        return jsonify({'enabled': False, 'seats': {}, 'switches': {}, 'boards': [], 'circuits': [], 'counts': {}})
     return jsonify(_watch().markers())
 
 

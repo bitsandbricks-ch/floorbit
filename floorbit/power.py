@@ -433,8 +433,12 @@ class PowerWatch:
         boards = [{'id': b['id'], 'name': b['name'], 'x': b['x'], 'y': b['y'],
                    'state': ('ok', 'unknown', 'warn', 'crit', 'tripped')[worst.get(b['id'], 1)]}
                   for b in snap['boards'] if b.get('x') is not None and b.get('y') is not None]
+        # The cables, for the React floor plan's power layer: each circuit from its board to what it feeds.
+        circuits = [{'id': c['id'], 'name': c['name'], 'board': c['board'], 'state': c['state'], 'pct': c['load_pct'],
+                     'seats': c['fed']['seats'], 'switches': [sw['id'] for sw in c['fed']['switches']]}
+                    for c in snap['circuits']]
         return {'enabled': snap['enabled'], 'seats': seats, 'switches': switches, 'boards': boards,
-                'counts': snap['counts']}
+                'circuits': circuits, 'counts': snap['counts']}
 
 
 def _file_incident(circuit, alert, feeds):

@@ -1,6 +1,6 @@
 {
   "title": "Service health",
-  "intro": "DHCP, DNS, the LAN cache, game servers and the internet uplink at a glance. Each service comes from a health plugin; Discord gets a message when one turns red.",
+  "intro": "DHCP, DNS, the LAN cache, game servers, the internet uplink and the firewalls at a glance. Each service comes from a health plugin or its own page in Floorbit; Discord gets a message when one turns red.",
   "screen": "Big screen",
   "checkNow": "Check now",
   "checked_one": "Checked {{count}} second ago",
@@ -34,6 +34,7 @@
     "cache": "LAN cache",
     "game": "Game servers",
     "uplink": "Internet uplink",
+    "firewall": "Firewalls",
     "web": "Web services",
     "other": "Other"
   },

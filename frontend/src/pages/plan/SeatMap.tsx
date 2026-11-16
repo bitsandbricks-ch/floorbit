@@ -2,15 +2,20 @@ import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { PlanSeat, SeatViewData } from '@/api/types'
+import type { FirewallSeats, PlanSeat, PowerMarkers, SeatViewData } from '@/api/types'
 import {
   type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
   parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
+import { PowerLayer } from './PowerLayer'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
-export function SeatGlyph({ seat, size, detail, traffic = false }: { seat: PlanSeat; size: number; detail: boolean; traffic?: boolean }) {
+export function SeatGlyph({ seat, size, detail, traffic = false, route }: {
+  seat: PlanSeat; size: number; detail: boolean; traffic?: boolean
+  /** With the firewall layer: the seat's traffic failed over (dashed ring) or has no firewall left (solid ring). */
+  route?: 'failover' | 'down'
+}) {
   const i = size * 0.08
   const s = size - 2 * i
   // With the traffic overlay an online seat is filled by its traffic; the shapes stay the same.
@@ -18,6 +23,7 @@ export function SeatGlyph({ seat, size, detail, traffic = false }: { seat: PlanS
   return (
     <>
       {seat.changed && <rect className="recent" x={i - 5} y={i - 5} width={s + 10} height={s + 10} rx={7} />}
+      {route && <rect className={`fwr fw-${route}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
       {seat.match && <rect className="match" x={i - 2.5} y={i - 2.5} width={s + 5} height={s + 5} rx={5} />}
       <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
@@ -46,13 +52,18 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
 }
 
 const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
+const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
-export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, level: forced }: {
+export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
+  /** The power layer (issue #468): boards and cables, drawn under the switches. */
+  power?: PowerMarkers
+  /** The firewall layer (issue #470): seats not on their planned firewall. */
+  firewalls?: FirewallSeats['seats']
   /** Force a detail level, e.g. 'near' on paper where screen pixels mean nothing. */
   level?: Density
 }) {
@@ -203,6 +214,17 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
+        {(data.links ?? []).map((l) => {
+          const a = data.switches.find((w) => w.name === l.a), b = data.switches.find((w) => w.name === l.b)
+          if (!a || !b) return null
+          return (
+            <line key={l.id} className={`uplink m-${l.media || 'none'} t-${l.type || 'none'}${l.issue ? ` ${l.issue}` : ''}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+              strokeWidth={UPLINK_WIDTH[l.speed ?? 0] ?? 2} vectorEffect="non-scaling-stroke">
+              <title>{`${l.a} – ${l.b}${l.speed ? ` · ${l.speed}G` : ''}${l.issue ? ` · ${t(`topology.${l.issue}`)}` : ''}`}</title>
+            </line>
+          )
+        })}
+        {power && <PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} />}
         {data.switches.map((w) => (
           <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
             <rect x={-7} y={-7} width={14} height={14} transform="rotate(45)" />
@@ -229,7 +251,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                     onPointerLeave={() => setHover(null)}
                     onClick={() => { if (!moved.current) onSelect(c.seat) }}>
                     <rect className="hit" width={drawing.cell} height={drawing.cell} />
-                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} />
+                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state} />
                     {level === 'near' && (
                       <text className="num" x={drawing.cell / 2} y={drawing.cell / 2} dy="0.35em"
                         transform={b.rotation ? `rotate(${-b.rotation} ${drawing.cell / 2} ${drawing.cell / 2})` : undefined}>

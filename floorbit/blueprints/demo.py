@@ -60,6 +60,8 @@ def seed():
                    'spacing_y': 1, 'rotation': 0, 'reverse_numbers': False, **b} for b in layout['blocks']]
         data['seat_blocks'] = blocks
         _seed_power(data, layout)
+        _seed_firewalls(data, layout)
+        _seed_uplinks(data, layout)
         save_data(data)
     return {'placed': placed, 'blocks': len(blocks)}
 
@@ -82,6 +84,23 @@ def _seed_power(data, layout):
                          'switches': [devices[n] for n in c.get('switches') or [] if n in devices],
                          'tripped': None, 'reading': None})
     data['power'] = {'boards': boards, 'circuits': circuits}
+
+
+def _seed_firewalls(data, layout):
+    """The demo's seat ranges, each on its firewall with the next one as backup."""
+    spec = layout.get('firewalls')
+    if not spec or (data.get('firewalls') or {}).get('ranges'):
+        return
+    data['firewalls'] = {'ranges': [{'id': uuid.uuid4().hex[:12], **r} for r in spec]}
+
+
+def _seed_uplinks(data, layout):
+    """The demo's internet lines, for the services page and the topology."""
+    spec = layout.get('uplinks')
+    stored = data.get('services') if isinstance(data.get('services'), dict) else {}
+    if not spec or stored.get('uplinks'):
+        return
+    data['services'] = {**stored, 'uplinks': [{'id': uuid.uuid4().hex[:12], **u} for u in spec]}
 
 
 @bp.route('/api/demo/layout', methods=['POST'])

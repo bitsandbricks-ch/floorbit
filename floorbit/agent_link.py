@@ -41,11 +41,13 @@ MAX_WAIT = 25            # longest long poll, under the usual 30 s proxy timeout
 MAX_PENDING = 200        # calls queued for the agent; more fail at once
 TOUCH_EVERY = 30         # seconds between "last seen" writes to data.json
 INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it longer, under proxy timeouts
-# What the agent may be asked: the monitoring source's methods (floorbit/sources) and the
-# inventory feeds of its inventory plugins (NetBox), nothing else.
+# What the agent may be asked: the monitoring source's methods (floorbit/sources), the feeds of
+# its plugins (NetBox and others), the game servers' query and RCON (floorbit/game_query.py) and the
+# services' DNS and TCP probes (floorbit/probes.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
-           'wifi_feeds')
+           'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
+           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
+           'dns_probe', 'tcp_probe')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -82,7 +84,8 @@ def outdated(agent_protocol, server_protocol=None):
 def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now
-    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now)}
+    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now),
+             'report': tunnel.reported(a['id'], now)}
             for a in data.get(KEY) or []]
 
 
@@ -127,7 +130,20 @@ def _routing():
     return _routes[1]
 
 
-HOST_METHODS = ('device_details', 'port_stats', 'device_ports')   # the first argument is a switch
+def enrolled(agent_id):
+    """Is this agent still enrolled? An open WebSocket link asks every few seconds, so revoking a
+    key also ends the link it already has (docs/agent.md)."""
+    return agent_id in _routing()[1]
+
+
+# What an agent may report about itself (the agent's report(), floorbit-agent issue #3).
+REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_failed',
+               'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets')
+REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
+
+
+# The first argument is a switch.
+HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours')
 
 
 def _hall_of(by_name, hostname):
@@ -298,6 +314,7 @@ class Tunnel:
         self._stats = {}          # agent id -> deque of (when, ms, ok, method, error)
         self._seen = {}           # agent id -> when it last asked for work
         self._relayed = {}        # agent id -> {"syslog" | "flows": {"at", "count"}}
+        self._reports = {}        # agent id -> the agent's own numbers, as it last sent them
         self.last_seen = None
 
     def reset(self):
@@ -307,6 +324,7 @@ class Tunnel:
             self._stats.clear()
             self._seen.clear()
             self._relayed.clear()
+            self._reports.clear()
             self.last_seen = None
 
     def relayed(self, agent, kind, count=0, now=None):
@@ -418,6 +436,24 @@ class Tunnel:
                 log.append((time.time(), ms, call.ok, call.method, call.error))
         return True
 
+    def report(self, agent, raw, now=None):
+        """The agent's own numbers (floorbit-agent's /metrics, summed up), sent every half minute.
+        Only known keys, only numbers: what an agent sends is not trusted."""
+        if not isinstance(raw, dict):
+            return
+        clean = {k: raw[k] for k in REPORT_KEYS
+                 if isinstance(raw.get(k), (int, float)) and not isinstance(raw.get(k), bool) and raw[k] >= 0}
+        clean['at'] = time.time() if now is None else now
+        with self._cond:
+            self._reports[agent] = clean
+
+    def reported(self, agent, now=None):
+        """What the agent last reported, or None when it never did or it's older than REPORT_FRESH."""
+        now = time.time() if now is None else now
+        with self._cond:
+            found = self._reports.get(agent)
+        return dict(found) if found and now - found['at'] < REPORT_FRESH else None
+
     def stats(self, agent, now=None):
         """The last hour of one agent's answers: how many, how many failed, the median time, the
         last error. Kept in memory only, so a restart starts over."""
@@ -523,5 +559,11 @@ def monitoring_source():
             except PluginError as exc:
                 print(f'[agent] device_ports failed: {exc}')
                 return []
+
+        def port_clients(self, hostname):
+            return self._call('port_clients', hostname) or []
+
+        def neighbours(self, hostname):
+            return self._call('neighbours', hostname) or []
 
     return AgentMonitoring()

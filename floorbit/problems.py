@@ -7,7 +7,8 @@ Gathered from what is already watched, without asking anything new:
 - red and amber services on the health wall;
 - high and medium security findings (where only, unless the account has ``seats.view``);
 - power circuits that tripped, are about to, or are getting close;
-- the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py).
+- the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py);
+- links between switches that are down or slower than planned (floorbit/links.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
 come as a list of their own under ``attention``, newest first.
@@ -164,7 +165,9 @@ def _logs(may_see_people):
 
 def current(may_see_people):
     muted = alerting.mutes()
-    items = _monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
+    from . import links
+    items = (_monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
+             + links.problems())
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),

@@ -317,7 +317,7 @@ export interface QrSeat {
 }
 
 // The service health wall (floorbit/health.py).
-export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'web' | 'other'
+export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'firewall' | 'web' | 'other'
 export interface HealthMetric {
   label: string
   value: number | string
@@ -439,7 +439,7 @@ export interface PowerOverview {
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
   /** The switch id, or ``health:<service id>`` for a service (issue #256). */
@@ -1059,10 +1059,39 @@ export interface TerminalOutput {
 export interface Cable {
   id: string; label: string; switch: string; port: string; panel: string; panel_port: string; seat: string
   color: string; length_m: number | null; note: string; source: 'floorbit' | 'import'; plugin?: string
-  updated_at: number; by: string | null
+  /** Cable type and speed (issue #468), like the links between switches. */
+  type?: LinkType | ''; speed?: number | null
+  updated_at: number; by: string | null; block?: string
 }
 export interface CableList { cables: Cable[]; sources: string[] }
 export interface CableImport { imported: number; errors: string[] }
+/** A seat block patched to a switch in one go (issue #473). */
+export interface PlannedCable { seat: string; switch: string; port: string; block: string }
+export interface CableClash {
+  seat: string; port: string; kind: 'port' | 'seat'; cable: string; imported: boolean
+  other_seat?: string; other_port?: string
+}
+export interface BlockPlan { block: string; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
+export interface PatchRow { switch: string; port: string; seat?: string; cable?: string; state?: string; described_seat?: string }
+export interface PatchList { count: number; rows: PatchRow[] }
+export interface PatchCheck {
+  last_poll: number | null; blocks: { block: string; name: string; seats: number; up: number }[]
+  missing: PatchList; down: PatchList; unplanned: PatchList; conflicts: PatchList; unread: string[]
+}
+/** Clients on seat ports the patch plan doesn't explain (issue #473), from MAC tables and ARP. */
+export interface PortClient { switch: string; port: string; mac: string; ip: string; ip_seat: string; seat?: string; cable?: string }
+export interface PortClients {
+  as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
+  failed: { switch: string; error: string }[]
+  unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+}
+/** Walking the row (issue #473): ports that came up since the walk began. */
+export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll' }
+export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
+export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
+/** A switch login Floorbit keeps (issue #474): never the password. */
+export interface StoredLogin { id: string; kind: 'ssh'; scope: string; username: string; set_at: number; set_by: string | null }
+export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'
@@ -1249,6 +1278,21 @@ export interface PlanSwitch {
   y: number
 }
 
+export interface PlanLink { id: string; a: string; b: string; type: LinkType | ''; media: string; speed: number | null; issue: '' | 'down' | 'slow' }
+/** GET /api/power/markers (floorbit/power.py): the boards and each circuit's cable, for the plan's power layer. */
+/** GET /api/firewalls/seats (issue #470): the seats whose traffic isn't on its planned firewall. */
+export interface FirewallSeats {
+  enabled: boolean
+  seats: Record<string, { now: string | null; intended: string | null; state: 'failover' | 'down' }>
+}
+
+export interface PowerMarkers {
+  enabled: boolean
+  boards: { id: string; name: string; x: number; y: number; state: PowerState }[]
+  circuits: { id: string; name: string; board: string; state: PowerState; pct: number | null; seats: string[]; switches: string[] }[]
+  counts: Partial<Record<PowerState, number>>
+}
+
 export interface SeatViewData {
   /** Each hall's totals, for the hall picker (issue #196). */
   halls: { id: string; name: string; seats: number; online: number; problems: number }[]
@@ -1257,6 +1301,8 @@ export interface SeatViewData {
   size: { w: number; h: number; cell: number }
   background: string | null
   switches: PlanSwitch[]
+  /** Links between switches placed on this plan (issue #468); older servers send none. */
+  links?: PlanLink[]
   seats: Record<string, PlanSeat>
   blocks: PlanBlock[]
   monitoring: boolean
@@ -1287,9 +1333,48 @@ export interface SeatDetails {
   note?: SeatNote | null
   /** The player's speed tests from the help page, newest first (issue #182); crew only. */
   speedtests?: SeatSpeedTest[]
+  /** Which firewall the core sends the seat to (issue #470); crew only, null when no range covers it. */
+  firewall?: SeatFirewall | null
   nick?: string | null
   ip?: string | null
   mac?: string | null
+}
+
+export interface SeatFirewall { intended: string | null; now: string | null; state: FirewallRouteState; range: string }
+export type FirewallRouteState = 'primary' | 'failover' | 'unknown' | 'down'
+
+/** GET /api/firewalls (issue #470): the firewalls with their health, and each seat range's route now. */
+export interface FirewallRange {
+  id: string; cidr: string; name: string; firewalls: string[]; intended: string | null; now: string | null
+  state: FirewallRouteState; seats: number
+}
+export interface FirewallCard {
+  id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
+  serving: string[]; planned: string[]; backup_for: string[]; seats: number
+}
+export interface FirewallList {
+  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean
+  counts: { firewalls: number; down: number; failover: number; without: number }
+}
+
+/** GET /api/services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. */
+export type ServiceStatus = 'up' | 'warn' | 'down' | 'unknown'
+interface ServiceState { status: ServiceStatus; since: number | null; checked_at: number | null; history: [number, number | null][]; error: string }
+export interface IspUplink extends ServiceState {
+  id: string; name: string; device: string; port: string; capacity_mbps: number; probe_host: string; probe_port: number
+  port_state?: string | null; in_bps?: number | null; out_bps?: number | null; utilization?: number | null
+  latency_ms?: number | null; loss?: number | null
+}
+export interface DnsResolver extends ServiceState {
+  id: string; name: string; address: string; lookup: string; latency_ms?: number | null; rcode?: string | null; answers?: number | null
+}
+export interface LanCacheState {
+  status: ServiceStatus; hit_ratio: number | null; served_bytes: number; bps: number
+  disk: { used: number; total: number; ratio: number } | null; error: string; demo: boolean
+}
+export interface Services {
+  uplinks: IspUplink[]; resolvers: DnsResolver[]; lan_cache: LanCacheState | null
+  interval: number; last_poll: number | null; via_agent: boolean; probe_ports: number[]; devices: string[]
 }
 
 /** One speed test the player ran from the seat's help page (issue #99). */
@@ -1368,6 +1453,22 @@ export interface Agent {
   halls?: string[]
   /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
   relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
+  /** The agent's own numbers, sent every half minute (null: none lately, or an older agent). */
+  report?: AgentReport | null
+}
+
+export interface AgentReport {
+  at: number
+  up_seconds?: number
+  reconnects?: number
+  link_drops?: number
+  calls_busy?: number
+  answers_failed?: number
+  syslog_received?: number
+  syslog_sent?: number
+  syslog_dropped?: number
+  syslog_backlog?: number
+  flows_packets?: number
 }
 
 export interface AgentStats {
@@ -1380,3 +1481,41 @@ export interface SpeedFigures { tests: number; down_mbps: number | null; up_mbps
 export interface SpeedSeat { seat: string; down_mbps: number | null; up_mbps: number | null; ping_ms: number | null; at: number }
 export interface SpeedSwitch extends SpeedFigures { id: string; name: string; seats: SpeedSeat[]; slow: boolean }
 export interface SpeedtestSummary { hours: number; hall: SpeedFigures; switches: SpeedSwitch[]; unknown: SpeedSeat[] }
+
+/** Game servers (issue #472): their last answer, and whether RCON is set up. Never the password. */
+export interface GameServerInfo {
+  name: string; map: string; game: string; version: string
+  players: number; max_players: number; bots: number; ping_ms: number | null
+}
+export interface GameServer {
+  id: string; name: string; game: string; host: string; port: number; query: 'a2s' | 'minecraft' | 'tcp'
+  rcon_port: number | null; rcon: boolean
+  status: 'up' | 'down' | 'unknown'; info: GameServerInfo | null; error: string
+  checked_at: number | null; since: number | null
+  /** [when, players] oldest first; players is null while it was down. */
+  history: [number, number | null][]
+}
+export interface GameServerList {
+  servers: GameServer[]; interval: number; last_poll: number | null; via_agent: boolean
+  counts: { up: number; down: number; unknown: number }; players: number
+}
+export interface RconAnswer { server: string; command: string; answer: string }
+
+/** Links between switches and the topology (issue #468). */
+export type LinkType = 'cat5e' | 'cat6' | 'cat6a' | 'fiber-sm' | 'fiber-mm' | 'dac'
+export interface SwitchLink {
+  id: string; a: string; a_port: string; b: string; b_port: string; type: LinkType | ''; speed: number | null; note: string
+  media: 'copper' | 'fiber' | 'dac' | ''
+  state: 'up' | 'down' | 'unknown'; speed_bps: number | null; issue: '' | 'down' | 'slow'
+}
+export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean; status: 'online' | 'offline' | 'unknown' }
+export interface LinkSuggestion { a: string; a_port: string; b: string; b_port: string; protocol: string; speed: number | null }
+/** An internet line from the services view (issue #471), drawn above the box it comes in at. */
+export interface TopologyUplink {
+  id: string; name: string; device: string; port: string; capacity_mbps: number | null
+  status: 'up' | 'warn' | 'down' | 'unknown'; utilization: number | null
+}
+export interface Topology {
+  nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
+  counts: { links: number; down: number; slow: number }; types: LinkType[]; speeds: number[]
+}

@@ -2,20 +2,20 @@ import { Alert, Anchor, Button, Drawer, Group, Kbd, Loader, Paper, SegmentedCont
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { PlayerHit, SeatViewData } from '@/api/types'
+import type { FirewallSeats, PlayerHit, PowerMarkers, SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
-import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter } from './plan/model'
+import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { Shortcuts } from './plan/Shortcuts'
@@ -36,6 +36,8 @@ export default function FloorPlan() {
   // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
   const print = !screen && params.get('print') === '1'
   const traffic = params.get('traffic') === '1'
+  const powerOn = params.get('power') === '1'
+  const firewallOn = params.get('firewalls') === '1'
   const list = !screen && params.get('view') === 'list'
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
@@ -53,12 +55,32 @@ export default function FloorPlan() {
     queryFn: () => get<SeatViewData>(`/api/plan${hall ? `?hall=${encodeURIComponent(hall)}` : focus ? `?${focus}` : ''}`),
     refetchInterval: 30_000,
   })
+  // The power layer (issue #468): asked once to know whether Electrics is on, then kept fresh while shown.
+  const markers = useQuery({
+    queryKey: qk.powerMarkers, queryFn: () => get<PowerMarkers>('/api/power/markers'),
+    refetchInterval: powerOn ? 30_000 : false, staleTime: 60_000, enabled: !print,
+  })
+  const power = powerOn && markers.data?.enabled ? markers.data : undefined
+  // The firewall layer (issue #470): offered once ranges are planned, kept fresh while shown.
+  const fwSeats = useQuery({
+    queryKey: qk.firewallSeats, queryFn: () => get<FirewallSeats>('/api/firewalls/seats'),
+    refetchInterval: firewallOn ? 15_000 : false, staleTime: 60_000, enabled: !print && !screen,
+  })
+  const firewalls = firewallOn && fwSeats.data?.enabled ? fwSeats.data.seats : undefined
   const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: qk.planAll }) }, [qc])
   useLiveEvent('stats.changed', refresh)
   useLiveEvent('attention.changed', refresh)
   useLiveEvent('incident.changed', refresh)
   useLiveEvent('plan.changed', refresh)
-  const data = q.data
+  // With the power layer on, the view takes in the boards too: they usually hang on the walls.
+  const data = useMemo(() => {
+    const d = q.data
+    if (!d?.drawing || !power?.boards.length) return d
+    const fed = new Set(power.circuits.flatMap((c) => c.switches))
+    const at = [...power.boards.map((b) => ({ x: (b.x / 100) * d.size.w, y: (b.y / 100) * d.size.h })),
+      ...d.switches.filter((w) => fed.has(w.id))]
+    return { ...d, drawing: { ...d.drawing, box: widen(d.drawing.box, at) } }
+  }, [q.data, power])
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
@@ -148,7 +170,7 @@ export default function FloorPlan() {
   const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
 
   const map = data?.drawing && view && (
-    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic}
+    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
@@ -194,7 +216,7 @@ export default function FloorPlan() {
           {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
         </div>
         {map}
-        {data && <Legend checkin={data.checkin} traffic={traffic} />}
+        {data && <Legend checkin={data.checkin} traffic={traffic} power={!!power} />}
       </main>
     )
   }
@@ -253,6 +275,12 @@ export default function FloorPlan() {
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             {!list && <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />}
+            {!list && markers.data?.enabled && (
+              <Switch size="sm" label={t('plan.power.layer')} checked={powerOn} onChange={(e) => set('power', e.currentTarget.checked ? '1' : null)} />
+            )}
+            {!list && fwSeats.data?.enabled && (
+              <Switch size="sm" label={t('plan.firewallLayer.layer')} checked={firewallOn} onChange={(e) => set('firewalls', e.currentTarget.checked ? '1' : null)} />
+            )}
           </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
@@ -261,7 +289,7 @@ export default function FloorPlan() {
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
-          {!list && <Legend checkin={data.checkin} traffic={traffic} />}
+          {!list && <Legend checkin={data.checkin} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
           {!list && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}

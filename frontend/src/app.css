@@ -400,6 +400,9 @@ body {
 .fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
 .fb-plan .match { fill: none; stroke: var(--color-warn); stroke-width: 3.5; }
+.fb-plan .fwr { fill: none; stroke-width: 3; }
+.fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
+.fb-plan .fwr.fw-down { stroke: var(--color-down); }
 .fb-plan .num { fill: var(--color-fg); font: 700 11px var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
 .fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
@@ -412,6 +415,22 @@ body {
 .fb-plan .sw rect { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .sw-online rect { fill: var(--color-bit); }
 .fb-plan .sw-offline rect { fill: var(--color-down); }
+.fb-plan .uplink { stroke: var(--mantine-color-gray-5); stroke-linecap: round; opacity: 0.55; }
+.fb-plan .uplink.m-copper { stroke: var(--mantine-color-blue-6); }
+.fb-plan .uplink.m-fiber { stroke: var(--mantine-color-cyan-6); }
+.fb-plan .uplink.m-dac { stroke: var(--mantine-color-violet-6); }
+.fb-plan .uplink.t-fiber-sm { stroke: var(--mantine-color-yellow-6); }
+.fb-plan .uplink.slow { stroke: var(--mantine-color-orange-6); }
+.fb-plan .uplink.down { stroke: var(--color-down); stroke-dasharray: 6 4; }
+/* The power layer (issue #468): boards and their cables, by the circuit's load. */
+.fb-plan .pcable { stroke: var(--mantine-color-gray-5); stroke-width: 2.5; stroke-linecap: round; opacity: 0.7; }
+.fb-plan .pboard rect { fill: var(--mantine-color-body); stroke: var(--mantine-color-gray-5); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-plan .pboard text { fill: var(--mantine-color-text); font-weight: 700; }
+.fb-plan .pw-ok.pcable, .fb-plan .pw-ok rect { stroke: var(--color-up); }
+.fb-plan .pw-warn.pcable, .fb-plan .pw-warn rect { stroke: var(--color-warn); }
+.fb-plan .pw-crit.pcable, .fb-plan .pw-crit rect { stroke: var(--color-down); }
+.fb-plan .pw-tripped.pcable { stroke: var(--color-down); stroke-dasharray: 6 4; }
+.fb-plan .pw-tripped rect { stroke: var(--color-down); fill: color-mix(in srgb, var(--color-down) 18%, var(--mantine-color-body)); }
 .fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
 .fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
 .fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }

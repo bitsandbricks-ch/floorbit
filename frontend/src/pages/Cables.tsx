@@ -1,7 +1,7 @@
 import {
-  Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput,
+  Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput,
 } from '@mantine/core'
-import { IconCloudDownload, IconDownload, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,21 +10,28 @@ import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { Cable, CableImport, CableList } from '@/api/types'
+import type { BlockPlan, Cable, CableImport, CableList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { PatchBlockModal } from '@/components/PatchBlockModal'
+import { PatchCheck } from '@/components/PatchCheck'
+import { PortClients } from '@/components/PortClients'
 
-type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string }
+type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string; type: string; speed: string }
+const TYPES = ['cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac']
+const SPEEDS = ['1', '10', '25', '40', '100']
 
-const EMPTY: Draft = { label: '', switch: '', port: '', panel: '', panel_port: '', seat: '', color: '', note: '', length_m: '' }
+const EMPTY: Draft = { label: '', switch: '', port: '', panel: '', panel_port: '', seat: '', color: '', note: '', length_m: '', type: '', speed: '' }
 
-function CableModal({ cable, all, canEdit, onClose, onDone }: {
-  cable: Cable | null; all: Cable[]; canEdit: boolean; onClose: () => void; onDone: () => void
+function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
+  cable: Cable | null; all: Cable[]; canEdit: boolean; initial?: Partial<Draft>; onClose: () => void; onDone: () => void
 }) {
   const { t } = useTranslation()
   const imported = cable?.source === 'import'
   const readOnly = !canEdit || imported
-  const [d, setD] = useState<Draft>(() => cable ? { ...cable, length_m: cable.length_m ?? '' } : EMPTY)
+  const [d, setD] = useState<Draft>(() => cable
+    ? { ...cable, length_m: cable.length_m ?? '', type: cable.type ?? '', speed: cable.speed ? String(cable.speed) : '' }
+    : { ...EMPTY, ...initial })
   const set = (k: keyof Draft) => (v: string | number) => setD((x) => ({ ...x, [k]: v }))
   const text = (k: keyof Draft) => ({
     value: String(d[k]), readOnly,
@@ -32,7 +39,7 @@ function CableModal({ cable, all, canEdit, onClose, onDone }: {
   })
   const save = useMutation({
     mutationFn: () => {
-      const body = { ...d, length_m: d.length_m === '' ? null : d.length_m }
+      const body = { ...d, length_m: d.length_m === '' ? null : d.length_m, speed: d.speed ? Number(d.speed) : null }
       return cable ? patch<Cable>(`/api/cables/${cable.id}`, body) : post<Cable>('/api/cables', body)
     },
     onSuccess: onDone,
@@ -55,6 +62,10 @@ function CableModal({ cable, all, canEdit, onClose, onDone }: {
           <TextInput label={t('cables.color')} {...text('color')} />
           <NumberInput label={t('cables.length')} min={0.1} max={500} step={0.5} decimalScale={1} readOnly={readOnly}
             value={d.length_m} onChange={set('length_m')} />
+          <Select label={t('cables.type')} clearable readOnly={readOnly} value={d.type || null} onChange={(v) => set('type')(v ?? '')}
+            data={TYPES.map((v) => ({ value: v, label: t(`topology.types.${v}`) }))} />
+          <Select label={t('cables.speed')} clearable readOnly={readOnly} value={d.speed || null} onChange={(v) => set('speed')(v ?? '')}
+            data={SPEEDS.map((v) => ({ value: v, label: `${v}G` }))} />
         </SimpleGrid>
         <TextInput label={t('cables.note')} maxLength={200} {...text('note')} />
         {(save.error || remove.error) && <Alert color="down" role="alert">{(save.error || remove.error)!.message}</Alert>}
@@ -83,13 +94,19 @@ export default function Cables() {
   const qc = useQueryClient()
   const [params, setParams] = useSearchParams()
   const canEdit = useCan('floorplan.edit')
+  const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.cables })
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
-  const [adding, setAdding] = useState(false)
+  // A new cable, maybe started from a machine on an unexplained port (its switch and port filled in).
+  const [adding, setAdding] = useState<Partial<Draft> | null>(null)
+  const [patching, setPatching] = useState(false)
+  const [patched, setPatched] = useState<BlockPlan | null>(null)
+  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
+    enabled: canEdit })
   const openId = params.get('cable')
-  const close = () => { setAdding(false); if (openId) setParams({}, { replace: true }) }
+  const close = () => { setAdding(null); if (openId) setParams({}, { replace: true }) }
   const doImport = useMutation({ mutationFn: () => post<CableImport>('/api/cables/import'), onSuccess: refresh })
 
   const d = query.data
@@ -106,7 +123,11 @@ export default function Cables() {
       <PageHead title={t('cables.title')} desc={t('cables.intro')}
         actions={
           <Group gap="xs">
-            {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding(true)}>{t('cables.add')}</Button>}
+            {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding({})}>{t('cables.add')}</Button>}
+            {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
+              {t('cables.patchBlock')}</Button>}
+            {canEdit && <Button variant="default" component="a" href="/cables/walk" leftSection={<IconPlugConnected size={16} />}>
+              {t('walk.title')}</Button>}
             {canEdit && d && d.sources.length > 0 && (
               <Button variant="default" leftSection={<IconCloudDownload size={16} />} loading={doImport.isPending}
                 onClick={() => doImport.mutate()}>{t('cables.import', { source: d.sources.join(', ') })}</Button>
@@ -119,6 +140,11 @@ export default function Cables() {
         } />
       <Stack gap="md">
         {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        {patched && (
+          <Alert color="up" withCloseButton onClose={() => setPatched(null)}>
+            {t('cables.created', { created: patched.created ?? 0, removed: patched.removed ?? 0 })}
+          </Alert>
+        )}
         {doImport.error && <Alert color="down" role="alert">{doImport.error.message}</Alert>}
         {doImport.data && (
           <Alert color={doImport.data.errors.length ? 'warn' : 'up'} withCloseButton onClose={() => doImport.reset()}>
@@ -126,6 +152,8 @@ export default function Cables() {
             {doImport.data.errors.map((e) => <Text key={e} size="sm">{e}</Text>)}
           </Alert>
         )}
+        <PatchCheck />
+        {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => setAdding({ switch: c.switch, port: c.port, seat: c.ip_seat })} />}
         {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
@@ -150,7 +178,8 @@ export default function Cables() {
                           <Table.Td>{c.seat || '–'}</Table.Td>
                           <Table.Td>
                             <Group gap={6} wrap="nowrap">
-                              <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : ''].filter(Boolean).join(' · ') || '–'}</Text>
+                              <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : '', c.type ? t(`topology.types.${c.type}`) : '',
+                                c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
                               {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
                             </Group>
                           </Table.Td>
@@ -170,8 +199,13 @@ export default function Cables() {
           </>
         )}
       </Stack>
+      {patching && d && (
+        <PatchBlockModal
+          switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...d.cables.map((c) => c.switch)])].sort()}
+          onClose={() => setPatching(false)} onDone={(made) => { setPatching(false); setPatched(made); refresh() }} />
+      )}
       {(adding || current) && d && (
-        <CableModal key={current?.id ?? 'new'} cable={adding ? null : current ?? null} all={d.cables} canEdit={canEdit}
+        <CableModal key={current?.id ?? 'new'} cable={adding ? null : current ?? null} all={d.cables} canEdit={canEdit} initial={adding ?? undefined}
           onClose={close} onDone={() => { close(); refresh() }} />
       )}
     </Layout>

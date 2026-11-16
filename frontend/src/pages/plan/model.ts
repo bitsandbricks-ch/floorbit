@@ -16,6 +16,16 @@ export function parseBox(box: string): View {
   return { x, y, w, h }
 }
 
+/** The drawing's box grown to take in points outside it (the power layer's boards hang on the walls),
+ *  with a margin, as the same "x y w h" string. */
+export function widen(box: string, points: { x: number; y: number }[], margin = 40): string {
+  if (!points.length) return box
+  const b = parseBox(box)
+  const x0 = Math.min(b.x, ...points.map((p) => p.x - margin)), y0 = Math.min(b.y, ...points.map((p) => p.y - margin))
+  const x1 = Math.max(b.x + b.w, ...points.map((p) => p.x + margin)), y1 = Math.max(b.y + b.h, ...points.map((p) => p.y + margin))
+  return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`
+}
+
 /** Screen pixels per plan unit; the SVG keeps its aspect ratio, so the smaller side wins. */
 export function scale(view: View, px: { w: number; h: number }) {
   if (!px.w || !px.h) return 0

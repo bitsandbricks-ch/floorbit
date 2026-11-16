@@ -186,5 +186,21 @@
     "help": "Diese Liste zeigen"
   },
   "fixedBefore_one": "Hier schon einmal behoben: {{title}} ({{time}})",
-  "fixedBefore_other": "Hier schon {{count}}-mal behoben, zuletzt: {{title}} ({{time}})"
+  "fixedBefore_other": "Hier schon {{count}}-mal behoben, zuletzt: {{title}} ({{time}})",
+  "firewall": "Firewall",
+  "firewallFailover": "{{now}} (umgeschaltet von {{intended}})",
+  "firewallNone": "Keine erreichbar (geplant {{name}})",
+  "firewallLayer": {
+    "layer": "Firewalls",
+    "failover": "Platz läuft über eine Backup-Firewall",
+    "down": "Platz hat keine Firewall mehr"
+  },
+  "power": {
+    "layer": "Strom",
+    "ok": "Stromkreis gut",
+    "warn": "Stromkreis hoch",
+    "crit": "Stromkreis am Limit",
+    "tripped": "Ausgelöst",
+    "noReading": "kein Messwert"
+  }
 }

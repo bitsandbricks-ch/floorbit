@@ -24,7 +24,7 @@ import re
 import socketserver
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from datetime import datetime
 
 from integrations import config
@@ -32,6 +32,9 @@ from integrations import config
 from . import features, inventory, log_alerts, store
 
 MAX_LINE = 2048
+LATE = 120               # seconds: a relayed line older than this was kept by the agent (#465)
+DUPLICATE_WINDOW = 10    # seconds: the same line id this close in time is a copy, not a repeat
+SEEN_IDS = 100_000       # relayed line ids remembered for that
 FORWARD_SECONDS = 10
 FORWARD_BACKLOG = 20_000
 SEVERITIES = ('emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug')
@@ -126,8 +129,9 @@ class SyslogReceiver:
         self._lock = threading.Lock()
         self.lines = deque()
         self.next_id = 1
-        self.counts = {'received': 0, 'kept': 0, 'not_allowed': 0, 'rate_limited': 0}
-        self._buckets = {}      # sender -> [tokens, last]
+        self.counts = {'received': 0, 'kept': 0, 'not_allowed': 0, 'rate_limited': 0, 'duplicates': 0}
+        self._buckets = {}      # sender (or (sender, 'late')) -> [tokens, last]
+        self._seen_ids = OrderedDict()   # a relayed line's id -> its time, to drop copies
         self._servers = []
         self._allow_cache = (0, [], {})
         self.port_seats = lambda: {}
@@ -252,15 +256,18 @@ class SyslogReceiver:
         return True
 
     # ── receiving ───────────────────────────────────────────────────────────────────
-    def receive(self, raw, sender, now=None, check=True, device=None):
-        """One datagram or TCP line from ``sender``. Returns the kept line, or None."""
+    def receive(self, raw, sender, now=None, check=True, device=None, late=False):
+        """One datagram or TCP line from ``sender``. Returns the kept line, or None. ``late``: a line
+        an agent kept while the uplink was down, sent long after it came."""
         now = time.time() if now is None else now
         with self._lock:
             self.counts['received'] += 1
             if check and not self.sender_ok(sender):
                 self.counts['not_allowed'] += 1
                 return None
-            if not self._rate_ok(sender, now):
+            # Late lines come oldest first behind the live ones: on a bucket of their own, their
+            # times refill it as the switch's own pace did, and they can't eat the live lines' share.
+            if not self._rate_ok((sender, 'late') if late else sender, now):
                 self.counts['rate_limited'] += 1
                 return None
         line = parse(raw, now)
@@ -276,15 +283,18 @@ class SyslogReceiver:
             self.counts['kept'] += 1
             self._trim(now)
         self._write(line)
-        self.alerts.observe(line, now)
+        if not late:      # an alert about something hours ago would only send the crew running now
+            self.alerts.observe(line, now)
         return line
 
     def relay(self, agent_name, lines, now=None, dropped=0):
-        """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at"}]``.
+        """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at", "id"}]``.
 
         The original sender is checked against the allow-list as if it had sent here, and a line
-        keeps the time the agent got it (at most an hour back: older ones were buffered too long
-        to be worth placing in the past). Returns how many were kept."""
+        keeps the time the agent got it. An agent that couldn't reach us keeps lines on disk and
+        sends them later (#465): they are placed at their own time, back to the retention limit.
+        ``id`` is the same on every agent that heard the line: a second copy within DUPLICATE_WINDOW
+        of the first (two agents, or a batch sent again) is dropped. Returns how many were kept."""
         now = time.time() if now is None else now
         if not lines:
             return 0     # the agent's check: nothing to count
@@ -297,10 +307,15 @@ class SyslogReceiver:
             except ValueError:
                 continue
             try:
-                at = float(item.get('at') or now)
+                at = min(now, float(item.get('at') or now))
             except (TypeError, ValueError):
                 at = now
-            if self.receive(item['raw'][:MAX_LINE], sender, now=min(now, max(now - 3600, at))) is not None:
+            if at < now - settings()['retention_hours'] * 3600:
+                continue                          # kept too long: it would be gone at once
+            if self._duplicate(item.get('id'), at):
+                continue
+            late = now - at > LATE
+            if self.receive(item['raw'][:MAX_LINE], sender, now=at, late=late) is not None:
                 kept += 1
         with self._lock:
             seen = self.relayed.setdefault(str(agent_name)[:80], {'lines': 0, 'dropped': 0})
@@ -308,6 +323,21 @@ class SyslogReceiver:
             seen['lines'] += kept
             seen['dropped'] = max(0, int(dropped or 0))
         return kept
+
+    def _duplicate(self, line_id, at):
+        if not isinstance(line_id, str) or not line_id:
+            return False                          # an older agent: no ids, nothing to compare
+        line_id = line_id[:64]
+        with self._lock:
+            seen = self._seen_ids.get(line_id)
+            if seen is not None and abs(seen - at) <= DUPLICATE_WINDOW:
+                self.counts['duplicates'] += 1
+                return True
+            self._seen_ids[line_id] = at
+            self._seen_ids.move_to_end(line_id)
+            while len(self._seen_ids) > SEEN_IDS:
+                self._seen_ids.popitem(last=False)
+        return False
 
     def _seat_index(self):
         """{(switch, canonical port): seat}, rebuilt when the port watch has read the ports again."""

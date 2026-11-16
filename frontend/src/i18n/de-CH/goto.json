@@ -59,6 +59,11 @@
     "users": "Benutzer",
     "teams": "Rollen und Teams",
     "signIn": "Anmeldedienste",
-    "audit": "Audit-Log"
+    "audit": "Audit-Log",
+    "firewalls": "Firewalls",
+    "services": "Dienste",
+    "topology": "Topologie",
+    "gameServers": "Gameserver",
+    "switchLogins": "Switch-Logins"
   }
 }

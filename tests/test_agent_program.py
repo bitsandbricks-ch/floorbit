@@ -680,7 +680,7 @@ def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
     relay = agent_mod.start_syslog(a, "0", out=lambda *_: None)
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.sendto(b"<14>hello over the agent", ("127.0.0.1", relay._server.server_address[1]))
+            s.sendto(b"<14>hello over the agent", ("127.0.0.1", relay._server.getsockname()[1]))
         deadline = time.time() + 5
         while not receiver.lines and time.time() < deadline:
             time.sleep(0.05)

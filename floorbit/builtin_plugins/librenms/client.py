@@ -544,3 +544,47 @@ def arp_entries(query):
     if not resp.ok:
         return []
     return resp.json().get('arp', []) or []
+
+
+def port_clients(hostname):
+    """A switch's MAC table by port name: [{"port", "mac", "vlan"}]. Raises when LibreNMS can't say,
+    so the cables page names the switch instead of showing it as empty."""
+    headers = {'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'}
+    device = fetch_librenms_device_by_hostname(hostname, headers)
+    if not device:
+        raise LookupError(f'LibreNMS does not know {hostname}')
+    device_id = device.get('device_id') or device.get('hostname')
+    ports = librenms_ports.fetch_ports(rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
+                                       tiers=(['port_id', 'ifName'],))
+    if ports is None:
+        raise LookupError(f'LibreNMS did not list the ports of {hostname}')
+    names = {p.get('port_id'): p.get('ifName') for p in ports if p.get('ifName')}
+    resp = requests.get(f'{rt.librenms_url}/api/v0/devices/{device_id}/fdb', headers=headers,
+                        timeout=15, verify=rt.librenms_verify_ssl)
+    resp.raise_for_status()
+    body = resp.json()
+    # Either key: the LibreNMS API docs say "ports_fdb", the older code here read "fdb".
+    rows = body.get('ports_fdb') or body.get('fdb') or []
+    return [{'port': names[r.get('port_id')], 'mac': r.get('mac_address'), 'vlan': r.get('vlan_id')}
+            for r in rows if r.get('port_id') in names and r.get('mac_address')]
+
+
+def neighbours(hostname):
+    """What a switch sees on its ports by LLDP or CDP: [{"port", "remote", "remote_port", "protocol"}]."""
+    headers = {'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'}
+    device = fetch_librenms_device_by_hostname(hostname, headers)
+    if not device:
+        raise LookupError(f'LibreNMS does not know {hostname}')
+    device_id = device.get('device_id') or device.get('hostname')
+    ports = librenms_ports.fetch_ports(rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
+                                       tiers=(['port_id', 'ifName'],))
+    if ports is None:
+        raise LookupError(f'LibreNMS did not list the ports of {hostname}')
+    names = {p.get('port_id'): p.get('ifName') for p in ports if p.get('ifName')}
+    resp = requests.get(f'{rt.librenms_url}/api/v0/devices/{device_id}/links', headers=headers,
+                        timeout=15, verify=rt.librenms_verify_ssl)
+    resp.raise_for_status()
+    return [{'port': names[r.get('local_port_id')], 'remote': r.get('remote_hostname'),
+             'remote_port': r.get('remote_port'), 'protocol': r.get('protocol') or ''}
+            for r in resp.json().get('links') or []
+            if r.get('local_port_id') in names and r.get('remote_hostname') and r.get('remote_port')]

@@ -1,4 +1,5 @@
 """Seat port view: reading one port from LibreNMS and summarising it. No real LibreNMS is called."""
+import pytest
 
 from floorbit.builtin_plugins.librenms import ports as port_details
 
@@ -94,3 +95,34 @@ def test_device_ports_for_the_attention_watch(monkeypatch):
     assert port['name'] == 'Gi1/0/14' and port['last_change'] is None
     assert port['description'] == 'seat A-14' and port['duplex'] == 'full' and port['errors_in'] == 3
     assert len(calls) == 2
+
+
+def test_port_clients_reads_the_mac_table_by_port_name(monkeypatch):
+    from floorbit.builtin_plugins.librenms import client
+
+    class Answer:
+        ok, status_code = True, 200
+
+        def __init__(self, body):
+            self.body = body
+
+        def json(self):
+            return self.body
+
+        def raise_for_status(self):
+            pass
+
+    def fake_get(url, params=None, **kwargs):
+        if url.endswith('/ports'):
+            return Answer({'ports': [{'port_id': 7, 'ifName': 'Gi1/0/7'}, {'port_id': 8, 'ifName': 'Gi1/0/8'}]})
+        assert url.endswith('/devices/14/fdb')
+        return Answer({'ports_fdb': [{'port_id': 7, 'mac_address': '020000000007', 'vlan_id': 3},
+                                     {'port_id': 99, 'mac_address': '020000000099'},     # a port it didn't list
+                                     {'port_id': 8, 'mac_address': None}]})
+
+    monkeypatch.setattr(client.requests, 'get', fake_get)
+    monkeypatch.setattr(client, 'fetch_librenms_device_by_hostname', lambda h, headers: {'device_id': 14})
+    assert client.port_clients('sw-a-01') == [{'port': 'Gi1/0/7', 'mac': '020000000007', 'vlan': 3}]
+    monkeypatch.setattr(client, 'fetch_librenms_device_by_hostname', lambda h, headers: None)
+    with pytest.raises(LookupError):
+        client.port_clients('sw-z-99')

@@ -52,6 +52,7 @@
     "commands_change": "Run switch commands that change something, such as clearing counters",
     "terminal_open": "Open a terminal on a switch in the browser, with their own switch login",
     "power_edit": "Change power boards and circuits, enter readings and trips",
+    "games_rcon": "Send RCON commands to game servers",
     "plugins_run": "Run plugin actions",
     "audit_read": "Read the audit log",
     "settings_manage": "Change settings, plugins and backups",

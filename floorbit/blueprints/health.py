@@ -7,11 +7,11 @@
 - ``GET /healthz``: "the app answers", for the Docker healthcheck and load balancers. Open without
   signing in, so it says nothing else; 503 when the database (``FLOORBIT_DATABASE_URL``) doesn't answer.
 """
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, current_app, jsonify, request
 
 from integrations import alerting
 
-from .. import database, spa
+from .. import database, i18n, spa
 
 bp = Blueprint('health', __name__)
 
@@ -39,7 +39,12 @@ def health_page():
 
 def _with_mutes(wall):
     muted = alerting.mutes()
-    checks = [{**c, 'muted_until': (muted.get(alerting.service_key(c['id'])) or {}).get('until')}
+    # The tiles' own words in the reader's language (issue #467); a plugin's text without a German
+    # one in de-CH.json stays as the plugin wrote it.
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    checks = [{**c, 'summary': i18n.translate(c.get('summary'), lang),
+               'metrics': [{**m, 'label': i18n.translate(m.get('label'), lang)} for m in c.get('metrics') or []],
+               'muted_until': (muted.get(alerting.service_key(c['id'])) or {}).get('until')}
               for c in wall.get('checks') or []]
     return {**wall, 'checks': checks}
 

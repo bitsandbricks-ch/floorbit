@@ -34,5 +34,20 @@
   "runTitle": "Agent im Eventnetz starten",
   "docs": "Wie der Agent funktioniert und was er gefragt wird: docs/agent.md.",
   "relaySyslog": "Syslog",
-  "relayFlows": "NetFlow"
+  "relayFlows": "NetFlow",
+  "upMinutes_one": "Läuft seit 1 Minute",
+  "upMinutes_other": "Läuft seit {{count}} Minuten",
+  "upHours_one": "Läuft seit 1 Stunde",
+  "upHours_other": "Läuft seit {{count}} Stunden",
+  "upDays_one": "Läuft seit 1 Tag",
+  "upDays_other": "Läuft seit {{count}} Tagen",
+  "reconnects_one": "1 Neuverbindung",
+  "reconnects_other": "{{count}} Neuverbindungen",
+  "noReconnects": "keine Neuverbindungen",
+  "reportSyslog": "Syslog {{received}} empfangen, {{waiting}} wartend",
+  "reportSyslogDropped_one": "1 Syslog-Zeile verworfen",
+  "reportSyslogDropped_other": "{{n}} Syslog-Zeilen verworfen",
+  "reportFlows": "NetFlow {{n}} Pakete",
+  "reportBusy_one": "1 Anfrage mit «beschäftigt» beantwortet",
+  "reportBusy_other": "{{count}} Anfragen mit «beschäftigt» beantwortet"
 }
