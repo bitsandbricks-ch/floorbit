@@ -5,7 +5,7 @@ distribution boards, the circuits each one feeds and the load on every circuit a
 fuse. The **Power circuits** layer on the floor plan colours every seat and switch by its circuit, so
 ops can see what goes dark when a breaker trips. On the **Seats** page (`/plan`), the **Power** switch draws each placed board as a box
 and a cable from it to what each circuit feeds (the middle of its seats, and its switches), coloured
-by the circuit's load and dashed when it tripped. The page's browser tab starts with the number of circuits that are
+by the circuit's load and dashed when it tripped. Under each board, a bar and a number show its busiest circuit's load, or how many of its circuits tripped. The page's browser tab starts with the number of circuits that are
 getting close, about to trip or tripped, e.g. "(2) Electrics · Floorbit". Code: [`floorbit/power.py`](../floorbit/power.py)
 and [`floorbit/blueprints/power.py`](../floorbit/blueprints/power.py).
 

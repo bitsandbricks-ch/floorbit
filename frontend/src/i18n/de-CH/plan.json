@@ -232,6 +232,10 @@
     "down": "Platz hat keine Firewall mehr"
   },
   "power": {
+    "trippedCount_one": "{{count}} ausgelöst",
+    "trippedCount_other": "{{count}} ausgelöst",
+    "board_one": "{{name}}: {{count}} Stromkreis, höchste Last {{pct}} %",
+    "board_other": "{{name}}: {{count}} Stromkreise, höchste Last {{pct}} %",
     "layer": "Strom",
     "ok": "Stromkreis gut",
     "warn": "Stromkreis hoch",
