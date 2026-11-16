@@ -32,7 +32,10 @@ def nms(app_module, monkeypatch):
     return state
 
 
-def test_last_good_survives_a_restart_without_redis(tmp_path):
+def test_last_good_survives_a_restart_without_redis(tmp_path, monkeypatch):
+    from floorbit import cache
+    # An app made by an earlier test leaves its (fake) Redis client behind: this test is about none.
+    monkeypatch.setattr(cache, "redis_client", None)
     lastgood._last_write = 0
     lastgood.put('k', {'a': 1})
     lastgood._loaded, lastgood._memory = False, {}     # a new process
