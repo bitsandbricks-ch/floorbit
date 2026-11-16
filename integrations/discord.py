@@ -88,15 +88,15 @@ class DiscordNotifier:
 
     # ── wiring ────────────────────────────────────────────────────────────────────────────
     def attach(self):
-        events.subscribe('monitor.poll', self.on_poll)
-        events.subscribe('monitoring.offline', self.on_source)
-        events.subscribe('monitoring.online', self.on_source)
-        events.subscribe('health.changed', self.on_health)
-        events.subscribe('security.finding', self.on_security)
-        events.subscribe('power.alert', self.on_power)
-        events.subscribe('forecast.alert', self.on_forecast)
-        events.subscribe('status_page.update', self.on_status_update)
-        events.subscribe('schedule.starting', self.on_schedule_starting)
+        events.subscribe('monitor.poll', self.on_poll, leader_only=True)
+        events.subscribe('monitoring.offline', self.on_source, leader_only=True)
+        events.subscribe('monitoring.online', self.on_source, leader_only=True)
+        events.subscribe('health.changed', self.on_health, leader_only=True)
+        events.subscribe('security.finding', self.on_security, leader_only=True)
+        events.subscribe('power.alert', self.on_power, leader_only=True)
+        events.subscribe('forecast.alert', self.on_forecast, leader_only=True)
+        events.subscribe('status_page.update', self.on_status_update, leader_only=True)
+        events.subscribe('schedule.starting', self.on_schedule_starting, leader_only=True)
 
     def _ensure_worker(self):
         with self._lock:

@@ -234,7 +234,8 @@ def init_health(app, registry, start_background=True):
     wall = HealthWall(registry)
     app.extensions['floorbit_health'] = wall
     events.subscribe('health.changed', lambda ev: [
-        registry.emit('health.status', change) for change in (ev.get('data') or {}).get('changes', [])])
+        registry.emit('health.status', change) for change in (ev.get('data') or {}).get('changes', [])],
+        leader_only=True)
     started = threading.Event()
 
     @app.before_request

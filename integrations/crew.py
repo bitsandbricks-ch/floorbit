@@ -152,8 +152,8 @@ class CrewBridge:
 
     # wiring -------------------------------------------------------------------------------
     def attach(self):
-        events.subscribe('incident.changed', self.on_incident)
-        events.subscribe('notice.changed', self.on_notice)
+        events.subscribe('incident.changed', self.on_incident, leader_only=True)
+        events.subscribe('notice.changed', self.on_notice, leader_only=True)
 
     def on_incident(self, event):
         if not self.enabled() or not config.get_bool('DISCORD_CREW_INCIDENTS', True):

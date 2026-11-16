@@ -290,7 +290,7 @@ def _worker():
 
 def init_webhooks(app, start_background=True):
     from integrations import events
-    events.subscribe_once('*', on_event)
+    events.subscribe_once('*', on_event, leader_only=True)
     started = threading.Event()
 
     @app.before_request

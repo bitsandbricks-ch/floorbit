@@ -204,7 +204,7 @@ def csv_text(rows):
 
 def init_timeline(app):
     from integrations import events
-    events.subscribe_once('*', on_event)
+    events.subscribe_once('*', on_event, leader_only=True)
     try:
         record_start(app.config.get('FLOORBIT_VERSION') or '0')
     except Exception as exc:  # noqa: BLE001 - the timeline must never stop the app from starting
