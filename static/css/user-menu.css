@@ -11,6 +11,12 @@
 }
 
 /* Roles without floorplan.edit only look: hide the editing tools. The server refuses their changes anyway. */
-body.read-only .toolbar,
+body.read-only #tool-add-switch,
+body.read-only #tool-add-block,
+body.read-only .draw-wrap,
+body.read-only #btn-undo,
+body.read-only #btn-redo,
+body.read-only #btn-snap,
 body.read-only .detail-footer,
 body.read-only #block-edit-form,
+body.read-only .edit-only { display: none; }

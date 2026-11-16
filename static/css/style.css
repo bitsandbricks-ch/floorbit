@@ -437,7 +437,7 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
   transform: translate(-50%, -100%);
   display: flex; flex-direction: column; align-items: center;
   pointer-events: all; cursor: grab; user-select: none;
-  z-index: 2;
+  z-index: 4;   /* above seat blocks, so a switch in a lane between rows stays on top */
 }
 .switch-marker:hover    { z-index: 6; filter: brightness(1.2) drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .switch-marker.dragging { cursor: grabbing; z-index: 10; }
@@ -1129,3 +1129,21 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .mark-icon-choice { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; padding: 4px; }
 .mark-icon-choice:hover, .mark-icon-choice:focus-visible { border-color: var(--accent); }
 .mark-icon-choice svg { width: 18px; height: 18px; }
+
+/* ── Gaps inside a seat block (static/js/editor/gaps.js) ──────────────────────── */
+.seat-gap { flex: none; align-self: stretch; border-radius: 3px; }
+.seat-gap-col { min-height: 18px; }
+.seat-gap-row { width: 100%; }
+/* Shown while the block is hovered or selected, so an empty gap is easy to find and to tell apart. */
+.seat-block:hover .seat-gap,
+.seat-block.selected .seat-gap { background: repeating-linear-gradient(45deg, transparent 0 4px, color-mix(in srgb, var(--text-muted) 22%, transparent) 4px 5px); }
+.gap-group { margin-top: var(--sp-3); }
+.gap-group-head { display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-sm); font-weight: 600; }
+.gap-add { padding: 4px 10px; font-size: var(--fs-sm); }
+.gap-add:disabled { opacity: .45; cursor: not-allowed; }
+.gap-list { display: grid; gap: var(--sp-2); margin-top: var(--sp-2); }
+.gap-list:empty { display: none; }
+.gap-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--sp-2); align-items: end; }
+.gap-field { display: grid; gap: 2px; font-size: var(--fs-xs); color: var(--text-secondary); }
+.gap-field .modal-input { width: 100%; }
+.gap-remove { align-self: end; }

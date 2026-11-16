@@ -77,6 +77,22 @@ of 2 rows from `E` are rows E to L. A seat name is never given twice, in any hal
 one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does the same for scripts
 (`count`, `dx`, `dy` in percent of the plan, plus the block's fields).
 
+## Gaps in a seat block
+
+A row can have room in it, for example where the fiber rolls stand, and two rows can have a lane between
+them for a switch. Both are set per block:
+
+- **In the rows:** an empty space after a column, in every row of the block. Right-click a seat and pick
+  **Gap after this seat (every row)**, or use **+ Gap** in the block's **Gaps** section in the inspector.
+- **Between rows:** an empty lane after a row. Right-click a seat and pick **Lane after this row**, or use
+  **+ Lane**. Drop a switch into the lane like anywhere else on the plan.
+
+Each gap has a size in seats (0.25 to 20; a new gap is 1 seat wide, a new lane 2 seats high). Columns and
+rows are counted from the top left of the block as drawn before it is turned. Gaps only move seats apart:
+seat names and numbers carry on across them, and the Seats view, the kiosk and the port dispatch use the
+same spacing. Undo works as usual. In the API a block has `col_gaps` and `row_gaps`, each a list of
+`{"after": n, "size": s}`; gaps after the last column or row are dropped when a block gets smaller.
+
 ## The editor's menu
 
 The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block

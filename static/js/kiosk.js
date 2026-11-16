@@ -148,6 +148,15 @@
     swEl.innerHTML = html.join('');
   }
 
+  // Gaps inside a block (floorbit/seat_gaps.py): room after a column in every row, a lane after a row.
+  function gapAfter(gaps, after) {
+    return (gaps || []).filter(g => Number(g.after) === after).reduce((n, g) => n + Number(g.size), 0);
+  }
+  function gapSpacer(size, dir) {
+    const px = Math.max(0, size * 20 - 2);   // an 18 px seat plus the 2 px flex gap per seat
+    return `<div class="seat-gap" style="flex:none;${dir === 'col' ? `width:${px}px` : `height:${px}px`}"></div>`;
+  }
+
   function renderBlocks() {
     const taken = new Set();
     const html = [];
@@ -158,8 +167,10 @@
       let inner = block.name ? `<div class="seat-block-label">${escHtml(block.name)}</div>` : '';
       let i = 0;
       for (let row = 0; row < block.rows; row++) {
+        if (row && gapAfter(block.row_gaps, row)) inner += gapSpacer(gapAfter(block.row_gaps, row), 'row');
         inner += '<div class="seat-block-row">' + rowLabel(block, row, 'first');
         for (let col = 0; col < block.cols; col++) {
+          if (col && gapAfter(block.col_gaps, col)) inner += gapSpacer(gapAfter(block.col_gaps, col), 'col');
           const { number, display } = numbers[i++];
           const user = seatInfo[number]?.taken;
           let cls = 'seat-block-seat';

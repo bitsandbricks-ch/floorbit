@@ -142,7 +142,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 /* ── Map items (same geometry as the editor so layouts match) ───────────── */
 .switch-marker {
   position: absolute; transform: translate(-50%, -100%);
-  display: flex; flex-direction: column; align-items: center; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; z-index: 4;   /* above seat blocks (a switch in a lane between rows) */
 }
 .switch-pin { position: relative; width: 16px; height: 21px; color: var(--unknown); }
 .switch-pin svg { width: 100%; height: 100%; display: block; }

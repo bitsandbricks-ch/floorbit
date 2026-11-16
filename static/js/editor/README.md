@@ -37,6 +37,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `focus.js` | Opening the floor plan on one switch or seat from a link (`/?switch=<id>`, `/?seat=<seat>`), as the Problems list does. |
 | `notice.js` | The crew notice from a lead, as a banner under the top bar. |
 | `marks.js` | Text labels, walls, zones and icons on the plan: the Draw menu, placing, moving and the inspector (`floorbit/plan_marks.py`). |
+| `gaps.js` | Gaps inside a seat block: room in every row after a column, lanes between rows (`col_gaps`, `row_gaps`, as `floorbit/seat_gaps.py`); the Gaps section of the block inspector and the seat's right-click entries. |
 | `panels.js` | The tool rail on the left and the panel on the right (search, layers, switches; keys `/`, `L`, `W`), which steps aside while an inspector is open; German for the rail and the panel. |
 | `main.js` | `init()` and start-up. Always last. |
 

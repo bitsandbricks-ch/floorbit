@@ -448,6 +448,7 @@ function fillBlockInspector(block) {
   blockEditRowStart.value = block.row_start || 'A';
   blockEditRowLabels.value = block.row_labels || 'start';
   showRowFields();
+  fillGapEditor(block);
 }
 
 function showRowFields() {
