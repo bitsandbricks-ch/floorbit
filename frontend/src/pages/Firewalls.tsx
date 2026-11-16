@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Group, Modal, MultiSelect, Paper, ScrollArea, SimpleGrid, Stack, Table, Text, TextInput, Title,
+  Alert, Badge, Button, Group, Modal, MultiSelect, NumberInput, Paper, ScrollArea, SimpleGrid, Stack, Table, Text, TextInput, Title,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -22,12 +22,18 @@ export default function Firewalls() {
   const canEdit = useCan('floorplan.edit')
   const q = useQuery({ queryKey: qk.firewalls, queryFn: () => get<FirewallList>('/api/firewalls'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<FirewallRange | 'new' | null>(null)
+  const [splitting, setSplitting] = useState(false)
   const data = q.data
   const moved = data?.ranges.filter((r) => r.state === 'failover' || r.state === 'down') ?? []
   return (
     <Layout title={t('firewalls.title')}>
       <PageHead title={t('firewalls.title')} desc={t('firewalls.intro')}
-        actions={canEdit && data && data.firewalls.length > 0 && <Button onClick={() => setEditing('new')}>{t('firewalls.add')}</Button>} />
+        actions={canEdit && data && data.firewalls.length > 0 && (
+          <Group gap="xs">
+            <Button variant="default" onClick={() => setSplitting(true)}>{t('firewalls.split')}</Button>
+            <Button onClick={() => setEditing('new')}>{t('firewalls.add')}</Button>
+          </Group>
+        )} />
       <Stack gap="md">
         {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
         {data?.unread && <Alert color="warn">{t('firewalls.unread')}</Alert>}
@@ -62,6 +68,7 @@ export default function Firewalls() {
       {editing && data && (
         <RangeModal range={editing === 'new' ? null : editing} names={data.firewalls.map((f) => f.name)} onClose={() => setEditing(null)} />
       )}
+      {splitting && data && <SplitModal names={data.firewalls.map((f) => f.name)} onClose={() => setSplitting(false)} />}
     </Layout>
   )
 }
@@ -163,6 +170,49 @@ function RangeModal({ range, names, onClose }: { range: FirewallRange | null; na
         <Group justify="flex-end">
           <Button loading={save.isPending} disabled={!form.cidr.trim() || form.firewalls.length === 0}
             onClick={() => save.mutate()}>{t('firewalls.save')}</Button>
+        </Group>
+      </Stack>
+    </Modal>
+  )
+}
+
+/** How many ranges a split makes, or null while the network isn't one yet. */
+function splitCount(cidr: string, size: number | string) {
+  const m = /^[0-9a-f.:]+\/(\d{1,3})$/i.exec(cidr.trim())
+  const prefix = m ? Number(m[1]) : NaN
+  const want = Number(size)
+  if (!Number.isInteger(prefix) || !Number.isInteger(want) || want < prefix || want > (cidr.includes(':') ? 128 : 32)) return null
+  return want - prefix > 8 ? Infinity : 2 ** (want - prefix)
+}
+
+function SplitModal({ names, onClose }: { names: string[]; onClose: () => void }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const [form, setForm] = useState({ cidr: '', size: 24 as number | string, name: '', firewalls: names })
+  const count = splitCount(form.cidr, form.size)
+  const save = useMutation({
+    mutationFn: () => post('/api/firewalls/ranges/split', { ...form, size: Number(form.size) }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: qk.firewalls }); onClose() },
+  })
+  return (
+    <Modal opened onClose={onClose} title={t('firewalls.split')}>
+      <Stack gap="sm">
+        <Text size="sm" c="dimmed">{t('firewalls.splitIntro')}</Text>
+        <TextInput label={t('firewalls.splitNetwork')} placeholder="198.51.100.0/22" value={form.cidr}
+          onChange={(e) => setForm({ ...form, cidr: e.currentTarget.value })} />
+        <NumberInput label={t('firewalls.splitSize')} description={t('firewalls.splitSizeHelp')} min={1} max={128}
+          prefix="/" value={form.size} onChange={(v) => setForm({ ...form, size: v })} />
+        <TextInput label={t('firewalls.name')} description={t('firewalls.splitNameHelp')} placeholder={t('firewalls.splitNamePlaceholder')}
+          value={form.name} onChange={(e) => setForm({ ...form, name: e.currentTarget.value })} />
+        <MultiSelect label={t('firewalls.splitLine')} description={t('firewalls.lineHelp')} data={names} value={form.firewalls}
+          onChange={(v) => setForm({ ...form, firewalls: v })} searchable />
+        {count === Infinity
+          ? <Text size="sm" c="down">{t('firewalls.splitTooMany')}</Text>
+          : count !== null && <Text size="sm">{t('firewalls.splitCount', { count })}</Text>}
+        {save.error && <Alert color="down" role="alert">{save.error.message}</Alert>}
+        <Group justify="flex-end">
+          <Button loading={save.isPending} disabled={count === null || count === Infinity || form.firewalls.length === 0}
+            onClick={() => save.mutate()}>{t('firewalls.splitGo')}</Button>
         </Group>
       </Stack>
     </Modal>

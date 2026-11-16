@@ -110,3 +110,35 @@ def test_a_down_firewall_is_red_on_the_health_wall(client, net):
     assert (tiles["fw-01"]["kind"], tiles["fw-01"]["status"]) == ("firewall", "down")
     assert tiles["fw-01"]["summary"] == "192.0.2.32/27 without a firewall"
     assert (tiles["fw-02"]["status"], tiles["fw-02"]["summary"]) == ("up", "Serves 1 range, 1 seat")
+
+
+def test_a_network_splits_into_ranges_shared_over_the_firewalls(client, net):
+    assert _add(client, "192.0.2.32/27", "fw-03").status_code == 201
+    r = client.post("/api/firewalls/ranges/split",
+                    json={"cidr": "192.0.2.0/24", "size": 27, "firewalls": ["fw-01", "fw-02", "fw-03"], "name": "Hall"})
+    assert r.status_code == 201
+    out = r.get_json()
+    assert (out["added"], out["skipped"]) == (7, 1)
+    got = {x["cidr"]: (x["name"], x["firewalls"]) for x in out["ranges"]}
+    assert got["192.0.2.0/27"] == ("Hall 1", ["fw-01", "fw-02", "fw-03"])
+    assert got["192.0.2.64/27"] == ("Hall 3", ["fw-03", "fw-01", "fw-02"])
+    assert got["192.0.2.96/27"] == ("Hall 4", ["fw-01", "fw-02", "fw-03"])
+    # The range planned before keeps its own line.
+    kept = [x for x in client.get("/api/firewalls").get_json()["ranges"] if x["cidr"] == "192.0.2.32/27"]
+    assert kept[0]["firewalls"] == ["fw-03"]
+    again = client.post("/api/firewalls/ranges/split",
+                        json={"cidr": "192.0.2.0/24", "size": 27, "firewalls": ["fw-01"]})
+    assert again.status_code == 200 and again.get_json()["added"] == 0
+
+
+@pytest.mark.parametrize("body", [
+    {"cidr": "192.0.2.0/24", "size": 23, "firewalls": ["fw-01"]},
+    {"cidr": "192.0.2.0/24", "size": "x", "firewalls": ["fw-01"]},
+    {"cidr": "198.51.100.0/22", "size": 31, "firewalls": ["fw-01"]},
+    {"cidr": "192.0.2.0/24", "size": 26, "firewalls": ["sw-a-01"]},
+    {"cidr": "not a net", "size": 26, "firewalls": ["fw-01"]},
+])
+def test_a_split_that_makes_no_sense_is_refused(client, net, body):
+    r = client.post("/api/firewalls/ranges/split", json=body)
+    assert r.status_code == 400 and r.get_json()["error"]
+    assert client.get("/api/firewalls").get_json()["ranges"] == []

@@ -98,6 +98,48 @@ def save(body, by, range_id=None):
     return dict(row)
 
 
+MAX_SPLIT = 256          # ranges one split may make
+
+
+def split(body, by):
+    """Cut a network into equal ranges and hand them to the firewalls in turn: range 1 to the first
+    firewall with the others as backups in order, range 2 to the second, and so on. This is how a
+    core usually spreads seats over a firewall cluster, so a whole hall is planned in one go.
+    Ranges planned already are left as they are."""
+    net = _network(body.get('cidr'))
+    try:
+        size = int(body.get('size'))
+    except (TypeError, ValueError):
+        size = -1
+    if not net.prefixlen <= size <= net.max_prefixlen:
+        raise FirewallError(f'The range size is a prefix length from /{net.prefixlen} to /{net.max_prefixlen}.')
+    if size - net.prefixlen > 8:
+        raise FirewallError(f'One split makes at most {MAX_SPLIT} ranges.')
+    label = ' '.join(str(body.get('name') or '').split())[:50]
+    with _lock:
+        data = load_data()
+        # Checks the names (and the line length) the same way a single range does.
+        line = _clean({'cidr': str(net), 'firewalls': body.get('firewalls')}, data)['firewalls']
+        stored = data.get(KEY) if isinstance(data.get(KEY), dict) else {}
+        rows = stored.setdefault('ranges', [])
+        planned = {r.get('cidr') for r in rows}
+        added, skipped = [], 0
+        for i, sub in enumerate(net.subnets(new_prefix=size)):
+            if str(sub) in planned:
+                skipped += 1
+                continue
+            if len(rows) >= MAX_RANGES:
+                raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
+            turn = i % len(line)
+            row = {'id': uuid.uuid4().hex[:12], 'cidr': str(sub), 'name': f'{label} {i + 1}' if label else '',
+                   'firewalls': line[turn:] + line[:turn], 'updated_at': time.time(), 'by': by}
+            rows.append(row)
+            added.append(row)
+        data[KEY] = stored
+        save_data(data)
+    return {'added': len(added), 'skipped': skipped, 'ranges': [dict(r) for r in added]}
+
+
 def delete(range_id):
     with _lock:
         data = load_data()

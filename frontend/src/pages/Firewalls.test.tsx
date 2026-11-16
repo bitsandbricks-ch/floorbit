@@ -52,4 +52,30 @@ describe('Firewalls', () => {
       cidr: '192.0.2.0/27', name: '', firewalls: ['fw-02', 'fw-01'],
     }))
   })
+
+  it('splits a network over all firewalls and says how many ranges that makes', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [] },
+      'POST /api/firewalls/ranges/split': () => ({ status: 201, body: { added: 4, skipped: 0, ranges: [] } }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Firewalls />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Split a network' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Network' }), { target: { value: '198.51.100.0/22' } })
+    expect(screen.getByText('Makes 4 ranges.')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Hall' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Split' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
+      cidr: '198.51.100.0/22', size: 24, name: 'Hall', firewalls: ['fw-01', 'fw-02'],
+    }))
+  })
+
+  it('refuses a split into more than 256 ranges before asking the server', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/firewalls': list }).fn)
+    renderWithApp(<Firewalls />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Split a network' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Network' }), { target: { value: '198.51.0.0/15' } })
+    expect(screen.getByText('That makes more than 256 ranges: pick a larger range size.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Split' })).toBeDisabled()
+  })
 })

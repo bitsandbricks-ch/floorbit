@@ -28,6 +28,15 @@ The firewalls are the inventory's devices with the role **Firewall** (from NetBo
 hand). A seat's range is the most specific one its IP is in, the way the core's routing table picks
 it. Changing ranges needs `floorplan.edit`; every change is in the audit log.
 
+### Splitting a network
+
+**Split a network** plans a whole hall at once: give a network (`198.51.100.0/22`), a range size
+(`/24`), optionally a name and the firewalls. Floorbit cuts the network into equal ranges and shares
+them out in turn: the first range goes to the first firewall with the others as backups in order,
+the second to the second firewall, and so on, the way a core usually spreads seats over a cluster.
+The ranges are numbered after the name (`Seat range 1`, `Seat range 2`, ...). A range planned
+already keeps its own line. One split makes at most 256 ranges.
+
 ## Health
 
 Each firewall's state comes from the monitoring source's device list (LibreNMS, or the local

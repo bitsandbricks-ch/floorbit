@@ -576,6 +576,8 @@
  "Pick at least one firewall for the range.": "Wähle mindestens eine Firewall für den Bereich.",
  "Pick the firewalls from the inventory (devices with the role firewall).": "Wähle die Firewalls aus dem Inventar (Geräte mit der Rolle Firewall).",
  "Write the range as a network, like 192.0.2.0/27.": "Schreib den Bereich als Netz, etwa 192.0.2.0/27.",
+ "The range size is a prefix length from /{} to /{}.": "Die Grösse der Bereiche ist eine Präfixlänge von /{} bis /{}.",
+ "One split makes at most {} ranges.": "Eine Aufteilung macht höchstens {} Bereiche.",
  "{} is planned already.": "{} ist schon geplant.",
  "Floorbit keeps at most {} of each.": "Floorbit speichert von jedem höchstens {}.",
  "Name the port, like Te1/0/48.": "Gib den Port an, etwa Te1/0/48.",
