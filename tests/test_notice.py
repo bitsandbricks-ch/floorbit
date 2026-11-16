@@ -40,5 +40,5 @@ def test_everyone_reads_leads_write(app_module, client):
 
 
 def test_the_floor_plan_has_a_place_for_it(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/editor/classic").get_data(as_text=True)
     assert 'id="crew-notice"' in page and "/static/js/editor/notice.js" in page

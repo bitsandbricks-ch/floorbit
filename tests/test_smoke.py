@@ -2,7 +2,7 @@
 
 
 def test_index_renders(client):
-    resp = client.get("/")
+    resp = client.get("/editor/classic")
     assert resp.status_code == 200
     assert b"<html" in resp.data.lower()
 
@@ -71,3 +71,9 @@ def test_settings_round_trip(client):
 
 def test_settings_reject_unknown_keys(client):
     assert client.put("/api/settings", json={"hide_labels": True}).status_code == 400
+
+
+def test_the_old_editor_address_opens_the_floor_plan(client):
+    """``/`` is the React floor plan now; old links keep what they pointed at, in Edit mode."""
+    assert client.get("/").headers["Location"] == "/plan"
+    assert client.get("/?seat=A-1&hall=main").headers["Location"] == "/plan?seat=A-1&hall=main&mode=edit"

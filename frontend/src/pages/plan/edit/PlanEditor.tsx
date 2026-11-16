@@ -687,7 +687,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           <Text size="xs" c="dimmed">{t('plan.edit.keys.more')}</Text>
           <Group gap="xs">
             <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
-            <Anchor size="sm" href={`/?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
+            <Anchor size="sm" href={`/editor/classic?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
           </Group>
         </Stack>
       </Paper>

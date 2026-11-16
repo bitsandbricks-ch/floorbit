@@ -65,14 +65,14 @@ def test_admins_walk_through_the_steps(client):
     assert client.post("/api/setup/steps/theme", json={"state": "maybe"}).status_code == 400
     done = client.post("/api/setup/finish").get_json()
     assert done["done"] and done["by"] == "tester"
-    assert client.get("/").status_code == 200
+    assert client.get("/editor/classic").status_code == 200
 
 
 def test_only_admins_set_up(app_module, client):
     app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")
     viewer = app_module.app.test_client()
     viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
-    assert viewer.get("/").status_code == 200          # not sent to setup
+    assert viewer.get("/editor/classic").status_code == 200          # not sent to setup
     assert viewer.get("/api/setup").get_json() == {"needs_account": False, "done": False}
     assert viewer.post("/api/setup/finish").status_code == 403
     assert viewer.get("/setup").status_code == 302
@@ -82,7 +82,7 @@ def test_an_install_with_content_counts_as_set_up(client):
     client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10})
     setup.mark_existing()
     assert setup.state()["done"] is True
-    assert client.get("/").status_code == 200
+    assert client.get("/editor/classic").status_code == 200
 
 
 def test_saving_a_setting_during_setup_does_not_end_it(client):

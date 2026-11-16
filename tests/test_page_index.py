@@ -10,7 +10,7 @@ def hrefs(client):
 
 def test_everything_while_sign_in_is_off(client):
     pages = client.get("/api/pages").get_json()["pages"]
-    assert pages[0] == {"href": "/", "id": "floorPlan", "label": "Floor plan"}
+    assert pages[0] == {"href": "/plan", "id": "floorPlan", "label": "Floor plan"}
     got = [p["href"] for p in pages]
     assert "/settings" in got and "/terminal" in got
 
@@ -31,7 +31,7 @@ def test_a_role_only_sees_its_pages(app_module):
 
 def test_the_server_pages_have_go_to(client):
     # The sidebar's search row opens it (tests/test_nav.py); goto.js brings the dialog and Ctrl+K.
-    for path in ("/",):   # the React pages bring Go to themselves
+    for path in ("/editor/classic",):   # the React pages bring Go to themselves
         html = client.get(path).get_data(as_text=True)
         assert "/static/js/goto.js" in html and "/static/css/goto.css" in html, path
 

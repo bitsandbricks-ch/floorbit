@@ -176,7 +176,7 @@ describe('Seats page', () => {
     expect(seat('D-4').querySelector('.match')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'D-2: Offline · 1 problem' })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Checked in')
-    expect(document.title).toBe('(1) Seats · Floorbit')   // D-2 has a problem: shows in a background tab
+    expect(document.title).toBe('(1) Floor plan · Floorbit')   // D-2 has a problem: shows in a background tab
 
     fireEvent.click(seat('D-2'))
     expect(await screen.findByText('sw-d-01 · Gi1/0/2')).toBeInTheDocument()

@@ -109,13 +109,15 @@ export default function FloorPlan() {
   useLiveEvent('plan.changed', refresh)
   // With the power layer on, the view takes in the boards too: they usually hang on the walls.
   const data = useMemo(() => {
-    const d = q.data
+    let d = q.data
+    // An empty hall has no drawing; Edit mode starts it from a blank sheet the plan's size.
+    if (d && !d.drawing && mode === 'edit') d = { ...d, drawing: { shapes: [], marks: [], icons: {}, box: `0 0 ${d.size.w} ${d.size.h}`, cell: d.size.cell } }
     if (!d?.drawing || !power?.boards.length) return d
     const fed = new Set(power.circuits.flatMap((c) => c.switches))
     const at = [...power.boards.map((b) => ({ x: (b.x / 100) * d.size.w, y: (b.y / 100) * d.size.h })),
       ...d.switches.filter((w) => fed.has(w.id))]
     return { ...d, drawing: { ...d.drawing, box: widen(d.drawing.box, at) } }
-  }, [q.data, power])
+  }, [q.data, power, mode])
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
@@ -333,7 +335,7 @@ export default function FloorPlan() {
             {!list && <LayersPanel state={layers} onChange={setLayers} available={available} />}
           </Group>
           {!data.drawing && (
-            <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
+            <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?mode=edit&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
           {editing && data.drawing && view && (
             <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} />
