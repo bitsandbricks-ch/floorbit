@@ -27,6 +27,9 @@ The floor plan editor is moving into this page. Edit mode already does:
 
 - **Select:** click an item (seat block, switch, label, icon, wall, zone); Shift-click adds or
   removes; dragging on empty plan selects everything inside the box; Ctrl+A selects all.
+  Ctrl+Shift+A (or **Select all like this** in the right-click menu) selects everything like the
+  selection: all seat blocks, all switches, or with a wall selected all walls (text, icons and
+  zones the same way).
 - **Move:** drag, or the arrow keys (Shift for five steps). Items land on the editor's 0.5 % grid;
   hold Alt while dragging to place freely. Space + drag (or the middle mouse button) moves the view.
 - **Change:** in the panel on the right: a block's name, rotation, seats per row and rows; a label's
