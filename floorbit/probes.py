@@ -42,13 +42,27 @@ def _nets():
     return out
 
 
+NAT64 = (ipaddress.ip_network('64:ff9b::/96'), ipaddress.ip_network('64:ff9b:1::/48'))
+
+
+def _embedded(ip):
+    """The IPv4 address an IPv6 one reaches through, if any: ::ffff:a.b.c.d (mapped), 2002:: (6to4)
+    and 64:ff9b:: (NAT64, where the last 32 bits are the IPv4 address). On a network with NAT64,
+    64:ff9b::a9fe:a9fe is the metadata service at 169.254.169.254."""
+    if ip.version != 6:
+        return ip
+    if ip.ipv4_mapped or ip.sixtofour:
+        return ip.ipv4_mapped or ip.sixtofour
+    if any(ip in net for net in NAT64):
+        return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+    return ip
+
+
 def unreachable(addr):
     """Is ``addr`` (an address string) one the server never sends anything to: link-local (the
     cloud metadata service lives there), unspecified or multicast? Webhooks ask the same."""
     ip = ipaddress.ip_address(str(addr).split('%')[0])
-    # ::ffff:169.254.169.254 reaches 169.254.169.254; not every Python release calls it link-local.
-    ip = getattr(ip, 'ipv4_mapped', None) or ip
-    return ip.is_link_local or ip.is_unspecified or ip.is_multicast
+    return any(i.is_link_local or i.is_unspecified or i.is_multicast for i in (ip, _embedded(ip)))
 
 
 def target(host):
