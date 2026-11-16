@@ -53,6 +53,7 @@ const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
 const Audit = lazy(() => import('@/pages/Audit'))
 const Users = lazy(() => import('@/pages/Users'))
 const Login = lazy(() => import('@/pages/Login'))
+const Checkin = lazy(() => import('@/pages/Checkin'))
 const Agents = lazy(() => import('@/pages/Agents'))
 const Webhooks = lazy(() => import('@/pages/Webhooks'))
 const Features = lazy(() => import('@/pages/Features'))
@@ -113,6 +114,7 @@ export default function App() {
         <Route path="/settings/audit" element={<Audit />} />
         <Route path="/settings/users" element={<Users />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/checkin" element={<Checkin />} />
         <Route path="/settings/agents" element={<Agents />} />
         <Route path="/settings/webhooks" element={<Webhooks />} />
         <Route path="/settings/credentials" element={<SwitchLogins />} />

@@ -1,18 +1,19 @@
-import { Alert, Anchor, Button, Code, Divider, Loader, Paper, PasswordInput, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Code, Divider, Loader, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { IconArmchair2, IconArrowRight } from '@tabler/icons-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LoginOptions } from '@/api/types'
-import { Attribution } from '@/components/Attribution'
-import { LANGUAGES, type Lang, setLang } from '@/i18n'
+import { PublicPage } from '@/components/PublicPage'
 
-/** The sign-in page (issue #46). Open to everyone, so it draws no sidebar. The form posts JSON;
- *  the plain form post on /login stays for scripts. */
+/** The sign-in page (issue #46), which is also where an attendee lands: so seat check-in comes
+ *  first and big when it is open, and the crew's sign-in below it. The form posts JSON; the plain
+ *  form post on /login stays for scripts. */
 export default function Login() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [params] = useSearchParams()
   const options = useQuery({
     queryKey: [...qk.loginOptions, params.get('next') ?? ''],
@@ -24,7 +25,6 @@ export default function Login() {
   const [typed, setUsername] = useState<string | null>(null)
   const username = typed ?? o?.username ?? ''
   const [password, setPassword] = useState('')
-  useEffect(() => { document.title = `${t('login.title')} · Floorbit` }, [t])
   const signIn = useMutation({
     mutationFn: () => post<{ ok: boolean; next: string }>('/api/auth/login', { username: username.trim(), password, next: o?.next ?? '/' }),
     onSuccess: (r) => window.location.assign(r.next),
@@ -34,12 +34,25 @@ export default function Login() {
   const error = signIn.error?.message ?? (signIn.isIdle ? o?.error : null)
 
   return (
-    <main className="fb-login">
-      <Paper withBorder radius="lg" p="lg" className="fb-login-card">
+    <PublicPage title={t('login.title')}>
+      {o?.checkin_url && (
+        <Paper withBorder radius="lg" p="lg" className="fb-public-hero">
+          <Stack gap="sm">
+            <IconArmchair2 size={32} stroke={1.6} color="var(--color-bit)" aria-hidden="true" />
+            <div>
+              <Title order={2} size="h3">{t('login.checkinTitle')}</Title>
+              <Text size="sm" c="dimmed">{t('login.checkinText')}</Text>
+            </div>
+            <Button component="a" href={o.checkin_url} size="lg" fullWidth rightSection={<IconArrowRight size={18} />}>
+              {t('login.checkin')}
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+      <Paper withBorder radius="lg" p="lg">
         <Stack gap="md">
-          <span className="fb-brand fb-login-brand" aria-label="Floorbit"><span className="fb-brand-lockup" aria-hidden="true" /></span>
           <div>
-            <Title order={1} size="h2">{t('login.title')}</Title>
+            <Title order={1} size={o?.checkin_url ? 'h3' : 'h2'}>{o?.checkin_url ? t('login.crewTitle') : t('login.title')}</Title>
             <Text c="dimmed" size="sm">{t('login.intro')}</Text>
           </div>
           {options.isPending && <Loader aria-label={t('common.loading')} />}
@@ -56,12 +69,13 @@ export default function Login() {
               <input type="hidden" name="next" value={o.next} />
               <Stack gap="sm">
                 <TextInput label={t('login.username')} name="username" value={username} required autoComplete="username"
-                  autoCapitalize="none" spellCheck={false} autoFocus={!username} maxLength={64}
+                  autoCapitalize="none" spellCheck={false} autoFocus={!username && !o.checkin_url} maxLength={64}
                   onChange={(e) => setUsername(e.currentTarget.value)} />
                 <PasswordInput label={t('login.password')} name="password" value={password} required
                   autoComplete="current-password" autoFocus={!!username} maxLength={256}
                   onChange={(e) => setPassword(e.currentTarget.value)} />
-                <Button type="submit" fullWidth loading={signIn.isPending || signIn.isSuccess}>{t('login.submit')}</Button>
+                <Button type="submit" fullWidth variant={o.checkin_url ? 'default' : 'filled'}
+                  loading={signIn.isPending || signIn.isSuccess}>{t('login.submit')}</Button>
               </Stack>
             </form>
           )}
@@ -80,15 +94,6 @@ export default function Login() {
           )}
         </Stack>
       </Paper>
-      {o?.checkin_url && (
-        <Text size="sm" c="dimmed" mt="md">
-          {t('login.checkinQ')} <Anchor href={o.checkin_url}>{t('login.checkin')}</Anchor>
-        </Text>
-      )}
-      <Select mt="md" size="xs" w={220} aria-label={t('login.language')} allowDeselect={false}
-        data={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} value={i18n.language}
-        onChange={(v) => { if (v) { setLang(v as Lang) } }} />
-      <Attribution />
-    </main>
+    </PublicPage>
   )
 }

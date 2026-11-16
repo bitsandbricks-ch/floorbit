@@ -7,7 +7,9 @@
   "or": "oder",
   "with": "Mit {{name}} anmelden",
   "noUsers": "Es gibt noch keine Konten. <setup>Richte Floorbit ein</setup> mit dem Setup-Code aus dem Log, lege das erste Konto auf dem Server mit <cmd/> an, oder setze <code>AUTH_ADMIN_USER</code> und <code>AUTH_ADMIN_PASSWORD</code> und starte neu.",
-  "checkinQ": "Suchst du deinen Platz?",
-  "checkin": "Hier einchecken",
-  "language": "Sprache"
+  "checkin": "An deinem Platz einchecken",
+  "language": "Sprache",
+  "checkinTitle": "Bist du an der LAN?",
+  "checkinText": "Checke an deinem Platz ein, damit dich die Netzwerk-Crew schnell findet, wenn etwas nicht geht.",
+  "crewTitle": "Anmeldung für die Crew"
 }

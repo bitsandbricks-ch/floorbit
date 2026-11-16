@@ -3,7 +3,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
-from .. import nav, page_index, seat_view
+from .. import nav, page_index, seat_view, spa
 
 bp = Blueprint('pages', __name__)
 
@@ -23,6 +23,15 @@ def index():
 def kiosk():
     """Read-only floor plan for a big screen (see docs/kiosk.md)."""
     return render_template('kiosk.html')
+
+
+@bp.route('/checkin')
+def checkin_page():
+    """Seat check-in for attendees (frontend/src/pages/Checkin.tsx), which says itself when check-in
+    isn't open; 404 then, as before."""
+    from integrations import config
+    html, status = spa.render('Seat check-in')
+    return html, status if config.get_bool('CHECKIN_ENABLED', False) else 404
 
 
 @bp.route('/api/pages')

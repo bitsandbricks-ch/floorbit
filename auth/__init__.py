@@ -355,6 +355,11 @@ def _blueprint():
             return redirect(_safe_next(request.form.get('next')))
         return render_login(failed[0], username, failed[1])
 
+    def checkin_open():
+        from integrations import config
+        return (config.get_bool('CHECKIN_ENABLED', False)
+                and any(r.rule == '/checkin' for r in current_app.url_map.iter_rules()))
+
     @bp.route('/api/auth/login-options')
     def login_options():
         """What the sign-in page offers, and the error from the last try (once)."""
@@ -371,7 +376,7 @@ def _blueprint():
             'providers': [{'id': p.id, 'label': p.label, 'url': url_for('auth.start', provider_id=p.id, next=nxt)}
                           for p in auth.providers.enabled('redirect')],
             'no_users': auth.users.count() == 0,
-            'checkin_url': '/checkin' if any(r.rule == '/checkin' for r in current_app.url_map.iter_rules()) else None,
+            'checkin_url': '/checkin' if checkin_open() else None,
             'next': nxt,
             'error': error,
             'username': last.get('username') or '',

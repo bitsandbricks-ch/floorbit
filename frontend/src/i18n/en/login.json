@@ -7,7 +7,9 @@
   "or": "or",
   "with": "Sign in with {{name}}",
   "noUsers": "No accounts exist yet. <setup>Set up Floorbit</setup> with the setup code from its log, or create the first account on the server with <cmd/>, or set <code>AUTH_ADMIN_USER</code> and <code>AUTH_ADMIN_PASSWORD</code> and restart.",
-  "checkinQ": "Looking for your seat?",
-  "checkin": "Check in here",
-  "language": "Language"
+  "checkin": "Check in to your seat",
+  "language": "Language",
+  "checkinTitle": "Here for the LAN?",
+  "checkinText": "Check in to your seat so the network crew can find you fast if something breaks.",
+  "crewTitle": "Crew sign-in"
 }

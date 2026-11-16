@@ -505,13 +505,22 @@ body {
 .fb-goto-empty { margin: 12px 0 0; color: var(--color-muted); }
 .fb-goto-recent { color: var(--color-muted); font-size: 13px; }
 
-/* Sign-in page (issue #46): one card in the middle, no sidebar. */
-.fb-login {
+/* Pages before signing in: sign-in and seat check-in (issue #46). One column in the middle, the
+   event's brand on top; phones first, so it fills the width there. */
+.fb-public {
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 24px 16px;
+  padding: 32px 16px 16px; gap: 16px;
 }
-.fb-login-card { width: 100%; max-width: 380px; }
-.fb-login-brand { --fb-brand-h: 26px; }
+.fb-public-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
+.fb-public-head { display: flex; justify-content: center; margin-bottom: 20px; }
+.fb-public-brand { --fb-brand-h: 30px; }
+.fb-public-logo { max-height: 56px; max-width: 220px; object-fit: contain; }
+/* The attendee's way in, above the crew's sign-in: the accent wash says "start here". */
+.fb-public-hero {
+  background: linear-gradient(135deg, var(--color-bit-soft), transparent 70%), var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-bit) 45%, var(--color-line)) !important;
+}
+.fb-public-done { color: var(--color-up); }
 /* Discord's own colour, so the button reads as Discord's on every theme. */
 .fb-login-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
 .fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }

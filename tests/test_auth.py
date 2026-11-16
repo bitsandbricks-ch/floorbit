@@ -388,3 +388,14 @@ def test_the_last_error_is_shown_once_and_in_german(anon_client, user):
     page = anon_client.get("/api/auth/login-options", headers={"Accept-Language": "de-CH"}).get_json()
     assert page["error"] == "Falscher Benutzername oder falsches Passwort." and page["username"] == TEST_USER
     assert login_error(anon_client) == ""
+
+
+def test_the_check_in_page_and_the_landing_link_follow_check_in(anon_client, monkeypatch, tmp_path):
+    from tests.test_spa import _manifest
+    _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})
+    assert anon_client.get("/checkin").status_code == 404
+    assert login_page(anon_client)["checkin_url"] is None
+    monkeypatch.setenv("CHECKIN_ENABLED", "1")
+    page = anon_client.get("/checkin")
+    assert page.status_code == 200 and b"Seat check-in" in page.data
+    assert login_page(anon_client)["checkin_url"] == "/checkin"

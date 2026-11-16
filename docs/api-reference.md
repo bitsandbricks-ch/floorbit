@@ -901,6 +901,7 @@ Source: [`integrations/__init__.py`](https://github.com/bitsandbricks-ch/floorbi
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | POST | `/api/checkin` | anyone |  |
+| GET | `/api/checkin/info` | anyone |  |
 | GET | `/api/checkin/me` | anyone |  |
 | GET | `/api/checkins` | `seats.view` |  |
 | DELETE | `/api/checkins/<seat>` | `seats.edit` |  |

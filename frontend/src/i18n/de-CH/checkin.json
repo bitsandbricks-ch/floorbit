@@ -1,0 +1,21 @@
+{
+  "title": "Platz-Check-in",
+  "intro": "Sag uns, wo du sitzt, damit dich die Netzwerk-Crew schnell findet, wenn etwas nicht geht.",
+  "seat": "Platznummer",
+  "seatPlaceholder": "z. B. D-22",
+  "username": "Dein Nickname",
+  "usernamePlaceholder": "Dein Name am Event",
+  "submit": "Einchecken",
+  "fromSeat": "Checke vom PC an deinem Platz ein: Floorbit findet darüber deinen Switch-Port.",
+  "doneTitle": "Danke, {{name}}!",
+  "doneAt": "Du bist eingecheckt an Platz",
+  "doneText": "Wenn dein Netz spinnt, weiss die Crew, wo sie dich findet. Sonst gibt es nichts zu tun.",
+  "change": "Falscher Platz? Ändern",
+  "closed": "Der Check-in ist noch nicht offen",
+  "closedText": "Die Crew öffnet ihn, wenn das Event beginnt. Komm dann wieder oder frag am Infodesk.",
+  "opensAt": "Er öffnet {{when}}.",
+  "unreachable": "Floorbit ist nicht erreichbar",
+  "unreachableText": "Dein Netz ist vielleicht noch nicht bereit. Versuch es gleich nochmals.",
+  "retry": "Nochmals versuchen",
+  "ip": "Deine IP: {{ip}}"
+}

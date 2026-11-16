@@ -2,6 +2,7 @@
 export const qk = {
   me: ['me'] as const,
   loginOptions: ['login-options'] as const,
+  checkinInfo: ['checkin', 'info'] as const,
   dashboard: ['dashboard'] as const,
   dashboardLayouts: ['dashboard', 'layouts'] as const,
   widget: (url: string) => ['widget', url] as const,

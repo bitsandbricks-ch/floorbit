@@ -1630,3 +1630,12 @@ export interface LoginOptions {
   error: string | null
   username: string
 }
+
+/** GET /api/checkin/info: the attendee check-in page's state (integrations/__init__.py). */
+export interface CheckinInfo {
+  open: boolean
+  /** When the event starts, if the schedule says and it's still ahead. */
+  opens_at: number | null
+  ip: string | null
+  checkin: { seat: string; username: string } | null
+}
