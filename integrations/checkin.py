@@ -61,8 +61,11 @@ def _save_all(rows):
     directory = os.path.dirname(os.path.abspath(path))
     os.makedirs(directory, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=directory, prefix='.checkins-')
+    # One line, written whole: json.dump with indent encodes in pure Python, 30 ms a save at
+    # 4000 seats (scripts/load_test.py), and every check-in saves.
+    text = json.dumps(rows, separators=(',', ':'))
     with os.fdopen(fd, 'w') as f:
-        json.dump(rows, f, indent=2)
+        f.write(text)
     os.replace(tmp, path)   # atomic: a crash never leaves half a file
 
 

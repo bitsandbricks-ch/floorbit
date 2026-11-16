@@ -15,6 +15,7 @@ These pages are for people running Floorbit at their own LAN.
 3. [Inventory](inventory.md) and [halls](halls.md): your switches and the hall plan.
 4. [Seat mapping](seat-mapping.md): which port each seat is on.
 5. [Feature switches](features.md): turn off what your event doesn't use.
+6. [Sizing for a large event](sizing.md): what grows with the seat count, measured at 4000 seats.
 
 No network to try it on? [Demo mode](demo.md) fills a made-up hall.
 
