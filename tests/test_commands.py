@@ -4,7 +4,7 @@ import json
 import pytest
 from conftest import stored
 
-from floorbit import audit, commands, ports
+from floorbit import audit, commands, journal, ports
 from tests.test_ports import FakeShell, FakeSwitch
 
 SWITCHES = [{"name": "sw-a-01", "mgmt_ip": "198.51.100.4", "role": "switch"},
@@ -31,11 +31,8 @@ def sign_in(app_module, username, role):
 
 
 def audit_lines(area="commands"):
-    try:
-        with open(audit.path(), encoding="utf-8") as f:
-            return [e for e in (json.loads(line) for line in f) if e["area"] == area]
-    except FileNotFoundError:
-        return []
+    f = journal.lines(audit.path())
+    return [e for e in (json.loads(line) for line in f) if e["area"] == area]
 
 
 def run(c, template, **extra):

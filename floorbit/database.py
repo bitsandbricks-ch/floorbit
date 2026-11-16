@@ -23,13 +23,25 @@ import time
 
 ENV = 'FLOORBIT_DATABASE_URL'
 
-# Plain SQL both databases take. Add a step at the end; never change one that has shipped.
+# Plain SQL both databases take, or {kind: SQL} where they differ. Add a step at the end; never
+# change one that has shipped.
 MIGRATIONS = (
     """CREATE TABLE floorbit_documents (
         doc_key VARCHAR(512) PRIMARY KEY,
         body TEXT NOT NULL,
         updated_at DOUBLE PRECISION NOT NULL
     )""",
+    # Append-only logs (audit log, timeline, check-in history, recording): one row per line.
+    {'sqlite': """CREATE TABLE floorbit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        log_key VARCHAR(512) NOT NULL,
+        line TEXT NOT NULL
+    )""", 'postgres': """CREATE TABLE floorbit_log (
+        id BIGSERIAL PRIMARY KEY,
+        log_key VARCHAR(512) NOT NULL,
+        line TEXT NOT NULL
+    )"""},
+    'CREATE INDEX floorbit_log_by_key ON floorbit_log (log_key, id)',
 )
 
 
@@ -179,6 +191,34 @@ class Sql:
         rows = self.run("SELECT doc_key FROM floorbit_documents WHERE doc_key LIKE ? ESCAPE '\\'", (like,), fetch=True)
         return [r[0] for r in rows]
 
+    # ── append-only logs (floorbit/journal.py) ──
+
+    def log_append(self, key, line):
+        self.run('INSERT INTO floorbit_log (log_key, line) VALUES (?, ?)', (key, line))
+
+    def log_lines(self, key):
+        rows = self.run('SELECT line FROM floorbit_log WHERE log_key = ? ORDER BY id', (key,), fetch=True)
+        return [r[0] for r in rows]
+
+    def log_size(self, key):
+        rows = self.run('SELECT COALESCE(SUM(LENGTH(line)), 0) FROM floorbit_log WHERE log_key = ?', (key,), fetch=True)
+        return int(rows[0][0] or 0)
+
+    def log_replace(self, key, lines):
+        """The log becomes ``lines``, in one transaction: a crash keeps the old one whole."""
+        mark = self.mark
+        cur = self.conn().cursor()     # this thread's own connection, so its own transaction
+        cur.execute('BEGIN IMMEDIATE' if self.kind == 'sqlite' else 'BEGIN')
+        try:
+            cur.execute(f'DELETE FROM floorbit_log WHERE log_key = {mark}', (key,))
+            if lines:
+                cur.executemany(f'INSERT INTO floorbit_log (log_key, line) VALUES ({mark}, {mark})',
+                                [(key, line) for line in lines])
+            cur.execute('COMMIT')
+        except Exception as exc:
+            cur.execute('ROLLBACK')
+            raise DatabaseError(f'{self.describe()}: {exc}') from exc
+
     def close(self):
         c = getattr(self._local, 'conn', None)
         if c is not None:
@@ -207,7 +247,7 @@ def migrate(db, conn):
             for version, statement in enumerate(MIGRATIONS, start=1):
                 if version in done:
                     continue
-                cur.execute(statement)
+                cur.execute(statement[db.kind] if isinstance(statement, dict) else statement)
                 cur.execute(f'INSERT INTO floorbit_schema (version, applied_at) VALUES ({mark}, {mark})',
                             (version, time.time()))
                 ran.append(version)

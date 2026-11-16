@@ -14,7 +14,7 @@ import json
 import os
 import threading
 
-from . import store
+from . import database, journal, store
 
 STEP = 300
 DAY = 24 * 3600
@@ -71,9 +71,8 @@ def capture(sample, seat_bps, open_seats, data, now=None):
             return None
         out = frame(sample, seat_bps, open_seats, data)
         try:
-            with open(path(), 'a', encoding='utf-8') as f:
-                f.write(json.dumps(out, separators=(',', ':')) + '\n')
-        except OSError as exc:   # a full disk must not stop the port watch
+            journal.append(path(), json.dumps(out, separators=(',', ':')))
+        except (OSError, database.DatabaseError) as exc:   # a full disk must not stop the port watch
             print(f'[recording] could not write a frame: {exc}')
             return None
         _state['last'] = now
@@ -85,9 +84,8 @@ def capture(sample, seat_bps, open_seats, data, now=None):
 
 def _read():
     try:
-        with open(path(), encoding='utf-8') as f:
-            lines = f.readlines()
-    except OSError:
+        lines = journal.lines(path())
+    except (OSError, database.DatabaseError):
         return []
     out = []
     for line in lines:
@@ -122,13 +120,9 @@ def _compact(now):
     kept = thin(rows, now)
     if len(kept) == len(rows):
         return
-    tmp = path() + '.tmp'
     try:
-        with open(tmp, 'w', encoding='utf-8') as f:
-            for row in kept:
-                f.write(json.dumps(row, separators=(',', ':')) + '\n')
-        os.replace(tmp, path())
-    except OSError as exc:
+        journal.replace(path(), [json.dumps(row, separators=(',', ':')) for row in kept])
+    except (OSError, database.DatabaseError) as exc:
         print(f'[recording] could not compact: {exc}')
 
 
@@ -139,6 +133,6 @@ def frames():
 
 def clear():
     with _lock:
-        with contextlib.suppress(OSError):
-            os.remove(path())
+        with contextlib.suppress(OSError, database.DatabaseError):
+            journal.remove(path())
         _state['last'] = None

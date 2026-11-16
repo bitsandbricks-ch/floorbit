@@ -16,7 +16,7 @@ import os
 import threading
 import time
 
-from . import store
+from . import database, journal, store
 
 KINDS = ('change', 'sign-in', 'outage', 'incident', 'alert', 'deploy')
 MAX_BYTES = 2 * 1024 * 1024   # the journal; past this, the oldest half is dropped
@@ -36,33 +36,18 @@ def write(kind, title, target='', t=None, **extra):
     if target:
         entry['target'] = str(target)[:120]
     entry.update({k: v for k, v in extra.items() if v not in (None, '')})
-    line = json.dumps(entry, separators=(',', ':'), default=str) + '\n'
+    line = json.dumps(entry, separators=(',', ':'), default=str)
     with _lock:
         try:
-            with open(path(), 'a', encoding='utf-8') as f:
-                f.write(line)
-            _trim()
-        except OSError as exc:   # a full disk must not break what was being logged
+            journal.append(path(), line)
+            journal.keep_newest_half_over(path(), MAX_BYTES)
+        except (OSError, database.DatabaseError) as exc:   # a full disk must not break what was being logged
             print(f'[timeline] could not write the journal: {exc}')
     return entry
 
 
-def _trim():
-    p = path()
-    if os.path.getsize(p) <= MAX_BYTES:
-        return
-    with open(p, encoding='utf-8') as f:
-        lines = f.readlines()
-    with open(p, 'w', encoding='utf-8') as f:
-        f.writelines(lines[len(lines) // 2:])
-
-
 def _journal():
-    try:
-        with open(path(), encoding='utf-8') as f:
-            lines = f.readlines()
-    except FileNotFoundError:
-        return []
+    lines = journal.lines(path())
     out = []
     for line in lines:
         try:

@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from floorbit import audit, ports, terminal
+from floorbit import audit, journal, ports, terminal
 from tests.test_ports import FakeSwitch
 
 SWITCH = {"name": "sw-a-01", "mgmt_ip": "198.51.100.4", "role": "switch"}
@@ -31,11 +31,8 @@ def sign_in(app_module, username, role):
 
 
 def audit_lines():
-    try:
-        with open(audit.path(), encoding="utf-8") as f:
-            return [e for e in (json.loads(line) for line in f) if e["area"] == "terminal"]
-    except FileNotFoundError:
-        return []
+    f = journal.lines(audit.path())
+    return [e for e in (json.loads(line) for line in f) if e["area"] == "terminal"]
 
 
 def read_until(c, sid, text, after=0):
