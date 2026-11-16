@@ -61,6 +61,7 @@ def seed():
         data['seat_blocks'] = blocks
         _seed_power(data, layout)
         _seed_firewalls(data, layout)
+        _seed_uplinks(data, layout)
         save_data(data)
     return {'placed': placed, 'blocks': len(blocks)}
 
@@ -91,6 +92,15 @@ def _seed_firewalls(data, layout):
     if not spec or (data.get('firewalls') or {}).get('ranges'):
         return
     data['firewalls'] = {'ranges': [{'id': uuid.uuid4().hex[:12], **r} for r in spec]}
+
+
+def _seed_uplinks(data, layout):
+    """The demo's internet lines, for the services page and the topology."""
+    spec = layout.get('uplinks')
+    stored = data.get('services') if isinstance(data.get('services'), dict) else {}
+    if not spec or stored.get('uplinks'):
+        return
+    data['services'] = {**stored, 'uplinks': [{'id': uuid.uuid4().hex[:12], **u} for u in spec]}
 
 
 @bp.route('/api/demo/layout', methods=['POST'])

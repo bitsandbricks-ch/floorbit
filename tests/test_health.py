@@ -63,6 +63,15 @@ def test_demo_fills_every_kind(client, wall):
     assert sum(body["counts"].values()) == len(body["checks"])
 
 
+def test_the_wall_speaks_german_when_asked(client, wall):
+    client.put("/api/settings/plugins/demo", json={"enabled": True})
+    de = client.get("/api/health", headers={"Accept-Language": "de-CH"}).get_json()["checks"]
+    dhcp = next(c for c in de if c["id"] == "demo:dhcp-players")
+    assert dhcp["summary"].endswith("Leases frei") and dhcp["metrics"][0]["label"] == "Leases frei"
+    en = client.get("/api/health").get_json()["checks"]
+    assert next(c for c in en if c["id"] == "demo:dhcp-players")["metrics"][0]["label"] == "Leases left"
+
+
 def test_checks_are_cleaned_like_widgets(client, wall, fake_checks):
     fake_checks += [
         {"id": "x", "name": "<b>Cache</b>", "kind": "nonsense", "status": "purple", "link": "https://evil.example.com",

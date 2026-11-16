@@ -120,7 +120,7 @@ def test_the_server_never_probes_link_local_and_only_probe_nets_when_set(monkeyp
     monkeypatch.delenv("PROBE_NETS", raising=False)
     assert probes.target("127.0.0.1") == "127.0.0.1"
     assert probes.target("192.0.2.10") == "192.0.2.10"
-    for host in ("169.254.169.254", "0.0.0.0", "224.0.0.1", "fe80::1"):
+    for host in ("169.254.169.254", "0.0.0.0", "224.0.0.1", "fe80::1", "::ffff:169.254.169.254"):
         with pytest.raises(probes.ProbeError):
             probes.target(host)
     monkeypatch.setenv("PROBE_NETS", "192.0.2.0/24, not-a-net")
@@ -129,6 +129,18 @@ def test_the_server_never_probes_link_local_and_only_probe_nets_when_set(monkeyp
         probes.target("127.0.0.1")
     with pytest.raises(probes.ProbeError):
         probes.target("198.51.100.1")
+    assert probes.target("::ffff:192.0.2.10") == "192.0.2.10"           # mapped is checked as the IPv4 it is
+
+
+def test_ipv6_that_reaches_the_metadata_service_is_refused(monkeypatch):
+    monkeypatch.delenv("PROBE_NETS", raising=False)
+    # NAT64 (64:ff9b::/96 and the local-use /48) and 6to4 carry an IPv4 address inside.
+    for host in ("64:ff9b::a9fe:a9fe", "64:ff9b:1::a9fe:a9fe", "2002:a9fe:a9fe::1"):
+        with pytest.raises(probes.ProbeError):
+            probes.target(host)
+        assert probes.unreachable(host)
+    assert probes.target("64:ff9b::c000:20a") == "64:ff9b::c000:20a"   # 192.0.2.10 through NAT64 is fine
+    assert probes.target("2001:db8::1") == "2001:db8::1"
 
 
 def test_a_game_server_outside_probe_nets_is_not_queried(monkeypatch):
