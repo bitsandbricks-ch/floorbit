@@ -288,7 +288,8 @@
       "autoRoute": "automatic cable route",
       "addSwitch": "add switch {{name}}",
       "placeSwitch_one": "place switch",
-      "placeSwitch_other": "place {{count}} switches"
+      "placeSwitch_other": "place {{count}} switches",
+      "renameGroup": "Rename group"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -535,6 +536,23 @@
       "added": "Added {{name}}",
       "csvHelp": "A CSV has a header and one block per line: name, x, y, cols, rows (rotation, naming and the rest are optional; see the docs on halls).",
       "templates": "Templates"
+    },
+    "groups": {
+      "name": "Group {{n}}",
+      "unnamed": "Group"
+    },
+    "items": {
+      "title": "Items on this plan",
+      "count_one": "{{count}} item",
+      "count_other": "{{count}} items",
+      "search": "Find an item",
+      "fold": "Hide the group's items",
+      "unfold": "Show the group's items",
+      "none": "Nothing matches.",
+      "empty": "Nothing on this plan yet.",
+      "groupHelp": "Select several items and press Ctrl G to group them.",
+      "rename": "Group name",
+      "renameHelp": "Click to select, double-click to rename"
     }
   },
   "net": {

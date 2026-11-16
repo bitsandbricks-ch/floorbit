@@ -119,6 +119,7 @@ def delete(data, hall_id):
     data['halls'] = [h for h in items if h['id'] != hall_id]
     # Labels and walls are drawing, not content worth a refusal; they go with the hall.
     data['plan_marks'] = [m for m in data.get('plan_marks') or [] if m.get('hall_id') != hall_id]
+    data['plan_groups'] = [g for g in data.get('plan_groups') or [] if g.get('hall_id') != hall_id]
 
 
 def public(data, hall):

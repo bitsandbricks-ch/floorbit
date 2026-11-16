@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Cable, Circuit, PlanCable, PlanMark, PowerMarkers, SeatViewData } from '@/api/types'
+import type { Cable, Circuit, PlanCable, PlanGroup, PlanMark, PowerMarkers, SeatViewData } from '@/api/types'
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { cablePath, useCablePlan } from '../cablePlan'
 import type { LayerState } from '../layers'
@@ -19,6 +19,7 @@ import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
 import { HallsDialog } from './HallsDialog'
+import { ItemList } from './ItemList'
 import { MarkHandles } from './MarkHandles'
 import { shapeBody } from './reshape'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
@@ -32,7 +33,7 @@ import { ToolRail } from './ToolRail'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
-import { type AlignHow, type Guide, alignMoves, distributeMoves, snapToGuides, withGroups } from './arrange'
+import { type AlignHow, type Guide, alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
 
 const PATH: Record<ItemRef['kind'], string> = {
   block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches', panel: '/api/cable-plan/panels', cable: '/api/cables',
@@ -84,6 +85,12 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     refreshPlan(), qc.invalidateQueries({ queryKey: qk.cablePlan(data.hall) }), qc.invalidateQueries({ queryKey: qk.optionsAll }),
     qc.invalidateQueries({ queryKey: qk.power }), qc.invalidateQueries({ queryKey: qk.powerMarkers }),
   ]), [refreshPlan, qc, data.hall])
+  const groupsQ = useQuery({ queryKey: qk.planGroups(data.hall), queryFn: () => get<{ groups: PlanGroup[] }>(`/api/plan-groups?hall=${encodeURIComponent(data.hall)}`) })
+  const groups = useMemo(() => groupsQ.data?.groups ?? [], [groupsQ.data])
+  const saveGroups = useCallback(async (list: PlanGroup[]) => {
+    await put('/api/plan-groups', { hall_id: data.hall, groups: list })
+    await qc.invalidateQueries({ queryKey: qk.planGroups(data.hall) })
+  }, [data.hall, qc])
   // The power layer, so boards and what they feed show while they're placed and moved.
   const markers = useQuery({ queryKey: qk.powerMarkers, queryFn: () => get<PowerMarkers>('/api/power/markers'), staleTime: 30_000 })
   const cablePlan = useCablePlan(data.hall, true)
@@ -150,25 +157,43 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }, [data, send, history, t, refresh, fail])
   const moveBy = useCallback((items: ItemRef[], d: Point) => moveEach(items.map((r) => [r, d] as [ItemRef, Point])), [moveEach])
 
-  /** Puts the selected blocks in one group (``join``) or takes them out of theirs. */
+  /** Puts the selected items in one new group (``join``) or takes them out of theirs. Seat blocks
+   *  in an older block group move over to the plan's groups. */
   const regroup = useCallback(async (items: ItemRef[], join: boolean) => {
-    const blocks = withGroups(data, items).filter((r) => r.kind === 'block')
-    if (join ? blocks.length < 2 : !blocks.length) return
-    const id = `g-${Math.random().toString(36).slice(2, 10)}`
-    const was = blocks.map((r) => [r, data.drawing?.shapes.find((x) => x.id === r.id)?.group ?? null] as const)
-    const set = (to: (r: ItemRef, before: string | null) => string | null) => Promise.all(was.map(([r, b]) => send(r, { group: to(r, b) })))
+    const all = withGroups(data, items, groups).filter((r) => r.kind !== 'cable')
+    const old = all.filter((r) => r.kind === 'block')
+      .map((r) => [r, data.drawing?.shapes.find((x) => x.id === r.id)?.group ?? null] as const).filter(([, g]) => g)
+    if (join ? all.length < 2 : !old.length && !groupsOf(groups, all).length) return
+    let n = groups.length + 1
+    while (groups.some((g) => g.name === t('plan.edit.groups.name', { n }))) n++
+    const made = join ? { id: `g-${Math.random().toString(36).slice(2, 10)}`, name: t('plan.edit.groups.name', { n }) } : undefined
+    const before = groups, after = regrouped(groups, all, made)
+    const apply = async (list: PlanGroup[], undo: boolean) => {
+      await Promise.all(old.map(([r, g]) => send(r, { group: undo ? g : null })))
+      await saveGroups(list)
+    }
     try {
-      await set(() => (join ? id : null))
+      await apply(after, false)
       history.push({
         label: t(join ? 'plan.edit.step.group' : 'plan.edit.step.ungroup'),
-        undo: () => set((_, b) => b).then(refresh),
-        redo: () => set(() => (join ? id : null)).then(refresh),
+        undo: () => apply(before, true).then(refresh),
+        redo: () => apply(after, false).then(refresh),
       })
     } catch (err) {
       fail(err)
     }
     await refresh()
-  }, [data, send, history, t, refresh, fail])
+  }, [data, groups, send, saveGroups, history, t, refresh, fail])
+
+  const renameGroup = useCallback(async (group: PlanGroup, name: string) => {
+    const before = groups, after = groups.map((g) => (g.id === group.id ? { ...g, name } : g))
+    try {
+      await saveGroups(after)
+      history.push({ label: t('plan.edit.step.renameGroup'), undo: () => saveGroups(before), redo: () => saveGroups(after) })
+    } catch (err) {
+      fail(err)
+    }
+  }, [groups, saveGroups, history, t, fail])
 
   /** The items as the server keeps them, to copy, delete with undo, or restack. */
   const snapshot = useCallback(async (items: ItemRef[]): Promise<Saved[]> => {
@@ -569,9 +594,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const on = (axis: 'x' | 'y') => g.guides.some((x) => x.axis === axis)
     return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
   }
-  const pick = (next: ItemRef[]) => setSelection(withGroups(data, next))
-  const grouped = selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
+  const pick = (next: ItemRef[]) => setSelection(withGroups(data, next, groups))
+  const grouped = groupsOf(groups, selected).length > 0 || selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
   const movable = selected.filter((r) => r.kind !== 'cable')
+  // Group again only when that changes something: not one whole group already.
+  const canGroup = movable.length > 1 && !(groupsOf(groups, movable).length === 1 && groupsOf(groups, movable)[0].members.every((m) => movable.some((r) => sameRef(r, m))))
 
   const one = selected.length === 1 ? selected[0] : null
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
@@ -594,7 +621,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <ToolRail tool={tool} onTool={setTool} />
       <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power}
         overlay={(ctx) => (<>
-          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r])} space={space} tool={tool}
+          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool}
             lines={cables.map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
@@ -632,8 +659,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               onClick={() => void paste(menu.at ?? undefined)}>{t('plan.edit.menu.paste')}</Menu.Item>
             {menu.item && (
               <>
-                {(selected.filter((r) => r.kind === 'block').length > 1 || grouped) && <Menu.Divider />}
-                {selected.filter((r) => r.kind === 'block').length > 1 && (
+                {(canGroup || grouped) && <Menu.Divider />}
+                {canGroup && (
                   <Menu.Item leftSection={<IconLink size={14} />} rightSection={<Kbd size="xs">Ctrl G</Kbd>} onClick={() => void regroup(selected, true)}>{t('plan.edit.menu.group')}</Menu.Item>
                 )}
                 {grouped && (
@@ -688,7 +715,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               onAddCircuit={(name) => addCircuit(boardSel, name)} onFeed={(c) => feed(c, feedable)} />
           )}
           {movable.length > 1 && (
-            <Arrange count={movable.length} grouped={grouped} canGroup={selected.filter((r) => r.kind === 'block').length > 1}
+            <Arrange count={movable.length} grouped={grouped} canGroup={canGroup}
               onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
               onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
               onGroup={(join) => void regroup(selected, join)} />
@@ -701,6 +728,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           {!selected.length && (
             <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
           )}
+          <ItemList data={data} groups={groups} selected={selected}
+            onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
+            onRename={(g, name) => void renameGroup(g, name)}
+            onUngroup={(g) => void regroup(g.members, false)} />
           <Text size="xs" c="dimmed">
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
           </Text>
