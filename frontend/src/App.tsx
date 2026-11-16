@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { AppShell } from '@/components/Layout'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -63,62 +64,64 @@ export default function App() {
   return (
     <Suspense fallback={null}>
       <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/settings/plugins" element={<Plugins />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/seat-mapping" element={<SeatMapping />} />
-        <Route path="/settings/teams" element={<Teams />} />
-        <Route path="/settings/sign-in" element={<SignIn />} />
-        <Route path="/incidents" element={<Incidents />} />
-        <Route path="/incidents/qr" element={<HelpdeskQr />} />
-        <Route path="/health" element={<Health />} />
-        <Route path="/security" element={<Security />} />
-        <Route path="/power" element={<Power />} />
-        <Route path="/problems" element={<Problems />} />
-        <Route path="/setup" element={<Setup />} />
-        <Route path="/stats" element={<Stats />} />
-        <Route path="/traffic" element={<Traffic />} />
-        <Route path="/dns" element={<Dns />} />
-        <Route path="/games" element={<Games />} />
-        <Route path="/game-servers" element={<GameServers />} />
-        <Route path="/topology" element={<Topology />} />
-        <Route path="/firewalls" element={<Firewalls />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/logs" element={<Logs />} />
-        <Route path="/commands" element={<Commands />} />
-        <Route path="/terminal" element={<TerminalPage />} />
-        <Route path="/configs" element={<Configs />} />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/replay" element={<Replay />} />
-        <Route path="/report" element={<Report />} />
-        <Route path="/jobs" element={<Jobs />} />
-        <Route path="/tournament" element={<Tournament />} />
-        <Route path="/handover" element={<Handover />} />
-        <Route path="/planner" element={<Planner />} />
-        <Route path="/preflight" element={<Preflight />} />
-        <Route path="/gear" element={<Gear />} />
-        <Route path="/cables" element={<Cables />} />
-        <Route path="/cables/walk" element={<WalkRow />} />
-        <Route path="/wifi" element={<Wifi />} />
-        <Route path="/timeline" element={<Timeline />} />
-        <Route path="/network-status" element={<NetworkStatus />} />
-        <Route path="/runbooks" element={<Runbooks />} />
-        <Route path="/schedule" element={<Schedule />} />
-        <Route path="/tournament/brackets" element={<Brackets />} />
-        <Route path="/plan" element={<FloorPlan />} />
-        <Route path="/teardown" element={<Teardown />} />
-        <Route path="/speedtests" element={<Speedtests />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/settings/features" element={<Features />} />
-        <Route path="/settings/api" element={<ApiTokens />} />
-        <Route path="/settings/audit" element={<Audit />} />
-        <Route path="/settings/users" element={<Users />} />
         <Route path="/login" element={<Login />} />
         <Route path="/checkin" element={<Checkin />} />
-        <Route path="/settings/agents" element={<Agents />} />
-        <Route path="/settings/webhooks" element={<Webhooks />} />
-        <Route path="/settings/credentials" element={<SwitchLogins />} />
-        <Route path="*" element={<NotFound />} />
+        <Route element={<AppShell />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/settings/plugins" element={<Plugins />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/seat-mapping" element={<SeatMapping />} />
+          <Route path="/settings/teams" element={<Teams />} />
+          <Route path="/settings/sign-in" element={<SignIn />} />
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/incidents/qr" element={<HelpdeskQr />} />
+          <Route path="/health" element={<Health />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/power" element={<Power />} />
+          <Route path="/problems" element={<Problems />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/traffic" element={<Traffic />} />
+          <Route path="/dns" element={<Dns />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/game-servers" element={<GameServers />} />
+          <Route path="/topology" element={<Topology />} />
+          <Route path="/firewalls" element={<Firewalls />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/logs" element={<Logs />} />
+          <Route path="/commands" element={<Commands />} />
+          <Route path="/terminal" element={<TerminalPage />} />
+          <Route path="/configs" element={<Configs />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/replay" element={<Replay />} />
+          <Route path="/report" element={<Report />} />
+          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/tournament" element={<Tournament />} />
+          <Route path="/handover" element={<Handover />} />
+          <Route path="/planner" element={<Planner />} />
+          <Route path="/preflight" element={<Preflight />} />
+          <Route path="/gear" element={<Gear />} />
+          <Route path="/cables" element={<Cables />} />
+          <Route path="/cables/walk" element={<WalkRow />} />
+          <Route path="/wifi" element={<Wifi />} />
+          <Route path="/timeline" element={<Timeline />} />
+          <Route path="/network-status" element={<NetworkStatus />} />
+          <Route path="/runbooks" element={<Runbooks />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/tournament/brackets" element={<Brackets />} />
+          <Route path="/plan" element={<FloorPlan />} />
+          <Route path="/teardown" element={<Teardown />} />
+          <Route path="/speedtests" element={<Speedtests />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/settings/features" element={<Features />} />
+          <Route path="/settings/api" element={<ApiTokens />} />
+          <Route path="/settings/audit" element={<Audit />} />
+          <Route path="/settings/users" element={<Users />} />
+          <Route path="/settings/agents" element={<Agents />} />
+          <Route path="/settings/webhooks" element={<Webhooks />} />
+          <Route path="/settings/credentials" element={<SwitchLogins />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Routes>
     </Suspense>
   )

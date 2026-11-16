@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import { Layout } from './Layout'
+import { AppShell, Layout } from './Layout'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -14,7 +14,7 @@ const tech = { enabled: true, user: { username: 'kim', display_name: 'Kim', role
 const lead = { enabled: true, user: { username: 'lea', display_name: 'Lea', role: 'lead', permissions: ['incidents.work', 'incidents.assign'] } }
 
 function page() {
-  return renderWithApp(<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}>body</Layout>, '/problems')
+  return renderWithApp(<AppShell><Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}>body</Layout></AppShell>, '/problems')
 }
 
 describe('Crew notice', () => {

@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import { Layout } from './Layout'
+import { AppShell, Layout } from './Layout'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -29,7 +29,7 @@ function Where() {
 
 function page(route = '/problems') {
   return renderWithApp(
-    <Routes><Route path="*" element={<Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}><Where /></Layout>} /></Routes>,
+    <Routes><Route path="*" element={<AppShell><Layout title="Problems" back={{ href: '/', label: 'Floor plan' }}><Where /></Layout></AppShell>} /></Routes>,
     route,
   )
 }
