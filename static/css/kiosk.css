@@ -178,7 +178,13 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   display: flex; flex-direction: column; gap: 2px; padding: 4px;
 }
 .seat-block-label { font-size: 10px; color: var(--text-secondary); text-align: center; font-weight: 600; }
-.seat-block-row { display: flex; gap: 2px; justify-content: center; }
+.seat-block-row { display: flex; gap: 2px; justify-content: center; align-items: center; }
+/* A row's letter (rows naming): the same size as a seat, so rows stay lined up. */
+.seat-block-rowlabel {
+  width: 18px; height: 18px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--text-primary);
+}
 .seat-block-seat {
   width: 18px; height: 18px;
   display: flex; align-items: center; justify-content: center;

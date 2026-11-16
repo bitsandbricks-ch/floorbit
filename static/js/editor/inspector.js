@@ -432,7 +432,9 @@ function fillBlockInspector(block) {
   blockDetailName.textContent = block.name || 'Unnamed block';
   blockDdName.textContent = block.name || '—';
   blockDdPosition.textContent = `${Number(block.x).toFixed(1)}% / ${Number(block.y).toFixed(1)}%`;
-  blockDdSize.textContent = `${block.cols} × ${block.rows} · ${block.cols * block.rows} seats`;
+  const letters = blockRowLetters(block);
+  blockDdSize.textContent = `${block.cols} × ${block.rows} · ${block.cols * block.rows} seats` +
+    (letters.length ? ` · row${letters.length > 1 ? 's' : ''} ${[...letters].sort()[0]}${letters.length > 1 ? `–${[...letters].sort().pop()}` : ''}` : '');
   blockDdRotation.textContent = `${block.rotation || 0}°`;
 
   blockEditName.value = block.name || '';
@@ -440,6 +442,35 @@ function fillBlockInspector(block) {
   blockEditRows.value = block.rows;
   setRotationInput(block.rotation || 0);
   blockReverseNumbers.checked = !!block.reverse_numbers;
+  blockEditNaming.value = block.naming || 'block';
+  blockEditRowStart.value = block.row_start || 'A';
+  blockEditRowLabels.value = block.row_labels || 'start';
+  showRowFields();
+}
+
+function showRowFields() {
+  const rows = blockEditNaming.value === 'rows';
+  $('block-edit-row-start-field').classList.toggle('hidden', !rows);
+  $('block-edit-row-labels-field').classList.toggle('hidden', !rows);
+}
+blockEditNaming.addEventListener('change', showRowFields);
+
+// R turns the selected seat block a quarter clockwise (Shift+R the other way); the numbers turn with it.
+async function rotateSelectedBlock(step) {
+  if (selectedType !== 'block' || !selectedId) return;
+  const block = seatBlocks.find(b => b.id === selectedId);
+  if (!block) return;
+  const id = block.id;
+  const before = { rotation: block.rotation || 0 };
+  const patch = { rotation: (((before.rotation + step) % 360) + 360) % 360 };
+  try {
+    await updateBlock(id, patch);
+    pushHistory({ label: 'turn seat block', undo: () => updateBlock(resolveId(id), before), redo: () => updateBlock(resolveId(id), patch) });
+    renderAll();
+    selectBlock(id);
+  } catch (err) {
+    toastError('Could not turn seat block', err);
+  }
 }
 
 function setRotationInput(deg) {
@@ -464,6 +495,9 @@ blockEditForm.addEventListener('submit', async (e) => {
     rows: Math.min(20, Math.max(1, parseInt(blockEditRows.value) || block.rows)),
     rotation: parseInt(blockEditRotation.value) || 0,
     reverse_numbers: blockReverseNumbers.checked,
+    naming: blockEditNaming.value,
+    row_start: (blockEditRowStart.value.trim() || 'A').toUpperCase(),
+    row_labels: blockEditRowLabels.value,
   };
   const before = Object.fromEntries(Object.keys(patch).map(k => [k, block[k]]));
   const id = block.id;
@@ -486,10 +520,13 @@ blockDetailDuplicate.addEventListener('click', async () => {
   if (!selectedId || selectedType !== 'block') return;
   const original = seatBlocks.find(b => b.id === selectedId);
   if (!original) return;
+  await loadAllSeatRows();
   const data = {
     ...blockPayload(original),
-    name: `${original.name || 'Block'} (copy)`,
-    numbering_pattern: 'blockname_number',
+    // Row letters carry on after the hall's last row, so the copy's seats are new seats.
+    ...(original.naming === 'rows'
+      ? { name: original.name || '', row_start: nextFreeRow() }
+      : { name: `${original.name || 'Block'} (copy)` }),
     x: Math.min(95, original.x + 5),
     y: Math.min(95, original.y + 5),
   };

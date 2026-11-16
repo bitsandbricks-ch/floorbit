@@ -236,6 +236,10 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
               <rect className="blk" x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
+              {level !== 'far' && b.rows?.map((r, ri) => (
+                <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em" fontSize={drawing.cell * 0.6}
+                  transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
+              ))}
               {b.cells.map((c) => {
                 const seat = data.seats[c.seat] ?? { state: 'unknown' as const }
                 const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6

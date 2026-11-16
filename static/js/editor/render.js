@@ -156,8 +156,17 @@ function createBlockMarker(block) {
   const numbers = blockSeatNumbers(block);
   const counterRotation = rotation ? `transform: rotate(${-rotation}deg);` : '';
   let i = 0;
+  const letters = blockRowLetters(block);
+  const labelAt = block.row_labels || 'start';
+  // A row's letter beside seat 1 ("start"), after the last seat ("end"), both or none.
+  const rowLabel = (row, side) => {
+    if (!letters[row] || labelAt === 'none') return '';
+    const atFirst = (side === 'first') === seatOneFirst(block);
+    if (labelAt !== 'both' && (labelAt === 'start') !== atFirst) return '';
+    return `<div class="seat-block-rowlabel" style="${counterRotation}">${escHtml(letters[row])}</div>`;
+  };
   for (let row = 0; row < block.rows; row++) {
-    html += '<div class="seat-block-row">';
+    html += '<div class="seat-block-row">' + rowLabel(row, 'first');
     for (let col = 0; col < block.cols; col++) {
       const { number, display } = numbers[i++];
       const user = seatMappings[number]?.username;
@@ -166,7 +175,7 @@ function createBlockMarker(block) {
       const title = user ? `${number} · ${user}` : number;
       html += `<div class="${cls}" style="${counterRotation}" data-seat-number="${escHtml(number)}" title="${escHtml(title)}">${escHtml(display)}</div>`;
     }
-    html += '</div>';
+    html += rowLabel(row, 'last') + '</div>';
   }
   el.innerHTML = html;
 

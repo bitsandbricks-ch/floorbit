@@ -13,7 +13,7 @@ import time
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from .. import halls
-from ..power import block_rows
+from ..seat_names import block_rows
 from ..store import load_data
 from .screen import finder_on, plan
 

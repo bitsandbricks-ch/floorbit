@@ -412,6 +412,7 @@ body {
 .fb-plan .name { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: 6px; }
 .fb-plan .sum text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; }
 .fb-plan .sum .sub { font-weight: 600; }
+.fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; }
 .fb-plan .sw rect { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .sw-online rect { fill: var(--color-bit); }
 .fb-plan .sw-offline rect { fill: var(--color-down); }

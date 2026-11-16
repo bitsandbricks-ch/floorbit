@@ -495,6 +495,26 @@
             <h4 class="detail-section-title">Edit</h4>
             <form class="form-grid" id="block-edit-form" autocomplete="off">
               <label class="field field-full">
+                <span class="field-label">Seat names</span>
+                <select class="modal-input" id="block-edit-naming">
+                  <option value="rows">A letter per row</option>
+                  <option value="block">Block name and a number</option>
+                </select>
+              </label>
+              <label class="field" id="block-edit-row-start-field">
+                <span class="field-label">First row</span>
+                <input class="modal-input" type="text" id="block-edit-row-start" maxlength="2" autocomplete="off" />
+              </label>
+              <label class="field" id="block-edit-row-labels-field">
+                <span class="field-label">Row letter</span>
+                <select class="modal-input" id="block-edit-row-labels">
+                  <option value="start">Before seat 1</option>
+                  <option value="end">After the last seat</option>
+                  <option value="both">On both ends</option>
+                  <option value="none">Hidden</option>
+                </select>
+              </label>
+              <label class="field field-full">
                 <span class="field-label">Name</span>
                 <input class="modal-input" type="text" id="block-edit-name" maxlength="48" />
               </label>
@@ -680,7 +700,27 @@
       <h3 class="modal-title" id="block-modal-title">New seat block</h3>
       <div class="form-grid">
         <label class="field field-full">
-          <span class="field-label">Block name <span class="field-optional">(optional, used as seat prefix: A-1, A-2…)</span></span>
+          <span class="field-label">Seat names</span>
+          <select class="modal-input" id="block-naming">
+            <option value="rows">A letter per row: A-1, A-2 … then B-1, B-2</option>
+            <option value="block">Block name and a number: A-1 to A-24</option>
+          </select>
+        </label>
+        <label class="field" id="block-row-start-field">
+          <span class="field-label">First row</span>
+          <input class="modal-input" type="text" id="block-row-start" value="A" maxlength="2" autocomplete="off" />
+        </label>
+        <label class="field" id="block-row-labels-field">
+          <span class="field-label">Row letter</span>
+          <select class="modal-input" id="block-row-labels">
+            <option value="start">Before seat 1</option>
+            <option value="end">After the last seat</option>
+            <option value="both">On both ends</option>
+            <option value="none">Hidden</option>
+          </select>
+        </label>
+        <label class="field field-full">
+          <span class="field-label">Block name <span class="field-optional" id="block-name-hint">(optional, shown above the block)</span></span>
           <input class="modal-input" type="text" id="block-name" placeholder="e.g. A" maxlength="48" autocomplete="off" />
         </label>
         <label class="field">
@@ -709,6 +749,21 @@
             <input type="checkbox" id="block-reverse-numbers-modal" />
             <span class="toggle-track"></span>
           </span>
+        </label>
+        <label class="field">
+          <span class="field-label">How many blocks</span>
+          <input class="modal-input" type="number" id="block-count" value="1" min="1" max="30" />
+        </label>
+        <label class="field" id="block-direction-field">
+          <span class="field-label">Next block goes</span>
+          <select class="modal-input" id="block-direction">
+            <option value="down">Below</option>
+            <option value="right">To the right</option>
+          </select>
+        </label>
+        <label class="field" id="block-gap-field">
+          <span class="field-label">Gap between blocks (%)</span>
+          <input class="modal-input" type="number" id="block-gap" value="3" min="0" max="50" step="0.5" />
         </label>
       </div>
       <p class="field-hint" id="block-preview">8 seats</p>
@@ -769,6 +824,7 @@
         <dt><kbd>S</kbd></dt><dd>Add switch</dd>
         <dt><kbd>B</kbd></dt><dd>Add seat block</dd>
         <dt><kbd>G</kbd></dt><dd>Toggle snap to grid</dd>
+        <dt><kbd>R</kbd></dt><dd>Turn the selected seat block a quarter (<kbd>Shift</kbd> the other way)</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Z</kbd></dt><dd>Undo</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></dt><dd>Redo</dd>
         <dt><kbd>Del</kbd></dt><dd>Delete selection</dd>

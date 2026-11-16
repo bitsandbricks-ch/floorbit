@@ -6,7 +6,7 @@ keeps aggregates only (``aggregate.py``) and publishes a summary to Redis, where
 """
 from integrations import seat_sources
 
-from ..power import block_rows
+from ..seat_names import block_rows
 from ..store import load_data
 
 

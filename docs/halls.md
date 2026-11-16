@@ -50,10 +50,32 @@ C,20,60,12,2,90
 | `rotation` | no | Degrees, 0 by default. |
 | `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Sizes in percent of the plan, as in the editor. |
 | `reverse_numbers` | no | `true` to number right to left. |
+| `naming` | no | `block` (default: `<name>-1` to `<name>-<n>`) or `rows` (a letter per row, see below). |
+| `row_start`, `row_labels` | no | With `rows`: the first row's letter (`A`), and where the letter is drawn: `start`, `end`, `both` or `none`. |
 
 The import is all or nothing: if a line is wrong (a missing column, a number out of range, a name used
 twice or already on the plan), nothing is added and the editor lists the lines to fix. At most 500 blocks
 per file.
+
+## Seat names: a letter per row
+
+A seat block names its seats in one of two ways:
+
+- **A letter per row** (`naming: rows`, the default for new blocks): every row of the block is a hall row with
+  its own letter, counted on from the first row, and its seats are numbered from 1. A block of 2 rows from
+  `E` has `E-1` to `E-20` and `F-1` to `F-20`. The letter is drawn before seat 1, after the last seat, on both
+  ends or not at all. The block's name is only a label above it.
+- **Block name and a number** (`naming: block`, how older blocks stay): `A-1` to `A-24` over all its rows.
+
+Turning a block (the Rotation buttons, or <kbd>R</kbd> and <kbd>Shift</kbd>+<kbd>R</kbd> on the floor plan)
+turns the numbering with it: seat 1 and the first row letter stay where a reader starts, left and top as seen.
+**Reverse numbering** runs the numbers the other way.
+
+**Add several blocks at once:** in the New seat block dialog, set **How many blocks**, whether the next one
+goes below or to the right, and the gap. The row letters (or single-letter block names) count on, so 4 blocks
+of 2 rows from `E` are rows E to L. A seat name is never given twice, in any hall: a block that would repeat
+one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does the same for scripts
+(`count`, `dx`, `dy` in percent of the plan, plus the block's fields).
 
 ## Big screens and attendee pages
 

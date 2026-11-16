@@ -28,8 +28,39 @@ function initCollapsibleSections() {
   });
 }
 // ── Seat numbering ─────────────────────────────────────────────────────────────────
+// The same rules as floorbit/seat_names.py: "block" naming runs A-1 to A-16 over the whole block,
+// "rows" gives every row its own letter (counted on from row_start) and numbers it from 1.
+function rowLetter(i) {
+  let out = '';
+  for (i += 1; i; i = Math.floor((i - 1) / 26)) out = String.fromCharCode(65 + ((i - 1) % 26)) + out;
+  return out;
+}
+function letterIndex(letters) {
+  let n = 0;
+  for (const ch of String(letters || 'A').toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+function blockQuarter(block) { return Math.round((((block.rotation || 0) % 360) + 360) % 360 / 90) % 4; }
+// The letter of each row, top row of the block first ([] for "block" naming).
+function blockRowLetters(block) {
+  if (block.naming !== 'rows') return [];
+  const flip = [1, 2].includes(blockQuarter(block));
+  const start = letterIndex(block.row_start);
+  return Array.from({ length: block.rows }, (_, r) => rowLetter(start + (flip ? block.rows - 1 - r : r)));
+}
+// Is seat 1 of each row in the block's first column? "start" puts the row letter on that side.
+function seatOneFirst(block) {
+  return [0, 1].includes(blockQuarter(block)) !== !!block.reverse_numbers;
+}
 // Returns the seat numbers of a block in render order (row by row).
 function blockSeatNumbers(block) {
+  if (block.naming === 'rows') {
+    const first = seatOneFirst(block);
+    return blockRowLetters(block).flatMap(letter => Array.from({ length: block.cols }, (_, c) => {
+      const n = first ? c + 1 : block.cols - c;
+      return { number: `${letter}-${n}`, display: n };
+    }));
+  }
   const totalSeats = block.cols * block.rows;
   const prefix = block.name ? block.name.toUpperCase() + '-' : '';
   const rotation = (block.rotation || 0) % 360;

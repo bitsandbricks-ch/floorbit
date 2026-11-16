@@ -626,6 +626,8 @@ export interface PlanShape {
   h: number
   name: string
   cells: PlanCell[]
+  /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
+  rows?: { text: string; x: number; y: number }[]
 }
 
 export interface PlanDrawing {

@@ -39,6 +39,7 @@
     .cell { fill: var(--color-surface); stroke: var(--color-line); }
     .cell.on { fill: var(--color-up); stroke: var(--color-up); }
     .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+    .rowlbl { fill: var(--color-fg); font: 800 15px var(--font-sans); text-anchor: middle; }
   </style>
 </head>
 <body>
@@ -71,6 +72,9 @@
         <rect class="blk" x="{{ -b.w / 2 - 6 }}" y="{{ -b.h / 2 - 6 }}" width="{{ b.w + 12 }}" height="{{ b.h + 12 }}" rx="6" />
         {% for c in b.cells %}
         <rect class="cell{{ ' on' if c.on }}" data-seat="{{ c.seat }}" x="{{ c.x + 1 }}" y="{{ c.y + 1 }}" width="{{ drawing.cell - 2 }}" height="{{ drawing.cell - 2 }}" rx="3"><title>{{ c.seat }}</title></rect>
+        {% endfor %}
+        {% for r in b.rows or [] %}
+        <text class="rowlbl" x="{{ r.x }}" y="{{ r.y }}" dy="0.35em"{% if b.rotation %} transform="rotate({{ -b.rotation }} {{ r.x }} {{ r.y }})"{% endif %}>{{ r.text }}</text>
         {% endfor %}
       </g>
       {% if b.name %}<text class="name" x="{{ b.cx }}" y="{{ b.cy - [b.w, b.h]|max / 2 - 18 }}">{{ b.name }}</text>{% endif %}

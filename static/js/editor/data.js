@@ -39,6 +39,11 @@ async function createBlock(data) {
   seatBlocks.push(block);
   return block;
 }
+async function createBlocks(data) {
+  const blocks = await api('POST', '/api/seat-blocks/many', { ...data, hall_id: currentHall });
+  seatBlocks.push(...blocks);
+  return blocks;
+}
 async function updateBlock(id, patch) {
   const updated = await api('PUT', `/api/seat-blocks/${id}`, patch);
   const block = seatBlocks.find(b => b.id === id);
@@ -52,7 +57,7 @@ async function deleteBlock(id) {
 }
 
 const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height',
-                      'spacing_x', 'spacing_y', 'rotation', 'reverse_numbers'];
+                      'spacing_x', 'spacing_y', 'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels'];
 function blockPayload(block) {
   const out = {};
   for (const k of BLOCK_FIELDS) if (block[k] !== undefined) out[k] = block[k];

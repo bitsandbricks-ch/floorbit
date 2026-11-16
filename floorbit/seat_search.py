@@ -10,7 +10,7 @@ import ipaddress
 from integrations import seat_sources
 
 from . import inventory, sources
-from .power import block_rows
+from .seat_names import block_rows
 from .seatmap import MappingError, clean_mac
 from .store import load_data
 

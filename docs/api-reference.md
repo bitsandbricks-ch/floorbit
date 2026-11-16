@@ -675,6 +675,7 @@ Source: [`floorbit/blueprints/seat_blocks.py`](https://github.com/bitsandbricks-
 | POST | `/api/seat-blocks` | `floorplan.edit` |  |
 | DELETE | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
 | PUT | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
+| POST | `/api/seat-blocks/many` | `floorplan.edit` |  |
 | GET | `/api/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.seat_map
