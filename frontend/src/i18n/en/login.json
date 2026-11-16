@@ -1,0 +1,13 @@
+{
+  "title": "Sign in",
+  "intro": "Sign in to work on the event's network.",
+  "username": "Username",
+  "password": "Password",
+  "submit": "Sign in",
+  "or": "or",
+  "with": "Sign in with {{name}}",
+  "noUsers": "No accounts exist yet. <setup>Set up Floorbit</setup> with the setup code from its log, or create the first account on the server with <cmd/>, or set <code>AUTH_ADMIN_USER</code> and <code>AUTH_ADMIN_PASSWORD</code> and restart.",
+  "checkinQ": "Looking for your seat?",
+  "checkin": "Check in here",
+  "language": "Language"
+}

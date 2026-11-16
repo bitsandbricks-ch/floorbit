@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import jwt
 import pytest
-from conftest import stored
+from conftest import login_error, login_page, stored
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from auth import oidc
@@ -140,9 +140,9 @@ def test_provider_settings_need_settings_manage(app_module):
 
 def test_button_shows_only_with_a_secret(client, anon_client, issuer, monkeypatch):
     add_provider(client)
-    assert b"Sign in with Example ID" in anon_client.get("/login").data
+    assert "Example ID" in [p["label"] for p in login_page(anon_client)["providers"]]
     monkeypatch.delenv("OIDC_IDP_CLIENT_SECRET")
-    assert b"Sign in with Example ID" not in anon_client.get("/login").data
+    assert "Example ID" not in [p["label"] for p in login_page(anon_client)["providers"]]
     assert anon_client.get("/auth/oidc-idp/start").status_code == 404
 
 
@@ -187,8 +187,8 @@ def test_highest_mapped_role_wins(client, app_module, issuer):
 
 def test_without_mapping_only_linked_accounts_get_in(client, app_module, issuer):
     add_provider(client)
-    _, resp = sign_in(app_module, issuer)
-    assert resp.status_code == 403 and b"No account here is linked" in resp.data
+    browser, resp = sign_in(app_module, issuer)
+    assert resp.status_code == 403 and "No account here is linked" in login_error(browser)
     client.post("/api/users", json={"username": "sam1", "password": "sam-password-1", "role": "viewer"})
     link = {"identity": {"provider": "oidc-idp", "subject": "user-123"}}
     assert client.patch("/api/users/sam1", json=link).status_code == 200
@@ -209,8 +209,8 @@ def test_account_stops_working_without_a_mapped_group(client, app_module, issuer
     add_provider(client, mapping=[("fb-techs", "tech")])
     sign_in(app_module, issuer)
     issuer.claims = {"groups": ["somewhere-else"]}
-    _, resp = sign_in(app_module, issuer)
-    assert resp.status_code == 403 and b"no longer in a group" in resp.data
+    browser, resp = sign_in(app_module, issuer)
+    assert resp.status_code == 403 and "no longer in a group" in login_error(browser)
 
 
 def test_groups_from_userinfo_when_the_id_token_has_none(client, app_module, issuer):
@@ -265,7 +265,7 @@ def test_issuer_naming_another_issuer_is_refused(client, app_module, issuer, mon
     monkeypatch.setattr(issuer, "config", lambda: {**FakeIssuer.config(issuer), "issuer": "https://evil.example.com"})
     browser = app_module.app.test_client()
     resp = browser.get("/auth/oidc-idp/start")
-    assert resp.status_code == 502 and b"different issuer" in resp.data
+    assert resp.status_code == 502 and "different issuer" in login_error(browser)
 
 
 def test_local_sign_in_works_while_the_issuer_is_down(client, app_module, monkeypatch, issuer):
@@ -274,8 +274,9 @@ def test_local_sign_in_works_while_the_issuer_is_down(client, app_module, monkey
     def down(*a, **k):
         raise oidc.requests.ConnectionError("down")
     monkeypatch.setattr(oidc.requests, "get", down)
-    resp = app_module.app.test_client().get("/auth/oidc-idp/start")
-    assert resp.status_code == 502 and b"could not be reached" in resp.data
+    browser = app_module.app.test_client()
+    resp = browser.get("/auth/oidc-idp/start")
+    assert resp.status_code == 502 and "could not be reached" in login_error(browser)
     from conftest import TEST_PASSWORD, TEST_USER
     fresh = app_module.app.test_client()
     assert fresh.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD}).status_code == 302

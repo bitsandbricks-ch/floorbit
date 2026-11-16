@@ -30,8 +30,8 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
-  if (res.status === 401) {
-    // Signed out in another tab, or the session expired.
+  if (res.status === 401 && window.location.pathname !== '/login') {
+    // Signed out in another tab, or the session expired. On the sign-in page it's a wrong password.
     window.location.assign(loginUrl())
   }
   if (!res.ok) {

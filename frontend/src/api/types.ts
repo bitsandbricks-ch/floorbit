@@ -1617,3 +1617,16 @@ export interface ConfigBackupResult {
   copy?: ConfigCopy
   changed?: boolean
 }
+
+/** GET /api/auth/login-options: what the sign-in page offers (auth/__init__.py). */
+export interface LoginOptions {
+  enabled: boolean
+  password_login: boolean
+  providers: { id: string; label: string; url: string }[]
+  no_users: boolean
+  checkin_url: string | null
+  next: string
+  /** Why the last try failed (a wrong password, a provider that said no), shown once. */
+  error: string | null
+  username: string
+}

@@ -51,7 +51,7 @@ use can't be removed, and no change may leave nobody with `accounts.manage`.
 | `/settings/audit`, `/api/settings/audit` | 401 / login | `audit.read` |
 | `/settings/users`, `/settings/teams`, `/api/users`, `/api/roles`, `/api/teams` | 401 / login | `accounts.manage` |
 | `/settings`, `/api/settings`, `/api/integrations...`, `/api/demo` | 401 / login | `settings.manage` |
-| `/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | nothing |
+| `/login`, `/api/auth/login-options`, `/api/auth/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | nothing |
 
 A refused request answers `403` with `permission_needed`. Plugin actions and widgets name the
 permission they need in their manifest (`permission:`; the older `role:` still works and maps to
@@ -119,6 +119,16 @@ password reset signs that account out everywhere.
 | `AUTH_SESSION_HOURS` | `12` | How long a sign-in lasts. |
 | `AUTH_COOKIE_SECURE` | `false` | `true` when the app is only reached over HTTPS. |
 | `AUTH_TRUSTED_ORIGINS` | empty | Extra origins allowed to send changes, e.g. `https://lal.example.com` behind a proxy that rewrites `Host`. |
+
+## The sign-in page
+
+`/login` is a React page (`frontend/src/pages/Login.tsx`), in English and German. It asks
+`GET /api/auth/login-options?next=` what to offer (the password form, a button per outside login,
+the first-account note, the check-in link) and signs in with `POST /api/auth/login`
+(`{username, password, next}`, answering `{next}` or `401`/`429` with `{error}`). When a sign-in
+fails somewhere else (a provider's callback, a plain form post), the reason waits in the session
+and the page shows it once. A plain form post to `/login` still works for scripts. `next` only ever
+points back into this site.
 
 ## Security notes
 

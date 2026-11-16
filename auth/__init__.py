@@ -103,7 +103,8 @@ def _safe_next(target):
     if not target:
         return '/'
     parts = urlsplit(target)
-    if parts.scheme or parts.netloc or not target.startswith('/') or target.startswith('//'):
+    # Browsers read a backslash as a slash, so /\evil.example would leave the site too.
+    if parts.scheme or parts.netloc or not target.startswith('/') or target[1:2] in ('/', '\\'):
         return '/'
     return target
 
@@ -208,7 +209,8 @@ class Auth:
     def is_public(self):
         path = request.path.rstrip('/') or '/'
         if request.endpoint == 'static' or request.endpoint in ('auth.login', 'auth.logout', 'auth.me',
-                                                                  'auth.start', 'auth.callback'):
+                                                                  'auth.start', 'auth.callback',
+                                                                  'auth.login_options', 'auth.login_api'):
             return True
         view = current_app.view_functions.get(request.endpoint)
         if view is not None and getattr(view, '_auth_public', False):
@@ -316,17 +318,26 @@ def _blueprint():
     bp = Blueprint('auth', __name__)
 
     def render_login(error=None, username='', status=200):
+        """The React sign-in page (frontend/src/pages/Login.tsx). An error waits in the session
+        until the page asks for it, so a provider's redirect back can show one too."""
+        from floorbit import spa
+        if error:
+            session['login_error'] = {'error': error, 'username': username}
+        return spa.render('Sign in')[0], status
+
+    def password_sign_in(username, password):
+        """(user, None) or (None, (message, status))."""
         auth = _auth()
-        return render_template(
-            'login.html',
-            error=error,
-            username=username,
-            next=_safe_next(request.values.get('next')),
-            password_login=bool(auth.providers.enabled('password')),
-            redirect_providers=auth.providers.enabled('redirect'),
-            no_users=auth.users.count() == 0,
-            checkin_url='/checkin' if any(r.rule == '/checkin' for r in current_app.url_map.iter_rules()) else None,
-        ), status
+        wait = auth.locked_for(username)
+        if wait:
+            return None, (f'Too many failed attempts. Try again in {wait} seconds.', 429)
+        for provider in auth.providers.enabled('password'):
+            user = provider.authenticate(username, password)
+            if user:
+                auth.sign_in(user, provider.id)
+                return user, None
+        auth.record_failure(username)
+        return None, ('Wrong username or password.', 401)
 
     @bp.route('/login', methods=['GET', 'POST'])
     def login():
@@ -337,19 +348,44 @@ def _blueprint():
             if current_user():
                 return redirect(_safe_next(request.args.get('next')))
             return render_login()
-
+        # The plain form post still works, for scripts (scripts/screenshots.py, curl).
         username = (request.form.get('username') or '').strip()
-        password = request.form.get('password') or ''
-        wait = auth.locked_for(username)
-        if wait:
-            return render_login(f'Too many failed attempts. Try again in {wait} seconds.', username, 429)
-        for provider in auth.providers.enabled('password'):
-            user = provider.authenticate(username, password)
-            if user:
-                auth.sign_in(user, provider.id)
-                return redirect(_safe_next(request.form.get('next')))
-        auth.record_failure(username)
-        return render_login('Wrong username or password.', username, 401)
+        user, failed = password_sign_in(username, request.form.get('password') or '')
+        if user:
+            return redirect(_safe_next(request.form.get('next')))
+        return render_login(failed[0], username, failed[1])
+
+    @bp.route('/api/auth/login-options')
+    def login_options():
+        """What the sign-in page offers, and the error from the last try (once)."""
+        auth = _auth()
+        nxt = _safe_next(request.args.get('next'))
+        last = session.pop('login_error', None) or {}
+        error = last.get('error')
+        if error:   # a 200 answer, so the German for errors (floorbit/i18n.py) doesn't run by itself
+            from floorbit import i18n
+            error = i18n.translate(error, i18n.language(request.headers.get('Accept-Language')))
+        return jsonify({
+            'enabled': auth.enabled,
+            'password_login': bool(auth.providers.enabled('password')),
+            'providers': [{'id': p.id, 'label': p.label, 'url': url_for('auth.start', provider_id=p.id, next=nxt)}
+                          for p in auth.providers.enabled('redirect')],
+            'no_users': auth.users.count() == 0,
+            'checkin_url': '/checkin' if any(r.rule == '/checkin' for r in current_app.url_map.iter_rules()) else None,
+            'next': nxt,
+            'error': error,
+            'username': last.get('username') or '',
+        })
+
+    @bp.route('/api/auth/login', methods=['POST'])
+    def login_api():
+        body = request.get_json(silent=True) or {}
+        username = str(body.get('username') or '').strip()
+        password = body.get('password') if isinstance(body.get('password'), str) else ''
+        user, failed = password_sign_in(username, password)
+        if not user:
+            return jsonify({'error': failed[0]}), failed[1]
+        return jsonify({'ok': True, 'next': _safe_next(body.get('next'))})
 
     @bp.route('/logout', methods=['POST'])
     def logout():

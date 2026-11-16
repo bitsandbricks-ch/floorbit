@@ -1,5 +1,6 @@
 """First-run setup (issue #13): the setup code, the first account, steps and the redirect."""
 import pytest
+from conftest import login_page
 
 from floorbit import setup, store
 
@@ -19,7 +20,7 @@ def code(app_module):
 
 
 def test_a_new_install_points_to_setup(anon_client):
-    assert b'href="/setup"' in anon_client.get("/login").data
+    assert login_page(anon_client)["no_users"]
     assert anon_client.get("/setup").status_code in (200, 503)   # 503: no frontend build in tests
     assert anon_client.get("/api/setup").get_json() == {"needs_account": True, "done": False}
 

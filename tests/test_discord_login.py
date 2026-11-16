@@ -2,7 +2,7 @@
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-from conftest import TEST_PASSWORD, TEST_USER
+from conftest import TEST_PASSWORD, TEST_USER, login_error, login_page
 
 from auth.providers import discord as discord_provider
 from floorbit import audit
@@ -77,11 +77,11 @@ def whoami(client):
 
 
 def test_button_only_shows_when_set_up(anon_client, settings):
-    assert b"Sign in with Discord" not in anon_client.get("/login").data
+    assert "Discord" not in [p["label"] for p in login_page(anon_client)["providers"]]
     assert anon_client.get("/auth/discord/start").status_code == 404
     settings.update({"signin.discord_client_id": "555555555555555555",
                      "signin.discord_client_secret": "example-client-secret"})
-    assert b"Sign in with Discord" in anon_client.get("/login").data
+    assert "Discord" in [p["label"] for p in login_page(anon_client)["providers"]]
 
 
 def test_start_asks_discord_for_the_right_things(anon_client, fake_discord, settings):
@@ -106,7 +106,7 @@ def test_public_url_sets_the_redirect(anon_client, fake_discord, settings):
 
 def test_without_a_server_only_linked_accounts_get_in(anon_client, auth, fake_discord):
     resp, _ = discord_sign_in(anon_client)
-    assert resp.status_code == 403 and b"No account here is linked" in resp.data
+    assert resp.status_code == 403 and "No account here is linked" in login_error(anon_client)
 
     auth.users.add(TEST_USER, TEST_PASSWORD, role="editor")
     auth.users.link_identity(TEST_USER, "discord", PLAYER_ID)
@@ -133,7 +133,7 @@ def test_members_without_a_listed_role_are_refused(anon_client, auth, fake_disco
     settings.update({"signin.discord_guild_id": SERVER, "signin.discord_admin_roles": [ORGA_ROLE]})
     fake_discord.member = {"roles": [TECH_ROLE]}
     resp, _ = discord_sign_in(anon_client)
-    assert resp.status_code == 403 and b"not in a server role" in resp.data
+    assert resp.status_code == 403 and "not in a server role" in login_error(anon_client)
     assert auth.users.count() == 0
 
 
@@ -156,7 +156,7 @@ def test_leaving_the_server_ends_discord_made_accounts(anon_client, auth, fake_d
     anon_client.post("/logout")
     fake_discord.member = None
     resp, _ = discord_sign_in(anon_client)
-    assert resp.status_code == 403 and b"no longer" in resp.data
+    assert resp.status_code == 403 and "no longer" in login_error(anon_client)
 
 
 def test_hand_linked_accounts_do_not_need_the_server(anon_client, auth, fake_discord, settings):
@@ -170,11 +170,11 @@ def test_hand_linked_accounts_do_not_need_the_server(anon_client, auth, fake_dis
 def test_discord_errors_are_shown_not_raised(anon_client, fake_discord):
     fake_discord.token_status = 401
     resp, _ = discord_sign_in(anon_client)
-    assert resp.status_code == 403 and b"Discord sign-in failed" in resp.data
+    assert resp.status_code == 403 and "Discord sign-in failed" in login_error(anon_client)
     resp = anon_client.get("/auth/discord/start")
     state = parse_qs(urlsplit(resp.headers["Location"]).query)["state"][0]
     resp = anon_client.get(f"/auth/discord/callback?state={state}&error=access_denied")
-    assert resp.status_code == 403 and b"cancelled" in resp.data
+    assert resp.status_code == 403 and "cancelled" in login_error(anon_client)
 
 
 def test_sign_ins_are_audited(anon_client, client, auth, fake_discord, settings):
