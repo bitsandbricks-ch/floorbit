@@ -35,9 +35,10 @@ watch), read at most every 30 seconds per switch. A link whose switches can't be
 ## On the floor plan
 
 Links between two switches that are both placed on a hall's plan are drawn there as lines between them,
-in the same colours and widths, under the switches. A link the topology page last saw down is red and
-dashed, one slower than planned orange. The floor plan doesn't read the switches itself: it shows what
-the topology page (or anyone with it open) read last.
+in the same colours and widths, under the switches. A link last seen down is red and
+dashed, one slower than planned orange. The floor plan doesn't read the switches itself: Floorbit reads
+the ports at both ends of every link in the background every 30 seconds, and the plan and the
+Problems page show that. A link that is down or slow is also listed on the Problems page.
 
 ## Seen by LLDP
 

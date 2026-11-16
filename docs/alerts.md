@@ -17,10 +17,11 @@ that are down or need a look, muted ones (switches and services) left out, e.g. 
 - high and medium [security findings](security.md). Accounts without `seats.view` see the kind and
   the switch port only, since titles and seats can point at a person;
 - [power circuits](power.md) that tripped, are about to, or are getting close;
-- the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours.
+- the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours;
+- [links between switches](topology.md) that are down (red) or came up slower than planned (amber).
 
-It asks nothing new: it reads what the status monitor, the health wall, the security watch and the
-power layer already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
+It asks nothing new: it reads what the status monitor, the health wall, the security watch, the
+power layer and the link reader already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
 and its name in the list of muted switches, open that switch on the floor plan (`/plan`), in its hall.
 
 When the list holds more than one kind, a row above it shows one kind at a time (switches,

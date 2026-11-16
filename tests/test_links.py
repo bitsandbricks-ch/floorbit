@@ -133,3 +133,18 @@ def test_seat_cables_have_a_type_and_speed_too(client):
     assert client.patch(f"/api/cables/{cable['id']}", json={"speed": 3}).status_code == 400
     assert client.patch(f"/api/cables/{cable['id']}", json={"type": "cat9"}).status_code == 400
     assert "type,speed,note,source" in client.get("/api/cables.csv").get_data(as_text=True).splitlines()[0]
+
+
+def test_a_down_or_slow_link_is_a_problem_without_the_topology_open(client, net):
+    _add(client)
+    _add(client, a="dist-01", a_port="Fo1/1/1", b="core-01", b_port="Fo1/0/1", speed=40)
+    net.set("sw-a-01", port("Te1/1/1", state="down"))
+    net.set("dist-01", {**port("Fo1/1/1"), "speed_bps": 10_000_000_000})
+    assert [p for p in client.get("/api/problems").get_json()["problems"] if p["kind"] == "link"] == []   # not read yet
+    links.refresher.read_once()
+    found = {p["id"].split(":")[0] + p["title"]: p for p in client.get("/api/problems").get_json()["problems"]
+             if p["kind"] == "link"}
+    assert [(p["level"], p["title"]) for p in found.values()] == [
+        ("down", "Link sw-a-01 Te1/1/1 to dist-01 Te1/0/1 is down"),
+        ("warn", "Link dist-01 Fo1/1/1 to core-01 Fo1/0/1 runs at 10G")]
+    assert [p["where"] for p in found.values()] == ["Fiber multi-mode, 10G planned", "Fiber multi-mode, 40G planned"]

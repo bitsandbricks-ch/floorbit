@@ -25,6 +25,8 @@ TYPES = ('cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac')
 MEDIA = {'cat5e': 'copper', 'cat6': 'copper', 'cat6a': 'copper', 'fiber-sm': 'fiber', 'fiber-mm': 'fiber',
          'dac': 'dac'}
 SPEEDS = (1, 10, 25, 40, 100)           # Gbit/s
+LABELS = {'cat5e': 'Copper Cat5e', 'cat6': 'Copper Cat6', 'cat6a': 'Copper Cat6a', 'fiber-sm': 'Fiber single-mode',
+          'fiber-mm': 'Fiber multi-mode', 'dac': 'DAC'}
 PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}$')
 ROLES = ('switch', 'router', 'firewall')  # what the topology draws
 READ_EVERY = 30                          # seconds a switch's ports are kept
@@ -176,9 +178,77 @@ class Reader:
 reader = Reader()
 
 
+def problems(data=None):
+    """Links that are down or slower than planned, from the last reads (the refresher below keeps
+    them fresh): for the Problems page."""
+    out = []
+    for link in all_links(data):
+        ports = {link[e].lower(): reader.cached(link[e]) for e in ('a', 'b')}
+        live = _live(link, ports)
+        if not live['issue']:
+            continue
+        ends = f"{link['a']} {link['a_port']} to {link['b']} {link['b_port']}"
+        what = ', '.join(x for x in (LABELS.get(link.get('type') or '', ''),
+                                     f"{link['speed']}G planned" if link.get('speed') else '') if x)
+        if live['issue'] == 'slow':
+            title = f"Link {ends} runs at {live['speed_bps'] / 1e9:g}G"
+        else:
+            title = f'Link {ends} is down'
+        out.append({'id': f"link:{link['id']}", 'kind': 'link', 'level': 'down' if live['issue'] == 'down' else 'warn',
+                    'title': title, 'where': what, 'since': None, 'link': '/topology'})
+    return out
+
+
+class Refresher:
+    """Reads the ports at both ends of every link in the background, so a link that goes down shows
+    on the Problems page even while nobody has the topology open."""
+
+    def __init__(self):
+        self._thread = None
+        self._stop = threading.Event()
+
+    def start(self):
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._run, name='links', daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stop.set()
+
+    def read_once(self, now=None):
+        now = time.time() if now is None else now
+        names = sorted({link[e] for link in all_links() for e in ('a', 'b')})
+        if names:
+            with ThreadPoolExecutor(min(8, len(names))) as pool:
+                list(pool.map(lambda s: reader.ports(s, now), names))
+
+    def _run(self):
+        while not self._stop.is_set():
+            try:
+                self.read_once()
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[links] read failed: {exc}')
+            self._stop.wait(READ_EVERY)
+
+
+refresher = Refresher()
+
+
+def init_app(app, start_background=True):
+    started = threading.Event()
+
+    @app.before_request
+    def start_links_once():
+        if start_background and not started.is_set():
+            started.set()
+            refresher.start()
+
+
 def on_plan(data, switches):
     """The links between switches placed on this hall's plan, for drawing as lines. Their state is
-    what the topology page last read: the plan doesn't read the switches itself."""
+    what was last read (the refresher, or the topology page): the plan doesn't read the switches itself."""
     placed = {str(w['name']).lower() for w in switches}
     out = []
     for link in all_links(data):

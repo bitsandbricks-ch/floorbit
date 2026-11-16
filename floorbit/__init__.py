@@ -142,6 +142,8 @@ def create_app(start_background=True):
     game_servers.init_app(app, start_background=start_background)
     from . import services
     services.init_app(app, start_background=start_background)
+    from . import links
+    links.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
