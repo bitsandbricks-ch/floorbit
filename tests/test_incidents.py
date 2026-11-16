@@ -175,9 +175,10 @@ def test_qr_sheet_needs_assign_and_holds_signed_links(client, app_module, floor)
     assert seats[0]["url"].endswith(help_url(app_module, "A-1")) and seats[0]["image"].startswith("data:image/svg+xml")
 
 
-def test_qr_codes_can_point_at_their_own_address(client, app_module, floor, monkeypatch):
+def test_qr_codes_can_point_at_their_own_address(client, app_module, floor, monkeypatch, tmp_path):
     # Attendees often reach Floorbit under an event DNS name, not the crew's public URL.
     monkeypatch.setenv("CHECKIN_ENABLED", "true")
+    monkeypatch.setenv("CHECKIN_FILE", str(tmp_path / "checkins.json"))   # the PINs go next to it
     monkeypatch.setenv("QR_URL", "help.example.com/")
     sheet = client.get("/api/helpdesk/qr").get_json()
     assert sheet["seats"][0]["url"] == "http://help.example.com" + help_url(app_module, "A-1")
