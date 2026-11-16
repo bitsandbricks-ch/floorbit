@@ -664,6 +664,8 @@
  "That PIN was already used. Ask the crew if this is your seat.": "Diese PIN wurde schon verwendet. Frag die Crew, wenn das dein Platz ist.",
  "Link {} to {} is down": "Verbindung {} zu {} ist down",
  "Link {} to {} runs at {}G": "Verbindung {} zu {} läuft mit {}G",
+ "Link {} to {}: {} sees {}": "Verbindung {} zu {}: {} sieht {}",
+ "Check the patch (LLDP/CDP)": "Patch prüfen (LLDP/CDP)",
  "Copper Cat5e, {}G planned": "Kupfer Cat5e, {}G geplant",
  "Copper Cat5e": "Kupfer Cat5e",
  "Copper Cat6, {}G planned": "Kupfer Cat6, {}G geplant",

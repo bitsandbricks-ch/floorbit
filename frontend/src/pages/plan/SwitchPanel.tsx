@@ -54,6 +54,35 @@ export function SwitchPanel({ name, onSeat, onClose }: { name: string; onSeat: (
               </Table.Tbody>
             </Table>
           )}
+          {(w.links?.length ?? 0) > 0 && (
+            <Table withRowBorders={false} verticalSpacing={2} aria-label={t('plan.switchPanel.links')}>
+              <Table.Thead>
+                <Table.Tr><Table.Th>{t('plan.switchPanel.port')}</Table.Th><Table.Th>{t('plan.switchPanel.to')}</Table.Th><Table.Th>{t('plan.switchPanel.lldp')}</Table.Th></Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {w.links!.map((l) => (
+                  <Table.Tr key={l.id}>
+                    <Table.Td><code>{l.port}</code></Table.Td>
+                    <Table.Td className={l.issue === 'down' ? 'fb-tone-err' : l.issue === 'slow' ? 'fb-tone-warn' : undefined}>
+                      <code>{l.to} {l.to_port}</code>
+                    </Table.Td>
+                    <Table.Td className={l.lldp?.state === 'other' ? 'fb-tone-warn' : undefined}>
+                      {l.lldp ? t(`plan.switchPanel.lldpState.${l.lldp.state}`, { there: `${l.lldp.remote ?? ''} ${l.lldp.remote_port ?? ''}`.trim() }) : '–'}
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+          {(w.neighbours?.length ?? 0) > 0 && (
+            <Stack gap={2}>
+              <Text size="sm" fw={600}>{t('plan.switchPanel.neighbours')}</Text>
+              <Text size="xs" c="dimmed">{t('plan.switchPanel.neighboursHint')}</Text>
+              {w.neighbours!.map((n) => (
+                <Text key={n.port} size="sm"><code>{n.port}</code> → <code>{n.remote} {n.remote_port}</code>{n.protocol && <Text span size="xs" c="dimmed"> {n.protocol.toUpperCase()}</Text>}</Text>
+              ))}
+            </Stack>
+          )}
         </>
       )}
     </Stack>

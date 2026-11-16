@@ -10,7 +10,8 @@
   "problems_other": "{{count}} links need a look",
   "issue": {
     "down": "{{a}} – {{b}} is down",
-    "slow": "{{a}} – {{b}} runs at {{actual}}, planned {{planned}}"
+    "slow": "{{a}} – {{b}} runs at {{actual}}, planned {{planned}}",
+    "miswired": "{{a}} – {{b}}: {{here}} sees {{there}}, check the patch"
   },
   "diagram_one": "Topology with {{count}} link",
   "diagram_other": "Topology with {{count}} links",
@@ -37,6 +38,8 @@
   "removeQuestion": "Remove the link between {{a}} and {{b}}?",
   "down": "Down",
   "slow": "Slower than planned",
+  "lldp": "LLDP/CDP",
+  "lldpState": { "seen": "Seen as planned", "unseen": "Not seen on this port", "other": "Sees {{there}}: check the patch" },
   "thicker": "Thicker is faster.",
   "state": { "up": "Up", "down": "Down", "unknown": "Not read" },
   "status": { "online": "Up", "offline": "Down", "unknown": "Not read" },

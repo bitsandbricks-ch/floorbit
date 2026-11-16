@@ -388,6 +388,7 @@ def switch(name, now=None):
         'model': (dev or {}).get('model') or None,
         'seats': rows,
         'online': sum(1 for r in rows if r['state'] == 'online'),
+        **links.for_switch((dev or {}).get('name') or name, now, data),
     }
 
 
