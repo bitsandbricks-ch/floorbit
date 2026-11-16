@@ -11,7 +11,7 @@ const agent: Agent = {
   id: 'a1b2c3d4', name: 'Spring LAN, hall 2', created_at: 1_790_000_000, created_by: 'ada',
   last_seen: Date.now() / 1000 - 5, version: '0.9.0', address: null, connected: true,
   stats: { calls: 412, failed: 2, median_ms: 84, last_error: { at: Date.now() / 1000 - 60, method: 'port_stats', error: 'LibreNMS said no' } },
-  report: { at: Date.now() / 1000 - 10, up_seconds: 3 * 3600 + 120, reconnects: 1, link_drops: 1, syslog_received: 12345, syslog_backlog: 0, syslog_dropped: 3, flows_packets: 4567 },
+  report: { at: Date.now() / 1000 - 10, up_seconds: 3 * 3600 + 120, reconnects: 2, link_drops: 2, syslog_received: 12345, syslog_backlog: 0, syslog_dropped: 3, flows_packets: 4567 },
   relays: { syslog: { at: Date.now() / 1000 - 3, count: 120 }, flows: { at: Date.now() / 1000 - 8, count: 6 } },
 }
 
