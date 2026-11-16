@@ -405,7 +405,8 @@
       "back": "In den Hintergrund",
       "delete": "Löschen",
       "group": "Gruppieren",
-      "ungroup": "Gruppe auflösen"
+      "ungroup": "Gruppe auflösen",
+      "unplace": "Vom Plan nehmen"
     },
     "layer": "Ebene",
     "layers": {
@@ -509,7 +510,9 @@
       "newHelp": "Ein von Hand angelegter Switch, für einen, den das Inventar nicht kennt. Das Monitoring findet ihn über diesen Namen.",
       "place_one": "Switch platzieren",
       "place_other": "{{count}} Switches platzieren",
-      "add": "Switch hinzufügen"
+      "add": "Switch hinzufügen",
+      "inventoryNote": "Aus dem Inventar. Vom Plan genommen bleibt er dort und lässt sich wieder platzieren.",
+      "manualNote": "Von Hand auf diesem Plan hinzugefügt. Löschen entfernt ihn."
     },
     "halls": {
       "button": "Hallen",
@@ -554,7 +557,9 @@
       "rename": "Gruppenname",
       "renameHelp": "Klicken zum Auswählen, Doppelklick zum Umbenennen"
     },
-    "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel ist unter dem Plan. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm."
+    "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel ist unter dem Plan. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm.",
+    "unplace_one": "Vom Plan nehmen",
+    "unplace_other": "{{count}} vom Plan nehmen"
   },
   "net": {
     "learned": "vom Port gelesen, nicht erfasst",

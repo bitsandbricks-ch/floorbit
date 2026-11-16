@@ -405,7 +405,8 @@
       "back": "Send to back",
       "delete": "Delete",
       "group": "Group",
-      "ungroup": "Ungroup"
+      "ungroup": "Ungroup",
+      "unplace": "Take off the plan"
     },
     "layer": "Layer",
     "layers": {
@@ -509,7 +510,9 @@
       "newHelp": "A switch made by hand, for one the inventory doesn't know. Monitoring finds it by this name.",
       "place_one": "Place switch",
       "place_other": "Place {{count}} switches",
-      "add": "Add switch"
+      "add": "Add switch",
+      "inventoryNote": "From the inventory. Taking it off the plan keeps it there, ready to place again.",
+      "manualNote": "Added by hand on this plan. Deleting it removes it."
     },
     "halls": {
       "button": "Halls",
@@ -554,7 +557,9 @@
       "rename": "Group name",
       "renameHelp": "Click to select, double-click to rename"
     },
-    "smallScreen": "On a phone, tap to select and drag to move; the panel is under the plan. Drawing and arranging work best with a mouse on a larger screen."
+    "smallScreen": "On a phone, tap to select and drag to move; the panel is under the plan. Drawing and arranging work best with a mouse on a larger screen.",
+    "unplace_one": "Take off the plan",
+    "unplace_other": "Take {{count}} off the plan"
   },
   "net": {
     "learned": "read from the port, not typed in",
