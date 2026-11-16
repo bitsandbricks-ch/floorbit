@@ -121,5 +121,7 @@
   "outageHint": "Der Switch dieses Platzes ist gerade ausgefallen. Eher Teil dieses Ausfalls als das Kabel am Platz.",
   "backUp": "{{switch}} wieder da · {{ago}}",
   "backUpHint": "Der Switch des Platzes war aus und läuft wieder, seit das gemeldet wurde. Prüf, ob es jetzt geht, bevor du hingehst.",
-  "qrCheckin": "Am PC: {{address}}"
+  "qrCheckin": "Am PC: {{address}}",
+  "qrOpens": "Die Codes öffnen {{address}}. Erreichen die Teilnehmenden Floorbit unter einem anderen Namen?",
+  "qrChangeAddress": "Die Adresse auf den QR-Codes stellst du unter Einstellungen › General ein."
 }
