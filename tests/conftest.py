@@ -156,6 +156,10 @@ def app_module(tmp_path, monkeypatch):
     monkeypatch.setattr(auth, "enabled", True)
     monkeypatch.setattr(auth, "public_read", True)
     monkeypatch.setattr(auth, "_failures", {})
+    # Lines a local agent relayed in an earlier test would show as relayed in the next one.
+    receiver = app.app.extensions.get("floorbit_syslog")
+    if receiver is not None:
+        monkeypatch.setattr(receiver, "relayed", {})
     app.app.config["TESTING"] = True
     return app
 
