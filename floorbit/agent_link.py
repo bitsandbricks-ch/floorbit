@@ -127,6 +127,12 @@ def _routing():
     return _routes[1]
 
 
+def enrolled(agent_id):
+    """Is this agent still enrolled? An open WebSocket link asks every few seconds, so revoking a
+    key also ends the link it already has (docs/agent.md)."""
+    return agent_id in _routing()[1]
+
+
 HOST_METHODS = ('device_details', 'port_stats', 'device_ports')   # the first argument is a switch
 
 

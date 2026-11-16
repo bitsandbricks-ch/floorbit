@@ -1,6 +1,7 @@
 """The hosted side of the local agent (issue #2): keys, the call tunnel and the agent-fed source.
 
 The "agent" here is a thread using the Flask test client, so nothing leaves the process."""
+import contextlib
 import threading
 import time
 
@@ -218,6 +219,26 @@ def test_the_link_refuses_a_wrong_key(client, live_server):
     client.delete(f"/api/agents/{made['id']}")
     with pytest.raises(simple_websocket.ConnectionError):
         link_to(live_server, made["key"])
+
+
+def test_revoking_a_key_ends_its_open_link(client, live_server):
+    import json
+
+    import simple_websocket
+
+    made = enrol(client)
+    ws = link_to(live_server, made["key"])
+    try:
+        assert json.loads(ws.receive(timeout=5))["type"] == "hello"
+        assert client.delete(f"/api/agents/{made['id']}").status_code == 200
+        started = time.time()
+        with pytest.raises(simple_websocket.ConnectionClosed):
+            while time.time() - started < 15:
+                ws.receive(timeout=1)
+        assert time.time() - started < 10           # within a take cycle, not at the next reconnect
+    finally:
+        with contextlib.suppress(simple_websocket.ConnectionClosed):
+            ws.close()
 
 
 def test_calls_an_agent_could_not_deliver_go_back():

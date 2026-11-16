@@ -296,6 +296,10 @@ def link(ws):
     quiet_since = time.monotonic()
     try:
         while not gone.is_set():
+            if not agent_link.enrolled(agent['id']):
+                # Revoked while connected: the key is no good any more, so neither is this link.
+                ws.close(reason=1008, message='The agent key was revoked.')
+                break
             agent_link.tunnel.seen(agent=agent['id'])
             calls = agent_link.tunnel.take(LINK_TAKE, agent=agent['id'])
             if calls and gone.is_set():
