@@ -1,0 +1,232 @@
+{
+  "title": "Einstellungen",
+  "intro": "Gespeicherte Werte liegen auf dem Server und gehen vor Umgebungsvariablen. Setze ein Feld zurück, um wieder den Wert aus der Umgebung oder den Standard zu nutzen.",
+  "wall": "Statistik-Wand für einen grossen Bildschirm:",
+  "connections": "Verbindungen",
+  "configured": "Eingerichtet",
+  "netboxOff": "Nicht eingerichtet, nur manuelle Switches",
+  "librenmsOff": "Nicht eingerichtet, kein Live-Status",
+  "redisOff": "Nicht verbunden ({{where}})",
+  "testRedis": "Redis testen",
+  "redisHelp": "Redis wird über die Umgebungsvariablen REDIS_* eingerichtet.",
+  "test": "Verbindung testen",
+  "testing": "Teste…",
+  "source": {
+    "saved": "Gespeichert",
+    "env": "Aus Umgebung",
+    "default": "Standard"
+  },
+  "envSet": "ist gesetzt",
+  "unsaved": "Nicht gespeichert",
+  "willReset": "Wird zurückgesetzt",
+  "reset": "Zurücksetzen",
+  "removeSecret": "Gespeicherten Token entfernen",
+  "undo": "Rückgängig",
+  "invalid": "Kein gültiger Wert",
+  "secretSet": "•••••••• (gesetzt, tippen zum Ersetzen)",
+  "secretUnset": "Nicht gesetzt",
+  "derived": "Abgeleitet",
+  "chooseImage": "Bild wählen…",
+  "removeImage": "Entfernen",
+  "imageTooBig": "{{name}} darf höchstens 256 KB gross sein",
+  "themeHint": "Die Farben unten gelten, wenn das Design «Eigenes» ist.",
+  "contrastOk": "Akzent auf Hintergrund: {{ratio}}:1",
+  "contrastLow": "Akzent auf Hintergrund: {{ratio}}:1. Unter 3:1 sind Knöpfe und Fokusrahmen schlecht zu sehen.",
+  "saveBar": "Nicht gespeicherte Änderungen",
+  "unsavedCount_one": "{{count}} Änderung nicht gespeichert",
+  "unsavedCount_other": "{{count}} Änderungen nicht gespeichert",
+  "discard": "Änderungen verwerfen",
+  "save": "Speichern",
+  "saved": "Gespeichert. Die Änderungen gelten sofort.",
+  "savedTheme": "Gespeichert. Lade neu, um das neue Design zu zeigen…",
+  "unit": {
+    "seconds": "Sekunden"
+  },
+  "presets": {
+    "floorbit": "Floorbit",
+    "ops": "Ops-Pult (dicht, Akzent Cyan)",
+    "kiosk": "Kiosk (grosser Bildschirm, dunkel)",
+    "classic": "Klassisch (der alte orange Look, dunkel)",
+    "custom": "Eigenes (eure Event-Farben unten)"
+  },
+  "backup": {
+    "title": "Sichern und wiederherstellen",
+    "desc": "Der Hallenplan (Switches, Positionen, Sitzblöcke) und die gespeicherten Einstellungen samt Design. API-Tokens, Webhook-URLs, Konten und Check-ins sind nie in einer Sicherung, und eine Wiederherstellung lässt sie, wie sie sind.",
+    "download": "Sicherung herunterladen",
+    "restore": "Aus Datei wiederherstellen…",
+    "go": "Hallenplan und Einstellungen ersetzen",
+    "notJson": "Diese Datei ist kein JSON. Wähle eine Datei aus «Sicherung herunterladen».",
+    "notBackup": "Diese Datei ist keine Floorbit-Sicherung.",
+    "summary": "{{name}}{{made}}: {{switches}}, {{blocks}} und {{settings}}. Die Wiederherstellung ersetzt den aktuellen Hallenplan und diese Einstellungen für alle.",
+    "made": ", erstellt {{when}}",
+    "switches_one": "{{count}} platzierter Switch",
+    "switches_other": "{{count}} platzierte Switches",
+    "blocks_one": "{{count}} Sitzblock",
+    "blocks_other": "{{count}} Sitzblöcke",
+    "settings_one": "{{count}} gespeicherte Einstellung",
+    "settings_other": "{{count}} gespeicherte Einstellungen",
+    "restored": "Wiederhergestellt. Lade neu…",
+    "skipped_one": "{{count}} Einstellung übersprungen, die diese Version nicht kennt.",
+    "skipped_other": "{{count}} Einstellungen übersprungen, die diese Version nicht kennt."
+  },
+  "sections": {
+    "netbox": {
+      "title": "NetBox",
+      "desc": "Quelle des Switch-Inventars. Lass URL oder Token leer, um Switches von Hand zu platzieren."
+    },
+    "librenms": {
+      "title": "LibreNMS",
+      "desc": "Live-Status der Switches, Port-Statistiken und die Zuordnung von IP zu Switch-Port für Sitze."
+    },
+    "cache": {
+      "title": "Zwischenspeicher",
+      "desc": "Wie lange LibreNMS-Abfragen in Redis bleiben, bevor sie neu geholt werden."
+    },
+    "display": {
+      "title": "Anzeige-Standards",
+      "desc": "Standards für Switches ohne eigene Einstellung."
+    },
+    "signin": {
+      "title": "Anmeldung mit Discord",
+      "desc": "Ein Knopf «Mit Discord anmelden» auf der Anmeldeseite. Lege unter discord.com/developers eine Anwendung an, trage <diese Seite>/auth/discord/callback als OAuth2-Redirect ein (setze unter Allgemein die öffentliche URL, wenn die App hinter einem Proxy läuft) und füge hier ihre Client-ID und ihr Secret ein. Ohne Server können sich nur Konten anmelden, die auf der Seite Benutzer verknüpft sind."
+    },
+    "public": {
+      "title": "Seiten für Teilnehmende",
+      "desc": "Seiten für Teilnehmende, offen ohne Konto. Sie zeigen nur Sitznummern: keine Nicks, Adressen, Switches oder Ports."
+    },
+    "metrics": {
+      "title": "Prometheus-Metriken",
+      "desc": "GET /api/metrics im Prometheus-Textformat, für ein NOC-Grafana: Sitze online, Probleme, Vorfälle und Switches, pro Halle gezählt. Keine Sitze, Nicks oder Adressen. Hol sie mit einem API-Token (Einstellungen > API) mit einer Nur-Lesen-Rolle."
+    },
+    "appearance": {
+      "title": "Aussehen",
+      "desc": "Das Aussehen jeder Seite. Ein Bildschirm kann mit ?theme= sein eigenes Design wählen (zum Beispiel /kiosk?theme=kiosk); ?theme=default kehrt zu diesem zurück."
+    }
+  },
+  "fields": {
+    "netbox_url": {
+      "label": "URL",
+      "placeholder": null
+    },
+    "netbox_token": {
+      "label": "API-Token"
+    },
+    "netbox_device_roles": {
+      "label": "Geräterollen",
+      "help": "NetBox-Rollen-Slugs, mit Komma getrennt, die als Switches importiert werden."
+    },
+    "netbox_verify_ssl": {
+      "label": "TLS-Zertifikat prüfen"
+    },
+    "librenms_url": {
+      "label": "URL",
+      "placeholder": null
+    },
+    "librenms_token": {
+      "label": "API-Token"
+    },
+    "librenms_verify_ssl": {
+      "label": "TLS-Zertifikat prüfen"
+    },
+    "librenms_fdb_exclude": {
+      "label": "Ignorierte Port-Namen",
+      "help": "Beim Suchen einer MAC-Adresse werden Ports übersprungen, deren Name eines davon enthält (Uplinks, LAGs, SVIs)."
+    },
+    "cache_ttl_arp": {
+      "label": "TTL der ARP-Tabelle"
+    },
+    "cache_ttl_mac": {
+      "label": "TTL der MAC-Tabelle"
+    },
+    "cache_ttl_resolve": {
+      "label": "TTL der Sitz-Zuordnung",
+      "help": "Wie lange ein Ergebnis IP zu Switch-Port wiederverwendet wird."
+    },
+    "display_hide_labels": {
+      "label": "Switch-Namen ausblenden"
+    },
+    "display_exclude_heatmap": {
+      "label": "Switches aus der Heatmap nehmen"
+    },
+    "signin_discord_client_id": {
+      "label": "Client-ID",
+      "placeholder": "123456789012345678"
+    },
+    "signin_discord_client_secret": {
+      "label": "Client-Secret"
+    },
+    "signin_discord_guild_id": {
+      "label": "Server-ID",
+      "help": "Mitglieder dieses Discord-Servers können sich anmelden und bekommen beim ersten Mal ein Konto. Rechtsklick auf den Server in Discord (Entwicklermodus an) und ID kopieren.",
+      "placeholder": "Leer: nur verknüpfte Konten"
+    },
+    "signin_discord_admin_roles": {
+      "label": "Admin-Rollen",
+      "help": "Discord-Rollen-IDs, mit Komma getrennt, deren Mitglieder Admins werden."
+    },
+    "signin_discord_editor_roles": {
+      "label": "Editor-Rollen",
+      "help": "Rollen-IDs, deren Mitglieder Editoren werden."
+    },
+    "signin_discord_viewer_roles": {
+      "label": "Betrachter-Rollen",
+      "help": "Rollen-IDs, deren Mitglieder Betrachter werden. Sind alle drei Listen leer, kann sich jedes Mitglied des Servers als Betrachter anmelden; sonst werden Mitglieder ohne eine dieser Rollen abgewiesen. Die Rolle wird bei der ersten Anmeldung gesetzt; ändere sie später auf der Seite Benutzer."
+    },
+    "public_attendee_view": {
+      "label": "Ansicht für Teilnehmende",
+      "help": "/hall zeigt den Hallenplan mit jedem Sitz online oder offline. Standardmässig aus, weil es auch zeigt, wann ein Sitz leer ist, etwa wenn sein Spieler weg ist."
+    },
+    "public_status_page": {
+      "label": "Netzwerk-Statusseite",
+      "help": "/status sagt Teilnehmenden, ob das Netz läuft, welche Bereiche ein Ausfall trifft, und zeigt die Meldungen der Crew. Standardmässig aus."
+    },
+    "public_status_switch_names": {
+      "label": "Switch-Namen auf der Statusseite",
+      "help": "Nennt auf /status die Switches, die down sind. Aus: nur Hallen, Blöcke und Reihen."
+    },
+    "public_stats_wall": {
+      "label": "Statistik-Wand",
+      "help": "/wall zeigt Fun Facts zum Event für einen grossen Bildschirm (/wall?screen=1) und Handys: geladene Daten, Bandbreiten-Spitze, Top-Spiele, Sitze online. Nur für die ganze Halle und pro Sitzblock. Standardmässig aus."
+    },
+    "public_brackets": {
+      "label": "Turnier-Brackets",
+      "help": "/bracket zeigt die Turnier-Brackets mit Teams und Resultaten für grosse Bildschirme (/bracket?screen=1) und Handys. Nie Sitze. Standardmässig aus."
+    },
+    "metrics_enabled": {
+      "label": "Prometheus-Metriken",
+      "help": "/api/metrics anbieten. Standardmässig aus."
+    },
+    "public_schedule": {
+      "label": "Programm und Countdown",
+      "help": "/agenda zeigt den Countdown zum Event, was jetzt und als Nächstes läuft, und das Programm, für grosse Bildschirme (/agenda?screen=1) und Handys. Standardmässig aus."
+    },
+    "theme_preset": {
+      "label": "Design"
+    },
+    "theme_name": {
+      "label": "Event-Name",
+      "help": "Steht oben in der Leiste und als Titel im Kiosk. Leer zeigt das Floorbit-Logo.",
+      "placeholder": "LAN Party 2026"
+    },
+    "theme_logo": {
+      "label": "Event-Logo",
+      "help": "SVG, PNG, JPEG oder WebP bis 256 KB. Ersetzt das Floorbit-Logo oben in der Leiste; die Fusszeile «Powered by» bleibt."
+    },
+    "theme_accent": {
+      "label": "Akzentfarbe",
+      "help": "Knöpfe, Links und Fokus. Statusfarben (up, down, Warnung) ändern sich nie."
+    },
+    "theme_background": {
+      "label": "Hintergrund",
+      "help": "Ein dunkler Hintergrund gibt ein nur dunkles Design, ein heller ein nur helles."
+    },
+    "theme_surface": {
+      "label": "Flächen",
+      "help": "Leer: ein Ton des Hintergrunds."
+    },
+    "theme_text": {
+      "label": "Text",
+      "help": "Leer: fast weiss oder fast schwarz, je nach Hintergrund."
+    }
+  }
+}

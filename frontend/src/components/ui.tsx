@@ -12,7 +12,7 @@ export function Panel({ title, desc, actions, children, padding = 'md', style, c
   title?: ReactNode; desc?: ReactNode; actions?: ReactNode; children?: ReactNode
   /** 0 when the content brings its own (a table that runs to the edges). */
   padding?: 0 | 'sm' | 'md' | 'lg'; style?: CSSProperties; className?: string
-  'aria-label'?: string
+  'aria-label'?: string; id?: string
 }) {
   return (
     <Paper withBorder radius="lg" p={padding} style={style} className={className} component="section" {...rest}>

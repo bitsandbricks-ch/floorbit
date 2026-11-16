@@ -87,6 +87,7 @@ def test_backup_is_admin_only(anon_client, client, app_module):
     assert editor.get("/api/settings/backup").status_code == 403
 
 
-def test_settings_page_offers_backup(client):
+def test_settings_page_is_the_react_app(client):
+    # The backup panel itself is tested in frontend/src/pages/Settings.test.tsx.
     page = client.get("/settings").get_data(as_text=True)
-    assert 'href="/api/settings/backup"' in page and "/static/js/backup.js" in page
+    assert '<div id="root">' in page and "<title>Settings" in page

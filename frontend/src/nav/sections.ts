@@ -77,7 +77,7 @@ export function activeHref(pages: NavPage[], path: string): string | null {
 
 /** Pages Flask still draws itself: a full page load. Everything else in the list is a route of the
  *  React app, so the sidebar stays put and only the page changes. */
-const SERVER_PAGES = new Set(['/', '/settings', '/settings/users', '/settings/audit', '/kiosk'])
+const SERVER_PAGES = new Set(['/', '/kiosk'])
 
 export function isServerPage(href: string): boolean {
   const path = href.split(/[?#]/)[0]
