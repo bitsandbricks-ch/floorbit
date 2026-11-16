@@ -70,8 +70,9 @@ With `FLOORBIT_CLUSTER=redis` the pods share three things through Redis:
   calls there and get the answers back, so it doesn't matter which pod a browser reaches.
 - **One leader.** Every pod polls the switches and runs its checks, so every page is current on
   every pod. Only the pod holding the leader lease sends what those checks find: Discord alerts,
-  webhooks, the event timeline, plugin hooks and replay frames. When it stops, another pod takes
-  the lease within about 20 seconds. What a crew member does (an incident, a notice, a handover) is
+  webhooks, the event timeline, plugin hooks, replay frames and the nightly config backup. When it
+  stops, another pod takes the lease within about 20 seconds. What a crew member does (an
+  incident, a notice, a handover) is
   sent by the pod that took the request. If Redis can't be reached, every pod acts as the leader,
   because a duplicate alert is better than a missing one.
 

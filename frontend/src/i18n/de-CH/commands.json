@@ -43,5 +43,6 @@
   "commandsHint": "Einer pro Zeile. {port} ist der Port, den die Crew eingibt.",
   "save": "Speichern",
   "terminal": "Terminal",
-  "openTerminal": "Terminal auf {{name}} öffnen"
+  "openTerminal": "Terminal auf {{name}} öffnen",
+  "configs": "Konfigurationen"
 }

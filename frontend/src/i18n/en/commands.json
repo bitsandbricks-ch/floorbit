@@ -43,5 +43,6 @@
   "commandsHint": "One per line. {port} is the port the crew types.",
   "save": "Save",
   "terminal": "Terminal",
-  "openTerminal": "Open a terminal on {{name}}"
+  "openTerminal": "Open a terminal on {{name}}",
+  "configs": "Configs"
 }
