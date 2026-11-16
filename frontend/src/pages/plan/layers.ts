@@ -2,7 +2,7 @@
  *  switched off or faded. The choice lives in the URL (``?layers=…&fade=…``) so a link or a big
  *  screen shows the same thing. */
 
-export const LAYERS = ['marks', 'network', 'electrical', 'status', 'firewalls', 'wifi', 'safety', 'crew', 'checkin', 'services'] as const
+export const LAYERS = ['grid', 'marks', 'network', 'electrical', 'status', 'firewalls', 'wifi', 'safety', 'crew', 'checkin', 'services'] as const
 export type LayerId = (typeof LAYERS)[number]
 
 export const PRESETS = {
@@ -13,8 +13,12 @@ export const PRESETS = {
 } satisfies Record<string, LayerId[]>
 export type PresetId = keyof typeof PRESETS
 
-/** What the page showed before it had layers: switches and uplinks, labels, check-in corners. */
-export const DEFAULT_LAYERS: LayerId[] = ['marks', 'network', 'checkin']
+/** What the page showed before it had layers (switches and uplinks, labels, check-in corners), on the
+ *  editor's grid. */
+export const DEFAULT_LAYERS: LayerId[] = ['grid', 'marks', 'network', 'checkin']
+
+/** The grid is a backdrop, not part of a preset: presets leave it as it is. */
+const BACKDROP: LayerId[] = ['grid']
 
 /** The layer a mark belongs to (floorbit/plan_marks.py LAYERS) to the layer that shows it. */
 export const MARK_LAYER: Record<string, LayerId> = {
@@ -62,8 +66,13 @@ export function writeLayers(params: URLSearchParams, state: LayerState): URLSear
 }
 
 export function presetOf(on: ReadonlySet<LayerId>): PresetId | null {
-  const list = LAYERS.filter((l) => on.has(l))
+  const list = LAYERS.filter((l) => on.has(l) && !BACKDROP.includes(l))
   return (Object.keys(PRESETS) as PresetId[]).find((p) => same(list, LAYERS.filter((l) => (PRESETS[p] as LayerId[]).includes(l)))) ?? null
+}
+
+/** ``state`` switched to a preset, keeping the grid as it was. */
+export function applyPreset(state: LayerState, preset: PresetId): LayerState {
+  return { on: new Set([...PRESETS[preset], ...BACKDROP.filter((l) => state.on.has(l))]), fade: state.fade }
 }
 
 export const opacity = (state: LayerState, id: LayerId) => state.fade[id] ?? 1

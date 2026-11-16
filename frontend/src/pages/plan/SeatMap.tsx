@@ -64,6 +64,34 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return px
 }
 
+// The editor's grid steps, in % of the plan (static/js/editor/layers.js), so things sit on the same lines.
+const GRID_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50]
+const GRID_MIN_PX = 12
+
+/** The editor's grid under the plan: the finest step that stays ``GRID_MIN_PX`` apart on screen, a
+ *  stronger line two steps up. Only the lines in ``view`` (what the screen shows) are drawn. */
+export function PlanGrid({ view, size, scale: k }: { view: View; size: { w: number; h: number }; scale: number }) {
+  const perPct = (Math.min(size.w, size.h) / 100) * k
+  if (!perPct) return null
+  let i = GRID_STEPS.findIndex((step) => step * perPct >= GRID_MIN_PX)
+  if (i < 0) i = GRID_STEPS.length - 1
+  const minor = GRID_STEPS[i], major = GRID_STEPS[Math.min(i + 2, GRID_STEPS.length - 1)]
+  const lines: React.ReactNode[] = []
+  const axis = (from: number, span: number, unit: number, vertical: boolean) => {
+    const step = minor * unit
+    for (let n = Math.floor(from / step); n * step <= from + span; n++) {
+      const at = n * step
+      const strong = Math.abs(at / (major * unit) - Math.round(at / (major * unit))) < 1e-6
+      lines.push(vertical
+        ? <line key={`v${n}`} className={strong ? 'major' : undefined} x1={at} y1={view.y} x2={at} y2={view.y + view.h} />
+        : <line key={`h${n}`} className={strong ? 'major' : undefined} x1={view.x} y1={at} x2={view.x + view.w} y2={at} />)
+    }
+  }
+  axis(view.x, view.w, size.w / 100, true)
+  axis(view.y, view.h, size.h / 100, false)
+  return <g className="fb-grid" aria-hidden="true">{lines}</g>
+}
+
 const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
 const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
@@ -236,6 +264,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         aria-activedescendant={cursor ? `${ids}-${cursor}` : undefined} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
+        {!forced && layers.on.has('grid') && <g opacity={opacity(layers, 'grid')}><PlanGrid view={px.w && px.h ? { x: view.x + view.w / 2 - px.w / s / 2, y: view.y + view.h / 2 - px.h / s / 2, w: px.w / s, h: px.h / s } : view} size={data.size} scale={s} /></g>}
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
         <PlanMarks drawing={drawing} layers={layers} />
         {wifi && <g opacity={opacity(layers, 'wifi')}><WifiLayer wifi={wifi} idPrefix={ids} /></g>}

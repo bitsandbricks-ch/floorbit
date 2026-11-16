@@ -14,7 +14,7 @@ import time
 
 from flask import current_app
 
-from . import halls, incidents
+from . import halls, incidents, seat_gaps
 from .store import load_data, save_data
 
 KEY = 'dispatch'
@@ -45,12 +45,13 @@ def points(data):
             continue
         hall = halls.hall_of(block, data, ids)
         cx, cy = float(block['x']) / 100 * PLAN_W, float(block['y']) / 100 * PLAN_H
-        w, h = len(rows[0]) * CELL, len(rows) * CELL
+        xs, width, ys, height = seat_gaps.layout(block, len(rows[0]), len(rows))
+        w, h = width * CELL, height * CELL
         turn = math.radians(int(block.get('rotation') or 0) % 360)
         cos, sin = math.cos(turn), math.sin(turn)
         for r, row in enumerate(rows):
             for c, seat in enumerate(row):
-                lx, ly = c * CELL - w / 2 + CELL / 2, r * CELL - h / 2 + CELL / 2
+                lx, ly = xs[c] * CELL - w / 2 + CELL / 2, ys[r] * CELL - h / 2 + CELL / 2
                 seats[seat] = (hall, cx + lx * cos - ly * sin, cy + lx * sin + ly * cos)
     for dev in data.get('inventory') or []:
         if dev.get('x') is not None and dev.get('y') is not None:

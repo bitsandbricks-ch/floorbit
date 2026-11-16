@@ -252,7 +252,7 @@ export default function FloorPlan() {
     : switchSel ? <SwitchPanel key={switchSel} name={switchSel} onSeat={(s) => set('seat', s)} onClose={() => set('switch', null)} /> : null
   const panel = !!inspector
   const available: Record<LayerId, boolean> = {
-    marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, checkin: !!data?.checkin,
+    grid: true, marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, checkin: !!data?.checkin,
     electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
   }
   return (

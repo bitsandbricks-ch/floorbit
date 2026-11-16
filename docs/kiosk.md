@@ -17,6 +17,8 @@ Add them to the URL, for example `/kiosk?title=LAN%20Party&refresh=10`.
 | `refresh` | `15`         | Seconds between status polls when live updates are off (5 to 300). |
 | `labels`  | `1`          | `0` hides switch names on the map. |
 | `view`    |              | `heat` colours each seat by its traffic right now (green a little, red a lot), from the [stats](stats.md) reads. Seat numbers and numbers only. |
+| `grid`    | `1`          | `0` hides the grid (the editor's grid, following the fit). |
+| `marks`   | `1`          | `0` hides the labels, walls, zones and icons. The kiosk shows the Overview and Safety marks only, like the attendee pages, since a big screen is often in a public place. |
 | `reload`  | `360`        | Reload the whole page every N minutes to pick up a new deployment (`0` = never). It only reloads when the server answers. |
 
 ## How it stays up to date

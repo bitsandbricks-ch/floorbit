@@ -217,6 +217,7 @@
     "seats": "Die Plätze sind immer sichtbar.",
     "off": "Nicht eingerichtet",
     "item": {
+      "grid": "Raster",
       "marks": "Beschriftungen, Wände und Zonen",
       "network": "Netzwerk: Switches und Uplinks",
       "electrical": "Strom: Verteiler und Stromkabel",

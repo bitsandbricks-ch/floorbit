@@ -56,6 +56,10 @@ function menuEntries(target) {
     sep();
     if (menuIncidentsOn()) add('Report an incident…', () => openPortDialog('flag', n));
     if (portInfo?.available) add('Bounce the port…', () => openPortDialog('bounce', n), { danger: true });
+    if (menuCanEdit()) {
+      const gaps = gapMenuEntries(n);
+      if (gaps.length) { sep(); items.push(...gaps); }
+    }
   } else if (target.type === 'switch') {
     const sw = switches.find(s => s.id === target.id);
     add('Show ports', () => selectSwitch(target.id));

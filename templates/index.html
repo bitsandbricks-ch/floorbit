@@ -587,6 +587,20 @@
               <button type="submit" class="btn btn-primary btn-full field-full" id="block-detail-save">Save changes</button>
             </form>
           </section>
+
+          {# Gaps in the rows and lanes between rows (static/js/editor/gaps.js); saved right away. #}
+          <section class="detail-section edit-only" id="block-gaps-section">
+            <h4 class="detail-section-title">Gaps</h4>
+            <p class="field-hint">Room in every row (fiber rolls) or a lane between rows (a switch). Seat numbers carry on. Right-click a seat to add one right there.</p>
+            <div class="gap-group">
+              <div class="gap-group-head"><span>In the rows</span><button type="button" class="btn btn-ghost gap-add" id="gap-add-col">+ Gap</button></div>
+              <div class="gap-list" id="gap-list-col"></div>
+            </div>
+            <div class="gap-group">
+              <div class="gap-group-head"><span>Between rows</span><button type="button" class="btn btn-ghost gap-add" id="gap-add-row">+ Lane</button></div>
+              <div class="gap-list" id="gap-list-row"></div>
+            </div>
+          </section>
         </div>
 
         <div class="detail-footer">
@@ -990,6 +1004,7 @@
   <script src="/static/js/editor/focus.js" defer></script>
   <script src="/static/js/editor/notice.js" defer></script>
   <script src="/static/js/editor/marks.js" defer></script>
+  <script src="/static/js/editor/gaps.js" defer></script>
   <script src="/static/js/editor/panels.js" defer></script>
   <script src="/static/js/editor/main.js" defer></script>
   <script src="/static/js/live.js" defer></script>

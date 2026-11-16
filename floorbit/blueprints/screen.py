@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 
 from integrations import config, seat_sources
 
-from .. import halls, plan_marks
+from .. import halls, plan_marks, seat_gaps
 from ..seat_names import block_rows, row_letters, seat_one_first
 from ..store import load_data
 
@@ -69,7 +69,7 @@ def _rate_limited():
         return len(recent) >= RATE_LIMIT
 
 
-def _row_labels(block, w, h):
+def _row_labels(block, w, h, ys):
     """Where each row's letter goes, in the block's own coordinates (centre of the letter):
     beside seat 1 for "start", past the last seat for "end" (floorbit/seat_names.py)."""
     letters = row_letters(block)
@@ -81,7 +81,7 @@ def _row_labels(block, w, h):
     one_first = seat_one_first(block)
     sides = {'start': [first_side if one_first else last_side], 'end': [last_side if one_first else first_side],
              'both': [first_side, last_side]}[where]
-    return [{'text': letter, 'x': x, 'y': r * CELL - h / 2 + CELL / 2}
+    return [{'text': letter, 'x': x, 'y': ys[r] * CELL - h / 2 + CELL / 2}
             for r, letter in enumerate(letters) for x in sides]
 
 
@@ -103,7 +103,8 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
             continue
         cols, nrows = len(rows[0]), len(rows)
         cx, cy = float(block['x']) / 100 * PLAN_W, float(block['y']) / 100 * PLAN_H
-        w, h = cols * CELL, nrows * CELL
+        xs, width, ys, height = seat_gaps.layout(block, cols, nrows)
+        w, h = width * CELL, height * CELL
         cells = []
         for r, row in enumerate(rows):
             for c, seat in enumerate(row):
@@ -111,13 +112,13 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                 if hit:
                     found = {'seat': seat, 'block': block.get('name') or '', 'row': r + 1, 'rows': nrows,
                              'col': c + 1}
-                cells.append({'x': c * CELL - w / 2, 'y': r * CELL - h / 2, 'hit': hit, 'seat': seat,
+                cells.append({'x': xs[c] * CELL - w / 2, 'y': ys[r] * CELL - h / 2, 'hit': hit, 'seat': seat,
                               'on': None if online is None else seat in online})
         reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]
         ys += [cy - reach - 40, cy + reach]   # room for the block's name above it
         shapes.append({'cx': cx, 'cy': cy, 'rotation': int(block.get('rotation') or 0) % 360, 'w': w, 'h': h,
-                       'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h)})
+                       'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h, ys)})
     if not shapes:
         return None, None
     marks, icons = _marks(data, hall_id, xs, ys, public)

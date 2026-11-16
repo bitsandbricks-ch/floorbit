@@ -26,7 +26,11 @@
     reloadEvery:  intParam('reload', 360, 0, 10080) * 60_000,   // minutes → ms, 0 = never
     hall:         params.get('hall') || '',                      // which hall; the first by default
     heat:         params.get('view') === 'heat',                 // seats coloured by their traffic
+    grid:         params.get('grid') !== '0',
+    marks:        params.get('marks') !== '0',                   // labels, walls, zones and icons
   };
+  // The big screen is often in a public place: only the marks attendee pages show (plan_marks.PUBLIC_LAYERS).
+  const MARK_LAYERS = ['overview', 'safety'];
   const HEAT_EVERY        = 30_000;
   const LAYOUT_EVERY      = 60_000;
   const LIVE_STATUS_EVERY = 60_000;          // safety-net poll while live updates are on
@@ -48,6 +52,8 @@
   const downSince = {};              // switch id → time first seen offline
   let prevTaken  = null;             // Set of seat numbers taken at the last render
   let heat       = {};               // seat number → traffic in bit/s (?view=heat)
+  let marks      = [];
+  let markIcons  = {};
 
   const $ = (id) => document.getElementById(id);
   const mapEl    = $('k-map');
@@ -55,6 +61,7 @@
   const blocksEl = $('k-blocks');
   const seatsEl  = $('k-seats-layer');
   const swEl     = $('k-switches');
+  const gridEl   = $('k-grid');
 
   // ── HTTP ───────────────────────────────────────────────────────────────────
   async function getJSON(path) {
@@ -107,6 +114,51 @@
     return wanted ? `<div class="seat-block-rowlabel" style="${rotation ? `transform: rotate(${-rotation}deg);` : ''}">${escHtml(letter)}</div>` : '';
   }
 
+  // ── Labels, walls, zones and icons (as the editor draws them, static/js/editor/marks.js) ──
+  function renderMarks() {
+    const svg = [], html = [];
+    for (const m of marks) {
+      if (m.kind === 'zone') {
+        svg.push(`<g class="mark-zone zone-${escHtml(m.color)}"><rect x="${+m.x}" y="${+m.y}" width="${+m.w}" height="${+m.h}" vector-effect="non-scaling-stroke"/></g>`);
+        if (m.label) html.push(`<div class="mark-zone-label zone-${escHtml(m.color)}" style="left:${+m.x}%;top:${+m.y}%">${escHtml(m.label)}</div>`);
+      } else if (m.kind === 'wall') {
+        svg.push(`<g class="mark-wall${m.style === 'dashed' ? ' dashed' : ''}"><line x1="${+m.x}" y1="${+m.y}" x2="${+m.x2}" y2="${+m.y2}" vector-effect="non-scaling-stroke"/></g>`);
+      } else if (m.kind === 'text' || m.kind === 'icon') {
+        const turn = m.rotation ? ` rotate(${+m.rotation}deg)` : '';
+        const inner = m.kind === 'text' ? escHtml(m.text)
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${
+            (markIcons[m.icon] || []).map(d => `<path d="${escHtml(d)}"/>`).join('')}</svg>`;
+        html.push(`<div class="mark-${m.kind} size-${escHtml(m.size || 'm')}" style="left:${+m.x}%;top:${+m.y}%;transform:translate(-50%,-50%)${turn}">${inner}</div>`);
+      }
+    }
+    $('k-marks-svg').innerHTML = svg.join('');
+    $('k-marks').innerHTML = html.join('');
+  }
+
+  // ── Grid ───────────────────────────────────────────────────────────────────
+  // The editor's grid (static/js/editor/layers.js): steps in % of the plan, the finest one that
+  // stays at least GRID_MIN_PX apart, a stronger line every few steps. Follows the fit.
+  const GRID_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50];
+  const GRID_MIN_PX = 12;
+  function updateGrid(tx, ty, k) {
+    if (!gridEl) return;
+    gridEl.hidden = !OPT.grid;
+    if (!OPT.grid) return;
+    const w = planEl.offsetWidth * k, h = planEl.offsetHeight * k;
+    if (!w || !h) return;
+    const pxPerPercent = Math.min(w, h) / 100;
+    let i = GRID_STEPS.findIndex(step => step * pxPerPercent >= GRID_MIN_PX);
+    if (i < 0) i = GRID_STEPS.length - 1;
+    const minor = GRID_STEPS[i], major = GRID_STEPS[Math.min(i + 2, GRID_STEPS.length - 1)];
+    const st = gridEl.style;
+    st.setProperty('--grid-minor-w', `${minor * w / 100}px`);
+    st.setProperty('--grid-minor-h', `${minor * h / 100}px`);
+    st.setProperty('--grid-major-w', `${major * w / 100}px`);
+    st.setProperty('--grid-major-h', `${major * h / 100}px`);
+    st.setProperty('--grid-x', `${tx}px`);
+    st.setProperty('--grid-y', `${ty}px`);
+  }
+
   // ── Heat view ──────────────────────────────────────────────────────────────
   // Traffic per seat from /api/stats/seats (seat numbers and numbers only), on a log scale so
   // 1 Mbit/s and 500 Mbit/s both read: green for a little, amber, red for a lot.
@@ -148,6 +200,15 @@
     swEl.innerHTML = html.join('');
   }
 
+  // Gaps inside a block (floorbit/seat_gaps.py): room after a column in every row, a lane after a row.
+  function gapAfter(gaps, after) {
+    return (gaps || []).filter(g => Number(g.after) === after).reduce((n, g) => n + Number(g.size), 0);
+  }
+  function gapSpacer(size, dir) {
+    const px = Math.max(0, size * 20 - 2);   // an 18 px seat plus the 2 px flex gap per seat
+    return `<div class="seat-gap" style="flex:none;${dir === 'col' ? `width:${px}px` : `height:${px}px`}"></div>`;
+  }
+
   function renderBlocks() {
     const taken = new Set();
     const html = [];
@@ -158,8 +219,10 @@
       let inner = block.name ? `<div class="seat-block-label">${escHtml(block.name)}</div>` : '';
       let i = 0;
       for (let row = 0; row < block.rows; row++) {
+        if (row && gapAfter(block.row_gaps, row)) inner += gapSpacer(gapAfter(block.row_gaps, row), 'row');
         inner += '<div class="seat-block-row">' + rowLabel(block, row, 'first');
         for (let col = 0; col < block.cols; col++) {
+          if (col && gapAfter(block.col_gaps, col)) inner += gapSpacer(gapAfter(block.col_gaps, col), 'col');
           const { number, display } = numbers[i++];
           const user = seatInfo[number]?.taken;
           let cls = 'seat-block-seat';
@@ -241,6 +304,7 @@
     trackDowntime();
     renderSwitches();
     renderBlocks();
+    renderMarks();
     renderStats();
     renderAlerts();
     updateEmpty();
@@ -266,6 +330,7 @@
       placedSwitches().map(s => [s.id, s.x, s.y, s.name]),
       seatBlocks.map(b => [b.id, b.x, b.y, b.cols, b.rows, b.rotation, b.name]),
       seats.map(s => [s.id, s.x, s.y]),
+      marks.map(m => [m.id, m.x, m.y, m.x2, m.y2, m.w, m.h]),
     ]);
   }
 
@@ -275,7 +340,7 @@
     // Measure at scale 1 so the bounding box is in plan pixels
     planEl.classList.remove('animate');
     planEl.style.transform = 'none';
-    const els = planEl.querySelectorAll('.switch-marker, .seat-block, .seat-marker');
+    const els = planEl.querySelectorAll('.switch-marker, .seat-block, .seat-marker, #k-marks > *, #k-marks-svg > *');
     const area = mapEl.getBoundingClientRect();
     if (!els.length || !area.width || !area.height) return;
     const pr = planEl.getBoundingClientRect();
@@ -303,6 +368,7 @@
     planEl.style.transform = t;
     planEl.dataset.transform = t;
     fitK = k;
+    updateGrid(tx, ty, k);
   }
   let resizeTimer = null;
   window.addEventListener('resize', () => {
@@ -352,6 +418,11 @@
       loadSeatInfo(),
     ]);
     showHall(hallList);
+    if (OPT.marks) {
+      const body = await getJSON(`/api/plan-marks${hall ? `?hall=${encodeURIComponent(hall.id)}` : ''}`).catch(() => ({}));
+      markIcons = body.icons || {};
+      marks = (body.marks || []).filter(m => MARK_LAYERS.includes(m.layer || 'overview'));
+    }
     const here = (item) => !hall || item.hall_id === hall.id;
     switches = sw.filter(here).map(s => ({ ...s, status: known[s.id] || s.status }));
     seatBlocks = blocks.filter(here);
