@@ -2,6 +2,7 @@
 import json
 import os
 import threading
+import time
 
 import pytest
 
@@ -125,3 +126,31 @@ def test_start_waits_for_the_database_then_stops_clearly(monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as stop:
         database.wait_until_ready(0)
     assert "doesn't answer" in str(stop.value)
+
+
+def test_opening_while_another_connection_writes_waits_instead_of_failing(tmp_path):
+    """Switching to WAL needs the file to itself, and SQLite says "locked" at once instead of
+    waiting: a second worker opening during a write must try again, not fail (CI saw this)."""
+    import sqlite3
+    path = tmp_path / "fresh.db"
+    writer = sqlite3.connect(path, isolation_level=None)
+    writer.execute("CREATE TABLE t (x)")
+    writer.execute("BEGIN IMMEDIATE")                 # mid-write, still in the default journal mode
+    writer.execute("INSERT INTO t VALUES (1)")
+    opened, failed = [], []
+
+    def open_it():
+        try:
+            opened.append(database.Sql(f"sqlite:///{path}", str(tmp_path))._connect())
+        except Exception as exc:  # noqa: BLE001
+            failed.append(exc)
+
+    t = threading.Thread(target=open_it)
+    t.start()
+    time.sleep(0.3)
+    writer.execute("COMMIT")
+    t.join(10)
+    assert not failed and opened
+    assert opened[0].execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+    opened[0].close()
+    writer.close()
