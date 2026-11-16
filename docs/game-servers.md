@@ -22,6 +22,7 @@ one a server browser sends: it changes nothing on the server.
 
 With a [local agent](agent.md) enrolled, the agent asks from the event network instead, and the page
 says so. That is how a hosted Floorbit reaches servers on the LAN.
+Without an agent the server's own queries follow `PROBE_NETS` (see [services](services.md#what-the-server-itself-may-reach)).
 
 ## RCON
 

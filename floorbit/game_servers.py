@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from integrations import config
 
-from . import game_query, vault
+from . import game_query, probes, vault
 from .store import load_data, save_data
 
 KEY = 'game_servers'
@@ -165,6 +165,12 @@ def _via_agent():
 def _ask(method, *args):
     """Run a query here, or on the local agent when one is enrolled (it is on the event network)."""
     if not _via_agent():
+        # The host is the second argument of a query (after the protocol), the first of RCON.
+        at = 1 if method == 'game_query' else 0
+        try:
+            args = (*args[:at], probes.target(args[at]), *args[at + 1:])
+        except probes.ProbeError as exc:
+            raise game_query.QueryError(str(exc)) from None
         if method == 'game_query':
             return game_query.query(*args)
         return game_query.rcon(*args)

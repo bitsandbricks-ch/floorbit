@@ -587,6 +587,8 @@
  "The probe port is one of {}.": "Der Prüfport ist einer von {}.",
  "The resolver did not answer.": "Der Resolver hat nicht geantwortet.",
  "The resolver did not answer: {}": "Der Resolver hat nicht geantwortet: {}",
+ "{} cannot be resolved.": "{} lässt sich nicht auflösen.",
+ "{} is not an address Floorbit may probe.": "{} ist keine Adresse, die Floorbit prüfen darf.",
  "The test name is not a domain name.": "Der Testname ist kein Domainname.",
  "The line's capacity is a number of Mbit/s.": "Die Kapazität der Leitung ist eine Zahl in Mbit/s.",
  "The probe host is a name or an IP address.": "Der Prüf-Host ist ein Name oder eine IP-Adresse.",

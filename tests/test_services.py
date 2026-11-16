@@ -114,3 +114,29 @@ def test_the_tcp_probe_counts_lost_connects(monkeypatch):
     listener.close()
     with pytest.raises(probes.ProbeError):
         probes.tcp("127.0.0.1", 22, count=1)
+
+
+def test_the_server_never_probes_link_local_and_only_probe_nets_when_set(monkeypatch):
+    monkeypatch.delenv("PROBE_NETS", raising=False)
+    assert probes.target("127.0.0.1") == "127.0.0.1"
+    assert probes.target("192.0.2.10") == "192.0.2.10"
+    for host in ("169.254.169.254", "0.0.0.0", "224.0.0.1", "fe80::1"):
+        with pytest.raises(probes.ProbeError):
+            probes.target(host)
+    monkeypatch.setenv("PROBE_NETS", "192.0.2.0/24, not-a-net")
+    assert probes.target("192.0.2.10") == "192.0.2.10"
+    with pytest.raises(probes.ProbeError):
+        probes.target("127.0.0.1")
+    with pytest.raises(probes.ProbeError):
+        probes.target("198.51.100.1")
+
+
+def test_a_game_server_outside_probe_nets_is_not_queried(monkeypatch):
+    from floorbit import game_query, game_servers
+    monkeypatch.setattr(game_servers, "_via_agent", lambda: False)
+    monkeypatch.setenv("PROBE_NETS", "192.0.2.0/24")
+    monkeypatch.setattr(game_query, "query", lambda *a: pytest.fail("queried"))
+    with pytest.raises(game_query.QueryError):
+        game_servers._ask("game_query", "a2s", "169.254.169.254", 27015)
+    with pytest.raises(game_query.QueryError):
+        game_servers._ask("rcon", "198.51.100.5", 27015, "pw", "status")

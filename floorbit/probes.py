@@ -8,11 +8,18 @@
 
 Each call opens its own socket with a short timeout and closes it again. The local agent runs the
 same functions on the event network for a hosted Floorbit.
+
+``target`` decides what the server itself may reach (also for game server queries and RCON): never
+link-local addresses (the cloud metadata service lives there), and only ``PROBE_NETS`` when it is set,
+so a hosted Floorbit can't be pointed at its own network.
 """
+import ipaddress
 import random
 import socket
 import struct
 import time
+
+from integrations import config
 
 TIMEOUT = 2.0
 PROBE_PORTS = (53, 80, 443, 853)   # what a TCP probe may connect to: answered by any server, never sent data
@@ -23,6 +30,34 @@ DNS_PORT = 53
 
 class ProbeError(RuntimeError):
     pass
+
+
+def _nets():
+    out = []
+    for entry in (config.get('PROBE_NETS', '') or '').split(','):
+        try:
+            out.append(ipaddress.ip_network(entry.strip(), strict=False))
+        except ValueError:
+            continue
+    return out
+
+
+def target(host):
+    """The address the server may probe for ``host``, or ProbeError. Host names are resolved here so
+    that the check sees the address that is connected to."""
+    host = str(host or '').strip()
+    try:
+        addrs = {info[4][0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
+    except (OSError, UnicodeError):
+        raise ProbeError(f'{host} cannot be resolved.') from None
+    nets = _nets()
+    for addr in sorted(addrs):
+        ip = ipaddress.ip_address(addr.split('%')[0])
+        if ip.is_link_local or ip.is_unspecified or ip.is_multicast:
+            continue
+        if not nets or any(ip in net for net in nets):
+            return str(ip)
+    raise ProbeError(f'{host} is not an address Floorbit may probe.')
 
 
 def _ms(start):
