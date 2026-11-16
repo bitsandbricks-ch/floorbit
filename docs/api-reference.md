@@ -139,6 +139,7 @@ Source: [`floorbit/blueprints/cables.py`](https://github.com/bitsandbricks-ch/fl
 | PATCH | `/api/cables/<cable_id>` | `floorplan.edit` | `cables` |
 | POST | `/api/cables/block` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/check` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
+| GET | `/api/cables/clients` | `seats.view` | `cables` |
 | POST | `/api/cables/import` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/labels.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 

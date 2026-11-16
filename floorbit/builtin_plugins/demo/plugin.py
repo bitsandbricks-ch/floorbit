@@ -5,6 +5,7 @@ Everything is computed from the seat and switch numbers plus the clock, so it ne
 moves a little on every poll and looks the same on every instance. Names are generic, IPs come
 from the documentation ranges (RFC 5737) and MACs are locally administered (02:...).
 """
+import ipaddress
 import math
 import time
 
@@ -19,6 +20,8 @@ SWITCHES_PER_BLOCK = COLS * ROWS // SEATS_PER_SWITCH   # 3
 FLAPPING = 'sw-c-02'          # goes down for a minute every four
 HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
+SWAPPED = (('B', 2), ('B', 3))   # two players sat down at each other's seats
+CREW_LAPTOP = ('sw-d-01', 'Gi1/0/40')   # on a port no seat is patched to
 FLAPPING_PORT = ('C', 9)      # a loose cable: the link drops every 45 seconds
 BOUNCE_SECONDS = 10          # a demo bounce keeps the port down this long
 _bounced = {}                 # (switch, port) -> time the port comes back
@@ -327,10 +330,40 @@ class Plugin(Plugin):
                         'last_change': None})
         return out
 
+    def port_clients(self, hostname):
+        name = _short(hostname)
+        if _down(name):
+            raise PluginError(f'{name} is not answering')
+        where = {(b, n): i for _s, b, n, i in _seats()}
+        swap = {SWAPPED[0]: SWAPPED[1], SWAPPED[1]: SWAPPED[0]}
+        out = []
+        for _s, block, number, i in _seats():
+            switch, port = _switch_for(block, number)
+            if switch != name:
+                continue
+            machine = where.get(swap.get((block, number)), i)
+            if _taken(machine):
+                out.append({'port': port, 'mac': _mac(machine), 'vlan': 100})
+        if out:
+            # The uplink sees every MAC behind it.
+            out += [{'port': 'Te1/1/1', 'mac': f'02:00:00:01:00:{n:02x}', 'vlan': 100} for n in range(12)]
+        if name == CREW_LAPTOP[0]:
+            out.append({'port': CREW_LAPTOP[1], 'mac': '02:00:00:02:00:01', 'vlan': 100})
+        return out
+
     def arp(self, query):
         q = (query or '').lower()
-        return [{'ipv4_address': _ip(i), 'mac_address': _mac(i), 'hostname': f'core-01.{DOMAIN}'}
-                for _s, _b, _n, i in _seats() if _taken(i) and q in (_ip(i), _mac(i))]
+        try:
+            net = ipaddress.ip_network(q) if '/' in q else None
+        except ValueError:
+            net = None
+        rows = [{'ipv4_address': _ip(i), 'mac_address': _mac(i), 'hostname': f'core-01.{DOMAIN}'}
+                for _s, _b, _n, i in _seats() if _taken(i)]
+        rows.append({'ipv4_address': '192.0.2.250', 'mac_address': '02:00:00:02:00:01',
+                     'hostname': f'core-01.{DOMAIN}'})
+        if net is not None:
+            return [r for r in rows if ipaddress.ip_address(r['ipv4_address']) in net]
+        return [r for r in rows if q in (r['ipv4_address'], r['mac_address'])]
 
     @staticmethod
     def _rates(index):

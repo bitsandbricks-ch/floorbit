@@ -44,6 +44,7 @@ export const qk = {
   switches: ['switches'] as const,
   seatBlocks: ['seat-blocks'] as const,
   cableCheck: ['cable-check'] as const,
+  portClients: ['port-clients'] as const,
   blockPlan: (form: object) => ['block-plan', form] as const,
   health: ['health'] as const,
   security: ['security'] as const,

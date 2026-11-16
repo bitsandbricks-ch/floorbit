@@ -105,4 +105,39 @@ describe('Cables', () => {
     expect(screen.getByText('1 seat port not up yet: A-7')).toBeInTheDocument()
     expect(screen.getByText('Not read (not on the floor plan, or offline): sw-z-09')).toBeInTheDocument()
   })
+
+  it('lists machines on ports the cables do not explain, and patches one to a seat', async () => {
+    const crew = { ...lead, user: { ...lead.user, permissions: ['floorplan.view', 'floorplan.edit', 'seats.view'] } }
+    const clients = {
+      as_of: 1_763_100_000, reading: false, started: false, error: null, switches: 3, clients: 120,
+      failed: [{ switch: 'sw-c-03', error: 'timeout' }],
+      moved: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/2', mac: '02:00:00:00:00:03', ip: '192.0.2.13', ip_seat: 'A-3', seat: 'A-2', cable: 'C-0002' }] },
+      unplanned: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/30', mac: '02:00:00:00:00:30', ip: '192.0.2.40', ip_seat: 'A-9' }] },
+    }
+    const api = fakeFetch({
+      'GET /api/auth/me': crew, 'GET /api/cables': data, 'GET /api/cables/clients?read=1': clients,
+      'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c4' } }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Cables />)
+    expect(await screen.findByText('1 machine on another seat\'s port')).toBeInTheDocument()
+    expect(screen.getByText('sw-a-01 Gi1/0/2 is cabled to A-2, but 192.0.2.13 is the IP of A-3')).toBeInTheDocument()
+    expect(screen.getByText('1 machine on a port no cable explains')).toBeInTheDocument()
+    expect(screen.getByText('No MAC table from: sw-c-03')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Patch to a seat' }))
+    // The new cable starts with the port, and the seat whose IP the machine has.
+    expect(await screen.findByRole('textbox', { name: 'Switch port' })).toHaveValue('Gi1/0/30')
+    expect(screen.getByRole('textbox', { name: 'Seat' })).toHaveValue('A-9')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/cables'
+      && (c.body as { seat: string }).seat === 'A-9')).toBe(true))
+  })
+
+  it('does not ask for MAC tables without the seat mapping', async () => {
+    const api = fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/cables': data })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Cables />)
+    expect(await screen.findByText('C-0001')).toBeInTheDocument()
+    expect(api.calls.some((c) => c.path.startsWith('/api/cables/clients'))).toBe(false)
+  })
 })
