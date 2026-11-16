@@ -681,5 +681,14 @@
  "MAC address moving between ports": "MAC-Adresse wechselt zwischen Ports",
  "Loop detected": "Schleife erkannt",
  "Storm control": "Storm-Control",
- "Spanning tree topology change": "Spanning-Tree-Topologiewechsel"
+ "Spanning tree topology change": "Spanning-Tree-Topologiewechsel",
+ "{} (seat {})": "{} (Platz {})",
+ "{} ({} lines)": "{} ({} Zeilen)",
+ "Port shut down by the switch (err-disable) ({} lines)": "Port vom Switch abgeschaltet (err-disable) ({} Zeilen)",
+ "Port security violation ({} lines)": "Port-Security-Verletzung ({} Zeilen)",
+ "DHCP snooping dropped packets ({} lines)": "DHCP-Snooping hat Pakete verworfen ({} Zeilen)",
+ "MAC address moving between ports ({} lines)": "MAC-Adresse wechselt zwischen Ports ({} Zeilen)",
+ "Loop detected ({} lines)": "Schleife erkannt ({} Zeilen)",
+ "Storm control ({} lines)": "Storm-Control ({} Zeilen)",
+ "Spanning tree topology change ({} lines)": "Spanning-Tree-Topologiewechsel ({} Zeilen)"
 }
