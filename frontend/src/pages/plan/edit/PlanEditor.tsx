@@ -58,10 +58,12 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
   /** Shows another hall, still in Edit mode. */
   onHall: (id: string) => void
+  /** Opens the list of keys ("?" does too). */
+  onShortcuts: () => void
 }) {
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
@@ -743,7 +745,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           <Text size="xs" c="dimmed">
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
           </Text>
-          <Text size="xs" c="dimmed">{t('plan.edit.keys.more')}</Text>
+          <Text size="xs" c="dimmed">
+            {t('plan.edit.keys.more')}{' · '}
+            <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
+          </Text>
           <Group gap="xs">
             <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
             <Anchor size="sm" href={`/editor/classic?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>

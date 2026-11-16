@@ -338,7 +338,7 @@ export default function FloorPlan() {
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?mode=edit&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
           {editing && data.drawing && view && (
-            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} />
+            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts} />
           )}
           {!editing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
@@ -351,7 +351,7 @@ export default function FloorPlan() {
               {keyboard && <>{' '}<Anchor component="button" type="button" size="sm" onClick={showShortcuts}>{t('plan.shortcuts.show')}</Anchor> <Kbd size="xs">?</Kbd></>}
             </Text>
           )}
-          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} />
+          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} />
           {phone && (
             <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
               title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>
