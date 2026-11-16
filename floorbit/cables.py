@@ -34,9 +34,10 @@ _lock = threading.Lock()
 
 
 class CableError(ValueError):
-    def __init__(self, message, status=400):
+    def __init__(self, message, status=400, **extra):
         super().__init__(message)
         self.status = status
+        self.extra = extra
 
 
 def _text(value, limit):
@@ -386,6 +387,61 @@ def add_block(body, by, replace=False):
         data[KEY] = kept
         save_data(data)
     return plan, removed
+
+
+def _crew(cable):
+    return cable.get('source') != 'import'
+
+
+def assign(body, by):
+    """Seat X is on switch port P, as the crew found it (walking the row, or a machine on a port no
+    cable explained). The seat's own cable moves to P, or a new one is made. P's cable without a seat
+    (infrastructure) is taken over. When P has another seat's cable: 409 naming that seat, unless
+    ``swap``: then the two seats trade ports (the other gets this seat's old one, or none).
+
+    Returns ``{"cable", "changed": [labels], "other_seat"}``."""
+    from .syslog import canonical_port
+    seat = _text(body.get('seat'), LIMITS['seat']).upper()
+    if not seat:
+        raise CableError('Name the seat.')
+    with _lock:
+        data = load_data()
+        cables = data.setdefault(KEY, [])
+        checked = clean({'switch': body.get('switch'), 'port': body.get('port')}, [])
+        where = {'switch': checked['switch'], 'port': checked['port'], 'seat': seat}
+        key = (where['switch'].lower(), canonical_port(where['port']))
+        at_port = next((c for c in cables if _crew(c) and (c['switch'].lower(), canonical_port(c['port'])) == key),
+                       None)
+        mine = next((c for c in cables if _crew(c) and (c.get('seat') or '').upper() == seat), None)
+        if at_port is not None and at_port is mine:
+            return {'cable': mine, 'changed': [], 'other_seat': ''}
+        other = (at_port.get('seat') or '').upper() if at_port else ''
+        if other and not body.get('swap'):
+            raise CableError(f"{where['switch']} {where['port']} is {other}'s port.", 409, other_seat=other)
+        now, changed = time.time(), []
+        if at_port is not None:
+            if mine is not None and other:
+                mine.update(seat=other, updated_at=now, by=by)
+                changed.append(mine['label'])
+            elif mine is not None:
+                cables.remove(mine)          # the seat moved to the infrastructure cable's port
+                changed.append(mine['label'])
+            at_port.update(seat=seat, updated_at=now, by=by)
+            cable = at_port
+        elif mine is not None:
+            mine.update(switch=where['switch'], port=where['port'], updated_at=now, by=by)
+            cable = mine
+        else:
+            if len(cables) >= MAX_CABLES:
+                raise CableError(f'Floorbit keeps at most {MAX_CABLES} cables.')
+            cable = {'id': uuid.uuid4().hex[:12], **clean({**where, 'block': body.get('block')}, cables),
+                     'source': 'floorbit', 'updated_at': now, 'by': by}
+            if body.get('block'):
+                cable['block'] = str(body['block'])[:40]
+            cables.append(cable)
+        changed.insert(0, cable['label'])
+        save_data(data)
+    return {'cable': cable, 'changed': changed, 'other_seat': other}
 
 
 def port_seats(data=None):

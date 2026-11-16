@@ -7,6 +7,9 @@
 - ``GET /api/cables/check``: the cables to seats against the port watch's last read (patch_check.py).
 - ``GET /api/cables/clients?read=1``: clients on seat ports that the cables don't explain, from the
   switches' MAC tables (port_clients.py). Needs ``seats.view``: it names MACs and IPs.
+- ``GET /cables/walk``, ``GET /api/cables/walk?switch=&since=``: walking the row; the ports that
+  came up since the walk began (walk.py).
+- ``POST /api/cables/assign``: ``{"seat", "switch", "port", "swap"}``: the seat is on that port.
 - ``POST /api/cables/block``: patch a whole seat block to a switch (issue #473). With ``dry_run``
   it only says which seat gets which port and what is in the way; ``replace`` moves the crew's
   cables that are in the way.
@@ -14,11 +17,13 @@
 
 Reading needs ``floorplan.view``, changing ``floorplan.edit`` (auth/roles.py).
 """
+import time
+
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit, cables, patch_check, port_clients, spa
+from .. import agent_link, audit, cables, patch_check, port_clients, spa, syslog, walk
 
 bp = Blueprint('cables', __name__)
 
@@ -38,7 +43,7 @@ def _audit(action, cable, fields=None):
 
 
 def _error(exc):
-    return jsonify({'error': str(exc)}), getattr(exc, 'status', 400)
+    return jsonify({'error': str(exc), **getattr(exc, 'extra', {})}), getattr(exc, 'status', 400)
 
 
 def _picked():
@@ -126,6 +131,42 @@ def port_clients_view():
     finder = current_app.extensions['floorbit_port_clients']
     started = finder.request() if request.args.get('read') == '1' else False
     return jsonify({**port_clients.without_cabled(finder.state()), 'started': started})
+
+
+@bp.route('/cables/walk')
+def walk_page():
+    return spa.render('Walk the row')
+
+
+@bp.route('/api/cables/walk', methods=['GET'])
+def walk_ups():
+    """Ports of ``switch`` that came up since ``since`` (walk.py). Without ``since`` the walk begins
+    now: the answer's ``since`` is what to send next, in the server's clock, not the phone's."""
+    switch = (request.args.get('switch') or '').strip()[:80]
+    if not switch:
+        return jsonify({'error': 'Name the switch.'}), 400
+    try:
+        since = float(request.args.get('since') or 0) or time.time()
+    except ValueError:
+        since = time.time()
+    listening = syslog.settings()['enabled'] or agent_link.active()
+    receiver = current_app.extensions.get('floorbit_syslog') if listening else None
+    return jsonify({'ups': walk.walks.ups(switch, since, receiver), 'syslog': receiver is not None, 'since': since})
+
+
+@bp.route('/api/cables/assign', methods=['POST'])
+def assign_seat():
+    """This seat is on that port: move its cable there, or make one (cables.assign)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        result = cables.assign(body, _who())
+    except cables.CableError as exc:
+        return _error(exc)
+    _audit(f"Seat {result['cable']['seat']} found on its port"
+           + (f" (swapped with {result['other_seat']})" if result['other_seat'] else ''), result['cable'])
+    if result['changed']:
+        events.publish('cables.changed', {})
+    return jsonify(result)
 
 
 @bp.route('/api/cables/block', methods=['POST'])

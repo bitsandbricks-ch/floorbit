@@ -45,6 +45,8 @@ export const qk = {
   seatBlocks: ['seat-blocks'] as const,
   cableCheck: ['cable-check'] as const,
   portClients: ['port-clients'] as const,
+  walk: (switchName: string, since: number) => ['walk', switchName, since] as const,
+  walkOrder: (form: object) => ['walk-order', form] as const,
   blockPlan: (form: object) => ['block-plan', form] as const,
   health: ['health'] as const,
   security: ['security'] as const,

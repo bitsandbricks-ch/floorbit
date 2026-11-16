@@ -1083,6 +1083,10 @@ export interface PortClients {
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
 }
+/** Walking the row (issue #473): ports that came up since the walk began. */
+export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll' }
+export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
+export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */

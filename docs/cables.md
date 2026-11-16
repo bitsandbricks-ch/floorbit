@@ -67,6 +67,25 @@ infrastructure: neither is listed. Opening the page starts a read in the backgro
 minutes (LibreNMS itself refreshes MAC tables only when it polls), so 4000 seats don't mean 4000 calls.
 A switch that doesn't answer is named. This list names MACs and IPs, so it needs `seats.view`.
 
+## Walking the row
+
+**Walk the row** (`/cables/walk`, on a phone) finds each seat's port by plugging in: pick the block, its
+switch and the order, then go seat by seat with a laptop. The page shows the switch port that just came
+up; **That's A-5** puts the seat on it:
+
+- the seat's cable moves to that port, or a new one is made;
+- a cable without a seat on that port (infrastructure) is taken over;
+- when the plan gives that port to another seat, the page asks first, and **Swap** trades the two
+  seats' ports.
+
+**Not this one** skips a port (a neighbour plugging in), **Skip seat** goes on. When the row reaches
+the next switch, change the switch on the page.
+
+With the syslog receiver on (`SYSLOG_ENABLED`, or relayed by the local agent) a port shows within
+seconds: Floorbit reads the switch's link-up lines (Cisco `changed state to up`, MikroTik `link up`,
+Juniper `LINK_UP`, Aruba `is now on-line`). Without it, the page compares LibreNMS' port list with
+the ports that were up when the walk began, which only changes when LibreNMS polls the switch.
+
 ## Labels
 
 **Print labels** makes an A4 PDF of 3 × 8 labels, two per cable: the switch end first, then the far
@@ -117,6 +136,10 @@ under **cables**, with the cable's label and route.
 - `GET /api/cables/clients?read=1`: the last MAC table read, `{"as_of", "reading", "started", "error",
   "switches", "clients", "failed", "unplanned", "moved"}`; `read=1` starts a new read when the last is
   two minutes old. Needs `seats.view`.
+- `GET /api/cables/walk?switch=&since=`: the ports of a switch that came up since `since`
+  (`{"ups": [{"port", "at", "how"}], "syslog", "since"}`); without `since` the walk begins now.
+- `POST /api/cables/assign`: `{"seat", "switch", "port", "swap"}`: the seat is on that port. 409 with
+  `other_seat` when it is another seat's, unless `swap`.
 - `POST /api/cables/block`: `{"block", "switch", "first_port", "order": "rows" | "snake", "reverse", "rows",
   "dry_run", "replace"}`. Answers `{"block", "cables": [{"seat", "switch", "port"}], "clashes", "created", "removed"}`;
   409 when cables are in the way and `replace` isn't set.

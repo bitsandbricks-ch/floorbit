@@ -110,5 +110,8 @@
  "LibreNMS does not know {}": "LibreNMS kennt {} nicht",
  "No monitoring source is set up": "Es ist keine Monitoring-Quelle eingerichtet",
  "{} has no MAC tables": "{} hat keine MAC-Tabellen",
- "{} is not answering": "{} antwortet nicht"
+ "{} is not answering": "{} antwortet nicht",
+ "Name the seat.": "Nenne den Platz.",
+ "{} {} is {}'s port.": "{} {} ist der Port von {}.",
+ "Name the switch.": "Nenne den Switch."
 }

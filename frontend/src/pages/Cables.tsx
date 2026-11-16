@@ -1,7 +1,7 @@
 import {
   Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput,
 } from '@mantine/core'
-import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -118,6 +118,8 @@ export default function Cables() {
             {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding({})}>{t('cables.add')}</Button>}
             {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
               {t('cables.patchBlock')}</Button>}
+            {canEdit && <Button variant="default" component="a" href="/cables/walk" leftSection={<IconPlugConnected size={16} />}>
+              {t('walk.title')}</Button>}
             {canEdit && d && d.sources.length > 0 && (
               <Button variant="default" leftSection={<IconCloudDownload size={16} />} loading={doImport.isPending}
                 onClick={() => doImport.mutate()}>{t('cables.import', { source: d.sources.join(', ') })}</Button>
