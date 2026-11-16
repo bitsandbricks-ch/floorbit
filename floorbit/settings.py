@@ -13,7 +13,7 @@ import re
 import threading
 
 import requests
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, request
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
@@ -434,7 +434,8 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
 
     @bp.route('/settings')
     def settings_page():
-        return render_template('settings.html')
+        from floorbit import spa   # the React page (frontend/src/pages/Settings.tsx)
+        return spa.render('Settings')
 
     @bp.route('/api/settings', methods=['GET'])
     def get_settings():

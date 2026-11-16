@@ -45,7 +45,8 @@ describe('sections', () => {
 
   it('knows which pages Flask draws', () => {
     expect(isServerPage('/')).toBe(true)
-    expect(isServerPage('/settings/users')).toBe(true)
+    expect(isServerPage('/kiosk')).toBe(true)
+    expect(isServerPage('/settings')).toBe(false)
     expect(isServerPage('/settings/plugins')).toBe(false)
     expect(isServerPage('/plan?seat=B-8')).toBe(false)
   })

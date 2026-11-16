@@ -1,0 +1,232 @@
+{
+  "title": "Settings",
+  "intro": "Saved values are stored on the server and override environment variables. Reset a field to go back to its environment or default value.",
+  "wall": "Stats wall for a big screen:",
+  "connections": "Connections",
+  "configured": "Configured",
+  "netboxOff": "Not configured, manual switches only",
+  "librenmsOff": "Not configured, no live status",
+  "redisOff": "Not connected ({{where}})",
+  "testRedis": "Test Redis",
+  "redisHelp": "Redis is configured with the REDIS_* environment variables.",
+  "test": "Test connection",
+  "testing": "Testing…",
+  "source": {
+    "saved": "Saved",
+    "env": "From env",
+    "default": "Default"
+  },
+  "envSet": "is set",
+  "unsaved": "Unsaved",
+  "willReset": "Will reset",
+  "reset": "Reset",
+  "removeSecret": "Remove saved token",
+  "undo": "Undo",
+  "invalid": "Not a valid value",
+  "secretSet": "•••••••• (set, type to replace)",
+  "secretUnset": "Not set",
+  "derived": "Derived",
+  "chooseImage": "Choose image…",
+  "removeImage": "Remove",
+  "imageTooBig": "{{name}} must be 256 KB or smaller",
+  "themeHint": "The colours below apply when Theme is Custom.",
+  "contrastOk": "Accent on background: {{ratio}}:1",
+  "contrastLow": "Accent on background: {{ratio}}:1. Below 3:1, buttons and focus rings will be hard to see.",
+  "saveBar": "Unsaved changes",
+  "unsavedCount_one": "{{count}} unsaved change",
+  "unsavedCount_other": "{{count}} unsaved changes",
+  "discard": "Discard changes",
+  "save": "Save",
+  "saved": "Saved. Changes apply immediately.",
+  "savedTheme": "Saved. Reloading to show the new theme…",
+  "unit": {
+    "seconds": "seconds"
+  },
+  "presets": {
+    "floorbit": "Floorbit",
+    "ops": "Ops desk (dense, cyan accent)",
+    "kiosk": "Kiosk (big screen, dark)",
+    "classic": "Classic (the old orange look, dark)",
+    "custom": "Custom (your event colours below)"
+  },
+  "backup": {
+    "title": "Backup and restore",
+    "desc": "The floor plan (switches, positions, seat blocks) and the saved settings, including the theme. API tokens, webhook URLs, accounts and check-ins are never in a backup, and a restore leaves them as they are.",
+    "download": "Download backup",
+    "restore": "Restore from file…",
+    "go": "Replace floor plan and settings",
+    "notJson": "That file is not JSON. Pick a file made with \"Download backup\".",
+    "notBackup": "That file is not a Floorbit backup.",
+    "summary": "{{name}}{{made}}: {{switches}}, {{blocks}} and {{settings}}. Restoring replaces the current floor plan and those settings for everyone.",
+    "made": ", made {{when}}",
+    "switches_one": "{{count}} placed switch",
+    "switches_other": "{{count}} placed switches",
+    "blocks_one": "{{count}} seat block",
+    "blocks_other": "{{count}} seat blocks",
+    "settings_one": "{{count}} saved setting",
+    "settings_other": "{{count}} saved settings",
+    "restored": "Restored. Reloading…",
+    "skipped_one": "Skipped {{count}} setting this version doesn't know.",
+    "skipped_other": "Skipped {{count}} settings this version doesn't know."
+  },
+  "sections": {
+    "netbox": {
+      "title": "NetBox",
+      "desc": "Source of the switch inventory. Leave the URL or token empty to place switches manually."
+    },
+    "librenms": {
+      "title": "LibreNMS",
+      "desc": "Live switch status, port statistics and IP to switch-port resolution for seats."
+    },
+    "cache": {
+      "title": "Caching",
+      "desc": "How long LibreNMS lookups are kept in Redis before they are fetched again."
+    },
+    "display": {
+      "title": "Display defaults",
+      "desc": "Defaults for switches that have no per-device setting of their own."
+    },
+    "signin": {
+      "title": "Discord sign-in",
+      "desc": "A \"Sign in with Discord\" button on the sign-in page. Create an application at discord.com/developers, add <this site>/auth/discord/callback as an OAuth2 redirect (set Public URL under General when the app runs behind a proxy) and paste its client ID and secret here. Without a server, only accounts linked on the Users page can use it."
+    },
+    "public": {
+      "title": "Attendee pages",
+      "desc": "Pages for attendees, open without an account. They show seat numbers only: no nicks, addresses, switches or ports."
+    },
+    "metrics": {
+      "title": "Prometheus metrics",
+      "desc": "GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an API token (Settings > API) that has a read-only viewer role."
+    },
+    "appearance": {
+      "title": "Appearance",
+      "desc": "The look of every page. A screen can pick its own preset with ?theme= (for example /kiosk?theme=kiosk); ?theme=default goes back to this one."
+    }
+  },
+  "fields": {
+    "netbox_url": {
+      "label": "URL",
+      "placeholder": "https://netbox.example.com"
+    },
+    "netbox_token": {
+      "label": "API token"
+    },
+    "netbox_device_roles": {
+      "label": "Device roles",
+      "help": "Comma-separated NetBox role slugs to import as switches."
+    },
+    "netbox_verify_ssl": {
+      "label": "Verify TLS certificate"
+    },
+    "librenms_url": {
+      "label": "URL",
+      "placeholder": "https://librenms.example.com"
+    },
+    "librenms_token": {
+      "label": "API token"
+    },
+    "librenms_verify_ssl": {
+      "label": "Verify TLS certificate"
+    },
+    "librenms_fdb_exclude": {
+      "label": "Ignored port names",
+      "help": "When locating a MAC address, ports whose name contains any of these are skipped (uplinks, LAGs, SVIs)."
+    },
+    "cache_ttl_arp": {
+      "label": "ARP table TTL"
+    },
+    "cache_ttl_mac": {
+      "label": "MAC table TTL"
+    },
+    "cache_ttl_resolve": {
+      "label": "Seat resolution TTL",
+      "help": "How long an IP to switch-port result is reused."
+    },
+    "display_hide_labels": {
+      "label": "Hide switch labels"
+    },
+    "display_exclude_heatmap": {
+      "label": "Exclude switches from heatmap"
+    },
+    "signin_discord_client_id": {
+      "label": "Client ID",
+      "placeholder": "123456789012345678"
+    },
+    "signin_discord_client_secret": {
+      "label": "Client secret"
+    },
+    "signin_discord_guild_id": {
+      "label": "Server ID",
+      "help": "Members of this Discord server can sign in, and get an account on their first sign-in. Right-click the server in Discord (developer mode on) and copy its ID.",
+      "placeholder": "Empty: linked accounts only"
+    },
+    "signin_discord_admin_roles": {
+      "label": "Admin roles",
+      "help": "Comma-separated Discord role IDs whose members become admins."
+    },
+    "signin_discord_editor_roles": {
+      "label": "Editor roles",
+      "help": "Role IDs whose members become editors."
+    },
+    "signin_discord_viewer_roles": {
+      "label": "Viewer roles",
+      "help": "Role IDs whose members become viewers. With all three role lists empty, every member of the server can sign in as a viewer; otherwise members without one of these roles are refused. The role is set on the first sign-in; change it on the Users page later."
+    },
+    "public_attendee_view": {
+      "label": "Attendee view",
+      "help": "/hall shows the hall plan with every seat online or offline. Off by default because it also shows when a seat is empty, for example while its player is away."
+    },
+    "public_status_page": {
+      "label": "Network status page",
+      "help": "/status tells attendees whether the network is fine, which areas an outage hits, and the crew's updates. Off by default."
+    },
+    "public_status_switch_names": {
+      "label": "Switch names on the status page",
+      "help": "Name the switches that are down on /status. Off: only halls, blocks and rows."
+    },
+    "public_stats_wall": {
+      "label": "Stats wall",
+      "help": "/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. Off by default."
+    },
+    "public_brackets": {
+      "label": "Tournament brackets",
+      "help": "/bracket shows the tournament brackets with teams and scores for big screens (/bracket?screen=1) and phones. Never seats. Off by default."
+    },
+    "metrics_enabled": {
+      "label": "Prometheus metrics",
+      "help": "Serve /api/metrics. Off by default."
+    },
+    "public_schedule": {
+      "label": "Schedule and countdown",
+      "help": "/agenda shows the countdown to the event, what is on now and next, and the programme, for big screens (/agenda?screen=1) and phones. Off by default."
+    },
+    "theme_preset": {
+      "label": "Theme"
+    },
+    "theme_name": {
+      "label": "Event name",
+      "help": "Shown in the top bar and as the kiosk heading. Empty shows the Floorbit logo.",
+      "placeholder": "LAN Party 2026"
+    },
+    "theme_logo": {
+      "label": "Event logo",
+      "help": "SVG, PNG, JPEG or WebP up to 256 KB. Replaces the Floorbit logo in the top bar; the powered-by footer stays."
+    },
+    "theme_accent": {
+      "label": "Accent colour",
+      "help": "Buttons, links and focus. Status colours (up, down, warning) never change."
+    },
+    "theme_background": {
+      "label": "Background",
+      "help": "A dark background gives a dark-only theme, a light one a light-only theme."
+    },
+    "theme_surface": {
+      "label": "Panels",
+      "help": "Empty: a shade of the background."
+    },
+    "theme_text": {
+      "label": "Text",
+      "help": "Empty: near white or near black, by background."
+    }
+  }
+}

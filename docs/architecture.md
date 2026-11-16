@@ -82,7 +82,7 @@ Plain JavaScript and CSS, no build step.
   classic scripts sharing one global scope, loaded in a fixed order; see
   [static/js/editor/README.md](../static/js/editor/README.md) for the order and the two rules
   that keep it working.
-- Other pages have their own script and stylesheet (`settings.js`, `users.js`, `kiosk.js`, ...).
+- Other pages have their own script and stylesheet (`kiosk.js`, ...).
 - `templates/_attribution.html` and `static/css/attribution.css` are the "Buy me a coffee" and
   "Powered by bitsandbricks.ch" links every page includes.
 

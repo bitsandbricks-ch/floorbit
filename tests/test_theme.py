@@ -79,9 +79,9 @@ def test_event_logo_is_served_safely(client, anon_client):
     assert anon_client.get("/brand/logo").status_code == 404
     assert client.put("/api/settings", json={"theme.logo": SVG_URL}).status_code == 200
 
-    # The sidebar shows it (its data on every crew page); the phone header of Settings too.
-    assert '"logo": "/brand/logo?v=' in client.get("/").get_data(as_text=True)
-    assert 'class="fb-brand-logo" src="/brand/logo?v=' in client.get("/settings").get_data(as_text=True)
+    # The sidebar shows it: its data is on every crew page, the floor plan and the React pages.
+    for path in ("/", "/settings"):
+        assert '"logo": "/brand/logo?v=' in client.get(path).get_data(as_text=True), path
     resp = anon_client.get("/brand/logo")   # public, so the sign-in page and kiosk can show it
     assert resp.status_code == 200 and resp.data == SVG
     assert resp.mimetype == "image/svg+xml"

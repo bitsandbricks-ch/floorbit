@@ -542,3 +542,11 @@ body {
 .fb-panel-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 .fb-field-label { margin-bottom: 2px; }
 .fb-field-value { font-size: var(--mantine-font-size-sm); display: flex; align-items: center; gap: 4px; overflow-wrap: anywhere; }
+
+/* Settings: the save bar stays on screen while there are unsaved changes. */
+.fb-savebar {
+  position: sticky;
+  bottom: 12px;
+  margin-top: 16px;
+  z-index: 5;
+}

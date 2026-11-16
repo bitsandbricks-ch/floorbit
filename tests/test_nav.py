@@ -6,7 +6,7 @@ import pytest
 
 from tests.test_rbac import sign_in_as
 
-SERVER_PAGES = ("/", "/settings")
+SERVER_PAGES = ("/",)   # the floor plan; every other crew page is the React app
 
 
 def boot(html):
@@ -52,7 +52,7 @@ def test_the_sidebar_loads_the_build_or_falls_back_to_links(client, monkeypatch,
     from floorbit import spa
     fake = {"js": ["/static/app/assets/nav.js"], "css": ["/static/app/assets/nav.css"]}
     monkeypatch.setattr(spa, "assets", lambda entry=spa.ENTRY: fake if built else None)
-    html = client.get("/settings").get_data(as_text=True)
+    html = client.get("/").get_data(as_text=True)
     assert ('/static/app/assets/nav.js' in html) is built
     # Without a frontend build every page is still a plain link away.
     assert ('class="fb-nav-fallback"' in html) is not built

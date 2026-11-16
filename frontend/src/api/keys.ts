@@ -34,6 +34,7 @@ export const qk = {
   pages: ['pages'] as const,
   places: (q: string) => ['pages', 'find', q] as const,
   featureSettings: ['features', 'settings'] as const,
+  settings: ['settings'] as const,
   apiTokens: ['api-tokens'] as const,
   audit: ['audit'] as const,
   agents: ['agents'] as const,
