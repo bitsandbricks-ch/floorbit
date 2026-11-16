@@ -3,8 +3,9 @@ See docs/ports.md.
 
 Floorbit never talks to a switch itself: a plugin with ``uses: [ports]`` does (the built-in SSH
 port actions plugin, or the demo data). When that plugin says it needs a login, the tech types
-their own switch username and password for each action. It is used for that one connection and
-then dropped: never stored, logged, cached or sent anywhere else.
+their own switch username and password for each action, or Floorbit uses the login an admin stored
+for that switch (credentials.py, encrypted). Either is used for that one connection and then
+dropped: never logged, cached or sent anywhere else.
 
 The switch and port come from Floorbit, never from the browser as free text: a seat is resolved
 through the seat mapping and the monitoring source, and the switch must be in the inventory with
@@ -46,14 +47,20 @@ def plugin(registry):
 
 
 def info(registry):
+    """``needs_login``: whether pages ask the tech for a switch login. Not when a stored login covers
+    every switch (credentials.py); ``plugin_login`` says whether the plugin needs one at all."""
+    from . import credentials
     spec = plugin(registry)
     if not spec:
-        return {'available': False, 'needs_login': False, 'plugin': None}
+        return {'available': False, 'needs_login': False, 'plugin_login': False, 'stored_login': False,
+                'plugin': None}
     try:
-        needs_login = bool(registry.call(spec, 'port_login'))
+        plugin_login = bool(registry.call(spec, 'port_login'))
     except PluginError:
-        needs_login = True
-    return {'available': True, 'needs_login': needs_login, 'plugin': spec.name}
+        plugin_login = True
+    stored = plugin_login and credentials.any_set()
+    return {'available': True, 'needs_login': plugin_login and not (stored and credentials.has_default()),
+            'plugin_login': plugin_login, 'stored_login': stored, 'plugin': spec.name}
 
 
 def _switch(data, name):
@@ -107,10 +114,20 @@ def target(body):
     return _switch(load_data(), name), port, seat or None
 
 
-def _login(body, needs_login):
+def _login(body, needs_login, switch=None, account=None):
+    """The login for one action: the one the tech typed, else the stored one for ``switch``.
+    ``login['stored']`` says which, so a wrong stored password doesn't count against the tech."""
     if not needs_login:
         return None
     username, password = body.get('username'), body.get('password')
+    if not username and not password and switch:
+        from . import credentials
+        try:
+            stored = credentials.ssh_login_for(switch, account)
+        except credentials.CredentialError as exc:
+            raise PortError(str(exc), exc.status) from None
+        if stored:
+            return {**stored, 'stored': True}
     if not isinstance(username, str) or not USER_RE.match(username):
         raise PortError('Type your switch username.')
     if not isinstance(password, str) or not password or len(password) > 256 or '\n' in password:
@@ -147,9 +164,10 @@ def act(registry, account, body, action):
             # Tournament seats (issue #31): a bounced port can lose a match, so ask twice.
             raise PortError(f'Seat {seat} is a match seat ({zone}). Confirm again to {action} its port.', 409,
                             match_seat=zone)
-    needs_login = info(registry)['needs_login']
-    login = _login(body, needs_login)
+    needs_login = info(registry)['plugin_login']
+    login = _login(body, needs_login, dev['name'], account)
     key = (dev['name'], port)
+    stored = bool(login and login.get('stored'))   # the plugin clears the login it gets
     now = time.time()
     with _lock:
         _check_failures(account, now)
@@ -163,7 +181,7 @@ def act(registry, account, body, action):
             'switch': dev['name'], 'host': dev['mgmt_ip'], 'port': port, 'model': dev.get('model') or '',
             'login': login, **extra})
     except PluginError as exc:
-        if needs_login and 'login' in str(exc).lower():
+        if needs_login and not stored and 'login' in str(exc).lower():
             with _lock:
                 _failures.setdefault(account, []).append(time.time())
         raise PortError(str(exc), 502) from None

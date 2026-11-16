@@ -19,7 +19,8 @@ Features* (`terminal`); it also goes off with port actions.
 
 ## The login
 
-The tech types their own switch username and password. They open the one SSH connection and are
+The tech types their own switch username and password, or the [stored login](credentials.md) for
+that switch is used. Either opens the one SSH connection and is
 dropped: never stored, logged or sent anywhere else. Failed logins count toward the same pause as
 port actions (five in 15 minutes). Host keys are pinned as described in [ports.md](ports.md).
 

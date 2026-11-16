@@ -33,6 +33,7 @@ const Preflight = lazy(() => import('@/pages/Preflight'))
 const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
+const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
 const Wifi = lazy(() => import('@/pages/Wifi'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
@@ -98,6 +99,7 @@ export default function App() {
         <Route path="/settings/api" element={<ApiTokens />} />
         <Route path="/settings/agents" element={<Agents />} />
         <Route path="/settings/webhooks" element={<Webhooks />} />
+        <Route path="/settings/credentials" element={<SwitchLogins />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

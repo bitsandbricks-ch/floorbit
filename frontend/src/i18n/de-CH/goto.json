@@ -59,6 +59,7 @@
     "users": "Benutzer",
     "teams": "Rollen und Teams",
     "signIn": "Anmeldedienste",
-    "audit": "Audit-Log"
+    "audit": "Audit-Log",
+    "switchLogins": "Switch-Logins"
   }
 }
