@@ -1087,6 +1087,8 @@ export interface PortClients {
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll' }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
+/** A switch login Floorbit keeps (issue #474): never the password. */
+export interface StoredLogin { id: string; kind: 'ssh'; scope: string; username: string; set_at: number; set_by: string | null }
 export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */

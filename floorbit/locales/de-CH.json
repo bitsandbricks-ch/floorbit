@@ -525,5 +525,15 @@
  "{} {} already has a cable.": "{} {} hat schon ein Kabel.",
  "{} {} failed: {}": "{} {} fehlgeschlagen: {}",
  "{}: signing in failed ({}).": "{}: Anmeldung fehlgeschlagen ({}).",
- "{}: {}": "{}: {}"
+ "{}: {}": "{}: {}",
+ "A login is for * (every switch), a name pattern like sw-a-* or one switch name.": "Ein Login gilt für * (jeden Switch), ein Namensmuster wie sw-a-* oder einen Switch-Namen.",
+ "A stored secret does not open with its key. Set it again.": "Ein gespeichertes Geheimnis lässt sich mit seinem Schlüssel nicht öffnen. Setze es neu.",
+ "A stored secret is damaged.": "Ein gespeichertes Geheimnis ist beschädigt.",
+ "A stored secret was made with a key Floorbit no longer has. Set it again.": "Ein gespeichertes Geheimnis wurde mit einem Schlüssel gemacht, den Floorbit nicht mehr hat. Setze es neu.",
+ "Cannot read the secret key in {}: {}": "Der geheime Schlüssel in {} ist nicht lesbar: {}",
+ "Floorbit keeps at most {} logins.": "Floorbit speichert höchstens {} Logins.",
+ "No such login.": "Dieses Login gibt es nicht.",
+ "The secret key in {} must be 32 bytes, base64 encoded.": "Der geheime Schlüssel in {} muss 32 Bytes lang und Base64-kodiert sein.",
+ "Type the switch password (up to 256 characters, one line).": "Gib das Switch-Passwort ein (bis 256 Zeichen, eine Zeile).",
+ "Type the switch username.": "Gib den Switch-Benutzernamen ein."
 }
