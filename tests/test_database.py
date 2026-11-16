@@ -154,3 +154,48 @@ def test_opening_while_another_connection_writes_waits_instead_of_failing(tmp_pa
     assert opened[0].execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     opened[0].close()
     writer.close()
+
+
+def test_many_threads_share_a_few_connections(sqlite_db, monkeypatch):
+    """One connection per thread used up a shared Postgres: the pool keeps the count fixed."""
+    monkeypatch.setenv(database.POOL_ENV, "3")
+    monkeypatch.setenv(database.ENV, f"sqlite:///{sqlite_db / 'pooled.db'}")
+    db = database.backend()
+    opened = []
+    real_connect = db._connect
+
+    def counting_connect():
+        c = real_connect()
+        opened.append(c)
+        return c
+
+    monkeypatch.setattr(db, "_connect", counting_connect)
+    errors = []
+
+    def work(n):
+        try:
+            for i in range(10):
+                db.put(f"t{n}.json", json.dumps({"i": i}))
+                db.get(f"t{n}.json")
+        except database.DatabaseError as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=work, args=(n,)) for n in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == []
+    assert 1 <= len(opened) <= 3
+    assert db.get("t7.json") == {"i": 9}
+
+
+def test_a_connection_that_failed_is_not_handed_out_again(sqlite_db):
+    db = database.backend()
+    db.run("SELECT 1")
+    (used,) = db._idle
+    with pytest.raises(database.DatabaseError):
+        db.run("SELECT * FROM no_such_table")
+    assert used not in db._idle            # it may be mid-transaction or broken: closed instead
+    db.run("SELECT 1")                      # and the next caller just opens a fresh one
+    assert len(db._idle) == 1 and db._idle[0] is not used
