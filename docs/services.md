@@ -39,5 +39,6 @@ pointing at the cache's disk (mounted read-only), also how full it is; amber fro
 Every `SERVICES_INTERVAL` seconds (default 30, at least 10), in the background. A line or resolver
 just added is checked when the page next loads. With a local agent enrolled the agent sends the
 probes from the event network, so a hosted Floorbit measures the event's lines, not its own.
+**Check now** on the page checks everything at once (`floorplan.edit`).
 
 Adding and changing lines and resolvers needs `floorplan.edit`; each change is in the audit log.

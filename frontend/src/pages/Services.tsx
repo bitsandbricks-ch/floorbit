@@ -27,9 +27,16 @@ export default function Services() {
   const q = useQuery({ queryKey: qk.services, queryFn: () => get<ServicesData>('/api/services'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<Editing>(null)
   const data = q.data
+  const qc = useQueryClient()
+  const check = useMutation({
+    mutationFn: () => post<ServicesData>('/api/services/check', {}),
+    onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
+  })
+  const any = !!data && data.uplinks.length + data.resolvers.length > 0
   return (
     <Layout title={t('services.title')}>
-      <PageHead title={t('services.title')} desc={t('services.intro')} />
+      <PageHead title={t('services.title')} desc={t('services.intro')}
+        actions={canEdit && any && <Button variant="default" loading={check.isPending} onClick={() => check.mutate()}>{t('services.checkNow')}</Button>} />
       <Stack gap="lg">
         {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
         {data && (
