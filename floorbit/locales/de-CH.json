@@ -96,5 +96,11 @@
  "Status monitor is disabled or LibreNMS is not configured": "Der Statusmonitor ist aus oder LibreNMS ist nicht eingerichtet",
  "Check-in is disabled": "Check-in ist ausgeschaltet",
  "Admin token required": "Admin-Token nötig",
- "No check-in for that seat": "Kein Check-in für diesen Platz"
+ "No check-in for that seat": "Kein Check-in für diesen Platz",
+ "At most {} planned at a time.": "Höchstens {} geplante Wartungen gleichzeitig.",
+ "Give the {} as a time.": "Gib für «{}» eine Zeit an.",
+ "No such maintenance.": "Diese Wartung gibt es nicht.",
+ "Plan at most two weeks ahead.": "Plane höchstens zwei Wochen im Voraus.",
+ "That time is already over.": "Diese Zeit ist schon vorbei.",
+ "The end has to be after the start.": "Das Ende muss nach dem Anfang sein."
 }
