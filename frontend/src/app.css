@@ -84,6 +84,12 @@ body {
   .fb-pagehead-actions > * { flex: none; }
 }
 
+/* A row of filters wider than the screen (German labels on a phone) wraps onto a second line
+   instead of pushing the whole page sideways. Wrapping, not scrolling: the moving highlight is
+   placed relative to the control and would land on the wrong option in a scrolled one. */
+.mantine-SegmentedControl-root { max-width: 100%; flex-wrap: wrap; }
+.mantine-SegmentedControl-root:not([data-full-width]) > .mantine-SegmentedControl-control { flex: none; }
+
 /* "‹ Incidents" above a sub page's title. */
 .fb-up { margin: -12px 0 12px; font-size: var(--fs-sm); }
 .fb-up a { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); text-decoration: none; }

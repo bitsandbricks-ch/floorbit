@@ -57,7 +57,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
             return (
               <Table.Tr key={s.seat}>
                 <Table.Td><Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor></Table.Td>
-                <Table.Td style={{ whiteSpace: 'nowrap' }}>{bytes(s.bytes)}{main && <Text span size="xs" c="dimmed"> · {t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</Table.Td>
+                <Table.Td style={{ whiteSpace: 'nowrap' }}>{bytes(s.bytes)}{main && <Text size="xs" c="dimmed">{t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</Table.Td>
                 <Table.Td style={{ width: '45%' }}><MixBar mix={s.mix} label={s.seat} /></Table.Td>
               </Table.Tr>
             )
