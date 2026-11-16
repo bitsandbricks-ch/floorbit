@@ -8,6 +8,9 @@ The files are **classic scripts that share one global scope**: a top-level `let`
 `function` in one file is visible in every file loaded after it. `index.html` loads them in this
 order, and `main.js` runs `init()` last, once everything is defined:
 
+Before them, `index.html` loads the shared dropdowns and tabs from `static/js/ui/` (see its
+README). Every `<select>` in the editor becomes that dropdown by itself; tab strips follow too.
+
 | File | What lives there |
 | --- | --- |
 | `core.js` | State, DOM references, localStorage, the `api()` helper, toasts, dialogs, undo/redo, utils. |
