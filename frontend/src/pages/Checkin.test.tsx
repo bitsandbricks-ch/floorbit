@@ -23,7 +23,7 @@ describe('Checkin', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Check in' }))
     expect(await screen.findByRole('heading', { name: 'Thanks, Frag0r!' })).toBeInTheDocument()
     expect(screen.getByText('D-22')).toBeInTheDocument()
-    expect(fake.calls.find((c) => c.method === 'POST')?.body).toEqual({ pin: 'K7M2X', username: 'Frag0r' })
+    expect(fake.calls.find((c) => c.method === 'POST')?.body).toEqual({ pin: 'K7M2X', username: 'Frag0r', device: expect.any(String) })
     expect(screen.getByText('Your IP: 192.0.2.44')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Wrong seat? Check in again' }))
     expect(screen.getByLabelText(/PIN from your seat card/)).toHaveValue('')
@@ -43,7 +43,7 @@ describe('Checkin', () => {
     fireEvent.change(screen.getByLabelText(/Your nickname/), { target: { value: 'Frag0r' } })
     fireEvent.click(screen.getByRole('button', { name: 'Check in' }))
     await screen.findByRole('heading', { name: 'Thanks, Frag0r!' })
-    expect(fake.calls.find((c) => c.method === 'POST')?.body).toEqual({ seat: 'd-22', username: 'Frag0r' })
+    expect(fake.calls.find((c) => c.method === 'POST')?.body).toEqual({ seat: 'd-22', username: 'Frag0r', device: expect.any(String) })
   })
 
   it('offers only the PIN when the server asks for it', async () => {

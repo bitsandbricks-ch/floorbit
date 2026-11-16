@@ -8,9 +8,15 @@ from floorbit.attention import AttentionWatch
 from floorbit.builtin_plugins.librenms import client as librenms
 from integrations import checkin, events
 
-PORTS = {"192.0.2.21": {"switch": "sw-a-01", "port": "Gi1/0/1"},
-         "192.0.2.22": {"switch": "sw-a-01", "port": "Gi1/0/2"},
-         "192.0.2.23": {"switch": "sw-a-01", "port": "Gi1/0/2"}}
+
+def edge(switch, port, edge=True):
+    return {"switch": switch, "port": port, "mac": None, "edge": edge}
+
+
+PORTS = {"192.0.2.21": edge("sw-a-01", "Gi1/0/1"),
+         "192.0.2.22": edge("sw-a-01", "Gi1/0/2"),
+         "192.0.2.23": edge("sw-a-01", "Gi1/0/2"),
+         "192.0.2.24": edge("sw-a-01", "Gi1/0/24", edge=False)}   # an AP port: many MACs
 
 
 @pytest.fixture
@@ -28,8 +34,12 @@ def pins(client):
     return {s["seat"]: s["pin"] for s in client.get("/api/helpdesk/qr").get_json()["seats"]}
 
 
-def check_in(client, ip, **body):
-    return client.post("/api/checkin", json=body, environ_base={"REMOTE_ADDR": ip})
+def check_in(client, ip, verify=True, **body):
+    """Check in, then let the background look up the port (it runs in a thread in the app)."""
+    r = client.post("/api/checkin", json=body, environ_base={"REMOTE_ADDR": ip})
+    if verify:
+        checkin.verify_pending()
+    return r
 
 
 def test_each_seat_card_gets_its_own_pin_and_keeps_it(hall):
@@ -98,10 +108,56 @@ def test_two_seats_on_one_port_go_to_the_problems_page(hall, app_module, monkeyp
 
 
 def test_another_nick_taking_a_seat_is_flagged(hall):
+    check_in(hall, "192.0.2.21", seat="A-1", username="pixel")          # typed on a phone
+    check_in(hall, "192.0.2.22", pin=pins(hall)["A-1"], username="nova")
+    assert any(c["kind"] == "taken" and c["seat"] == "A-1" for c in checkin.port_conflicts(None))
+
+
+def test_a_pin_is_used_once_and_the_crew_opens_it_again(hall):
     pin = pins(hall)["A-1"]
     check_in(hall, "192.0.2.21", pin=pin, username="pixel")
-    check_in(hall, "192.0.2.22", pin=pin, username="nova")
-    assert any(c["kind"] == "taken" and c["seat"] == "A-1" for c in checkin.port_conflicts(None))
+    again = check_in(hall, "192.0.2.22", pin=pin, username="nova")
+    assert again.status_code == 409 and "already used" in again.get_json()["error"]
+    typed = check_in(hall, "192.0.2.22", seat="A-1", username="nova")
+    assert typed.status_code == 409                                   # nor by typing the seat
+    # The PC that checked in may change its nick, with the PIN or without anything.
+    assert check_in(hall, "192.0.2.21", pin=pin, username="pixel2").status_code == 200
+    r = check_in(hall, "192.0.2.21", username="pixel3")
+    assert r.status_code == 200 and r.get_json()["seat"] == "A-1"
+    # The crew removes the check-in: the card works again.
+    assert hall.delete("/api/checkins/A-1").status_code == 200
+    assert check_in(hall, "192.0.2.22", pin=pin, username="nova").status_code == 200
+
+
+def test_the_portal_answers_at_once_and_looks_up_the_port_later(hall, monkeypatch):
+    asked = []
+    monkeypatch.setattr(checkin, "port_of", lambda ip: asked.append(ip) or PORTS.get(ip))
+    monkeypatch.setattr(checkin, "lookup_mac", lambda ip: asked.append(ip))
+    r = check_in(hall, "192.0.2.21", verify=False, pin=pins(hall)["A-1"], username="pixel")
+    assert r.get_json()["wired"] == "pending" and asked == []          # nothing slow in the request
+    assert checkin.verify_pending() == ["A-1"]
+    row = checkin.load_all()["A-1"]
+    assert row["wired"] == "verified" and row["port_seen"] == {"switch": "sw-a-01", "port": "Gi1/0/1"}
+    assert checkin.learned_ports()["A-1"]["port"] == "Gi1/0/1"
+
+
+def test_only_a_wired_pc_on_one_access_port_teaches_the_seat(hall, monkeypatch):
+    # The page says it is a phone (touch, small screen): the nick still counts, no port is learned.
+    said = check_in(hall, "198.51.100.7", pin=pins(hall)["A-1"], username="pixel", device="mobile")
+    assert said.status_code == 200 and said.get_json()["wired"] == "not_wired"
+    phone = hall.post("/api/checkin", json={"pin": pins(hall)["A-2"], "username": "nova"},
+                      environ_base={"REMOTE_ADDR": "192.0.2.22"},
+                      headers={"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Mobile"})
+    assert phone.get_json()["wired"] == "not_wired"
+    check_in(hall, "192.0.2.24", pin=pins(hall)["A-3"], username="quark")       # on an AP port
+    assert checkin.load_all()["A-3"]["wired"] == "pending"
+    checkin.verify_pending(now=checkin.load_all()["A-3"]["checked_in_at"] + checkin.VERIFY_GIVE_UP + 1)
+    assert checkin.load_all()["A-3"]["wired"] == "unverified"
+    assert checkin.learned_ports() == {}
+    info = hall.get("/api/checkin/info", environ_base={"REMOTE_ADDR": "198.51.100.7"},
+                    headers={"User-Agent": "Mozilla/5.0 (Linux; Android 15) Mobile"}).get_json()
+    assert info["on_pc"] is False
+    assert checkin.load_all()["A-3"]["device"] == "unknown" and checkin.load_all()["A-2"]["device"] == "mobile"
 
 
 def test_the_learned_port_shows_what_is_plugged_in_now(hall, app_module, monkeypatch):

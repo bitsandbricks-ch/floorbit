@@ -8,8 +8,22 @@ import { qk } from '@/api/keys'
 import type { CheckinInfo } from '@/api/types'
 import { PublicPage } from '@/components/PublicPage'
 
-type Done = { seat: string; username: string }
+type Wired = 'pending' | 'verified' | 'not_wired' | 'unverified'
+type Done = { seat: string; username: string; wired?: Wired | null }
 type Form = { pin: string; seat: string; username: string }
+
+type NavigatorUAData = { mobile?: boolean }
+
+/** What this device looks like: a phone or tablet is never the PC at the seat. A hint only: the
+ *  switches decide in the background whether a wired PC on one seat port sent it. */
+function deviceClass(): 'pc' | 'mobile' | 'unknown' {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'unknown'
+  const hints = (navigator as Navigator & { userAgentData?: NavigatorUAData }).userAgentData
+  const touchOnly = window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia?.('(any-pointer: fine)').matches
+  const small = Math.min(window.screen?.width ?? 0, window.screen?.height ?? 0) < 600
+  if (hints?.mobile || /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) || (touchOnly && small)) return 'mobile'
+  return hints?.mobile === false || window.matchMedia?.('(pointer: fine)').matches ? 'pc' : 'unknown'
+}
 
 /** The PIN as printed: upper case, no spaces or dashes ("k7m-2x" is "K7M2X"). */
 function cleanPin(pin: string) {
@@ -26,7 +40,12 @@ function opensAt(ts: number, lang: string) {
 export default function Checkin() {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
-  const info = useQuery({ queryKey: qk.checkinInfo, queryFn: () => get<CheckinInfo>('/api/checkin/info') })
+  const info = useQuery({
+    queryKey: qk.checkinInfo, queryFn: () => get<CheckinInfo>('/api/checkin/info'),
+    // While the switches are asked in the background, look again now and then.
+    refetchInterval: (q) => (q.state.data?.checkin?.wired === 'pending' ? 5000 : false),
+  })
+  const [device] = useState(deviceClass)
   const [form, setForm] = useState<Form | null>(null)
   const [changing, setChanging] = useState(false)
   const [bySeat, setBySeat] = useState(false)
@@ -35,12 +54,13 @@ export default function Checkin() {
   const withSeat = bySeat && !info.data?.pin_required
   const send = useMutation({
     mutationFn: () => post<Done & { ok: boolean }>('/api/checkin', withSeat
-      ? { seat: values.seat.trim(), username: values.username.trim() }
-      : { pin: cleanPin(values.pin), username: values.username.trim() }),
+      ? { seat: values.seat.trim(), username: values.username.trim(), device }
+      : { pin: cleanPin(values.pin), username: values.username.trim(), device }),
     onSuccess: () => { setChanging(false); void qc.invalidateQueries({ queryKey: qk.checkinInfo }) },
   })
   const submit = (e: FormEvent) => { e.preventDefault(); send.mutate() }
-  const done: Done | null = send.data ?? mine
+  const done: Done | null = mine ?? send.data ?? null
+  const notPc = device === 'mobile' || info.data?.on_pc === false
 
   let body
   if (info.isPending) {
@@ -79,6 +99,7 @@ export default function Checkin() {
           <Text>{t('checkin.doneAt')}</Text>
           <Text fz={40} fw={700} lh={1.1} ff="var(--font-mono)" className="fb-public-done">{done.seat}</Text>
           <Text c="dimmed" size="sm">{t('checkin.doneText')}</Text>
+          {done.wired && <Text size="sm" c={done.wired === 'verified' ? 'up' : 'dimmed'}>{t(`checkin.wired.${done.wired}`)}</Text>}
           <Anchor component="button" type="button" size="sm" onClick={() => { setForm({ pin: '', seat: '', username: done.username }); setChanging(true); send.reset() }}>
             {t('checkin.change')}
           </Anchor>
@@ -95,6 +116,7 @@ export default function Checkin() {
               <Text c="dimmed" size="sm">{t('checkin.intro')}</Text>
             </div>
             {send.error && <Alert color="down" role="alert">{send.error.message}</Alert>}
+            {notPc && <Alert color="warn">{t('checkin.onPc')}</Alert>}
             {info.data?.suggested_seat && <Text size="sm">{t('checkin.knownSeat', { seat: info.data.suggested_seat })}</Text>}
             {withSeat ? (
               <TextInput label={t('checkin.seat')} placeholder={t('checkin.seatPlaceholder')} size="md" required maxLength={16}

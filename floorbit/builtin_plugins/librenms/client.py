@@ -231,9 +231,15 @@ def find_mac_in_all_switches(mac_address):
         entries = resp.json().get('ports_fdb', []) or []
     except requests.RequestException:
         return None
-    # Only count MACs per port when there is a choice to make: it costs a MAC table read per switch.
-    unique = {(str(e.get('hostname') or '').lower(), str(e.get('ifName') or '').lower()) for e in entries}
-    counter = _macs_on_port if len(unique) > 1 else (lambda _e: None)
+    # The MAC count per port picks the access port and tells an AP or desk switch from a PC: one
+    # MAC table read per switch that knows the MAC, cached (fetch_librenms_mac_table).
+    counts = {}
+
+    def counter(entry):
+        key = (entry.get('hostname'), entry.get('port_id'))
+        if key not in counts:
+            counts[key] = _macs_on_port(entry)
+        return counts[key]
     first = pick_edge_port(entries, counter, rt.librenms_fdb_exclude, _uplink_re())
     if first is None:
         return None
@@ -245,6 +251,7 @@ def find_mac_in_all_switches(mac_address):
         'vlan': first.get('vlan', ''),
     }
     data.update(first)  # Include all original fields for debugging
+    data['macs_on_port'] = counter(first)    # check-in: more than a few means not one PC (checkin.py)
     return data
 
 

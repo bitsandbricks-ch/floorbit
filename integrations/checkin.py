@@ -109,11 +109,12 @@ def client_ip():
     return ip
 
 
-def ip_allowed(ip):
-    nets = config.get('CHECKIN_ALLOWED_NETWORKS', '') or ''
+def _in_networks(ip, key):
+    """Is ``ip`` in the CIDRs of setting ``key``? None when the setting is empty."""
+    nets = config.get(key, '') or ''
     nets = [n.strip() for n in str(nets).split(',') if n.strip()]
     if not nets:
-        return True
+        return None
     try:
         addr = ipaddress.ip_address(ip)
     except ValueError:
@@ -125,6 +126,30 @@ def ip_allowed(ip):
         except ValueError:
             continue
     return False
+
+
+MOBILE_RE = re.compile(r'Mobile|Android|iPhone|iPad', re.I)
+
+
+DEVICES = ('pc', 'mobile', 'unknown')
+
+
+def looks_mobile(user_agent):
+    """A hint only: a phone or tablet is never the PC at the seat. Anyone can set a User-Agent."""
+    return bool(MOBILE_RE.search(user_agent or ''))
+
+
+def device_class(said, user_agent):
+    """'pc', 'mobile' or 'unknown'. The page says what it sees (OS, touch, screen size, from the
+    browser), the User-Agent backs it up. No network list to keep up to date: whether it really is a
+    wired PC at the seat is what the switches say in the background (verify_pending)."""
+    if said == 'mobile' or looks_mobile(user_agent):
+        return 'mobile'
+    return said if said in DEVICES else 'unknown'
+
+
+def ip_allowed(ip):
+    return _in_networks(ip, 'CHECKIN_ALLOWED_NETWORKS') is not False
 
 
 # ── seat PINs ──────────────────────────────────────────────────────────────────
@@ -220,8 +245,9 @@ def is_short_address(host):
 
 
 # ── which port a PC is on ──────────────────────────────────────────────────────
-_port_cache = {}      # ip -> (time, {"switch", "port"} or None)
+_port_cache = {}      # ip -> (time, {"switch", "port", "mac", "edge"} or None)
 PORT_CACHE_SECONDS = 60
+EDGE_PORT_MACS = 4
 
 
 def port_of(ip):
@@ -237,7 +263,10 @@ def port_of(ip):
         monitor = _monitoring()
         port = monitor.resolve_ip(ip) if monitor.enabled() else None
         if port and port.get('port'):
-            found = {'switch': port.get('device_name') or port.get('hostname'), 'port': port.get('port')}
+            found = {'switch': port.get('device_name') or port.get('hostname'), 'port': port.get('port'),
+                     'mac': normalise_mac(port.get('mac')),
+                     # More MACs than a PC (and its VMs) on the port: an AP, a desk switch, an uplink.
+                     'edge': (port.get('macs_on_port') or 0) <= EDGE_PORT_MACS}
     except Exception:  # noqa: BLE001  # a slow or broken monitoring source must not stop a check-in
         found = None
     _port_cache[ip] = (time.time(), found)
@@ -375,32 +404,47 @@ class CheckinError(ValueError):
         self.status = status
 
 
-def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None):
+def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None, device=None):
     """Check in. With ``pin`` the seat comes from the PIN (the card at the seat) and whatever seat
     was typed is ignored; without it the seat is as typed (the phone page from the QR code)."""
     seats = known_seats(load_data)
     username = (username or '').strip()
     pin_ok = False
+    mine = find_by_ip(ip)
     if pin:
         seat = seat_for_pin(pin)
         if seat is None:
             raise CheckinError('That PIN is not on any seat card. Check the card at your seat.', 403)
+        held = load_all().get(seat)
+        # One use: once a PIN checked a seat in, only that PC may use it again (to change the nick).
+        # Anyone else asks the crew, who remove the check-in and so open the PIN again.
+        if held and held.get('pin_ok') and held.get('ip') != ip:
+            raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
         pin_ok = True
+    elif not seat and mine:
+        # The PC that checked in changes its nick: no PIN needed, the seat stays.
+        seat, pin_ok = mine['seat'], bool(mine.get('pin_ok'))
     else:
         seat = normalise_seat(seat, seats)
         if not SEAT_RE.match(seat):
             raise CheckinError('Enter the PIN from the card at your seat.')
+        held = load_all().get(seat)
+        if held and held.get('pin_ok') and held.get('ip') != ip:
+            # The seat's card already checked it in: a typed number must not take it over.
+            raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
     if not USER_RE.match(username):
         raise CheckinError('Enter a username (up to 48 characters).')
     if not ip_allowed(ip):
         raise CheckinError('Check in from your seat PC on the event network.', 403)
-    if not pin_ok and config.get_bool('CHECKIN_VALIDATE_SEATS', True) and seats and seat not in seats:
+    if not pin and config.get_bool('CHECKIN_VALIDATE_SEATS', True) and seats and seat not in seats:
         raise CheckinError(f'Seat {seat} is not on the floor plan.')
-    if not pin_ok and config.get_bool('CHECKIN_REQUIRE_PIN', False) and find_by_ip(ip, seat) is None:
+    if not pin_ok and config.get_bool('CHECKIN_REQUIRE_PIN', False) and (mine or {}).get('seat') != seat:
         raise CheckinError('Enter the PIN from the card at your seat.', 403)
 
-    mac = normalise_mac(mac) or lookup_mac(ip)
-    port = port_of(ip)
+    # Nothing slow here: the portal answers at once. The MAC and the switch port are looked up in
+    # the background (verify_pending), and only a wired PC on one access port teaches the seat.
+    mac = normalise_mac(mac)
+    device = device_class(device, user_agent)
     now = time.time()
     with _lock:
         rows = load_all()
@@ -422,24 +466,110 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None)
             'ip_changed': None,
             'user_agent': (user_agent or '')[:200] or None,
             'pin_ok': pin_ok,
-            # The switch port this PC was on: what teaches the plan where the seat is plugged in.
-            'port_seen': port or (prev.get('port_seen') if prev.get('ip') == ip else None),
+            'device': device,
+            # pending: the background looks for the PC's switch port; verified: found on one access
+            # port; not_wired: a phone or tablet; unverified: not found on one access port in time.
+            # Only verified with a PIN teaches the seat its port.
+            'wired': ('not_wired' if device == 'mobile' else
+                      prev['wired'] if prev.get('ip') == ip and prev.get('wired') == 'verified' else 'pending'),
+            'port_seen': prev.get('port_seen') if prev.get('ip') == ip else None,
             'taken_from': ({'username': prev['username'], 'at': now} if taken_over
                            else prev.get('taken_from') if prev.get('username') == username else None),
         }
+        if not row['mac']:   # the same machine moving seats keeps the MAC it was known by
+            row['mac'] = next((r['mac'] for r in moved_rows if r.get('ip') == ip and r.get('mac')), None)
         if row['checked_in_at'] is None:
             row['checked_in_at'] = now
         rows[seat] = row
         _save_all(rows)
-        if pin_ok and port:
-            learn_port(seat, port, username, now=now)
+        if pin_ok and row['wired'] == 'verified' and row['port_seen']:
+            learn_port(seat, row['port_seen'], username, now=now)
         for old in moved_rows:
             history.record('moved', old, ts=now, to_seat=seat)
         history.record('checkin', row, ts=now)
     seat_sources.invalidate()
     events.publish('checkin', {'seat': seat, 'username': username, 'ip': ip,
                                'mac': row['mac'], 'moved_from': moved_from})
+    if row['wired'] == 'pending':
+        _wake.set()
     return row
+
+
+# ── wired or not, in the background ────────────────────────────────────────────
+VERIFY_EVERY = 10          # seconds between tries while check-ins wait
+VERIFY_GIVE_UP = 15 * 60   # LibreNMS polls ARP and MAC tables every few minutes: give it time
+_wake = threading.Event()
+
+
+def verify_pending(now=None):
+    """Look up the switch port of each check-in that waits for it. Found on one access port:
+    ``verified``, and with a PIN the seat learns that port. Returns the seats that changed."""
+    now = time.time() if now is None else now
+    pending = {s: r for s, r in load_all().items() if r.get('wired') == 'pending'}
+    found = {}
+    for seat, row in pending.items():
+        port = port_of(row.get('ip'))
+        mac = row.get('mac') or (port or {}).get('mac') or lookup_mac(row.get('ip'))
+        if port and port.get('edge'):
+            found[seat] = ('verified', {'switch': port['switch'], 'port': port['port']}, mac)
+        elif now - (row.get('checked_in_at') or now) > VERIFY_GIVE_UP:
+            found[seat] = ('unverified', None, mac)
+        elif mac and not row.get('mac'):
+            found[seat] = ('pending', None, mac)
+    if not found:
+        return []
+    changed = []
+    with _lock:
+        rows = load_all()
+        for seat, (state, port, mac) in found.items():
+            row = rows.get(seat)
+            if not row or row.get('wired') != 'pending' or row.get('ip') != pending[seat].get('ip'):
+                continue    # checked in again meanwhile: that one has its own turn
+            if mac and not row.get('mac'):
+                row['mac'] = mac
+                history.record('mac_found', row, ts=now)
+            row['wired'] = state
+            if port:
+                row.update(port_seen=port, verified_at=now)
+            changed.append(seat)
+        if changed:
+            _save_all(rows)
+    for seat in changed:
+        row = rows[seat]
+        if row['wired'] == 'verified' and row.get('pin_ok'):
+            learn_port(seat, row['port_seen'], row['username'], now=now)
+    if changed:
+        seat_sources.invalidate()
+        events.publish('checkin.verified', {'seats': changed})
+    return changed
+
+
+class CheckinVerifier:
+    """Runs ``verify_pending`` while check-ins wait, woken at once by a new one."""
+
+    def __init__(self):
+        self._thread = None
+        self._lock = threading.Lock()
+        self.last_error = None
+
+    def start(self):
+        with self._lock:
+            if self._thread and self._thread.is_alive():
+                return
+            self._thread = threading.Thread(target=self._run, name='checkin-verify', daemon=True)
+            self._thread.start()
+
+    def _run(self):
+        while True:
+            _wake.wait(VERIFY_EVERY)
+            _wake.clear()
+            try:
+                if config.get_bool('CHECKIN_ENABLED', False) and _monitoring().enabled():
+                    verify_pending()
+                    self.last_error = None
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive, try again next round
+                self.last_error = str(exc)
+                print(f'[integrations] check-in verification failed: {exc}')
 
 
 def remove(seat):

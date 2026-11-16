@@ -82,8 +82,23 @@ seat card on the printed sheet (Incidents, then Seat QR codes) also carries:
 - the seat's **PIN**: five characters, unique per seat, without look-alikes (no 0/O, 1/I/L, 5/S, 8/B).
   PINs are made the first time the sheet is opened and kept, so a reprint gives the same cards.
 
-The attendee types the PIN and their nick, never the seat: the PIN names it. Floorbit then finds
-the switch port the PC is on. ARP only lives on the core switches, so it takes two steps: the
+The attendee types the PIN and their nick, never the seat: the PIN names it. The page answers at
+once: the request stores only the seat, the nick, the IP and the time. Everything slow happens in
+the background (`verify_pending`, woken by each check-in, then every 10 s): the MAC and the switch
+port the PC is on. The attendee's page shows "Finding your seat's network port…" until then.
+
+A PIN works once. After it checked a seat in, only the same PC (same IP) may use it again, to change
+the nick, and it may also do that without the PIN. Anyone else gets "That PIN was already used. Ask
+the crew"; the crew removes the check-in, which opens the PIN again. A typed seat number can't take
+over a seat its card already checked in.
+
+The page tells Floorbit whether it runs on a PC or a phone (the browser's OS hints, touch only and a
+small screen, backed by the User-Agent). A phone keeps the nick (`not_wired`) but never teaches a
+port. That is only a hint: what proves a wired PC at the seat is the switches. Only a MAC found on
+exactly one access port, with no more than 4 MACs on it (so not an AP, a desk switch or an uplink),
+counts as `verified`. Not found within 15 minutes: `unverified`.
+
+Finding the switch port of the PC takes two steps, because ARP only lives on the core switches: the
 request's IP gives the MAC from the core's ARP table, and that MAC is looked up in the MAC tables
 (FDB) of every switch. Every switch between the core and the seat learns the MAC too, on its uplink,
 so the port with the fewest MACs wins; ports named in "Ignored port names" and ports whose

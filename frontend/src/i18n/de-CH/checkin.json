@@ -22,5 +22,12 @@
   "pinHelp": "Sie steht auf der Karte an deinem Tisch, neben der Platznummer.",
   "knownSeat": "Dieser PC ist an Platz {{seat}}.",
   "noPin": "Keine Karte am Platz? Gib stattdessen die Platznummer ein",
-  "usePin": "Stattdessen die PIN von der Platzkarte verwenden"
+  "usePin": "Stattdessen die PIN von der Platzkarte verwenden",
+  "onPc": "Öffne diese Seite auf dem PC, der an deinem Platz eingesteckt ist: So lernt die Crew, an welchem Netzwerk-Port dein Platz hängt. Dein Nick zählt auch von hier.",
+  "wired": {
+    "pending": "Suche den Netzwerk-Port deines Platzes …",
+    "verified": "Dein PC ist mit dem Netzwerk-Port deines Platzes verknüpft.",
+    "not_wired": "Vom Handy eingecheckt: Öffne die Seite auch auf deinem PC, damit die Crew den Port deines Platzes kennt.",
+    "unverified": "Dein Netzwerk-Port wurde nicht gefunden. Kein Problem: Die Crew findet dich trotzdem."
+  }
 }

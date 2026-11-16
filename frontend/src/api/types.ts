@@ -1669,7 +1669,9 @@ export interface CheckinInfo {
   /** When the event starts, if the schedule says and it's still ahead. */
   opens_at: number | null
   ip: string | null
-  checkin: { seat: string; username: string } | null
+  checkin: { seat: string; username: string; wired?: 'pending' | 'verified' | 'not_wired' | 'unverified' | null } | null
+  /** False when the browser says it's a phone or tablet (a hint only). */
+  on_pc?: boolean
   /** The seat this PC is known to be at (its port is patched or learned), as a hint. */
   suggested_seat?: string | null
   /** True: the seat number alone is refused, the PIN from the seat card is needed. */

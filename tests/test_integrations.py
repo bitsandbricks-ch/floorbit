@@ -246,9 +246,12 @@ def test_checkin_records_ip_and_mac(app, checkin_env, monkeypatch):
     c = app.test_client()
     info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
     assert info == {'open': True, 'opens_at': None, 'ip': '10.0.2.144', 'checkin': None,
-                    'suggested_seat': None, 'pin_required': False, 'address': None}
+                    'suggested_seat': None, 'pin_required': False, 'address': None, 'on_pc': True}
     r = post_checkin(c, 'd-22', 'Reykime', '10.0.2.144').get_json()
-    assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': True}
+    # The MAC is looked up in the background, so the page answers at once.
+    assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': False,
+                 'wired': 'pending'}
+    checkin.verify_pending()
     row = c.get('/api/checkins').get_json()['checkins'][0]
     assert row['mac'] == 'aa:bb:cc:00:11:22'
     me = c.get('/api/checkin/me', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
@@ -278,6 +281,7 @@ def test_checkin_moves_machine_between_seats(app, checkin_env):
 def test_checkin_follows_dhcp_change(app, checkin_env):
     c = app.test_client()
     post_checkin(c, 'D-22', 'Reykime', '10.0.2.144')
+    checkin.verify_pending()          # the background finds the MAC
     checkin_env.clear()
     checkin_env['10.0.2.200'] = 'aa:bb:cc:00:11:22'   # new lease, same MAC
     assert checkin.refresh_once() == ['D-22']

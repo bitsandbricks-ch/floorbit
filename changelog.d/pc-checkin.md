@@ -12,3 +12,7 @@
 
 - Finding the switch port of an IP skips uplinks: of all switches that learned the MAC, the port
   with the fewest MACs wins.
+- The check-in page answers at once: the MAC and switch port are looked up in the background,
+  and only a PC found on one access port teaches the seat its port. A phone keeps the nick.
+- A seat card's PIN works once; the same PC can change its nick, the crew reopens a PIN by removing
+  the check-in.
