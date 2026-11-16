@@ -360,6 +360,10 @@ def _blueprint():
         return (config.get_bool('CHECKIN_ENABLED', False)
                 and any(r.rule == '/checkin' for r in current_app.url_map.iter_rules()))
 
+    def _checkin_address():
+        from integrations import checkin
+        return checkin.short_address() or None
+
     @bp.route('/api/auth/login-options')
     def login_options():
         """What the sign-in page offers, and the error from the last try (once)."""
@@ -377,6 +381,7 @@ def _blueprint():
                           for p in auth.providers.enabled('redirect')],
             'no_users': auth.users.count() == 0,
             'checkin_url': '/checkin' if checkin_open() else None,
+            'checkin_address': _checkin_address() if checkin_open() else None,
             'next': nxt,
             'error': error,
             'username': last.get('username') or '',

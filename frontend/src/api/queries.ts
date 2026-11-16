@@ -122,7 +122,7 @@ export function useIncidentPeople() {
 }
 
 export function useHelpdeskQr() {
-  return useQuery({ queryKey: qk.helpdeskQr, queryFn: () => get<{ seats: QrSeat[] }>('/api/helpdesk/qr') })
+  return useQuery({ queryKey: qk.helpdeskQr, queryFn: () => get<{ seats: QrSeat[]; checkin?: { address: string | null; url: string | null } | null }>('/api/helpdesk/qr') })
 }
 
 export function useHealth() {

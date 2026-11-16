@@ -132,12 +132,14 @@ body {
 .fb-qr-code { display: block; width: 100%; height: auto; background: #fff; border-radius: 4px; }
 .fb-qr figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: 12px; color: var(--color-muted); }
 .fb-qr figcaption strong { font-size: 18px; color: var(--color-fg); }
+.fb-qr-pin { display: grid; gap: 2px; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--color-line); overflow-wrap: anywhere; }
+.fb-qr-pin b { font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.15em; color: var(--color-fg); }
 @media print {
   .fb-header, .fb-no-print, .fb-attribution, .fb-nav-slot, .fb-tabbar { display: none !important; }
   body { background: #fff !important; }
   .fb-qr-sheet { grid-template-columns: repeat(4, 1fr); }
   .fb-qr { border-color: #999; }
-  .fb-qr figcaption, .fb-qr figcaption strong { color: #000; }
+  .fb-qr figcaption, .fb-qr figcaption strong, .fb-qr-pin b { color: #000; }
 }
 
 /* The service health wall (pages/Health.tsx). Colour is never the only sign: each tile says its state. */

@@ -163,7 +163,9 @@ def fetch_librenms_mac_table(hostname):
             timeout=10, verify=rt.librenms_verify_ssl,
         )
         if resp.ok:
-            mac_data = resp.json().get('fdb', [])
+            body = resp.json()
+            # Either key: the LibreNMS API docs say "ports_fdb", the older code here read "fdb".
+            mac_data = body.get('ports_fdb') or body.get('fdb') or []
             # Cache the result
             set_cached_mac(hostname, mac_data)
             # print(f"MAC cache miss for {hostname} - fetched and cached")
@@ -173,64 +175,78 @@ def fetch_librenms_mac_table(hostname):
     return mac_data
 
 
+# More MACs than this on one port means a switch sits behind it: an uplink, not a seat.
+EDGE_PORT_MACS = 4
+
+
+def pick_edge_port(entries, macs_on_port, excludes=(), uplink=None):
+    """The FDB row of the access port a MAC is plugged into, or None.
+
+    ARP lives on the core only; the access switches have only their MAC tables, and every switch
+    between the core and the seat learns the MAC too, on its uplink or trunk. So: drop ignored port
+    names and ports described as uplinks, then take the port with the fewest MACs on it. A port
+    with many MACs only wins when nothing better is left.
+    """
+    candidates = []
+    for entry in entries:
+        name = str(entry.get('ifName') or '').lower()
+        if not name or any(ex in name for ex in excludes):
+            continue
+        if uplink is not None and uplink.search(str(entry.get('ifAlias') or '')):
+            continue
+        candidates.append((macs_on_port(entry), name, entry))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda c: (c[0] is None, c[0] or 0, c[1]))
+    return candidates[0][2]
+
+
+def _macs_on_port(entry):
+    """How many MACs the entry's switch has learned on the entry's port (None when unknown)."""
+    port_id = entry.get('port_id')
+    hostname = entry.get('hostname')
+    if port_id is None or not hostname:
+        return None
+    rows = fetch_librenms_mac_table(hostname) or []
+    return sum(1 for r in rows if r.get('port_id') == port_id) or None
+
+
 def find_mac_in_all_switches(mac_address):
+    """The access switch and port a MAC sits on, from the MAC tables (FDB) of every switch."""
+    from floorbit.stats import _uplink_re
 
     headers = {
         'X-Auth-Token': rt.librenms_token,
         'Accept': 'application/json',
     }
-
-    # Normalize MAC address format
     mac_normalized = mac_address.lower().replace('-', ':')
-
     try:
-        # Get all devices
         resp = requests.get(
             f'{rt.librenms_url}/api/v0/resources/fdb/{mac_normalized}/detail',
             headers=headers,
             timeout=10, verify=rt.librenms_verify_ssl,
         )
-
         if not resp.ok:
             return None
-
-        # print(f"FDB search response for MAC {mac_address}: {resp.status_code}")
-
-        ports = resp.json().get('ports_fdb', [])
-        matches = {}
-        for entry in ports:
-
-            excludes = rt.librenms_fdb_exclude
-            port_name = entry.get('ifName', '').lower()
-
-            if any(ex in port_name for ex in excludes):
-                # print(f"Skipping port {port_name} for MAC {mac_address} due to exclusion filter")
-                continue
-
-            hostname = entry.get('hostname', '').lower()
-            int_id = f"{hostname}:{port_name}"
-            matches[int_id] = entry
-
-        if matches:
-
-            # print(f"Found {len(matches)} matches for MAC {mac_address}: {matches}")
-            # Return the first match with device and port info
-            first = next(iter(matches.values()))
-            # print(first)
-
-            data = {
-                'device_name': first.get('sysName', ''),
-                'hostname': first.get('hostname', ''),
-                'port': first.get('ifName', ''),
-                'port_id': first.get('ifIndex', ''),
-                'vlan': first.get('vlan', ''),
-            }
-
-            data.update(first)  # Include all original fields for debugging
-            return data
-
+        entries = resp.json().get('ports_fdb', []) or []
     except requests.RequestException:
-        pass
+        return None
+    # Only count MACs per port when there is a choice to make: it costs a MAC table read per switch.
+    unique = {(str(e.get('hostname') or '').lower(), str(e.get('ifName') or '').lower()) for e in entries}
+    counter = _macs_on_port if len(unique) > 1 else (lambda _e: None)
+    first = pick_edge_port(entries, counter, rt.librenms_fdb_exclude, _uplink_re())
+    if first is None:
+        return None
+    data = {
+        'device_name': first.get('sysName', ''),
+        'hostname': first.get('hostname', ''),
+        'port': first.get('ifName', ''),
+        'port_id': first.get('ifIndex', ''),
+        'vlan': first.get('vlan', ''),
+    }
+    data.update(first)  # Include all original fields for debugging
+    return data
+
 
 def resolve_ip_to_switch_port(ip_address, search_device=None):
     """Resolve an IP address to its switch and port using LibreNMS ARP and MAC tables.

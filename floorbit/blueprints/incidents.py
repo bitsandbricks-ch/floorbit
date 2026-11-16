@@ -243,12 +243,23 @@ def _seat_key(seat):
 
 @bp.route('/api/helpdesk/qr', methods=['GET'])
 def qr_codes():
+    from integrations import checkin, config
     seats = sorted(incidents.seat_numbers(), key=_seat_key)
+    # The card on each seat also says how to check in from the PC (no camera there): the short
+    # address and the seat's PIN (integrations/checkin.py).
+    checkin_on = config.get_bool('CHECKIN_ENABLED', False)
+    pins = checkin.ensure_pins(seats) if checkin_on else {}
     out = []
     for seat in seats:
         url = _help_url(seat)
-        out.append({'seat': seat, 'url': url, 'image': segno.make(url, error='m').svg_data_uri(scale=4, border=2)})
-    return jsonify({'seats': out})
+        row = {'seat': seat, 'url': url, 'image': segno.make(url, error='m').svg_data_uri(scale=4, border=2)}
+        if checkin_on:
+            row['pin'] = pins.get(seat)
+        out.append(row)
+    return jsonify({'seats': out, 'checkin': {
+        'address': checkin.short_address() or None,
+        'url': url_for('pages.checkin_page', _external=True) if checkin_on else None,
+    } if checkin_on else None})
 
 
 # ── The attendee's page ────────────────────────────────────────────────────────

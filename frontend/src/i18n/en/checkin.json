@@ -10,12 +10,17 @@
   "doneTitle": "Thanks, {{name}}!",
   "doneAt": "You're checked in at seat",
   "doneText": "If your network acts up, the crew knows where to find you. Nothing else to do.",
-  "change": "Wrong seat? Change it",
+  "change": "Wrong seat? Check in again",
   "closed": "Check-in isn't open yet",
   "closedText": "The crew opens it when the event starts. Come back then, or ask at the info desk.",
   "opensAt": "It opens {{when}}.",
   "unreachable": "Floorbit can't be reached",
   "unreachableText": "Your network may not be up yet. Try again in a moment.",
   "retry": "Try again",
-  "ip": "Your IP: {{ip}}"
+  "ip": "Your IP: {{ip}}",
+  "pin": "PIN from your seat card",
+  "pinHelp": "The card on your table shows it, next to the seat number.",
+  "knownSeat": "This PC is at seat {{seat}}.",
+  "noPin": "No card at your seat? Type the seat number instead",
+  "usePin": "Use the PIN from the seat card instead"
 }

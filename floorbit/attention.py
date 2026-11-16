@@ -25,7 +25,7 @@ from .seat_names import block_rows
 from .store import load_data
 
 FLAP_WINDOW = 600
-KINDS = ('flapping', 'errors', 'duplex', 'checkin')
+KINDS = ('flapping', 'errors', 'duplex', 'checkin', 'mapping')
 
 
 def _seat_names(data):
@@ -139,6 +139,8 @@ class AttentionWatch:
                     port_seats[(str(dev['name']).lower(), name)] = seat
                 for entry in self._judge(dev, name, port, now, flaps, error_step, seat, checked_in):
                     found[entry['id']] = entry
+        for entry in mapping_items(data, devices):
+            found[entry['id']] = entry
         new = []
         with self._lock:
             for key, entry in found.items():
@@ -203,6 +205,33 @@ class AttentionWatch:
         with self._lock:
             items = sorted(self.items.values(), key=lambda i: -i['since'])
             return {'items': items, 'last_poll': self.last_poll, 'interval': self.interval()}
+
+
+MAPPING_TITLES = {
+    'shared': 'Seats {} and {} checked in on the same port',
+    'plan': 'Seat {} checked in on the port the patch plan gives to seat {}',
+    'taken': 'Seat {} was taken over by another nick',
+}
+
+
+def mapping_items(data, devices):
+    """Seat check-ins that disagree about ports (integrations/checkin.py, ``port_conflicts``)."""
+    try:
+        conflicts = checkin.port_conflicts(data)
+    except Exception as exc:  # noqa: BLE001  # the port checks above still count
+        print(f'[attention] could not read the seat check-in ports: {exc}')
+        return []
+    ids = {str(d.get('name') or '').lower(): d['id'] for d in devices}
+    out = []
+    for c in conflicts:
+        title = MAPPING_TITLES[c['kind']].format(c['seat'], *(c['other'] or ['']))
+        if c['kind'] == 'shared' and len(c['other']) > 1:
+            title = MAPPING_TITLES['shared'].format(c['seat'], ', '.join(c['other']))
+        out.append({'switch_id': ids.get(str(c['switch']).lower()), 'switch': c['switch'], 'port': c['port'],
+                    'seat': c['seat'], 'where': f"{c['switch']} {c['port']} (seat {c['seat']})",
+                    'kind': 'mapping', 'title': title,
+                    'id': f"mapping:{c['kind']}:{c['seat']}:{c['switch']}:{c['port']}"})
+    return out
 
 
 def _app_ext():

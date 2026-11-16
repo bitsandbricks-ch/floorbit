@@ -71,3 +71,34 @@ A full IP or MAC is also looked up on the network (`GET /api/seats/find?q=`):
 Picking a result jumps to the seat, opens it, and the switch it hangs on lights up for a few
 seconds. Nicks, IPs and MACs never reach roles without `seats.view`; they still find switches and
 seat numbers.
+
+## Checking in from a PC
+
+A PC has no camera, so nobody has to scan the QR code. With check-in on (`CHECKIN_ENABLED`), every
+seat card on the printed sheet (Incidents, then Seat QR codes) also carries:
+
+- the **short address** to type, `CHECKIN_ADDRESS` (for example `checkin.example.com`). Point that
+  name at Floorbit in the event DNS; opening it lands on `/checkin`. It also shows on the sign-in page.
+- the seat's **PIN**: five characters, unique per seat, without look-alikes (no 0/O, 1/I/L, 5/S, 8/B).
+  PINs are made the first time the sheet is opened and kept, so a reprint gives the same cards.
+
+The attendee types the PIN and their nick, never the seat: the PIN names it. Floorbit then finds
+the switch port the PC is on. ARP only lives on the core switches, so it takes two steps: the
+request's IP gives the MAC from the core's ARP table, and that MAC is looked up in the MAC tables
+(FDB) of every switch. Every switch between the core and the seat learns the MAC too, on its uplink,
+so the port with the fewest MACs wins; ports named in "Ignored port names" and ports whose
+description matches the uplink pattern (`STATS_UPLINK_PATTERN`) are skipped.
+
+What Floorbit keeps is the pair **seat to switch port** (`seat_ports.json` next to `checkins.json`).
+The IP was only the way there. From then on the seat counts as patched to that port wherever the
+plan asks (port problems, syslog lines, the seat view, "who is on this port"), and the seat shows
+the MAC and IP that are on that port now, from the MAC and ARP tables. A cable drawn in the patch
+plan always wins over a learned port.
+
+The Problems page lists check-ins that disagree, as **Seat port** entries: two seats checked in on
+the same port, a port the patch plan gives to another seat, or a seat taken over by another nick.
+They name the seat and port, never the nick.
+
+The phone page can still take a typed seat number (the QR code case). That records the check-in but
+teaches no port. Turn on **Always ask for the seat PIN** (`CHECKIN_REQUIRE_PIN`) to refuse typed
+seats without their PIN.

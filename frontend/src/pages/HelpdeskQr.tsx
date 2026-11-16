@@ -22,6 +22,7 @@ export default function HelpdeskQr() {
   const wanted = parseSeats(only)
   const shown = seats.filter((s) => (!block || seatBlock(s.seat) === block) && (!wanted.size || wanted.has(s.seat)))
   const filtered = !!block || wanted.size > 0
+  const checkinAt = qr.data?.checkin?.address || (qr.data?.checkin?.url ?? '').replace(/^https?:\/\//, '')
   return (
     <Layout title={t('incidents.qrTitle')} back={{ href: '/incidents', label: t('incidents.title') }}>
       <div className="fb-no-print">
@@ -63,6 +64,13 @@ export default function HelpdeskQr() {
                   <strong>{s.seat}</strong>
                 </Group>
                 <span>{t('incidents.qrCaption')}</span>
+                {s.pin && (
+                  // A PC has no camera: the address to type and the PIN that names this seat.
+                  <span className="fb-qr-pin">
+                    <span>{t('incidents.qrCheckin', { address: checkinAt })}</span>
+                    <span>PIN <b>{s.pin}</b></span>
+                  </span>
+                )}
               </figcaption>
             </figure>
           ))}
