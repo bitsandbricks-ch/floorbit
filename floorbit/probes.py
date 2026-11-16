@@ -53,7 +53,7 @@ def target(host):
     nets = _nets()
     for addr in sorted(addrs):
         ip = ipaddress.ip_address(addr.split('%')[0])
-        # ::ffff:169.254.169.254 reaches 169.254.169.254, and Python before 3.13 doesn't call it link-local.
+        # ::ffff:169.254.169.254 reaches 169.254.169.254; not every Python release calls it link-local.
         ip = getattr(ip, 'ipv4_mapped', None) or ip
         if ip.is_link_local or ip.is_unspecified or ip.is_multicast:
             continue
