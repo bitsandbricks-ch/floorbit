@@ -923,15 +923,6 @@
           <span class="field-label">First row</span>
           <input class="modal-input" type="text" id="block-row-start" value="A" maxlength="2" autocomplete="off" />
         </label>
-        <label class="field" id="block-row-labels-field">
-          <span class="field-label">Row letter</span>
-          <select class="modal-input" id="block-row-labels">
-            <option value="start">Before seat 1</option>
-            <option value="end">After the last seat</option>
-            <option value="both">On both ends</option>
-            <option value="none">Hidden</option>
-          </select>
-        </label>
         <label class="field field-full">
           <span class="field-label">Block name <span class="field-optional" id="block-name-hint">(optional, shown above the block)</span></span>
           <input class="modal-input" type="text" id="block-name" placeholder="e.g. A" maxlength="48" autocomplete="off" />
@@ -943,25 +934,6 @@
         <label class="field">
           <span class="field-label">Rows</span>
           <input class="modal-input" type="number" id="block-rows" value="1" min="1" max="20" />
-        </label>
-        <label class="field">
-          <span class="field-label">Spacing X (%)</span>
-          <input class="modal-input" type="number" id="block-spacing-x" value="0.5" min="0" max="5" step="0.1" />
-        </label>
-        <label class="field">
-          <span class="field-label">Spacing Y (%)</span>
-          <input class="modal-input" type="number" id="block-spacing-y" value="1" min="0" max="5" step="0.1" />
-        </label>
-        <label class="field">
-          <span class="field-label">Rotation (°)</span>
-          <input class="modal-input" type="number" id="block-rotation" value="0" min="0" max="360" step="45" />
-        </label>
-        <label class="setting-row field setting-inline">
-          <span class="setting-label">Reverse numbering</span>
-          <span class="toggle-switch">
-            <input type="checkbox" id="block-reverse-numbers-modal" />
-            <span class="toggle-track"></span>
-          </span>
         </label>
         <label class="field">
           <span class="field-label">How many blocks</span>
@@ -978,6 +950,33 @@
           <span class="field-label">Gap between blocks (%)</span>
           <input class="modal-input" type="number" id="block-gap" value="3" min="0" max="50" step="0.5" />
         </label>
+        {# The defaults come from Settings > Floor plan; seat size and spacing are the same for every block. #}
+        <details class="field-full block-more" id="block-more">
+          <summary>More options</summary>
+          <div class="form-grid">
+            <label class="field" id="block-row-labels-field">
+              <span class="field-label">Row letter</span>
+              <select class="modal-input" id="block-row-labels">
+                <option value="start">Before seat 1</option>
+                <option value="end">After the last seat</option>
+                <option value="both">On both ends</option>
+                <option value="none">Hidden</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Rotation (°)</span>
+              <input class="modal-input" type="number" id="block-rotation" value="0" min="0" max="360" step="45" />
+            </label>
+            <label class="setting-row field setting-inline">
+              <span class="setting-label">Seat 1 on the right</span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="block-reverse-numbers-modal" />
+                <span class="toggle-track"></span>
+              </span>
+            </label>
+          </div>
+          <p class="field-hint">The defaults are under <a href="/settings#sec-floorplan">Settings &gt; Floor plan</a>.</p>
+        </details>
       </div>
       <p class="field-hint" id="block-preview">8 seats</p>
 

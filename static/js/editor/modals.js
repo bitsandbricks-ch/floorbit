@@ -205,8 +205,6 @@ const blockBackdrop    = $('block-backdrop');
 const blockName        = $('block-name');
 const blockCols        = $('block-cols');
 const blockRows        = $('block-rows');
-const blockSpacingX    = $('block-spacing-x');
-const blockSpacingY    = $('block-spacing-y');
 const blockRotation    = $('block-rotation');
 const blockReverseNumbersModal = $('block-reverse-numbers-modal');
 const blockCancel      = $('block-cancel');
@@ -259,10 +257,6 @@ function blockModalValues() {
     name: blockName.value.trim(),
     cols: Math.max(1, parseInt(blockCols.value) || 1),
     rows: Math.max(1, parseInt(blockRows.value) || 1),
-    seat_width: 1.5,
-    seat_height: 1.5,
-    spacing_x: parseFloat(blockSpacingX.value) || 0.5,
-    spacing_y: parseFloat(blockSpacingY.value) || 1,
     numbering_pattern: 'blockname_number',
     reverse_numbers: blockReverseNumbersModal.checked,
     rotation: parseInt(blockRotation.value) || 0,
@@ -297,21 +291,22 @@ function updateBlockPreview() {
 [blockName, blockCols, blockRows, blockRotation, blockRowStart, blockCount, blockGap].forEach(el => el.addEventListener('input', updateBlockPreview));
 [blockReverseNumbersModal, blockNaming, blockRowLabels, blockDirection].forEach(el => el.addEventListener('change', updateBlockPreview));
 
+// Seat size and spacing are the same for every block; the rest starts from Settings > Floor plan.
 async function openBlockModal() {
   await loadAllSeatRows();
-  blockNaming.value = 'rows';
+  const d = config.floorplan_defaults || {};
+  blockNaming.value = d.naming || 'rows';
   blockRowStart.value = nextFreeRow();
-  blockRowLabels.value = 'start';
+  blockRowLabels.value = d.row_labels || 'start';
   blockCount.value = '1';
   blockDirection.value = 'down';
-  blockGap.value = '3';
+  blockGap.value = String(d.block_gap ?? 3);
   blockName.value = '';
   blockCols.value = '8';
   blockRows.value = '1';
-  blockSpacingX.value = '0.5';
-  blockSpacingY.value = '1';
   blockRotation.value = '0';
-  blockReverseNumbersModal.checked = false;
+  blockReverseNumbersModal.checked = !!d.reverse_numbers;
+  $('block-more').open = false;
   updateBlockPreview();
   blockBackdrop.classList.remove('hidden');
   blockName.focus();

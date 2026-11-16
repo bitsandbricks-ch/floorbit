@@ -1195,3 +1195,6 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .floorplan-wrapper[data-tool^="cable-"] .switch-marker, .floorplan-wrapper[data-tool^="cable-"] .seat-block-seat,
 .floorplan-wrapper[data-tool^="cable-"] .seat-block, .floorplan-wrapper[data-tool^="cable-"] .power-board { cursor: crosshair; }
 #cable-form .form-grid { margin-top: var(--sp-2); }
+/* The block dialog's "More options" (templates/index.html). */
+.block-more > summary { cursor: pointer; color: var(--text-secondary); font-size: var(--fs-sm, 13px); padding: var(--sp-1) 0; }
+.block-more[open] > summary { margin-bottom: var(--sp-2); }
