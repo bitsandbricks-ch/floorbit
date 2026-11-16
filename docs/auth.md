@@ -45,7 +45,7 @@ use can't be removed, and no change may leave nobody with `accounts.manage`.
 | Request | Signed out | Needs |
 | --- | --- | --- |
 | `/` (floor plan editor) | redirected to `/login` | `floorplan.view`; editing tools need `floorplan.edit` |
-| What the kiosk view draws: `GET /api/config`, `/api/switches`, `/api/halls`, `/api/plan`, `/api/plan-marks`, `/api/seat-blocks`, `/api/seats`, `/api/seats/occupancy`, `/api/stats/seats`, `/api/status/snapshot`, live events | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
+| What the kiosk view draws: `GET /api/config`, `/api/switches`, `/api/halls`, `/api/plan-marks`, `/api/seat-blocks`, `/api/seats`, `/api/seats/occupancy`, `/api/stats/seats`, `/api/status/snapshot`, live events | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
 | Every other `GET /api/...` (inventory, incidents, firewalls, reports, replay, DNS, ...) | 401 / login | `floorplan.view` (a kiosk account is enough) |
 | `/api/seats/info`, `/api/seat-map`, `/api/checkins`, `/seat-mapping` (nicks, IPs, MACs) | 401 / login | `seats.view` (changes: `seats.edit`) |
 | Floor plan, seat block and inventory changes | 401 | `floorplan.edit` |

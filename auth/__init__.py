@@ -39,7 +39,7 @@ DEFAULT_PUBLIC_PATHS = '/checkin,/api/checkin,/kiosk'
 # draw (static/js/kiosk.js), and nothing else. Anything more (inventory with management IPs,
 # incidents, the firewall per seat, reports) needs an account. A path covers what is below it.
 PUBLIC_READ_PATHS = ('/api/auth/me', '/api/plugins/menu',   # answer for "nobody" themselves
-                     '/api/config', '/api/version', '/api/features', '/api/halls', '/api/plan', '/api/plan-marks',
+                     '/api/config', '/api/version', '/api/features', '/api/halls', '/api/plan-marks',
                      '/api/seat-blocks', '/api/seats/occupancy', '/api/stats/seats', '/api/status/snapshot',
                      '/api/switches', '/api/events')
 PUBLIC_READ_EXACT = ('/api/seats',)    # not /api/seats/info and the rest below it

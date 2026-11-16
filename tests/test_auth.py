@@ -56,7 +56,8 @@ def test_settings_api_is_never_open(anon_client):
 
 @pytest.mark.parametrize("path", ["/api/inventory", "/api/firewalls/seats", "/api/incidents.csv", "/api/report",
                                   "/api/replay/event.json", "/api/past-events", "/api/cables.csv", "/api/dns",
-                                  "/api/game-servers", "/api/seats/heatmap", "/api/power"])
+                                  "/api/game-servers", "/api/seats/heatmap", "/api/power", "/api/plan",
+                                  "/api/plan/seats/A-1"])
 def test_signed_out_reads_are_only_what_the_kiosk_draws(anon_client, kiosk_client, path):
     # Management IPs, the firewall per seat, incidents and reports need an account, even a kiosk one.
     assert anon_client.get(path).status_code == 401
@@ -65,7 +66,7 @@ def test_signed_out_reads_are_only_what_the_kiosk_draws(anon_client, kiosk_clien
 
 def test_the_kiosk_view_still_loads_signed_out(anon_client):
     for path in ("/api/config", "/api/switches", "/api/seat-blocks", "/api/seats", "/api/halls", "/api/plan-marks",
-                 "/api/seats/occupancy", "/api/status/snapshot", "/api/stats/seats", "/api/plan"):
+                 "/api/seats/occupancy", "/api/status/snapshot", "/api/stats/seats"):
         assert anon_client.get(path).status_code == 200, path
 
 
