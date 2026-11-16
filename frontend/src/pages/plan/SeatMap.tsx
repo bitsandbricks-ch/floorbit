@@ -1,7 +1,7 @@
 import { PlanMarks } from './PlanMarks'
 import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FirewallSeats, IncidentMarkers, PlanCable, PlanSeat, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import {
@@ -162,6 +162,16 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const [cursor, setCursor] = useState<string | null>(null)
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const moved = useRef(false)
+  // Steady handlers, so a block's seats only draw again when something about them changed, not on
+  // every pan and zoom (a hall of a few thousand seats stays smooth).
+  const onSelectRef = useRef(onSelect)
+  useEffect(() => { onSelectRef.current = onSelect }, [onSelect])
+  const enterSeat = useCallback((seat: string, clientX: number, clientY: number) => {
+    const box = wrap.current?.getBoundingClientRect()
+    setHover({ seat, x: clientX - (box?.left ?? 0), y: clientY - (box?.top ?? 0) })
+  }, [])
+  const leaveSeat = useCallback(() => setHover(null), [])
+  const clickSeat = useCallback((seat: string) => { if (!moved.current) onSelectRef.current(seat) }, [])
 
   // Screen point to plan point.
   const toPlan = (clientX: number, clientY: number) => {
@@ -273,7 +283,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
     }
   }
 
-  const stateText = (seat: PlanSeat) => [
+  const stateText = useCallback((seat: PlanSeat) => [
     t(`plan.state.${seat.state}`),
     seat.checked_in ? t('plan.checkedIn') : null,
     seat.problems ? t('plan.problemsN', { count: seat.problems }) : null,
@@ -281,7 +291,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
     seat.bps ? rate(seat.bps) : null,
     seat.changed ? t('plan.changedAgo', { count: minutesAgo(seat.changed) }) : null,
     seat.note ? t('plan.hasNote') : null,
-  ].filter(Boolean).join(' · ')
+  ].filter(Boolean).join(' · '), [t])
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
   const network = layers.on.has('network')
@@ -320,32 +330,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em" fontSize={drawing.cell * 0.6}
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
-              {b.cells.map((c) => {
-                const seat = data.seats[c.seat] ?? { state: 'unknown' as const }
-                const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
-                const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
-                  cursor === c.seat ? 'kb' : ''].join(' ').trim()
-                return (
-                  <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
-                    role="button" aria-label={`${c.seat}: ${stateText(seat)}`}
-                    onPointerEnter={(e) => {
-                      const box = wrap.current?.getBoundingClientRect()
-                      setHover({ seat: c.seat, x: e.clientX - (box?.left ?? 0), y: e.clientY - (box?.top ?? 0) })
-                    }}
-                    onPointerLeave={() => setHover(null)}
-                    onClick={() => { if (!moved.current) onSelect(c.seat) }}>
-                    <rect className="hit" width={drawing.cell} height={drawing.cell} />
-                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
-                      checkin={layers.on.has('checkin')} incidents={incidents?.seats[c.seat]} />
-                    {level === 'near' && (
-                      <text className="num" x={drawing.cell / 2} y={drawing.cell / 2} dy="0.35em"
-                        transform={b.rotation ? `rotate(${-b.rotation} ${drawing.cell / 2} ${drawing.cell / 2})` : undefined}>
-                        {c.seat.split('-').pop()}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
+              <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected}
+                cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls}
+                checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
             {b.name && level !== 'far' && <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>{b.name}</text>}
           </g>
@@ -400,3 +387,40 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
     </div>
   )
 }
+
+/** One block's seats, in the block's coordinates. Memoised: panning and zooming don't draw them again. */
+const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, cursor, traffic, firewalls, checkin, incidents, level, ids, onEnter, onLeave, onClick, describe }: {
+  cells: { seat: string; x: number; y: number }[]; rotation: number; seats: SeatViewData['seats']; cell: number
+  filter: Filter; selected: string | null; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
+  checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; ids: string
+  onEnter: (seat: string, clientX: number, clientY: number) => void; onLeave: () => void; onClick: (seat: string) => void
+  describe: (seat: PlanSeat) => string
+}) {
+  return (
+    <>
+      {cells.map((c) => {
+        const seat = seats[c.seat] ?? { state: 'unknown' as const }
+        const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
+        const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
+          cursor === c.seat ? 'kb' : ''].join(' ').trim()
+        return (
+          <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
+            role="button" aria-label={`${c.seat}: ${describe(seat)}`}
+            onPointerEnter={(e) => onEnter(c.seat, e.clientX, e.clientY)}
+            onPointerLeave={onLeave}
+            onClick={() => onClick(c.seat)}>
+            <rect className="hit" width={cell} height={cell} />
+            <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
+              checkin={checkin} incidents={incidents?.[c.seat]} />
+            {level === 'near' && (
+              <text className="num" x={cell / 2} y={cell / 2} dy="0.35em"
+                transform={rotation ? `rotate(${-rotation} ${cell / 2} ${cell / 2})` : undefined}>
+                {c.seat.split('-').pop()}
+              </text>
+            )}
+          </g>
+        )
+      })}
+    </>
+  )
+})
