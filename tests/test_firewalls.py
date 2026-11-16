@@ -142,3 +142,18 @@ def test_a_split_that_makes_no_sense_is_refused(client, net, body):
     r = client.post("/api/firewalls/ranges/split", json=body)
     assert r.status_code == 400 and r.get_json()["error"]
     assert client.get("/api/firewalls").get_json()["ranges"] == []
+
+
+def test_the_plan_layer_lists_seats_off_their_planned_firewall_by_name_only(client, net):
+    assert client.get("/api/firewalls/seats").get_json() == {"enabled": False, "seats": {}}
+    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    _add(client, "192.0.2.32/27", "fw-02")
+    _add(client, "198.51.100.0/24", "fw-03")
+    net.up["fw-01"] = False
+    net.up["fw-03"] = False
+    body = client.get("/api/firewalls/seats").get_json()
+    assert body == {"enabled": True, "seats": {
+        "A-1": {"now": "fw-02", "intended": "fw-01", "state": "failover"},
+        "B-1": {"now": None, "intended": "fw-03", "state": "down"},
+    }}
+    assert "192.0.2" not in str(body) and "198.51" not in str(body)

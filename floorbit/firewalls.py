@@ -268,6 +268,30 @@ def overview(now=None):
             'unread': health.devices(now) is None}
 
 
+def seat_routes(now=None):
+    """The seats whose traffic isn't on its planned firewall, for the plan's firewall layer: by seat,
+    the firewall now (None: none left) and the planned one. Names only, never the IPs."""
+    now = time.time() if now is None else now
+    data = load_data()
+    nets = _nets(data)
+    if not nets:
+        return {'enabled': False, 'seats': {}}
+    status = {n: health.status(n, now) for _row, _net in nets for n in _row.get('firewalls') or []}
+    routes = {}
+    seats = {}
+    for seat, ip in _seat_ips().items():
+        row = _match(ip, nets)
+        if row is None:
+            continue
+        if row['id'] not in routes:
+            line = list(row.get('firewalls') or [])
+            routes[row['id']] = (*_route(line, status), line[0] if line else None)
+        now_on, state, intended = routes[row['id']]
+        if state in ('failover', 'down'):
+            seats[seat] = {'now': now_on, 'intended': intended, 'state': state}
+    return {'enabled': True, 'seats': seats}
+
+
 def configured(data=None):
     """Are there firewalls in the inventory? Cheap: the health wall asks on every poll."""
     data = load_data() if data is None else data

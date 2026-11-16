@@ -19,7 +19,8 @@ a service changes colour.
 ## Where the checks come from
 
 Floorbit checks nothing itself, except the [game servers](game-servers.md), the internet lines and
-resolvers on the [Services](services.md) page and the [firewalls](firewalls.md), each set up on its own page.
+resolvers on the [Services](services.md) page, the LAN cache Floorbit reads and the [firewalls](firewalls.md), each set
+up on its own page.
 Every other service on the wall comes from a plugin with `uses: [health]` (see [plugins.md](plugins.md)):
 
 - **HTTP check** (built in) puts each of its web services on the wall: red when it doesn't answer

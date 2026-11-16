@@ -1275,6 +1275,12 @@ export interface PlanSwitch {
 
 export interface PlanLink { id: string; a: string; b: string; type: LinkType | ''; media: string; speed: number | null; issue: '' | 'down' | 'slow' }
 /** GET /api/power/markers (floorbit/power.py): the boards and each circuit's cable, for the plan's power layer. */
+/** GET /api/firewalls/seats (issue #470): the seats whose traffic isn't on its planned firewall. */
+export interface FirewallSeats {
+  enabled: boolean
+  seats: Record<string, { now: string | null; intended: string | null; state: 'failover' | 'down' }>
+}
+
 export interface PowerMarkers {
   enabled: boolean
   boards: { id: string; name: string; x: number; y: number; state: PowerState }[]

@@ -22,11 +22,11 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from flask import current_app
+from flask import current_app, has_app_context
 
 from integrations import config
 
-from . import inventory, links, probes
+from . import inventory, lancache, links, probes
 from .store import load_data, save_data
 
 KEY = 'services'
@@ -307,7 +307,8 @@ poller = Poller()
 def lan_cache(now=None):
     """The LAN cache this hour (hit ratio, bytes served) and how full its disk is, or None when
     Floorbit reads no cache log."""
-    stats = current_app.extensions.get('floorbit_lancache')
+    # The health wall asks from its own thread, outside a request.
+    stats = current_app.extensions.get('floorbit_lancache') if has_app_context() else lancache._stats
     snap = stats.snapshot(hours=1, now=now) if stats is not None else None
     path = config.get('LANCACHE_CACHE_DIR', '') or ''
     disk = None
@@ -381,7 +382,29 @@ def health_checks():
         out.append({'id': f"dns:{res['id']}", 'name': res['name'], 'kind': 'dns', 'status': s['status'],
                     'summary': summary, 'metrics': metrics, 'link': '/services',
                     'plugin': 'services', 'plugin_name': 'Services'})
+    cache = lan_cache()
+    if cache is not None and not cache['demo']:
+        out.append(_cache_tile(cache))
     return out
+
+
+def _cache_tile(cache):
+    disk, hit = cache['disk'], cache['hit_ratio']
+    if cache['error']:
+        summary = cache['error']
+    elif disk and disk['ratio'] >= WARN_DISK:
+        summary = f"The cache disk is {round(disk['ratio'] * 100)} % full."
+    elif hit is not None:
+        summary = f"{round(hit * 100)} % served from the cache this hour"
+    else:
+        summary = 'Nothing downloaded this hour.'
+    metrics = [m for m in (
+        {'label': 'Hits', 'value': round(hit * 100), 'unit': '%', 'tone': ''} if hit is not None else None,
+        {'label': 'Disk', 'value': round(disk['ratio'] * 100), 'unit': '%',
+         'tone': 'warn' if disk['ratio'] >= WARN_DISK else ''} if disk else None) if m]
+    return {'id': 'lancache', 'name': 'LAN cache', 'kind': 'cache', 'status': cache['status'],
+            'summary': summary, 'metrics': metrics, 'link': '/services',
+            'plugin': 'services', 'plugin_name': 'Services'}
 
 
 def init_app(app, start_background=True):

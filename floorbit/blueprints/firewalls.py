@@ -4,6 +4,7 @@ docs/firewalls.md.
 - ``GET /firewalls``: the page.
 - ``GET /api/firewalls``: the firewalls with their health, every range with the firewall it takes now.
 - ``POST /api/firewalls/ranges``, ``PUT/DELETE /api/firewalls/ranges/<id>``: ``floorplan.edit``.
+- ``GET /api/firewalls/seats``: the seats not on their planned firewall, for the plan's layer.
 - ``POST /api/firewalls/ranges/split``: cut a network into ranges, shared out over the firewalls in turn.
 """
 from flask import Blueprint, g, jsonify, request
@@ -21,6 +22,11 @@ def firewalls_page():
 @bp.route('/api/firewalls', methods=['GET'])
 def get_firewalls():
     return jsonify(firewalls.overview())
+
+
+@bp.route('/api/firewalls/seats', methods=['GET'])
+def seat_routes():
+    return jsonify(firewalls.seat_routes())
 
 
 @bp.route('/api/firewalls/ranges', methods=['POST'])

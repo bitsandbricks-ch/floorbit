@@ -37,6 +37,14 @@ the second to the second firewall, and so on, the way a core usually spreads sea
 The ranges are numbered after the name (`Seat range 1`, `Seat range 2`, ...). A range planned
 already keeps its own line. One split makes at most 256 ranges.
 
+## On the floor plan
+
+Once ranges are planned, the floor plan has a **Firewalls** switch. It rings every seat whose
+traffic isn't on its planned firewall: a dashed amber ring when the range failed over to a backup,
+a solid red ring when no firewall in its line is up. Seats on their planned firewall stay as they
+are, so a failover shows as a patch of rings in the hall. The seat panel says which firewall the
+seat takes now. The plan gets seat names and firewall names only, never the IPs.
+
 ## Health
 
 Each firewall's state comes from the monitoring source's device list (LibreNMS, or the local

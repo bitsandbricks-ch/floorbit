@@ -190,6 +190,11 @@
   "firewall": "Firewall",
   "firewallFailover": "{{now}} (umgeschaltet von {{intended}})",
   "firewallNone": "Keine erreichbar (geplant {{name}})",
+  "firewallLayer": {
+    "layer": "Firewalls",
+    "failover": "Platz läuft über eine Backup-Firewall",
+    "down": "Platz hat keine Firewall mehr"
+  },
   "power": {
     "layer": "Strom",
     "ok": "Stromkreis gut",

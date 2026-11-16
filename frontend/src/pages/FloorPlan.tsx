@@ -9,7 +9,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { PlayerHit, PowerMarkers, SeatViewData } from '@/api/types'
+import type { FirewallSeats, PlayerHit, PowerMarkers, SeatViewData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
@@ -37,6 +37,7 @@ export default function FloorPlan() {
   const print = !screen && params.get('print') === '1'
   const traffic = params.get('traffic') === '1'
   const powerOn = params.get('power') === '1'
+  const firewallOn = params.get('firewalls') === '1'
   const list = !screen && params.get('view') === 'list'
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
@@ -60,6 +61,12 @@ export default function FloorPlan() {
     refetchInterval: powerOn ? 30_000 : false, staleTime: 60_000, enabled: !print,
   })
   const power = powerOn && markers.data?.enabled ? markers.data : undefined
+  // The firewall layer (issue #470): offered once ranges are planned, kept fresh while shown.
+  const fwSeats = useQuery({
+    queryKey: qk.firewallSeats, queryFn: () => get<FirewallSeats>('/api/firewalls/seats'),
+    refetchInterval: firewallOn ? 15_000 : false, staleTime: 60_000, enabled: !print && !screen,
+  })
+  const firewalls = firewallOn && fwSeats.data?.enabled ? fwSeats.data.seats : undefined
   const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: qk.planAll }) }, [qc])
   useLiveEvent('stats.changed', refresh)
   useLiveEvent('attention.changed', refresh)
@@ -163,7 +170,7 @@ export default function FloorPlan() {
   const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
 
   const map = data?.drawing && view && (
-    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power}
+    <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
@@ -271,6 +278,9 @@ export default function FloorPlan() {
             {!list && markers.data?.enabled && (
               <Switch size="sm" label={t('plan.power.layer')} checked={powerOn} onChange={(e) => set('power', e.currentTarget.checked ? '1' : null)} />
             )}
+            {!list && fwSeats.data?.enabled && (
+              <Switch size="sm" label={t('plan.firewallLayer.layer')} checked={firewallOn} onChange={(e) => set('firewalls', e.currentTarget.checked ? '1' : null)} />
+            )}
           </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
@@ -279,7 +289,7 @@ export default function FloorPlan() {
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
-          {!list && <Legend checkin={data.checkin} traffic={traffic} power={!!power} />}
+          {!list && <Legend checkin={data.checkin} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
           {!list && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}
