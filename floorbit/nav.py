@@ -157,7 +157,8 @@ def markup(boot):
     user = boot.get('user')
     name = (user.get('name') or user.get('username')) if user else nav_t['account']
     avatar = e(_initials(name)) if user else icons.get('dots', '')
-    aria = (tx.get('signedInAs', 'Signed in as {{username}}').replace('{{username}}', user['username'] or '') if user else nav_t['account'])
+    signed_in = tx.get('signedInAs', 'Signed in as {{username}}')
+    aria = signed_in.replace('{{username}}', user['username'] or '') if user else nav_t['account']
     title = f' title="{e(name)}"' if rail else ''
     fold = nav_t['expand'] if rail else nav_t['collapse']
     out.append('<div class="fb-nav-foot"><div class="fb-nav-account">'
