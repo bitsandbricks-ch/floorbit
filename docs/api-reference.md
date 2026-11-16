@@ -715,7 +715,9 @@ Source: [`floorbit/blueprints/seat_map.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/seat-map.csv` | `seats.view` |  |
 | DELETE | `/api/seat-map/<seat>` | `seats.edit` |  |
 | PUT | `/api/seat-map/<seat>` | `seats.edit` |  |
+| POST | `/api/seat-map/find-port` | `seats.edit` |  |
 | POST | `/api/seat-map/import` | `seats.edit` |  |
+| POST | `/api/seat-map/resolve-ports` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 

@@ -1,8 +1,8 @@
 {
   "title": "Platzzuordnung",
-  "intro": "Welche IP, MAC und welcher Nick zu welchem Platz gehören. Floorbit führt sie aus der Check-in-Seite, Plugins und Platzdateien zusammen. Was du hier einträgst, gilt vor allen anderen Quellen; leere Felder kommen aus den anderen Quellen. Nur Konten mit Zugriff auf die Plätze sehen sie: Das sind Personendaten.",
+  "intro": "An welchem Switch-Port jeder Platz hängt. IP und MAC liest Floorbit an diesem Port aus den MAC-Tabellen der Switches, darum trägst du sie nur für einen Platz ein, dessen Port noch unbekannt ist. Ports kommen aus den Kabeln und aus den Check-ins; was du hier einträgst, gilt vor ihnen. Nur Konten mit Zugriff auf die Plätze sehen sie: Das sind Personendaten.",
   "search": "Suchen",
-  "searchPlaceholder": "Platz, Nick, IP, MAC…",
+  "searchPlaceholder": "Platz, Switch, Port, Nick, IP, MAC…",
   "onlyManual": "Nur Einträge von Hand",
   "count_one": "{{count}} Platz",
   "count_other": "{{count}} Plätze",
@@ -28,11 +28,38 @@
   "removed": "Eintrag von Hand entfernt.",
   "sourceErrors": "Einige Quellen sind fehlgeschlagen: {{errors}}",
   "importTitle": "CSV importieren",
-  "importHelp": "Spalten: seat, ip, mac, nick, note (die erste Zeile nennt sie). Jede Zeile wird zuerst geprüft; ist eine falsch, wird nichts importiert.",
+  "importHelp": "Spalten: seat, switch, port, ip, mac, nick, note (die erste Zeile nennt sie; lass weg, was du nicht hast). Jede Zeile wird zuerst geprüft; ist eine falsch, wird nichts importiert.",
   "file": "CSV-Datei",
   "replace": "Alle Einträge von Hand ersetzen (Plätze, die nicht in der Datei sind, verlieren ihren)",
   "check": "Datei prüfen",
   "preview": "{{added}} neu, {{updated}} geändert, {{removed}} entfernt.",
   "importNow": "Importieren",
-  "imported": "Importiert: {{added}} neu, {{updated}} geändert, {{removed}} entfernt."
+  "imported": "Importiert: {{added}} neu, {{updated}} geändert, {{removed}} entfernt.",
+  "port": "Switch-Port",
+  "switch": "Switch",
+  "portOnSwitch": "Port",
+  "noPort": "Noch kein Port",
+  "origin": {
+    "manual": "Von Hand",
+    "cable": "Kabel",
+    "checkin": "Check-in"
+  },
+  "live": "Am Port gelesen",
+  "hints": "IP und MAC",
+  "hintsHelp": "Nur nötig, solange der Port des Platzes unbekannt ist: Floorbit liest beides am Port.",
+  "findTitle": "Port per MAC finden",
+  "findHelp": "Gerät einstecken, MAC eingeben, und Floorbit sucht den Port, an dem es hängt. Du kannst ihn später wieder ändern.",
+  "find": "Port finden",
+  "found": "Gefunden an {{switch}} {{port}}. Speichern, um ihn zu behalten.",
+  "foundHeld": "Gefunden an {{switch}} {{port}}, aber dieser Port ist jetzt Platz {{seat}}. Gib ihn dort zuerst frei.",
+  "resolve_one": "Port für {{count}} Eintrag mit nur IP oder MAC finden",
+  "resolve_other": "Ports für {{count}} Einträge mit nur IP oder MAC finden",
+  "resolved": "{{found}} haben ihren Port, {{missed}} nicht im Netz gesehen, {{taken}} an einem Port, den ein anderer Platz hat.",
+  "findMac": "Gesuchte MAC",
+  "originLong": {
+    "manual": "Von Hand",
+    "cable": "Aus einem Kabel",
+    "checkin": "Beim Check-in gefunden"
+  },
+  "fromOrigin": "Ohne Eintrag von Hand: {{value}} ({{origin}})"
 }

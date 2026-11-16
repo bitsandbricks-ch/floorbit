@@ -315,7 +315,6 @@
  "Say for how many minutes.": "Sag, für wie viele Minuten.",
  "Say in a few words what is wrong.": "Sag in ein paar Worten, was los ist.",
  "Say who or where it goes to: a person or an area.": "Sag, an wen oder wohin es geht: eine Person oder ein Bereich.",
- "Seat {} has no IP or MAC in the seat mapping.": "Platz {} hat keine IP oder MAC in der Platzzuordnung.",
  "Seat {} is a match seat ({}). Confirm again to {} its port.": "Platz {} ist ein Match-Platz ({}). Bestätige nochmals, um «{}» auf seinem Port auszuführen.",
  "Seat {} is not on the floor plan.": "Platz {} ist nicht auf dem Hallenplan.",
  "Seat {} was not found on any switch port.": "Platz {} wurde an keinem Switch-Port gefunden.",
@@ -353,7 +352,6 @@
  "The end is before the start.": "Das Ende liegt vor dem Anfang.",
  "The file has no events Floorbit can read.": "Die Datei hat keine Termine, die Floorbit lesen kann.",
  "The file is larger than 1 MB": "Die Datei ist grösser als 1 MB",
- "The first line must name the columns: seat, ip, mac, nick, note": "Die erste Zeile muss die Spalten nennen: seat, ip, mac, nick, note",
  "The fuse rating is a number of amps.": "Die Absicherung ist eine Zahl in Ampere.",
  "The fuse rating must be between 1 and {} A.": "Die Absicherung muss zwischen 1 und {} A liegen.",
  "The gateway must be an IP address.": "Das Gateway muss eine IP-Adresse sein.",
@@ -754,5 +752,12 @@
  "Trying again by itself…": "Versucht es von selbst wieder …",
  "That seat has no learned port": "Für diesen Platz ist kein Port gelernt",
  "Not allowed.": "Nicht erlaubt.",
- "Unknown list.": "Unbekannte Liste."
+ "Unknown list.": "Unbekannte Liste.",
+ "Seat {} has no switch port in the seat mapping.": "Platz {} hat keinen Switch-Port in der Platzzuordnung.",
+ "A port needs its switch.": "Ein Port braucht seinen Switch.",
+ "Pick the port on the switch too.": "Wähle auch den Port am Switch.",
+ "{} {} is already seat {}.": "{} {} ist schon Platz {}.",
+ "The first line must name the columns: seat, switch, port, ip, mac, nick, note": "Die erste Zeile muss die Spalten nennen: seat, switch, port, ip, mac, nick, note",
+ "Give a MAC or an IP to look for.": "Gib eine MAC oder eine IP an, nach der gesucht wird.",
+ "No switch sees this machine right now.": "Kein Switch sieht dieses Gerät gerade."
 }

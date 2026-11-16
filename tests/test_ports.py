@@ -89,7 +89,7 @@ def test_a_seat_without_an_ip_uses_the_port_description(client, switch, app_modu
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/7"): "A-7"}, raising=False)
     body = client.post("/api/ports/bounce", json={"seat": "A-7"}).get_json()
     assert (body["switch"], body["port"], body["seat"]) == ("sw-a-01", "Gi1/0/7", "A-7")
-    assert "no IP or MAC" in client.post("/api/ports/bounce", json={"seat": "A-8"}).get_json()["error"]
+    assert "no switch port" in client.post("/api/ports/bounce", json={"seat": "A-8"}).get_json()["error"]
 
 @pytest.mark.parametrize("port", ["Gi1/0/1\nreload", "Gi1/0/1; reload", "", " ", "x" * 60, "-shutdown"])
 def test_port_names_are_checked(client, switch, port):

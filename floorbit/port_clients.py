@@ -77,10 +77,17 @@ def _learned_cables():
             for seat, r in rows.items() if r.get('switch') and r.get('port')]
 
 
+def _hand_ports(data):
+    """The switch ports typed in on the Seat mapping page, shaped like cables."""
+    from . import seatmap
+    return [{'switch': e['switch'], 'port': e['port'], 'seat': seat, 'label': 'seat mapping'}
+            for seat, e in seatmap.entries(data).items() if e.get('switch') and e.get('port')]
+
+
 def find(monitor, data, seats):
     """One read: ``{"unplanned", "moved", "switches", "failed", "clients"}``."""
     from .syslog import canonical_port  # syslog reads attention, which reads cables: late
-    all_cables = cables_mod.all_cables(data) + _learned_cables()
+    all_cables = cables_mod.all_cables(data) + _hand_ports(data) + _learned_cables()
     by_port = {}
     for c in all_cables:   # a patched cable comes first and wins over a port a check-in found
         by_port.setdefault((c['switch'].lower(), canonical_port(c['port'])), c)
@@ -104,7 +111,7 @@ def find(monitor, data, seats):
                 per_port.setdefault((switch, row['port']), set()).add(mac)
     mac_ip = _arp(monitor, networks(ip_seat)) if per_port else {}
 
-    unplanned, moved, clients, seat_ips = [], [], 0, {}
+    unplanned, moved, clients, seat_ips, seat_macs = [], [], 0, {}, {}
     for (switch, port), macs in sorted(per_port.items(), key=lambda kv: (kv[0][0].lower(), canonical_port(kv[0][1]))):
         if len(macs) > UPLINK_MACS:
             continue
@@ -120,10 +127,12 @@ def find(monitor, data, seats):
                 continue
             if ip:
                 seat_ips[ip] = cable['seat'].upper()
+            if len(macs) == 1:      # two machines on one seat port: say nothing rather than guess
+                seat_macs[cable['seat']] = {'mac_address': mac, 'ip_address': ip}
             if row['ip_seat'] and row['ip_seat'] != cable['seat'].upper():
                 moved.append({**row, 'seat': cable['seat'], 'cable': cable['label']})
     return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'switches': len(switches),
-            'failed': failed, 'clients': clients, 'seat_ips': seat_ips}
+            'failed': failed, 'clients': clients, 'seat_ips': seat_ips, 'seat_macs': seat_macs}
 
 
 def _start(work):
@@ -147,6 +156,7 @@ class Finder:
         self.app = app
         self.result = None
         self.seat_ips = {}     # {ip: seat} on cabled seat ports, last read: the captive answer (captive.py)
+        self.seat_macs = {}    # {seat: {mac_address, ip_address}}: the seat mapping's "network" source
         self.as_of = None
         self.error = None
         self._lock = threading.Lock()
@@ -166,6 +176,7 @@ class Finder:
         with self._lock:
             if result is not None:
                 self.seat_ips = result.pop('seat_ips', {})
+                self.seat_macs = result.pop('seat_macs', {})
                 self.result, self.as_of = result, time.time() if now is None else now
             self.error = error
             self._running = False
@@ -196,9 +207,22 @@ class Finder:
     def reset(self):
         with self._lock:
             self.result = self.as_of = self.error = None
-            self.seat_ips = {}
+            self.seat_ips, self.seat_macs = {}, {}
             self._running = False
 
 
+_finder = None
+
+
+def seat_clients():
+    """{seat: {mac_address, ip_address}} from the last read, for the seat mapping."""
+    finder = _finder
+    if finder is None:
+        return {}
+    with finder._lock:
+        return {seat: dict(v) for seat, v in finder.seat_macs.items()}
+
+
 def init_app(app):
-    app.extensions['floorbit_port_clients'] = Finder(app)
+    global _finder
+    _finder = app.extensions['floorbit_port_clients'] = Finder(app)
