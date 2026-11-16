@@ -67,7 +67,8 @@ function Report({ report, lang }: { report?: AgentReport | null; lang: string })
     const up = uptime(report.up_seconds)
     parts.push(t(up.key, { count: up.n }))
   }
-  const drops = (report.reconnects ?? 0) + (report.link_drops ?? 0)
+  // Every dropped link is followed by a reconnect, so adding them up would count each twice.
+  const drops = Math.max(report.reconnects ?? 0, report.link_drops ?? 0)
   parts.push(drops ? <Text span size="xs" c="warn" key="r">{t('agents.reconnects', { count: drops })}</Text> : t('agents.noReconnects'))
   if (report.syslog_received) {
     parts.push(t('agents.reportSyslog', { received: num(report.syslog_received), waiting: num(report.syslog_backlog) }))
