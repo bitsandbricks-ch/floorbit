@@ -6,7 +6,8 @@ line when it isn't. Floorbit keeps that plan and shows it against the firewalls'
 - **The firewalls** are the inventory's devices with the role ``firewall``.
 - **A range** is a network (``192.0.2.0/27``) with its firewalls in order: the first is the one its
   traffic should take, the rest the failover order. Kept in data.json under ``firewalls``; the crew
-  changes them (``floorplan.edit``).
+  changes them (``floorplan.edit``), or imports them from NetBox prefixes that have the custom field
+  ``floorbit_firewalls`` (``source: import``; each import replaces the last).
 - **Now**: the first firewall in a range's line that the monitoring source doesn't report down. A
   firewall the source can't tell about counts as up (the core would still route to it), but the
   range says so (``unknown``).
@@ -84,6 +85,9 @@ def save(body, by, range_id=None):
         row = next((r for r in rows if r.get('id') == range_id), None) if range_id else None
         if range_id and row is None:
             raise FirewallError('No such range.', 404)
+        if row is not None and row.get('source') == 'import':
+            raise FirewallError(f"This range comes from {row.get('plugin') or 'NetBox'}: change it there and import "
+                                'again.', 409)
         fields = _clean(body, data, row)
         if any(r is not row and r.get('cidr') == fields['cidr'] for r in rows):
             raise FirewallError(f"{fields['cidr']} is planned already.", 409)
@@ -138,6 +142,85 @@ def split(body, by):
         data[KEY] = stored
         save_data(data)
     return {'added': len(added), 'skipped': skipped, 'ranges': [dict(r) for r in added]}
+
+
+# ── import from NetBox ───────────────────────────────────────────────────────
+FIELD = 'floorbit_firewalls'   # the NetBox custom field on a prefix: its firewalls, in order
+
+
+def import_sources(registry):
+    """Inventory plugins that can list firewall ranges (NetBox)."""
+    if registry is None:
+        return []
+    return [spec for spec in registry.feeders('inventory')
+            if (cls := spec.plugin_class()) is not None and hasattr(cls, 'firewall_ranges')]
+
+
+def can_import():
+    from . import agent_link
+    return agent_link.active() or bool(import_sources(sources.registry))
+
+
+def import_from(registry, by):
+    """Replace the ranges read from plugins with what they list now; the crew's own ranges stay, and
+    a network the crew planned already keeps the crew's line. Returns (added, errors)."""
+    from . import agent_link
+    from .plugins.base import PluginError
+    found, errors, answered = [], [], set()
+    if agent_link.active():
+        # A hosted Floorbit: the local agent asks the event's NetBox.
+        try:
+            feeds = agent_link.feeds('firewall_feeds')
+        except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+            feeds = []
+            errors.append(f'Local agent: {exc}')
+        for feed in feeds:
+            if 'error' in feed:
+                errors.append(f"{feed['name']} (local agent): {feed['error']}")
+            else:
+                found += [(feed['name'], r) for r in feed['items']]
+                answered.update({feed['name'], feed.get('base_name', feed['name'])})
+    for spec in import_sources(registry):
+        if spec.name in answered:
+            continue
+        try:
+            found += [(spec.name, r) for r in registry.call(spec, 'firewall_ranges') or []]
+            answered.add(spec.name)
+        except PluginError as exc:
+            errors.append(f'{spec.name}: {exc}')
+    if errors and not answered:
+        raise FirewallError('; '.join(errors), 502)
+    with _lock:
+        data = load_data()
+        stored = data.get(KEY) if isinstance(data.get(KEY), dict) else {}
+        # A source that failed this time keeps its last import.
+        kept = [r for r in _ranges(data) if r.get('source') != 'import' or r.get('plugin') not in answered]
+        planned = {r['cidr'] for r in kept}
+        added, unknown, clash = [], 0, 0
+        for plugin, raw in found:
+            if not isinstance(raw, dict):
+                continue
+            try:
+                fields = _clean({'cidr': raw.get('cidr'), 'name': raw.get('name'), 'firewalls': raw.get('firewalls')},
+                                data)
+            except FirewallError:
+                unknown += 1   # one prefix with a typo in NetBox must not stop the rest
+                continue
+            if fields['cidr'] in planned:
+                clash += 1
+                continue
+            if len(kept) + len(added) >= MAX_RANGES:
+                break
+            planned.add(fields['cidr'])
+            added.append({'id': uuid.uuid4().hex[:12], **fields, 'source': 'import', 'plugin': plugin,
+                          'updated_at': time.time(), 'by': by})
+        data[KEY] = {**stored, 'ranges': kept + added}
+        save_data(data)
+    if unknown:
+        errors.append(f'{unknown} prefix(es) skipped: not a network, or a firewall that is not in the inventory.')
+    if clash:
+        errors.append(f'{clash} prefix(es) skipped: planned in Floorbit already.')
+    return len(added), errors
 
 
 def delete(range_id):
@@ -249,7 +332,8 @@ def overview(now=None):
         now_on, state = _route(line, status)
         ranges.append({'id': row['id'], 'cidr': row['cidr'], 'name': row.get('name') or '', 'firewalls': line,
                        'intended': line[0] if line else None, 'now': now_on, 'state': state,
-                       'seats': seats.get(row['id'], 0)})
+                       'seats': seats.get(row['id'], 0), 'source': row.get('source') or 'floorbit',
+                       'plugin': row.get('plugin') or ''})
     ranges.sort(key=lambda r: (ipaddress.ip_network(r['cidr']).version, ipaddress.ip_network(r['cidr'])))
     cards = []
     for d in firewalls:
@@ -265,7 +349,7 @@ def overview(now=None):
             'counts': {'firewalls': len(cards), 'down': sum(c['status'] == 'offline' for c in cards),
                        'failover': sum(r['state'] == 'failover' for r in ranges),
                        'without': sum(r['state'] == 'down' for r in ranges)},
-            'unread': health.devices(now) is None}
+            'unread': health.devices(now) is None, 'can_import': can_import()}
 
 
 def seat_routes(now=None):

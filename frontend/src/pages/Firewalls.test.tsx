@@ -78,4 +78,28 @@ describe('Firewalls', () => {
     expect(screen.getByText('That makes more than 256 ranges: pick a larger range size.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Split' })).toBeDisabled()
   })
+
+  it('imports ranges from NetBox and leaves imported ranges to NetBox', async () => {
+    const fromNetbox = { ...list.ranges[0], source: 'import' as const, plugin: 'NetBox' }
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [fromNetbox, list.ranges[1]], can_import: true },
+      'POST /api/firewalls/ranges/import': () => ({ status: 200, body: { added: 3, errors: ['1 prefix(es) skipped: planned in Floorbit already.'] } }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Firewalls />)
+    expect(await screen.findByText('From NetBox')).toBeInTheDocument()
+    expect(screen.getByText('Change it in NetBox and import again.')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Change' })).toHaveLength(1)   // only the range planned here
+    fireEvent.click(screen.getByRole('button', { name: 'Import from NetBox' }))
+    expect(await screen.findByText('3 ranges imported from NetBox.')).toBeInTheDocument()
+    expect(screen.getByText('1 prefix(es) skipped: planned in Floorbit already.')).toBeInTheDocument()
+    expect(api.calls.some((c) => c.method === 'POST' && c.path.endsWith('/api/firewalls/ranges/import'))).toBe(true)
+  })
+
+  it('has no import button without a NetBox to ask', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/firewalls': list }).fn)
+    renderWithApp(<Firewalls />)
+    await screen.findByRole('button', { name: 'Add range' })
+    expect(screen.queryByRole('button', { name: 'Import from NetBox' })).not.toBeInTheDocument()
+  })
 })

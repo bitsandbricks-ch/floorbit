@@ -37,6 +37,24 @@ the second to the second firewall, and so on, the way a core usually spreads sea
 The ranges are numbered after the name (`Seat range 1`, `Seat range 2`, ...). A range planned
 already keeps its own line. One split makes at most 256 ranges.
 
+### Importing from NetBox
+
+Where the ranges are kept in NetBox, **Import from NetBox** reads them instead (`floorplan.edit`).
+Give each prefix the custom field **`floorbit_firewalls`** (Customization › Custom fields, on
+IPAM › Prefix):
+
+- a **text** field with the firewall names in order, like `fw-01, fw-02, fw-03`, or
+- a **multiple objects** field of devices, picked in order.
+
+Prefixes with the field empty are left out. The prefix's description becomes the range's name. The
+firewalls must be devices with the role Firewall in the inventory (NetBox feeds it), and a prefix that
+names one Floorbit doesn't know is skipped and counted.
+
+Each import replaces the last one, so a prefix taken out of NetBox goes here too. When NetBox can't be
+read, the last import stays. Ranges planned in Floorbit stay as they are, and a prefix for a network
+planned here already is skipped. Imported ranges say **From NetBox** and are changed there. On a hosted
+Floorbit the local agent asks the event's NetBox (an agent with `firewall_feeds`; older agents say they can't). Every import is in the audit log.
+
 ## On the floor plan
 
 Once ranges are planned, the floor plan has a **Firewalls** switch. It rings every seat whose
@@ -64,6 +82,5 @@ So a firewall going down pages the crew on Discord like any other service.
 
 ## Not yet
 
-- Importing the ranges from NetBox (prefixes with a firewall field) is not built yet.
 - Floorbit doesn't read the core's routing itself: "now" is what the plan and the health say the
   core should do.

@@ -51,5 +51,11 @@
     "failover": "Umgeschaltet",
     "unknown": "Nicht gelesen",
     "down": "Keine läuft"
-  }
+  },
+  "import": "Aus NetBox importieren",
+  "importDone_one": "{{count}} Bereich aus NetBox importiert.",
+  "importDone_other": "{{count}} Bereiche aus NetBox importiert.",
+  "importHelp": "Liest die NetBox-Prefixe mit dem Custom Field floorbit_firewalls (ihre Firewalls, in Reihenfolge). Jeder Import ersetzt den letzten; hier geplante Bereiche bleiben.",
+  "fromPlugin": "Aus {{plugin}}",
+  "fromPluginHelp": "In {{plugin}} ändern und neu importieren."
 }

@@ -1347,13 +1347,15 @@ export type FirewallRouteState = 'primary' | 'failover' | 'unknown' | 'down'
 export interface FirewallRange {
   id: string; cidr: string; name: string; firewalls: string[]; intended: string | null; now: string | null
   state: FirewallRouteState; seats: number
+  /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
+  source?: 'import' | 'floorbit'; plugin?: string
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
   serving: string[]; planned: string[]; backup_for: string[]; seats: number
 }
 export interface FirewallList {
-  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean
+  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean; can_import?: boolean
   counts: { firewalls: number; down: number; failover: number; without: number }
 }
 

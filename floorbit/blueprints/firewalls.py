@@ -6,10 +6,11 @@ docs/firewalls.md.
 - ``POST /api/firewalls/ranges``, ``PUT/DELETE /api/firewalls/ranges/<id>``: ``floorplan.edit``.
 - ``GET /api/firewalls/seats``: the seats not on their planned firewall, for the plan's layer.
 - ``POST /api/firewalls/ranges/split``: cut a network into ranges, shared out over the firewalls in turn.
+- ``POST /api/firewalls/ranges/import``: read the ranges from NetBox prefixes again.
 """
 from flask import Blueprint, g, jsonify, request
 
-from .. import audit, firewalls, spa
+from .. import audit, firewalls, sources, spa
 
 bp = Blueprint('firewalls', __name__)
 
@@ -52,6 +53,16 @@ def split_ranges():
         audit.record('floor plan', 'Split a network into firewall ranges', g.get('audit_user'),
                      f"{body.get('cidr')} into {out['added']} ranges")
     return jsonify(out), 201 if out['added'] else 200
+
+
+@bp.route('/api/firewalls/ranges/import', methods=['POST'])
+def import_ranges():
+    try:
+        added, errors = firewalls.import_from(sources.registry, g.get('audit_user'))
+    except firewalls.FirewallError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('floor plan', 'Imported firewall ranges', g.get('audit_user'), f'{added} ranges from NetBox')
+    return jsonify({'added': added, 'errors': errors})
 
 
 @bp.route('/api/firewalls/ranges/<range_id>', methods=['DELETE'])
