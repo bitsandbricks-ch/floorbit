@@ -576,5 +576,19 @@
  "Pick at least one firewall for the range.": "Wähle mindestens eine Firewall für den Bereich.",
  "Pick the firewalls from the inventory (devices with the role firewall).": "Wähle die Firewalls aus dem Inventar (Geräte mit der Rolle Firewall).",
  "Write the range as a network, like 192.0.2.0/27.": "Schreib den Bereich als Netz, etwa 192.0.2.0/27.",
- "{} is planned already.": "{} ist schon geplant."
+ "{} is planned already.": "{} ist schon geplant.",
+ "Floorbit keeps at most {} of each.": "Floorbit speichert von jedem höchstens {}.",
+ "Name the port, like Te1/0/48.": "Gib den Port an, etwa Te1/0/48.",
+ "Name the resolver.": "Gib dem Resolver einen Namen.",
+ "Name the uplink, like the provider.": "Gib dem Uplink einen Namen, etwa den des Providers.",
+ "Not found.": "Nicht gefunden.",
+ "Pick the router or firewall the line is on from the inventory.": "Wähle den Router oder die Firewall, an der die Leitung hängt, aus dem Inventar.",
+ "The name to look up is a domain name, like example.com.": "Der Name zum Nachschlagen ist ein Domainname, etwa example.com.",
+ "The probe port is one of {}.": "Der Prüfport ist einer von {}.",
+ "The resolver did not answer.": "Der Resolver hat nicht geantwortet.",
+ "The resolver did not answer: {}": "Der Resolver hat nicht geantwortet: {}",
+ "The test name is not a domain name.": "Der Testname ist kein Domainname.",
+ "The line's capacity is a number of Mbit/s.": "Die Kapazität der Leitung ist eine Zahl in Mbit/s.",
+ "The probe host is a name or an IP address.": "Der Prüf-Host ist ein Name oder eine IP-Adresse.",
+ "The resolver's address is an IP address.": "Die Adresse des Resolvers ist eine IP-Adresse."
 }

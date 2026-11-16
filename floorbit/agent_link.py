@@ -42,10 +42,12 @@ MAX_PENDING = 200        # calls queued for the agent; more fail at once
 TOUCH_EVERY = 30         # seconds between "last seen" writes to data.json
 INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it longer, under proxy timeouts
 # What the agent may be asked: the monitoring source's methods (floorbit/sources), the feeds of
-# its plugins (NetBox and others), and the game servers' query and RCON (floorbit/game_query.py).
+# its plugins (NetBox and others), the game servers' query and RCON (floorbit/game_query.py) and the
+# services' DNS and TCP probes (floorbit/probes.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
-           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours')
+           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
+           'dns_probe', 'tcp_probe')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()

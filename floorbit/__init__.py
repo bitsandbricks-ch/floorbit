@@ -140,6 +140,8 @@ def create_app(start_background=True):
     # Game servers: up or down, players and map, an RCON console (docs/game-servers.md).
     from . import game_servers
     game_servers.init_app(app, start_background=start_background)
+    from . import services
+    services.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention

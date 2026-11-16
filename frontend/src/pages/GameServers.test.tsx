@@ -23,6 +23,7 @@ describe('GameServers', () => {
   it('shows each server and sends RCON, asking before a command that changes the map', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': tech, 'GET /api/game-servers': list,
+      'POST /api/game-servers/check/g1': () => ({ body: cs }),
       'POST /api/game-servers/rcon/g1': (init?: RequestInit) => {
         const body = JSON.parse(String(init?.body))
         if (body.command.startsWith('changelevel') && !body.confirm) {
@@ -42,6 +43,8 @@ describe('GameServers', () => {
     expect(within(down).getByRole('button', { name: 'RCON console' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Add game server' })).not.toBeInTheDocument()   // admins only
 
+    fireEvent.click(within(card).getByRole('button', { name: 'Check now' }))
+    await waitFor(() => expect(api.calls.some((c) => c.path === '/api/game-servers/check/g1')).toBe(true))
     fireEvent.click(within(card).getByRole('button', { name: 'RCON console' }))
     const input = await screen.findByRole('textbox', { name: 'Command' })
     fireEvent.change(input, { target: { value: 'status' } })

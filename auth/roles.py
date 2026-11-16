@@ -213,6 +213,7 @@ RULES = (
     ('/api/switches', WRITE, 'floorplan.edit'),
     ('/api/links', WRITE, 'floorplan.edit'),
     ('/api/firewalls', WRITE, 'floorplan.edit'),
+    ('/api/services', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),

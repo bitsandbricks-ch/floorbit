@@ -61,6 +61,12 @@ function ServerCard({ server: s, canSetUp, canRcon, onEdit, onConsole }: {
   server: GameServer; canSetUp: boolean; canRcon: boolean; onEdit: () => void; onConsole: () => void
 }) {
   const { t } = useTranslation()
+  const qc = useQueryClient()
+  // Ask this one server now instead of waiting for the next poll (after a restart, say).
+  const check = useMutation({
+    mutationFn: () => post(`/api/game-servers/check/${s.id}`, {}),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.gameServers }),
+  })
   const info = s.info
   const points = s.history.map(([, n]) => n ?? 0)
   return (
@@ -95,6 +101,11 @@ function ServerCard({ server: s, canSetUp, canRcon, onEdit, onConsole }: {
             {canRcon && (
               <Button size="compact-sm" variant="default" disabled={!s.rcon} onClick={onConsole}
                 title={s.rcon ? undefined : t('gameServers.noRcon')}>{t('gameServers.console')}</Button>
+            )}
+            {canRcon && (
+              <Button size="compact-sm" variant="subtle" loading={check.isPending} onClick={() => check.mutate()}>
+                {t('gameServers.checkNow')}
+              </Button>
             )}
             {canSetUp && <Button size="compact-sm" variant="subtle" onClick={onEdit}>{t('gameServers.edit')}</Button>}
           </Group>

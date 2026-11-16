@@ -61,6 +61,7 @@
     "signIn": "Sign-in providers",
     "audit": "Audit log",
     "firewalls": "Firewalls",
+    "services": "Services",
     "topology": "Topology",
     "gameServers": "Game servers",
     "switchLogins": "Switch logins"

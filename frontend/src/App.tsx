@@ -22,6 +22,7 @@ const Games = lazy(() => import('@/pages/Games'))
 const GameServers = lazy(() => import('@/pages/GameServers'))
 const Topology = lazy(() => import('@/pages/Topology'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
+const Services = lazy(() => import('@/pages/Services'))
 const Logs = lazy(() => import('@/pages/Logs'))
 const Commands = lazy(() => import('@/pages/Commands'))
 const TerminalPage = lazy(() => import('@/pages/Terminal'))
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/game-servers" element={<GameServers />} />
         <Route path="/topology" element={<Topology />} />
         <Route path="/firewalls" element={<Firewalls />} />
+        <Route path="/services" element={<Services />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/commands" element={<Commands />} />
         <Route path="/terminal" element={<TerminalPage />} />
