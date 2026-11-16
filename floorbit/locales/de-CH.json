@@ -119,7 +119,7 @@
  "\"name\" is missing": "«name» fehlt",
  "\"positions\" must be an object": "«positions» muss ein Objekt sein",
  "\"{}\" changes something on the switch. Confirm again to run it.": "«{}» ändert etwas auf dem Switch. Bestätige nochmals, um es auszuführen.",
- "\"{}\" doesn't start with {}: make it a change template.": "«{}» beginnt nicht mit {}: mach daraus eine Änderungs-Vorlage.",
+ "\"{}\" doesn't only read (it must start with {} and not write its output to a file): make it a change template.": "«{}» liest nicht nur (es muss mit {} beginnen und darf die Ausgabe nicht in eine Datei schreiben): mach daraus eine Änderungs-Vorlage.",
  "\"{}\" is missing": "«{}» fehlt",
  "\"{}\" is not Name=https://address": "«{}» ist nicht Name=https://adresse",
  "\"{}\" is not a MAC address": "«{}» ist keine MAC-Adresse",

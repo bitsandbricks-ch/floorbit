@@ -93,6 +93,12 @@ def test_custom_templates(app_module, client, switches):
     bad = client.put("/api/commands/templates/uplinks", json={"label": "Uplinks", "kind": "show",
                                                               "commands": ["configure terminal"]})
     assert bad.status_code == 400 and "change template" in bad.get_json()["error"]
+    for cmd in ("show running-config | redirect flash:copy.txt", "show version | tee usb0:v.txt",
+                "show configuration | save /var/tmp/c", "show log | append flash:l"):
+        resp = client.put("/api/commands/templates/writes", json={"label": "x", "kind": "show", "commands": [cmd]})
+        assert resp.status_code == 400 and "only read" in resp.get_json()["error"], cmd
+    assert client.put("/api/commands/templates/incl", json={"label": "x", "kind": "show",
+                                                            "commands": ["show log | include LINK"]}).status_code == 200
     assert client.put("/api/commands/templates/version", json={"label": "x", "kind": "show",
                                                                "commands": ["show clock"]}).status_code == 400
     assert client.put("/api/commands/templates/x", json={"label": "x", "kind": "show",
