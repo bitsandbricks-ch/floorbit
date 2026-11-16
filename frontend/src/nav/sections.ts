@@ -2,7 +2,7 @@ import {
   IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBackpack, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
   IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutDashboard, IconLayoutGrid,
-  IconHeadset, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport, IconRuler2,
+  IconHeadset, IconLifebuoy, IconListSearch, IconLock, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport, IconRuler2,
   IconServer, IconSettings, IconShield, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTournament, IconTrophy, IconTruck, IconUsers, IconUsersGroup, IconWebhook, IconWifi, IconWorldWww,
   type Icon,
@@ -26,7 +26,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'gear', 'planner', 'preflight', 'teardown', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
-  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'apiTokens', 'agents', 'webhooks', 'users', 'teams', 'signIn', 'audit'] },
+  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'apiTokens', 'agents', 'webhooks', 'switchLogins', 'users', 'teams', 'signIn', 'audit'] },
 ]
 
 const ICONS: Record<string, Icon> = {
@@ -38,7 +38,7 @@ const ICONS: Record<string, Icon> = {
   gear: IconBackpack, planner: IconRuler2, preflight: IconChecklist, teardown: IconTruck, templates: IconTemplate,
   tournament: IconTrophy, brackets: IconTournament, schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight,
-  apiTokens: IconKey, agents: IconPlugConnected, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
+  apiTokens: IconKey, agents: IconPlugConnected, webhooks: IconWebhook, switchLogins: IconLock, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
 export function pageIcon(id: string): Icon {

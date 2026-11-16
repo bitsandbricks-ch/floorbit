@@ -45,7 +45,8 @@ def test_needs_ports_act(app_module, client):
     assert viewer.get("/api/ports").status_code == 403
     assert viewer.post("/api/ports/bounce", json={"seat": "A-1"}).status_code == 403
     tech = sign_in(app_module, "fixer", "tech")
-    assert tech.get("/api/ports").get_json() == {"available": False, "needs_login": False, "plugin": None}
+    assert tech.get("/api/ports").get_json() == {"available": False, "needs_login": False, "plugin_login": False,
+                                                 "stored_login": False, "plugin": None}
 
 
 def test_no_plugin_no_bounce(client, switch):
@@ -185,8 +186,8 @@ def bounce(c, **extra):
 
 
 def test_ssh_needs_the_techs_login(client, ssh):
-    assert client.get("/api/ports").get_json() == {"available": True, "needs_login": True,
-                                                   "plugin": "SSH port actions"}
+    assert client.get("/api/ports").get_json() == {"available": True, "needs_login": True, "plugin_login": True,
+                                                   "stored_login": False, "plugin": "SSH port actions"}
     assert bounce(client).status_code == 400
     assert bounce(client, username="kim", password="").status_code == 400
 

@@ -39,9 +39,11 @@ A plugin defines `port_login()` (true when it needs the tech's login), `bounce_p
 
 ## Secure by design
 
-- **Your login, every time.** The password is sent with the action over HTTPS, used for that one
-  SSH connection and dropped. It is never stored, logged, put in the audit log or in an error.
-  Floorbit keeps no switch credentials at all, so it can't do anything on a switch by itself.
+- **Your login, or the stored one.** A typed password is sent with the action over HTTPS, used for
+  that one SSH connection and dropped. It is never stored, logged, put in the audit log or in an
+  error. An admin can store switch logins instead ([credentials.md](credentials.md)): encrypted,
+  write-only, opened only for the one connection, and each use is in the audit log. A typed login
+  still wins over a stored one, and a wrong stored password doesn't pause the tech's account.
 - **Floorbit picks the port.** For a seat, the server finds the switch and port through the seat
   mapping and the monitoring source; the browser can't name another one. The switch must be in
   the [inventory](inventory.md) with a management IP, and port names that aren't plain interface
