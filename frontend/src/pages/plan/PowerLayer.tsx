@@ -48,7 +48,7 @@ export function PowerLayer({ power, drawing, switches, size }: {
                 <text className="pload-text" y={37} fontSize={11} textAnchor="middle">{`${pct} %`}</text>
               </g>
             ))}
-            <title>{load ? t('plan.power.board', { name: b.name, count: load.circuits, pct: pct ?? '–' }) : b.name}</title>
+            <title>{load && pct != null ? t('plan.power.board', { name: b.name, count: load.circuits, pct }) : b.name}</title>
           </g>
         )
       })}
