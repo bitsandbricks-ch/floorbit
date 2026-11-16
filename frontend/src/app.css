@@ -538,6 +538,13 @@ body {
 .fb-plan-legend .heat { gap: 8px; }
 .fb-plan-legend .heat i { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }
 /* Hall rotation on a big screen (issue #163): the bar fills while the hall is shown. */
+/* The big screen's head: hall and counts on the left, the time and blocks with problems on the right. */
+.fb-plan-screen-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 2vw; }
+.fb-screen-bar { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5vw; min-width: 0; }
+.fb-screen-clock { font-size: 2.6vw; line-height: 1; color: var(--color-fg); font-variant-numeric: tabular-nums; }
+.fb-screen-block { font-size: 1.1vw; font-weight: 600; padding: 0.2vw 0.7vw; border-radius: 999px; color: var(--color-down); border: 1px solid var(--color-down); }
+.fb-screen-block.more { color: var(--color-muted); border-color: transparent; font-weight: 400; }
+.fb-screen-elsewhere { font-size: 1.1vw; }
 .fb-plan-screen .fb-plan-hall { font-size: 2vw; color: var(--color-fg); }
 .fb-plan-cycle { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--color-bit); transform-origin: left; animation: fb-plan-cycle linear forwards; }
 @keyframes fb-plan-cycle { from { transform: scaleX(0); } to { transform: scaleX(1); } }

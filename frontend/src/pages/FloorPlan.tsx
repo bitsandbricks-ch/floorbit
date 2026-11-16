@@ -24,6 +24,7 @@ import { SeatMap } from './plan/SeatMap'
 import { download, fileName, inlineImages, standaloneSvg, svgToPng } from './plan/exportImage'
 import { Shortcuts } from './plan/Shortcuts'
 import { StaleNotice } from './plan/StaleNotice'
+import { ScreenBar } from './plan/ScreenBar'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
@@ -218,7 +219,7 @@ export default function FloorPlan() {
     }, dwell)
     return () => window.clearTimeout(timer)
   }, [dwell, current, halls, params, setParams])
-  const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+  const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', hour12: false })
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
@@ -264,10 +265,13 @@ export default function FloorPlan() {
   if (screen) {
     return (
       <main className="fb-plan-screen">
-        <div>
-          {rotating && <Text className="fb-plan-hall" fw={800}>{halls?.find((h) => h.id === current)?.name}</Text>}
-          {summary}
-          {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
+        <div className="fb-plan-screen-head">
+          <div>
+            {rotating && <Text className="fb-plan-hall" fw={800}>{halls?.find((h) => h.id === current)?.name}</Text>}
+            {summary}
+            {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
+          </div>
+          {data && <ScreenBar blocks={data.blocks} elsewhere={rotating ? 0 : elsewhere} />}
         </div>
         {map}
         {data && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} />}
