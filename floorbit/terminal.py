@@ -156,12 +156,13 @@ def open_session(registry, account, body):
         dev = ports._switch(load_data(), body.get('switch'))
     except ports.PortError as exc:
         raise TerminalError(str(exc)) from None
-    needs_login = ports.info(registry)['needs_login']
+    needs_login = ports.info(registry)['plugin_login']
     try:
-        login = ports._login(body, needs_login)
+        login = ports._login(body, needs_login, dev['name'], account)
     except ports.PortError as exc:
         raise TerminalError(str(exc)) from None
     body.pop('password', None)
+    stored = bool(login and login.get('stored'))   # the plugin clears the login it gets
     with ports._lock:
         try:
             ports._check_failures(account, time.time())
@@ -175,7 +176,7 @@ def open_session(registry, account, body):
         shell = registry.call(spec, 'open_shell', {'switch': dev['name'], 'host': dev['mgmt_ip'], 'login': login,
                                                    'cols': cols, 'rows': rows})
     except PluginError as exc:
-        if needs_login and 'login' in str(exc).lower():
+        if needs_login and not stored and 'login' in str(exc).lower():
             with ports._lock:
                 ports._failures.setdefault(account, []).append(time.time())
         audit.record('terminal', 'Opened terminal: failed', user=account, target=dev['name'], ok=False)

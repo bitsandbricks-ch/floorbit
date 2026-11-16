@@ -38,8 +38,9 @@ function Row({ p, canMute, busy, onMute, onReport }: {
   return (
     <Paper withBorder radius="md" p="sm" component="article" aria-label={p.title}
       className={`fb-problem ${p.muted ? 'muted' : p.level}`}>
-      <Group justify="space-between" wrap="nowrap" align="flex-start">
-        <Stack gap={2} style={{ minWidth: 0 }}>
+      {/* Wraps on a phone: a switch problem has up to four actions, wider than the screen. */}
+      <Group justify="space-between" align="flex-start" gap="xs">
+        <Stack gap={2} style={{ minWidth: 0, flex: '1 1 240px' }}>
           <Group gap="xs">
             <Badge variant="light" color={p.level === 'down' ? 'down' : 'warn'} tt="none">{t(`problems.kind.${p.kind}`)}</Badge>
             <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
@@ -54,7 +55,7 @@ function Row({ p, canMute, busy, onMute, onReport }: {
             </Text>
           )}
         </Stack>
-        <Group gap="xs" wrap="nowrap">
+        <Group gap="xs">
           {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since, t) })}</Text>}
           {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
           {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}

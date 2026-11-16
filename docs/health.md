@@ -18,8 +18,10 @@ a service changes colour.
 
 ## Where the checks come from
 
-Floorbit checks nothing itself. Every service on the wall comes from a plugin with
-`uses: [health]` (see [plugins.md](plugins.md)):
+Floorbit checks nothing itself, except the [game servers](game-servers.md), the internet lines and
+resolvers on the [Services](services.md) page, the LAN cache Floorbit reads and the [firewalls](firewalls.md), each set
+up on its own page.
+Every other service on the wall comes from a plugin with `uses: [health]` (see [plugins.md](plugins.md)):
 
 - **HTTP check** (built in) puts each of its web services on the wall: red when it doesn't answer
   or answers with an error, amber when it takes longer than 2 seconds.
@@ -39,7 +41,7 @@ A plugin's `health_checks()` returns a list:
 | --- | --- |
 | `id` | unique within the plugin (Floorbit puts the plugin id in front) |
 | `name` | what the tile says, up to 60 characters |
-| `kind` | `dhcp`, `dns`, `cache`, `game`, `uplink`, `web` or `other`: the wall groups by it |
+| `kind` | `dhcp`, `dns`, `cache`, `game`, `uplink`, `firewall`, `web` or `other`: the wall groups by it |
 | `status` | `up`, `warn`, `down` or `unknown` (anything else is `unknown`) |
 | `summary` | one line, up to 120 characters |
 | `metrics` | up to 6 `{label, value, unit, tone}`; `tone` is `ok`, `warn`, `err` or empty |
@@ -48,6 +50,10 @@ A plugin's `health_checks()` returns a list:
 Like widgets, checks are data: text is shown as text and links only go to this site. A plugin that
 fails shows as one grey tile; the error is in its log under **Settings › Plugins**. The plugin
 decides what amber and red mean, since a "low" lease count depends on the scope.
+
+Write `summary` and metric labels in English. On a German page the wall shows the German text from
+`floorbit/locales/de-CH.json` when there is one (Floorbit's own checks and the demo have them), and
+the plugin's own words otherwise.
 
 ## Polling and alerts
 

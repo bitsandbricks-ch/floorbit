@@ -30,6 +30,9 @@ def receiver(monkeypatch):
         return Answer(status)
 
     monkeypatch.setattr(requests, "post", fake_post)
+    # No resolver in tests: a name is a documentation address, an IP itself.
+    monkeypatch.setattr(webhooks, "_addresses",
+                        lambda host: {host} if host[:1].isdigit() or ":" in host else {"192.0.2.80"})
     # Other tests empty the event bus; listen again, and leave with this test.
     monkeypatch.setattr(events, "_subscribers", list(events._subscribers))
     events.subscribe_once("*", webhooks.on_event)
@@ -115,6 +118,16 @@ def test_failures_are_retried_logged_and_paused_hooks_get_nothing(client, receiv
     events.publish("checkin", {"seat": "A3"})
     webhooks.drain(ignore_due=True)
     assert len(sent) == 3 and webhooks.pending() == 0
+
+
+def test_nothing_goes_to_the_cloud_metadata_service(client, receiver):
+    sent, _ = receiver
+    _add(client, url="http://169.254.169.254/latest/meta-data/")
+    events.publish("checkin", {"seat": "A2"})
+    webhooks.drain(ignore_due=True)
+    assert sent == []
+    listed = client.get("/api/settings/webhooks").get_json()["webhooks"][0]
+    assert listed["deliveries"][0]["error"] == "Refused: link-local address"
 
 
 def test_ping_new_secret_bad_input_audit_and_admins_only(app_module, client, receiver):

@@ -115,6 +115,9 @@ def test_a_trip_pages_and_marks_the_floor_plan(client, floor, watch):
     assert marks["seats"]["A-5"]["state"] == "tripped" and "A-1" not in marks["seats"]
     assert marks["switches"][floor["switch"]]["circuit"] == "A row 2"
     assert marks["boards"] == [{"id": floor["board"], "name": "DB-1", "x": 5.0, "y": 40.0, "state": "tripped"}]
+    [cable] = marks["circuits"]          # the React plan draws it from the board to what it feeds
+    assert (cable["board"], cable["state"], cable["switches"]) == (floor["board"], "tripped", [floor["switch"]])
+    assert "A-5" in cable["seats"] and "A-1" not in cable["seats"]
     assert client.get("/api/incidents").get_json()["incidents"][0]["title"] == "Breaker tripped: A row 2"
     client.post(f"/api/power/circuits/{c['id']}/trip", json={"tripped": False})
     assert client.get("/api/power/markers").get_json()["seats"]["A-5"]["state"] == "unknown"
@@ -150,7 +153,7 @@ def test_who_may_change_power(app_module, client, floor):
 def test_the_layer_can_be_switched_off(client, floor, monkeypatch):
     monkeypatch.setenv("POWER_ENABLED", "0")
     assert client.get("/api/power/markers").get_json() == {"enabled": False, "seats": {}, "switches": {},
-                                                           "boards": [], "counts": {}}
+                                                           "boards": [], "circuits": [], "counts": {}}
     assert client.post("/api/power/boards", json={"name": "DB-2"}).status_code == 409
     assert b'href="/power"' not in client.get("/").data
 

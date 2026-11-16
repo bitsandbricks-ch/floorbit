@@ -16,6 +16,7 @@
     "health": "Service",
     "security": "Security",
     "power": "Power",
+    "link": "Link",
     "flapping": "Flapping",
     "errors": "Errors",
     "duplex": "Duplex",

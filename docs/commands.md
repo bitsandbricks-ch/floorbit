@@ -51,7 +51,9 @@ that switch. A link can fill the form: `/commands?template=port_status&switch=sw
 
 ## The login
 
-The plugin asks for the tech's own switch username and password, like a port action. They are used
+The plugin asks for the tech's own switch username and password, like a port action, unless a
+[stored login](credentials.md) covers every switch of the run (then each switch gets its own). A
+typed login is used
 for the connections of that one run (one per switch, at most 8 at a time) and dropped: never
 stored, logged or sent anywhere else. Five failed logins in 15 minutes pause the account, shared
 with port actions. Host keys are pinned as described in [ports.md](ports.md). One action at a time

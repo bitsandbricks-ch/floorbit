@@ -6,7 +6,7 @@ import { useLocation } from 'react-router-dom'
 import { get } from '@/api/client'
 import { useCan } from '@/api/queries'
 import { qk } from '@/api/keys'
-import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
+import type { PlanSeat, SeatDetails, SeatFirewall, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
 import { SeatNoteBox } from './SeatNoteBox'
 import { SeatSpeedTests } from './SeatSpeedTests'
@@ -64,6 +64,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
               {row(t('plan.port'), d.switch ? `${d.switch} · ${d.port}` : <Text span c="dimmed">{t('plan.noPort')}</Text>)}
               {d.bps !== null && row(t('plan.traffic'), rate(d.bps))}
               {d.checked_in !== null && row(t('plan.checkin'), d.checked_in ? t('plan.yes') : t('plan.no'))}
+              {d.firewall && row(t('plan.firewall'), <FirewallRoute route={d.firewall} />)}
               {d.people && row(t('plan.nick'), d.nick || '–')}
               {d.people && row(t('plan.ip'), d.ip ? <code>{d.ip}</code> : '–')}
               {d.people && row(t('plan.mac'), d.mac ? <code>{d.mac}</code> : '–')}
@@ -149,10 +150,26 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
 ]
 
 /** The same shapes as on the plan, so the legend can't drift from it. */
-export function Legend({ checkin, traffic = false }: { checkin: boolean; traffic?: boolean }) {
+export function Legend({ checkin, traffic = false, power = false, firewalls = false }: {
+  checkin: boolean; traffic?: boolean; power?: boolean; firewalls?: boolean
+}) {
   const { t } = useTranslation()
   return (
     <ul className="fb-plan-legend" aria-label={t('plan.legend')}>
+      {power && (['ok', 'warn', 'crit', 'tripped'] as const).map((s) => (
+        <li key={s}>
+          <svg width={22} height={10} aria-hidden="true" className="fb-plan"><line className={`pcable pw-${s}`} x1={1} y1={5} x2={21} y2={5} /></svg>
+          {t(`plan.power.${s}`)}
+        </li>
+      ))}
+      {firewalls && (['failover', 'down'] as const).map((s) => (
+        <li key={s}>
+          <svg viewBox="-6 -6 44 44" width={22} height={22} aria-hidden="true" className="fb-plan">
+            <SeatGlyph seat={{ state: 'online' } as PlanSeat} size={32} detail={false} route={s} />
+          </svg>
+          {t(`plan.firewallLayer.${s}`)}
+        </li>
+      ))}
       {traffic && (
         <li className="heat">
           {t('plan.trafficScale')} <span>{rate(HEAT_MIN)}</span><i style={{ background: HEAT_GRADIENT }} aria-hidden="true" /><span>{rate(HEAT_MAX)}</span>
@@ -166,4 +183,14 @@ export function Legend({ checkin, traffic = false }: { checkin: boolean; traffic
       ))}
     </ul>
   )
+}
+
+/** Which firewall the core sends the seat to (issue #470): the planned one, or the backup it failed over to. */
+function FirewallRoute({ route }: { route: SeatFirewall }) {
+  const { t } = useTranslation()
+  if (route.state === 'down') return <Text span c="down" fw={600}>{t('plan.firewallNone', { name: route.intended })}</Text>
+  if (route.state === 'failover') {
+    return <Text span c="warn">{t('plan.firewallFailover', { now: route.now, intended: route.intended })}</Text>
+  }
+  return <>{route.now}</>
 }

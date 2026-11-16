@@ -186,5 +186,21 @@
     "help": "Show this list"
   },
   "fixedBefore_one": "Fixed here once before: {{title}} ({{time}})",
-  "fixedBefore_other": "Fixed here {{count}} times before, last: {{title}} ({{time}})"
+  "fixedBefore_other": "Fixed here {{count}} times before, last: {{title}} ({{time}})",
+  "firewall": "Firewall",
+  "firewallFailover": "{{now}} (failed over from {{intended}})",
+  "firewallNone": "None up (planned {{name}})",
+  "firewallLayer": {
+    "layer": "Firewalls",
+    "failover": "Seat failed over to a backup firewall",
+    "down": "Seat has no firewall up"
+  },
+  "power": {
+    "layer": "Power",
+    "ok": "Circuit fine",
+    "warn": "Circuit high",
+    "crit": "Circuit near its limit",
+    "tripped": "Tripped",
+    "noReading": "no reading"
+  }
 }

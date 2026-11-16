@@ -92,6 +92,55 @@ describe('traffic overlay', () => {
     expect(heatColor(0.5)).toBe('rgb(33, 145, 140)')
   })
 
+  it('draws the links between placed switches, a down one dashed', async () => {
+    const withLinks: SeatViewData = {
+      ...data,
+      switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 600, y: 300 }, { id: 's2', name: 'dist-01', status: 'online', x: 800, y: 100 }],
+      links: [{ id: 'l1', a: 'sw-d-01', b: 'dist-01', type: 'fiber-mm', media: 'fiber', speed: 10, issue: 'down' }],
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withLinks }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await waitFor(() => expect(container.querySelector('line.uplink')).not.toBeNull())
+    const line = container.querySelector('line.uplink')!
+    expect(line).toHaveClass('m-fiber', 'down')
+    expect(line.querySelector('title')?.textContent).toBe('sw-d-01 – dist-01 · 10G · Down')
+  })
+
+  it('shows the power layer: each board and a cable per circuit, a tripped one dashed (issue #468)', async () => {
+    const withSwitch: SeatViewData = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 600, y: 300 }] }
+    const markers = {
+      enabled: true, counts: { tripped: 1 },
+      boards: [{ id: 'b1', name: 'DB-1', x: 5, y: 40, state: 'tripped' }],
+      circuits: [{ id: 'c1', name: 'D row 1', board: 'b1', state: 'tripped', pct: null, seats: ['D-1', 'D-2'], switches: ['s1'] }],
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withSwitch, 'GET /api/power/markers': markers }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    fireEvent.click(await screen.findByRole('switch', { name: 'Power' }))
+    await waitFor(() => expect(container.querySelectorAll('.power-layer line.pcable')).toHaveLength(2))     // to the seats and to the switch
+    expect(container.querySelector('.power-layer line.pcable')).toHaveClass('pw-tripped')
+    expect(container.querySelector('.power-layer line.pcable title')?.textContent).toBe('D row 1: Tripped')
+    expect(container.querySelector('.pboard title')?.textContent).toBe('DB-1')
+    expect(screen.getByText('Tripped', { selector: 'li' })).toBeInTheDocument()
+  })
+
+  it('rings the seats whose traffic failed over or has no firewall left (issue #470)', async () => {
+    const seats = { enabled: true, seats: { 'D-1': { now: 'fw-02', intended: 'fw-01', state: 'failover' }, 'D-2': { now: null, intended: 'fw-01', state: 'down' } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': seats }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    expect(container.querySelector('.cell .fwr')).toBeNull()
+    fireEvent.click(await screen.findByRole('switch', { name: 'Firewalls' }))
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .fwr')).toHaveClass('fw-failover'))
+    expect(container.querySelector('[data-seat="D-2"] .fwr')).toHaveClass('fw-down')
+    expect(screen.getByText('Seat has no firewall up', { selector: 'li' })).toBeInTheDocument()
+  })
+
+  it('offers no firewall layer without planned ranges', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': { enabled: false, seats: {} } }).fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('switch', { name: 'Traffic' })
+    expect(screen.queryByRole('switch', { name: 'Firewalls' })).toBeNull()
+  })
+
   it('fills online seats by traffic and keeps the other shapes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
@@ -139,6 +188,15 @@ describe('Seats page', () => {
     expect(await screen.findByText(/^Fixed here 2 times before, last: Cable loose \(/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=seat%3AD-2')
     expect(screen.queryByRole('link', { name: 'QR code' })).toBeNull()      // printing codes needs incidents.assign
+  })
+
+  it('says which firewall the seat takes now when its range failed over (issue #470)', async () => {
+    const moved = { ...details, firewall: { intended: 'fw-03', now: 'fw-04', state: 'failover', range: 'Seats C' } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': moved }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('list', { name: 'Legend' })
+    fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
+    expect(await screen.findByText('fw-04 (failed over from fw-03)')).toBeInTheDocument()
   })
 
   it('links a lead to the seat\'s and the block\'s QR codes (issue #380)', async () => {

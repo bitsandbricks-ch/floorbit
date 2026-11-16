@@ -137,11 +137,21 @@ def create_app(start_background=True):
     from .lancache import init_lancache
     init_lancache(app, start_background=start_background)
 
+    # Game servers: up or down, players and map, an RCON console (docs/game-servers.md).
+    from . import game_servers
+    game_servers.init_app(app, start_background=start_background)
+    from . import services
+    services.init_app(app, start_background=start_background)
+    from . import links
+    links.init_app(app, start_background=start_background)
+
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
     from .stats import init_stats
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
+    from . import port_clients
+    port_clients.init_app(app)   # reads only when the cables page asks (docs/cables.md)
 
     # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
     from .syslog import init_syslog

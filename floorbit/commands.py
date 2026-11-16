@@ -170,7 +170,8 @@ def info(registry, may_change):
     }
 
 
-def _one(registry, spec, dev, commands, login):
+def _one(registry, spec, dev, commands, login, stored_for=None):
+    """``stored_for``: no login was typed, so open the stored one for this switch (credentials.py)."""
     started = time.monotonic()
     name = dev['name']
     with ports._lock:
@@ -179,6 +180,11 @@ def _one(registry, spec, dev, commands, login):
         ports._busy.add(name)
     mine = dict(login) if login else None   # each connection gets its own copy, cleared after
     try:
+        if stored_for is not None:
+            try:
+                mine = ports._login({}, True, name, stored_for)
+            except ports.PortError as exc:
+                return {'switch': name, 'ok': False, 'output': '', 'error': str(exc)[:300], 'ms': 0}
         result = registry.call(spec, 'send_commands', {'switch': name, 'host': dev['mgmt_ip'],
                                                       'commands': commands, 'login': mine})
         output = str((result or {}).get('output') or '') if isinstance(result, dict) else str(result or '')
@@ -228,9 +234,12 @@ def run(registry, account, body, may_change):
         devs = [ports._switch(data, n) for n in names]
     except ports.PortError as exc:
         raise CommandError(str(exc)) from None
-    needs_login = ports.info(registry)['needs_login']
+    needs_login = ports.info(registry)['plugin_login']
+    from . import credentials
+    # Typed, or stored for every one of these switches; else ask for the login as before.
+    typed = bool(body.get('username') or body.get('password')) or not all(credentials.covers(d['name']) for d in devs)
     try:
-        login = ports._login(body, needs_login)
+        login = ports._login(body, needs_login) if typed or not needs_login else None
     except ports.PortError as exc:
         raise CommandError(str(exc)) from None
     body.pop('password', None)
@@ -244,11 +253,12 @@ def run(registry, account, body, may_change):
     commands = [c.replace('{port}', port) for c in tpl['commands']]
     try:
         with ThreadPoolExecutor(max_workers=min(WORKERS, len(devs))) as pool:
-            results = list(pool.map(lambda d: _one(registry, spec, d, commands, login), devs))
+            stored_for = account if needs_login and not typed else None
+            results = list(pool.map(lambda d: _one(registry, spec, d, commands, login, stored_for), devs))
     finally:
         if login:
             login.clear()
-    failed_login = needs_login and any(r.pop('login_failed', False) for r in results)
+    failed_login = needs_login and typed and any(r.pop('login_failed', False) for r in results)
     with ports._lock:
         if failed_login:
             ports._failures.setdefault(account, []).append(time.time())

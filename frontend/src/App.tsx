@@ -19,6 +19,10 @@ const Stats = lazy(() => import('@/pages/Stats'))
 const Traffic = lazy(() => import('@/pages/Traffic'))
 const Dns = lazy(() => import('@/pages/Dns'))
 const Games = lazy(() => import('@/pages/Games'))
+const GameServers = lazy(() => import('@/pages/GameServers'))
+const Topology = lazy(() => import('@/pages/Topology'))
+const Firewalls = lazy(() => import('@/pages/Firewalls'))
+const Services = lazy(() => import('@/pages/Services'))
 const Logs = lazy(() => import('@/pages/Logs'))
 const Commands = lazy(() => import('@/pages/Commands'))
 const TerminalPage = lazy(() => import('@/pages/Terminal'))
@@ -32,6 +36,8 @@ const Planner = lazy(() => import('@/pages/Planner'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
 const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
+const WalkRow = lazy(() => import('@/pages/WalkRow'))
+const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
 const Wifi = lazy(() => import('@/pages/Wifi'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
@@ -69,6 +75,10 @@ export default function App() {
         <Route path="/traffic" element={<Traffic />} />
         <Route path="/dns" element={<Dns />} />
         <Route path="/games" element={<Games />} />
+        <Route path="/game-servers" element={<GameServers />} />
+        <Route path="/topology" element={<Topology />} />
+        <Route path="/firewalls" element={<Firewalls />} />
+        <Route path="/services" element={<Services />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/commands" element={<Commands />} />
         <Route path="/terminal" element={<TerminalPage />} />
@@ -82,6 +92,7 @@ export default function App() {
         <Route path="/preflight" element={<Preflight />} />
         <Route path="/gear" element={<Gear />} />
         <Route path="/cables" element={<Cables />} />
+        <Route path="/cables/walk" element={<WalkRow />} />
         <Route path="/wifi" element={<Wifi />} />
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/network-status" element={<NetworkStatus />} />
@@ -96,6 +107,7 @@ export default function App() {
         <Route path="/settings/api" element={<ApiTokens />} />
         <Route path="/settings/agents" element={<Agents />} />
         <Route path="/settings/webhooks" element={<Webhooks />} />
+        <Route path="/settings/credentials" element={<SwitchLogins />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

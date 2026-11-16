@@ -59,6 +59,11 @@
     "users": "Users",
     "teams": "Roles and teams",
     "signIn": "Sign-in providers",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "firewalls": "Firewalls",
+    "services": "Services",
+    "topology": "Topology",
+    "gameServers": "Game servers",
+    "switchLogins": "Switch logins"
   }
 }

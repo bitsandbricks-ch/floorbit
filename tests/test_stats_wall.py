@@ -91,7 +91,9 @@ def test_the_wall_shows_numbers_and_no_people(client, anon_client, hall):
 
 def test_an_empty_event_says_so(client, anon_client, hall):
     client.put("/api/settings", json={"public.stats_wall": True})
-    assert "Nothing to show yet" in anon_client.get("/wall").get_data(as_text=True)
+    page = anon_client.get("/wall").get_data(as_text=True)
+    # On failure, show which fact was not empty: it failed once on Postgres (issue #508).
+    assert "Nothing to show yet" in page, anon_client.get("/wall.json").get_json()
 
 
 def test_public_pages_update_in_place(client, anon_client, hall):

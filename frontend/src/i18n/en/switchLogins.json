@@ -1,0 +1,18 @@
+{
+  "title": "Switch logins",
+  "intro": "Logins Floorbit uses for port actions, switch commands and the terminal, so the crew doesn't type one each time. Encrypted, and never shown again once set.",
+  "empty": "No logins stored: each tech types their own switch login.",
+  "scope": "For",
+  "username": "Username",
+  "password": "Password",
+  "set": "Set",
+  "hidden": "••••••• (write-only)",
+  "replace": "Replace",
+  "remove": "Remove",
+  "removeQuestion": "Remove the login for {{scope}}? Techs then type their own for those switches.",
+  "setTitle": "Set a login",
+  "scopeHint": "* for every switch, a pattern like sw-a-*, or one switch name",
+  "save": "Save",
+  "saved": "The login for {{scope}} is stored.",
+  "how": "The most specific login wins: one switch's own, then the longest pattern, then *. With a login for *, pages stop asking for one. Every use is in the audit log."
+}

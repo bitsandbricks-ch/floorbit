@@ -22,6 +22,7 @@ PERMISSIONS = {
     'commands.change': 'Run switch commands that change something, such as clearing counters',
     'terminal.open': 'Open a terminal on a switch in the browser, with their own switch login',
     'power.edit': 'Change power boards and circuits, enter readings and trips',
+    'games.rcon': 'Send RCON commands to game servers',
     'plugins.run': 'Run plugin actions',
     'audit.read': 'Read the audit log',
     'settings.manage': 'Change settings, plugins and backups',
@@ -36,10 +37,10 @@ BUILTIN = {
                             'and reading the audit log.',
              'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
                              'incidents.assign', 'ports.act', 'commands.change', 'terminal.open', 'power.edit',
-                             'plugins.run', 'audit.read']},
+                             'games.rcon', 'plugins.run', 'audit.read']},
     'tech': {'label': 'Tech',
              'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
-             'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act']},
+             'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act', 'games.rcon']},
     'viewer': {'label': 'Viewer', 'description': 'Looks at the floor plan and dashboards, changes nothing.',
                'permissions': ['floorplan.view']},
     'kiosk': {'label': 'Kiosk', 'description': 'A read-only account for a big screen. Remove it to revoke it.',
@@ -210,6 +211,9 @@ RULES = (
     # Crew notes on a seat (floorbit/seat_notes.py); reading them is checked in the blueprint.
     ('/api/plan/seats', WRITE, 'incidents.work'),
     ('/api/switches', WRITE, 'floorplan.edit'),
+    ('/api/links', WRITE, 'floorplan.edit'),
+    ('/api/firewalls', WRITE, 'floorplan.edit'),
+    ('/api/services', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),
@@ -249,6 +253,8 @@ RULES = (
     ('/api/gear', None, 'incidents.work'),
     ('/gear', READ, 'incidents.work'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
+    # Which MAC and IP is on which seat port is personal data, like the seat mapping.
+    ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
@@ -283,6 +289,10 @@ RULES = (
     ('/commands', READ, 'ports.act'),
     # The browser terminal: every line typed is audited (floorbit/terminal.py).
     ('/api/terminal', None, 'terminal.open'),
+    # Game servers (floorbit/game_servers.py): the crew asks and sends RCON, admins set them up.
+    ('/api/game-servers/rcon', WRITE, 'games.rcon'),
+    ('/api/game-servers/check', WRITE, 'games.rcon'),
+    ('/api/game-servers', WRITE, 'settings.manage'),
     ('/terminal', READ, 'terminal.open'),
     # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.
     ('/api/security/check', WRITE, 'plugins.run'),

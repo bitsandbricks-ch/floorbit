@@ -104,3 +104,84 @@ def test_netbox_plugin_pages_cables(app_module):
     registry = app_module.app.extensions["floorbit_plugins"]
     http = FakeHttp({"/api/dcim/cables/": FakeResponse({"results": [NB4, NB3], "next": None})})
     assert [c["label"] for c in netbox_plugin(registry, http).cables()] == ["NB-7", "K-8"]
+
+
+def _block(client, name="A", cols=4, rows=2):
+    hall = client.get("/api/halls").get_json()
+    hall_id = (hall.get("halls") if isinstance(hall, dict) else hall)[0]["id"]
+    spec = {"name": name, "x": 0, "y": 0, "cols": cols, "rows": rows, "hall_id": hall_id}
+    r = client.post("/api/seat-blocks", json=spec)
+    assert r.status_code in (200, 201), r.get_json()
+    return r.get_json()["id"]
+
+
+def test_a_block_is_patched_in_one_go(client):
+    """Issue #473: "switch X from Gi1/0/1, along the rows" instead of one cable per seat."""
+    block = _block(client)
+    body = {"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "order": "rows"}
+    preview = client.post("/api/cables/block", json={**body, "dry_run": True}).get_json()
+    assert [(c["seat"], c["port"]) for c in preview["cables"]] == [
+        ("A-1", "Gi1/0/1"), ("A-2", "Gi1/0/2"), ("A-3", "Gi1/0/3"), ("A-4", "Gi1/0/4"),
+        ("A-5", "Gi1/0/5"), ("A-6", "Gi1/0/6"), ("A-7", "Gi1/0/7"), ("A-8", "Gi1/0/8")]
+    assert preview["clashes"] == [] and client.get("/api/cables").get_json()["cables"] == []   # nothing made yet
+
+    snake = client.post("/api/cables/block", json={**body, "order": "snake", "dry_run": True}).get_json()
+    assert [c["seat"] for c in snake["cables"]] == ["A-1", "A-2", "A-3", "A-4", "A-8", "A-7", "A-6", "A-5"]
+    back = client.post("/api/cables/block", json={**body, "reverse": True, "rows": "2", "dry_run": True}).get_json()
+    assert [(c["seat"], c["port"]) for c in back["cables"]][:2] == [("A-8", "Gi1/0/1"), ("A-7", "Gi1/0/2")]
+
+    made = client.post("/api/cables/block", json=body).get_json()
+    assert made["created"] == 8 and made["removed"] == 0
+    rows = client.get("/api/cables").get_json()["cables"]
+    assert len(rows) == 8 and len({c["label"] for c in rows}) == 8 and all(c["block"] == block for c in rows)
+    entries = client.get("/api/settings/audit?area=cables").get_json()["entries"]
+    assert any(e["action"] == "Patched block A" for e in entries)
+
+
+def test_planning_a_block_again_moves_its_own_cables_only(client):
+    block = _block(client)
+    client.post("/api/cables/block", json={"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "rows": "1"})
+    client.post("/api/cables/block", json={"block": block, "switch": "sw-a-02", "first_port": "Gi1/0/1", "rows": "2"})
+    # Shifted by one port: row 1 again, row 2 (another switch) stays.
+    again = client.post("/api/cables/block", json={"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/2",
+                                                   "rows": "1"}).get_json()
+    assert again["created"] == 4 and again["removed"] == 4
+    rows = {c["seat"]: (c["switch"], c["port"]) for c in client.get("/api/cables").get_json()["cables"]}
+    assert rows["A-1"] == ("sw-a-01", "Gi1/0/2") and rows["A-5"] == ("sw-a-02", "Gi1/0/1") and len(rows) == 8
+
+
+def test_cables_in_the_way_stop_it_unless_replaced(client):
+    block = _block(client)
+    hand = client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/3", "seat": "B-9"}).get_json()
+    body = {"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "rows": "1"}
+    preview = client.post("/api/cables/block", json={**body, "dry_run": True}).get_json()
+    assert preview["clashes"] == [{"seat": "A-3", "port": "Gi1/0/3", "kind": "port", "cable": hand["label"],
+                                   "other_seat": "B-9", "imported": False}]
+    r = client.post("/api/cables/block", json=body)
+    assert r.status_code == 409 and len(client.get("/api/cables").get_json()["cables"]) == 1   # all or none
+    r = client.post("/api/cables/block", json={**body, "replace": True}).get_json()
+    assert r["created"] == 4 and r["removed"] == 1
+    assert hand["id"] not in {c["id"] for c in client.get("/api/cables").get_json()["cables"]}
+
+
+def test_wrong_block_plans(client):
+    block = _block(client)
+    for bad, status in (({"block": "nope"}, 404), ({"switch": ""}, 400), ({"first_port": "uplink"}, 400),
+                        ({"order": "zigzag"}, 400), ({"rows": "3"}, 400), ({"rows": "x"}, 400)):
+        body = {"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "dry_run": True, **bad}
+        assert client.post("/api/cables/block", json=body).status_code == status, bad
+    padded = client.post("/api/cables/block", json={"block": block, "switch": "sw", "first_port": "Eth1/09",
+                                                    "rows": "1", "dry_run": True}).get_json()
+    assert [c["port"] for c in padded["cables"]] == ["Eth1/09", "Eth1/10", "Eth1/11", "Eth1/12"]
+
+
+def test_viewers_cannot_patch_a_block(app_module, client):
+    block = _block(client)
+    viewer = sign_in_as(app_module, "vi2", "viewer")
+    assert viewer.post("/api/cables/block", json={"block": block, "dry_run": True}).status_code == 403
+
+
+def test_a_cable_tells_the_port_watch_its_seat():
+    data = {"cables": [{"switch": "SW-A-01", "port": "GigabitEthernet1/0/7", "seat": "A-7"},
+                       {"switch": "sw-a-01", "port": "Gi1/0/8", "seat": ""}]}
+    assert cables.port_seats(data) == {("sw-a-01", "gi1/0/7"): "A-7"}

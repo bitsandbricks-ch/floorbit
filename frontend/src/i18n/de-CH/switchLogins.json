@@ -1,0 +1,18 @@
+{
+  "title": "Switch-Logins",
+  "intro": "Logins, die Floorbit für Port-Aktionen, Switch-Befehle und das Terminal verwendet, damit die Crew nicht jedes Mal eines eingeben muss. Verschlüsselt und nach dem Setzen nie mehr angezeigt.",
+  "empty": "Keine Logins gespeichert: jeder Tech gibt sein eigenes Switch-Login ein.",
+  "scope": "Für",
+  "username": "Benutzername",
+  "password": "Passwort",
+  "set": "Gesetzt",
+  "hidden": "••••••• (nur schreiben)",
+  "replace": "Ersetzen",
+  "remove": "Entfernen",
+  "removeQuestion": "Login für {{scope}} entfernen? Die Techs geben dann für diese Switches ihr eigenes ein.",
+  "setTitle": "Login setzen",
+  "scopeHint": "* für jeden Switch, ein Muster wie sw-a-* oder ein Switch-Name",
+  "save": "Speichern",
+  "saved": "Das Login für {{scope}} ist gespeichert.",
+  "how": "Das spezifischste Login gewinnt: das eigene eines Switches, dann das längste Muster, dann *. Mit einem Login für * fragen die Seiten nicht mehr danach. Jede Verwendung steht im Audit-Log."
+}

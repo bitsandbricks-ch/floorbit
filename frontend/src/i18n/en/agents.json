@@ -34,5 +34,20 @@
   "runTitle": "Start the agent on the event network",
   "docs": "How the agent works and what it is asked: docs/agent.md.",
   "relaySyslog": "Syslog",
-  "relayFlows": "NetFlow"
+  "relayFlows": "NetFlow",
+  "upMinutes_one": "Up 1 minute",
+  "upMinutes_other": "Up {{count}} minutes",
+  "upHours_one": "Up 1 hour",
+  "upHours_other": "Up {{count}} hours",
+  "upDays_one": "Up 1 day",
+  "upDays_other": "Up {{count}} days",
+  "reconnects_one": "1 reconnect",
+  "reconnects_other": "{{count}} reconnects",
+  "noReconnects": "no reconnects",
+  "reportSyslog": "syslog {{received}} received, {{waiting}} waiting",
+  "reportSyslogDropped_one": "1 syslog line dropped",
+  "reportSyslogDropped_other": "{{n}} syslog lines dropped",
+  "reportFlows": "NetFlow {{n}} packets",
+  "reportBusy_one": "1 call answered busy",
+  "reportBusy_other": "{{count}} calls answered busy"
 }

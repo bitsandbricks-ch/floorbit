@@ -1,6 +1,6 @@
 {
   "title": "Dienste-Status",
-  "intro": "DHCP, DNS, LAN-Cache, Gameserver und der Internet-Uplink auf einen Blick. Jeder Dienst kommt von einem Health-Plugin; Discord bekommt eine Nachricht, wenn einer rot wird.",
+  "intro": "DHCP, DNS, LAN-Cache, Gameserver, der Internet-Uplink und die Firewalls auf einen Blick. Jeder Dienst kommt von einem Health-Plugin oder seiner eigenen Seite in Floorbit; Discord bekommt eine Nachricht, wenn einer rot wird.",
   "screen": "Grossbildschirm",
   "checkNow": "Jetzt prüfen",
   "checked_one": "Vor {{count}} Sekunde geprüft",
@@ -34,6 +34,7 @@
     "cache": "LAN-Cache",
     "game": "Gameserver",
     "uplink": "Internet-Uplink",
+    "firewall": "Firewalls",
     "web": "Webdienste",
     "other": "Weiteres"
   },

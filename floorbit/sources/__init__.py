@@ -92,6 +92,12 @@ class NoMonitoring:
     def device_ports(self, hostname):
         return []
 
+    def port_clients(self, hostname):
+        return []
+
+    def neighbours(self, hostname):
+        return []
+
     def arp(self, query):
         return []
 
@@ -169,6 +175,21 @@ class PluginMonitoring(NoMonitoring):
         except PluginError as exc:
             print(f'[sources] {self.name} device_ports failed: {exc}')
             return []
+
+    def port_clients(self, hostname):
+        """[{port, mac, vlan}] from a switch's MAC table (floorbit/port_clients.py). Optional for
+        plugins; errors go up, so the page names the switch that didn't answer."""
+        from ..plugins.base import PluginError
+        if not hasattr(self._spec.plugin_class() or object, 'port_clients'):
+            raise PluginError(f'{self.label} has no MAC tables')
+        return self._call('port_clients', hostname) or []
+
+    def neighbours(self, hostname):
+        """[{port, remote, remote_port, protocol}] from LLDP or CDP (floorbit/links.py). Optional for
+        plugins: one without it has nothing to suggest."""
+        if offline() or not hasattr(self._spec.plugin_class() or object, 'neighbours'):
+            return []
+        return self._call('neighbours', hostname) or []
 
     def arp(self, query):
         result = self._remembered('arp', query)

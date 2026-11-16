@@ -19,10 +19,10 @@ import time
 
 from integrations import config, events
 
-from . import features
+from . import features, firewalls, game_servers, services
 from .plugins import PluginError
 
-KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'web', 'other')
+KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other')
 STATES = ('up', 'warn', 'down', 'unknown')
 TONES = ('', 'ok', 'warn', 'err')
 MAX_CHECKS = 50        # per plugin
@@ -111,7 +111,9 @@ class HealthWall:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('health') and (self.registry.feeders('health') or self._agent_active()):
+            if features.on('health') and (self.registry.feeders('health') or self._agent_active()
+                                          or game_servers.listing() or services.health_checks()
+                                          or firewalls.configured()):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
@@ -155,6 +157,9 @@ class HealthWall:
     def _collect(self):
         from . import agent_link
         found, errors, answered = self._from_agent() if agent_link.active() else ([], {}, set())
+        found += game_servers.health_checks()     # asked by their own poller (floorbit/game_servers.py)
+        found += services.health_checks()         # the same, floorbit/services.py
+        found += firewalls.health_checks()        # from the monitoring source's device list
         for spec in self.registry.feeders('health'):
             if spec.id in answered:    # the agent checks it from the event network; this side can't
                 continue
@@ -220,7 +225,9 @@ class HealthWall:
             counts = {s: sum(c['status'] == s for c in checks) for s in STATES}
             return {'checks': checks, 'counts': counts, 'last_poll': self.last_poll,
                     'interval': self.interval(),
-                    'plugins': len(self.registry.feeders('health')) + (1 if self._agent_active() else 0)}
+                    'plugins': len(self.registry.feeders('health')) + (1 if self._agent_active() else 0)
+                    + (1 if game_servers.listing() else 0) + (1 if services.health_checks() else 0)
+                    + (1 if firewalls.configured() else 0)}
 
 
 def init_health(app, registry, start_background=True):
