@@ -12,7 +12,7 @@ const up: SwitchLink = { ...base, id: 'l1', a: 'dist-01', a_port: 'Fo1/1/1', b: 
 const slow: SwitchLink = { ...base, id: 'l2', a: 'sw-c-02', a_port: 'Te1/1/1', b: 'dist-01', b_port: 'Te1/0/2', type: 'fiber-mm', speed: 10, speed_bps: 1e9, issue: 'slow' }
 const data: TopologyData = {
   nodes: ['core-01', 'dist-01', 'sw-c-02', 'sw-d-01'].map((name) => ({ id: name, name, role: name === 'core-01' ? 'router' : 'switch', hall: '', unread: false, status: name === 'dist-01' ? 'offline' as const : 'online' as const })),
-  links: [up, slow],
+  links: [up, slow], uplinks: [],
   suggestions: [{ a: 'sw-d-01', a_port: 'Te1/1/1', b: 'dist-01', b_port: 'Te1/0/3', protocol: 'lldp', speed: 10 }],
   counts: { links: 2, down: 0, slow: 1 }, types: ['cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac'], speeds: [1, 10, 25, 40, 100],
 }
@@ -50,5 +50,22 @@ describe('Topology', () => {
     expect(container.querySelectorAll('rect[data-status="online"]')).toHaveLength(2)     // sw-d-01 has no links, so it isn't drawn
     fireEvent.click(screen.getByText('dist-01', { selector: 'text' }))
     expect(await screen.findByText('Down', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
+  })
+
+  it('draws each internet line above its router, with its state in the panel', async () => {
+    const lines = [
+      { id: 'u1', name: 'ISP A', device: 'core-01', port: 'Te1/0/48', capacity_mbps: 10000, status: 'warn' as const, utilization: 0.85 },
+      { id: 'u2', name: 'ISP B', device: 'core-01', port: 'Te1/0/47', capacity_mbps: 1000, status: 'down' as const, utilization: null },
+      { id: 'u3', name: 'Lost', device: 'nope-01', port: 'Gi0/1', capacity_mbps: 100, status: 'up' as const, utilization: null },
+    ]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': { ...data, uplinks: lines } }).fn)
+    const { container } = renderWithApp(<Topology />)
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    expect(container.querySelectorAll('.fb-uplink')).toHaveLength(2)        // a line on a box not drawn is left out
+    expect(container.querySelector('.fb-uplink[data-status="down"] line')).toHaveAttribute('stroke-dasharray', '6 4')
+    fireEvent.click(screen.getByText('ISP A', { selector: 'text' }))
+    expect(await screen.findByText('Needs a look', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
+    expect(screen.getByText('core-01 Te1/0/48')).toBeInTheDocument()
+    expect(screen.getByText('85 %')).toBeInTheDocument()
   })
 })

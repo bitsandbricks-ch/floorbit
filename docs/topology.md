@@ -30,6 +30,9 @@ A port belongs to one link at most; `Te1/1/1` and `TenGigabitEthernet1/1/1` coun
 - **A box that is down** (a router, firewall or switch the monitoring source reports down): red, dashed
   border. A dot in each box's corner is green when up, red when down, grey when not read; its panel says
   the same. The state comes from the source's device list, like the [firewalls](firewalls.md) view.
+- **Internet lines** from the [Services](services.md) page sit in a row above the box they come in at,
+  as rounded pills: green when fine, orange when full or lossy, red and dashed when down. Pick one for
+  its port, capacity and how much of it is in use.
 - Pick a switch or a link to see its details on the side (at the bottom on a phone).
 
 The state comes from the monitoring source's port list (`device_ports`, the same as the needs-attention

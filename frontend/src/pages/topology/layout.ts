@@ -1,4 +1,4 @@
-import type { SwitchLink, TopologyNode } from '@/api/types'
+import type { SwitchLink, TopologyNode, TopologyUplink } from '@/api/types'
 
 export const NODE_W = 120
 export const NODE_H = 36
@@ -67,6 +67,30 @@ export function layout(nodes: TopologyNode[], links: SwitchLink[]): Layout {
     for (const p of row) p.x += (width - used) / 2
   }
   return { placed, width: Math.max(width, NODE_W), height: Math.max(y - GAP_Y, NODE_H), loose: loose.sort(byName2) }
+}
+
+export interface UplinkBox { uplink: TopologyUplink; x: number; y: number; to: Placed }
+export interface WithUplinks { boxes: UplinkBox[]; dx: number; dy: number; width: number; height: number }
+
+/** The internet lines in a row above the diagram, each over the box it comes in at; the diagram
+ *  moves down (and right, when a line would stick out on the left) to make room. */
+export function placeUplinks(laid: Layout, uplinks: TopologyUplink[]): WithUplinks {
+  const shown = uplinks.filter((u) => laid.placed.has(u.device.toLowerCase()))
+  if (!shown.length) return { boxes: [], dx: 0, dy: 0, width: laid.width, height: laid.height }
+  const byDevice = new Map<string, TopologyUplink[]>()
+  for (const u of shown) byDevice.set(u.device.toLowerCase(), [...(byDevice.get(u.device.toLowerCase()) ?? []), u])
+  const raw: { uplink: TopologyUplink; x: number; to: Placed }[] = []
+  for (const [key, lines] of byDevice) {
+    const to = laid.placed.get(key)!
+    lines.forEach((uplink, i) => raw.push({ uplink, to, x: to.x + (i - (lines.length - 1) / 2) * (NODE_W + GAP_X) }))
+  }
+  // Two routers side by side with two lines each would overlap: push each box right of the last.
+  raw.sort((a, b) => a.x - b.x)
+  for (let i = 1; i < raw.length; i++) raw[i].x = Math.max(raw[i].x, raw[i - 1].x + NODE_W + GAP_X)
+  const dx = Math.max(0, -raw[0].x)
+  const dy = NODE_H + GAP_Y
+  const right = Math.max(laid.width + dx, raw[raw.length - 1].x + dx + NODE_W)
+  return { boxes: raw.map((r) => ({ uplink: r.uplink, to: r.to, x: r.x + dx, y: 0 })), dx, dy, width: right, height: laid.height + dy }
 }
 
 /** 1e10 -> "10G", 1e8 -> "100M". */

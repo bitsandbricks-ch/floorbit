@@ -8,11 +8,11 @@ import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { LinkSuggestion, SwitchLink, Topology as TopologyData, TopologyNode } from '@/api/types'
+import type { LinkSuggestion, SwitchLink, Topology as TopologyData, TopologyNode, TopologyUplink } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { NODE_H, NODE_W, gbit, layout } from './topology/layout'
+import { NODE_H, NODE_W, gbit, layout, placeUplinks } from './topology/layout'
 
 const COLOR: Record<string, string> = {
   cat5e: 'var(--mantine-color-blue-6)', cat6: 'var(--mantine-color-blue-6)', cat6a: 'var(--mantine-color-blue-6)',
@@ -22,7 +22,9 @@ const COLOR: Record<string, string> = {
 const WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
 
-type Picked = { kind: 'link'; id: string } | { kind: 'node'; name: string } | null
+type Picked = { kind: 'link'; id: string } | { kind: 'node'; name: string } | { kind: 'uplink'; id: string } | null
+
+const UPLINK_COLOR = { up: 'var(--mantine-color-green-6)', warn: 'var(--mantine-color-orange-6)', down: 'var(--mantine-color-red-6)', unknown: 'var(--mantine-color-gray-5)' } as const
 type Draft = Partial<SwitchLink> & { id?: string }
 
 /** The network's links between switches (issue #468): type and speed, down or slower than planned,
@@ -36,11 +38,14 @@ export default function Topology() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const data = q.data
   const placed = useMemo(() => (data ? layout(data.nodes, data.links) : null), [data])
+  const lines = useMemo(() => (placed && data ? placeUplinks(placed, data.uplinks ?? []) : null), [placed, data])
+  const uplink = picked?.kind === 'uplink' ? data?.uplinks.find((u) => u.id === picked.id) : undefined
   const link = picked?.kind === 'link' ? data?.links.find((l) => l.id === picked.id) : undefined
   const node = picked?.kind === 'node' ? data?.nodes.find((n) => n.name === picked.name) : undefined
   const problems = data?.links.filter((l) => l.issue) ?? []
 
-  const panel = link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
+  const panel = uplink ? <UplinkPanel uplink={uplink} />
+    : link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
     : node ? <NodePanel name={node.name} role={node.role} status={node.status} links={data!.links.filter((l) => l.a === node.name || l.b === node.name)}
       onPick={(id) => setPicked({ kind: 'link', id })} />
       : <Text c="dimmed" size="sm">{t('topology.pickHint')}</Text>
@@ -66,12 +71,30 @@ export default function Topology() {
         {data && data.links.length === 0 && (
           <Paper withBorder radius="lg" p="md"><Text c="dimmed">{t(canEdit ? 'topology.emptyEdit' : 'topology.empty')}</Text></Paper>
         )}
-        {data && placed && data.links.length > 0 && (
+        {data && placed && lines && data.links.length > 0 && (
           <Box style={{ display: 'grid', gap: 16, gridTemplateColumns: phone ? '1fr' : 'minmax(0, 1fr) 300px' }}>
             <Paper withBorder radius="lg" p="sm" style={{ overflowX: 'auto' }}>
               <svg role="img" aria-label={t('topology.diagram', { count: data.links.length })}
-                viewBox={`-10 -10 ${placed.width + 20} ${placed.height + 20}`}
-                style={{ display: 'block', width: '100%', minWidth: phone ? Math.min(placed.width, 720) : undefined, height: 'auto' }}>
+                viewBox={`-10 -10 ${lines.width + 20} ${lines.height + 20}`}
+                style={{ display: 'block', width: '100%', minWidth: phone ? Math.min(lines.width, 720) : undefined, height: 'auto' }}>
+                {lines.boxes.map(({ uplink: u, x, y, to }) => {
+                  const chosen = picked?.kind === 'uplink' && picked.id === u.id
+                  return (
+                    <g key={u.id} className="fb-uplink" data-status={u.status} onClick={() => setPicked({ kind: 'uplink', id: u.id })} style={{ cursor: 'pointer' }}>
+                      <title>{`${u.name}: ${u.device} ${u.port} · ${t(`topology.uplinkStatus.${u.status}`)}`}</title>
+                      <line x1={x + NODE_W / 2} y1={y + NODE_H} x2={to.x + lines.dx + NODE_W / 2} y2={to.y + lines.dy}
+                        stroke={UPLINK_COLOR[u.status]} strokeWidth={3} strokeDasharray={u.status === 'down' ? '6 4' : undefined} strokeLinecap="round" />
+                      {/* A cloud-ish pill, so the internet doesn't read as one more switch. */}
+                      <rect x={x} y={y} width={NODE_W} height={NODE_H} rx={NODE_H / 2} fill="var(--mantine-color-body)"
+                        stroke={chosen ? 'var(--mantine-primary-color-filled)' : UPLINK_COLOR[u.status]} strokeWidth={chosen ? 2.5 : 1.8} />
+                      <text x={x + NODE_W / 2} y={y + NODE_H / 2} dominantBaseline="central" textAnchor="middle" fontSize={12}
+                        fill="var(--mantine-color-text)" fontWeight={600}>
+                        {u.name.length > 15 ? `${u.name.slice(0, 14)}…` : u.name}
+                      </text>
+                    </g>
+                  )
+                })}
+                <g transform={`translate(${lines.dx} ${lines.dy})`}>
                 {data.links.map((l) => {
                   const a = placed.placed.get(l.a.toLowerCase()), b = placed.placed.get(l.b.toLowerCase())
                   if (!a || !b) return null
@@ -109,6 +132,7 @@ export default function Topology() {
                     </g>
                   )
                 })}
+                </g>
               </svg>
               <Legend />
             </Paper>
@@ -262,5 +286,25 @@ function LinkModal({ draft, data, onClose }: { draft: Draft; data: TopologyData;
         </Group>
       </Stack>
     </Modal>
+  )
+}
+
+function UplinkPanel({ uplink: u }: { uplink: TopologyUplink }) {
+  const { t } = useTranslation()
+  const tone = { up: 'up', warn: 'warn', down: 'down', unknown: 'gray' }[u.status]
+  return (
+    <Stack gap="xs">
+      <Group justify="space-between" wrap="nowrap">
+        <Title order={3} size="h5">{u.name}</Title>
+        <Badge color={tone} variant="light">{t(`topology.uplinkStatus.${u.status}`)}</Badge>
+      </Group>
+      <Text size="sm" c="dimmed">{t('topology.uplink')}</Text>
+      <SimpleGrid cols={2} spacing={4}>
+        <Text size="sm" c="dimmed">{t('topology.uplinkPort')}</Text><Text size="sm" ff="monospace">{u.device} {u.port}</Text>
+        <Text size="sm" c="dimmed">{t('topology.uplinkCapacity')}</Text><Text size="sm">{u.capacity_mbps ? `${u.capacity_mbps} Mbit/s` : '–'}</Text>
+        <Text size="sm" c="dimmed">{t('topology.uplinkUsed')}</Text><Text size="sm">{u.utilization != null ? `${Math.round(u.utilization * 100)} %` : '–'}</Text>
+      </SimpleGrid>
+      <Button size="compact-sm" variant="default" component="a" href="/services" mt={4} style={{ alignSelf: 'flex-start' }}>{t('topology.openServices')}</Button>
+    </Stack>
   )
 }

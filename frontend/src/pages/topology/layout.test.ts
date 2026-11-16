@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { SwitchLink, TopologyNode } from '@/api/types'
-import { gbit, layout } from './layout'
+import type { SwitchLink, TopologyNode, TopologyUplink } from '@/api/types'
+import { NODE_W, gbit, layout, placeUplinks } from './layout'
 
 const node = (name: string, role = 'switch'): TopologyNode => ({ id: name, name, role, hall: '', unread: false, status: 'online' })
 const link = (a: string, b: string): SwitchLink => ({
@@ -25,5 +25,18 @@ describe('topology layout', () => {
 
   it('says speeds short', () => {
     expect([gbit(1e10), gbit(1e9), gbit(1e8), gbit(null)]).toEqual(['10G', '1G', '100M', ''])
+  })
+
+  it('puts the internet lines in a row above their routers, never overlapping, and moves the diagram down', () => {
+    const laid = layout([node('core-01', 'router'), node('core-02', 'router'), node('sw-1')], [link('core-01', 'sw-1'), link('core-02', 'sw-1')])
+    const up = (id: string, device: string): TopologyUplink => ({ id, name: id, device, port: 'x', capacity_mbps: 1000, status: 'up', utilization: null })
+    const got = placeUplinks(laid, [up('a', 'core-01'), up('b', 'core-01'), up('c', 'core-02'), up('d', 'gone')])
+    expect(got.boxes.map((b) => b.uplink.id)).toEqual(['a', 'b', 'c'])
+    const xs = got.boxes.map((b) => b.x)
+    for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(NODE_W)
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(0)
+    expect(got.dy).toBeGreaterThan(0)
+    expect(got.height).toBe(laid.height + got.dy)
+    expect(placeUplinks(laid, [])).toEqual({ boxes: [], dx: 0, dy: 0, width: laid.width, height: laid.height })
   })
 })

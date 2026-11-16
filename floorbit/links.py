@@ -281,6 +281,21 @@ def _live(link, ports):
     return {'state': 'unknown', 'speed_bps': None, 'issue': '', 'read_at': None}
 
 
+def _uplinks(data, names):
+    """The internet lines from the services view, on the box they come in at, with how they are."""
+    from . import services  # services reads links' ports, so not at the top
+    out = []
+    for up in services._stored(data)['uplinks']:
+        device = names.get(str(up.get('device') or '').lower())
+        if not device:
+            continue
+        s = services.poller.state(up['id'])
+        out.append({'id': up['id'], 'name': up.get('name') or '', 'device': device, 'port': up.get('port') or '',
+                    'capacity_mbps': up.get('capacity_mbps'), 'status': s['status'],
+                    'utilization': s.get('utilization')})
+    return out
+
+
 def topology(now=None, suggest=True):
     """The switches, the links with how they are now, and what LLDP sees that no link explains."""
     now = time.time() if now is None else now
@@ -318,7 +333,7 @@ def topology(now=None, suggest=True):
     nodes = [{'id': d['id'], 'name': d['name'], 'role': d.get('role'), 'hall': d.get('hall') or '',
               'unread': ports.get(str(d['name']).lower()) is None, 'status': health.status(d['name'], now)}
              for d in devices]
-    return {'nodes': sorted(nodes, key=lambda n: n['name'].lower()), 'links': rows,
+    return {'nodes': sorted(nodes, key=lambda n: n['name'].lower()), 'links': rows, 'uplinks': _uplinks(data, names),
             'suggestions': sorted(suggestions, key=lambda s: (s['a'].lower(), s['a_port'])),
             'counts': {'links': len(rows), 'down': sum(r['issue'] == 'down' for r in rows),
                        'slow': sum(r['issue'] == 'slow' for r in rows)},

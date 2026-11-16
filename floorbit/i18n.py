@@ -58,10 +58,13 @@ def catalog():
             continue
         if '{}' in english:
             parts = [re.escape(p) for p in english.split('{}')]
-            patterns.append((re.compile('^' + '(.+?)'.join(parts) + '$', re.S), german))
+            patterns.append((len(english) - 2 * english.count('{}'), re.compile('^' + '(.+?)'.join(parts) + '$', re.S),
+                             german))
         else:
             exact[english] = german
-    return exact, patterns
+    # The most specific text wins: "{}: needs a look" before "{}: {}", whatever order the file has.
+    patterns.sort(key=lambda p: -p[0])
+    return exact, [(rx, german) for _n, rx, german in patterns]
 
 
 def _fill(german, values):

@@ -43,6 +43,9 @@ def test_lay_out_the_hall_once_on_an_empty_plan(demo):
     placed = [s for s in switches if not s['name'].startswith('fw-')]
     assert len(placed) == 24 and all(s['x'] is not None for s in placed)
     assert len(demo.get('/api/firewalls').get_json()['ranges']) == 4
+    lines = demo.get('/api/services').get_json()['uplinks']
+    assert [(u['name'], u['device'], u['port'], u['probe_host']) for u in lines] == [
+        ('ISP A', 'core-01', 'Te1/0/47', ''), ('ISP B', 'core-01', 'Te1/0/48', '')]     # no probes sent out
     assert [b['name'] for b in demo.get('/api/seat-blocks').get_json()] == ['A', 'B', 'C', 'D']
     # Never moves anything that is already on the plan.
     assert demo.post('/api/demo/layout').get_json()['skipped'] == 'the floor plan is not empty'

@@ -1505,7 +1505,12 @@ export interface SwitchLink {
 }
 export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean; status: 'online' | 'offline' | 'unknown' }
 export interface LinkSuggestion { a: string; a_port: string; b: string; b_port: string; protocol: string; speed: number | null }
+/** An internet line from the services view (issue #471), drawn above the box it comes in at. */
+export interface TopologyUplink {
+  id: string; name: string; device: string; port: string; capacity_mbps: number | null
+  status: 'up' | 'warn' | 'down' | 'unknown'; utilization: number | null
+}
 export interface Topology {
-  nodes: TopologyNode[]; links: SwitchLink[]; suggestions: LinkSuggestion[]
+  nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
   counts: { links: number; down: number; slow: number }; types: LinkType[]; speeds: number[]
 }

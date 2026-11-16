@@ -42,5 +42,11 @@
   "status": { "online": "Up", "offline": "Down", "unknown": "Not read" },
   "media": { "copper": "Copper" },
   "types": { "cat5e": "Copper Cat5e", "cat6": "Copper Cat6", "cat6a": "Copper Cat6a", "fiber-sm": "Fiber single-mode", "fiber-mm": "Fiber multi-mode", "dac": "DAC" },
+  "uplink": "Internet line",
+  "uplinkPort": "Comes in at",
+  "uplinkCapacity": "Capacity",
+  "uplinkUsed": "In use",
+  "openServices": "Open Services",
+  "uplinkStatus": { "up": "Fine", "warn": "Needs a look", "down": "Down", "unknown": "Not checked" },
   "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" }
 }

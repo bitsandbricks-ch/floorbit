@@ -36,7 +36,8 @@ Nothing in it is real: example names, documentation IP ranges (RFC 5737), no rea
 ## The floor plan
 
 With `FLOORBIT_DEMO=1`, the demo hall is laid out once at start-up: switches placed and four seat
-blocks drawn. This only happens if the floor plan is still empty, so it never moves anything
+blocks drawn, with two power boards and their circuits, a firewall range per firewall, and two
+internet lines on `core-01` (without a probe host, so the demo sends nothing out). This only happens if the floor plan is still empty, so it never moves anything
 someone placed. When you turn the demo on from the Plugins page instead, `POST /api/demo/layout`
 (admins) does the same.
 
