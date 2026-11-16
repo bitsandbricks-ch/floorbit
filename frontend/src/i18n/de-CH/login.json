@@ -11,5 +11,6 @@
   "language": "Sprache",
   "checkinTitle": "Bist du an der LAN?",
   "checkinText": "Checke an deinem Platz ein, damit dich die Netzwerk-Crew schnell findet, wenn etwas nicht geht.",
-  "crewTitle": "Anmeldung für die Crew"
+  "crewTitle": "Anmeldung für die Crew",
+  "checkinAddress": "Auf einem anderen PC eintippen:"
 }

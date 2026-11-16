@@ -71,3 +71,49 @@ A full IP or MAC is also looked up on the network (`GET /api/seats/find?q=`):
 Picking a result jumps to the seat, opens it, and the switch it hangs on lights up for a few
 seconds. Nicks, IPs and MACs never reach roles without `seats.view`; they still find switches and
 seat numbers.
+
+## Checking in from a PC
+
+A PC has no camera, so nobody has to scan the QR code. With check-in on (`CHECKIN_ENABLED`), every
+seat card on the printed sheet (Incidents, then Seat QR codes) also carries:
+
+- the **short address** to type, `CHECKIN_ADDRESS` (for example `checkin.example.com`). Point that
+  name at Floorbit in the event DNS; opening it lands on `/checkin`. It also shows on the sign-in page.
+- the seat's **PIN**: five characters, unique per seat, without look-alikes (no 0/O, 1/I/L, 5/S, 8/B).
+  PINs are made the first time the sheet is opened and kept, so a reprint gives the same cards.
+
+The attendee types the PIN and their nick, never the seat: the PIN names it. The page answers at
+once: the request stores only the seat, the nick, the IP and the time. Everything slow happens in
+the background (`verify_pending`, woken by each check-in, then every 10 s): the MAC and the switch
+port the PC is on. The attendee's page shows "Finding your seat's network port…" until then.
+
+A PIN works once. After it checked a seat in, only the same PC (same IP) may use it again, to change
+the nick, and it may also do that without the PIN. Anyone else gets "That PIN was already used. Ask
+the crew"; the crew removes the check-in, which opens the PIN again. A typed seat number can't take
+over a seat its card already checked in.
+
+The page tells Floorbit whether it runs on a PC or a phone (the browser's OS hints, touch only and a
+small screen, backed by the User-Agent). A phone keeps the nick (`not_wired`) but never teaches a
+port. That is only a hint: what proves a wired PC at the seat is the switches. Only a MAC found on
+exactly one access port, with no more than 4 MACs on it (so not an AP, a desk switch or an uplink),
+counts as `verified`. Not found within 15 minutes: `unverified`.
+
+Finding the switch port of the PC takes two steps, because ARP only lives on the core switches: the
+request's IP gives the MAC from the core's ARP table, and that MAC is looked up in the MAC tables
+(FDB) of every switch. Every switch between the core and the seat learns the MAC too, on its uplink,
+so the port with the fewest MACs wins; ports named in "Ignored port names" and ports whose
+description matches the uplink pattern (`STATS_UPLINK_PATTERN`) are skipped.
+
+What Floorbit keeps is the pair **seat to switch port** (`seat_ports.json` next to `checkins.json`).
+The IP was only the way there. From then on the seat counts as patched to that port wherever the
+plan asks (port problems, syslog lines, the seat view, "who is on this port"), and the seat shows
+the MAC and IP that are on that port now, from the MAC and ARP tables. A cable drawn in the patch
+plan always wins over a learned port.
+
+The Problems page lists check-ins that disagree, as **Seat port** entries: two seats checked in on
+the same port, a port the patch plan gives to another seat, or a seat taken over by another nick.
+They name the seat and port, never the nick.
+
+The phone page can still take a typed seat number (the QR code case). That records the check-in but
+teaches no port. Turn on **Always ask for the seat PIN** (`CHECKIN_REQUIRE_PIN`) to refuse typed
+seats without their PIN.

@@ -48,6 +48,9 @@ export default function Login() {
             <div>
               <Title order={2} size="h3">{t('login.checkinTitle')}</Title>
               <Text size="sm" c="dimmed">{t('login.checkinText')}</Text>
+              {o.checkin_address && (
+                <Text size="sm" mt={6}>{t('login.checkinAddress')} <Text span ff="var(--font-mono)" fw={700}>{o.checkin_address}</Text></Text>
+              )}
             </div>
             <Button component="a" href={o.checkin_url} size="lg" fullWidth rightSection={<IconArrowRight size={18} />}>
               {t('login.checkin')}

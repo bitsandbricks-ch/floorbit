@@ -205,6 +205,14 @@ SCHEMA = [
      'label': 'Seat check-in page',
      'help': 'Serve /checkin where people enter seat + username; their IP and MAC are recorded. Add "checkin" '
              'to Seat sources to use it.'},
+    {'key': 'CHECKIN_ADDRESS', 'group': 'checkin', 'type': 'string', 'default': '',
+     'label': 'Short check-in address',
+     'help': 'A name people can type on their PC, e.g. checkin.lan: point it at Floorbit in the event DNS. '
+             'It goes on the seat cards and the sign-in page, and opening it lands on /checkin.'},
+    {'key': 'CHECKIN_REQUIRE_PIN', 'group': 'checkin', 'type': 'bool', 'default': False,
+     'label': 'Always ask for the seat PIN',
+     'help': 'Each seat card shows a 5-character PIN; on a PC people type the PIN and their nick, and the PIN '
+             'names the seat. When on, typing a seat number without its PIN is refused too.'},
     {'key': 'CHECKIN_ALLOWED_NETWORKS', 'group': 'checkin', 'type': 'string', 'default': '',
      'label': 'Allowed networks',
      'help': 'Comma-separated CIDRs players check in from, e.g. 10.0.0.0/16. Empty allows any.'},

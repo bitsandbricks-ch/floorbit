@@ -67,7 +67,7 @@
   "note": "Note",
   "file": "File incident",
   "qrTitle": "Seat QR codes",
-  "qrIntro": "Print these and stick one on each seat. Scanning it opens a help page for that seat: no account, nothing personal. Only these printed links work.",
+  "qrIntro": "Print these and stick one on each seat. Scanning it opens a help page for that seat: no account, nothing personal. Only these printed links work. With check-in on, each card also carries the seat's PIN: on a PC, people open the address and type the PIN and their nick.",
   "print": "Print",
   "qrNone": "No seats on the floor plan yet.",
   "qrCaption": "Problem? Scan for help",
@@ -120,5 +120,6 @@
   "outage": "{{switch}} down · {{ago}}",
   "outageHint": "The switch this seat is on is down right now. Likely part of that outage rather than the seat's cable.",
   "backUp": "{{switch}} back up · {{ago}}",
-  "backUpHint": "The seat's switch was down and is back since this was filed. Check whether it works now before walking over."
+  "backUpHint": "The seat's switch was down and is back since this was filed. Check whether it works now before walking over.",
+  "qrCheckin": "On your PC: {{address}}"
 }

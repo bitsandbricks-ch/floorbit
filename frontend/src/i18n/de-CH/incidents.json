@@ -67,7 +67,7 @@
   "note": "Notiz",
   "file": "Störung erfassen",
   "qrTitle": "QR-Codes der Plätze",
-  "qrIntro": "Druck sie aus und kleb einen an jeden Platz. Der Scan öffnet eine Hilfeseite für diesen Platz: kein Konto, nichts Persönliches. Nur diese gedruckten Links funktionieren.",
+  "qrIntro": "Druck sie aus und kleb einen an jeden Platz. Der Scan öffnet eine Hilfeseite für diesen Platz: kein Konto, nichts Persönliches. Nur diese gedruckten Links funktionieren. Ist der Check-in an, steht auf jeder Karte auch die PIN des Platzes: Am PC öffnet man die Adresse und gibt PIN und Nick ein.",
   "print": "Drucken",
   "qrNone": "Noch keine Plätze auf dem Plan.",
   "qrCaption": "Problem? Scannen für Hilfe",
@@ -120,5 +120,6 @@
   "outage": "{{switch}} ausgefallen · {{ago}}",
   "outageHint": "Der Switch dieses Platzes ist gerade ausgefallen. Eher Teil dieses Ausfalls als das Kabel am Platz.",
   "backUp": "{{switch}} wieder da · {{ago}}",
-  "backUpHint": "Der Switch des Platzes war aus und läuft wieder, seit das gemeldet wurde. Prüf, ob es jetzt geht, bevor du hingehst."
+  "backUpHint": "Der Switch des Platzes war aus und läuft wieder, seit das gemeldet wurde. Prüf, ob es jetzt geht, bevor du hingehst.",
+  "qrCheckin": "Am PC: {{address}}"
 }

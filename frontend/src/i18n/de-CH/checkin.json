@@ -10,12 +10,24 @@
   "doneTitle": "Danke, {{name}}!",
   "doneAt": "Du bist eingecheckt an Platz",
   "doneText": "Wenn dein Netz spinnt, weiss die Crew, wo sie dich findet. Sonst gibt es nichts zu tun.",
-  "change": "Falscher Platz? Ändern",
+  "change": "Falscher Platz? Nochmals einchecken",
   "closed": "Der Check-in ist noch nicht offen",
   "closedText": "Die Crew öffnet ihn, wenn das Event beginnt. Komm dann wieder oder frag am Infodesk.",
   "opensAt": "Er öffnet {{when}}.",
   "unreachable": "Floorbit ist nicht erreichbar",
   "unreachableText": "Dein Netz ist vielleicht noch nicht bereit. Versuch es gleich nochmals.",
   "retry": "Nochmals versuchen",
-  "ip": "Deine IP: {{ip}}"
+  "ip": "Deine IP: {{ip}}",
+  "pin": "PIN von deiner Platzkarte",
+  "pinHelp": "Sie steht auf der Karte an deinem Tisch, neben der Platznummer.",
+  "knownSeat": "Dieser PC ist an Platz {{seat}}.",
+  "noPin": "Keine Karte am Platz? Gib stattdessen die Platznummer ein",
+  "usePin": "Stattdessen die PIN von der Platzkarte verwenden",
+  "onPc": "Öffne diese Seite auf dem PC, der an deinem Platz eingesteckt ist: So lernt die Crew, an welchem Netzwerk-Port dein Platz hängt. Dein Nick zählt auch von hier.",
+  "wired": {
+    "pending": "Suche den Netzwerk-Port deines Platzes …",
+    "verified": "Dein PC ist mit dem Netzwerk-Port deines Platzes verknüpft.",
+    "not_wired": "Vom Handy eingecheckt: Öffne die Seite auch auf deinem PC, damit die Crew den Port deines Platzes kennt.",
+    "unverified": "Dein Netzwerk-Port wurde nicht gefunden. Kein Problem: Die Crew findet dich trotzdem."
+  }
 }

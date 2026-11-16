@@ -44,4 +44,12 @@ describe('HelpdeskQr', () => {
     renderWithApp(<HelpdeskQr />, '/incidents/qr?block=a')
     expect(await screen.findByText('2 of 5 codes')).toBeInTheDocument()
   })
+
+  it('prints the short address and each seat\'s PIN for checking in from a PC', async () => {
+    const withPins = { seats: [{ ...seat('A-1'), pin: 'K7M2X' }], checkin: { address: 'checkin.example.com', url: null } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/helpdesk/qr': withPins }).fn)
+    renderWithApp(<HelpdeskQr />)
+    expect(await screen.findByText('On your PC: checkin.example.com')).toBeInTheDocument()
+    expect(screen.getByText('K7M2X')).toBeInTheDocument()
+  })
 })
