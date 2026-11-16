@@ -29,7 +29,7 @@ IMAGE_MAX_BYTES = 5 * 1024 * 1024
 IMAGE_TYPES = {'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg'}
 CSV_MAX_ROWS = 500
 CSV_COLUMNS = ('name', 'x', 'y', 'cols', 'rows', 'rotation', 'seat_width', 'seat_height',
-               'spacing_x', 'spacing_y', 'reverse_numbers')
+               'spacing_x', 'spacing_y', 'reverse_numbers', 'naming', 'row_start', 'row_labels')
 
 
 class HallError(ValueError):
@@ -202,12 +202,35 @@ def _number(row, key, cast, default, lo, hi):
     return value
 
 
+def _naming(row):
+    """The optional naming columns of a CSV row, checked; empty ones are left to the defaults."""
+    from . import seat_names
+    out = {}
+    naming = (row.get('naming') or '').strip().lower()
+    if naming:
+        if naming not in seat_names.NAMINGS:
+            raise HallError('"naming" is block or rows')
+        out['naming'] = naming
+    start = (row.get('row_start') or '').strip().upper()
+    if start:
+        if not seat_names.LETTERS_RE.match(start):
+            raise HallError('"row_start" is one or two letters')
+        out['row_start'] = start
+    labels = (row.get('row_labels') or '').strip().lower()
+    if labels:
+        if labels not in seat_names.ROW_LABELS:
+            raise HallError('"row_labels" is start, end, both or none')
+        out['row_labels'] = labels
+    return out
+
+
 def parse_blocks_csv(text):
     """Seat blocks from CSV text, with a header row. Returns (blocks, errors), errors as
     ``[{'line', 'error'}]``; the caller adds nothing when there is any error, so a half import can't happen.
 
     Columns: name, x, y (percent of the plan), cols, rows, and optionally rotation, seat_width,
-    seat_height, spacing_x, spacing_y, reverse_numbers. Comma or semicolon separated.
+    seat_height, spacing_x, spacing_y, reverse_numbers, naming (``block`` or ``rows``), row_start
+    and row_labels (floorbit/seat_names.py). Comma or semicolon separated.
     """
     text = text.lstrip('﻿')
     try:
@@ -245,6 +268,7 @@ def parse_blocks_csv(text):
                 'spacing_x': _number(row, 'spacing_x', float, 0.5, 0, 50),
                 'spacing_y': _number(row, 'spacing_y', float, 1, 0, 50),
                 'reverse_numbers': (row.get('reverse_numbers') or '').strip().lower() in ('1', 'true', 'yes', 'ja'),
+                **_naming(row),
             })
         except HallError as exc:
             errors.append({'line': line, 'error': str(exc)})

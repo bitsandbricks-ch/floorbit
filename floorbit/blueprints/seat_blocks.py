@@ -1,12 +1,25 @@
-"""Seat blocks (rows of seats) on the floor plan. Each is in one hall (``hall_id``, floorbit/halls.py)."""
+"""Seat blocks (rows of seats) on the floor plan. Each is in one hall (``hall_id``, floorbit/halls.py).
+
+How a block names its seats (a running number or row letters) is in floorbit/seat_names.py.
+"""
 import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import halls
+from .. import halls, seat_names
 from ..store import load_data, save_data
 
 bp = Blueprint('seat_blocks', __name__)
+
+# The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
+KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
+        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels')
+MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
+MAX_MANY = 30       # blocks in one "add several"
+
+
+class BlockError(ValueError):
+    pass
 
 
 @bp.route('/api/seats', methods=['GET'])
@@ -18,7 +31,59 @@ def get_seats():
 def with_hall(blocks, data):
     """The blocks with the hall they are in written out, so clients needn't know the fallback."""
     ids = {h['id'] for h in halls.halls(data)}
-    return [{**b, 'hall_id': halls.hall_of(b, data, ids)} for b in blocks]
+    return [{**b, 'hall_id': halls.hall_of(b, data, ids), **drawn(b)} for b in blocks]
+
+
+def drawn(block):
+    """What a page needs to draw a block's seats without the numbering rules: the seat names row by
+    row, each row's letter, and on which side seat 1 is (for the letter at the "start")."""
+    return {'seat_rows': seat_names.block_rows(block), 'row_letters': seat_names.row_letters(block),
+            'seat_one_first': seat_names.seat_one_first(block)}
+
+
+def _clean(block):
+    """Checks and tidies the naming fields in place; raises BlockError."""
+    for side in ('cols', 'rows'):
+        if not 1 <= int(block[side]) <= MAX_SIDE:
+            raise BlockError(f'A block has 1 to {MAX_SIDE} rows and columns')
+        block[side] = int(block[side])
+    naming = block.get('naming') or 'block'
+    if naming not in seat_names.NAMINGS:
+        raise BlockError('Seat names are "block" or "rows"')
+    block['naming'] = naming
+    start = str(block.get('row_start') or 'A').strip().upper()
+    if not seat_names.LETTERS_RE.match(start):
+        raise BlockError('The first row is one or two letters, like A or AA')
+    block['row_start'] = start
+    labels = block.get('row_labels') or 'start'
+    if labels not in seat_names.ROW_LABELS:
+        raise BlockError('Row letters go at the start, the end, both or none')
+    block['row_labels'] = labels
+    block['reverse_numbers'] = bool(block.get('reverse_numbers'))
+    return block
+
+
+def _clash(new_blocks, data, skip=(), had=()):
+    """The first seat name the new blocks share with each other or another block, or None.
+
+    ``had``: names the block had before an edit. Only new names count, so a plan that has a clash
+    from before (two unnamed blocks) can still have its blocks moved."""
+    taken = set()
+    old = {s.upper() for s in had}
+    for b in data.get('seat_blocks') or []:
+        if b.get('id') not in skip:
+            taken.update(s.upper() for s in seat_names.seats(b))
+    for b in new_blocks:
+        for seat in seat_names.seats(b):
+            if seat.upper() in taken and seat.upper() not in old:
+                return seat
+            taken.add(seat.upper())
+    return None
+
+
+def _clash_error(seat):
+    return jsonify({'error': f'Seat {seat} is in another block already. Pick other row letters or another block name.',
+                    'seat': seat}), 409
 
 
 @bp.route('/api/seat-blocks', methods=['GET'])
@@ -32,7 +97,7 @@ def get_seat_blocks():
 
 def make_block(body, hall_id):
     """A new block from a request or a CSV row. Raises KeyError, TypeError or ValueError."""
-    return {
+    return _clean({
         'id': str(uuid.uuid4()),
         'name': body.get('name', ''),
         'x': float(body['x']),
@@ -45,8 +110,11 @@ def make_block(body, hall_id):
         'spacing_y': float(body.get('spacing_y', 1)),
         'rotation': body.get('rotation', 0),
         'reverse_numbers': body.get('reverse_numbers', False),
+        'naming': body.get('naming', 'block'),
+        'row_start': body.get('row_start', 'A'),
+        'row_labels': body.get('row_labels', 'start'),
         'hall_id': hall_id,
-    }
+    })
 
 
 @bp.route('/api/seat-blocks', methods=['POST'])
@@ -60,11 +128,62 @@ def add_seat_block():
         return jsonify({'error': str(exc)}), 400
     try:
         block = make_block(body, hall_id)
+    except BlockError as exc:
+        return jsonify({'error': str(exc)}), 400
     except (KeyError, TypeError, ValueError):
         return jsonify({'error': 'Valid coordinates and dimensions are required'}), 400
+    seat = _clash([block], data)
+    if seat:
+        return _clash_error(seat)
     data.setdefault('seat_blocks', []).append(block)
     save_data(data)
-    return jsonify(block), 201
+    return jsonify(with_hall([block], data)[0]), 201
+
+
+def _next_name(name, i):
+    """The i-th copy's name: letters count on (A, B, C), anything else gets a number."""
+    if not name:
+        return ''
+    if seat_names.LETTERS_RE.match(name.upper()):
+        return seat_names.row_letter(seat_names.letter_index(name.upper()) + i)
+    return f'{name} {i + 1}' if i else name
+
+
+@bp.route('/api/seat-blocks/many', methods=['POST'])
+def add_many_seat_blocks():
+    """Several blocks like one, ``count`` of them ``dx``/``dy`` apart (in % of the plan). Row
+    letters and block names count on, so blocks of 2 rows from A give A-B, C-D, E-F. All or nothing."""
+    body = request.get_json(force=True) or {}
+    data = load_data()
+    try:
+        hall_id = halls.check_id(data, body.get('hall_id'))
+    except halls.HallError as exc:
+        return jsonify({'error': str(exc)}), 400
+    try:
+        count = int(body.get('count', 1))
+        dx, dy = float(body.get('dx', 0)), float(body.get('dy', 0))
+        if not 1 <= count <= MAX_MANY:
+            raise BlockError(f'Add 1 to {MAX_MANY} blocks at once')
+        first = make_block(body, hall_id)
+        blocks = []
+        for i in range(count):
+            b = {**first, 'id': str(uuid.uuid4()), 'x': first['x'] + i * dx, 'y': first['y'] + i * dy,
+                 'name': _next_name(first['name'], i) if first['naming'] == 'block' else first['name']}
+            if first['naming'] == 'rows':
+                b['row_start'] = seat_names.row_letter(seat_names.letter_index(first['row_start']) + i * first['rows'])
+            if not (0 <= b['x'] <= 100 and 0 <= b['y'] <= 100):
+                raise BlockError('The last blocks would land outside the plan. Use fewer blocks or a smaller gap.')
+            blocks.append(_clean(b))
+    except BlockError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'error': 'Valid coordinates and dimensions are required'}), 400
+    seat = _clash(blocks, data)
+    if seat:
+        return _clash_error(seat)
+    data.setdefault('seat_blocks', []).extend(blocks)
+    save_data(data)
+    return jsonify(with_hall(blocks, data)), 201
 
 
 @bp.route('/api/seat-blocks/<block_id>', methods=['PUT'])
@@ -74,15 +193,23 @@ def update_seat_block(block_id):
 
     for block in data.get('seat_blocks', []):
         if block['id'] == block_id:
-            for key in ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height',
-                       'spacing_x', 'spacing_y', 'rotation', 'reverse_numbers'):
-                if key in body:
-                    block[key] = body[key]
+            changed = {**block, **{k: body[k] for k in KEYS if k in body}}
+            try:
+                changed = _clean(changed)
+            except BlockError as exc:
+                return jsonify({'error': str(exc)}), 400
+            except (TypeError, ValueError):
+                return jsonify({'error': 'Valid coordinates and dimensions are required'}), 400
             if 'hall_id' in body:
                 try:
-                    block['hall_id'] = halls.check_id(data, body['hall_id'])
+                    changed['hall_id'] = halls.check_id(data, body['hall_id'])
                 except halls.HallError as exc:
                     return jsonify({'error': str(exc)}), 400
+            seat = _clash([changed], data, skip={block_id}, had=seat_names.seats(block))
+            if seat:
+                return _clash_error(seat)
+            block.clear()
+            block.update(changed)
             save_data(data)
             return jsonify(with_hall([block], data)[0])
     return jsonify({'error': 'Seat block not found'}), 404

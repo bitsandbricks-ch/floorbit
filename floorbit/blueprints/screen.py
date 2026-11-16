@@ -17,7 +17,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 from integrations import config, seat_sources
 
 from .. import halls
-from ..power import block_rows
+from ..seat_names import block_rows, row_letters, seat_one_first
 from ..store import load_data
 
 bp = Blueprint('screen', __name__)
@@ -69,6 +69,22 @@ def _rate_limited():
         return len(recent) >= RATE_LIMIT
 
 
+def _row_labels(block, w, h):
+    """Where each row's letter goes, in the block's own coordinates (centre of the letter):
+    beside seat 1 for "start", past the last seat for "end" (floorbit/seat_names.py)."""
+    letters = row_letters(block)
+    where = block.get('row_labels') or 'start'
+    if not letters or where == 'none':
+        return []
+    first_side = -w / 2 - CELL / 2
+    last_side = w / 2 + CELL / 2
+    one_first = seat_one_first(block)
+    sides = {'start': [first_side if one_first else last_side], 'end': [last_side if one_first else first_side],
+             'both': [first_side, last_side]}[where]
+    return [{'text': letter, 'x': x, 'y': r * CELL - h / 2 + CELL / 2}
+            for r, letter in enumerate(letters) for x in sides]
+
+
 def plan(data, highlight=None, online=None, hall_id=None):
     """One hall's seat blocks (the first hall's by default) as SVG shapes, cropped to the hall,
     with one seat marked.
@@ -96,11 +112,11 @@ def plan(data, highlight=None, online=None, hall_id=None):
                              'col': c + 1}
                 cells.append({'x': c * CELL - w / 2, 'y': r * CELL - h / 2, 'hit': hit, 'seat': seat,
                               'on': None if online is None else seat in online})
-        reach = max(w, h) / 2 + CELL
+        reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]
         ys += [cy - reach - 40, cy + reach]   # room for the block's name above it
         shapes.append({'cx': cx, 'cy': cy, 'rotation': int(block.get('rotation') or 0) % 360, 'w': w, 'h': h,
-                       'name': block.get('name') or '', 'cells': cells})
+                       'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h)})
     if not shapes:
         return None, None
     box = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))

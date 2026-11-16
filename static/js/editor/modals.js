@@ -216,9 +216,50 @@ const blockReverseNumbersModal = $('block-reverse-numbers-modal');
 const blockCancel      = $('block-cancel');
 const blockConfirm     = $('block-confirm');
 const blockPreview     = $('block-preview');
+const blockNaming      = $('block-naming');
+const blockRowStart    = $('block-row-start');
+const blockRowLabels   = $('block-row-labels');
+const blockCount       = $('block-count');
+const blockDirection   = $('block-direction');
+const blockGap         = $('block-gap');
+
+// The first row letter no block uses yet, so a new block carries on the rows. Seat names count
+// over every hall, and seatBlocks has only the shown one's, so ask the server for all of them.
+let allSeatRows = [];
+async function loadAllSeatRows() {
+  try {
+    allSeatRows = (await api('GET', '/api/seat-blocks')).map(b => b.seat_rows || []);
+  } catch (_) { allSeatRows = []; }
+}
+function nextFreeRow() {
+  let next = 0;
+  const names = [...allSeatRows.flat(2), ...seatBlocks.flatMap(b => blockSeatNumbers(b).map(n => n.number))];
+  for (const number of names) {
+    const prefix = String(number).split('-')[0];
+    if (/^[A-Z]{1,2}$/i.test(prefix)) next = Math.max(next, letterIndex(prefix) + 1);
+  }
+  return rowLetter(next);
+}
+
+// How far apart (in % of the plan) to put the copies: the block's size on screen plus the gap.
+function blockStep(v) {
+  const box = blocksOverlay.getBoundingClientRect();
+  const labelled = v.naming === 'rows' && v.row_labels !== 'none';
+  const extraCols = labelled ? (v.row_labels === 'both' ? 2 : 1) : 0;
+  let w = (v.cols + extraCols) * 20 + 10;
+  let h = v.rows * 20 + 10 + (v.name ? 14 : 0);
+  if ([1, 3].includes(blockQuarter(v))) [w, h] = [h, w];
+  const gap = Math.max(0, parseFloat(blockGap.value) || 0);
+  return blockDirection.value === 'right'
+    ? { dx: (box.width ? (w / box.width) * 100 : 10) + gap, dy: 0 }
+    : { dx: 0, dy: (box.height ? (h / box.height) * 100 : 10) + gap };
+}
 
 function blockModalValues() {
   return {
+    naming: blockNaming.value,
+    row_start: (blockRowStart.value.trim() || 'A').toUpperCase(),
+    row_labels: blockRowLabels.value,
     name: blockName.value.trim(),
     cols: Math.max(1, parseInt(blockCols.value) || 1),
     rows: Math.max(1, parseInt(blockRows.value) || 1),
@@ -231,18 +272,43 @@ function blockModalValues() {
     rotation: parseInt(blockRotation.value) || 0,
   };
 }
+function blockCopies() { return Math.min(30, Math.max(1, parseInt(blockCount.value) || 1)); }
+
 function updateBlockPreview() {
   const v = blockModalValues();
-  const nums = blockSeatNumbers(v);
-  const first = nums[0]?.number;
-  const last = nums[nums.length - 1]?.number;
-  blockPreview.textContent = `${nums.length} seat${nums.length === 1 ? '' : 's'}` +
-    (first ? ` · numbered ${first}${nums.length > 1 ? ` to ${last}` : ''}` : '');
+  const rows = v.naming === 'rows';
+  $('block-row-start-field').classList.toggle('hidden', !rows);
+  $('block-row-labels-field').classList.toggle('hidden', !rows);
+  $('block-name-hint').textContent = rows ? '(optional, shown above the block)' : '(optional, used as seat prefix: A-1, A-2…)';
+  const many = blockCopies() > 1;
+  $('block-direction-field').classList.toggle('hidden', !many);
+  $('block-gap-field').classList.toggle('hidden', !many);
+  const n = blockCopies();
+  const seats = v.cols * v.rows * n;
+  let text = `${n > 1 ? `${n} blocks · ` : ''}${seats} seat${seats === 1 ? '' : 's'}`;
+  if (rows) {
+    const first = letterIndex(v.row_start);
+    const total = v.rows * n;
+    text += total > 1 ? ` · rows ${rowLetter(first)} to ${rowLetter(first + total - 1)}` : ` · row ${rowLetter(first)}`;
+    text += `, each numbered 1 to ${v.cols}`;
+  } else {
+    const nums = blockSeatNumbers(v);
+    const firstNum = nums[0]?.number;
+    if (firstNum) text += ` · numbered ${firstNum}${nums.length > 1 ? ` to ${nums[nums.length - 1].number}` : ''}`;
+  }
+  blockPreview.textContent = text;
 }
-[blockName, blockCols, blockRows, blockRotation].forEach(el => el.addEventListener('input', updateBlockPreview));
-blockReverseNumbersModal.addEventListener('change', updateBlockPreview);
+[blockName, blockCols, blockRows, blockRotation, blockRowStart, blockCount, blockGap].forEach(el => el.addEventListener('input', updateBlockPreview));
+[blockReverseNumbersModal, blockNaming, blockRowLabels, blockDirection].forEach(el => el.addEventListener('change', updateBlockPreview));
 
-function openBlockModal() {
+async function openBlockModal() {
+  await loadAllSeatRows();
+  blockNaming.value = 'rows';
+  blockRowStart.value = nextFreeRow();
+  blockRowLabels.value = 'start';
+  blockCount.value = '1';
+  blockDirection.value = 'down';
+  blockGap.value = '3';
   blockName.value = '';
   blockCols.value = '8';
   blockRows.value = '1';
@@ -270,6 +336,25 @@ blockConfirm.addEventListener('click', async () => {
   blockConfirm.disabled = true;
   try {
     const data = { ...blockModalValues(), ...pendingCoords };
+    if (blockCopies() > 1) {
+      const many = { ...data, count: blockCopies(), ...blockStep(data) };
+      let made = await createBlocks(many);
+      closeBlockModal();
+      setTool('select');
+      renderAll();
+      selectBlock(made[0].id);
+      toast(`${made.length} seat blocks added`, { type: 'success', duration: 2500 });
+      pushHistory({
+        label: `add ${made.length} seat blocks`,
+        undo: async () => { for (const b of made) await deleteBlock(resolveId(b.id)); },
+        redo: async () => {
+          const again = await createBlocks(many);
+          made.forEach((b, i) => aliasId(resolveId(b.id), again[i].id));
+          made = again;
+        },
+      });
+      return;
+    }
     const block = await createBlock(data);
     const ref = { id: block.id };
     closeBlockModal();

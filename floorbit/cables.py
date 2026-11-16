@@ -311,7 +311,7 @@ def plan_block(body, data=None):
     ``body``: ``block`` (id), ``switch``, ``first_port`` (the port of the first seat; the last number
     counts up), ``order`` (``rows``: each row the same way; ``snake``: every other row back),
     ``reverse`` (start at the last seat), ``rows`` (``"1-2"``; all when empty)."""
-    from .power import block_rows  # power reads cables' neighbours: imported late
+    from .seat_names import block_rows
     data = load_data() if data is None else data
     block = next((b for b in data.get('seat_blocks') or [] if b.get('id') == body.get('block')), None)
     if not block:

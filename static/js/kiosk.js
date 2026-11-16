@@ -91,28 +91,20 @@
     </svg>`;
   }
 
-  // Same numbering as blockSeatNumbers() in app.js, so seat numbers match the editor
+  // The server sends each block's seat names row by row (floorbit/seat_names.py), the same as the editor's.
   function blockSeatNumbers(block) {
-    const totalSeats = block.cols * block.rows;
-    const prefix = block.name ? block.name.toUpperCase() + '-' : '';
+    return (block.seat_rows || []).flat().map(number => ({ number, display: number.split('-').pop() }));
+  }
+
+  // A row's letter, beside seat 1 ("start"), after the last seat ("end"), both or none.
+  function rowLabel(block, row, side) {
+    const letter = (block.row_letters || [])[row];
+    const where = block.row_labels || 'start';
+    if (!letter || where === 'none') return '';
+    const atFirstColumn = (side === 'first') === !!block.seat_one_first;
+    const wanted = where === 'both' || (where === 'start') === atFirstColumn;
     const rotation = (block.rotation || 0) % 360;
-    const base = Array.from({ length: totalSeats }, (_, i) => i + 1);
-    let ordered = [];
-    if (rotation >= 0 && rotation < 90) {
-      ordered = [...base];
-    } else if (rotation >= 90 && rotation < 180) {
-      for (let row = 0; row < block.rows; row++) {
-        ordered.push(...base.slice(row * block.cols, (row + 1) * block.cols).reverse());
-      }
-    } else if (rotation >= 180 && rotation < 270) {
-      ordered = [...base].reverse();
-    } else {
-      for (let row = block.rows - 1; row >= 0; row--) {
-        ordered.push(...base.slice(row * block.cols, (row + 1) * block.cols));
-      }
-    }
-    if (block.reverse_numbers) ordered.reverse();
-    return ordered.map(n => ({ number: `${prefix}${n}`, display: n }));
+    return wanted ? `<div class="seat-block-rowlabel" style="${rotation ? `transform: rotate(${-rotation}deg);` : ''}">${escHtml(letter)}</div>` : '';
   }
 
   // ── Heat view ──────────────────────────────────────────────────────────────
@@ -166,7 +158,7 @@
       let inner = block.name ? `<div class="seat-block-label">${escHtml(block.name)}</div>` : '';
       let i = 0;
       for (let row = 0; row < block.rows; row++) {
-        inner += '<div class="seat-block-row">';
+        inner += '<div class="seat-block-row">' + rowLabel(block, row, 'first');
         for (let col = 0; col < block.cols; col++) {
           const { number, display } = numbers[i++];
           const user = seatInfo[number]?.taken;
@@ -179,7 +171,7 @@
           const style = counter + (OPT.heat ? heatStyle(heat[number]) : '');
           inner += `<div class="${cls}" style="${style}" data-seat-number="${escHtml(number)}">${escHtml(display)}</div>`;
         }
-        inner += '</div>';
+        inner += rowLabel(block, row, 'last') + '</div>';
       }
       html.push(
         `<div class="seat-block" data-id="${escHtml(block.id)}"

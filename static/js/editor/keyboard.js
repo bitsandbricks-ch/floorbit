@@ -54,6 +54,7 @@ document.addEventListener('keydown', (e) => {
     case 'b': case 'B': setTool('add-block'); break;
     case 'g': case 'G': setSnap(!snapEnabled); break;
     case 'f': case 'F': fitToContent(); break;
+    case 'r': case 'R': rotateSelectedBlock(e.shiftKey ? -90 : 90); break;
     case 't': case 'T': window.floorTheme?.toggle(); break;
     case '+': case '=': zoomCentered(ZOOM_STEP); break;
     case '-': case '_': zoomCentered(1 / ZOOM_STEP); break;

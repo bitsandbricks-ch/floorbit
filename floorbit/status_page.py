@@ -23,7 +23,7 @@ import uuid
 from xml.sax.saxutils import escape as _x
 
 from . import halls, inventory
-from .power import block_rows
+from .seat_names import block_rows
 from .store import load_data, save_data
 
 KEY = 'status_page'

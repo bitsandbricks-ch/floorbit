@@ -25,7 +25,7 @@ MAX_VERSIONS = 10
 MAX_TEMPLATES = 200
 NAME_MAX, DESCRIPTION_MAX = 80, 500
 BLOCK_KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-              'rotation', 'reverse_numbers', 'hall_id')
+              'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'hall_id')
 SWITCH_KEYS = ('name', 'role', 'model', 'x', 'y', 'hall_id')
 _ID = re.compile(r'[a-f0-9]{12}')
 
@@ -52,6 +52,18 @@ def snapshot(data, hall_id=None):
         'switches': switches,
         'seat_blocks': blocks,
     }
+
+
+def _naming(b, what):
+    """A template block's naming fields (floorbit/seat_names.py), checked."""
+    from . import seat_names
+    naming = b.get('naming') or 'block'
+    start = str(b.get('row_start') or 'A').upper()
+    labels = b.get('row_labels') or 'start'
+    known = naming in seat_names.NAMINGS and labels in seat_names.ROW_LABELS
+    if not known or not seat_names.LETTERS_RE.match(start):
+        raise TemplateError(f'{what} has a naming that Floorbit does not know')
+    return {'naming': naming, 'row_start': start, 'row_labels': labels}
 
 
 def _num(value, lo, hi, what, cast=float):
@@ -110,6 +122,7 @@ def clean_layout(layout):
             'spacing_y': _num(b.get('spacing_y', 1), 0, 50, f'{what} spacing_y'),
             'rotation': _num(b.get('rotation', 0) or 0, -360, 360, f'{what} rotation', int),
             'reverse_numbers': bool(b.get('reverse_numbers')),
+            **_naming(b, what),
             'hall_id': b.get('hall_id') if b.get('hall_id') in ids else out_halls[0]['id'],
         })
 

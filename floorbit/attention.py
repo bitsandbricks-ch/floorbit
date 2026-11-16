@@ -21,7 +21,7 @@ from collections import deque
 from integrations import checkin, config, events
 
 from . import cables, inventory, recording, sources, status_page
-from .power import block_rows
+from .seat_names import block_rows
 from .store import load_data
 
 FLAP_WINDOW = 600

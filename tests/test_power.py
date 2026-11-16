@@ -1,7 +1,7 @@
 """Electrics (issue #45): boards, circuits, load, power incidents and the floor plan layer."""
 import pytest
 
-from floorbit import power
+from floorbit import seat_names
 from integrations import events
 
 
@@ -53,10 +53,10 @@ def test_power_is_a_plugin_area():
 
 def test_rows_follow_the_editor_numbering():
     block = {"name": "a", "cols": 3, "rows": 2}
-    assert power.block_rows(block) == [["A-1", "A-2", "A-3"], ["A-4", "A-5", "A-6"]]
-    assert power.block_rows({**block, "rotation": 180}) == [["A-6", "A-5", "A-4"], ["A-3", "A-2", "A-1"]]
-    assert power.block_rows({**block, "rotation": 90}) == [["A-3", "A-2", "A-1"], ["A-6", "A-5", "A-4"]]
-    assert power.block_rows({**block, "reverse_numbers": True})[0] == ["A-6", "A-5", "A-4"]
+    assert seat_names.block_rows(block) == [["A-1", "A-2", "A-3"], ["A-4", "A-5", "A-6"]]
+    assert seat_names.block_rows({**block, "rotation": 180}) == [["A-6", "A-5", "A-4"], ["A-3", "A-2", "A-1"]]
+    assert seat_names.block_rows({**block, "rotation": 90}) == [["A-3", "A-2", "A-1"], ["A-6", "A-5", "A-4"]]
+    assert seat_names.block_rows({**block, "reverse_numbers": True})[0] == ["A-6", "A-5", "A-4"]
 
 
 def test_a_circuit_feeds_rows_and_switches(client, floor):

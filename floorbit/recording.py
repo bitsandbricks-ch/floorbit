@@ -33,7 +33,7 @@ def path():
 
 def _blocks(data):
     """{seat: block name} for the placed seat blocks."""
-    from .power import block_rows
+    from .seat_names import block_rows
     out = {}
     for b in data.get('seat_blocks') or []:
         name = str(b.get('name') or '').upper() or '?'

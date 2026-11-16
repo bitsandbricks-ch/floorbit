@@ -706,5 +706,16 @@
  "No such copies.": "Diese Kopien gibt es nicht.",
  "No such copy.": "Diese Kopie gibt es nicht.",
  "Wrong username or password.": "Falscher Benutzername oder falsches Passwort.",
- "Too many failed attempts. Try again in {} seconds.": "Zu viele Fehlversuche. Versuche es in {} Sekunden nochmals."
+ "Too many failed attempts. Try again in {} seconds.": "Zu viele Fehlversuche. Versuche es in {} Sekunden nochmals.",
+ "\"naming\" is block or rows": "\"naming\" ist block oder rows",
+ "\"row_labels\" is start, end, both or none": "\"row_labels\" ist start, end, both oder none",
+ "\"row_start\" is one or two letters": "\"row_start\" ist ein oder zwei Buchstaben",
+ "A block has 1 to {} rows and columns": "Ein Block hat 1 bis {} Reihen und Spalten",
+ "Add 1 to {} blocks at once": "Füge 1 bis {} Blöcke auf einmal hinzu",
+ "Row letters go at the start, the end, both or none": "Reihenbuchstaben stehen am Anfang, am Ende, an beiden Enden oder gar nicht",
+ "Seat names are \"block\" or \"rows\"": "Sitznamen sind \"block\" oder \"rows\"",
+ "Seat {} is in another block already. Pick other row letters or another block name.": "Sitz {} ist schon in einem anderen Block. Wähle andere Reihenbuchstaben oder einen anderen Blocknamen.",
+ "The first row is one or two letters, like A or AA": "Die erste Reihe ist ein oder zwei Buchstaben, etwa A oder AA",
+ "The last blocks would land outside the plan. Use fewer blocks or a smaller gap.": "Die letzten Blöcke kämen ausserhalb des Plans zu liegen. Nimm weniger Blöcke oder einen kleineren Abstand.",
+ "{} has a naming that Floorbit does not know": "{} hat eine Benennung, die Floorbit nicht kennt"
 }

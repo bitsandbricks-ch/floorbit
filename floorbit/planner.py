@@ -246,7 +246,7 @@ def _port_name(pattern, n, u=None):
 def build(data=None, cfg=None):
     """Switches per block, the seat on each port, VLANs and management IPs."""
     from . import halls
-    from .power import block_rows
+    from .seat_names import block_rows
     data = data if data is not None else load_data()
     cfg = cfg or settings(data)
     model = templates(data).get(cfg['model']) or templates(data)['cisco-ios']

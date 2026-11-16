@@ -27,6 +27,7 @@ from integrations import config, events
 
 from . import features
 from .plugins import PluginError
+from .seat_names import block_rows
 from .store import load_data, save_data
 
 KEY = 'power'
@@ -71,29 +72,6 @@ def _save(data, boards, circuits):
 
 
 # ── What a circuit feeds ───────────────────────────────────────────────────────
-def block_rows(block):
-    """The seat numbers of each row of a seat block as drawn, top row first.
-
-    The same numbering as the editor's ``blockSeatNumbers`` (static/js/editor/sidebar.js): the
-    rotation and "reverse numbers" change which number sits where.
-    """
-    cols, rows = int(block.get('cols') or 0), int(block.get('rows') or 0)
-    base = list(range(1, cols * rows + 1))
-    rotation = int(block.get('rotation') or 0) % 360
-    if rotation < 90:
-        ordered = base
-    elif rotation < 180:
-        ordered = [n for r in range(rows) for n in reversed(base[r * cols:(r + 1) * cols])]
-    elif rotation < 270:
-        ordered = list(reversed(base))
-    else:
-        ordered = [n for r in reversed(range(rows)) for n in base[r * cols:(r + 1) * cols]]
-    if block.get('reverse_numbers'):
-        ordered = list(reversed(ordered))
-    prefix = f"{str(block['name']).upper()}-" if block.get('name') else ''
-    return [[f'{prefix}{n}' for n in ordered[r * cols:(r + 1) * cols]] for r in range(rows)]
-
-
 def fed_by(circuit, data):
     """{'seats': [...], 'switches': [{id, name}]} that go dark when this circuit does."""
     blocks = {b.get('id'): b for b in data.get('seat_blocks') or []}

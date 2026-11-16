@@ -36,7 +36,7 @@ class DispatchError(ValueError):
 def points(data):
     """{seat: (hall_id, x, y)} for every seat, and {switch_id: (hall_id, x, y)}, in plan units (screen.py)."""
     from .blueprints.screen import CELL, PLAN_H, PLAN_W
-    from .power import block_rows
+    from .seat_names import block_rows
     ids = {h['id'] for h in halls.halls(data)}
     seats, switches = {}, {}
     for block in data.get('seat_blocks') or []:
