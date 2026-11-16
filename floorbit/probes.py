@@ -42,6 +42,15 @@ def _nets():
     return out
 
 
+def unreachable(addr):
+    """Is ``addr`` (an address string) one the server never sends anything to: link-local (the
+    cloud metadata service lives there), unspecified or multicast? Webhooks ask the same."""
+    ip = ipaddress.ip_address(str(addr).split('%')[0])
+    # ::ffff:169.254.169.254 reaches 169.254.169.254; not every Python release calls it link-local.
+    ip = getattr(ip, 'ipv4_mapped', None) or ip
+    return ip.is_link_local or ip.is_unspecified or ip.is_multicast
+
+
 def target(host):
     """The address the server may probe for ``host``, or ProbeError. Host names are resolved here so
     that the check sees the address that is connected to."""
@@ -52,11 +61,10 @@ def target(host):
         raise ProbeError(f'{host} cannot be resolved.') from None
     nets = _nets()
     for addr in sorted(addrs):
-        ip = ipaddress.ip_address(addr.split('%')[0])
-        # ::ffff:169.254.169.254 reaches 169.254.169.254; not every Python release calls it link-local.
-        ip = getattr(ip, 'ipv4_mapped', None) or ip
-        if ip.is_link_local or ip.is_unspecified or ip.is_multicast:
+        if unreachable(addr):
             continue
+        ip = ipaddress.ip_address(addr.split('%')[0])
+        ip = getattr(ip, 'ipv4_mapped', None) or ip
         if not nets or any(ip in net for net in nets):
             return str(ip)
     raise ProbeError(f'{host} is not an address Floorbit may probe.')
