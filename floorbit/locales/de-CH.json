@@ -635,7 +635,7 @@
  "Answer time": "Antwortzeit",
  "Hit rate": "Trefferquote",
  "Saved": "Gespart",
- "// problems": "Problems page: titles and where (floorbit/blueprints/problems.py translates them). The first text with values that matches wins, so the more specific ones come first.",
+ "// problems": "Problems page: titles and where (floorbit/blueprints/problems.py translates them).",
  "Switch status is frozen at the last good data": "Der Switch-Status steht auf den letzten guten Daten",
  "{} is offline": "{} ist offline",
  "{}: needs a look": "{}: braucht einen Blick",

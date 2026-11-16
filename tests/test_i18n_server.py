@@ -119,6 +119,9 @@ def test_api_errors_come_in_the_asked_language(client):
     ('18/20 players', '18/20 Spieler'),
     ('The cache disk is 95 % full.', 'Die Cache-Disk ist zu 95 % voll.'),
     ('850 / 1000 Mbit/s in', '850 / 1000 Mbit/s eingehend'),
+    ('DHCP players: needs a look', 'DHCP players: braucht einen Blick'),       # not the catch-all "{}: {}"
+    ('Fiber multi-mode, 10G planned', 'Glasfaser Multimode, 10G geplant'),
+    ('Feeds 12 seats', 'Speist 12 Plätze'),
 ])
 def test_health_tiles_built_in_speak_german(english, german):
     assert i18n.translate(english, 'de-CH') == german
