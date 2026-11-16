@@ -32,7 +32,9 @@ answers anything but addresses; **look** from 200 ms.
 
 What Floorbit read from the cache's access log this hour (see [games.md](games.md),
 `LANCACHE_LOG`): the share served from disk and how much it served. With `LANCACHE_CACHE_DIR`
-pointing at the cache's disk (mounted read-only), also how full it is; amber from 90 %.
+pointing at the cache's disk (mounted read-only), also how full it is; amber from 90 %. The cache is
+also a tile on the [service health wall](health.md), so a disk filling up during the event pages the
+crew before downloads start to miss.
 
 ## Checks
 

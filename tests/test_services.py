@@ -140,3 +140,22 @@ def test_a_game_server_outside_probe_nets_is_not_queried(monkeypatch):
         game_servers._ask("game_query", "a2s", "169.254.169.254", 27015)
     with pytest.raises(game_query.QueryError):
         game_servers._ask("rcon", "198.51.100.5", 27015, "pw", "status")
+
+
+def test_the_lan_cache_disk_is_a_tile_on_the_health_wall(client, monkeypatch, tmp_path):
+    from collections import namedtuple
+    usage = namedtuple("usage", "total used free")
+    monkeypatch.setenv("LANCACHE_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(services.shutil, "disk_usage", lambda path: usage(1000, 950, 50))
+    with client.application.app_context():
+        tile = next(t for t in services.health_checks() if t["id"] == "lancache")
+    assert (tile["kind"], tile["status"]) == ("cache", "warn")
+    assert tile["summary"] == "The cache disk is 95 % full."
+    assert {"label": "Disk", "value": 95, "unit": "%", "tone": "warn"} in tile["metrics"]
+    # The health wall's own thread has no app context.
+    monkeypatch.setattr(services.shutil, "disk_usage", lambda path: usage(1000, 400, 600))
+    tile = next(t for t in services.health_checks() if t["id"] == "lancache")
+    assert tile["status"] == "up"
+    monkeypatch.delenv("LANCACHE_CACHE_DIR")
+    with client.application.app_context():
+        assert not [t for t in services.health_checks() if t["id"] == "lancache"]
