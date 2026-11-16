@@ -14,6 +14,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { compact } from './tournament/seats'
 import { LoadingState } from '@/components/ui'
+import { blockTop } from '@/pages/plan/blockTop'
 
 function HallPlan({ drawing, label }: { drawing: PlanDrawing; label: string }) {
   return (
@@ -26,7 +27,7 @@ function HallPlan({ drawing, label }: { drawing: PlanDrawing; label: string }) {
                 width={drawing.cell - 2} height={drawing.cell - 2} rx={3}><title>{c.seat}</title></rect>
             ))}
           </g>
-          {b.name && <text className="name" x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 18}>{b.name}</text>}
+          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
         </g>
       ))}
     </svg>

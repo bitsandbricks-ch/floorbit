@@ -1,4 +1,5 @@
 import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
@@ -77,6 +78,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
   const [hallsOpen, setHallsOpen] = useState(false)
+  const small = useMediaQuery('(max-width: 48em)')
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
   const qc = useQueryClient()
@@ -728,6 +730,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           {!selected.length && (
             <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
           )}
+          {small && !selected.length && <Text size="xs" c="dimmed">{t('plan.edit.smallScreen')}</Text>}
           <ItemList data={data} groups={groups} selected={selected}
             onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
             onRename={(g, name) => void renameGroup(g, name)}

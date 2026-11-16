@@ -553,7 +553,8 @@
       "groupHelp": "Select several items and press Ctrl G to group them.",
       "rename": "Group name",
       "renameHelp": "Click to select, double-click to rename"
-    }
+    },
+    "smallScreen": "On a phone, tap to select and drag to move; the panel is under the plan. Drawing and arranging work best with a mouse on a larger screen."
   },
   "net": {
     "learned": "read from the port, not typed in",

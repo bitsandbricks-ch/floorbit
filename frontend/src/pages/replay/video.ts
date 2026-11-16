@@ -1,4 +1,5 @@
 import type { EventFrame, PlanDrawing } from '@/api/types'
+import { blockTop } from '@/pages/plan/blockTop'
 
 /** Whether this browser can record a canvas to a video file. */
 export function canRecord(): boolean {
@@ -53,7 +54,7 @@ function draw(ctx: CanvasRenderingContext2D, drawing: PlanDrawing, f: EventFrame
       ctx.fillStyle = colors.muted
       ctx.font = '700 34px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(b.name, b.cx, b.cy - Math.max(b.w, b.h) / 2 - 18)
+      ctx.fillText(b.name, b.cx, blockTop(b) - 12)
     }
   }
   ctx.restore()

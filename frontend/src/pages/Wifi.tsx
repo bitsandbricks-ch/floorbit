@@ -12,6 +12,7 @@ import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { channelColor, loadColor } from './wifi/colors'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { blockTop } from '@/pages/plan/blockTop'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/wifi.md'
 const RADIUS = 80   // an AP's circle on the plan, in plan units
@@ -58,7 +59,7 @@ function Plan({ data, band, mode, label }: { data: WifiData; band: WifiBand; mod
               <rect key={c.seat} className="cell" x={c.x + 1} y={c.y + 1} width={drawing.cell - 2} height={drawing.cell - 2} rx={3} />
             ))}
           </g>
-          {b.name && <text className="name" x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 18}>{b.name}</text>}
+          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
         </g>
       ))}
       {aps.map((ap, i) => ap.status === 'up' && radioOn(ap, band) && (

@@ -392,7 +392,14 @@ body {
 .fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .fb-edit-marquee { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1; pointer-events: none; }
 .fb-plan-editor .fb-plan-wrap { min-height: 70vh; }
-.fb-edit-panel { position: sticky; top: 12px; }
+.fb-edit-panel { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+/* The editor's panel takes less room on smaller screens and goes under the plan when the plan
+   would get too narrow to work on (tablets, phones). */
+@media (max-width: 1279.98px) { .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) 300px; } }
+@media (max-width: 1099.98px) {
+  .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr); }
+  .fb-plan-editor .fb-edit-panel { position: static; max-height: none; }
+}
 .fb-edit-ports { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 4px; max-height: 220px; overflow: auto; font: 500 11px var(--font-mono); }
 .fb-edit-ports > span { padding: 2px 6px; border-radius: 4px; border: 1px solid var(--mantine-color-default-border); color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fb-edit-ports > span.used { background: color-mix(in srgb, var(--color-bit) 14%, transparent); color: var(--mantine-color-text); border-color: transparent; }
