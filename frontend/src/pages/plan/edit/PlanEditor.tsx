@@ -18,6 +18,7 @@ import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
+import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
 import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
@@ -64,7 +65,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>('select')
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
-  const [placing, setPlacing] = useState<{ kind: 'block' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
+  const [placing, setPlacing] = useState<{ kind: 'block' | 'switch' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
@@ -158,18 +159,19 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
 
   /** The items as the server keeps them, to copy, delete with undo, or restack. */
   const snapshot = useCallback(async (items: ItemRef[]): Promise<Saved[]> => {
-    const want = items.filter((r) => r.kind !== 'switch')
+    const want = items
     const hall = encodeURIComponent(data.hall)
     const some = (k: ItemRef['kind']) => want.some((r) => r.kind === k)
     const none = Promise.resolve([] as Record<string, unknown>[])
-    const [blocks, marks, panels, cableRows, boards] = await Promise.all([
+    const [blocks, marks, panels, cableRows, boards, switchRows] = await Promise.all([
       some('block') ? get<Record<string, unknown>[]>(`/api/seat-blocks?hall=${hall}`) : none,
       some('mark') ? get<{ marks: Record<string, unknown>[] }>(`/api/plan-marks?hall=${hall}`).then((m) => m.marks) : none,
       some('panel') ? get<{ panels: Record<string, unknown>[] }>(`/api/cable-plan?hall=${hall}`).then((m) => m.panels.map((p) => ({ ...p, id: p.name }))) : none,
       some('cable') ? get<{ cables: Record<string, unknown>[] }>('/api/cables').then((m) => m.cables) : none,
       some('board') ? get<{ boards: Record<string, unknown>[] }>('/api/power').then((m) => m.boards) : none,
+      some('switch') ? get<Record<string, unknown>[]>('/api/switches') : none,
     ])
-    const rows = { block: blocks, mark: marks, panel: panels, cable: cableRows, board: boards, switch: [] }
+    const rows = { block: blocks, mark: marks, panel: panels, cable: cableRows, board: boards, switch: switchRows }
     return want.map((r): Saved | null => {
       const raw = rows[r.kind].find((x) => String(x.id).toLowerCase() === idOf(r).toLowerCase())
       return raw ? { ref: r, raw: rawOf(r.kind, raw) } : null
@@ -177,11 +179,16 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
   }, [data.hall, idOf])
 
   const remove = useCallback(async (items: ItemRef[]) => {
-    if (!items.some((r) => r.kind !== 'switch')) return
+    if (!items.length) return
     try {
       const saved = await snapshot(items)
       const drop = (s: Saved[]) => Promise.all(s.map(({ ref }) => del(`${PATH[ref.kind]}/${encodeURIComponent(idOf(ref))}`)))
       const restore = (s: Saved[]) => Promise.all(s.map(async ({ ref, raw }) => {
+        // An inventory switch only left the plan: put it back where it was.
+        if (ref.kind === 'switch' && raw.body.source !== 'manual') {
+          await put(`${PATH.switch}/${encodeURIComponent(idOf(ref))}`, { x: raw.body.x, y: raw.body.y, hall_id: data.hall })
+          return
+        }
         const made = await post<{ id: string }>(PATH[ref.kind], { ...raw.body, hall_id: data.hall })
         alias.current.set(`${ref.kind}:${idOf(ref)}`, made.id)
       }))
@@ -234,7 +241,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
   const copy = useCallback(async (items: ItemRef[], cut = false) => {
     try {
       // A switch port has one cable: cables aren't copied (cut still removes them).
-      const saved = (await snapshot(items)).filter((s) => s.ref.kind !== 'cable')
+      const saved = (await snapshot(items)).filter((s) => s.ref.kind !== 'cable' && s.ref.kind !== 'switch')
       if (!saved.length) return
       writeClip(saved.map((s) => s.raw))
       notifications.show({ message: t(cut ? 'plan.edit.cut' : 'plan.edit.copied', { count: saved.length }), autoClose: 1500 })
@@ -256,7 +263,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
 
   const duplicate = useCallback(async (items: ItemRef[]) => {
     try {
-      const saved = await snapshot(items)
+      const saved = (await snapshot(items)).filter((s) => s.ref.kind !== 'switch')
       // One seat further right and down, so the copy shows next to the original.
       const raws = copies(saved.map((s) => s.raw), { x: 2, y: 3.2 }, await blocksInUse(), await panelsInUse())
       await addRaws(raws, t('plan.edit.step.duplicate', { count: raws.length }))
@@ -356,6 +363,38 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
     if (made.length) { setPlacing(null); setTool('select'); setSelection(made) }
     return made.length > 0
   }, [placing, pct, create, t])
+
+  /** Switches from the inventory where the Switch tool was clicked (several in a small grid around
+   *  it, as the older editor did), or one made by hand. */
+  const placeSwitches = useCallback(async (pick: SwitchPick) => {
+    if (!placing) return false
+    const at = pct(placing.at)
+    if ('name' in pick) {
+      const made = await create('switch', PATH.switch, { name: pick.name, ...at }, t('plan.edit.step.addSwitch', { name: pick.name }))
+      if (made.length) setPlacing(null)
+      return made.length > 0
+    }
+    const cols = Math.ceil(Math.sqrt(pick.ids.length)), rows = Math.ceil(pick.ids.length / cols)
+    const spots = pick.ids.map((id, i) => ({
+      id, x: Math.round((at.x + ((i % cols) - (cols - 1) / 2) * 4) * 100) / 100, y: Math.round((at.y + (Math.floor(i / cols) - (rows - 1) / 2) * 6) * 100) / 100,
+    }))
+    const place = () => Promise.all(spots.map((s) => put(`${PATH.switch}/${encodeURIComponent(s.id)}`, { x: s.x, y: s.y, hall_id: data.hall })))
+    try {
+      await place()
+      history.push({
+        label: t('plan.edit.step.placeSwitch', { count: spots.length }),
+        undo: () => Promise.all(spots.map((s) => del(`${PATH.switch}/${encodeURIComponent(s.id)}`))).then(refresh),
+        redo: () => place().then(refresh),
+      })
+      setPlacing(null)
+      setSelection(spots.map((s) => ({ kind: 'switch' as const, id: s.id })))
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+    void qc.invalidateQueries({ queryKey: qk.switches })
+    return true
+  }, [placing, pct, create, t, data.hall, history, refresh, fail, qc])
 
   /** A new circuit on ``board``, with undo. */
   const addCircuit = useCallback(async (board: string, name: string) => {
@@ -495,6 +534,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
     }
   }
   const onKeyUp = (e: React.KeyboardEvent) => { if (e.key === ' ') setSpace(false) }
+  // A dialog that closed hands the keys back to the plan, so Ctrl+Z undoes what it just did.
+  const dialogOpen = !!placing || !!cableForm
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (wasOpen.current && !dialogOpen) document.querySelector<SVGSVGElement>('.fb-plan-editor svg.fb-plan')?.focus()
+    wasOpen.current = dialogOpen
+  }, [dialogOpen])
   useEffect(() => {
     const off = () => setSpace(false)
     window.addEventListener('blur', off)
@@ -531,7 +577,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r])} space={space} tool={tool}
             lines={cables.map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
-              if (tool === 'block' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
+              if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
               else if (tool === 'cable') startCable(raw)
             }}
             onLine={drawWall} onBox={(b) => void drawZone(b)}
@@ -572,7 +618,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
                 <Menu.Divider />
                 <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
                 <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
-                {selected.some((r) => r.kind !== 'switch') && (
+                {selected.length > 0 && (
                   <>
                     <Menu.Divider />
                     <Menu.Item color="down" leftSection={<IconTrash size={14} />} rightSection={<Kbd size="xs">Del</Kbd>} onClick={() => void remove(selected)}>{t('plan.edit.menu.delete')}</Menu.Item>
@@ -586,6 +632,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
       <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
+      <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
       {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
         onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
@@ -621,9 +668,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
               onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
               onGroup={(join) => void regroup(selected, join)} />
           )}
-          {selected.length > 0 && selected.some((r) => r.kind !== 'switch') && (
+          {selected.length > 0 && (
             <Button variant="light" color="down" leftSection={<IconTrash size={16} />} onClick={() => void remove(selected)}>
-              {t('plan.edit.delete', { count: selected.filter((r) => r.kind !== 'switch').length })}
+              {t('plan.edit.delete', { count: selected.length })}
             </Button>
           )}
           {!selected.length && (

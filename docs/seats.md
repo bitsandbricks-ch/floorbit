@@ -49,6 +49,7 @@ The tools down the left (each stays on after placing something; Esc or V goes ba
 | --- | --- | --- |
 | Select | V | As above. |
 | Seat block | B | Click where it goes; the dialog takes the defaults from **Settings › Floor plan** and the next free row letter. Several blocks at once go down or to the right with the gap from Settings. |
+| Switch | S | Click where it goes: tick switches from the inventory that aren't on a plan yet (several land in a small grid) or make one by hand. Del takes a switch off the plan; one from the inventory stays there, unplaced. |
 | Label | T | Click, type the text, pick the size. |
 | Icon | I | Click, search the icon (exit, toilets, bar …), pick the size. |
 | Wall | W | Drag from one end to the other. It shows the length in seats and the angle; Shift keeps 15° steps. |

@@ -285,7 +285,10 @@
       "feed": "über {{name}} speisen",
       "bend": "Kabel knicken",
       "corners": "Kabelecken",
-      "autoRoute": "automatische Kabelführung"
+      "autoRoute": "automatische Kabelführung",
+      "addSwitch": "Switch {{name}} hinzufügen",
+      "placeSwitch_one": "Switch platzieren",
+      "placeSwitch_other": "{{count}} Switches platzieren"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -323,7 +326,8 @@
       "zone": "Zone",
       "panel": "Patchpanel",
       "cable": "Kabel",
-      "board": "Stromverteiler"
+      "board": "Stromverteiler",
+      "switch": "Switch"
     },
     "hint": {
       "block": "Klicke, wo der neue Sitzblock hinkommt.",
@@ -333,7 +337,8 @@
       "zone": "Ziehe einen Rahmen für die Zone.",
       "panel": "Klicke, wo das Patchpanel hinkommt.",
       "cable": "Klicke auf einen Platz, Switch oder ein Patchpanel: Das Kabelformular öffnet sich damit ausgefüllt. Es zeigt nur freie Ports.",
-      "board": "Klicke, wo der Stromverteiler hinkommt. Wähle ihn mit Sitzblöcken oder Switches aus, um sie über einen seiner Stromkreise zu speisen."
+      "board": "Klicke, wo der Stromverteiler hinkommt. Wähle ihn mit Sitzblöcken oder Switches aus, um sie über einen seiner Stromkreise zu speisen.",
+      "switch": "Klicke, wo der Switch hinkommt: Switches aus dem Inventar wählen (mehrere landen in einem kleinen Raster) oder einen von Hand anlegen. Entf nimmt einen Switch vom Plan; ein Inventar-Switch bleibt im Inventar."
     },
     "block": {
       "title": "Neuer Sitzblock",
@@ -485,6 +490,21 @@
       "size_col": "Breite (Plätze)",
       "size_row": "Höhe (Plätze)",
       "remove": "Diese Lücke entfernen"
+    },
+    "switch": {
+      "title": "Switches auf dem Plan",
+      "inventory_one": "Aus dem Inventar ({{count}})",
+      "inventory_other": "Aus dem Inventar ({{count}})",
+      "new": "Neuer Switch",
+      "filter": "Nach Name filtern",
+      "inventoryList": "Switches, die noch auf keinem Plan sind",
+      "noneMatch": "Kein Switch zum Platzieren passt zum Filter.",
+      "noneLeft": "Jeder Switch aus dem Inventar ist auf einem Plan. Lege einen von Hand an oder gleiche das Inventar unter Netzwerk ab.",
+      "name": "Name",
+      "newHelp": "Ein von Hand angelegter Switch, für einen, den das Inventar nicht kennt. Das Monitoring findet ihn über diesen Namen.",
+      "place_one": "Switch platzieren",
+      "place_other": "{{count}} Switches platzieren",
+      "add": "Switch hinzufügen"
     }
   },
   "net": {
