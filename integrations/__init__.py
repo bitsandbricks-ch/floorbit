@@ -33,7 +33,7 @@ import hmac
 import threading
 import time
 
-from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request, stream_with_context
+from flask import Blueprint, Response, current_app, jsonify, redirect, request, stream_with_context
 
 from . import checkin, config, events, history, seat_sources, settings_bridge
 from .crew import CrewBridge
