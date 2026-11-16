@@ -120,6 +120,11 @@ extinguisher, escape route and assembly point icons land on Safety, a server on 
 point on Network, a power or socket icon on Electrical. Attendee pages (`/hall`, `/find`) show the Overview
 and Safety marks only.
 
+In the editor, **Layers** in the sidebar has the same five mark layers (Overview, Safety, Network,
+Electrical, Services). Switching one off hides its marks while you edit, so a busy plan can be worked on one
+layer at a time; the editor remembers this per browser. A new mark on a hidden layer switches that layer back
+on. **Open these layers on the Seats view** opens this hall there with the same mark layers and check-in.
+
 ## Big screens and attendee pages
 
 - `/kiosk?hall=<id>` shows another hall than the first; `/screen?hall=<id>` passes it on to its
