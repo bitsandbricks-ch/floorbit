@@ -57,7 +57,8 @@ async function deleteBlock(id) {
 }
 
 const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height',
-                      'spacing_x', 'spacing_y', 'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels'];
+                      'spacing_x', 'spacing_y', 'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels',
+                      'col_gaps', 'row_gaps'];
 function blockPayload(block) {
   const out = {};
   for (const k of BLOCK_FIELDS) if (block[k] !== undefined) out[k] = block[k];

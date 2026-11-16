@@ -16,13 +16,18 @@ read, once; after that the file is no longer read or written (docs/database.md).
 The schema is versioned: ``MIGRATIONS`` runs in order, each once, recorded in ``floorbit_schema``.
 The same statements run on SQLite and Postgres, so they stay plain SQL.
 """
-import contextlib
 import json
 import os
 import threading
 import time
+from contextlib import contextmanager, suppress
 
 ENV = 'FLOORBIT_DATABASE_URL'
+# How many connections one Floorbit process opens at most (docs/database.md), and how long a
+# thread waits for a free one before the request fails.
+POOL_ENV = 'FLOORBIT_DATABASE_POOL'
+POOL_DEFAULT = 5
+POOL_WAIT = 30.0
 
 # Plain SQL both databases take, or {kind: SQL} where they differ. Add a step at the end; never
 # change one that has shipped.
@@ -63,8 +68,15 @@ PROBE_EVERY = 15.0
 
 def _unreachable(exc):
     """The driver's way of saying the server is gone (refused, dropped, restarting, disk gone),
-    as opposed to a mistake in a statement. sqlite3 and psycopg both call it OperationalError."""
-    return type(exc).__name__ in ('OperationalError', 'InterfaceError', 'ConnectionTimeout')
+    as opposed to a mistake in a statement. psycopg says so by the error's type; sqlite3 calls
+    nearly everything OperationalError ("no such table" too), so there the message decides."""
+    name = type(exc).__name__
+    if name not in ('OperationalError', 'InterfaceError', 'ConnectionTimeout'):
+        return False
+    if type(exc).__module__ != 'sqlite3':
+        return True
+    text = str(exc).lower()
+    return any(m in text for m in ('unable to open', 'disk i/o', 'closed', 'no such file', 'not a database'))
 
 
 def _redact(url):
@@ -110,7 +122,12 @@ class Sql:
 
     def __init__(self, url, root):
         self.url, self.root = url, root
-        self._local = threading.local()
+        # A small shared pool instead of a connection per thread: Floorbit runs a few dozen
+        # threads (gunicorn's request threads, one per live-update tab, and every background
+        # watcher), and a connection each used up the slots of a shared Postgres.
+        self.pool_size = max(1, int(os.environ.get(POOL_ENV) or POOL_DEFAULT))
+        self._idle = []                                   # connections nobody holds, newest last
+        self._slots = threading.BoundedSemaphore(self.pool_size)
         self._lock = threading.Lock()
         self._ready = False
         # The last copy of each document read or written, so pages keep working while the
@@ -169,54 +186,77 @@ class Sql:
         if was:
             print(f"[store] The database answers again after {time.time() - was['since']:.0f} s.", flush=True)
 
-    def _drop_conn(self):
-        c = getattr(self._local, 'conn', None)
-        self._local.conn = None
-        if c is not None:
-            with contextlib.suppress(Exception):    # it is broken anyway
-                c.close()
+    def _open(self):
+        """A new connection, the schema brought up to date on the first. While the database is
+        away, only one try per wait (``RETRY_*``): the rest give up at once."""
+        down = self.down
+        if down and time.monotonic() < down['next_try']:
+            raise DatabaseUnavailable(f"{self.describe()}: {down['error']}")
+        try:
+            c = self._connect()
+        except DatabaseError:
+            raise
+        except Exception as exc:  # the driver's own error types differ
+            raise self._mark_down(exc) from exc
+        if not self._ready:
+            with self._lock:
+                if not self._ready:
+                    try:
+                        migrate(self, c)
+                    except Exception as exc:
+                        _close_quietly(c)
+                        if _unreachable(exc):
+                            raise self._mark_down(exc) from exc
+                        raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                    self._ready = True
+        return c
 
     def conn(self):
-        """This thread's connection, opened (and the schema brought up to date) on first use.
-        While the database is away, only one try per wait (``RETRY_*``): the rest give up at once."""
-        c = getattr(self._local, 'conn', None)
-        if c is None:
-            down = self.down
-            if down and time.monotonic() < down['next_try']:
-                raise DatabaseUnavailable(f"{self.describe()}: {down['error']}")
-            try:
-                c = self._connect()
-            except DatabaseError:
-                raise
-            except Exception as exc:  # the driver's own error types differ
-                raise self._mark_down(exc) from exc
-            self._local.conn = c
-            if not self._ready:
+        """A new connection of the caller's own, with the schema brought up to date. The caller
+        closes it; everything else borrows one from the pool with ``connection()``."""
+        return self._open()
+
+    @contextmanager
+    def connection(self):
+        """Borrow a connection from the pool for one statement or one transaction. At most
+        ``FLOORBIT_DATABASE_POOL`` are open; a thread that finds them all busy waits for one."""
+        if not self._slots.acquire(timeout=POOL_WAIT):
+            raise DatabaseError(f'{self.describe()}: all {self.pool_size} connections busy for {POOL_WAIT:.0f} s')
+        c = None
+        try:
+            with self._lock:
+                c = self._idle.pop() if self._idle else None
+            if c is None:
+                c = self._open()
+            yield c
+        except BaseException:
+            # The connection may be mid-transaction or broken: don't hand it to the next caller.
+            if c is not None:
+                _close_quietly(c)
+                c = None
+            raise
+        finally:
+            if c is not None and not getattr(c, 'closed', False):
                 with self._lock:
-                    if not self._ready:
-                        try:
-                            migrate(self, c)
-                        except Exception as exc:
-                            self._drop_conn()
-                            if _unreachable(exc):
-                                raise self._mark_down(exc) from exc
-                            raise DatabaseError(f'{self.describe()}: {exc}') from exc
-                        self._ready = True
-        return c
+                    self._idle.append(c)
+            self._slots.release()
 
     def run(self, sql, args=(), fetch=False):
         sql = sql.replace('?', self.mark) if self.mark != '?' else sql
         for attempt in (1, 2):
-            c = self.conn()
+            c = None
             try:
-                cur = c.cursor()
-                cur.execute(sql, args)
-                rows = cur.fetchall() if fetch else None
+                with self.connection() as c:
+                    cur = c.cursor()
+                    cur.execute(sql, args)
+                    rows = cur.fetchall() if fetch else None
+            except DatabaseError:
+                raise
             except Exception as exc:
                 if not _unreachable(exc) and not getattr(c, 'closed', False):
                     raise DatabaseError(f'{self.describe()}: {exc}') from exc
-                # A dropped connection (a restart, a failover): open a new one, once.
-                self._drop_conn()
+                # A dropped connection (a restart, a failover): the pool threw it away, so the
+                # second try opens a new one. Once.
                 if attempt == 1:
                     continue
                 raise self._mark_down(exc) from exc
@@ -300,26 +340,40 @@ class Sql:
     def log_replace(self, key, lines):
         """The log becomes ``lines``, in one transaction: a crash keeps the old one whole."""
         mark = self.mark
-        cur = self.conn().cursor()     # this thread's own connection, so its own transaction
-        cur.execute('BEGIN IMMEDIATE' if self.kind == 'sqlite' else 'BEGIN')
         try:
-            cur.execute(f'DELETE FROM floorbit_log WHERE log_key = {mark}', (key,))
-            if lines:
-                cur.executemany(f'INSERT INTO floorbit_log (log_key, line) VALUES ({mark}, {mark})',
-                                [(key, line) for line in lines])
-            cur.execute('COMMIT')
+            with self.connection() as c:     # held for the whole transaction
+                cur = c.cursor()
+                cur.execute('BEGIN IMMEDIATE' if self.kind == 'sqlite' else 'BEGIN')
+                try:
+                    cur.execute(f'DELETE FROM floorbit_log WHERE log_key = {mark}', (key,))
+                    if lines:
+                        cur.executemany(f'INSERT INTO floorbit_log (log_key, line) VALUES ({mark}, {mark})',
+                                        [(key, line) for line in lines])
+                    cur.execute('COMMIT')
+                except Exception:
+                    cur.execute('ROLLBACK')
+                    raise
+        except DatabaseError:
+            raise
         except Exception as exc:
-            cur.execute('ROLLBACK')
+            if _unreachable(exc):
+                raise self._mark_down(exc) from exc
             raise DatabaseError(f'{self.describe()}: {exc}') from exc
 
     def close(self):
-        c = getattr(self._local, 'conn', None)
-        if c is not None:
-            c.close()
-            self._local.conn = None
+        """Close the idle connections (ones in use are closed when they come back broken)."""
+        with self._lock:
+            idle, self._idle = self._idle, []
+        for c in idle:
+            _close_quietly(c)
 
 
 _MISSING = object()
+
+
+def _close_quietly(c):
+    with suppress(Exception):  # already gone, or the driver can't say goodbye: drop it either way
+        c.close()
 
 
 def migrate(db, conn):

@@ -387,6 +387,8 @@ body {
 .fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--color-bit); }
 .fb-plan-wrap > svg.fb-plan:active { cursor: grabbing; }
 .fb-plan .bg { opacity: var(--plan-bg-opacity, .5); pointer-events: none; }
+.fb-grid line { stroke: color-mix(in srgb, var(--color-muted) 12%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fb-grid line.major { stroke: color-mix(in srgb, var(--color-muted) 28%, transparent); }
 .fb-plan .blk { fill: color-mix(in srgb, var(--color-surface) 60%, transparent); stroke: var(--color-line); }
 .fb-plan .hit { fill: transparent; }
 .fb-plan .cell { cursor: pointer; }

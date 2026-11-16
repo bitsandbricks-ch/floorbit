@@ -166,8 +166,10 @@ function createBlockMarker(block) {
     return `<div class="seat-block-rowlabel" style="${counterRotation}">${escHtml(letters[row])}</div>`;
   };
   for (let row = 0; row < block.rows; row++) {
+    if (row && gapAfter(block.row_gaps, row)) html += gapSpacer(gapAfter(block.row_gaps, row), 'row');
     html += '<div class="seat-block-row">' + rowLabel(row, 'first');
     for (let col = 0; col < block.cols; col++) {
+      if (col && gapAfter(block.col_gaps, col)) html += gapSpacer(gapAfter(block.col_gaps, col), 'col');
       const { number, display } = numbers[i++];
       const user = seatMappings[number]?.username;
       const cls = 'seat-block-seat' + (user || seatMappings[number]?.taken ? ' has-user' : '') +

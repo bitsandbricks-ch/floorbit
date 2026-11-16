@@ -45,7 +45,7 @@ C,20,60,12,2,90
 | Column | Required | Meaning |
 | --- | --- | --- |
 | `name` | yes | The block's name; seat numbers are `<name>-<n>`. Unique across every hall. |
-| `x`, `y` | yes | The block's centre, in percent of the plan (0 to 100). A decimal comma works. |
+| `x`, `y` | yes | The block's centre, in percent of the plan box (0 to 100 is the box the background image fills; the plan has no edge, so values outside it work too). A decimal comma works. |
 | `cols`, `rows` | yes | Seats per row and rows. |
 | `rotation` | no | Degrees, 0 by default. |
 | `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Sizes in percent of the plan, as in the editor. |
@@ -77,11 +77,39 @@ of 2 rows from `E` are rows E to L. A seat name is never given twice, in any hal
 one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does the same for scripts
 (`count`, `dx`, `dy` in percent of the plan, plus the block's fields).
 
+## Gaps in a seat block
+
+A row can have room in it, for example where the fiber rolls stand, and two rows can have a lane between
+them for a switch. Both are set per block:
+
+- **In the rows:** an empty space after a column, in every row of the block. Right-click a seat and pick
+  **Gap after this seat (every row)**, or use **+ Gap** in the block's **Gaps** section in the inspector.
+- **Between rows:** an empty lane after a row. Right-click a seat and pick **Lane after this row**, or use
+  **+ Lane**. Drop a switch into the lane like anywhere else on the plan.
+
+Each gap has a size in seats (0.25 to 20; a new gap is 1 seat wide, a new lane 2 seats high). Columns and
+rows are counted from the top left of the block as drawn before it is turned. Gaps only move seats apart:
+seat names and numbers carry on across them, and the Seats view, the kiosk and the port dispatch use the
+same spacing. Undo works as usual. In the API a block has `col_gaps` and `row_gaps`, each a list of
+`{"after": n, "size": s}`; gaps after the last column or row are dropped when a block gets smaller.
+
+## The editor's menu
+
+The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block
+<kbd>B</kbd>, Draw <kbd>D</kbd>), the buttons for the three panels, and at the bottom Undo, Redo, Snap
+to grid <kbd>G</kbd> and the keyboard shortcuts <kbd>?</kbd>.
+
+The **panel on the right** shows **Search** (<kbd>/</kbd>), **Layers** (<kbd>L</kbd>) or **Switches**
+(<kbd>W</kbd>, with the NetBox sync when NetBox is set up). Pressing the button of the open panel again
+closes it, so the plan gets the whole width. Selecting a switch, seat, block or mark opens its inspector
+in the same place; closing it (<kbd>Esc</kbd>) brings the panel back. A status chip in the top bar filters
+the switch list and opens it. The editor remembers the open panel per browser.
+
 ## Labels, walls, zones and icons
 
 Besides seats, the floor plan holds marks: **text** labels, **walls** (solid or dashed, for fences),
 **zones** (a tinted area with a name, such as the bar or the crew corner) and **icons** (exit, WC, bar,
-food, first aid, stage, stairs, Wi-Fi, arrows and more). Add them with **Draw** in the editor toolbar
+food, first aid, stage, stairs, Wi-Fi, arrows and more). Add them with **Draw** in the editor's tool rail
 (<kbd>D</kbd>): text and icons take one click, walls and zones two (start and end corner). Select a mark to
 change its text, size, colour, rotation or style, drag it to move it, <kbd>Delete</kbd> removes it. Marks
 show on the Seats view, the big screens and the attendee hall view as well. `GET /api/plan-marks?hall=<id>`
@@ -99,6 +127,7 @@ and sets how strong it is drawn; the seats themselves are always there.
 
 | Layer | Shows |
 | --- | --- |
+| Grid | The editor's grid, so things sit on the same lines as in the editor. Presets leave it as it is |
 | Labels, walls and zones | The marks on the overview layer |
 | Network | Switches, uplinks with their type and speed, network marks |
 | Electrical | Distribution boards, power cables per circuit, electrical marks (needs Power) |
@@ -120,7 +149,7 @@ extinguisher, escape route and assembly point icons land on Safety, a server on 
 point on Network, a power or socket icon on Electrical. Attendee pages (`/hall`, `/find`) show the Overview
 and Safety marks only.
 
-In the editor, **Layers** in the sidebar has the same five mark layers (Overview, Safety, Network,
+In the editor, the **Layers** panel on the right (<kbd>L</kbd>) has the same five mark layers (Overview, Safety, Network,
 Electrical, Services). Switching one off hides its marks while you edit, so a busy plan can be worked on one
 layer at a time; the editor remembers this per browser. A new mark on a hidden layer switches that layer back
 on. **Open these layers on the Seats view** opens this hall there with the same mark layers and check-in.

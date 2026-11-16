@@ -13,6 +13,17 @@ monitoring data. Where they live is one setting, `FLOORBIT_DATABASE_URL`:
 Note the four slashes for an absolute SQLite path (`sqlite:///` + `/app/state/floorbit.db`).
 Postgres needs the `psycopg` package, which the Docker image has.
 
+## Connections
+
+Floorbit shares a small pool of connections between all its threads (page requests, live-update
+streams and background jobs): at most `FLOORBIT_DATABASE_POOL` per process, **5** by default. A
+thread that finds them all busy waits up to 30 seconds for one. A connection whose statement failed
+is closed instead of reused.
+
+That keeps Floorbit small on a shared Postgres: with the flow collector running too, count 5 per
+process. Raise it for a busy event with many open screens; 1 works but makes every page wait for
+every background job.
+
 ## Switching from files
 
 Set `FLOORBIT_DATABASE_URL` and restart. Nothing else is needed:

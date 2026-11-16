@@ -19,8 +19,9 @@ function updatePositionDisplay(x, y) {
   posY.textContent = snapToGrid(y).toFixed(2);
 }
 // ── Floor plan click (place items, pick seats) ──────────────────────────────────
-wrapper.addEventListener('click', (e) => {
+canvasArea.addEventListener('click', (e) => {
   if (suppressNextClick) { suppressNextClick = false; return; }
+  if (e.target.closest('.zoom-bar, .empty-canvas')) return;
 
   if (currentTool === 'select') {
     if (typeof selectedMark !== 'undefined' && selectedMark && !e.target.closest('[data-mark]')) clearMarkSelection();
@@ -35,17 +36,15 @@ wrapper.addEventListener('click', (e) => {
 
   const p = clientToPercent(e.clientX, e.clientY);
   if (!p) return;
-  pendingCoords = {
-    x: Math.min(100, Math.max(0, snapToGrid(p.x))),
-    y: Math.min(100, Math.max(0, snapToGrid(p.y))),
-  };
+  // The plan has no edge: things may go anywhere on the grid, the views fit to what is drawn.
+  pendingCoords = { x: snapToGrid(p.x), y: snapToGrid(p.y) };
 
   if (currentTool === 'add-switch') openAddModal();
   else if (currentTool === 'add-block') openBlockModal();
   else if (currentTool.startsWith('add-')) placeMark(currentTool.slice(4), pendingCoords);
 });
 
-wrapper.addEventListener('mousemove', (e) => {
+canvasArea.addEventListener('mousemove', (e) => {
   const rect = wrapper.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
   addCursor.style.left = ((e.clientX - rect.left) / view.k) + 'px';
@@ -150,7 +149,7 @@ btnCenter.addEventListener('click',    fitToContent);
 
 // Wheel / trackpad pinch zooms toward the cursor
 canvasArea.addEventListener('wheel', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar')) return;
+  if (e.target.closest('.tool-rail, .zoom-bar')) return;
   e.preventDefault();
   const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
   zoomAt(e.clientX, e.clientY, Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015)));
@@ -160,7 +159,7 @@ canvasArea.addEventListener('wheel', (e) => {
 // Shift+drag on empty space draws a selection box instead.
 let spaceHeld = false;
 canvasArea.addEventListener('mousedown', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar, .switch-marker, .seat-marker, .seat-block')) return;
+  if (e.target.closest('.tool-rail, .zoom-bar, .switch-marker, .seat-marker, .seat-block')) return;
   if (e.button === 0 && e.shiftKey && currentTool === 'select' && !spaceHeld) {
     e.preventDefault();
     startMarquee(e);

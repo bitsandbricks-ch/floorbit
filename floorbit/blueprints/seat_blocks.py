@@ -6,14 +6,15 @@ import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import halls, seat_names
+from .. import halls, seat_gaps, seat_names
+from ..plan_marks import on_plan
 from ..store import load_data, save_data
 
 bp = Blueprint('seat_blocks', __name__)
 
 # The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
 KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels')
+        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps')
 MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
 MAX_MANY = 30       # blocks in one "add several"
 
@@ -42,7 +43,9 @@ def drawn(block):
 
 
 def _clean(block):
-    """Checks and tidies the naming fields in place; raises BlockError."""
+    """Checks and tidies the naming fields in place; raises BlockError (ValueError for a position
+    that isn't a number on the plan)."""
+    block['x'], block['y'] = on_plan(block['x']), on_plan(block['y'])
     for side in ('cols', 'rows'):
         if not 1 <= int(block[side]) <= MAX_SIDE:
             raise BlockError(f'A block has 1 to {MAX_SIDE} rows and columns')
@@ -60,6 +63,11 @@ def _clean(block):
         raise BlockError('Row letters go at the start, the end, both or none')
     block['row_labels'] = labels
     block['reverse_numbers'] = bool(block.get('reverse_numbers'))
+    try:
+        block['col_gaps'] = seat_gaps.clean(block.get('col_gaps'), block['cols'])
+        block['row_gaps'] = seat_gaps.clean(block.get('row_gaps'), block['rows'])
+    except seat_gaps.GapError as exc:
+        raise BlockError(str(exc)) from None
     return block
 
 
@@ -113,6 +121,8 @@ def make_block(body, hall_id):
         'naming': body.get('naming', 'block'),
         'row_start': body.get('row_start', 'A'),
         'row_labels': body.get('row_labels', 'start'),
+        'col_gaps': body.get('col_gaps'),
+        'row_gaps': body.get('row_gaps'),
         'hall_id': hall_id,
     })
 
@@ -171,8 +181,6 @@ def add_many_seat_blocks():
                  'name': _next_name(first['name'], i) if first['naming'] == 'block' else first['name']}
             if first['naming'] == 'rows':
                 b['row_start'] = seat_names.row_letter(seat_names.letter_index(first['row_start']) + i * first['rows'])
-            if not (0 <= b['x'] <= 100 and 0 <= b['y'] <= 100):
-                raise BlockError('The last blocks would land outside the plan. Use fewer blocks or a smaller gap.')
             blocks.append(_clean(b))
     except BlockError as exc:
         return jsonify({'error': str(exc)}), 400

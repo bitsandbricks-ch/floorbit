@@ -56,6 +56,10 @@ function menuEntries(target) {
     sep();
     if (menuIncidentsOn()) add('Report an incident…', () => openPortDialog('flag', n));
     if (portInfo?.available) add('Bounce the port…', () => openPortDialog('bounce', n), { danger: true });
+    if (menuCanEdit()) {
+      const gaps = gapMenuEntries(n);
+      if (gaps.length) { sep(); items.push(...gaps); }
+    }
   } else if (target.type === 'switch') {
     const sw = switches.find(s => s.id === target.id);
     add('Show ports', () => selectSwitch(target.id));
@@ -178,12 +182,12 @@ function contextTargetOf(el, clientX, clientY) {
     return { type: 'block', id };
   }
   const p = clientToPercent(clientX, clientY);
-  const at = p ? { x: Math.min(100, Math.max(0, snapToGrid(p.x))), y: Math.min(100, Math.max(0, snapToGrid(p.y))) } : null;
+  const at = p ? { x: snapToGrid(p.x), y: snapToGrid(p.y) } : null;
   return { type: 'floor', at };
 }
 
 canvasArea.addEventListener('contextmenu', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar')) return;   // real buttons keep the browser's menu
+  if (e.target.closest('.tool-rail, .zoom-bar')) return;   // real buttons keep the browser's menu
   e.preventDefault();
   const target = contextTargetOf(e.target, e.clientX, e.clientY);
   // Right-clicking something selects it, like a click, so the inspector matches the menu.

@@ -217,6 +217,7 @@
     "seats": "Seats are always shown.",
     "off": "Not set up",
     "item": {
+      "grid": "Grid",
       "marks": "Labels, walls and zones",
       "network": "Network: switches and uplinks",
       "electrical": "Electrical: boards and power cables",

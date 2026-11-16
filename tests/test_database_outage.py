@@ -10,11 +10,11 @@ from floorbit import database, store
 
 
 def cut(db):
-    """Pull the plug: every new connection is refused and this thread's open one is dropped."""
+    """Pull the plug: every new connection is refused and the pool's open ones are dropped."""
     def refuse():
         raise sqlite3.OperationalError("unable to open database file")
     db._connect = refuse
-    db._drop_conn()
+    db.close()
 
 
 def restore(db, now=True):
@@ -73,7 +73,7 @@ def test_while_it_is_away_only_one_try_per_wait_and_the_waits_grow(db, tmp_path,
         tries.append(time.monotonic())
         raise sqlite3.OperationalError("unable to open database file")
     db._connect = refuse
-    db._drop_conn()
+    db.close()
     for _ in range(20):                       # a burst of requests: one try, the rest give up at once
         assert store.read_json(str(tmp_path / "data.json")) == {"a": 1}
     assert len(tries) == 1 and db.down["wait"] == database.RETRY_FIRST
@@ -97,7 +97,8 @@ def test_a_dropped_connection_is_reopened_without_counting_as_down(db, tmp_path)
 
         def close(self):
             pass
-    db._local.conn = Gone()
+    db.close()
+    db._idle.append(Gone())
     assert store.read_json(path) == {"a": 1} and db.down is None
 
 
