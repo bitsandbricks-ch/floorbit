@@ -33,14 +33,14 @@ function shifted(r: Raw, d: Point): Raw {
 
 /** Copies of ``items`` moved by ``d`` (in %). Seat blocks get the next free row letters (or block
  *  names) so their seats don't clash with the originals: the server refuses a seat twice. Patch
- *  panels get the next free name. Cables aren't copied: a switch port has one cable. */
+ *  panels and boards get the next free name. Cables aren't copied: a switch port has one cable. */
 export function copies(items: Raw[], d: Point, blocksInUse: { naming?: string; row_start?: string; rows?: number; name?: string }[],
   panelsInUse: string[] = []): Raw[] {
   const used = [...blocksInUse]
   const names = [...panelsInUse]
   return items.filter((r) => r.kind !== 'cable').map((r) => {
     const out = shifted(r, d)
-    if (r.kind === 'panel') {
+    if (r.kind === 'panel' || r.kind === 'board') {
       out.body.name = nextName(String(r.body.name ?? 'PP-1'), names)
       names.push(out.body.name as string)
       return out

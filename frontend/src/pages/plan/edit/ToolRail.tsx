@@ -1,11 +1,11 @@
 import { ActionIcon, Kbd, Stack, Tooltip } from '@mantine/core'
-import { IconArmchair, IconBorderOuter, IconLetterT, IconLine, IconPlugConnected, IconPointer, IconServer2, IconStar } from '@tabler/icons-react'
+import { IconArmchair, IconBolt, IconBorderOuter, IconLetterT, IconLine, IconPlugConnected, IconPointer, IconServer2, IconStar } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 
 const ICON: Record<Tool, typeof IconPointer> = {
   select: IconPointer, block: IconArmchair, text: IconLetterT, icon: IconStar, wall: IconLine, zone: IconBorderOuter,
-  panel: IconServer2, cable: IconPlugConnected,
+  panel: IconServer2, cable: IconPlugConnected, board: IconBolt,
 }
 
 /** The Edit mode's tools down the left of the plan. */

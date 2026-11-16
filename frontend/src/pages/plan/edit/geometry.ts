@@ -2,7 +2,7 @@ import type { PlanMark, PlanShape, SeatViewData } from '@/api/types'
 
 /** What the editor can select on the plan. Ids are the server's: seat block, plan mark, switch,
  *  patch panel (its name) and cable (crew and imported cables; ones only the port watch read have none). */
-export type ItemKind = 'block' | 'mark' | 'switch' | 'panel' | 'cable'
+export type ItemKind = 'block' | 'mark' | 'switch' | 'panel' | 'cable' | 'board'
 export interface ItemRef { kind: ItemKind; id: string }
 export const refKey = (r: ItemRef) => `${r.kind}:${r.id}`
 export const sameRef = (a: ItemRef, b: ItemRef) => a.kind === b.kind && a.id === b.id
@@ -34,6 +34,10 @@ export function anchorOf(data: SeatViewData, ref: ItemRef): Point | null {
     const p = data.panels?.find((x) => x.name === ref.id)
     return p ? { x: p.x, y: p.y } : null
   }
+  if (ref.kind === 'board') {
+    const b = data.boards?.find((x) => x.id === ref.id)
+    return b ? { x: b.x, y: b.y } : null
+  }
   if (ref.kind === 'cable') return null
   const w = data.switches.find((x) => x.id === ref.id)
   return w ? { x: w.x, y: w.y } : null
@@ -64,7 +68,8 @@ export function moved(data: SeatViewData, items: ItemRef[], d: Point): SeatViewD
   const marks = data.drawing.marks?.map((m) => (has('mark', m.id) ? shiftMark(m, d) : m))
   const switches = data.switches.map((w) => (has('switch', w.id) ? shift(w, d) : w))
   const panels = data.panels?.map((p) => (has('panel', p.name) ? shift(p, d) : p))
-  return { ...data, drawing: { ...data.drawing, shapes, marks }, switches, panels }
+  const boards = data.boards?.map((b) => (has('board', b.id) ? shift(b, d) : b))
+  return { ...data, drawing: { ...data.drawing, shapes, marks }, switches, panels, boards }
 }
 
 /** The server update that puts one item where ``moved`` drew it, in % of the plan; the inverse is
@@ -107,6 +112,10 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
     const p = data.panels?.find((x) => x.name === ref.id)
     return p ? { box: { x: p.x - 20, y: p.y - 9, w: 40, h: 18 }, rotation: 0, centre: { x: p.x, y: p.y } } : null
   }
+  if (ref.kind === 'board') {
+    const b = data.boards?.find((x) => x.id === ref.id)
+    return b ? { box: { x: b.x - 26, y: b.y - 17, w: 52, h: 34 }, rotation: 0, centre: { x: b.x, y: b.y } } : null
+  }
   if (ref.kind === 'cable') return null
   const m = data.drawing?.marks?.find((x) => x.id === ref.id)
   if (!m) return null
@@ -126,8 +135,9 @@ export function allItems(data: SeatViewData): ItemRef[] {
   const marks = (data.drawing?.marks ?? []).filter((m) => m.id).map((m) => ({ kind: 'mark' as const, id: m.id! }))
   const blocks = (data.drawing?.shapes ?? []).filter((s) => s.id).map((s) => ({ kind: 'block' as const, id: s.id! }))
   const panels = (data.panels ?? []).map((p) => ({ kind: 'panel' as const, id: p.name }))
+  const boards = (data.boards ?? []).map((b) => ({ kind: 'board' as const, id: b.id }))
   const switches = data.switches.map((w) => ({ kind: 'switch' as const, id: w.id }))
-  return [...marks, ...blocks, ...panels, ...switches]
+  return [...marks, ...blocks, ...panels, ...boards, ...switches]
 }
 
 /** The items whose outline lies inside ``box`` (a drag on empty plan selects them). */

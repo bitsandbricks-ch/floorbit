@@ -1386,6 +1386,8 @@ export interface SeatViewData {
   links?: PlanLink[]
   /** Patch panels placed on this plan; older servers send none. */
   panels?: PlanPanel[]
+  /** Power distribution boards placed on the plan (drawing units); none with power off. */
+  boards?: { id: string; name: string; x: number; y: number }[]
   seats: Record<string, PlanSeat>
   blocks: PlanBlock[]
   monitoring: boolean
