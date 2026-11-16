@@ -183,7 +183,9 @@ def test_what_attendees_reported(client, stats):
 
 def test_incidents_per_hour(client, stats, monkeypatch):
     # When trouble peaked over the event (issue #420): a bar per hour, on the page and in the PDF.
-    now = time.time()
+    # Mid-hour, so the three readings land in three hours whatever minute the test runs at (it
+    # failed once in the first minute of an hour, when now - 60 fell into the hour before).
+    now = time.time() // 3600 * 3600 - 1800
     _read(stats, {"D-1"}, now - 7200)
     _read(stats, {"D-1", "D-2"}, now - 3600)
     _read(stats, {"D-2"}, now - 60)
