@@ -13,10 +13,25 @@ An IP counts as done when it belongs to a seat that checked in. That covers two 
 Nothing is ever blocked. "Not done" only makes phones and laptops show a quiet "sign in to
 network" note.
 """
+import threading
+import time
+from collections import deque
+
 from integrations import checkin, config
 
+# The agents' last fetches, for the crew's Check-in page (portal tab). In memory, a few hours.
+FETCHES = 200
+_fetches = deque(maxlen=FETCHES)
+_lock = threading.Lock()
 
-def answer(app):
+
+def fetches():
+    """[{"at", "agent", "done"}], newest first."""
+    with _lock:
+        return list(reversed(_fetches))
+
+
+def answer(app, agent=None):
     """``{"done": [ip, ...], "portal_url": str}`` for the agent."""
     rows = checkin.load_all()
     done = {row['ip'] for row in rows.values() if row.get('ip')}
@@ -26,4 +41,6 @@ def answer(app):
         checked_in = {str(seat).upper() for seat in rows}
         done.update(ip for ip, seat in dict(finder.seat_ips).items() if seat in checked_in)
     public = str(config.get('PUBLIC_URL', '') or '').rstrip('/')
+    with _lock:
+        _fetches.append({'at': time.time(), 'agent': agent, 'done': len(done)})
     return {'done': sorted(done), 'portal_url': f'{public}/checkin' if public else ''}

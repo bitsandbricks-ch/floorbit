@@ -60,6 +60,7 @@
   "kind_errors": "errors",
   "kind_duplex": "half duplex",
   "kind_checkin": "no check-in",
+  "kind_mapping": "seat port",
   "kept": "Port reads are folded into one row per hour and kept for 21 days, switch outages and problem ports since the last new event.",
   "pastEvents": "Past events",
   "repeatSeats": "Seats with more than one incident:",

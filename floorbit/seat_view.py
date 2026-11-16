@@ -297,6 +297,9 @@ def details(seat, people, crew=False):
         out['speedtests'] = speedtest.results(seat, data)[:SPEEDTESTS]
         # Which firewall the core sends this seat to (issue #470): names only, never the IP.
         out['firewall'] = firewalls.for_seat(seat, data, now)
+        # Where the background port lookup of this seat's check-in stands (integrations/checkin.py).
+        if checked is not None and seat in checked:
+            out['checkin_wired'] = (checkin.load_all().get(seat) or {}).get('wired') or 'pending'
     stats = _ext('floorbit_stats')
     if stats:
         out['history'] = {**stats.seat_history(seat, now - HISTORY), 'to': now}

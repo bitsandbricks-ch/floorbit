@@ -31,7 +31,8 @@ TEXTS = {
         'nick': 'Nick', 'ip': 'IP', 'cut': 'Showing the first {n} of {total}.',
         'people': 'Includes nicks and IPs (asked for by an admin). Handle as personal data.',
         'page': 'Page {n} of {total}',
-        'kind': {'flapping': 'flapping', 'errors': 'errors', 'duplex': 'half duplex', 'checkin': 'no check-in'},
+        'kind': {'flapping': 'flapping', 'errors': 'errors', 'duplex': 'half duplex', 'checkin': 'no check-in',
+                 'mapping': 'seat port'},
         'helpdesk': 'seat report',
     },
     'de': {
@@ -58,7 +59,8 @@ TEXTS = {
         'nick': 'Nick', 'ip': 'IP', 'cut': 'Die ersten {n} von {total}.',
         'people': 'Enthält Nicks und IPs (von einem Admin verlangt). Als Personendaten behandeln.',
         'page': 'Seite {n} von {total}',
-        'kind': {'flapping': 'Flattern', 'errors': 'Fehler', 'duplex': 'Halbduplex', 'checkin': 'kein Check-in'},
+        'kind': {'flapping': 'Flattern', 'errors': 'Fehler', 'duplex': 'Halbduplex', 'checkin': 'kein Check-in',
+                 'mapping': 'Platz-Port'},
         'helpdesk': 'Platzmeldung',
     },
 }

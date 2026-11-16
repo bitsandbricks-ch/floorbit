@@ -49,6 +49,7 @@ const Brackets = lazy(() => import('@/pages/Brackets'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
 const Teardown = lazy(() => import('@/pages/Teardown'))
 const Speedtests = lazy(() => import('@/pages/Speedtests'))
+const Checkins = lazy(() => import('@/pages/Checkins'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
 const Audit = lazy(() => import('@/pages/Audit'))
@@ -112,6 +113,7 @@ export default function App() {
           <Route path="/tournament/brackets" element={<Brackets />} />
           <Route path="/plan" element={<FloorPlan />} />
           <Route path="/teardown" element={<Teardown />} />
+          <Route path="/checkins" element={<Checkins />} />
           <Route path="/speedtests" element={<Speedtests />} />
           <Route path="/events" element={<Events />} />
           <Route path="/settings" element={<Settings />} />
