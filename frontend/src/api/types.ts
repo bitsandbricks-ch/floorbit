@@ -1355,6 +1355,8 @@ export interface PlanPanel { name: string; x: number; y: number; ports: number; 
 /** GET /api/cable-plan?hall= (floorbit/cable_plan.py): the cables to draw, points in % of the plan. */
 export interface PlanCable {
   key: string; kind: 'lan' | 'uplink' | 'power'; layer: string; points: [number, number][]; manual: boolean
+  /** The crew has drawn this cable (bends or corners) rather than leaving it automatic. */
+  drawn?: boolean
   corners: 'square' | 'round'; via: string | null; label: string; media?: string; speed?: number | null
   ref: { cable?: string | null; source?: string; switch?: string; port?: string; seat?: string; link?: string; circuit?: string }
 }

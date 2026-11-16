@@ -61,8 +61,10 @@ Everything lands on the grid unless you hold Alt.
 
 Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
 the switches, not recorded yet. Click one to select it, Del removes it, **Change cable** opens its
-form. Every change is saved at once. Cable bends aren't here yet; they are in
-the classic editor, linked from the panel.
+form. A selected cable shows its bends: drag one to move it, drag the dot in the middle of a
+stretch to add one, double-click a bend to remove it (Alt places it off the grid). The panel sets
+square or round corners and puts a drawn cable back on its automatic route. Every change is
+saved at once and can be undone.
 
 ## What a seat shows
 

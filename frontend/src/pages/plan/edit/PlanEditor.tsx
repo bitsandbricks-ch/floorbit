@@ -10,12 +10,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Cable, Circuit, PowerMarkers, SeatViewData } from '@/api/types'
+import type { Cable, Circuit, PlanCable, PowerMarkers, SeatViewData } from '@/api/types'
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { cablePath, useCablePlan } from '../cablePlan'
 import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
+import { BendHandles } from './BendHandles'
+import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
 import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
 import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
@@ -424,6 +426,20 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
     await refresh()
   }, [history, idOf, refresh, t])
 
+  /** A cable's drawing: its bends (null: the automatic route) and corners, with undo. */
+  const setRoute = useCallback(async (cable: PlanCable, after: { points: [number, number][] | null; corners: 'square' | 'round' }, label: string) => {
+    const before = cable.manual ? { points: cable.points.slice(1, -1), corners: cable.corners }
+      : cable.drawn ? { points: null, corners: cable.corners } : null
+    const to = (value: typeof after | null) => put('/api/cable-plan/routes', { routes: { [cable.key]: value } })
+    try {
+      await to(after)
+      history.push({ label, undo: () => to(before).then(refresh), redo: () => to(after).then(refresh) })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [history, refresh, fail])
+
   const drawWall = (a: Point, b: Point) => {
     const p = pct(a), q = pct(b)
     void create('mark', '/api/plan-marks', { kind: 'wall', x: p.x, y: p.y, x2: q.x, y2: q.y }, t('plan.edit.step.add.wall'))
@@ -498,6 +514,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
   const movable = selected.filter((r) => r.kind !== 'cable')
 
   const one = selected.length === 1 ? selected[0] : null
+  const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
+  const routeOf = (c: PlanCable): Route => c.points.map(([x, y]) => fromPct(data.size, { x, y }))
+  const pathOf = (r: Route) => cablePath(r.map((p) => { const v = toPct(data.size, p); return [v.x, v.y] as [number, number] }), data.size, oneCable?.corners)
   // One board with seat blocks or switches: the panel offers to feed them from one of its circuits.
   const boards = selected.filter((r) => r.kind === 'board')
   const boardSel = boards.length === 1 ? boards[0].id : null
@@ -507,7 +526,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
       <div className="fb-edit-stage">
       <ToolRail tool={tool} onTool={setTool} />
       <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power}
-        overlay={(ctx) => (
+        overlay={(ctx) => (<>
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r])} space={space} tool={tool}
             lines={cables.map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
@@ -520,7 +539,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
-        )} />
+          {oneCable && tool === 'select' && (
+            <BendHandles key={JSON.stringify(oneCable.points)} ctx={ctx} route={routeOf(oneCable)} cell={data.drawing?.cell ?? 32} path={pathOf}
+              onChange={(r) => void setRoute(oneCable, { points: bendsPct(r, data.size), corners: oneCable.corners }, t('plan.edit.step.bend'))} />
+          )}
+        </>)} />
       </div>
       {menu && (
         <Menu opened onChange={(o) => { if (!o) setMenu(null) }} position="bottom-start" offset={2} withinPortal shadow="md" width={220}>
@@ -582,8 +605,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
           {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
             <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
           )}
-          {one?.kind === 'cable' && cables.find((c) => c.ref.cable === one.id) && (
-            <CableFields cable={cables.find((c) => c.ref.cable === one.id)!} onEdit={() => void editCable(one.id)} />
+          {one && oneCable && (
+            <CableFields cable={oneCable} onEdit={() => void editCable(one.id)}
+              onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? oneCable.points.slice(1, -1) : null, corners }, t('plan.edit.step.corners'))}
+              onReset={() => void setRoute(oneCable, { points: null, corners: oneCable.corners }, t('plan.edit.step.autoRoute'))} />
           )}
           {boardSel && (
             <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}

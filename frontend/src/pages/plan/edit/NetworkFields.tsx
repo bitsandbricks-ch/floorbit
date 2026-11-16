@@ -1,5 +1,5 @@
 import { Badge, Button, Group, Modal, NumberInput, Progress, SegmentedControl, Stack, Text, TextInput } from '@mantine/core'
-import { IconPencil } from '@tabler/icons-react'
+import { IconPencil, IconRoute } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -96,8 +96,11 @@ export function PanelFields({ panel, onPorts }: { panel: PlanPanel; onPorts: (be
   )
 }
 
-/** A selected cable: where it runs, and a button to change it in the cable form. */
-export function CableFields({ cable, onEdit }: { cable: PlanCable; onEdit: () => void }) {
+/** A selected cable: where it runs, how its corners are drawn, back to the automatic route, and a
+ *  button to change it in the cable form. Its bends are dragged on the plan. */
+export function CableFields({ cable, onEdit, onCorners, onReset }: {
+  cable: PlanCable; onEdit: () => void; onCorners: (corners: 'square' | 'round') => void; onReset: () => void
+}) {
   const { t } = useTranslation()
   const r = cable.ref
   return (
@@ -108,6 +111,13 @@ export function CableFields({ cable, onEdit }: { cable: PlanCable; onEdit: () =>
         <Text size="sm"><Text span c="dimmed">{t('plan.edit.cable.seat')}</Text> {r.seat}</Text>
         {r.source === 'import' && <Text size="xs" c="dimmed">{t('plan.edit.cable.imported')}</Text>}
       </Stack>
+      <div>
+        <Text size="sm" fw={500} mb={4}>{t('plan.edit.cable.corners')}</Text>
+        <SegmentedControl fullWidth value={cable.corners} onChange={(v) => onCorners(v as 'square' | 'round')}
+          data={[{ value: 'square', label: t('plan.edit.cable.square') }, { value: 'round', label: t('plan.edit.cable.round') }]} />
+      </div>
+      <Text size="xs" c="dimmed">{t('plan.edit.cable.bendHelp')}</Text>
+      {cable.manual && <Button variant="default" leftSection={<IconRoute size={16} />} onClick={onReset}>{t('plan.edit.cable.auto')}</Button>}
       <Button variant="light" leftSection={<IconPencil size={16} />} onClick={onEdit}>{t('plan.edit.cable.edit')}</Button>
     </>
   )
