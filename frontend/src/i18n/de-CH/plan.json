@@ -607,6 +607,13 @@
     "unplace_other": "{{count}} vom Plan nehmen"
   },
   "net": {
+    "legend": "Was die Kabel zeigen",
+    "cables_one": "{{count}} Platzkabel",
+    "cables_other": "{{count}} Platzkabel",
+    "media": { "copper": "Kupfer", "fiber": "Glasfaser", "dac": "DAC" },
+    "speed": "{{gbps}} Gbit/s",
+    "learnedCount_one": "{{count}} von den Ports gelesen, nicht erfasst",
+    "learnedCount_other": "{{count}} von den Ports gelesen, nicht erfasst",
     "learned": "vom Port gelesen, nicht erfasst",
     "panel": "Patchpanel {{name}}: {{used}} von {{ports}} Ports belegt"
   }
