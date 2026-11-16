@@ -6,6 +6,11 @@ import { Sparkline } from './Sparkline'
 // A widget is data (floorbit/plugins/widgets.py checks it on the server). Everything a plugin
 // sends is drawn as text: React escapes it, and nothing here sets HTML.
 
+// A list row never gets wider than its tile: grid items default to min-width auto, so one long
+// detail used to push the tile, and on a phone the whole page, sideways.
+const ROW = { minWidth: 0 }
+const SIDE = { flex: '0 1 auto', minWidth: 0, maxWidth: '55%' }
+
 const toneClass = (tone: Tone | undefined) => (tone ? `fb-tone-${tone}` : undefined)
 
 function Stat({ value, unit, tone }: { value: number | string | undefined; unit?: string; tone?: Tone }) {
@@ -30,13 +35,13 @@ export function WidgetBody({ widget }: { widget: Widget }) {
       return (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
           {widget.items.map((item, i) => (
-            <li key={i}>
+            <li key={i} style={ROW}>
               <Group gap={8} wrap="nowrap">
                 <span className={`fb-dot ${item.state}`} role="img" aria-label={item.state} title={item.state} />
                 <Text size="sm" style={{ flex: 1, minWidth: 0 }} truncate>
                   {item.label}
                 </Text>
-                <Text size="sm" c="dimmed" ff="monospace">
+                <Text size="sm" c="dimmed" ff="monospace" style={SIDE} truncate title={item.detail || undefined}>
                   {item.detail}
                 </Text>
               </Group>
@@ -48,12 +53,13 @@ export function WidgetBody({ widget }: { widget: Widget }) {
       return (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
           {widget.items.map((item, i) => (
-            <li key={i}>
+            <li key={i} style={ROW}>
               <Group gap={8} justify="space-between" wrap="nowrap">
-                <Text size="sm" truncate>
+                <Text size="sm" style={{ flex: 1, minWidth: 0 }} truncate>
                   {item.label}
                 </Text>
-                <Text size="sm" ff="monospace" className={toneClass(item.tone)} c={item.tone ? undefined : 'dimmed'}>
+                <Text size="sm" ff="monospace" className={toneClass(item.tone)} c={item.tone ? undefined : 'dimmed'}
+                  style={SIDE} truncate title={item.value || undefined}>
                   {item.value}
                 </Text>
               </Group>
