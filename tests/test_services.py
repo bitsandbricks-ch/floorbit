@@ -120,7 +120,7 @@ def test_the_server_never_probes_link_local_and_only_probe_nets_when_set(monkeyp
     monkeypatch.delenv("PROBE_NETS", raising=False)
     assert probes.target("127.0.0.1") == "127.0.0.1"
     assert probes.target("192.0.2.10") == "192.0.2.10"
-    for host in ("169.254.169.254", "0.0.0.0", "224.0.0.1", "fe80::1"):
+    for host in ("169.254.169.254", "0.0.0.0", "224.0.0.1", "fe80::1", "::ffff:169.254.169.254"):
         with pytest.raises(probes.ProbeError):
             probes.target(host)
     monkeypatch.setenv("PROBE_NETS", "192.0.2.0/24, not-a-net")
@@ -129,6 +129,7 @@ def test_the_server_never_probes_link_local_and_only_probe_nets_when_set(monkeyp
         probes.target("127.0.0.1")
     with pytest.raises(probes.ProbeError):
         probes.target("198.51.100.1")
+    assert probes.target("::ffff:192.0.2.10") == "192.0.2.10"           # mapped is checked as the IPv4 it is
 
 
 def test_a_game_server_outside_probe_nets_is_not_queried(monkeypatch):
