@@ -473,6 +473,18 @@
       "feedGo": "Speisen",
       "feedHint": "Sitzblöcke oder Switches mit Shift-Klick dazunehmen, um sie über diesen Stromverteiler zu speisen.",
       "more": "Sicherungen, Phasen und Messwerte auf der Seite Elektrik"
+    },
+    "gaps": {
+      "col": "Lücken in den Reihen",
+      "row": "Gassen zwischen Reihen",
+      "add": "Hinzufügen",
+      "none_col": "Keine. Platz nach einer Spalte, für eine Glasfaserrolle oder einen Pfosten.",
+      "none_row": "Keine. Eine Gasse nach einer Reihe, für einen Switch zwischen zwei Reihen.",
+      "after_col": "Nach Spalte",
+      "after_row": "Nach Reihe",
+      "size_col": "Breite (Plätze)",
+      "size_row": "Höhe (Plätze)",
+      "remove": "Diese Lücke entfernen"
     }
   },
   "net": {
