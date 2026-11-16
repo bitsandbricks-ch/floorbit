@@ -1,0 +1,75 @@
+{
+  "title": "Check-in",
+  "seats": "Seats",
+  "history": "History",
+  "intro": "Who checked in at which seat, and whether the background found their switch port. A PIN check-in from a PC on its own port teaches Floorbit the seat's port.",
+  "verifierError": "The port lookup failed last time: {{error}}. It tries again by itself.",
+  "count": {
+    "checkedIn": "Checked in",
+    "pins": "{{used}} of {{total}} seat PINs used",
+    "verified": "Port found",
+    "learned": "{{count}} seats with a learned port",
+    "pending": "Looking for the port",
+    "pendingSub": "{{count}} gave up after 15 min",
+    "notWired": "Not wired",
+    "notWiredSub": "Phones and Wi-Fi: no port to find",
+    "review": "To review",
+    "reviewSub": "Ports that clash with another seat or the patch plan"
+  },
+  "tab": {
+    "checkins": "Check-ins ({{count}})",
+    "review": "Review ({{count}})",
+    "portal": "Captive portal"
+  },
+  "search": "Seat, nick, IP, MAC or port",
+  "state": {
+    "pending": "Looking",
+    "verified": "Port found",
+    "unverified": "No port found",
+    "not_wired": "Not wired"
+  },
+  "device": {
+    "pc": "PC",
+    "mobile": "Phone",
+    "unknown": "Unknown"
+  },
+  "col": {
+    "seat": "Seat",
+    "nick": "Nick",
+    "state": "Port lookup",
+    "port": "Switch port",
+    "ip": "IP / MAC",
+    "device": "Device",
+    "when": "When",
+    "actions": "Actions",
+    "agent": "Agent",
+    "done": "Clients checked in"
+  },
+  "pin": "PIN",
+  "learned": "learned for this seat",
+  "retry": "Look for the port again",
+  "retryFor": "Look for the port of {{seat}} again",
+  "remove": "Remove check-in",
+  "removeFor": "Remove the check-in at {{seat}}",
+  "empty": "Nobody checked in yet",
+  "emptyDesc": "Check-ins show up here as people open the check-in page.",
+  "reviewEmpty": "Nothing to review",
+  "reviewEmptyDesc": "No learned port clashes with another seat or the patch plan.",
+  "conflict": {
+    "shared": "Seats {{seat}} and {{other}} checked in on the same port",
+    "plan": "Seat {{seat}} checked in on the port the patch plan gives to {{other}}",
+    "taken": "Seat {{seat}} was taken over by another nick"
+  },
+  "conflictHelp": {
+    "shared": "Usually a small switch under the table or a wrong PIN. Walk over, then forget the wrong seat's port.",
+    "plan": "Either the patch plan or the check-in is wrong. Check the cable, then fix the plan or forget the port.",
+    "taken": "Someone checked in with this seat's card after another nick. Ask at the seat if that is right."
+  },
+  "forget": "Forget port of {{seat}}",
+  "portalIntro": "Phones and laptops ask the local agent whether they still need to check in (DHCP option 114). The agent fetches the list of checked-in clients from here; each fetch is listed below. Nothing is ever blocked, and it stays off unless you add the DHCP option.",
+  "portalNoUrl": "Public URL is not set (Settings › General), so the agents answer \"no portal\" to everyone.",
+  "portalEmpty": "No agent has asked yet",
+  "portalEmptyDesc": "With DHCP option 114 pointing at a local agent, its fetches show up here.",
+  "portalLast": "Last fetch {{when}}, {{count}} clients checked in.",
+  "footer": "How the seat to port mapping works:"
+}

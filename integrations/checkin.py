@@ -544,6 +544,43 @@ def verify_pending(now=None):
     return changed
 
 
+def retry(seat):
+    """Look for the seat's port again (crew): back to pending, and the background starts now."""
+    with _lock:
+        rows = load_all()
+        row = rows.get(str(seat).upper())
+        if not row:
+            return None
+        row.update(wired='pending', checked_in_at=time.time() if row.get('wired') == 'unverified'
+                   else row.get('checked_in_at'))
+        _port_cache.pop(row.get('ip'), None)
+        _save_all(rows)
+    _wake.set()
+    return row
+
+
+WIRED_STATES = ('pending', 'verified', 'not_wired', 'unverified')
+
+
+def overview(load_data):
+    """The crew's Check-in page: counts, every check-in with its state, the review list."""
+    rows = sorted(load_all().values(), key=lambda r: -(r.get('checked_in_at') or 0))
+    learned = learned_ports()
+    pins = load_pins()
+    used = {r['seat'] for r in rows if r.get('pin_ok')}
+    conflicts = port_conflicts(load_data())
+    counts = {state: sum(1 for r in rows if r.get('wired', 'pending') == state) for state in WIRED_STATES}
+    counts.update(checked_in=len(rows), conflicts=len(conflicts), learned=len(learned),
+                  unused_pins=len([s for s in pins if s not in used]), pins=len(pins))
+    out = []
+    for r in rows:
+        out.append({'seat': r['seat'], 'username': r.get('username'), 'ip': r.get('ip'), 'mac': r.get('mac'),
+                    'device': r.get('device') or 'unknown', 'wired': r.get('wired') or 'pending',
+                    'port': r.get('port_seen'), 'learned': learned.get(r['seat']), 'pin': bool(r.get('pin_ok')),
+                    'checked_in_at': r.get('checked_in_at'), 'verified_at': r.get('verified_at')})
+    return {'counts': counts, 'rows': out, 'conflicts': conflicts}
+
+
 class CheckinVerifier:
     """Runs ``verify_pending`` while check-ins wait, woken at once by a new one."""
 

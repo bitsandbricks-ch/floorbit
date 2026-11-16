@@ -751,5 +751,6 @@
  "Only seat blocks with the same columns can be merged one above the other": "Nur Sitzblöcke mit den gleichen Spalten lassen sich übereinander zusammenführen",
  "The database isn't answering right now. Floorbit keeps trying; until it's back, pages show what was last read and changes can't be saved.": "Die Datenbank antwortet gerade nicht. Floorbit versucht es weiter; bis sie zurück ist, zeigen die Seiten den zuletzt gelesenen Stand und Änderungen können nicht gespeichert werden.",
  "Database unavailable": "Datenbank nicht erreichbar",
- "Trying again by itself…": "Versucht es von selbst wieder …"
+ "Trying again by itself…": "Versucht es von selbst wieder …",
+ "That seat has no learned port": "Für diesen Platz ist kein Port gelernt"
 }

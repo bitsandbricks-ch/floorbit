@@ -1391,6 +1391,8 @@ export interface SeatDetails {
   history?: { from: number; to: number; start: boolean | null; changes: [number, number][] }
   match: string | null
   checked_in: boolean | null
+  /** Crew only: the port lookup of the seat's check-in, when it has one. */
+  checkin_wired?: WiredState
   last_read: number | null
   people: boolean
   /** May this account read and write the seat's note (incidents.work)? */
@@ -1678,4 +1680,43 @@ export interface CheckinInfo {
   pin_required?: boolean
   /** The short address to type on a PC (CHECKIN_ADDRESS), e.g. checkin.lan. */
   address?: string | null
+}
+
+export type WiredState = 'pending' | 'verified' | 'not_wired' | 'unverified'
+
+/** One row of GET /api/checkins/overview (integrations/checkin.py overview). */
+export interface CrewCheckin {
+  seat: string
+  username: string | null
+  ip: string | null
+  mac: string | null
+  device: 'pc' | 'mobile' | 'unknown'
+  wired: WiredState
+  /** The switch port the background lookup found for this check-in. */
+  port: { switch: string; port: string } | null
+  /** The port the seat is learned on (seat_ports.json), from a PIN check-in. */
+  learned: { switch: string; port: string; learned_at: number; username?: string } | null
+  pin: boolean
+  checked_in_at: number | null
+  verified_at: number | null
+}
+
+export interface CheckinConflict {
+  kind: 'shared' | 'plan' | 'taken'
+  seat: string
+  /** The other seats on that port (shared), or the seat the patch plan gives it to (plan). */
+  other: string[]
+  switch: string
+  port: string
+}
+
+/** GET /api/checkins/overview: the crew's Check-in page. */
+export interface CheckinOverview {
+  counts: Record<WiredState, number> & {
+    checked_in: number; conflicts: number; learned: number; unused_pins: number; pins: number
+  }
+  rows: CrewCheckin[]
+  conflicts: CheckinConflict[]
+  portal: { fetches: { at: number; agent: string | null; done: number }[]; public_url: string | null }
+  verifier: { last_error: string | null }
 }
