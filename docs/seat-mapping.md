@@ -117,3 +117,25 @@ They name the seat and port, never the nick.
 The phone page can still take a typed seat number (the QR code case). That records the check-in but
 teaches no port. Turn on **Always ask for the seat PIN** (`CHECKIN_REQUIRE_PIN`) to refuse typed
 seats without their PIN.
+
+## The crew's Check-in page
+
+**Helpdesk › Check-in** (`/checkins`, needs `seats.view`; listed while check-in is on) is where the crew
+watches check-in during the event. It refreshes by itself.
+
+- **Counts:** checked in (and how many seat PINs were used), port found, still looking (and how many
+  gave up after 15 minutes), not wired (phones and Wi-Fi: no port to find), and ports to review.
+- **Check-ins:** every check-in with its port lookup state, the switch port, IP and MAC, the device
+  class the page reported, and when. Filter by state or search a seat, nick, IP, MAC or port. With
+  `seats.edit`, **look for the port again** (a gave-up row starts a fresh 15 minutes) or remove the
+  check-in.
+- **Review:** learned ports that clash: two seats on one port (a small switch under the table, or a
+  wrong PIN), a port the patch plan gives to another seat, or a seat whose card was used by another
+  nick. **Forget port** drops the learned port of that seat (`DELETE /api/checkins/<seat>/port`).
+- **Captive portal:** the local agents' fetches of the checked-in list (DHCP option 114, see
+  [integrations](integrations.md)): when, which agent, how many clients counted as done. Kept in
+  memory, the last 200. Nothing here unless you add the DHCP option; it is off by default.
+
+The seat inspector on the floor plan shows the same state next to **Checked in** for the crew.
+`CHECKIN_ADMIN_TOKEN` still guards the API for scripts; a signed-in crew member doesn't need it,
+because the role check already ran.

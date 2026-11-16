@@ -23,6 +23,7 @@ export const qk = {
   gear: ['gear'] as const,
   cables: ['cables'] as const,
   wifi: (hall: string) => ['wifi', hall] as const,
+  checkinOverview: ['checkins', 'overview'] as const,
   incidentMarkers: ['incidents', 'markers'] as const,
   speedtests: ['speedtests'] as const,
   timeline: (query: string) => ['timeline', query] as const,

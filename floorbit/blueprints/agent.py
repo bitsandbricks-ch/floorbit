@@ -244,7 +244,8 @@ def captive():
     if not config.get_bool('CHECKIN_ENABLED', False):
         return jsonify({'error': 'Check-in is turned off on this Floorbit.'}), 409
     from .. import captive as captive_mod
-    return jsonify(captive_mod.answer(current_app))
+    name = agent.get('name') if isinstance(agent, dict) else getattr(agent, 'name', None)
+    return jsonify(captive_mod.answer(current_app, agent=name))
 
 
 @bp.route('/api/agent/v1/report', methods=['POST'])

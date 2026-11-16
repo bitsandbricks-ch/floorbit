@@ -156,10 +156,16 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
 
     def admin_denied():
         token = config.get('CHECKIN_ADMIN_TOKEN', '') or ''
+        if token and _signed_in():
+            return None   # the role guard (auth/roles.py) already checked a signed-in crew member
         given = request.headers.get('X-Admin-Token') or request.args.get('token') or ''
         if token and not hmac.compare_digest(token, given):
             return jsonify({'error': 'Admin token required'}), 401
         return None
+
+    def _signed_in():
+        from auth import current_user
+        return current_user() is not None
 
     @bp.route('/api/checkin/info')
     def checkin_info():
@@ -219,6 +225,34 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         return jsonify({'checkins': rows, 'refresh': {
             'last_run': refresher.last_run, 'last_error': refresher.last_error}})
 
+    @bp.route('/checkins')
+    def checkin_crew_page():
+        from floorbit import spa
+        return spa.render('Check-in')
+
+    @bp.route('/api/checkins/overview')
+    def checkin_overview():
+        """The crew's Check-in page: who checked in, where the port lookup stands, what to review,
+        and what the agents' captive portal API asked (floorbit/captive.py)."""
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        from floorbit import captive
+        body = checkin.overview(load_data)
+        body['portal'] = {'fetches': captive.fetches()[:50], 'public_url': config.get('PUBLIC_URL', '') or None}
+        body['verifier'] = {'last_error': verifier.last_error}
+        return jsonify(body)
+
+    @bp.route('/api/checkins/<seat>/retry', methods=['POST'])
+    def checkin_retry(seat):
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        row = checkin.retry(seat)
+        if row is None:
+            return jsonify({'error': 'No check-in for that seat'}), 404
+        return jsonify({'ok': True, 'wired': row['wired']})
+
     @bp.route('/api/checkins/<seat>', methods=['DELETE'])
     def checkin_delete(seat):
         denied = checkin_disabled() or admin_denied()
@@ -226,6 +260,16 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return denied
         if not checkin.remove(seat):
             return jsonify({'error': 'No check-in for that seat'}), 404
+        return jsonify({'ok': True})
+
+    @bp.route('/api/checkins/<seat>/port', methods=['DELETE'])
+    def checkin_forget_port(seat):
+        """Forget the port a seat learned from a check-in (a wrong one, from the review list)."""
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        if not checkin.forget_port(seat.upper()):
+            return jsonify({'error': 'That seat has no learned port'}), 404
         return jsonify({'ok': True})
 
     @bp.route('/api/checkins/refresh', methods=['POST'])

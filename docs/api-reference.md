@@ -920,8 +920,11 @@ Source: [`integrations/__init__.py`](https://github.com/bitsandbricks-ch/floorbi
 | GET | `/api/checkin/me` | anyone |  |
 | GET | `/api/checkins` | `seats.view` |  |
 | DELETE | `/api/checkins/<seat>` | `seats.edit` |  |
+| DELETE | `/api/checkins/<seat>/port` | `seats.edit` |  |
+| POST | `/api/checkins/<seat>/retry` | `seats.edit` |  |
 | GET | `/api/checkins/history` | `seats.view` |  |
 | GET | `/api/checkins/history.csv` | `seats.view` |  |
+| GET | `/api/checkins/overview` | `seats.view` |  |
 | POST | `/api/checkins/refresh` | `seats.edit` |  |
 | GET | `/api/events` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/integrations` | `settings.manage` |  |

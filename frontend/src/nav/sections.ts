@@ -4,7 +4,7 @@ import {
   IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutDashboard, IconLayoutGrid,
   IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLock, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport, IconRuler2,
   IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
-  IconTools, IconTournament, IconTrophy, IconTruck, IconUsers, IconUsersGroup, IconWall, IconWebhook, IconWifi, IconWorldWww,
+  IconTools, IconTournament, IconTrophy, IconTruck, IconUserCheck, IconUsers, IconUsersGroup, IconWall, IconWebhook, IconWifi, IconWorldWww,
   type Icon,
 } from '@tabler/icons-react'
 
@@ -19,7 +19,7 @@ export const PINNED = ['floorPlan', 'seats', 'dashboard', 'problems', 'incidents
 /** The rest, folded into sections. A page the server lists that isn't here lands in "more",
  *  so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
-  { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'speedtests', 'networkStatus'] },
+  { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'checkins', 'speedtests', 'networkStatus'] },
   {
     id: 'network', icon: IconNetwork,
     pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
@@ -32,7 +32,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
 const ICONS: Record<string, Icon> = {
   floorPlan: IconLayoutGrid, seats: IconArmchair, dashboard: IconLayoutDashboard, problems: IconAlertTriangle,
   incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange, runbooks: IconBook,
-  speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
+  checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug,
   gear: IconBackpack, planner: IconRuler2, preflight: IconChecklist, teardown: IconTruck, templates: IconTemplate,

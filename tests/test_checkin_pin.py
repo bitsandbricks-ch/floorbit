@@ -211,3 +211,65 @@ def test_port_clients_reads_learned_seat_ports_like_cables(hall):
     check_in(hall, "192.0.2.21", pin=pins(hall)["A-1"], username="pixel")
     assert port_clients._learned_cables() == [{"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1",
                                                "label": "check-in"}]
+
+
+def test_crew_overview_counts_states_and_lists_the_portal_fetches(hall):
+    from floorbit import captive
+    check_in(hall, "192.0.2.22", pin=pins(hall)["A-2"], username="pixel", device="pc")
+    check_in(hall, "192.0.2.24", verify=False, pin=pins(hall)["A-3"], username="nova", device="pc")
+    check_in(hall, "192.0.2.30", pin=pins(hall)["A-4"], username="orbit", device="mobile")
+    captive.answer(hall.application, agent="hall-a")
+    body = hall.get("/api/checkins/overview").get_json()
+    c = body["counts"]
+    assert (c["checked_in"], c["verified"], c["pending"], c["not_wired"]) == (3, 1, 1, 1)
+    assert c["pins"] == 4 and c["unused_pins"] == 1 and c["learned"] == 1
+    rows = {r["seat"]: r for r in body["rows"]}
+    assert rows["A-2"]["port"]["port"] == "Gi1/0/2" and rows["A-2"]["learned"]["switch"] == "sw-a-01"
+    assert rows["A-4"]["device"] == "mobile" and rows["A-4"]["wired"] == "not_wired"
+    fetch = body["portal"]["fetches"][0]
+    assert fetch["agent"] == "hall-a" and fetch["done"] == 3
+    assert body["verifier"] == {"last_error": None}
+
+
+def test_crew_can_look_for_a_port_again(hall, monkeypatch):
+    check_in(hall, "192.0.2.24", pin=pins(hall)["A-3"], username="nova")
+    monkeypatch.setattr(checkin, "VERIFY_GIVE_UP", -1)          # the lookup gave up
+    checkin.verify_pending()
+    assert checkin.load_all()["A-3"]["wired"] == "unverified"
+    r = hall.post("/api/checkins/a-3/retry")
+    assert r.status_code == 200 and r.get_json()["wired"] == "pending"
+    assert hall.post("/api/checkins/A-1/retry").status_code == 404
+    monkeypatch.setitem(PORTS, "192.0.2.24", edge("sw-a-01", "Gi1/0/3"))   # the PC moved to its own port
+    monkeypatch.setattr(checkin, "VERIFY_GIVE_UP", 15 * 60)
+    checkin.verify_pending()
+    assert checkin.load_all()["A-3"]["wired"] == "verified"
+
+
+def test_check_in_page_is_listed_only_while_check_in_is_on(hall, monkeypatch):
+    from floorbit import page_index
+    entry = next(p for p in page_index.PAGES if p[0] == "/checkins")
+    assert entry[3]({}, lambda perm: True)
+    monkeypatch.setenv("CHECKIN_ENABLED", "false")
+    assert not entry[3]({}, lambda perm: True)
+    assert hall.get("/api/checkins/overview").status_code in (403, 404, 409)
+
+
+def test_crew_can_forget_a_wrong_learned_port(hall):
+    check_in(hall, "192.0.2.22", pin=pins(hall)["A-2"], username="pixel")
+    assert hall.delete("/api/checkins/a-2/port").get_json() == {"ok": True}
+    assert checkin.learned_ports() == {}
+    assert hall.delete("/api/checkins/A-2/port").status_code == 404
+
+
+def test_signed_in_crew_needs_no_admin_token(hall, monkeypatch):
+    # The token guards the API for scripts; the page is behind sign-in and roles already.
+    monkeypatch.setenv("CHECKIN_ADMIN_TOKEN", "s3cret")
+    assert hall.get("/api/checkins/overview").status_code == 200
+
+
+def test_seat_inspector_says_where_the_port_lookup_stands(hall):
+    check_in(hall, "192.0.2.22", pin=pins(hall)["A-2"], username="pixel")
+    check_in(hall, "192.0.2.24", pin=pins(hall)["A-3"], username="nova")
+    assert hall.get("/api/plan/seats/A-2").get_json()["checkin_wired"] == "verified"
+    assert hall.get("/api/plan/seats/A-3").get_json()["checkin_wired"] == "pending"   # an AP port is no seat's port
+    assert "checkin_wired" not in hall.get("/api/plan/seats/A-1").get_json()
