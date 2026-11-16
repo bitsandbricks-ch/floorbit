@@ -95,6 +95,9 @@ class NoMonitoring:
     def port_clients(self, hostname):
         return []
 
+    def neighbours(self, hostname):
+        return []
+
     def arp(self, query):
         return []
 
@@ -180,6 +183,13 @@ class PluginMonitoring(NoMonitoring):
         if not hasattr(self._spec.plugin_class() or object, 'port_clients'):
             raise PluginError(f'{self.label} has no MAC tables')
         return self._call('port_clients', hostname) or []
+
+    def neighbours(self, hostname):
+        """[{port, remote, remote_port, protocol}] from LLDP or CDP (floorbit/links.py). Optional for
+        plugins: one without it has nothing to suggest."""
+        if offline() or not hasattr(self._spec.plugin_class() or object, 'neighbours'):
+            return []
+        return self._call('neighbours', hostname) or []
 
     def arp(self, query):
         result = self._remembered('arp', query)

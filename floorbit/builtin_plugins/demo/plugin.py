@@ -114,6 +114,22 @@ def _switches():
     return out
 
 
+SLOW_UPLINK = 'sw-c-02'      # its 10G uplink came up at 1G: a wrong optic or cable
+
+
+def _uplinks():
+    """[(switch, port, other switch, other port, bps)]: access to distribution on 10G, distribution to
+    the core on 40G (what LLDP would report, both ways)."""
+    out = [('dist-01', 'Fo1/1/1', 'core-01', 'Fo1/0/1', 40_000_000_000),
+           ('dist-02', 'Fo1/1/1', 'core-01', 'Fo1/0/2', 40_000_000_000)]
+    count = {'dist-01': 0, 'dist-02': 0}
+    for name, _role, _i in _switches()[3:]:
+        dist = 'dist-01' if name[3] in 'ab' else 'dist-02'
+        count[dist] += 1
+        out.append((name, 'Te1/1/1', dist, f'Te1/0/{count[dist]}', 10_000_000_000))
+    return out
+
+
 def _down(name, now=None):
     now = time.time() if now is None else now
     return name == FLAPPING and int(now // 60) % 4 == 0
@@ -319,15 +335,37 @@ class Plugin(Plugin):
         name = _short(hostname)
         ports = [_switch_for(b, n)[1] for _s, b, n, _i in _seats() if _switch_for(b, n)[0] == name]
         out = [{'name': port, **(self.port_stats(hostname, port) or {})} for port in ports]
+        if name in ('core-01', 'dist-01', 'dist-02'):
+            # Their uplink ports; one access uplink came up at 1G, so the topology has something to show.
+            for a, a_port, b, b_port, bps in _uplinks():
+                for me, port, other in ((a, a_port, b), (b, b_port, a)):
+                    if me == name:
+                        slow = other == SLOW_UPLINK
+                        out.append({'name': port, 'state': 'down' if _down(other) else 'up',
+                                    'description': f'Link to {other}', 'duplex': 'full',
+                                    'speed_bps': 1_000_000_000 if slow else bps, 'errors_in': 0, 'errors_out': 0,
+                                    'last_change': None})
+            return out
         if ports and not _down(name):
             # The access switch's uplink: everything its seats send and get, on a 10G port.
             down = sum(p.get('download_bps') or 0 for p in out)
             up = sum(p.get('upload_bps') or 0 for p in out)
             dist = 'dist-01' if name[3] in 'ab' else 'dist-02'
             out.append({'name': 'Te1/1/1', 'state': 'up', 'description': f'Uplink to {dist}', 'duplex': 'full',
-                        'speed_bps': 10_000_000_000, 'download_bps': up, 'upload_bps': down,
+                        'speed_bps': 1_000_000_000 if name == SLOW_UPLINK else 10_000_000_000,
+                        'download_bps': up, 'upload_bps': down,
                         'utilization': round(max(down, up) / 10e9, 4), 'errors_in': 0, 'errors_out': 0,
                         'last_change': None})
+        return out
+
+    def neighbours(self, hostname):
+        name = _short(hostname)
+        out = []
+        for a, a_port, b, b_port, _bps in _uplinks():
+            if a == name:
+                out.append({'port': a_port, 'remote': b, 'remote_port': b_port, 'protocol': 'lldp'})
+            elif b == name:
+                out.append({'port': b_port, 'remote': a, 'remote_port': a_port, 'protocol': 'lldp'})
         return out
 
     def port_clients(self, hostname):

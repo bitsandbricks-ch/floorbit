@@ -45,7 +45,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # its plugins (NetBox and others), and the game servers' query and RCON (floorbit/game_query.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
-           'wifi_feeds', 'game_query', 'game_rcon')
+           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -140,7 +140,8 @@ REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 
-HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients')   # the first argument is a switch
+# The first argument is a switch.
+HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours')
 
 
 def _hall_of(by_name, hostname):
@@ -559,5 +560,8 @@ def monitoring_source():
 
         def port_clients(self, hostname):
             return self._call('port_clients', hostname) or []
+
+        def neighbours(self, hostname):
+            return self._call('neighbours', hostname) or []
 
     return AgentMonitoring()
