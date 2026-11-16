@@ -66,6 +66,9 @@ LAYOUT = {
     # The seats are 192.0.2.10 to .105 (see _ip): one /27 per firewall, the next one as its backup.
     'firewalls': [{'cidr': f'192.0.2.{32 * i}/27', 'name': f'Seat range {i + 1}',
                    'firewalls': [fw, FIREWALLS[(i + 1) % 4]]} for i, fw in enumerate(FIREWALLS)],
+    # The internet lines on core-01's ISP ports. No probe host: the demo must not send probes out.
+    'uplinks': [{'name': f'ISP {chr(65 + i)}', 'device': 'core-01', 'port': port, 'capacity_mbps': bps // 1_000_000,
+                 'probe_host': '', 'probe_port': 443} for i, (port, bps, _busy) in enumerate(ISP_PORTS)],
 }
 
 
