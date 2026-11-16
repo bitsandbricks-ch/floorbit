@@ -55,7 +55,8 @@ The floor plan editor is moving into this page. Edit mode already does:
   within a few pixels, and a dashed line shows which; otherwise it lands on the grid (Alt: neither).
 - **Right click** an item (or empty plan) for the same actions in a menu.
 - **Delete** (Del) seat blocks and marks; switches stay (remove them in the editor).
-- **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes.
+- **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes. The clock button next to them
+  lists the last steps: click one to go back to before it, or a grey (undone) one to redo up to it.
 
 The tools down the left (each stays on after placing something; Esc or V goes back to Select):
 

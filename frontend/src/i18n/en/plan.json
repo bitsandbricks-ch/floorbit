@@ -278,6 +278,11 @@
     "redoWhat": "Redo: {{what}}",
     "undone": "Undone: {{what}}",
     "redone": "Redone: {{what}}",
+    "history": {
+      "title": "History",
+      "help": "Click a step to undo it and everything after it. Grey steps are undone: click one to redo up to it.",
+      "latest": "latest"
+    },
     "step": {
       "move_one": "move",
       "move_other": "move {{count}} items",

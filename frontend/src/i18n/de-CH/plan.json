@@ -278,6 +278,11 @@
     "redoWhat": "Wiederholen: {{what}}",
     "undone": "Rückgängig gemacht: {{what}}",
     "redone": "Wiederholt: {{what}}",
+    "history": {
+      "title": "Verlauf",
+      "help": "Klick auf einen Schritt macht ihn und alles danach rückgängig. Graue Schritte sind rückgängig gemacht: Klick wiederholt bis dorthin.",
+      "latest": "zuletzt"
+    },
     "step": {
       "move_one": "verschieben",
       "move_other": "{{count}} Elemente verschieben",
