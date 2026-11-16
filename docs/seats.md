@@ -30,8 +30,21 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Delete** (Del) seat blocks and marks; switches stay (remove them in the editor).
 - **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes.
 
-Every change is saved at once. Tools not moved yet (new blocks, labels, cables, power, groups)
-are in the classic editor, linked from the panel.
+The tools down the left (each stays on after placing something; Esc or V goes back to Select):
+
+| Tool | Key | How |
+| --- | --- | --- |
+| Select | V | As above. |
+| Seat block | B | Click where it goes; the dialog takes the defaults from **Settings › Floor plan** and the next free row letter. Several blocks at once go down or to the right with the gap from Settings. |
+| Label | T | Click, type the text, pick the size. |
+| Icon | I | Click, search the icon (exit, toilets, bar …), pick the size. |
+| Wall | W | Drag from one end to the other. It shows the length in seats and the angle; Shift keeps 15° steps. |
+| Zone | Z | Drag a box; it shows its size in seats. The new zone is selected so you can name it. |
+
+Everything lands on the grid unless you hold Alt.
+
+Every change is saved at once. Tools not moved yet (cables, power, groups, align) are in the classic editor, linked from the
+panel.
 
 ## What a seat shows
 

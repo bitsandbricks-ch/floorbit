@@ -393,6 +393,13 @@ body {
 .fb-edit-marquee { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1; pointer-events: none; }
 .fb-plan-editor .fb-plan-wrap { min-height: 70vh; }
 .fb-edit-panel { position: sticky; top: 12px; }
+.fb-edit-stage { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; }
+.fb-edit-rail { padding: 4px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); position: sticky; top: 12px; }
+.fb-edit.tooling .fb-edit-hit { pointer-events: none; }
+.fb-edit.tooling .fb-edit-bg { cursor: crosshair; }
+.fb-edit-draft line, .fb-edit-draft rect { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 2; }
+.fb-edit-draft circle { fill: var(--color-bit); }
+.fb-edit-draft text { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; }
 .fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; }
 .fb-plan-wrap > svg.fb-plan { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
 .fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--color-bit); }
