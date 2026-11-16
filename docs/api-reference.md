@@ -348,6 +348,7 @@ Source: [`floorbit/blueprints/halls.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/halls/<hall_id>/background` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
 | POST | `/api/halls/<hall_id>/seat-blocks.csv` | `floorplan.edit` |  |
+| POST | `/api/halls/example` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.handover
 
@@ -511,6 +512,19 @@ Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/plan/seats/<seat>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/plan/seats/<seat>/note` | `incidents.work` |  |
 | GET | `/api/plan/switches/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
+## floorbit.blueprints.plan_marks
+
+Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py).
+
+Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_marks.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-marks` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/plan-marks` | `floorplan.edit` |  |
+| DELETE | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
+| PUT | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.planner
 

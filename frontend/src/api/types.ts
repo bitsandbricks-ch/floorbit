@@ -630,10 +630,31 @@ export interface PlanShape {
   rows?: { text: string; x: number; y: number }[]
 }
 
+/** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
+export interface PlanMark {
+  kind: 'text' | 'icon' | 'wall' | 'zone'
+  x: number
+  y: number
+  text?: string
+  icon?: string
+  size?: 's' | 'm' | 'l'
+  rotation?: number
+  x2?: number
+  y2?: number
+  style?: 'solid' | 'dashed'
+  w?: number
+  h?: number
+  label?: string
+  color?: 'muted' | 'bit' | 'trace' | 'warn' | 'down'
+}
+
 export interface PlanDrawing {
   shapes: PlanShape[]
   box: string
   cell: number
+  marks?: PlanMark[]
+  /** The path data of the icons the marks use, by name (24 x 24, stroked). */
+  icons?: Record<string, string[]>
 }
 
 /** [time, seat, 1 online / 0 offline] */

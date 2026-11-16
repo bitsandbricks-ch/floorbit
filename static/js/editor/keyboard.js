@@ -48,10 +48,12 @@ document.addEventListener('keydown', (e) => {
     case 'Delete':
     case 'Backspace':
       if (selection.size) { e.preventDefault(); deleteSelection(); }
+      else if (selectedMark) { e.preventDefault(); deleteSelectedMark(); }
       break;
     case 'v': case 'V': setTool('select'); break;
     case 's': case 'S': setTool('add-switch'); break;
     case 'b': case 'B': setTool('add-block'); break;
+    case 'd': case 'D': $('tool-draw')?.click(); break;
     case 'g': case 'G': setSnap(!snapEnabled); break;
     case 'f': case 'F': fitToContent(); break;
     case 'r': case 'R': rotateSelectedBlock(e.shiftKey ? -90 : 90); break;

@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 
 from integrations import config, seat_sources
 
-from .. import halls
+from .. import halls, plan_marks
 from ..seat_names import block_rows, row_letters, seat_one_first
 from ..store import load_data
 
@@ -119,8 +119,35 @@ def plan(data, highlight=None, online=None, hall_id=None):
                        'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h)})
     if not shapes:
         return None, None
+    marks, icons = _marks(data, hall_id, xs, ys)
     box = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
-    return {'shapes': shapes, 'box': ' '.join(f'{v:.0f}' for v in box), 'cell': CELL}, found
+    return {'shapes': shapes, 'box': ' '.join(f'{v:.0f}' for v in box), 'cell': CELL,
+            'marks': marks, 'icons': icons}, found
+
+
+def _marks(data, hall_id, xs, ys):
+    """The hall's text, walls, zones and icons (floorbit/plan_marks.py) in drawing units, and the
+    icons they use. Grows ``xs``/``ys`` so walls around the seats aren't cut off."""
+    sx, sy = PLAN_W / 100, PLAN_H / 100
+    out, used = [], set()
+    for m in plan_marks.all_marks(data, hall_id):
+        d = {**m, 'x': m['x'] * sx, 'y': m['y'] * sy}
+        d.pop('hall_id', None)
+        if m['kind'] == 'wall':
+            d.update(x2=m['x2'] * sx, y2=m['y2'] * sy)
+            xs += [d['x'], d['x2']]
+            ys += [d['y'], d['y2']]
+        elif m['kind'] == 'zone':
+            d.update(w=m['w'] * sx, h=m['h'] * sy)
+            xs += [d['x'], d['x'] + d['w']]
+            ys += [d['y'], d['y'] + d['h']]
+        else:
+            if m['kind'] == 'icon':
+                used.add(m['icon'])
+            xs += [d['x'] - CELL * 2, d['x'] + CELL * 2]
+            ys += [d['y'] - CELL * 2, d['y'] + CELL * 2]
+        out.append(d)
+    return out, {k: plan_marks.ICONS[k] for k in sorted(used) if k in plan_marks.ICONS}
 
 
 def _by_nick(query):

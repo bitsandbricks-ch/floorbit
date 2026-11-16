@@ -1,3 +1,4 @@
+import { PlanMarks } from './PlanMarks'
 import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -232,6 +233,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
           </g>
         ))}
+        <PlanMarks drawing={drawing} />
         {drawing.shapes.map((b, bi) => (
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>

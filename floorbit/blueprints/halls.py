@@ -40,6 +40,20 @@ def add_hall():
     return jsonify(halls.public(data, hall)), 201
 
 
+@bp.route('/api/halls/example', methods=['POST'])
+def add_example_hall():
+    """A new hall with an example layout to start from (floorbit/example_hall.py)."""
+    from .. import example_hall
+    with data_lock:
+        data = load_data()
+        try:
+            hall = example_hall.add(data)
+        except halls.HallError as exc:
+            return jsonify({'error': str(exc)}), 400
+        save_data(data)
+    return jsonify(hall), 201
+
+
 @bp.route('/api/halls/<hall_id>', methods=['PUT'])
 def rename_hall(hall_id):
     body = request.get_json(silent=True) or {}

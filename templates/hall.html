@@ -40,6 +40,16 @@
     .cell.on { fill: var(--color-up); stroke: var(--color-up); }
     .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
     .rowlbl { fill: var(--color-fg); font: 800 15px var(--font-sans); text-anchor: middle; }
+    .marks .wall { stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; opacity: .8; }
+    .marks .wall.dashed { stroke-dasharray: 22 14; }
+    .marks .zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 55%, transparent); stroke-width: 2; }
+    .marks .zone text { fill: var(--zone); font-family: var(--font-sans); font-weight: 700; }
+    .marks .zone-muted { --zone: var(--color-muted); } .marks .zone-bit { --zone: var(--color-bit); }
+    .marks .zone-trace { --zone: var(--color-trace); } .marks .zone-warn { --zone: var(--color-warn); }
+    .marks .zone-down { --zone: var(--color-down); }
+    .marks .label { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
+    .marks .icon rect { fill: var(--color-raised); stroke: var(--color-muted); stroke-width: 1.5; }
+    .marks .icon svg { color: var(--color-fg); }
   </style>
 </head>
 <body>
@@ -67,6 +77,7 @@
     </div>
     <p id="hall-unknown" class="bad" role="status" {% if state == 'ok' %}hidden{% endif %}>{{ t.unknown }}</p>
     <svg viewBox="{{ drawing.box }}" role="img" aria-label="{{ t.map }}">
+      {% include "_plan_marks.html" %}
       {% for b in drawing.shapes %}
       <g transform="translate({{ b.cx }} {{ b.cy }}) rotate({{ b.rotation }})">
         <rect class="blk" x="{{ -b.w / 2 - 6 }}" y="{{ -b.h / 2 - 6 }}" width="{{ b.w + 12 }}" height="{{ b.h + 12 }}" rx="6" />

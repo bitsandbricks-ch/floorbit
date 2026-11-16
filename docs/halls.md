@@ -77,6 +77,21 @@ of 2 rows from `E` are rows E to L. A seat name is never given twice, in any hal
 one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does the same for scripts
 (`count`, `dx`, `dy` in percent of the plan, plus the block's fields).
 
+## Labels, walls, zones and icons
+
+Besides seats, the floor plan holds marks: **text** labels, **walls** (solid or dashed, for fences),
+**zones** (a tinted area with a name, such as the bar or the crew corner) and **icons** (exit, WC, bar,
+food, first aid, stage, stairs, Wi-Fi, arrows and more). Add them with **Draw** in the editor toolbar
+(<kbd>D</kbd>): text and icons take one click, walls and zones two (start and end corner). Select a mark to
+change its text, size, colour, rotation or style, drag it to move it, <kbd>Delete</kbd> removes it. Marks
+show on the Seats view, the big screens and the attendee hall view as well. `GET /api/plan-marks?hall=<id>`
+lists them with the icon shapes; `POST`, `PUT` and `DELETE /api/plan-marks/<id>` change them (editors).
+
+**Example hall:** *Add an example hall* in the Halls dialog (`POST /api/halls/example`) creates a new hall
+with 8 pairs of 2×24 rows, a standing row turned on its side, outer walls with an entrance, a fenced side
+events area, bar and crew zones and a few icons. Its rows count on from the last row letter in use, so it
+never clashes with seats you have. To remove it, delete its seat blocks, then the hall; its marks go with it.
+
 ## Big screens and attendee pages
 
 - `/kiosk?hall=<id>` shows another hall than the first; `/screen?hall=<id>` passes it on to its
