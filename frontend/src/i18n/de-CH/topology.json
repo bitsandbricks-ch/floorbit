@@ -42,5 +42,11 @@
   "status": { "online": "Läuft", "offline": "Down", "unknown": "Nicht gelesen" },
   "media": { "copper": "Kupfer" },
   "types": { "cat5e": "Kupfer Cat5e", "cat6": "Kupfer Cat6", "cat6a": "Kupfer Cat6a", "fiber-sm": "Glasfaser Singlemode", "fiber-mm": "Glasfaser Multimode", "dac": "DAC" },
+  "uplink": "Internetleitung",
+  "uplinkPort": "Kommt an bei",
+  "uplinkCapacity": "Kapazität",
+  "uplinkUsed": "Ausgelastet",
+  "openServices": "Dienste öffnen",
+  "uplinkStatus": { "up": "In Ordnung", "warn": "Braucht einen Blick", "down": "Down", "unknown": "Nicht geprüft" },
   "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" }
 }

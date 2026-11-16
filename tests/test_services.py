@@ -159,3 +159,14 @@ def test_the_lan_cache_disk_is_a_tile_on_the_health_wall(client, monkeypatch, tm
     monkeypatch.delenv("LANCACHE_CACHE_DIR")
     with client.application.app_context():
         assert not [t for t in services.health_checks() if t["id"] == "lancache"]
+
+
+def test_the_topology_shows_each_internet_line_on_its_router(client, net):
+    mon, answers = net
+    assert client.post("/api/services/uplinks", json=UPLINK).status_code == 201
+    mon.set("core-01", {**port("TenGigabitEthernet1/0/48"), "upload_bps": 300_000_000, "download_bps": 90_000_000})
+    answers["tcp_probe"] = lambda host, p, count: {"sent": 5, "lost": 0, "avg_ms": 9.0}
+    client.get("/api/services")                       # checks what was just added
+    [line] = client.get("/api/links").get_json()["uplinks"]
+    assert (line["name"], line["device"], line["port"], line["status"], line["utilization"]) == (
+        "ISP A", "core-01", "Te1/0/48", "up", 0.3)
