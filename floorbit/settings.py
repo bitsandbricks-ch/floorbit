@@ -434,7 +434,9 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
 
     @bp.route('/settings')
     def settings_page():
-        from floorbit import spa   # the React page (frontend/src/pages/Settings.tsx)
+        # The React page (frontend/src/pages/Settings.tsx).
+        from floorbit import spa
+
         return spa.render('Settings')
 
     @bp.route('/api/settings', methods=['GET'])
