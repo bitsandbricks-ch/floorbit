@@ -39,7 +39,8 @@ describe('Login', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('The sign-in link expired.')
     expect(screen.getByLabelText(/Username/)).toHaveValue('kim')
     expect(screen.getByRole('link', { name: 'Sign in with Discord' })).toHaveAttribute('href', '/auth/discord/start?next=%2Finventory')
-    expect(screen.getByRole('link', { name: 'Check in here' })).toHaveAttribute('href', '/checkin')
+    expect(screen.getByRole('link', { name: 'Check in to your seat' })).toHaveAttribute('href', '/checkin')
+    expect(screen.getByRole('heading', { name: 'Crew sign-in' })).toBeInTheDocument()
   })
 
   it('explains how to make the first account', async () => {

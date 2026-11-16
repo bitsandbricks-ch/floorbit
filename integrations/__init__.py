@@ -17,7 +17,8 @@ What it adds:
 * ``POST /api/integrations/discord/test``  send a test message to the webhook
 * ``POST /api/integrations/monitor/poll``  run one status poll now
 * ``GET  /api/seats/sources``          seat mapping sources and their errors
-* ``GET  /checkin`` + ``POST /api/checkin``  seat check-in page (CHECKIN_ENABLED)
+* ``GET /api/checkin/info`` + ``POST /api/checkin``  seat check-in (CHECKIN_ENABLED); the page,
+  ``/checkin``, is React (floorbit/blueprints/pages.py)
 * ``GET  /api/checkin/me``             the check-in for the caller's IP
 * ``GET  /api/checkins``, ``DELETE /api/checkins/<seat>``  user/IP/seat/MAC table
 * ``GET  /checkins/history``           who sat where over time, with filters
@@ -149,11 +150,23 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return jsonify({'error': 'Admin token required'}), 401
         return None
 
-    @bp.route('/checkin')
-    def checkin_page():
+    @bp.route('/api/checkin/info')
+    def checkin_info():
+        """For the check-in page: open or not, when it opens if the schedule knows, and this
+        device's check-in. Open to attendees, so no nicks but their own."""
+        opens_at = None
+        try:
+            from floorbit import schedule
+            start = (schedule.get().get('event') or {}).get('start')
+            opens_at = start if start and start > time.time() else None
+        except Exception:  # noqa: BLE001  # no schedule: the page just doesn't say when
+            opens_at = None
         if not config.get_bool('CHECKIN_ENABLED', False):
-            return 'Check-in is not open.', 404
-        return render_template('checkin.html')
+            return jsonify({'open': False, 'opens_at': opens_at, 'ip': None, 'checkin': None})
+        ip = checkin.client_ip()
+        row = checkin.find_by_ip(ip)
+        return jsonify({'open': True, 'opens_at': None, 'ip': ip, 'checkin': (
+            {'seat': row['seat'], 'username': row['username']} if row else None)})
 
     @bp.route('/api/checkin', methods=['POST'])
     def checkin_submit():

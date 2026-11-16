@@ -1,0 +1,21 @@
+{
+  "title": "Seat check-in",
+  "intro": "Tell us where you sit, so the network crew finds you fast if something breaks.",
+  "seat": "Seat number",
+  "seatPlaceholder": "e.g. D-22",
+  "username": "Your nickname",
+  "usernamePlaceholder": "Your name at the event",
+  "submit": "Check in",
+  "fromSeat": "Check in from the PC at your seat: Floorbit finds your switch port from it.",
+  "doneTitle": "Thanks, {{name}}!",
+  "doneAt": "You're checked in at seat",
+  "doneText": "If your network acts up, the crew knows where to find you. Nothing else to do.",
+  "change": "Wrong seat? Change it",
+  "closed": "Check-in isn't open yet",
+  "closedText": "The crew opens it when the event starts. Come back then, or ask at the info desk.",
+  "opensAt": "It opens {{when}}.",
+  "unreachable": "Floorbit can't be reached",
+  "unreachableText": "Your network may not be up yet. Try again in a moment.",
+  "retry": "Try again",
+  "ip": "Your IP: {{ip}}"
+}

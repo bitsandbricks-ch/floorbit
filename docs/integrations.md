@@ -157,7 +157,12 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | `CHECKIN_ADMIN_TOKEN` | | if set, `GET/DELETE /api/checkins` need `X-Admin-Token` |
 | `CHECKIN_FILE` | `checkins.json` | |
 
-Endpoints: `POST /api/checkin`, `GET /api/checkin/me`, `GET /api/checkins` (the
+The page is in English and German and made for phones. While check-in is off it says so, with
+the event's start from the schedule when that is still ahead. When it is on, the sign-in page,
+where attendees land, leads with a big "Check in to your seat" button above the crew's sign-in.
+
+Endpoints: `POST /api/checkin`, `GET /api/checkin/info` (open or not, when it opens, this
+device's check-in), `GET /api/checkin/me`, `GET /api/checkins` (the
 user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refresh`.
 
 ### The "sign in to network" note (Captive Portal API)

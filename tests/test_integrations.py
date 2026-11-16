@@ -237,12 +237,15 @@ def post_checkin(client, seat, user, ip):
 
 def test_checkin_disabled_by_default(app):
     assert app.test_client().get('/checkin').status_code == 404
+    info = app.test_client().get('/api/checkin/info').get_json()
+    assert info['open'] is False and info['checkin'] is None and info['ip'] is None
     assert post_checkin(app.test_client(), 'D-1', 'x', '10.0.0.1').status_code == 404
 
 
 def test_checkin_records_ip_and_mac(app, checkin_env, monkeypatch):
     c = app.test_client()
-    assert b'Seat check-in' in c.get('/checkin').data
+    info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
+    assert info == {'open': True, 'opens_at': None, 'ip': '10.0.2.144', 'checkin': None}
     r = post_checkin(c, 'd-22', 'Reykime', '10.0.2.144').get_json()
     assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': True}
     row = c.get('/api/checkins').get_json()['checkins'][0]
