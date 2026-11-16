@@ -5,6 +5,8 @@
 - ``POST /api/cables``, ``PATCH /api/cables/<id>``, ``DELETE /api/cables/<id>``: the crew's own cables.
 - ``POST /api/cables/import``: read the cables from NetBox again (replaces the last import).
 - ``GET /api/cables/check``: the cables to seats against the port watch's last read (patch_check.py).
+- ``GET /api/cables/clients?read=1``: clients on seat ports that the cables don't explain, from the
+  switches' MAC tables (port_clients.py). Needs ``seats.view``: it names MACs and IPs.
 - ``POST /api/cables/block``: patch a whole seat block to a switch (issue #473). With ``dry_run``
   it only says which seat gets which port and what is in the way; ``replace`` moves the crew's
   cables that are in the way.
@@ -16,7 +18,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit, cables, patch_check, spa
+from .. import agent_link, audit, cables, patch_check, port_clients, spa
 
 bp = Blueprint('cables', __name__)
 
@@ -115,6 +117,15 @@ def check_cables():
                         'down': {'count': 0, 'rows': []}, 'unplanned': {'count': 0, 'rows': []},
                         'conflicts': {'count': 0, 'rows': []}, 'unread': []})
     return jsonify({'last_poll': watch.last_poll, **patch_check.check(watch.port_reads, watch.read_switches)})
+
+
+@bp.route('/api/cables/clients', methods=['GET'])
+def port_clients_view():
+    """The last read of the seat switches' MAC tables, against the cables (floorbit/port_clients.py).
+    ``?read=1`` starts a new read in the background (at most every two minutes)."""
+    finder = current_app.extensions['floorbit_port_clients']
+    started = finder.request() if request.args.get('read') == '1' else False
+    return jsonify({**port_clients.without_cabled(finder.state()), 'started': started})
 
 
 @bp.route('/api/cables/block', methods=['POST'])

@@ -67,5 +67,20 @@
   "checkDown_one": "{{count}} seat port not up yet: {{seats}}",
   "checkDown_other": "{{count}} seat ports not up yet: {{seats}}",
   "checkUnread": "Not read (not on the floor plan, or offline): {{switches}}",
-  "checkMore": "and {{count}} more"
+  "checkMore": "and {{count}} more",
+  "clientsTitle": "Machines on the seat ports",
+  "clientsReading": "Reading the switches' MAC tables…",
+  "clientsRead": "Read at {{time}}: {{clients}} machines on {{switches}} switches",
+  "clientsAgain": "Read again",
+  "clientsFailed": "No MAC table from: {{switches}}",
+  "clientsNone": "Every machine is on a port the cables explain.",
+  "clientsMoved_one": "{{count}} machine on another seat's port",
+  "clientsMoved_other": "{{count}} machines on another seat's port",
+  "clientsMovedLine": "{{port}} is cabled to {{seat}}, but {{ip}} is the IP of {{other}}",
+  "clientsUnplanned_one": "{{count}} machine on a port no cable explains",
+  "clientsUnplanned_other": "{{count}} machines on ports no cable explains",
+  "clientsIpOf": "IP of {{seat}}",
+  "clientsPatch": "Patch to a seat",
+  "clientsInfra": "Infrastructure",
+  "clientsInfraNote": "Infrastructure"
 }

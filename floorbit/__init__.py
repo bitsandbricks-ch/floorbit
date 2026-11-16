@@ -142,6 +142,8 @@ def create_app(start_background=True):
     from .stats import init_stats
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
+    from . import port_clients
+    port_clients.init_app(app)   # reads only when the cables page asks (docs/cables.md)
 
     # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
     from .syslog import init_syslog

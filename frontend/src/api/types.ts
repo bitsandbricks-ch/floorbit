@@ -1076,6 +1076,13 @@ export interface PatchCheck {
   last_poll: number | null; blocks: { block: string; name: string; seats: number; up: number }[]
   missing: PatchList; down: PatchList; unplanned: PatchList; conflicts: PatchList; unread: string[]
 }
+/** Clients on seat ports the patch plan doesn't explain (issue #473), from MAC tables and ARP. */
+export interface PortClient { switch: string; port: string; mac: string; ip: string; ip_seat: string; seat?: string; cable?: string }
+export interface PortClients {
+  as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
+  failed: { switch: string; error: string }[]
+  unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+}
 export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */

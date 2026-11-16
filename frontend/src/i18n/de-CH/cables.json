@@ -67,5 +67,20 @@
   "checkDown_one": "{{count}} Platz-Port noch nicht oben: {{seats}}",
   "checkDown_other": "{{count}} Platz-Ports noch nicht oben: {{seats}}",
   "checkUnread": "Nicht gelesen (nicht auf dem Plan oder offline): {{switches}}",
-  "checkMore": "und {{count}} weitere"
+  "checkMore": "und {{count}} weitere",
+  "clientsTitle": "Geräte an den Platz-Ports",
+  "clientsReading": "Lese die MAC-Tabellen der Switches…",
+  "clientsRead": "Gelesen um {{time}}: {{clients}} Geräte an {{switches}} Switches",
+  "clientsAgain": "Neu lesen",
+  "clientsFailed": "Keine MAC-Tabelle von: {{switches}}",
+  "clientsNone": "Jedes Gerät hängt an einem Port, den die Kabel erklären.",
+  "clientsMoved_one": "{{count}} Gerät am Port eines anderen Platzes",
+  "clientsMoved_other": "{{count}} Geräte am Port eines anderen Platzes",
+  "clientsMovedLine": "{{port}} ist auf {{seat}} verkabelt, aber {{ip}} ist die IP von {{other}}",
+  "clientsUnplanned_one": "{{count}} Gerät an einem Port, den kein Kabel erklärt",
+  "clientsUnplanned_other": "{{count}} Geräte an Ports, die kein Kabel erklärt",
+  "clientsIpOf": "IP von {{seat}}",
+  "clientsPatch": "Auf einen Platz patchen",
+  "clientsInfra": "Infrastruktur",
+  "clientsInfraNote": "Infrastruktur"
 }

@@ -249,6 +249,8 @@ RULES = (
     ('/api/gear', None, 'incidents.work'),
     ('/gear', READ, 'incidents.work'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
+    # Which MAC and IP is on which seat port is personal data, like the seat mapping.
+    ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
