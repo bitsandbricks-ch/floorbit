@@ -1,32 +1,8 @@
-// Floor plan editor: Sidebar: collapsible sections, seat numbering, search, tool selection, NetBox sync.
+// Floor plan editor: Seat numbering, search, tool selection, NetBox sync.
 // Classic script sharing one global scope with the other editor/*.js files; the load order
 // is in templates/index.html (see static/js/editor/README.md).
 'use strict';
 
-// ── Collapsible sections ───────────────────────────────────────────────────────
-function initCollapsibleSections() {
-  document.querySelectorAll('.collapsible-section').forEach(section => {
-    const name = section.dataset.section;
-    const header = section.querySelector('.section-header');
-    let saved = null;
-    try { saved = localStorage.getItem(`section-${name}`); } catch { /* ignore */ }
-    if (saved === 'collapsed') section.classList.add('collapsed');
-    else if (saved === 'expanded') section.classList.remove('collapsed');
-
-    header.setAttribute('role', 'button');
-    header.setAttribute('tabindex', '0');
-    const toggle = () => {
-      const isCollapsed = section.classList.toggle('collapsed');
-      header.setAttribute('aria-expanded', String(!isCollapsed));
-      try { localStorage.setItem(`section-${name}`, isCollapsed ? 'collapsed' : 'expanded'); } catch { /* ignore */ }
-    };
-    header.setAttribute('aria-expanded', String(!section.classList.contains('collapsed')));
-    header.addEventListener('click', toggle);
-    header.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-    });
-  });
-}
 // ── Seat numbering ─────────────────────────────────────────────────────────────────
 // The same rules as floorbit/seat_names.py: "block" naming runs A-1 to A-16 over the whole block,
 // "rows" gives every row its own letter (counted on from row_start) and numbers it from 1.

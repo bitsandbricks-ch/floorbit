@@ -77,11 +77,23 @@ of 2 rows from `E` are rows E to L. A seat name is never given twice, in any hal
 one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does the same for scripts
 (`count`, `dx`, `dy` in percent of the plan, plus the block's fields).
 
+## The editor's menu
+
+The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block
+<kbd>B</kbd>, Draw <kbd>D</kbd>), the buttons for the three panels, and at the bottom Undo, Redo, Snap
+to grid <kbd>G</kbd> and the keyboard shortcuts <kbd>?</kbd>.
+
+The **panel on the right** shows **Search** (<kbd>/</kbd>), **Layers** (<kbd>L</kbd>) or **Switches**
+(<kbd>W</kbd>, with the NetBox sync when NetBox is set up). Pressing the button of the open panel again
+closes it, so the plan gets the whole width. Selecting a switch, seat, block or mark opens its inspector
+in the same place; closing it (<kbd>Esc</kbd>) brings the panel back. A status chip in the top bar filters
+the switch list and opens it. The editor remembers the open panel per browser.
+
 ## Labels, walls, zones and icons
 
 Besides seats, the floor plan holds marks: **text** labels, **walls** (solid or dashed, for fences),
 **zones** (a tinted area with a name, such as the bar or the crew corner) and **icons** (exit, WC, bar,
-food, first aid, stage, stairs, Wi-Fi, arrows and more). Add them with **Draw** in the editor toolbar
+food, first aid, stage, stairs, Wi-Fi, arrows and more). Add them with **Draw** in the editor's tool rail
 (<kbd>D</kbd>): text and icons take one click, walls and zones two (start and end corner). Select a mark to
 change its text, size, colour, rotation or style, drag it to move it, <kbd>Delete</kbd> removes it. Marks
 show on the Seats view, the big screens and the attendee hall view as well. `GET /api/plan-marks?hall=<id>`
@@ -120,7 +132,7 @@ extinguisher, escape route and assembly point icons land on Safety, a server on 
 point on Network, a power or socket icon on Electrical. Attendee pages (`/hall`, `/find`) show the Overview
 and Safety marks only.
 
-In the editor, **Layers** in the sidebar has the same five mark layers (Overview, Safety, Network,
+In the editor, the **Layers** panel on the right (<kbd>L</kbd>) has the same five mark layers (Overview, Safety, Network,
 Electrical, Services). Switching one off hides its marks while you edit, so a busy plan can be worked on one
 layer at a time; the editor remembers this per browser. A new mark on a hidden layer switches that layer back
 on. **Open these layers on the Seats view** opens this hall there with the same mark layers and check-in.

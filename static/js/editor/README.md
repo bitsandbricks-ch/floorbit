@@ -13,7 +13,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `core.js` | State, DOM references, localStorage, the `api()` helper, toasts, dialogs, undo/redo, utils. |
 | `halls.js` | Halls: which one is shown (`?hall=`), the hall picker, the background image, and the Halls dialog (add, rename, delete, background, CSV import of seat blocks). Loaded before `data.js`, whose lists keep only the shown hall's items. |
 | `data.js` | Creating, changing and deleting switches and seat blocks; group actions; loading data. |
-| `sidebar.js` | Collapsible sections, seat numbering, search, tool selection, NetBox sync. |
+| `sidebar.js` | Seat numbering, search, tool selection, NetBox sync. |
 | `canvas.js` | Coordinates, placing items, pan and zoom, box select. |
 | `modals.js` | The add-switch and seat-block dialogs. |
 | `render.js` | Drawing switches, seat blocks and seats. |
@@ -37,6 +37,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `focus.js` | Opening the floor plan on one switch or seat from a link (`/?switch=<id>`, `/?seat=<seat>`), as the Problems list does. |
 | `notice.js` | The crew notice from a lead, as a banner under the top bar. |
 | `marks.js` | Text labels, walls, zones and icons on the plan: the Draw menu, placing, moving and the inspector (`floorbit/plan_marks.py`). |
+| `panels.js` | The tool rail on the left and the panel on the right (search, layers, switches; keys `/`, `L`, `W`), which steps aside while an inspector is open; German for the rail and the panel. |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:

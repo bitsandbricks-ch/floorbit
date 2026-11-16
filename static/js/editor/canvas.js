@@ -150,7 +150,7 @@ btnCenter.addEventListener('click',    fitToContent);
 
 // Wheel / trackpad pinch zooms toward the cursor
 canvasArea.addEventListener('wheel', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar')) return;
+  if (e.target.closest('.tool-rail, .zoom-bar')) return;
   e.preventDefault();
   const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
   zoomAt(e.clientX, e.clientY, Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015)));
@@ -160,7 +160,7 @@ canvasArea.addEventListener('wheel', (e) => {
 // Shift+drag on empty space draws a selection box instead.
 let spaceHeld = false;
 canvasArea.addEventListener('mousedown', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar, .switch-marker, .seat-marker, .seat-block')) return;
+  if (e.target.closest('.tool-rail, .zoom-bar, .switch-marker, .seat-marker, .seat-block')) return;
   if (e.button === 0 && e.shiftKey && currentTool === 'select' && !spaceHeld) {
     e.preventDefault();
     startMarquee(e);

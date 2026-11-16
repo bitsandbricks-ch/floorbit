@@ -183,7 +183,7 @@ function contextTargetOf(el, clientX, clientY) {
 }
 
 canvasArea.addEventListener('contextmenu', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar')) return;   // real buttons keep the browser's menu
+  if (e.target.closest('.tool-rail, .zoom-bar')) return;   // real buttons keep the browser's menu
   e.preventDefault();
   const target = contextTargetOf(e.target, e.clientX, e.clientY);
   // Right-clicking something selects it, like a click, so the inspector matches the menu.
