@@ -52,11 +52,11 @@ class IncidentError(ValueError):
 def seat_numbers(data=None):
     """Every seat number on the floor plan, numbered like the editor (block name + 1..n)."""
     data = data if data is not None else load_data()
+    from . import seat_names
     out = set()
+    # The editor's own naming rules (block name + 1..n, or row letters): never a copy of them.
     for block in data.get('seat_blocks') or []:
-        prefix = f"{str(block.get('name')).upper()}-" if block.get('name') else ''
-        total = int(block.get('cols') or 0) * int(block.get('rows') or 0)
-        out.update(f'{prefix}{n}' for n in range(1, total + 1))
+        out.update(s.upper() for s in seat_names.seats(block))
     out.update(str(s['number']) for s in data.get('seats') or [] if s.get('number'))
     return out
 
