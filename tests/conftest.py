@@ -188,3 +188,15 @@ def client(app_module):
     resp = test_client.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD})
     assert resp.status_code == 302, resp.data
     return test_client
+
+
+@pytest.fixture(autouse=True)
+def _librenms_answers_again():
+    """A LibreNMS that didn't answer in one test answers in the next (librenms/breaker.py), and no
+    status monitor has polled yet."""
+    from floorbit.builtin_plugins.librenms import breaker
+    from integrations.monitor import StatusMonitor
+    breaker.reset()
+    StatusMonitor.latest.update(polled=None, at=None, devices=None)
+    yield
+    breaker.reset()
