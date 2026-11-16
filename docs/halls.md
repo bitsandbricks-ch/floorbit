@@ -5,8 +5,9 @@ switches and seat blocks. The editor shows one hall at a time.
 
 ## Halls
 
-The hall picker in the editor's top bar switches between halls (the address gets `?hall=<id>`, and
-the browser remembers the last one). The button next to it opens **Halls**:
+The hall picker above the plan switches between halls (the address gets `?hall=<id>`; Edit mode
+stays in Edit mode). In Edit mode, **Halls** in the panel on the right opens the Halls dialog (the
+classic editor has the same dialog next to its hall picker):
 
 - **Add hall**, rename one by editing its name.
 - **Delete** a hall once it is empty: move or delete its switches and seat blocks first. The last

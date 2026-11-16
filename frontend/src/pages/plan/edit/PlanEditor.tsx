@@ -1,7 +1,7 @@
 import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowBackUp, IconArrowForwardUp, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
   IconLink, IconStack2, IconTrash, IconUnlink,
 } from '@tabler/icons-react'
@@ -18,6 +18,7 @@ import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
+import { HallsDialog } from './HallsDialog'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
@@ -53,8 +54,10 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
+  /** Shows another hall, still in Edit mode. */
+  onHall: (id: string) => void
 }) {
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
@@ -68,6 +71,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
   const [placing, setPlacing] = useState<{ kind: 'block' | 'switch' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
+  const [hallsOpen, setHallsOpen] = useState(false)
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
   const qc = useQueryClient()
@@ -632,6 +636,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
       <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
+      <HallsDialog opened={hallsOpen} current={data.hall} onClose={() => setHallsOpen(false)} onOpen={onHall} onChanged={refresh} />
       <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
       {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
@@ -680,7 +685,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
           </Text>
           <Text size="xs" c="dimmed">{t('plan.edit.keys.more')}</Text>
-          <Anchor size="sm" href={`/?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
+          <Group gap="xs">
+            <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
+            <Anchor size="sm" href={`/?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
+          </Group>
         </Stack>
       </Paper>
     </div>

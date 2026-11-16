@@ -505,6 +505,32 @@
       "place_one": "Place switch",
       "place_other": "Place {{count}} switches",
       "add": "Add switch"
+    },
+    "halls": {
+      "button": "Halls",
+      "title": "Halls",
+      "name": "Name",
+      "shown": "Shown",
+      "open": "Open",
+      "counts": "{{switches}} switches, {{blocks}} seat blocks",
+      "hasBackground": "background image",
+      "background": "Background image…",
+      "replaceBackground": "Replace background…",
+      "removeBackground": "Remove background",
+      "backgroundSet": "Background set",
+      "csv": "Import seat blocks (CSV)…",
+      "imported_one": "Imported {{count}} seat block",
+      "imported_other": "Imported {{count}} seat blocks",
+      "notImported": "Nothing was imported",
+      "line": "line {{line}}",
+      "delete": "Delete",
+      "deleteText": "Delete {{name}}? Only an empty hall can be deleted: move or delete its switches and seat blocks first.",
+      "new": "New hall",
+      "newHint": "e.g. Hall 2",
+      "add": "Add hall",
+      "added": "Added {{name}}",
+      "csvHelp": "A CSV has a header and one block per line: name, x, y, cols, rows (rotation, naming and the rest are optional; see the docs on halls).",
+      "templates": "Templates"
     }
   },
   "net": {
