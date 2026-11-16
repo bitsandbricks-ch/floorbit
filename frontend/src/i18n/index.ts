@@ -3,7 +3,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { germanyBundle } from './germany'
-import { initialLang } from './lang'
+import { initialLang, rememberLang } from './lang'
 
 type Texts = Record<string, unknown>
 const files = import.meta.glob<Texts>('./*/*.json', { eager: true, import: 'default' })
@@ -21,6 +21,7 @@ export { LANGUAGES, initialLang, setLang, type Lang } from './lang'
 
 const lang = initialLang()
 document.documentElement.lang = lang
+rememberLang(lang)
 
 void i18n.use(initReactI18next).init({
   resources: {

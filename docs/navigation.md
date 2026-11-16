@@ -39,6 +39,13 @@ as the second entry of the Vite build (`src/nav/entry.tsx`). The server puts the
 brand and the account into the page (`floorbit/nav.py`), so the sidebar draws without waiting for
 an API call. Without a frontend build the server pages show a plain list of links instead.
 
+On the server pages the sidebar is in the first paint, before the floor plan: the build writes
+`static/app/nav-shell.json` (icons, order and texts, from `frontend/buildtools/nav-shell.ts`), and
+`floorbit/nav.py` draws the same markup as `Sidebar.tsx` from it into `#fb-nav`. The script then
+takes it over in one commit. The server picks the language from the `floorbit_lang` cookie (the
+frontend writes it) or `Accept-Language`. A change to the sidebar's markup in `Sidebar.tsx` needs
+the same change in `nav.markup()`.
+
 A new page goes into `floorbit/page_index.py` as before, and into a section in
 `frontend/src/nav/sections.ts` (with an icon). Pages Flask draws itself are listed in
 `isServerPage()` there, so links to them load the whole page.
