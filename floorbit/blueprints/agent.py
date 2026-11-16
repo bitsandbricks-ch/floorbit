@@ -233,6 +233,17 @@ def flow_seats():
     return jsonify({'seat_of': seat_of, 'area_of': area_of})
 
 
+@bp.route('/api/agent/v1/report', methods=['POST'])
+def report():
+    """The agent's own numbers, from an agent on the long poll (on the link they come as a
+    ``{"type": "report"}`` message). Shown on the Local agents page."""
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    agent_link.tunnel.report(agent['id'], _agent_body().get('report'))
+    return jsonify({'ok': True})
+
+
 @bp.route('/api/agent/v1/flows', methods=['POST'])
 def flows():
     agent = _agent()
@@ -285,6 +296,8 @@ def link(ws):
                     continue
                 if isinstance(message, dict) and message.get('type') == 'answers':
                     _link_answers(agent, message)
+                elif isinstance(message, dict) and message.get('type') == 'report':
+                    agent_link.tunnel.report(agent['id'], message.get('report'))
         except ConnectionClosed:
             pass
         finally:
@@ -320,7 +333,7 @@ def link(ws):
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers, syslog, flow_seats, flows, link):
+for _view in (hello, calls, answers, syslog, flow_seats, flows, link, report):
     _view._auth_public = True
 # After _auth_public is set: the route's wrapper copies the attribute.
 sock.route(LINK_PATH, bp=bp)(link)
