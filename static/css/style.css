@@ -302,8 +302,11 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 }
 .canvas-area.panning { cursor: grabbing; }
 .floorplan-wrapper {
+  /* One plan size everywhere (16:10, like the Seats view's 1600 x 1000 at this seat size), so a
+     layout looks the same in the editor, on the kiosk and on the Seats view, whatever the window. */
   position: absolute;
-  inset: 0;
+  left: 0; top: 0;
+  width: var(--plan-w, 1000px); height: var(--plan-h, 625px);
   transform-origin: 0 0;
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),

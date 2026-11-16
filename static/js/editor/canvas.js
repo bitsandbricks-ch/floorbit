@@ -63,14 +63,14 @@ function applyView() {
 let saveViewTimer = null;
 function saveView() {
   clearTimeout(saveViewTimer);
-  saveViewTimer = setTimeout(() => writeJSON('floorplanView', view), 300);
+  saveViewTimer = setTimeout(() => writeJSON('floorplanView2', view), 300);
 }
 function restoreView() {
-  const saved = readJSON('floorplanView', null);
-  if (saved && isFinite(saved.x) && isFinite(saved.y) && isFinite(saved.k)) {
-    view.x = saved.x; view.y = saved.y;
-    view.k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, saved.k));
-  }
+  // A new key: views saved before the plan had a fixed size point somewhere else.
+  const saved = readJSON('floorplanView2', null);
+  if (!(saved && isFinite(saved.x) && isFinite(saved.y) && isFinite(saved.k))) { resetView(); return; }
+  view.x = saved.x; view.y = saved.y;
+  view.k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, saved.k));
   applyView();
 }
 function setView(x, y, k) {
@@ -92,7 +92,14 @@ function zoomCentered(factor) {
   const area = canvasArea.getBoundingClientRect();
   zoomAt(area.left + area.width / 2, area.top + area.height / 2, factor);
 }
-function resetView() { setView(0, 0, 1); }
+// The whole plan, centred: the plan has a fixed size, so 100% may not fit the window.
+function resetView() {
+  const area = canvasArea.getBoundingClientRect();
+  const w = wrapper.offsetWidth, h = wrapper.offsetHeight;
+  if (!area.width || !area.height || !w || !h) { setView(0, 0, 1); return; }
+  const k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min((area.width - 48) / w, (area.height - 48) / h)));
+  setView((area.width - w * k) / 2, (area.height - h * k) / 2, k);
+}
 
 // Fit all placed items in view
 function fitToContent() {
@@ -100,6 +107,7 @@ function fitToContent() {
     ...overlay.querySelectorAll('.switch-marker'),
     ...blocksOverlay.querySelectorAll('.seat-block'),
     ...seatsOverlay.querySelectorAll('.seat-marker'),
+    ...document.querySelectorAll('#marks-overlay > *'),
   ];
   if (!els.length) { resetView(); return; }
   const wr = wrapper.getBoundingClientRect();
