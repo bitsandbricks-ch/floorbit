@@ -92,6 +92,20 @@ describe('traffic overlay', () => {
     expect(heatColor(0.5)).toBe('rgb(33, 145, 140)')
   })
 
+  it('draws the links between placed switches, a down one dashed', async () => {
+    const withLinks: SeatViewData = {
+      ...data,
+      switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 600, y: 300 }, { id: 's2', name: 'dist-01', status: 'online', x: 800, y: 100 }],
+      links: [{ id: 'l1', a: 'sw-d-01', b: 'dist-01', type: 'fiber-mm', media: 'fiber', speed: 10, issue: 'down' }],
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withLinks }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await waitFor(() => expect(container.querySelector('line.uplink')).not.toBeNull())
+    const line = container.querySelector('line.uplink')!
+    expect(line).toHaveClass('m-fiber', 'down')
+    expect(line.querySelector('title')?.textContent).toBe('sw-d-01 – dist-01 · 10G · Down')
+  })
+
   it('fills online seats by traffic and keeps the other shapes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')

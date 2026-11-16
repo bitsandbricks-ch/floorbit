@@ -109,3 +109,27 @@ def test_librenms_neighbours_name_the_local_port(monkeypatch):
     monkeypatch.setattr(client, 'fetch_librenms_device_by_hostname', lambda h, headers: {'device_id': 14})
     assert client.neighbours('sw-a-01') == [{'port': 'Te1/1/1', 'remote': 'dist-01', 'remote_port': 'Te1/0/1',
                                              'protocol': 'lldp'}]
+
+
+def test_links_between_placed_switches_are_drawn_on_the_plan(client, net):
+    client.post("/api/seat-blocks", json={"name": "A", "x": 40, "y": 50, "cols": 2, "rows": 1})
+    for name, x in (("sw-a-01", 30), ("dist-01", 60)):
+        client.post("/api/switches", json={"name": name, "x": x, "y": 20})
+    _add(client)
+    _add(client, a="dist-01", a_port="Fo1/1/1", b="core-01", b_port="Fo1/0/1", speed=40)    # core-01 isn't placed
+    net.set("sw-a-01", port("Te1/1/1", state="down"))
+    assert client.get("/api/plan").get_json()["links"][0]["issue"] == ""        # the plan doesn't read switches
+    client.get("/api/links")                                                    # the topology page did
+    [drawn] = client.get("/api/plan").get_json()["links"]
+    assert (drawn["a"], drawn["b"], drawn["media"], drawn["speed"], drawn["issue"]) == (
+        "sw-a-01", "dist-01", "fiber", 10, "down")
+
+
+def test_seat_cables_have_a_type_and_speed_too(client):
+    r = client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1", "type": "cat6a",
+                                         "speed": 1})
+    assert r.status_code == 201 and (r.get_json()["type"], r.get_json()["speed"]) == ("cat6a", 1)
+    cable = r.get_json()
+    assert client.patch(f"/api/cables/{cable['id']}", json={"speed": 3}).status_code == 400
+    assert client.patch(f"/api/cables/{cable['id']}", json={"type": "cat9"}).status_code == 400
+    assert "type,speed,note,source" in client.get("/api/cables.csv").get_data(as_text=True).splitlines()[0]

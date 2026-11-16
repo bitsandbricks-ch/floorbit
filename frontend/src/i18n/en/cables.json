@@ -23,6 +23,8 @@
   "seat": "Seat",
   "color": "Colour",
   "length": "Length (m)",
+  "type": "Type",
+  "speed": "Speed",
   "note": "Note",
   "cable": "Cable",
   "direct": "Direct",

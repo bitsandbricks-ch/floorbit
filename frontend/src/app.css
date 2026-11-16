@@ -412,6 +412,13 @@ body {
 .fb-plan .sw rect { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .sw-online rect { fill: var(--color-bit); }
 .fb-plan .sw-offline rect { fill: var(--color-down); }
+.fb-plan .uplink { stroke: var(--mantine-color-gray-5); stroke-linecap: round; opacity: 0.55; }
+.fb-plan .uplink.m-copper { stroke: var(--mantine-color-blue-6); }
+.fb-plan .uplink.m-fiber { stroke: var(--mantine-color-cyan-6); }
+.fb-plan .uplink.m-dac { stroke: var(--mantine-color-violet-6); }
+.fb-plan .uplink.t-fiber-sm { stroke: var(--mantine-color-yellow-6); }
+.fb-plan .uplink.slow { stroke: var(--mantine-color-orange-6); }
+.fb-plan .uplink.down { stroke: var(--color-down); stroke-dasharray: 6 4; }
 .fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
 .fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
 .fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }

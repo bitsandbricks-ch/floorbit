@@ -28,7 +28,7 @@ KEY = 'cables'
 MAX_CABLES = 5000
 PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}$')
 LABEL_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._/#-]{0,23}$')
-FIELDS = ('label', 'switch', 'port', 'panel', 'panel_port', 'seat', 'color', 'length_m', 'note')
+FIELDS = ('label', 'switch', 'port', 'panel', 'panel_port', 'seat', 'color', 'length_m', 'type', 'speed', 'note')
 LIMITS = {'switch': 80, 'panel': 40, 'panel_port': 16, 'seat': 16, 'color': 20, 'note': 200}
 _lock = threading.Lock()
 
@@ -77,6 +77,17 @@ def clean(body, cables, current=None):
             raise CableError('The length is a number of metres.') from None
         if not 0 < out['length_m'] <= 500:
             raise CableError('The length is 0.1 to 500 metres.')
+    from .links import SPEEDS, TYPES
+    out['type'] = body.get('type') or ''
+    if out['type'] not in ('', *TYPES):
+        raise CableError('The type is cat5e, cat6, cat6a, fiber-sm, fiber-mm or dac.')
+    speed = body.get('speed')
+    try:
+        out['speed'] = None if speed in (None, '') else int(speed)
+    except (TypeError, ValueError):
+        out['speed'] = 0
+    if out['speed'] is not None and out['speed'] not in SPEEDS:
+        raise CableError('The speed is 1, 10, 25, 40 or 100 (Gbit/s).')
     label = _text(body.get('label'), 24)
     others = [c for c in cables if c is not current]
     if label:
@@ -259,8 +270,9 @@ def labels_pdf(cables, base_url):
             else:
                 there = f"from {c['switch']} {c['port']}" + (f' via {panel}' if panel and c.get('seat') else '')
             page.text(tx, y + 56, pdf.fit(there, 6.5, tw), size=6.5, color='#5b6370')
-            if c.get('color') or c.get('length_m'):
-                extra = ' '.join(p for p in (c.get('color'), f"{c['length_m']:g} m" if c.get('length_m') else '') if p)
+            if c.get('color') or c.get('length_m') or c.get('type') or c.get('speed'):
+                extra = ' '.join(p for p in (c.get('color'), f"{c['length_m']:g} m" if c.get('length_m') else '',
+                                             c.get('type') or '', f"{c['speed']}G" if c.get('speed') else '') if p)
                 page.text(tx, y + 67, pdf.fit(extra, 6.5, tw), size=6.5, color='#5b6370')
         pages.append(page)
     return pdf.render(pages, title='Cable labels')
@@ -268,7 +280,7 @@ def labels_pdf(cables, base_url):
 
 def csv_text(cables):
     from .planner import _csv
-    lines = ['label,switch,port,panel,panel_port,seat,color,length_m,note,source']
+    lines = [','.join((*FIELDS, 'source'))]
     for c in cables:
         lines.append(','.join(_csv(c.get(f) if c.get(f) is not None else '') for f in (*FIELDS, 'source')))
     return '\n'.join(lines) + '\n'

@@ -13,6 +13,7 @@ patched straight into the switch has no panel, and an uplink has no seat.
 | Seat | Optional, written in capitals (`A-12`). |
 | Label | Printed on both ends. Left empty, Floorbit numbers the cables `C-0001`, `C-0002`, ... Labels are unique. |
 | Colour, length, note | Optional. The length is 0.1 to 500 metres. |
+| Type, speed | Optional: copper Cat5e/6/6a, fiber single-mode or multi-mode, or DAC, and 1, 10, 25, 40 or 100G, as for the [links between switches](topology.md). |
 
 ## A whole block at once
 
@@ -93,7 +94,7 @@ end (the seat, or the panel when there is no seat). Each label has:
 
 - the cable's label, large;
 - the end it goes on (`sw-a-01 Gi1/0/3` or `Seat A-3`), in bold;
-- where the other end goes, small, and the colour and length;
+- where the other end goes, small, and the colour, length, type and speed;
 - a QR code that opens the cable on this page (`/cables?cable=<id>`).
 
 The PDF holds the cables the search shows. A cable's own window prints just its two labels. Behind a

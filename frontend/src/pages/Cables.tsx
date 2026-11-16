@@ -1,5 +1,5 @@
 import {
-  Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput,
+  Alert, Autocomplete, Badge, Button, Group, Loader, Modal, NumberInput, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput,
 } from '@mantine/core'
 import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -17,9 +17,11 @@ import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortClients } from '@/components/PortClients'
 
-type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string }
+type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string; type: string; speed: string }
+const TYPES = ['cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac']
+const SPEEDS = ['1', '10', '25', '40', '100']
 
-const EMPTY: Draft = { label: '', switch: '', port: '', panel: '', panel_port: '', seat: '', color: '', note: '', length_m: '' }
+const EMPTY: Draft = { label: '', switch: '', port: '', panel: '', panel_port: '', seat: '', color: '', note: '', length_m: '', type: '', speed: '' }
 
 function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
   cable: Cable | null; all: Cable[]; canEdit: boolean; initial?: Partial<Draft>; onClose: () => void; onDone: () => void
@@ -27,7 +29,9 @@ function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
   const { t } = useTranslation()
   const imported = cable?.source === 'import'
   const readOnly = !canEdit || imported
-  const [d, setD] = useState<Draft>(() => cable ? { ...cable, length_m: cable.length_m ?? '' } : { ...EMPTY, ...initial })
+  const [d, setD] = useState<Draft>(() => cable
+    ? { ...cable, length_m: cable.length_m ?? '', type: cable.type ?? '', speed: cable.speed ? String(cable.speed) : '' }
+    : { ...EMPTY, ...initial })
   const set = (k: keyof Draft) => (v: string | number) => setD((x) => ({ ...x, [k]: v }))
   const text = (k: keyof Draft) => ({
     value: String(d[k]), readOnly,
@@ -35,7 +39,7 @@ function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
   })
   const save = useMutation({
     mutationFn: () => {
-      const body = { ...d, length_m: d.length_m === '' ? null : d.length_m }
+      const body = { ...d, length_m: d.length_m === '' ? null : d.length_m, speed: d.speed ? Number(d.speed) : null }
       return cable ? patch<Cable>(`/api/cables/${cable.id}`, body) : post<Cable>('/api/cables', body)
     },
     onSuccess: onDone,
@@ -58,6 +62,10 @@ function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
           <TextInput label={t('cables.color')} {...text('color')} />
           <NumberInput label={t('cables.length')} min={0.1} max={500} step={0.5} decimalScale={1} readOnly={readOnly}
             value={d.length_m} onChange={set('length_m')} />
+          <Select label={t('cables.type')} clearable readOnly={readOnly} value={d.type || null} onChange={(v) => set('type')(v ?? '')}
+            data={TYPES.map((v) => ({ value: v, label: t(`topology.types.${v}`) }))} />
+          <Select label={t('cables.speed')} clearable readOnly={readOnly} value={d.speed || null} onChange={(v) => set('speed')(v ?? '')}
+            data={SPEEDS.map((v) => ({ value: v, label: `${v}G` }))} />
         </SimpleGrid>
         <TextInput label={t('cables.note')} maxLength={200} {...text('note')} />
         {(save.error || remove.error) && <Alert color="down" role="alert">{(save.error || remove.error)!.message}</Alert>}
@@ -170,7 +178,8 @@ export default function Cables() {
                           <Table.Td>{c.seat || '–'}</Table.Td>
                           <Table.Td>
                             <Group gap={6} wrap="nowrap">
-                              <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : ''].filter(Boolean).join(' · ') || '–'}</Text>
+                              <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : '', c.type ? t(`topology.types.${c.type}`) : '',
+                                c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
                               {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
                             </Group>
                           </Table.Td>

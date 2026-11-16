@@ -32,6 +32,13 @@ A port belongs to one link at most; `Te1/1/1` and `TenGigabitEthernet1/1/1` coun
 The state comes from the monitoring source's port list (`device_ports`, the same as the needs-attention
 watch), read at most every 30 seconds per switch. A link whose switches can't be read is *not read*.
 
+## On the floor plan
+
+Links between two switches that are both placed on a hall's plan are drawn there as lines between them,
+in the same colours and widths, under the switches. A link the topology page last saw down is red and
+dashed, one slower than planned orange. The floor plan doesn't read the switches itself: it shows what
+the topology page (or anyone with it open) read last.
+
 ## Seen by LLDP
 
 When the monitoring source can tell what each switch sees on its ports by LLDP or CDP (LibreNMS can,

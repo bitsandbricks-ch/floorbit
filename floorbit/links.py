@@ -166,7 +166,29 @@ class Reader:
         return rows
 
 
+    def cached(self, switch):
+        """The ports last read, without reading: for the floor plan, which refreshes often."""
+        with self._lock:
+            hit = self._ports.get(switch.lower())
+            return hit[1] if hit else None
+
+
 reader = Reader()
+
+
+def on_plan(data, switches):
+    """The links between switches placed on this hall's plan, for drawing as lines. Their state is
+    what the topology page last read: the plan doesn't read the switches itself."""
+    placed = {str(w['name']).lower() for w in switches}
+    out = []
+    for link in all_links(data):
+        if link['a'].lower() not in placed or link['b'].lower() not in placed:
+            continue
+        ports = {link[e]: reader.cached(link[e]) for e in ('a', 'b')}
+        live = _live(link, {k.lower(): v for k, v in ports.items()})
+        out.append({'id': link['id'], 'a': link['a'], 'b': link['b'], 'type': link.get('type') or '',
+                    'media': MEDIA.get(link.get('type') or '', ''), 'speed': link.get('speed'), 'issue': live['issue']})
+    return out
 
 
 def _live(link, ports):

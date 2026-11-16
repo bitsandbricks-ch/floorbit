@@ -19,7 +19,7 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import halls, incidents, inventory, seat_notes, seat_search, speedtest, tournament
+from . import halls, incidents, inventory, links, seat_notes, seat_search, speedtest, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
@@ -235,6 +235,7 @@ def view(hall_id=None, now=None, seat=None, switch=None):
             counts['problems'] += bool(problems.get(s))
         blocks.append({'name': shape['name'], **counts})
     bg = hall.get('background')
+    plan_switches = _switches(data, hall['id'], drawing and drawing['box'])
     here = {k: sum(b[k] for b in blocks) for k in ('seats', 'online', 'problems')}
     return {
         'halls': [{'id': h['id'], 'name': h['name'],
@@ -244,7 +245,8 @@ def view(hall_id=None, now=None, seat=None, switch=None):
         'drawing': drawing,
         'size': {'w': PLAN_W, 'h': PLAN_H, 'cell': CELL},
         'background': f"/api/halls/{hall['id']}/background?v={bg['version']}" if bg else None,
-        'switches': _switches(data, hall['id'], drawing and drawing['box']),
+        'switches': plan_switches,
+        'links': links.on_plan(data, plan_switches),
         'seats': seats,
         'blocks': blocks,
         'monitoring': online is not None,

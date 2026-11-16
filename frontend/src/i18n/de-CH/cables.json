@@ -23,6 +23,8 @@
   "seat": "Platz",
   "color": "Farbe",
   "length": "Länge (m)",
+  "type": "Typ",
+  "speed": "Geschwindigkeit",
   "note": "Notiz",
   "cable": "Kabel",
   "direct": "Direkt",

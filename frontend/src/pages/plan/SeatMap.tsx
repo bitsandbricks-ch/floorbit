@@ -46,6 +46,7 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
 }
 
 const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
+const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
@@ -203,6 +204,16 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
+        {(data.links ?? []).map((l) => {
+          const a = data.switches.find((w) => w.name === l.a), b = data.switches.find((w) => w.name === l.b)
+          if (!a || !b) return null
+          return (
+            <line key={l.id} className={`uplink m-${l.media || 'none'} t-${l.type || 'none'}${l.issue ? ` ${l.issue}` : ''}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+              strokeWidth={UPLINK_WIDTH[l.speed ?? 0] ?? 2} vectorEffect="non-scaling-stroke">
+              <title>{`${l.a} – ${l.b}${l.speed ? ` · ${l.speed}G` : ''}${l.issue ? ` · ${t(`topology.${l.issue}`)}` : ''}`}</title>
+            </line>
+          )
+        })}
         {data.switches.map((w) => (
           <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
             <rect x={-7} y={-7} width={14} height={14} transform="rotate(45)" />

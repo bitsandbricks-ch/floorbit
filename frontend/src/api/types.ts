@@ -1059,6 +1059,8 @@ export interface TerminalOutput {
 export interface Cable {
   id: string; label: string; switch: string; port: string; panel: string; panel_port: string; seat: string
   color: string; length_m: number | null; note: string; source: 'floorbit' | 'import'; plugin?: string
+  /** Cable type and speed (issue #468), like the links between switches. */
+  type?: LinkType | ''; speed?: number | null
   updated_at: number; by: string | null; block?: string
 }
 export interface CableList { cables: Cable[]; sources: string[] }
@@ -1271,6 +1273,7 @@ export interface PlanSwitch {
   y: number
 }
 
+export interface PlanLink { id: string; a: string; b: string; type: LinkType | ''; media: string; speed: number | null; issue: '' | 'down' | 'slow' }
 export interface SeatViewData {
   /** Each hall's totals, for the hall picker (issue #196). */
   halls: { id: string; name: string; seats: number; online: number; problems: number }[]
@@ -1279,6 +1282,8 @@ export interface SeatViewData {
   size: { w: number; h: number; cell: number }
   background: string | null
   switches: PlanSwitch[]
+  /** Links between switches placed on this plan (issue #468); older servers send none. */
+  links?: PlanLink[]
   seats: Record<string, PlanSeat>
   blocks: PlanBlock[]
   monitoring: boolean
