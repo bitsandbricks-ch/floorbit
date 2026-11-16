@@ -246,9 +246,14 @@ class SettingsStore:
 
     # file IO -------------------------------------------------------------
     def _read_file(self, strict=False):
+        from .database import DatabaseUnavailable
+        from .store import read_json
         try:
-            from .store import read_json
             return read_json(self.data_file, {})
+        except DatabaseUnavailable:
+            if strict:
+                raise          # saving answers 503; never write over what we couldn't read
+            return {}          # start on env and defaults; read again once it is back
         except (OSError, json.JSONDecodeError) as exc:
             if strict:
                 # Never overwrite a data file we could not parse.

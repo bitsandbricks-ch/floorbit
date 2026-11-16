@@ -161,8 +161,9 @@ class Auth:
         self._failures = {}
         self.public_url = lambda: ''   # create_app points this at the PUBLIC_URL setting
 
+        self._key_pending = False
         if not app.config.get('SECRET_KEY'):
-            app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or self._stored_secret_key()
+            app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or self._secret_key_or_stand_in()
         app.config['SESSION_COOKIE_NAME'] = 'lal_session'
         app.config['SESSION_COOKIE_HTTPONLY'] = True
         app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -173,6 +174,7 @@ class Auth:
         app.extensions['auth'] = self
         app.register_blueprint(_blueprint())
         app.register_blueprint(create_users_blueprint(self))
+        app.before_request(self._resolve_secret_key)
         app.before_request(self.guard)
         app.context_processor(lambda: {'current_user': current_user(), 'auth_enabled': self.enabled})
         _register_cli(app, self)
@@ -180,6 +182,26 @@ class Auth:
             self._bootstrap_admin()
 
     # setup ---------------------------------------------------------------
+    def _secret_key_or_stand_in(self):
+        """The stored key; while the database is away at start, a stand-in for this process
+        until it is back (``_resolve_secret_key``). Sign-ins need the database anyway."""
+        from floorbit.database import DatabaseUnavailable
+        try:
+            return self._stored_secret_key()
+        except DatabaseUnavailable:
+            self._key_pending = True
+            return secrets.token_hex(32)
+
+    def _resolve_secret_key(self):
+        if not self._key_pending:
+            return
+        from floorbit.database import DatabaseUnavailable
+        try:
+            current_app.config['SECRET_KEY'] = self._stored_secret_key()
+        except DatabaseUnavailable:
+            return
+        self._key_pending = False
+
     def _stored_secret_key(self):
         """Without SECRET_KEY, keep a generated one in data.json so sessions survive restarts."""
         path = self.users.path
@@ -202,7 +224,7 @@ class Auth:
                 print(f'[auth] Created the first account, {name}, from AUTH_ADMIN_USER.')
             else:
                 print('[auth] No accounts yet. Create one with: flask --app app users add <name>')
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, RuntimeError) as exc:   # RuntimeError: the database is away
             print(f'[auth] Could not create the first account: {exc}')
 
     # guard ---------------------------------------------------------------

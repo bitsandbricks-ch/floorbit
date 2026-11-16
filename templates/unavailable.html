@@ -1,0 +1,32 @@
+<!doctype html>
+{#- What a page answers while the database is away (floorbit/blueprints/health.py). Stands alone:
+    no theme, no sidebar, nothing that could need the database itself. It reloads every 10 s. #}
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="10" />
+  <title>{{ title }} · Floorbit</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f6f7f6; --card: #fff; --fg: #17201b; --muted: #5b665f; --line: #dfe3e0; --warn: #b45309; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f1411; --card: #171d19; --fg: #e8ece9; --muted: #9aa59e; --line: #2a322d; --warn: #f59e0b; } }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
+           font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px; box-sizing: border-box; }
+    main { max-width: 32rem; background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--warn);
+           border-radius: 12px; padding: 24px 28px; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    p { margin: 0 0 12px; }
+    .retry { color: var(--muted); font-size: .875rem; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .25; } }
+    @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+  </style>
+</head>
+<body>
+  <main role="alert">
+    <h1>{{ title }}</h1>
+    <p>{{ text }}</p>
+    <p class="retry"><span class="dot" aria-hidden="true"></span>{{ retry }}</p>
+  </main>
+</body>
+</html>

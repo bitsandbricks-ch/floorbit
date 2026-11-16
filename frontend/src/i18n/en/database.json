@@ -1,0 +1,7 @@
+{
+  "downTitle": "Database unavailable",
+  "downText": "Floorbit can't reach its database. The live status keeps updating and pages show what was last read, but changes can't be saved until it is back. It keeps trying by itself.",
+  "downFor": "Down for {{time}}",
+  "backTitle": "Database back",
+  "backText": "Changes can be saved again."
+}

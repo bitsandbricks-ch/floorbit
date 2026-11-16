@@ -15,6 +15,7 @@ A new feature adds itself to ``FEATURES`` with the paths it owns.
 import os
 import threading
 
+from . import database
 from .store import load_data, save_data
 
 KEY = 'features'
@@ -80,7 +81,11 @@ def _saved(data):
 
 def off(data=None):
     """Every feature that is off: turned off, forced off, or needing one that is."""
-    data = data if data is not None else load_data()
+    if data is None:
+        try:
+            data = load_data()
+        except database.DatabaseUnavailable:
+            data = {}       # the database is away and nothing read yet: as set up, all on
     result = set(_saved(data)) | forced_off()
     changed = True
     while changed:   # a feature is off when anything it needs is

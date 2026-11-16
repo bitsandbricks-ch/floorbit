@@ -1,6 +1,7 @@
 // Same-origin JSON calls to the Flask API. The session cookie goes along by default; Flask
 // checks Origin on writes (auth/_same_origin), so no CSRF token is needed here.
 import i18next from 'i18next'
+import { DB_DOWN_EVENT } from './databaseHealth'
 
 export class ApiError extends Error {
   status: number
@@ -33,6 +34,9 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
   if (res.status === 401 && window.location.pathname !== '/login') {
     // Signed out in another tab, or the session expired. On the sign-in page it's a wrong password.
     window.location.assign(loginUrl())
+  }
+  if (res.status === 503 && data.code === 'database_unavailable') {
+    window.dispatchEvent(new Event(DB_DOWN_EVENT))   // the banner checks at once
   }
   if (!res.ok) {
     const message = typeof data.error === 'string' ? data.error : `HTTP ${res.status}`

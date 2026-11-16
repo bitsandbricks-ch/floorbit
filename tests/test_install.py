@@ -9,7 +9,7 @@ from integrations import seat_sources
 def test_healthz_answers_without_signing_in(app_module):
     anon = app_module.app.test_client()
     resp = anon.get("/healthz")
-    assert resp.status_code == 200 and resp.get_json() == {"ok": True}
+    assert resp.status_code == 200 and resp.get_json() == {"ok": True, "database": "up"}
     assert anon.get("/api/settings").status_code in (302, 401, 403)
 
 
