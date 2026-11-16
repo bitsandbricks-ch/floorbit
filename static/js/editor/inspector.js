@@ -21,6 +21,7 @@ function markSelection() {
     s.classList.toggle('selected', selectedType === 'seat' && s.dataset.seatNumber === currentBlockSeatNumber);
   for (const item of switchList.querySelectorAll('.switch-item'))
     item.classList.toggle('active', inSelection('switch', item.dataset.id));
+  drawGroupFrames();
 }
 
 function selectSwitch(id) {
@@ -171,6 +172,7 @@ function fillMultiInspector() {
       <span class="multi-item-name">${escHtml(itemName(type, item))}</span>
       <span class="multi-item-pos">${Number(item.x).toFixed(1)} / ${Number(item.y).toFixed(1)}</span>
     </button></li>`).join('');
+  fillGroupActions();
 }
 
 function toggleInSelection(type, id) {

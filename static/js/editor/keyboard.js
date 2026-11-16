@@ -34,6 +34,8 @@ document.addEventListener('keydown', (e) => {
   if (mod && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if (mod && key === 'y') { e.preventDefault(); redo(); return; }
   if (mod && key === 'a') { e.preventDefault(); setTool('select'); selectAllItems(); return; }
+  if (mod && key === 'g' && !document.body.classList.contains('read-only')) { e.preventDefault(); if (e.shiftKey) ungroupSelection(); else groupSelection(); return; }
+  if (mod && key === 'd' && !document.body.classList.contains('read-only')) { e.preventDefault(); duplicateSelection(); return; }
   if (mod) return;
 
   if (e.key === ' ' && !spaceHeld) { spaceHeld = true; canvasArea.classList.add('panning'); e.preventDefault(); return; }
@@ -56,7 +58,10 @@ document.addEventListener('keydown', (e) => {
     case 'd': case 'D': $('tool-draw')?.click(); break;
     case 'g': case 'G': setSnap(!snapEnabled); break;
     case 'f': case 'F': fitToContent(); break;
-    case 'r': case 'R': rotateSelectedBlock(e.shiftKey ? -90 : 90); break;
+    case 'r': case 'R':
+      if (selectedType === 'multi') rotateSelection(e.shiftKey ? -90 : 90);
+      else rotateSelectedBlock(e.shiftKey ? -90 : 90);
+      break;
     case 't': case 'T': window.floorTheme?.toggle(); break;
     case '+': case '=': zoomCentered(ZOOM_STEP); break;
     case '-': case '_': zoomCentered(1 / ZOOM_STEP); break;

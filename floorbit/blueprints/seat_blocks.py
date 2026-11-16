@@ -2,25 +2,37 @@
 
 How a block names its seats (a running number or row letters) is in floorbit/seat_names.py.
 """
+import functools
 import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import halls, seat_gaps, seat_names
+from .. import block_merge, halls, seat_gaps, seat_names
 from ..plan_marks import on_plan
 from ..store import load_data, save_data
+from .inventory import data_lock
 
 bp = Blueprint('seat_blocks', __name__)
 
 # The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
 KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps')
+        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group')
 MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
 MAX_MANY = 30       # blocks in one "add several"
 
 
 class BlockError(ValueError):
     pass
+
+
+def _locked(view):
+    """One change at a time: the editor saves several blocks at once (a group, a turn), and two
+    load-change-save rounds side by side would lose one of them."""
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        with data_lock:
+            return view(*args, **kwargs)
+    return wrapper
 
 
 @bp.route('/api/seats', methods=['GET'])
@@ -68,6 +80,11 @@ def _clean(block):
         block['row_gaps'] = seat_gaps.clean(block.get('row_gaps'), block['rows'])
     except seat_gaps.GapError as exc:
         raise BlockError(str(exc)) from None
+    # Blocks with the same group move, turn and copy together in the editor.
+    group = str(block.get('group') or '').strip()
+    if len(group) > 64:
+        raise BlockError('A group id is at most 64 characters')
+    block['group'] = group or None
     return block
 
 
@@ -123,11 +140,13 @@ def make_block(body, hall_id):
         'row_labels': body.get('row_labels', 'start'),
         'col_gaps': body.get('col_gaps'),
         'row_gaps': body.get('row_gaps'),
+        'group': body.get('group'),
         'hall_id': hall_id,
     })
 
 
 @bp.route('/api/seat-blocks', methods=['POST'])
+@_locked
 def add_seat_block():
     """Create a seating block (row or multiple rows)."""
     body = request.get_json(force=True)
@@ -160,6 +179,7 @@ def _next_name(name, i):
 
 
 @bp.route('/api/seat-blocks/many', methods=['POST'])
+@_locked
 def add_many_seat_blocks():
     """Several blocks like one, ``count`` of them ``dx``/``dy`` apart (in % of the plan). Row
     letters and block names count on, so blocks of 2 rows from A give A-B, C-D, E-F. All or nothing."""
@@ -195,6 +215,7 @@ def add_many_seat_blocks():
 
 
 @bp.route('/api/seat-blocks/<block_id>', methods=['PUT'])
+@_locked
 def update_seat_block(block_id):
     body = request.get_json(force=True)
     data = load_data()
@@ -224,6 +245,7 @@ def update_seat_block(block_id):
 
 
 @bp.route('/api/seat-blocks/<block_id>', methods=['DELETE'])
+@_locked
 def delete_seat_block(block_id):
     data = load_data()
     before = len(data.get('seat_blocks', []))
@@ -232,3 +254,38 @@ def delete_seat_block(block_id):
         return jsonify({'error': 'Seat block not found'}), 404
     save_data(data)
     return jsonify({'success': True})
+
+
+@bp.route('/api/seat-blocks/merge', methods=['POST'])
+@_locked
+def merge_seat_blocks():
+    """Joins ``ids`` (blocks next to each other, floorbit/block_merge.py) into the first of them;
+    the others are removed. Answers the merged block and the ids that went."""
+    body = request.get_json(silent=True) or {}
+    ids = body.get('ids')
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids) or len(set(ids)) != len(ids):
+        return jsonify({'error': 'Select two or more seat blocks to merge'}), 400
+    data = load_data()
+    known = {b['id']: b for b in data.get('seat_blocks', [])}
+    if any(i not in known for i in ids):
+        return jsonify({'error': 'Seat block not found'}), 404
+    blocks = with_hall([known[i] for i in ids], data)
+    try:
+        merged = _clean(block_merge.merge(blocks))
+    except (block_merge.MergeError, BlockError) as exc:
+        return jsonify({'error': str(exc)}), 400
+    for k in ('seat_rows', 'row_letters', 'seat_one_first'):
+        merged.pop(k, None)
+    had = [s for i in ids for s in seat_names.seats(known[i])]
+    seat = _clash([merged], data, skip=set(ids), had=had)
+    if seat:
+        return _clash_error(seat)
+    gone = [i for i in ids if i != merged['id']]
+    data['seat_blocks'] = [b for b in data['seat_blocks'] if b['id'] not in gone]
+    for b in data['seat_blocks']:
+        if b['id'] == merged['id']:
+            b.clear()
+            b.update(merged)
+            break
+    save_data(data)
+    return jsonify({'block': with_hall([merged], data)[0], 'removed': gone})

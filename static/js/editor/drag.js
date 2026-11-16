@@ -16,6 +16,7 @@ function startDrag(e, type, item, marker) {
     moved: false,
   };
   marker.classList.add('dragging');
+  if (type === 'block') alignBegin([item.id]);
   document.addEventListener('mousemove', onDocMouseMove);
   document.addEventListener('mouseup', onDocMouseUp);
 }
@@ -45,6 +46,10 @@ function onBlockMouseDown(e) {
   const block = seatBlocks.find(b => b.id === marker.dataset.id);
   if (!block) return;
   if (e.shiftKey) { toggleInSelection('block', block.id); suppressClickAfterMouseUp(); return; }
+  // A grouped block brings its group along (groups.js).
+  if (block.group && groupBlocks(block.group).length > 1 && !(selection.size > 1 && inSelection('block', block.id))) {
+    selectGroup(block.group);
+  }
   if (selection.size > 1 && inSelection('block', block.id)) { startGroupDrag(e, 'block', block.id); return; }
   // Clicking a seat selects the seat (on click); dragging moves the whole block
   if (!e.target.closest('.seat-block-seat')) selectBlock(block.id);
@@ -60,8 +65,10 @@ function onDocMouseMove(e) {
   if (!dragState.moved && type === 'block' && selectedId !== id) selectBlock(id);
   dragState.moved = true;
 
-  const newX = snapToGrid(origX + (dx / wrapperRect.width * 100));
-  const newY = snapToGrid(origY + (dy / wrapperRect.height * 100));
+  // Alignment guides win over the grid on the axis they snap (align.js; Alt places freely).
+  const fit = type === 'block' ? alignMove(dx / wrapperRect.width * 100, dy / wrapperRect.height * 100, e.altKey) : {};
+  const newX = fit.x != null ? Math.round((origX + fit.x) * 100) / 100 : snapToGrid(origX + (dx / wrapperRect.width * 100));
+  const newY = fit.y != null ? Math.round((origY + fit.y) * 100) / 100 : snapToGrid(origY + (dy / wrapperRect.height * 100));
 
   const container = type === 'block' ? blocksOverlay : overlay;
   const marker = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
@@ -80,6 +87,7 @@ async function onDocMouseUp() {
 
   const { id, type, moved, origX, origY } = dragState;
   dragState = null;
+  alignEnd();
   const container = type === 'block' ? blocksOverlay : overlay;
   const marker = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
   if (marker) marker.classList.remove('dragging');
@@ -125,6 +133,7 @@ function offsetItems(list, dx, dy) {
     if (m) { m.style.left = item.x + '%'; m.style.top = item.y + '%'; }
   }
   if (heatmapVisible) renderHeatmap();
+  drawGroupFrames();
 }
 
 function movesFrom(list) {
@@ -147,6 +156,7 @@ function startGroupDrag(e, type, id) {
     moved: false,
     items: selectedItems().map(({ type: t, id: i, item }) => ({ type: t, id: i, origX: item.x, origY: item.y })),
   };
+  alignBegin(dragState.items.filter(i => i.type === 'block').map(i => i.id));
   document.addEventListener('mousemove', onGroupMouseMove);
   document.addEventListener('mouseup', onGroupMouseUp);
 }
@@ -162,8 +172,9 @@ function onGroupMouseMove(e) {
 
   // Snap the item under the cursor; the others keep their relative positions
   const anchor = s.items.find(i => i.type === s.clicked.type && i.id === s.clicked.id) || s.items[0];
-  const dx = snapToGrid(anchor.origX + dxPx / s.wrapperRect.width * 100) - anchor.origX;
-  const dy = snapToGrid(anchor.origY + dyPx / s.wrapperRect.height * 100) - anchor.origY;
+  const fit = alignMove(dxPx / s.wrapperRect.width * 100, dyPx / s.wrapperRect.height * 100, e.altKey);
+  const dx = fit.x != null ? fit.x : snapToGrid(anchor.origX + dxPx / s.wrapperRect.width * 100) - anchor.origX;
+  const dy = fit.y != null ? fit.y : snapToGrid(anchor.origY + dyPx / s.wrapperRect.height * 100) - anchor.origY;
   offsetItems(s.items, dx, dy);
   const a = findItem(anchor.type, anchor.id);
   if (a) updatePositionDisplay(a.x, a.y);
@@ -174,10 +185,14 @@ async function onGroupMouseUp() {
   document.removeEventListener('mouseup', onGroupMouseUp);
   const s = dragState;
   dragState = null;
+  alignEnd();
   if (!s || s.type !== 'group') return;
   for (const it of s.items) markerFor(it.type, it.id)?.classList.remove('dragging');
 
   if (!s.moved) {
+    // A click on a block of the selected group keeps the group (its seats still open on click).
+    const clicked = s.clicked.type === 'block' && seatBlocks.find(b => b.id === s.clicked.id);
+    if (clicked && clicked.group && selectionIsGroup(clicked.group)) return;
     // A plain click on one of the selected items selects just that item
     if (s.clicked.type === 'block') selectBlock(s.clicked.id); else selectSwitch(s.clicked.id);
     return;

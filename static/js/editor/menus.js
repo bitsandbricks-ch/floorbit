@@ -76,10 +76,27 @@ function menuEntries(target) {
   } else if (target.type === 'block') {
     if (menuCanEdit()) {
       add('Edit…', () => { selectBlock(target.id); blockEditName.focus(); blockEditName.select(); });
+      const grp = seatBlocks.find(b => b.id === target.id)?.group;
+      if (grp && groupBlocks(grp).length > 1) {
+        add('Select the group', () => selectGroup(grp));
+        add('Ungroup', () => { selectGroup(grp); ungroupSelection(); }, { key: 'Ctrl+Shift+G' });
+      }
       add('Delete', () => actionDeleteBlock(target.id), { danger: true, key: 'Del' });
     }
   } else if (target.type === 'multi') {
-    if (menuCanEdit()) add(`Delete ${selection.size} items`, () => actionDeleteSelection(), { danger: true, key: 'Del' });
+    if (menuCanEdit()) {
+      const blocks = selectedBlocks();
+      if (blocks.length > 1) {
+        const groups = new Set(blocks.map(b => b.group).filter(Boolean));
+        if (!(groups.size === 1 && selectionIsGroup([...groups][0]))) add('Group', () => groupSelection(), { key: 'Ctrl+G' });
+        if (groups.size) add('Ungroup', () => ungroupSelection(), { key: 'Ctrl+Shift+G' });
+        add('Merge into one block', () => mergeSelection());
+      }
+      add('Turn a quarter', () => rotateSelection(90), { key: 'R' });
+      if (blocks.length) add('Copy', () => duplicateSelection(), { key: 'Ctrl+D' });
+      sep();
+      add(`Delete ${selection.size} items`, () => actionDeleteSelection(), { danger: true, key: 'Del' });
+    }
   } else if (target.type === 'floor') {
     if (menuCanEdit() && target.at) {
       const here = (open) => () => { pendingCoords = target.at; open(); };
