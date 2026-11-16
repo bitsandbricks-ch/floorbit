@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconStack2, IconTrash, IconUnlink,
+  IconLink, IconRotateClockwise, IconStack2, IconTrash, IconUnlink,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +32,7 @@ import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { ToolRail } from './ToolRail'
+import { quarterTurns } from './turn'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
@@ -337,6 +338,23 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     await refresh()
   }, [snapshot, present, send, history, t, refresh, fail])
 
+  /** R turns the selected blocks, labels and icons a quarter turn each, in place (Shift+R back). */
+  const rotate = useCallback(async (items: ItemRef[], back: boolean) => {
+    const turns = quarterTurns(data, items, back)
+    if (!turns.length) return
+    try {
+      await Promise.all(turns.map(([r, , a]) => send(r, a)))
+      history.push({
+        label: t('plan.edit.step.rotate', { count: turns.length }),
+        undo: () => Promise.all(turns.map(([r, b]) => send(r, b))).then(refresh),
+        redo: () => Promise.all(turns.map(([r, , a]) => send(r, a))).then(refresh),
+      })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [data, send, history, t, refresh, fail])
+
   const change = useCallback(async (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => {
     try {
       await send(ref, after)
@@ -575,6 +593,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       return
     }
     if (e.key === 'Delete' || e.key === 'Backspace') { take(); void remove(selected); return }
+    if (k === 'r' && !mod && !e.altKey) { take(); void rotate(selected, e.shiftKey); return }
     const dirs: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
     const dir = dirs[e.key]
     if (dir) {
@@ -622,6 +641,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // Inventory switches only leave the plan (they stay in the inventory): say so on the button.
   const onlyUnplace = selected.length > 0 && selected.every((r) => r.kind === 'switch' && !data.switches.find((w) => w.id === r.id)?.manual)
   // Group again only when that changes something: not one whole group already.
+  const canTurn = quarterTurns(data, selected).length > 0
   const canGroup = movable.length > 1 && !(groupsOf(groups, movable).length === 1 && groupsOf(groups, movable)[0].members.every((m) => movable.some((r) => sameRef(r, m))))
 
   const one = selected.length === 1 ? selected[0] : null
@@ -693,6 +713,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 <Menu.Divider />
                 <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
                 <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
+                {canTurn && (
+                  <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={<Kbd size="xs">R</Kbd>} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
+                )}
                 {selected.length > 0 && (
                   <>
                     <Menu.Divider />
