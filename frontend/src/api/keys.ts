@@ -33,6 +33,7 @@ export const qk = {
   places: (q: string) => ['pages', 'find', q] as const,
   featureSettings: ['features', 'settings'] as const,
   apiTokens: ['api-tokens'] as const,
+  audit: ['audit'] as const,
   agents: ['agents'] as const,
   webhooks: ['webhooks'] as const,
   credentials: ['credentials'] as const,

@@ -21,7 +21,7 @@ Filter by area, account or any text, and download what you see as CSV.
 
 ## Where it is kept
 
-One JSON line per entry in `audit.jsonl`, next to `data.json`, or at `AUDIT_FILE`. The Compose
+One JSON line per entry in `audit.jsonl`, next to `data.json`, or at `AUDIT_FILE`. With a [database](database.md#logs) the entries are rows there instead. The Compose
 file puts it in the `state` volume (`/app/state/audit.jsonl`) so it survives a new container.
 When the file passes 2 MB the oldest half is dropped, which keeps tens of thousands of entries.
 
@@ -31,7 +31,7 @@ It is not in a backup (see [backup.md](backup.md)): it records what happened on 
 
 | Request | What it does |
 | --- | --- |
-| `GET /api/settings/audit?area=&user=&q=&limit=&offset=` | Entries, newest first, and the total that match. |
+| `GET /api/settings/audit?area=&user=&q=&limit=&offset=` | Entries, newest first, the total that match, and the areas to filter by. |
 | `GET /api/settings/audit.csv?area=&user=&q=` | The same as a CSV download. |
 
 The audit log can also be read on the Logs page, next to the syslog and Floorbit's own log, with

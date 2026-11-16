@@ -52,6 +52,7 @@ def test_filters_paging_and_csv(client):
     for i in range(3):
         client.post("/api/switches", json={"name": f"=sw-{i}", "x": i, "y": i})
     body = client.get("/api/settings/audit?area=floor plan&limit=2").get_json()
+    assert "settings" in body["areas"]
     assert body["total"] == 3 and len(body["entries"]) == 2
     assert entries(client, q="=sw-1")[0]["target"] == "=sw-1"
     assert entries(client, user="someone-else") == []
