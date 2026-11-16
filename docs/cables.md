@@ -46,7 +46,8 @@ Once switches are up, the Cables page checks the plan against what LibreNMS says
 - cables that name a **port the switch doesn't have**: a typo, or the wrong switch;
 - **port descriptions naming another seat** than the cable does;
 - **ports up that no cable explains**, on switches that have seats: a seat outside the plan, or a
-  device the crew didn't note;
+  device the crew didn't note. An uplink shows here until it has a cable (one without a seat says
+  what it is);
 - seat ports **not up yet** (normal before doors), and switches that weren't read.
 
 ## Labels
