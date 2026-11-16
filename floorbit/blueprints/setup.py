@@ -11,7 +11,7 @@ Connecting NetBox and LibreNMS, the import and the theme use the settings, test 
 """
 from flask import Blueprint, current_app, jsonify, redirect, request
 
-from .. import inventory, setup, spa
+from .. import database, inventory, setup, spa
 from ..store import load_data
 
 bp = Blueprint('setup', __name__)
@@ -113,10 +113,13 @@ def finish():
 
 def init_setup(app):
     app.extensions['floorbit_setup_code'] = code = setup.SetupCode()
-    setup.mark_existing()
-    auth = app.extensions.get('auth')
-    if auth and auth.enabled and auth.users.count() == 0:
-        code.issue()
+    try:
+        setup.mark_existing()
+        auth = app.extensions.get('auth')
+        if auth and auth.enabled and auth.users.count() == 0:
+            code.issue()
+    except database.DatabaseUnavailable:
+        print('[setup] The database is away: checking whether setup is needed at the next start.')
 
     @app.before_request
     def send_admins_to_setup():

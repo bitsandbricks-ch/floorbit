@@ -190,3 +190,25 @@
 .fb-nav :focus-visible, .fb-tabbar :focus-visible, .fb-sheet :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 @media (prefers-reduced-motion: reduce) { .fb-nav-chevron { transition: none; } }
+
+/* The database banner (components/DatabaseBanner.tsx): in the app's page area, or floating over
+   the pages Flask draws. Here, not in app.css, because those pages load only the sidebar's styles. */
+.fb-db-banner {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 16px; font: 14px/1.45 var(--font-sans, system-ui, sans-serif); color: var(--color-fg);
+  border-bottom: 1px solid var(--color-line);
+}
+.fb-db-banner > svg { flex: none; margin-top: 2px; }
+.fb-db-banner p { margin: 0; }
+.fb-db-banner-title { font-weight: 600; }
+.fb-db-banner-since { font-size: 12px; color: var(--color-muted); }
+.fb-db-banner.is-down { background: color-mix(in srgb, var(--color-warn) 14%, var(--color-surface)); }
+.fb-db-banner.is-down > svg { color: var(--color-warn); }
+.fb-db-banner.is-back { background: color-mix(in srgb, var(--color-bit) 12%, var(--color-surface)); }
+.fb-db-banner.is-back > svg { color: var(--color-bit); }
+.fb-db-banner.is-floating {
+  position: fixed; z-index: 9000; top: 12px; left: 50%; transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
+  border: 1px solid var(--color-line); border-radius: 10px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+@media (max-width: 767.98px) { .fb-db-banner.is-floating { top: 8px; } }

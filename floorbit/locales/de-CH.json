@@ -732,5 +732,8 @@
  "{} is one of: {}": "{} ist eines von: {}",
  "A block has at most {} gaps in each direction": "Ein Block hat höchstens {} Lücken in jede Richtung",
  "Each gap has \"after\" (a column or row number) and \"size\" (in seats)": "Jede Lücke hat \"after\" (eine Spalten- oder Reihennummer) und \"size\" (in Plätzen)",
- "A gap is {} to {} seats wide": "Eine Lücke ist {} bis {} Plätze breit"
+ "A gap is {} to {} seats wide": "Eine Lücke ist {} bis {} Plätze breit",
+ "The database isn't answering right now. Floorbit keeps trying; until it's back, pages show what was last read and changes can't be saved.": "Die Datenbank antwortet gerade nicht. Floorbit versucht es weiter; bis sie zurück ist, zeigen die Seiten den zuletzt gelesenen Stand und Änderungen können nicht gespeichert werden.",
+ "Database unavailable": "Datenbank nicht erreichbar",
+ "Trying again by itself…": "Versucht es von selbst wieder …"
 }

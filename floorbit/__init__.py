@@ -49,10 +49,19 @@ def create_app(start_background=True):
     from . import database
     where = database.wait_until_ready()
     print(f"[store] Keeping documents in {where['where']}")
+    if not where['ok']:
+        print("[store] Starting without it: pages show the last copies read (none yet), saving is "
+              "off, and Floorbit keeps trying in the background (docs/database.md).", flush=True)
+    if start_background:
+        database.watch()
     stuck = store.unwritable() if where['kind'] == 'files' else []
     if stuck:
         print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
               "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
+
+    # Without the database: a clear 503 instead of a 500, in the reader's language (docs/database.md).
+    from .blueprints.health import database_unavailable
+    app.register_error_handler(database.DatabaseUnavailable, database_unavailable)
 
     # Sign-in first, so its check runs before the other before_request hooks and a
     # refused request never touches Redis.

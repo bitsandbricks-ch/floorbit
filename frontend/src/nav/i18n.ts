@@ -6,7 +6,7 @@ import { germanyBundle } from '@/i18n/germany'
 import { initialLang } from '@/i18n/lang'
 
 type Texts = Record<string, unknown>
-const files = import.meta.glob<Texts>('../i18n/*/{nav,goto,common}.json', { eager: true, import: 'default' })
+const files = import.meta.glob<Texts>('../i18n/*/{nav,goto,common,database}.json', { eager: true, import: 'default' })
 
 function bundle(lang: string): Texts {
   const out: Texts = {}
