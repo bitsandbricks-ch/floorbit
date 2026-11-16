@@ -5,3 +5,4 @@
 ### Fixed
 
 - German server texts with values: the most specific text now wins, so "DHCP players: needs a look" no longer falls through to a catch-all.
+- The "Demo data" badge says "Demodaten" on German pages.
