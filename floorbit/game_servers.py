@@ -179,10 +179,18 @@ def _number(value, top=100000):
     return value if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= top else 0
 
 
+# Minecraft's colour and format codes (§a, §l...): noise outside the game.
+FORMAT_CODES = re.compile('\u00a7[0-9a-fk-orA-FK-OR]')
+
+
+def _plain(text):
+    return FORMAT_CODES.sub('', str(text or ''))
+
+
 def _info(raw):
     """What came back (from here or from the agent), as plain values."""
     raw = raw if isinstance(raw, dict) else {}
-    text = {k: ' '.join(str(raw.get(k) or '').split())[:120] for k in ('name', 'map', 'game', 'version')}
+    text = {k: ' '.join(_plain(raw.get(k)).split())[:120] for k in ('name', 'map', 'game', 'version')}
     ping = raw.get('ping_ms')
     return {**text, 'players': _number(raw.get('players')), 'max_players': _number(raw.get('max_players')),
             'bots': _number(raw.get('bots')),
@@ -241,6 +249,9 @@ class Poller:
             return dict(self._state.get(server_id) or {'status': 'unknown', 'info': None, 'error': '',
                                                         'checked_at': None, 'since': None, 'history': []})
 
+    def running(self):
+        return bool(self._thread and self._thread.is_alive())
+
     def start(self):
         with self._lock:
             if self._thread and self._thread.is_alive():
@@ -268,8 +279,8 @@ poller = Poller()
 def overview():
     """Every server with how it was the last time it was asked."""
     servers = listing()
-    if servers and poller.last_poll is None:      # the first request, or tests: don't show all grey
-        poller.poll_once()
+    if servers and poller.last_poll is None and not poller.running():
+        poller.poll_once()          # no background thread (tests, a one-off): ask now rather than show all grey
     rows = [{**s, **poller.state(s['id'])} for s in servers]
     return {'servers': rows, 'interval': poller.interval(), 'last_poll': poller.last_poll,
             'via_agent': _via_agent(),
@@ -336,7 +347,7 @@ def run_rcon(server_id, command, confirm=False):
         raise GameServerError(str(exc), 502) from None
     finally:
         del password
-    return public(server), str(answer or '')[:game_query.MAX_ANSWER]
+    return public(server), _plain(answer)[:game_query.MAX_ANSWER]
 
 
 def init_app(app, start_background=True):
