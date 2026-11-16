@@ -273,7 +273,9 @@ def test_editor_can_change_the_floor_plan_but_not_settings(signed_in_as):
     assert page.status_code == 403 and b"Not allowed" in page.data
 
 
-def test_admin_can_do_everything(signed_in_as):
+def test_admin_can_do_everything(signed_in_as, tmp_path, monkeypatch):
+    from tests.test_spa import _manifest
+    _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})   # the React pages are built
     admin = signed_in_as("admin")
     assert admin.get("/api/settings").status_code == 200
     assert admin.get("/settings/users").status_code == 200

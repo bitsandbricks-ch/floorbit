@@ -9,7 +9,7 @@ The guard in auth/__init__.py already limits these paths to accounts with ``acco
 - ``GET /api/settings/oidc``: OIDC sign-in providers (never their secrets); ``PUT``/``DELETE
   /api/settings/oidc/<id>``, ``POST .../<id>/test``. These need ``settings.manage``.
 """
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, request
 
 from floorbit import spa
 
@@ -42,7 +42,7 @@ def create_users_blueprint(auth):
 
     @bp.route('/settings/users')
     def users_page():
-        return render_template('users.html')
+        return spa.render('Users')
 
     @bp.route('/api/users', methods=['GET'])
     def list_users():

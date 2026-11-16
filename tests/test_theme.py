@@ -89,7 +89,9 @@ def test_event_logo_is_served_safely(client, anon_client):
     assert resp.headers["X-Content-Type-Options"] == "nosniff"
 
 
-def test_every_page_loads_the_theme(client, anon_client):
+def test_every_page_loads_the_theme(client, anon_client, tmp_path, monkeypatch):
+    from tests.test_spa import _manifest
+    _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})   # the React pages are built
     pages = [(client, p) for p in ("/", "/kiosk", "/settings", "/settings/users")]
     pages.append((anon_client, "/login"))   # check-in is off unless configured
     for c, path in pages:
