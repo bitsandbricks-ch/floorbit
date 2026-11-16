@@ -57,7 +57,9 @@ class RedisBus:
         self.short.set(key, value, nx=True, px=ms)
         holder = self.short.get(key)
         if holder == value:
-            self.short.set(key, value, xx=True, px=ms)
+            # Only lengthen it: a SET here could overwrite another pod that took the lease since the
+            # GET, and both would lead. PEXPIRE on its lease just gives that pod a little longer.
+            self.short.pexpire(key, ms)
         return holder
 
     def publish(self, channel, message):
@@ -160,10 +162,11 @@ class Cluster:
         for agent_id, raw in rows.items():
             try:
                 row = json.loads(raw)
-            except (TypeError, ValueError):
-                continue
-            if row.get('pod') != self.pod and now - float(row.get('at') or 0) < AGENT_FRESH:
-                out[agent_id] = row['pod']
+                pod, at = row['pod'], float(row.get('at') or 0)
+            except (TypeError, ValueError, KeyError, AttributeError):
+                continue                 # another version's row, or garbage: not an agent we can reach
+            if pod and pod != self.pod and now - at < AGENT_FRESH:
+                out[agent_id] = pod
         return out
 
     def forward(self, pod, method, args, targets, timeout):
@@ -181,17 +184,20 @@ class Cluster:
             call = json.loads(raw)
         except (TypeError, ValueError):
             return
-        left = float(call.get('deadline') or 0) - time.time()
+        try:
+            left = float(call.get('deadline') or 0) - time.time()
+            call_id, method, timeout = call['id'], call['method'], float(call['timeout'])
+        except (TypeError, ValueError, KeyError, AttributeError):
+            return                       # not a call this version understands; its caller times out
         if left <= 0:
             return                       # the caller gave up already
         try:
-            result = self.run_call(call['method'], call.get('args') or [], call.get('targets'),
-                                   min(left, call['timeout']))
+            result = self.run_call(method, call.get('args') or [], call.get('targets'), min(left, timeout))
             reply = {'ok': True, 'result': result}
         except Exception as exc:  # noqa: BLE001  # goes back to the caller as the error
             reply = {'ok': False, 'error': str(exc)[:300], 'unavailable': type(exc).__name__ == 'AgentUnavailable'}
         with contextlib.suppress(Exception):
-            self.bus.push(REPLY_KEY + call['id'], json.dumps(reply, default=str), ttl=60)
+            self.bus.push(REPLY_KEY + call_id, json.dumps(reply, default=str), ttl=60)
 
     def _take_calls(self):
         from concurrent.futures import ThreadPoolExecutor
