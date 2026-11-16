@@ -137,6 +137,10 @@ def create_app(start_background=True):
     from .lancache import init_lancache
     init_lancache(app, start_background=start_background)
 
+    # Game servers: up or down, players and map, an RCON console (docs/game-servers.md).
+    from . import game_servers
+    game_servers.init_app(app, start_background=start_background)
+
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
     from .stats import init_stats

@@ -29,6 +29,7 @@ PAGES = (
     ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
     ('/dns', 'dns', 'DNS', lambda c, can: c['feature_on']('dns')),
     ('/games', 'games', 'Games', lambda c, can: c['feature_on']('games')),
+    ('/game-servers', 'gameServers', 'Game servers', None),
     ('/logs', 'logs', 'Logs',
      lambda c, can: c['feature_on']('syslog') and c.get('logs_page') and can('seats.view')),
     ('/security', 'security', 'Security', lambda c, can: c['feature_on']('security') and can('seats.view')),

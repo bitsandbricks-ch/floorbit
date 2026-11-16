@@ -21,6 +21,7 @@ route stays admin-only until someone gives it a rule.
 | `commands.change` | Run switch commands that change something, such as clearing counters |
 | `terminal.open` | Open a terminal on a switch in the browser ([terminal.md](terminal.md)) |
 | `power.edit` | Change power boards and circuits, enter readings and trips ([power.md](power.md)) |
+| `games.rcon` | Send RCON commands to game servers ([game-servers.md](game-servers.md)) |
 | `plugins.run` | Run plugin actions |
 | `audit.read` | Read the audit log |
 | `settings.manage` | Change settings, plugins and backups |
@@ -32,7 +33,7 @@ Built-in roles (they can't be changed):
 | --- | --- |
 | Admin | all |
 | Lead | everything except `settings.manage` and `accounts.manage` |
-| Tech | `floorplan.view`, `seats.view`, `incidents.work`, `ports.act` |
+| Tech | `floorplan.view`, `seats.view`, `incidents.work`, `ports.act`, `games.rcon` |
 | Viewer | `floorplan.view` |
 | Kiosk | `floorplan.view` (an account for a big screen; remove it to revoke it) |
 

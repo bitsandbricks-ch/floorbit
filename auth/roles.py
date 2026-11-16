@@ -22,6 +22,7 @@ PERMISSIONS = {
     'commands.change': 'Run switch commands that change something, such as clearing counters',
     'terminal.open': 'Open a terminal on a switch in the browser, with their own switch login',
     'power.edit': 'Change power boards and circuits, enter readings and trips',
+    'games.rcon': 'Send RCON commands to game servers',
     'plugins.run': 'Run plugin actions',
     'audit.read': 'Read the audit log',
     'settings.manage': 'Change settings, plugins and backups',
@@ -36,10 +37,10 @@ BUILTIN = {
                             'and reading the audit log.',
              'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
                              'incidents.assign', 'ports.act', 'commands.change', 'terminal.open', 'power.edit',
-                             'plugins.run', 'audit.read']},
+                             'games.rcon', 'plugins.run', 'audit.read']},
     'tech': {'label': 'Tech',
              'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
-             'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act']},
+             'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act', 'games.rcon']},
     'viewer': {'label': 'Viewer', 'description': 'Looks at the floor plan and dashboards, changes nothing.',
                'permissions': ['floorplan.view']},
     'kiosk': {'label': 'Kiosk', 'description': 'A read-only account for a big screen. Remove it to revoke it.',
@@ -285,6 +286,10 @@ RULES = (
     ('/commands', READ, 'ports.act'),
     # The browser terminal: every line typed is audited (floorbit/terminal.py).
     ('/api/terminal', None, 'terminal.open'),
+    # Game servers (floorbit/game_servers.py): the crew asks and sends RCON, admins set them up.
+    ('/api/game-servers/rcon', WRITE, 'games.rcon'),
+    ('/api/game-servers/check', WRITE, 'games.rcon'),
+    ('/api/game-servers', WRITE, 'settings.manage'),
     ('/terminal', READ, 'terminal.open'),
     # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.
     ('/api/security/check', WRITE, 'plugins.run'),

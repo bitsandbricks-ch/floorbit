@@ -47,4 +47,4 @@ it again.
 - `DELETE /api/settings/credentials/<id>`.
 - `GET /api/ports` says `stored_login` when any login is stored, and `needs_login` is false once one covers every switch.
 
-RCON passwords for game servers (#472) will be kept the same way.
+RCON passwords for [game servers](game-servers.md) are kept the same way, and `rotate` moves them too.

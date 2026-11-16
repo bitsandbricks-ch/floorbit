@@ -18,8 +18,8 @@ a service changes colour.
 
 ## Where the checks come from
 
-Floorbit checks nothing itself. Every service on the wall comes from a plugin with
-`uses: [health]` (see [plugins.md](plugins.md)):
+Floorbit checks nothing itself, except the [game servers](game-servers.md) set up on their own page.
+Every other service on the wall comes from a plugin with `uses: [health]` (see [plugins.md](plugins.md)):
 
 - **HTTP check** (built in) puts each of its web services on the wall: red when it doesn't answer
   or answers with an error, amber when it takes longer than 2 seconds.

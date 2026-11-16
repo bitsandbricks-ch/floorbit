@@ -260,6 +260,21 @@ Source: [`floorbit/blueprints/flows.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/flows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `traffic` |
 
+## floorbit.blueprints.game_servers
+
+Game servers (issue #472). Rules in floorbit/game_servers.py, docs in docs/game-servers.md.
+
+Source: [`floorbit/blueprints/game_servers.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/game_servers.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/game-servers` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/game-servers` | `settings.manage` |  |
+| DELETE | `/api/game-servers/<server_id>` | `settings.manage` |  |
+| PUT | `/api/game-servers/<server_id>` | `settings.manage` |  |
+| POST | `/api/game-servers/check/<server_id>` | `games.rcon` |  |
+| POST | `/api/game-servers/rcon/<server_id>` | `games.rcon` |  |
+
 ## floorbit.blueprints.games
 
 Game and launcher insights (issue #88). The numbers come from floorbit/games.py.
