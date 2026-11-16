@@ -238,6 +238,10 @@ SCHEMA = [
     # General
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',
      'label': 'Public URL', 'help': 'Where people open the floor plan; used for links in alerts.'},
+    {'key': 'QR_URL', 'group': 'general', 'type': 'string', 'default': '',
+     'label': 'Address on the seat QR codes',
+     'help': 'Where the QR codes on the seat cards point, e.g. http://help.lan when attendees reach Floorbit '
+             'under another name than the crew. Empty uses the public URL. Reprint the cards after a change.'},
 ]
 
 

@@ -175,6 +175,18 @@ def test_qr_sheet_needs_assign_and_holds_signed_links(client, app_module, floor)
     assert seats[0]["url"].endswith(help_url(app_module, "A-1")) and seats[0]["image"].startswith("data:image/svg+xml")
 
 
+def test_qr_codes_can_point_at_their_own_address(client, app_module, floor, monkeypatch):
+    # Attendees often reach Floorbit under an event DNS name, not the crew's public URL.
+    monkeypatch.setenv("CHECKIN_ENABLED", "true")
+    monkeypatch.setenv("QR_URL", "help.example.com/")
+    sheet = client.get("/api/helpdesk/qr").get_json()
+    assert sheet["seats"][0]["url"] == "http://help.example.com" + help_url(app_module, "A-1")
+    assert sheet["checkin"]["url"] == "http://help.example.com/checkin"
+    monkeypatch.setenv("QR_URL", "https://floor.example.com/lan")
+    url = client.get("/api/helpdesk/qr").get_json()["seats"][0]["url"]
+    assert url.startswith("https://floor.example.com/lan/help/A-1")
+
+
 def test_board_changes_are_audited(client, floor):
     i = client.post("/api/incidents", json={"seat": "A-1", "title": "Cable cut"}).get_json()
     client.patch(f"/api/incidents/{i['id']}", json={"status": "fixed"})

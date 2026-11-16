@@ -115,7 +115,10 @@ Electrics, something else → Operations. Otherwise they wait without a team for
 `incidents.assign`. (Routing rules per area come with issue #11.)
 
 Set **Public URL** (Settings › General, `PUBLIC_URL`) when Floorbit runs behind a reverse proxy, so the QR codes point
-at the address attendees can reach.
+at the address attendees can reach. When attendees reach Floorbit under another name than the crew (an event DNS
+name like `http://help.lan`), set **Address on the seat QR codes** (`QR_URL`) instead: it wins over the public URL for
+the seat cards only, the help and check-in links on them. A bare host gets `http://`; a path prefix is kept. The QR
+sheet says which address the codes open, so check it before printing, and reprint after a change.
 
 Every change (filed, changed, reported from a seat, "works again" from a seat) goes to the audit log under **Incidents**.
 
