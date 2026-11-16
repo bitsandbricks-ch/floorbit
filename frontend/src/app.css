@@ -504,3 +504,14 @@ body {
 .fb-goto-path { color: var(--color-muted); font-size: 13px; font-family: var(--font-mono); }
 .fb-goto-empty { margin: 12px 0 0; color: var(--color-muted); }
 .fb-goto-recent { color: var(--color-muted); font-size: 13px; }
+
+/* Sign-in page (issue #46): one card in the middle, no sidebar. */
+.fb-login {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 16px;
+}
+.fb-login-card { width: 100%; max-width: 380px; }
+.fb-login-brand { --fb-brand-h: 26px; }
+/* Discord's own colour, so the button reads as Discord's on every theme. */
+.fb-login-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+.fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }

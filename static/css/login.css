@@ -1,4 +1,4 @@
-/* Sign-in page. Colours come from static/css/brand/; the layout is self-contained. */
+/* Sign-in look, used by the "not allowed" page (templates/forbidden.html). Colours come from static/css/brand/. */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {

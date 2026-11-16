@@ -15,6 +15,8 @@ Source: [`auth/__init__.py`](https://github.com/bitsandbricks-ch/floorbit/blob/m
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| POST | `/api/auth/login` | `settings.manage` |  |
+| GET | `/api/auth/login-options` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/auth/me` | anyone |  |
 
 ## auth.admin

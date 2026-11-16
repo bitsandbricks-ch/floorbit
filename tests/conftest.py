@@ -18,6 +18,15 @@ _AGENT_SRC = Path(os.environ.get("FLOORBIT_AGENT_SRC") or _HERE.parent / "floorb
 if (_AGENT_SRC / "floorbit_agent" / "__init__.py").is_file():
     sys.path.insert(1, str(_AGENT_SRC.resolve()))
 
+def login_page(client):
+    """What the sign-in page (React, issue #46) shows: its options and the last error, once."""
+    return client.get("/api/auth/login-options").get_json()
+
+
+def login_error(client):
+    return login_page(client)["error"] or ""
+
+
 def stored(path):
     """A document as Floorbit keeps it (a file, or a row when the suite runs on a database), as text:
     for tests that check what is, or isn't, written down."""

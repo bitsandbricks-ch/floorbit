@@ -704,5 +704,7 @@
  "FLOORBIT_CLUSTER must be \"redis\" or empty, not \"{}\".": "FLOORBIT_CLUSTER muss \"redis\" oder leer sein, nicht \"{}\".",
  "Bad switch name.": "Ungültiger Switch-Name.",
  "No such copies.": "Diese Kopien gibt es nicht.",
- "No such copy.": "Diese Kopie gibt es nicht."
+ "No such copy.": "Diese Kopie gibt es nicht.",
+ "Wrong username or password.": "Falscher Benutzername oder falsches Passwort.",
+ "Too many failed attempts. Try again in {} seconds.": "Zu viele Fehlversuche. Versuche es in {} Sekunden nochmals."
 }

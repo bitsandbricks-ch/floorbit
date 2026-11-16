@@ -3,7 +3,7 @@
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-from conftest import TEST_PASSWORD, TEST_USER, stored
+from conftest import TEST_PASSWORD, TEST_USER, login_error, login_page, stored
 
 from auth.providers import AuthError, Identity, RedirectProvider
 
@@ -34,7 +34,7 @@ def test_editor_and_settings_pages_redirect_to_login(anon_client):
 def test_login_page_is_open(anon_client):
     resp = anon_client.get("/login")
     assert resp.status_code == 200
-    assert b"Sign in" in resp.data
+    assert login_page(anon_client)["password_login"]
 
 
 def test_reads_stay_open_for_kiosk_screens(anon_client):
@@ -104,7 +104,7 @@ def test_username_is_not_case_sensitive(anon_client, user):
 def test_wrong_password(anon_client, user):
     resp = sign_in(anon_client, password="not-the-password")
     assert resp.status_code == 401
-    assert b"Wrong username or password" in resp.data
+    assert login_error(anon_client) == "Wrong username or password."
     assert sign_in(anon_client, username="nobody").status_code == 401
 
 
@@ -120,7 +120,7 @@ def test_repeated_failures_lock_the_username_for_a_while(anon_client, user):
         assert sign_in(anon_client, password="wrong-password").status_code == 401
     resp = sign_in(anon_client)
     assert resp.status_code == 429
-    assert b"Too many failed attempts" in resp.data
+    assert "Too many failed attempts" in login_error(anon_client)
 
 
 def test_password_change_signs_out_existing_sessions(client, auth):
@@ -175,7 +175,7 @@ def test_cli_manages_users(app_module, auth):
 
 
 def test_login_page_explains_how_to_create_the_first_account(anon_client):
-    assert b"No accounts exist yet" in anon_client.get("/login").data
+    assert login_page(anon_client)["no_users"]
 
 
 # ── Outside logins (SSO / Discord later) ───────────────────────────────────────
@@ -210,14 +210,14 @@ def start_sso(client, next_path="/"):
 
 
 def test_redirect_provider_shows_on_login_page(anon_client, fake_sso):
-    assert b"Sign in with Fake SSO" in anon_client.get("/login").data
+    assert [p["label"] for p in login_page(anon_client)["providers"]] == ["Fake SSO"]
 
 
 def test_unlinked_outside_login_is_refused(anon_client, fake_sso):
     state = start_sso(anon_client)
     resp = anon_client.get(f"/auth/fake/callback?state={state}&code=42")
     assert resp.status_code == 403
-    assert b"No account here is linked" in resp.data
+    assert "No account here is linked" in login_error(anon_client)
 
 
 def test_linked_outside_login_signs_in(anon_client, auth, user, fake_sso):
@@ -367,3 +367,24 @@ def test_kiosk_and_live_updates_stay_open(app_module, auth):
     for path in ("/kiosk", "/api/events", "/api/status/snapshot", "/api/checkin/me"):
         with app_module.app.test_request_context(path):
             assert auth.is_public(), path
+
+
+# ── The React sign-in page's API (issue #46) ───────────────────────────────────
+
+def test_json_sign_in_answers_where_to_go(anon_client, user):
+    resp = anon_client.post("/api/auth/login", json={"username": TEST_USER, "password": "nope", "next": "/inventory"})
+    assert resp.status_code == 401 and resp.get_json()["error"] == "Wrong username or password."
+    for target, expected in (("/inventory", "/inventory"), ("//evil.example", "/"), ("/\\evil.example", "/"),
+                             ("https://evil.example/", "/")):
+        resp = anon_client.post("/api/auth/login", json={"username": TEST_USER, "password": TEST_PASSWORD,
+                                                         "next": target})
+        assert resp.status_code == 200 and resp.get_json()["next"] == expected
+        anon_client.post("/logout")
+    assert anon_client.get("/api/auth/login-options?next=/\\evil.example").get_json()["next"] == "/"
+
+
+def test_the_last_error_is_shown_once_and_in_german(anon_client, user):
+    sign_in(anon_client, password="not-the-password")
+    page = anon_client.get("/api/auth/login-options", headers={"Accept-Language": "de-CH"}).get_json()
+    assert page["error"] == "Falscher Benutzername oder falsches Passwort." and page["username"] == TEST_USER
+    assert login_error(anon_client) == ""

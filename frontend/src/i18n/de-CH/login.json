@@ -1,0 +1,13 @@
+{
+  "title": "Anmelden",
+  "intro": "Melde dich an, um am Netz des Events zu arbeiten.",
+  "username": "Benutzername",
+  "password": "Passwort",
+  "submit": "Anmelden",
+  "or": "oder",
+  "with": "Mit {{name}} anmelden",
+  "noUsers": "Es gibt noch keine Konten. <setup>Richte Floorbit ein</setup> mit dem Setup-Code aus dem Log, lege das erste Konto auf dem Server mit <cmd/> an, oder setze <code>AUTH_ADMIN_USER</code> und <code>AUTH_ADMIN_PASSWORD</code> und starte neu.",
+  "checkinQ": "Suchst du deinen Platz?",
+  "checkin": "Hier einchecken",
+  "language": "Sprache"
+}

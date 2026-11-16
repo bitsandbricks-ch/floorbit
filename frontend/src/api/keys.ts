@@ -1,6 +1,7 @@
 // Every query key in one place, so two pages never share a key for different data.
 export const qk = {
   me: ['me'] as const,
+  loginOptions: ['login-options'] as const,
   dashboard: ['dashboard'] as const,
   dashboardLayouts: ['dashboard', 'layouts'] as const,
   widget: (url: string) => ['widget', url] as const,

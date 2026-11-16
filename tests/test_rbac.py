@@ -123,6 +123,7 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
     """A write route that falls through to the admin default must be one we meant to keep admin-only."""
     admin_on_purpose = ("/api/settings", "/api/integrations", "/api/demo", "/api/cache", "/api/plugins",
                         "/api/users", "/api/roles", "/api/teams", "/logout", "/login", "/auth/",
+                        "/api/auth/login",         # signing in: open, like the /login form
                         "/api/checkin", "/help/",   # public pages with their own checks (check-in, helpdesk)
                         "/api/setup",              # first-run setup: admins, or the setup code
                         "/api/stats/peak/reset",   # starting the event's bandwidth peak again
