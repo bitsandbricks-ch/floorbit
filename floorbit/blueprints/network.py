@@ -118,4 +118,5 @@ def get_seats_heatmap():
         return jsonify({'error': 'No seat mapping available', 'sources': seat_sources.info()}), 400
 
     # Seats are looked up in parallel; see seat_traffic.py.
-    return jsonify({'seats': collect_seat_heatmap(seats, sources.monitoring().resolve_ip)})
+    monitoring = sources.monitoring()
+    return jsonify({'seats': collect_seat_heatmap(seats, monitoring.resolve_ip, port_stats=monitoring.port_stats)})

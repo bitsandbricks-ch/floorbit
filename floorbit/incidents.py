@@ -384,12 +384,21 @@ def seat_snapshot(seat):
     from . import sources
     try:
         mapping = (seat_sources.load() or {}).get(seat) or {}
-        ip = mapping.get('ip_address')
-        if not ip and mapping.get('mac'):
-            ip = sources.monitoring().ip_for_mac(mapping['mac'])
-        if not ip:
-            return {'known': False, 'reason': 'No IP or MAC known for this seat'}
-        found = sources.monitoring().resolve_ip(ip) or {}
+        found = {}
+        mac = mapping.get('mac_address') or mapping.get('mac')
+        # The seat's switch port is the mapping; an IP or MAC only helps when no port is known.
+        if mapping.get('switch') and mapping.get('port'):
+            stats = sources.monitoring().port_stats(mapping['switch'], mapping['port'])
+            if stats:
+                found = {'device_name': mapping['switch'], 'port': mapping['port'], 'stats': stats,
+                         'mac': mac, 'stale': bool(stats.get('stale'))}
+        if not found:
+            ip = mapping.get('ip_address')
+            if not ip and mac:
+                ip = sources.monitoring().ip_for_mac(mac)
+            if not ip:
+                return {'known': False, 'reason': 'No switch port, IP or MAC known for this seat'}
+            found = sources.monitoring().resolve_ip(ip) or {}
     except Exception as exc:  # noqa: BLE001  # a report must never fail because the network lookup did
         print(f'[incidents] snapshot for {seat} failed: {exc}')
         return {'known': False, 'reason': 'The network lookup failed'}

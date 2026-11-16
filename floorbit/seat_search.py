@@ -67,8 +67,11 @@ def find(query):
     looked_up = None   # the other address of the pair, from ARP
 
     def entry(seat, info, matched):
-        return {'seat': seat, 'username': info.get('username') or '', 'ip': info.get('ip_address') or '',
-                'mac': _mac_of(info), 'matched': matched}
+        hit = {'seat': seat, 'username': info.get('username') or '', 'ip': info.get('ip_address') or '',
+               'mac': _mac_of(info), 'matched': matched}
+        if info.get('switch') and info.get('port'):   # the mapping itself: no IP or MAC needed
+            hit['switch'], hit['port'] = info['switch'], info['port']
+        return hit
 
     hits = []
     if kind == 'ip':
@@ -97,7 +100,9 @@ def find(query):
     results = []
     for hit in hits[:LIMIT]:
         hit['block_id'] = blocks.get(hit['seat'])
-        if kind != 'text' and monitor.enabled():
+        if hit.get('switch'):
+            hit['switch_id'] = _switch_id(data, hit['switch'])
+        elif kind != 'text' and monitor.enabled():
             ip = hit['ip'] or (needle if kind == 'ip' else looked_up)
             if not ip and hit['mac']:
                 ip = looked_up = monitor.ip_for_mac(hit['mac'])   # known to the seat sources by MAC only

@@ -83,8 +83,9 @@ def resolve_seat(seat):
     if mapping.get('switch') and mapping.get('port'):
         return mapping['switch'], mapping['port']
     ip = mapping.get('ip_address')
-    if not ip and mapping.get('mac'):
-        ip = sources.monitoring().ip_for_mac(mapping['mac'])
+    mac = mapping.get('mac_address') or mapping.get('mac')   # seat sources call it mac_address
+    if not ip and mac:
+        ip = sources.monitoring().ip_for_mac(mac)
     found = (sources.monitoring().resolve_ip(ip) or {}) if ip else {}
     if found.get('device_name') and found.get('port'):
         return found['device_name'], found['port']

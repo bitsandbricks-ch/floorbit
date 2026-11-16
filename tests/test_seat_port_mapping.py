@@ -142,6 +142,20 @@ def test_port_actions_use_the_mapped_port(client, seats_file):
     assert ports.resolve_seat('A-7') == ('sw-a-01', 'Gi1/0/7')
 
 
+def test_port_actions_find_a_seat_known_only_by_its_mac(client, seats_file, monkeypatch):
+    from floorbit import ports, sources
+
+    class Monitor:
+        def ip_for_mac(self, mac):
+            return '192.0.2.8' if mac == '02:00:00:00:00:08' else None
+
+        def resolve_ip(self, ip):
+            return {'device_name': 'sw-a-01', 'port': 'Gi1/0/8'} if ip == '192.0.2.8' else None
+    monkeypatch.setattr(sources, 'monitoring', lambda: Monitor())
+    client.put('/api/seat-map/A-8', json={'mac': '02:00:00:00:00:08'})
+    assert ports.resolve_seat('A-8') == ('sw-a-01', 'Gi1/0/8')
+
+
 def test_the_port_list_says_which_seat_holds_a_mapped_port(client, seats_file, monkeypatch):
     from floorbit import sources
 
