@@ -90,7 +90,7 @@ def find(monitor, data, seats):
                 per_port.setdefault((switch, row['port']), set()).add(mac)
     mac_ip = _arp(monitor, networks(ip_seat)) if per_port else {}
 
-    unplanned, moved, clients = [], [], 0
+    unplanned, moved, clients, seat_ips = [], [], 0, {}
     for (switch, port), macs in sorted(per_port.items(), key=lambda kv: (kv[0][0].lower(), canonical_port(kv[0][1]))):
         if len(macs) > UPLINK_MACS:
             continue
@@ -103,10 +103,13 @@ def find(monitor, data, seats):
             row = {'switch': switch, 'port': port, 'mac': mac, 'ip': ip, 'ip_seat': ip_seat.get(ip, '')}
             if cable is None:
                 unplanned.append(row)
-            elif row['ip_seat'] and row['ip_seat'] != cable['seat'].upper():
+                continue
+            if ip:
+                seat_ips[ip] = cable['seat'].upper()
+            if row['ip_seat'] and row['ip_seat'] != cable['seat'].upper():
                 moved.append({**row, 'seat': cable['seat'], 'cable': cable['label']})
     return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'switches': len(switches),
-            'failed': failed, 'clients': clients}
+            'failed': failed, 'clients': clients, 'seat_ips': seat_ips}
 
 
 def _start(work):
@@ -129,6 +132,7 @@ class Finder:
     def __init__(self, app=None):
         self.app = app
         self.result = None
+        self.seat_ips = {}     # {ip: seat} on cabled seat ports, last read: the captive answer (captive.py)
         self.as_of = None
         self.error = None
         self._lock = threading.Lock()
@@ -147,6 +151,7 @@ class Finder:
             result, error = None, str(exc)[:300]
         with self._lock:
             if result is not None:
+                self.seat_ips = result.pop('seat_ips', {})
                 self.result, self.as_of = result, time.time() if now is None else now
             self.error = error
             self._running = False
@@ -177,6 +182,7 @@ class Finder:
     def reset(self):
         with self._lock:
             self.result = self.as_of = self.error = None
+            self.seat_ips = {}
             self._running = False
 
 

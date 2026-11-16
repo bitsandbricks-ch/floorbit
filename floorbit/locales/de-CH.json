@@ -699,5 +699,6 @@
  "The end has to be after the start.": "Das Ende muss nach dem Anfang sein.",
  "This range comes from {}: change it there and import again.": "Dieser Bereich kommt aus {}: ändere ihn dort und importiere neu.",
  "{} prefix(es) skipped: not a network, or a firewall that is not in the inventory.": "{} Prefix(e) übersprungen: kein Netz, oder eine Firewall, die nicht im Inventar ist.",
- "{} prefix(es) skipped: planned in Floorbit already.": "{} Prefix(e) übersprungen: in Floorbit schon geplant."
+ "{} prefix(es) skipped: planned in Floorbit already.": "{} Prefix(e) übersprungen: in Floorbit schon geplant.",
+ "Check-in is turned off on this Floorbit.": "Check-in ist in diesem Floorbit ausgeschaltet."
 }

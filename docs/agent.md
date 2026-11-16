@@ -158,11 +158,12 @@ for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorb
 | `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
 | `FLOORBIT_AGENT_SYSLOG_PORT` | a UDP port to take syslog on, such as `5514`, sent on to the hosted Logs page. Unset: the agent doesn't listen. `FLOORBIT_AGENT_SYSLOG_BIND` picks the address (all of them by default) |
 | `FLOORBIT_AGENT_FLOWS_PORT` | a UDP port to collect NetFlow and IPFIX on, such as `2055`, for the hosted Traffic page. Unset: no collector. `FLOORBIT_AGENT_FLOWS_BIND` picks the address; the `FLOWS_*` settings of [Traffic](flows.md) apply on the agent |
+| `FLOORBIT_AGENT_CAPTIVE` | `host:port` to answer the Captive Portal API on (RFC 8908), such as `0.0.0.0:8908`, for the [check-in note](integrations.md#the-sign-in-to-network-note-captive-portal-api). Unset: off. `FLOORBIT_AGENT_CAPTIVE_PROXIES` names the reverse proxies whose `X-Forwarded-For` it trusts, and `FLOORBIT_AGENT_CAPTIVE_PORTAL_URL` replaces the check-in page it points at |
 | `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
-The agent only makes outgoing requests; nothing listens on it unless `FLOORBIT_AGENT_SYSLOG_PORT` or `FLOORBIT_AGENT_FLOWS_PORT` is set. It runs up to 4 calls side by side,
+The agent only makes outgoing requests; nothing listens on it unless `FLOORBIT_AGENT_SYSLOG_PORT`, `FLOORBIT_AGENT_FLOWS_PORT` or `FLOORBIT_AGENT_CAPTIVE` is set. It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and

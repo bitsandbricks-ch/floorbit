@@ -160,6 +160,31 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 Endpoints: `POST /api/checkin`, `GET /api/checkin/me`, `GET /api/checkins` (the
 user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refresh`.
 
+### The "sign in to network" note (Captive Portal API)
+
+With a [local agent](agent.md), phones and laptops can be reminded to check in without blocking
+anything. Set `FLOORBIT_AGENT_CAPTIVE=0.0.0.0:8908` on the agent and let your DHCP server hand out
+option 114 (RFC 8910) with the URL of the agent's `/.well-known/captive-portal`. Clients that
+support it ask that URL, and until their seat has checked in they show a quiet "sign in to
+network" note that opens the check-in page. Gaming PCs that ignore it lose nothing, because
+traffic is never held back.
+
+- **Done means the seat, not the machine.** A client counts as checked in when its IP belongs to a
+  checked-in seat: the IP its check-in has now (the refresh follows the MAC to a new lease), or any
+  IP on that seat's cabled port in the last MAC table read. A reboot, a new lease or a new MAC
+  doesn't bring the note back. Reading the MAC tables runs every two minutes in the background
+  while the agent asks ([sizing](sizing.md)).
+- **When in doubt, say nothing.** Until the agent has heard from the hosted Floorbit, while
+  check-in is off, or with no `PUBLIC_URL` set, every answer is `"captive": false`. When the hosted
+  side is away, the agent keeps answering from what it heard last.
+- **HTTPS.** RFC 8908 wants HTTPS for this URL, so serve it through the event's reverse proxy with a
+  certificate. Put that proxy's address in `FLOORBIT_AGENT_CAPTIVE_PROXIES` so the client's IP comes
+  from `X-Forwarded-For`.
+- The note opens `PUBLIC_URL/checkin`, or `FLOORBIT_AGENT_CAPTIVE_PORTAL_URL` when it is set on the
+  agent.
+- How well clients follow it varies: phones and Macs do, Windows only partly. Check it on your own
+  devices before the event.
+
 ### Check-in history and CSV export
 
 Every change to the check-in table is appended to a JSON Lines log: `checkin`, `moved`
