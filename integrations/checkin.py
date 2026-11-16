@@ -247,13 +247,13 @@ class CheckinRefresher:
     def _run(self):
         while True:
             interval = config.get_int('CHECKIN_REFRESH_INTERVAL', 300, minimum=30)
-            if _monitoring().enabled() and config.get_bool('CHECKIN_ENABLED', False) and load_all():
-                try:
+            try:
+                if _monitoring().enabled() and config.get_bool('CHECKIN_ENABLED', False) and load_all():
                     refresh_once()
                     self.last_run, self.last_error = time.time(), None
-                except Exception as exc:  # noqa: BLE001  # keep the refresh thread alive
-                    self.last_error = str(exc)
-                    print(f"[integrations] check-in refresh failed: {exc}")
+            except Exception as exc:  # noqa: BLE001  # keep the refresh thread alive
+                self.last_error = str(exc)
+                print(f"[integrations] check-in refresh failed: {exc}")
             time.sleep(interval)
 
 

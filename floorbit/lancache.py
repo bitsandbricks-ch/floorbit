@@ -21,7 +21,7 @@ from datetime import datetime
 
 from integrations import config
 
-from . import features, store
+from . import database, features, store
 
 FILE = 'lancache.json'
 FIRST_READ = 50 * 1024 * 1024    # a log Floorbit hasn't seen is read from at most this far back
@@ -63,6 +63,7 @@ class LancacheStats:
         self.last_read = None
         self.last_error = None
         self.demo = False     # FLOORBIT_DEMO=1 with no log: made-up lines (demo_lines)
+        self._loaded = False   # False while the database was away at start (docs/database.md)
         self._load()
 
     # ── storage ──────────────────────────────────────────────────────────────
@@ -70,10 +71,16 @@ class LancacheStats:
         return self.path or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), FILE)
 
     def _load(self):
+        """Read what was counted before. While the database is away this stays undone, and
+        counting waits (``ready``): saving a count that started from nothing would overwrite the
+        stored hours once it is back."""
         try:
             raw = store.read_json(self._file(), {}) or {}
+        except database.DatabaseUnavailable:
+            return
         except (OSError, ValueError):
             raw = {}
+        self._loaded = True
         if not isinstance(raw, dict):
             return
         for key, caches in (raw.get('hours') or {}).items():
@@ -84,11 +91,18 @@ class LancacheStats:
         if isinstance(raw.get('position'), dict):
             self.position = raw['position']
 
+    def ready(self):
+        if not self._loaded:
+            self._load()
+        return self._loaded
+
     def _save(self):
+        if not self._loaded:
+            return
         try:
             store.write_json(self._file(), {'version': 1, 'position': self.position,
                                             'hours': {str(k): v for k, v in self.hours.items()}})
-        except OSError as exc:
+        except (OSError, database.DatabaseError) as exc:
             print(f'[lancache] could not save {self._file()}: {exc}')
 
     # ── counting ─────────────────────────────────────────────────────────────
@@ -110,7 +124,7 @@ class LancacheStats:
     def read_log(self, now=None):
         """Read what the log gained since last time. Starts again at the top after a rotation."""
         path = settings()['log']
-        if not path:
+        if not path or not self.ready():   # where it stopped reading is in the database
             return
         try:
             st = os.stat(path)

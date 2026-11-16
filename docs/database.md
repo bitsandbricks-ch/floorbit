@@ -50,19 +50,47 @@ the flow collector) take turns. The same steps run on SQLite and Postgres.
 
 ## Health
 
-At start Floorbit waits up to 30 seconds (`FLOORBIT_DATABASE_WAIT`) for the database, for a
-database container that comes up after it, then stops with a clear message rather than serve pages
-that can't save anything. Docker or Kubernetes start it again.
+At start Floorbit waits up to 10 seconds (`FLOORBIT_DATABASE_WAIT`) for the database, for a
+database container that comes up a little after it.
 
-While running, `GET /healthz` answers `503` when the database doesn't, so Docker, Kubernetes or a load balancer can
-see it. The log says at start where documents are kept, with the password left out:
+## When the database is away
+
+Floorbit keeps running without its database, whether it went away while running or wasn't there at
+the start, and comes back by itself:
+
+- **Reading** goes on from the last copy of each document this process read or saved, so the
+  floor plan, the Seats view, the problems list and the big screens keep working. Live status from
+  LibreNMS, the agents and Redis doesn't need the database and keeps updating.
+- **Saving** is refused with `503` and `{"code": "database_unavailable"}` and a clear message
+  (in German for German readers); nothing is queued or half saved. A document Floorbit hasn't read
+  yet answers the same, never an empty one in its place. A page that needs one shows a short
+  "Database unavailable" page that reloads itself every 10 seconds.
+- **The crew pages** show a banner while it is away and "Database back" once it answers again.
+- **Trying again**: the first try after 1 second, then the wait doubles up to 30 seconds. Between
+  tries, requests don't wait on the database at all. While it answers, Floorbit asks it every
+  15 seconds in the background, so the banner and `/healthz` notice an outage without a request.
+- **Counters** that keep their counts in the database (DNS, LAN cache) wait until they have read
+  them, so they never save a count that started from nothing over the stored one.
+
+Started without the database, nothing has been read yet: signing in, and most pages, wait until it
+is back. Set `SECRET_KEY` (the Kubernetes example does), so sessions signed before stay valid even
+then; without it the generated key lives in the database too.
+
+`GET /healthz` stays `200` and says `"database": "down"` with how long, because Floorbit keeps
+serving and a restart wouldn't bring the database back. So Docker and Kubernetes leave it running
+instead of restarting it in a loop. `GET /healthz?strict=1` answers `503` while the database is
+away, for a load balancer that has another instance to send people to.
+
+The log says where documents are kept, with the password left out, and when the database goes
+away and comes back:
 
 ```
 [store] Keeping documents in postgres (postgresql://floorbit:***@db.example.com/floorbit)
+[store] The database postgres (...) doesn't answer (...). Pages show the last copies read and saving is off until it is back; trying again in the background.
+[store] The database answers again after 42 s.
 ```
 
-A dropped Postgres connection (a restart, a failover) is reopened once per request before it
-counts as an error.
+A dropped connection (a restart, a failover) is reopened once per request before it counts as away.
 
 ## Tests
 

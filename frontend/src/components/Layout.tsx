@@ -9,6 +9,7 @@ import { openGoTo } from '@/nav/goto'
 import { AppNav } from './AppNav'
 import { Attribution } from './Attribution'
 import { CrewNoticeBanner } from './CrewNotice'
+import { DatabaseBanner } from './DatabaseBanner'
 import { rememberPage } from './pages'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
@@ -45,6 +46,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
             <IconSearch size={20} aria-hidden="true" />
           </button>
         </header>
+        <DatabaseBanner />
         <CrewNoticeBanner />
         <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
         <Attribution />

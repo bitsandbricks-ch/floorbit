@@ -729,5 +729,8 @@
  "rotation is 0, 90, 180 or 270": "rotation ist 0, 90, 180 oder 270",
  "{} is a number from 0 to 100": "{} ist eine Zahl von 0 bis 100",
  "{} is missing": "{} fehlt",
- "{} is one of: {}": "{} ist eines von: {}"
+ "{} is one of: {}": "{} ist eines von: {}",
+ "The database isn't answering right now. Floorbit keeps trying; until it's back, pages show what was last read and changes can't be saved.": "Die Datenbank antwortet gerade nicht. Floorbit versucht es weiter; bis sie zurück ist, zeigen die Seiten den zuletzt gelesenen Stand und Änderungen können nicht gespeichert werden.",
+ "Database unavailable": "Datenbank nicht erreichbar",
+ "Trying again by itself…": "Versucht es von selbst wieder …"
 }

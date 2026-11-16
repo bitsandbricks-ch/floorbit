@@ -1,0 +1,7 @@
+{
+  "downTitle": "Datenbank nicht erreichbar",
+  "downText": "Floorbit erreicht seine Datenbank nicht. Der Live-Status läuft weiter und die Seiten zeigen den zuletzt gelesenen Stand, aber Änderungen können erst wieder gespeichert werden, wenn sie zurück ist. Floorbit versucht es von selbst weiter.",
+  "downFor": "Weg seit {{time}}",
+  "backTitle": "Datenbank wieder da",
+  "backText": "Änderungen können wieder gespeichert werden."
+}

@@ -16,6 +16,7 @@ read, once; after that the file is no longer read or written (docs/database.md).
 The schema is versioned: ``MIGRATIONS`` runs in order, each once, recorded in ``floorbit_schema``.
 The same statements run on SQLite and Postgres, so they stay plain SQL.
 """
+import contextlib
 import json
 import os
 import threading
@@ -47,6 +48,23 @@ MIGRATIONS = (
 
 class DatabaseError(RuntimeError):
     pass
+
+
+class DatabaseUnavailable(DatabaseError):
+    """The database doesn't answer right now. Floorbit keeps running on the last copies it read,
+    refuses to save, and keeps trying in the background (``watch``); see docs/database.md."""
+
+
+# Waits between tries while the database is away: short at first, then every 30 s at most.
+RETRY_FIRST, RETRY_MAX = 1.0, 30.0
+# While it answers, ask this often, so the banner and /healthz notice an outage without a request.
+PROBE_EVERY = 15.0
+
+
+def _unreachable(exc):
+    """The driver's way of saying the server is gone (refused, dropped, restarting, disk gone),
+    as opposed to a mistake in a statement. sqlite3 and psycopg both call it OperationalError."""
+    return type(exc).__name__ in ('OperationalError', 'InterfaceError', 'ConnectionTimeout')
 
 
 def _redact(url):
@@ -95,6 +113,12 @@ class Sql:
         self._local = threading.local()
         self._lock = threading.Lock()
         self._ready = False
+        # The last copy of each document read or written, so pages keep working while the
+        # database is away: key -> (body, updated_at). Bodies, not parsed JSON: callers change
+        # what they get, so each read parses its own copy.
+        self._docs = {}
+        self._keys = {}
+        self.down = None      # {'since', 'error', 'wait', 'next_try'} while it doesn't answer
         if url.startswith('sqlite:///'):
             self.kind, self.mark = 'sqlite', '?'
             self.path = url[len('sqlite:///'):] or ':memory:'
@@ -122,23 +146,61 @@ class Sql:
             import psycopg
         except ImportError as exc:      # the image has it; a bare `pip install -r` might not
             raise DatabaseError('Postgres needs the psycopg package (pip install "psycopg[binary]").') from exc
-        return psycopg.connect(self.url, autocommit=True, connect_timeout=10)
+        # A short timeout: while the server is away, a request shouldn't hang on it for long.
+        return psycopg.connect(self.url, autocommit=True, connect_timeout=5)
+
+    # ── up and down ──
+
+    def _mark_down(self, exc):
+        with self._lock:
+            first = self.down is None
+            wait = RETRY_FIRST if first else min(RETRY_MAX, self.down['wait'] * 2)
+            self.down = {'since': time.time() if first else self.down['since'], 'error': str(exc),
+                         'wait': wait, 'next_try': time.monotonic() + wait}
+        if first:
+            print(f"[store] The database {self.describe()} doesn't answer ({exc}). Pages show the "
+                  "last copies read and saving is off until it is back; trying again in the background.",
+                  flush=True)
+        return DatabaseUnavailable(f'{self.describe()}: {exc}')
+
+    def _mark_up(self):
+        with self._lock:
+            was, self.down = self.down, None
+        if was:
+            print(f"[store] The database answers again after {time.time() - was['since']:.0f} s.", flush=True)
+
+    def _drop_conn(self):
+        c = getattr(self._local, 'conn', None)
+        self._local.conn = None
+        if c is not None:
+            with contextlib.suppress(Exception):    # it is broken anyway
+                c.close()
 
     def conn(self):
-        """This thread's connection, opened (and the schema brought up to date) on first use."""
+        """This thread's connection, opened (and the schema brought up to date) on first use.
+        While the database is away, only one try per wait (``RETRY_*``): the rest give up at once."""
         c = getattr(self._local, 'conn', None)
         if c is None:
+            down = self.down
+            if down and time.monotonic() < down['next_try']:
+                raise DatabaseUnavailable(f"{self.describe()}: {down['error']}")
             try:
                 c = self._connect()
             except DatabaseError:
                 raise
             except Exception as exc:  # the driver's own error types differ
-                raise DatabaseError(f'Cannot open the database {self.describe()}: {exc}') from exc
+                raise self._mark_down(exc) from exc
             self._local.conn = c
             if not self._ready:
                 with self._lock:
                     if not self._ready:
-                        migrate(self, c)
+                        try:
+                            migrate(self, c)
+                        except Exception as exc:
+                            self._drop_conn()
+                            if _unreachable(exc):
+                                raise self._mark_down(exc) from exc
+                            raise DatabaseError(f'{self.describe()}: {exc}') from exc
                         self._ready = True
         return c
 
@@ -149,23 +211,41 @@ class Sql:
             try:
                 cur = c.cursor()
                 cur.execute(sql, args)
-                return cur.fetchall() if fetch else None
+                rows = cur.fetchall() if fetch else None
             except Exception as exc:
-                # A dropped Postgres connection (a restart, a failover): open a new one, once.
-                if self.kind == 'postgres' and attempt == 1 and getattr(c, 'closed', False):
-                    self._local.conn = None
+                if not _unreachable(exc) and not getattr(c, 'closed', False):
+                    raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                # A dropped connection (a restart, a failover): open a new one, once.
+                self._drop_conn()
+                if attempt == 1:
                     continue
-                raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                raise self._mark_down(exc) from exc
+            if self.down:
+                self._mark_up()
+            return rows
         return None
 
     # ── documents ──
 
     def get(self, key):
-        rows = self.run('SELECT body FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
-        return json.loads(rows[0][0]) if rows else _MISSING
+        try:
+            rows = self.run('SELECT body, updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
+        except DatabaseUnavailable:
+            if key in self._docs:
+                return json.loads(self._docs[key][0])
+            raise
+        if not rows:
+            self._docs.pop(key, None)
+            return _MISSING
+        self._docs[key] = (rows[0][0], rows[0][1])
+        return json.loads(rows[0][0])
 
     def updated_at(self, key):
-        rows = self.run('SELECT updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
+        try:
+            rows = self.run('SELECT updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
+        except DatabaseUnavailable:
+            # The copy's time: caches that compare it see no change, which is true for what they can read.
+            return self._docs[key][1] if key in self._docs else None
         return rows[0][0] if rows else None
 
     def put(self, key, body):
@@ -180,16 +260,29 @@ class Sql:
             self.run('INSERT INTO floorbit_documents (doc_key, body, updated_at) VALUES (?, ?, ?) '
                      'ON CONFLICT (doc_key) DO UPDATE SET body = EXCLUDED.body, updated_at = EXCLUDED.updated_at',
                      (key, body, now))
+        self._docs[key] = (body, now)
+        for prefix, known in self._keys.items():
+            if key.startswith(prefix) and key not in known:
+                known.append(key)
 
     def delete(self, key):
         found = self.run('SELECT 1 FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         self.run('DELETE FROM floorbit_documents WHERE doc_key = ?', (key,))
+        self._docs.pop(key, None)
+        self._keys.clear()
         return bool(found)
 
     def keys(self, prefix):
         like = prefix.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
-        rows = self.run("SELECT doc_key FROM floorbit_documents WHERE doc_key LIKE ? ESCAPE '\\'", (like,), fetch=True)
-        return [r[0] for r in rows]
+        try:
+            rows = self.run("SELECT doc_key FROM floorbit_documents WHERE doc_key LIKE ? ESCAPE '\\'",
+                            (like,), fetch=True)
+        except DatabaseUnavailable:
+            if prefix in self._keys:
+                return list(self._keys[prefix])
+            raise
+        self._keys[prefix] = [r[0] for r in rows]
+        return list(self._keys[prefix])
 
     # ── append-only logs (floorbit/journal.py) ──
 
@@ -298,30 +391,63 @@ def key_for(path, root=None):
 
 def wait_until_ready(seconds=None):
     """At start: a database container may come up after Floorbit, so wait for it a little
-    (``FLOORBIT_DATABASE_WAIT``, default 30 s), then stop with a clear message instead of serving
-    pages that can't save anything."""
+    (``FLOORBIT_DATABASE_WAIT``, default 10 s). If it still doesn't answer, start anyway: the
+    pages, the live status and the big screens work without it, saving waits until it is back,
+    and ``watch`` keeps trying (docs/database.md)."""
     if seconds is None:
-        seconds = float(os.environ.get('FLOORBIT_DATABASE_WAIT') or 30)
+        seconds = float(os.environ.get('FLOORBIT_DATABASE_WAIT') or 10)
     deadline = time.monotonic() + seconds
     while True:
         out = status()
-        if out['ok']:
+        if out['ok'] or time.monotonic() >= deadline:
             return out
-        if time.monotonic() >= deadline:
-            raise SystemExit(f"[store] {out['where']} doesn't answer: {out.get('error')}")
-        time.sleep(2)
+        time.sleep(min(2.0, max(0.1, deadline - time.monotonic())))
 
 
 def status():
-    """For Settings and the health check: which store, and whether it answers."""
+    """For Settings, the health check and the banner: which store, whether it answers, and
+    since when it doesn't."""
     b = backend()
-    out = {'kind': b.kind, 'where': b.describe()}
-    if b.kind != 'files':
-        try:
-            b.run('SELECT 1', fetch=True)
-            out['ok'] = True
-        except DatabaseError as exc:
-            out.update(ok=False, error=str(exc))
-    else:
-        out['ok'] = True
+    out = {'kind': b.kind, 'where': b.describe(), 'ok': True}
+    if b.kind == 'files':
+        return out
+    try:
+        b.run('SELECT 1', fetch=True)
+    except DatabaseError as exc:
+        out.update(ok=False, error=str(exc))
+    down = b.down
+    if down:
+        out.update(ok=False, since=down['since'], error=out.get('error') or down['error'],
+                   retry_in=max(0, round(down['next_try'] - time.monotonic())))
     return out
+
+
+def available():
+    """False while the database doesn't answer, without asking it (cheap, for every request)."""
+    b = backend()
+    return b.kind == 'files' or b.down is None
+
+
+_watch_started = False
+
+
+def watch():
+    """Ask the database now and then in the background: soon after it went away (with longer
+    waits each time, ``RETRY_*``), every ``PROBE_EVERY`` seconds while it answers. So Floorbit
+    notices both on its own, without waiting for someone to load a page."""
+    global _watch_started
+    if _watch_started or backend().kind == 'files':
+        return
+    _watch_started = True
+
+    def loop():
+        while True:
+            b = backend()
+            down = getattr(b, 'down', None)    # None too when the store moved to files
+            time.sleep(max(0.2, down['next_try'] - time.monotonic()) if down else PROBE_EVERY)
+            try:
+                status()
+            except Exception as exc:  # noqa: BLE001 - the watch itself must never stop
+                print(f'[store] Database watch: {exc}', flush=True)
+
+    threading.Thread(target=loop, name='floorbit-db-watch', daemon=True).start()

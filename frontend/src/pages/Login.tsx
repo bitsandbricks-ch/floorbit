@@ -4,10 +4,12 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
-import { get, post } from '@/api/client'
+import { ApiError, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LoginOptions } from '@/api/types'
 import { PublicPage } from '@/components/PublicPage'
+
+const dbDown = (err: unknown) => err instanceof ApiError && err.data.code === 'database_unavailable'
 
 /** The sign-in page (issue #46), which is also where an attendee lands: so seat check-in comes
  *  first and big when it is open, and the crew's sign-in below it. The form posts JSON; the plain
@@ -19,6 +21,10 @@ export default function Login() {
     queryKey: [...qk.loginOptions, params.get('next') ?? ''],
     queryFn: () => get<LoginOptions>(`/api/auth/login-options?next=${encodeURIComponent(params.get('next') ?? '/')}`),
     staleTime: Infinity,
+    // The database away (docs/database.md): say so at once and look again until it is back,
+    // instead of retrying quietly behind a spinner.
+    retry: (n, err) => !dbDown(err) && n < 3,
+    refetchInterval: (q) => (dbDown(q.state.error) ? 10_000 : false),
   })
   const o = options.data
   // Until typed in, the name from the last failed try, so only the password needs typing again.
@@ -56,7 +62,9 @@ export default function Login() {
             <Text c="dimmed" size="sm">{t('login.intro')}</Text>
           </div>
           {options.isPending && <Loader aria-label={t('common.loading')} />}
-          {options.error && <Alert color="down" role="alert">{t('common.error', { message: options.error.message })}</Alert>}
+          {options.error && (dbDown(options.error)
+            ? <Alert color="warn" role="alert" title={t('database.downTitle')}>{t('database.downText')}</Alert>
+            : <Alert color="down" role="alert">{t('common.error', { message: options.error.message })}</Alert>)}
           {error && <Alert color="down" role="alert">{error}</Alert>}
           {o?.no_users && (
             <Alert color="gray">

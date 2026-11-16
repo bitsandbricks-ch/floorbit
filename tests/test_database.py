@@ -119,13 +119,12 @@ def test_an_unreachable_database_is_reported_not_raised(monkeypatch, tmp_path):
     assert status["kind"] == "sqlite" and status["ok"] is False and "error" in status
 
 
-def test_start_waits_for_the_database_then_stops_clearly(monkeypatch, tmp_path):
+def test_start_waits_for_the_database_then_goes_on_without_it(monkeypatch, tmp_path):
     monkeypatch.setattr(store, "DATA_FILE", str(tmp_path / "data.json"))
     (tmp_path / "db").mkdir()
     monkeypatch.setenv(database.ENV, f"sqlite:///{tmp_path / 'db'}")
-    with pytest.raises(SystemExit) as stop:
-        database.wait_until_ready(0)
-    assert "doesn't answer" in str(stop.value)
+    out = database.wait_until_ready(0)
+    assert out["ok"] is False and "since" in out
 
 
 def test_opening_while_another_connection_writes_waits_instead_of_failing(tmp_path):

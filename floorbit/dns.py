@@ -24,7 +24,7 @@ import time
 
 from integrations import config
 
-from . import features, store
+from . import database, features, store
 from .plugins import PluginError
 
 FILE = 'dns.json'
@@ -103,6 +103,7 @@ class DnsStats:
         # Closed hours: {hour: {"lookups", "blocked", "sites": {site: [lookups, blocked, clients]}}}.
         self.hours = {}
         self.current = None          # the open hour, with hashed clients
+        self._loaded = False   # False while the database was away at start (docs/database.md)
         self._load()
 
     # ── storage ──────────────────────────────────────────────────────────────
@@ -110,10 +111,16 @@ class DnsStats:
         return self.path or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), FILE)
 
     def _load(self):
+        """Read what was counted before. While the database is away this stays undone, and
+        counting waits (``ready``): saving a count that started from nothing would overwrite the
+        stored hours once it is back."""
         try:
             raw = store.read_json(self._file(), {}) or {}
+        except database.DatabaseUnavailable:
+            return
         except (OSError, ValueError):
             raw = {}
+        self._loaded = True
         hours = raw.get('hours') if isinstance(raw, dict) else None
         for key, h in (hours or {}).items():
             try:
@@ -123,10 +130,17 @@ class DnsStats:
             except (KeyError, TypeError, ValueError, IndexError):
                 continue
 
+    def ready(self):
+        if not self._loaded:
+            self._load()
+        return self._loaded
+
     def _save(self):
+        if not self._loaded:
+            return
         try:
             store.write_json(self._file(), {'version': 1, 'hours': {str(k): v for k, v in self.hours.items()}})
-        except OSError as exc:
+        except (OSError, database.DatabaseError) as exc:
             print(f'[dns] could not save {self._file()}: {exc}')
 
     # ── counting ─────────────────────────────────────────────────────────────
@@ -219,6 +233,9 @@ class DnsStats:
     def poll_once(self, now=None):
         from . import agent_link
         now = time.time() if now is None else now
+        if not self.ready():
+            self.last_error = 'Waiting for the database to read the counts so far'
+            return
         errors, answered = self._from_agent(now) if agent_link.active() else ([], set())
         for spec in self.registry.feeders('dns') if self.registry else []:
             if spec.id in answered:     # the agent reads that resolver; this side can't reach it

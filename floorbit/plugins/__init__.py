@@ -410,12 +410,19 @@ class Registry:
         return os.environ.get('PLUGINS_FILE') or os.path.join(
             os.path.dirname(os.path.abspath(store.DATA_FILE)), 'plugins.json')
 
-    def _all(self, path=None):
-        from .. import store
+    def _all(self, path=None, strict=False):
+        """Every plugin's saved state. While the database is away with no copy read yet, none
+        (each plugin's defaults), so the background polls keep going; ``strict`` for a change,
+        which must never start from that."""
+        from .. import database, store
         path = path or self.path()
         try:
             data = store.read_json(path, {})
             return data if isinstance(data, dict) else {}
+        except database.DatabaseUnavailable:
+            if strict:
+                raise
+            return {}
         except (OSError, ValueError) as exc:
             print(f'[plugins] could not read {path}: {exc}')
             return {}
@@ -428,7 +435,7 @@ class Registry:
         import tempfile
         with self._lock:
             path = self.path()   # once: read and write the same file
-            data = self._all(path)
+            data = self._all(path, strict=True)
             data.setdefault(plugin_id, {}).update(changes)
             from .. import database, store
             if database.backend().kind != 'files':

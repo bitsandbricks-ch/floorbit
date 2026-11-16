@@ -49,4 +49,21 @@ describe('Login', () => {
     expect(await screen.findByRole('link', { name: 'Set up Floorbit' })).toHaveAttribute('href', '/setup')
     expect(screen.getByText(/flask --app app users add/)).toHaveTextContent('flask --app app users add <name>')
   })
+
+  it('says the database is away instead of an empty form, and shows the form once it is back', async () => {
+    let down = true
+    vi.stubGlobal('fetch', fakeFetch({
+      [OPTIONS]: () => (down
+        ? { status: 503, body: { code: 'database_unavailable', error: 'The database is away' } }
+        : { body: options() }),
+    }).fn)
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    renderWithApp(<Login />, '/login?next=/inventory')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Database unavailable')
+    expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument()
+    down = false
+    await vi.advanceTimersByTimeAsync(10_100)
+    expect(await screen.findByLabelText(/Password/)).toBeInTheDocument()
+    vi.useRealTimers()
+  })
 })

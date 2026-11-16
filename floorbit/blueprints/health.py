@@ -4,9 +4,14 @@
 - ``GET /api/health``: every service with its status, summary and metrics, and until when it is
   muted (issue #260; who muted it and why stay on the Problems page).
 - ``POST /api/health/check``: ask every health plugin now instead of waiting for the next poll.
-- ``GET /healthz``: "the app answers", for the Docker healthcheck and load balancers. Open without
-  signing in, so it says nothing else; 503 when the database (``FLOORBIT_DATABASE_URL``) doesn't answer.
+- ``GET /healthz``: "the app answers", for the Docker healthcheck, Kubernetes and load balancers.
+  Open without signing in, so it says little: whether the database answers (``database``: up or
+  down), and for how long it hasn't. It stays 200 while the database is away, because Floorbit
+  keeps serving and a restart wouldn't bring the database back; ``?strict=1`` answers 503 then,
+  for a load balancer with another instance to send people to (docs/database.md).
 """
+import time
+
 from flask import Blueprint, current_app, jsonify, request
 
 from integrations import alerting
@@ -22,14 +27,39 @@ def _wall():
 
 @bp.route('/healthz')
 def alive():
-    # Without its database Floorbit can't keep anything: say so, so the orchestrator restarts it
-    # or the load balancer stops sending users (docs/database.md).
-    if not database.status()['ok']:
-        return jsonify({'ok': False}), 503
-    return jsonify({'ok': True})
+    db = database.status()
+    if db['ok']:
+        return jsonify({'ok': True, 'database': 'up'})
+    body = {'ok': True, 'database': 'down', 'down_for': round(time.time() - db.get('since', time.time())),
+            'retry_in': db.get('retry_in')}
+    if request.args.get('strict'):
+        return jsonify({**body, 'ok': False}), 503
+    return jsonify(body)
 
 
 alive._auth_public = True   # what auth.public_endpoint sets
+
+UNAVAILABLE = ("The database isn't answering right now. Floorbit keeps trying; until it's back, "
+               "pages show what was last read and changes can't be saved.")
+
+
+def database_unavailable(exc):
+    """A request that needed the database while it is away: 503 and a clear word, not a 500. The
+    API answers JSON (the app shows it and its banner); a page answers a short page that reloads
+    itself."""
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    wants_json = request.path.startswith('/api/') or request.accept_mimetypes.best == 'application/json'
+    if wants_json:
+        resp = jsonify({'error': UNAVAILABLE, 'code': 'database_unavailable'})
+    else:
+        # Straight from Jinja: the context processors (theme, demo banner, plugins) need the database.
+        resp = current_app.make_response(current_app.jinja_env.get_template('unavailable.html').render(
+            lang='de' if lang.startswith('de') else 'en',
+            title=i18n.translate('Database unavailable', lang), text=i18n.translate(UNAVAILABLE, lang),
+            retry=i18n.translate('Trying again by itself…', lang)))
+    resp.status_code = 503
+    resp.headers['Retry-After'] = '10'
+    return resp
 
 
 @bp.route('/health')
