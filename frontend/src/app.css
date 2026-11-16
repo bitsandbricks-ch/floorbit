@@ -513,6 +513,9 @@ body {
 .fb-plan .pboard text.pload-text.pw-tripped { fill: var(--color-down); font-weight: 700; }
 .fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
 .fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
+.fb-plan-screen .fb-plan-zoom { transition: opacity .3s; }
+.fb-plan-screen.idle, .fb-plan-screen.idle * { cursor: none !important; }
+.fb-plan-screen.idle .fb-plan-zoom { opacity: 0; pointer-events: none; }
 .fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
 .fb-plan-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; padding: 0; font-size: 13px; color: var(--color-muted); }
 .fb-plan-legend li { display: flex; align-items: center; gap: 6px; }
