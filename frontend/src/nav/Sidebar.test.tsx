@@ -133,3 +133,19 @@ describe('Sidebar', () => {
     expect(screen.getByRole('menuitem', { name: 'Sign out' }).closest('form')).toHaveAttribute('action', '/logout')
   })
 })
+
+describe('skip link', () => {
+  it('moves keyboard focus past the sidebar into the page', () => {
+    const page = document.createElement('main')
+    page.innerHTML = '<button>First thing on the page</button>'
+    document.body.appendChild(page)
+    try {
+      sidebar()
+      fireEvent.click(screen.getByRole('link', { name: 'Skip to content' }))
+      expect(document.activeElement).toBe(page)
+      expect(page).toHaveAttribute('tabindex', '-1')
+    } finally {
+      page.remove()
+    }
+  })
+})

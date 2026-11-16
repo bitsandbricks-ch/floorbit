@@ -42,6 +42,16 @@ function initials(name: string) {
 
 /** The one navigation of every crew page (issue: "move it all to a small sidebar"): a sidebar that
  *  folds to icons on a desktop, a bar at the bottom and a menu sheet on a phone. */
+// Keyboard users would otherwise tab through every sidebar link on each page.
+// Focus <main> itself, so Layout needs no id and the next Tab starts in the page.
+function skipToMain(e: MouseEvent<HTMLAnchorElement>) {
+  const main = document.querySelector('main')
+  if (!main) return
+  e.preventDefault()
+  main.setAttribute('tabindex', '-1')
+  main.focus()
+}
+
 export function Sidebar(props: SidebarProps) {
   const { t } = useTranslation()
   const [rail, setRail] = useState(readRail)
@@ -75,6 +85,7 @@ export function Sidebar(props: SidebarProps) {
   const tabs = pinned.filter((p) => ['floorPlan', 'seats', 'problems', 'incidents'].includes(p.id)).slice(0, 4)
   return (
     <>
+      <a className="fb-skip" href="#main" onClick={skipToMain}>{t('nav.skip')}</a>
       <nav className="fb-nav" data-state={rail ? 'rail' : 'full'} aria-label={t('nav.label')}>
         <Panel {...props} rail={rail} lit={lit} onToggleRail={toggleRail} prefs={prefs} setPrefs={setPrefs} />
       </nav>

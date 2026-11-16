@@ -587,3 +587,13 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   margin-top: 16px;
   z-index: 5;
 }
+
+/* A line of text that opens something. Reset by class, not an inline `all: unset`,
+   which would also wipe the keyboard focus ring. */
+.fb-text-button {
+  background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: start;
+  cursor: pointer; text-decoration: underline dotted; border-radius: 2px; align-self: flex-start;
+}
+.fb-text-button:focus-visible { box-shadow: none; outline: 2px solid var(--color-bit); outline-offset: 2px; }
+/* Mantine clips the alert's message box, which would cut the ring off. */
+.mantine-Alert-message:has(.fb-text-button) { overflow: visible; }

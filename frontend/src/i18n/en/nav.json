@@ -23,5 +23,6 @@
   "favourites": "Favourites",
   "favAdd": "Add {{page}} to favourites",
   "favRemove": "Remove {{page}} from favourites",
-  "accordion": "Fold other sections when one opens"
+  "accordion": "Fold other sections when one opens",
+  "skip": "Skip to content"
 }
