@@ -13,4 +13,5 @@ def test_editor_has_the_tool_rail_and_the_panel(client):
         assert page.count(f'id="{el}"') == 1, el
     # The old left sidebar and floating toolbar are gone.
     assert 'id="sidebar"' not in page and 'class="toolbar"' not in page
-    assert page.index("/static/js/editor/touch.js") < page.index("/static/js/editor/panels.js") < page.index("/static/js/editor/main.js")
+    order = [page.index(f"/static/js/editor/{name}.js") for name in ("touch", "panels", "main")]
+    assert order == sorted(order)

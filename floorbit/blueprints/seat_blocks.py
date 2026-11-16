@@ -7,6 +7,7 @@ import uuid
 from flask import Blueprint, jsonify, request
 
 from .. import halls, seat_names
+from ..plan_marks import on_plan
 from ..store import load_data, save_data
 
 bp = Blueprint('seat_blocks', __name__)
@@ -42,7 +43,9 @@ def drawn(block):
 
 
 def _clean(block):
-    """Checks and tidies the naming fields in place; raises BlockError."""
+    """Checks and tidies the naming fields in place; raises BlockError (ValueError for a position
+    that isn't a number on the plan)."""
+    block['x'], block['y'] = on_plan(block['x']), on_plan(block['y'])
     for side in ('cols', 'rows'):
         if not 1 <= int(block[side]) <= MAX_SIDE:
             raise BlockError(f'A block has 1 to {MAX_SIDE} rows and columns')
@@ -171,8 +174,6 @@ def add_many_seat_blocks():
                  'name': _next_name(first['name'], i) if first['naming'] == 'block' else first['name']}
             if first['naming'] == 'rows':
                 b['row_start'] = seat_names.row_letter(seat_names.letter_index(first['row_start']) + i * first['rows'])
-            if not (0 <= b['x'] <= 100 and 0 <= b['y'] <= 100):
-                raise BlockError('The last blocks would land outside the plan. Use fewer blocks or a smaller gap.')
             blocks.append(_clean(b))
     except BlockError as exc:
         return jsonify({'error': str(exc)}), 400

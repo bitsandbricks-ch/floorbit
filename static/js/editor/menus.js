@@ -178,7 +178,7 @@ function contextTargetOf(el, clientX, clientY) {
     return { type: 'block', id };
   }
   const p = clientToPercent(clientX, clientY);
-  const at = p ? { x: Math.min(100, Math.max(0, snapToGrid(p.x))), y: Math.min(100, Math.max(0, snapToGrid(p.y))) } : null;
+  const at = p ? { x: snapToGrid(p.x), y: snapToGrid(p.y) } : null;
   return { type: 'floor', at };
 }
 

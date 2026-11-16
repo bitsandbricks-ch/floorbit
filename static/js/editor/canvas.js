@@ -19,8 +19,9 @@ function updatePositionDisplay(x, y) {
   posY.textContent = snapToGrid(y).toFixed(2);
 }
 // ── Floor plan click (place items, pick seats) ──────────────────────────────────
-wrapper.addEventListener('click', (e) => {
+canvasArea.addEventListener('click', (e) => {
   if (suppressNextClick) { suppressNextClick = false; return; }
+  if (e.target.closest('.zoom-bar, .empty-canvas')) return;
 
   if (currentTool === 'select') {
     if (typeof selectedMark !== 'undefined' && selectedMark && !e.target.closest('[data-mark]')) clearMarkSelection();
@@ -35,17 +36,15 @@ wrapper.addEventListener('click', (e) => {
 
   const p = clientToPercent(e.clientX, e.clientY);
   if (!p) return;
-  pendingCoords = {
-    x: Math.min(100, Math.max(0, snapToGrid(p.x))),
-    y: Math.min(100, Math.max(0, snapToGrid(p.y))),
-  };
+  // The plan has no edge: things may go anywhere on the grid, the views fit to what is drawn.
+  pendingCoords = { x: snapToGrid(p.x), y: snapToGrid(p.y) };
 
   if (currentTool === 'add-switch') openAddModal();
   else if (currentTool === 'add-block') openBlockModal();
   else if (currentTool.startsWith('add-')) placeMark(currentTool.slice(4), pendingCoords);
 });
 
-wrapper.addEventListener('mousemove', (e) => {
+canvasArea.addEventListener('mousemove', (e) => {
   const rect = wrapper.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
   addCursor.style.left = ((e.clientX - rect.left) / view.k) + 'px';

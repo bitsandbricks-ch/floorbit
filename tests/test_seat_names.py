@@ -85,3 +85,22 @@ def test_csv_import_takes_the_naming_columns(client):
     assert not errors and blocks[0]["naming"] == "rows" and blocks[0]["row_start"] == "K"
     _, errors = halls.parse_blocks_csv("name,x,y,cols,rows,row_labels\nN,10,10,4,2,middle\n")
     assert errors
+
+
+def test_the_plan_has_no_edge(client):
+    # Mike's case: more blocks than fit in the plan box. The plan grows with them.
+    made = client.post("/api/seat-blocks/many", json={"name": "A", "cols": 12, "rows": 2, "x": 20, "y": 80,
+                                                      "count": 4, "dy": 15})
+    assert made.status_code == 201
+    assert [b["y"] for b in made.get_json()] == [80, 95, 110, 125]
+    left = client.post("/api/seat-blocks", json={"name": "Z", "cols": 2, "rows": 1, "x": -30, "y": 50})
+    assert left.status_code == 201
+    moved = client.put(f"/api/seat-blocks/{left.get_json()['id']}", json={"x": -45.5})
+    assert moved.status_code == 200 and moved.get_json()["x"] == -45.5
+    # Only nonsense is refused.
+    for x in ("nan", "inf", 1e9):
+        assert client.post("/api/seat-blocks", json={"name": "Q", "x": x, "y": 10}).status_code == 400
+    # The Seats view fits its drawing around all of them.
+    drawing = client.get("/api/plan").get_json()["drawing"]
+    names = {s["name"] for s in drawing["shapes"]}
+    assert {"A", "B", "C", "D", "Z"} <= names

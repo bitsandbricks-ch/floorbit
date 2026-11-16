@@ -347,7 +347,9 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
   outline: 1px dashed var(--plan-outline);
   will-change: transform;
 }
-.floorplan-wrapper[data-tool*="add-"] { cursor: crosshair; }
+.floorplan-wrapper[data-tool*="add-"], .canvas-area:has(> .floorplan-wrapper[data-tool*="add-"]) { cursor: crosshair; }
+/* The plan has no edge; the dashed box only frames the hall's background image when there is one. */
+.floorplan-wrapper:not(:has(> .plan-bg:not([hidden]))) { outline: none; }
 
 /* Box select */
 .marquee {

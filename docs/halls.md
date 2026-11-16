@@ -45,7 +45,7 @@ C,20,60,12,2,90
 | Column | Required | Meaning |
 | --- | --- | --- |
 | `name` | yes | The block's name; seat numbers are `<name>-<n>`. Unique across every hall. |
-| `x`, `y` | yes | The block's centre, in percent of the plan (0 to 100). A decimal comma works. |
+| `x`, `y` | yes | The block's centre, in percent of the plan box (0 to 100 is the box the background image fills; the plan has no edge, so values outside it work too). A decimal comma works. |
 | `cols`, `rows` | yes | Seats per row and rows. |
 | `rotation` | no | Degrees, 0 by default. |
 | `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Sizes in percent of the plan, as in the editor. |
