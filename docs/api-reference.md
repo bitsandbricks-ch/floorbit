@@ -127,6 +127,19 @@ Source: [`floorbit/blueprints/brackets.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/tournament/brackets/<bracket_id>/matches/<match_id>` | `floorplan.edit` | `tournament` |
 | POST | `/api/tournament/brackets/import` | `floorplan.edit` | `tournament` |
 
+## floorbit.blueprints.cable_plan
+
+Cables drawn on the floor plan (floorbit/cable_plan.py).
+
+Source: [`floorbit/blueprints/cable_plan.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/cable_plan.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/cable-plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| DELETE | `/api/cable-plan/panels/<path:name>` | `floorplan.edit` |  |
+| PUT | `/api/cable-plan/panels/<path:name>` | `floorplan.edit` |  |
+| PUT | `/api/cable-plan/routes` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.cables
 
 Cables and patching (issue #97). The rules live in floorbit/cables.py.

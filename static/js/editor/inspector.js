@@ -103,6 +103,7 @@ function deselectAll() {
   hideInspectors();
   markSelection();
   if (typeof selectedMark !== 'undefined' && selectedMark) { selectedMark = null; renderMarks(); }
+  if (typeof selectedCable !== 'undefined' && selectedCable) { selectedCable = null; renderCables(); }
 }
 // ── Multi-selection ──────────────────────────────────────────────────────────────────
 // `selection` holds every selected switch and seat block. With one item the

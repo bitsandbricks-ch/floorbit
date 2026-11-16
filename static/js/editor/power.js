@@ -55,6 +55,7 @@ function markPower() {
     for (const b of powerMarkers.boards || []) {
       const el = document.createElement('a');
       el.className = `power-board power-${b.state}`;
+      el.dataset.board = b.id;
       el.href = '/power';
       el.style.left = b.x + '%';
       el.style.top = b.y + '%';
