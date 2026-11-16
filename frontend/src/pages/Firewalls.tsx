@@ -1,5 +1,6 @@
 import {
   Alert, Badge, Button, Group, Modal, MultiSelect, NumberInput, Paper, ScrollArea, SimpleGrid, Stack, Table, Text, TextInput, Title,
+  Tooltip,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -23,6 +24,11 @@ export default function Firewalls() {
   const q = useQuery({ queryKey: qk.firewalls, queryFn: () => get<FirewallList>('/api/firewalls'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<FirewallRange | 'new' | null>(null)
   const [splitting, setSplitting] = useState(false)
+  const qc = useQueryClient()
+  const imported = useMutation({
+    mutationFn: () => post<{ added: number; errors: string[] }>('/api/firewalls/ranges/import'),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.firewalls }),
+  })
   const data = q.data
   const moved = data?.ranges.filter((r) => r.state === 'failover' || r.state === 'down') ?? []
   return (
@@ -30,12 +36,24 @@ export default function Firewalls() {
       <PageHead title={t('firewalls.title')} desc={t('firewalls.intro')}
         actions={canEdit && data && data.firewalls.length > 0 && (
           <Group gap="xs">
+            {data.can_import && (
+              <Tooltip label={t('firewalls.importHelp')} multiline w={280}>
+                <Button variant="default" loading={imported.isPending} onClick={() => imported.mutate()}>{t('firewalls.import')}</Button>
+              </Tooltip>
+            )}
             <Button variant="default" onClick={() => setSplitting(true)}>{t('firewalls.split')}</Button>
             <Button onClick={() => setEditing('new')}>{t('firewalls.add')}</Button>
           </Group>
         )} />
       <Stack gap="md">
         {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
+        {imported.error && <Alert color="down" role="alert">{imported.error.message}</Alert>}
+        {imported.data && (
+          <Alert color={imported.data.errors.length ? 'warn' : 'up'} role="status" withCloseButton onClose={() => imported.reset()}>
+            <Text size="sm">{t('firewalls.importDone', { count: imported.data.added })}</Text>
+            {imported.data.errors.map((e) => <Text key={e} size="xs">{e}</Text>)}
+          </Alert>
+        )}
         {data?.unread && <Alert color="warn">{t('firewalls.unread')}</Alert>}
         {moved.length > 0 && (
           <Alert color={moved.some((r) => r.state === 'down') ? 'down' : 'warn'} title={t('firewalls.moved', { count: moved.length })}>
@@ -123,6 +141,7 @@ function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit:
               <Table.Td>
                 <Text size="sm" ff="monospace">{r.cidr}</Text>
                 {r.name && <Text size="xs" c="dimmed">{r.name}</Text>}
+                {r.source === 'import' && <Badge size="xs" variant="light" color="gray">{t('firewalls.fromPlugin', { plugin: r.plugin || 'NetBox' })}</Badge>}
               </Table.Td>
               <Table.Td>
                 <Group gap={6} wrap="nowrap">
@@ -135,7 +154,9 @@ function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit:
               {canEdit && (
                 <Table.Td>
                   <Group gap={4} justify="flex-end" wrap="nowrap">
-                    <Button size="compact-sm" variant="default" onClick={() => onEdit(r)}>{t('firewalls.edit')}</Button>
+                    {r.source === 'import'
+                      ? <Text size="xs" c="dimmed">{t('firewalls.fromPluginHelp', { plugin: r.plugin || 'NetBox' })}</Text>
+                      : <Button size="compact-sm" variant="default" onClick={() => onEdit(r)}>{t('firewalls.edit')}</Button>}
                     <ConfirmButton size="compact-sm" variant="subtle" danger label={t('firewalls.remove')}
                       question={t('firewalls.removeQuestion', { range: r.cidr })} onConfirm={() => remove.mutate(r.id)} />
                   </Group>

@@ -1,5 +1,6 @@
-"""NetBox as an inventory source: GET /api/dcim/devices/ for the configured roles, and
-GET /api/dcim/cables/ for the cables page (issue #97)."""
+"""NetBox as an inventory source: GET /api/dcim/devices/ for the configured roles,
+GET /api/dcim/cables/ for the cables page (issue #97), and GET /api/ipam/prefixes/ for the firewall
+ranges (issue #470)."""
 import contextlib
 import re
 from urllib.parse import urlsplit
@@ -99,6 +100,29 @@ def cable(raw):
     return out
 
 
+FIREWALL_FIELD = 'floorbit_firewalls'
+
+
+def _firewall_line(value):
+    """A prefix's firewalls in order, from the custom field: text ("fw-1, fw-2") or a multi-object
+    field of devices (each with a name)."""
+    if isinstance(value, str):
+        items = value.replace(';', ',').split(',')
+    elif isinstance(value, list):
+        items = [v.get('name') or v.get('display') if isinstance(v, dict) else v for v in value]
+    else:
+        return []
+    return [str(v).strip() for v in items if v and str(v).strip()]
+
+
+def firewall_range(raw):
+    """A NetBox prefix as a Floorbit firewall range, or None when it names no firewall."""
+    line = _firewall_line((raw.get('custom_fields') or {}).get(FIREWALL_FIELD))
+    if not raw.get('prefix') or not line:
+        return None
+    return {'cidr': raw['prefix'], 'name': (raw.get('description') or '')[:60], 'firewalls': line}
+
+
 class Plugin(Plugin):
     def _client(self):
         s = self.settings
@@ -136,6 +160,11 @@ class Plugin(Plugin):
     def cables(self):
         """NetBox cables that end on a switch interface, as Floorbit cables."""
         return [c for c in (cable(raw) for raw in self._all('/api/dcim/cables/', {'limit': PAGE}, 'cable')) if c]
+
+    def firewall_ranges(self):
+        """Prefixes whose custom field ``floorbit_firewalls`` names their firewalls, in order."""
+        params = {'limit': PAGE, f'cf_{FIREWALL_FIELD}__empty': 'false'}
+        return [r for r in (firewall_range(raw) for raw in self._all('/api/ipam/prefixes/', params, 'prefix')) if r]
 
     def test(self):
         r = self._client().get('/api/status/')

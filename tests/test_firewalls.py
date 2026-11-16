@@ -157,3 +157,68 @@ def test_the_plan_layer_lists_seats_off_their_planned_firewall_by_name_only(clie
         "B-1": {"now": None, "intended": "fw-03", "state": "down"},
     }}
     assert "192.0.2" not in str(body) and "198.51" not in str(body)
+
+
+NB_PREFIXES = [
+    {"prefix": "192.0.2.0/27", "description": "Block A", "custom_fields": {"floorbit_firewalls": "fw-01, fw-02"}},
+    {"prefix": "198.51.100.0/24", "description": "",
+     "custom_fields": {"floorbit_firewalls": [{"id": 3, "name": "fw-02"}, {"id": 4, "display": "fw-03"}]}},
+    {"prefix": "203.0.113.0/24", "custom_fields": {"floorbit_firewalls": None}},       # no firewalls: not a range
+    {"prefix": "203.0.113.0/25", "custom_fields": {}},
+]
+
+
+def test_netbox_prefixes_become_ranges(app_module):
+    from floorbit.builtin_plugins.netbox.plugin import firewall_range
+    from tests.test_inventory import FakeHttp, FakeResponse, netbox_plugin
+    assert firewall_range(NB_PREFIXES[0]) == {"cidr": "192.0.2.0/27", "name": "Block A",
+                                              "firewalls": ["fw-01", "fw-02"]}
+    assert firewall_range(NB_PREFIXES[1])["firewalls"] == ["fw-02", "fw-03"]
+    assert firewall_range(NB_PREFIXES[2]) is None and firewall_range(NB_PREFIXES[3]) is None
+    registry = app_module.app.extensions["floorbit_plugins"]
+    http = FakeHttp({"/api/ipam/prefixes/": FakeResponse({"results": NB_PREFIXES, "next": None})})
+    assert [r["cidr"] for r in netbox_plugin(registry, http).firewall_ranges()] == ["192.0.2.0/27", "198.51.100.0/24"]
+    assert http.calls[0][1]["cf_floorbit_firewalls__empty"] == "false"     # NetBox filters, not us
+
+
+def test_import_ranges_from_netbox(app_module, client, net, monkeypatch):
+    nb_class = app_module.app.extensions["floorbit_plugins"].specs["netbox"].plugin_class()
+    listed = [{"cidr": "192.0.2.0/27", "name": "Block A", "firewalls": ["fw-01", "fw-02"]},
+              {"cidr": "198.51.100.0/24", "name": "", "firewalls": ["fw-02", "fw-03"]},
+              {"cidr": "203.0.113.0/24", "name": "", "firewalls": ["fw-99"]},       # not in the inventory
+              {"cidr": "192.0.2.64/27", "name": "", "firewalls": ["fw-03"]}]       # the crew planned it
+    monkeypatch.setattr(nb_class, "firewall_ranges", lambda self: list(listed))
+    assert _add(client, "192.0.2.64/27", "fw-01").status_code == 201
+    assert client.get("/api/firewalls").get_json()["can_import"] is True
+
+    r = client.post("/api/firewalls/ranges/import")
+    assert r.status_code == 200, r.get_json()
+    body = r.get_json()
+    assert body["added"] == 2 and len(body["errors"]) == 2
+    rows = {x["cidr"]: x for x in client.get("/api/firewalls").get_json()["ranges"]}
+    assert rows["192.0.2.0/27"]["source"] == "import" and rows["192.0.2.0/27"]["plugin"] == "NetBox"
+    assert rows["192.0.2.64/27"]["source"] == "floorbit" and rows["192.0.2.64/27"]["firewalls"] == ["fw-01"]
+    imported = rows["198.51.100.0/24"]
+    edit = client.put(f"/api/firewalls/ranges/{imported['id']}", json={"firewalls": ["fw-01"]})
+    assert edit.status_code == 409 and "NetBox" in edit.get_json()["error"]
+
+    # Importing again replaces the last import; a prefix gone from NetBox goes here too.
+    listed.pop(0)
+    assert client.post("/api/firewalls/ranges/import").get_json()["added"] == 1
+    assert sorted(x["cidr"] for x in client.get("/api/firewalls").get_json()["ranges"]) == [
+        "192.0.2.64/27", "198.51.100.0/24"]
+
+    # NetBox down: the last import stays.
+    def broken(self):
+        from floorbit.plugins.base import PluginError
+        raise PluginError("NetBox answered 503 for the prefix list")
+    monkeypatch.setattr(nb_class, "firewall_ranges", broken)
+    r = client.post("/api/firewalls/ranges/import")
+    assert r.status_code == 502 and "503" in r.get_json()["error"]
+    assert len(client.get("/api/firewalls").get_json()["ranges"]) == 2
+
+
+def test_only_planners_import(app_module, client, net):
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi1", "viewer")
+    assert viewer.post("/api/firewalls/ranges/import").status_code == 403

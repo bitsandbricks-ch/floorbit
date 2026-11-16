@@ -51,5 +51,11 @@
     "failover": "Failover",
     "unknown": "Not read",
     "down": "None up"
-  }
+  },
+  "import": "Import from NetBox",
+  "importDone_one": "{{count}} range imported from NetBox.",
+  "importDone_other": "{{count}} ranges imported from NetBox.",
+  "importHelp": "Reads the NetBox prefixes that have the custom field floorbit_firewalls (their firewalls, in order). Each import replaces the last; ranges planned here stay.",
+  "fromPlugin": "From {{plugin}}",
+  "fromPluginHelp": "Change it in {{plugin}} and import again."
 }
