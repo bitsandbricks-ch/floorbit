@@ -123,7 +123,7 @@ password reset signs that account out everywhere.
 | `AUTH_PUBLIC_PATHS` | `/checkin,/api/checkin,/kiosk` | Paths open to everyone, comma separated. |
 | `AUTH_SESSION_HOURS` | `12` | How long a sign-in lasts. |
 | `AUTH_COOKIE_SECURE` | `false` | `true` when the app is only reached over HTTPS. |
-| `AUTH_TRUSTED_ORIGINS` | empty | Extra origins allowed to send changes, e.g. `https://lal.example.com` behind a proxy that rewrites `Host`. |
+| `AUTH_TRUSTED_ORIGINS` | empty | Extra origins allowed to send changes, e.g. `https://lal.example.com` behind a proxy that rewrites `Host`. They may also show Floorbit pages in a frame (say, a status wall on the event website); no other site can. |
 
 ## The sign-in page
 
