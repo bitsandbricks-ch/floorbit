@@ -1,0 +1,20 @@
+{
+  "title": "Audit log",
+  "settings": "Settings",
+  "intro": "Every change to the floor plan, settings and accounts, and every sign-in, newest first. It names what changed, never the values: tokens and passwords stay out.",
+  "area": "Area",
+  "allAreas": "All",
+  "account": "Account",
+  "any": "Any",
+  "search": "Search",
+  "searchHint": "Switch name, action, field…",
+  "csv": "Download CSV",
+  "showing": "Showing {{shown}} of {{total}}",
+  "when": "When",
+  "what": "What",
+  "fields": "Fields",
+  "empty": "Nothing logged yet, or nothing matches these filters.",
+  "nobody": "nobody signed in",
+  "failed": "failed",
+  "older": "Show older"
+}

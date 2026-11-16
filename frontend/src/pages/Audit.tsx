@@ -1,0 +1,138 @@
+import { Alert, Badge, Button, Group, Paper, Select, Stack, Table, Text, TextInput } from '@mantine/core'
+import { useDebouncedValue } from '@mantine/hooks'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
+import { get } from '@/api/client'
+import { qk } from '@/api/keys'
+import type { AuditEntry, AuditPage } from '@/api/types'
+import { Layout } from '@/components/Layout'
+import { PageHead } from '@/components/PageHead'
+
+const PAGE = 100
+const FILTERS = ['area', 'user', 'q'] as const
+
+/** Settings > Audit log: every change and sign-in, newest first, page by page. The filters live
+ *  in the link, so a filtered view can be shared or reloaded. */
+export default function Audit() {
+  const { t, i18n } = useTranslation()
+  const [params, setParams] = useSearchParams()
+  const [area, setArea] = useState(params.get('area') ?? '')
+  const [user, setUser] = useState(params.get('user') ?? '')
+  const [q, setQ] = useState(params.get('q') ?? '')
+  const [typed] = useDebouncedValue({ user: user.trim(), q: q.trim() }, 250)
+  const filters = new URLSearchParams()
+  for (const [k, v] of [['area', area], ['user', typed.user], ['q', typed.q]]) if (v) filters.set(k, v)
+  const shown = filters.toString()
+
+  useEffect(() => {
+    const next = new URLSearchParams(params)
+    for (const k of FILTERS) next.delete(k)
+    for (const [k, v] of new URLSearchParams(shown)) next.set(k, v)
+    if (next.toString() !== params.toString()) setParams(next, { replace: true })
+  }, [shown]) // eslint-disable-line react-hooks/exhaustive-deps -- only when the filters change
+
+  const query = useInfiniteQuery({
+    queryKey: [...qk.audit, shown],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => {
+      const p = new URLSearchParams(shown)
+      p.set('limit', String(PAGE))
+      p.set('offset', String(pageParam))
+      return get<AuditPage>(`/api/settings/audit?${p}`)
+    },
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((n, page) => n + page.entries.length, 0)
+      return loaded < last.total ? loaded : undefined
+    },
+  })
+  const rows: AuditEntry[] = query.data?.pages.flatMap((p) => p.entries) ?? []
+  const total = query.data?.pages[0]?.total ?? 0
+  const areas = query.data?.pages[0]?.areas ?? []
+  const when = (iso: string) => {
+    const d = new Date(iso)
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(i18n.language, { dateStyle: 'short', timeStyle: 'medium' })
+  }
+
+  return (
+    <Layout title={t('audit.title')} back={{ href: '/settings', label: t('audit.settings') }}>
+      <PageHead title={t('audit.title')} desc={t('audit.intro')} />
+      <Paper withBorder radius="lg" p="md">
+        <Stack gap="sm">
+          <Group align="flex-end" gap="sm" role="search">
+            <Select label={t('audit.area')} w={{ base: '100%', sm: 170 }} value={area} onChange={(v) => setArea(v ?? '')} allowDeselect={false}
+              data={[{ value: '', label: t('audit.allAreas') }, ...areas.map((a) => ({ value: a, label: a }))]} />
+            <TextInput label={t('audit.account')} placeholder={t('audit.any')} w={{ base: '100%', sm: 170 }} value={user} autoCapitalize="none"
+              spellCheck={false} onChange={(e) => setUser(e.currentTarget.value)} />
+            <TextInput label={t('audit.search')} placeholder={t('audit.searchHint')} style={{ flex: 1, minWidth: 180 }}
+              type="search" value={q} onChange={(e) => setQ(e.currentTarget.value)} />
+            <Button component="a" variant="default" href={`/api/settings/audit.csv${shown ? `?${shown}` : ''}`}>
+              {t('audit.csv')}
+            </Button>
+          </Group>
+          {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+          <Text size="sm" c="dimmed" role="status" aria-live="polite">
+            {total ? t('audit.showing', { shown: rows.length, total }) : ''}
+          </Text>
+          {/* Phones: one block per entry instead of a table five columns wide. */}
+          <Stack gap={0} hiddenFrom="sm">
+            {query.isSuccess && !total && <Text c="dimmed" size="sm">{t('audit.empty')}</Text>}
+            {rows.map((e, i) => (
+              <Stack key={`${e.time}-${i}`} gap={2} py="xs" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+                <Group gap="xs" wrap="nowrap" justify="space-between">
+                  <Text size="sm" fw={600} c={e.ok === false ? 'down' : undefined}>
+                    {e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}
+                  </Text>
+                  <Badge variant="light" color="gray" style={{ flexShrink: 0 }}>{e.area}</Badge>
+                </Group>
+                {e.target && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
+                <Text size="xs" c="dimmed">
+                  {when(e.time)} · {e.user || t('audit.nobody')}
+                  {e.fields?.length ? ` · ${e.fields.join(', ')}` : ''}
+                </Text>
+              </Stack>
+            ))}
+          </Stack>
+          <Table.ScrollContainer minWidth={640} visibleFrom="sm">
+            <Table striped verticalSpacing="xs">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>{t('audit.when')}</Table.Th><Table.Th>{t('audit.account')}</Table.Th>
+                  <Table.Th>{t('audit.area')}</Table.Th><Table.Th>{t('audit.what')}</Table.Th>
+                  <Table.Th>{t('audit.fields')}</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {query.isSuccess && !total && (
+                  <Table.Tr><Table.Td colSpan={5}><Text c="dimmed" size="sm">{t('audit.empty')}</Text></Table.Td></Table.Tr>
+                )}
+                {rows.map((e, i) => (
+                  <Table.Tr key={`${e.time}-${i}`}>
+                    <Table.Td title={e.time} style={{ whiteSpace: 'nowrap' }}>{when(e.time)}</Table.Td>
+                    <Table.Td c={e.user ? undefined : 'dimmed'}>{e.user || t('audit.nobody')}</Table.Td>
+                    <Table.Td><Badge variant="light" color="gray">{e.area}</Badge></Table.Td>
+                    <Table.Td>
+                      <Text size="sm" c={e.ok === false ? 'down' : undefined}>
+                        {e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}
+                      </Text>
+                      {e.target && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
+                    </Table.Td>
+                    <Table.Td><Text size="xs" c="dimmed">{(e.fields ?? []).join(', ')}</Text></Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+          {query.hasNextPage && (
+            <Group justify="center">
+              <Button variant="default" loading={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+                {t('audit.older')}
+              </Button>
+            </Group>
+          )}
+        </Stack>
+      </Paper>
+    </Layout>
+  )
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Audit-Log",
+  "settings": "Einstellungen",
+  "intro": "Jede Änderung am Hallenplan, an den Einstellungen und Konten und jede Anmeldung, das Neuste zuerst. Es steht drin, was geändert wurde, nie die Werte: Tokens und Passwörter bleiben draussen.",
+  "area": "Bereich",
+  "allAreas": "Alle",
+  "account": "Konto",
+  "any": "Alle",
+  "search": "Suche",
+  "searchHint": "Switch-Name, Aktion, Feld…",
+  "csv": "CSV herunterladen",
+  "showing": "{{shown}} von {{total}}",
+  "when": "Wann",
+  "what": "Was",
+  "fields": "Felder",
+  "empty": "Noch nichts protokolliert, oder nichts passt zu diesen Filtern.",
+  "nobody": "niemand angemeldet",
+  "failed": "fehlgeschlagen",
+  "older": "Ältere zeigen"
+}

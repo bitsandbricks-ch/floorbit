@@ -3,9 +3,9 @@ import csv
 import io
 import time
 
-from flask import Blueprint, Response, jsonify, render_template, request
+from flask import Blueprint, Response, jsonify, request
 
-from .. import audit
+from .. import audit, spa
 
 bp = Blueprint('audit', __name__)
 
@@ -33,7 +33,7 @@ def _query():
 
 @bp.route('/settings/audit')
 def audit_page():
-    return render_template('audit.html', areas=audit.AREAS)
+    return spa.render('Audit log')
 
 
 @bp.route('/api/settings/audit')
@@ -42,7 +42,7 @@ def audit_entries():
         rows, total = audit.read(**_query())
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
-    return jsonify({'entries': rows, 'total': total})
+    return jsonify({'entries': rows, 'total': total, 'areas': list(audit.AREAS)})
 
 
 @bp.route('/api/settings/audit.csv')
