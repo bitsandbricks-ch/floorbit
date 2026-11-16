@@ -37,6 +37,18 @@ A cable to a seat is how Floorbit knows which port is that seat: port problems n
 syslog lines from that port are tied to it. Where no cable says so, the port's description on the
 switch (`Seat A-12`) still does. A cable wins over the description: it is what the crew patched.
 
+## Against the network
+
+Once switches are up, the Cables page checks the plan against what LibreNMS says about the ports
+(the port watch's last read, so it asks LibreNMS nothing extra):
+
+- per block, how many seat ports are **up**;
+- cables that name a **port the switch doesn't have**: a typo, or the wrong switch;
+- **port descriptions naming another seat** than the cable does;
+- **ports up that no cable explains**, on switches that have seats: a seat outside the plan, or a
+  device the crew didn't note;
+- seat ports **not up yet** (normal before doors), and switches that weren't read.
+
 ## Labels
 
 **Print labels** makes an A4 PDF of 3 × 8 labels, two per cable: the switch end first, then the far
@@ -82,6 +94,8 @@ under **cables**, with the cable's label and route.
 - `GET /api/cables?q=&seat=&ids=`: the cables, and `sources`, the plugins that can import them.
 - `POST /api/cables`, `PATCH /api/cables/<id>`, `DELETE /api/cables/<id>`.
 - `POST /api/cables/import`: answers `{"imported", "errors"}`.
+- `GET /api/cables/check`: the plan against the last port read: `{"last_poll", "blocks", "missing", "down",
+  "unplanned", "conflicts", "unread"}`; each list is `{"count", "rows"}` (at most 200 rows).
 - `POST /api/cables/block`: `{"block", "switch", "first_port", "order": "rows" | "snake", "reverse", "rows",
   "dry_run", "replace"}`. Answers `{"block", "cables": [{"seat", "switch", "port"}], "clashes", "created", "removed"}`;
   409 when cables are in the way and `replace` isn't set.

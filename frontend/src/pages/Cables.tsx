@@ -14,6 +14,7 @@ import type { BlockPlan, Cable, CableImport, CableList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
+import { PatchCheck } from '@/components/PatchCheck'
 
 type Draft = Pick<Cable, 'label' | 'switch' | 'port' | 'panel' | 'panel_port' | 'seat' | 'color' | 'note'> & { length_m: number | string }
 
@@ -138,6 +139,7 @@ export default function Cables() {
             {doImport.data.errors.map((e) => <Text key={e} size="sm">{e}</Text>)}
           </Alert>
         )}
+        <PatchCheck />
         {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}

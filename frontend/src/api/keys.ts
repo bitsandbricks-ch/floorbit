@@ -43,6 +43,7 @@ export const qk = {
   helpdeskQr: ['helpdesk', 'qr'] as const,
   switches: ['switches'] as const,
   seatBlocks: ['seat-blocks'] as const,
+  cableCheck: ['cable-check'] as const,
   blockPlan: (form: object) => ['block-plan', form] as const,
   health: ['health'] as const,
   security: ['security'] as const,

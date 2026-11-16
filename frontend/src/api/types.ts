@@ -1070,6 +1070,12 @@ export interface CableClash {
   other_seat?: string; other_port?: string
 }
 export interface BlockPlan { block: string; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
+export interface PatchRow { switch: string; port: string; seat?: string; cable?: string; state?: string; described_seat?: string }
+export interface PatchList { count: number; rows: PatchRow[] }
+export interface PatchCheck {
+  last_poll: number | null; blocks: { block: string; name: string; seats: number; up: number }[]
+  missing: PatchList; down: PatchList; unplanned: PatchList; conflicts: PatchList; unread: string[]
+}
 export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */

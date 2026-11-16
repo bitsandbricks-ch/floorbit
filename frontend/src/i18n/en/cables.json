@@ -51,5 +51,21 @@
   "replace": "Replace the cables in the way",
   "create_one": "Make {{count}} cable",
   "create_other": "Make {{count}} cables",
-  "created": "Made {{created}} cables, replaced {{removed}}."
+  "created": "Made {{created}} cables, replaced {{removed}}.",
+  "checkTitle": "Against the network",
+  "checkRead": "Ports read at {{time}}",
+  "checkBlock": "Block {{name}}",
+  "checkLoose": "Seats outside a block plan",
+  "checkUp": "{{up}} of {{seats}} seat ports up",
+  "checkMissing_one": "{{count}} cable names a port the switch doesn't have",
+  "checkMissing_other": "{{count}} cables name a port the switch doesn't have",
+  "checkConflicts_one": "{{count}} port description names another seat",
+  "checkConflicts_other": "{{count}} port descriptions name another seat",
+  "checkConflict": "{{port}}: cable says {{seat}}, the switch says {{described}}",
+  "checkUnplanned_one": "{{count}} port is up and no cable says what is on it",
+  "checkUnplanned_other": "{{count}} ports are up and no cable says what is on them",
+  "checkDown_one": "{{count}} seat port not up yet: {{seats}}",
+  "checkDown_other": "{{count}} seat ports not up yet: {{seats}}",
+  "checkUnread": "Not read (not on the floor plan, or offline): {{switches}}",
+  "checkMore": "and {{count}} more"
 }

@@ -83,4 +83,26 @@ describe('Cables', () => {
     expect(sent[0]).toMatchObject({ block: 'b1', switch: 'sw-a-01', first_port: 'Gi1/0/1', order: 'rows', dry_run: true })
     expect(sent.filter((b) => !b.dry_run)).toEqual([expect.objectContaining({ block: 'b1', replace: true })])
   })
+
+  it('checks the plan against the ports the network reports', async () => {
+    const list = (rows: object[]) => ({ count: rows.length, rows })
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': viewer, 'GET /api/cables': data,
+      'GET /api/cables/check': {
+        last_poll: 1_763_100_000, blocks: [{ block: 'b1', name: 'A', seats: 24, up: 18 }],
+        missing: list([{ seat: 'A-4', switch: 'sw-a-01', port: 'Gi1/0/40' }]),
+        conflicts: list([{ seat: 'A-1', switch: 'sw-a-01', port: 'Gi1/0/1', described_seat: 'A-2' }]),
+        unplanned: list([{ switch: 'sw-a-01', port: 'Gi1/0/30' }]),
+        down: list([{ seat: 'A-7', switch: 'sw-a-01', port: 'Gi1/0/7' }]), unread: ['sw-z-09'],
+      },
+    }).fn)
+    renderWithApp(<Cables />)
+    expect(await screen.findByText('18 of 24 seat ports up')).toBeInTheDocument()
+    expect(screen.getByText("1 cable names a port the switch doesn't have")).toBeInTheDocument()
+    expect(screen.getByText('A-4: sw-a-01 Gi1/0/40')).toBeInTheDocument()
+    expect(screen.getByText('sw-a-01 Gi1/0/1: cable says A-1, the switch says A-2')).toBeInTheDocument()
+    expect(screen.getByText('1 port is up and no cable says what is on it')).toBeInTheDocument()
+    expect(screen.getByText('1 seat port not up yet: A-7')).toBeInTheDocument()
+    expect(screen.getByText('Not read (not on the floor plan, or offline): sw-z-09')).toBeInTheDocument()
+  })
 })

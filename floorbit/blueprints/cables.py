@@ -4,6 +4,7 @@
 - ``GET /api/cables?q=&seat=``: the cables, and whether a plugin can import them.
 - ``POST /api/cables``, ``PATCH /api/cables/<id>``, ``DELETE /api/cables/<id>``: the crew's own cables.
 - ``POST /api/cables/import``: read the cables from NetBox again (replaces the last import).
+- ``GET /api/cables/check``: the cables to seats against the port watch's last read (patch_check.py).
 - ``POST /api/cables/block``: patch a whole seat block to a switch (issue #473). With ``dry_run``
   it only says which seat gets which port and what is in the way; ``replace`` moves the crew's
   cables that are in the way.
@@ -15,7 +16,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit, cables, spa
+from .. import agent_link, audit, cables, patch_check, spa
 
 bp = Blueprint('cables', __name__)
 
@@ -104,6 +105,16 @@ def import_cables():
     audit.record('cables', f'Imported {count} cables', g.get('audit_user'), 'NetBox')
     events.publish('cables.changed', {})
     return jsonify({'imported': count, 'errors': errors})
+
+
+@bp.route('/api/cables/check', methods=['GET'])
+def check_cables():
+    watch = current_app.extensions.get('floorbit_attention')
+    if watch is None or not watch.last_poll:
+        return jsonify({'last_poll': None, 'blocks': [], 'missing': {'count': 0, 'rows': []},
+                        'down': {'count': 0, 'rows': []}, 'unplanned': {'count': 0, 'rows': []},
+                        'conflicts': {'count': 0, 'rows': []}, 'unread': []})
+    return jsonify({'last_poll': watch.last_poll, **patch_check.check(watch.port_reads, watch.read_switches)})
 
 
 @bp.route('/api/cables/block', methods=['POST'])
