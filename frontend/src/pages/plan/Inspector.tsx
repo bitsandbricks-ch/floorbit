@@ -6,7 +6,7 @@ import { useLocation } from 'react-router-dom'
 import { get } from '@/api/client'
 import { useCan } from '@/api/queries'
 import { qk } from '@/api/keys'
-import type { PlanSeat, SeatDetails, SeatState } from '@/api/types'
+import type { PlanSeat, SeatDetails, SeatFirewall, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
 import { SeatNoteBox } from './SeatNoteBox'
 import { SeatSpeedTests } from './SeatSpeedTests'
@@ -64,6 +64,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
               {row(t('plan.port'), d.switch ? `${d.switch} · ${d.port}` : <Text span c="dimmed">{t('plan.noPort')}</Text>)}
               {d.bps !== null && row(t('plan.traffic'), rate(d.bps))}
               {d.checked_in !== null && row(t('plan.checkin'), d.checked_in ? t('plan.yes') : t('plan.no'))}
+              {d.firewall && row(t('plan.firewall'), <FirewallRoute route={d.firewall} />)}
               {d.people && row(t('plan.nick'), d.nick || '–')}
               {d.people && row(t('plan.ip'), d.ip ? <code>{d.ip}</code> : '–')}
               {d.people && row(t('plan.mac'), d.mac ? <code>{d.mac}</code> : '–')}
@@ -166,4 +167,14 @@ export function Legend({ checkin, traffic = false }: { checkin: boolean; traffic
       ))}
     </ul>
   )
+}
+
+/** Which firewall the core sends the seat to (issue #470): the planned one, or the backup it failed over to. */
+function FirewallRoute({ route }: { route: SeatFirewall }) {
+  const { t } = useTranslation()
+  if (route.state === 'down') return <Text span c="down" fw={600}>{t('plan.firewallNone', { name: route.intended })}</Text>
+  if (route.state === 'failover') {
+    return <Text span c="warn">{t('plan.firewallFailover', { now: route.now, intended: route.intended })}</Text>
+  }
+  return <>{route.now}</>
 }

@@ -569,5 +569,12 @@
  "Pick both switches from the inventory.": "Wähle beide Switches aus dem Inventar.",
  "The speed is 1, 10, 25, 40 or 100 (Gbit/s).": "Die Geschwindigkeit ist 1, 10, 25, 40 oder 100 (Gbit/s).",
  "The type is cat5e, cat6, cat6a, fiber-sm, fiber-mm or dac.": "Der Typ ist cat5e, cat6, cat6a, fiber-sm, fiber-mm oder dac.",
- "The link from {} {} to {} {} already uses one of these ports.": "Der Link von {} {} nach {} {} braucht schon einen dieser Ports."
+ "The link from {} {} to {} {} already uses one of these ports.": "Der Link von {} {} nach {} {} braucht schon einen dieser Ports.",
+ "A range has at most {} firewalls.": "Ein Bereich hat höchstens {} Firewalls.",
+ "Floorbit keeps at most {} ranges.": "Floorbit speichert höchstens {} Bereiche.",
+ "No such range.": "Diesen Bereich gibt es nicht.",
+ "Pick at least one firewall for the range.": "Wähle mindestens eine Firewall für den Bereich.",
+ "Pick the firewalls from the inventory (devices with the role firewall).": "Wähle die Firewalls aus dem Inventar (Geräte mit der Rolle Firewall).",
+ "Write the range as a network, like 192.0.2.0/27.": "Schreib den Bereich als Netz, etwa 192.0.2.0/27.",
+ "{} is planned already.": "{} ist schon geplant."
 }

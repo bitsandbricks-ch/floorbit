@@ -1314,9 +1314,28 @@ export interface SeatDetails {
   note?: SeatNote | null
   /** The player's speed tests from the help page, newest first (issue #182); crew only. */
   speedtests?: SeatSpeedTest[]
+  /** Which firewall the core sends the seat to (issue #470); crew only, null when no range covers it. */
+  firewall?: SeatFirewall | null
   nick?: string | null
   ip?: string | null
   mac?: string | null
+}
+
+export interface SeatFirewall { intended: string | null; now: string | null; state: FirewallRouteState; range: string }
+export type FirewallRouteState = 'primary' | 'failover' | 'unknown' | 'down'
+
+/** GET /api/firewalls (issue #470): the firewalls with their health, and each seat range's route now. */
+export interface FirewallRange {
+  id: string; cidr: string; name: string; firewalls: string[]; intended: string | null; now: string | null
+  state: FirewallRouteState; seats: number
+}
+export interface FirewallCard {
+  id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
+  serving: string[]; planned: string[]; backup_for: string[]; seats: number
+}
+export interface FirewallList {
+  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean
+  counts: { firewalls: number; down: number; failover: number; without: number }
 }
 
 /** One speed test the player ran from the seat's help page (issue #99). */

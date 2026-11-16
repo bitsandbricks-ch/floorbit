@@ -155,6 +155,15 @@ describe('Seats page', () => {
     expect(screen.queryByRole('link', { name: 'QR code' })).toBeNull()      // printing codes needs incidents.assign
   })
 
+  it('says which firewall the seat takes now when its range failed over (issue #470)', async () => {
+    const moved = { ...details, firewall: { intended: 'fw-03', now: 'fw-04', state: 'failover', range: 'Seats C' } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': moved }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('list', { name: 'Legend' })
+    fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
+    expect(await screen.findByText('fw-04 (failed over from fw-03)')).toBeInTheDocument()
+  })
+
   it('links a lead to the seat\'s and the block\'s QR codes (issue #380)', async () => {
     const lead = { enabled: true, user: { ...me.user, role: 'lead', permissions: ['floorplan.view', 'incidents.work', 'incidents.assign'] } }
     const block = { name: 'D', hall: 'main', seats: 4, online: 2, offline: 1, unknown: 1, checked_in: 1, bps: null, problems: [], switches: [], no_port: 0 }

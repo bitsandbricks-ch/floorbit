@@ -19,7 +19,7 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import halls, incidents, inventory, links, seat_notes, seat_search, speedtest, tournament
+from . import firewalls, halls, incidents, inventory, links, seat_notes, seat_search, speedtest, tournament
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
@@ -295,6 +295,8 @@ def details(seat, people, crew=False):
         out['note'] = seat_notes.get(seat, data)
         # The player's own tests from the help page (issue #182), newest first.
         out['speedtests'] = speedtest.results(seat, data)[:SPEEDTESTS]
+        # Which firewall the core sends this seat to (issue #470): names only, never the IP.
+        out['firewall'] = firewalls.for_seat(seat, data, now)
     stats = _ext('floorbit_stats')
     if stats:
         out['history'] = {**stats.seat_history(seat, now - HISTORY), 'to': now}

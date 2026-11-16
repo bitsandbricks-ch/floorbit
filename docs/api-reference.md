@@ -250,6 +250,19 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
 
+## floorbit.blueprints.firewalls
+
+Firewalls and the seat ranges they serve (issue #470). Rules in floorbit/firewalls.py, docs in docs/firewalls.md.
+
+Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/firewalls.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/firewalls` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
+| DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
+| PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.flows
 
 Traffic insights from NetFlow and IPFIX (issue #25). See docs/flows.md.
