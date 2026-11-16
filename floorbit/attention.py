@@ -47,7 +47,9 @@ def seat_of(description, names):
 
 def _record_frame(sample, seat_bps, data):
     """A frame for the whole-event replay (floorbit/recording.py), every five minutes."""
-    from . import incidents
+    from . import cluster, incidents
+    if not cluster.leading():
+        return               # every pod watches the ports; one records the replay
     try:
         open_seats = {i.get('seat') for i in incidents.list_all() if i.get('status') != 'fixed' and i.get('seat')}
         recording.capture(sample, seat_bps, open_seats, data)

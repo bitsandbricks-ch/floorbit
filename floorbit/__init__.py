@@ -178,4 +178,12 @@ def create_app(start_background=True):
     # First-run setup for a new install, after the demo so a demo hall counts as set up (docs/install.md).
     from .blueprints.setup import init_setup
     init_setup(app)
+
+    # Several pods: share live updates, agent calls and one leader through Redis (docs/kubernetes.md).
+    if start_background:
+        from . import cluster
+        joined = cluster.init()
+        if joined is not None and where['kind'] != 'postgres':
+            print('[cluster] Several pods need one shared database: set FLOORBIT_DATABASE_URL to Postgres '
+                  '(docs/database.md). Each pod keeps its own documents until then.')
     return app

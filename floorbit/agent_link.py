@@ -345,27 +345,64 @@ class Tunnel:
         self.last_seen = time.time() if now is None else now
         if agent is not None:
             self._seen[agent] = self.last_seen
+            from . import cluster
+            if cluster.current is not None:
+                cluster.current.agent_seen(agent, self.last_seen)
 
-    def connected(self, now=None, agent=None):
-        """Is any agent (or this one) connected?"""
-        now = time.time() if now is None else now
+    def _here(self, now, agent=None):
         seen = self.last_seen if agent is None else self._seen.get(agent)
         return seen is not None and now - seen < CONNECTED_FOR
 
+    def _elsewhere(self, now):
+        """{agent id: pod} for agents connected to another pod (several pods, floorbit/cluster.py)."""
+        from . import cluster
+        return cluster.current.agents_elsewhere(now) if cluster.current is not None else {}
+
+    def connected(self, now=None, agent=None):
+        """Is any agent (or this one) connected, to this pod or another?"""
+        now = time.time() if now is None else now
+        if self._here(now, agent):
+            return True
+        elsewhere = self._elsewhere(now)
+        return bool(elsewhere) if agent is None else agent in elsewhere
+
     def connected_agents(self, now=None):
         now = time.time() if now is None else now
-        return {a for a, seen in list(self._seen.items()) if now - seen < CONNECTED_FOR}
+        return {a for a, seen in list(self._seen.items()) if now - seen < CONNECTED_FOR} | set(self._elsewhere(now))
 
     def call(self, method, args=(), timeout=CALL_TIMEOUT, targets=None):
         """Ask an agent (one of ``targets``, any when None); returns its answer. Raises
-        AgentUnavailable, or AgentError with its error."""
+        AgentUnavailable, or AgentError with its error. With several pods, an agent connected to
+        another pod is asked through that pod."""
+        if method not in METHODS:
+            raise AgentError(f'{method} is not something the agent answers.')
+        now = time.time()
+        here = {a for a, seen in list(self._seen.items()) if now - seen < CONNECTED_FOR}
+        local = bool(here & set(targets)) if targets is not None else self._here(now)
+        if not local:
+            pods = {pod for agent, pod in self._elsewhere(now).items() if targets is None or agent in targets}
+            if pods:
+                from . import cluster
+                answer = cluster.current.forward(sorted(pods)[0], method, list(args),
+                                                 set(targets) if targets is not None else None, timeout)
+                if answer is None:
+                    raise AgentUnavailable(f'The local agent did not answer {method} within {timeout} s.')
+                if answer.get('ok'):
+                    return answer.get('result')
+                raise (AgentUnavailable if answer.get('unavailable') else AgentError)(
+                    answer.get('error') or f'{method} failed on the agent.')
+        return self.call_here(method, args, timeout, targets)
+
+    def call_here(self, method, args=(), timeout=CALL_TIMEOUT, targets=None):
+        """Ask an agent connected to this pod."""
         if method not in METHODS:
             raise AgentError(f'{method} is not something the agent answers.')
         if targets is not None:
+            now = time.time()
             targets = frozenset(targets)
-            if not targets & self.connected_agents():
+            if not targets & {a for a, seen in list(self._seen.items()) if now - seen < CONNECTED_FOR}:
                 raise AgentUnavailable('No local agent for this hall is connected.')
-        elif not self.connected():
+        elif not self._here(time.time()):
             raise AgentUnavailable('The local agent is not connected.')
         with self._cond:
             if len(self._pending) >= MAX_PENDING:

@@ -598,7 +598,8 @@ def init_plugins(app, settings_store, current_version):
         k: entry.get(k) for k in ('area', 'action', 'target', 'fields', 'user')}))
     try:
         from integrations import events, seat_sources
-        events.subscribe('switch.status', lambda ev: registry.emit('switch.status', ev.get('data') or {}))
+        events.subscribe('switch.status', lambda ev: registry.emit('switch.status', ev.get('data') or {}),
+                         leader_only=True)
         seat_sources.plugin_sources = registry.mapping_sources
     except ImportError:
         pass

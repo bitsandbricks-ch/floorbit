@@ -53,11 +53,30 @@ kubectl -n floorbit cp "${pod#pod/}:/app/state" ./floorbit-backup-$(date +%F)
 
 ## More than one pod
 
-Keep `replicas: 1`. Floorbit holds two things in the pod's memory: the local agent's connection
-([agent.md](agent.md)) and the browsers' live updates. A second pod wouldn't see an agent that is
-connected to the first one, or tell the first pod's browsers about a change. For a crew tool, one
-pod that restarts in seconds and keeps its volume is the dependable setup. Running several pods
-needs a shared database and Redis to pass messages between them. That's planned in [#465](https://github.com/bitsandbricks-ch/floorbit/issues/465).
+One pod that restarts in seconds and keeps its volume is the dependable setup for a crew tool, and
+it's the default. Several pods behind one Service work when all of these are true:
+
+- **Postgres** for the documents and logs: `FLOORBIT_DATABASE_URL=postgresql://…` on every pod
+  ([database.md](database.md)). SQLite and files stay with one pod.
+- **Redis** shared by every pod (`REDIS_HOST`), and `FLOORBIT_CLUSTER=redis` on every pod.
+- **A `ReadWriteMany` volume** on `/app/state` for what is still files there: hall background
+  images, syslog and flow statistics. Without one, each pod has its own copy of those.
+- `strategy: RollingUpdate` instead of `Recreate`, once the volume is `ReadWriteMany`.
+
+With `FLOORBIT_CLUSTER=redis` the pods share three things through Redis:
+
+- **Live updates.** A change made on one pod shows up in the browsers connected to the others.
+- **Agent calls.** A [local agent](agent.md) holds its link to one pod. The other pods send its
+  calls there and get the answers back, so it doesn't matter which pod a browser reaches.
+- **One leader.** Every pod polls the switches and runs its checks, so every page is current on
+  every pod. Only the pod holding the leader lease sends what those checks find: Discord alerts,
+  webhooks, the event timeline, plugin hooks and replay frames. When it stops, another pod takes
+  the lease within about 20 seconds. What a crew member does (an incident, a notice, a handover) is
+  sent by the pod that took the request. If Redis can't be reached, every pod acts as the leader,
+  because a duplicate alert is better than a missing one.
+
+Each pod logs `[cluster] pod … joined (Redis)` at start, and the leader logs `… is now the leader`.
+Sign-in cookies work on every pod as long as they all have the same `SECRET_KEY` (the Secret above).
 
 ## Syslog and NetFlow
 

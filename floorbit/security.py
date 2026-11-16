@@ -199,7 +199,8 @@ def init_security(app, registry, start_background=True):
     global _watch
     watch = _watch = SecurityWatch(registry)
     app.extensions['floorbit_security'] = watch
-    events.subscribe('security.finding', lambda ev: registry.emit('security.finding', ev.get('data') or {}))
+    events.subscribe('security.finding', lambda ev: registry.emit('security.finding', ev.get('data') or {}),
+                     leader_only=True)
     started = threading.Event()
 
     @app.before_request

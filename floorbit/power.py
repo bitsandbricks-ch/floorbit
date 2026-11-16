@@ -475,7 +475,7 @@ def _file_incident(circuit, alert, feeds):
 def init_power(app, registry, start_background=True):
     watch = PowerWatch(registry)
     app.extensions['floorbit_power'] = watch
-    events.subscribe('power.alert', lambda ev: registry.emit('power.alert', ev.get('data') or {}))
+    events.subscribe('power.alert', lambda ev: registry.emit('power.alert', ev.get('data') or {}), leader_only=True)
     started = threading.Event()
 
     @app.before_request
