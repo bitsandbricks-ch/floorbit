@@ -766,5 +766,6 @@
  "Enter the API token again for the new URL: a saved token is only sent to the URL it was saved for.": "Gib das API-Token für die neue URL nochmals ein: Ein gespeichertes Token geht nur an die URL, mit der es gespeichert wurde.",
  "The issuer can only change within the same host, because the client secret belongs to it. Add the new identity provider under a new ID.": "Der Issuer kann sich nur innerhalb desselben Hosts ändern, weil das Client-Secret zu ihm gehört. Füge den neuen Identity-Provider unter einer neuen ID hinzu.",
  "No switch port or IP address": "Kein Switch-Port und keine IP-Adresse",
- "No switch port, IP or MAC known for this seat": "Für diesen Platz ist kein Switch-Port, keine IP und keine MAC bekannt"
+ "No switch port, IP or MAC known for this seat": "Für diesen Platz ist kein Switch-Port, keine IP und keine MAC bekannt",
+ "hostnames is a list of switch names": "hostnames ist eine Liste von Switch-Namen"
 }
