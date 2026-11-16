@@ -159,7 +159,8 @@ each seat is plugged into.
   the API.
 
 NetBox and LibreNMS are optional: leave their URL or token empty and the app runs as a plain floor
-plan editor.
+plan editor. Their API tokens are write-only on the settings page, and a saved token is only sent to
+the URL it was saved with: changing the URL asks for the token again.
 
 ## Run it
 
