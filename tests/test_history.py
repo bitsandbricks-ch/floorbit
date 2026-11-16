@@ -57,6 +57,7 @@ def client():
 
 def post(client, seat, user, ip):
     r = client.post('/api/checkin', json={'seat': seat, 'username': user}, environ_base={'REMOTE_ADDR': ip})
+    checkin.verify_pending()      # the MAC is looked up in the background
     assert r.status_code == 200, r.get_json()
 
 
@@ -74,9 +75,10 @@ def test_every_change_is_logged(env, client):
     checkin.refresh_once()
     checkin.remove('D-23')
     kinds = [(e['event'], e['seat']) for e in history.read_all()]
-    assert kinds == [('checkin', 'D-22'), ('moved', 'D-22'), ('checkin', 'D-23'),
+    # The MAC is found in the background after the check-in (integrations/checkin.py verify_pending).
+    assert kinds == [('checkin', 'D-22'), ('mac_found', 'D-22'), ('moved', 'D-22'), ('checkin', 'D-23'),
                      ('ip_changed', 'D-23'), ('removed', 'D-23')]
-    moved, changed = history.read_all()[1], history.read_all()[3]
+    moved, changed = history.read_all()[2], history.read_all()[4]
     assert moved['to_seat'] == 'D-23' and moved['mac'] == 'aa:bb:cc:00:11:22'
     assert changed['ip'] == '10.0.2.200' and changed['previous_ip'] == '10.0.2.144'
 
@@ -157,7 +159,7 @@ def test_history_api_and_csv(env, client):
     assert body['view'] == 'sessions' and body['total'] == 2
     assert body['rows'][0]['seat'] == 'D-23' and body['rows'][0]['end'] is None
     body = client.get('/api/checkins/history?view=events&user=reyk').get_json()
-    assert [r['seat'] for r in body['rows']] == ['D-22'] and body['rows'][0]['time_local']
+    assert [r['seat'] for r in body['rows']] == ['D-22', 'D-22'] and body['rows'][0]['time_local']
 
     r = client.get('/api/checkins/history.csv?view=sessions&seat=D-22')
     assert r.mimetype == 'text/csv'

@@ -1,5 +1,6 @@
 {#- The sidebar of every crew page (floorbit/nav.py, frontend/src/nav/). The pages Flask draws put
-    this first in <body class="fb-has-nav">; the React app draws its own from the same data.
+    this first in <body class="fb-has-nav">, with the sidebar's markup already in the slot, so it is
+    in the first paint before the page; the script then takes it over. The React app draws its own.
     Without a frontend build the slot shows plain links, so every page stays in reach. -#}
 {%- set boot = nav_boot() %}
 <script id="fb-nav-data" type="application/json">{{ boot|tojson }}</script>
@@ -13,6 +14,7 @@
 {%- endfor %}
 {%- endif %}
 <div id="fb-nav" class="fb-nav-slot" data-state="{{ nav_state }}">
+  {%- if nav_assets %}{{ nav_markup(boot) }}{% endif %}
   {%- if not nav_assets %}
   <style>
     .fb-nav-fallback { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 12px; border-right: 1px solid var(--color-line); background: var(--color-surface); font: 14px var(--font-sans); }

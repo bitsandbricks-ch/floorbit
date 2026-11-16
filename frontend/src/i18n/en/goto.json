@@ -40,6 +40,7 @@
     "planner": "Build planner",
     "preflight": "Pre-flight check",
     "teardown": "Teardown",
+    "checkins": "Check-in",
     "speedtests": "Speed tests",
     "tournament": "Tournament seats",
     "brackets": "Brackets",

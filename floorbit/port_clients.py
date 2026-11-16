@@ -65,11 +65,25 @@ def _arp(monitor, nets):
     return out
 
 
+def _learned_cables():
+    """The seat ports check-ins found (integrations/checkin.py), shaped like cables, so a seat
+    nobody patched by plan still shows the MAC and IP on its port."""
+    from integrations import checkin
+    try:
+        rows = checkin.learned_ports()
+    except Exception:  # noqa: BLE001  # the patch plan alone still answers
+        return []
+    return [{'switch': r['switch'], 'port': r['port'], 'seat': seat, 'label': 'check-in'}
+            for seat, r in rows.items() if r.get('switch') and r.get('port')]
+
+
 def find(monitor, data, seats):
     """One read: ``{"unplanned", "moved", "switches", "failed", "clients"}``."""
     from .syslog import canonical_port  # syslog reads attention, which reads cables: late
-    all_cables = cables_mod.all_cables(data)
-    by_port = {(c['switch'].lower(), canonical_port(c['port'])): c for c in all_cables}
+    all_cables = cables_mod.all_cables(data) + _learned_cables()
+    by_port = {}
+    for c in all_cables:   # a patched cable comes first and wins over a port a check-in found
+        by_port.setdefault((c['switch'].lower(), canonical_port(c['port'])), c)
     switches = sorted({c['switch'] for c in all_cables if c.get('seat')}, key=str.lower)
     ip_seat = _seat_ips(seats)
 

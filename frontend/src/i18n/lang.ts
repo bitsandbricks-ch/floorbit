@@ -20,6 +20,18 @@ function saved(): Lang | null {
   }
 }
 
+// The server draws the floor plan's sidebar before any script (templates/_nav.html): it reads the
+// language from this cookie, so the first paint is already in the right one.
+const COOKIE = 'floorbit_lang'
+
+export function rememberLang(lang: Lang) {
+  try {
+    document.cookie = `${COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`
+  } catch {
+    /* no cookies: the sidebar starts in the browser's language */
+  }
+}
+
 /** The saved choice, else the browser's first language we have, else English. */
 export function initialLang(languages: readonly string[] = navigator.languages ?? []): Lang {
   const choice = saved()
@@ -40,6 +52,7 @@ export function setLang(lang: Lang) {
   } catch {
     /* private mode: keep it for this visit */
   }
+  rememberLang(lang)
   document.documentElement.lang = lang
   void i18n.changeLanguage(lang)
 }

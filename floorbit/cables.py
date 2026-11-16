@@ -456,8 +456,18 @@ def assign(body, by):
     return {'cable': cable, 'changed': changed, 'other_seat': other}
 
 
-def port_seats(data=None):
-    """{(switch lowercase, canonical port): seat} from the cables that end at a seat."""
+def port_seats(data=None, learned=True):
+    """{(switch lowercase, canonical port): seat} from the cables that end at a seat, and with
+    ``learned`` the ports seat check-ins found (integrations/checkin.py) where no cable says.
+    A cable wins: it is what the crew patched."""
     from .syslog import canonical_port
-    return {(c['switch'].lower(), canonical_port(c['port'])): c['seat']
-            for c in all_cables(data) if c.get('seat')}
+    out = {}
+    if learned:
+        from integrations import checkin
+        try:
+            out.update(checkin.learned_port_seats())
+        except Exception as exc:  # noqa: BLE001  # the patch plan alone still answers
+            print(f'[cables] could not read the learned seat ports: {exc}')
+    out.update({(c['switch'].lower(), canonical_port(c['port'])): c['seat']
+                for c in all_cables(data) if c.get('seat')})
+    return out

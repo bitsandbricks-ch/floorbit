@@ -1,8 +1,8 @@
-import { Alert, Button, Group, Loader, Select, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Loader, Select, Text, TextInput } from '@mantine/core'
 import { IconPrinter } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useHelpdeskQr } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -22,6 +22,9 @@ export default function HelpdeskQr() {
   const wanted = parseSeats(only)
   const shown = seats.filter((s) => (!block || seatBlock(s.seat) === block) && (!wanted.size || wanted.has(s.seat)))
   const filtered = !!block || wanted.size > 0
+  // Shown so the crew sees before printing whether phones will reach that address (QR_URL setting).
+  const opens = (seats[0]?.url ?? '').replace(/^(https?:\/\/[^/]+).*$/, '$1')
+  const checkinAt = qr.data?.checkin?.address || (qr.data?.checkin?.url ?? '').replace(/^https?:\/\//, '')
   return (
     <Layout title={t('incidents.qrTitle')} back={{ href: '/incidents', label: t('incidents.title') }}>
       <div className="fb-no-print">
@@ -40,6 +43,12 @@ export default function HelpdeskQr() {
               {filtered ? t('incidents.qrShown', { count: shown.length, total: seats.length }) : t('incidents.qrAll', { count: seats.length })}
             </Text>
           </Group>
+        )}
+        {opens && (
+          <Text size="sm" c="dimmed" mb="md" data-testid="qr-opens">
+            {t('incidents.qrOpens', { address: opens })}{' '}
+            <Anchor component={Link} to="/settings" size="sm">{t('incidents.qrChangeAddress')}</Anchor>
+          </Text>
         )}
       </div>
       {qr.error && (
@@ -63,6 +72,13 @@ export default function HelpdeskQr() {
                   <strong>{s.seat}</strong>
                 </Group>
                 <span>{t('incidents.qrCaption')}</span>
+                {s.pin && (
+                  // A PC has no camera: the address to type and the PIN that names this seat.
+                  <span className="fb-qr-pin">
+                    <span>{t('incidents.qrCheckin', { address: checkinAt })}</span>
+                    <span>PIN <b>{s.pin}</b></span>
+                  </span>
+                )}
               </figcaption>
             </figure>
           ))}

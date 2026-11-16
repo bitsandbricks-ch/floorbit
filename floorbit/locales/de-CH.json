@@ -658,6 +658,12 @@
  "Interface errors rising (+{})": "Interface-Fehler steigen (+{})",
  "Running at half duplex": "Läuft im Halbduplex",
  "Seat {} is online without a check-in": "Platz {} ist online ohne Check-in",
+ "Seats {} and {} checked in on the same port": "Plätze {} und {} haben am selben Port eingecheckt",
+ "Seat {} checked in on the port the patch plan gives to seat {}": "Platz {} hat am Port eingecheckt, den der Patchplan Platz {} gibt",
+ "Seat {} was taken over by another nick": "Platz {} wurde von einem anderen Nick übernommen",
+ "That PIN is not on any seat card. Check the card at your seat.": "Diese PIN steht auf keiner Platzkarte. Schau auf die Karte an deinem Platz.",
+ "Enter the PIN from the card at your seat.": "Gib die PIN von der Karte an deinem Platz ein.",
+ "That PIN was already used. Ask the crew if this is your seat.": "Diese PIN wurde schon verwendet. Frag die Crew, wenn das dein Platz ist.",
  "Link {} to {} is down": "Verbindung {} zu {} ist down",
  "Link {} to {} runs at {}G": "Verbindung {} zu {} läuft mit {}G",
  "Copper Cat5e, {}G planned": "Kupfer Cat5e, {}G geplant",
@@ -747,5 +753,6 @@
  "Database unavailable": "Datenbank nicht erreichbar",
  "Trying again by itself…": "Versucht es von selbst wieder …",
  "z is a whole number": "z ist eine ganze Zahl",
- "z is a whole number from -1000000 to 1000000": "z ist eine ganze Zahl von -1000000 bis 1000000"
+ "z is a whole number from -1000000 to 1000000": "z ist eine ganze Zahl von -1000000 bis 1000000",
+ "That seat has no learned port": "Für diesen Platz ist kein Port gelernt"
 }

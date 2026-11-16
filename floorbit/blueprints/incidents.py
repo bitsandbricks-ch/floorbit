@@ -11,6 +11,7 @@
 """
 import csv
 import io
+import re
 import threading
 import time
 
@@ -229,11 +230,23 @@ def change_incident(incident_id):
 
 
 # ── QR sheet ───────────────────────────────────────────────────────────────────
+def _card_base():
+    """Where the seat cards' QR codes point: the QR_URL setting, else the public URL. Attendees often
+    reach Floorbit under another name than the crew (an event DNS name, plain http)."""
+    from integrations import config
+    raw = str(config.get('QR_URL', '') or '').strip()
+    if raw and not re.match(r'^https?://', raw, re.I):
+        raw = 'http://' + raw
+    return (raw or current_app.extensions['auth'].public_url() or '').rstrip('/')
+
+
+def _card_url(endpoint, **values):
+    base = _card_base()
+    return base + url_for(endpoint, **values) if base else url_for(endpoint, _external=True, **values)
+
+
 def _help_url(seat):
-    base = (current_app.extensions['auth'].public_url() or '').rstrip('/')
-    path = url_for('incidents.help_page', seat=seat, k=incidents.signature(seat))
-    return base + path if base else url_for('incidents.help_page', seat=seat, k=incidents.signature(seat),
-                                             _external=True)
+    return _card_url('incidents.help_page', seat=seat, k=incidents.signature(seat))
 
 
 def _seat_key(seat):
@@ -243,12 +256,23 @@ def _seat_key(seat):
 
 @bp.route('/api/helpdesk/qr', methods=['GET'])
 def qr_codes():
+    from integrations import checkin, config
     seats = sorted(incidents.seat_numbers(), key=_seat_key)
+    # The card on each seat also says how to check in from the PC (no camera there): the short
+    # address and the seat's PIN (integrations/checkin.py).
+    checkin_on = config.get_bool('CHECKIN_ENABLED', False)
+    pins = checkin.ensure_pins(seats) if checkin_on else {}
     out = []
     for seat in seats:
         url = _help_url(seat)
-        out.append({'seat': seat, 'url': url, 'image': segno.make(url, error='m').svg_data_uri(scale=4, border=2)})
-    return jsonify({'seats': out})
+        row = {'seat': seat, 'url': url, 'image': segno.make(url, error='m').svg_data_uri(scale=4, border=2)}
+        if checkin_on:
+            row['pin'] = pins.get(seat)
+        out.append(row)
+    return jsonify({'seats': out, 'checkin': {
+        'address': checkin.short_address() or None,
+        'url': _card_url('pages.checkin_page'),
+    } if checkin_on else None})
 
 
 # ── The attendee's page ────────────────────────────────────────────────────────

@@ -11,5 +11,6 @@
   "language": "Language",
   "checkinTitle": "Here for the LAN?",
   "checkinText": "Check in to your seat so the network crew can find you fast if something breaks.",
-  "crewTitle": "Crew sign-in"
+  "crewTitle": "Crew sign-in",
+  "checkinAddress": "On another PC, type:"
 }
