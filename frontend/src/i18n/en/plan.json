@@ -611,6 +611,12 @@
     "unplace_other": "Take {{count}} off the plan"
   },
   "net": {
+    "uplinks_one": "{{count}} link between switches",
+    "uplinks_other": "{{count}} links between switches",
+    "uplinksDown_one": "{{count}} down",
+    "uplinksDown_other": "{{count}} down",
+    "uplinksSlow_one": "{{count}} slower than it should be",
+    "uplinksSlow_other": "{{count}} slower than they should be",
     "legend": "What the cables show",
     "cables_one": "{{count}} seat cable",
     "cables_other": "{{count}} seat cables",

@@ -611,6 +611,12 @@
     "unplace_other": "{{count}} vom Plan nehmen"
   },
   "net": {
+    "uplinks_one": "{{count}} Verbindung zwischen Switches",
+    "uplinks_other": "{{count}} Verbindungen zwischen Switches",
+    "uplinksDown_one": "{{count}} unterbrochen",
+    "uplinksDown_other": "{{count}} unterbrochen",
+    "uplinksSlow_one": "{{count}} langsamer als vorgesehen",
+    "uplinksSlow_other": "{{count}} langsamer als vorgesehen",
     "legend": "Was die Kabel zeigen",
     "cables_one": "{{count}} Platzkabel",
     "cables_other": "{{count}} Platzkabel",

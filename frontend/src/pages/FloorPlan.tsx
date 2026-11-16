@@ -351,7 +351,7 @@ export default function FloorPlan() {
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>}
           {!list && !editing && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
-          {!list && !editing && mode === 'network' && cablePlan?.cables && <CableLegend cables={cablePlan.cables} />}
+          {!list && !editing && mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />}
           {!list && !editing && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import type { PlanCable, PlanPanel } from '@/api/types'
+import type { PlanCable, PlanLink, PlanPanel } from '@/api/types'
 import { cablePath } from './cablePlan'
-import { cableSummary } from './cableLegend'
+import { cableSummary, uplinkSummary } from './cableLegend'
 
 const SPEED_W: Record<number, number> = { 1: 1.6, 10: 2.4, 25: 2.8, 40: 3.2, 100: 3.6 }
 
@@ -43,13 +43,17 @@ const line = (stroke: string, width: number, dash?: string) => (
 )
 
 /** What the seat cables' colours, widths and dashes mean, for the cables on this plan only. */
-export function CableLegend({ cables }: { cables: PlanCable[] }) {
+export function CableLegend({ cables, links = [] }: { cables: PlanCable[]; links?: PlanLink[] }) {
   const { t } = useTranslation()
   const s = cableSummary(cables)
-  if (!s.total) return null
+  const up = uplinkSummary(links)
+  if (!s.total && !up.total) return null
   return (
     <ul className="fb-plan-legend fb-cable-legend" aria-label={t('plan.net.legend')}>
-      <li><b>{t('plan.net.cables', { count: s.total })}</b></li>
+      {up.total > 0 && <li><b>{t('plan.net.uplinks', { count: up.total })}</b></li>}
+      {up.down > 0 && <li className="fb-legend-down">{line('var(--color-down)', 3, '6 4')}{t('plan.net.uplinksDown', { count: up.down })}</li>}
+      {up.slow > 0 && <li>{line('var(--mantine-color-orange-6)', 3)}{t('plan.net.uplinksSlow', { count: up.slow })}</li>}
+      {s.total > 0 && <li><b>{t('plan.net.cables', { count: s.total })}</b></li>}
       {s.media.map((m) => <li key={m}>{line(MEDIA_COLOR[m], 3)}{t(`plan.net.media.${m}`)}</li>)}
       {s.speeds.length > 1 && s.speeds.map((v) => <li key={v}>{line('var(--color-muted)', SPEED_W[v] ?? 1.6)}{t('plan.net.speed', { gbps: v })}</li>)}
       {s.learned > 0 && <li>{line('var(--color-muted)', 2, '4 3')}{t('plan.net.learnedCount', { count: s.learned })}</li>}
