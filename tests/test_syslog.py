@@ -49,7 +49,7 @@ def test_only_allowed_senders_are_kept(receiver):
     assert receiver.receive(b"<14>from the switch", "198.51.100.5", now=NOW)["device"] == "sw-a-01"
     assert receiver.receive(b"<14>who is this", "203.0.113.7", now=NOW) is None
     assert receiver.receive(b"<14>not an address", "nonsense", now=NOW) is None
-    assert receiver.counts == {"received": 4, "kept": 2, "not_allowed": 2, "rate_limited": 0}
+    assert receiver.counts == {"received": 4, "kept": 2, "not_allowed": 2, "rate_limited": 0, "duplicates": 0}
 
 
 def test_switches_need_not_be_listed_unless_turned_off(receiver, monkeypatch):
@@ -191,3 +191,54 @@ def _free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
+
+
+def _line(n, at, line_id=None, sender="192.0.2.21"):
+    item = {"raw": f"<14>%LINK-3-UPDOWN: Interface Gi1/0/{n}, changed state to up", "from": sender, "at": at}
+    if line_id is not None:
+        item["id"] = line_id
+    return item
+
+
+def test_a_relayed_line_sent_twice_is_kept_once(receiver):
+    """Two agents heard it, or an agent sent a batch again after a crash (#465)."""
+    now = time.time()
+    assert receiver.relay("hall 1", [_line(1, now, "a1")], now=now) == 1
+    assert receiver.relay("hall 2", [_line(1, now + 0.3, "a1")], now=now + 1) == 0
+    assert receiver.relay("hall 1", [_line(1, now, "a1")], now=now + 3600) == 0       # the same batch, later
+    assert receiver.counts["duplicates"] == 2 and len(receiver.lines) == 1
+    # The same text a minute later is a real repeat.
+    assert receiver.relay("hall 1", [_line(1, now + 60, "a1")], now=now + 60) == 1
+    # Agents from before ids are never dropped as copies.
+    assert receiver.relay("hall 1", [_line(1, now + 60), _line(1, now + 60)], now=now + 60) == 2
+
+
+def test_lines_an_agent_kept_through_an_outage_land_at_their_own_time(receiver):
+    now = time.time()
+    hours_ago = now - 5 * 3600
+    assert receiver.relay("hall 1", [_line(2, hours_ago, "b1")], now=now) == 1
+    assert receiver.lines[-1]["ts"] == pytest.approx(hours_ago)
+    # Past the retention it would be gone at once: not kept.
+    assert receiver.relay("hall 1", [_line(3, now - 25 * 3600, "b2")], now=now) == 0
+
+
+def test_a_replay_is_not_cut_by_the_rate_limit_nor_crowds_out_live_lines(receiver, monkeypatch):
+    monkeypatch.setenv("SYSLOG_RATE", "10")
+    now = time.time()
+    # An hour of backlog from one switch at 5 lines a second (under its rate), sent in one go.
+    # The agent sends the live lines first, then the backlog behind them.
+    assert receiver.relay("hall 1", [_line(1, now, "live")], now=now) == 1
+    backlog = [_line(n % 48, now - 3600 + n * 0.2, f"r{n}") for n in range(1000)]
+    assert receiver.relay("hall 1", backlog, now=now) == 1000
+    assert receiver.relay("hall 1", [_line(2, now + 0.5, "live 2")], now=now + 0.5) == 1
+    assert receiver.counts["rate_limited"] == 0
+
+
+def test_late_lines_raise_no_alert(receiver):
+    """An alert about something an hour ago would only send the crew running now."""
+    now = time.time()
+    shut = "<11>%PM-4-ERR_DISABLE: bpduguard error detected on Gi1/0/7, putting Gi1/0/7 in err-disable state"
+    receiver.relay("hall 1", [{"raw": shut, "from": "192.0.2.21", "at": now - 3600, "id": "late"}], now=now)
+    assert not receiver.alerts.items
+    receiver.relay("hall 1", [{"raw": shut, "from": "192.0.2.21", "at": now, "id": "live"}], now=now)
+    assert receiver.alerts.items                                   # the same line live does

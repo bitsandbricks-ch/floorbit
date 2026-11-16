@@ -1363,6 +1363,22 @@ export interface Agent {
   halls?: string[]
   /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
   relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
+  /** The agent's own numbers, sent every half minute (null: none lately, or an older agent). */
+  report?: AgentReport | null
+}
+
+export interface AgentReport {
+  at: number
+  up_seconds?: number
+  reconnects?: number
+  link_drops?: number
+  calls_busy?: number
+  answers_failed?: number
+  syslog_received?: number
+  syslog_sent?: number
+  syslog_dropped?: number
+  syslog_backlog?: number
+  flows_packets?: number
 }
 
 export interface AgentStats {

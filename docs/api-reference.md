@@ -55,6 +55,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agent/v1/calls` | anyone |  |
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
+| POST | `/api/agent/v1/report` | anyone |  |
 | GET | `/api/agent/v1/seats` | anyone |  |
 | POST | `/api/agent/v1/syslog` | anyone |  |
 | GET | `/api/agent/v2/link` | anyone |  |

@@ -225,9 +225,19 @@ it came from and when it arrived. The hosted Floorbit treats them as if they had
   DHCP servers). Lines from anyone else are dropped and counted, as usual.
 - The rate cap, retention and Loki forwarding are the hosted side's.
 
-While the hosted Floorbit can't be reached, the agent keeps up to 20,000 lines and sends them when
-it's back, with the time it got them. Past that it drops the newest and counts them; the Logs page
-shows the count next to "Through the local agent …".
+While the hosted Floorbit can't be reached, the agent keeps the lines on disk (up to 2 GB and 24
+hours, floorbit-agent's README) and sends them when it's back: the live lines first, the backlog
+behind them, oldest first. An agent from before the disk buffer keeps up to 20,000 lines in memory.
+Lines it had to drop are counted; the Logs page shows the count next to "Through the local
+agent …".
+
+Lines that come late keep their own time, back to `SYSLOG_RETENTION_HOURS`, so the Logs page shows
+them when they happened. They don't raise [log alerts](syslog.md) (that was hours ago), and they
+have a rate cap of their own, so a backlog neither gets cut nor crowds out the live lines.
+
+Each line carries an ID made of its sender and text, the same on every agent that heard it. A second
+copy within ten seconds of the first (two agents, or a batch sent again after a crash) is dropped
+and counted as `duplicates` in the syslog status.
 
 ## Traffic (NetFlow) through the agent
 
@@ -247,6 +257,15 @@ IPFIX export at the agent's machine.
 - The **Traffic** feature has to be on on the hosted Floorbit. Own classification rules
   (`FLOWS_RULES`) are read on the agent.
 - With several agents, let one of them collect flows: each summary replaces the last.
+
+## What the agent says about itself
+
+Every half minute the agent sends a short report: how long it has been up, how often its link
+dropped, the syslog lines it received, still holds and dropped, the NetFlow packets it read and the
+calls it answered "busy" because too many of one kind were waiting. The Local agents page shows it
+under each agent, with dropped lines and busy calls in colour. Only these numbers are kept, only
+in memory, and a report older than three minutes isn't shown. The agent's own `/metrics` has
+the full detail for Prometheus.
 
 ## When the agent is away
 
@@ -285,6 +304,7 @@ The messages are JSON:
 | Floorbit | `{"type": "hello", "name", "protocol"}` once, when the link opens |
 | Floorbit | `{"type": "calls", "calls": [{"id", "method", "args"}]}`: the same calls as the long poll |
 | agent | `{"type": "answers", "answers": [{"id", "ok", "result", "error"}]}`: the same answers |
+| agent | `{"type": "report", "report": {…}}` every half minute: its own numbers, shown on the Local agents page (below) |
 | both | `{"type": "ping"}` at least every 20 seconds, plus WebSocket pings, so proxies keep it open |
 
 A wrong or revoked key gets a plain 401 before the upgrade. An agent silent for a minute is closed
@@ -301,6 +321,7 @@ Floorbit needs to pass the upgrade for `/api/agent/v2/link` (nginx: `proxy_http_
 | `GET /api/agent/v2/link` | the WebSocket link (protocol 2, above), or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
+| `POST /api/agent/v1/report` | `{"report": {"up_seconds", "reconnects", "link_drops", "calls_busy", "answers_failed", "syslog_received", "syslog_sent", "syslog_dropped", "syslog_backlog", "flows_packets"}}`: the report above, from an agent on the long poll |
 | `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
 | `GET /api/agent/v1/seats` | `{"seat_of", "area_of"}`: the seat addresses for the flow collector, or 409 while Traffic is off |
 | `POST /api/agent/v1/flows` | `{"snapshot"}`: the flow collector's summary, or 409 while Traffic is off |

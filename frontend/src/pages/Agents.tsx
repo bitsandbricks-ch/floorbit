@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent, AgentStats, Hall } from '@/api/types'
+import type { Agent, AgentReport, AgentStats, Hall } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -48,6 +48,38 @@ function Stats({ stats, lang }: { stats?: AgentStats; lang: string }) {
         </Text>
       )}
     </>
+  )
+}
+
+function uptime(seconds: number): { key: string; n: number } {
+  if (seconds >= 86400) return { key: 'agents.upDays', n: Math.floor(seconds / 86400) }
+  if (seconds >= 3600) return { key: 'agents.upHours', n: Math.floor(seconds / 3600) }
+  return { key: 'agents.upMinutes', n: Math.max(1, Math.floor(seconds / 60)) }
+}
+
+/** What the agent says about itself: up how long, reconnects, its syslog and NetFlow (floorbit-agent #3). */
+function Report({ report, lang }: { report?: AgentReport | null; lang: string }) {
+  const { t } = useTranslation()
+  if (!report) return null
+  const num = (n?: number) => (n ?? 0).toLocaleString(lang)
+  const parts: React.ReactNode[] = []
+  if (report.up_seconds !== undefined) {
+    const up = uptime(report.up_seconds)
+    parts.push(t(up.key, { count: up.n }))
+  }
+  // Every dropped link is followed by a reconnect, so adding them up would count each twice.
+  const drops = Math.max(report.reconnects ?? 0, report.link_drops ?? 0)
+  parts.push(drops ? <Text span size="xs" c="warn" key="r">{t('agents.reconnects', { count: drops })}</Text> : t('agents.noReconnects'))
+  if (report.syslog_received) {
+    parts.push(t('agents.reportSyslog', { received: num(report.syslog_received), waiting: num(report.syslog_backlog) }))
+    if (report.syslog_dropped) parts.push(<Text span size="xs" c="down" key="d">{t('agents.reportSyslogDropped', { count: report.syslog_dropped, n: num(report.syslog_dropped) })}</Text>)
+  }
+  if (report.flows_packets) parts.push(t('agents.reportFlows', { n: num(report.flows_packets) }))
+  if (report.calls_busy) parts.push(<Text span size="xs" c="warn" key="b">{t('agents.reportBusy', { count: report.calls_busy })}</Text>)
+  return (
+    <Text size="xs" c="dimmed">
+      {parts.map((p, i) => <span key={i}>{i > 0 && ' · '}{p}</span>)}
+    </Text>
   )
 }
 
@@ -124,6 +156,7 @@ export default function Agents() {
                           {' · '}{t('agents.made', { date: date(a.created_at), who: a.created_by ?? '?' })}
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
+                        <Report report={a.report} lang={i18n.language} />
                         {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.protocol ?? '' })}</Text>}
                         {hallOptions.length > 1 && (
                           <MultiSelect size="xs" mt={6} maw={420} label={t('agents.halls')} placeholder={a.halls?.length ? undefined : t('agents.allHalls')}

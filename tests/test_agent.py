@@ -241,6 +241,40 @@ def test_revoking_a_key_ends_its_open_link(client, live_server):
             ws.close()
 
 
+def test_the_agent_reports_about_itself(client, anon_client, live_server):
+    import json
+
+    made = enrol(client)
+    sent = {"report": {"up_seconds": 3600, "reconnects": 2, "syslog_received": 120, "syslog_dropped": 0,
+                       "evil": "<script>", "syslog_backlog": -5, "link_drops": True, "flows_packets": "9"}}
+    assert anon_client.post("/api/agent/v1/report", json=sent, headers=head(made["key"])).status_code == 200
+    [listed] = client.get("/api/agents").get_json()["agents"]
+    report = listed["report"]
+    # Only known keys with plain, non-negative numbers are kept.
+    assert {k: v for k, v in report.items() if k != "at"} == {"up_seconds": 3600, "reconnects": 2,
+                                                             "syslog_received": 120, "syslog_dropped": 0}
+    unknown = head("fba_00000000_" + "x" * 30)
+    assert anon_client.post("/api/agent/v1/report", json=sent, headers=unknown).status_code == 401
+
+    # Over the link it is a message of its own.
+    ws = link_to(live_server, made["key"])
+    try:
+        ws.receive(timeout=5)
+        ws.send(json.dumps({"type": "report", "report": {"up_seconds": 7200}}))
+        deadline = time.time() + 5
+        while time.time() < deadline and agent_link.tunnel.reported(made["id"]).get("up_seconds") != 7200:
+            time.sleep(0.05)
+        assert agent_link.tunnel.reported(made["id"])["up_seconds"] == 7200
+    finally:
+        ws.close()
+
+
+def test_an_old_report_is_not_shown():
+    agent_link.tunnel.report("a1", {"up_seconds": 10}, now=1000)
+    assert agent_link.tunnel.reported("a1", now=1000 + agent_link.REPORT_FRESH - 1)["up_seconds"] == 10
+    assert agent_link.tunnel.reported("a1", now=1000 + agent_link.REPORT_FRESH + 1) is None
+
+
 def test_calls_an_agent_could_not_deliver_go_back():
     agent_link.tunnel.seen(agent="a1")
     got = {}
