@@ -505,7 +505,7 @@ describe('Seats page', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<FloorPlan />, '/plan')
     const box = await screen.findByRole('textbox', { name: 'Find a seat' })
-    await waitFor(() => expect(box).toHaveAttribute('placeholder', 'Seat or nick, e.g. D-6'))
+    await waitFor(() => expect(box).toHaveAttribute('placeholder', 'Seat, nick, block or switch'))
     fireEvent.change(box, { target: { value: 'sam' } })
     fireEvent.submit(box.closest('form')!)
     const list = await screen.findByRole('list', { name: 'Players found' })
@@ -598,6 +598,22 @@ describe('Seats page', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Copy link' }))
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/plan?hall=main&show=offline&seat=D-2`)
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
+
+  it('finds a block or a switch by its name and opens its panel', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'up', x: 640, y: 420 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withSwitch }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan')
+    const find = await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.change(find, { target: { value: 'd' } })
+    expect(screen.queryByText('No such seat here')).toBeNull()
+    fireEvent.submit(find.closest('form')!)
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('block=D'))
+    fireEvent.change(find, { target: { value: 'sw-d' } })
+    fireEvent.submit(find.closest('form')!)
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('switch=sw-d-01'))
+    expect(screen.getByLabelText('address')).not.toHaveTextContent('block=')
   })
 
   it('keeps the filter in the address', async () => {
