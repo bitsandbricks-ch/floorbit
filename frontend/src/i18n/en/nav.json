@@ -19,5 +19,9 @@
   },
   "search": "Search pages, seats and switches",
   "quick": "Main pages",
-  "homeBrand": "Floorbit, to the floor plan"
+  "homeBrand": "Floorbit, to the floor plan",
+  "favourites": "Favourites",
+  "favAdd": "Add {{page}} to favourites",
+  "favRemove": "Remove {{page}} from favourites",
+  "accordion": "Fold other sections when one opens"
 }

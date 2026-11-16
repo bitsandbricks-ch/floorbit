@@ -8,9 +8,49 @@ export interface NavBoot {
   user: { name: string; username: string } | null
   /** Sign-in is on: offer "Sign out". */
   signOut: boolean
+  /** The signed-in account's sidebar settings; null without sign-in (the browser keeps them). */
+  prefs: NavPrefs | null
 }
 
-const EMPTY: NavBoot = { pages: [], brand: { logo: null, name: null }, user: null, signOut: false }
+/** Favourite pages first in the sidebar, and whether opening a section folds the others. */
+export interface NavPrefs { favourites: string[]; accordion: boolean }
+
+const EMPTY: NavBoot = { pages: [], brand: { logo: null, name: null }, user: null, signOut: false, prefs: null }
+const PREFS_KEY = 'floorbit-nav-prefs'
+export const DEFAULT_PREFS: NavPrefs = { favourites: [], accordion: true }
+
+function cleanPrefs(v: unknown): NavPrefs {
+  const o = (v && typeof v === 'object' ? v : {}) as Partial<NavPrefs>
+  const favourites = Array.isArray(o.favourites) ? o.favourites.filter((x): x is string => typeof x === 'string') : []
+  return { favourites, accordion: o.accordion !== false }
+}
+
+/** The account's settings, or this browser's when nobody is signed in. */
+export function readPrefs(boot: NavBoot): NavPrefs {
+  if (boot.prefs) return cleanPrefs(boot.prefs)
+  try {
+    return cleanPrefs(JSON.parse(localStorage.getItem(PREFS_KEY) ?? 'null'))
+  } catch {
+    return DEFAULT_PREFS
+  }
+}
+
+export function savePrefs(boot: NavBoot, prefs: NavPrefs) {
+  if (boot.prefs) {
+    // With the account, so they follow the person to every browser. A failed save keeps them for this visit.
+    void fetch('/api/auth/me/nav', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(prefs),
+    }).catch(() => undefined)
+    return
+  }
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    /* private mode: they last for this visit */
+  }
+}
 
 export function readBoot(): NavBoot {
   const el = typeof document === 'undefined' ? null : document.getElementById('fb-nav-data')

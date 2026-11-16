@@ -18,6 +18,8 @@ Source: [`auth/__init__.py`](https://github.com/bitsandbricks-ch/floorbit/blob/m
 | POST | `/api/auth/login` | `settings.manage` |  |
 | GET | `/api/auth/login-options` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/auth/me` | anyone |  |
+| GET | `/api/auth/me/nav` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/auth/me/nav` | `floorplan.view` |  |
 
 ## auth.admin
 

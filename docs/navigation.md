@@ -6,15 +6,19 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
 ## Sidebar
 
 - **Go to** at the top opens the search for any page, seat or switch (also **Ctrl K**, **⌘K** on a Mac).
+- **Favourites** come first: the star on a row (it shows when you point at the row) pins that page
+  there, and a second click takes it off again. They are kept with your account, so they follow you
+  to every browser (`GET` and `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
 - **Floor plan**, **Seats**, **Dashboard**, **Problems** and **Incidents** are always at the top.
   Problems shows how many switches are down.
 - The other pages are folded into sections: **Helpdesk**, **Network**, **Build and teardown**,
-  **Event** and **Settings**. The section of the page you are on is open; the others open with a
-  click and stay open on this browser.
+  **Event** and **Settings**. The section of the page you are on is open. Opening another section
+  folds the open one, so the sidebar stays short. Turn that off in the account menu (**Fold other
+  sections when one opens**) to keep several open; they then stay open on this browser.
 - The button at the bottom folds the sidebar to icons, and back. On icons, a section opens as a
   list beside the sidebar. The choice is kept in a cookie (`floorbit_nav`), so every page starts
   with the same width.
-- Your name at the bottom opens the account menu: language, light or dark theme, notifications,
+- Your name at the bottom opens the account menu: language, folding sections, light or dark theme, notifications,
   the crew notice (leads) and **Sign out**.
 
 The sidebar lists only the pages this account may open and the features that are on, the same
