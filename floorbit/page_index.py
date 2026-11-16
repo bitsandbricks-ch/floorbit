@@ -44,6 +44,7 @@ PAGES = (
     ('/inventory', 'inventory', 'Inventory', None),
     ('/seat-mapping', 'seatMapping', 'Seat mapping', lambda c, can: can('seats.view')),
     ('/cables', 'cables', 'Cables', lambda c, can: c['feature_on']('cables')),
+    ('/checkins', 'checkins', 'Check-in', lambda c, can: can('seats.view') and _checkin_on()),
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/gear', 'gear', 'Gear', lambda c, can: c['feature_on']('gear') and can('incidents.work')),
@@ -72,6 +73,11 @@ PAGES = (
     ('/settings/sign-in', 'signIn', 'Sign-in providers', lambda c, can: can('settings.manage')),
     ('/settings/audit', 'audit', 'Audit log', lambda c, can: can('audit.read')),
 )
+
+
+def _checkin_on():
+    from integrations import config
+    return config.get_bool('CHECKIN_ENABLED', False)
 
 
 def for_context(ctx):

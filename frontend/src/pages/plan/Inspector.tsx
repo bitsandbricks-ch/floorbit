@@ -64,7 +64,11 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
                 : d.block || '–')}
               {row(t('plan.port'), d.switch ? `${d.switch} · ${d.port}` : <Text span c="dimmed">{t('plan.noPort')}</Text>)}
               {d.bps !== null && row(t('plan.traffic'), rate(d.bps))}
-              {d.checked_in !== null && row(t('plan.checkin'), d.checked_in ? t('plan.yes') : t('plan.no'))}
+              {d.checked_in !== null && row(t('plan.checkin'), d.checked_in
+                ? (d.checkin_wired
+                  ? <Anchor href="/checkins">{t('plan.yes')} · {t(`crewCheckin.state.${d.checkin_wired}`)}</Anchor>
+                  : t('plan.yes'))
+                : t('plan.no'))}
               {d.firewall && row(t('plan.firewall'), <FirewallRoute route={d.firewall} />)}
               {d.people && row(t('plan.nick'), d.nick || '–')}
               {d.people && row(t('plan.ip'), d.ip ? <code>{d.ip}</code> : '–')}

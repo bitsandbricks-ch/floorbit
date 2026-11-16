@@ -73,3 +73,69 @@ def test_react_pages_get_the_sidebar_data(client, monkeypatch):
     assert boot(html)["pages"] and 'class="fb-has-nav"' in html
     # The React app draws the sidebar itself: no second one from the server.
     assert 'id="fb-nav"' not in html
+
+
+SHELL = {
+    "pinned": ["floorPlan", "seats", "problems"], "tabs": ["floorPlan", "seats", "problems"],
+    "sections": [{"id": "admin", "pages": ["settings", "users"]}],
+    "icons": {"page": {"*": "<svg class=\"fb-nav-icon\"></svg>"}, "tab": {"*": "<svg></svg>"},
+              "section": {"admin": "<svg></svg>"}, "search": "<svg></svg>", "chevron": "<svg></svg>",
+              "collapse": "<svg></svg>", "expand": "<svg></svg>", "menu": "<svg></svg>", "dots": "<svg></svg>"},
+    "texts": {
+        "en": {"nav": {"label": "Main", "home": "Floor plan", "goTo": "Go to…", "account": "Account",
+                       "collapse": "Collapse", "expand": "Expand", "menu": "Menu", "quick": "Main pages",
+                       "sections": {"admin": "Settings", "more": "More"}},
+               "pages": {"floorPlan": "Floor plan"}, "signedInAs": "Signed in as {{username}}"},
+        "de-CH": {"nav": {"label": "Haupt", "home": "Saalplan", "goTo": "Gehe zu…", "account": "Konto",
+                          "collapse": "Einklappen", "expand": "Ausklappen", "menu": "Menü", "quick": "Hauptseiten",
+                          "sections": {"admin": "Einstellungen", "more": "Mehr"}},
+                  "pages": {"floorPlan": "Saalplan"}, "signedInAs": "Angemeldet als {{username}}"},
+    },
+}
+
+
+@pytest.fixture
+def shell(monkeypatch):
+    from floorbit import nav, spa
+    monkeypatch.setattr(spa, "assets", lambda entry=spa.ENTRY: {"js": ["/static/app/assets/nav.js"], "css": []})
+    monkeypatch.setattr(nav, "_shell", lambda: SHELL)
+    return SHELL
+
+
+def test_the_sidebar_is_in_the_page_before_the_floor_plan(client, shell):
+    # Mike: the plan showed up before the sidebar. The sidebar's markup now comes from the server,
+    # ahead of the plan's own markup and scripts, so it is in the very first paint.
+    html = client.get("/").get_data(as_text=True)
+    slot = html.index('id="fb-nav"')
+    assert slot < html.index('<nav class="fb-nav"') < html.index('<header class="topbar">')
+    assert html.index('<nav class="fb-nav"') < html.index('/static/js/editor/main.js')
+    first = html[html.index('<nav class="fb-nav"'):html.index('<nav class="fb-tabbar"')]
+    assert '<a href="/" class="fb-nav-row" aria-current="page">' in first and "Floor plan" in first
+    assert "fb-nav-fallback" not in html
+
+
+def test_the_first_paint_speaks_the_browsers_language(client, shell):
+    client.set_cookie("floorbit_lang", "de-CH")
+    assert "Gehe zu…" in client.get("/").get_data(as_text=True)
+    client.delete_cookie("floorbit_lang")
+    html = client.get("/", headers={"Accept-Language": "de-CH,de;q=0.9"}).get_data(as_text=True)
+    assert "Saalplan" in html and "Gehe zu…" in html
+    assert "Go to…" in client.get("/", headers={"Accept-Language": "fr,en;q=0.8"}).get_data(as_text=True)
+
+
+def test_the_first_paint_keeps_the_fold_and_escapes_the_brand(client, shell, monkeypatch):
+    from floorbit import nav
+    real = nav.boot
+    monkeypatch.setattr(nav, "boot", lambda ctx: {**real(ctx), "brand": {"logo": None, "name": "<b>LAN</b>"}})
+    html = client.get("/").get_data(as_text=True)
+    assert "&lt;b&gt;LAN&lt;/b&gt;" in html and "<b>LAN</b>" not in html
+    client.set_cookie("floorbit_nav", "rail")
+    assert '<nav class="fb-nav" data-state="rail"' in client.get("/").get_data(as_text=True)
+
+
+def test_without_a_build_shell_the_slot_waits_for_the_script(client, monkeypatch):
+    from floorbit import nav, spa
+    monkeypatch.setattr(spa, "assets", lambda entry=spa.ENTRY: {"js": ["/static/app/assets/nav.js"], "css": []})
+    monkeypatch.setattr(nav, "_shell", lambda: None)
+    html = client.get("/").get_data(as_text=True)
+    assert 'id="fb-nav"' in html and '<nav class="fb-nav"' not in html

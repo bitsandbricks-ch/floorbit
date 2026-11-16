@@ -23,6 +23,9 @@ describe('HelpdeskQr', () => {
     renderWithApp(<HelpdeskQr />)
     expect(await screen.findByText('5 codes')).toBeInTheDocument()
     expect(screen.getAllByRole('img', { name: /QR code for seat/ })).toHaveLength(5)
+    // The crew sees where phones will go before printing, and where to change it.
+    expect(screen.getByTestId('qr-opens')).toHaveTextContent('The codes open https://floor.example.com.')
+    expect(screen.getByRole('link', { name: /address on the QR codes/ })).toHaveAttribute('href', '/settings')
     fireEvent.change(screen.getByRole('textbox', { name: 'Only these seats' }), { target: { value: 'd-6, D-8' } })
     expect(screen.getByText('2 of 5 codes')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'QR code for seat D-8' })).toBeInTheDocument()
@@ -43,5 +46,13 @@ describe('HelpdeskQr', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/helpdesk/qr': sheet }).fn)
     renderWithApp(<HelpdeskQr />, '/incidents/qr?block=a')
     expect(await screen.findByText('2 of 5 codes')).toBeInTheDocument()
+  })
+
+  it('prints the short address and each seat\'s PIN for checking in from a PC', async () => {
+    const withPins = { seats: [{ ...seat('A-1'), pin: 'K7M2X' }], checkin: { address: 'checkin.example.com', url: null } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/helpdesk/qr': withPins }).fn)
+    renderWithApp(<HelpdeskQr />)
+    expect(await screen.findByText('On your PC: checkin.example.com')).toBeInTheDocument()
+    expect(screen.getByText('K7M2X')).toBeInTheDocument()
   })
 })

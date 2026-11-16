@@ -1,0 +1,75 @@
+{
+  "title": "Check-in",
+  "seats": "Plätze",
+  "history": "Verlauf",
+  "intro": "Wer an welchem Platz eingecheckt hat und ob im Hintergrund der Switch-Port gefunden wurde. Ein PIN-Check-in von einem PC am eigenen Port bringt Floorbit den Port des Platzes bei.",
+  "verifierError": "Die Port-Suche ist zuletzt fehlgeschlagen: {{error}}. Sie versucht es von selbst wieder.",
+  "count": {
+    "checkedIn": "Eingecheckt",
+    "pins": "{{used}} von {{total}} Platz-PINs benutzt",
+    "verified": "Port gefunden",
+    "learned": "{{count}} Plätze mit gelerntem Port",
+    "pending": "Port wird gesucht",
+    "pendingSub": "{{count}} nach 15 Min. aufgegeben",
+    "notWired": "Ohne Kabel",
+    "notWiredSub": "Handys und WLAN: kein Port zu finden",
+    "review": "Zu prüfen",
+    "reviewSub": "Ports, die mit einem anderen Platz oder dem Patchplan kollidieren"
+  },
+  "tab": {
+    "checkins": "Check-ins ({{count}})",
+    "review": "Prüfen ({{count}})",
+    "portal": "Captive Portal"
+  },
+  "search": "Platz, Nick, IP, MAC oder Port",
+  "state": {
+    "pending": "Sucht",
+    "verified": "Port gefunden",
+    "unverified": "Kein Port gefunden",
+    "not_wired": "Ohne Kabel"
+  },
+  "device": {
+    "pc": "PC",
+    "mobile": "Handy",
+    "unknown": "Unbekannt"
+  },
+  "col": {
+    "seat": "Platz",
+    "nick": "Nick",
+    "state": "Port-Suche",
+    "port": "Switch-Port",
+    "ip": "IP / MAC",
+    "device": "Gerät",
+    "when": "Wann",
+    "actions": "Aktionen",
+    "agent": "Agent",
+    "done": "Eingecheckte Geräte"
+  },
+  "pin": "PIN",
+  "learned": "für diesen Platz gelernt",
+  "retry": "Port nochmals suchen",
+  "retryFor": "Port von {{seat}} nochmals suchen",
+  "remove": "Check-in entfernen",
+  "removeFor": "Check-in an {{seat}} entfernen",
+  "empty": "Noch niemand eingecheckt",
+  "emptyDesc": "Check-ins erscheinen hier, sobald jemand die Check-in-Seite öffnet.",
+  "reviewEmpty": "Nichts zu prüfen",
+  "reviewEmptyDesc": "Kein gelernter Port kollidiert mit einem anderen Platz oder dem Patchplan.",
+  "conflict": {
+    "shared": "Plätze {{seat}} und {{other}} haben am selben Port eingecheckt",
+    "plan": "Platz {{seat}} hat am Port eingecheckt, den der Patchplan {{other}} gibt",
+    "taken": "Platz {{seat}} wurde von einem anderen Nick übernommen"
+  },
+  "conflictHelp": {
+    "shared": "Meist ein kleiner Switch unter dem Tisch oder eine falsche PIN. Hingehen, dann den Port des falschen Platzes vergessen.",
+    "plan": "Entweder der Patchplan oder der Check-in stimmt nicht. Kabel prüfen, dann den Plan korrigieren oder den Port vergessen.",
+    "taken": "Jemand hat nach einem anderen Nick mit der Karte dieses Platzes eingecheckt. Am Platz nachfragen, ob das stimmt."
+  },
+  "forget": "Port von {{seat}} vergessen",
+  "portalIntro": "Handys und Laptops fragen den lokalen Agent, ob sie noch einchecken müssen (DHCP-Option 114). Der Agent holt die Liste der eingecheckten Geräte hier ab; jeder Abruf steht unten. Gesperrt wird nie etwas, und es bleibt aus, solange ihr die DHCP-Option nicht setzt.",
+  "portalNoUrl": "Die öffentliche URL ist nicht gesetzt (Einstellungen › General), darum antworten die Agents allen \"kein Portal\".",
+  "portalEmpty": "Noch kein Agent hat gefragt",
+  "portalEmptyDesc": "Zeigt die DHCP-Option 114 auf einen lokalen Agent, erscheinen seine Abrufe hier.",
+  "portalLast": "Letzter Abruf {{when}}, {{count}} Geräte eingecheckt.",
+  "footer": "So funktioniert die Zuordnung Platz zu Port:"
+}

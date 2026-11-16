@@ -33,7 +33,7 @@ import hmac
 import threading
 import time
 
-from flask import Blueprint, Response, jsonify, render_template, request, stream_with_context
+from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request, stream_with_context
 
 from . import checkin, config, events, history, seat_sources, settings_bridge
 from .crew import CrewBridge
@@ -66,6 +66,17 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         settings_bridge.connect(settings_store)
     monitor = StatusMonitor(_placed_switches(load_data))
     refresher = checkin.CheckinRefresher()
+    verifier = checkin.CheckinVerifier()
+
+    def short_checkin_address():
+        """The short address (CHECKIN_ADDRESS, e.g. checkin.lan) typed on a PC lands on the
+        check-in page. First, before sign-in, which would send it to the crew's login."""
+        if request.path != '/' or not config.get_bool('CHECKIN_ENABLED', False):
+            return None
+        if checkin.is_short_address(request.host):
+            return redirect('/checkin', code=302)
+        return None
+    app.before_request_funcs.setdefault(None, []).insert(0, short_checkin_address)
     auth = app.extensions.get('auth')
     crew = CrewBridge(users=auth.users if auth else None, app=app)
     crew.attach()
@@ -145,10 +156,16 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
 
     def admin_denied():
         token = config.get('CHECKIN_ADMIN_TOKEN', '') or ''
+        if token and _signed_in():
+            return None   # the role guard (auth/roles.py) already checked a signed-in crew member
         given = request.headers.get('X-Admin-Token') or request.args.get('token') or ''
         if token and not hmac.compare_digest(token, given):
             return jsonify({'error': 'Admin token required'}), 401
         return None
+
+    def _signed_in():
+        from auth import current_user
+        return current_user() is not None
 
     @bp.route('/api/checkin/info')
     def checkin_info():
@@ -165,8 +182,14 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return jsonify({'open': False, 'opens_at': opens_at, 'ip': None, 'checkin': None})
         ip = checkin.client_ip()
         row = checkin.find_by_ip(ip)
+        # Only the seat this PC is known to be at: its own, or the one its port is patched to.
+        suggested = checkin.suggest_seat(ip, load_data, current_app) if checkin.ip_allowed(ip) else None
+        # A hint for the page; the page also looks at the device itself (OS, touch, screen).
+        on_pc = not checkin.looks_mobile(request.headers.get('User-Agent'))
         return jsonify({'open': True, 'opens_at': None, 'ip': ip, 'checkin': (
-            {'seat': row['seat'], 'username': row['username']} if row else None)})
+            {'seat': row['seat'], 'username': row['username'], 'wired': row.get('wired')} if row else None),
+            'suggested_seat': suggested, 'pin_required': config.get_bool('CHECKIN_REQUIRE_PIN', False),
+            'address': checkin.short_address() or None, 'on_pc': on_pc})
 
     @bp.route('/api/checkin', methods=['POST'])
     def checkin_submit():
@@ -176,11 +199,12 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         body = request.get_json(silent=True) or request.form
         try:
             row = checkin.check_in(body.get('seat'), body.get('username'), checkin.client_ip(),
-                                   load_data, user_agent=request.headers.get('User-Agent'))
+                                   load_data, user_agent=request.headers.get('User-Agent'), pin=body.get('pin'),
+                                   device=body.get('device'))
         except checkin.CheckinError as exc:
             return jsonify({'ok': False, 'error': str(exc)}), exc.status
         return jsonify({'ok': True, 'seat': row['seat'], 'username': row['username'],
-                        'ip': row['ip'], 'mac_found': bool(row['mac'])})
+                        'ip': row['ip'], 'mac_found': bool(row['mac']), 'wired': row['wired']})
 
     @bp.route('/api/checkin/me')
     def checkin_me():
@@ -201,6 +225,34 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         return jsonify({'checkins': rows, 'refresh': {
             'last_run': refresher.last_run, 'last_error': refresher.last_error}})
 
+    @bp.route('/checkins')
+    def checkin_crew_page():
+        from floorbit import spa
+        return spa.render('Check-in')
+
+    @bp.route('/api/checkins/overview')
+    def checkin_overview():
+        """The crew's Check-in page: who checked in, where the port lookup stands, what to review,
+        and what the agents' captive portal API asked (floorbit/captive.py)."""
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        from floorbit import captive
+        body = checkin.overview(load_data)
+        body['portal'] = {'fetches': captive.fetches()[:50], 'public_url': config.get('PUBLIC_URL', '') or None}
+        body['verifier'] = {'last_error': verifier.last_error}
+        return jsonify(body)
+
+    @bp.route('/api/checkins/<seat>/retry', methods=['POST'])
+    def checkin_retry(seat):
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        row = checkin.retry(seat)
+        if row is None:
+            return jsonify({'error': 'No check-in for that seat'}), 404
+        return jsonify({'ok': True, 'wired': row['wired']})
+
     @bp.route('/api/checkins/<seat>', methods=['DELETE'])
     def checkin_delete(seat):
         denied = checkin_disabled() or admin_denied()
@@ -208,6 +260,16 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return denied
         if not checkin.remove(seat):
             return jsonify({'error': 'No check-in for that seat'}), 404
+        return jsonify({'ok': True})
+
+    @bp.route('/api/checkins/<seat>/port', methods=['DELETE'])
+    def checkin_forget_port(seat):
+        """Forget the port a seat learned from a check-in (a wrong one, from the review list)."""
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        if not checkin.forget_port(seat.upper()):
+            return jsonify({'error': 'That seat has no learned port'}), 404
         return jsonify({'ok': True})
 
     @bp.route('/api/checkins/refresh', methods=['POST'])
@@ -283,6 +345,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             started.set()
             monitor.start()
             refresher.start()
+            verifier.start()
             crew.start()
 
     app.extensions['lal_integrations'] = {'monitor': monitor, 'discord': discord,
