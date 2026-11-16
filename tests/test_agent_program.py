@@ -844,7 +844,11 @@ def test_health_says_whether_the_host_answered_lately(tmp_path):
     assert beat.read_text() == ""
     a.heartbeat = str(tmp_path / "missing" / "beat")
     a.beat(now=2000)
-    assert a.heartbeat is None and "cannot write the heartbeat" in said[-1]
+    # The agent keeps trying (a full disk can pass) and says so once, not on every beat.
+    assert a.heartbeat and "cannot write the heartbeat" in said[-1]
+    told = len(said)
+    a.beat(now=2000 + agent_mod.BEAT_EVERY)
+    assert len(said) == told
 
 
 def test_a_poll_that_gets_through_beats(client, app_module, tmp_path):
