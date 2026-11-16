@@ -40,6 +40,26 @@ so on a hosted Floorbit they only work when that service is reachable from it:
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
 
+## Where the hosted server's own requests may go
+
+Admins set many URLs: NetBox, LibreNMS, sign-in providers (OIDC), HTTP seat sources, webhooks, Loki
+and plugin base URLs. Every request the server makes is checked against the address it actually
+connects to, after DNS, so a name that is changed to point somewhere else later (DNS rebinding) is
+still caught:
+
+- **Always refused**, also on a self-hosted Floorbit: link-local addresses (`169.254.0.0/16`,
+  `fe80::/10`, where clouds keep their metadata service), `0.0.0.0` and multicast, also through IPv6
+  that carries one of those inside (`::ffff:`, NAT64 `64:ff9b::`, 6to4 `2002::`).
+- **`OUTBOUND_BLOCK_NETS`** refuses more. On a hosted Floorbit, set it to loopback and the hosting
+  network's own ranges, for example `127.0.0.0/8,::1/128,10.42.0.0/16`, so that no tenant admin can
+  point a URL at the hosting side. Leave it empty on a self-hosted Floorbit: NetBox and LibreNMS sit on
+  the LAN there.
+
+A refused request fails like an unreachable server, with "Refused: ..." in the error. Through an HTTP
+proxy (`HTTPS_PROXY`) the server connects to the proxy, so only the proxy's address is checked: let the
+proxy refuse the hosting network too. The server's own probes, game server queries and RCON follow
+`PROBE_NETS` ([services](services.md#what-the-server-itself-may-reach)).
+
 ## Enrolling an agent
 
 **Settings > Local agents** (`/settings/agents`): give the agent a name, such as the event or the
