@@ -15,7 +15,7 @@ const data: ServicesData = {
   resolvers: [{ ...base, status: 'down', id: 'r1', name: 'Resolver 1', address: '192.0.2.53', lookup: 'example.com', rcode: 'SERVFAIL',
     answers: 0, latency_ms: 3, error: 'example.com: SERVFAIL' }],
   lan_cache: { status: 'up', hit_ratio: 0.72, served_bytes: 120e9, bps: 4e8, disk: { used: 8e12, total: 10e12, ratio: 0.8 }, error: '', demo: false },
-  interval: 30, last_poll: 2, via_agent: false, probe_ports: [53, 80, 443, 853],
+  interval: 30, last_poll: 2, via_agent: false, probe_ports: [53, 80, 443, 853], devices: ['core-01'],
 }
 
 describe('Services', () => {

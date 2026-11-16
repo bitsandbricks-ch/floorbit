@@ -39,6 +39,7 @@ WARN_LOSS = 0.2
 WARN_UPLINK_MS = 100
 WARN_DNS_MS = 200
 WARN_DISK = 0.9
+RANK = {'router': 0, 'firewall': 1, 'switch': 2}   # where a line comes in, most likely first
 _lock = threading.Lock()
 
 
@@ -329,7 +330,8 @@ def lan_cache(now=None):
 
 
 def overview(now=None):
-    stored = _stored(load_data())
+    data = load_data()
+    stored = _stored(data)
     new = [(kind, item) for kind in KINDS for item in stored[kind] if poller.state(item['id'])['checked_at'] is None]
     if new:
         # Just added, or no background thread (tests, a one-off): check now rather than show them grey.
@@ -337,7 +339,10 @@ def overview(now=None):
             list(pool.map(lambda j: poller.check(*j, now), new))
     out = {kind: [{**item, **poller.state(item['id'])} for item in stored[kind]] for kind in KINDS}
     out.update(lan_cache=lan_cache(now), interval=poller.interval(), last_poll=poller.last_poll,
-               via_agent=_via_agent(), probe_ports=list(probes.PROBE_PORTS))
+               via_agent=_via_agent(), probe_ports=list(probes.PROBE_PORTS),
+               # Where a line can come in, for the form: routers and firewalls first.
+               devices=[d['name'] for d in sorted((d for d in inventory.devices(data) if d.get('name')),
+                                                  key=lambda d: (RANK.get(d.get('role'), 3), str(d['name']).lower()))])
     return out
 
 

@@ -1355,7 +1355,7 @@ export interface LanCacheState {
 }
 export interface Services {
   uplinks: IspUplink[]; resolvers: DnsResolver[]; lan_cache: LanCacheState | null
-  interval: number; last_poll: number | null; via_agent: boolean; probe_ports: number[]
+  interval: number; last_poll: number | null; via_agent: boolean; probe_ports: number[]; devices: string[]
 }
 
 /** One speed test the player ran from the seat's help page (issue #99). */

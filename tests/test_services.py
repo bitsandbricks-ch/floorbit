@@ -38,6 +38,7 @@ def test_uplinks_and_resolvers_are_checked(client, net):
     answers["dns_probe"] = lambda server, name: {"ms": 3.2, "rcode": "NOERROR", "answers": 2}
     body = client.get("/api/services").get_json()
     [up], [res] = body["uplinks"], body["resolvers"]
+    assert body["devices"][:2] == ["core-01", "sw-a-01"]          # routers first, for the form
     assert (up["status"], up["port_state"], up["in_bps"], up["utilization"], up["loss"], up["latency_ms"]) == (
         "warn", "up", 850_000_000, 0.85, 0.2, 12.5)
     assert (res["status"], res["lookup"], res["latency_ms"]) == ("up", "example.com", 3.2)

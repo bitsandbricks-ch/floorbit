@@ -53,7 +53,7 @@ export default function Services() {
           </>
         )}
       </Stack>
-      {editing?.kind === 'uplinks' && data && <UplinkModal uplink={editing.item} ports={data.probe_ports} onClose={() => setEditing(null)} />}
+      {editing?.kind === 'uplinks' && data && <UplinkModal uplink={editing.item} ports={data.probe_ports} devices={data.devices} onClose={() => setEditing(null)} />}
       {editing?.kind === 'resolvers' && <ResolverModal resolver={editing.item} onClose={() => setEditing(null)} />}
     </Layout>
   )
@@ -187,7 +187,7 @@ function ModalFoot({ id, pending, disabled, onSave, onRemove, question }: {
   )
 }
 
-function UplinkModal({ uplink, ports, onClose }: { uplink: IspUplink | null; ports: number[]; onClose: () => void }) {
+function UplinkModal({ uplink, ports, devices, onClose }: { uplink: IspUplink | null; ports: number[]; devices: string[]; onClose: () => void }) {
   const { t } = useTranslation()
   const [form, setForm] = useState({
     name: uplink?.name ?? '', device: uplink?.device ?? '', port: uplink?.port ?? '',
@@ -201,7 +201,8 @@ function UplinkModal({ uplink, ports, onClose }: { uplink: IspUplink | null; por
       <Stack gap="sm">
         <TextInput label={t('services.name')} placeholder={t('services.uplinkPlaceholder')} value={form.name} onChange={(e) => set({ name: e.currentTarget.value })} />
         <SimpleGrid cols={2} spacing="sm">
-          <TextInput label={t('services.device')} placeholder="core-01" value={form.device} onChange={(e) => set({ device: e.currentTarget.value })} />
+          <Select label={t('services.device')} placeholder="core-01" data={devices} searchable value={form.device || null}
+            onChange={(v) => set({ device: v ?? '' })} />
           <TextInput label={t('services.port')} placeholder="Te1/0/48" value={form.port} onChange={(e) => set({ port: e.currentTarget.value })} />
         </SimpleGrid>
         <NumberInput label={t('services.capacity')} min={1} max={400000} value={form.capacity_mbps}
