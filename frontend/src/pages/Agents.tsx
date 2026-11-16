@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Loader, MultiSelect, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, MultiSelect, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import type { Agent, AgentReport, AgentStats, Hall } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
 type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number }
@@ -117,7 +118,7 @@ export default function Agents() {
     <Layout title={t('agents.title')} back={{ href: '/settings', label: t('agents.settings') }}>
       <PageHead title={t('agents.title')} desc={t('agents.intro')} />
       <Stack gap="md">
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
+        <ErrorBanner error={error} />
         {made && (
           <Alert color="up" role="status" withCloseButton onClose={() => setMade(null)} title={t('agents.madeTitle', { name: made.name })}>
             <Stack gap="xs">
@@ -132,7 +133,7 @@ export default function Agents() {
             </Stack>
           </Alert>
         )}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('agents.agents')}</Title>

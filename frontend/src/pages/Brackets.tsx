@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Button, Group, Loader, Modal, NumberInput, Paper, SegmentedControl, Select, Stack, Text, TextInput,
+  Alert, Anchor, Badge, Button, Group, Modal, NumberInput, Paper, SegmentedControl, Select, Stack, Text, TextInput,
   Textarea, Title,
 } from '@mantine/core'
 import { IconDownload, IconPlus } from '@tabler/icons-react'
@@ -17,6 +17,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { roundName } from './tournament/brackets'
 import { onPlan } from './plan/links'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 function NewBracket({ zones, onDone }: { zones: BracketsData['zones']; onDone: (id?: string) => void }) {
   const { t } = useTranslation()
@@ -211,14 +212,14 @@ export default function Brackets() {
             <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding(true)}>{t('brackets.new')}</Button>
           </Group>
         ) : undefined} />
-      {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+      <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {sync.error && <Alert color="down" role="alert" mb="sm">{sync.error.message}</Alert>}
       {sync.data && (
         <Alert color={sync.data.errors.length ? 'warn' : 'up'} role="status" mb="sm" withCloseButton onClose={() => sync.reset()}>
           {t('brackets.imported', { count: sync.data.count })} {sync.data.errors.join(' ')}
         </Alert>
       )}
-      {query.isPending || !d ? <Loader aria-label={t('common.loading')} /> : (
+      {query.isPending || !d ? <LoadingState /> : (
         <Stack gap="md">
           <Text size="sm">
             {d.public

@@ -39,5 +39,8 @@
     "jobsInQuiet": "Aufträge für mich kommen trotzdem",
     "quietNow": "Jetzt ist Ruhezeit: nur Aufträge für dich kommen durch.",
     "quietNowAll": "Jetzt ist Ruhezeit: nichts kommt durch."
-  }
+  },
+  "retry": "Nochmals versuchen",
+  "close": "Schliessen",
+  "nothingYet": "Hier ist noch nichts."
 }

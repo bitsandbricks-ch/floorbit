@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Badge, Button, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
+  ActionIcon, Alert, Badge, Button, Group, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconExternalLink, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PlannedMaintenance } from './status/PlannedMaintenance'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
 const COLOR: Record<StatusState, string> = {
@@ -84,9 +85,9 @@ export default function NetworkStatus() {
           </Button>
         } />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {error && <Alert color="down" role="alert">{error.message}</Alert>}
-        {query.isPending || !d ? <Loader aria-label={t('common.loading')} /> : (
+        {query.isPending || !d ? <LoadingState /> : (
           <>
             {!d.public && <Alert color="gray" variant="light">{t('status.publicOff')}</Alert>}
             <SimpleGrid cols={{ base: 1, md: 2 }}>

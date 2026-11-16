@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Drawer, Group, Kbd, Loader, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Drawer, Group, Kbd, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -19,6 +19,7 @@ import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { Shortcuts } from './plan/Shortcuts'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const PANELS = ['seat', 'block', 'switch']
 const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'note', 'checked_in']
@@ -229,8 +230,8 @@ export default function FloorPlan() {
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere}>
       <PageHead title={t('plan.title')} />
-      {q.isPending && <Loader aria-label={t('common.loading')} />}
-      {q.error && <Alert color="down" role="alert">{t('common.error', { message: q.error.message })}</Alert>}
+      {q.isPending && <LoadingState />}
+      <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {data && (
         <>
           <Group justify="space-between" mb="sm" gap="sm" wrap="wrap">

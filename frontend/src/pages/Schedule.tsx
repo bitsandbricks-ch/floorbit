@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Anchor, Badge, Button, FileButton, Group, Loader, Paper, Select, SimpleGrid, Stack, Table, Text,
+  ActionIcon, Alert, Anchor, Badge, Button, FileButton, Group, Paper, Select, SimpleGrid, Stack, Table, Text,
   TextInput, Title,
 } from '@mantine/core'
 import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
@@ -14,6 +14,7 @@ import type { ScheduleData, ScheduleItem, ScheduleKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { fromInput, toInput } from './schedule/time'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
 
@@ -118,14 +119,14 @@ export default function Schedule() {
             <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing('new')}>{t('schedule.addItem')}</Button>
           </Group>
         ) : undefined} />
-      {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+      <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {err && <Alert color="down" role="alert" mb="sm">{err.message}</Alert>}
       {upload.data && (
         <Alert color="up" role="status" mb="sm" withCloseButton onClose={() => upload.reset()}>
           {t('schedule.imported', upload.data)}
         </Alert>
       )}
-      {query.isPending || !d ? <Loader aria-label={t('common.loading')} /> : (
+      {query.isPending || !d ? <LoadingState /> : (
         <Stack gap="md">
           <Text size="sm">
             {d.public

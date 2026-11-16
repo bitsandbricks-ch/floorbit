@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Checkbox, Code, CopyButton, Group, Loader, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title,
+  Alert, Badge, Button, Checkbox, Code, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -10,6 +10,7 @@ import type { Webhook } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Answer = { webhooks: Webhook[]; events: string[] }
 type WithSecret = { webhook: Webhook; secret: string }
@@ -147,7 +148,7 @@ export default function Webhooks() {
     <Layout title={t('webhooks.title')} back={{ href: '/settings', label: t('webhooks.settings') }}>
       <PageHead title={t('webhooks.title')} desc={t('webhooks.intro')} />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {secret && (
           <Alert color="up" role="status" withCloseButton onClose={() => setSecret(null)} title={t('webhooks.secretTitle', { name: secret.webhook.name })}>
             <Stack gap="xs">
@@ -163,7 +164,7 @@ export default function Webhooks() {
             </Stack>
           </Alert>
         )}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        {query.isPending ? <LoadingState /> : d && (
           <>
             {d.webhooks.length === 0 && <Text size="sm" c="dimmed">{t('webhooks.none')}</Text>}
             {d.webhooks.map((h) => <Hook key={h.id} hook={h} events={d.events} onSecret={shown} onChanged={refresh} />)}

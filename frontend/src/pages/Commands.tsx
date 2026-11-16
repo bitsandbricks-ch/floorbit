@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Badge, Button, Code, Group, Loader, Modal, MultiSelect, Paper, PasswordInput, ScrollArea,
+  ActionIcon, Alert, Badge, Button, Code, Group, Modal, MultiSelect, Paper, PasswordInput, ScrollArea,
   SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title, Tooltip,
 } from '@mantine/core'
 import { IconFileDiff, IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from '@tabler/icons-react'
@@ -13,6 +13,7 @@ import { useCan } from '@/api/queries'
 import type { CommandInfo, CommandRun, CommandTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 interface RunBody {
   template: string
@@ -93,8 +94,8 @@ export default function Commands() {
           </>
         } />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : info && !info.available ? (
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {query.isPending ? <LoadingState /> : info && !info.available ? (
           <Alert color="warn">{t('commands.noPlugin')}</Alert>
         ) : info && (
           <Paper withBorder radius="lg" p="md">

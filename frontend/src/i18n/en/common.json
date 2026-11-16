@@ -39,5 +39,8 @@
     "jobsInQuiet": "Jobs sent to me still come through",
     "quietNow": "Quiet hours now: only jobs sent to you come through.",
     "quietNowAll": "Quiet hours now: nothing comes through."
-  }
+  },
+  "retry": "Try again",
+  "close": "Close",
+  "nothingYet": "Nothing here yet."
 }

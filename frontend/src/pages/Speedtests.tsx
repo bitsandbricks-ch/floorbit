@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, Loader, Paper, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Group, Paper, Stack, Table, Text, Title } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
@@ -8,6 +8,7 @@ import type { SpeedSeat, SpeedtestSummary } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 function SeatList({ seats }: { seats: SpeedSeat[] }) {
   const { t, i18n } = useTranslation()
@@ -43,8 +44,8 @@ export default function Speedtests() {
     <Layout title={t('speedtests.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
       <PageHead title={t('speedtests.title')} desc={t('speedtests.intro')} />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
-        {query.isPending || !d ? <Loader aria-label={t('common.loading')} /> : d.hall.tests === 0 ? (
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {query.isPending || !d ? <LoadingState /> : d.hall.tests === 0 ? (
           <Alert color="gray" variant="light">{t('speedtests.none', { hours: d.hours })}</Alert>
         ) : (
           <>

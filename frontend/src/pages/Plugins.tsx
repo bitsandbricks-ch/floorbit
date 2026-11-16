@@ -9,6 +9,7 @@ import type { ActionResult, PluginInfo } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState } from '@/components/ui'
 
 type Result = { ok: boolean; text: string } | null
 
@@ -127,7 +128,7 @@ export default function Plugins() {
           </>
         }
       />
-      {isPending && <Loader aria-label={t('common.loading')} />}
+      {isPending && <LoadingState />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

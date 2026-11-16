@@ -1,10 +1,11 @@
-import { Alert, Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
+import { Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { SwitchDetails } from '@/api/types'
 import { SeatGlyph } from './SeatMap'
+import { ErrorBanner } from '@/components/ui'
 
 const TONE: Record<string, string> = { online: 'up', offline: 'down' }
 
@@ -21,7 +22,7 @@ export function SwitchPanel({ name, onSeat, onClose }: { name: string; onSeat: (
         <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
       </Group>
       {q.isPending && <Loader size="sm" aria-label={t('common.loading')} />}
-      {q.error && <Alert color="down" role="alert">{t('common.error', { message: q.error.message })}</Alert>}
+      <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {w && (
         <>
           <Group gap="xs">

@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Group, Loader, Paper, SegmentedControl, Select, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
+import { ActionIcon, Alert, Group, Paper, SegmentedControl, Select, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
 import { IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSkipBack } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
@@ -12,6 +12,7 @@ import { EventReplay } from './replay/EventReplay'
 import { openAt, sampleAt, seatsAt, SPEEDS, when } from './replay/model'
 import { Chart, Plan } from './replay/Plan'
 import { bps } from './stats/format'
+import { LoadingState } from '@/components/ui'
 
 const TICK = 200   // ms between steps while playing
 
@@ -76,12 +77,12 @@ export default function Replay() {
           </Group>
         )} />
       {range === 'event' ? (
-        eventQuery.isPending ? <Loader aria-label={t('common.loading')} />
+        eventQuery.isPending ? <LoadingState />
           : eventQuery.error ? <Alert color="down" role="alert">{t('common.error', { message: eventQuery.error.message })}</Alert>
             : !eventQuery.data?.frames.length ? <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('replay.event.empty')}</Text></Paper>
               : <EventReplay key={eventQuery.data.hall} data={eventQuery.data} />
       ) : query.isPending ? (
-        <Loader aria-label={t('common.loading')} />
+        <LoadingState />
       ) : query.error ? (
         <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>
       ) : !data?.start ? (

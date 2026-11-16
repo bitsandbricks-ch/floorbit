@@ -1,4 +1,4 @@
-import { Alert, Badge, Group, Loader, Paper, Stack, Switch, Text } from '@mantine/core'
+import { Badge, Group, Paper, Stack, Switch, Text } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get, put } from '@/api/client'
@@ -7,6 +7,7 @@ import { useLiveEvent } from '@/api/live'
 import type { FeatureState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Answer = { features: FeatureState[]; env: string }
 
@@ -32,8 +33,8 @@ export default function Features() {
     <Layout title={t('features.title')} back={{ href: '/settings', label: t('features.settings') }}>
       <PageHead title={t('features.title')} desc={t('features.intro')} />
       <Stack gap="sm">
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && d.features.map((f) => {
+        <ErrorBanner error={error} />
+        {query.isPending ? <LoadingState /> : d && d.features.map((f) => {
           const blockedBy = f.needs.filter((n) => !d.features.find((o) => o.id === n)?.on)
           return (
             <Paper key={f.id} withBorder radius="lg" p="md">

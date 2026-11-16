@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Checkbox, Code, CopyButton, Group, Loader, NumberInput, Paper, Select, Stack, Text, TextInput, Title,
+  Alert, Badge, Button, Checkbox, Code, CopyButton, Group, NumberInput, Paper, Select, Stack, Text, TextInput, Title,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -11,6 +11,7 @@ import type { ApiToken } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Answer = { tokens: ApiToken[]; max_days: number }
 type Made = { token: ApiToken; secret: string }
@@ -68,7 +69,7 @@ export default function ApiTokens() {
     <Layout title={t('api.title')} back={{ href: '/settings', label: t('api.settings') }}>
       <PageHead title={t('api.title')} desc={t('api.intro')} />
       <Stack gap="md">
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
+        <ErrorBanner error={error} />
         {made && (
           <Alert color="up" role="status" withCloseButton onClose={() => setMade(null)} title={t('api.madeTitle', { name: made.token.name })}>
             <Stack gap="xs">
@@ -84,7 +85,7 @@ export default function ApiTokens() {
             </Stack>
           </Alert>
         )}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('api.tokens')}</Title>

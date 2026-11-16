@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { IconDownload, IconFileImport, IconTemplate } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -11,6 +11,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ApplyDialog, EditDialog, ImportDialog, SaveDialog } from './templates/Dialogs'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Open =
   | { kind: 'save'; template?: LayoutTemplate }
@@ -106,9 +107,9 @@ export default function Templates() {
       />
       <Stack gap="md">
         {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
-        {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
+        <ErrorBanner error={error} />
         {list.isPending ? (
-          <Loader aria-label={t('common.loading')} />
+          <LoadingState />
         ) : !list.data?.templates.length ? (
           <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('templates.empty')}</Text></Paper>
         ) : (

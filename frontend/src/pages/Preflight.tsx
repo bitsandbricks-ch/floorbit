@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 import { IconPlayerPlay, IconPrinter } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,7 @@ import type { PreflightBoard, PreflightGroupId, PreflightStatus } from '@/api/ty
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
+import { LoadingState } from '@/components/ui'
 
 const COLOR: Record<PreflightStatus, string> = { pass: 'up', warn: 'warn', fail: 'down', skip: 'gray' }
 const GROUPS: PreflightGroupId[] = ['switches', 'uplinks', 'services']
@@ -48,7 +49,7 @@ export default function Preflight() {
         } />
       <Stack gap="md">
         {(query.error ?? run.error) && <Alert color="down" role="alert">{t('common.error', { message: (query.error ?? run.error)!.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : b && (
+        {query.isPending ? <LoadingState /> : b && (
           <>
             <Paper withBorder radius="lg" p="md" className={`fb-preflight-verdict ${verdict}`}>
               <Group justify="space-between" wrap="wrap">

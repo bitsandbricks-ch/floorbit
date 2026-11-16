@@ -15,6 +15,7 @@ import type {
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 /** Switch config backups and what changed during the event (issue #96). A typed switch login lives
  *  only in this page's state for one run; the nightly run uses the stored logins. */
@@ -46,8 +47,8 @@ export default function Configs() {
     <Layout title={t('configs.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('configs.title')} desc={t('configs.intro', { keep: info?.keep ?? 50 })} />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : info && (
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {query.isPending ? <LoadingState /> : info && (
           <>
             {info.available && <Nightly n={info.nightly} />}
             {!info.available ? <Alert color="warn">{t('configs.noPlugin')}</Alert> : (

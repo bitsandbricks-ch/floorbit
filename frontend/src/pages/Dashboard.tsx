@@ -14,6 +14,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { WidgetBody } from '@/widgets/WidgetBody'
+import { LoadingState } from '@/components/ui'
 
 function TileFrame({ title, from, wide, children }: { title: string; from: string; wide?: boolean; children: React.ReactNode }) {
   const { t } = useTranslation()
@@ -184,7 +185,7 @@ export default function Dashboard() {
   }
   const body = (
     <>
-      {isPending && <Loader aria-label={t('common.loading')} />}
+      {isPending && <LoadingState />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

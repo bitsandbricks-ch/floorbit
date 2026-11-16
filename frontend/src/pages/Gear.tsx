@@ -1,5 +1,5 @@
 import {
-  Alert, Autocomplete, Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Table, Text, TextInput, Title,
+  Alert, Autocomplete, Badge, Button, Group, Modal, Paper, SegmentedControl, Select, Stack, Table, Text, TextInput, Title,
 } from '@mantine/core'
 import { IconArrowBackUp, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import type { GearData, GearItem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
+import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Show = 'all' | 'out' | 'in' | 'late'
 
@@ -81,7 +82,7 @@ function CheckInAll({ to, items, onClose, onDone }: {
       <Stack gap="sm">
         <Text size="sm">{items.map((i) => i.name).join(', ')}</Text>
         <TextInput label={t('gear.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
-        {act.error && <Alert color="down" role="alert">{t('common.error', { message: act.error.message })}</Alert>}
+        <ErrorBanner error={act.error} />
         <Button fullWidth loading={act.isPending} onClick={() => act.mutate()}>
           {t('gear.allBackDo', { count: items.length })}
         </Button>
@@ -130,8 +131,8 @@ export default function Gear() {
           </Button>
         } />
       <Stack gap="md">
-        {query.error && <Alert color="down" role="alert">{t('common.error', { message: query.error.message })}</Alert>}
-        {query.isPending ? <Loader aria-label={t('common.loading')} /> : d && (
+        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {query.isPending ? <LoadingState /> : d && (
           <>
             <Group gap="sm" wrap="wrap">
               <TextInput leftSection={<IconSearch size={14} />} aria-label={t('gear.search')} placeholder={t('gear.search')}

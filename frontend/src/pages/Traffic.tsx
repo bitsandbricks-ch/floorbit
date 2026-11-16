@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { bytes, CATEGORIES, mostly, total } from './traffic/format'
 import { onPlan } from './plan/links'
+import { ErrorBanner } from '@/components/ui'
 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
@@ -148,7 +149,7 @@ export default function Traffic() {
             {dnsOn && <Button variant="default" component="a" href="/dns">{t('traffic.dns')}</Button>}
           </Group>
         } />
-      {flows.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: flows.error.message })}</Alert>}
+      <ErrorBanner error={flows.error} mb="md" />
       {data?.rules_error && <Alert color="warn" mb="md">{t('traffic.rulesError', { message: data.rules_error })}</Alert>}
       {flows.isPending || !data ? <Loader size="sm" /> : !data.collector ? (
         <Alert color="gray" variant="light">{t('traffic.noCollector')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/flows.md">docs/flows.md</Anchor></Alert>

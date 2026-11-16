@@ -11,6 +11,7 @@ import type { Finding, SecurityList, Severity } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PortDialog, type PortRequest } from './security/PortDialog'
+import { ErrorBanner } from '@/components/ui'
 
 const TONE: Record<Severity, string> = { high: 'down', medium: 'warn', low: 'gray' }
 
@@ -125,7 +126,7 @@ export default function Security() {
           </Button>
         )}
       />
-      {error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: error.message })}</Alert>}
+      <ErrorBanner error={error} mb="md" />
       {message && <Alert color="up" mb="md" withCloseButton onClose={() => setMessage(null)}>{message}</Alert>}
       {list.isPending || !data ? (
         <Loader size="sm" />

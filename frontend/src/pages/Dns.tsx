@@ -7,6 +7,7 @@ import { qk } from '@/api/keys'
 import type { DnsData, DnsSite } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { ErrorBanner } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -136,7 +137,7 @@ export default function Dns() {
           <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('dns.range')}
             data={RANGES.map((h) => ({ value: String(h), label: t(`dns.hours.${h}`) }))} />
         } />
-      {query.error && <Alert color="down" role="alert" mb="md">{t('common.error', { message: query.error.message })}</Alert>}
+      <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.error && <Alert color="warn" mb="md">{t('dns.pluginError', { message: data.error })}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : data.plugins === 0 && data.lookups === 0 ? (
         <Alert color="gray" variant="light">{t('dns.noPlugin')} <Anchor href={DOCS}>docs/dns.md</Anchor></Alert>
