@@ -42,8 +42,11 @@ def test_uplinks_and_resolvers_are_checked(client, net):
     assert (up["status"], up["port_state"], up["in_bps"], up["utilization"], up["loss"], up["latency_ms"]) == (
         "warn", "up", 850_000_000, 0.85, 0.2, 12.5)
     assert (res["status"], res["lookup"], res["latency_ms"]) == ("up", "example.com", 3.2)
+    answers["dns_probe"] = lambda server, name: {"ms": 250.0, "rcode": "NOERROR", "answers": 2}
+    [res] = client.post("/api/services/check").get_json()["resolvers"]       # "Check now"
+    assert (res["status"], res["latency_ms"]) == ("warn", 250.0)
     tiles = {t["id"].split(":")[0]: t for t in services.health_checks()}
-    assert tiles["uplink"]["summary"] == "850 / 1000 Mbit/s in" and tiles["dns"]["status"] == "up"
+    assert tiles["uplink"]["summary"] == "850 / 1000 Mbit/s in" and tiles["dns"]["status"] == "warn"
 
 
 def test_a_down_line_or_a_failing_resolver_is_red(client, net):
@@ -79,6 +82,7 @@ def test_viewers_see_services_but_do_not_change_them(app_module):
     viewer = sign_in_as(app_module, "vi10", "viewer")
     assert viewer.get("/api/services").status_code == 200
     assert viewer.post("/api/services/uplinks", json={}).status_code == 403
+    assert viewer.post("/api/services/check").status_code == 403
 
 
 def test_the_dns_probe_reads_the_answer(monkeypatch):

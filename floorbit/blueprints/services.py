@@ -3,6 +3,7 @@ floorbit/services.py, docs in docs/services.md.
 
 - ``GET /services``: the page.
 - ``GET /api/services``: every uplink and resolver with how it was when last checked, and the LAN cache.
+- ``POST /api/services/check``: check everything now (``floorplan.edit``).
 - ``POST /api/services/<kind>``, ``PUT/DELETE /api/services/<kind>/<id>`` (kind ``uplinks`` or
   ``resolvers``): ``floorplan.edit``.
 """
@@ -21,6 +22,12 @@ def services_page():
 
 @bp.route('/api/services', methods=['GET'])
 def get_services():
+    return jsonify(services.overview())
+
+
+@bp.route('/api/services/check', methods=['POST'])
+def check_services():
+    services.poller.poll_once()
     return jsonify(services.overview())
 
 

@@ -49,5 +49,6 @@
   "probePort": "Prüf-Port",
   "address": "Adresse",
   "lookup": "Name zum Nachschlagen",
-  "lookupHelp": "Ein Name, der sich immer auflösen muss."
+  "lookupHelp": "Ein Name, der sich immer auflösen muss.",
+  "checkNow": "Jetzt prüfen"
 }

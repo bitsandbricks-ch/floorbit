@@ -49,5 +49,6 @@
   "probePort": "Probe port",
   "address": "Address",
   "lookup": "Name to look up",
-  "lookupHelp": "A name that must always resolve."
+  "lookupHelp": "A name that must always resolve.",
+  "checkNow": "Check now"
 }
