@@ -123,6 +123,24 @@ describe('traffic overlay', () => {
     expect(screen.getByText('Tripped', { selector: 'li' })).toBeInTheDocument()
   })
 
+  it('rings the seats whose traffic failed over or has no firewall left (issue #470)', async () => {
+    const seats = { enabled: true, seats: { 'D-1': { now: 'fw-02', intended: 'fw-01', state: 'failover' }, 'D-2': { now: null, intended: 'fw-01', state: 'down' } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': seats }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    expect(container.querySelector('.cell .fwr')).toBeNull()
+    fireEvent.click(await screen.findByRole('switch', { name: 'Firewalls' }))
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .fwr')).toHaveClass('fw-failover'))
+    expect(container.querySelector('[data-seat="D-2"] .fwr')).toHaveClass('fw-down')
+    expect(screen.getByText('Seat has no firewall up', { selector: 'li' })).toBeInTheDocument()
+  })
+
+  it('offers no firewall layer without planned ranges', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': { enabled: false, seats: {} } }).fn)
+    renderWithApp(<FloorPlan />, '/plan')
+    await screen.findByRole('switch', { name: 'Traffic' })
+    expect(screen.queryByRole('switch', { name: 'Firewalls' })).toBeNull()
+  })
+
   it('fills online seats by traffic and keeps the other shapes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')

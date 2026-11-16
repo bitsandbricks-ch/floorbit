@@ -400,6 +400,9 @@ body {
 .fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
 .fb-plan .match { fill: none; stroke: var(--color-warn); stroke-width: 3.5; }
+.fb-plan .fwr { fill: none; stroke-width: 3; }
+.fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
+.fb-plan .fwr.fw-down { stroke: var(--color-down); }
 .fb-plan .num { fill: var(--color-fg); font: 700 11px var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
 .fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
