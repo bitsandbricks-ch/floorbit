@@ -13,6 +13,7 @@
   "bots_other": "{{count}} Bots",
   "map": "Map {{map}}",
   "notAsked": "Noch nicht abgefragt.",
+  "checkNow": "Jetzt prüfen",
   "console": "RCON-Konsole",
   "noRcon": "RCON ist für diesen Server nicht eingerichtet.",
   "edit": "Bearbeiten",

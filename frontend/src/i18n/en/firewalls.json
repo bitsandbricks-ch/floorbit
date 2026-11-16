@@ -1,0 +1,43 @@
+{
+  "title": "Firewalls",
+  "intro": "The core sends each seat range to its firewall while that one is up, and to the next in line when it isn't. Here you see which firewall each range should take, which it takes now, and how the firewalls are.",
+  "add": "Add range",
+  "editTitle": "Change range",
+  "edit": "Change",
+  "remove": "Remove",
+  "save": "Save",
+  "removeQuestion": "Remove the range {{range}}?",
+  "none": "No firewalls yet. Give the firewalls the role Firewall in the inventory, then plan their ranges here.",
+  "noRanges": "No ranges planned yet.",
+  "noRangesEdit": "No ranges planned yet. Add each seat range the core routes to a firewall, with its backups in order.",
+  "unread": "The monitoring source can't be read right now: the ranges show their planned firewall.",
+  "moved_one": "{{count}} range is not on its planned firewall",
+  "moved_other": "{{count}} ranges are not on their planned firewall",
+  "rangeFailover": "{{range}} runs over {{now}}, planned {{intended}}",
+  "rangeDown": "{{range}} has no firewall up",
+  "ranges_one": "{{count}} range",
+  "ranges_other": "{{count}} ranges",
+  "range": "Range",
+  "name": "Name",
+  "namePlaceholder": "Block A",
+  "line": "Firewalls in order",
+  "lineHelp": "The first is the one the range should take, the others the failover order.",
+  "now": "Now",
+  "seats": "Seats",
+  "serving_one": "Serves {{count}} range, {{seats}} seats",
+  "serving_other": "Serves {{count}} ranges, {{seats}} seats",
+  "idle": "Serves no range now",
+  "plannedFor": "Planned for {{list}}",
+  "backupFor": "Backup for {{list}}",
+  "status": {
+    "online": "Up",
+    "offline": "Down",
+    "unknown": "Not read"
+  },
+  "route": {
+    "primary": "As planned",
+    "failover": "Failover",
+    "unknown": "Not read",
+    "down": "None up"
+  }
+}

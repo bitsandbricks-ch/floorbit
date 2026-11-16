@@ -36,6 +36,12 @@ APS = (('ap-01', (7, 30), (1, 36)), ('ap-02', (47, 30), (6, 44)), ('ap-03', (53,
        ('ap-04', (93, 30), (1, 52)), ('ap-05', (14, 92), (6, 100)), ('ap-06', (40, 92), (11, 116)),
        ('ap-07', (60, 92), (1, 132)), ('ap-08', (86, 92), (6, 149)), ('ap-stage', (50, 60), (None, 60)))
 CROWDED_AP = 'ap-stage'     # the stage: always busy
+# Four firewalls behind the core, each serving a quarter of the seats; fw-03 is down, so its range
+# has failed over to fw-04 (the firewall view's failover to show).
+FIREWALLS = ('fw-01', 'fw-02', 'fw-03', 'fw-04')
+DOWN_FIREWALL = 'fw-03'
+# The core's two internet lines (the services view): port, line speed, how busy on average.
+ISP_PORTS = (('Te1/0/47', 10_000_000_000, 0.55), ('Te1/0/48', 10_000_000_000, 0.25))
 
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
 # Blocks in a 2 x 2 grid (12 seats of 3.5 % each are 42 % wide), their switches just above them.
@@ -57,6 +63,9 @@ LAYOUT = {
         + [{'board': 'DB-1', 'name': 'Network rack', 'rating_a': 32, 'phase': '3P', 'meter': 'rack',
             'switches': ['core-01', 'dist-01', 'dist-02']}],
     },
+    # The seats are 192.0.2.10 to .105 (see _ip): one /27 per firewall, the next one as its backup.
+    'firewalls': [{'cidr': f'192.0.2.{32 * i}/27', 'name': f'Seat range {i + 1}',
+                   'firewalls': [fw, FIREWALLS[(i + 1) % 4]]} for i, fw in enumerate(FIREWALLS)],
 }
 
 
@@ -119,9 +128,10 @@ SLOW_UPLINK = 'sw-c-02'      # its 10G uplink came up at 1G: a wrong optic or ca
 
 def _uplinks():
     """[(switch, port, other switch, other port, bps)]: access to distribution on 10G, distribution to
-    the core on 40G (what LLDP would report, both ways)."""
+    the core on 40G, the core to each firewall on 10G (what LLDP would report, both ways)."""
     out = [('dist-01', 'Fo1/1/1', 'core-01', 'Fo1/0/1', 40_000_000_000),
            ('dist-02', 'Fo1/1/1', 'core-01', 'Fo1/0/2', 40_000_000_000)]
+    out += [('core-01', f'Te1/0/{i}', fw, 'ix0', 10_000_000_000) for i, fw in enumerate(FIREWALLS, 1)]
     count = {'dist-01': 0, 'dist-02': 0}
     for name, _role, _i in _switches()[3:]:
         dist = 'dist-01' if name[3] in 'ab' else 'dist-02'
@@ -217,7 +227,10 @@ class Plugin(Plugin):
                for i, (name, _pos, _ch) in enumerate(APS, 1)]
         return [{'id': name, 'name': name, 'role': role, 'model': _model(name),
                  'serial': f'DEMO{i:05d}', 'mgmt_ip': f'198.51.100.{i}', 'hall': 'Demo hall',
-                 'status': 'active'} for name, role, i in _switches()] + aps
+                 'status': 'active'} for name, role, i in _switches()] + aps + [
+            {'id': name, 'name': name, 'role': 'firewall', 'model': 'Example FW 4100', 'serial': f'DEMOFW{i:03d}',
+             'mgmt_ip': f'198.51.100.{200 + i}', 'hall': 'Demo hall', 'status': 'active'}
+            for i, name in enumerate(FIREWALLS, 1)]
 
     # wifi -------------------------------------------------------------------------------
     def wifi_aps(self):
@@ -275,7 +288,9 @@ class Plugin(Plugin):
                  'status': 0 if _down(name) else 1, 'status_reason': 'icmp' if _down(name) else ''}
                 for name, _role, _i in _switches()] + [
             {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': 1, 'status_reason': ''}
-            for name, _pos, _ch in APS]
+            for name, _pos, _ch in APS] + [
+            {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': int(name != DOWN_FIREWALL),
+             'status_reason': 'icmp' if name == DOWN_FIREWALL else ''} for name in FIREWALLS]
 
     def device_details(self, hostname):
         name = _short(hostname)
@@ -341,10 +356,17 @@ class Plugin(Plugin):
                 for me, port, other in ((a, a_port, b), (b, b_port, a)):
                     if me == name:
                         slow = other == SLOW_UPLINK
-                        out.append({'name': port, 'state': 'down' if _down(other) else 'up',
+                        out.append({'name': port, 'state': 'down' if _down(other) or other == DOWN_FIREWALL else 'up',
                                     'description': f'Link to {other}', 'duplex': 'full',
                                     'speed_bps': 1_000_000_000 if slow else bps, 'errors_in': 0, 'errors_out': 0,
                                     'last_change': None})
+            if name == 'core-01':
+                for i, (port, bps, busy) in enumerate(ISP_PORTS):
+                    load = busy * (0.7 + 0.6 * _wave(40 + i))
+                    out.append({'name': port, 'state': 'up', 'description': f'Internet line {i + 1}', 'duplex': 'full',
+                                'speed_bps': bps, 'upload_bps': round(bps * load),
+                                'download_bps': round(bps * load * 0.12),
+                                'utilization': round(load, 4), 'errors_in': 0, 'errors_out': 0, 'last_change': None})
             return out
         if ports and not _down(name):
             # The access switch's uplink: everything its seats send and get, on a 10G port.

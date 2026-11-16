@@ -19,7 +19,7 @@ import time
 
 from integrations import config, events
 
-from . import features, game_servers
+from . import features, game_servers, services
 from .plugins import PluginError
 
 KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'web', 'other')
@@ -112,7 +112,7 @@ class HealthWall:
     def _run(self):
         while not self._stop.is_set():
             if features.on('health') and (self.registry.feeders('health') or self._agent_active()
-                                          or game_servers.listing()):
+                                          or game_servers.listing() or services.health_checks()):
                 try:
                     self.poll_once()
                 except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
@@ -157,6 +157,7 @@ class HealthWall:
         from . import agent_link
         found, errors, answered = self._from_agent() if agent_link.active() else ([], {}, set())
         found += game_servers.health_checks()     # asked by their own poller (floorbit/game_servers.py)
+        found += services.health_checks()         # the same, floorbit/services.py
         for spec in self.registry.feeders('health'):
             if spec.id in answered:    # the agent checks it from the event network; this side can't
                 continue
@@ -223,7 +224,7 @@ class HealthWall:
             return {'checks': checks, 'counts': counts, 'last_poll': self.last_poll,
                     'interval': self.interval(),
                     'plugins': len(self.registry.feeders('health')) + (1 if self._agent_active() else 0)
-                    + (1 if game_servers.listing() else 0)}
+                    + (1 if game_servers.listing() else 0) + (1 if services.health_checks() else 0)}
 
 
 def init_health(app, registry, start_background=True):

@@ -1,0 +1,43 @@
+{
+  "title": "Firewalls",
+  "intro": "Der Core schickt jeden Sitzbereich zu seiner Firewall, solange sie läuft, sonst zur nächsten in der Reihe. Hier siehst du, welche Firewall jeder Bereich nehmen soll, welche er jetzt nimmt und wie es den Firewalls geht.",
+  "add": "Bereich hinzufügen",
+  "editTitle": "Bereich ändern",
+  "edit": "Ändern",
+  "remove": "Entfernen",
+  "save": "Speichern",
+  "removeQuestion": "Den Bereich {{range}} entfernen?",
+  "none": "Noch keine Firewalls. Gib den Firewalls im Inventar die Rolle Firewall und plane hier ihre Bereiche.",
+  "noRanges": "Noch keine Bereiche geplant.",
+  "noRangesEdit": "Noch keine Bereiche geplant. Füge jeden Sitzbereich hinzu, den der Core zu einer Firewall routet, mit den Reserven in ihrer Reihenfolge.",
+  "unread": "Die Monitoring-Quelle ist gerade nicht lesbar: Die Bereiche zeigen ihre geplante Firewall.",
+  "moved_one": "{{count}} Bereich ist nicht auf seiner geplanten Firewall",
+  "moved_other": "{{count}} Bereiche sind nicht auf ihrer geplanten Firewall",
+  "rangeFailover": "{{range}} läuft über {{now}}, geplant {{intended}}",
+  "rangeDown": "{{range}} hat keine Firewall, die läuft",
+  "ranges_one": "{{count}} Bereich",
+  "ranges_other": "{{count}} Bereiche",
+  "range": "Bereich",
+  "name": "Name",
+  "namePlaceholder": "Block A",
+  "line": "Firewalls in Reihenfolge",
+  "lineHelp": "Die erste ist die, die der Bereich nehmen soll, die anderen die Reihenfolge beim Umschalten.",
+  "now": "Jetzt",
+  "seats": "Plätze",
+  "serving_one": "Bedient {{count}} Bereich, {{seats}} Plätze",
+  "serving_other": "Bedient {{count}} Bereiche, {{seats}} Plätze",
+  "idle": "Bedient gerade keinen Bereich",
+  "plannedFor": "Geplant für {{list}}",
+  "backupFor": "Reserve für {{list}}",
+  "status": {
+    "online": "Läuft",
+    "offline": "Ausgefallen",
+    "unknown": "Nicht gelesen"
+  },
+  "route": {
+    "primary": "Wie geplant",
+    "failover": "Umgeschaltet",
+    "unknown": "Nicht gelesen",
+    "down": "Keine läuft"
+  }
+}

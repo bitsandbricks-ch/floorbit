@@ -250,6 +250,19 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
 
+## floorbit.blueprints.firewalls
+
+Firewalls and the seat ranges they serve (issue #470). Rules in floorbit/firewalls.py, docs in docs/firewalls.md.
+
+Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/firewalls.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/firewalls` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
+| DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
+| PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.flows
 
 Traffic insights from NetFlow and IPFIX (issue #25). See docs/flows.md.
@@ -669,6 +682,20 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/security/<path:finding_id>/ack` | `seats.view` | `security` |
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
+
+## floorbit.blueprints.services
+
+Servers and services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. Rules in floorbit/services.py, docs in docs/services.md.
+
+Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/services.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/services` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/services/<kind>` | `floorplan.edit` |  |
+| DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
+| PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
+| POST | `/api/services/check` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.setup
 
