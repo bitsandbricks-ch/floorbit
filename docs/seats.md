@@ -42,6 +42,7 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,
   switches, patch panels, boards; cables follow their ends), Ctrl+Shift+G takes them out. A click on
   one item of a group picks the whole group; Shift-click takes the group out of the selection.
+- **Keyboard only:** with an item selected, Tab and Shift+Tab step to the next and previous item (top to bottom, left to right), and the view follows; Esc lets Tab leave the plan. Screen readers hear what is selected. The items list in the panel works with the keyboard too.
 - **Keys:** press ? (or "All keys" in the panel) for every Edit mode key, by tool, selection, moving and changing.
 - **Items list:** the panel on the right lists everything on the hall's plan, the groups first. Click
   an item or a group to select it (Shift adds), search by name, double-click a group to rename it, or
