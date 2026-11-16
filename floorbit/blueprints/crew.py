@@ -41,8 +41,11 @@ def verify(key_hex, signature_hex, timestamp, body):
 
 
 def _say(text):
-    """An answer only the asker sees; ``text`` may be discord_commands.answer() with buttons."""
+    """An answer only the asker sees; ``text`` may be discord_commands.answer() with buttons. In the
+    asker's Discord language when Floorbit has it (German), else English."""
     data = text if isinstance(text, dict) else {'content': text}
+    from .. import i18n
+    data = i18n.translate_payload(data, str((request.get_json(silent=True) or {}).get('locale') or ''))
     return jsonify({'type': MESSAGE, 'data': {**data, 'content': data['content'][:1900], 'flags': EPHEMERAL,
                                                'allowed_mentions': {'parse': []}}})
 

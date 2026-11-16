@@ -515,6 +515,9 @@ class CrewBridge:
         token = bot_token()
         if not token:
             raise CrewError('DISCORD_BOT_TOKEN is not set')
+        if body is not None and '/commands' not in path:   # command names must stay as Discord knows them
+            from floorbit import i18n
+            body = i18n.translate_payload(body, config.get('DISCORD_LANGUAGE', 'en'))
         for attempt in range(retries + 1):
             try:
                 resp = self.request(method, API + path, json=body, timeout=TIMEOUT,
