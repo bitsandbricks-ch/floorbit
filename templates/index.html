@@ -117,7 +117,6 @@
               <span><i class="seat-key st-offline"></i>Offline</span>
               <span><i class="seat-key st-unknown"></i>Unknown</span>
               <span><i class="seat-key st-online st-checked"></i>Checked in</span>
-              <a href="/plan">Open the Seats view</a>
             </div>
             <button class="layer-row" id="btn-traffic" aria-pressed="false" title="Colour the map by throughput from LibreNMS">
               <span class="layer-name">Traffic heatmap</span>
@@ -161,6 +160,30 @@
               <span class="layer-name">Always show switch labels</span>
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
+
+            {# Hide one layer of labels, walls, zones and icons while editing (static/js/editor/marks.js). #}
+            <p class="layer-subhead">Labels, walls, zones and icons</p>
+            <button class="layer-row" data-mark-layer="overview" aria-pressed="true" title="Labels, walls and zones for everyone">
+              <span class="layer-name">Overview</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <button class="layer-row" data-mark-layer="safety" aria-pressed="true" title="Exits, escape routes, extinguishers and the assembly point">
+              <span class="layer-name">Safety</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <button class="layer-row" data-mark-layer="network" aria-pressed="true" title="Network gear drawn on the plan">
+              <span class="layer-name">Network</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <button class="layer-row" data-mark-layer="electrical" aria-pressed="true" title="Power sockets and boards drawn on the plan">
+              <span class="layer-name">Electrical</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <button class="layer-row" data-mark-layer="services" aria-pressed="true" title="Servers and services drawn on the plan">
+              <span class="layer-name">Services</span>
+              <span class="layer-switch" aria-hidden="true"></span>
+            </button>
+            <a class="layer-link" id="seats-view-link" href="/plan">Open these layers on the Seats view</a>
           </div>
         </section>
 

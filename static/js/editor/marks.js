@@ -27,6 +27,45 @@ const MARK_ICON_LAYER = {
   router: 'network', 'access-point': 'network', power: 'electrical', socket: 'electrical',
 };
 
+// Mark layers hidden while editing (the Layers section), so a busy plan can be worked on one
+// layer at a time. Kept per browser; the Seats view has its own choice in its address.
+const MARK_LAYERS = ['overview', 'safety', 'network', 'electrical', 'services'];
+let hiddenMarkLayers = new Set(readJSON('layer-marks-hidden', []).filter(l => MARK_LAYERS.includes(l)));
+const markLayerOf = (m) => m.layer || 'overview';
+
+function setMarkLayerShown(layer, on) {
+  if (on) hiddenMarkLayers.delete(layer); else hiddenMarkLayers.add(layer);
+  writeJSON('layer-marks-hidden', [...hiddenMarkLayers]);
+  for (const b of document.querySelectorAll('[data-mark-layer]'))
+    setLayerButton(b, !hiddenMarkLayers.has(b.dataset.markLayer));
+  const sel = planMarks.find(x => x.id === selectedMark);
+  if (sel && hiddenMarkLayers.has(markLayerOf(sel))) clearMarkSelection();
+  else renderMarks();
+  updateSeatsViewLink();
+}
+
+// A mark just placed or moved to a hidden layer would vanish under the cursor: show its layer.
+function revealMarkLayer(m) {
+  if (hiddenMarkLayers.has(markLayerOf(m))) setMarkLayerShown(markLayerOf(m), true);
+}
+
+// The Seats view link opens this hall with the mark layers shown here (frontend/src/pages/plan/layers.ts).
+const MARK_TO_VIEW = { overview: 'marks', safety: 'safety', network: 'network', electrical: 'electrical', services: 'services' };
+function updateSeatsViewLink() {
+  const a = $('seats-view-link');
+  if (!a) return;
+  const q = new URLSearchParams();
+  if (currentHall) q.set('hall', currentHall);
+  const on = MARK_LAYERS.filter(l => !hiddenMarkLayers.has(l)).map(l => MARK_TO_VIEW[l]);
+  q.set('layers', [...new Set([...on, 'checkin'])].join(','));
+  a.href = `/plan?${q}`;
+}
+
+document.querySelectorAll('[data-mark-layer]').forEach(b => {
+  setLayerButton(b, !hiddenMarkLayers.has(b.dataset.markLayer));
+  b.addEventListener('click', () => setMarkLayerShown(b.dataset.markLayer, hiddenMarkLayers.has(b.dataset.markLayer)));
+});
+
 async function loadMarks() {
   try {
     const body = await api('GET', '/api/plan-marks');
@@ -47,7 +86,9 @@ function renderMarks() {
   if (!marksSvg) return;
   const svg = [];
   const html = [];
+  updateSeatsViewLink();
   for (const m of planMarks) {
+    if (hiddenMarkLayers.has(markLayerOf(m))) continue;
     const sel = m.id === selectedMark ? ' selected' : '';
     if (m.kind === 'zone') {
       svg.push(`<g class="mark-zone zone-${m.color}${sel}" data-mark="${m.id}"><rect x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" vector-effect="non-scaling-stroke"/></g>`);
@@ -99,6 +140,7 @@ async function addMark(body) {
     if (!body.layer && body.kind === 'icon' && MARK_ICON_LAYER[body.icon]) body = { ...body, layer: MARK_ICON_LAYER[body.icon] };
     let mark = await api('POST', '/api/plan-marks', { ...body, hall_id: currentHall });
     planMarks.push(mark);
+    revealMarkLayer(mark);
     renderMarks();
     selectMark(mark.id);
     const ref = { id: mark.id };
@@ -190,6 +232,7 @@ if (markForm) {
     const id = m.id;
     try {
       await saveMark(id, patch);
+      revealMarkLayer(patch);
       pushHistory({ label: `edit ${MARK_LABEL[m.kind].toLowerCase()}`, undo: () => saveMark(resolveId(id), before), redo: () => saveMark(resolveId(id), patch) });
       selectMark(id);
       toast('Saved', { type: 'success', duration: 2000 });
