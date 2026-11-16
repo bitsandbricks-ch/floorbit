@@ -136,8 +136,10 @@ Source: [`floorbit/blueprints/cable_plan.py`](https://github.com/bitsandbricks-c
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/cable-plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/cable-plan/panels` | `floorplan.edit` |  |
 | DELETE | `/api/cable-plan/panels/<path:name>` | `floorplan.edit` |  |
 | PUT | `/api/cable-plan/panels/<path:name>` | `floorplan.edit` |  |
+| GET | `/api/cable-plan/panels/<path:name>/ports` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/cable-plan/routes` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.cables
@@ -487,7 +489,7 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 
 ## floorbit.blueprints.options
 
-The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users and teams.
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
 

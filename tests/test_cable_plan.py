@@ -87,11 +87,37 @@ def test_a_cable_through_a_placed_patch_panel(client):
                                      "seat": "A-1"})
     assert client.put("/api/cable-plan/panels/PP-1", json={"x": 20, "y": 30}).status_code == 200
     body = client.get("/api/cable-plan").get_json()
-    assert body["panels"] == [{"name": "PP-1", "x": 20, "y": 30}] and body["panel_names"] == ["PP-1"]
+    assert body["panels"] == [{"name": "PP-1", "x": 20, "y": 30, "ports": 24}] and body["panel_names"] == ["PP-1"]
     (cable,) = body["cables"]
     assert cable["via"] == "PP-1" and [20, 30] in cable["points"]
     assert client.delete("/api/cable-plan/panels/PP-1").status_code == 200
     assert client.delete("/api/cable-plan/panels/PP-1").status_code == 404
+
+
+def test_patch_panels_have_ports_and_one_cable_each(client):
+    _floor(client)
+    r = client.post("/api/cable-plan/panels", json={"name": "PP-2", "x": 40, "y": 10, "ports": 12})
+    assert r.status_code == 201 and r.get_json()["id"] == "PP-2"
+    assert client.post("/api/cable-plan/panels", json={"name": "pp-2", "x": 1, "y": 1}).status_code == 409
+    assert client.post("/api/cable-plan/panels", json={"name": "PP-3", "x": 1, "y": 1, "ports": 0}).status_code == 400
+    ok = client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "panel": "PP-2", "panel_port": "12",
+                                          "seat": "A-1"})
+    assert ok.status_code in (200, 201)
+    # Port 13 isn't on a 12 port panel, and port 12 has its cable.
+    assert client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/2", "panel": "PP-2",
+                                            "panel_port": "13"}).status_code == 400
+    assert client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/2", "panel": "PP-2",
+                                            "panel_port": "12"}).status_code == 409
+    ports = client.get("/api/cable-plan/panels/PP-2/ports").get_json()["ports"]
+    assert len(ports) == 12 and ports[11] == {"value": "12", "label": "12", "used": "A-1"} and ports[0]["used"] is None
+    assert client.get("/api/options/panel-ports?panel=PP-2").get_json()["options"] == ports
+    assert {"value": "PP-2", "label": "PP-2", "hint": "12"} in client.get("/api/options/panels").get_json()["options"]
+    # Moving keeps the ports; fewer ports than the cabled one is refused.
+    assert client.put("/api/cable-plan/panels/PP-2", json={"x": 50, "y": 12}).get_json()["ports"] == 12
+    assert client.put("/api/cable-plan/panels/PP-2", json={"ports": 8}).status_code == 409
+    assert client.put("/api/cable-plan/panels/PP-2", json={"ports": 24}).get_json()["x"] == 50
+    (panel,) = client.get("/api/plan").get_json()["panels"]
+    assert panel["name"] == "PP-2" and panel["ports"] == 24 and panel["used"] == 1 and panel["x"] == 800
 
 
 def test_uplinks_and_power_are_drawn_on_their_layers(client):

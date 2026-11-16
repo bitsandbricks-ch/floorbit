@@ -47,11 +47,15 @@ The tools down the left (each stays on after placing something; Esc or V goes ba
 | Icon | I | Click, search the icon (exit, toilets, bar …), pick the size. |
 | Wall | W | Drag from one end to the other. It shows the length in seats and the angle; Shift keeps 15° steps. |
 | Zone | Z | Drag a box; it shows its size in seats. The new zone is selected so you can name it. |
+| Patch panel | P | Click where it hangs; give its name (the next free one is filled in) and how many ports it has (12, 24, 48 or up to 96). Selected, it shows which seat is on each port. |
+| Cable | C | Click a seat, a switch or a patch panel: the cable form opens with it filled in (a seat the switches already see on a port starts with that port). Switch port and panel port list only free ports. |
 
 Everything lands on the grid unless you hold Alt.
 
-Every change is saved at once. Tools not moved yet (cables, power, groups, align) are in the classic editor, linked from the
-panel.
+Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
+the switches, not recorded yet. Click one to select it, Del removes it, **Change cable** opens its
+form. Every change is saved at once. Tools not moved yet (power, groups, align, cable bends) are in
+the classic editor, linked from the panel.
 
 ## What a seat shows
 

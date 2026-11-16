@@ -1,5 +1,5 @@
 import type { ItemRef, Point } from './geometry'
-import { nextFreeRow } from './tools'
+import { nextFreeRow, nextName } from './tools'
 
 /** An item as the server keeps it (positions in % of the plan), ready to be posted again. */
 export interface Raw { kind: ItemRef['kind']; body: Record<string, unknown> }
@@ -7,11 +7,14 @@ export interface Raw { kind: ItemRef['kind']; body: Record<string, unknown> }
 // What a block needs to come back as it was (static/js/editor/data.js BLOCK_FIELDS).
 export const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y', 'rotation',
   'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group', 'z']
+// What a cable needs to be made again (floorbit/cables.py FIELDS).
+export const CABLE_FIELDS = ['label', 'switch', 'port', 'panel', 'panel_port', 'seat', 'color', 'length_m', 'type', 'speed', 'note']
 const MARK_SKIP = new Set(['id', 'hall_id'])
 
 export function rawOf(kind: ItemRef['kind'], server: Record<string, unknown>): Raw {
-  const body = kind === 'block'
-    ? Object.fromEntries(BLOCK_FIELDS.filter((k) => server[k] !== undefined).map((k) => [k, server[k]]))
+  const keep = kind === 'block' ? BLOCK_FIELDS : kind === 'cable' ? CABLE_FIELDS : null
+  const body = keep
+    ? Object.fromEntries(keep.filter((k) => server[k] !== undefined).map((k) => [k, server[k]]))
     : Object.fromEntries(Object.entries(server).filter(([k]) => !MARK_SKIP.has(k)))
   return { kind, body }
 }
@@ -29,11 +32,19 @@ function shifted(r: Raw, d: Point): Raw {
 }
 
 /** Copies of ``items`` moved by ``d`` (in %). Seat blocks get the next free row letters (or block
- *  names) so their seats don't clash with the originals: the server refuses a seat twice. */
-export function copies(items: Raw[], d: Point, blocksInUse: { naming?: string; row_start?: string; rows?: number; name?: string }[]): Raw[] {
+ *  names) so their seats don't clash with the originals: the server refuses a seat twice. Patch
+ *  panels get the next free name. Cables aren't copied: a switch port has one cable. */
+export function copies(items: Raw[], d: Point, blocksInUse: { naming?: string; row_start?: string; rows?: number; name?: string }[],
+  panelsInUse: string[] = []): Raw[] {
   const used = [...blocksInUse]
-  return items.map((r) => {
+  const names = [...panelsInUse]
+  return items.filter((r) => r.kind !== 'cable').map((r) => {
     const out = shifted(r, d)
+    if (r.kind === 'panel') {
+      out.body.name = nextName(String(r.body.name ?? 'PP-1'), names)
+      names.push(out.body.name as string)
+      return out
+    }
     if (r.kind !== 'block') return out
     const b = out.body
     const letter = nextFreeRow(used)

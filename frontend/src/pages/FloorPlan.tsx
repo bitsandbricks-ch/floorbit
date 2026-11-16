@@ -22,6 +22,7 @@ import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { Shortcuts } from './plan/Shortcuts'
 import { Modes } from './plan/Modes'
+import { useCablePlan } from './plan/cablePlan'
 import { PlanEditor } from './plan/edit/PlanEditor'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
 import { LoadingState, ErrorBanner } from '@/components/ui'
@@ -72,6 +73,8 @@ export default function FloorPlan() {
     queryFn: () => get<SeatViewData>(`/api/plan${hall ? `?hall=${encodeURIComponent(hall)}` : focus ? `?${focus}` : ''}`),
     refetchInterval: 30_000,
   })
+  // Seat cables and patch panels: drawn in Network mode (and Edit mode, which asks on its own).
+  const cablePlan = useCablePlan(q.data?.hall, mode === 'network' && layers.on.has('network') && !print)
   // The power layer (issue #468): asked once to know whether Electrics is on, then kept fresh while shown.
   const markers = useQuery({
     queryKey: qk.powerMarkers, queryFn: () => get<PowerMarkers>('/api/power/markers'),
@@ -205,7 +208,7 @@ export default function FloorPlan() {
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
-      layers={layers} wifi={wifi} incidents={incidents}
+      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />

@@ -9,11 +9,15 @@ patched straight into the switch has no panel, and an uplink has no seat.
 | Field | |
 | --- | --- |
 | Switch, switch port | Needed. One cable per switch port: a second one is almost always a typo. |
-| Patch panel, panel port | Optional. A panel port needs its panel. |
+| Patch panel, panel port | Optional. A panel port needs its panel. A panel placed on the plan has a port count (24 unless set, up to 96): its ports are 1 to that, and each takes one cable. |
 | Seat | Optional, written in capitals (`A-12`). |
 | Label | Printed on both ends. Left empty, Floorbit numbers the cables `C-0001`, `C-0002`, ... Labels are unique. |
 | Colour, length, note | Optional. The length is 0.1 to 500 metres. |
 | Type, speed | Optional: copper Cat5e/6/6a, fiber single-mode or multi-mode, or DAC, and 1, 10, 25, 40 or 100G, as for the [links between switches](topology.md). |
+
+Nothing that Floorbit already knows is typed in: the switch, its port, the patch panel, its port and
+the seat are picked from lists. Ports list only the free ones (and keep the cable's own); tick
+**Also list ports that have a cable** to see the rest, with the seat on each.
 
 ## A whole block at once
 
