@@ -285,7 +285,7 @@ def core_widget(tile):
     if tile == 'incidents' and _may_see_board(user):
         return jsonify(check_widget(core.incidents_widget(_lang()), item))
     if tile == 'switches':
-        counts = current_app.extensions['lal_integrations']['monitor'].counts()
+        counts = current_app.extensions['floorbit_integrations']['monitor'].counts()
         return jsonify(check_widget(core.switches_widget(_lang(), counts), item))
     if tile == 'seats':
         from .. import incidents

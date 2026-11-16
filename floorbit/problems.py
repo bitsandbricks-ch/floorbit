@@ -44,7 +44,7 @@ def _on_plan(seat=None, switch=None):
 
 
 def _switches(muted):
-    monitor = (current_app.extensions.get('lal_integrations') or {}).get('monitor')
+    monitor = (current_app.extensions.get('floorbit_integrations') or {}).get('monitor')
     out = []
     for s in list(getattr(monitor, 'statuses', {}).values()):
         if s.get('status') != 'offline':

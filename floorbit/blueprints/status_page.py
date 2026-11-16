@@ -72,7 +72,7 @@ def page_on():
 
 
 def _monitor():
-    return (current_app.extensions.get('lal_integrations') or {}).get('monitor')
+    return (current_app.extensions.get('floorbit_integrations') or {}).get('monitor')
 
 
 def _now(show_names=None):
