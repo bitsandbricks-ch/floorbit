@@ -25,6 +25,17 @@ export default defineConfig([
           selector: "Property[key.name='queryKey'] > ArrayExpression[elements.0.type='Literal']",
           message: 'Use a key from qk (src/api/keys.ts).',
         },
+        // One look for every control (src/ui.css, src/theme.ts): never the browser's own list.
+        { selector: "JSXOpeningElement[name.name='select']", message: 'Use Select or EntitySelect, not a native <select>.' },
+        { selector: "ImportSpecifier[imported.name='NativeSelect']", message: 'Use Select or EntitySelect, not NativeSelect.' },
+        // Switches, ports and seats are picked from what Floorbit knows, never typed (EntitySelect).
+        {
+          selector: "JSXAttribute[name.name='placeholder'][value.value=/^(A-12|D-6|Gi1\\/0\\/\\d+|sw-[a-z]-\\d+)$/]",
+          message: 'A switch, port or seat is picked from the real list: use EntitySelect (src/components/EntitySelect.tsx).',
+        },
+        // Controls are styled once in src/ui.css; a page restyling one makes it look different from the rest.
+        { selector: "JSXAttribute[name.name='styles'] > JSXExpressionContainer > ObjectExpression > Property[key.name=/^(dropdown|option|tab|list)$/]",
+          message: 'Dropdowns and tabs are styled in src/ui.css, not per page.' },
       ],
     },
   },

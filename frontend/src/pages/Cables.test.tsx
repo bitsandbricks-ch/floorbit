@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BlockPlan, Cable, CableList } from '@/api/types'
+import { OPTIONS, pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Cables from './Cables'
 
@@ -16,7 +17,7 @@ const data: CableList = { cables: [mine, nb], sources: ['NetBox'] }
 describe('Cables', () => {
   it('lists cables, searches, and adds one', async () => {
     const api = fakeFetch({
-      'GET /api/auth/me': lead, 'GET /api/cables': data,
+      ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': data,
       'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c3', label: 'C-0002' } }),
     })
     vi.stubGlobal('fetch', api.fn)
@@ -29,9 +30,13 @@ describe('Cables', () => {
     expect(screen.getByRole('link', { name: 'Print labels' })).toHaveAttribute('href', '/api/cables/labels.pdf?q=b-14')
 
     fireEvent.click(screen.getByRole('button', { name: 'Add cable' }))
-    fireEvent.change(await screen.findByRole('textbox', { name: 'Switch port' }), { target: { value: 'Gi1/0/9' } })
-    fireEvent.change(screen.getByRole('combobox', { name: 'Switch' }), { target: { value: 'sw-a-01' } })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Seat' }), { target: { value: 'A-9' } })
+    await pick('Switch', 'sw-a-01')
+    // Only free ports: Gi1/0/3 has a cable to A-3, so it isn't offered.
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Switch port' }))
+    expect(await screen.findByRole('option', { name: 'Gi1/0/2', hidden: true })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Gi1/0/3', hidden: true })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('option', { name: 'Gi1/0/9', hidden: true }))
+    await pick('Seat', 'A-9')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/cables'
       && (c.body as { port: string; seat: string }).port === 'Gi1/0/9' && (c.body as { seat: string }).seat === 'A-9')).toBe(true))
@@ -59,7 +64,7 @@ describe('Cables', () => {
     const cables = Array.from({ length: 16 }, (_, n) => ({ seat: `A-${n + 1}`, switch: 'sw-a-01', port: `Gi1/0/${n + 1}`, block: 'b1' }))
     const plan: BlockPlan = { block: 'A', cables, clashes: [{ seat: 'A-3', port: 'Gi1/0/3', kind: 'port', cable: 'C-0001', other_seat: 'B-9', imported: false }] }
     const api = fakeFetch({
-      'GET /api/auth/me': lead, 'GET /api/cables': data, 'GET /api/switches': [{ id: 's1', name: 'sw-a-01' }],
+      ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': data,
       'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 8, rows: 2, hall_id: 'h' }],
       'POST /api/cables/block': (init?: RequestInit) => ({
         body: JSON.parse(String(init?.body)).dry_run ? plan : { ...plan, created: 16, removed: 1 } }),
@@ -69,7 +74,7 @@ describe('Cables', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Patch a block' }))
     fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
     fireEvent.click(await screen.findByRole('option', { name: 'A (16)', hidden: true }))
-    fireEvent.change(screen.getByRole('combobox', { name: 'Switch' }), { target: { value: 'sw-a-01' } })
+    await pick('Switch', 'sw-a-01')
     expect(await screen.findByText('16 seats get a cable:')).toBeInTheDocument()
     expect(screen.getByText('… A-16')).toBeInTheDocument()                      // a long block is cut short
     expect(screen.getByText('Gi1/0/3 already has cable C-0001 to seat B-9.')).toBeInTheDocument()
@@ -115,7 +120,7 @@ describe('Cables', () => {
       unplanned: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/30', mac: '02:00:00:00:00:30', ip: '192.0.2.40', ip_seat: 'A-9' }] },
     }
     const api = fakeFetch({
-      'GET /api/auth/me': crew, 'GET /api/cables': data, 'GET /api/cables/clients?read=1': clients,
+      ...OPTIONS, 'GET /api/auth/me': crew, 'GET /api/cables': data, 'GET /api/cables/clients?read=1': clients,
       'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c4' } }),
     })
     vi.stubGlobal('fetch', api.fn)
@@ -126,8 +131,8 @@ describe('Cables', () => {
     expect(screen.getByText('No MAC table from: sw-c-03')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Patch to a seat' }))
     // The new cable starts with the port, and the seat whose IP the machine has.
-    expect(await screen.findByRole('textbox', { name: 'Switch port' })).toHaveValue('Gi1/0/30')
-    expect(screen.getByRole('textbox', { name: 'Seat' })).toHaveValue('A-9')
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Switch port' })).toHaveValue('Gi1/0/30'))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Seat' })).toHaveValue('A-9'))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/cables'
       && (c.body as { seat: string }).seat === 'A-9')).toBe(true))

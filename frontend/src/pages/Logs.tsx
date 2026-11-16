@@ -3,6 +3,7 @@ import { useMediaQuery } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { EntitySelect } from '@/components/EntitySelect'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -207,10 +208,10 @@ export default function Logs() {
             <>
               <Select label={t('logs.device')} placeholder={t('logs.all')} data={data?.status.devices ?? []} value={filters.device || null}
                 onChange={set('device')} clearable searchable style={{ flex: '1 1 160px' }} />
-              <TextInput label={t('logs.seatFilter')} placeholder="A-12" value={filters.seat} style={{ flex: '0 1 110px' }}
-                onChange={(e) => set('seat')(e.currentTarget.value)} />
-              <TextInput label={t('logs.port')} placeholder="Gi1/0/4" value={filters.port} style={{ flex: '0 1 120px' }}
-                onChange={(e) => set('port')(e.currentTarget.value)} />
+              <EntitySelect kind="seats" label={t('logs.seatFilter')} placeholder={t('logs.all')} value={filters.seat}
+                style={{ flex: '0 1 130px' }} onChange={set('seat')} />
+              <EntitySelect kind="ports" switchName={filters.device} showUsed label={t('logs.port')} placeholder={t('logs.all')}
+                value={filters.port} style={{ flex: '0 1 140px' }} onChange={set('port')} />
             </>
           )}
           <Select label={t('logs.severity')} placeholder={t('logs.all')} value={filters.severity || null} onChange={set('severity')} clearable

@@ -1,10 +1,11 @@
-import { Alert, Autocomplete, Button, Checkbox, Group, Loader, Modal, Select, SimpleGrid, Stack, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Button, Checkbox, Group, Loader, Modal, Select, SimpleGrid, Stack, Table, Text, TextInput } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
+import { EntitySelect } from '@/components/EntitySelect'
 import type { BlockPlan, CableClash, SeatBlock } from '@/api/types'
 
 const SHOWN = 12   // preview rows before "…"
@@ -19,8 +20,8 @@ function Clash({ c }: { c: CableClash }) {
 }
 
 /** "Switch X from Gi1/0/1, along the rows": a cable for every seat of a block (issue #473). */
-export function PatchBlockModal({ switches, onClose, onDone }: {
-  switches: string[]; onClose: () => void; onDone: (made: BlockPlan) => void
+export function PatchBlockModal({ onClose, onDone }: {
+  onClose: () => void; onDone: (made: BlockPlan) => void
 }) {
   const { t } = useTranslation()
   const blocks = useQuery({ queryKey: qk.seatBlocks, queryFn: () => get<SeatBlock[]>('/api/seat-blocks') })
@@ -51,9 +52,9 @@ export function PatchBlockModal({ switches, onClose, onDone }: {
           <Select label={t('cables.block')} required searchable value={form.block || null}
             data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.name || '–'} (${b.cols * b.rows})` }))}
             onChange={(v) => set('block')(v ?? '')} />
-          <Autocomplete label={t('cables.switch')} required data={switches} value={form.switch} onChange={set('switch')} />
-          <TextInput label={t('cables.firstPort')} required placeholder="Gi1/0/1" value={form.first_port}
-            onChange={(e) => set('first_port')(e.currentTarget.value)} />
+          <EntitySelect kind="switches" label={t('cables.switch')} required value={form.switch} onChange={set('switch')} />
+          <EntitySelect kind="ports" switchName={form.switch} showUsed label={t('cables.firstPort')} required
+            value={form.first_port} onChange={set('first_port')} />
           <TextInput label={t('cables.rows')} placeholder={t('cables.rowsPlaceholder')} value={form.rows}
             onChange={(e) => set('rows')(e.currentTarget.value)} />
           <Select label={t('cables.order')} allowDeselect={false} value={form.order} onChange={(v) => set('order')(v ?? 'rows')}

@@ -1,0 +1,11 @@
+{
+  "noPortList": "The monitoring source lists no ports for this switch: type the port.",
+  "pickSwitchFirst": "Pick the switch first",
+  "nothingFound": "Nothing matches",
+  "usedBy": "used by {{who}}",
+  "group": {
+    "switches": "Switches",
+    "infrastructure": "Infrastructure",
+    "other": "Other"
+  }
+}

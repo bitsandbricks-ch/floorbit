@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Incident, IncidentBoard } from '@/api/types'
+import { OPTIONS, pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Incidents from './Incidents'
 import { matchesFilter } from './incidents/filter'
@@ -28,6 +29,7 @@ const board: IncidentBoard = {
   problems: ['no-internet', 'slow', 'power', 'other'],
 }
 const routes = {
+  ...OPTIONS,
   'GET /api/auth/me': { enabled: true, user: { username: 'sam', display_name: 'Sam', role: 'tech', permissions: ['incidents.work'] } },
   'GET /api/incidents': board,
   'GET /api/incidents/people': { access: [{ username: 'sam', display_name: 'Sam' }] },
@@ -215,10 +217,10 @@ describe('Incident board', () => {
     await screen.findByText('No power')
     fireEvent.click(screen.getByRole('button', { name: 'New incident' }))
     const dialog = await screen.findByRole('dialog')
-    const seat = within(dialog).getByRole('textbox', { name: /Seat/ })
-    fireEvent.change(seat, { target: { value: 'B-9' } })
+    within(dialog).getByRole('combobox', { name: /Seat/ })
+    await pick('Seat', 'B-9')
     expect(within(dialog).queryByText(/already open here/i)).toBeNull()
-    fireEvent.change(seat, { target: { value: ' a-1 ' } })
+    await pick('Seat', 'A-1')
     expect(within(dialog).getByText('2 already open here')).toBeInTheDocument()
     expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
     expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
