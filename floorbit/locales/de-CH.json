@@ -561,5 +561,13 @@
  "There is already a game server called {}.": "Es gibt schon einen Gameserver namens {}.",
  "This command can stop the server, change the map or throw players out. Confirm to send it.": "Dieser Befehl kann den Server stoppen, die Map wechseln oder Spieler rauswerfen. Bestätige, um ihn zu senden.",
  "Type one command (up to {} characters, one line).": "Gib einen Befehl ein (bis {} Zeichen, eine Zeile).",
- "{} is not a query Floorbit knows.": "{} ist keine Abfrage, die Floorbit kennt."
+ "{} is not a query Floorbit knows.": "{} ist keine Abfrage, die Floorbit kennt.",
+ "A link joins two different switches.": "Ein Link verbindet zwei verschiedene Switches.",
+ "Floorbit keeps at most {} links.": "Floorbit speichert höchstens {} Links.",
+ "Name the port at both ends, like Te1/1/1.": "Gib den Port an beiden Enden an, zum Beispiel Te1/1/1.",
+ "No such link.": "Diesen Link gibt es nicht.",
+ "Pick both switches from the inventory.": "Wähle beide Switches aus dem Inventar.",
+ "The speed is 1, 10, 25, 40 or 100 (Gbit/s).": "Die Geschwindigkeit ist 1, 10, 25, 40 oder 100 (Gbit/s).",
+ "The type is cat5e, cat6, cat6a, fiber-sm, fiber-mm or dac.": "Der Typ ist cat5e, cat6, cat6a, fiber-sm, fiber-mm oder dac.",
+ "The link from {} {} to {} {} already uses one of these ports.": "Der Link von {} {} nach {} {} braucht schon einen dieser Ports."
 }

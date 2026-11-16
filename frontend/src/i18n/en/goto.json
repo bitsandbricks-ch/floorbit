@@ -60,6 +60,7 @@
     "teams": "Roles and teams",
     "signIn": "Sign-in providers",
     "audit": "Audit log",
+    "topology": "Topology",
     "gameServers": "Game servers",
     "switchLogins": "Switch logins"
   }

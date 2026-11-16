@@ -26,6 +26,9 @@ class Plugin(Plugin):
     def port_clients(self, hostname):
         return client.port_clients(hostname)
 
+    def neighbours(self, hostname):
+        return client.neighbours(hostname)
+
     def arp(self, query):
         return client.arp_entries(query)
 

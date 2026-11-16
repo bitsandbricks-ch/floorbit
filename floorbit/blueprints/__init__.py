@@ -56,6 +56,7 @@ from . import (
                teardown,
                terminal,
                timeline,
+               topology,
                tournament,
                webhooks,
                wifi,
@@ -69,5 +70,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, cache.bp, network.bp, b
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        cables.bp, teardown.bp, past_events.bp,
        features.bp, api_tokens.bp, agent.bp, webhooks.bp, credentials.bp, wifi.bp,
-       speedtest.bp, timeline.bp, status_page.bp,
+       speedtest.bp, timeline.bp, topology.bp, status_page.bp,
        runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp]

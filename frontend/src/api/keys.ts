@@ -37,6 +37,7 @@ export const qk = {
   webhooks: ['webhooks'] as const,
   credentials: ['credentials'] as const,
   gameServers: ['game-servers'] as const,
+  topology: ['topology'] as const,
   preflight: ['preflight'] as const,
   planner: ['planner'] as const,
   plannerConfig: (name: string) => ['planner', 'config', name] as const,

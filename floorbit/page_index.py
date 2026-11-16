@@ -25,6 +25,7 @@ PAGES = (
     ('/handover', 'handover', 'Shift handover', lambda c, can: c['feature_on']('handover') and can('incidents.work')),
     ('/runbooks', 'runbooks', 'Runbooks', lambda c, can: c['feature_on']('runbooks') and can('incidents.work')),
     ('/health', 'health', 'Service health', lambda c, can: c['feature_on']('health')),
+    ('/topology', 'topology', 'Topology', None),
     ('/stats', 'stats', 'Stats', None),
     ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
     ('/dns', 'dns', 'DNS', lambda c, can: c['feature_on']('dns')),

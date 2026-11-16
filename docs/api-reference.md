@@ -776,6 +776,19 @@ Source: [`floorbit/blueprints/timeline.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/timeline` | `audit.read` | `timeline` |
 | GET | `/api/timeline.csv` | `audit.read` | `timeline` |
 
+## floorbit.blueprints.topology
+
+Links between switches and the topology (issue #468). Rules in floorbit/links.py, docs in docs/topology.md.
+
+Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/topology.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/links` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/links` | `floorplan.edit` |  |
+| DELETE | `/api/links/<link_id>` | `floorplan.edit` |  |
+| PUT | `/api/links/<link_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.tournament
 
 Tournament awareness (issue #31): match zones and QoS hints. Rules in floorbit/tournament.py.

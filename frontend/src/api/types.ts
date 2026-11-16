@@ -1437,3 +1437,17 @@ export interface GameServerList {
   counts: { up: number; down: number; unknown: number }; players: number
 }
 export interface RconAnswer { server: string; command: string; answer: string }
+
+/** Links between switches and the topology (issue #468). */
+export type LinkType = 'cat5e' | 'cat6' | 'cat6a' | 'fiber-sm' | 'fiber-mm' | 'dac'
+export interface SwitchLink {
+  id: string; a: string; a_port: string; b: string; b_port: string; type: LinkType | ''; speed: number | null; note: string
+  media: 'copper' | 'fiber' | 'dac' | ''
+  state: 'up' | 'down' | 'unknown'; speed_bps: number | null; issue: '' | 'down' | 'slow'
+}
+export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean }
+export interface LinkSuggestion { a: string; a_port: string; b: string; b_port: string; protocol: string; speed: number | null }
+export interface Topology {
+  nodes: TopologyNode[]; links: SwitchLink[]; suggestions: LinkSuggestion[]
+  counts: { links: number; down: number; slow: number }; types: LinkType[]; speeds: number[]
+}
