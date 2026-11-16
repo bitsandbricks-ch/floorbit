@@ -17,7 +17,7 @@ import re
 import time
 import uuid
 
-from . import halls, inventory, store
+from . import halls, inventory, plan_marks, store
 
 FORMAT = 'floorbit-template'
 FORMAT_VERSION = 1
@@ -47,10 +47,12 @@ def snapshot(data, hall_id=None):
               for b in data.get('seat_blocks') or [] if halls.hall_of(b, data, ids) in wanted]
     switches = [{k: d.get(k) for k in SWITCH_KEYS if k != 'hall_id'} | {'hall_id': halls.hall_of(d, data, ids)}
                 for d in inventory.devices(data) if d.get('x') is not None and halls.hall_of(d, data, ids) in wanted]
+    marks = [{k: v for k, v in m.items() if k != 'id'} for m in plan_marks.all_marks(data) if m['hall_id'] in wanted]
     return {
         'halls': [{'id': h['id'], 'name': h['name'], 'background': halls.background_data_url(h)} for h in chosen],
         'switches': switches,
         'seat_blocks': blocks,
+        'plan_marks': marks,
     }
 
 
@@ -80,7 +82,7 @@ def clean_layout(layout):
     ``dropped`` the names of the fields that were taken out."""
     if not isinstance(layout, dict):
         raise TemplateError('The template has no layout')
-    dropped = set(layout) - {'halls', 'switches', 'seat_blocks'}
+    dropped = set(layout) - {'halls', 'switches', 'seat_blocks', 'plan_marks'}
     raw_halls = layout.get('halls')
     if not isinstance(raw_halls, list) or not raw_halls or len(raw_halls) > halls.MAX_HALLS:
         raise TemplateError(f'A template has 1 to {halls.MAX_HALLS} halls')
@@ -139,7 +141,15 @@ def clean_layout(layout):
             'x': _num(s.get('x'), 0, 100, f'Switch "{name}" x'), 'y': _num(s.get('y'), 0, 100, f'Switch "{name}" y'),
             'hall_id': s.get('hall_id') if s.get('hall_id') in ids else out_halls[0]['id'],
         })
-    return {'halls': out_halls, 'switches': switches, 'seat_blocks': blocks}, sorted(dropped)
+    marks = []
+    for m in layout.get('plan_marks') or []:
+        try:
+            mark = plan_marks.clean(m)
+        except plan_marks.MarkError as exc:
+            raise TemplateError(f'A mark on the plan: {exc}') from None
+        mark.pop('id', None)
+        marks.append({**mark, 'hall_id': m.get('hall_id') if m.get('hall_id') in ids else out_halls[0]['id']})
+    return {'halls': out_halls, 'switches': switches, 'seat_blocks': blocks, 'plan_marks': marks}, sorted(dropped)
 
 
 def counts(layout):
@@ -310,6 +320,7 @@ def apply(data, layout, hall_id=None):
         if clash:
             raise TemplateError(f'Another hall already has block(s) {", ".join(clash)}')
         data['seat_blocks'] = [b for b in data.get('seat_blocks') or [] if halls.hall_of(b, data, ids) != hall_id]
+        data[plan_marks.KEY] = [m for m in data.get(plan_marks.KEY) or [] if halls.hall_of(m, data, ids) != hall_id]
         for d in inventory.devices(data, include_hidden=True):
             if d.get('x') is not None and halls.hall_of(d, data, ids) == hall_id:
                 d['x'] = d['y'] = None
@@ -331,11 +342,14 @@ def apply(data, layout, hall_id=None):
             data['halls'].append(hall)
             hall_map[h['id']] = h['id']
         data['seat_blocks'] = []
+        data[plan_marks.KEY] = []
         for d in inventory.devices(data, include_hidden=True):
             d['x'] = d['y'] = None
     from .blueprints.seat_blocks import make_block
     new_blocks = [make_block(b, hall_map[b['hall_id']]) for b in layout['seat_blocks']]
     data.setdefault('seat_blocks', []).extend(new_blocks)
+    data.setdefault(plan_marks.KEY, []).extend(
+        {**plan_marks.clean(m), 'hall_id': hall_map[m['hall_id']]} for m in layout.get('plan_marks') or [])
     placed, added = _place(data, layout['switches'], hall_map)
     return {'halls': len(layout['halls']), 'seat_blocks': len(new_blocks), 'switches_placed': placed,
             'switches_added': added}

@@ -9,6 +9,7 @@ function hideInspectors() {
   blockDetailPanel.classList.add('hidden');
   blockSeatDetailPanel.classList.add('hidden');
   multiDetailPanel.classList.add('hidden');
+  $('mark-detail-panel')?.classList.add('hidden');
 }
 
 function markSelection() {
@@ -100,6 +101,7 @@ function deselectAll() {
   currentBlockSeatResolution = null;
   hideInspectors();
   markSelection();
+  if (typeof selectedMark !== 'undefined' && selectedMark) { selectedMark = null; renderMarks(); }
 }
 // ── Multi-selection ──────────────────────────────────────────────────────────────────
 // `selection` holds every selected switch and seat block. With one item the

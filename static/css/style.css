@@ -1043,3 +1043,49 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .crew-notice-body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); align-items: baseline; }
 .crew-notice-text { overflow-wrap: anywhere; }
 .crew-notice-meta { color: var(--text-secondary); font-size: var(--fs-sm, 12px); }
+
+/* ── Labels, walls, zones and icons (static/js/editor/marks.js) ───────────── */
+#marks-svg, #marks-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#marks-svg [data-mark], #marks-overlay [data-mark] { pointer-events: auto; cursor: move; }
+.floorplan-wrapper[data-tool^="add-"] [data-mark] { cursor: crosshair; }
+.mark-wall line { stroke: var(--text-primary); stroke-width: 4px; stroke-linecap: round; opacity: .8; }
+.mark-wall.dashed line:not(.hit) { stroke-dasharray: 10 7; }
+.mark-wall line.hit { stroke: transparent; stroke-width: 14px; opacity: 1; }
+.mark-wall.selected line:not(.hit) { stroke: var(--color-trace); opacity: 1; }
+.mark-zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 60%, transparent); stroke-width: 1.5px; }
+.mark-zone.selected rect { stroke: var(--color-trace); stroke-width: 2.5px; }
+.zone-muted { --zone: var(--text-secondary); }
+.zone-bit { --zone: var(--color-bit); }
+.zone-trace { --zone: var(--color-trace); }
+.zone-warn { --zone: var(--color-warn); }
+.zone-down { --zone: var(--color-down); }
+.mark-zone-label {
+  position: absolute; margin: 6px 0 0 8px; white-space: nowrap;
+  font-size: 12px; font-weight: 700; color: var(--zone); letter-spacing: .04em;
+}
+.mark-text {
+  position: absolute; white-space: nowrap; padding: 1px 4px; border-radius: 4px;
+  font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-primary);
+}
+.mark-text.size-s { font-size: 11px; } .mark-text.size-m { font-size: 14px; } .mark-text.size-l { font-size: 20px; }
+.mark-icon {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);
+}
+.mark-icon svg { width: 70%; height: 70%; }
+.mark-icon.size-s { width: 20px; height: 20px; } .mark-icon.size-m { width: 26px; height: 26px; } .mark-icon.size-l { width: 34px; height: 34px; }
+.mark-text.selected, .mark-icon.selected { outline: 2px solid var(--color-trace); outline-offset: 1px; }
+
+.draw-wrap { position: relative; display: inline-flex; }
+.draw-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 236px;
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 6px; display: flex; flex-direction: column;
+}
+.draw-menu > button { text-align: left; padding: 7px 10px; border-radius: 6px; background: none; border: 0; color: var(--text-primary); font: inherit; font-size: 13px; cursor: pointer; }
+.draw-menu > button:hover, .draw-menu > button:focus-visible { background: var(--bg-tertiary); }
+.draw-menu-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); padding: 8px 10px 4px; }
+.mark-icon-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 0 4px 4px; }
+.mark-icon-choice { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; padding: 4px; }
+.mark-icon-choice:hover, .mark-icon-choice:focus-visible { border-color: var(--accent); }
+.mark-icon-choice svg { width: 18px; height: 18px; }

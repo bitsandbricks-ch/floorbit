@@ -23,6 +23,7 @@ wrapper.addEventListener('click', (e) => {
   if (suppressNextClick) { suppressNextClick = false; return; }
 
   if (currentTool === 'select') {
+    if (typeof selectedMark !== 'undefined' && selectedMark && !e.target.closest('[data-mark]')) clearMarkSelection();
     const seatEl = e.target.closest('.seat-block-seat');
     if (seatEl && seatEl.dataset.seatNumber) {
       e.stopPropagation();
@@ -41,6 +42,7 @@ wrapper.addEventListener('click', (e) => {
 
   if (currentTool === 'add-switch') openAddModal();
   else if (currentTool === 'add-block') openBlockModal();
+  else if (currentTool.startsWith('add-')) placeMark(currentTool.slice(4), pendingCoords);
 });
 
 wrapper.addEventListener('mousemove', (e) => {

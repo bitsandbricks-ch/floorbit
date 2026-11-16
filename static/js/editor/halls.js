@@ -181,6 +181,13 @@ $('btn-halls').addEventListener('click', () => {
 });
 $('halls-close').addEventListener('click', () => hallsBackdrop.classList.add('hidden'));
 hallsBackdrop.addEventListener('click', (e) => { if (e.target === hallsBackdrop) hallsBackdrop.classList.add('hidden'); });
+$('halls-example').addEventListener('click', async () => {
+  try {
+    const hall = await api('POST', '/api/halls/example');
+    await refreshHalls();
+    goToHall(hall.id);
+  } catch (err) { toastError('Could not add the example hall', err); }
+});
 $('halls-add').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = $('halls-add-name');

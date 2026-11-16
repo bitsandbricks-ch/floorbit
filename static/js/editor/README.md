@@ -36,6 +36,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `touch.js` | Phones and tablets: one finger pans, drags and taps like the mouse, two fingers pinch to zoom; the sidebar as a drawer. |
 | `focus.js` | Opening the floor plan on one switch or seat from a link (`/?switch=<id>`, `/?seat=<seat>`), as the Problems list does. |
 | `notice.js` | The crew notice from a lead, as a banner under the top bar. |
+| `marks.js` | Text labels, walls, zones and icons on the plan: the Draw menu, placing, moving and the inspector (`floorbit/plan_marks.py`). |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:

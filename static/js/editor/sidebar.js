@@ -254,6 +254,11 @@ universalSearch.addEventListener('keydown', (e) => {
 const TOOL_HINTS = {
   'add-switch': 'Click on the map to place a switch · Esc to cancel',
   'add-block':  'Click on the map to place a seat block · Esc to cancel',
+  'add-text':   'Click on the map to place a label · Esc to cancel',
+  'add-icon':   'Click on the map to place the icon · Esc to cancel',
+  'add-wall':   'Click where the wall starts, then where it ends · Esc to stop',
+  'add-dashed': 'Click where the line starts, then where it ends · Esc to stop',
+  'add-zone':   'Click one corner of the zone, then the opposite one · Esc to cancel',
 };
 
 function setTool(tool) {
@@ -261,6 +266,8 @@ function setTool(tool) {
   toolSelect.classList.toggle('active', tool === 'select');
   toolAddSwitch.classList.toggle('active', tool === 'add-switch');
   toolAddBlock.classList.toggle('active', tool === 'add-block');
+  $('tool-draw')?.classList.toggle('active', /^add-(text|icon|wall|dashed|zone)$/.test(tool));
+  if (typeof markDraft !== 'undefined') markDraft = null;
   wrapper.dataset.tool = tool;
   toolHint.textContent = TOOL_HINTS[tool] || '';
   toolHint.classList.toggle('hidden', !TOOL_HINTS[tool]);

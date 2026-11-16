@@ -235,6 +235,20 @@
             </svg>
             <span class="tool-label">Seat block</span><kbd>B</kbd>
           </button>
+          <span class="draw-wrap">
+            <button class="tool-btn" id="tool-draw" title="Add a label, wall, zone or icon (D)" aria-label="Draw" aria-haspopup="menu" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.83 2.83 0 0 0-4-4L4 16v4"/><path d="M13.5 6.5l4 4"/></svg>
+              <span class="tool-label">Draw</span><kbd>D</kbd>
+            </button>
+            <div class="draw-menu hidden" id="draw-menu" role="menu" aria-label="Draw">
+              <button type="button" role="menuitem" data-draw="text">Text label</button>
+              <button type="button" role="menuitem" data-draw="wall">Wall</button>
+              <button type="button" role="menuitem" data-draw="dashed">Dashed line (fence, door)</button>
+              <button type="button" role="menuitem" data-draw="zone">Zone</button>
+              <div class="draw-menu-label">Icon</div>
+              <div class="mark-icon-picker" id="mark-icon-picker"></div>
+            </div>
+          </span>
           <span class="toolbar-sep"></span>
           <button class="tool-btn icon-only" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
@@ -256,6 +270,8 @@
           <img class="plan-bg" id="plan-bg" alt="" hidden draggable="false" />
           <canvas id="heatmap-canvas"></canvas>
           <canvas id="seat-heatmap-canvas"></canvas>
+          <svg id="marks-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div id="marks-overlay"></div>
           <div id="switches-overlay"></div>
           <div id="seats-overlay"></div>
           <div id="blocks-overlay"></div>
@@ -554,6 +570,62 @@
         </div>
       </aside>
 
+      <!-- Inspector: a label, wall, zone or icon (static/js/editor/marks.js) -->
+      <aside class="detail-panel hidden" id="mark-detail-panel" aria-label="Details">
+        <div class="detail-header">
+          <div class="detail-heading">
+            <span class="detail-kind" id="mark-detail-kind">Label</span>
+            <div class="detail-name" id="mark-detail-name">—</div>
+          </div>
+          <button class="detail-close" id="mark-detail-close" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+        <div class="detail-body">
+          <section class="detail-section">
+            <h4 class="detail-section-title">Edit</h4>
+            <form class="form-grid" id="mark-edit-form" autocomplete="off">
+              <label class="field field-full" data-for="text zone">
+                <span class="field-label">Text</span>
+                <input class="modal-input" type="text" name="text" maxlength="60" />
+              </label>
+              <label class="field field-full" data-for="icon">
+                <span class="field-label">Icon</span>
+                <select class="modal-input" name="icon"></select>
+              </label>
+              <label class="field" data-for="text icon">
+                <span class="field-label">Size</span>
+                <select class="modal-input" name="size">
+                  <option value="s">Small</option><option value="m">Medium</option><option value="l">Large</option>
+                </select>
+              </label>
+              <label class="field" data-for="text icon">
+                <span class="field-label">Turn</span>
+                <select class="modal-input" name="rotation">
+                  <option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option>
+                </select>
+              </label>
+              <label class="field field-full" data-for="wall">
+                <span class="field-label">Line</span>
+                <select class="modal-input" name="style">
+                  <option value="solid">Wall</option><option value="dashed">Dashed (fence, door)</option>
+                </select>
+              </label>
+              <label class="field field-full" data-for="zone">
+                <span class="field-label">Colour</span>
+                <select class="modal-input" name="color">
+                  <option value="muted">Grey</option><option value="bit">Green</option><option value="trace">Cyan</option>
+                  <option value="warn">Amber</option><option value="down">Red</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary btn-full field-full">Save changes</button>
+            </form>
+            <p class="field-hint">Drag it on the plan to move it.</p>
+          </section>
+        </div>
+        <div class="detail-footer">
+          <button class="btn btn-danger" id="mark-detail-delete" title="Delete (Del)">Delete</button>
+        </div>
+      </aside>
+
       <!-- Inspector: several items -->
       <aside class="detail-panel hidden" id="multi-detail-panel" aria-label="Selection details">
         <div class="detail-header">
@@ -642,6 +714,7 @@
         <button class="btn btn-primary" type="submit">Add hall</button>
       </form>
       <div class="modal-actions">
+        <button class="btn btn-ghost" id="halls-example" type="button" title="A new hall with rows, walls, exits and the bar laid out, to change or learn from">Add an example hall</button>
         <a class="btn btn-ghost" href="/templates" title="Save this floor plan as a template, or start from one">Templates</a>
         <button class="btn btn-ghost" id="halls-close" type="button">Close</button>
       </div>
@@ -823,6 +896,7 @@
         <dt><kbd>V</kbd></dt><dd>Select and move</dd>
         <dt><kbd>S</kbd></dt><dd>Add switch</dd>
         <dt><kbd>B</kbd></dt><dd>Add seat block</dd>
+        <dt><kbd>D</kbd></dt><dd>Draw: a label, wall, zone or icon</dd>
         <dt><kbd>G</kbd></dt><dd>Toggle snap to grid</dd>
         <dt><kbd>R</kbd></dt><dd>Turn the selected seat block a quarter (<kbd>Shift</kbd> the other way)</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Z</kbd></dt><dd>Undo</dd>
@@ -880,6 +954,7 @@
   <script src="/static/js/editor/ports.js" defer></script>
   <script src="/static/js/editor/focus.js" defer></script>
   <script src="/static/js/editor/notice.js" defer></script>
+  <script src="/static/js/editor/marks.js" defer></script>
   <script src="/static/js/editor/main.js" defer></script>
   <script src="/static/js/live.js" defer></script>
   <script src="/static/js/goto.js" defer></script>

@@ -16,6 +16,7 @@ async function init() {
     loadSeats(),
     loadSeatMappings(),
     loadSeatBlocks(),
+    loadMarks(),
   ]);
   if (results[0].status === 'fulfilled') config = results[0].value;
   const failed = results.filter(r => r.status === 'rejected');
