@@ -225,7 +225,7 @@ function renderHeatmap() {
     if (pin) {
       const pr = pin.getBoundingClientRect();
       x = (pr.left + pr.width / 2 - rect.left) * scale;
-      y = (pr.top + pr.height * 5 / 18 - rect.top) * scale; // pin head centre
+      y = (pr.top + pr.height / 2 - rect.top) * scale; // the switch box's middle
     } else {
       x = (sw.x / 100) * cw;
       y = (sw.y / 100) * ch;

@@ -20,7 +20,7 @@ export function PlanMarks({ drawing, layers }: { drawing: PlanDrawing; layers?: 
         if (!mine.length) return null
         return (
           <g key={id} data-layer={id} opacity={layers ? opacity(layers, id) : undefined}>
-            {mine.sort((a, b) => order(a) - order(b)).map((m, i) => <Mark key={i} m={m} icons={drawing.icons ?? {}} />)}
+            {mine.sort((a, b) => (a.z ?? 0) - (b.z ?? 0) || order(a) - order(b)).map((m, i) => <Mark key={i} m={m} icons={drawing.icons ?? {}} />)}
           </g>
         )
       })}

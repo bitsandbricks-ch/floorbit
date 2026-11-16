@@ -633,6 +633,8 @@ export interface PlanShape {
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
 export interface PlanMark {
   kind: 'text' | 'icon' | 'wall' | 'zone'
+  /** Drawing order, higher on top (floorbit/stacking.py). */
+  z?: number
   x: number
   y: number
   text?: string

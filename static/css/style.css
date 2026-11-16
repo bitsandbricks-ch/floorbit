@@ -434,11 +434,14 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 /* ── Switch marker ─────────────────────────────────────────────────────────── */
 .switch-marker {
   position: absolute;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%);   /* the switch box is centred on its spot */
   display: flex; flex-direction: column; align-items: center;
   pointer-events: all; cursor: grab; user-select: none;
-  z-index: 4;   /* above seat blocks, so a switch in a lane between rows stays on top */
 }
+/* Switches always draw over seat blocks, seats and marks: their overlay has its own layer on top. */
+#marks-svg, #marks-overlay { z-index: 1; }
+#blocks-overlay, #seats-overlay, #group-frames { z-index: 2; }
+#switches-overlay { z-index: 4; }
 .switch-marker:hover    { z-index: 6; filter: brightness(1.2) drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .switch-marker.dragging { cursor: grabbing; z-index: 10; }
 .switch-marker.selected { z-index: 7; }
@@ -446,15 +449,15 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .switch-marker.marquee-hit .switch-pin { filter: drop-shadow(0 0 4px var(--color-trace)); }
 .switch-marker.dimmed   { opacity: .25; }
 
-.switch-pin { position: relative; width: 16px; height: 21px; color: var(--unknown); flex-shrink: 0; }
+.switch-pin { position: relative; width: 24px; height: 16px; color: var(--unknown); flex-shrink: 0; }
 .switch-pin svg { width: 100%; height: 100%; display: block; }
 .switch-pin.status-online  { color: var(--success); }
 .switch-pin.status-offline { color: var(--danger); }
 .switch-pin.status-warning { color: var(--warning); }
 .switch-pin.status-unknown { color: var(--unknown); }
 .switch-pin.status-online::after {
-  content: ''; position: absolute; top: 6px; left: 50%;
-  width: 12px; height: 12px; border-radius: 50%;
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 22px; height: 14px; border-radius: 4px;
   border: 1.5px solid var(--success); opacity: 0;
   transform: translate(-50%, -50%);
   animation: pulse 2.5s ease-out infinite;
@@ -469,6 +472,7 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 }
 
 .switch-label {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   font-size: 10px; font-weight: 600; color: var(--text-primary);
   background: var(--label-bg);
   padding: 1px 5px; border-radius: 4px; border: 1px solid var(--label-border);

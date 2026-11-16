@@ -427,9 +427,14 @@ body {
 .fb-marks .icon rect { fill: var(--color-raised); stroke: var(--color-line, var(--color-muted)); stroke-width: 1.5; }
 .fb-marks .icon svg { color: var(--color-fg); }
 .fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; }
-.fb-plan .sw rect { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; }
-.fb-plan .sw-online rect { fill: var(--color-bit); }
-.fb-plan .sw-offline rect { fill: var(--color-down); }
+.fb-plan .sw .body { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.fb-plan .sw-online .body, .fb-plan .sw-offline .body, .fb-plan .sw-warning .body { stroke-dasharray: none; }
+.fb-plan .sw-online .body { fill: var(--color-bit); }
+.fb-plan .sw-warning .body { fill: var(--color-warn); }
+.fb-plan .sw-offline .body { fill: var(--color-down); }
+.fb-plan .sw .port { fill: color-mix(in srgb, var(--color-ink) 35%, transparent); }
+.fb-plan .sw .port.lit { fill: rgba(255, 255, 255, .9); }
+.fb-plan .sw .cross { stroke: #fff; stroke-width: 2; stroke-linecap: round; fill: none; }
 .fb-plan .uplink { stroke: var(--mantine-color-gray-5); stroke-linecap: round; opacity: 0.55; }
 .fb-plan .uplink.m-copper { stroke: var(--mantine-color-blue-6); }
 .fb-plan .uplink.m-fiber { stroke: var(--mantine-color-cyan-6); }

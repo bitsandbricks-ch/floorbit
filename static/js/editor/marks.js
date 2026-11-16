@@ -87,7 +87,7 @@ function renderMarks() {
   const svg = [];
   const html = [];
   updateSeatsViewLink();
-  for (const m of planMarks) {
+  for (const m of byZ(planMarks)) {
     if (hiddenMarkLayers.has(markLayerOf(m))) continue;
     const sel = m.id === selectedMark ? ' selected' : '';
     if (m.kind === 'zone') {

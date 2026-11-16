@@ -81,6 +81,9 @@ function menuEntries(target) {
         add('Select the group', () => selectGroup(grp));
         add('Ungroup', () => { selectGroup(grp); ungroupSelection(); }, { key: 'Ctrl+Shift+G' });
       }
+      sep();
+      items.push(...stackMenuEntries({ kind: 'block', ids: new Set([target.id]) }));
+      sep();
       add('Delete', () => actionDeleteBlock(target.id), { danger: true, key: 'Del' });
     }
   } else if (target.type === 'multi') {
@@ -94,8 +97,15 @@ function menuEntries(target) {
       }
       add('Turn a quarter', () => rotateSelection(90), { key: 'R' });
       if (blocks.length) add('Copy', () => duplicateSelection(), { key: 'Ctrl+D' });
+      if (blocks.length) { sep(); items.push(...stackMenuEntries({ kind: 'block', ids: new Set(blocks.map(b => b.id)) })); }
       sep();
       add(`Delete ${selection.size} items`, () => actionDeleteSelection(), { danger: true, key: 'Del' });
+    }
+  } else if (target.type === 'mark') {
+    if (menuCanEdit()) {
+      items.push(...stackMenuEntries({ kind: 'mark', ids: new Set([target.id]) }));
+      sep();
+      add('Delete', () => removeMark(target.id), { danger: true, key: 'Del' });
     }
   } else if (target.type === 'floor') {
     if (menuCanEdit() && target.at) {
@@ -118,6 +128,10 @@ function menuTitle(target) {
   if (target.type === 'switch') return switches.find(s => s.id === target.id)?.name || 'Switch';
   if (target.type === 'block') return seatBlocks.find(b => b.id === target.id)?.name || 'Seat block';
   if (target.type === 'multi') return `${selection.size} selected`;
+  if (target.type === 'mark') {
+    const m = planMarks.find(x => x.id === target.id);
+    return m ? ({ text: m.text, icon: 'Icon', wall: 'Wall', zone: m.label || 'Zone' })[m.kind] || 'Mark' : 'Mark';
+  }
   return '';
 }
 
@@ -187,6 +201,8 @@ function contextTargetOf(el, clientX, clientY) {
   const seatEl = el.closest('.seat-block-seat');
   const blockEl = el.closest('.seat-block');
   const switchEl = el.closest('.switch-marker');
+  const markEl = el.closest('[data-mark]');
+  if (markEl && !switchEl && !blockEl) return { type: 'mark', id: markEl.dataset.mark };
   if (switchEl) {
     const id = switchEl.dataset.id;
     if (selection.size > 1 && inSelection('switch', id)) return { type: 'multi' };
@@ -210,6 +226,7 @@ canvasArea.addEventListener('contextmenu', (e) => {
   // Right-clicking something selects it, like a click, so the inspector matches the menu.
   if (target.type === 'switch') selectSwitch(target.id);
   else if (target.type === 'block') selectBlock(target.id);
+  else if (target.type === 'mark') selectMark(target.id);
   openContextMenu(e.clientX, e.clientY, target);
 });
 

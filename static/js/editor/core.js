@@ -3,22 +3,24 @@
 // is in templates/index.html (see static/js/editor/README.md).
 'use strict';
 
-// ── Pin icon ─────────────────────────────────────────────────────────────────────────
-// Teardrop pin – colour comes from the .switch-pin CSS class. The glyph in the
-// head repeats the status as a shape, so it doesn't rely on colour alone.
+// ── Switch icon ──────────────────────────────────────────────────────────────────────
+// A switch seen from the front: a box with two rows of ports, centred on the switch's spot. The colour
+// comes from the .switch-pin CSS class; the shape repeats the status so it doesn't rely on colour alone:
+// lit ports when online, a cross when offline, a dashed box and dark ports when unknown.
 function pinSVG(status) {
-  let glyph;
-  if (status === 'offline') {
-    glyph = '<path d="M5.4 3.4l3.2 3.2M8.6 3.4L5.4 6.6" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>';
-  } else if (status === 'online') {
-    glyph = '<circle cx="7" cy="5" r="2.2" fill="rgba(255,255,255,0.85)"/>';
-  } else {
-    glyph = '<circle cx="7" cy="5" r="2.2" fill="rgba(255,255,255,0.30)"/>';
+  const lit = status === 'online' || status === 'warning';
+  let ports = '';
+  for (let row = 0; row < 2; row++) {
+    for (let i = 0; i < 5; i++) {
+      ports += `<rect x="${3.2 + i * 3.7}" y="${4.4 + row * 4}" width="2.5" height="2.4" rx=".4" fill="${lit ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.35)'}"/>`;
+    }
   }
-  return `<svg viewBox="0 0 14 18" xmlns="http://www.w3.org/2000/svg">
-    <path d="M7 0C4.24 0 2 2.24 2 5c0 4.5 5 13 5 13s5-8.5 5-13C12 2.24 9.76 0 7 0z"
-          fill="currentColor" stroke="rgba(0,0,0,0.4)" stroke-width="0.6"/>
-    ${glyph}
+  const cross = status === 'offline'
+    ? '<path d="M8.5 3.5l7 9M15.5 3.5l-7 9" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' : '';
+  const dashed = status === 'online' || status === 'offline' || status === 'warning' ? '' : ' stroke-dasharray="2 1.4"';
+  return `<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0.75" y="0.75" width="22.5" height="14.5" rx="3" fill="currentColor" stroke="rgba(0,0,0,0.45)" stroke-width="1.2"${dashed}/>
+    ${status === 'offline' ? '' : ports}${cross}
   </svg>`;
 }
 

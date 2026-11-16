@@ -92,6 +92,22 @@ export function PlanGrid({ view, size, scale: k }: { view: View; size: { w: numb
   return <g className="fb-grid" aria-hidden="true">{lines}</g>
 }
 
+/** A switch seen from the front, centred on its spot (the editor draws the same, static/js/editor/core.js):
+ *  lit ports when online, a cross when offline, a dashed box when unknown. */
+export function SwitchGlyph({ status }: { status: string }) {
+  const lit = status === 'online' || status === 'warning'
+  return (
+    <>
+      <rect className="body" x={-12} y={-8} width={24} height={16} rx={3} />
+      {status === 'offline'
+        ? <path className="cross" d="M-3.5 -4.5l7 9M3.5 -4.5l-7 9" />
+        : [0, 1].flatMap((row) => [0, 1, 2, 3, 4].map((i) => (
+          <rect key={`${row}-${i}`} className={lit ? 'port lit' : 'port'} x={-8.8 + i * 3.7} y={-3.6 + row * 4} width={2.5} height={2.4} rx={0.4} />
+        )))}
+    </>
+  )
+}
+
 const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
 const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
@@ -279,14 +295,6 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           )
         })}</g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
-        {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (
-          <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
-            {incidents?.switches[w.id] ? <circle className="sw-inc" r={13} /> : null}
-            <rect x={-7} y={-7} width={14} height={14} transform="rotate(45)" />
-            <title>{`${w.name}: ${w.status}`}</title>
-            {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
-          </g>
-        ))}</g>}
         {drawing.shapes.map((b, bi) => (
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
@@ -337,6 +345,15 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}
+        {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
+        {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (
+          <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
+            {incidents?.switches[w.id] ? <circle className="sw-inc" r={17} /> : null}
+            <SwitchGlyph status={w.status} />
+            <title>{`${w.name}: ${w.status}`}</title>
+            {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
+          </g>
+        ))}</g>}
         {ring && (
           // Drawn last so the neighbouring seats don't cover it.
           <rect className="kb-ring" x={ring.at.x - drawing.cell / 2 - 1} y={ring.at.y - drawing.cell / 2 - 1}

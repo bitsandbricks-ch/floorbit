@@ -17,7 +17,7 @@ the React app uses, so one list serves every page.
 """
 import uuid
 
-from . import halls
+from . import halls, stacking
 from .plan_icons import ICONS
 
 KEY = 'plan_marks'
@@ -75,6 +75,10 @@ def clean(body, old=None):
     out = {'id': (old or {}).get('id') or uuid.uuid4().hex[:12], 'kind': kind,
            'x': _pct(m.get('x'), 'x'), 'y': _pct(m.get('y'), 'y'),
            'layer': _pick(m.get('layer'), LAYERS, 'overview', 'layer')}
+    try:
+        out['z'] = stacking.z_of(m.get('z'))
+    except stacking.StackError as exc:
+        raise MarkError(str(exc)) from None
     if kind == 'text':
         text = str(m.get('text') or '').strip()
         if not text or len(text) > TEXT_MAX:
@@ -122,7 +126,7 @@ def all_marks(data, hall_id=None):
         hall = halls.hall_of(m, data, ids)
         if hall_id is None or hall == hall_id:
             out.append({**m, 'hall_id': hall})
-    return out
+    return stacking.by_z(out)
 
 
 def add(data, body):

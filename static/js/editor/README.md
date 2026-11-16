@@ -39,6 +39,7 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `marks.js` | Text labels, walls, zones and icons on the plan: the Draw menu, placing, moving and the inspector (`floorbit/plan_marks.py`). |
 | `align.js` | Alignment guides while dragging seat blocks: edges, middles, seat rows and equal spacing; Alt places freely. |
 | `groups.js` | Groups of seat blocks (`group`): select, move, turn and copy as one, Ctrl+G and Ctrl+Shift+G; merging blocks next to each other (`floorbit/block_merge.py`). |
+| `stacking.js` | Which seat block or mark is drawn over which (`z`): bring to front, send to back, one step (Ctrl+] / Ctrl+[, Shift for all the way). |
 | `gaps.js` | Gaps inside a seat block: room in every row after a column, lanes between rows (`col_gaps`, `row_gaps`, as `floorbit/seat_gaps.py`); the Gaps section of the block inspector and the seat's right-click entries. |
 | `panels.js` | The tool rail on the left and the panel on the right (search, layers, switches; keys `/`, `L`, `W`), which steps aside while an inspector is open; German for the rail and the panel. |
 | `main.js` | `init()` and start-up. Always last. |

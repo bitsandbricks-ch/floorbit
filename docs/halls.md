@@ -119,6 +119,18 @@ left block keeps its name and settings, so the other blocks' seats get new names
 becomes a gap. Undo brings the separate blocks back. For scripts: `POST /api/seat-blocks/merge` with
 `{"ids": [...]}`; a block's `group` is a free text id.
 
+## What is drawn on top
+
+Switches are always drawn over seat blocks, seats, labels, walls and zones, as a small switch box (lit ports
+when it is online, a cross when it is offline, a dashed outline when its status is unknown). That is the same in
+the editor, on the Seats view and on the kiosk.
+
+Seat blocks overlap in the order you set: right-click a block (or a selection of blocks) or a label, wall,
+zone or icon and pick **Bring to front**, **Bring forward**, **Send backward** or **Send to back**, or press
+<kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>Ctrl</kbd>+<kbd>[</kbd> (with <kbd>Shift</kbd>: all the way). Blocks are
+ordered among blocks and marks among marks; marks always stay under the blocks. Every view draws in the same
+order. In the API it is `z` on a block or mark (a whole number, higher on top, 0 by default).
+
 ## The editor's menu
 
 The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block

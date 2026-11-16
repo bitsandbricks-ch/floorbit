@@ -47,7 +47,8 @@ function renderSeats() {
 
 function renderBlocks() {
   blocksOverlay.innerHTML = '';
-  for (const block of seatBlocks) blocksOverlay.appendChild(createBlockMarker(block));
+  // Bottom up, so a block brought to the front is drawn last (stacking.js).
+  for (const block of byZ(seatBlocks)) blocksOverlay.appendChild(createBlockMarker(block));
 }
 
 function updateEmptyState() {

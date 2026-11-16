@@ -36,6 +36,13 @@ document.addEventListener('keydown', (e) => {
   if (mod && key === 'a') { e.preventDefault(); setTool('select'); selectAllItems(); return; }
   if (mod && key === 'g' && !document.body.classList.contains('read-only')) { e.preventDefault(); if (e.shiftKey) ungroupSelection(); else groupSelection(); return; }
   if (mod && key === 'd' && !document.body.classList.contains('read-only')) { e.preventDefault(); duplicateSelection(); return; }
+  // Ctrl+] / Ctrl+[ one step up or down, with Shift all the way (stacking.js). e.code: Shift turns ] into }.
+  if (mod && (e.code === 'BracketRight' || e.code === 'BracketLeft') && !document.body.classList.contains('read-only')) {
+    e.preventDefault();
+    const up = e.code === 'BracketRight';
+    restackSelection(e.shiftKey ? (up ? 'front' : 'back') : (up ? 'up' : 'down'));
+    return;
+  }
   if (mod) return;
 
   if (e.key === ' ' && !spaceHeld) { spaceHeld = true; canvasArea.classList.add('panning'); e.preventDefault(); return; }
