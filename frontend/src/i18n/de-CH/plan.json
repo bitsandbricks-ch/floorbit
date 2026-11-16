@@ -265,7 +265,13 @@
         "icon": "Symbol hinzufügen",
         "wall": "Wand hinzufügen",
         "zone": "Zone hinzufügen"
-      }
+      },
+      "paste_one": "einfügen",
+      "paste_other": "{{count}} Elemente einfügen",
+      "duplicate_one": "duplizieren",
+      "duplicate_other": "{{count}} Elemente duplizieren",
+      "front": "in den Vordergrund",
+      "back": "in den Hintergrund"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -274,7 +280,8 @@
       "delete": "löschen",
       "nudge": "verschieben",
       "free": "ohne Raster",
-      "pan": "+ ziehen zum Verschieben der Ansicht"
+      "pan": "+ ziehen zum Verschieben der Ansicht",
+      "more": "Ctrl C/X/V kopieren, ausschneiden, einfügen · Ctrl D duplizieren · Rechtsklick für mehr"
     },
     "classic": "Werkzeuge, die noch fehlen (Kabel, Strom, Gruppen, Ausrichten): klassischer Editor",
     "kind": {
@@ -351,6 +358,40 @@
         "l": "Gross"
       },
       "place": "Platzieren"
+    },
+    "copied_one": "Kopiert",
+    "copied_other": "{{count}} Elemente kopiert",
+    "cut_one": "Ausgeschnitten",
+    "cut_other": "{{count}} Elemente ausgeschnitten",
+    "menu": {
+      "duplicate": "Duplizieren",
+      "copy": "Kopieren",
+      "cut": "Ausschneiden",
+      "paste": "Hier einfügen",
+      "front": "In den Vordergrund",
+      "back": "In den Hintergrund",
+      "delete": "Löschen"
+    },
+    "layer": "Ebene",
+    "layers": {
+      "overview": "Übersicht",
+      "safety": "Sicherheit",
+      "network": "Netzwerk",
+      "electrical": "Elektro",
+      "services": "Dienste"
+    },
+    "color": "Farbe",
+    "colors": {
+      "muted": "Grau",
+      "bit": "Grün",
+      "trace": "Cyan",
+      "warn": "Bernstein",
+      "down": "Rot"
+    },
+    "style": "Linie",
+    "styles": {
+      "solid": "Durchgezogen",
+      "dashed": "Gestrichelt"
     }
   }
 }

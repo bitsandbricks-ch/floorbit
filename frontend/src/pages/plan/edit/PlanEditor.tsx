@@ -1,7 +1,7 @@
-import { ActionIcon, Anchor, Button, Group, Kbd, Paper, SegmentedControl, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconArrowBackUp, IconArrowForwardUp, IconTrash } from '@tabler/icons-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { IconArrowBackUp, IconArrowForwardUp, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconStack2, IconTrash } from '@tabler/icons-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
@@ -16,13 +16,20 @@ import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs
 import { ToolRail } from './ToolRail'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
+import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 
 const PATH: Record<ItemRef['kind'], string> = { block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches' }
-// What a deleted block needs to come back as it was (static/js/editor/data.js BLOCK_FIELDS).
-const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y', 'rotation',
-  'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group', 'z']
-const MARK_SKIP = new Set(['id', 'hall_id'])
-interface Saved { ref: ItemRef; body: Record<string, unknown> }
+interface Saved { ref: ItemRef; raw: Raw }
+const CLIP_KEY = 'floorbit-plan-clipboard'
+// Copied items live here and in the browser's storage, so they paste into another hall or tab too.
+let clipboard: Raw[] | null = null
+function readClip(): Raw[] | null {
+  try { return JSON.parse(localStorage.getItem(CLIP_KEY) ?? 'null') ?? clipboard } catch { return clipboard }
+}
+function writeClip(items: Raw[]) {
+  clipboard = items
+  try { localStorage.setItem(CLIP_KEY, JSON.stringify(items)) } catch { /* storage blocked: this tab still has it */ }
+}
 const NUDGE_PCT = 0.5
 
 const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))
@@ -42,6 +49,7 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
   const [tool, setTool] = useState<Tool>('select')
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
   const [placing, setPlacing] = useState<{ kind: 'block' | 'text' | 'icon'; at: Point } | null>(null)
+  const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
   const qc = useQueryClient()
   // A deleted item comes back with a new id; steps recorded before still name the old one.
@@ -88,25 +96,27 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     await refresh()
   }, [data, send, history, t, refresh, fail])
 
+  /** The items as the server keeps them, to copy, delete with undo, or restack. */
+  const snapshot = useCallback(async (items: ItemRef[]): Promise<Saved[]> => {
+    const want = items.filter((r) => r.kind !== 'switch')
+    const hall = encodeURIComponent(data.hall)
+    const [blocks, marks] = await Promise.all([
+      want.some((r) => r.kind === 'block') ? get<Record<string, unknown>[]>(`/api/seat-blocks?hall=${hall}`) : Promise.resolve([]),
+      want.some((r) => r.kind === 'mark') ? get<{ marks: Record<string, unknown>[] }>(`/api/plan-marks?hall=${hall}`).then((m) => m.marks) : Promise.resolve([]),
+    ])
+    return want.map((r): Saved | null => {
+      const raw = (r.kind === 'block' ? blocks : marks).find((x) => x.id === idOf(r))
+      return raw ? { ref: r, raw: rawOf(r.kind, raw) } : null
+    }).filter((x): x is Saved => !!x)
+  }, [data.hall, idOf])
+
   const remove = useCallback(async (items: ItemRef[]) => {
-    const gone = items.filter((r) => r.kind !== 'switch')
-    if (!gone.length) return
+    if (!items.some((r) => r.kind !== 'switch')) return
     try {
-      const [blocks, marks] = await Promise.all([
-        gone.some((r) => r.kind === 'block') ? get<Record<string, unknown>[]>(`/api/seat-blocks?hall=${encodeURIComponent(data.hall)}`) : Promise.resolve([]),
-        gone.some((r) => r.kind === 'mark') ? get<{ marks: Record<string, unknown>[] }>(`/api/plan-marks?hall=${encodeURIComponent(data.hall)}`).then((m) => m.marks) : Promise.resolve([]),
-      ])
-      const saved: Saved[] = gone.map((r): Saved | null => {
-        const raw = (r.kind === 'block' ? blocks : marks).find((x) => x.id === idOf(r))
-        if (!raw) return null
-        const keep = r.kind === 'block'
-          ? Object.fromEntries(BLOCK_FIELDS.filter((k) => raw[k] !== undefined).map((k) => [k, raw[k]]))
-          : Object.fromEntries(Object.entries(raw).filter(([k]) => !MARK_SKIP.has(k)))
-        return { ref: r, body: { ...keep, hall_id: data.hall } }
-      }).filter((x): x is Saved => !!x)
+      const saved = await snapshot(items)
       const drop = (s: Saved[]) => Promise.all(s.map(({ ref }) => del(`${PATH[ref.kind]}/${encodeURIComponent(idOf(ref))}`)))
-      const restore = (s: Saved[]) => Promise.all(s.map(async ({ ref, body }) => {
-        const made = await post<{ id: string }>(PATH[ref.kind], body)
+      const restore = (s: Saved[]) => Promise.all(s.map(async ({ ref, raw }) => {
+        const made = await post<{ id: string }>(PATH[ref.kind], { ...raw.body, hall_id: data.hall })
         alias.current.set(`${ref.kind}:${idOf(ref)}`, made.id)
       }))
       await drop(saved)
@@ -120,7 +130,90 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
       fail(err)
     }
     await refresh()
-  }, [data.hall, idOf, history, t, refresh, fail])
+  }, [data.hall, idOf, history, t, refresh, fail, snapshot])
+
+  /** Posts ``raws`` as new items in this hall (paste, duplicate), selects them, with undo. */
+  const addRaws = useCallback(async (raws: Raw[], label: string) => {
+    if (!raws.length) return
+    const post1 = async (r: Raw) => ({ kind: r.kind, id: (await post<{ id: string }>(PATH[r.kind], { ...r.body, hall_id: data.hall })).id })
+    try {
+      // One by one: the server checks each block's seats against the ones already there.
+      const made: ItemRef[] = []
+      for (const r of raws) made.push(await post1(r))
+      history.push({
+        label,
+        undo: () => Promise.all(made.map((r) => del(`${PATH[r.kind]}/${encodeURIComponent(idOf(r))}`))).then(refresh),
+        redo: async () => {
+          for (const [i, r] of raws.entries()) {
+            const again = await post1(r)
+            alias.current.set(`${r.kind}:${idOf(made[i])}`, again.id)
+          }
+          await refresh()
+        },
+      })
+      await refresh()
+      void qc.invalidateQueries({ queryKey: qk.seatBlocks })
+      setSelection(made)
+    } catch (err) {
+      fail(err)
+      await refresh()
+    }
+  }, [data.hall, history, idOf, refresh, fail, qc])
+
+  const blocksInUse = useCallback(() => get<{ naming?: string; row_start?: string; rows?: number; name?: string }[]>('/api/seat-blocks'), [])
+
+  const copy = useCallback(async (items: ItemRef[], cut = false) => {
+    try {
+      const saved = await snapshot(items)
+      if (!saved.length) return
+      writeClip(saved.map((s) => s.raw))
+      notifications.show({ message: t(cut ? 'plan.edit.cut' : 'plan.edit.copied', { count: saved.length }), autoClose: 1500 })
+      if (cut) await remove(items)
+    } catch (err) {
+      fail(err)
+    }
+  }, [snapshot, remove, t, fail])
+
+  // Where the pointer last was over the plan, in %: paste puts things there.
+  const pointer = useRef<Point | null>(null)
+  const paste = useCallback(async (at?: Point) => {
+    const clip = readClip()
+    if (!clip?.length) return
+    const to = at ?? pointer.current
+    const d = to ? deltaTo(clip, to) : { x: 2, y: 3.2 }
+    await addRaws(copies(clip, d, await blocksInUse()), t('plan.edit.step.paste', { count: clip.length }))
+  }, [addRaws, blocksInUse, t])
+
+  const duplicate = useCallback(async (items: ItemRef[]) => {
+    try {
+      const saved = await snapshot(items)
+      // One seat further right and down, so the copy shows next to the original.
+      await addRaws(copies(saved.map((s) => s.raw), { x: 2, y: 3.2 }, await blocksInUse()), t('plan.edit.step.duplicate', { count: saved.length }))
+    } catch (err) {
+      fail(err)
+    }
+  }, [snapshot, addRaws, blocksInUse, t, fail])
+
+  /** Bring to front (``up``) or send to back: the items' z goes past every other item's. */
+  const restack = useCallback(async (items: ItemRef[], up: boolean) => {
+    try {
+      const all = await snapshot(present)
+      const mine = all.filter((s) => items.some((r) => sameRef(r, s.ref)))
+      if (!mine.length) return
+      const zs = all.filter((s) => !mine.includes(s)).map((s) => Number(s.raw.body.z) || 0)
+      const edge = zs.length ? (up ? Math.max(...zs) + 1 : Math.min(...zs) - 1) : 0
+      const moves = mine.map((s, i) => [s.ref, { z: Number(s.raw.body.z) || 0 }, { z: up ? edge + i : edge - (mine.length - 1 - i) }] as const)
+      await Promise.all(moves.map(([r, , a]) => send(r, a)))
+      history.push({
+        label: t(up ? 'plan.edit.step.front' : 'plan.edit.step.back'),
+        undo: () => Promise.all(moves.map(([r, b]) => send(r, b))).then(refresh),
+        redo: () => Promise.all(moves.map(([r, , a]) => send(r, a))).then(refresh),
+      })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [snapshot, present, send, history, t, refresh, fail])
 
   const change = useCallback(async (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => {
     try {
@@ -207,6 +300,11 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     if (mod && k === 'z') { take(); void step(e.shiftKey ? 'redo' : 'undo'); return }
     if (mod && k === 'y') { take(); void step('redo'); return }
     if (mod && k === 'a') { take(); setSelection(present); return }
+    if (mod && k === 'v') { take(); void paste(); return }
+    if (mod && selected.length && k === 'c') { take(); void copy(selected); return }
+    if (mod && selected.length && k === 'x') { take(); void copy(selected, true); return }
+    if (mod && selected.length && k === 'd') { take(); void duplicate(selected); return }
+    if (mod && selected.length && (e.key === ']' || e.key === '[')) { take(); void restack(selected, e.key === ']'); return }
     if (e.key === ' ') { take(); setSpace(true); return }
     if (!mod && !e.altKey) {
       const picked = TOOLS.find((id) => TOOL_KEYS[id] === k)
@@ -242,10 +340,42 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={setSelection} space={space} tool={tool}
             onPlace={(at) => { if (tool === 'block' || tool === 'text' || tool === 'icon') setPlacing({ kind: tool, at }) }}
             onLine={drawWall} onBox={(b) => void drawZone(b)}
+            onPointer={(p) => { pointer.current = pct(p) }}
+            onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
             onDrag={(raw, snap, lead) => setDrag({ d: snappedDelta(data, lead, raw, snap) })}
             onDrop={(raw, snap, lead) => { setDrag(null); void moveBy(selected, snappedDelta(data, lead, raw, snap)) }} />
         )} />
       </div>
+      {menu && (
+        <Menu opened onChange={(o) => { if (!o) setMenu(null) }} position="bottom-start" offset={2} withinPortal shadow="md" width={220}>
+          <Menu.Target><div style={{ position: 'fixed', left: menu.x, top: menu.y, width: 1, height: 1 }} /></Menu.Target>
+          <Menu.Dropdown>
+            {menu.item && (
+              <>
+                <Menu.Label>{selected.length > 1 ? t('plan.edit.selected', { count: selected.length }) : itemTitle(t, data, menu.item)}</Menu.Label>
+                <Menu.Item leftSection={<IconCopy size={14} />} rightSection={<Kbd size="xs">Ctrl D</Kbd>} onClick={() => void duplicate(selected)}>{t('plan.edit.menu.duplicate')}</Menu.Item>
+                <Menu.Item leftSection={<IconCopy size={14} />} rightSection={<Kbd size="xs">Ctrl C</Kbd>} onClick={() => void copy(selected)}>{t('plan.edit.menu.copy')}</Menu.Item>
+                <Menu.Item leftSection={<IconCut size={14} />} rightSection={<Kbd size="xs">Ctrl X</Kbd>} onClick={() => void copy(selected, true)}>{t('plan.edit.menu.cut')}</Menu.Item>
+              </>
+            )}
+            <Menu.Item leftSection={<IconClipboard size={14} />} rightSection={<Kbd size="xs">Ctrl V</Kbd>} disabled={!readClip()?.length}
+              onClick={() => void paste(menu.at ?? undefined)}>{t('plan.edit.menu.paste')}</Menu.Item>
+            {menu.item && (
+              <>
+                <Menu.Divider />
+                <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
+                <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
+                {selected.some((r) => r.kind !== 'switch') && (
+                  <>
+                    <Menu.Divider />
+                    <Menu.Item color="down" leftSection={<IconTrash size={14} />} rightSection={<Kbd size="xs">Del</Kbd>} onClick={() => void remove(selected)}>{t('plan.edit.menu.delete')}</Menu.Item>
+                  </>
+                )}
+              </>
+            )}
+          </Menu.Dropdown>
+        </Menu>
+      )}
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
       <PlaceMarkDialog kind={placing && placing.kind !== 'block' ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
@@ -273,6 +403,7 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
           <Text size="xs" c="dimmed">
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
           </Text>
+          <Text size="xs" c="dimmed">{t('plan.edit.keys.more')}</Text>
           <Anchor size="sm" href={`/?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
         </Stack>
       </Paper>
@@ -287,7 +418,10 @@ function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: 
   return t(`plan.edit.kind.${m?.kind ?? 'text'}`)
 }
 
-/** The few fields this first version edits: a block's name and turn, a label's text. */
+const LAYER_IDS = ['overview', 'safety', 'network', 'electrical', 'services'] as const
+const ZONE_COLORS = ['muted', 'bit', 'trace', 'warn', 'down'] as const
+
+/** One item's fields. Each change is saved on its own (Enter or leaving a text field). */
 function ItemFields({ data, item, onChange }: {
   data: SeatViewData; item: ItemRef
   onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
@@ -296,28 +430,93 @@ function ItemFields({ data, item, onChange }: {
   const shape = item.kind === 'block' ? data.drawing?.shapes.find((s) => s.id === item.id) : undefined
   const mark = item.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === item.id) : undefined
   const [name, setName] = useState(shape?.name ?? mark?.text ?? mark?.label ?? '')
+  const set = (field: string, before: unknown, after: unknown) => { if (before !== after) void onChange(item, { [field]: before }, { [field]: after }) }
+  const turn = (value: number, field = 'rotation') => (
+    <div>
+      <Text size="sm" fw={500} mb={4}>{t('plan.edit.rotation')}</Text>
+      <SegmentedControl fullWidth value={String(value)} data={['0', '90', '180', '270'].map((v) => ({ value: v, label: `${v}°` }))}
+        onChange={(v) => set(field, value, Number(v))} />
+    </div>
+  )
   if (shape) {
-    const save = () => { if (name !== shape.name) void onChange(item, { name: shape.name }, { name }) }
     return (
       <>
-        <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={save}
-          onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
-        <div>
-          <Text size="sm" fw={500} mb={4}>{t('plan.edit.rotation')}</Text>
-          <SegmentedControl fullWidth value={String(shape.rotation)} data={['0', '90', '180', '270'].map((v) => ({ value: v, label: `${v}°` }))}
-            onChange={(v) => void onChange(item, { rotation: shape.rotation }, { rotation: Number(v) })} />
-        </div>
+        <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={() => set('name', shape.name, name)}
+          onKeyDown={(e) => { if (e.key === 'Enter') set('name', shape.name, name) }} />
+        {turn(shape.rotation)}
+        <BlockSize item={item} data={data} onChange={onChange} />
       </>
     )
   }
-  if (mark && (mark.kind === 'text' || mark.kind === 'zone')) {
+  if (!mark) return null
+  const layer = (
+    <Select label={t('plan.edit.layer')} allowDeselect={false} value={mark.layer ?? 'overview'} onChange={(v) => v && set('layer', mark.layer ?? 'overview', v)}
+      data={LAYER_IDS.map((l) => ({ value: l, label: t(`plan.edit.layers.${l}`) }))} />
+  )
+  const size = (
+    <div>
+      <Text size="sm" fw={500} mb={4}>{t('plan.edit.mark.size')}</Text>
+      <SegmentedControl fullWidth value={mark.size ?? 'm'} onChange={(v) => set('size', mark.size ?? 'm', v)}
+        data={['s', 'm', 'l'].map((x) => ({ value: x, label: t(`plan.edit.mark.sizes.${x}`) }))} />
+    </div>
+  )
+  if (mark.kind === 'text' || mark.kind === 'zone') {
     const field = mark.kind === 'text' ? 'text' : 'label'
     const before = (mark.kind === 'text' ? mark.text : mark.label) ?? ''
-    const save = () => { if (name !== before) void onChange(item, { [field]: before }, { [field]: name }) }
     return (
-      <TextInput label={t(mark.kind === 'text' ? 'plan.edit.text' : 'plan.edit.label')} value={name} onChange={(e) => setName(e.currentTarget.value)}
-        onBlur={save} onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
+      <>
+        <TextInput label={t(mark.kind === 'text' ? 'plan.edit.text' : 'plan.edit.label')} value={name} onChange={(e) => setName(e.currentTarget.value)}
+          onBlur={() => set(field, before, name)} onKeyDown={(e) => { if (e.key === 'Enter') set(field, before, name) }} />
+        {mark.kind === 'text' && <>{size}{turn(mark.rotation ?? 0)}</>}
+        {mark.kind === 'zone' && (
+          <div>
+            <Text size="sm" fw={500} mb={4}>{t('plan.edit.color')}</Text>
+            <Group gap="xs">
+              {ZONE_COLORS.map((c) => (
+                <Tooltip key={c} label={t(`plan.edit.colors.${c}`)}>
+                  <ColorSwatch component="button" type="button" color={`var(--color-${c === 'muted' ? 'muted' : c})`} size={26}
+                    aria-label={t(`plan.edit.colors.${c}`)} aria-pressed={(mark.color ?? 'muted') === c} onClick={() => set('color', mark.color ?? 'muted', c)}
+                    style={{ outline: (mark.color ?? 'muted') === c ? '2px solid var(--color-fg)' : undefined, outlineOffset: 2 }} />
+                </Tooltip>
+              ))}
+            </Group>
+          </div>
+        )}
+        {layer}
+      </>
     )
   }
-  return null
+  if (mark.kind === 'icon') return <>{size}{turn(mark.rotation ?? 0)}{layer}</>
+  return (
+    <>
+      <div>
+        <Text size="sm" fw={500} mb={4}>{t('plan.edit.style')}</Text>
+        <SegmentedControl fullWidth value={mark.style ?? 'solid'} onChange={(v) => set('style', mark.style ?? 'solid', v)}
+          data={[{ value: 'solid', label: t('plan.edit.styles.solid') }, { value: 'dashed', label: t('plan.edit.styles.dashed') }]} />
+      </div>
+      {layer}
+    </>
+  )
+}
+
+/** Seats per row and rows, from the block as the server keeps it (the drawing has only cells). */
+function BlockSize({ data, item, onChange }: {
+  data: SeatViewData; item: ItemRef
+  onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
+}) {
+  const { t } = useTranslation()
+  const blocks = useQuery({ queryKey: qk.planBlocks(data.hall), queryFn: () => get<{ id: string; cols: number; rows: number }[]>(`/api/seat-blocks?hall=${encodeURIComponent(data.hall)}`) })
+  const block = blocks.data?.find((b) => b.id === item.id)
+  const [cols, setCols] = useState<number | null>(null)
+  const [rows, setRows] = useState<number | null>(null)
+  if (!block) return null
+  const save = (field: 'cols' | 'rows', v: number | null) => { if (v && v !== block[field]) void onChange(item, { [field]: block[field] }, { [field]: v }).then(() => blocks.refetch()) }
+  return (
+    <SimpleGrid cols={2}>
+      <NumberInput label={t('plan.edit.block.cols')} min={1} max={200} value={cols ?? block.cols} onChange={(v) => setCols(Number(v) || null)}
+        onBlur={() => save('cols', cols)} onKeyDown={(e) => { if (e.key === 'Enter') save('cols', cols) }} />
+      <NumberInput label={t('plan.edit.block.rows')} min={1} max={50} value={rows ?? block.rows} onChange={(v) => setRows(Number(v) || null)}
+        onBlur={() => save('rows', rows)} onKeyDown={(e) => { if (e.key === 'Enter') save('rows', rows) }} />
+    </SimpleGrid>
+  )
 }
