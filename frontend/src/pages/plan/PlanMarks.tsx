@@ -1,17 +1,29 @@
 import type { PlanDrawing, PlanMark } from '@/api/types'
+import { type LayerId, type LayerState, LAYERS, MARK_LAYER, opacity } from './layers'
 
 // Sizes in drawing units (the plan is 1600 wide, a seat 32).
 const TEXT = { s: 20, m: 28, l: 44 }
 const ICON = { s: 26, m: 36, l: 52 }
 
-/** Walls, zones, labels and icons (floorbit/plan_marks.py), drawn under the seats. */
-export function PlanMarks({ drawing }: { drawing: PlanDrawing }) {
-  const marks = drawing.marks ?? []
+const layerOf = (m: PlanMark): LayerId => MARK_LAYER[m.layer ?? 'overview'] ?? 'marks'
+
+/** Walls, zones, labels and icons (floorbit/plan_marks.py), drawn under the seats. With ``layers``,
+ *  each mark shows only while its layer is on, faded with it. */
+export function PlanMarks({ drawing, layers }: { drawing: PlanDrawing; layers?: LayerState }) {
+  const marks = (drawing.marks ?? []).filter((m) => !layers || layers.on.has(layerOf(m)))
   if (!marks.length) return null
   const order = (m: PlanMark) => ({ zone: 0, wall: 1, text: 2, icon: 3 })[m.kind]
   return (
     <g className="fb-marks" aria-hidden="true">
-      {[...marks].sort((a, b) => order(a) - order(b)).map((m, i) => <Mark key={i} m={m} icons={drawing.icons ?? {}} />)}
+      {LAYERS.map((id) => {
+        const mine = marks.filter((m) => layerOf(m) === id)
+        if (!mine.length) return null
+        return (
+          <g key={id} data-layer={id} opacity={layers ? opacity(layers, id) : undefined}>
+            {mine.sort((a, b) => order(a) - order(b)).map((m, i) => <Mark key={i} m={m} icons={drawing.icons ?? {}} />)}
+          </g>
+        )
+      })}
     </g>
   )
 }

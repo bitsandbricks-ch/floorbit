@@ -646,6 +646,8 @@ export interface PlanMark {
   h?: number
   label?: string
   color?: 'muted' | 'bit' | 'trace' | 'warn' | 'down'
+  /** The floor plan layer it's on (floorbit/plan_marks.py LAYERS); overview when missing. */
+  layer?: 'overview' | 'safety' | 'network' | 'electrical' | 'services'
 }
 
 export interface PlanDrawing {
@@ -1165,6 +1167,9 @@ export interface WifiData {
   sources: string[]; errors: string[]; thresholds: { busy: number; crowded: number }
   drawing: PlanDrawing | null; hall: string; halls: { id: string; name: string }[]
 }
+
+/** Open incidents per seat and per switch id (GET /api/incidents/markers), for the crew layer. */
+export interface IncidentMarkers { seats: Record<string, number>; switches: Record<string, number> }
 
 /** Event changelog (issue #100). */
 export type TimelineKind = 'change' | 'sign-in' | 'outage' | 'incident' | 'alert' | 'deploy'

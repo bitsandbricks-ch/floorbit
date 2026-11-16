@@ -64,7 +64,7 @@ def hall_page():
     hall = halls.find(data, request.args.get('hall') or '') or all_halls[0]
     tabs = [{'id': h['id'], 'name': h['name'], 'on': h is hall} for h in all_halls] if len(all_halls) > 1 else []
     online, last = _online()
-    drawing, _ = plan(data, online=online if online is not None else set(), hall_id=hall['id'])
+    drawing, _ = plan(data, online=online if online is not None else set(), hall_id=hall['id'], public=True)
     if not drawing:
         return render_template('hall.html', lang=lang, t=text, state='empty', tabs=tabs)
     total = sum(len(b['cells']) for b in drawing['shapes'])

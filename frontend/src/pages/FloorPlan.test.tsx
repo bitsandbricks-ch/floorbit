@@ -115,7 +115,8 @@ describe('traffic overlay', () => {
     }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withSwitch, 'GET /api/power/markers': markers }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    fireEvent.click(await screen.findByRole('switch', { name: 'Power' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    fireEvent.click(await screen.findByRole('switch', { name: 'Electrical: boards and power cables' }))
     await waitFor(() => expect(container.querySelectorAll('.power-layer line.pcable')).toHaveLength(2))     // to the seats and to the switch
     expect(container.querySelector('.power-layer line.pcable')).toHaveClass('pw-tripped')
     expect(container.querySelector('.power-layer line.pcable title')?.textContent).toBe('D row 1: Tripped')
@@ -128,23 +129,29 @@ describe('traffic overlay', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': seats }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
     expect(container.querySelector('.cell .fwr')).toBeNull()
-    fireEvent.click(await screen.findByRole('switch', { name: 'Firewalls' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    fireEvent.click(await screen.findByRole('switch', { name: 'Firewall per seat' }))
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .fwr')).toHaveClass('fw-failover'))
     expect(container.querySelector('[data-seat="D-2"] .fwr')).toHaveClass('fw-down')
     expect(screen.getByText('Seat has no firewall up', { selector: 'li' })).toBeInTheDocument()
   })
 
-  it('offers no firewall layer without planned ranges', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': { enabled: false, seats: {} } }).fn)
+  it('keeps the firewall layer off without planned ranges', async () => {
+    const api = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': { enabled: false, seats: {} } })
+    vi.stubGlobal('fetch', api.fn)
     renderWithApp(<FloorPlan />, '/plan')
-    await screen.findByRole('switch', { name: 'Traffic' })
-    expect(screen.queryByRole('switch', { name: 'Firewalls' })).toBeNull()
+    await waitFor(() => expect(api.calls.some((c) => c.path === '/api/firewalls/seats')).toBe(true))
+    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    await screen.findByRole('switch', { name: 'Status: traffic per seat' })
+    // Listed, so the layer is known, but off until ranges are planned.
+    await waitFor(() => expect(screen.getByRole('switch', { name: /^Firewall per seat/, hidden: true })).toBeDisabled())
   })
 
   it('fills online seats by traffic and keeps the other shapes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    const toggle = await screen.findByRole('switch', { name: 'Traffic' })
+    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    const toggle = await screen.findByRole('switch', { name: 'Status: traffic per seat' })
     expect(container.querySelector('.seat.heat')).toBeNull()
     fireEvent.click(toggle)
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('heat'))

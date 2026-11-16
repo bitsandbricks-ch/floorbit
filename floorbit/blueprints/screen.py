@@ -85,11 +85,12 @@ def _row_labels(block, w, h):
             for r, letter in enumerate(letters) for x in sides]
 
 
-def plan(data, highlight=None, online=None, hall_id=None):
+def plan(data, highlight=None, online=None, hall_id=None, public=False):
     """One hall's seat blocks (the first hall's by default) as SVG shapes, cropped to the hall,
     with one seat marked.
 
     With ``online`` (a set of seat numbers) every cell also says whether its seat is online.
+    ``public`` drops the marks on crew layers (network, electrical, services) for attendee pages.
     """
     shapes, xs, ys, found = [], [], [], None
     hall_id = hall_id or halls.default_id(data)
@@ -119,18 +120,20 @@ def plan(data, highlight=None, online=None, hall_id=None):
                        'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h)})
     if not shapes:
         return None, None
-    marks, icons = _marks(data, hall_id, xs, ys)
+    marks, icons = _marks(data, hall_id, xs, ys, public)
     box = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
     return {'shapes': shapes, 'box': ' '.join(f'{v:.0f}' for v in box), 'cell': CELL,
             'marks': marks, 'icons': icons}, found
 
 
-def _marks(data, hall_id, xs, ys):
+def _marks(data, hall_id, xs, ys, public=False):
     """The hall's text, walls, zones and icons (floorbit/plan_marks.py) in drawing units, and the
     icons they use. Grows ``xs``/``ys`` so walls around the seats aren't cut off."""
     sx, sy = PLAN_W / 100, PLAN_H / 100
     out, used = [], set()
     for m in plan_marks.all_marks(data, hall_id):
+        if public and m.get('layer', 'overview') not in plan_marks.PUBLIC_LAYERS:
+            continue
         d = {**m, 'x': m['x'] * sx, 'y': m['y'] * sy}
         d.pop('hall_id', None)
         if m['kind'] == 'wall':
@@ -162,7 +165,7 @@ def _locate(data, seat):
     """The drawing of the hall the seat is in, and where in it; with more than one hall, its name too."""
     all_halls = halls.halls(data)
     for hall in all_halls:
-        drawing, found = plan(data, seat, hall_id=hall['id'])
+        drawing, found = plan(data, seat, hall_id=hall['id'], public=True)
         if found:
             found['hall'] = hall['name'] if len(all_halls) > 1 else ''
             return drawing, found

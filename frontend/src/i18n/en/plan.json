@@ -202,5 +202,32 @@
     "crit": "Circuit near its limit",
     "tripped": "Tripped",
     "noReading": "no reading"
+  },
+  "layers": {
+    "button": "Layers",
+    "title": "Layers",
+    "presets": "Presets",
+    "preset": {
+      "overview": "Overview",
+      "network": "Network",
+      "electrical": "Electrical",
+      "ops": "Ops"
+    },
+    "opacity": "{{layer}} opacity",
+    "seats": "Seats are always shown.",
+    "off": "Not set up",
+    "item": {
+      "marks": "Labels, walls and zones",
+      "network": "Network: switches and uplinks",
+      "electrical": "Electrical: boards and power cables",
+      "status": "Status: traffic per seat",
+      "firewalls": "Firewall per seat",
+      "wifi": "Wi-Fi access points",
+      "safety": "Safety: exits, extinguishers, escape routes",
+      "crew": "Crew: open incidents",
+      "checkin": "Check-in",
+      "services": "Services: servers, LANcache, DNS"
+    },
+    "hint": "Safety and services are marks you draw in the editor on their layer."
   }
 }
