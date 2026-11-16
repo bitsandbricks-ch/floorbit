@@ -127,6 +127,7 @@ and sets how strong it is drawn; the seats themselves are always there.
 
 | Layer | Shows |
 | --- | --- |
+| Grid | The editor's grid, so things sit on the same lines as in the editor. Presets leave it as it is |
 | Labels, walls and zones | The marks on the overview layer |
 | Network | Switches, uplinks with their type and speed, network marks |
 | Electrical | Distribution boards, power cables per circuit, electrical marks (needs Power) |

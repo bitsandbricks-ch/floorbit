@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LAYERS, PRESETS, presetOf, readLayers, writeLayers } from './layers'
+import { DEFAULT_LAYERS, PRESETS, applyPreset, presetOf, readLayers, writeLayers } from './layers'
 
 const read = (q: string) => readLayers(new URLSearchParams(q))
 
@@ -27,6 +27,13 @@ describe('floor plan layers in the URL', () => {
 
   it('names the preset a choice matches', () => {
     expect(presetOf(new Set(PRESETS.electrical))).toBe('electrical')
+    expect(presetOf(new Set(['grid', ...PRESETS.electrical]))).toBe('electrical')
     expect(presetOf(new Set(['marks', 'wifi']))).toBeNull()
+  })
+
+  it('keeps the grid as it was when a preset is picked', () => {
+    expect(read('').on.has('grid')).toBe(true)
+    expect([...applyPreset(read(''), 'network').on].sort()).toEqual(['grid', 'marks', 'network', 'wifi'])
+    expect(applyPreset(read('layers=marks'), 'network').on.has('grid')).toBe(false)
   })
 })

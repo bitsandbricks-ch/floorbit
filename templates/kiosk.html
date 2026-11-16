@@ -15,6 +15,8 @@
       ?refresh=15          seconds between status polls when live updates are off (5 to 300)
       ?labels=0            hide switch names
       ?reload=360          reload the whole page every N minutes (0 = never)
+      ?grid=0              hide the grid
+      ?marks=0             hide labels, walls, zones and icons
     See docs/kiosk.md.
   -->
   <div class="kiosk">
@@ -67,8 +69,11 @@
 
     <main class="k-body">
       <div class="k-map" id="k-map">
+        <div class="k-grid" id="k-grid" aria-hidden="true"></div>
         <div class="k-plan" id="k-plan">
           <img class="k-plan-bg" id="k-plan-bg" alt="" hidden />
+          <svg class="k-marks-svg" id="k-marks-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="k-layer" id="k-marks" aria-hidden="true"></div>
           <div class="k-layer" id="k-blocks"></div>
           <div class="k-layer" id="k-seats-layer"></div>
           <div class="k-layer" id="k-switches"></div>
