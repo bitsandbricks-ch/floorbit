@@ -161,7 +161,7 @@ def _via_agent():
 def _ask(method, *args):
     """Run a probe here, or on the local agent when one is enrolled (it is on the event network)."""
     if not _via_agent():
-        return {'dns_probe': probes.dns, 'tcp_probe': probes.tcp}[method](*args)
+        return {'dns_probe': probes.dns, 'tcp_probe': probes.tcp}[method](probes.target(args[0]), *args[1:])
     from . import agent_link
     try:
         return agent_link.tunnel.call(method, args, timeout=20)

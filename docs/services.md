@@ -41,4 +41,13 @@ just added is checked when the page next loads. With a local agent enrolled the 
 probes from the event network, so a hosted Floorbit measures the event's lines, not its own.
 **Check now** on the page checks everything at once (`floorplan.edit`).
 
+### What the server itself may reach
+
+Without an agent, the Floorbit server sends the probes, game server queries and RCON commands
+itself. It never sends them to link-local addresses (`169.254.0.0/16`, `fe80::/10`, where clouds keep
+their metadata service), to `0.0.0.0` or to multicast. Set `PROBE_NETS` to a comma-separated list of
+networks (for example `192.0.2.0/24,198.51.100.0/24`) and it reaches only those: set it on a hosted
+Floorbit so that nobody can point a probe at the hosting network. Host names are resolved first and
+the address is checked, so a name can't get around the list.
+
 Adding and changing lines and resolvers needs `floorplan.edit`; each change is in the audit log.
