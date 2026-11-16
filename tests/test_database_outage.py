@@ -178,11 +178,14 @@ def test_the_app_keeps_serving_and_refuses_saves_clearly(app_db, anon_client):
     assert len(client.get("/api/plan-marks").get_json()["marks"]) == 2
 
 
-def test_a_page_without_any_copy_says_so_instead_of_an_error(app_db, anon_client):
-    _, db = app_db
-    db._docs.clear()                          # as if it had just started
-    cut(db)
-    page = anon_client.get("/status", headers={"Accept-Language": "de-CH", "Accept": "text/html"})
-    assert page.status_code == 503
+def test_a_page_without_any_copy_says_so_instead_of_an_error(app_module):
+    from floorbit.blueprints.health import database_unavailable
+    app = app_module.app
+    with app.test_request_context("/status", headers={"Accept-Language": "de-CH", "Accept": "text/html"}):
+        page = database_unavailable(database.DatabaseUnavailable("gone"))
+    assert page.status_code == 503 and page.headers["Retry-After"] == "10"
     text = page.get_data(as_text=True)
     assert "Datenbank nicht erreichbar" in text and 'http-equiv="refresh"' in text
+    with app.test_request_context("/api/halls"):
+        answer = database_unavailable(database.DatabaseUnavailable("gone"))
+    assert answer.status_code == 503 and answer.get_json()["code"] == "database_unavailable"
