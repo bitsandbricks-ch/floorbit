@@ -109,5 +109,6 @@
  "LibreNMS did not list the ports of {}": "LibreNMS hat die Ports von {} nicht aufgelistet",
  "LibreNMS does not know {}": "LibreNMS kennt {} nicht",
  "No monitoring source is set up": "Es ist keine Monitoring-Quelle eingerichtet",
- "{} has no MAC tables": "{} hat keine MAC-Tabellen"
+ "{} has no MAC tables": "{} hat keine MAC-Tabellen",
+ "{} is not answering": "{} antwortet nicht"
 }
