@@ -1,7 +1,7 @@
 # Shared controls for the Jinja pages
 
 Plain scripts (no build step) that give the older pages the same dropdowns and tabs as the React
-pages (`frontend/src/components/ui/`). Styles are in `static/css/ui.css` and read the `--ui-*` brand
+pages (`frontend/src/components/ui.tsx`, `EntitySelect.tsx`). Styles are in `static/css/ui.css` and read the `--ui-*` brand
 tokens from `static/css/brand/tokens.css`.
 
 | File | What it does |

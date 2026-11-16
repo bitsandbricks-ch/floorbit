@@ -1,6 +1,6 @@
 /* Shared controls for the Jinja pages: dropdowns, tabs, popovers and menus, inputs.
  * Values come from the brand tokens (static/css/brand/tokens.css, --ui-*), the same ones the React
- * components in frontend/src/components/ui/ use. The fallbacks only cover the time before a page
+ * components in frontend/src/ use. The fallbacks only cover the time before a page
  * loads tokens that have them; never copy them elsewhere. Works in the dark and the light theme.
  */
 :root {

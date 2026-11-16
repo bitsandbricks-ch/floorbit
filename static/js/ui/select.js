@@ -1,4 +1,4 @@
-/* Shared dropdown for the Jinja pages (the React pages use frontend/src/components/ui/).
+/* Shared dropdown for the Jinja pages (the React pages use frontend/src/components/ui.tsx and EntitySelect.tsx).
  *
  * It upgrades a native <select> in place: the select stays in the DOM, hidden, and remains the
  * source of truth, so code that reads .value, sets .value or listens for 'change' keeps working.
