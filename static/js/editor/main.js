@@ -7,7 +7,6 @@
 async function init() {
   restoreView();
   restoreLayerPrefs();
-  initCollapsibleSections();
   await loadHalls();   // first: the switch and seat block lists keep only this hall's
 
   const results = await Promise.allSettled([

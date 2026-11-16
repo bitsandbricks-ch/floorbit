@@ -61,7 +61,9 @@ document.addEventListener('keydown', (e) => {
     case '+': case '=': zoomCentered(ZOOM_STEP); break;
     case '-': case '_': zoomCentered(1 / ZOOM_STEP); break;
     case '0': resetView(); break;
-    case '/': e.preventDefault(); universalSearch.focus(); break;
+    case '/': e.preventDefault(); openPanel('search', { focus: true }); break;
+    case 'l': case 'L': togglePanel('layers'); break;
+    case 'w': case 'W': togglePanel('switches'); break;
     case '?': shortcutsBackdrop.classList.remove('hidden'); break;
   }
 });

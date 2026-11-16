@@ -152,8 +152,8 @@ modalConfirm.addEventListener('click', async () => {
         const col = i % cols;
         return {
           id,
-          x: Math.max(0, Math.min(100, pendingCoords.x + (col - (cols - 1) / 2) * spacing)),
-          y: Math.max(0, Math.min(100, pendingCoords.y + (row - (rowsCount - 1) / 2) * spacing)),
+          x: pendingCoords.x + (col - (cols - 1) / 2) * spacing,
+          y: pendingCoords.y + (row - (rowsCount - 1) / 2) * spacing,
         };
       });
 

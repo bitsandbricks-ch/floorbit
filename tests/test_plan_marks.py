@@ -21,7 +21,8 @@ def test_marks_are_added_changed_and_removed(client):
 @pytest.mark.parametrize("bad", [
     {"kind": "sofa", "x": 1, "y": 1},
     {"kind": "text", "x": 1, "y": 1, "text": ""},
-    {"kind": "text", "x": 101, "y": 1, "text": "Too far"},
+    {"kind": "text", "x": 20000, "y": 1, "text": "Too far"},
+    {"kind": "text", "x": "nan", "y": 1, "text": "Not a number"},
     {"kind": "icon", "x": 1, "y": 1, "icon": "unicorn"},
     {"kind": "icon", "x": 1, "y": 1},
     {"kind": "wall", "x": 1, "y": 1, "x2": 1, "y2": 1},

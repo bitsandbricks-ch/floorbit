@@ -35,7 +35,7 @@ function endOneFinger(x, y) {
 }
 
 canvasArea.addEventListener('touchstart', (e) => {
-  if (e.target.closest('.toolbar, .zoom-bar')) return;   // real buttons: let the browser tap them
+  if (e.target.closest('.tool-rail, .zoom-bar')) return;   // real buttons: let the browser tap them
   e.preventDefault();                                    // no scrolling, no emulated mouse events
   if (e.touches.length === 1) {
     const t = e.touches[0];
@@ -90,9 +90,9 @@ function onTouchEnd(e) {
 canvasArea.addEventListener('touchend', onTouchEnd);
 canvasArea.addEventListener('touchcancel', onTouchEnd);
 
-// ── The sidebar as a drawer on narrow screens ───────────────────────────────────────
+// ── The panel (search, layers, switches) as a drawer on narrow screens ───────────────────────────────────────
 const btnSidebar = document.getElementById('btn-sidebar');
-const narrow = window.matchMedia('(max-width: 760px)');
+const narrow = window.matchMedia('(max-width: 767.98px)');
 
 function setSidebarOpen(open) {
   document.body.classList.toggle('sidebar-open', open);
@@ -102,7 +102,7 @@ function setSidebarOpen(open) {
 if (btnSidebar) {
   btnSidebar.addEventListener('click', () => setSidebarOpen(!document.body.classList.contains('sidebar-open')));
   // Picking a search result or a switch closes the drawer, so the plan shows what was picked.
-  document.getElementById('sidebar').addEventListener('click', (e) => {
+  document.getElementById('edit-panel').addEventListener('click', (e) => {
     if (narrow.matches && e.target.closest('.search-result-item, .switch-item')) setSidebarOpen(false);
   });
   canvasArea.addEventListener('touchstart', () => { if (narrow.matches) setSidebarOpen(false); }, { capture: true });

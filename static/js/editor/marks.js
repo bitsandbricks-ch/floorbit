@@ -285,9 +285,8 @@ function onMarkMouseDown(e) {
 }
 
 function movedBy(orig, dx, dy) {
-  const clamp = (v) => Math.min(100, Math.max(0, snapToGrid(v)));
-  const out = { x: clamp(orig.x + dx), y: clamp(orig.y + dy) };
-  if (orig.kind === 'wall') Object.assign(out, { x2: clamp(orig.x2 + (out.x - orig.x)), y2: clamp(orig.y2 + (out.y - orig.y)) });
+  const out = { x: snapToGrid(orig.x + dx), y: snapToGrid(orig.y + dy) };
+  if (orig.kind === 'wall') Object.assign(out, { x2: orig.x2 + (out.x - orig.x), y2: orig.y2 + (out.y - orig.y) });
   return out;
 }
 

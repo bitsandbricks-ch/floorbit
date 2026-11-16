@@ -36,14 +36,24 @@ class MarkError(ValueError):
     pass
 
 
+# Positions are percent of the plan box, but the plan has no edge: things may sit outside the box
+# and every view fits to what is drawn. The limit only keeps out nonsense (huge numbers, inf, NaN).
+PLAN_LIMIT = 10_000
+
+
+def on_plan(value):
+    """``value`` as a position on the plan; raises ValueError for anything that isn't one."""
+    n = float(value)
+    if not -PLAN_LIMIT <= n <= PLAN_LIMIT:   # also false for NaN
+        raise ValueError(value)
+    return n
+
+
 def _pct(value, what):
     try:
-        n = float(value)
+        return round(on_plan(value), 3)
     except (TypeError, ValueError):
-        raise MarkError(f'{what} is a number from 0 to 100') from None
-    if not 0 <= n <= 100:
-        raise MarkError(f'{what} is a number from 0 to 100')
-    return round(n, 3)
+        raise MarkError(f'{what} is a number from -10000 to 10000') from None
 
 
 def _pick(value, allowed, default, what):

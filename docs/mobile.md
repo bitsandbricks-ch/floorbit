@@ -12,11 +12,12 @@ simple changes by touch. The kiosk and check-in pages are unchanged; they have t
 | Drag the empty plan | Pans |
 | Pinch with two fingers | Zooms, and pans while you pinch |
 | Hold a finger still on a seat, switch or the plan | Opens its [menu](context-menu.md), like a right-click |
-| ☰ in the floor plan's top bar | Opens search and the layer list as a drawer |
+| ☰ in the floor plan's top bar | Opens search, layers and the switch list as a drawer |
 
 Below 768 px wide:
 
-- Search and the switch list live in a drawer behind ☰. Picking a result, tapping the plan or
+- The tools sit in a small bar at the top of the plan. Search, layers and the switch list live in a
+  drawer behind ☰. Picking a result, tapping the plan or
   pressing Escape closes it.
 - The details of what you picked open as a sheet from the bottom, at most about half the screen, so
   the plan stays visible.
@@ -27,7 +28,7 @@ Below 768 px wide:
   renaming and the inspector work by touch.
 
 `static/js/editor/touch.js` turns one finger into the mouse events the editor already handles, so
-the other editor files know nothing about touch. Two fingers become a pinch. The toolbar and zoom
+the other editor files know nothing about touch. Two fingers become a pinch. The tool bar and zoom
 buttons are ordinary buttons and get ordinary taps.
 
 ## Other pages

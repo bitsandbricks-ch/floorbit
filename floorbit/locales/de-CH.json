@@ -717,7 +717,6 @@
  "Seat names are \"block\" or \"rows\"": "Sitznamen sind \"block\" oder \"rows\"",
  "Seat {} is in another block already. Pick other row letters or another block name.": "Sitz {} ist schon in einem anderen Block. Wähle andere Reihenbuchstaben oder einen anderen Blocknamen.",
  "The first row is one or two letters, like A or AA": "Die erste Reihe ist ein oder zwei Buchstaben, etwa A oder AA",
- "The last blocks would land outside the plan. Use fewer blocks or a smaller gap.": "Die letzten Blöcke kämen ausserhalb des Plans zu liegen. Nimm weniger Blöcke oder einen kleineren Abstand.",
  "{} has a naming that Floorbit does not know": "{} hat eine Benennung, die Floorbit nicht kennt",
  "A label has 1 to {} characters": "Eine Beschriftung hat 1 bis {} Zeichen",
  "A mark is text, icon, wall or zone": "Eine Markierung ist Text, Symbol, Wand oder Zone",
@@ -728,7 +727,7 @@
  "At most {} marks on the plan": "Höchstens {} Markierungen auf dem Plan",
  "No such mark on the plan": "Diese Markierung gibt es auf dem Plan nicht",
  "rotation is 0, 90, 180 or 270": "rotation ist 0, 90, 180 oder 270",
- "{} is a number from 0 to 100": "{} ist eine Zahl von 0 bis 100",
+ "{} is a number from -10000 to 10000": "{} ist eine Zahl von -10000 bis 10000",
  "{} is missing": "{} fehlt",
  "{} is one of: {}": "{} ist eines von: {}"
 }

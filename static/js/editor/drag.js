@@ -60,8 +60,8 @@ function onDocMouseMove(e) {
   if (!dragState.moved && type === 'block' && selectedId !== id) selectBlock(id);
   dragState.moved = true;
 
-  const newX = Math.min(100, Math.max(0, snapToGrid(origX + (dx / wrapperRect.width * 100))));
-  const newY = Math.min(100, Math.max(0, snapToGrid(origY + (dy / wrapperRect.height * 100))));
+  const newX = snapToGrid(origX + (dx / wrapperRect.width * 100));
+  const newY = snapToGrid(origY + (dy / wrapperRect.height * 100));
 
   const container = type === 'block' ? blocksOverlay : overlay;
   const marker = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
@@ -114,12 +114,8 @@ function markerFor(type, id) {
   return container.querySelector(`[data-id="${CSS.escape(id)}"]`);
 }
 
-// Moves every item in `list` ({ type, id, origX, origY }) by the same offset,
-// clamped so that none of them leaves the floor plan.
+// Moves every item in `list` ({ type, id, origX, origY }) by the same offset.
 function offsetItems(list, dx, dy) {
-  const xs = list.map(i => i.origX), ys = list.map(i => i.origY);
-  dx = Math.min(100 - Math.max(...xs), Math.max(-Math.min(...xs), dx));
-  dy = Math.min(100 - Math.max(...ys), Math.max(-Math.min(...ys), dy));
   for (const it of list) {
     const item = findItem(it.type, it.id);
     if (!item) continue;
