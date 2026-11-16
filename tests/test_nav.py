@@ -6,7 +6,7 @@ import pytest
 
 from tests.test_rbac import sign_in_as
 
-SERVER_PAGES = ("/", "/settings", "/settings/users")
+SERVER_PAGES = ("/", "/settings")
 
 
 def boot(html):

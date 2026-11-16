@@ -54,6 +54,13 @@ def hall(client, app_module):
     client.post("/api/seat-blocks", json={"name": "A", "x": 40, "y": 50, "cols": 5, "rows": 2})
     stats = app_module.app.extensions["floorbit_stats"]
     stats.reset()
+    # The app-wide DNS counts outlive a test: an earlier test's demo lookups made the "empty" wall
+    # show Steam and Battle.net on Postgres (issue #508).
+    dns = app_module.app.extensions.get("floorbit_dns")
+    if dns is not None:
+        with dns._lock:
+            dns.hours.clear()
+            dns.current = None
     return stats
 
 
