@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconRotateClockwise, IconStack2, IconTrash, IconUnlink,
+  IconLink, IconRotateClockwise, IconStack2, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -33,6 +33,7 @@ import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { ToolRail } from './ToolRail'
 import { quarterTurns } from './turn'
+import { frameOf } from './frame'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
@@ -604,6 +605,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     }
     if (e.key === 'Delete' || e.key === 'Backspace') { take(); void remove(selected); return }
     if (k === 'r' && !mod && !e.altKey) { take(); void rotate(selected, e.shiftKey); return }
+    if (k === 'f' && !mod && !e.altKey) { take(); frame(selected); return }
     const dirs: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
     const dir = dirs[e.key]
     if (dir) {
@@ -638,6 +640,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }
   const pick = (next: ItemRef[]) => setSelection(withGroups(data, next, groups))
   /** Moves the view so ``ref`` is on screen (keyboard users can't see what they picked otherwise). */
+  /** F: the view closes in on the selection. */
+  const frame = (refs: ItemRef[]) => { const v = frameOf(data, refs, view); if (v) setView(v) }
   const follow = (ref: ItemRef) => {
     const c = outlineOf(data, ref)?.centre
     if (!c) return
@@ -723,6 +727,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 <Menu.Divider />
                 <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
                 <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
+                <Menu.Item leftSection={<IconZoomIn size={14} />} rightSection={<Kbd size="xs">F</Kbd>} onClick={() => frame(selected)}>{t('plan.edit.menu.frame')}</Menu.Item>
                 {canTurn && (
                   <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={<Kbd size="xs">R</Kbd>} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
                 )}
