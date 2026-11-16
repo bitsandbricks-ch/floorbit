@@ -18,6 +18,15 @@ _AGENT_SRC = Path(os.environ.get("FLOORBIT_AGENT_SRC") or _HERE.parent / "floorb
 if (_AGENT_SRC / "floorbit_agent" / "__init__.py").is_file():
     sys.path.insert(1, str(_AGENT_SRC.resolve()))
 
+def stored(path):
+    """A document as Floorbit keeps it (a file, or a row when the suite runs on a database), as text:
+    for tests that check what is, or isn't, written down."""
+    import json
+
+    from floorbit import store
+    return json.dumps(store.read_json(str(path), None))
+
+
 TEST_USER = "tester"
 TEST_PASSWORD = "correct-horse-battery"
 
@@ -60,6 +69,24 @@ class FakeRedis:
 
     def info(self, *args, **kwargs):
         return {}
+
+
+@pytest.fixture(autouse=True)
+def database_under_test(tmp_path, monkeypatch):
+    """The whole suite runs on files by default. FLOORBIT_TEST_DATABASE=sqlite runs it on a fresh
+    SQLite file per test, =postgres on FLOORBIT_TEST_POSTGRES_URL emptied per test (CI does both)."""
+    kind = os.environ.get("FLOORBIT_TEST_DATABASE", "")
+    if kind == "sqlite":
+        monkeypatch.setenv("FLOORBIT_DATABASE_URL", f"sqlite:///{tmp_path / 'floorbit.db'}")
+    elif kind == "postgres":
+        monkeypatch.setenv("FLOORBIT_DATABASE_URL", os.environ["FLOORBIT_TEST_POSTGRES_URL"])
+        from floorbit import database
+        db = database.Sql(os.environ["FLOORBIT_TEST_POSTGRES_URL"], str(tmp_path))
+        db.run("DELETE FROM floorbit_documents")
+        db.close()
+    else:
+        monkeypatch.delenv("FLOORBIT_DATABASE_URL", raising=False)
+    yield
 
 
 @pytest.fixture(autouse=True)

@@ -2,6 +2,7 @@
 import json
 
 import pytest
+from conftest import stored
 
 from floorbit import dns
 from floorbit.plugins import PluginError
@@ -50,10 +51,10 @@ def test_a_closed_hour_keeps_counts_not_clients(stats, tmp_path):
     stats.add(lookups("gateway.discord.gg", 6) + lookups("www.hobby.example", 2)
               + lookups("ads.doubleclick.net", 5, blocked=True), now=HOUR + 600)
     stats.add([], now=HOUR + 3600 + 5)   # the next hour starts: the first one closes
-    saved = json.loads((tmp_path / "dns.json").read_text())
+    saved = json.loads(stored(tmp_path / "dns.json"))
     hour = saved["hours"][str(HOUR)]
     assert hour == {"lookups": 13, "blocked": 5, "sites": {"discord.gg": [6, 0, 6], "doubleclick.net": [5, 5, 5]}}
-    text = (tmp_path / "dns.json").read_text()
+    text = stored(tmp_path / "dns.json")
     assert "198.51.100" not in text and "hobby" not in text
     # A new process reads the counts back.
     again = dns.DnsStats(path=str(tmp_path / "dns.json"))

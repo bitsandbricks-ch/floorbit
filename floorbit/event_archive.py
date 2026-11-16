@@ -72,11 +72,9 @@ def _summary(record):
 def archived():
     """Every archived event, newest first, without its report and floor plan."""
     path = folder()
-    if not os.path.isdir(path):
-        return []
     out = []
-    for name in os.listdir(path):
-        if not name.endswith('.json') or not ID_RE.match(name[:-5]):
+    for name in store.list_json(path):
+        if not ID_RE.match(name[:-5]):
             continue
         try:
             record = store.read_json(os.path.join(path, name))
@@ -128,10 +126,8 @@ def rename(event_id, name):
 
 
 def delete(event_id):
-    path = _path(event_id)
-    if not os.path.exists(path):
+    if not store.delete_json(_path(event_id)):
         raise ArchiveError('No such event.', 404)
-    os.remove(path)
 
 
 def reset_for_next(data):

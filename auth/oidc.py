@@ -11,7 +11,6 @@ and ``nonce``. The ID token's signature is checked against the issuer's JWKS, an
 """
 import base64
 import hashlib
-import json
 import os
 import re
 import secrets
@@ -55,15 +54,15 @@ def configure(path_getter):
 # storage --------------------------------------------------------------------------------------
 def _read():
     path = _path() if _path else None
-    if not path or not os.path.exists(path):
+    if not path:
         return {}
-    with open(path) as f:
-        return json.load(f)
+    from floorbit.store import read_json  # late: floorbit imports auth while it loads
+    return read_json(path, {})
 
 
 def _write(data):
-    with open(_path(), 'w') as f:   # in place: data.json is bind-mounted
-        json.dump(data, f, indent=2)
+    from floorbit.store import write_json
+    write_json(_path(), data)
 
 
 def all_configs():

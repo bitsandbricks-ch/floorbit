@@ -4,7 +4,7 @@ import json
 import pytest
 
 from auth import roles, teams
-from floorbit import audit
+from floorbit import audit, store
 
 
 def sign_in_as(app_module, username, role, password="role-password-1"):
@@ -63,12 +63,10 @@ def test_nobody_can_lock_everyone_out_of_account_management(client, app_module):
     # The only manager holds a custom role; taking accounts.manage off it would lock everyone out.
     client.put("/api/roles/boss", json={"label": "Boss", "permissions": list(roles.PERMISSIONS)})
     users = app_module.app.extensions["auth"].users
-    with open(users.path) as f:
-        data = json.load(f)
+    data = store.read_json(users.path, {})
     for u in data["auth_users"].values():
         u["role"] = "boss"
-    with open(users.path, "w") as f:
-        json.dump(data, f)
+    store.write_json(users.path, data)
     assert client.put("/api/roles/boss", json={"label": "Boss", "permissions": ["floorplan.view"]}).status_code == 400
 
 

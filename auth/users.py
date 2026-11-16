@@ -7,7 +7,6 @@ hashes (scrypt); the plain password never touches the disk.
 Accounts can also be linked to outside identities (``identities``), which is
 how a Discord (or later SSO) login maps to a user here.
 """
-import os
 import re
 import secrets
 import threading
@@ -58,8 +57,6 @@ class UserStore:
 
     # file IO -------------------------------------------------------------
     def _read(self):
-        if not os.path.exists(self.path):
-            return {}
         from floorbit.store import read_json  # late: floorbit imports auth while it loads
         return read_json(self.path, {})
 

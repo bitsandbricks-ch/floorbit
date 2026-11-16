@@ -2,6 +2,7 @@
 import json
 
 import pytest
+from conftest import stored
 
 from floorbit import audit, commands, ports
 from tests.test_ports import FakeShell, FakeSwitch
@@ -152,8 +153,7 @@ def test_ssh_runs_show_commands_with_the_techs_login_and_keeps_no_password(clien
     kept = [json.dumps(audit_lines()), json.dumps(ssh.state_of("ssh-ports"))]
     from floorbit import store
     for path in (ssh.path(), store.DATA_FILE):
-        with open(path, encoding="utf-8") as f:
-            kept.append(f.read())
+        kept.append(stored(path))
     assert not any(FakeSwitch.password in text for text in kept)
 
 

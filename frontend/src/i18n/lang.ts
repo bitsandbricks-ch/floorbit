@@ -4,7 +4,8 @@ import i18n from 'i18next'
 
 export const LANGUAGES = [
   { code: 'en', label: 'English' },
-  { code: 'de-CH', label: 'Deutsch' },
+  { code: 'de-CH', label: 'Deutsch (Schweiz)' },
+  { code: 'de', label: 'Deutsch (Deutschland, Österreich)' },
 ] as const
 export type Lang = (typeof LANGUAGES)[number]['code']
 
@@ -24,7 +25,10 @@ export function initialLang(languages: readonly string[] = navigator.languages ?
   const choice = saved()
   if (choice) return choice
   for (const l of languages) {
-    if (l.toLowerCase().startsWith('de')) return 'de-CH'
+    const code = l.toLowerCase()
+    // Switzerland and Liechtenstein write "ss"; a bare "de" is most likely a Swiss crew laptop too.
+    if (code === 'de' || code === 'de-ch' || code === 'de-li') return 'de-CH'
+    if (code.startsWith('de')) return 'de'
     if (l.toLowerCase().startsWith('en')) return 'en'
   }
   return 'en'

@@ -7,7 +7,6 @@ Team roles (auth/teams.py) add permissions inside a team only.
 Accounts from before roles existed have no role stored and count as admin, so nobody is locked
 out by an upgrade; the old "editor" role is now "lead".
 """
-import os
 import re
 import threading
 
@@ -73,7 +72,7 @@ def configure(path_getter):
 # storage --------------------------------------------------------------------------------------
 def _read():
     path = _path() if _path else None
-    if not path or not os.path.exists(path):
+    if not path:
         return {}
     from floorbit.store import read_json  # late: floorbit imports auth while it loads
     return read_json(path, {})
