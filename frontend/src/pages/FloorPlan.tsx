@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Drawer, Group, Kbd, Paper, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Drawer, Group, Kbd, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -9,12 +9,14 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { FirewallSeats, PlayerHit, PowerMarkers, SeatViewData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
+import { type LayerId, type LayerState, readLayers, writeLayers } from './plan/layers'
+import { LayersPanel } from './plan/LayersPanel'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
@@ -36,9 +38,15 @@ export default function FloorPlan() {
   const screen = params.get('screen') === '1'
   // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
   const print = !screen && params.get('print') === '1'
-  const traffic = params.get('traffic') === '1'
-  const powerOn = params.get('power') === '1'
-  const firewallOn = params.get('firewalls') === '1'
+  // Which layers are drawn over the seats, and how strong (issue: floor plan layers). Old ?traffic=1 links still work.
+  const paramText = params.toString()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const layers = useMemo(() => readLayers(params), [paramText])
+  const traffic = layers.on.has('status')
+  const powerOn = layers.on.has('electrical')
+  const firewallOn = layers.on.has('firewalls')
+  const wifiOn = layers.on.has('wifi')
+  const crewOn = layers.on.has('crew')
   const list = !screen && params.get('view') === 'list'
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
@@ -68,6 +76,21 @@ export default function FloorPlan() {
     refetchInterval: firewallOn ? 15_000 : false, staleTime: 60_000, enabled: !print && !screen,
   })
   const firewalls = firewallOn && fwSeats.data?.enabled ? fwSeats.data.seats : undefined
+  // Wi-Fi access points of the hall shown; asked once to know whether there are any.
+  const shownHall = q.data?.hall ?? ''
+  const wifiQ = useQuery({
+    queryKey: qk.wifi(shownHall), queryFn: () => get<WifiData>(`/api/wifi?hall=${encodeURIComponent(shownHall)}`),
+    refetchInterval: wifiOn ? 30_000 : false, staleTime: 60_000, enabled: !print && !!shownHall, retry: false,
+  })
+  const wifiPlaced = !!wifiQ.data?.aps.some((a) => a.on_plan)
+  const wifi = wifiOn && wifiPlaced ? wifiQ.data : undefined
+  // Open incidents per seat for the crew layer; people without the incident board don't get the layer.
+  const incidentQ = useQuery({
+    queryKey: qk.incidentMarkers, queryFn: () => get<IncidentMarkers>('/api/incidents/markers'),
+    refetchInterval: crewOn ? 30_000 : false, staleTime: 60_000, enabled: !print && !screen, retry: false,
+  })
+  const incidents = crewOn && incidentQ.data ? incidentQ.data : undefined
+  const setLayers = (next: LayerState) => setParams(writeLayers(params, next), { replace: true })
   const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: qk.planAll }) }, [qc])
   useLiveEvent('stats.changed', refresh)
   useLiveEvent('attention.changed', refresh)
@@ -172,6 +195,7 @@ export default function FloorPlan() {
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
+      layers={layers} wifi={wifi} incidents={incidents}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
@@ -217,7 +241,7 @@ export default function FloorPlan() {
           {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
         </div>
         {map}
-        {data && <Legend checkin={data.checkin} traffic={traffic} power={!!power} />}
+        {data && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} />}
       </main>
     )
   }
@@ -227,6 +251,10 @@ export default function FloorPlan() {
     : blockSel ? <BlockPanel key={blockSel} name={blockSel} onSeat={(s) => set('seat', s)} onSwitch={(w) => set('switch', w)} onClose={() => set('block', null)} />
     : switchSel ? <SwitchPanel key={switchSel} name={switchSel} onSeat={(s) => set('seat', s)} onClose={() => set('switch', null)} /> : null
   const panel = !!inspector
+  const available: Record<LayerId, boolean> = {
+    marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, checkin: !!data?.checkin,
+    electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
+  }
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere}>
       <PageHead title={t('plan.title')} />
@@ -275,13 +303,7 @@ export default function FloorPlan() {
               }))} />
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
-            {!list && <Switch size="sm" label={t('plan.traffic')} checked={traffic} onChange={(e) => set('traffic', e.currentTarget.checked ? '1' : null)} />}
-            {!list && markers.data?.enabled && (
-              <Switch size="sm" label={t('plan.power.layer')} checked={powerOn} onChange={(e) => set('power', e.currentTarget.checked ? '1' : null)} />
-            )}
-            {!list && fwSeats.data?.enabled && (
-              <Switch size="sm" label={t('plan.firewallLayer.layer')} checked={firewallOn} onChange={(e) => set('firewalls', e.currentTarget.checked ? '1' : null)} />
-            )}
+            {!list && <LayersPanel state={layers} onChange={setLayers} available={available} />}
           </Group>
           {!data.drawing && (
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
@@ -290,7 +312,7 @@ export default function FloorPlan() {
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>
-          {!list && <Legend checkin={data.checkin} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
+          {!list && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
           {!list && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}

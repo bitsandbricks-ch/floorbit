@@ -3,17 +3,23 @@ import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { FirewallSeats, PlanSeat, PowerMarkers, SeatViewData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlanSeat, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import {
   type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
   parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
+import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
 import { PowerLayer } from './PowerLayer'
+import { WifiLayer } from './WifiLayer'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
-export function SeatGlyph({ seat, size, detail, traffic = false, route }: {
+export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin = true, incidents = 0 }: {
   seat: PlanSeat; size: number; detail: boolean; traffic?: boolean
+  /** Draw the check-in corner (the check-in layer). */
+  checkin?: boolean
+  /** Open incidents at the seat (the crew layer). */
+  incidents?: number
   /** With the firewall layer: the seat's traffic failed over (dashed ring) or has no firewall left (solid ring). */
   route?: 'failover' | 'down'
 }) {
@@ -29,7 +35,13 @@ export function SeatGlyph({ seat, size, detail, traffic = false, route }: {
       <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
       {detail && seat.note && <polygon className="note" points={`${i},${i + s * 0.58} ${i + s * 0.42},${i + s} ${i},${i + s}`} />}
-      {detail && seat.checked_in && <polygon className="chk" points={`${i + s * 0.42},${i} ${i + s},${i} ${i + s},${i + s * 0.58}`} />}
+      {detail && checkin && seat.checked_in && <polygon className="chk" points={`${i + s * 0.42},${i} ${i + s},${i} ${i + s},${i + s * 0.58}`} />}
+      {incidents > 0 && (
+        <g className="inc">
+          <circle cx={i + s - 1} cy={i + 1} r={size * 0.24} />
+          <text x={i + s - 1} y={i + 1} dy="0.35em">{incidents > 9 ? '9+' : incidents}</text>
+        </g>
+      )}
       {seat.problems ? (
         <g className="prob">
           <circle cx={i + 1} cy={i + 1} r={size * 0.24} />
@@ -57,7 +69,10 @@ const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 10
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
-export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced }: {
+const ALL_DEFAULT: LayerState = { on: new Set(DEFAULT_LAYERS), fade: {} }
+
+export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
+  layers = ALL_DEFAULT, wifi, incidents }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
@@ -67,6 +82,12 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   firewalls?: FirewallSeats['seats']
   /** Force a detail level, e.g. 'near' on paper where screen pixels mean nothing. */
   level?: Density
+  /** Which layers are on and how strong (./layers.ts); the switches, labels and check-in corners by default. */
+  layers?: LayerState
+  /** The Wi-Fi layer: access points of this hall. */
+  wifi?: WifiData
+  /** The crew layer: open incidents per seat and switch. */
+  incidents?: IncidentMarkers
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -203,19 +224,22 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   ].filter(Boolean).join(' · ')
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
+  const network = layers.on.has('network')
   const tip = hover && data.seats[hover.seat]
   const ringAt = cursor ? seatCenter(drawing, cursor) : null
   const ring = ringAt && { at: ringAt, rotation: drawing.shapes.find((b) => b.cells.some((c) => c.seat === cursor))?.rotation ?? 0 }
   const cursorSeat = cursor ? data.seats[cursor] ?? { state: 'unknown' as const } : null
   return (
     <div ref={wrap} className={`fb-plan-wrap d-${level}`}>
-      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} tabIndex={0} role="application"
+      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} style={layerStyle(layers)} tabIndex={0} role="application"
         aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} aria-describedby={`${ids}-keys ${ids}-blocks`}
         aria-activedescendant={cursor ? `${ids}-${cursor}` : undefined} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
-        {(data.links ?? []).map((l) => {
+        <PlanMarks drawing={drawing} layers={layers} />
+        {wifi && <g opacity={opacity(layers, 'wifi')}><WifiLayer wifi={wifi} idPrefix={ids} /></g>}
+        {network && <g opacity={opacity(layers, 'network')}>{(data.links ?? []).map((l) => {
           const a = data.switches.find((w) => w.name === l.a), b = data.switches.find((w) => w.name === l.b)
           if (!a || !b) return null
           return (
@@ -224,16 +248,16 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
               <title>{`${l.a} – ${l.b}${l.speed ? ` · ${l.speed}G` : ''}${l.issue ? ` · ${t(`topology.${l.issue}`)}` : ''}`}</title>
             </line>
           )
-        })}
-        {power && <PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} />}
-        {data.switches.map((w) => (
+        })}</g>}
+        {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
+        {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (
           <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
+            {incidents?.switches[w.id] ? <circle className="sw-inc" r={13} /> : null}
             <rect x={-7} y={-7} width={14} height={14} transform="rotate(45)" />
             <title>{`${w.name}: ${w.status}`}</title>
             {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
           </g>
-        ))}
-        <PlanMarks drawing={drawing} />
+        ))}</g>}
         {drawing.shapes.map((b, bi) => (
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
@@ -257,7 +281,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                     onPointerLeave={() => setHover(null)}
                     onClick={() => { if (!moved.current) onSelect(c.seat) }}>
                     <rect className="hit" width={drawing.cell} height={drawing.cell} />
-                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state} />
+                    <SeatGlyph seat={seat} size={drawing.cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
+                      checkin={layers.on.has('checkin')} incidents={incidents?.seats[c.seat]} />
                     {level === 'near' && (
                       <text className="num" x={drawing.cell / 2} y={drawing.cell / 2} dy="0.35em"
                         transform={b.rotation ? `rotate(${-b.rotation} ${drawing.cell / 2} ${drawing.cell / 2})` : undefined}>

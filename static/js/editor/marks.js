@@ -18,6 +18,13 @@ const MARK_ICON_NAMES = {
   exit: 'Exit', wc: 'Toilets', shower: 'Showers', bar: 'Bar', food: 'Food', coffee: 'Coffee', info: 'Info',
   'first-aid': 'First aid', stage: 'Stage', games: 'Games', stairs: 'Stairs', sleep: 'Sleeping area', wifi: 'Wi-Fi',
   'arrow-up': 'Arrow up', 'arrow-right': 'Arrow right', 'arrow-down': 'Arrow down', 'arrow-left': 'Arrow left',
+  extinguisher: 'Fire extinguisher', escape: 'Escape route', assembly: 'Assembly point', server: 'Server',
+  router: 'Router', 'access-point': 'Access point', power: 'Power', socket: 'Socket',
+};
+// The Seats view's layer a new icon lands on (floorbit/plan_marks.py LAYERS); the rest go on the overview.
+const MARK_ICON_LAYER = {
+  extinguisher: 'safety', escape: 'safety', assembly: 'safety', server: 'services',
+  router: 'network', 'access-point': 'network', power: 'electrical', socket: 'electrical',
 };
 
 async function loadMarks() {
@@ -89,6 +96,7 @@ async function placeMark(tool, at) {
 
 async function addMark(body) {
   try {
+    if (!body.layer && body.kind === 'icon' && MARK_ICON_LAYER[body.icon]) body = { ...body, layer: MARK_ICON_LAYER[body.icon] };
     let mark = await api('POST', '/api/plan-marks', { ...body, hall_id: currentHall });
     planMarks.push(mark);
     renderMarks();
@@ -155,6 +163,7 @@ function selectMark(id) {
   markField('icon').value = m.icon || 'exit';
   markField('style').value = m.style || 'solid';
   markField('color').value = m.color || 'muted';
+  markField('layer').value = m.layer || 'overview';
   markPanel.classList.remove('hidden');
   renderMarks();
 }
@@ -176,6 +185,7 @@ if (markForm) {
       wall: { style: markField('style').value },
       zone: { label: markField('text').value, color: markField('color').value },
     }[m.kind];
+    patch.layer = markField('layer').value;
     const before = Object.fromEntries(Object.keys(patch).map(k => [k, m[k]]));
     const id = m.id;
     try {

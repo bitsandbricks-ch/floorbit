@@ -92,6 +92,34 @@ with 8 pairs of 2×24 rows, a standing row turned on its side, outer walls with 
 events area, bar and crew zones and a few icons. Its rows count on from the last row letter in use, so it
 never clashes with seats you have. To remove it, delete its seat blocks, then the hall; its marks go with it.
 
+## Layers on the Seats view
+
+The Seats view (`/plan`) stacks layers over the seats. **Layers** above the map switches each one on or off
+and sets how strong it is drawn; the seats themselves are always there.
+
+| Layer | Shows |
+| --- | --- |
+| Labels, walls and zones | The marks on the overview layer |
+| Network | Switches, uplinks with their type and speed, network marks |
+| Electrical | Distribution boards, power cables per circuit, electrical marks (needs Power) |
+| Status | Each online seat filled by its traffic |
+| Firewall per seat | Seats failed over to a backup firewall, or with none up (needs firewall ranges) |
+| Wi-Fi | Access points placed on this hall, their rough coverage, coloured by load (counts only) |
+| Safety | Marks on the safety layer: exits, extinguishers, escape routes, the assembly point |
+| Crew | Open incidents per seat and per switch |
+| Check-in | The check-in corner on seats |
+| Services | Marks on the services layer: server racks, LANcache, DNS |
+
+**Presets** set several at once: *Overview*, *Network*, *Electrical* and *Ops* (network, traffic, firewalls,
+incidents, check-in). The choice is part of the address (`?layers=marks,network,wifi&fade=wifi:60`), so a
+bookmark or a big screen (`&screen=1`) shows the same. Old links with `?traffic=1`, `?power=1` or
+`?firewalls=1` still work. A layer that isn't set up is listed but can't be switched on.
+
+Safety and services are marks: in the editor, pick the **Layer** of a label, wall, zone or icon. New
+extinguisher, escape route and assembly point icons land on Safety, a server on Services, a router or access
+point on Network, a power or socket icon on Electrical. Attendee pages (`/hall`, `/find`) show the Overview
+and Safety marks only.
+
 ## Big screens and attendee pages
 
 - `/kiosk?hall=<id>` shows another hall than the first; `/screen?hall=<id>` passes it on to its

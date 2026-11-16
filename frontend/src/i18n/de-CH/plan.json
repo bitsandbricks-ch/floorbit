@@ -202,5 +202,32 @@
     "crit": "Stromkreis am Limit",
     "tripped": "Ausgelöst",
     "noReading": "kein Messwert"
+  },
+  "layers": {
+    "button": "Ebenen",
+    "title": "Ebenen",
+    "presets": "Vorlagen",
+    "preset": {
+      "overview": "Übersicht",
+      "network": "Netzwerk",
+      "electrical": "Strom",
+      "ops": "Betrieb"
+    },
+    "opacity": "Deckkraft {{layer}}",
+    "seats": "Die Plätze sind immer sichtbar.",
+    "off": "Nicht eingerichtet",
+    "item": {
+      "marks": "Beschriftungen, Wände und Zonen",
+      "network": "Netzwerk: Switches und Uplinks",
+      "electrical": "Strom: Verteiler und Stromkabel",
+      "status": "Status: Verkehr pro Platz",
+      "firewalls": "Firewall pro Platz",
+      "wifi": "WLAN-Access-Points",
+      "safety": "Sicherheit: Ausgänge, Feuerlöscher, Fluchtwege",
+      "crew": "Crew: offene Vorfälle",
+      "checkin": "Check-in",
+      "services": "Dienste: Server, LANcache, DNS"
+    },
+    "hint": "Sicherheit und Dienste sind Markierungen, die du im Editor auf ihrer Ebene zeichnest."
   }
 }

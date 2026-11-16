@@ -72,3 +72,17 @@ def test_marks_go_with_their_hall(client):
     assert made.status_code == 201 and len(plan_marks.all_marks(load_data(), hall["id"])) == 1
     assert client.delete(f"/api/halls/{hall['id']}").status_code == 200
     assert plan_marks.all_marks(load_data()) == []
+
+
+def test_marks_sit_on_layers_and_crew_layers_stay_off_attendee_pages(client):
+    from floorbit.blueprints.screen import plan
+    client.post("/api/seat-blocks", json={"name": "A", "cols": 2, "rows": 1, "x": 50, "y": 50})
+    base = {"kind": "icon", "x": 20, "y": 20}
+    assert client.post("/api/plan-marks", json={**base, "icon": "extinguisher", "layer": "safety"}).status_code == 201
+    assert client.post("/api/plan-marks", json={**base, "icon": "server", "layer": "services"}).status_code == 201
+    assert client.post("/api/plan-marks", json={**base, "icon": "wc"}).get_json()["layer"] == "overview"
+    assert client.post("/api/plan-marks", json={**base, "icon": "wc", "layer": "attic"}).status_code == 400
+    crew, _ = plan(load_data())
+    public, _ = plan(load_data(), public=True)
+    assert {m["layer"] for m in crew["marks"]} == {"overview", "safety", "services"}
+    assert {m["layer"] for m in public["marks"]} == {"overview", "safety"} and "server" not in public["icons"]

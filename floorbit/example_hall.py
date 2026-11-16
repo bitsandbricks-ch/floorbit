@@ -51,6 +51,18 @@ def _marks():
         {'kind': 'icon', 'x': 87.5, 'y': 13, 'icon': 'first-aid'},
         {'kind': 'icon', 'x': 60, 'y': 92, 'icon': 'info'},
         {'kind': 'icon', 'x': 13, 'y': 85, 'icon': 'games'},
+        # The safety layer: extinguishers, the way out and where to meet.
+        {'kind': 'icon', 'x': 4, 'y': 42, 'icon': 'extinguisher', 'layer': 'safety'},
+        {'kind': 'icon', 'x': 96, 'y': 30, 'icon': 'extinguisher', 'layer': 'safety'},
+        {'kind': 'icon', 'x': 40, 'y': 96, 'icon': 'extinguisher', 'layer': 'safety'},
+        {'kind': 'icon', 'x': 4, 'y': 57, 'icon': 'exit', 'layer': 'safety'},
+        {'kind': 'icon', 'x': 8, 'y': 57, 'icon': 'escape', 'layer': 'safety'},
+        {'kind': 'icon', 'x': 92, 'y': 51, 'icon': 'escape', 'layer': 'safety'},
+        {'kind': 'wall', 'x': 26, 'y': 57, 'x2': 11, 'y2': 57, 'style': 'dashed', 'layer': 'safety'},
+        {'kind': 'wall', 'x': 79, 'y': 51, 'x2': 89, 'y2': 51, 'style': 'dashed', 'layer': 'safety'},
+        {'kind': 'text', 'x': 25, 'y': 99, 'text': 'Assembly point: car park', 'size': 's', 'layer': 'safety'},
+        # The services layer: the crew's server corner.
+        {'kind': 'icon', 'x': 92, 'y': 13, 'icon': 'server', 'layer': 'services'},
     ]
     return m
 

@@ -8,6 +8,9 @@ Each mark is in one hall (``hall_id``) at ``x``/``y`` in percent of the plan, li
 - ``wall``: a line from ``x``/``y`` to ``x2``/``y2``, ``style`` solid or dashed (a wall, a fence, a door gap);
 - ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label`` and ``color``.
 
+Every mark is on a ``layer`` of the floor plan (:data:`LAYERS`, ``overview`` unless set), so the Seats view
+can show the escape routes or the server racks on their own and hide them otherwise.
+
 They are kept in data.json under ``plan_marks``, travel in backups and templates, and are drawn on the
 floor plan editor, the Seats view and the attendee hall view. The icons are Tabler's (MIT), the same set
 the React app uses, so one list serves every page.
@@ -23,6 +26,9 @@ SIZES = ('s', 'm', 'l')
 ROTATIONS = (0, 90, 180, 270)
 STYLES = ('solid', 'dashed')
 COLORS = ('muted', 'bit', 'trace', 'warn', 'down')
+# The Seats view's layers a mark can be on (frontend/src/pages/plan/layers.ts).
+LAYERS = ('overview', 'safety', 'network', 'electrical', 'services')
+PUBLIC_LAYERS = ('overview', 'safety')   # what attendee pages show; the rest is for the crew
 TEXT_MAX, LABEL_MAX = 60, 40
 MAX_MARKS = 2000
 
@@ -57,7 +63,8 @@ def clean(body, old=None):
     if kind not in KINDS:
         raise MarkError('A mark is text, icon, wall or zone')
     out = {'id': (old or {}).get('id') or uuid.uuid4().hex[:12], 'kind': kind,
-           'x': _pct(m.get('x'), 'x'), 'y': _pct(m.get('y'), 'y')}
+           'x': _pct(m.get('x'), 'x'), 'y': _pct(m.get('y'), 'y'),
+           'layer': _pick(m.get('layer'), LAYERS, 'overview', 'layer')}
     if kind == 'text':
         text = str(m.get('text') or '').strip()
         if not text or len(text) > TEXT_MAX:

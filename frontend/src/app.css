@@ -459,7 +459,18 @@ body {
 /* Traffic overlay (issue #152): online seats filled by viridis; numbers flip to stay readable. */
 .fb-plan.traffic .cell[data-state="online"] .num { fill: #fff; }
 .fb-plan.traffic .cell.bright[data-state="online"] .num { fill: #1a1a1a; }
-.fb-plan .seat.heat { stroke: color-mix(in srgb, var(--color-fg) 35%, transparent); }
+.fb-plan .seat.heat { stroke: color-mix(in srgb, var(--color-fg) 35%, transparent); fill-opacity: var(--op-status, 1); }
+/* Layers drawn inside the seats fade with their layer's opacity (pages/plan/layers.ts). */
+.fb-plan .fwr { opacity: var(--op-firewalls, 1); }
+.fb-plan .chk { opacity: var(--op-checkin, 1); }
+.fb-plan .inc, .fb-plan .sw-inc { opacity: var(--op-crew, 1); }
+.fb-plan .inc circle { fill: var(--color-warn); stroke: var(--color-ink); stroke-width: 1.5; }
+.fb-plan .inc text { fill: var(--color-ink); font: 800 10px var(--font-sans); text-anchor: middle; pointer-events: none; }
+.fb-plan .sw-inc { fill: none; stroke: var(--color-warn); stroke-width: 3; }
+.fb-plan .wifi-layer .cover { pointer-events: none; }
+.fb-plan .wifi-layer .ap circle { stroke: var(--color-surface); stroke-width: 3; }
+.fb-plan .wifi-layer .ap.down circle { stroke: var(--color-down); stroke-dasharray: 4 3; }
+.fb-layers-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; align-items: center; gap: 4px 12px; }
 .fb-plan-legend .heat { gap: 8px; }
 .fb-plan-legend .heat i { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }
 /* Hall rotation on a big screen (issue #163): the bar fills while the hall is shown. */
