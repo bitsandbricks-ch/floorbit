@@ -27,6 +27,7 @@ PAGES = (
     ('/health', 'health', 'Service health', lambda c, can: c['feature_on']('health')),
     ('/topology', 'topology', 'Topology', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
+    ('/services', 'services', 'Services', None),
     ('/stats', 'stats', 'Stats', None),
     ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
     ('/dns', 'dns', 'DNS', lambda c, can: c['feature_on']('dns')),

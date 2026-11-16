@@ -683,6 +683,19 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
 
+## floorbit.blueprints.services
+
+Servers and services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. Rules in floorbit/services.py, docs in docs/services.md.
+
+Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/services.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/services` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/services/<kind>` | `floorplan.edit` |  |
+| DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
+| PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.setup
 
 First-run setup (issue #13, floorbit/setup.py).

@@ -40,6 +40,8 @@ CROWDED_AP = 'ap-stage'     # the stage: always busy
 # has failed over to fw-04 (the firewall view's failover to show).
 FIREWALLS = ('fw-01', 'fw-02', 'fw-03', 'fw-04')
 DOWN_FIREWALL = 'fw-03'
+# The core's two internet lines (the services view): port, line speed, how busy on average.
+ISP_PORTS = (('Te1/0/47', 10_000_000_000, 0.55), ('Te1/0/48', 10_000_000_000, 0.25))
 
 # Where things go on an empty floor plan (percent of the plan), used by floorbit/blueprints/demo.py.
 # Blocks in a 2 x 2 grid (12 seats of 3.5 % each are 42 % wide), their switches just above them.
@@ -358,6 +360,13 @@ class Plugin(Plugin):
                                     'description': f'Link to {other}', 'duplex': 'full',
                                     'speed_bps': 1_000_000_000 if slow else bps, 'errors_in': 0, 'errors_out': 0,
                                     'last_change': None})
+            if name == 'core-01':
+                for i, (port, bps, busy) in enumerate(ISP_PORTS):
+                    load = busy * (0.7 + 0.6 * _wave(40 + i))
+                    out.append({'name': port, 'state': 'up', 'description': f'Internet line {i + 1}', 'duplex': 'full',
+                                'speed_bps': bps, 'upload_bps': round(bps * load),
+                                'download_bps': round(bps * load * 0.12),
+                                'utilization': round(load, 4), 'errors_in': 0, 'errors_out': 0, 'last_change': None})
             return out
         if ports and not _down(name):
             # The access switch's uplink: everything its seats send and get, on a 10G port.
