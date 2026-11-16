@@ -89,6 +89,8 @@ def rcon_server(password="example-rcon", log=None):
             if command == "status":     # a long answer, in two packets
                 conn.sendall(game_query._packet(req_id, 0, "hostname: Hall A\n")
                              + game_query._packet(req_id, 0, "players: 7"))
+            elif command == "list":     # Minecraft colours its answers
+                conn.sendall(game_query._packet(req_id, 0, "\u00a76There are \u00a7c3\u00a76 players online"))
             else:
                 conn.sendall(game_query._packet(req_id, 0, f"ran {command}"))
     return tcp_server(handle)
@@ -166,8 +168,9 @@ def test_rcon_runs_commands_asks_before_destructive_ones_and_audits(client):
     url = f"/api/game-servers/rcon/{server['id']}"
     r = client.post(url, json={"command": "status"})
     assert r.status_code == 200 and r.get_json()["answer"].startswith("hostname")
+    assert client.post(url, json={"command": "list"}).get_json()["answer"] == "There are 3 players online"
     r = client.post(url, json={"command": "changelevel de_other"})
-    assert r.status_code == 409 and r.get_json()["confirm"] is True and log == ["status"]
+    assert r.status_code == 409 and r.get_json()["confirm"] is True and log == ["status", "list"]
     r = client.post(url, json={"command": "changelevel de_other", "confirm": True})
     assert r.get_json()["answer"] == "ran changelevel de_other"
     client.post(url, json={"command": "sv_password example-secret", "confirm": True})
