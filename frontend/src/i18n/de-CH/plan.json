@@ -189,5 +189,13 @@
   "fixedBefore_other": "Hier schon {{count}}-mal behoben, zuletzt: {{title}} ({{time}})",
   "firewall": "Firewall",
   "firewallFailover": "{{now}} (umgeschaltet von {{intended}})",
-  "firewallNone": "Keine erreichbar (geplant {{name}})"
+  "firewallNone": "Keine erreichbar (geplant {{name}})",
+  "power": {
+    "layer": "Strom",
+    "ok": "Stromkreis gut",
+    "warn": "Stromkreis hoch",
+    "crit": "Stromkreis am Limit",
+    "tripped": "Ausgelöst",
+    "noReading": "kein Messwert"
+  }
 }

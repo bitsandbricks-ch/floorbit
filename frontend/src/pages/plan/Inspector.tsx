@@ -150,10 +150,16 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
 ]
 
 /** The same shapes as on the plan, so the legend can't drift from it. */
-export function Legend({ checkin, traffic = false }: { checkin: boolean; traffic?: boolean }) {
+export function Legend({ checkin, traffic = false, power = false }: { checkin: boolean; traffic?: boolean; power?: boolean }) {
   const { t } = useTranslation()
   return (
     <ul className="fb-plan-legend" aria-label={t('plan.legend')}>
+      {power && (['ok', 'warn', 'crit', 'tripped'] as const).map((s) => (
+        <li key={s}>
+          <svg width={22} height={10} aria-hidden="true" className="fb-plan"><line className={`pcable pw-${s}`} x1={1} y1={5} x2={21} y2={5} /></svg>
+          {t(`plan.power.${s}`)}
+        </li>
+      ))}
       {traffic && (
         <li className="heat">
           {t('plan.trafficScale')} <span>{rate(HEAT_MIN)}</span><i style={{ background: HEAT_GRADIENT }} aria-hidden="true" /><span>{rate(HEAT_MAX)}</span>

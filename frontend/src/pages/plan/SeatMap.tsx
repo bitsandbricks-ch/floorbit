@@ -2,11 +2,12 @@ import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { PlanSeat, SeatViewData } from '@/api/types'
+import type { PlanSeat, PowerMarkers, SeatViewData } from '@/api/types'
 import {
   type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
   parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
+import { PowerLayer } from './PowerLayer'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
@@ -50,10 +51,12 @@ const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 10
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
-export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, level: forced }: {
+export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, level: forced }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
+  /** The power layer (issue #468): boards and cables, drawn under the switches. */
+  power?: PowerMarkers
   /** Force a detail level, e.g. 'near' on paper where screen pixels mean nothing. */
   level?: Density
 }) {
@@ -214,6 +217,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </line>
           )
         })}
+        {power && <PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} />}
         {data.switches.map((w) => (
           <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
             <rect x={-7} y={-7} width={14} height={14} transform="rotate(45)" />

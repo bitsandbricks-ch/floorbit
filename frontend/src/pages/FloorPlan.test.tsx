@@ -106,6 +106,23 @@ describe('traffic overlay', () => {
     expect(line.querySelector('title')?.textContent).toBe('sw-d-01 – dist-01 · 10G · Down')
   })
 
+  it('shows the power layer: each board and a cable per circuit, a tripped one dashed (issue #468)', async () => {
+    const withSwitch: SeatViewData = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 600, y: 300 }] }
+    const markers = {
+      enabled: true, counts: { tripped: 1 },
+      boards: [{ id: 'b1', name: 'DB-1', x: 5, y: 40, state: 'tripped' }],
+      circuits: [{ id: 'c1', name: 'D row 1', board: 'b1', state: 'tripped', pct: null, seats: ['D-1', 'D-2'], switches: ['s1'] }],
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withSwitch, 'GET /api/power/markers': markers }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    fireEvent.click(await screen.findByRole('switch', { name: 'Power' }))
+    await waitFor(() => expect(container.querySelectorAll('.power-layer line.pcable')).toHaveLength(2))     // to the seats and to the switch
+    expect(container.querySelector('.power-layer line.pcable')).toHaveClass('pw-tripped')
+    expect(container.querySelector('.power-layer line.pcable title')?.textContent).toBe('D row 1: Tripped')
+    expect(container.querySelector('.pboard title')?.textContent).toBe('DB-1')
+    expect(screen.getByText('Tripped', { selector: 'li' })).toBeInTheDocument()
+  })
+
   it('fills online seats by traffic and keeps the other shapes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')

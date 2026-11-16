@@ -1274,6 +1274,14 @@ export interface PlanSwitch {
 }
 
 export interface PlanLink { id: string; a: string; b: string; type: LinkType | ''; media: string; speed: number | null; issue: '' | 'down' | 'slow' }
+/** GET /api/power/markers (floorbit/power.py): the boards and each circuit's cable, for the plan's power layer. */
+export interface PowerMarkers {
+  enabled: boolean
+  boards: { id: string; name: string; x: number; y: number; state: PowerState }[]
+  circuits: { id: string; name: string; board: string; state: PowerState; pct: number | null; seats: string[]; switches: string[] }[]
+  counts: Partial<Record<PowerState, number>>
+}
+
 export interface SeatViewData {
   /** Each hall's totals, for the hall picker (issue #196). */
   halls: { id: string; name: string; seats: number; online: number; problems: number }[]

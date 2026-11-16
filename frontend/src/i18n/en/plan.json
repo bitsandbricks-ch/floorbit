@@ -189,5 +189,13 @@
   "fixedBefore_other": "Fixed here {{count}} times before, last: {{title}} ({{time}})",
   "firewall": "Firewall",
   "firewallFailover": "{{now}} (failed over from {{intended}})",
-  "firewallNone": "None up (planned {{name}})"
+  "firewallNone": "None up (planned {{name}})",
+  "power": {
+    "layer": "Power",
+    "ok": "Circuit fine",
+    "warn": "Circuit high",
+    "crit": "Circuit near its limit",
+    "tripped": "Tripped",
+    "noReading": "no reading"
+  }
 }
