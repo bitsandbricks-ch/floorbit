@@ -12,6 +12,8 @@ import tempfile
 import threading
 import time
 
+from .. import store
+
 TTL = 7 * 24 * 3600
 MAX_ENTRIES = 5000
 WRITE_EVERY = 60
@@ -31,7 +33,6 @@ def _redis():
 
 
 def path():
-    from .. import store
     configured = os.environ.get('MONITORING_CACHE_FILE')
     return configured or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'monitoring-cache.json')
 
@@ -42,8 +43,7 @@ def _load():
         return
     _loaded = True
     try:
-        with open(path(), encoding='utf-8') as f:
-            raw = json.load(f)
+        raw = store.read_json(path(), {})
         if isinstance(raw, dict):
             _memory.update({k: v for k, v in raw.items() if isinstance(v, list) and len(v) == 2})
     except (OSError, ValueError):
@@ -57,6 +57,13 @@ def _write():
         return
     _last_write = now
     target = path()
+    from .. import database
+    if database.backend().kind != 'files':
+        try:
+            store.write_json(target, _memory)
+        except database.DatabaseError as exc:
+            print(f'[sources] could not save the last good data: {exc}')
+        return
     try:
         directory = os.path.dirname(target) or '.'
         fd, tmp = tempfile.mkstemp(dir=directory, prefix='.monitoring-cache-')

@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import jwt
 import pytest
+from conftest import stored
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from auth import oidc
@@ -107,8 +108,7 @@ def test_provider_settings_never_hold_the_secret(client, app_module, issuer):
     assert p["secret_env"] == "OIDC_IDP_CLIENT_SECRET" and p["secret_set"] is True
     assert p["callback_url"].endswith("/auth/oidc-idp/callback")
     assert "client-secret-value-for-the-tests-only" not in str(body)
-    with open(app_module.app.extensions["auth"].users.path) as f:
-        assert "client-secret-value-for-the-tests-only" not in f.read()
+    assert "client-secret-value-for-the-tests-only" not in stored(app_module.app.extensions["auth"].users.path)
 
 
 @pytest.mark.parametrize("change, error", [

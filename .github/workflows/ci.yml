@@ -72,8 +72,25 @@ jobs:
       - run: npm run build
 
   pytest:
+    # The whole suite on each place documents can live (docs/database.md).
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [files, sqlite, postgres]
+    name: pytest (${{ matrix.database }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16.6-alpine
+        env:
+          POSTGRES_USER: floorbit
+          POSTGRES_PASSWORD: floorbit-ci
+          POSTGRES_DB: floorbit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U floorbit" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -96,6 +113,8 @@ jobs:
       - run: pytest -q
         env:
           FLOORBIT_AGENT_SRC: floorbit-agent-src
+          FLOORBIT_TEST_DATABASE: ${{ matrix.database }}
+          FLOORBIT_TEST_POSTGRES_URL: postgresql://floorbit:floorbit-ci@127.0.0.1:5432/floorbit_test
 
   screenshots:
     # Every pull request has screenshots: this takes them, desktop and phone, of every page.

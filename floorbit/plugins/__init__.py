@@ -411,14 +411,11 @@ class Registry:
             os.path.dirname(os.path.abspath(store.DATA_FILE)), 'plugins.json')
 
     def _all(self, path=None):
-        import json
+        from .. import store
         path = path or self.path()
         try:
-            with open(path, encoding='utf-8') as f:
-                data = json.load(f)
+            data = store.read_json(path, {})
             return data if isinstance(data, dict) else {}
-        except FileNotFoundError:
-            return {}
         except (OSError, ValueError) as exc:
             print(f'[plugins] could not read {path}: {exc}')
             return {}
@@ -433,6 +430,10 @@ class Registry:
             path = self.path()   # once: read and write the same file
             data = self._all(path)
             data.setdefault(plugin_id, {}).update(changes)
+            from .. import database, store
+            if database.backend().kind != 'files':
+                store.write_json(path, json.loads(json.dumps(data, default=str)))
+                return
             folder = os.path.dirname(path) or '.'
             fd, tmp = tempfile.mkstemp(dir=folder, prefix='.plugins-', suffix='.json')
             try:

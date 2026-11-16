@@ -167,10 +167,8 @@ def meta(template):
 
 
 def all_templates():
-    if not os.path.isdir(folder()):
-        return []
     out = []
-    for name in sorted(os.listdir(folder())):
+    for name in store.list_json(folder()):
         if name.endswith('.json'):
             try:
                 out.append(meta(load(name[:-5])))
@@ -191,7 +189,7 @@ def _now():
 
 
 def create(name, description, layout):
-    if os.path.isdir(folder()) and len([n for n in os.listdir(folder()) if n.endswith('.json')]) >= MAX_TEMPLATES:
+    if len(store.list_json(folder())) >= MAX_TEMPLATES:
         raise TemplateError(f'At most {MAX_TEMPLATES} templates')
     now = _now()
     template = {'id': uuid.uuid4().hex[:12], 'name': _clean_text(name, NAME_MAX, 'name', True),
@@ -228,10 +226,8 @@ def duplicate(template_id):
 
 
 def delete(template_id):
-    path = _path(template_id)
-    if not os.path.exists(path):
+    if not store.delete_json(_path(template_id)):
         raise KeyError(template_id)
-    os.remove(path)
 
 
 def version(template, n=None):

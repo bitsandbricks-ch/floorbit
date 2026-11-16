@@ -9,3 +9,4 @@ PyJWT[crypto]>=2.8
 segno>=1.6
 paramiko>=3.4
 gunicorn>=23.0             # production server in the Docker image (Dockerfile)
+psycopg[binary]>=3.2       # Postgres, when FLOORBIT_DATABASE_URL names one (floorbit/database.py)

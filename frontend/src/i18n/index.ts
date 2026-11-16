@@ -2,6 +2,7 @@
 // so pull requests that add texts to different pages don't edit the same file.
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { germanyBundle } from './germany'
 import { initialLang } from './lang'
 
 type Texts = Record<string, unknown>
@@ -25,6 +26,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: { translation: bundle('en') },
     'de-CH': { translation: bundle('de-CH') },
+    de: { translation: germanyBundle(bundle('de-CH')) },
   },
   lng: lang,
   fallbackLng: 'en',

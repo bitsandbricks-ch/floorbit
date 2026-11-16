@@ -1,6 +1,7 @@
 """Offline mode: the last good monitoring data while the source is down, and one alert per outage."""
 import pytest
 
+from floorbit import store
 from floorbit.plugins.base import PluginError
 from floorbit.sources import lastgood
 from integrations import events
@@ -37,7 +38,7 @@ def test_last_good_survives_a_restart_without_redis(tmp_path):
     lastgood._loaded, lastgood._memory = False, {}     # a new process
     at, value = lastgood.get('k')
     assert value == {'a': 1} and at > 0
-    assert (tmp_path / 'monitoring-cache.json').is_file()
+    assert store.stamp(str(tmp_path / 'monitoring-cache.json')) is not None   # it was written down
 
 
 def test_pages_get_the_last_good_answer_marked_stale(client, nms):

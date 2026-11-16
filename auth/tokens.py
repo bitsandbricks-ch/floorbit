@@ -9,7 +9,6 @@ teams or the tokens themselves, so a leaked one can't make itself a new one or a
 """
 import hashlib
 import hmac
-import os
 import re
 import secrets
 import threading
@@ -43,7 +42,7 @@ def configure(path_getter):
 
 def _read():
     path = _path() if _path else None
-    if not path or not os.path.exists(path):
+    if not path:
         return {}
     from floorbit.store import read_json  # late: floorbit imports auth while it loads
     return read_json(path, {})

@@ -2,6 +2,7 @@
 import os
 
 import pytest
+from conftest import stored
 
 from floorbit import dns, games, lancache
 
@@ -34,7 +35,7 @@ def test_counts_per_hour_and_cache_without_clients(cache, tmp_path):
     assert snap["hit_bytes"] == 900 and snap["miss_bytes"] == 250 and snap["hit_ratio"] == round(900 / 1150, 4)
     assert snap["caches"][0] == {"cache": "steam", "hit_bytes": 900, "miss_bytes": 200, "requests": 3}
     cache._save()
-    assert "192.0.2" not in (tmp_path / "lancache.json").read_text()
+    assert "192.0.2" not in stored(tmp_path / "lancache.json")
 
 
 def test_reads_only_what_the_log_gained_and_follows_a_rotation(cache, tmp_path, monkeypatch):

@@ -21,7 +21,27 @@ _lock = threading.RLock()
 
 
 def read_json(path, default=None):
-    """The file's JSON, or ``default`` when it doesn't exist."""
+    """The document's JSON, or ``default`` when it doesn't exist. From the database when
+    FLOORBIT_DATABASE_URL names one (floorbit/database.py), else from the file."""
+    from . import database
+    db = database.backend()
+    if db.kind != 'files':
+        key = database.key_for(path, db.root)
+        found = db.get(key)
+        if found is not database._MISSING:
+            return found
+        # Not in the database yet: take the file's content over, once (docs/database.md).
+        found = _read_file(path, database._MISSING)
+        if found is database._MISSING:
+            return default
+        with _lock:
+            if db.get(key) is database._MISSING:
+                db.put(key, json.dumps(found))
+        return found
+    return _read_file(path, default)
+
+
+def _read_file(path, default):
     for attempt in range(READ_TRIES):
         try:
             with _lock, open(path) as f:
@@ -38,9 +58,56 @@ def read_json(path, default=None):
 def write_json(path, data):
     # Serialised first and written in one go, so the file is empty or half-written for as short
     # a time as possible; a failure to serialise leaves the old file untouched.
+    from . import database
+    db = database.backend()
+    if db.kind != 'files':
+        db.put(database.key_for(path, db.root), json.dumps(data))
+        return
     text = json.dumps(data, indent=2)
     with _lock, open(path, 'w') as f:
         f.write(text)
+
+
+def stamp(path):
+    """Something that changes whenever the document does (for caches that re-read on change):
+    the file's mtime, or the row's update time in a database. None when there is no document."""
+    from . import database
+    db = database.backend()
+    if db.kind != 'files':
+        return db.updated_at(database.key_for(path, db.root))
+    try:
+        return os.stat(path).st_mtime_ns
+    except OSError:
+        return None
+
+
+def list_json(folder):
+    """The ``*.json`` names in a folder of documents (templates, archived events), from the
+    database or the folder."""
+    from . import database
+    db = database.backend()
+    names = set()
+    if db.kind != 'files':
+        prefix = database.key_for(folder, db.root).rstrip('/') + '/'
+        names |= {k[len(prefix):] for k in db.keys(prefix) if '/' not in k[len(prefix):]}
+    if os.path.isdir(folder):
+        # In a database too: files not imported yet still count (they're taken over when read).
+        names |= {n for n in os.listdir(folder) if os.path.isfile(os.path.join(folder, n))}
+    return sorted(n for n in names if n.endswith('.json'))
+
+
+def delete_json(path):
+    """Remove a document. True when there was one."""
+    from . import database
+    db = database.backend()
+    gone = False
+    if db.kind != 'files':
+        gone = db.delete(database.key_for(path, db.root))
+    with _lock:
+        if os.path.isfile(path):
+            os.remove(path)          # an old file would otherwise come back on the next read
+            gone = True
+    return gone
 
 
 def unwritable(path=None):
