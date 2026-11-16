@@ -10,6 +10,7 @@ from flask import Flask
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from floorbit import journal
 from integrations import (
     checkin,
     config,
@@ -95,8 +96,7 @@ def test_broken_history_never_blocks_checkin(env, client, monkeypatch, tmp_path)
 
 def test_reader_skips_torn_last_line(env, tmp_path):
     history.record('checkin', {'seat': 'D-1', 'username': 'a', 'ip': '10.0.0.1'}, ts=1)
-    with open(history.path(), 'a') as f:
-        f.write('{"ts": 2, "event": "chec')
+    journal.append(history.path(), '{"ts": 2, "event": "chec')
     assert len(history.read_all()) == 1
 
 

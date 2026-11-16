@@ -4,7 +4,7 @@ import io
 
 from conftest import TEST_PASSWORD, TEST_USER
 
-from floorbit import audit
+from floorbit import audit, journal
 
 
 def entries(client, **params):
@@ -27,8 +27,7 @@ def test_settings_log_names_fields_never_values(client):
     client.put("/api/settings", json={"netbox.token": "secret-token-123", "theme.preset": "ops"})
     row = entries(client, area="settings")[0]
     assert row["action"] == "Changed settings" and row["fields"] == ["netbox.token", "theme.preset"]
-    with open(audit.path()) as f:
-        assert "secret-token-123" not in f.read()
+    assert "secret-token-123" not in "\n".join(journal.lines(audit.path()))
 
 
 def test_sign_ins_and_failures_are_logged(anon_client, client):
@@ -39,8 +38,7 @@ def test_sign_ins_and_failures_are_logged(anon_client, client):
     # newest first; the `client` fixture's own sign-in is the oldest
     assert [r["action"] for r in rows][:3] == ["Signed out", "Signed in", "Sign-in failed"]
     assert rows[2]["ok"] is False and rows[2]["user"] == TEST_USER
-    with open(audit.path()) as f:
-        assert "wrong-password" not in f.read()
+    assert "wrong-password" not in "\n".join(journal.lines(audit.path()))
 
 
 def test_reads_and_refused_requests_are_not_logged(anon_client, client):
@@ -96,5 +94,4 @@ def test_account_changes_name_the_account(client):
     rows = entries(client, area="accounts")
     assert [(r["action"], r["target"]) for r in rows] == [("Changed account", "helper1"), ("Added account", "helper1")]
     assert rows[0]["fields"] == ["password", "role"]
-    with open(audit.path()) as f:
-        assert "another-password-1" not in f.read()
+    assert "another-password-1" not in "\n".join(journal.lines(audit.path()))

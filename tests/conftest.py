@@ -83,6 +83,7 @@ def database_under_test(tmp_path, monkeypatch):
         from floorbit import database
         db = database.Sql(os.environ["FLOORBIT_TEST_POSTGRES_URL"], str(tmp_path))
         db.run("DELETE FROM floorbit_documents")
+        db.run("DELETE FROM floorbit_log")
         db.close()
     else:
         monkeypatch.delenv("FLOORBIT_DATABASE_URL", raising=False)

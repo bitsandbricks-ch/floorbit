@@ -4,7 +4,7 @@ import json
 import pytest
 from conftest import stored
 
-from floorbit import audit, ports
+from floorbit import audit, journal, ports
 
 SWITCH = {"name": "sw-a-01", "mgmt_ip": "198.51.100.4", "role": "switch"}
 
@@ -33,11 +33,8 @@ def sign_in(app_module, username, role):
 
 
 def audit_lines():
-    try:
-        with open(audit.path(), encoding="utf-8") as f:
-            return [json.loads(line) for line in f]
-    except FileNotFoundError:
-        return []
+    f = journal.lines(audit.path())
+    return [json.loads(line) for line in f]
 
 
 def test_needs_ports_act(app_module, client):

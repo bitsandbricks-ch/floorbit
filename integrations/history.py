@@ -67,14 +67,15 @@ def record(event, row, ts=None, **extra):
     entry = {'ts': ts or time.time(), 'event': event, 'seat': row.get('seat'),
              'username': row.get('username'), 'ip': row.get('ip'), 'mac': row.get('mac')}
     entry.update({k: v for k, v in extra.items() if v is not None})
-    line = json.dumps(entry, separators=(',', ':')) + '\n'
+    from floorbit import database, journal
+    line = json.dumps(entry, separators=(',', ':'))
     target = path()
     try:
         with _lock:
-            os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
-            with open(target, 'a', encoding='utf-8') as f:
-                f.write(line)
-    except OSError as exc:
+            if database.backend().kind == 'files':
+                os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+            journal.append(target, line)
+    except (OSError, database.DatabaseError) as exc:
         print(f"[integrations] could not write check-in history: {exc}")
         return None
     return entry
@@ -83,11 +84,8 @@ def record(event, row, ts=None, **extra):
 # ── read ─────────────────────────────────────────────────────────────────────
 def read_all():
     """Every event, oldest first. Broken lines are skipped."""
-    try:
-        with open(path(), encoding='utf-8') as f:
-            lines = f.read().splitlines()
-    except FileNotFoundError:
-        return []
+    from floorbit import journal
+    lines = journal.lines(path())
     out = []
     for line in lines:
         try:

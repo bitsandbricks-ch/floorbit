@@ -1,9 +1,8 @@
 """Full-event recording for the replay (issue #104)."""
 import json
-import os
 from itertools import pairwise
 
-from floorbit import recording
+from floorbit import journal, recording
 from floorbit.store import load_data
 
 DAY = 24 * 3600
@@ -58,10 +57,8 @@ def test_compacting_rewrites_the_file(client, monkeypatch):
     data = load_data()
     t0 = 1_800_000_000
     for i in range(12 * 4):   # two days of a frame every quarter hour, written straight to the file
-        with open(recording.path(), 'a', encoding='utf-8') as f:
-            f.write(json.dumps(recording.frame(_sample(t0 + i * 900), {}, set(), data)) + '\n')
-    with open(recording.path(), 'a', encoding='utf-8') as f:
-        f.write('{"t": 18000')   # cut short by a crash
+        journal.append(recording.path(), json.dumps(recording.frame(_sample(t0 + i * 900), {}, set(), data)))
+    journal.append(recording.path(), '{"t": 18000')   # cut short by a crash
     recording._compact(t0 + 2 * DAY + 3 * DAY)
     ts = [f['t'] for f in recording.frames()]
     assert len(ts) == 24 and all(b - a == 1800 for a, b in pairwise(ts))
@@ -81,7 +78,7 @@ def test_the_whole_event_api_is_per_hall_and_new_event_clears_it(client):
     assert 'attachment' in download.headers['Content-Disposition']
     assert download.get_json()['frames'][0]['seats'] == ['A-1', 'B-1']
     assert client.post("/api/report/new-event").status_code == 200
-    assert not os.path.exists(recording.path())
+    assert journal.lines(recording.path()) == []
     assert client.get("/api/replay/event").get_json()['frames'] == []
 
 

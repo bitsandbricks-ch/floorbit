@@ -13,7 +13,7 @@ import time
 
 from flask import g, request, session
 
-from . import store
+from . import database, journal, store
 
 MAX_BYTES = 2 * 1024 * 1024   # past this, the oldest half is dropped
 _lock = threading.Lock()
@@ -129,34 +129,19 @@ def record(area, action, user=None, target=None, fields=None, ok=True):
         entry['fields'] = sorted(str(f) for f in fields)[:40]   # names only, never values
     if not ok:
         entry['ok'] = False
-    line = json.dumps(entry, separators=(',', ':')) + '\n'
+    line = json.dumps(entry, separators=(',', ':'))
     with _lock:
         try:
-            with open(path(), 'a', encoding='utf-8') as f:
-                f.write(line)
-            _trim()
-        except OSError as exc:   # a full disk must not break the change itself
+            journal.append(path(), line)
+            journal.keep_newest_half_over(path(), MAX_BYTES)
+        except (OSError, database.DatabaseError) as exc:   # a full disk must not break the change itself
             print(f'[audit] could not write the audit log: {exc}')
     return entry
 
 
-def _trim():
-    p = path()
-    if os.path.getsize(p) <= MAX_BYTES:
-        return
-    with open(p, encoding='utf-8') as f:
-        lines = f.readlines()
-    with open(p, 'w', encoding='utf-8') as f:
-        f.writelines(lines[len(lines) // 2:])
-
-
 def read(limit=100, offset=0, user=None, area=None, query=None):
     """Newest first, filtered. Returns (entries, total matching)."""
-    try:
-        with open(path(), encoding='utf-8') as f:
-            lines = f.readlines()
-    except FileNotFoundError:
-        return [], 0
+    lines = journal.lines(path())
     rows = []
     q = (query or '').strip().lower()
     for line in reversed(lines):
@@ -180,11 +165,7 @@ def as_log_lines(q='', severity='', before=None, limit=200):
     from datetime import datetime
 
     from .syslog import SEVERITIES
-    try:
-        with open(path(), encoding='utf-8') as f:
-            rows = f.readlines()
-    except FileNotFoundError:
-        return []
+    rows = journal.lines(path())
     words = [w for w in str(q or '').lower().split() if w]
     worst = SEVERITIES.index(severity) if severity in SEVERITIES else len(SEVERITIES) - 1
     out = []

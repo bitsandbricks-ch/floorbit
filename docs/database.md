@@ -31,10 +31,15 @@ The database holds the documents above. These are still files in the state folde
 volume on it** even with a database ([kubernetes.md](kubernetes.md#keep-the-volume)):
 
 - hall background images,
-- the append-only logs: audit log, event timeline, check-in history, syslog, the event recording
-  and flow statistics.
+- syslog and flow statistics.
 
-Moving the logs into the database is planned (issue #464).
+## Logs
+
+The audit log, the event timeline, the check-in history and the event recording are in the
+database too, in the table `floorbit_log`, so every Floorbit pod writes the same log and a replaced
+container loses nothing. Like documents, each log is imported from its `.jsonl` file the first
+time it is used, once; the file then stays as a backup. Without a database they are `.jsonl`
+files in the state folder, as before.
 
 ## Schema and migrations
 
