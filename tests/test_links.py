@@ -148,6 +148,11 @@ def test_a_down_or_slow_link_is_a_problem_without_the_topology_open(client, net)
         ("down", "Link sw-a-01 Te1/1/1 to dist-01 Te1/0/1 is down"),
         ("warn", "Link dist-01 Fo1/1/1 to core-01 Fo1/0/1 runs at 10G")]
     assert [p["where"] for p in found.values()] == ["Fiber multi-mode, 10G planned", "Fiber multi-mode, 40G planned"]
+    de = [p for p in client.get("/api/problems", headers={"Accept-Language": "de-CH"}).get_json()["problems"]
+          if p["kind"] == "link"]
+    assert [(p["title"], p["where"]) for p in de] == [
+        ("Verbindung sw-a-01 Te1/1/1 zu dist-01 Te1/0/1 ist down", "Glasfaser Multimode, 10G geplant"),
+        ("Verbindung dist-01 Fo1/1/1 zu core-01 Fo1/0/1 läuft mit 10G", "Glasfaser Multimode, 40G geplant")]
 
 
 def test_the_topology_says_which_boxes_are_up(client, net):
