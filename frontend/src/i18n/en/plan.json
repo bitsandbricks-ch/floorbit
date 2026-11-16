@@ -169,7 +169,11 @@
     "title": "Seats: {{hall}}",
     "only": "Only: {{filter}}",
     "back": "Back",
-    "print": "Print"
+    "print": "Print",
+    "image": "Save as image",
+    "png": "PNG picture",
+    "svg": "SVG (sharp at any size)",
+    "imageFailed": "The picture could not be made. Try SVG, or print to PDF."
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

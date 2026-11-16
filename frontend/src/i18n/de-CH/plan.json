@@ -169,7 +169,11 @@
     "title": "Plätze: {{hall}}",
     "only": "Nur: {{filter}}",
     "back": "Zurück",
-    "print": "Drucken"
+    "print": "Drucken",
+    "image": "Als Bild speichern",
+    "png": "PNG-Bild",
+    "svg": "SVG (scharf in jeder Grösse)",
+    "imageFailed": "Das Bild konnte nicht erstellt werden. Versuch es als SVG oder druck als PDF."
   },
   "shortcuts": {
     "title": "Tastaturkürzel",

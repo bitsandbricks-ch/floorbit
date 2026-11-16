@@ -247,6 +247,10 @@ carries over (`&show=offline` prints only the offline seats). Use the browser's 
 paper size; landscape is the default. The sheet has no names, IPs or notes, so it can lie on a
 table at the info desk.
 
+**Save as image** on the same sheet downloads the plan as a picture, for a chat or a briefing
+slide: PNG (twice the screen's width) or SVG (sharp at any size). It shows what the sheet shows,
+light on white, with the hall's background picture if it has one.
+
 ## Big screens
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
