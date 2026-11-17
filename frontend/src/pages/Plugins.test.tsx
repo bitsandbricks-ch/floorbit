@@ -71,4 +71,16 @@ describe('Plugins page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('plugin.py: syntax error')
     expect(screen.getByRole('switch')).toBeDisabled()
   })
+
+  it('opens the marketplace in its own tab', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false, user: null },
+      'GET /api/settings/plugins': { plugins: [plugin] },
+      'GET /api/settings/marketplace': { sources: [], plugins: [] },
+    }).fn)
+    renderWithApp(<Plugins />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Marketplace' }))
+    expect(await screen.findByRole('heading', { name: 'Marketplace', level: 2 })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'HTTP check' })).toBeNull()
+  })
 })

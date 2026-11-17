@@ -15,7 +15,9 @@
   "uses": "What this plugin may touch",
   "trust": {
     "builtin": "Ships with Floorbit",
-    "development": "Development checkout"
+    "development": "Development checkout",
+    "official": "Official",
+    "community": "Community"
   },
   "open": "Open",
   "agent": "Runs on the agent",
@@ -27,5 +29,6 @@
     "off": "Off"
   },
   "noMatch": "No plugin matches.",
-  "notFound": "There is no plugin \"{{id}}\"."
+  "notFound": "There is no plugin \"{{id}}\".",
+  "installedTitle": "Installed"
 }

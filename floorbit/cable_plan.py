@@ -33,7 +33,7 @@ from .store import load_data, save_data
 
 KEY = 'cable_routes'
 PANELS_KEY = 'patch_panels'
-CORNERS = ('square', 'round')
+CORNERS = ('square', 'round', 'straight')   # straight: one line from end to end, bends ignored
 MAX_POINTS = 50
 MAX_ROUTES = 20000
 MAX_PANELS = 500
@@ -130,14 +130,23 @@ def _elbow(a, b):
 
 def _to_seat(start, seat, box):
     """From a switch (or panel) to a seat: to the side of the seat's block that faces the start,
-    along it, then into the seat's row. The cables of one block share that run."""
+    along it, then into the seat's row. The cables of one block share that run.
+
+    Coming from above or below, a seat in the far half of the block is reached from the far side:
+    the cable goes round the block's end instead of crossing the near rows, so it plugs into its
+    own seat and the block's cables split over two runs instead of piling onto one."""
     if box is None:
         return _elbow(start, seat)
     sx, sy = start
     if box['sideways'] or box['l'] <= sx <= box['r']:
-        # Above or below the block (or its rows run up and down): the run is along the top or bottom.
-        y = box['t'] - TRUNK * PITCH_Y / 2 if sy < box['cy'] else box['b'] + TRUNK * PITCH_Y / 2
-        return [(sx, y), (seat[0], y)]
+        top = box['t'] - TRUNK * PITCH_Y / 2
+        bottom = box['b'] + TRUNK * PITCH_Y / 2
+        near, far = (top, bottom) if sy < box['cy'] else (bottom, top)
+        if box['sideways'] or (seat[1] < box['cy']) == (sy < box['cy']):
+            return [(sx, near), (seat[0], near)]
+        # Round the block's nearer end, then along the far side.
+        x = box['l'] - TRUNK * PITCH_X / 2 if sx < box['cx'] else box['r'] + TRUNK * PITCH_X / 2
+        return [(sx, near), (x, near), (x, far), (seat[0], far)]
     x = box['l'] - TRUNK * PITCH_X / 2 if sx < box['cx'] else box['r'] + TRUNK * PITCH_X / 2
     return [(x, sy), (x, seat[1])]
 
@@ -185,9 +194,12 @@ def _drawn(key, kind, a, b, via, auto_points, routes, **extra):
     manual = bool(entry and entry.get('points'))
     bends = [tuple(p) for p in entry['points']] if manual else auto_points
     corners = (entry or {}).get('corners') or 'square'
-    path = _tidy([a, *bends, b])
+    # Straight keeps the bends stored (switching back brings them back) but draws end to end.
+    path = _tidy([a, b] if corners == 'straight' else [a, *bends, b])
     return {'key': key, 'kind': kind, 'layer': 'electrical' if kind == 'power' else 'network',
             'points': [list(p) for p in path], 'manual': manual, 'drawn': entry is not None,
+            # The bends the crew placed, also while drawn straight (they come back with angled or rounded).
+            'bends': [list(p) for p in bends] if manual else None,
             'corners': corners, 'via': via, **extra}
 
 
@@ -295,7 +307,7 @@ def _clean_points(raw):
 
 
 def set_routes(changes, by=None):
-    """``{key: {"points": [...] | null, "corners": "square" | "round"} | null}``: null forgets the
+    """``{key: {"points": [...] | null, "corners": "square" | "round" | "straight"} | null}``: null forgets the
     cable's drawing (back to automatic, and not drawn when automatic cabling is off)."""
     if not isinstance(changes, dict) or not changes:
         raise RouteError('Say which cables to change.')
@@ -312,7 +324,7 @@ def set_routes(changes, by=None):
             raise RouteError('That is not a cable on the plan.')
         corners = value.get('corners') or 'square'
         if corners not in CORNERS:
-            raise RouteError('Corners are square or round.')
+            raise RouteError('A cable is drawn straight, angled or rounded.')
         cleaned[key] = {'points': _clean_points(value.get('points')), 'corners': corners}
     with _lock():
         data = load_data()

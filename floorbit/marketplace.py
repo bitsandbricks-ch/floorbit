@@ -1,0 +1,483 @@
+"""The plugin Marketplace (docs/marketplace.md), the same way Hubra and labdex have one.
+
+Optional integrations live in repositories of their own (``bitsandbricks-ch/floorbit-plugin-*``).
+Each release is one signed bundle (floorbit/plugins/bundles.py), the same file the local agents
+take. ``bitsandbricks-ch/floorbit-plugins`` lists them in an ``index.json`` signed with its own key:
+
+    {"name": ..., "generated": ..., "key_id": ..., "signature": ...,
+     "plugins": [{"id": "lancache", "name": ..., "description": ..., "author": ..., "homepage": ...,
+                  "versions": [{"version": "1.2.0", "file": "lancache-1.2.0.tar.gz", "sha256": ...,
+                                "floorbit": ">=1.4", "agent_api": 1, "date": ..., "changes": ...,
+                                "withdrawn": "why, when it was pulled"}]}]}
+
+What may be trusted, and who decides:
+
+- The official index and its plugins verify against keys built into this image
+  (``floorbit/keys/index/``, ``floorbit/keys/plugins/``): trust ``official``.
+- More sources (``FLOORBIT_MARKETPLACE_SOURCES``) and their keys (``*.pub`` in
+  ``FLOORBIT_COMMUNITY_KEYS``) are the operator's, set where the server runs: trust ``community``.
+- An admin installs, updates, rolls back and removes, nothing more. A stolen admin login can't add
+  a key or a source, so it can't make Floorbit or an agent run code nobody signed.
+
+Installed plugins sit in ``FLOORBIT_PLUGIN_DIR`` (``plugins/`` next to the data) as
+``<id>/<version>/``, with the archive kept in ``.archives/`` for the agents. Which version each one
+runs is a document (``marketplace.json``), so every instance of a Floorbit with a database ends up
+with the same plugins (``sync``), downloading what it lacks.
+"""
+from __future__ import annotations
+
+import contextlib
+import json
+import os
+import re
+import shutil
+import threading
+import time
+from pathlib import Path
+
+from .plugins import PluginError, bundles, compatible
+
+DEFAULT_URL = 'https://bitsandbricks-ch.github.io/floorbit-plugins/index.json'  # TODO: Mike: final domain?
+URL_ENV = 'FLOORBIT_MARKETPLACE_URL'
+SOURCES_ENV = 'FLOORBIT_MARKETPLACE_SOURCES'
+COMMUNITY_KEYS_ENV = 'FLOORBIT_COMMUNITY_KEYS'
+DIR_ENV = 'FLOORBIT_PLUGIN_DIR'
+INDEX_TTL = 600          # an index is asked again after ten minutes, or when an admin refreshes
+SYNC_EVERY = 60          # how often an instance checks whether another one installed something
+MAX_INDEX = 2 * 1024 * 1024
+VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}$')
+TRUST_RANK = {'official': 0, 'community': 1}
+
+
+def _env(name, default=''):
+    # Straight from the environment, never from the settings page: these decide what is trusted.
+    return os.environ.get(name, default)
+
+
+class MarketError(PluginError):
+    """Shown to the admin as it is."""
+
+
+# keys and sources -------------------------------------------------------------------------------
+def official_keys():
+    return bundles.pinned_keys()
+
+
+def community_keys():
+    folder = (_env(COMMUNITY_KEYS_ENV, '') or '').strip()
+    return bundles.pinned_keys(folder) if folder else {}
+
+
+def trust_of(kid):
+    if kid in official_keys():
+        return 'official'
+    if kid in community_keys():
+        return 'community'
+    return None
+
+
+def sources():
+    """``[{url, official}]``: the official index first, then the operator's own."""
+    out = [{'url': (_env(URL_ENV, '') or '').strip() or DEFAULT_URL, 'official': True}]
+    for url in (_env(SOURCES_ENV, '') or '').split(','):
+        url = url.strip()
+        if url.startswith('https://') and url not in {s['url'] for s in out}:
+            out.append({'url': url, 'official': False})
+    return out
+
+
+_cache: dict = {}
+_cache_lock = threading.Lock()
+
+
+def fetch_index(source, force=False):
+    """The source's index, verified: the official one with the index keys built in, the others
+    with the community keys. Cached for INDEX_TTL."""
+    import requests
+    url = source['url']
+    with _cache_lock:
+        hit = _cache.get(url)
+    if hit and not force and time.time() - hit[0] < INDEX_TTL:
+        return hit[1]
+    try:
+        res = requests.get(url, timeout=15)
+        res.raise_for_status()
+        if len(res.content) > MAX_INDEX:
+            raise MarketError('the index is too large')
+        doc = res.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise MarketError(f'could not read the index: {type(exc).__name__}') from None
+    keys = bundles.pinned_keys(bundles.INDEX_KEYS_DIR) if source['official'] else community_keys()
+    bundles.verify_index(doc, keys)
+    with _cache_lock:
+        _cache[url] = (time.time(), doc)
+    return doc
+
+
+def _text(v, n):
+    return str(v or '')[:n]
+
+
+def versions_of(entry):
+    """The entry's versions, newest first, with only the fields Floorbit uses."""
+    out, seen = [], set()
+    for v in entry.get('versions') or []:
+        if not isinstance(v, dict):
+            continue
+        ver = str(v.get('version', ''))
+        file = str(v.get('file', ''))
+        if not VERSION_RE.match(ver) or ver in seen or not file:
+            continue
+        seen.add(ver)
+        out.append({'version': ver, 'file': file, 'sha256': _text(v.get('sha256'), 64),
+                    'floorbit': _text(v.get('floorbit'), 60), 'agent_api': int(v.get('agent_api') or 1),
+                    'date': _text(v.get('date'), 30), 'changes': _text(v.get('changes'), 4000),
+                    'withdrawn': _text(v.get('withdrawn'), 300)})
+    return sorted(out, key=lambda v: bundles.version_key(v['version']), reverse=True)
+
+
+def _offers(force=False):
+    """``({id: (source, entry)}, [source status])``; the official index wins an id both list."""
+    offers, status = {}, []
+    for src in sources():
+        try:
+            doc = fetch_index(src, force)
+            status.append({'url': src['url'], 'official': src['official'], 'name': _text(doc.get('name'), 80),
+                           'generated': _text(doc.get('generated'), 40), 'error': ''})
+        except PluginError as exc:
+            status.append({'url': src['url'], 'official': src['official'], 'name': '', 'generated': '',
+                           'error': str(exc)})
+            continue
+        for entry in doc['plugins']:
+            pid = str(entry.get('id', '')) if isinstance(entry, dict) else ''
+            if bundles.ID_RE.match(pid) and pid not in offers:
+                offers[pid] = (src, entry)
+    return offers, status
+
+
+# where installed plugins live -------------------------------------------------------------------
+def plugin_dir():
+    from .database import state_root
+    return Path((_env(DIR_ENV, '') or '').strip() or Path(state_root()) / 'plugins')
+
+
+def _state_path():
+    from .database import state_root
+    return os.path.join(state_root(), 'marketplace.json')
+
+
+def installed():
+    """``{id: {version, previous, trust, source, at, by}}``: what this Floorbit should run."""
+    from . import store
+    found = store.read_json(_state_path(), {})
+    plugins = found.get('plugins') if isinstance(found, dict) else None
+    return {k: v for k, v in (plugins or {}).items() if isinstance(v, dict) and bundles.ID_RE.match(k)}
+
+
+def _save(plugins):
+    from . import store
+    store.write_json(_state_path(), {'plugins': plugins})
+
+
+def _folder(pid, version):
+    return plugin_dir() / pid / version
+
+
+def _archive(pid, version):
+    return plugin_dir() / '.archives' / f'{pid}-{version}.tar.gz'
+
+
+def _keys():
+    return {**community_keys(), **official_keys()}
+
+
+def _download(src, entry, ver):
+    """Fetch, check and unpack one version into its folder; the signature document."""
+    from urllib.parse import urljoin
+
+    import requests
+    pid = str(entry['id'])
+    from .agent_plugins import BUNDLE_NAME_RE
+    if not BUNDLE_NAME_RE.match(f'{pid}-{ver["version"]}.tar.gz'):
+        raise MarketError(f'{pid} {ver["version"]}: not a version Floorbit can install')
+    url = urljoin(src['url'], ver['file'])
+    if not url.startswith('https://'):
+        raise MarketError(f'{pid}: the index points outside HTTPS')
+    try:
+        res = requests.get(url, timeout=60)
+        res.raise_for_status()
+    except requests.RequestException as exc:
+        raise MarketError(f'could not download {pid} {ver["version"]}: {type(exc).__name__}') from None
+    data = res.content
+    if not ver['sha256'] or bundles.sha256(data) != ver['sha256']:
+        raise MarketError(f'{pid} {ver["version"]}: the download does not match the index')
+    dest = _folder(pid, ver['version'])
+    tmp = dest.with_name(f'.{ver["version"]}.part')
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        bundles.unpack(data, tmp)
+        doc = bundles.verify(tmp, _keys(), pid=pid, version=ver['version'])
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    if not src['official'] and trust_of(doc['key_id']) != 'community':
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise MarketError(f'{pid}: signed with a key this source may not use')
+    shutil.rmtree(dest, ignore_errors=True)
+    tmp.rename(dest)
+    archive = _archive(pid, ver['version'])
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    archive.write_bytes(data)
+    return doc
+
+
+def _check_folder(pid, version):
+    """The trust of an unpacked version, after checking its signature again; MarketError if it fails."""
+    folder = _folder(pid, version)
+    if not folder.is_dir():
+        raise MarketError(f'{pid} {version} is not on this server')
+    doc = bundles.verify(folder, _keys(), pid=pid, version=version)
+    return trust_of(doc['key_id'])
+
+
+def _load(registry, pid, version):
+    trust = _check_folder(pid, version)
+    spec = registry.add(_folder(pid, version), trust)
+    if spec.id != pid:
+        registry.drop(spec.id)
+        raise MarketError(f'the bundle for {pid} holds plugin {spec.id}')
+    if spec.error:
+        raise MarketError(f'{pid} {version} does not load: {spec.error}')
+    return spec
+
+
+def _prune(pid, keep):
+    root = plugin_dir() / pid
+    for sub in root.iterdir() if root.is_dir() else ():
+        if sub.name not in keep:
+            shutil.rmtree(sub, ignore_errors=True)
+    for f in (plugin_dir() / '.archives').glob(f'{pid}-*.tar.gz'):
+        if f.name not in {f'{pid}-{v}.tar.gz' for v in keep}:
+            with contextlib.suppress(OSError):
+                f.unlink()
+
+
+_lock = threading.Lock()
+
+
+# what an admin does -----------------------------------------------------------------------------
+def catalog(registry, force=False):
+    """Everything the sources offer, merged with what is installed, for the Marketplace page."""
+    offers, status = _offers(force)
+    have = installed()
+    plugins = []
+    for pid in sorted(set(offers) | set(have)):
+        src, entry = offers.get(pid, (None, {}))
+        mine = have.get(pid)
+        spec = registry.specs.get(pid)
+        versions = []
+        for v in versions_of(entry):
+            ok, why = compatible(v['floorbit'], registry.version)
+            versions.append({k: v[k] for k in ('version', 'date', 'changes', 'withdrawn', 'floorbit')}
+                            | {'compatible': ok, 'why': why})
+        best = next((v['version'] for v in versions if v['compatible'] and not v['withdrawn']), None)
+        current = mine['version'] if mine else None
+        name = _text(entry.get('name'), 80) or (spec.name if spec else pid)
+        plugins.append({
+            'id': pid, 'name': name, 'description': _text(entry.get('description'), 500),
+            'author': _text(entry.get('author'), 80), 'homepage': _text(entry.get('homepage'), 200),
+            'trust': (mine or {}).get('trust') or ('official' if src and src['official'] else 'community'),
+            'source': src['url'] if src else (mine or {}).get('source', ''),
+            'builtin': bool(spec and spec.trust in ('builtin', 'development')),
+            'installed': current, 'previous': (mine or {}).get('previous'),
+            'error': spec.error if (spec and mine) else ('' if not mine else 'not loaded'),
+            'enabled': bool(spec and mine and registry.enabled(spec)),
+            'withdrawn': next((v['withdrawn'] for v in versions if v['version'] == current), '') if current else '',
+            'update': best if current and best and bundles.newer(best, current) else None,
+            'best': best, 'versions': versions, 'listed': src is not None,
+        })
+    return {'sources': status, 'plugins': plugins}
+
+
+def install(registry, pid, version=None, user=None):
+    """Install ``version`` (the newest one that fits when None), or update to it. Keeps the
+    version it replaces for ``rollback``."""
+    from . import audit
+    with _lock:
+        spec = registry.specs.get(pid)
+        if spec is not None and spec.trust in ('builtin', 'development'):
+            raise MarketError(f'{spec.name} ships with this Floorbit')
+        offers, _ = _offers()
+        if pid not in offers:
+            raise MarketError(f'no source offers {pid}')
+        src, entry = offers[pid]
+        entry = {**entry, 'id': pid}
+        versions = versions_of(entry)
+        if version is None:
+            ver = next((v for v in versions if not v['withdrawn'] and compatible(v['floorbit'], registry.version)[0]),
+                       None)
+            if ver is None:
+                raise MarketError(f'no version of {pid} works with this Floorbit')
+        else:
+            ver = next((v for v in versions if v['version'] == str(version)), None)
+            if ver is None:
+                raise MarketError(f'{pid} has no version {version}')
+            if ver['withdrawn']:
+                raise MarketError(f'{pid} {ver["version"]} was withdrawn: {ver["withdrawn"]}')
+            ok, why = compatible(ver['floorbit'], registry.version)
+            if not ok:
+                raise MarketError(why)
+        have = installed()
+        before = have.get(pid)
+        if before and before['version'] == ver['version']:
+            raise MarketError(f'{pid} {ver["version"]} is already installed')
+        doc = _download(src, entry, ver)
+        try:
+            _load(registry, pid, ver['version'])
+        except PluginError:
+            if before:   # put back what ran
+                with contextlib.suppress(PluginError):
+                    _load(registry, pid, before['version'])
+            else:
+                registry.drop(pid)
+            _prune(pid, {before['version']} if before else set())
+            raise
+        have[pid] = {'version': ver['version'], 'previous': before['version'] if before else None,
+                     'trust': trust_of(doc['key_id']), 'source': src['url'], 'at': int(time.time()), 'by': user}
+        _save(have)
+        _prune(pid, {ver['version'], *([before['version']] if before else [])})
+    if before:
+        audit.record('plugins', f"Updated plugin {pid} from {before['version']} to {ver['version']}", user, pid)
+    else:
+        audit.record('plugins', f"Installed plugin {pid} {ver['version']}", user, pid)
+    _tell_agents()
+    return have[pid]
+
+
+def rollback(registry, pid, user=None):
+    """Back to the version the last update replaced (that one becomes the one to go back to)."""
+    from . import audit
+    with _lock:
+        have = installed()
+        mine = have.get(pid)
+        if not mine or not mine.get('previous'):
+            raise MarketError(f'no earlier version of {pid} is kept')
+        old, new = mine['previous'], mine['version']
+        try:
+            _load(registry, pid, old)
+        except PluginError:
+            with contextlib.suppress(PluginError):
+                _load(registry, pid, new)
+            raise
+        have[pid] = {**mine, 'version': old, 'previous': new, 'at': int(time.time()), 'by': user}
+        _save(have)
+    audit.record('plugins', f'Rolled back plugin {pid} from {new} to {old}', user, pid)
+    _tell_agents()
+    return have[pid]
+
+
+def uninstall(registry, pid, user=None):
+    from . import audit
+    with _lock:
+        have = installed()
+        if pid not in have:
+            raise MarketError(f'{pid} is not installed from the Marketplace')
+        gone = have.pop(pid)
+        _save(have)
+        registry.drop(pid)
+        _prune(pid, set())
+        with contextlib.suppress(OSError):
+            (plugin_dir() / pid).rmdir()
+    audit.record('plugins', f"Removed plugin {pid} {gone['version']}", user, pid)
+    _tell_agents()
+
+
+def _tell_agents():
+    from .agent_plugins import reload_agents
+    with contextlib.suppress(Exception):   # they pull it within a minute anyway
+        reload_agents()
+
+
+# every instance runs what marketplace.json says ------------------------------------------------
+def sync(registry):
+    """Load what is installed, fetching versions this instance doesn't have yet. Never fails:
+    a plugin that can't be had is left out and logged."""
+    from . import database
+    try:
+        have = installed()
+    except database.DatabaseUnavailable:
+        return
+    with _lock:
+        for pid in [s.id for s in registry.specs.values() if s.trust in TRUST_RANK and s.id not in have]:
+            registry.drop(pid)
+        offers = None
+        for pid, mine in have.items():
+            spec = registry.specs.get(pid)
+            if spec is not None and spec.path.name == mine['version'] and not spec.error:
+                continue
+            try:
+                if not _folder(pid, mine['version']).is_dir():
+                    if offers is None:
+                        offers, _ = _offers()
+                    src, entry = offers[pid]
+                    ver = next(v for v in versions_of({**entry, 'id': pid}) if v['version'] == mine['version'])
+                    _download(src, {**entry, 'id': pid}, ver)
+                _load(registry, pid, mine['version'])
+            except (PluginError, KeyError, StopIteration, OSError) as exc:
+                registry.log(pid, f'could not load {pid} {mine["version"]}: {exc or type(exc).__name__}')
+
+
+def agent_bundles():
+    """``{id: {version, file, sha256, agent_api}}`` of installed official plugins, for the agents:
+    they trust only the plugin keys built into their image, so community plugins stay hosted."""
+    out = {}
+    try:
+        have = installed()
+    except Exception:  # noqa: BLE001  # the agents keep what they run while the database is away
+        return out
+    for pid, mine in have.items():
+        if mine.get('trust') != 'official':
+            continue
+        archive = _archive(pid, mine['version'])
+        sig = _folder(pid, mine['version']) / bundles.SIGFILE
+        try:
+            api = int(json.loads(sig.read_text(encoding='utf-8')).get('agent_api') or 1)
+            out[pid] = {'version': mine['version'], 'file': archive.name,
+                        'sha256': bundles.sha256(archive.read_bytes()), 'agent_api': api}
+        except (OSError, ValueError, TypeError):
+            continue
+    return out
+
+
+def archive_file(name):
+    """The path of an installed version's archive, by file name, or None."""
+    for pid, mine in installed().items():
+        path = _archive(pid, mine['version'])
+        if path.name == name and path.is_file():
+            return path
+    return None
+
+
+def init_marketplace(app, registry, start_background=True):
+    sync(registry)
+    started = threading.Event()
+
+    def loop():
+        from . import store
+        seen = None
+        while True:
+            time.sleep(SYNC_EVERY)
+            try:
+                now = store.stamp(_state_path())
+            except Exception:  # noqa: BLE001  # the database being away is not this loop's problem
+                continue
+            if now != seen:
+                seen = now
+                sync(registry)
+
+    @app.before_request
+    def start_marketplace_once():
+        if start_background and not started.is_set():
+            started.set()
+            threading.Thread(target=loop, daemon=True, name='marketplace-sync').start()

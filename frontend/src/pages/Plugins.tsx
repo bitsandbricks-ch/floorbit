@@ -1,8 +1,9 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Title } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { usePluginLog, usePlugins } from '@/api/queries'
@@ -11,6 +12,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
+import Marketplace from './plugins/Marketplace'
 
 type Result = { ok: boolean; text: string } | null
 
@@ -58,11 +60,11 @@ function describe(plugin: PluginInfo, t: ReturnType<typeof useTranslation>['t'])
 
 function Badges({ plugin }: { plugin: PluginInfo }) {
   const { t } = useTranslation()
-  const trust = plugin.trust === 'builtin' || plugin.trust === 'development' ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
+  const trust = ['builtin', 'development', 'official', 'community'].includes(plugin.trust) ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
   return (
     <>
       {plugin.version && <Text size="sm" c="dimmed" ff="monospace">v{plugin.version}</Text>}
-      <Badge variant="light" color={plugin.trust === 'builtin' ? 'bit' : 'warn'}>{trust}</Badge>
+      <Badge variant="light" color={plugin.trust === 'builtin' || plugin.trust === 'official' ? 'bit' : 'warn'}>{trust}</Badge>
       {plugin.uses.some((u) => u.id === 'agent') && <Badge variant="outline" color="gray">{t('plugins.agent')}</Badge>}
     </>
   )
@@ -167,6 +169,10 @@ export default function Plugins() {
   const { data, error, isPending } = usePlugins()
   const [query, setQuery] = useState('')
   const [show, setShow] = useState<Show>('all')
+  // ?tab=marketplace opens the marketplace straight away, e.g. from a link in the docs.
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'marketplace' ? 'marketplace' : 'installed'
+  const setTab = (v: string) => setParams(v === 'marketplace' ? { tab: v } : {}, { replace: true })
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   const shown = (data?.plugins ?? []).filter((p) => {
     if (show === 'on' ? !p.enabled : show === 'off' ? p.enabled : false) return false
@@ -183,29 +189,40 @@ export default function Plugins() {
           </>
         }
       />
-      {isPending && <LoadingState />}
-      {error && (
-        <Alert color="down" role="alert">
-          {t('common.error', { message: error.message })}
-        </Alert>
-      )}
-      {data && (
-        <Stack gap="md">
-          {data.plugins.length > 6 && (
-            <Group gap="sm" wrap="wrap">
-              <TextInput leftSection={<IconSearch size={16} />} placeholder={t('plugins.search')} aria-label={t('plugins.search')}
-                value={query} onChange={(e) => setQuery(e.currentTarget.value)} style={{ flex: '1 1 220px' }} maw={360} />
-              <SegmentedControl value={show} onChange={(v) => setShow(v as Show)} aria-label={t('plugins.show')}
-                data={(['all', 'on', 'off'] as Show[]).map((v) => ({ value: v, label: t(`plugins.shown.${v}`) }))} />
-            </Group>
+      <Tabs value={tab} onChange={(v) => setTab(v === 'marketplace' ? 'marketplace' : 'installed')} keepMounted={false}>
+        <Tabs.List mb="md">
+          <Tabs.Tab value="installed">{t('plugins.installedTitle')}</Tabs.Tab>
+          <Tabs.Tab value="marketplace">{t('marketplace.title')}</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value="installed">
+          {isPending && <LoadingState />}
+          {error && (
+            <Alert color="down" role="alert">
+              {t('common.error', { message: error.message })}
+            </Alert>
           )}
-          {!data.plugins.length && <Text>{t('plugins.none')}</Text>}
-          {data.plugins.length > 0 && !shown.length && <Text c="dimmed">{t('plugins.noMatch')}</Text>}
-          <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" component="ul" className="fb-plain-list">
-            {shown.map((p) => <PluginRow key={p.id} plugin={p} />)}
-          </SimpleGrid>
-        </Stack>
-      )}
+          {data && (
+            <Stack gap="md">
+              {data.plugins.length > 6 && (
+                <Group gap="sm" wrap="wrap">
+                  <TextInput leftSection={<IconSearch size={16} />} placeholder={t('plugins.search')} aria-label={t('plugins.search')}
+                    value={query} onChange={(e) => setQuery(e.currentTarget.value)} style={{ flex: '1 1 220px' }} maw={360} />
+                  <SegmentedControl value={show} onChange={(v) => setShow(v as Show)} aria-label={t('plugins.show')}
+                    data={(['all', 'on', 'off'] as Show[]).map((v) => ({ value: v, label: t(`plugins.shown.${v}`) }))} />
+                </Group>
+              )}
+              {!data.plugins.length && <Text>{t('plugins.none')}</Text>}
+              {data.plugins.length > 0 && !shown.length && <Text c="dimmed">{t('plugins.noMatch')}</Text>}
+              <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" component="ul" className="fb-plain-list">
+                {shown.map((p) => <PluginRow key={p.id} plugin={p} />)}
+              </SimpleGrid>
+            </Stack>
+          )}
+        </Tabs.Panel>
+        <Tabs.Panel value="marketplace">
+          <Marketplace />
+        </Tabs.Panel>
+      </Tabs>
     </Layout>
   )
 }

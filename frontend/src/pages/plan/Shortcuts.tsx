@@ -1,6 +1,7 @@
 import { Group, Kbd, Modal, Table, Text, Title } from '@mantine/core'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Attribution } from '@/components/Attribution'
 import { EDIT_SHORTCUTS, type KeyRow } from './edit/shortcuts'
 
 // Each row: the keys (alternatives joined by "or") and what they do. Mirrors docs/seats.md.
@@ -24,6 +25,8 @@ export function Shortcuts({ opened, onClose, editing = false }: { opened: boolea
   return (
     <Modal opened={opened} onClose={onClose} title={t(editing ? 'plan.shortcuts.editTitle' : 'plan.shortcuts.title')} size="lg">
       <Text size="sm" c="dimmed" mb="sm">{t(editing ? 'plan.shortcuts.editIntro' : 'plan.shortcuts.intro')}</Text>
+      {/* The plan's how-to used to sit under the map; the map now fills the page, so it lives here. */}
+      {!editing && <Text size="sm" mb="sm">{t('plan.help')}</Text>}
       {editing
         ? EDIT_SHORTCUTS.map(([section, rows]) => (
           <div key={section}>
@@ -32,6 +35,7 @@ export function Shortcuts({ opened, onClose, editing = false }: { opened: boolea
           </div>
         ))
         : <Keys rows={ROWS.map(([k, what]) => [k, t(`plan.shortcuts.${what}`)])} />}
+      <Attribution compact />
     </Modal>
   )
 }

@@ -15,7 +15,9 @@
   "uses": "Worauf dieses Plugin zugreifen darf",
   "trust": {
     "builtin": "Kommt mit Floorbit",
-    "development": "Entwicklungsstand"
+    "development": "Entwicklungsstand",
+    "official": "Offiziell",
+    "community": "Community"
   },
   "open": "Öffnen",
   "agent": "Läuft auf dem Agent",
@@ -27,5 +29,6 @@
     "off": "Aus"
   },
   "noMatch": "Kein Plugin passt.",
-  "notFound": "Es gibt kein Plugin «{{id}}»."
+  "notFound": "Es gibt kein Plugin «{{id}}».",
+  "installedTitle": "Installiert"
 }

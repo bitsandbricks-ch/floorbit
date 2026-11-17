@@ -3,7 +3,7 @@
 - ``GET /api/cable-plan?hall=<id>``: the cables to draw in a hall, the patch panels on it, and
   whether automatic cabling is on.
 - ``PUT /api/cable-plan/routes``: ``{"routes": {key: {"points", "corners"} | null}}``: bends the
-  crew placed, round or square corners; null goes back to the automatic route.
+  crew placed, round or square corners or straight end to end; null goes back to the automatic route.
 - ``POST /api/cable-plan/panels``: ``{"name", "x", "y", "hall_id", "ports"}`` adds a patch panel
   (409 when the name is taken).
 - ``PUT /api/cable-plan/panels/<name>``: ``{"x", "y", "hall_id", "ports"}`` puts a patch panel on the
