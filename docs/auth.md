@@ -121,7 +121,7 @@ password reset signs that account out everywhere.
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | First account, created only when there are no accounts. |
 | `AUTH_PUBLIC_READ` | `true` | What the kiosk view reads (above) works without signing in. |
 | `AUTH_PUBLIC_PATHS` | `/checkin,/api/checkin,/kiosk` | Paths open to everyone, comma separated. |
-| `AUTH_SESSION_HOURS` | `12` | How long a sign-in lasts. |
+| `AUTH_SESSION_HOURS` | `12` | How long a sign-in lasts (at least 0.1, six minutes). |
 | `AUTH_COOKIE_SECURE` | `false` | `true` when the app is only reached over HTTPS. |
 | `AUTH_TRUSTED_ORIGINS` | empty | Extra origins allowed to send changes, e.g. `https://lal.example.com` behind a proxy that rewrites `Host`. They may also show Floorbit pages in a frame (say, a status wall on the event website); no other site can. |
 
