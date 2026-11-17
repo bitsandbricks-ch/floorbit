@@ -59,6 +59,11 @@ The tools down the left (each stays on after placing something; Esc or V goes ba
 
 Everything lands on the grid unless you hold Alt.
 
+A selected seat block shows its name, rotation, seats per row and rows, how its seats are named
+(a letter per row or the block's name), the first row letter and where the row letters go, whether
+seat 1 is on the right, and its gaps: room in every row after a column, or a lane after a row.
+Seat numbers carry on across a gap.
+
 Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
 the switches, not recorded yet. Click one to select it, Del removes it, **Change cable** opens its
 form. A selected cable shows its bends: drag one to move it, drag the dot in the middle of a

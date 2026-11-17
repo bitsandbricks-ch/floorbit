@@ -1,4 +1,4 @@
-import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
@@ -17,6 +17,7 @@ import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
+import { BlockFields } from './BlockFields'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
 import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
@@ -675,7 +676,7 @@ function ItemFields({ data, item, onChange }: {
         <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={() => set('name', shape.name, name)}
           onKeyDown={(e) => { if (e.key === 'Enter') set('name', shape.name, name) }} />
         {turn(shape.rotation)}
-        <BlockSize item={item} data={data} onChange={onChange} />
+        <BlockFields item={item} data={data} onChange={onChange} />
       </>
     )
   }
@@ -727,28 +728,6 @@ function ItemFields({ data, item, onChange }: {
       </div>
       {layer}
     </>
-  )
-}
-
-/** Seats per row and rows, from the block as the server keeps it (the drawing has only cells). */
-function BlockSize({ data, item, onChange }: {
-  data: SeatViewData; item: ItemRef
-  onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
-}) {
-  const { t } = useTranslation()
-  const blocks = useQuery({ queryKey: qk.planBlocks(data.hall), queryFn: () => get<{ id: string; cols: number; rows: number }[]>(`/api/seat-blocks?hall=${encodeURIComponent(data.hall)}`) })
-  const block = blocks.data?.find((b) => b.id === item.id)
-  const [cols, setCols] = useState<number | null>(null)
-  const [rows, setRows] = useState<number | null>(null)
-  if (!block) return null
-  const save = (field: 'cols' | 'rows', v: number | null) => { if (v && v !== block[field]) void onChange(item, { [field]: block[field] }, { [field]: v }).then(() => blocks.refetch()) }
-  return (
-    <SimpleGrid cols={2}>
-      <NumberInput label={t('plan.edit.block.cols')} min={1} max={200} value={cols ?? block.cols} onChange={(v) => setCols(Number(v) || null)}
-        onBlur={() => save('cols', cols)} onKeyDown={(e) => { if (e.key === 'Enter') save('cols', cols) }} />
-      <NumberInput label={t('plan.edit.block.rows')} min={1} max={50} value={rows ?? block.rows} onChange={(v) => setRows(Number(v) || null)}
-        onBlur={() => save('rows', rows)} onKeyDown={(e) => { if (e.key === 'Enter') save('rows', rows) }} />
-    </SimpleGrid>
   )
 }
 

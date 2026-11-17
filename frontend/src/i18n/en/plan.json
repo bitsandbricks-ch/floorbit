@@ -473,6 +473,18 @@
       "feedGo": "Feed",
       "feedHint": "Shift-click seat blocks or switches to feed them from this board.",
       "more": "Ratings, phases and readings on the Electrics page"
+    },
+    "gaps": {
+      "col": "Gaps in the rows",
+      "row": "Lanes between rows",
+      "add": "Add",
+      "none_col": "None. Room after a column, for a fiber roll or a post.",
+      "none_row": "None. A lane after a row, for a switch between two rows.",
+      "after_col": "After column",
+      "after_row": "After row",
+      "size_col": "Width (seats)",
+      "size_row": "Height (seats)",
+      "remove": "Remove this gap"
     }
   },
   "net": {
