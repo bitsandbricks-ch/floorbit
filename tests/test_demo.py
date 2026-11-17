@@ -159,6 +159,7 @@ def test_the_demo_servers_answer_for_themselves(demo, monkeypatch):
     body = demo.get('/api/services').get_json()
     assert [(r['name'], r['address'], r['status']) for r in body['resolvers']] == [
         ('LAN cache DNS', '198.51.100.53', 'up'), ('Provider DNS', '203.0.113.53', 'up')]
+    assert len(body['sites']) == 9 and all(s['latency_ms'] for s in body['sites'])   # answered by the demo too
     assert all(u['latency_ms'] is not None and u['status'] in ('up', 'warn') for u in body['uplinks'])
     game_servers.poller.poll_once()
     servers = demo.get('/api/game-servers').get_json()['servers']

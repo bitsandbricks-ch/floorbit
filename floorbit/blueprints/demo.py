@@ -165,9 +165,12 @@ def _seed_firewalls(data, layout):
 
 
 def _seed_uplinks(data, layout):
-    """The demo's internet lines and DNS resolvers, for the services page and the topology."""
+    """The demo's internet lines, DNS resolvers and the usual internet sites, for the services page
+    and the topology."""
+    from .. import services
     stored = data.get('services') if isinstance(data.get('services'), dict) else {}
-    for kind in ('uplinks', 'resolvers'):
+    layout = {**layout, 'sites': [{'name': name, 'host': host, 'port': 443} for name, host in services.COMMON_SITES]}
+    for kind in ('uplinks', 'resolvers', 'sites'):
         if layout.get(kind) and not stored.get(kind):
             stored = {**stored, kind: [{'id': uuid.uuid4().hex[:12], **u} for u in layout[kind]]}
     data['services'] = stored

@@ -832,6 +832,20 @@ class Plugin(Plugin):
         return out
 
     # servers and services (probes, game servers, RCON) ---------------------------------
+    @staticmethod
+    def _site_answer(host, now):
+        """The usual internet sites (floorbit/services.py COMMON_SITES) as seen from the hall: one of
+        them gets slow three minutes in ten, so the sites tile has something to say."""
+        from floorbit import services
+        hosts = [h for _name, h in services.COMMON_SITES]
+        if host not in hosts:
+            return None
+        k = hosts.index(host)
+        avg = round(5 + 3 * (k % 4) + 4 * _wave(90 + k, now, period=300), 1)
+        if k == 7 and int(now // 60) % 10 < 3:
+            avg = round(170 + 30 * _wave(99, now, period=60), 1)
+        return {'sent': 3, 'lost': 0, 'avg_ms': avg}
+
     def answer(self, method, args):
         """What the demo's made-up servers answer to a probe, a game query or an RCON command, so the
         services and game servers pages work without sending anything out. None for any other host:
@@ -849,7 +863,7 @@ class Plugin(Plugin):
             host = args[0]
             line = next((u for u in LAYOUT['uplinks'] if u['probe_host'] == host), None)
             if line is None:
-                return None
+                return self._site_answer(host, now)
             k = LAYOUT['uplinks'].index(line)
             avg = round(8 + 4 * k + 6 * _wave(60 + k, now, period=240), 1)
             return {'sent': 5, 'lost': 1 if k == 1 and int(now // 60) % 9 == 0 else 0, 'avg_ms': avg}

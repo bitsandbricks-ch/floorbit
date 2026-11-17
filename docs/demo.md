@@ -60,8 +60,9 @@ instead, `POST /api/demo/layout` (admins) does the same. You get:
 - **Servers:** the LAN cache box `lancache-01`, which is also the hall's DNS server, and the provider's
   resolver for comparison; four game servers (two Counter-Strike 2, Minecraft, Trackmania), three of
   them with RCON. `CS2 #2` stops answering for two minutes in every five.
+- **Internet sites:** the usual ones (Google, Steam, Discord...); Riot Games gets slow three minutes in ten.
 
-The demo answers the DNS lookups, latency probes, game queries and RCON commands for its own servers
+The demo answers the DNS lookups, latency probes (also to the internet sites), game queries and RCON commands for its own servers
 itself, so it sends nothing out. Try `status` on a Counter-Strike server or `list` on Minecraft in the
 RCON console.
 

@@ -6,13 +6,16 @@
   (floorbit/probes.py).
 - **DNS resolvers**: an address and a name to look up. Floorbit asks each one and keeps how long
   it took and what came back.
+- **Internet sites**: sites the players need (search, game stores, voice chat), each a host and a
+  port. Floorbit connects to them a few times, like an uplink's probe host, so the crew sees when
+  "the internet is down" is really one site or one provider. ``COMMON_SITES`` is a starting list.
 - **The LAN cache**: what floorbit/lancache.py read from its log this hour, and how full its disk
   is when ``LANCACHE_CACHE_DIR`` points at it.
 
-Uplinks and resolvers are kept in data.json under ``services`` and changed with ``floorplan.edit``.
+Uplinks, resolvers and sites are kept in data.json under ``services`` and changed with ``floorplan.edit``.
 A background thread checks them every ``SERVICES_INTERVAL`` seconds (default 30); with a local
 agent enrolled the agent sends the probes, from the event network. Uplinks and resolvers also show
-on the service health wall.
+on the service health wall, the sites as one tile.
 """
 import ipaddress
 import re
@@ -30,7 +33,7 @@ from . import inventory, lancache, links, probes
 from .store import load_data, save_data
 
 KEY = 'services'
-KINDS = ('uplinks', 'resolvers')
+KINDS = ('uplinks', 'resolvers', 'sites')
 MAX = 30                       # of each kind
 HISTORY = 60                   # latency samples kept (30 minutes at the default interval)
 HOST_RE = re.compile(r'^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}|[0-9a-fA-F:.]{0,44})$')
@@ -38,6 +41,14 @@ WARN_UTIL = 0.8                # an uplink this full is amber
 WARN_LOSS = 0.2
 WARN_UPLINK_MS = 100
 WARN_DNS_MS = 200
+WARN_SITE_MS = 150
+SITE_TRIES = 3
+# Sites most LAN players notice first when they are gone; any can be removed or added to.
+COMMON_SITES = (
+    ('Google', 'www.google.com'), ('Cloudflare', 'one.one.one.one'), ('YouTube', 'www.youtube.com'),
+    ('Twitch', 'www.twitch.tv'), ('Discord', 'discord.com'), ('Steam', 'store.steampowered.com'),
+    ('Epic Games', 'store.epicgames.com'), ('Riot Games', 'auth.riotgames.com'), ('Battle.net', 'battle.net'),
+)
 WARN_DISK = 0.9
 RANK = {'router': 0, 'firewall': 1, 'switch': 2}   # where a line comes in, most likely first
 _lock = threading.Lock()
@@ -114,7 +125,35 @@ def _clean_resolver(body, _data, old):
     return {'name': name, 'address': address, 'lookup': lookup}
 
 
-CLEAN = {'uplinks': _clean_uplink, 'resolvers': _clean_resolver}
+def _clean_site(body, _data, old):
+    name = _text(body.get('name', old.get('name')), 60)
+    if not name:
+        raise ServiceError('Name the site.')
+    host = _host(str(body.get('host', old.get('host')) or '').strip().strip('.').lower(),
+                 'The site is a host name or an IP address, like www.example.com.')
+    try:
+        port = int(body.get('port', old.get('port')) or 443)
+    except (TypeError, ValueError):
+        port = 0
+    if port not in probes.PROBE_PORTS:
+        raise ServiceError(f"The port is one of {', '.join(map(str, probes.PROBE_PORTS))}.")
+    return {'name': name, 'host': host, 'port': port}
+
+
+CLEAN = {'uplinks': _clean_uplink, 'resolvers': _clean_resolver, 'sites': _clean_site}
+
+
+def add_common_sites(by):
+    """The sites of ``COMMON_SITES`` not in the list yet; returns the ones added."""
+    known = {r.get('host') for r in _stored(load_data())['sites']}
+    added = []
+    for name, host in COMMON_SITES:
+        if host not in known:
+            try:
+                added.append(save('sites', {'name': name, 'host': host, 'port': 443}, by))
+            except ServiceError:
+                break                                    # the list is full
+    return added
 
 
 def save(kind, body, by, item_id=None):
@@ -225,7 +264,21 @@ def check_resolver(resolver, _now):
     return ('warn' if (out['latency_ms'] or 0) >= WARN_DNS_MS else 'up'), out
 
 
-CHECK = {'uplinks': check_uplink, 'resolvers': check_resolver}
+def check_site(site, _now):
+    try:
+        got = _ask('tcp_probe', site['host'], site['port'], SITE_TRIES)
+        sent = max(1, int(got.get('sent') or 1))
+        loss = round(min(int(got.get('lost') or 0), sent) / sent, 2)
+    except (probes.ProbeError, ValueError, TypeError) as exc:
+        return 'down', {'latency_ms': None, 'loss': None, 'error': str(exc)}
+    out = {'latency_ms': _num(got.get('avg_ms')), 'loss': loss, 'error': ''}
+    if loss == 1:
+        return 'down', {**out, 'error': f"{site['host']} does not answer on port {site['port']}."}
+    slow = loss >= WARN_LOSS or (out['latency_ms'] or 0) >= WARN_SITE_MS
+    return ('warn' if slow else 'up'), out
+
+
+CHECK = {'uplinks': check_uplink, 'resolvers': check_resolver, 'sites': check_site}
 
 
 class Poller:
@@ -385,10 +438,37 @@ def health_checks():
         out.append({'id': f"dns:{res['id']}", 'name': res['name'], 'kind': 'dns', 'status': s['status'],
                     'summary': summary, 'metrics': metrics, 'link': '/services',
                     'plugin': 'services', 'plugin_name': 'Services'})
+    sites = [poller.state(site['id']) for site in stored['sites']]
+    if sites:
+        out.append(_sites_tile(stored['sites'], sites))
     cache = lan_cache()
     if cache is not None and not cache['demo']:
         out.append(_cache_tile(cache))
     return out
+
+
+def _sites_tile(sites, states):
+    """All sites as one tile: a wall of nine green boxes says less than "9 of 9 reachable"."""
+    checked = [(site, s) for site, s in zip(sites, states, strict=True) if s['status'] != 'unknown']
+    down = [site['name'] for site, s in checked if s['status'] == 'down']
+    slow = [site['name'] for site, s in checked if s['status'] == 'warn']
+    if not checked:
+        status, summary = 'unknown', 'Not checked yet.'
+    elif len(down) == len(checked):
+        status, summary = 'down', 'No site answers.'
+    elif down:
+        status, summary = 'warn', f"Not reachable: {', '.join(down)}"
+    elif slow:
+        status, summary = 'warn', f"Slow: {', '.join(slow)}"
+    else:
+        status, summary = 'up', f'{len(checked)} of {len(sites)} reachable'
+    times = [s['latency_ms'] for _site, s in checked if s.get('latency_ms') is not None]
+    metrics = [{'label': 'Reachable', 'value': len(checked) - len(down), 'unit': f'/{len(sites)}',
+                'tone': 'warn' if down else ''}] if checked else []
+    if times:
+        metrics.append({'label': 'Median', 'value': sorted(times)[len(times) // 2], 'unit': 'ms', 'tone': ''})
+    return {'id': 'sites', 'name': 'Internet sites', 'kind': 'web', 'status': status, 'summary': summary,
+            'metrics': metrics, 'link': '/services', 'plugin': 'services', 'plugin_name': 'Services'}
 
 
 def _cache_tile(cache):

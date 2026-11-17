@@ -1485,7 +1485,7 @@ export interface FirewallList {
   counts: { firewalls: number; down: number; failover: number; without: number }
 }
 
-/** GET /api/services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. */
+/** GET /api/services (issue #471): ISP uplinks, DNS resolvers, internet sites and the LAN cache. */
 export type ServiceStatus = 'up' | 'warn' | 'down' | 'unknown'
 interface ServiceState { status: ServiceStatus; since: number | null; checked_at: number | null; history: [number, number | null][]; error: string }
 export interface IspUplink extends ServiceState {
@@ -1496,12 +1496,15 @@ export interface IspUplink extends ServiceState {
 export interface DnsResolver extends ServiceState {
   id: string; name: string; address: string; lookup: string; latency_ms?: number | null; rcode?: string | null; answers?: number | null
 }
+export interface InternetSite extends ServiceState {
+  id: string; name: string; host: string; port: number; latency_ms?: number | null; loss?: number | null
+}
 export interface LanCacheState {
   status: ServiceStatus; hit_ratio: number | null; served_bytes: number; bps: number
   disk: { used: number; total: number; ratio: number } | null; error: string; demo: boolean
 }
 export interface Services {
-  uplinks: IspUplink[]; resolvers: DnsResolver[]; lan_cache: LanCacheState | null
+  uplinks: IspUplink[]; resolvers: DnsResolver[]; sites: InternetSite[]; lan_cache: LanCacheState | null
   interval: number; last_poll: number | null; via_agent: boolean; probe_ports: number[]; devices: string[]
 }
 

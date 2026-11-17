@@ -253,5 +253,9 @@
   "Breaker tripped: {}": "Sicherung ausgelöst: {}",
   "Saved port areas": "Port-Bereiche gespeichert",
   "Removed port area": "Port-Bereich entfernt",
-  "Removed port areas": "Port-Bereiche entfernt"
+  "Removed port areas": "Port-Bereiche entfernt",
+  "Added internet site": "Website hinzugefügt",
+  "Added internet sites": "Websites hinzugefügt",
+  "Changed internet site": "Website geändert",
+  "Removed internet site": "Website entfernt"
 }
