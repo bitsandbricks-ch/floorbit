@@ -130,6 +130,13 @@ A selected seat block shows its name, rotation, seats per row and rows, how its 
 seat 1 is on the right, and its gaps: room in every row after a column, or a lane after a row.
 Seat numbers carry on across a gap.
 
+**Place seats freely** (in the same panel) puts a handle on every seat of the block: drag a seat
+anywhere, for a U round a table or any other shape. The seat keeps its name and number, the other
+seats stay where they are, and each move is one step to undo. Seats land on half-seat steps (Alt, or
+snapping off, places them freely). A block with seats placed freely has no row letters beside it, can't
+be merged with another block, and moves and turns as one like any block; **Back to rows** lines its
+seats up again. Templates and plan versions keep where each seat stands, and the kiosk shows it too.
+
 Seat cables are drawn on the Network layer, viewing and editing alike; dashed ones are only read from
 the switches, not recorded yet. The Network layer's legend explains the colours (copper,
 fiber, DAC), widths (speed) and dashes for the cables on that plan, and counts the links between switches

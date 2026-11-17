@@ -810,6 +810,8 @@ export interface PlanCell {
   seat: string
   hit: boolean
   on: boolean | null
+  /** Row and column (from 0) in the block, for the editor's seat handles; missing on older answers. */
+  rc?: [number, number]
 }
 
 export interface PlanShape {
@@ -826,6 +828,8 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
+  free?: boolean
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */

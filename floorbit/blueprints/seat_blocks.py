@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import block_merge, halls, seat_gaps, seat_names, stacking
+from .. import block_merge, halls, seat_gaps, seat_layout, seat_names, stacking
 from ..plan_marks import on_plan
 from ..store import load_data, save_data
 from .inventory import data_lock
@@ -16,7 +16,8 @@ bp = Blueprint('seat_blocks', __name__)
 
 # The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
 KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group', 'z')
+        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'seat_at',
+        'group', 'z')
 MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
 MAX_MANY = 30       # blocks in one "add several"
 
@@ -80,6 +81,11 @@ def _clean(block):
         block['row_gaps'] = seat_gaps.clean(block.get('row_gaps'), block['rows'])
     except seat_gaps.GapError as exc:
         raise BlockError(str(exc)) from None
+    try:
+        block['seat_at'] = seat_layout.clean(block.get('seat_at'), block['cols'], block['rows'])
+    except seat_layout.LayoutError as exc:
+        raise BlockError(str(exc)) from None
+    seat_layout.settle(block)
     # Blocks with the same group move, turn and copy together in the editor.
     group = str(block.get('group') or '').strip()
     if len(group) > 64:
@@ -144,6 +150,7 @@ def make_block(body, hall_id):
         'row_labels': body.get('row_labels', 'start'),
         'col_gaps': body.get('col_gaps'),
         'row_gaps': body.get('row_gaps'),
+        'seat_at': body.get('seat_at'),
         'group': body.get('group'),
         'z': body.get('z'),
         'hall_id': hall_id,

@@ -227,7 +227,29 @@
       const numbers = blockSeatNumbers(block);
       let inner = block.name ? `<div class="seat-block-label">${escHtml(block.name)}</div>` : '';
       let i = 0;
-      for (let row = 0; row < block.rows; row++) {
+      // Seats placed freely (floorbit/seat_layout.py): each where the editor put it, 20 px a seat.
+      const free = block.seat_at && Object.keys(block.seat_at).length ? block.seat_at : null;
+      if (free) {
+        let w = 0, h = 0, cells = '';
+        for (let row = 0; row < block.rows; row++) {
+          for (let col = 0; col < block.cols; col++) {
+            const { number, display } = numbers[i++];
+            const [x, y] = free[`${row},${col}`] || [col, row];
+            w = Math.max(w, (x + 1) * 20); h = Math.max(h, (y + 1) * 20);
+            const user = seatInfo[number]?.taken;
+            let cls = 'seat-block-seat';
+            if (user) {
+              taken.add(number);
+              cls += ' has-user';
+              if (prevTaken && !prevTaken.has(number)) cls += ' just-taken';
+            }
+            const style = `position:absolute;left:${x * 20}px;top:${y * 20}px;` + counter + (OPT.heat ? heatStyle(heat[number]) : '');
+            cells += `<div class="${cls}" style="${style}" data-seat-number="${escHtml(number)}">${escHtml(display)}</div>`;
+          }
+        }
+        inner += `<div style="position:relative;width:${w}px;height:${h}px">${cells}</div>`;
+      }
+      for (let row = 0; row < (free ? 0 : block.rows); row++) {
         if (row && gapAfter(block.row_gaps, row)) inner += gapSpacer(gapAfter(block.row_gaps, row), 'row');
         inner += '<div class="seat-block-row">' + rowLabel(block, row, 'first');
         for (let col = 0; col < block.cols; col++) {

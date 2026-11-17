@@ -32,6 +32,8 @@ import { LockBadges } from './LockBadges'
 import { Rulers } from './Rulers'
 import { useSnapPrefs } from './snap'
 import { MarkHandles } from './MarkHandles'
+import { SeatHandles } from './SeatHandles'
+import { moveSeat, placedNow } from './seatPlace'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
@@ -105,6 +107,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // The Measure tool's last line (for calibrating), and the background while it is being placed.
   const [measured, setMeasured] = useState<{ a: Point; b: Point } | null>(null)
   const [bgPlacing, setBgPlacing] = useState(false)
+  // The seat block whose seats have handles, to be placed one by one (SeatHandles.tsx).
+  const [arranging, setArranging] = useState<string | null>(null)
   const [bgDraft, setBgDraft] = useState<{ frame: Box; data: SeatViewData; done?: boolean } | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
@@ -773,6 +777,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
 
   const one = selected.length === 1 ? selected[0] : null
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
+  const arrangedShape = one?.kind === 'block' && arranging === one.id && !isLocked(one) ? data.drawing?.shapes.find((s) => s.id === one.id) ?? null : null
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
   // From the saved plan: the handle turns round where the item is, not where a drag drew it.
@@ -826,6 +831,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               onDone={(deg) => {
                 setTurning({ ref: one, deg, data, done: true })
                 void change(one, { rotation: turnable.rotation }, { rotation: deg })
+              }} />
+          )}
+          {arrangedShape && tool === 'select' && !drag && (
+            <SeatHandles ctx={ctx} shape={arrangedShape} cell={data.drawing?.cell ?? 32} snapGrid={snapping.grid}
+              onDone={(rc, to) => {
+                const cell = data.drawing?.cell ?? 32
+                void change(one!, placedNow(arrangedShape, cell, data.size), moveSeat(arrangedShape, cell, data.size, rc, to))
               }} />
           )}
           {oneCable && tool === 'select' && (
@@ -923,7 +935,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               </Menu>
             </Group>
           </Group>
-          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} />}
+          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)} />}
           {one?.kind === 'switch' && (
             <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
           )}
@@ -1009,9 +1021,11 @@ function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: 
 
 
 /** One item's fields. Each change is saved on its own (Enter or leaving a text field). */
-function ItemFields({ data, item, onChange }: {
+function ItemFields({ data, item, onChange, arranging, onArrange }: {
   data: SeatViewData; item: ItemRef
   onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
+  arranging?: boolean
+  onArrange?: (on: boolean) => void
 }) {
   const { t } = useTranslation()
   const shape = item.kind === 'block' ? data.drawing?.shapes.find((s) => s.id === item.id) : undefined
@@ -1037,7 +1051,7 @@ function ItemFields({ data, item, onChange }: {
         <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={() => set('name', shape.name, name)}
           onKeyDown={(e) => { if (e.key === 'Enter') set('name', shape.name, name) }} />
         {turn(shape.rotation)}
-        <BlockFields item={item} data={data} onChange={onChange} />
+        <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} />
       </>
     )
   }

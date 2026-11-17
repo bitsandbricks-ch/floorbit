@@ -27,7 +27,7 @@ import math
 import re
 import time
 
-from . import halls, inventory, links, power, seat_gaps
+from . import halls, inventory, links, power, seat_layout
 from .seat_names import block_rows
 from .store import load_data, save_data
 
@@ -84,7 +84,7 @@ def geometry(data, hall_id):
         rows = block_rows(block)
         if not rows:
             continue
-        xs, width, ys, height = seat_gaps.layout(block, len(rows[0]), len(rows))
+        at, width, height = seat_layout.places(block, len(rows[0]), len(rows))
         rotation = int(block.get('rotation') or 0) % 360
         cx, cy = float(block['x']), float(block['y'])
         corners = []
@@ -94,7 +94,7 @@ def geometry(data, hall_id):
             corners.append((cx + tx * PITCH_X, cy + ty * PITCH_Y))
         for r, row in enumerate(rows):
             for c, seat in enumerate(row):
-                tx, ty = _turn(xs[c] + 0.5 - width / 2, ys[r] + 0.5 - height / 2, rotation)
+                tx, ty = _turn(at[r, c][0] + 0.5 - width / 2, at[r, c][1] + 0.5 - height / 2, rotation)
                 seats.setdefault(seat, (round(cx + tx * PITCH_X, 3), round(cy + ty * PITCH_Y, 3), block['id']))
         boxes[block['id']] = {'l': min(p[0] for p in corners), 'r': max(p[0] for p in corners),
                               't': min(p[1] for p in corners), 'b': max(p[1] for p in corners),

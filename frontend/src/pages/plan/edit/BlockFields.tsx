@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Checkbox, Group, NumberInput, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
-import { IconPlus, IconX } from '@tabler/icons-react'
+import { IconArrowsMove, IconLayoutRows, IconPlus, IconX } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,13 +11,18 @@ import type { ItemRef } from './geometry'
 
 interface StoredBlock {
   id: string; cols: number; rows: number; naming?: string; row_start?: string; row_labels?: string; reverse_numbers?: boolean
-  col_gaps?: Gap[]; row_gaps?: Gap[]
+  col_gaps?: Gap[]; row_gaps?: Gap[]; seat_at?: Record<string, [number, number]> | null
 }
 type Change = (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
 
 /** A seat block's size, seat names and gaps, from the block as the server keeps it (the drawing
  *  has only cells). Each field is saved on its own, as one step to undo. */
-export function BlockFields({ data, item, onChange }: { data: SeatViewData; item: ItemRef; onChange: Change }) {
+export function BlockFields({ data, item, onChange, arranging = false, onArrange }: {
+  data: SeatViewData; item: ItemRef; onChange: Change
+  /** Seat handles are out, so seats can be dragged one by one (SeatHandles.tsx). */
+  arranging?: boolean
+  onArrange?: (on: boolean) => void
+}) {
   const { t } = useTranslation()
   const blocks = useQuery({
     queryKey: qk.planBlocks(data.hall),
@@ -54,6 +59,19 @@ export function BlockFields({ data, item, onChange }: { data: SeatViewData; item
             onChange={(v) => v && save({ row_labels: block.row_labels || 'start' }, { row_labels: v })}
             data={['start', 'end', 'both', 'none'].map((x) => ({ value: x, label: t(`plan.edit.block.labels.${x}`) }))} />
         </SimpleGrid>
+      )}
+      {onArrange && (
+        <div>
+          <Group gap="xs" wrap="nowrap">
+            <Button size="xs" variant={arranging ? 'filled' : 'default'} leftSection={<IconArrowsMove size={14} />} aria-pressed={arranging}
+              onClick={() => onArrange(!arranging)}>{t(arranging ? 'plan.edit.seats.done' : 'plan.edit.seats.arrange')}</Button>
+            {block.seat_at && (
+              <Button size="xs" variant="subtle" leftSection={<IconLayoutRows size={14} />}
+                onClick={() => { onArrange(false); save({ seat_at: block.seat_at }, { seat_at: null }) }}>{t('plan.edit.seats.rows')}</Button>
+            )}
+          </Group>
+          <Text size="xs" c="dimmed" mt={4}>{t(arranging ? 'plan.edit.seats.hint' : block.seat_at ? 'plan.edit.seats.free' : 'plan.edit.seats.intro')}</Text>
+        </div>
       )}
       <Checkbox label={t('plan.edit.block.reverse')} checked={!!block.reverse_numbers}
         onChange={(e) => save({ reverse_numbers: !!block.reverse_numbers }, { reverse_numbers: e.currentTarget.checked })} />

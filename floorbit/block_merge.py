@@ -55,6 +55,8 @@ def merge(blocks):
         raise MergeError('Seat blocks that name their seats differently cannot be merged')
     if len({b.get('hall_id') for b in blocks}) > 1:
         raise MergeError('Seat blocks in different halls cannot be merged')
+    if any(b.get('seat_at') for b in blocks):
+        raise MergeError('Seat blocks with seats placed freely cannot be merged')
 
     at = [(_local(b, rotation), _size(b), b) for b in blocks]
     xs = [p[0] for p, _, _ in at]
