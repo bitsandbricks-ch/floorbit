@@ -35,7 +35,6 @@ const Report = lazy(() => import('@/pages/Report'))
 const Jobs = lazy(() => import('@/pages/Jobs'))
 const Tournament = lazy(() => import('@/pages/Tournament'))
 const Handover = lazy(() => import('@/pages/Handover'))
-const Planner = lazy(() => import('@/pages/Planner'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
 const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
@@ -106,7 +105,6 @@ export default function App() {
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/tournament" element={<Tournament />} />
             <Route path="/handover" element={<Handover />} />
-            <Route path="/planner" element={<Planner />} />
             <Route path="/preflight" element={<Preflight />} />
             <Route path="/gear" element={<Gear />} />
             <Route path="/cables" element={<Cables />} />
