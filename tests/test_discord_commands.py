@@ -33,7 +33,7 @@ def floor(client, app_module, monkeypatch):
     sw = client.post("/api/switches", json={"name": "sw-b-01", "x": 60, "y": 60}).get_json()
     for n in range(3):   # still up, so it's "part of the network", not an outage
         client.post("/api/switches", json={"name": f"sw-z-0{n}", "x": 900 + n * 40, "y": 600})
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "last_poll", time.time())
     down = {"id": sw["id"], "name": "sw-b-01", "status": "offline", "since": time.time() - 300}
     monkeypatch.setattr(monitor, "statuses", {sw["id"]: down})

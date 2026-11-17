@@ -163,7 +163,7 @@ def test_history_api_and_csv(env, client):
 
     r = client.get('/api/checkins/history.csv?view=sessions&seat=D-22')
     assert r.mimetype == 'text/csv'
-    assert 'attachment; filename="lal-checkins-sessions-' in r.headers['Content-Disposition']
+    assert 'attachment; filename="floorbit-checkins-sessions-' in r.headers['Content-Disposition']
     rows = list(csv.DictReader(io.StringIO(r.data.decode('utf-8-sig'))))
     assert len(rows) == 1 and rows[0]['mac'] == 'aa:bb:cc:00:11:22' and rows[0]['left'] == ''
 

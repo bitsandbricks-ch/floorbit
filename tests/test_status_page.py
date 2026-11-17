@@ -14,7 +14,7 @@ def floor(client, app_module, monkeypatch):
     a = client.post("/api/switches", json={"name": "sw-a-01", "x": 60, "y": 60}).get_json()
     b = client.post("/api/switches", json={"name": "sw-b-01", "x": 920, "y": 60}).get_json()
     c = client.post("/api/switches", json={"name": "sw-c-01", "x": 500, "y": 500}).get_json()
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "last_poll", time.time())
     monkeypatch.setattr(monitor, "statuses", {})
     monkeypatch.setattr(status_page, "_seats_of", {})

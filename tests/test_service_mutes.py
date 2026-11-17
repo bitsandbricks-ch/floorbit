@@ -26,7 +26,7 @@ def test_a_muted_service_is_marked_and_pages_nobody(app_module, client, wall, fa
     assert body["counts"]["down"] == 0 and body["counts"]["muted"] == 1
     assert body["mutes"][0]["kind"] == "health" and body["mutes"][0]["name"] == "Game server 1"
 
-    discord = app_module.app.extensions["lal_integrations"]["discord"]
+    discord = app_module.app.extensions["floorbit_integrations"]["discord"]
     discord._last_alert.clear()
     changes = [{"id": "demo:game-1", "name": "Game server 1", "status": "down", "previous": "up"}]
     assert discord.build_health_message(changes) is None

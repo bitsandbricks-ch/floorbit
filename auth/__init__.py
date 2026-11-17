@@ -172,7 +172,7 @@ class Auth:
         self._key_pending = False
         if not app.config.get('SECRET_KEY'):
             app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or self._secret_key_or_stand_in()
-        app.config['SESSION_COOKIE_NAME'] = 'lal_session'
+        app.config['SESSION_COOKIE_NAME'] = 'floorbit_session'
         app.config['SESSION_COOKIE_HTTPONLY'] = True
         app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
         app.config['SESSION_COOKIE_SECURE'] = _env_bool('AUTH_COOKIE_SECURE', False)

@@ -291,7 +291,7 @@ def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, a
 def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, client, app_module, floor, monkeypatch):
     # Issue #384: a known outage, so attendees don't each report it.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -314,7 +314,7 @@ def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, client, 
 def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_module, floor, monkeypatch):
     # Issue #386: the crew sees it is part of an outage, not a cable.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -333,7 +333,7 @@ def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_
 def test_the_board_says_when_the_switch_came_back(client, app_module, floor, monkeypatch):
     # Issue #390: filed during the outage, the switch is back since: maybe fixed already.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -354,7 +354,7 @@ def test_the_board_says_when_the_switch_came_back(client, app_module, floor, mon
 def test_the_help_page_asks_when_the_switch_came_back(anon_client, app_module, floor, monkeypatch):
     # Issue #392: reported during the outage, the switch is back: ask before a tech walks over.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})

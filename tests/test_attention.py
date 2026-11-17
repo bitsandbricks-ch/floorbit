@@ -116,7 +116,7 @@ def test_unplaced_and_offline_switches_are_skipped(hall, client):
     client.post("/api/switches", json={"name": "sw-spare"})   # not on the floor plan
     hall["mon"].set("sw-spare", port("Gi1/0/1", duplex="half"))
     hall["mon"].set("sw-a-01", port("Gi1/0/4", duplex="half"))
-    monitor = hall["app"].extensions["lal_integrations"]["monitor"]
+    monitor = hall["app"].extensions["floorbit_integrations"]["monitor"]
     monitor.statuses = {hall["switch"]["id"]: {"status": "offline"}}
     try:
         poll(hall, 1000)

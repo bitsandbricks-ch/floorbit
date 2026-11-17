@@ -319,7 +319,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             view, rows = history_rows()
         except ValueError as exc:
             return jsonify({'error': str(exc)}), 400
-        filename = f"lal-checkins-{view}-{time.strftime('%Y%m%d-%H%M')}.csv"
+        filename = f"floorbit-checkins-{view}-{time.strftime('%Y%m%d-%H%M')}.csv"
         return Response(history.to_csv(rows, view), mimetype='text/csv',
                         headers={'Content-Disposition': f'attachment; filename="{filename}"',
                                  'Cache-Control': 'no-store'})
@@ -353,6 +353,6 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             verifier.start()
             crew.start()
 
-    app.extensions['lal_integrations'] = {'monitor': monitor, 'discord': discord,
+    app.extensions['floorbit_integrations'] = {'monitor': monitor, 'discord': discord,
                                           'checkin_refresher': refresher}
-    return app.extensions['lal_integrations']
+    return app.extensions['floorbit_integrations']

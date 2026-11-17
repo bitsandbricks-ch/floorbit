@@ -124,7 +124,7 @@ def test_a_failing_plugin_clears_nothing(client, fake, watch):
 
 
 def test_discord_gets_where_not_who(app_module):
-    discord = app_module.app.extensions["lal_integrations"]["discord"]
+    discord = app_module.app.extensions["floorbit_integrations"]["discord"]
     discord._last_alert.clear()
     msg = discord.build_security_message({"id": "demo:arp-1", "kind": "arp-spoof", "severity": "high",
                                           "switch": "sw-b-01", "port": "Gi1/0/4", "seat": "B-4"}, now=1000)

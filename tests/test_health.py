@@ -117,7 +117,7 @@ def test_a_change_counts_once_confirmed(client, wall, fake_checks, monkeypatch):
 
 
 def test_red_services_reach_discord(app_module):
-    discord = app_module.app.extensions["lal_integrations"]["discord"]
+    discord = app_module.app.extensions["floorbit_integrations"]["discord"]
     discord._last_alert.clear()
     msg = discord.build_health_message([
         {"id": "demo:game-1", "name": "Game server 1", "status": "down", "previous": "up", "summary": "Not answering"},
