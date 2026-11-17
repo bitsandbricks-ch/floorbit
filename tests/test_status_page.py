@@ -44,7 +44,8 @@ def test_off_by_default(anon_client, floor):
 def test_all_running(anon_client, floor, switched_on):
     data = anon_client.get("/status.json").get_json()
     assert data["state"] == "operational" and data["areas"] == [] and data["since"] is None
-    assert "All systems running" in anon_client.get("/status").get_data(as_text=True)
+    # The page is React (PublicStatus.test.tsx draws it); here only that it is served, not 404.
+    assert anon_client.get("/status").status_code in (200, 503)
 
 
 def test_one_switch_down_names_the_rows_not_the_switch(anon_client, floor, switched_on):
@@ -54,10 +55,8 @@ def test_one_switch_down_names_the_rows_not_the_switch(anon_client, floor, switc
     data = anon_client.get("/status.json").get_json()
     assert data["state"] == "degraded" and data["since"]
     assert data["areas"] == [{"hall": "", "block": "A", "rows": "1-2", "seats": 2}]
-    for path in ("/status", "/status.json"):
-        body = anon_client.get(path).get_data(as_text=True)
-        assert "sw-a-01" not in body and "Gi1/0/1" not in body
-    assert "Seat block A" in anon_client.get("/status").get_data(as_text=True)
+    body = anon_client.get("/status.json").get_data(as_text=True)
+    assert "sw-a-01" not in body and "Gi1/0/1" not in body
 
 
 def test_switch_without_seats_counts_for_the_nearest_block(anon_client, floor, switched_on):
@@ -109,19 +108,11 @@ def test_crew_updates_and_override(client, anon_client, floor, switched_on):
     assert public["updates"][0]["text"] == "Hall B is back." and "by" not in public["updates"][0]
     crew = client.get("/api/status-page").get_json()
     assert crew["auto_state"] == "operational" and crew["override"]["note"] == "Core swap" and crew["public"]
-    page = anon_client.get("/status").get_data(as_text=True)
-    assert "Maintenance" in page and "Hall B is back." in page
     client.put("/api/status-page/override", json={"state": None})
     assert anon_client.get("/status.json").get_json()["state"] == "operational"
     assert client.delete(f"/api/status-page/updates/{uid}").status_code == 200
     assert client.delete(f"/api/status-page/updates/{uid}").status_code == 404
     assert anon_client.get("/status.json").get_json()["updates"] == []
-
-
-def test_update_text_is_escaped(client, anon_client, floor, switched_on):
-    client.post("/api/status-page/updates", json={"text": "<script>alert(1)</script>"})
-    page = anon_client.get("/status").get_data(as_text=True)
-    assert "<script>alert(1)" not in page and "&lt;script&gt;" in page
 
 
 def test_crew_view_names_switches(client, floor):
@@ -134,11 +125,6 @@ def test_viewer_cannot_post(app_module, anon_client, floor):
     anon_client.post("/login", data={"username": "watcher", "password": "role-password-1"})
     assert anon_client.post("/api/status-page/updates", json={"text": "x"}).status_code == 403
     assert anon_client.get("/api/status-page").status_code == 403
-
-
-def test_german(anon_client, floor, switched_on):
-    page = anon_client.get("/status", headers={"Accept-Language": "de"}).get_data(as_text=True)
-    assert "Alles läuft" in page and 'lang="de"' in page
 
 
 def test_rows_text():
@@ -156,16 +142,13 @@ def test_recently_back_areas(anon_client, floor, switched_on):
     assert data["state"] == "operational" and data["areas"] == []
     assert data["recovered"] == [{"hall": "", "block": "A", "rows": "1", "seats": 1}]
     assert data["recovered_at"] == back
-    page = anon_client.get("/status").get_data(as_text=True)
-    assert "Back up recently" in page and "Seat block A" in page and "sw-a-01" not in page
-    assert "Wieder da" in anon_client.get("/status", headers={"Accept-Language": "de"}).get_data(as_text=True)
+    assert "sw-a-01" not in anon_client.get("/status.json").get_data(as_text=True)
     # Up since a restart, or back more than half an hour ago: nothing to say.
     floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": back}}
     assert anon_client.get("/status.json").get_json()["recovered"] == []
     floor["monitor"].statuses = {sid: {"id": sid, "status": "online", "since": time.time() - 31 * 60,
                                        "previous": "offline"}}
     assert anon_client.get("/status.json").get_json()["recovered"] == []
-    assert "Back up recently" not in anon_client.get("/status").get_data(as_text=True)
 
 
 def test_crew_view_lists_recently_back_with_switches(client, floor):
@@ -193,7 +176,6 @@ def test_atom_feed_of_updates(client, anon_client, floor, switched_on):
     # Same rule as /status.json: never who posted.
     from tests.conftest import TEST_USER
     assert TEST_USER.encode() not in r.data
-    assert 'href="/status.atom"' in anon_client.get("/status").get_data(as_text=True)
 
 
 def test_atom_feed_off_and_empty(client, anon_client, floor):
@@ -213,14 +195,11 @@ def test_planned_maintenance_is_announced_then_runs(client, anon_client, floor, 
     assert page["state"] == "operational" and page["maintenance_now"] is None
     assert page["planned"] == [{"id": item["id"], "start": plan["start"], "end": plan["end"],
                                 "text": "Switch swap in hall B", "area": "Hall B"}]   # never who planned it
-    html = anon_client.get("/status").get_data(as_text=True)
-    assert "Planned maintenance" in html and "Switch swap in hall B" in html
 
     # An hour later it runs: the page says Maintenance by itself, with the plan's text.
     monkeypatch.setattr(time, "time", lambda: now + 3700)
     page = anon_client.get("/status.json").get_json()
     assert page["state"] == "maintenance" and page["maintenance_now"]["id"] == item["id"]
-    assert 'id="status-maintenance-now"' in anon_client.get("/status").get_data(as_text=True)
     # A state set by hand still wins.
     client.put("/api/status-page/override", json={"state": "outage"})
     assert anon_client.get("/status.json").get_json()["state"] == "outage"

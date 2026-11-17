@@ -18,13 +18,14 @@ export function EventBrand() {
   )
 }
 
-/** The frame of the pages people see before they sign in (sign-in, seat check-in): the event's
- *  brand on top, one column in the middle, the language picker and the attribution below. */
-export function PublicPage({ title, children }: { title: string; children: ReactNode }) {
+/** The frame of the pages people see without an account (sign-in, seat check-in, the status page,
+ *  ...): the event's brand on top, one column in the middle, the language picker and the
+ *  attribution below. ``wide`` is for pages that read like a page (status, schedule), not a form. */
+export function PublicPage({ title, children, wide = false }: { title: string; children: ReactNode; wide?: boolean }) {
   const { t, i18n } = useTranslation()
   useEffect(() => { document.title = `${title} · Floorbit` }, [title])
   return (
-    <main className="fb-public">
+    <main className={wide ? 'fb-public fb-public--wide' : 'fb-public'}>
       <div className="fb-public-col">
         <div className="fb-public-head"><EventBrand /></div>
         <Stack gap="md">{children}</Stack>

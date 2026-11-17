@@ -16,7 +16,7 @@ Reading the crew's view needs ``incidents.work``, changing it ``incidents.assign
 """
 import time
 
-from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, g, jsonify, request
 from markupsafe import Markup, escape
 
 from integrations import events
@@ -26,40 +26,16 @@ from ..store import load_data
 
 bp = Blueprint('status_page', __name__)
 
+# What the Atom feed needs; the page's own texts are in frontend/src/i18n/*/publicStatus.json.
 TEXTS = {
-    'en': {'title': 'Network status', 'off': 'This page is switched off.',
+    'en': {'title': 'Network status',
            'state': {'operational': 'All systems running', 'degraded': 'Part of the network is down',
                      'outage': 'Network outage', 'maintenance': 'Maintenance',
-                     'unknown': 'Status not available right now'},
-           'detail': {'operational': 'The network is working normally.',
-                      'degraded': 'Some seats have no network. The crew is on it.',
-                      'outage': 'Large parts of the network are down. The crew is on it.',
-                      'maintenance': 'The crew is working on the network.',
-                      'unknown': 'Floorbit cannot reach its monitoring right now, so it does not know.'},
-           'since': 'Since {time}', 'areas': 'Affected areas', 'rows': 'rows {rows}', 'seats': '{n} seats',
-           'switches': 'Switches: {names}', 'updates': 'Updates from the crew', 'none': 'No updates yet.',
-           'updated': 'Updated {time}. This page updates every minute.', 'block': 'Seat block {name}',
-           'unnamed': 'A seat block', 'hall_wide': 'Hall {name}', 'somewhere': 'Somewhere in the hall',
-           'recovered': 'Back up recently', 'recovered_at': 'The network here has been back since {time}.',
-           'feed': 'Follow the updates in a feed reader (Atom)',
-           'planned': 'Planned maintenance', 'until': 'until {time}', 'now': 'Now'},
-    'de': {'title': 'Netzwerkstatus', 'off': 'Diese Seite ist ausgeschaltet.',
+                     'unknown': 'Status not available right now'}},
+    'de': {'title': 'Netzwerkstatus',
            'state': {'operational': 'Alles läuft', 'degraded': 'Ein Teil des Netzwerks ist ausgefallen',
                      'outage': 'Netzwerkausfall', 'maintenance': 'Wartung',
-                     'unknown': 'Status gerade nicht verfügbar'},
-           'detail': {'operational': 'Das Netzwerk läuft normal.',
-                      'degraded': 'Einige Plätze haben kein Netzwerk. Die Crew ist dran.',
-                      'outage': 'Grosse Teile des Netzwerks sind ausgefallen. Die Crew ist dran.',
-                      'maintenance': 'Die Crew arbeitet am Netzwerk.',
-                      'unknown': 'Floorbit erreicht sein Monitoring gerade nicht und weiss es darum nicht.'},
-           'since': 'Seit {time}', 'areas': 'Betroffene Bereiche', 'rows': 'Reihen {rows}',
-           'seats': '{n} Plätze', 'switches': 'Switches: {names}', 'updates': 'Updates der Crew',
-           'none': 'Noch keine Updates.', 'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.',
-           'block': 'Platzblock {name}', 'unnamed': 'Ein Platzblock', 'hall_wide': 'Halle {name}',
-           'somewhere': 'Irgendwo in der Halle', 'recovered': 'Wieder da',
-           'recovered_at': 'Das Netzwerk hier läuft seit {time} wieder.',
-           'feed': 'Updates im Feedreader folgen (Atom)',
-           'planned': 'Geplante Wartung', 'until': 'bis {time}', 'now': 'Jetzt'},
+                     'unknown': 'Status gerade nicht verfügbar'}},
 }
 
 
@@ -92,8 +68,10 @@ def _who():
     return user.get('display_name') or user.get('username')
 
 
+
 def _stamp(text, at):
-    """``text`` with ``{time}`` as a <time> the page's script shows in the reader's own time zone."""
+    """``text`` with ``{time}`` as a <time> the page's script shows in the reader's own time zone.
+    For the public pages still drawn by Jinja (stats wall, schedule, brackets)."""
     clock = time.strftime('%H:%M', time.localtime(at))
     tag = Markup('<time data-at="{}">{}</time>').format(int(at), clock)
     return Markup(str(escape(text)).replace('{time}', str(tag)))
@@ -109,11 +87,10 @@ def _changed():
 
 @bp.route('/status')
 def status_public():
-    lang = request.accept_languages.best_match(['en', 'de'], default='en')
-    text = TEXTS[lang]
-    if not page_on():
-        return render_template('status.html', lang=lang, t=text, off=True), 404
-    return render_template('status.html', lang=lang, t=text, off=False, s=_now(), stamp=_stamp)
+    """The page itself is React (frontend/src/pages/public/PublicStatus.tsx), reading /status.json;
+    404 while it is switched off, so links and monitors see that, and the page says so."""
+    html, status = spa.render('Network status')
+    return html, status if page_on() else 404
 
 
 @bp.route('/status.json')

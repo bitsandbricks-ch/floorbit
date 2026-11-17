@@ -666,6 +666,27 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   padding: 32px 16px 16px; gap: 16px;
 }
 .fb-public-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
+/* Pages that read top to bottom (status, schedule) start at the top and are wider. */
+.fb-public--wide { justify-content: flex-start; }
+.fb-public--wide .fb-public-col { max-width: 760px; }
+/* The public status page (pages/public/PublicStatus.tsx): one colour per state, as a dot and as
+   the line beside each item. */
+.fb-status-k-operational { --k: var(--color-up); }
+.fb-status-k-degraded, .fb-status-k-maintenance { --k: var(--color-warn); }
+.fb-status-k-outage { --k: var(--color-down); }
+.fb-status-k-unknown { --k: var(--color-muted); }
+.fb-status-dot {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: var(--k);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--k) 25%, transparent);
+}
+.fb-status-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fb-status-list li { border-left: 3px solid var(--k, var(--color-line)); padding: 2px 0 2px 12px; }
+/* A public page showing old data because the server can't be reached (lib/publicFeed.ts). */
+.fb-stale-note {
+  position: fixed; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 14px; z-index: 300;
+  border-radius: 999px; border: 1px solid var(--color-warn); background: var(--color-surface); color: var(--color-fg);
+  font: 600 14px/1.4 var(--font-sans); max-width: calc(100vw - 32px); text-align: center;
+}
 .fb-public-head { display: flex; justify-content: center; margin-bottom: 20px; }
 .fb-public-brand { --fb-brand-h: 30px; }
 .fb-public-logo { max-height: 56px; max-width: 220px; object-fit: contain; }

@@ -107,7 +107,7 @@ def test_public_pages_update_in_place(client, anon_client, hall):
     # refresh.js swaps the content; the meta refresh only runs without JavaScript (issue #290).
     client.put("/api/settings", json={"public.stats_wall": True, "public.status_page": True,
                                       "public.schedule": True, "public.brackets": True})
-    for path, every in (("/wall", 60), ("/status", 60), ("/agenda", 60), ("/bracket", 30)):
+    for path, every in (("/wall", 60), ("/agenda", 60), ("/bracket", 30)):
         text = anon_client.get(path).get_data(as_text=True)
         assert f'<script src="/static/js/refresh.js" data-every="{every}" defer></script>' in text, path
         assert f'<noscript><meta http-equiv="refresh" content="{every}" /></noscript>' in text, path
