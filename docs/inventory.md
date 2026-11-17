@@ -30,9 +30,11 @@ Next to the built-in icons, admins upload their own under **Inventory > Icons** 
 references, embedded images, `foreignObject` and styles are dropped, a file with a DOCTYPE is
 refused, and every colour becomes `currentColor`, so the icon takes the colour picked for the
 device, group or tag. The page draws an uploaded icon as an image mask, never as inline markup.
-Uploaded icons are served at `/api/icons/<id>.svg` for anything else that shows icons, such as
-items on the floor plan. Removing an icon puts the devices, groups and tags that showed it back on
-their default icon.
+Uploaded icons are served at `/api/icons/<id>.svg` for anything else that shows icons. Icons on
+the floor plan can use them too: the editor's icon list has them under **Uploaded**, and the plan,
+the kiosk and the attendee hall view draw them in the icon's colour. Removing an icon puts the
+devices, groups and tags that showed it back on their default icon, and turns plan icons that used
+it into the info icon.
 
 ## Interfaces
 

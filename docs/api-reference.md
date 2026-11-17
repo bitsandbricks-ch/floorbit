@@ -269,6 +269,9 @@ Source: [`floorbit/blueprints/dashboards.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
 | GET | `/api/dashboards/<layout_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
+| GET | `/api/dashboards/<layout_id>/public` | anyone |  |
+| GET | `/api/dashboards/<layout_id>/public/plan` | anyone |  |
+| GET | `/api/dashboards/<layout_id>/public/tiles/<tile>` | anyone |  |
 
 ## floorbit.blueprints.demo
 
@@ -595,6 +598,17 @@ Source: [`floorbit/blueprints/metrics.py`](https://github.com/bitsandbricks-ch/f
 | --- | --- | --- | --- |
 | GET | `/api/metrics` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.nav_sections
+
+Sidebar sections of your own (floorbit/nav_sections.py, docs/navigation.md).
+
+Source: [`floorbit/blueprints/nav_sections.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/nav_sections.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/sidebar` | `settings.manage` |  |
+| PUT | `/api/settings/sidebar` | `settings.manage` |  |
+
 ## floorbit.blueprints.network
 
 Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap.
@@ -636,7 +650,7 @@ Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/f
 
 ## floorbit.blueprints.pages
 
-The HTML pages of the editor and the kiosk view, and the list of pages for "Go to".
+The HTML pages of the editor, old links that moved, and the list of pages for "Go to".
 
 Source: [`floorbit/blueprints/pages.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/pages.py)
 
@@ -702,7 +716,7 @@ Source: [`floorbit/blueprints/plan_locks.py`](https://github.com/bitsandbricks-c
 
 ## floorbit.blueprints.plan_marks
 
-Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py).
+Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py). An icon is a built-in one or an uploaded one from the icon library; ``custom_icons`` carries the uploaded ones the marks use.
 
 Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_marks.py)
 

@@ -321,7 +321,9 @@
   },
   "modes": {
     "kiosk": "Kiosk",
-    "kioskHint": "The same plan full screen, for a big screen"
+    "kioskHint": "The same plan full screen, for a big screen",
+    "dashboards": "Dashboards",
+    "dashboardsHint": "Dashboards for big screens: the plan, widgets and other pages on one grid"
   },
   "edit": {
     "title": "Edit",
@@ -489,6 +491,8 @@
       "create_other": "Create {{count}} blocks"
     },
     "mark": {
+      "builtIn": "Built in",
+      "uploaded": "Uploaded",
       "textTitle": "New label",
       "iconTitle": "New icon",
       "icon": "Icon",

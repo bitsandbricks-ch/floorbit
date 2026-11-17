@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
+import { PlanIconSelect } from './IconSelect'
 import { blockStep, nextFreeRow } from './tools'
 
 interface Defaults { naming?: string; row_labels?: string; reverse_numbers?: boolean; block_gap?: number }
@@ -113,7 +114,6 @@ export function PlaceMarkDialog({ kind, onClose, onCreate }: {
   kind: 'text' | 'icon' | null; onClose: () => void; onCreate: (body: Record<string, unknown>) => Promise<void>
 }) {
   const { t } = useTranslation()
-  const icons = useQuery({ queryKey: qk.planIcons, queryFn: () => get<{ icons: Record<string, string[]> }>('/api/plan-marks?hall=-'), enabled: kind === 'icon', staleTime: Infinity })
   const [text, setText] = useState('')
   const [icon, setIcon] = useState<string | null>(null)
   const [size, setSize] = useState('m')
@@ -129,7 +129,6 @@ export function PlaceMarkDialog({ kind, onClose, onCreate }: {
       setBusy(false)
     }
   }
-  const names = Object.keys(icons.data?.icons ?? {})
   return (
     <Modal opened={!!kind} onClose={close} title={t(kind === 'icon' ? 'plan.edit.mark.iconTitle' : 'plan.edit.mark.textTitle')}>
       <form onSubmit={(e) => { e.preventDefault(); void submit() }}>
@@ -137,9 +136,7 @@ export function PlaceMarkDialog({ kind, onClose, onCreate }: {
           {kind === 'text'
             ? <TextInput label={t('plan.edit.text')} value={text} maxLength={60} onChange={(e) => setText(e.currentTarget.value)} data-autofocus required />
             : (
-              <Select label={t('plan.edit.mark.icon')} searchable value={icon} onChange={setIcon} data-autofocus nothingFoundMessage={t('plan.edit.mark.none')}
-                data={names.map((n) => ({ value: n, label: t(`plan.edit.icons.${n}`, { defaultValue: n.replace(/[-_]/g, ' ') }) }))}
-                renderOption={({ option }) => <Group gap="xs" wrap="nowrap"><IconGlyph paths={icons.data?.icons[option.value] ?? []} />{option.label}</Group>} />
+              <PlanIconSelect value={icon} onChange={setIcon} autoFocus />
             )}
           <div>
             <Text size="sm" fw={500} mb={4}>{t('plan.edit.mark.size')}</Text>
@@ -153,13 +150,5 @@ export function PlaceMarkDialog({ kind, onClose, onCreate }: {
         </Stack>
       </form>
     </Modal>
-  )
-}
-
-function IconGlyph({ paths }: { paths: string[] }) {
-  return (
-    <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {paths.map((d, i) => <path key={i} d={d} />)}
-    </svg>
   )
 }

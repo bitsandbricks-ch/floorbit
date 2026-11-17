@@ -295,31 +295,49 @@ def _may_see_board(user):
     return not current_app.extensions['auth'].enabled or incidents.can_see_board(user)
 
 
+def _problems_tile(user):
+    from auth import roles
+    may_see_people = not current_app.extensions['auth'].enabled or bool(user and roles.can(user, 'seats.view'))
+    return core.problems_widget(_lang(), may_see_people)
+
+
+def _incidents_tile(user):
+    return core.incidents_widget(_lang()) if _may_see_board(user) else None
+
+
+def _switches_tile(user):
+    return core.switches_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].counts())
+
+
+def _seats_tile(user):
+    from .. import incidents
+    from ..store import load_data
+    from .attendee import _online
+    online, _last = _online()
+    seats = set(incidents.seat_numbers(load_data()))
+    return core.seats_widget(_lang(), None if online is None else len(online & seats), len(seats))
+
+
+def _down_tile(user):
+    return core.down_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses)
+
+
+# Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
+CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
+              'seats': _seats_tile, 'down': _down_tile}
+
+
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
 def core_widget(tile):
     refused = _allowed('floorplan.view')
     if refused:
         return refused
-    from auth import roles
-    user = _user()
-    item = {'id': tile, 'label': '', 'size': 'small', 'refresh': 30}
-    if tile == 'problems':
-        may_see_people = not current_app.extensions['auth'].enabled or bool(user and roles.can(user, 'seats.view'))
-        return jsonify(check_widget(core.problems_widget(_lang(), may_see_people), item))
-    if tile == 'incidents' and _may_see_board(user):
-        return jsonify(check_widget(core.incidents_widget(_lang()), item))
-    if tile == 'switches':
-        counts = current_app.extensions['floorbit_integrations']['monitor'].counts()
-        return jsonify(check_widget(core.switches_widget(_lang(), counts), item))
-    if tile == 'seats':
-        from .. import incidents
-        from ..store import load_data
-        from .attendee import _online
-        online, _last = _online()
-        seats = set(incidents.seat_numbers(load_data()))
-        return jsonify(check_widget(core.seats_widget(_lang(), None if online is None else len(online & seats),
-                                                      len(seats)), item))
-    return _error('No such widget', 404)
+    build = CORE_TILES.get(tile)
+    widget = build(_user()) if build else None
+    if widget is None:
+        return _error('No such widget', 404)
+    spec = core.TILES[tile]
+    return jsonify(check_widget(widget, {'id': tile, 'label': '', 'size': spec['size'], 'refresh': spec['refresh']}))
 
 
 # Saved layouts (issue #103): which tiles a screen shows, in which order (floorbit/dashboard_layouts.py).

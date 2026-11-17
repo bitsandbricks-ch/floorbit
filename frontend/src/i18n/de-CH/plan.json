@@ -321,7 +321,9 @@
   },
   "modes": {
     "kiosk": "Kiosk",
-    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm"
+    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm",
+    "dashboards": "Dashboards",
+    "dashboardsHint": "Dashboards für grosse Bildschirme: der Plan, Widgets und andere Seiten auf einem Raster"
   },
   "edit": {
     "title": "Bearbeiten",
@@ -489,6 +491,8 @@
       "create_other": "{{count}} Blöcke erstellen"
     },
     "mark": {
+      "builtIn": "Eingebaut",
+      "uploaded": "Hochgeladen",
       "textTitle": "Neue Beschriftung",
       "iconTitle": "Neues Symbol",
       "icon": "Symbol",

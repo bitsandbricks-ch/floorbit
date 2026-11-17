@@ -208,14 +208,19 @@ def fake_agent(test_client, key, stop, seen):
 
 def test_actions_go_to_the_agent_after_the_role_check(client, app_module, hallthing):
     from tests.test_rbac import sign_in_as
-    key = enrol(client)["key"]
+    made = enrol(client)
     client.put("/api/settings/plugins/hallthing", json={"enabled": True})
     lead = sign_in_as(app_module, "le1", "lead")
     assert lead.post("/api/plugins/hallthing/actions/clear", json={}).status_code == 403
     stop, seen = threading.Event(), []
-    t = threading.Thread(target=fake_agent, args=(app_module.app.test_client(), key, stop, seen), daemon=True)
+    t = threading.Thread(target=fake_agent, args=(app_module.app.test_client(), made["key"], stop, seen), daemon=True)
     t.start()
     try:
+        # An action goes only to connected agents, so let the fake one poll first (on a slow runner
+        # the action was sent before it had, and found no agent).
+        deadline = time.time() + 5
+        while made["id"] not in agent_link.tunnel.connected_agents() and time.time() < deadline:
+            time.sleep(0.01)
         res = client.post("/api/plugins/hallthing/actions/clear", json={})
         assert res.status_code == 200, res.data
         answers = res.get_json()["data"]["answers"]

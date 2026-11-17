@@ -40,6 +40,7 @@ from . import (
                logs,
                marketplace,
                metrics,
+               nav_sections,
                network,
                notice,
                options,
@@ -94,4 +95,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        credentials.bp, wifi.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
        runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp,
-       lancache.bp, marketplace.bp, dashboards.bp]
+       lancache.bp, marketplace.bp, dashboards.bp, nav_sections.bp]

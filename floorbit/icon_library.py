@@ -1,4 +1,4 @@
-"""The shared icon library: SVG icons admins upload for inventory devices, groups, tags and plan items.
+"""The shared icon library: SVG icons admins upload for inventory devices, groups, tags and plan icons.
 
 An uploaded SVG is rebuilt from an allowlist, never stored as sent: only plain shapes and their
 geometry survive, so no script, event handler, link, external reference, embedded image,
@@ -10,6 +10,7 @@ Icons are stored in ``data['custom_icons']`` as ``{"id", "name", "svg", "by", "a
 ``custom-`` plus a hash of the cleaned SVG, so the same icon uploaded twice is one icon and the
 served file never changes under its id (it can be cached for good).
 """
+import base64
 import hashlib
 import re
 import time
@@ -23,6 +24,8 @@ MAX_ICONS = 300
 MAX_ELEMENTS = 2000
 NAME_MAX = 40
 ID_RE = re.compile(r'^custom-[0-9a-f]{12}$')
+# What a floor plan icon shows once its uploaded icon is removed (floorbit/plan_icons.py).
+PLAN_FALLBACK = 'info'
 
 SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -180,6 +183,18 @@ def public(icon):
             'by': icon.get('by') or '', 'at': icon.get('at')}
 
 
+def data_uri(data, icon_id):
+    """The icon as a ``data:`` URI, so a plan drawing carries it: the kiosk, the attendee pages and an
+    exported picture need no second request (and no ``floorplan.view``) to show it."""
+    icon = find(data, icon_id)
+    return None if icon is None else 'data:image/svg+xml;base64,' + base64.b64encode(icon['svg'].encode()).decode()
+
+
+def data_uris(data, ids):
+    """``{id: data URI}`` of the uploaded icons among ``ids``; removed ones are left out."""
+    return {i: u for i in sorted({i for i in ids if is_custom(i)}) if (u := data_uri(data, i))}
+
+
 def listing(data):
     return [public(i) for i in sorted(icons(data), key=lambda i: i['name'].lower())]
 
@@ -207,7 +222,8 @@ def rename(data, icon_id, name):
 
 
 def remove(data, icon_id):
-    """Removes the icon; devices, groups and tags that showed it fall back to their default.
+    """Removes the icon; devices, groups and tags that showed it fall back to their default, and
+    icons on the floor plan to the plain info icon (so they stay where they are, visible).
     Returns how many used it."""
     if find(data, icon_id) is None:
         raise IconError('No such icon', 404)
@@ -219,5 +235,10 @@ def remove(data, icon_id):
     for holder in holders:
         if isinstance(holder, dict) and holder.get('icon') == icon_id:
             holder['icon'] = ''
+            used += 1
+    from . import plan_marks
+    for mark in data.get(plan_marks.KEY) or []:
+        if isinstance(mark, dict) and mark.get('kind') == 'icon' and mark.get('icon') == icon_id:
+            mark['icon'] = PLAN_FALLBACK
             used += 1
     return used

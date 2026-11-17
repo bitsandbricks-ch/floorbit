@@ -2,7 +2,7 @@
 
 - ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``,
   ``&hall=<id>`` for the floor plan views of another hall than the first),
-  with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like ``/kiosk``.
+  with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like the Kiosk dashboard.
 - ``GET /find``: for players' phones, no account: type a seat number, see where it is in the hall.
   Finding by nick is off unless ``SEAT_FINDER_NICKS`` is on, and then only an exact nick finds a
   seat. ``SEAT_FINDER=false`` turns the page off.
@@ -16,13 +16,15 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 
 from integrations import checkin, config, seat_sources
 
-from .. import halls, plan_marks, seat_gaps, seat_layout, stacking
+from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, stacking
 from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
 from ..store import load_data
 
 bp = Blueprint('screen', __name__)
 
-VIEWS = {'floor': '/kiosk', 'heat': '/kiosk?view=heat', 'stats': '/stats?screen=1', 'health': '/health?screen=1'}
+# floor and heat show a hall: ?hall= picks which.
+VIEWS = {'floor': '/dashboards/kiosk', 'heat': '/plan?screen=1&layers=marks%2Cstatus',
+         'stats': '/stats?screen=1', 'health': '/health?screen=1'}
 DEFAULT_VIEWS = ('floor', 'heat', 'stats')
 # Block positions are percentages of the floor plan; the find page draws them on a canvas this big,
 # with seats a bit larger than the editor's so they are easy to tap and see on a phone.
@@ -128,10 +130,10 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                        'free': bool(block.get('seat_at'))})
     if not shapes:
         return None, None
-    marks, icons = _marks(data, hall_id, xs, ys, public)
+    marks, icons, custom = _marks(data, hall_id, xs, ys, public)
     box = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
     return {'shapes': shapes, 'box': ' '.join(f'{v:.0f}' for v in box), 'cell': CELL,
-            'marks': marks, 'icons': icons}, found
+            'marks': marks, 'icons': icons, 'custom_icons': custom}, found
 
 
 def _marks(data, hall_id, xs, ys, public=False):
@@ -160,7 +162,8 @@ def _marks(data, hall_id, xs, ys, public=False):
             xs += [d['x'] - CELL * 2, d['x'] + CELL * 2]
             ys += [d['y'] - CELL * 2, d['y'] + CELL * 2]
         out.append(d)
-    return out, {k: plan_marks.ICONS[k] for k in sorted(used) if k in plan_marks.ICONS}
+    return (out, {k: plan_marks.ICONS[k] for k in sorted(used) if k in plan_marks.ICONS},
+            icon_library.data_uris(data, used))
 
 
 def _by_nick(query):
@@ -232,7 +235,7 @@ def screen_page():
     urls = []
     for v in views:
         url = VIEWS[v]
-        if hall and url.startswith('/kiosk'):
+        if hall and v in ('floor', 'heat'):
             url += ('&' if '?' in url else '?') + 'hall=' + hall
         if theme:
             url += ('&' if '?' in url else '?') + 'theme=' + theme

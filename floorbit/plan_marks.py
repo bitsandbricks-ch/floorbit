@@ -4,7 +4,8 @@ lines, zones, and icons for exits, toilets, the bar and the like.
 Each mark is in one hall (``hall_id``) at ``x``/``y`` in percent of the plan, like a seat block:
 
 - ``text``: ``text``, ``size`` (s, m, l), ``rotation`` (whole degrees, 0 to 359), ``scale``;
-- ``icon``: ``icon`` (one of :data:`ICONS`), ``size``, ``rotation``, ``scale``;
+- ``icon``: ``icon`` (one of :data:`ICONS`, or an uploaded icon's id from floorbit/icon_library.py),
+  ``size``, ``rotation``, ``scale``;
 
 ``scale`` (optional, :data:`SCALE` range) stretches a label or icon beyond its size step: the editor
 sets it when someone drags the corner handle. Missing means 1.
@@ -26,7 +27,7 @@ the React app uses, so one list serves every page.
 import re
 import uuid
 
-from . import halls, stacking
+from . import halls, icon_library, stacking
 from .plan_icons import ICONS
 
 KEY = 'plan_marks'
@@ -100,7 +101,11 @@ def clean(body, old=None):
         out.update(text=text, size=_pick(m.get('size'), SIZES, 'm', 'size'), rotation=_int(m.get('rotation')) or 0)
         _scale(out, m.get('scale'))
     elif kind == 'icon':
-        out.update(icon=_pick(m.get('icon'), tuple(ICONS), None, 'icon') or _missing('icon'),
+        icon = m.get('icon')
+        # An uploaded icon (floorbit/icon_library.py) by id; one removed later is simply not drawn.
+        if not (isinstance(icon, str) and icon_library.ID_RE.match(icon)):
+            icon = _pick(icon, tuple(ICONS), None, 'icon')
+        out.update(icon=icon or _missing('icon'),
                    size=_pick(m.get('size'), SIZES, 'm', 'size'), rotation=_int(m.get('rotation')) or 0)
         _scale(out, m.get('scale'))
     elif kind == 'wall':

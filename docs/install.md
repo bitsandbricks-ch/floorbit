@@ -146,7 +146,7 @@ docker compose pull
 docker compose up -d
 ```
 
-`FLOORBIT_VERSION` in `.env` pins a release (`1.4.0`) instead of `latest` (the newest `master`).
+`FLOORBIT_VERSION` in `.env` pins a release (`1.4.0`) instead of `latest` (the newest `master` that passed CI: the image is pushed only once CI is green on that commit).
 Read the [changelog](../CHANGELOG.md) before a big jump. Your data stays in the volume.
 
 ### From an older compose file

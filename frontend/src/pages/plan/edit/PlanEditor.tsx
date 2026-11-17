@@ -55,6 +55,7 @@ import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 import { type AlignHow, type Guide, alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
+import { PlanIconSelect } from './IconSelect'
 
 /** The bends a cable has of its own, also while it is drawn straight. */
 const bendsOf = (c: PlanCable): [number, number][] => c.bends ?? c.points.slice(1, -1)
@@ -1100,7 +1101,14 @@ function ItemFields({ data, item, onChange, arranging, onArrange }: {
       </>
     )
   }
-  if (mark.kind === 'icon') return <>{size}{turn(mark.rotation ?? 0)}{tint}{layer}</>
+  if (mark.kind === 'icon') {
+    return (
+      <>
+        <PlanIconSelect value={mark.icon ?? null} onChange={(v) => v && set('icon', mark.icon ?? null, v)} />
+        {size}{turn(mark.rotation ?? 0)}{tint}{layer}
+      </>
+    )
+  }
   return (
     <>
       <div>

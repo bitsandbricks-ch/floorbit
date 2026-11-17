@@ -95,7 +95,7 @@ nav:
       - Device telemetry: telemetry.md
       - IP and MAC history: endpoints.md
       - The right-click menu: context-menu.md
-      - Kiosk view: kiosk.md
+      - Kiosk and big screens: kiosk.md
       - Floor plan: seats.md
       - Prometheus metrics: metrics.md
       - Browser notifications: notifications.md

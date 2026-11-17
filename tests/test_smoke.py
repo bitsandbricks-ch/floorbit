@@ -8,19 +8,13 @@ def test_the_classic_editor_opens_the_plans_editor(client):
     assert client.get("/editor/classic").headers["Location"] == "/plan?edit=1"
 
 
-def test_kiosk_renders(client):
-    resp = client.get("/kiosk")
-    assert resp.status_code == 200
-    assert b"/static/js/kiosk.js" in resp.data
-
-
-def test_kiosk_speaks_the_browsers_language(client):
-    """Attendees open /kiosk on their own phones: German browsers get German, with no sharp s for Swiss."""
-    swiss = client.get("/kiosk", headers={"Accept-Language": "de-CH,de;q=0.9"}).get_data(as_text=True)
-    assert '<html lang="de-CH"' in swiss and "Plätze besetzt" in swiss and "seats taken" not in swiss
-    assert '"updated_s": "vor {n} s aktualisiert"' in swiss   # kiosk.js's texts come along
-    english = client.get("/kiosk", headers={"Accept-Language": "en-GB"}).get_data(as_text=True)
-    assert '<html lang="en"' in english and "seats taken" in english
+def test_kiosk_opens_the_kiosk_dashboard(client):
+    """The old big-screen page moved into the ready-made Kiosk dashboard; screens that open /kiosk follow."""
+    assert client.get("/kiosk").headers["Location"] == "/dashboards/kiosk"
+    moved = client.get("/kiosk?hall=hall-2&theme=ops&title=x").headers["Location"]
+    assert moved == "/dashboards/kiosk?hall=hall-2&theme=ops"
+    heat = client.get("/kiosk?view=heat&hall=hall-2").headers["Location"]
+    assert heat == "/plan?screen=1&layers=marks%2Cstatus&hall=hall-2"
 
 
 def test_config_without_integrations(client):
