@@ -86,7 +86,7 @@ export interface PluginInfo {
   name: string
   version: string
   description: string
-  trust: 'builtin' | 'development' | string
+  trust: 'builtin' | 'development' | 'official' | 'community' | string
   author: string
   homepage: string
   uses: { id: string; label: string }[]

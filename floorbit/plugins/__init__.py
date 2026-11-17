@@ -11,13 +11,17 @@ Where plugins come from, and how far they are trusted:
 trust          where                                           runs
 =============  ==============================================  =========================
 builtin        ``floorbit/builtin_plugins/`` (ships with it)   inside Floorbit
+official       the Marketplace, signed with a key built into    inside Floorbit
+               this image (``floorbit/keys/plugins/``)
+community      a Marketplace source the operator added, signed  inside Floorbit
+               with a key in ``FLOORBIT_COMMUNITY_KEYS``
 development    ``FLOORBIT_DEV_PLUGINS`` (a folder of           inside Floorbit; never set
                checkouts, for writing plugins)                 it in production
 =============  ==============================================  =========================
 
-Installing other plugins (signed releases, run in a locked-down process of their own) comes in a
-later step; until then no outside code runs. Every plugin starts switched off; an admin turns it on
-under Settings > Plugins. See docs/plugins.md.
+Nothing unsigned is ever installed: an admin picks from signed indexes, and only the server's
+operator can trust a key (floorbit/marketplace.py, docs/marketplace.md). Every plugin starts
+switched off; an admin turns it on under Settings > Plugins. See docs/plugins.md.
 """
 from __future__ import annotations
 
@@ -382,6 +386,26 @@ class Registry:
                     spec.id = f'{spec.id}@{sub.name}'
                 self.specs[spec.id] = spec
         self._register_settings()
+
+    # Marketplace plugins (floorbit/marketplace.py) come and go while Floorbit runs --------
+    def add(self, path, trust):
+        """Load one plugin folder, replacing an installed one with the same id. Returns its Spec."""
+        spec = _load(Path(path), trust, self.version)
+        if spec is None:
+            spec = Spec(id=Path(path).name, path=Path(path), trust=trust, error='plugin.yaml is missing')
+        cur = self.specs.get(spec.id)
+        if cur is not None and cur.trust in ('builtin', 'development'):
+            spec.error = f'a plugin with id {spec.id} ships with this Floorbit'
+            return spec
+        self.specs[spec.id] = spec
+        self._register_settings()
+        return spec
+
+    def drop(self, plugin_id):
+        """Forget an installed plugin (its settings and state stay, for a later install)."""
+        spec = self.specs.get(plugin_id)
+        if spec is not None and spec.trust not in ('builtin', 'development'):
+            del self.specs[plugin_id]
 
     # settings ------------------------------------------------------------------------------
     def _register_settings(self):

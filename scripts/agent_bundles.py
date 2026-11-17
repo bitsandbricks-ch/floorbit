@@ -30,7 +30,7 @@ def keygen(args):
     key.write_bytes(pem)
     pubfile.write_text(pub)
     print(f'{key} (private: into the plugin-signing environment, nowhere else), {pubfile} '
-          f'(public: into floorbit/keys/agent-plugins/), key id {bundles.key_id(bundles.load_public(pub))}')
+          f'(public: into floorbit/keys/plugins/), key id {bundles.key_id(bundles.load_public(pub))}')
 
 
 def build(args):
@@ -91,7 +91,7 @@ def main():
     b.add_argument('--key', required=True)
     b.add_argument('--out', default='agent-bundles')
     b.add_argument('--version')
-    b.add_argument('--keys', help='folder of pinned public keys (default: floorbit/keys/agent-plugins)')
+    b.add_argument('--keys', help='folder of pinned public keys (default: floorbit/keys/plugins)')
     v = sub.add_parser('verify')
     v.add_argument('folder')
     v.add_argument('--keys')

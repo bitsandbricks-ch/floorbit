@@ -35,7 +35,7 @@ image. The release workflow signs every built-in plugin with a key that only its
 and the hosted Floorbit's image carries the signed bundles. The hosted side offers each agent the
 bundles of the plugins it runs, and the agent installs one only when:
 
-- it verifies against a public key built into the agent's image (`floorbit/keys/agent-plugins/`).
+- it verifies against a public key built into the agent's image (`floorbit/keys/plugins/`).
   The hosted Floorbit holds no key, so a stolen hosted login can't make a bundle an agent takes;
 - it is newer than what the agent runs: never a downgrade, not even when the hosted side goes back
   to an older release;
@@ -59,7 +59,7 @@ A bundle holds the plugin's own files only. A plugin that needs a newer agent co
 agent's image is updated.
 
 For the maintainer: `python scripts/agent_bundles.py keygen` makes the key pair. The public key goes
-into `floorbit/keys/agent-plugins/` (and from there into the next agent image), the private key into
+into `floorbit/keys/plugins/` (and from there into the next agent image), the private key into
 the `FLOORBIT_PLUGIN_SIGNING_KEY` secret of the `plugin-signing` environment. Until both are there,
 releases have no bundles and agents keep their image's plugins.
 

@@ -10,6 +10,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
+import Marketplace from './plugins/Marketplace'
 
 type Result = { ok: boolean; text: string } | null
 
@@ -48,7 +49,7 @@ export function PluginCard({ plugin }: { plugin: PluginInfo }) {
     onError: (e) => done(false, e.message),
   })
   const busy = toggle.isPending || test.isPending || action.isPending
-  const trust = plugin.trust === 'builtin' || plugin.trust === 'development' ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
+  const trust = ['builtin', 'development', 'official', 'community'].includes(plugin.trust) ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
 
   return (
     <Paper withBorder radius="lg" p="lg" component="section" id={`pl-${plugin.id}`}>
@@ -62,7 +63,7 @@ export function PluginCard({ plugin }: { plugin: PluginInfo }) {
               v{plugin.version}
             </Text>
           )}
-          <Badge variant="light" color={plugin.trust === 'builtin' ? 'bit' : 'warn'}>
+          <Badge variant="light" color={plugin.trust === 'builtin' || plugin.trust === 'official' ? 'bit' : 'warn'}>
             {trust}
           </Badge>
           <Switch
@@ -145,6 +146,9 @@ export default function Plugins() {
           {data.plugins.length ? data.plugins.map((p) => <PluginCard key={p.id} plugin={p} />) : <Text>{t('plugins.none')}</Text>}
         </Stack>
       )}
+      <Paper withBorder radius="lg" p="lg" mt="xl">
+        <Marketplace />
+      </Paper>
     </Layout>
   )
 }

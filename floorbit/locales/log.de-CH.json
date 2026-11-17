@@ -261,5 +261,9 @@
   "{}: refused plugin {} {} ({})": "{}: Plugin {} {} abgelehnt ({})",
   "Made a new key for a local agent": "Neuen Schlüssel für einen lokalen Agent erstellt",
   "Renamed a local agent: {}": "Lokalen Agent umbenannt: {}",
-  "Set the plugins a local agent leaves off: {}": "Plugins gesetzt, die ein lokaler Agent auslässt: {}"
+  "Set the plugins a local agent leaves off: {}": "Plugins gesetzt, die ein lokaler Agent auslässt: {}",
+  "Installed plugin {} {}": "Plugin {} {} installiert",
+  "Removed plugin {} {}": "Plugin {} {} entfernt",
+  "Rolled back plugin {} from {} to {}": "Plugin {} von {} auf {} zurückgesetzt",
+  "Updated plugin {} from {} to {}": "Plugin {} von {} auf {} aktualisiert"
 }

@@ -116,19 +116,26 @@ def bundles_index():
 
 
 def bundles_offer(plugin_ids):
-    """The bundles of the plugins the agents run, for ``config()``."""
+    """The bundles of the plugins the agents run, for ``config()``: the image's, and the official
+    plugins installed from the Marketplace (floorbit/marketplace.py), the newer one where both are."""
+    from . import marketplace
+    from .plugins.bundles import newer
     index = bundles_index()
+    for pid, entry in marketplace.agent_bundles().items():
+        if pid not in index or newer(entry['version'], index[pid]['version']):
+            index[pid] = entry
     return {pid: index[pid] for pid in sorted(plugin_ids) if pid in index}
 
 
 def bundle_file(name):
-    """The path of a bundle listed in the index, or None."""
+    """The path of a bundle listed in the image's index or installed from the Marketplace, or None."""
+    from . import marketplace
     if not BUNDLE_NAME_RE.match(str(name)):
         return None
-    if name not in {e['file'] for e in bundles_index().values()}:
-        return None
-    path = bundles_dir() / name
-    return path if path.is_file() else None
+    if name in {e['file'] for e in bundles_index().values()}:
+        path = bundles_dir() / name
+        return path if path.is_file() else None
+    return marketplace.archive_file(name)
 
 
 def local_config(registry=None):

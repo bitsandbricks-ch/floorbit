@@ -480,6 +480,19 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
 
+## floorbit.blueprints.marketplace
+
+The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: that is the operator's, where the server runs.
+
+Source: [`floorbit/blueprints/marketplace.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/marketplace.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/marketplace` | `settings.manage` |  |
+| DELETE | `/api/settings/marketplace/<plugin_id>` | `settings.manage` |  |
+| POST | `/api/settings/marketplace/<plugin_id>` | `settings.manage` |  |
+| POST | `/api/settings/marketplace/<plugin_id>/rollback` | `settings.manage` |  |
+
 ## floorbit.blueprints.metrics
 
 Prometheus metrics (issue #153). The counts live in floorbit/metrics.py; docs in docs/metrics.md.

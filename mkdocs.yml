@@ -110,6 +110,7 @@ nav:
       - Past events: events.md
   - Extend:
       - Plugins: plugins.md
+      - Marketplace: marketplace.md
       - Integrations: integrations.md
       - Local agent (hosted): agent.md
       - Agent plugins: agent-plugins.md

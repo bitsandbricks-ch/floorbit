@@ -9,7 +9,7 @@ plugin.yaml:
 
 The release workflow signs them with a key that only its signing job sees; the hosted Floorbit
 merely hands them on. An agent installs one only when it verifies against a public key built into
-its image (floorbit/keys/agent-plugins/), is newer than what it runs, and needs no newer agent. So a
+its image (floorbit/keys/plugins/), is newer than what it runs, and needs no newer agent. So a
 stolen hosted login can at most offer a bundle Floorbit's release already signed.
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ from .base import PluginError
 
 SIGFILE = 'SIGNATURE.json'
 INDEX = 'index.json'
-KEYS_DIR = Path(__file__).resolve().parent.parent / 'keys' / 'agent-plugins'
+KEYS_DIR = Path(__file__).resolve().parent.parent / 'keys' / 'plugins'
 SKIP = {'__pycache__', '.git', '.pytest_cache'}
 MAX_BUNDLE = 8 * 1024 * 1024     # packed; a plugin is a few files of Python and YAML
 MAX_FILES = 200
@@ -204,3 +204,38 @@ def unpack(data: bytes, dest: Path) -> None:
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+# the Marketplace's index -------------------------------------------------------------------------
+INDEX_KEYS_DIR = KEYS_DIR.parent / 'index'
+INDEX_FIELDS = ('name', 'description', 'generated', 'key_id', 'plugins')
+
+
+def _index_payload(doc: dict) -> bytes:
+    return json.dumps({k: doc.get(k) for k in INDEX_FIELDS}, sort_keys=True, separators=(',', ':')).encode()
+
+
+def sign_index(doc: dict, private_pem: bytes) -> dict:
+    """Add key_id and signature to a Marketplace index (floorbit-plugins' publish workflow)."""
+    serialization, priv_cls, _ = _crypto()
+    key = serialization.load_pem_private_key(private_pem, password=None)
+    if not isinstance(key, priv_cls):
+        raise ValueError('not an Ed25519 private key')
+    doc = {**doc, 'key_id': key_id(key.public_key())}
+    doc['signature'] = base64.b64encode(key.sign(_index_payload(doc))).decode()
+    return doc
+
+
+def verify_index(doc, keys: dict) -> dict:
+    """The index when one of ``keys`` signed it; else BundleError."""
+    from cryptography.exceptions import InvalidSignature
+    if not isinstance(doc, dict) or not doc.get('signature') or not isinstance(doc.get('plugins'), list):
+        raise BundleError('the index is not signed')
+    pub = keys.get(str(doc.get('key_id')))
+    if pub is None:
+        raise BundleError(f"the index is signed with key {doc.get('key_id')}, which this Floorbit does not trust")
+    try:
+        pub.verify(base64.b64decode(doc['signature']), _index_payload(doc))
+    except (InvalidSignature, ValueError, TypeError):
+        raise BundleError('bad index signature') from None
+    return doc
