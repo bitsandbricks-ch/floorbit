@@ -1106,5 +1106,9 @@
  "The sidebar has room for {} sections of your own.": "Die Seitenleiste hat Platz für {} eigene Bereiche.",
  "Each section is a JSON object.": "Jeder Bereich ist ein JSON-Objekt.",
  "Every section needs a name.": "Jeder Bereich braucht einen Namen.",
- "A section holds up to {} links.": "Ein Bereich hat höchstens {} Links."
+ "A section holds up to {} links.": "Ein Bereich hat höchstens {} Links.",
+ "No local agent that reaches {} is connected.": "Kein lokaler Agent, der {} erreicht, ist verbunden.",
+ "The connection to the switch was lost ({}).": "Die Verbindung zum Switch ist abgebrochen ({}).",
+ "The local agent answered the switch call wrongly.": "Der lokale Agent hat auf den Switch-Aufruf falsch geantwortet.",
+ "The local agent answered the terminal call wrongly.": "Der lokale Agent hat auf den Terminal-Aufruf falsch geantwortet."
 }

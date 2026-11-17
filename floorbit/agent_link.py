@@ -44,11 +44,13 @@ TOUCH_EVERY = 30         # seconds between "last seen" writes to data.json
 INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it longer, under proxy timeouts
 # What the agent may be asked: the monitoring source's methods (floorbit/sources), the feeds of
 # its plugins (NetBox and others), the game servers' query and RCON (floorbit/game_query.py) and the
-# services' DNS and TCP probes (floorbit/probes.py).
+# services' DNS and TCP probes (floorbit/probes.py), and switch SSH: port actions, commands and the
+# terminal (floorbit/switch_link.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
            'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
-           'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload')
+           'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
+           'switch_call', 'shell_open', 'shell_io', 'shell_close')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -178,6 +180,21 @@ def ask(method, args=()):
             return tunnel.call(method, args)
         return tunnel.call(method, args, targets={a for a in everyone if a not in scoped or hall in scoped[a]})
     return _ask_all(method, args, everyone)
+
+
+def agent_for(hostname):
+    """The one connected agent that should talk to this switch: one serving its hall, else any.
+    For calls that hold something open on the agent (an SSH shell) or must not run twice (a port
+    bounce), where ``ask()`` would ask every agent. Raises AgentUnavailable."""
+    scoped, everyone, by_name = _routing()
+    connected = tunnel.connected_agents() & set(everyone)
+    if scoped:
+        hall = _hall_of(by_name, hostname)
+        if hall is not None:
+            connected = {a for a in connected if a not in scoped or hall in scoped[a]}
+    if not connected:
+        raise AgentUnavailable(f'No local agent that reaches {hostname} is connected.')
+    return sorted(connected)[0]
 
 
 def _ask_all(method, args, everyone):

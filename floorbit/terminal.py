@@ -19,7 +19,7 @@ import time
 
 from integrations import config
 
-from . import audit, credentials, ports
+from . import audit, credentials, ports, switch_link
 from .plugins import PluginError
 from .store import load_data
 
@@ -107,7 +107,11 @@ class Session:
             raise TerminalError('Bad input.')
         self.last_input = time.time()
         self._record(data)
-        self.shell.send(data)
+        try:
+            self.shell.send(data)
+        except Exception as exc:  # noqa: BLE001 - the switch or the agent's link went away
+            self.end('The connection to the switch was lost.')
+            raise TerminalError(f'The connection to the switch was lost ({type(exc).__name__}).', 410) from None
 
     def _record(self, data):
         """Collect the typed line and send it to the audit log on Enter."""
@@ -175,7 +179,7 @@ def open_session(registry, account, body):
     cols = min(max(int(body.get('cols') or 120), 40), 300)
     rows = min(max(int(body.get('rows') or 32), 10), 120)
     try:
-        shell = registry.call(spec, 'open_shell', {'switch': dev['name'], 'host': dev['mgmt_ip'], 'login': login,
+        shell = switch_link.open_shell(registry, spec, {'switch': dev['name'], 'host': dev['mgmt_ip'], 'login': login,
                                                    'cols': cols, 'rows': rows})
     except PluginError as exc:
         if needs_login and not stored and 'login' in str(exc).lower():

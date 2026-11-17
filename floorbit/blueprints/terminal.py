@@ -11,6 +11,7 @@ Needs ``terminal.open`` (admin and lead by default). A session belongs to the ac
 from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import commands, spa, terminal
+from ..plugins import PluginError
 
 bp = Blueprint('terminal', __name__)
 
@@ -88,6 +89,8 @@ def resize(sid):
         return _error(exc)
     except (TypeError, ValueError):
         return jsonify({'error': 'cols and rows are numbers.'}), 400
+    except PluginError as exc:      # the agent holding the shell didn't answer: the page keeps the old size
+        return jsonify({'error': str(exc)}), 502
     return jsonify({'ok': True})
 
 
