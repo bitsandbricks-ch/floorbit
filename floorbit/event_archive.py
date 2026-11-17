@@ -32,7 +32,7 @@ class ArchiveError(ValueError):
 
 
 def folder():
-    return os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), FOLDER)
+    return store.tenant_path(FOLDER)
 
 
 def _path(event_id):

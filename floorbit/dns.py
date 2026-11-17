@@ -108,7 +108,7 @@ class DnsStats:
 
     # ── storage ──────────────────────────────────────────────────────────────
     def _file(self):
-        return self.path or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), FILE)
+        return self.path or store.event_path(FILE)
 
     def _load(self):
         """Read what was counted before. While the database is away this stays undone, and

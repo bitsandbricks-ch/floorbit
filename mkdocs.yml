@@ -52,6 +52,7 @@ nav:
       - Install with Docker Compose: install.md
       - Install on Kubernetes or k3s: kubernetes.md
       - Database (SQLite, Postgres): database.md
+      - Tenants and events: tenancy.md
       - Sign-in, roles and teams: auth.md
       - Inventory (NetBox): inventory.md
       - Halls and floor plan import: halls.md

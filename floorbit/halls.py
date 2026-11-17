@@ -133,7 +133,7 @@ def public(data, hall):
 # ── Background images ─────────────────────────────────────────────────────────────────────
 
 def _folder():
-    return os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'halls')
+    return store.event_path('halls')
 
 
 def _path(hall):

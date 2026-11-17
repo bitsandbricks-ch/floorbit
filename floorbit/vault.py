@@ -46,8 +46,8 @@ def _key_id(key):
 
 
 def default_key_file():
-    from .database import state_root
-    return os.path.join(state_root(), 'secret.key')
+    from . import store  # a tenant's secrets are its own, under its own key
+    return store.tenant_path('secret.key')
 
 
 def current_key():
@@ -58,6 +58,7 @@ def current_key():
     path = default_key_file()
     with _lock:
         if not os.path.exists(path):
+            os.makedirs(os.path.dirname(path) or '.', exist_ok=True)   # a hosted tenant's folder may be new
             fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, 'wb') as f:
                 f.write(base64.b64encode(secrets.token_bytes(32)) + b'\n')
