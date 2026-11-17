@@ -148,4 +148,23 @@ describe('skip link', () => {
       page.remove()
     }
   })
+
+  it('shows the sections admins made, opens the one with the page on screen, and opens addresses in a new tab', () => {
+    const custom = [{
+      id: 'main-hall', name: 'Main hall', icon: 'star', links: [
+        { kind: 'dashboard' as const, href: '/dashboards/wall', label: 'Hall wall' },
+        { kind: 'page' as const, href: '/stats', page: 'stats', label: 'Stats', own: false },
+        { kind: 'url' as const, href: 'https://example.com/grafana', label: 'Grafana', external: true },
+      ],
+    }]
+    render(<Sidebar boot={{ ...boot, custom }} path="/dashboards/wall" renderLink={link} onGoTo={() => {}} />)
+    const head = within(main()).getByRole('button', { name: 'Main hall' })
+    expect(head).toHaveAttribute('aria-expanded', 'true')
+    expect(within(main()).getByRole('link', { name: 'Hall wall' })).toHaveAttribute('aria-current', 'page')
+    const out = within(main()).getByRole('link', { name: 'Grafana' })
+    expect(out).toHaveAttribute('target', '_blank')
+    expect(out).toHaveAttribute('rel', 'noopener noreferrer')
+    // The page link keeps its built-in section too.
+    expect(within(main()).getByRole('button', { name: 'Network' })).toHaveAttribute('aria-expanded', 'false')
+  })
 })

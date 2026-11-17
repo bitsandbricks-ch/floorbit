@@ -173,3 +173,23 @@ def test_the_first_paint_lists_the_favourites_first(app_module, shell, monkeypat
 def test_only_a_signed_in_account_keeps_sidebar_settings(anon_client):
     assert anon_client.get("/api/auth/me/nav").status_code == 400
     assert anon_client.put("/api/auth/me/nav", json={"favourites": ["problems"]}).status_code == 401
+
+
+def test_the_first_paint_has_the_admins_own_sections(client, shell, monkeypatch):
+    client.put("/api/settings/sidebar", json={"sections": [
+        {"name": "<i>Hall</i>", "icon": "star", "links": [
+            {"kind": "url", "href": "/editor/classic", "label": "Classic"},
+            {"kind": "url", "href": "https://example.com", "label": "Out"}]}]})
+    # A build from before these sections has no icons for them: they wait for the script.
+    old = client.get("/editor/classic").get_data(as_text=True)
+    assert "Hall" not in old[old.index('<nav class="fb-nav"'):old.index('<nav class="fb-tabbar"')]
+    monkeypatch.setitem(shell["icons"], "custom", {"star": "<svg class=star></svg>", "folder": "<svg></svg>"})
+    monkeypatch.setitem(shell["icons"], "link", {"dashboard": "<svg></svg>", "url": "<svg class=url></svg>",
+                                                 "external": "<svg class=out></svg>"})
+    html = client.get("/editor/classic").get_data(as_text=True)
+    first = html[html.index('<nav class="fb-nav"'):html.index('<nav class="fb-tabbar"')]
+    assert "&lt;i&gt;Hall&lt;/i&gt;" in first and "<i>Hall</i>" not in first
+    # The page on screen is in it, so it is open with that row lit.
+    assert 'aria-expanded="true"><svg class=star></svg>' in first
+    assert '<a href="/editor/classic" class="fb-nav-row" aria-current="page">' in first
+    assert 'href="https://example.com" class="fb-nav-row" target="_blank" rel="noopener noreferrer"' in first

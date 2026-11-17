@@ -21,6 +21,22 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
 - Your name at the bottom opens the account menu: language, folding sections, light or dark theme, notifications,
   the crew notice (leads) and **Sign out**.
 
+## Your own sections
+
+Admins add sections of their own under **Settings > Sidebar sections** (`/settings/sidebar`): a
+name, an icon and links. A link opens a dashboard, one of Floorbit's pages, or an address of its
+own (a path on this server such as `/plan?seat=A-1`, or `https://...`, which opens in a new tab).
+Every link can have its own name; without one it shows the dashboard's or the page's name.
+
+They sit under the pinned pages, above Floorbit's sections, in the order the admin put them, and
+fold like the others. Everyone sees only the links they may open: a page their role can't open or a
+dashboard that was removed is left out, and a section with nothing left is hidden. A saved change
+shows in every open sidebar without a reload.
+
+The sections are kept in `data.json` under `nav_sections` (`floorbit/nav_sections.py`).
+`GET` and `PUT /api/settings/sidebar` read and replace all of them (admins only); everyone else
+gets their own view with the page list (`custom` in `GET /api/pages`).
+
 The sidebar lists only the pages this account may open and the features that are on, the same
 list as **Go to** (`GET /api/pages`). A page Floorbit doesn't sort into a section yet shows under
 **More**.

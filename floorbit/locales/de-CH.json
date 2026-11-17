@@ -1077,5 +1077,16 @@
  "{} {}: not a version Floorbit can install": "{} {}: keine Version, die Floorbit installieren kann",
  "{} {}: the download does not match the index": "{} {}: der Download passt nicht zum Index",
  "{}: signed with a key this source may not use": "{}: mit einem Schlüssel signiert, den diese Quelle nicht verwenden darf",
- "{}: the index points outside HTTPS": "{}: der Index zeigt auf eine Adresse ohne HTTPS"
+ "{}: the index points outside HTTPS": "{}: der Index zeigt auf eine Adresse ohne HTTPS",
+ "A link goes to a path on this server (/plan) or a web address (https://example.com).": "Ein Link führt zu einem Pfad auf diesem Server (/plan) oder zu einer Webadresse (https://example.com).",
+ "Each link is a JSON object.": "Jeder Link ist ein JSON-Objekt.",
+ "A link goes to a dashboard, a page or an address.": "Ein Link führt zu einem Dashboard, einer Seite oder einer Adresse.",
+ "Pick the dashboard the link opens.": "Wähle das Dashboard, das der Link öffnet.",
+ "Pick the page the link opens.": "Wähle die Seite, die der Link öffnet.",
+ "A link to an address needs a name.": "Ein Link zu einer Adresse braucht einen Namen.",
+ "Send {\"sections\": [...]}.": "Sende {\"sections\": [...]}.",
+ "The sidebar has room for {} sections of your own.": "Die Seitenleiste hat Platz für {} eigene Bereiche.",
+ "Each section is a JSON object.": "Jeder Bereich ist ein JSON-Objekt.",
+ "Every section needs a name.": "Jeder Bereich braucht einen Namen.",
+ "A section holds up to {} links.": "Ein Bereich hat höchstens {} Links."
 }

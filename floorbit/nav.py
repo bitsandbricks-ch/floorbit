@@ -12,7 +12,7 @@ from flask import current_app, request
 from jinja2 import pass_context
 from markupsafe import Markup, escape
 
-from . import page_index, spa
+from . import nav_sections, page_index, spa
 
 COOKIE = 'floorbit_nav'
 LANG_COOKIE = 'floorbit_lang'
@@ -26,8 +26,10 @@ def boot(ctx):
     account = None
     if user:
         account = {'name': user.get('display_name') or user.get('username'), 'username': user.get('username')}
+    pages = page_index.for_context(ctx)
     return {
-        'pages': page_index.for_context(ctx),
+        'pages': pages,
+        'custom': nav_sections.for_pages(pages),
         'brand': {'logo': theme.get('logo_url') or None, 'name': theme.get('name') or None},
         'user': account,
         'signOut': bool(ctx.get('auth_enabled')),
@@ -124,14 +126,17 @@ def markup(boot):
     icons = shell['icons']
     pages = boot.get('pages') or []
     rail = state() == 'rail'
-    lit = active_href(pages, request.path)
+    # Older builds have no icons for the admins' own sections: those then show once the script runs.
+    custom = (boot.get('custom') or []) if 'custom' in icons else []
+    lit = active_href(pages + [link for c in custom for link in c['links']], request.path)
     by_id = {p['id']: p for p in pages}
     known = set(shell['pinned']) | {i for s in shell['sections'] for i in s['pages']}
     pinned = [by_id[i] for i in shell['pinned'] if i in by_id]
     sections = [(s['id'], [by_id[i] for i in s['pages'] if i in by_id]) for s in shell['sections']]
     sections.append(('more', [p for p in pages if p['id'] not in known]))
     sections = [(sid, ps) for sid, ps in sections if ps]
-    lit_section = next((sid for sid, ps in sections if any(p['href'] == lit for p in ps)), None)
+    lit_section = next((f"c:{c['id']}" for c in custom if any(x['href'] == lit for x in c['links'])), None) \
+        or next((sid for sid, ps in sections if any(p['href'] == lit for p in ps)), None)
     e = escape
 
     def label(p):
@@ -169,6 +174,32 @@ def markup(boot):
         out.append(f'<div class="fb-nav-favs">{head}<ul class="fb-nav-list" aria-label="{e(nav_t["favourites"])}">'
                    + ''.join(row(p) for p in favs) + '</ul></div>')
     out.append('<ul class="fb-nav-list">' + ''.join(row(p) for p in pinned) + '</ul>')
+
+    def custom_row(x):
+        cur = ' aria-current="page"' if x['href'] == lit else ''
+        text = x['label'] if x.get('own', True) or x['kind'] != 'page' else page_t.get(x['page']) or x['label']
+        title = f' title="{e(text)}"' if rail else ''
+        if x['kind'] == 'page':
+            icon = icons['page'].get(x['page']) or icons['page']['*']
+        else:
+            icon = icons['link']['external' if x.get('external') else x['kind']]
+        extra = ' target="_blank" rel="noopener noreferrer"' if x.get('external') else ''
+        return (f'<li class="fb-nav-item"><a href="{e(x["href"])}" class="fb-nav-row"{title}{cur}{extra}>{icon}'
+                f'<span class="fb-nav-text">{e(text)}</span></a></li>')
+
+    for c in custom:
+        sid = f"c:{c['id']}"
+        expanded = not rail and sid == lit_section
+        title = f' title="{e(c["name"])}"' if rail else ''
+        lit_attr = ' data-lit="true"' if sid == lit_section else ''
+        out.append(f'<div class="fb-nav-section fb-nav-custom"{lit_attr}>'
+                   f'<button type="button" class="fb-nav-row fb-nav-section-head" '
+                   f'aria-expanded="{"true" if expanded else "false"}"{title}>'
+                   f'{icons["custom"].get(c["icon"]) or icons["custom"]["folder"]}'
+                   f'<span class="fb-nav-text">{e(c["name"])}</span>{icons["chevron"]}</button>')
+        if expanded:
+            out.append('<ul class="fb-nav-list fb-nav-sub">' + ''.join(custom_row(x) for x in c['links']) + '</ul>')
+        out.append('</div>')
     for sid, ps in sections:
         name = nav_t['sections'].get(sid, sid)
         expanded = not rail and sid == lit_section

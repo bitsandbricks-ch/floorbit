@@ -592,6 +592,17 @@ Source: [`floorbit/blueprints/metrics.py`](https://github.com/bitsandbricks-ch/f
 | --- | --- | --- | --- |
 | GET | `/api/metrics` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.nav_sections
+
+Sidebar sections of your own (floorbit/nav_sections.py, docs/navigation.md).
+
+Source: [`floorbit/blueprints/nav_sections.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/nav_sections.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/sidebar` | `settings.manage` |  |
+| PUT | `/api/settings/sidebar` | `settings.manage` |  |
+
 ## floorbit.blueprints.network
 
 Live network data: switch status, IP to switch port, the seat mapping and the seat heatmap.
