@@ -406,6 +406,13 @@
     "label": "Beschriftung",
     "tools": "Werkzeuge",
     "quick": "Auswahl",
+    "wall": {
+      "help": "Die Quadrate an den Enden verschieben die Enden, die Punkte in der Mitte einer Strecke knicken die Wand, ein Doppelklick auf einen Knick nimmt ihn weg. Enden rasten an anderen Wänden ein; Shift hält 15°-Schritte, Alt löst vom Raster.",
+      "straighten_one": "Begradigen ({{count}} Knick entfernen)",
+      "straighten_other": "Begradigen ({{count}} Knicke entfernen)",
+      "addBend": "Ziehen knickt die Wand hier",
+      "bend": "Knick: ziehen verschiebt, Doppelklick entfernt ihn"
+    },
     "tool": {
       "select": "Auswählen",
       "hand": "Hand",

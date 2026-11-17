@@ -30,7 +30,7 @@ import { shapeBody } from './reshape'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
-import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, outlineOf, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
+import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, outlineOf, refKey, sameRef, seatAt, snappedDelta, toPct, wallCorners } from './geometry'
 import { type CableEnds, type CableLook, CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
@@ -681,6 +681,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
+  // From the saved plan, not the one drawn while dragging: the handles start over once a change is
+  // saved (a wall's new bend is a new handle), but not mid-drag, which would drop the pointer.
+  const handlesKey = (id: string) => { const m = data.drawing?.marks?.find((x) => x.id === id); return m ? `${id}:${JSON.stringify([m.x, m.y, m.x2, m.y2, m.points])}` : id }
   const reshaped = (m: PlanMark) => {
     const was = data.drawing?.marks?.find((x) => x.id === m.id)
     setShaping({ mark: m, data, done: true })
@@ -711,7 +714,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
           {oneMark && markBox && tool === 'select' && !drag && (
-            <MarkHandles key={oneMark.id} ctx={ctx} mark={oneMark} corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size}
+            <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}
+              corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
+              anchors={oneMark.kind === 'wall' ? wallCorners(data, oneMark.id) : undefined}
               onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
           )}
           {oneCable && tool === 'select' && (
@@ -952,6 +957,12 @@ function ItemFields({ data, item, onChange }: {
         <SegmentedControl fullWidth value={mark.style ?? 'solid'} onChange={(v) => set('style', mark.style ?? 'solid', v)}
           data={[{ value: 'solid', label: t('plan.edit.styles.solid') }, { value: 'dashed', label: t('plan.edit.styles.dashed') }]} />
       </div>
+      <Text size="xs" c="dimmed">{t('plan.edit.wall.help')}</Text>
+      {!!mark.points?.length && (
+        <Button size="xs" variant="default" onClick={() => void onChange(item, { points: shapeBody(mark, data.size).points }, { points: [] })}>
+          {t('plan.edit.wall.straighten', { count: mark.points.length })}
+        </Button>
+      )}
       {layer}
     </>
   )

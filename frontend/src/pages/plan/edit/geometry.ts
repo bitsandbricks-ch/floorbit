@@ -56,9 +56,22 @@ export function snappedDelta(data: SeatViewData, lead: ItemRef, raw: Point, snap
 const shift = <T extends Point>(p: T, d: Point): T => ({ ...p, x: p.x + d.x, y: p.y + d.y })
 function shiftMark(m: PlanMark, d: Point): PlanMark {
   const out = shift(m, d)
-  if (m.kind === 'wall' && m.x2 !== undefined && m.y2 !== undefined) return { ...out, x2: m.x2 + d.x, y2: m.y2 + d.y }
+  if (m.kind === 'wall' && m.x2 !== undefined && m.y2 !== undefined) {
+    const points = m.points?.map(([x, y]) => [x + d.x, y + d.y] as [number, number])
+    return { ...out, x2: m.x2 + d.x, y2: m.y2 + d.y, ...(points ? { points } : {}) }
+  }
   return out
 }
+
+/** A wall's corners from one end to the other: its start, its bends, its end (drawing units). */
+export const wallRoute = (m: PlanMark): Point[] =>
+  [{ x: m.x, y: m.y }, ...(m.points ?? []).map(([x, y]) => ({ x, y })), { x: m.x2 ?? m.x, y: m.y2 ?? m.y }]
+
+export const wallPath = (m: PlanMark) => wallRoute(m).map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ')
+
+/** Every wall's ends and bends, but ``except``'s: where another wall's end snaps to. */
+export const wallCorners = (data: SeatViewData, except?: string): Point[] =>
+  (data.drawing?.marks ?? []).filter((m) => m.kind === 'wall' && m.id !== except).flatMap(wallRoute)
 
 /** ``data`` with the selected items moved by ``d`` (drawing units): what the plan shows while dragging
  *  and until the server's answer comes back. */
@@ -75,7 +88,7 @@ export function moved(data: SeatViewData, items: ItemRef[], d: Point): SeatViewD
 
 /** The server update that puts one item where ``moved`` drew it, in % of the plan; the inverse is
  *  the same call with ``-d``. */
-export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<string, number> | null {
+export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<string, unknown> | null {
   const pct = (p: Point) => { const v = toPct(data.size, p); return { x: round2(v.x), y: round2(v.y) } }
   if (ref.kind === 'block') {
     const s = data.drawing?.shapes.find((b) => b.id === ref.id)
@@ -87,7 +100,9 @@ export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<st
     const a = pct({ x: m.x + d.x, y: m.y + d.y })
     if (m.kind === 'wall' && m.x2 !== undefined && m.y2 !== undefined) {
       const b = pct({ x: m.x2 + d.x, y: m.y2 + d.y })
-      return { ...a, x2: b.x, y2: b.y }
+      if (!m.points?.length) return { ...a, x2: b.x, y2: b.y }
+      const points = m.points.map(([x, y]) => { const q = pct({ x: x + d.x, y: y + d.y }); return [q.x, q.y] })
+      return { ...a, x2: b.x, y2: b.y, points }
     }
     return a
   }
@@ -121,9 +136,11 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
   if (!m) return null
   if (m.kind === 'zone') return { box: { x: m.x, y: m.y, w: m.w ?? 0, h: m.h ?? 0 }, rotation: 0, centre: { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 } }
   if (m.kind === 'wall') {
-    const x2 = m.x2 ?? m.x, y2 = m.y2 ?? m.y
-    const box = { x: Math.min(m.x, x2) - 6, y: Math.min(m.y, y2) - 6, w: Math.abs(x2 - m.x) + 12, h: Math.abs(y2 - m.y) + 12 }
-    return { box, rotation: 0, centre: { x: (m.x + x2) / 2, y: (m.y + y2) / 2 } }
+    const r = wallRoute(m)
+    const xs = r.map((p) => p.x), ys = r.map((p) => p.y)
+    const x1 = Math.min(...xs), y1 = Math.min(...ys), x2 = Math.max(...xs), y2 = Math.max(...ys)
+    const box = { x: x1 - 6, y: y1 - 6, w: x2 - x1 + 12, h: y2 - y1 + 12 }
+    return { box, rotation: 0, centre: { x: (x1 + x2) / 2, y: (y1 + y2) / 2 } }
   }
   const px = markPx(m)
   const r = m.kind === 'icon' ? px / 2 + 4 : px * 0.6

@@ -729,6 +729,7 @@
  "A mark is text, icon, wall or zone": "Eine Markierung ist Text, Symbol, Wand oder Zone",
  "A mark on the plan: {}": "Eine Markierung auf dem Plan: {}",
  "A wall needs two different ends": "Eine Wand braucht zwei verschiedene Enden",
+ "A wall has at most {} bends, each [x, y]": "Eine Wand hat höchstens {} Knicke, jeder als [x, y]",
  "A zone label has at most {} characters": "Der Name einer Zone hat höchstens {} Zeichen",
  "A zone needs a width and a height": "Eine Zone braucht eine Breite und eine Höhe",
  "At most {} marks on the plan": "Höchstens {} Markierungen auf dem Plan",
