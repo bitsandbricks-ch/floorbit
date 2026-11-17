@@ -44,4 +44,4 @@ context_menu:
 
 The action gets the seat number as `seat` or the switch name as `switch`. See [plugins.md](plugins.md).
 
-The code is `static/js/editor/menus.js`; the long press is in `static/js/editor/touch.js`.
+The editor's menu is in `frontend/src/pages/plan/edit/PlanEditor.tsx` (the selection's buttons in the panel do the same).

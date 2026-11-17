@@ -4,10 +4,10 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
+  IconHistoryToggle, IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Attribution } from '@/components/Attribution'
 import { del, get, patch, post, put } from '@/api/client'
@@ -18,21 +18,27 @@ import { cablePath, useCablePlan } from '../cablePlan'
 import { followPlan } from '../cableRoute'
 
 import type { LayerState } from '../layers'
-import type { View } from '../model'
+import type { Filter, View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
 import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
+import { BackgroundFields, CalibrateFields } from './BackgroundFields'
+import { BackgroundHandles } from './BackgroundHandles'
+import { fitFactor, framePct, scaleFrame, seatMetres } from './background'
 import { LockBadges } from './LockBadges'
 import { Rulers } from './Rulers'
 import { useSnapPrefs } from './snap'
 import { MarkHandles } from './MarkHandles'
+import { SeatHandles } from './SeatHandles'
+import { moveSeat, placedNow } from './seatPlace'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
 import { TintField } from './TintField'
+import { VersionsDialog } from './VersionsDialog'
 import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
@@ -75,12 +81,19 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts, startTool = 'select', onDone = () => {}, filter = 'all', live }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
-  /** Shows another hall, still in Edit mode. */
+  /** Shows another hall, still editing. */
   onHall: (id: string) => void
   /** Opens the list of keys ("?" does too). */
   onShortcuts: () => void
+  /** The tool picked on the live plan's rail, which opened the editor. */
+  startTool?: Tool
+  /** View on the rail: back to the live plan. */
+  onDone?: () => void
+  /** The live plan's filter and layers keep showing while the plan is changed. */
+  filter?: Filter
+  live?: Pick<ComponentProps<typeof SeatMap>, 'traffic' | 'firewalls' | 'wifi' | 'incidents'>
 }) {
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
@@ -91,14 +104,21 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [shaping, setShaping] = useState<{ mark: PlanMark; data: SeatViewData; done?: boolean } | null>(null)
   // The rotate handle's angle while it is dragged, and after until the plan comes back with it.
   const [turning, setTurning] = useState<{ ref: ItemRef; deg: number; data: SeatViewData; done?: boolean } | null>(null)
+  // The Measure tool's last line (for calibrating), and the background while it is being placed.
+  const [measured, setMeasured] = useState<{ a: Point; b: Point } | null>(null)
+  const [bgPlacing, setBgPlacing] = useState(false)
+  // The seat block whose seats have handles, to be placed one by one (SeatHandles.tsx).
+  const [arranging, setArranging] = useState<string | null>(null)
+  const [bgDraft, setBgDraft] = useState<{ frame: Box; data: SeatViewData; done?: boolean } | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
-  const [tool, setTool] = useState<Tool>('select')
+  const [tool, setTool] = useState<Tool>(startTool)
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
   const [placing, setPlacing] = useState<{ kind: 'block' | 'switch' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
   const [hallsOpen, setHallsOpen] = useState(false)
+  const [versionsOpen, setVersionsOpen] = useState(false)
   const small = useMediaQuery('(max-width: 48em)')
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
@@ -135,6 +155,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   if (pending && pending.data !== data) setPending(null)
   if (shaping?.done && shaping.data !== data) setShaping(null)
   if (turning?.done && turning.data !== data) setTurning(null)
+  if (bgDraft?.done && bgDraft.data !== data) setBgDraft(null)
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
   const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
@@ -153,8 +174,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       const marks = d.drawing.marks?.map((m) => (ref.kind === 'mark' && m.id === ref.id ? { ...m, rotation: deg } : m))
       d = { ...d, drawing: { ...d.drawing, shapes, marks } }
     }
+    if (bgDraft) d = { ...d, background_frame: bgDraft.frame }
     return d
-  }, [data, pending, drag, selected, shaping, turning, unlocked])
+  }, [data, pending, drag, selected, shaping, turning, unlocked, bgDraft])
 
   // Boards drawn where the editor has them (dragged or just moved), not where the markers last said.
   const power = useMemo(() => {
@@ -416,6 +438,24 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     }
     await refresh()
   }, [data, send, history, t, refresh, fail, isLocked])
+
+  /** Changes the hall itself (its background's place, its scale), as one step to undo. */
+  const changeHall = useCallback(async (path: 'background' | 'scale', before: Record<string, unknown>, after: Record<string, unknown>, label: string) => {
+    const url = `/api/halls/${encodeURIComponent(data.hall)}/${path}`
+    const save = (body: Record<string, unknown>) => (path === 'background' ? patch(url, body) : put(url, body))
+    try {
+      await save(after)
+      history.push({ label, undo: () => save(before).then(refresh), redo: () => save(after).then(refresh) })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [data.hall, history, refresh, fail])
+  const bgFrame: Box = data.background_frame ?? { x: 0, y: 0, w: data.size.w, h: data.size.h }
+  const placeBackground = (frame: Box | null) => {
+    setBgDraft(frame ? { frame, data, done: true } : null)
+    void changeHall('background', { frame: framePct(bgFrame, data.size) }, { frame: frame ? framePct(frame, data.size) : null }, t('plan.edit.step.background'))
+  }
 
   const change = useCallback(async (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => {
     try {
@@ -737,6 +777,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
 
   const one = selected.length === 1 ? selected[0] : null
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
+  const arrangedShape = one?.kind === 'block' && arranging === one.id && !isLocked(one) ? data.drawing?.shapes.find((s) => s.id === one.id) ?? null : null
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
   // From the saved plan: the handle turns round where the item is, not where a drag drew it.
@@ -758,8 +799,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   return (
     <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
       <div className="fb-edit-stage">
-      <ToolRail tool={tool} onTool={setTool} />
-      <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power}
+      <ToolRail tool={tool} onTool={setTool} onView={onDone} />
+      <SeatMap data={shown} view={view} setView={setView} filter={filter} selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power} {...live}
         overlay={(ctx) => (<>
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool} snapping={snapping}
             lines={followPlan(cables, shown).map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
@@ -767,18 +808,21 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
               else if (tool === 'cable') startCable(raw)
             }}
-            onLine={drawWall} onBox={(b) => void drawZone(b)}
+            onLine={drawWall} onBox={(b) => void drawZone(b)} onMeasure={setMeasured}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
+          {bgPlacing && data.background && tool === 'select' && (
+            <BackgroundHandles ctx={ctx} frame={bgFrame} onDraft={(f) => setBgDraft(f ? { frame: f, data } : null)} onDone={placeBackground} />
+          )}
           {snapping.rulers && <Rulers ctx={ctx} cell={data.drawing?.cell ?? 32} />}
           {lockedSel.length > 0 && tool === 'select' && <LockBadges ctx={ctx} boxes={lockedSel.map((r) => outlineOf(shown, r)).filter((o) => !!o)} />}
           {oneMark && markBox && tool === 'select' && !drag && !isLocked(one!) && (
             <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}
               corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
-              anchors={oneMark.kind === 'wall' && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid}
+              anchors={oneMark.kind === 'wall' && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid} seatM={data.seat_m}
               onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
           )}
           {one && turnable && tool === 'select' && !drag && (
@@ -787,6 +831,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               onDone={(deg) => {
                 setTurning({ ref: one, deg, data, done: true })
                 void change(one, { rotation: turnable.rotation }, { rotation: deg })
+              }} />
+          )}
+          {arrangedShape && tool === 'select' && !drag && (
+            <SeatHandles ctx={ctx} shape={arrangedShape} cell={data.drawing?.cell ?? 32} snapGrid={snapping.grid}
+              onDone={(rc, to) => {
+                const cell = data.drawing?.cell ?? 32
+                void change(one!, placedNow(arrangedShape, cell, data.size), moveSeat(arrangedShape, cell, data.size, rc, to))
               }} />
           )}
           {oneCable && tool === 'select' && (
@@ -844,6 +895,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
       <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
+      <VersionsDialog opened={versionsOpen} hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall}
+        onClose={() => setVersionsOpen(false)} onRestored={() => { history.clear(); return refresh() }} />
       <HallsDialog opened={hallsOpen} current={data.hall} onClose={() => setHallsOpen(false)} onOpen={onHall} onChanged={refresh} />
       <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
@@ -882,7 +935,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               </Menu>
             </Group>
           </Group>
-          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} />}
+          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)} />}
           {one?.kind === 'switch' && (
             <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
           )}
@@ -916,6 +969,19 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
             </Button>
           )}
+          {!selected.length && tool === 'select' && data.background && (
+            <BackgroundFields opacity={data.background_opacity ?? 1} placing={bgPlacing} seatM={data.seat_m} onPlacing={setBgPlacing}
+              onOpacity={(v) => void changeHall('background', { opacity: data.background_opacity ?? 1 }, { opacity: v }, t('plan.edit.step.background'))}
+              onFit={() => placeBackground(null)} />
+          )}
+          {tool === 'measure' && measured && (() => {
+            const seats = Math.hypot(measured.b.x - measured.a.x, measured.b.y - measured.a.y) / (data.drawing?.cell ?? 32)
+            return (
+              <CalibrateFields seats={seats} seatM={data.seat_m} hasBackground={!!data.background}
+                onScale={(m) => void changeHall('scale', { seat_m: data.seat_m ?? null }, { seat_m: seatMetres(seats, m) }, t('plan.edit.step.scale'))}
+                onFit={(m) => placeBackground(scaleFrame(bgFrame, measured.a, fitFactor(seats, m, data.seat_m!)))} />
+            )
+          })()}
           {!selected.length && (
             <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
           )}
@@ -933,7 +999,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           </Text>
           <Group gap="xs">
             <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
-            <Anchor size="sm" href={`/editor/classic?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
+            <Button size="xs" variant="default" leftSection={<IconHistoryToggle size={14} />} onClick={() => setVersionsOpen(true)}>{t('plan.edit.versions.button')}</Button>
           </Group>
           <Attribution compact />
         </Stack>
@@ -954,9 +1020,11 @@ function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: 
 
 
 /** One item's fields. Each change is saved on its own (Enter or leaving a text field). */
-function ItemFields({ data, item, onChange }: {
+function ItemFields({ data, item, onChange, arranging, onArrange }: {
   data: SeatViewData; item: ItemRef
   onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
+  arranging?: boolean
+  onArrange?: (on: boolean) => void
 }) {
   const { t } = useTranslation()
   const shape = item.kind === 'block' ? data.drawing?.shapes.find((s) => s.id === item.id) : undefined
@@ -982,7 +1050,7 @@ function ItemFields({ data, item, onChange }: {
         <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={() => set('name', shape.name, name)}
           onKeyDown={(e) => { if (e.key === 'Enter') set('name', shape.name, name) }} />
         {turn(shape.rotation)}
-        <BlockFields item={item} data={data} onChange={onChange} />
+        <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} />
       </>
     )
   }

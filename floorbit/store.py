@@ -20,6 +20,7 @@ now, so one saving a copy it loaded a moment ago doesn't undo what another saved
 import contextvars
 import json
 import os
+import re
 import threading
 import time
 from contextlib import contextmanager
@@ -37,6 +38,7 @@ class Doc(dict):
     """A document as ``read_json`` found it. It remembers that text, so ``write_json`` can tell
     which parts the caller changed and keep what was written in the meantime (see ``_merge``)."""
     _base = None      # (path, the text the caller's copy came from)
+    _tenant = None    # the tenant's parts as loaded, in a later event (see load_data)
 
 
 def _doc(found, path, text):
@@ -261,8 +263,30 @@ def state_folder():
     return os.path.dirname(os.path.abspath(DATA_FILE))
 
 
+# Hosted Floorbit runs one process per tenant (docs/tenancy.md): FLOORBIT_TENANT names it, and its
+# documents live in tenants/<name>/ of a state folder or database the tenants share.
+TENANT_ENV = 'FLOORBIT_TENANT'
+TENANTS_FOLDER = 'tenants'
+_TENANT_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}$')
+
+
+def hosted_tenant():
+    """The tenant this process serves on a hosted platform, or None on a self-hosted install."""
+    name = (os.environ.get(TENANT_ENV) or '').strip()
+    if not name:
+        return None
+    if not _TENANT_RE.match(name):
+        # It becomes a folder and a key prefix: nothing else gets through.
+        raise ValueError(f'{TENANT_ENV} must be lower-case letters, digits and -, at most 40 (got {name!r}).')
+    return name
+
+
 def tenant_dir():
-    return _tenant_dir.get()
+    chosen = _tenant_dir.get()
+    if chosen:
+        return chosen
+    hosted = hosted_tenant()
+    return f'{TENANTS_FOLDER}/{hosted}' if hosted else ''
 
 
 def event_dir():
@@ -322,18 +346,48 @@ def using(tenant=None, event=None):
             var.reset(token)
 
 
-def load_data():
-    path = event_file()
-    found = read_json(path)
-    if isinstance(found, dict):
-        return found
-    if found is not None:
-        _not_an_object(path, found)
-    return {
+# Parts of data.json that belong to the tenant, not to one event. The first event shares one file
+# with the tenant, as always; a later event's data.json leaves them out, and load_data/save_data
+# take them from and put them back into the tenant's (docs/tenancy.md). New tenant-wide parts are
+# added here.
+TENANT_KEYS = frozenset({
+    'auth_users', 'auth_teams', 'auth_roles', 'auth_oidc', 'auth_secret_key', 'api_tokens',
+    'app_settings', 'default_settings', 'setup', 'features', 'credentials', 'agents', 'webhooks',
+    'runbooks', 'command_templates', 'dashboard_layouts', 'dashboards',
+})
+
+
+def _files():
+    """(the event's data.json, the tenant's when it is another file)."""
+    path, tenant = event_file(), tenant_file()
+    return path, (tenant if os.path.abspath(tenant) != os.path.abspath(path) else None)
+
+
+def _empty():
+    return Doc({
         'inventory':      [],   # every device, made by hand or fed by plugins (inventory.py)
         'seats':          [],   # individual seats
         'seat_blocks':    [],   # seating blocks (rows/sections)
-    }
+    })
+
+
+def load_data():
+    path, tenant_path_ = _files()
+    found = read_json(path)
+    if not isinstance(found, dict):
+        if found is not None:
+            _not_an_object(path, found)
+        found = _empty()
+    if tenant_path_:
+        tenant = read_json(tenant_path_, {})
+        for key in TENANT_KEYS:
+            found.pop(key, None)
+            if key in tenant:
+                found[key] = tenant[key]
+        # What the tenant's parts were, so save_data writes back only the ones the caller changed.
+        # A copy: callers change what they got in place.
+        found._tenant = json.loads(json.dumps({k: tenant[k] for k in TENANT_KEYS if k in tenant}))
+    return found
 
 
 # Features Mike dropped (2026-11-17): their data goes with the next write instead of lingering.
@@ -343,4 +397,26 @@ RETIRED_KEYS = ('planner', 'teardown', 'loans')
 def save_data(data):
     for key in RETIRED_KEYS:
         data.pop(key, None)
-    write_json(event_file(), data)
+    path, tenant_path_ = _files()
+    if not tenant_path_:
+        write_json(path, data)
+        return
+    loaded = getattr(data, '_tenant', None)    # None: a document the caller built itself
+    tenant = read_json(tenant_path_, {})
+    changed = False
+    for key in TENANT_KEYS:
+        if key in data:
+            if (loaded is None or loaded.get(key) != data[key]) and tenant.get(key) != data[key]:
+                tenant[key] = data[key]
+                changed = True
+        elif loaded is not None and key in loaded and key in tenant:
+            tenant.pop(key)
+            changed = True
+    if changed:
+        write_json(tenant_path_, tenant)
+    event = Doc({k: v for k, v in data.items() if k not in TENANT_KEYS})
+    event._base = getattr(data, '_base', None)
+    write_json(path, event)
+    if isinstance(data, Doc):
+        data._base = event._base
+        data._tenant = json.loads(json.dumps({k: data[k] for k in TENANT_KEYS if k in data}))

@@ -2,6 +2,7 @@ import { Alert, Badge, Button, Checkbox, Code, Group, Modal, MultiSelect, Paper,
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { del, get, post, put } from '@/api/client'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { EntitySelect } from '@/components/EntitySelect'
@@ -20,6 +21,8 @@ export interface TelemetryTarget {
 interface Seen { seen: number | null; online: boolean; ports: number; macs: number; arp: number; neighbours: number }
 export interface TelemetrySettings {
   targets: TelemetryTarget[]; seen: Record<string, Seen>
+  /** Devices from the inventory with the Telemetry feature on: set up there, shown here. */
+  inventory?: TelemetryTarget[]
   status: { collector: 'here' | 'agent'; devices: number; points: number; unknown: number; poll_errors: Record<string, string>
     storage: { mode: string; logs: string | null; keep_days: number | null; errors: Record<string, string> } }
   drivers: string[]; platforms: string[]; kinds: string[]; fdb_modes: string[]
@@ -134,6 +137,38 @@ export default function Telemetry() {
             </Table.ScrollContainer>
           )}
         </Paper>
+
+        {!!d?.inventory?.length && (
+          <Paper withBorder radius="lg" p="md">
+            <Group justify="space-between" mb="xs">
+              <Title order={3} size="h4">{t('telemetry.fromInventory')}</Title>
+              <Button component={Link} to="/inventory" size="compact-sm" variant="default">{t('telemetry.openInventory')}</Button>
+            </Group>
+            <Text size="sm" c="dimmed" mb="sm">{t('telemetry.fromInventoryHint')}</Text>
+            <Table.ScrollContainer minWidth={420}>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr><Table.Th>{t('telemetry.device')}</Table.Th><Table.Th>{t('telemetry.drivers')}</Table.Th><Table.Th>{t('telemetry.lastSeen')}</Table.Th></Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {d.inventory.map((tg) => {
+                    const s = d.seen[tg.name]
+                    return (
+                      <Table.Tr key={tg.id}>
+                        <Table.Td><Text ff="monospace" size="sm">{tg.name}</Text><Text size="xs" c="dimmed">{tg.address} · {t(`telemetry.platform.${tg.platform}`, { defaultValue: tg.platform })}</Text></Table.Td>
+                        <Table.Td><Group gap={4}>{tg.drivers.map((x) => <Badge key={x} variant="light" size="sm">{t(`telemetry.driver.${x}`, { defaultValue: x })}</Badge>)}</Group></Table.Td>
+                        <Table.Td>
+                          {s?.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" miw="max-content" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
+                            : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>}
+                        </Table.Td>
+                      </Table.Tr>
+                    )
+                  })}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+          </Paper>
+        )}
 
         <Paper withBorder radius="lg" p="md">
           <Stack gap="sm">

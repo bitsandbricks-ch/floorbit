@@ -2,8 +2,8 @@
 
 Techs can **bounce a seat's switch port** (take it down for a few seconds, then bring it back)
 from the floor plan, and **flag a seat for a tech**. Code: [`floorbit/ports.py`](../floorbit/ports.py),
-[`floorbit/blueprints/ports.py`](../floorbit/blueprints/ports.py) and the editor's
-[`ports.js`](../static/js/editor/ports.js).
+[`floorbit/blueprints/ports.py`](../floorbit/blueprints/ports.py) and the plan's seat inspector
+([`Inspector.tsx`](../frontend/src/pages/plan/Inspector.tsx)).
 
 ## On the floor plan
 

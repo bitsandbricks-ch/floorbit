@@ -27,9 +27,8 @@ Below 768 px wide:
 - The **Switch** and **Seat block** tools are hidden: placing new things wants a mouse. Selecting, moving,
   renaming and the inspector work by touch.
 
-`static/js/editor/touch.js` turns one finger into the mouse events the editor already handles, so
-the other editor files know nothing about touch. Two fingers become a pinch. The tool bar and zoom
-buttons are ordinary buttons and get ordinary taps.
+The plan works with pointer events, so a finger drags and taps like the mouse, and two fingers
+pinch to zoom. The tool rail and zoom buttons are ordinary buttons and get ordinary taps.
 
 ## Other pages
 

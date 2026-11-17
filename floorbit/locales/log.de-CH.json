@@ -291,7 +291,6 @@
   "Looked at the telemetry token": "Telemetrie-Token angesehen",
   "Made a new telemetry token": "Neues Telemetrie-Token erstellt",
   "Downloaded the Telegraf configuration": "Telegraf-Konfiguration heruntergeladen",
-  "Saved port areas": "Port-Bereiche gespeichert",
   "Added internet site": "Website hinzugefügt",
   "Added internet sites": "Websites hinzugefügt",
   "Changed internet site": "Website geändert",
@@ -308,5 +307,9 @@
   "Installed plugin {} {}": "Plugin {} {} installiert",
   "Removed plugin {} {}": "Plugin {} {} entfernt",
   "Rolled back plugin {} from {} to {}": "Plugin {} von {} auf {} zurückgesetzt",
-  "Updated plugin {} from {} to {}": "Plugin {} von {} auf {} aktualisiert"
+  "Updated plugin {} from {} to {}": "Plugin {} von {} auf {} aktualisiert",
+  "Added an event": "Event hinzugefügt",
+  "Made an event live": "Event live geschaltet",
+  "Changed an event": "Event geändert",
+  "Copied an event's plan": "Plan eines Events kopiert"
 }

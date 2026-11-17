@@ -30,12 +30,15 @@ import { ScreenBar } from './plan/ScreenBar'
 import { useIdle } from './plan/idle'
 import { useReloadOnUpdate } from './plan/update'
 import { findPlace } from './plan/find'
-import { Modes } from './plan/Modes'
+import { ScreenLink } from './plan/ScreenLink'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
+import { ExportMenu } from './plan/ExportMenu'
 import { SnapToggles } from './plan/edit/SnapToggles'
-import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
+import { fromOldMode, isEditing, setEditing } from './plan/workspace'
+import { ToolRail } from './plan/edit/ToolRail'
+import { TOOL_KEYS, TOOLS, type Tool } from './plan/edit/tools'
 import { revealActive } from './plan/reveal'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
@@ -68,13 +71,18 @@ export default function FloorPlan() {
   const print = !screen && params.get('print') === '1'
   // Which layers are drawn over the seats, and how strong (issue: floor plan layers). Old ?traffic=1 links still work.
   const paramText = params.toString()
-  // A mode link without its own layers (``/plan?mode=network``) shows the mode's layers.
-  const mode = readMode(params)
-  const layers = useMemo(() => {
-    const read = readLayers(params)
-    return params.has('mode') && !params.has('layers') ? { ...read, on: new Set(MODE_LAYERS[mode]) } : read
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramText])
+  const layers = useMemo(() => readLayers(params), [paramText])
+  // Links from when the plan had modes (``/plan?mode=network``) open on what that mode showed.
+  useEffect(() => {
+    const next = fromOldMode(params, layers)
+    if (next) setParams(next, { replace: true })
+  }, [params, layers, setParams])
+  const editParam = isEditing(params) || params.get('mode') === 'edit'
+  const canEdit = useCan('floorplan.edit')
+  const editing = editParam && canEdit
+  // The tool picked on the live plan's rail, handed to the editor it opens.
+  const [startTool, setStartTool] = useState<Tool>('select')
   const traffic = layers.on.has('status')
   const powerOn = layers.on.has('electrical')
   const firewallOn = layers.on.has('firewalls')
@@ -97,8 +105,8 @@ export default function FloorPlan() {
     queryFn: () => get<SeatViewData>(`/api/plan${hall ? `?hall=${encodeURIComponent(hall)}` : focus ? `?${focus}` : ''}`),
     refetchInterval: 30_000,
   })
-  // Seat cables and patch panels: drawn in Network mode (and Edit mode, which asks on its own).
-  const cablePlan = useCablePlan(q.data?.hall, mode === 'network' && layers.on.has('network') && !print)
+  // Seat cables and patch panels belong to the network layer, the same while viewing and editing.
+  const cablePlan = useCablePlan(q.data?.hall, layers.on.has('network') && !print && !screen)
   // The power layer (issue #468): asked once to know whether Electrics is on, then kept fresh while shown.
   const markers = useQuery({
     queryKey: qk.powerMarkers, queryFn: () => get<PowerMarkers>('/api/power/markers'),
@@ -134,14 +142,14 @@ export default function FloorPlan() {
   // With the power layer on, the view takes in the boards too: they usually hang on the walls.
   const data = useMemo(() => {
     let d = q.data
-    // An empty hall has no drawing; Edit mode starts it from a blank sheet the plan's size.
-    if (d && !d.drawing && mode === 'edit') d = { ...d, drawing: { shapes: [], marks: [], icons: {}, box: `0 0 ${d.size.w} ${d.size.h}`, cell: d.size.cell } }
+    // An empty hall has no drawing; the editor starts it from a blank sheet the plan's size.
+    if (d && !d.drawing && editParam) d = { ...d, drawing: { shapes: [], marks: [], icons: {}, box: `0 0 ${d.size.w} ${d.size.h}`, cell: d.size.cell } }
     if (!d?.drawing || !power?.boards.length) return d
     const fed = new Set(power.circuits.flatMap((c) => c.switches))
     const at = [...power.boards.map((b) => ({ x: (b.x / 100) * d.size.w, y: (b.y / 100) * d.size.h })),
       ...d.switches.filter((w) => fed.has(w.id))]
     return { ...d, drawing: { ...d.drawing, box: widen(d.drawing.box, at) } }
-  }, [q.data, power, mode])
+  }, [q.data, power, editParam])
   const planFocus = useMemo(() => {
     if (switchSel && switchQ.data) return { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) }
     if (selected && seatSwitch) return { switch: seatSwitch, seat: selected }
@@ -169,24 +177,29 @@ export default function FloorPlan() {
   const [side, setSideState] = useState(() => readSide())
   const setSide = (next: Partial<typeof side>) => setSideState((was) => { const v = { ...was, ...next }; saveSide(v); return v })
   const showShortcuts = () => setShortcuts(true)
-  // Esc closes the open seat, block or switch panel (Edit mode has its own Esc; dialogs close themselves).
+  // Esc closes the open seat, block or switch panel (the editor has its own Esc; dialogs close themselves).
   // Page keys stay out of the way while a dialog (the shortcut list, a form) is open.
   const dialogOpen = () => !!document.querySelector('[role="dialog"]')
   const closePanel = () => {
-    if (mode === 'edit' || dialogOpen() || !PANELS.some((k) => params.get(k))) return
+    if (editing || dialogOpen() || !PANELS.some((k) => params.get(k))) return
     const next = new URLSearchParams(params)
     PANELS.forEach((k) => next.delete(k))
     setParams(next, { replace: true })
   }
   // 1 to 4 switch the layer preset, so the crew at a big screen can flip views without the mouse.
   const presetKeys = PRESET_KEYS.map((p, i): [string, () => void] => [String(i + 1), () => {
-    if (mode !== 'edit' && !list && !dialogOpen()) setLayers(applyPreset(layers, p))
+    if (!list && !dialogOpen()) setLayers(applyPreset(layers, p))
   }])
   // L flips between the map and the list, like the Map/List switch.
-  const toggleList = () => { if (mode !== 'edit' && !screen && !dialogOpen()) set('view', list ? null : 'list') }
+  const toggleList = () => { if (!editing && !screen && !dialogOpen()) set('view', list ? null : 'list') }
   // ] folds the side panel away for the whole width of the plan, as in most map and design editors.
-  const toggleSide = () => { if (mode !== 'edit' && !dialogOpen()) setSide({ open: !side.open }) }
-  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], [']', toggleSide], ...presetKeys])
+  const toggleSide = () => { if (!editing && !dialogOpen()) setSide({ open: !side.open }) }
+  // A tool's key on the live plan takes the tool up, as its button on the rail does.
+  const edit = (tool: Tool) => { setStartTool(tool); setParams(setEditing(params, true)) }
+  const toolKeys = TOOLS.filter((id) => TOOL_KEYS[id] !== 'b').map((id): [string, () => void] => [TOOL_KEYS[id], () => {
+    if (canEdit && !editing && !screen && !list && data?.drawing && !dialogOpen()) edit(id)
+  }])
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], [']', toggleSide], ...presetKeys, ...toolKeys])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
@@ -209,14 +222,12 @@ export default function FloorPlan() {
   }
   // With seats.view the search also finds players by nick, IP or MAC (issue #186).
   const canPeople = useCan('seats.view')
-  const canEdit = useCan('floorplan.edit')
-  const editing = mode === 'edit' && canEdit
   const [players, setPlayers] = useState<{ query: string; hits: PlayerHit[] } | null>(null)
-  // Another hall in the same mode (Edit stays Edit) and with the same filter.
+  // Another hall with the same filter, still editing when editing.
   const toHall = (id: string) => {
     const next = new URLSearchParams()
     next.set('hall', id)
-    if (params.get('mode')) next.set('mode', params.get('mode')!)
+    if (editing) next.set('edit', '1')
     if (filter !== 'all') next.set('show', filter)
     setParams(next)
   }
@@ -359,7 +370,7 @@ export default function FloorPlan() {
     firewalls: firewalls && <Legend checkin={false} seats={false} firewalls label={legendOf(t('plan.layers.item.firewalls'))} />,
     status: traffic && <Legend checkin={false} seats={false} traffic label={legendOf(t('plan.layers.item.status'))} />,
     checkin: data.checkin && <Legend checkin seats={false} samples={['checkedIn']} label={legendOf(t('plan.layers.item.checkin'))} />,
-    network: mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />,
+    network: layers.on.has('network') && !!cablePlan?.cables.length && <CableLegend cables={cablePlan.cables} links={data.links} />,
   } : {}
   const keyShown = !(tabsShown && side.tab === 'layers')
   const available: Record<LayerId, boolean> = {
@@ -381,20 +392,16 @@ export default function FloorPlan() {
                 renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
                 onChange={(v) => { if (v) toHall(v) }} />
             )}
-            <Modes mode={mode} hall={data.hall} params={params} checkin={data.checkin} canEdit={canEdit}
-              onMode={(m) => setParams(switchMode(params, m, layers), { replace: true })} />
             <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>
             {editing && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
-            {!editing && <>
-              {/* The filters say how many seats each holds (issue #190), so the row doubles as the summary. */}
+            {/* The filters say how many seats each holds (issue #190), so the row doubles as the summary. */}
               <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
                 data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                   value: f,
                   label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
                 }))} /></div>
-              <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
-                aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
-            </>}
+            {!editing && <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
+              aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />}
             {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
@@ -407,10 +414,8 @@ export default function FloorPlan() {
                   onChange={(e) => setSearch(e.currentTarget.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
-              <Tooltip label={t('plan.print.print')}>
-                <ActionIcon variant="default" size="md" component="a" aria-label={t('plan.print.print')}
-                  href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}><IconPrinter size={16} aria-hidden="true" /></ActionIcon>
-              </Tooltip>
+              <ScreenLink hall={data.hall} params={params} />
+              <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />
               <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
               </Tooltip>
@@ -438,13 +443,16 @@ export default function FloorPlan() {
           {!data.monitoring && <Alert color="warn" radius={0} py={6} className="fb-ws-strip">{t('plan.noMonitoring')}</Alert>}
           <div className="fb-ws-body">
             {!data.drawing && (
-              <div className="fb-ws-pad"><Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?mode=edit&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper></div>
+              <div className="fb-ws-pad"><Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?edit=1&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper></div>
             )}
             {editing && data.drawing && view && (
-              <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts} />
+              <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts}
+                startTool={startTool} onDone={() => setParams(setEditing(params, false))} filter={filter} live={{ traffic, firewalls, wifi, incidents }} />
             )}
             {/* The side panel's tabs carry the attribution in their foot; one is enough. */}
             {!editing && data.drawing && <div className={`fb-plan-layout${(panel || side.open) && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
+              <div className={canEdit && !list ? 'fb-edit-stage' : 'fb-ws-stage'}>
+              {canEdit && !list && <ToolRail tool={null} onTool={edit} onView={() => {}} />}
               <div className="fb-ws-canvas">
                 {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
                 {list ? !tabsShown && <Attribution compact /> : (
@@ -457,13 +465,14 @@ export default function FloorPlan() {
                   </div>
                 )}
               </div>
+              </div>
               {(panel || side.open) && !phone && (
                 <SidePanel data={data} tab={side.tab} onTab={(tab) => setSide({ tab })} layers={layers} onLayers={setLayers} available={available}
                   inspector={inspector} legends={legends} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)} />
               )}
             </div>}
           </div>
-          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} />
+          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} canEdit={canEdit} />
           {phone && (
             <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
               title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>

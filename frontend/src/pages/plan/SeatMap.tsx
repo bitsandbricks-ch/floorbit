@@ -70,7 +70,7 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return px
 }
 
-// The editor's grid steps, in % of the plan (static/js/editor/layers.js), so things sit on the same lines.
+// The editor's grid steps, in % of the plan, so things sit on the same lines.
 const GRID_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50]
 const GRID_MIN_PX = 12
 
@@ -98,7 +98,7 @@ export function PlanGrid({ view, size, scale: k }: { view: View; size: { w: numb
   return <g className="fb-grid" aria-hidden="true">{lines}</g>
 }
 
-/** A switch seen from the front, centred on its spot (the editor draws the same, static/js/editor/core.js):
+/** A switch seen from the front, centred on its spot (the editor draws the same):
  *  lit ports when online, a cross when offline, a dashed box when unknown. */
 export function SwitchGlyph({ status }: { status: string }) {
   const lit = status === 'online' || status === 'warning'
@@ -326,7 +326,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {!forced && layers.on.has('grid') && <g opacity={opacity(layers, 'grid')}><PlanGrid view={px.w && px.h ? { x: view.x + view.w / 2 - px.w / s / 2, y: view.y + view.h / 2 - px.h / s / 2, w: px.w / s, h: px.h / s } : view} size={data.size} scale={s} /></g>}
-        {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
+        {data.background && <image href={data.background} x={data.background_frame?.x ?? 0} y={data.background_frame?.y ?? 0}
+          width={data.background_frame?.w ?? data.size.w} height={data.background_frame?.h ?? data.size.h} preserveAspectRatio="none" className="bg"
+          opacity={data.background_opacity ?? undefined} />}
         <PlanMarks drawing={drawing} layers={layers} />
         {wifi && <g opacity={opacity(layers, 'wifi')}><WifiLayer wifi={wifi} idPrefix={ids} /></g>}
         {network && <g opacity={opacity(layers, 'network')}>{(data.links ?? []).map((l) => {

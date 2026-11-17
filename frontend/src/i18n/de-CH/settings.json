@@ -261,5 +261,24 @@
       "help": "Leer: fast weiss oder fast schwarz, je nach Hintergrund."
     }
   },
-  "pickColour": "Farbe vom Bildschirm wählen"
+  "pickColour": "Farbe vom Bildschirm wählen",
+  "nav": {
+    "search": "Einstellungen durchsuchen",
+    "clear": "Suche leeren",
+    "section": "Bereiche der Einstellungen",
+    "overview": "Übersicht",
+    "plugins": "Plugin-Einstellungen",
+    "results_zero": "Keine Einstellung passt.",
+    "results_one": "{{count}} Einstellung passt",
+    "results_other": "{{count}} Einstellungen passen",
+    "whereFrom": "Ein hier gespeicherter Wert geht seiner Umgebungsvariable vor; leeren führt zurück zur Umgebung oder zum Standard. Datenbank, Redis, Schlüssel und Zeitzone legt nur die Umgebung fest.",
+    "groups": {
+      "event": "Event und Aussehen",
+      "sources": "Quellen",
+      "monitoring": "Überwachung",
+      "alerts": "Alarme und Discord",
+      "access": "Anmeldung und Switches",
+      "other": "Weiteres"
+    }
+  }
 }

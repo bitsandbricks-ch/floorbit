@@ -133,7 +133,8 @@ def _devices():
 
 @bp.route('/api/settings/telemetry', methods=['GET'])
 def settings_view():
-    return jsonify({'targets': targets.listing(), 'seen': _devices(), 'status': telemetry.status(),
+    return jsonify({'targets': targets.listing(), 'inventory': targets.inventory_listing(),
+                    'seen': _devices(), 'status': telemetry.status(),
                     'drivers': list(targets.DRIVERS), 'platforms': list(targets.PLATFORMS),
                     'kinds': list(targets.KINDS), 'fdb_modes': list(targets.FDB_MODES),
                     'ports': {'traps': 162, 'mdt': telegraf.MDT_PORT}})

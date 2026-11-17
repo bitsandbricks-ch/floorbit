@@ -89,7 +89,7 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  // Same as pinSVG() in static/js/editor/core.js: a switch box with two rows of ports.
+  // A switch box with two rows of ports, as the floor plan draws it (frontend/src/pages/plan/SeatMap.tsx).
   function pinSVG  (status) {
     const lit = status === 'online' || status === 'warning';
     let ports = '';
@@ -123,7 +123,7 @@
     return wanted ? `<div class="seat-block-rowlabel" style="${rotation ? `transform: rotate(${-rotation}deg);` : ''}">${escHtml(letter)}</div>` : '';
   }
 
-  // ── Labels, walls, zones and icons (as the editor draws them, static/js/editor/marks.js) ──
+  // ── Labels, walls, zones and icons (as the floor plan draws them, frontend/src/pages/plan/PlanMarks.tsx) ──
   function renderMarks() {
     const svg = [], html = [];
     for (const m of marks) {
@@ -145,7 +145,7 @@
   }
 
   // ── Grid ───────────────────────────────────────────────────────────────────
-  // The editor's grid (static/js/editor/layers.js): steps in % of the plan, the finest one that
+  // The floor plan grid (frontend/src/pages/plan/SeatMap.tsx): steps in % of the plan, the finest one that
   // stays at least GRID_MIN_PX apart, a stronger line every few steps. Follows the fit.
   const GRID_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50];
   const GRID_MIN_PX = 12;
@@ -227,7 +227,29 @@
       const numbers = blockSeatNumbers(block);
       let inner = block.name ? `<div class="seat-block-label">${escHtml(block.name)}</div>` : '';
       let i = 0;
-      for (let row = 0; row < block.rows; row++) {
+      // Seats placed freely (floorbit/seat_layout.py): each where the editor put it, 20 px a seat.
+      const free = block.seat_at && Object.keys(block.seat_at).length ? block.seat_at : null;
+      if (free) {
+        let w = 0, h = 0, cells = '';
+        for (let row = 0; row < block.rows; row++) {
+          for (let col = 0; col < block.cols; col++) {
+            const { number, display } = numbers[i++];
+            const [x, y] = free[`${row},${col}`] || [col, row];
+            w = Math.max(w, (x + 1) * 20); h = Math.max(h, (y + 1) * 20);
+            const user = seatInfo[number]?.taken;
+            let cls = 'seat-block-seat';
+            if (user) {
+              taken.add(number);
+              cls += ' has-user';
+              if (prevTaken && !prevTaken.has(number)) cls += ' just-taken';
+            }
+            const style = `position:absolute;left:${x * 20}px;top:${y * 20}px;` + counter + (OPT.heat ? heatStyle(heat[number]) : '');
+            cells += `<div class="${cls}" style="${style}" data-seat-number="${escHtml(number)}">${escHtml(display)}</div>`;
+          }
+        }
+        inner += `<div style="position:relative;width:${w}px;height:${h}px">${cells}</div>`;
+      }
+      for (let row = 0; row < (free ? 0 : block.rows); row++) {
         if (row && gapAfter(block.row_gaps, row)) inner += gapSpacer(gapAfter(block.row_gaps, row), 'row');
         inner += '<div class="seat-block-row">' + rowLabel(block, row, 'first');
         for (let col = 0; col < block.cols; col++) {

@@ -78,10 +78,7 @@ to make one.
 
 Plain JavaScript and CSS, no build step.
 
-- The editor (`templates/index.html`) is split by feature in `static/js/editor/`. The files are
-  classic scripts sharing one global scope, loaded in a fixed order; see
-  [static/js/editor/README.md](../static/js/editor/README.md) for the order and the two rules
-  that keep it working.
+- The floor plan editor moved to React (`frontend/src/pages/plan/edit/`); `/editor/classic` redirects there.
 - Other pages have their own script and stylesheet (`kiosk.js`, ...).
 - `templates/_attribution.html` and `static/css/attribution.css` are the "Buy me a coffee" and
   "Powered by bitsandbricks.ch" links every page includes.

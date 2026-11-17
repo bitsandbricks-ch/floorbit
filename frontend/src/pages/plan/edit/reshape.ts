@@ -114,9 +114,11 @@ export function snapCorner(p: Point, { anchors = [], reach = 0, from, angle = fa
 }
 
 /** How long a stretch is in seats (one grid cell each) and which way it points, in degrees
- *  counter-clockwise from east, the way a protractor reads: "4.5 · 90°". */
-export function measure(a: Point, b: Point, cell: number): string {
-  const len = Math.round((Math.hypot(b.x - a.x, b.y - a.y) / cell) * 10) / 10
+ *  counter-clockwise from east, the way a protractor reads: "4.5 · 90°". With the hall's metres per
+ *  seat (calibrated), the metres too: "4.5 · 90° · 3.6 m". */
+export function measure(a: Point, b: Point, cell: number, seatM?: number | null): string {
+  const seats = Math.hypot(b.x - a.x, b.y - a.y) / cell
+  const len = Math.round(seats * 10) / 10
   const deg = (Math.round((Math.atan2(-(b.y - a.y), b.x - a.x) * 180) / Math.PI) + 360) % 360
-  return `${len} · ${deg}°`
+  return seatM ? `${len} · ${deg}° · ${Math.round(seats * seatM * 10) / 10} m` : `${len} · ${deg}°`
 }

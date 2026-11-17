@@ -393,7 +393,9 @@ Source: [`floorbit/blueprints/halls.py`](https://github.com/bitsandbricks-ch/flo
 | PUT | `/api/halls/<hall_id>` | `floorplan.edit` |  |
 | DELETE | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
 | GET | `/api/halls/<hall_id>/background` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PATCH | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
 | PUT | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
+| PUT | `/api/halls/<hall_id>/scale` | `floorplan.edit` |  |
 | POST | `/api/halls/<hall_id>/seat-blocks.csv` | `floorplan.edit` |  |
 | POST | `/api/halls/example` | `floorplan.edit` |  |
 
@@ -1000,6 +1002,21 @@ Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch
 | GET | `/api/telemetry/series` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/telemetry/status` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | POST | `/api/telemetry/write` | anyone |  |
+
+## floorbit.blueprints.tenant_events
+
+The tenant's events and which one a request works on (issue #466). Rules in floorbit/tenancy.py.
+
+Source: [`floorbit/blueprints/tenant_events.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/tenant_events.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| PUT | `/api/tenant/current` | `floorplan.view` |  |
+| GET | `/api/tenant/events` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/tenant/events` | `settings.manage` |  |
+| PATCH | `/api/tenant/events/<event_id>` | `settings.manage` |  |
+| POST | `/api/tenant/events/<event_id>/copy` | `settings.manage` |  |
+| GET | `/api/tenant/mine` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.terminal
 

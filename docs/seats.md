@@ -1,14 +1,14 @@
 # Floor plan
 
 The **Floor plan** (`/plan`) shows every seat of a hall with one state, drawn the same way
-everywhere, and its Edit mode is where the plan is built. `/` opens it too; old links with
-`?hall=`, `?seat=` or `?switch=` open it in Edit mode for crew who may edit.
+everywhere, and the same page is where the plan is built. `/` opens it too; old links with
+`?hall=`, `?seat=` or `?switch=` open it editing for crew who may edit.
 
-## Modes
+## One map editor
 
 The plan fills the whole page next to the sidebar, like a map editor. One slim bar on top holds the
-hall, the mode, the online count, the filters (each with its count), Map/List, **Layers**, the find
-box, **Print** and **?** (help and keys). The plan takes everything below it, with a panel docked on
+hall, the online count, the filters (each with its count), Map/List, **Layers**, the find
+box, **Export** and **?** (help and keys). The plan takes everything below it, with a panel docked on
 the right, as in a map editor. Its tabs are **Layers** (the layer switches), **Problems** (switches
 that are down, seats with problems, seats offline) and **Items** (every block and switch); click a row
 to open it. An open seat, block or switch takes the panel's place, and closing it (or **Esc**) brings
@@ -16,28 +16,32 @@ the tabs back. The panel button in the top bar, or **]**, hides the panel for mo
 remembers whether it was open and which tab. On a phone the open item shows below the plan instead,
 and Layers stays in the top bar. Each layer's key sits under its switch in **Layers**: what the
 seats' shapes mean under the seats line, the power colours under Electrical, the traffic scale under
-Status, the cable colours and dashes under Network (in Network mode), and so on. While Layers isn't in
+Status, the cable colours and dashes under Network (once the hall has cables), and so on. While Layers isn't in
 view (another tab, an open item, the panel hidden), the same key floats over the plan's bottom-left
 corner: click **Legend** to fold it away.
 
-The bar switches between modes of the same plan, kept in the address (`?mode=`):
+There are no modes: the plan is always live (seat states, status, incidents), and what else shows
+is the layers' choice. The **Layers** presets (keys **1** to **4**) are the old views: **Overview**
+(labels and check-ins), **Network** (switches, uplinks, seat cables and Wi-Fi), **Electrical** and
+**Ops** (network, traffic, firewalls, incidents and check-ins). The **Checked in** filter shows the
+seats that checked in. Old links with `?mode=live`, `checkin`, `network` or `edit` still open what
+they showed.
 
-| Mode | What it shows |
-| --- | --- |
-| **Live** | Seats with their state, the network, traffic, the crew's incidents and check-ins. |
-| **Check-in** | Labels and check-ins only, filtered to the seats that checked in (only when check-in is on). |
-| **Network** | Switches and uplinks, traffic, firewalls and Wi-Fi. |
-| **Edit** | The editor, for crew who may edit the plan (`floorplan.edit`): see below. |
+Crew who may edit the plan (`floorplan.edit`) have the tool rail down the left. **View** (the eye, at
+the top) is the live plan: click a seat, block or switch for its details. Any other tool, picked on
+the rail or with its key (V, H, M, S, T, I, W, Z, P, C, E; B stays "the seat's block" while viewing),
+takes up the editor with that tool; **View** puts it down again. The filters and layers stay as they
+were, so live status, problems and cables keep showing while the plan is changed. The address says
+whether the tools are in hand (`?edit=1`).
 
 The TV button (**Kiosk**) opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
 you were looking at.
 
-The older editor stays at `/editor/classic` for a while as a fallback, linked from the bottom of
-Edit mode's panel. Everything it did is in Edit mode.
+The older editor is retired: `/editor/classic` opens this editor on the same hall.
 
-### Edit mode
+### Editing
 
-The floor plan editor is moving into this page. Edit mode already does:
+The editor (any tool but View) does:
 
 - **Select:** click an item (seat block, switch, label, icon, wall, zone); Shift-click adds or
   removes; dragging on empty plan selects everything inside the box; Ctrl+A selects all.
@@ -69,7 +73,7 @@ The floor plan editor is moving into this page. Edit mode already does:
   turns them back (also "Turn 90°" in the right-click menu). One undo puts them all back. To turn one
   item to any angle, drag the round handle above it (Shift keeps 15° steps), or type the angle next
   to the quarter steps in the panel.
-- **Snapping and rulers:** the top bar's toggles in Edit mode show or hide the grid, turn snapping to
+- **Snapping and rulers:** the top bar's toggles while editing show or hide the grid, turn snapping to
   the grid and to other items (edges, middles, wall corners) on or off, and show rulers along the
   plan's edges, numbered in seats. This browser remembers them. Alt still leaves the grid for one drag.
 - **Measure:** the Measure tool (M) draws a line that only shows its length in seats and its angle
@@ -90,7 +94,7 @@ The floor plan editor is moving into this page. Edit mode already does:
   switches, patch panels, boards; cables follow their ends), Ctrl+Shift+G takes them out. A click on
   one item of a group picks the whole group; Shift-click takes the group out of the selection.
 - **Keyboard only:** with an item selected, Tab and Shift+Tab step to the next and previous item (top to bottom, left to right), and the view follows; Esc lets Tab leave the plan. Screen readers hear what is selected. The items list in the panel works with the keyboard too.
-- **Keys:** press ? (or "All keys" in the panel) for every Edit mode key, by tool, selection, moving and changing.
+- **Keys:** press ? (or "All keys" in the panel) for every editing key, by tool, selection, moving and changing.
 - **Items list:** the panel on the right lists everything on the hall's plan, the groups first. Click
   an item or a group to select it (Shift adds), search by name, double-click a group to rename it, or
   take it apart with its unlink button. Groups travel in backups; layout templates leave them out.
@@ -125,8 +129,15 @@ A selected seat block shows its name, rotation, seats per row and rows, how its 
 seat 1 is on the right, and its gaps: room in every row after a column, or a lane after a row.
 Seat numbers carry on across a gap.
 
-Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
-the switches, not recorded yet. In Network mode the legend explains the colours (copper,
+**Place seats freely** (in the same panel) puts a handle on every seat of the block: drag a seat
+anywhere, for a U round a table or any other shape. The seat keeps its name and number, the other
+seats stay where they are, and each move is one step to undo. Seats land on half-seat steps (Alt, or
+snapping off, places them freely). A block with seats placed freely has no row letters beside it, can't
+be merged with another block, and moves and turns as one like any block; **Back to rows** lines its
+seats up again. Templates and plan versions keep where each seat stands, and the kiosk shows it too.
+
+Seat cables are drawn on the Network layer, viewing and editing alike; dashed ones are only read from
+the switches, not recorded yet. The Network layer's legend explains the colours (copper,
 fiber, DAC), widths (speed) and dashes for the cables on that plan, and counts the links between switches
 and how many are down or slow. A link that is down gets a red ✕ in its middle, the same size at every zoom. Click one to select it, Del removes it, **Change cable** opens its
 form. A selected cable shows its bends: drag one to move it, drag the dot in the middle of a
@@ -170,7 +181,7 @@ out on a big screen still shows where the trouble is.
 
 Zoomed in so that part of the hall is off screen, a small overview of the hall shows in the bottom
 left corner: the seat blocks (red where a block has many problems) and a frame for the part on
-screen. Click or drag on it to move there. It shows in Edit mode too.
+screen. Click or drag on it to move there. It shows while editing too.
 
 A block where a quarter of its seats or more have problems (two at least) gets a red outline at
 every zoom level. That many at once usually has one cause, such as the block's switch or its power.
@@ -197,12 +208,13 @@ Tab to the plan, then:
 | Enter or Space | Open the seat under the cursor in the inspector. |
 | Escape | Close the open seat, block or switch panel (from anywhere on the page; in the search box, Esc clears it). |
 | B | Open the block of the seat under the cursor. |
-| **1** to **4** | Anywhere on the page: switch the layers to a preset, Overview, Network, Electrical or Ops, as in the **Layers** panel. Not in Edit mode or the list. |
-| L | Anywhere on the page: switch between the map and the list, like the **Map**/**List** switch. Not in Edit mode. |
+| V, H, M, S, T, I, W, Z, P, C, E | For crew who may edit: take up that tool of the rail and start editing (B stays the block key here). |
+| **1** to **4** | Anywhere on the page: switch the layers to a preset, Overview, Network, Electrical or Ops, as in the **Layers** panel. Not in the list. |
+| L | Anywhere on the page: switch between the map and the list, like the **Map**/**List** switch. Not while editing. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
-| **]** | Hide or show the panel on the right. Not in Edit mode. |
+| **]** | Hide or show the panel on the right. Not while editing (the editor's panel stays). |
 | **?** | Anywhere on the page: list these shortcuts. The **?** button at the end of the top bar opens the same list. |
 
 A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the
@@ -310,9 +322,13 @@ The editor draws seats with the same shapes through the **Seat states** layer (o
 under Layers), with a short legend and a link to the Seats view. The traffic heatmap takes over
 the seat colours while it is on.
 
-## Printing
+## Exporting and printing
 
-**Print** opens `/plan?print=1`: the whole hall fitted to the page with every seat numbered, the
+**Export** in the top bar saves the view on screen as a PNG (twice the screen's width) or an SVG,
+in the theme it is shown in, with the layers that are on and without the editor's handles, rulers or
+selection. **Print sheet** opens the sheet below for the whole hall.
+
+The print sheet, `/plan?print=1`, is the whole hall fitted to the page with every seat numbered, the
 legend, the hall's name and the port read's time, light on white whatever the theme. The filter
 carries over (`&show=offline` prints only the offline seats). Use the browser's print dialog for
 paper size; landscape is the default. The sheet has no names, IPs or notes, so it can lie on a
@@ -327,7 +343,7 @@ light on white, with the hall's background picture if it has one.
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
 the totals. It reloads every 30 seconds and with each port read.
 When Floorbit stops answering (the network or the server is down), a red "Not updated since …"
-badge appears next to the totals, on the big screen and in Live mode, so nobody takes old seat
+badge appears next to the totals, on the big screen and on the plan, so nobody takes old seat
 states for live ones. It goes away by itself with the next answer.
 In the top right corner the big screen shows the time, the blocks with problems (most first, up to
 six, e.g. "D: 2 seats"), and how many seats have problems in the other halls, so the crew sees where

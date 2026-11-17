@@ -1,12 +1,12 @@
 import {
   IconChevronDown, IconDots, IconStar, IconStarFilled, IconLanguage, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconLogout,
-  IconMenu2, IconMoon, IconSearch, IconSun, IconX, type Icon,
+  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSun, IconX, type Icon,
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n/lang'
-import { readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, type NavBoot, type NavPrefs } from './boot'
+import { fetchOtherTenants, readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
 import './nav.css'
 import { activeHref, customIcon, group, linkIcon, pageIcon, sectionIcon, type CustomLink, type NavPage } from './sections'
 
@@ -355,6 +355,16 @@ function Account(props: PanelProps) {
   const scheme = useScheme()
   const toggle = toggleScheme()
   const user = props.boot.user
+  // Asked once, when the menu first opens: it reads every other tenant's accounts.
+  const [others, setOthers] = useState<OtherTenant[] | null>(null)
+  const askOthers = !!props.boot.hosted && !!user && open && others === null
+
+  useEffect(() => {
+    if (!askOthers) return
+    let live = true
+    void fetchOtherTenants().then((list) => { if (live) setOthers(list) })
+    return () => { live = false }
+  }, [askOthers])
 
   useEffect(() => {
     if (!open) return
@@ -386,6 +396,17 @@ function Account(props: PanelProps) {
       {open && (
         <div className="fb-nav-menu" role="menu" data-sheet={props.sheet || undefined}>
           {user && <div className="fb-nav-menu-label">{t('common.signedInAs', { username: user.username })}</div>}
+          {!!others?.length && (
+            <>
+              <div className="fb-nav-menu-label"><IconBuildingCommunity size={14} aria-hidden="true" /> {t('nav.otherTenants')}</div>
+              {others.map((o) => (
+                <a key={o.id} role="menuitem" className="fb-nav-menu-item" href={o.url}>
+                  {o.name || o.id}
+                </a>
+              ))}
+              <hr />
+            </>
+          )}
           <div className="fb-nav-menu-label"><IconLanguage size={14} aria-hidden="true" /> {t('common.language')}</div>
           {LANGUAGES.map((l) => (
             <button

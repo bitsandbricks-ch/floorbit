@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Dashboards = lazy(() => import('@/pages/Dashboards'))
 const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
+const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Teams = lazy(() => import('@/pages/Teams'))
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboards" element={<Dashboards />} />
             <Route path="/settings/plugins" element={<Plugins />} />
+            <Route path="/settings/plugins/:id" element={<PluginSettings />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/settings/teams" element={<Teams />} />
@@ -122,7 +124,7 @@ export default function App() {
             <Route path="/checkins" element={<Checkins />} />
             <Route path="/speedtests" element={<Speedtests />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/features" element={<Features />} />
             <Route path="/settings/sidebar" element={<SidebarSections />} />
             <Route path="/settings/api" element={<ApiTokens />} />

@@ -46,15 +46,17 @@ def pod_id():
 class RedisBus:
     """The few Redis operations the cluster uses. Blocking reads get their own connection."""
 
-    def __init__(self, **params):
+    def __init__(self, prefix='', **params):
         import redis
         self._redis = redis
         self.params = params
+        self.prefix = prefix      # the hosted tenant's, so tenants can share one Redis
         self.short = redis.Redis(**params, decode_responses=True, socket_timeout=5, socket_connect_timeout=5)
         self.blocking = redis.Redis(**params, decode_responses=True, socket_connect_timeout=5)
 
     def lease(self, key, value, ms):
         """Take or keep a lease; returns who holds it now."""
+        key = self.prefix + key
         self.short.set(key, value, nx=True, px=ms)
         holder = self.short.get(key)
         if holder == value:
@@ -64,13 +66,13 @@ class RedisBus:
         return holder
 
     def publish(self, channel, message):
-        self.short.publish(channel, message)
+        self.short.publish(self.prefix + channel, message)
 
     def listen(self, channel, handler, stop):
         while not stop.is_set():
             try:
                 pubsub = self.blocking.pubsub(ignore_subscribe_messages=True)
-                pubsub.subscribe(channel)
+                pubsub.subscribe(self.prefix + channel)
                 while not stop.is_set():
                     msg = pubsub.get_message(timeout=1.0)
                     if msg and msg.get('type') == 'message':
@@ -80,19 +82,20 @@ class RedisBus:
                 stop.wait(2)
 
     def push(self, key, message, ttl=None):
+        key = self.prefix + key
         self.short.rpush(key, message)
         if ttl:
             self.short.expire(key, ttl)
 
     def pop(self, key, timeout):
-        got = self.blocking.blpop([key], timeout=max(1, int(timeout)))
+        got = self.blocking.blpop([self.prefix + key], timeout=max(1, int(timeout)))
         return got[1] if got else None
 
     def hset(self, key, field, value):
-        self.short.hset(key, field, value)
+        self.short.hset(self.prefix + key, field, value)
 
     def hgetall(self, key):
-        return self.short.hgetall(key) or {}
+        return self.short.hgetall(self.prefix + key) or {}
 
 
 class Cluster:
@@ -294,7 +297,8 @@ def init(log=print):
     from integrations import events
 
     from . import agent_link, cache
-    bus = RedisBus(host=cache.REDIS_HOST, port=cache.REDIS_PORT, db=cache.REDIS_DB, password=cache.REDIS_PASSWORD)
+    bus = RedisBus(prefix=cache.redis_prefix(), host=cache.REDIS_HOST, port=cache.REDIS_PORT, db=cache.REDIS_DB,
+                   password=cache.REDIS_PASSWORD)
     current = Cluster(bus, deliver=events.deliver_local, run_call=agent_link.tunnel.call_here, log=log)
     current.renew()
     current.start()

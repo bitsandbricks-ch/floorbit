@@ -191,6 +191,105 @@ def opened(target):
     return out
 
 
+# ── devices from the inventory ─────────────────────────────────────────────────────────────────
+# A device in the inventory with the Telemetry feature on (on itself, a tag, its group or type) is
+# collected from like one set up here, with the logins stored in the inventory: SNMP v3 or v2c for
+# polling and traps, an API login for NX-API, RESTCONF or OPNsense. Its properties can say more:
+# telemetry_drivers, telemetry_fdb, telemetry_vlans, telemetry_port, telemetry_url,
+# telemetry_mdt_node, telemetry_verify_tls. A device set up here by the same name wins.
+
+FEATURE = 'telemetry'
+API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
+
+
+def _platform(text):
+    t = str(text or '').lower().replace(' ', '').replace('_', '-')
+    for needle, platform in (('nx', 'nxos'), ('ios-xe', 'iosxe'), ('iosxe', 'iosxe'), ('ios', 'ios'),
+                             ('opnsense', 'opnsense'), ('pfsense', 'pfsense')):
+        if needle in t:
+            return platform
+    return 'other'
+
+
+def _words(value):
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return [w for w in re.split(r'[,\s]+', str(value or '')) if w]
+
+
+def _from_device(dev, snmp, api):
+    """One telemetry target (secrets open) from an inventory device and its opened logins."""
+    props = dev.get('properties') or {}
+    platform = _platform(dev.get('platform'))
+    kind = dev.get('role') if dev.get('role') in KINDS else 'switch'
+    drivers = [d for d in _words(props.get('telemetry_drivers')) if d in DRIVERS]
+    if not drivers:
+        drivers = ['snmp', 'traps'] if snmp else []
+        if api and platform in API_DRIVER:
+            drivers.append(API_DRIVER[platform])
+    t = {'id': f"inv-{dev['id']}", 'name': dev['name'], 'address': dev['address'], 'kind': kind,
+         'platform': platform, 'drivers': drivers, 'source': 'inventory', 'inventory_id': dev['id'],
+         'fdb': props.get('telemetry_fdb') if props.get('telemetry_fdb') in FDB_MODES
+         else ('cisco_vlans' if platform in ('ios', 'iosxe') else 'qbridge'),
+         'vlans': sorted({int(v) for v in _words(props.get('telemetry_vlans')) if v.isdigit() and 1 <= int(v) <= 4094}),
+         'port': _int(props.get('telemetry_port'), 1, 65535, 0) or None,
+         'url': str(props.get('telemetry_url') or '').strip() or None,
+         'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or None,
+         'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
+         'tables': True, 'snmp_version': '2c', 'logins': {}}
+    if t['url'] and not t['url'].startswith('https://'):
+        t['url'] = None
+    if snmp:
+        c = snmp
+        # The inventory's block (device id, credential id, revision) is what a refused login stops.
+        t['logins']['snmp'] = {'device': dev['id'], 'credential': c['id'], 'rev': c.get('rev') or ''}
+        if c['kind'] == 'snmp_v3':
+            t.update(snmp_version='3', sec_name=c.get('username') or '',
+                     auth_protocol=c.get('auth_protocol') or 'SHA', priv_protocol=c.get('priv_protocol') or 'AES',
+                     auth_password=c.get('secret') or '', priv_password=c.get('priv_secret') or '')
+        else:
+            t['community'] = c.get('secret') or ''
+    if api:
+        c = api
+        t['logins']['api'] = {'device': dev['id'], 'credential': c['id'], 'rev': c.get('rev') or ''}
+        t['username'] = c.get('username') or ''
+        t['password' if platform != 'opnsense' else 'api_secret'] = c.get('secret') or ''
+    return t if t['drivers'] else None
+
+
+def from_inventory(data=None):
+    """Telemetry targets for the inventory devices with the Telemetry feature on, logins opened.
+    Only for the collector (its config, or the agent over its link)."""
+    from .. import inventory_scope
+    try:
+        snmp = {d['id']: d for d in inventory_scope.plugin_targets(FEATURE, ['snmp_v3', 'snmp_v2c'], data)}
+        api = {d['id']: d for d in inventory_scope.plugin_targets(FEATURE, ['api', 'http'], data)}
+    except Exception as exc:  # noqa: BLE001  # no inventory devices is better than no telemetry
+        print(f'[telemetry] inventory devices: {exc}')
+        return []
+    out = []
+    for dev_id in sorted(set(snmp) | set(api), key=lambda i: (snmp.get(i) or api.get(i))['name'].lower()):
+        dev = snmp.get(dev_id) or api.get(dev_id)
+        t = _from_device(dev, (snmp.get(dev_id) or {}).get('credential'), (api.get(dev_id) or {}).get('credential'))
+        if t:
+            out.append(t)
+    return out
+
+
+def all_opened(data=None):
+    """Every device to collect from with its secrets open: the ones set up here, then the
+    inventory's (a name set up here wins)."""
+    own = [opened(t) for t in raw_targets(data)]
+    names = {t['name'].lower() for t in own}
+    return own + [t for t in from_inventory(data) if t['name'].lower() not in names]
+
+
+def inventory_listing(data=None):
+    """The inventory's devices as the settings page shows them: no secrets."""
+    return [{k: v for k, v in t.items() if k not in SECRETS and k != 'logins'}
+            | {'secrets': sorted(k for k in SECRETS if t.get(k))} for t in from_inventory(data)]
+
+
 # ── the ingest token: what Telegraf (and a firewall's own Telegraf) shows to send ──────────────
 
 def ingest_token(create=True):
