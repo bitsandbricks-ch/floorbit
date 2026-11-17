@@ -37,7 +37,7 @@ plugin can't depend on them by accident.
 | `plugin.py` | no | The hosted part: `class Plugin(floorbit.plugins.base.Plugin)`. |
 | `agent.py` | no | The part on the local agent: `class AgentPlugin(floorbit.plugins.agent.AgentPlugin)` (`agent.module` names another file). |
 | more `*.py` | no | Helpers the two import from their own folder (the LAN cache plugin's `logs.py`). |
-| `locales/de-CH.json` | no | **Next.** German for the plugin's own texts (see [Texts and German](#texts-and-german)). |
+| `locales/de-CH.json` | no | German for the plugin's own texts (see [Texts and German](#texts-and-german)). |
 | `README.md`, `CHANGELOG.md`, `LICENSE` | no | Shown on the Marketplace page. |
 | `SIGNATURE.json` | in a bundle | Written by the release workflow: the hash of every other file, signed. |
 
@@ -134,7 +134,7 @@ The method names and shapes are in [Plugins](plugins.md#areas-uses).
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
 | English texts in the manifest and in what it returns | Ships | Names, labels, help, widget texts, messages from `PluginError`. |
-| German | Ships, partly | Today a plugin's texts are German only where Floorbit's own catalog has them. **Next:** `locales/de-CH.json` in the bundle, `{"English text": "German text"}`, used for its manifest, widgets, panels, layers and messages; standard German is made from it like everywhere else. Floorbit's own catalog wins for the shared words. |
+| German | Ships | `locales/de-CH.json` in the plugin's folder: `{"English text": "Swiss German text"}`, with `{}` where a value goes (`"Waved {} times": "{} Mal gewunken"`; `{1}`, `{2}` reorder). Used for its name, description, settings (label, help, placeholder), actions, tiles, right-click entries, messages and errors. A text it doesn't list falls back to Floorbit's own catalog, then to English. Standard German (`de`) is made from it like everywhere else ("ss" to "ß"). Up to 2,000 texts and 256 KB; a file with a different number of `{}` on the two sides is refused. |
 
 ### Permissions it asks for
 
@@ -142,7 +142,8 @@ A plugin doesn't add roles or permissions. Each action, endpoint, tile, panel, l
 one of [Floorbit's permissions](auth.md), and Floorbit checks it. What a plugin may touch is the
 sum of its `uses:`, the permissions it names, its agent block (what it sends and how private,
 the actions it can run in the hall) and the device credentials it can use. Settings > Plugins shows
-all of it. **Next:** the Marketplace shows the same summary before you install, from the index.
+all of it, and the Marketplace shows the same summary on each card before you install, from the
+index. The index build refuses a release whose `plugin.yaml` Floorbit's loader would refuse.
 
 ## Limits
 

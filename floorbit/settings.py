@@ -13,7 +13,7 @@ import re
 import threading
 
 import requests
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
@@ -487,9 +487,13 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
     bp = Blueprint('settings', __name__)
 
     def payload():
+        sections, fields = SECTIONS, FIELDS
+        plugins = current_app.extensions.get('floorbit_plugins')
+        if plugins is not None:   # plugin settings in the plugin's own German
+            sections, fields = plugins.settings_texts(sections, fields, request.headers.get('Accept-Language'))
         return {
-            'sections': SECTIONS,
-            'fields': FIELDS,
+            'sections': sections,
+            'fields': fields,
             'values': store.public_values(),
             'status': {
                 'netbox_enabled':   bool(store.get('netbox.url') and store.get('netbox.token')),

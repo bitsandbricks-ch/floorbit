@@ -35,7 +35,7 @@ import threading
 import time
 from pathlib import Path
 
-from .plugins import PluginError, bundles, compatible
+from .plugins import PluginError, bundles, clean_touches, compatible
 
 DEFAULT_URL = 'https://bitsandbricks-ch.github.io/floorbit-plugins/index.json'  # TODO: Mike: final domain?
 URL_ENV = 'FLOORBIT_MARKETPLACE_URL'
@@ -165,7 +165,7 @@ def versions_of(entry):
         out.append({'version': ver, 'file': file, 'sha256': _text(v.get('sha256'), 64),
                     'floorbit': _text(v.get('floorbit'), 60), 'agent_api': int(v.get('agent_api') or 1),
                     'date': _text(v.get('date'), 30), 'changes': _text(v.get('changes'), 4000),
-                    'withdrawn': _text(v.get('withdrawn'), 300)})
+                    'withdrawn': _text(v.get('withdrawn'), 300), 'touches': clean_touches(v.get('touches'))})
     return sorted(out, key=lambda v: bundles.version_key(v['version']), reverse=True)
 
 
@@ -316,6 +316,9 @@ def catalog(registry, force=False):
                             | {'compatible': ok, 'why': why})
         best = next((v['version'] for v in versions if v['compatible'] and not v['withdrawn']), None)
         current = mine['version'] if mine else None
+        # What the version it would install (or update to) may touch: shown before anyone installs it.
+        wanted = best if not current or (best and bundles.newer(best, current)) else current
+        touches = next((v['touches'] for v in versions_of(entry) if v['version'] == wanted), None)
         name = _text(entry.get('name'), 80) or (spec.name if spec else pid)
         plugins.append({
             'id': pid, 'name': name, 'description': _text(entry.get('description'), 500),
@@ -328,7 +331,7 @@ def catalog(registry, force=False):
             'enabled': bool(spec and mine and registry.enabled(spec)),
             'withdrawn': next((v['withdrawn'] for v in versions if v['version'] == current), '') if current else '',
             'update': best if current and best and bundles.newer(best, current) else None,
-            'best': best, 'versions': versions, 'listed': src is not None,
+            'best': best, 'versions': versions, 'listed': src is not None, 'touches': touches,
         })
     return {'sources': status, 'plugins': plugins}
 

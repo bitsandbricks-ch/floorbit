@@ -46,6 +46,10 @@ def _allowed(needed):
     return None
 
 
+def _language():
+    return i18n.language(request.headers.get('Accept-Language'))
+
+
 def _error(message, status=400):
     return jsonify({'error': message}), status
 
@@ -98,7 +102,7 @@ def plugin_page(plugin_id):
 
 @bp.route('/api/settings/plugins', methods=['GET'])
 def list_plugins():
-    return jsonify({'plugins': _registry().as_list()})
+    return jsonify({'plugins': _registry().as_list(_language())})
 
 
 @bp.route('/api/settings/plugins/<plugin_id>', methods=['PUT'])
@@ -119,7 +123,8 @@ def update_plugin(plugin_id):
 
         from .. import agent_plugins
         threading.Thread(target=agent_plugins.reload_agents, daemon=True, name='agent-plugins-reload').start()
-    return jsonify({'plugins': _registry().as_list(), 'name': spec.name})
+    return jsonify({'plugins': _registry().as_list(_language()),
+                    'name': _registry().text(spec, spec.name, _language())})
 
 
 @bp.route('/api/settings/plugins/<plugin_id>/test', methods=['POST'])
@@ -164,11 +169,10 @@ def run_action(plugin_id, action_id):
     except PluginError as exc:
         audit.record('plugins', f"Ran {spec.name}: {action['label']}", user=user, target=spec.id,
                      fields=list(params) or None, ok=False)
-        return _error(str(exc))
+        return _error(registry.text(spec, str(exc), _language()))
     audit.record('plugins', f"Ran {spec.name}: {action['label']}", user=user, target=spec.id, fields=list(params))
     result = result if isinstance(result, dict) else {'message': str(result or 'Done')}
-    lang = i18n.language(request.headers.get('Accept-Language'))
-    message = i18n.translate(str(result.get('message') or 'Done'), lang)
+    message = registry.text(spec, str(result.get('message') or 'Done'), _language())
     return jsonify({'ok': True, 'message': message[:500],
                     'data': {k: v for k, v in result.items() if k != 'message'}})
 
@@ -185,18 +189,19 @@ def widget(plugin_id, widget_id):
     try:
         body = _registry().widget(spec, widget_id)
     except PluginError as exc:
-        return _error(str(exc), 502)
-    return jsonify(german_widget(body, i18n.language(request.headers.get('Accept-Language'))))
+        return _error(_registry().text(spec, str(exc), _language()), 502)
+    return jsonify(german_widget(body, _language(), spec))
 
 
-def german_widget(body, lang):
-    """A plugin widget's own texts in ``lang`` where Floorbit's catalog knows them, like the Health
-    page does for the same checks ("GET … failed: …"). Values (names, numbers, hosts) stay."""
+def german_widget(body, lang, spec=None):
+    """A plugin widget's own texts in ``lang``: from the plugin's locales/de-CH.json, else where
+    Floorbit's catalog knows them, like the Health page does for the same checks ("GET … failed:
+    …"). Values (names, numbers, hosts) stay."""
     if lang == 'en' or not isinstance(body, dict):
         return body
 
     def tr(text):
-        return i18n.translate(text, lang)
+        return _registry().text(spec, text, lang) if spec is not None else i18n.translate(text, lang)
     out = {**body, **{k: tr(body[k]) for k in ('label', 'sub', 'unit') if isinstance(body.get(k), str)}}
     if isinstance(body.get('items'), list):
         out['items'] = [{**i, **{k: tr(i[k]) for k in ('label', 'detail') if isinstance(i.get(k), str)}}
@@ -249,7 +254,8 @@ def context_menu():
         for entry in spec.items('context_menu'):
             action = spec.item('actions', entry['action'])
             if action and action['permission'] in granted:
-                entries.append({'plugin': spec.id, 'plugin_name': spec.name, 'label': entry['label'],
+                entries.append({'plugin': spec.id, 'plugin_name': registry.text(spec, spec.name, _language()),
+                                'label': registry.text(spec, entry['label'], _language()),
                                 'targets': entry['targets'],
                                 'danger': bool(action.get('danger')),
                                 'url': f"/api/plugins/{spec.id}/actions/{action['id']}"})
@@ -271,16 +277,19 @@ def dashboard():
             continue
         for w in spec.items('widgets'):
             if w['permission'] in granted:
-                tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'id': w['id'], 'label': w['label'],
+                tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'spec': spec, 'id': w['id'],
+                              'label': w['label'],
                               'size': w.get('size', 'small'), 'refresh': w['refresh'],
                               'url': f"/api/plugins/{spec.id}/widgets/{w['id']}"})
         for a in spec.items('actions'):
             if a.get('dashboard') and a['permission'] in granted:
-                tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'id': a['id'], 'label': a['label'],
+                tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'spec': spec, 'id': a['id'],
+                              'label': a['label'],
                               'kind': 'action', 'danger': bool(a.get('danger')),
                               'url': f"/api/plugins/{spec.id}/actions/{a['id']}"})
     lang = i18n.language(request.headers.get('Accept-Language'))
-    tiles = [{**t, 'label': i18n.translate(t['label'], lang), 'plugin_name': i18n.translate(t['plugin_name'], lang)}
+    tiles = [{**{k: v for k, v in t.items() if k != 'spec'}, 'label': registry.text(t['spec'], t['label'], lang),
+              'plugin_name': registry.text(t['spec'], t['plugin_name'], lang)}
              for t in tiles]
     # Floorbit's own tiles first: they work with no plugin set up (issue #302).
     return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user)) + tiles})

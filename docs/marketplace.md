@@ -25,6 +25,12 @@ The index lists every version with its checksum, the Floorbit versions it works 
 (`floorbit: ">=1.4"`) and, for a version that was pulled, why (`withdrawn:`). A withdrawn version is
 never installed; where one runs, the page says so and offers the way out.
 
+Each version in the index also says what it may touch, worked out from its `plugin.yaml` when the
+index is built: the [areas](plugin-spec.md#data-floorbit-uses) it uses, the permissions its actions
+and pages ask for, what its agent part sends and how private that is, the actions it can run in
+the hall, and the device logins and secrets it uses. The Marketplace card shows that list before
+you install. The build refuses a release whose `plugin.yaml` Floorbit would refuse.
+
 ## What is trusted, and who decides
 
 | Trust | Signed with | Set by |

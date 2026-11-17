@@ -117,3 +117,61 @@ def test_the_index_floorbit_reads(tmp_path, keys):
     doc = json.loads((tmp_path / "site" / "index.json").read_text())
     bundles.verify_index(doc, bundles.pinned_keys(bundles.INDEX_KEYS_DIR))
     assert marketplace.versions_of(doc["plugins"][0])[0]["file"] == "hallthing-1.0.0.tar.gz"
+
+
+def test_a_signed_release_floorbit_would_refuse_is_not_listed(tmp_path, keys):
+    folder = plugin(tmp_path, "1.0.0")
+    (folder / "plugin.yaml").write_text("id: hallthing\nname: Hall thing\nversion: '1.0.0'\nuses: [root]\n")
+    bad = tools.sign_folder(folder, keys["plugins"].read_bytes(), "1.0.0", tmp_path / "dist")
+    repo = "bitsandbricks-ch/floorbit-plugin-hallthing"
+    lines = []
+    doc = tools.build_index({"plugins": [{"repo": repo}]}, tmp_path / "site", keys["index"].read_bytes(),
+                            FakeGitHub({repo: [release(bad, "1.0.0")]}), log=lines.append)
+    assert doc["plugins"] == []
+    assert any("unknown area" in line for line in lines)
+
+
+AGENT_YAML = """id: hallthing
+name: Hall thing
+version: '1.0.0'
+uses: [agent, actions, widgets, settings]
+settings:
+  - {key: token, type: secret}
+actions:
+  - {id: clear, role: admin, danger: true}
+widgets:
+  - {id: tile, permission: seats.view}
+agent:
+  sends: {stats: {privacy: aggregate}, devices: {privacy: device}}
+  actions: [clear]
+  targets: {credentials: [ssh]}
+"""
+
+
+def test_the_index_says_what_each_version_may_touch(tmp_path, keys):
+    from floorbit import marketplace
+    folder = plugin(tmp_path, "1.0.0")
+    (folder / "plugin.yaml").write_text(AGENT_YAML)
+    (folder / "plugin.py").write_text(
+        "from floorbit.plugins.base import Plugin as B\nclass Plugin(B):\n"
+        "    def run_clear(self, p): pass\n    def widget_tile(self): pass\n")
+    (folder / "agent.py").write_text("x = 1\n")
+    signed = tools.sign_folder(folder, keys["plugins"].read_bytes(), "1.0.0", tmp_path / "dist")
+    repo = "bitsandbricks-ch/floorbit-plugin-hallthing"
+    doc = tools.build_index({"plugins": [{"repo": repo}]}, tmp_path / "site", keys["index"].read_bytes(),
+                            FakeGitHub({repo: [release(signed, "1.0.0")]}), log=lambda *_: None)
+    got = marketplace.versions_of(doc["plugins"][0])[0]["touches"]
+    assert got == {"uses": ["agent", "actions", "widgets", "settings"],
+                   "permissions": ["seats.view", "settings.manage"],
+                   "secrets": 1, "sends": {"stats": "aggregate", "devices": "device"}, "hall_actions": ["clear"],
+                   "credentials": ["ssh"]}
+
+
+def test_touches_from_an_index_are_cut_to_what_floorbit_knows():
+    from floorbit.plugins import clean_touches
+    assert clean_touches(None) is None
+    got = clean_touches({"uses": ["agent", "root", "<b>"], "permissions": ["god.mode", "seats.view"],
+                         "secrets": "-3", "sends": {"x": "everything", "y": "device"},
+                         "hall_actions": ["ok", "../x"], "credentials": ["ssh", "telnet"]})
+    assert got == {"uses": ["agent"], "permissions": ["seats.view"], "secrets": 0, "sends": {"y": "device"},
+                   "hall_actions": ["ok"], "credentials": ["ssh"]}
