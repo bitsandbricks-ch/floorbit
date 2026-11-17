@@ -8,6 +8,8 @@ export interface NavBoot {
   user: { name: string; username: string } | null
   /** Sign-in is on: offer "Sign out". */
   signOut: boolean
+  /** A hosted platform: the account menu lists the person's other tenants. */
+  hosted?: boolean
   /** The signed-in account's sidebar settings; null without sign-in (the browser keeps them). */
   prefs: NavPrefs | null
 }
@@ -91,5 +93,20 @@ export function saveOpen(ids: string[]) {
     localStorage.setItem(OPEN_KEY, JSON.stringify(ids))
   } catch {
     /* private mode: open sections last for this visit */
+  }
+}
+
+/** Another tenant of a hosted platform where the signed-in person has an account too. */
+export interface OtherTenant { id: string; name: string; url: string; username: string }
+
+/** The person's other tenants (floorbit/hosting.py); none when that can't be asked. */
+export async function fetchOtherTenants(): Promise<OtherTenant[]> {
+  try {
+    const res = await fetch('/api/tenant/mine', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    if (!res.ok) return []
+    const body = (await res.json()) as { tenants?: OtherTenant[] }
+    return Array.isArray(body.tenants) ? body.tenants.filter((t) => t.url) : []
+  } catch {
+    return []
   }
 }

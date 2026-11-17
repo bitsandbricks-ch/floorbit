@@ -71,6 +71,8 @@ def create_app(start_background=True):
     # Which event the request works on, before anything reads one (docs/tenancy.md).
     from .blueprints import tenant_events
     tenant_events.init_app(app)
+    from . import hosting
+    hosting.register_cli(app)
     from . import i18n
     i18n.init_app(app)
 

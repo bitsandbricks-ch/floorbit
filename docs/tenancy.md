@@ -105,6 +105,28 @@ platform's ingress), and its agent connects there. The flow collector of a tenan
 A wrong `FLOORBIT_TENANT` stops Floorbit at start. Without it, nothing changes: a self-hosted
 install is its own single tenant.
 
+### Adding a tenant
+
+There is no sign-up. Whoever runs the platform adds a tenant from any tenant's container (they all
+share the storage) and then starts its process:
+
+```
+flask --app app tenants add club-b --name "Club B" --url https://club-b.floor.example.com --admin boss
+flask --app app tenants list
+```
+
+The list of tenants is `platform.json`, beside `tenants/`. `--admin` adds the tenant's first admin
+account (the password is asked for); without it the new tenant opens on its first-run setup.
+
+### People in several tenants
+
+A person has one account in each tenant, with that tenant's role, so a lead in one club can be a
+viewer in another. Two accounts are the same person when they are linked to the same outside login:
+the same Discord account, or the same subject at the same OIDC issuer. Usernames and passwords never
+link accounts. Such a person finds their other tenants in the account menu (bottom of the sidebar,
+"Your other clubs"), which opens the other tenant's address; signing in there uses the same login.
+`GET /api/tenant/mine` answers the same list.
+
 ## For developers
 
 Never build a path from `store.DATA_FILE`. Use:
