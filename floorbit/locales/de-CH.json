@@ -1085,5 +1085,6 @@
  "Make another event live first: one event is always live.": "Schalte zuerst ein anderes Event live: Ein Event ist immer live.",
  "Pick two different events.": "Wähle zwei verschiedene Events.",
  "Copy with replace or merge.": "Kopiere mit «Ersetzen» oder «Zusammenführen».",
- "Pick what to copy: {}.": "Wähle, was kopiert wird: {}."
+ "Pick what to copy: {}.": "Wähle, was kopiert wird: {}.",
+ "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {})."
 }

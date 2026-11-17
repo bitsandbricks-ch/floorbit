@@ -209,3 +209,58 @@ def test_a_request_reads_and_writes_the_picked_event(client, two_events):
     assert [b["id"] for b in client.get("/api/seat-blocks").get_json()] == ["A"]
     # The context ends with the request: code after it is back on the live event.
     assert store.event_dir() == ""
+
+
+# ── Hosted: one process per tenant, sharing a state folder or database and Redis ───────────────
+
+def test_a_hosted_tenant_keeps_its_documents_in_its_own_folder(state, monkeypatch):
+    monkeypatch.setenv(store.TENANT_ENV, "club-a")
+    assert store.tenant_file() == str(state / "tenants" / "club-a" / "data.json")
+    assert store.event_path("halls") == str(state / "tenants" / "club-a" / "halls")
+    store.save_data({"seat_blocks": [{"id": "A"}]})
+    monkeypatch.setenv(store.TENANT_ENV, "club-b")
+    tenancy.forget()
+    assert store.load_data()["seat_blocks"] == []       # club-b sees nothing of club-a
+    assert not (state / "data.json").exists()           # nor does anything land beside them
+
+
+def test_hosted_tenants_share_one_database_apart(state, monkeypatch):
+    monkeypatch.setenv(database.ENV, f"sqlite:///{state / 'floorbit.db'}")
+    try:
+        for name in ("club-a", "club-b"):
+            monkeypatch.setenv(store.TENANT_ENV, name)
+            tenancy.forget()
+            store.save_data({"seat_blocks": [{"id": name}]})
+            tenancy.create("Next year")
+        db = database.backend()
+        assert json.loads(db.get_text("tenants/club-a/data.json")) == {"seat_blocks": [{"id": "club-a"}]}
+        assert json.loads(db.get_text("tenants/club-b/data.json")) == {"seat_blocks": [{"id": "club-b"}]}
+        assert "tenants/club-a/tenant.json" in db.keys("tenants/club-a/")
+        monkeypatch.setenv(store.TENANT_ENV, "club-a")
+        tenancy.forget()
+        assert [e["id"] for e in tenancy.events()] == ["main", "next-year"]
+    finally:
+        database.backend().close()
+
+
+def test_a_wrong_tenant_name_is_refused(state, monkeypatch):
+    monkeypatch.setenv(store.TENANT_ENV, "../other")
+    with pytest.raises(ValueError):
+        store.tenant_dir()
+
+
+def test_hosted_tenants_share_one_redis_apart(monkeypatch):
+    from conftest import FakeRedis
+
+    from floorbit import cache
+    shared = FakeRedis()
+    monkeypatch.setenv(store.TENANT_ENV, "club-a")
+    a = cache._scoped(shared)
+    a.setex("arp:sw-01", 60, "[1]")
+    monkeypatch.setenv(store.TENANT_ENV, "club-b")
+    b = cache._scoped(shared)
+    assert b.get("arp:sw-01") is None and a.get("arp:sw-01") == "[1]"
+    assert list(a.scan_iter(match="arp:*")) == ["arp:sw-01"] and list(b.scan_iter(match="arp:*")) == []
+    assert a.dbsize() == 1 and b.dbsize() == 0
+    monkeypatch.delenv(store.TENANT_ENV)
+    assert cache._scoped(shared) is shared            # self-hosted: the keys as always
