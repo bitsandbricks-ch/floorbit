@@ -31,8 +31,9 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
       <Tabs value={tab} onChange={(v) => v && onTab(v as SideTab)} keepMounted={false} className="fb-side-tabs">
         <Tabs.List grow>
           <Tabs.Tab value="layers" leftSection={<IconStack2 size={14} />}>{t('plan.side.layers')}</Tabs.Tab>
-          <Tabs.Tab value="problems" leftSection={<IconAlertTriangle size={14} />}
-            rightSection={problems.length + down ? <Badge size="xs" color="down">{problems.length + down}</Badge> : null}>{t('plan.side.problems')}</Tabs.Tab>
+          {/* The count goes in the label: the tab's rightSection is only an icon wide and cuts it off. */}
+          <Tabs.Tab value="problems" leftSection={<IconAlertTriangle size={14} />}>
+            {t('plan.side.problems')}{problems.length + down ? <Badge size="xs" color="down" ml={6}>{problems.length + down}</Badge> : null}</Tabs.Tab>
           <Tabs.Tab value="items" leftSection={<IconList size={14} />}>{t('plan.side.items')}</Tabs.Tab>
         </Tabs.List>
         <ScrollArea className="fb-side-body" type="auto">
