@@ -275,5 +275,11 @@
   "Used the stored {} login set on {} {}": "Gespeichertes {}-Login von {} {} verwendet",
   "Uploaded an icon": "Icon hochgeladen",
   "Renamed an icon": "Icon umbenannt",
-  "Removed an icon": "Icon entfernt"
+  "Removed an icon": "Icon entfernt",
+  "Added an inventory entry": "Inventareintrag hinzugefügt",
+  "Added an inventory type": "Inventartyp hinzugefügt",
+  "Changed an inventory entry": "Inventareintrag geändert",
+  "Changed an inventory type": "Inventartyp geändert",
+  "Removed an inventory entry": "Inventareintrag entfernt",
+  "Removed an inventory type": "Inventartyp entfernt"
 }

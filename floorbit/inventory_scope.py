@@ -256,6 +256,12 @@ def apply_device(data, dev, body, registry=None):
             changed.append('group')
     try:
         _common(data, body, dev, changed, registry)
+        if 'fields' in body:
+            from . import inventory_types
+            values = inventory_types.clean_values(data, 'device', body['fields'], dev.get('fields'))
+            if values != (dev.get('fields') or {}):
+                dev['fields'] = values
+                changed.append('fields')
     except ScopeError as exc:
         raise inventory.InventoryError(str(exc)) from None
     return changed
@@ -317,7 +323,8 @@ def delete_group(data, group_id):
             if other.get('parent_id') == group_id:
                 other['parent_id'] = parent
         moved = 0
-        for dev in inventory.devices(data, include_hidden=True):
+        from . import inventory_types
+        for dev in [*inventory.devices(data, include_hidden=True), *inventory_types.holders(data)]:
             if dev.get('group_id') == group_id:
                 dev['group_id'] = parent
                 moved += 1
@@ -363,7 +370,8 @@ def delete_tag(data, tag_id):
         t = tag(data, tag_id)
         if t is None:
             raise KeyError(tag_id)
-        for holder in [*inventory.devices(data, include_hidden=True), *groups(data)]:
+        from . import inventory_types
+        for holder in [*inventory.devices(data, include_hidden=True), *groups(data), *inventory_types.holders(data)]:
             if tag_id in (holder.get('tags') or []):
                 holder['tags'] = [x for x in holder['tags'] if x != tag_id]
         data[TAGS] = [o for o in tags(data) if o['id'] != tag_id]
@@ -407,6 +415,10 @@ def layers(data, dev):
             if t is not None and tid not in seen:
                 seen.add(tid)
                 out.append(('tag', t))
+    from . import inventory_types
+    kind = inventory_types.layer(data, dev.get('type') if dev.get('kind') == 'entry' else 'device')
+    if kind is not None:
+        out.append(('type', kind))
     out.append(('defaults', {'id': 'defaults', 'name': 'All devices', **defaults(data)}))
     return out
 
@@ -437,7 +449,7 @@ def resolve(data, dev, registry=None):
         hit = next(((kind, h) for kind, h in stack if kind != 'defaults' and h.get(key)), None)
         look[key] = {'value': hit[1][key], 'from': _origin(*hit)} if hit else {'value': '', 'from': None}
     creds = {}
-    for kind_id in KINDS:
+    for kind_id in KINDS if dev.get('kind') != 'entry' else ():
         cred, origin = _credential_for(data, dev, kind_id, stack)
         if cred is not None:
             creds[kind_id] = {**_cred_public(cred), 'from': origin, 'blocked': _block(dev, cred) is not None}

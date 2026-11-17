@@ -229,6 +229,8 @@ RULES = (
     # The shared icon library: admins upload SVGs, everyone who sees the plan sees them.
     ('/api/icons', WRITE, 'settings.manage'),
     ('/api/icons', READ, 'floorplan.view'),
+    # What fields each type of inventory entry has: admins, like the settings.
+    ('/api/inventory/types', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', READ, 'floorplan.edit'),
     # A device blocked after a failed login: any tech clears it once the login is fixed.

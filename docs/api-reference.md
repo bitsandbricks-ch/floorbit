@@ -486,6 +486,24 @@ Source: [`floorbit/blueprints/inventory_interfaces.py`](https://github.com/bitsa
 | PATCH | `/api/inventory/<device_id>/interfaces/<iface_id>` | `floorplan.edit` |  |
 | POST | `/api/inventory/interfaces/sync` | `floorplan.edit` |  |
 
+## floorbit.blueprints.inventory_types
+
+Inventory types and entries (floorbit/inventory_types.py).
+
+Source: [`floorbit/blueprints/inventory_types.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_types.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/entries` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/entries/<type_id>` | `floorplan.edit` |  |
+| DELETE | `/api/inventory/entries/<type_id>/<entry_id>` | `floorplan.edit` |  |
+| GET | `/api/inventory/entries/<type_id>/<entry_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PATCH | `/api/inventory/entries/<type_id>/<entry_id>` | `floorplan.edit` |  |
+| GET | `/api/inventory/types` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/types` | `settings.manage` |  |
+| DELETE | `/api/inventory/types/<type_id>` | `settings.manage` |  |
+| PATCH | `/api/inventory/types/<type_id>` | `settings.manage` |  |
+
 ## floorbit.blueprints.layout_templates
 
 The floor plan template library (issue #48). Rules live in floorbit/layout_templates.py.

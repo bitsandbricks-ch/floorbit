@@ -38,7 +38,8 @@ LIMITS = {'name': 80, 'role': 40, 'model': 80, 'serial': 80, 'mgmt_ip': 45, 'hal
           'host': 80}
 # The icons a device or group can show (frontend/src/pages/inventory/icons.tsx draws them).
 ICONS = ('switch', 'router', 'firewall', 'server', 'vm', 'access-point', 'pdu', 'ups', 'storage', 'camera',
-         'printer', 'screen', 'phone', 'cloud', 'cpu', 'antenna', 'other')
+         'printer', 'screen', 'phone', 'cloud', 'cpu', 'antenna', 'cable', 'circuit', 'power-board', 'patch-panel',
+         'rack', 'transceiver', 'vlan', 'other')
 COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
 LOG_KEEP = 50
 MAX_TAGS = 20
@@ -60,7 +61,7 @@ def _blank(**kw):
            'x': None, 'y': None, 'origin': 'manual', 'refs': {}, 'fed': {}, 'locked': [],
            'gone': [], 'hidden': False, 'updated_at': now(),
            # Set by hand only, never fed (floorbit/inventory_scope.py has the rules):
-           'icon': '', 'color': '', 'group_id': None, 'tags': [], 'properties': {}, 'features': {},
+           'icon': '', 'color': '', 'group_id': None, 'tags': [], 'properties': {}, 'features': {}, 'fields': {},
            'interfaces': [], 'blocks': []}
     dev.update(kw)
     return dev
@@ -122,7 +123,7 @@ def normalize(raw):
             dev[key] = ''
     dev['group_id'] = str(raw['group_id'])[:40] if raw.get('group_id') else None
     dev['tags'] = [str(t)[:40] for t in raw.get('tags') or [] if t][:MAX_TAGS]
-    for key in ('properties', 'features'):
+    for key in ('properties', 'features', 'fields'):
         dev[key] = raw[key] if isinstance(raw.get(key), dict) else {}
     from . import inventory_interfaces
     dev['interfaces'] = [inventory_interfaces.normalize(i) for i in raw.get('interfaces') or []
@@ -155,6 +156,7 @@ def public(dev):
     out['tags'] = list(dev.get('tags') or [])
     out['properties'] = dict(dev.get('properties') or {})
     out['features'] = dict(dev.get('features') or {})
+    out['fields'] = dict(dev.get('fields') or {})
     out['interface_count'] = len(dev.get('interfaces') or [])
     out['blocked'] = len(dev.get('blocks') or [])
     return out

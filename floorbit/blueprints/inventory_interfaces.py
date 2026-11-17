@@ -15,6 +15,7 @@ from integrations import events
 
 from .. import audit, inventory, inventory_interfaces, inventory_scope
 from ..store import load_data, save_data
+from . import options
 from .inventory import data_lock
 from .options import _can
 
@@ -34,7 +35,29 @@ def detail(data, dev):
     out['own_credentials'] = inventory_scope.credentials_of(data, 'device', dev['id']) if _can('floorplan.edit') else []
     out['blocks'] = inventory_scope.blocks(data, dev['id'])
     out['runs_here'] = runs_here(data, dev)
+    out['connected'] = connected(data, dev)
     return out
+
+
+def connected(data, dev):
+    """What is wired to the device, from the pages that keep it: cables on its ports (by name),
+    circuits that feed it (by id) and internet lines that come in on it (by name)."""
+    from .. import cables, power, services
+    name = dev['name'].lower()
+    wired = [{'id': c.get('id'), 'label': c.get('label') or '', 'port': c.get('port') or '',
+              'panel': c.get('panel') or '', 'panel_port': c.get('panel_port') or '', 'seat': c.get('seat') or '',
+              'type': c.get('type') or '', 'speed': c.get('speed')}
+             for c in cables.all_cables(data) if str(c.get('switch') or '').lower() == name]
+    boards, circuits = power._stored(data)
+    board_names = {b.get('id'): b.get('name') or '' for b in boards}
+    fed = [{'id': c.get('id'), 'name': c.get('name') or '', 'board': board_names.get(c.get('board'), ''),
+            'phase': c.get('phase') or '', 'rating_a': c.get('rating_a')}
+           for c in circuits if dev['id'] in (c.get('switches') or [])]
+    lines = [{'id': u.get('id'), 'name': u.get('name') or '', 'port': u.get('port') or '',
+              'capacity_mbps': u.get('capacity_mbps')}
+             for u in services._stored(data)['uplinks'] if str(u.get('device') or '').lower() == name]
+    wired.sort(key=lambda c: options._natural(c['port']))
+    return {'cables': wired, 'circuits': fed, 'uplinks': lines}
 
 
 def runs_here(data, dev):
