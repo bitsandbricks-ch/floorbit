@@ -9,6 +9,7 @@ const ROWS: KeyRow[] = [
   [[['Enter'], ['Space']], 'open'],
   [[['Esc']], 'close'],
   [[['B']], 'block'],
+  [[['1'], ['2'], ['3'], ['4']], 'presets'],
   [[['Shift', '←↑→↓']], 'pan'],
   [[['+'], ['-'], ['0']], 'zoom'],
   [[['/']], 'find'],

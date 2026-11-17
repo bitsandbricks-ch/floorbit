@@ -16,7 +16,7 @@ import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
-import { type LayerId, type LayerState, readLayers, writeLayers } from './plan/layers'
+import { type LayerId, type LayerState, PRESET_KEYS, applyPreset, readLayers, writeLayers } from './plan/layers'
 import { LayersPanel } from './plan/LayersPanel'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
 import { SeatList } from './plan/SeatList'
@@ -169,7 +169,11 @@ export default function FloorPlan() {
     PANELS.forEach((k) => next.delete(k))
     setParams(next, { replace: true })
   }
-  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel]])
+  // 1 to 4 switch the layer preset, so the crew at a big screen can flip views without the mouse.
+  const presetKeys = PRESET_KEYS.map((p, i): [string, () => void] => [String(i + 1), () => {
+    if (mode !== 'edit' && !list) setLayers(applyPreset(layers, p))
+  }])
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ...presetKeys])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
