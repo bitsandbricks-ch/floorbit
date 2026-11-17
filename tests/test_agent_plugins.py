@@ -341,3 +341,22 @@ def test_targets_come_from_the_inventory(client, anon_client, hallthing, monkeyp
     assert validate(manifest(agent={"targets": {"credentials": ["telnet"]}})).startswith("agent.targets")
     m = manifest(agent={"targets": True})
     assert validate(m) == "" and m["agent"]["targets"] == {"credentials": None}
+
+
+def test_plugins_that_answer_for_the_hall_go_to_the_agent_with_their_settings(client, anon_client, monkeypatch):
+    from floorbit import agent_plugins, sources
+    key = enrol(client)["key"]
+    registry = sources.registry
+    store = registry.settings_store
+    values = {"librenms.url": "https://librenms.example.com", "librenms.token": "example-token"}
+    monkeypatch.setattr(store, "get", lambda k, _get=store.get: values.get(k, _get(k)))
+    monkeypatch.setattr(registry, "enabled", lambda spec: spec.id in ("librenms", "demo", "lancache", "loki"))
+    local = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["local"]
+    # LibreNMS answers monitoring calls: it goes, with what is set here. Demo never, nor a plugin
+    # with its own agent part (lancache), nor one that answers nothing for the hall (loki).
+    assert list(local) == ["librenms"]
+    assert local["librenms"]["settings"]["librenms.url"] == "https://librenms.example.com"
+    assert local["librenms"]["settings"]["librenms.token"] == "example-token"
+    before = agent_plugins.config()["etag"]
+    values["librenms.url"] = "https://other.example.com"
+    assert agent_plugins.config()["etag"] != before
