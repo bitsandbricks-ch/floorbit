@@ -104,3 +104,15 @@ def test_the_plan_has_no_edge(client):
     drawing = client.get("/api/plan").get_json()["drawing"]
     names = {s["name"] for s in drawing["shapes"]}
     assert {"A", "B", "C", "D", "Z"} <= names
+
+
+def test_a_typed_seat_means_the_plan_seat():
+    assert seat_names.typed_forms(" a 3 ") == ["A 3", "A-3"]
+    assert seat_names.typed_forms("a03") == ["A03", "A-3"]
+    assert seat_names.typed_forms("VIP_2") == ["VIP_2", "VIP-2"]
+    assert seat_names.typed_forms("C-14") == ["C-14"] and seat_names.typed_forms("") == []
+    known = {"A-3", "17", "A3"}
+    assert seat_names.match_typed("a3", known) == "A3"     # the plan's own spelling first
+    assert seat_names.match_typed("a 3", known) == "A-3"
+    assert seat_names.match_typed("17", known) == "17"
+    assert seat_names.match_typed("B-3", known) is None and seat_names.match_typed(None, known) is None

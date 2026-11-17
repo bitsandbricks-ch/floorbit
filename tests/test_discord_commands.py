@@ -105,6 +105,7 @@ def test_seat_shows_state_port_and_incidents_but_no_people(bridge, client, anon_
     assert text.startswith("**Seat B-1**") and "Port: sw-b-01 Gi1/0/1" in text
     assert "No link at all" in text and "https://floor.example.com/plan?seat=B-1" in text
     assert "192.0.2" not in text and "nick" not in text.lower()
+    assert _ask(anon_client, key, _command("seat", options=_opt("seat", "b1"))).startswith("**Seat B-1**")
     assert "no seat Z-9" in _ask(anon_client, key, _command("seat", options=_opt("seat", "Z-9")))
     assert "works incidents" in _ask(anon_client, key, _command("seat", user_id="222", options=_opt("seat", "B-1")))
     assert "not linked" in _ask(anon_client, key, _command("seat", user_id="333", options=_opt("seat", "B-1")))
@@ -285,6 +286,14 @@ def test_attendee_reports_a_seat_without_an_account(bridge, client, anon_client,
         _ask(anon_client, key, _report("B-4", "other"))
     assert "Too many reports" in _ask(anon_client, key, _report("B-4", "other"))   # 5 per 10 min per user
 
+
+
+def test_attendee_report_takes_the_seat_as_typed(bridge, client, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "outage_since", lambda seat, data=None: None)
+    assert _ask(anon_client, key, _report("b 3", "power")) == \
+        "Thanks, we know. Someone from the team will come to seat B-3."
+    assert "There is no seat B 99" in _ask(anon_client, key, _report("b 99", "power"))
 
 def test_attendee_report_when_the_switch_is_known_down(bridge, client, anon_client, key, floor, monkeypatch):
     from floorbit import seat_view
