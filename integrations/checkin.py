@@ -399,15 +399,17 @@ def learned_ports():
         return {}
 
 
-def learn_port(seat, port, username, now=None):
+def learn_port(seat, port, username, now=None, source='checkin'):
+    """``source``: ``checkin`` (the attendee's own) or ``walk`` (the crew's walk-through,
+    floorbit/seat_walk.py)."""
     from floorbit import store
     with _lock:
         rows = learned_ports()
         old = rows.get(seat)
-        if old and _same_port(old, port):
+        if old and _same_port(old, port) and old.get('source', 'checkin') == source:
             return old
         rows[seat] = {'switch': port['switch'], 'port': port['port'],
-                      'learned_at': time.time() if now is None else now, 'username': username}
+                      'learned_at': time.time() if now is None else now, 'username': username, 'source': source}
         store.write_json(_ports_path(), rows)
     events.publish('seat_ports.changed', {'seat': seat})
     return rows[seat]
@@ -422,6 +424,18 @@ def forget_port(seat):
         store.write_json(_ports_path(), rows)
     events.publish('seat_ports.changed', {'seat': seat})
     return True
+
+
+def forget_all_ports():
+    """Forget every learned seat port of the current event (one day after it ended). The count."""
+    from floorbit import store
+    with _lock:
+        rows = learned_ports()
+        if not rows:
+            return 0
+        store.write_json(_ports_path(), {})
+    events.publish('seat_ports.changed', {})
+    return len(rows)
 
 
 def learned_port_seats():

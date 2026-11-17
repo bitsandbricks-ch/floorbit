@@ -61,6 +61,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
 | POST | `/api/agent/v1/report` | anyone |  |
+| POST | `/api/agent/v1/seat-walk` | anyone |  |
 | GET | `/api/agent/v1/seats` | anyone |  |
 | POST | `/api/agent/v1/syslog` | anyone |  |
 | GET | `/api/agent/v2/link` | anyone |  |
@@ -889,6 +890,20 @@ Source: [`floorbit/blueprints/seat_map.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/seat-map/find-port` | `seats.edit` |  |
 | POST | `/api/seat-map/import` | `seats.edit` |  |
 | POST | `/api/seat-map/resolve-ports` | `seats.edit` |  |
+
+## floorbit.blueprints.seat_walk
+
+The crew's walk-through check-in (floorbit/seat_walk.py, docs/seat-walk.md).
+
+Source: [`floorbit/blueprints/seat_walk.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/seat_walk.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/seat-walk` | `seats.view` |  |
+| DELETE | `/api/seat-walk/<seat>` | `seats.edit` |  |
+| POST | `/api/seat-walk/hello` | `seats.edit` |  |
+| GET | `/api/seat-walk/hello/<token>` | `seats.view` |  |
+| POST | `/api/seat-walk/locate` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 

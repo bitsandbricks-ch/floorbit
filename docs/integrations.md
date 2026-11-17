@@ -41,7 +41,9 @@ whoever runs the server sets them and an admin of the app must not be able to ch
 
 ## Live push updates
 
-Browsers subscribe to `GET /api/events` (Server-Sent Events). `static/js/live.js` handles it:
+Browsers subscribe to `GET /api/events` (Server-Sent Events). The React app handles it
+(`frontend/src/api/live.ts`); the kiosk (`static/js/kiosk.js`) and notifications (`static/js/notify.js`)
+listen on their own:
 
 | Event | When | Frontend effect |
 |---|---|---|
@@ -52,10 +54,6 @@ Browsers subscribe to `GET /api/events` (Server-Sent Events). `static/js/live.js
 | `checkin`, `checkin.removed`, `checkin.refreshed` | seat check-ins change | none (re-dispatched only) |
 | `attention.changed` | the needs-attention list changed | the Problems page reloads |
 | `stats.changed` | a new read of all ports, or the peak was reset | the Stats page reloads |
-
-Every event is also dispatched on `window` as `lal:live` with `{type, data}` in `detail`, so
-the reworked frontend can listen without depending on `live.js`. While connected,
-`<html data-live="on">` is set (`off` otherwise) for a "live" indicator.
 
 | Variable | Default | |
 |---|---|---|
@@ -180,6 +178,7 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, seat finder, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
+| `SEAT_WALK_AGENT_URL` | | where laptops in the hall reach the local agent's captive port, for the [seat walk-through](seat-walk.md); empty takes what the agent reports (`FLOORBIT_AGENT_LAN_URL`) |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
 | `CHECKIN_VERIFY_RATE` | `10` | port lookups a second for new check-ins; a burst waits its turn ([sizing](sizing.md#doors-open)) |
 | `CAPTIVE_ENABLED` | `false` | answer the agents' captive portal (DHCP option 114), see below |
