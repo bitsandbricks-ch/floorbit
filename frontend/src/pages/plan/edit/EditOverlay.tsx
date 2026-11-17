@@ -1,7 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { SeatViewData } from '@/api/types'
 import type { OverlayContext } from '../SeatMap'
-import { type Box, type ItemRef, type Point, allItems, boxFrom, fromPct, inside, outlineOf, refKey, sameRef, snapPct, toPct } from './geometry'
+import { type Box, type ItemRef, type Point, allItems, boxFrom, fromPct, inside, outlineOf, refKey, sameRef, snapPct, toPct, wallCorners, wallPath } from './geometry'
+import { measure, snapCorner } from './reshape'
 import type { Guide } from './arrange'
 import { TOOL_GESTURE, type Tool } from './tools'
 
@@ -38,7 +39,10 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
 }) {
   const gesture = TOOL_GESTURE[tool]
   const [draft, setDraft] = useState<{ a: Point; b: Point } | null>(null)
+  const corners = useMemo(() => (tool === 'wall' ? wallCorners(data) : []), [data, tool])
   const snap = (p: Point, free: boolean, angle = false, from?: Point): Point => {
+    // A wall's ends land on other walls' ends and bends when near, so walls meet.
+    if (gesture === 'line') return snapCorner(p, { anchors: corners, reach: 10 / ctx.scale, from, angle, free, size: data.size })
     if (angle && from) {
       // Shift: the line keeps to 15 degree steps from where it started.
       const dx = p.x - from.x, dy = p.y - from.y
@@ -155,6 +159,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       ))}
       <Hits data={data} on={on} />
       {selection.map((r) => {
+        const wall = r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id && m.kind === 'wall') : undefined
+        if (wall) return <path key={`sel-${refKey(r)}`} className="fb-edit-sel-line" d={wallPath(wall)} fill="none" vectorEffect="non-scaling-stroke" />
         const o = outlineOf(data, r)
         if (!o) return null
         const { box, rotation, centre } = o
@@ -178,13 +184,11 @@ function Draft({ draft, gesture, px, cell }: { draft: { a: Point; b: Point }; ge
   const { a, b } = draft
   const fmt = (n: number) => (Math.round(n * 10) / 10).toString()
   if (gesture === 'line') {
-    const len = Math.hypot(b.x - a.x, b.y - a.y) / cell
-    const angle = Math.round((Math.atan2(-(b.y - a.y), b.x - a.x) * 180) / Math.PI)
     return (
       <g className="fb-edit-draft">
         <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} vectorEffect="non-scaling-stroke" />
         <circle cx={a.x} cy={a.y} r={4 * px} />
-        <text x={b.x + 10 * px} y={b.y - 10 * px} fontSize={13 * px}>{`${fmt(len)} · ${(angle + 360) % 360}°`}</text>
+        <text x={b.x + 10 * px} y={b.y - 10 * px} fontSize={13 * px}>{measure(a, b, cell)}</text>
       </g>
     )
   }
@@ -209,6 +213,15 @@ const Hits = memo(function Hits({ data, on }: { data: SeatViewData; on: HitHandl
   return (
     <>
       {allItems(data).map((r) => {
+        const wall = r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id && m.kind === 'wall') : undefined
+        if (wall) {
+          // Along the wall, not its box: an L-shaped wall would cover what sits in its corner.
+          return (
+            <path key={refKey(r)} className="fb-edit-hit fb-edit-hit-wall k-mark" data-item={refKey(r)} d={wallPath(wall)} strokeWidth={16}
+              onPointerDown={(e) => on.begin(e, r)} onContextMenu={(e) => on.menu(e, r)}
+              onPointerMove={on.move} onPointerUp={on.end} onPointerCancel={on.end} />
+          )
+        }
         const o = outlineOf(data, r)
         if (!o) return null
         const { box, rotation, centre } = o

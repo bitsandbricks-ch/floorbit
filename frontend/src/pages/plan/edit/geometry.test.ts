@@ -32,6 +32,12 @@ describe('editor geometry', () => {
     expect(out.switches[0]).toMatchObject({ x: 176, y: 110 })
   })
 
+  it('takes a wall\'s bends along when it moves', () => {
+    const bent = { ...data, drawing: { ...data.drawing!, marks: [{ id: 'w2', kind: 'wall' as const, x: 0, y: 0, x2: 160, y2: 100, points: [[160, 0]] as [number, number][] }] } }
+    expect(moved(bent, [{ kind: 'mark', id: 'w2' }], { x: 16, y: 10 }).drawing!.marks![0].points).toEqual([[176, 10]])
+    expect(movePatch(bent, { kind: 'mark', id: 'w2' }, { x: 16, y: 10 })).toEqual({ x: 1, y: 1, x2: 11, y2: 11, points: [[11, 1]] })
+  })
+
   it('saves positions in % of the plan', () => {
     expect(movePatch(data, { kind: 'block', id: 'b1' }, { x: 16, y: 10 })).toEqual({ x: 26, y: 31 })
     expect(movePatch(data, { kind: 'mark', id: 'w1' }, { x: 0, y: 0 })).toEqual({ x: 6.25, y: 10, x2: 18.75, y2: 10 })

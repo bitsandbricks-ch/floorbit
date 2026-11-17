@@ -397,6 +397,9 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-edit-bg { fill: transparent; cursor: default; }
 .fb-edit-hit { fill: transparent; cursor: move; }
 .fb-edit-hit:hover { fill: color-mix(in srgb, var(--color-bit) 8%, transparent); }
+.fb-edit-hit-wall { fill: none; stroke: transparent; pointer-events: stroke; stroke-linecap: round; stroke-linejoin: round; }
+.fb-edit-hit-wall:hover { fill: none; stroke: color-mix(in srgb, var(--color-bit) 20%, transparent); }
+.fb-edit-measure { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; pointer-events: none; }
 .fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
 .fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .fb-edit-marquee { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1; pointer-events: none; }
@@ -469,7 +472,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .blk.alarm { stroke: var(--color-down); stroke-width: 2px; fill: color-mix(in srgb, var(--color-down) 10%, transparent); }
 .fb-plan .sum text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; }
 .fb-plan .sum .sub { font-weight: 600; }
-.fb-marks .wall { stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; opacity: .8; }
+.fb-marks .wall { fill: none; stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 .fb-marks .wall.dashed { stroke-dasharray: 22 14; }
 .fb-marks .zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 55%, transparent); stroke-width: 2; }
 .fb-marks .zone text { fill: var(--zone); font-family: var(--font-sans); font-weight: 700; }

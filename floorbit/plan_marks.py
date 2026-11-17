@@ -8,7 +8,8 @@ Each mark is in one hall (``hall_id``) at ``x``/``y`` in percent of the plan, li
 
 ``scale`` (optional, :data:`SCALE` range) stretches a label or icon beyond its size step: the editor
 sets it when someone drags the corner handle. Missing means 1.
-- ``wall``: a line from ``x``/``y`` to ``x2``/``y2``, ``style`` solid or dashed (a wall, a fence, a door gap);
+- ``wall``: a line from ``x``/``y`` to ``x2``/``y2``, ``style`` solid or dashed (a wall, a fence, a door gap),
+  with optional ``points``: the bends between the ends, ``[[x, y], …]`` (up to :data:`BENDS_MAX`);
 - ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label`` and ``color``.
 
 Every mark is on a ``layer`` of the floor plan (:data:`LAYERS`, ``overview`` unless set), so the Seats view
@@ -28,6 +29,7 @@ KINDS = ('text', 'icon', 'wall', 'zone')
 SIZES = ('s', 'm', 'l')
 ROTATIONS = (0, 90, 180, 270)
 STYLES = ('solid', 'dashed')
+BENDS_MAX = 50
 COLORS = ('muted', 'bit', 'trace', 'warn', 'down')
 # The Seats view's layers a mark can be on (frontend/src/pages/plan/layers.ts).
 LAYERS = ('overview', 'safety', 'network', 'electrical', 'services')
@@ -98,7 +100,10 @@ def clean(body, old=None):
     elif kind == 'wall':
         out.update(x2=_pct(m.get('x2'), 'x2'), y2=_pct(m.get('y2'), 'y2'),
                    style=_pick(m.get('style'), STYLES, 'solid', 'style'))
-        if (out['x'], out['y']) == (out['x2'], out['y2']):
+        bends = _bends(m.get('points'))
+        if bends:
+            out['points'] = bends
+        if (out['x'], out['y']) == (out['x2'], out['y2']) and not bends:
             raise MarkError('A wall needs two different ends')
     else:
         w, h = _pct(m.get('w'), 'w'), _pct(m.get('h'), 'h')
@@ -108,6 +113,22 @@ def clean(body, old=None):
         if len(label) > LABEL_MAX:
             raise MarkError(f'A zone label has at most {LABEL_MAX} characters')
         out.update(w=w, h=h, label=label, color=_pick(m.get('color'), COLORS, 'muted', 'color'))
+    return out
+
+
+def _bends(value):
+    # Empty or missing: a straight wall. Bends sitting on top of each other are one.
+    if value in (None, ''):
+        return []
+    if not isinstance(value, list) or len(value) > BENDS_MAX:
+        raise MarkError(f'A wall has at most {BENDS_MAX} bends, each [x, y]')
+    out = []
+    for p in value:
+        if not isinstance(p, (list, tuple)) or len(p) != 2:
+            raise MarkError(f'A wall has at most {BENDS_MAX} bends, each [x, y]')
+        q = [_pct(p[0], 'x'), _pct(p[1], 'y')]
+        if not out or out[-1] != q:
+            out.append(q)
     return out
 
 
