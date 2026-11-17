@@ -1,4 +1,6 @@
 """Electrics (issue #45): boards, circuits, load, power incidents and the floor plan layer."""
+import re
+
 import pytest
 
 from floorbit import seat_names
@@ -100,6 +102,9 @@ def test_load_turns_amber_then_red_and_files_one_incident(client, floor, watch, 
     incident = board[0]
     assert incident["circuit_id"] == c["id"] and incident["team"] == "electrics" and incident["source"] == "power"
     assert "A-4 to A-6" in incident["notes"][0]["text"] and "sw-a-01" in incident["notes"][0]["text"]
+    # The app reads this note's shape to show it in German (frontend/src/lib/incidentTitle.ts, powerNote).
+    assert re.fullmatch(r"Board .+?, phase .+?\. Feeds \d+ seats \(.+ to .+\) and switches .+\.",
+                        incident["notes"][0]["text"])
     # Staying red, or tripping, while it is open files nothing new.
     client.post(f"/api/power/circuits/{c['id']}/reading", json={"amps": 15.9})
     client.post(f"/api/power/circuits/{c['id']}/trip", json={"tripped": True})

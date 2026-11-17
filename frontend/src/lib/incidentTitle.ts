@@ -22,3 +22,23 @@ export function incidentTitle(title: string, t: TFunction): string {
   if (load) return t('incidents.powerTitle.load', { name: load[1], pct: Number(load[2]), rating: Number(load[3]) })
   return title
 }
+
+// The note Floorbit writes on a power incident (floorbit/power.py): "Board DB-2, phase L3. Feeds 12 seats
+// (C-13 to C-24) and switches sw-c-01." Anything else is the crew's own words and stays as written.
+const NOTE = /^Board (.+?), phase (.+?)\.(?: Feeds (.+)\.)?$/
+const SEATS = /^(\d+) seats \((.+) to (.+)\)$/
+
+export function powerNote(text: string, t: TFunction): string {
+  const m = NOTE.exec(text)
+  if (!m) return text
+  const head = t('incidents.powerNote.board', { board: m[1], phase: m[2] })
+  if (!m[3]) return head
+  const parts = m[3].split(' and ').map((part) => {
+    const seats = SEATS.exec(part)
+    if (seats) return t('incidents.powerNote.seats', { count: seats[1], first: seats[2], last: seats[3] })
+    if (part.startsWith('seat ')) return t('incidents.powerNote.seat', { seat: part.slice(5) })
+    if (part.startsWith('switches ')) return t('incidents.powerNote.switches', { names: part.slice(9) })
+    return part
+  })
+  return `${head} ${t('incidents.powerNote.feeds', { what: parts.join(t('incidents.powerNote.and')) })}`
+}

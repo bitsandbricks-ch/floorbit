@@ -6,7 +6,7 @@ import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
 import { ago } from '@/lib/time'
-import { incidentTitle } from '@/lib/incidentTitle'
+import { incidentTitle, powerNote } from '@/lib/incidentTitle'
 import { runbookText } from '@/lib/runbookText'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
@@ -131,7 +131,7 @@ export function IncidentCard({
             <IconBook size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{t('incidents.runbook', { title: runbookText(i.runbook, t).title })}
           </Anchor>
         )}
-        {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}
+        {lastNote && <Text size="sm">“{!lastNote.by && i.source === 'power' ? powerNote(lastNote.text, t) : lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}
         <Text size="sm" c="dimmed">
           {i.assignee ? t('incidents.assignedTo', { name: i.assignee })
             : i.status === 'fixed' && i.fixed_at ? fixedAfter(i.fixed_at - i.created_at, t, true) : t('incidents.unassigned')}
