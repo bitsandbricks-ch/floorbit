@@ -69,6 +69,9 @@ function Report({ report, lang }: { report?: AgentReport | null; lang: string })
     if (report.syslog_dropped) parts.push(<Text span size="xs" c="down" key="d">{t('agents.reportSyslogDropped', { count: report.syslog_dropped, n: num(report.syslog_dropped) })}</Text>)
   }
   if (report.flows_packets) parts.push(t('agents.reportFlows', { n: num(report.flows_packets) }))
+  if (report.captive_shown || report.captive_done) {
+    parts.push(t('agents.reportCaptive', { shown: num(report.captive_shown ?? 0), done: num(report.captive_done ?? 0) }))
+  }
   if (report.calls_busy) parts.push(<Text span size="xs" c="warn" key="b">{t('agents.reportBusy', { count: report.calls_busy })}</Text>)
   return (
     <Text size="xs" c="dimmed">

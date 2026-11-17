@@ -138,7 +138,8 @@ def enrolled(agent_id):
 
 # What an agent may report about itself (the agent's report(), floorbit-agent issue #3).
 REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_failed',
-               'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets')
+               'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets',
+               'captive_shown', 'captive_done')
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 

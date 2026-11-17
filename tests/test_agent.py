@@ -246,13 +246,15 @@ def test_the_agent_reports_about_itself(client, anon_client, live_server):
 
     made = enrol(client)
     sent = {"report": {"up_seconds": 3600, "reconnects": 2, "syslog_received": 120, "syslog_dropped": 0,
-                       "evil": "<script>", "syslog_backlog": -5, "link_drops": True, "flows_packets": "9"}}
+                       "evil": "<script>", "syslog_backlog": -5, "link_drops": True, "flows_packets": "9",
+                       "captive_shown": 40, "captive_done": 12}}
     assert anon_client.post("/api/agent/v1/report", json=sent, headers=head(made["key"])).status_code == 200
     [listed] = client.get("/api/agents").get_json()["agents"]
     report = listed["report"]
     # Only known keys with plain, non-negative numbers are kept.
     assert {k: v for k, v in report.items() if k != "at"} == {"up_seconds": 3600, "reconnects": 2,
-                                                             "syslog_received": 120, "syslog_dropped": 0}
+                                                             "syslog_received": 120, "syslog_dropped": 0,
+                                                             "captive_shown": 40, "captive_done": 12}
     unknown = head("fba_00000000_" + "x" * 30)
     assert anon_client.post("/api/agent/v1/report", json=sent, headers=unknown).status_code == 401
 

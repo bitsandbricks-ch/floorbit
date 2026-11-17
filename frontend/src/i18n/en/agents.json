@@ -48,6 +48,7 @@
   "reportSyslogDropped_one": "1 syslog line dropped",
   "reportSyslogDropped_other": "{{n}} syslog lines dropped",
   "reportFlows": "NetFlow {{n}} packets",
+  "reportCaptive": "check-in note {{shown}} shown, {{done}} not needed",
   "reportBusy_one": "1 call answered busy",
   "reportBusy_other": "{{count}} calls answered busy"
 }

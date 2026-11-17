@@ -1560,6 +1560,9 @@ export interface AgentReport {
   syslog_dropped?: number
   syslog_backlog?: number
   flows_packets?: number
+  /** Captive portal answers: the note shown, or not (checked in). */
+  captive_shown?: number
+  captive_done?: number
 }
 
 export interface AgentStats {
