@@ -12,7 +12,8 @@ puts check-ins in front of the static file.
 Things that make an IP wrong, and what this does about them:
 
 * NAT / proxies: if the app sits behind a reverse proxy, set
-  ``CHECKIN_TRUST_PROXY=true`` so ``X-Forwarded-For`` is used. If players are
+  ``CHECKIN_TRUST_PROXY=true`` so ``X-Forwarded-For`` is used (the entry the
+  proxy added, ``CHECKIN_PROXY_HOPS`` from the right). If players are
   behind NAT the IP is the router's and nothing can fix that, so
   ``CHECKIN_ALLOWED_NETWORKS`` (CIDRs, e.g. ``10.0.0.0/16``) rejects check-ins
   from outside the player networks instead of storing a useless IP.
@@ -103,9 +104,13 @@ def lookup_ip(mac):
 def client_ip():
     ip = request.remote_addr or ''
     if config.get_bool('CHECKIN_TRUST_PROXY', False):
-        forwarded = request.headers.get('X-Forwarded-For', '')
+        # Proxies append the address they saw, so only the last ones are trustworthy: the leftmost
+        # entry is whatever the client sent, and taking it let anyone pick their own address
+        # (check in as another seat, dodge the sign-in lockout).
+        forwarded = [a.strip() for a in request.headers.get('X-Forwarded-For', '').split(',') if a.strip()]
+        hops = config.get_int('CHECKIN_PROXY_HOPS', 1, minimum=1)
         if forwarded:
-            ip = forwarded.split(',')[0].strip()
+            ip = forwarded[-min(hops, len(forwarded))]
     return ip
 
 
