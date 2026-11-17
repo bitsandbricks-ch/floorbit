@@ -213,3 +213,13 @@ def test_incidents_per_hour(client, stats, monkeypatch):
 
 def test_incidents_outside_the_hours_are_not_counted():
     assert report._per_hour([{"created_at": 7200 + 5}, {"created_at": 99999}], [3600, 7200]) == {3600: 0, 7200: 1}
+
+
+def test_pdf_shows_seat_report_titles_in_its_language():
+    from floorbit import incidents, report_pdf
+    de, en = report_pdf.TEXTS["de"], report_pdf.TEXTS["en"]
+    assert set(de["seat_titles"]) == set(incidents.SEAT_TITLES)
+    assert report_pdf._title("No internet at the seat", de) == "Kein Internet am Platz"
+    assert report_pdf._title("Needs help at the seat", de) == "Braucht Hilfe am Platz"
+    assert report_pdf._title("No internet at the seat", en) == "No internet at the seat"
+    assert report_pdf._title("Cable cut at A-1", de) == "Cable cut at A-1"   # typed by the crew: as written
