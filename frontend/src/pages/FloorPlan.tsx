@@ -280,7 +280,11 @@ export default function FloorPlan() {
   const summary = data && (
     <Group gap="lg" className="fb-plan-summary" wrap="wrap">
       <Text><b>{online}</b> / {total} {t('plan.online')}</Text>
-      <Text c={problems ? 'down' : 'dimmed'}><b>{problems}</b> {t('plan.withProblems')}</Text>
+      {problems > 0 && !screen && !editing
+        // The count doubles as the Problems filter: one click shows only those seats, a second shows all again.
+        ? <Anchor component="button" type="button" c="down" aria-pressed={filter === 'problems'} className="fb-plan-problems"
+            onClick={() => set('show', filter === 'problems' ? null : 'problems')}><b>{problems}</b> {t('plan.withProblems')}</Anchor>
+        : <Text c={problems ? 'down' : 'dimmed'}><b>{problems}</b> {t('plan.withProblems')}</Text>}
       {data.last_read && <Text c="dimmed" size="sm">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
       {!print && <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />}
     </Group>

@@ -132,7 +132,8 @@ every zoom level. That many at once usually has one cause, such as the block's s
 
 **Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
 match seats, seats with a note or checked-in seats. Each choice shows how many seats it matches in
-this hall, so "Offline 0" answers the question without a click. The choice is kept in the address
+this hall, so "Offline 0" answers the question without a click. The **with problems** count above
+the plan is a shortcut: click it to show only those seats, and again to show all. The choice is kept in the address
 (`/plan?show=offline`), so a reload or a link sent to another tech keeps it, and switching halls does too. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 With more than one hall, the hall picker shows each hall's seats online and seats with problems,

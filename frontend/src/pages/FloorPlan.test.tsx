@@ -671,6 +671,19 @@ describe('Seats page', () => {
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
   })
 
+  it('filters to the seats with problems from the count above the plan, and back', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&show=problems': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main')
+    const count = await screen.findByRole('button', { name: '1 with problems' })
+    expect(count).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(count)
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('show=problems'))
+    expect(screen.getByRole('button', { name: '1 with problems' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: '1 with problems' }))
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+  })
+
   it('switches the layer preset with 1 to 4, but not while typing', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }
