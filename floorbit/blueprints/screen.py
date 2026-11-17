@@ -3,6 +3,7 @@
 - ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``,
   ``&hall=<id>`` for the floor plan views of another hall than the first),
   with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like the Kiosk dashboard.
+  The page is React; ``GET /api/screen`` with the same query string says what it shows.
 - ``GET /find``: for players' phones, no account: type a seat number, see where it is in the hall.
   Finding by nick is off unless ``SEAT_FINDER_NICKS`` is on, and then only an exact nick finds a
   seat. ``SEAT_FINDER=false`` turns the page off.
@@ -12,7 +13,7 @@ import time
 from threading import Lock
 
 import segno
-from flask import Blueprint, abort, current_app, jsonify, render_template, request, url_for
+from flask import Blueprint, current_app, jsonify, request, url_for
 
 from integrations import checkin, config, seat_sources
 
@@ -210,6 +211,16 @@ def _find_url():
 
 @bp.route('/screen')
 def screen_page():
+    """The page is React (frontend/src/pages/BigScreen.tsx), asking /api/screen what to show."""
+    html, status = spa.render('Big screen')
+    return html, status
+
+
+@bp.route('/api/screen')
+def screen_setup():
+    """What /screen rotates through, for the same query string: ``views``, ``every`` (seconds, at
+    least 10), ``theme``, ``hall`` and ``qr=0``. Unknown views are dropped; none left means the
+    default views."""
     wanted = [v.strip() for v in (request.args.get('views') or ','.join(DEFAULT_VIEWS)).split(',')]
     views = [v for v in wanted if v in VIEWS] or list(DEFAULT_VIEWS)
     try:
@@ -232,6 +243,4 @@ def screen_page():
     if finder_on() and request.args.get('qr') != '0':
         link = _find_url()
         qr = {'url': link, 'image': segno.make(link, error='m').svg_data_uri(scale=6, border=2)}
-    if not urls:
-        abort(404)
-    return render_template('screen.html', views=urls, every=every, qr=qr)
+    return jsonify({'views': urls, 'every': every, 'qr': qr})

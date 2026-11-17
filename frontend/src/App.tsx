@@ -71,6 +71,7 @@ const PublicAgenda = lazy(() => import('@/pages/public/PublicAgenda'))
 const PublicBracket = lazy(() => import('@/pages/public/PublicBracket'))
 const PublicHall = lazy(() => import('@/pages/public/PublicHall'))
 const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
+const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="/find" element={<PublicFind />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
+          <Route path="/screen" element={<BigScreen />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboards" element={<Dashboards />} />

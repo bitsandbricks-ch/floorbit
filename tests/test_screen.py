@@ -71,22 +71,31 @@ def test_lookups_count_each_client_behind_a_trusted_proxy(anon_client, hall, mon
 
 
 def test_screen_rotates_the_chosen_views_with_a_qr_code(client, hall):
-    page = client.get("/screen?views=stats,heat,nonsense&every=5&theme=ops").get_data(as_text=True)
-    assert 'data-src="/stats?screen=1&amp;theme=ops"' in page
-    assert 'data-src="/plan?screen=1&amp;layers=marks%2Cstatus&amp;theme=ops"' in page
-    assert "nonsense" not in page and "SCREEN_EVERY = 10" in page   # at least 10 seconds
-    assert 'class="qr"' in page and "data:image/svg+xml" in page and "/find" in page
+    # The page is React (BigScreen.test.tsx rotates through what this answers).
+    assert client.get("/screen").status_code in (200, 503)
+    body = client.get("/api/screen?views=stats,heat,nonsense&every=5&theme=ops&hall=h-2").get_json()
+    assert body["views"] == [{"id": "stats", "url": "/stats?screen=1&theme=ops"},
+                             {"id": "heat", "url": "/plan?screen=1&layers=marks%2Cstatus&hall=h-2&theme=ops"}]
+    assert body["every"] == 10   # at least 10 seconds
+    assert body["qr"]["image"].startswith("data:image/svg+xml") and body["qr"]["url"].endswith("/find")
 
 
 def test_screen_without_qr_and_theme_injection(client, hall):
-    page = client.get("/screen", query_string={"qr": "0", "theme": '"><script>'}).get_data(as_text=True)
-    assert 'class="qr"' not in page and '"><script>' not in page and "?theme=" not in page
-    assert 'data-src="/dashboards/kiosk"' in page   # the default views
+    body = client.get("/api/screen", query_string={"qr": "0", "theme": '"><script>', "every": "x"}).get_json()
+    assert body["qr"] is None and body["every"] == 30
+    assert [v["url"] for v in body["views"]] == ["/dashboards/kiosk", "/plan?screen=1&layers=marks%2Cstatus",
+                                                  "/stats?screen=1"]   # the default views, no theme
+
+
+def test_screen_has_no_qr_code_while_the_finder_is_off(client, hall, monkeypatch):
+    monkeypatch.setenv("SEAT_FINDER", "false")
+    assert client.get("/api/screen").get_json()["qr"] is None
 
 
 def test_screen_needs_floor_plan_access(anon_client, app_module, monkeypatch):
     monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
     assert anon_client.get("/screen").status_code in (302, 401)
+    assert anon_client.get("/api/screen").status_code == 401
 
 
 def test_seat_traffic_for_the_heat_view(client, app_module):

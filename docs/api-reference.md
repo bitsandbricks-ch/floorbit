@@ -868,6 +868,7 @@ Source: [`floorbit/blueprints/screen.py`](https://github.com/bitsandbricks-ch/fl
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/screen` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/seat-finder` | anyone |  |
 
 ## floorbit.blueprints.seat_blocks
