@@ -15,22 +15,13 @@ import { StatCard } from '@/components/StatCard'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
 import { ErrorBanner } from '@/components/ui'
+import { ago, clock } from '@/lib/time'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
-type T = (k: string, o?: Record<string, unknown>) => string
-
-function ago(ts: number, t: T) {
-  const mins = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60))
-  if (mins < 1) return t('problems.justNow')
-  if (mins < 60) return t('problems.minutesAgo', { count: mins })
-  return t('problems.hoursAgo', { count: Math.round(mins / 60) })
-}
 
 /** A mute this close to its end gets a badge, so +30 min is pressed before the alerts come back (issue #266). */
 const ENDING_SOON = 10 * 60
 
-
-const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 function Row({ p, canMute, busy, onMute, onReport }: {
   p: Problem; canMute: boolean; busy: boolean; onMute: () => void; onReport?: () => void
@@ -57,7 +48,7 @@ function Row({ p, canMute, busy, onMute, onReport }: {
           )}
         </Stack>
         <Group gap="xs">
-          {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since, t) })}</Text>}
+          {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since) })}</Text>}
           {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
           {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
           {p.incident && (
@@ -177,7 +168,7 @@ export default function Problems() {
       count={data ? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
       <PageHead title={t('problems.title')} desc={t('problems.intro')} actions={data && (
         // For pasting into the crew chat instead of a screenshot (issue #280).
-        <CopyButton value={problemsText(visible, data.mutes, t, (ts) => ago(ts, t))} timeout={2000}>
+        <CopyButton value={problemsText(visible, data.mutes, t, (ts) => ago(ts))} timeout={2000}>
           {({ copied, copy }) => (
             <Button variant="default" size="xs" leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
               color={copied ? 'up' : undefined} onClick={copy}>

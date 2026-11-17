@@ -1,4 +1,4 @@
-import { Alert, Anchor, Group, Loader, Paper, SegmentedControl, SimpleGrid, Table, Text } from '@mantine/core'
+import { Alert, Anchor, Group, Loader, SegmentedControl, SimpleGrid, Table, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { bytes } from './traffic/format'
 import { ErrorBanner } from '@/components/ui'
+import { StatCard } from '@/components/StatCard'
 
 const W = 1000
 const H = 140
@@ -17,15 +18,6 @@ const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/game
 const pct = (n: number | null | undefined) => (n == null ? '–' : `${Math.round(n * 100)} %`)
 const ratio = (hit: number, miss: number) => (hit + miss ? hit / (hit + miss) : null)
 
-function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Paper withBorder radius="lg" p="sm">
-      <Text size="xs" c="dimmed">{label}</Text>
-      <Text fw={700} size="xl">{value}</Text>
-      {sub && <Text size="xs" c="dimmed">{sub}</Text>}
-    </Paper>
-  )
-}
 
 /** Bytes the cache served per hour: from disk at the bottom, from the internet on top. */
 function CacheChart({ cache }: { cache: LancacheData }) {
@@ -145,9 +137,9 @@ function Board({ data }: { data: GamesData }) {
     <>
       {data.sources.cache && (
         <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-          <Figure label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
-          <Figure label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
-          <Figure label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
+          <StatCard label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
+          <StatCard label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
+          <StatCard label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
         </SimpleGrid>
       )}
       <div className="fb-stats">

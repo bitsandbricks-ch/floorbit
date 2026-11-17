@@ -12,19 +12,11 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { ago } from '@/lib/time'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat-mapping.md'
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }
 
-function ago(ts: number | null | undefined, lang: string): string {
-  if (!ts) return '–'
-  const s = Math.max(0, Date.now() / 1000 - ts)
-  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' })
-  if (s < 60) return rtf.format(-Math.round(s), 'second')
-  if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute')
-  if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour')
-  return rtf.format(-Math.round(s / 86400), 'day')
-}
 
 const portText = (p: { switch: string; port: string } | null) => (p ? `${p.switch} ${p.port}` : '–')
 

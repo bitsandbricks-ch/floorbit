@@ -17,10 +17,10 @@ import { Forecast } from './stats/Forecast'
 import { bps } from './stats/format'
 import { onPlan } from './plan/links'
 import { ErrorBanner } from '@/components/ui'
+import { clock } from '@/lib/time'
 
 const HOUR = 3600
 
-const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 /** Traffic over time: download as an area, upload as a line, with the busiest point marked. */
 function Chart({ series, label }: { series: StatsSample[]; label: string }) {

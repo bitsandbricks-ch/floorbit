@@ -5,15 +5,10 @@ import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
+import { ago } from '@/lib/time'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
-function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) {
-  const mins = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60))
-  if (mins < 1) return t('incidents.justNow')
-  if (mins < 60) return t('incidents.minutesAgo', { count: mins })
-  return t('incidents.hoursAgo', { count: Math.round(mins / 60) })
-}
 
 /** Open this long with nobody on it, an incident says so (issue #296). */
 
@@ -68,7 +63,7 @@ export function IncidentCard({
       <Stack gap={6}>
         <Group justify="space-between" gap="xs" wrap="nowrap" align="flex-start">
           <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{i.title}</Text>
-          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{ago(i.created_at, t)}</Text>
+          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{ago(i.created_at)}</Text>
         </Group>
         <Group gap={6}>
           {/* Seats and switches open on the Seats page, in their own hall (issue #206). */}
@@ -91,18 +86,18 @@ export function IncidentCard({
           {/* Part of an outage, not a cable: look at the switch first (issue #386). */}
           {i.outage && (
             <Badge variant="filled" color="down" tt="none" title={t('incidents.outageHint')}>
-              {t('incidents.outage', { switch: i.outage.switch, ago: ago(i.outage.since, t) })}
+              {t('incidents.outage', { switch: i.outage.switch, ago: ago(i.outage.since) })}
             </Badge>
           )}
           {/* Filed during an outage that is over: it may work again already (issue #390). */}
           {i.back_up && (
             <Badge variant="light" color="up" tt="none" title={t('incidents.backUpHint')}>
-              {t('incidents.backUp', { switch: i.back_up.switch, ago: ago(i.back_up.since, t) })}
+              {t('incidents.backUp', { switch: i.back_up.switch, ago: ago(i.back_up.since) })}
             </Badge>
           )}
           {/* Saves a walk: the attendee says it fixed itself. Only the crew marks it fixed (issue #372). */}
           {i.seat_ok_at && i.status !== 'fixed' && (
-            <Badge variant="light" color="up" tt="none" title={t('incidents.seatOkHint')}>{t('incidents.seatOk', { ago: ago(i.seat_ok_at, t) })}</Badge>
+            <Badge variant="light" color="up" tt="none" title={t('incidents.seatOkHint')}>{t('incidents.seatOk', { ago: ago(i.seat_ok_at) })}</Badge>
           )}
         </Group>
         {snap && (
@@ -118,7 +113,7 @@ export function IncidentCard({
         {i.speedtest && (
           <Text size="sm" c="dimmed" data-speedtest>
             {t('incidents.speedtest', {
-              down: mbit(i.speedtest.down_mbps), up: mbit(i.speedtest.up_mbps), ping: i.speedtest.ping_ms ?? '?', ago: ago(i.speedtest.at, t),
+              down: mbit(i.speedtest.down_mbps), up: mbit(i.speedtest.up_mbps), ping: i.speedtest.ping_ms ?? '?', ago: ago(i.speedtest.at),
             })}
           </Text>
         )}
@@ -126,7 +121,7 @@ export function IncidentCard({
           <Text size="sm" data-seat-note style={{ overflowWrap: 'anywhere' }}>
             <IconNote size={14} color="var(--color-warn)" style={{ verticalAlign: -2, marginRight: 4 }} aria-hidden />
             <Text span fw={600}>{t('incidents.seatNote')}</Text> {i.seat_note.text}{' '}
-            <Text span size="xs" c="dimmed">{[i.seat_note.by, ago(i.seat_note.at, t)].filter(Boolean).join(' · ')}</Text>
+            <Text span size="xs" c="dimmed">{[i.seat_note.by, ago(i.seat_note.at)].filter(Boolean).join(' · ')}</Text>
           </Text>
         )}
         {i.runbook && (
