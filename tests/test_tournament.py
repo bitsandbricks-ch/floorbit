@@ -93,7 +93,7 @@ def test_port_actions_on_match_seats_ask_twice(floor, monkeypatch):
     floor.post("/api/inventory", json={"name": "sw-a-01", "mgmt_ip": "198.51.100.4", "role": "switch"})
     floor.put("/api/settings/plugins/demo", json={"enabled": True})
     from integrations import seat_sources
-    monkeypatch.setattr(seat_sources, "load", lambda *a, **k: {"A-1": {"ip_address": "192.0.2.10"}})
+    monkeypatch.setattr(seat_sources, "load", lambda *a, **k: {"A-1": {"ip_address": "192.0.2.1"}})
     floor.post("/api/tournament/zones", json={"name": "Stage", "seats": "A-1"})
     first = floor.post("/api/ports/bounce", json={"seat": "A-1"})
     assert first.status_code == 409
