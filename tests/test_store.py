@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from floorbit import store
+from floorbit import database, store
 
 
 def test_readers_never_see_half_a_file(tmp_path):
@@ -60,6 +60,13 @@ def test_a_value_that_cannot_be_saved_leaves_the_file_alone(tmp_path):
     assert store.read_json(path) == {"ok": True}
 
 
+@pytest.fixture
+def files(monkeypatch):
+    """The copy beside the file is for the files backend; a database writes in one go anyway."""
+    monkeypatch.delenv(database.ENV, raising=False)
+
+
+@pytest.mark.usefixtures("files")
 def test_a_write_cut_short_is_read_from_the_last_complete_copy(tmp_path, capsys):
     path = tmp_path / "data.json"
     store.write_json(str(path), {"seat_blocks": [{"id": "a"}]})
@@ -73,6 +80,7 @@ def test_a_write_cut_short_is_read_from_the_last_complete_copy(tmp_path, capsys)
     assert json.loads(path.read_text()) == {"seat_blocks": []}
 
 
+@pytest.mark.usefixtures("files")
 def test_when_the_copy_cannot_be_written_the_file_is_left_alone(tmp_path, monkeypatch):
     path = tmp_path / "data.json"
     store.write_json(str(path), {"ok": True})
@@ -90,6 +98,7 @@ def test_when_the_copy_cannot_be_written_the_file_is_left_alone(tmp_path, monkey
     assert json.loads(path.read_text()) == {"ok": True}
 
 
+@pytest.mark.usefixtures("files")
 def test_a_broken_file_and_copy_still_say_so(tmp_path):
     path = tmp_path / "data.json"
     path.write_text("not json")
@@ -98,6 +107,7 @@ def test_a_broken_file_and_copy_still_say_so(tmp_path):
         store.read_json(str(path))
 
 
+@pytest.mark.usefixtures("files")
 def test_deleting_a_document_takes_its_copy_too(tmp_path):
     path = tmp_path / "template.json"
     store.write_json(str(path), {"a": 1})
@@ -107,6 +117,7 @@ def test_deleting_a_document_takes_its_copy_too(tmp_path):
     assert store.list_json(str(tmp_path)) == []
 
 
+@pytest.mark.usefixtures("files")
 def test_the_app_keeps_answering_on_a_half_written_data_file(app_module, tmp_path):
     # Before, a cut-short data.json crashed every start: a restart loop with no way in.
     client = app_module.app.test_client()
