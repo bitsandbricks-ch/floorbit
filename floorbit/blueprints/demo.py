@@ -82,6 +82,7 @@ def seed():
                                     for k, v in layout['cable_routes'].items()}
         save_data(data)
     _import_cables()
+    _seed_game_servers(layout)
     return {'placed': placed, 'blocks': len(blocks)}
 
 
@@ -163,23 +164,58 @@ def _seed_firewalls(data, layout):
 
 
 def _seed_uplinks(data, layout):
-    """The demo's internet lines, for the services page and the topology."""
-    spec = layout.get('uplinks')
+    """The demo's internet lines and DNS resolvers, for the services page and the topology."""
     stored = data.get('services') if isinstance(data.get('services'), dict) else {}
-    if not spec or stored.get('uplinks'):
+    for kind in ('uplinks', 'resolvers'):
+        if layout.get(kind) and not stored.get(kind):
+            stored = {**stored, kind: [{'id': uuid.uuid4().hex[:12], **u} for u in layout[kind]]}
+    data['services'] = stored
+
+
+def _seed_game_servers(layout):
+    """The demo's game servers, with an RCON password nobody needs to know (the demo answers anyway)."""
+    import secrets
+
+    from .. import game_servers
+    if game_servers.listing():
         return
-    data['services'] = {**stored, 'uplinks': [{'id': uuid.uuid4().hex[:12], **u} for u in spec]}
+    for server in layout.get('game_servers') or []:
+        body = {**server, 'rcon_password': secrets.token_urlsafe(18)} if server.get('rcon_port') else server
+        try:
+            game_servers.save(body)
+        except Exception as exc:  # noqa: BLE001  # the hall works without its game servers
+            print(f"[demo] could not add {server['name']}: {exc}")
 
 
 @bp.route('/api/demo/layout', methods=['POST'])
 def lay_out():
     if not demo_on():
         return jsonify({'error': 'Turn on the demo data plugin first (Settings > Plugins).'}), 409
+    install_stand_in(current_app)
     return jsonify(seed())
+
+
+def install_stand_in(app):
+    """While the demo is on, its made-up DNS servers, internet lines and game servers answer the probes,
+    game queries and RCON commands themselves (the plugin's ``answer``), so nothing is sent out."""
+    from .. import probes
+    from ..plugins import Context
+    registry = _registry(app)
+    if registry is None:
+        return
+
+    def answer(method, args):
+        spec = registry.specs.get('demo')
+        if spec is None or not registry.demo_on() or spec.plugin_class() is None:
+            return None
+        return spec.plugin_class()(Context(spec, registry)).answer(method, args)
+
+    probes.stand_in(answer)
 
 
 def seed_on_start(app):
     """FLOORBIT_DEMO=1: one switch for a filled-in demo. Never fatal."""
+    install_stand_in(app)
     if os.environ.get('FLOORBIT_DEMO', '').strip().lower() not in ('1', 'true', 'yes', 'on'):
         return
     with app.app_context():

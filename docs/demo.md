@@ -56,7 +56,14 @@ instead, `POST /api/demo/layout` (admins) does the same. You get:
   each on its layer.
 - **Electrics:** two distribution boards with a circuit per seat row and one for the network rack.
 - **Firewalls:** a `/28` per firewall, the next one as its backup.
-- **Internet:** two lines on `core-01` (without a probe host, so the demo sends nothing out).
+- **Internet:** two lines on `core-01`, each with a host at the far end to measure latency.
+- **Servers:** the LAN cache box `lancache-01`, which is also the hall's DNS server, and the provider's
+  resolver for comparison; four game servers (two Counter-Strike 2, Minecraft, Trackmania), three of
+  them with RCON. `CS2 #2` stops answering for two minutes in every five.
+
+The demo answers the DNS lookups, latency probes, game queries and RCON commands for its own servers
+itself, so it sends nothing out. Try `status` on a Counter-Strike server or `list` on Minecraft in the
+RCON console.
 
 Your own switches, seat blocks and hand entries stay as they are. To go back, turn the plugin off,
 or unset `FLOORBIT_DEMO`. The demo devices stay in the inventory, marked as fed by the demo, until

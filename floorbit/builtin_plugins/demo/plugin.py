@@ -98,10 +98,31 @@ LAYOUT = {
     # The seats are spread over 192.0.2.0 to .159 (see _ip): one /28 per firewall, the next one as its backup.
     'firewalls': [{'cidr': f'192.0.2.{16 * i}/28', 'name': f'Seat range {i + 1}',
                    'firewalls': [fw, FIREWALLS[(i + 1) % len(FIREWALLS)]]} for i, fw in enumerate(FIREWALLS)],
-    # The internet lines on core-01's ISP ports. No probe host: the demo must not send probes out.
-    'uplinks': [{'name': f'ISP {chr(65 + i)}', 'device': 'core-01', 'port': port, 'capacity_mbps': bps // 1_000_000,
-                 'probe_host': '', 'probe_port': 443} for i, (port, bps, _busy) in enumerate(ISP_PORTS)],
+    # The internet lines on core-01's ISP ports. The probes to their far ends are answered by the demo
+    # itself (Plugin.answer), so nothing is sent out.
+    'uplinks': [{'name': f'ISP {chr(65 + i)}', 'device': 'core-01', 'port': port,
+                 'capacity_mbps': bps // 1_000_000, 'probe_host': f'203.0.113.{i + 1}', 'probe_port': 443}
+                for i, (port, bps, _busy) in enumerate(ISP_PORTS)],
 }
+
+# The servers in the rack. The LAN cache box is also the hall's DNS server (it answers the game
+# download names with itself); the second resolver is the provider's, for comparison.
+LANCACHE, LANCACHE_IP = 'lancache-01', '198.51.100.53'
+LAYOUT['resolvers'] = [{'name': 'LAN cache DNS', 'address': LANCACHE_IP, 'lookup': 'lancache.steamcontent.com'},
+                       {'name': 'Provider DNS', 'address': '203.0.113.53', 'lookup': 'example.com'}]
+# Game servers with RCON. The second one stops answering two minutes in five, so alerts can be tried.
+# Their RCON password is made up when the hall is laid out; the demo answers whatever is sent.
+GAME_SERVERS = (
+    {'name': 'CS2 #1', 'game': 'Counter-Strike 2', 'host': '198.51.100.60', 'port': 27015, 'query': 'a2s',
+     'rcon_port': 27015, 'map': 'de_mirage', 'max_players': 10},
+    {'name': 'CS2 #2', 'game': 'Counter-Strike 2', 'host': '198.51.100.61', 'port': 27015, 'query': 'a2s',
+     'rcon_port': 27015, 'map': 'de_inferno', 'max_players': 10, 'flaky': True},
+    {'name': 'Minecraft', 'game': 'Minecraft', 'host': '198.51.100.62', 'port': 25565, 'query': 'minecraft',
+     'rcon_port': 25575, 'max_players': 40, 'version': '1.21'},
+    {'name': 'Trackmania', 'game': 'Trackmania', 'host': '198.51.100.63', 'port': 2350, 'query': 'tcp'},
+)
+LAYOUT['game_servers'] = [{k: s[k] for k in ('name', 'game', 'host', 'port', 'query', 'rcon_port') if k in s}
+                          for s in GAME_SERVERS]
 
 
 # (name, weight, blocked by the resolver) for the demo lookups.
@@ -266,6 +287,45 @@ def _short(hostname):
     return (hostname or '').lower().split('.')[0]
 
 
+def _rcon_answer(server, command, info, now):
+    """A made-up answer in the style of the server's game, from the same player count the query shows."""
+    words = command.split()
+    first = words[0].lower() if words else ''
+    rest = ' '.join(words[1:])
+    k = GAME_SERVERS.index(server)
+    nicks = [f'player-{(k * 13 + n * 7) % 96 + 1:02d}' for n in range(info.get('players') or 0)]
+    if server['query'] == 'minecraft':
+        if first == 'list':
+            return (f"There are {len(nicks)} of a max of {server['max_players']} players online: "
+                    + ', '.join(nicks))
+        if first in ('say', 'tellraw', 'title'):
+            return ''
+        if first == 'time' and rest:
+            return f'Set the time to {words[-1]}'
+        if first == 'kick' and rest:
+            return f'Kicked {words[1]}: Kicked by an operator'
+        if first == 'tps':
+            return 'TPS from last 1m, 5m, 15m: 20.0, 20.0, 19.98'
+        return f'Unknown or incomplete command, see below for error\n{command}<--[HERE]'
+    if first == 'status':
+        rows = [f"hostname: {server['name']} (demo)", "version : 1.40.4.1 secure", f"map     : {info.get('map')}",
+                f"players : {len(nicks)} humans, 0 bots ({server['max_players']} max)", '',
+                '# userid name                uniqueid            connected ping state']
+        rows += [f'# {n + 2:>6} "{nick}"{" " * (18 - len(nick))} [U:1:{100000 + n}]   '
+                 f'{int(now // 60) % 50 + n:02d}:{n * 7 % 60:02d}    {12 + n * 3 % 20:>4} active'
+                 for n, nick in enumerate(nicks)]
+        return '\n'.join(rows)
+    if first in ('changelevel', 'map') and rest:
+        return f'Changing level to {words[1]}...'
+    if first == 'say':
+        return f'Console: {rest}'
+    if first in ('kick', 'kickid') and rest:
+        return f'Kicked {words[1]} from the server'
+    if first == 'mp_restartgame':
+        return 'Restarting the game...'
+    return f'Unknown command "{first}"'
+
+
 class DemoShell:
     """A pretend switch CLI for the browser terminal: echoes keys and answers the show commands."""
 
@@ -328,7 +388,9 @@ class Plugin(Plugin):
                  'status': 'active'} for name, role, i in _switches()] + aps + [
             {'id': name, 'name': name, 'role': 'firewall', 'model': FIREWALL_MODEL, 'serial': f'DEMOFW{i:03d}',
              'mgmt_ip': f'198.51.100.{200 + i}', 'hall': MAIN_HALL, 'status': 'active'}
-            for i, name in enumerate(FIREWALLS, 1)]
+            for i, name in enumerate(FIREWALLS, 1)] + [
+            {'id': LANCACHE, 'name': LANCACHE, 'role': 'server', 'model': 'LAN cache and DNS server',
+             'serial': 'DEMOSRV001', 'mgmt_ip': LANCACHE_IP, 'hall': MAIN_HALL, 'status': 'active'}]
 
     # wifi -------------------------------------------------------------------------------
     def wifi_aps(self):
@@ -397,7 +459,9 @@ class Plugin(Plugin):
             {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': 1, 'status_reason': ''}
             for name, _pos, _ch in APS] + [
             {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': int(name != DOWN_FIREWALL),
-             'status_reason': 'icmp' if name == DOWN_FIREWALL else ''} for name in FIREWALLS]
+             'status_reason': 'icmp' if name == DOWN_FIREWALL else ''} for name in FIREWALLS] + [
+            {'display': LANCACHE, 'hostname': f'{LANCACHE}.{DOMAIN}', 'sysName': LANCACHE, 'status': 1,
+             'status_reason': ''}]
 
     def device_details(self, hostname):
         name = _short(hostname)
@@ -707,14 +771,13 @@ class Plugin(Plugin):
 
     # health wall ------------------------------------------------------------------------
     def health_checks(self):
+        # The DHCP scopes and the LAN cache. The resolvers, internet lines and game servers have tiles
+        # of their own (floorbit/services.py, floorbit/game_servers.py), answered by Plugin.answer.
         now = time.time()
         players = sum(_taken(s[3]) for s in _seats())
         left = DHCP_POOL - players
         hit = round(62 + 28 * _wave(1, now, period=600))
         saved = round(40 + (now % 86400) / 86400 * 900 * _wave(2, now, period=3600), 1)
-        uplink = round(35 + 50 * _wave(3, now, period=900))
-        game_down = int(now // 60) % 5 < 2          # two minutes in five, so alerts can be tried
-        dns_ms = round(3 + 9 * _wave(4, now, period=120))
         return [
             {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/dashboard',
              'status': _level(left / DHCP_POOL, warn=0.25, down=0.05, higher_is_better=True),
@@ -722,29 +785,11 @@ class Plugin(Plugin):
              'metrics': [{'label': 'Leases left', 'value': left}, {'label': 'In use', 'value': players}]},
             {'id': 'dhcp-staff', 'name': 'DHCP staff', 'kind': 'dhcp', 'status': 'up',
              'summary': '52 of 64 leases left', 'metrics': [{'label': 'Leases left', 'value': 52}]},
-            {'id': 'dns-1', 'name': 'DNS resolver 1', 'kind': 'dns', 'status': 'up',
-             'summary': f'Answers in {dns_ms} ms',
-             'metrics': [{'label': 'Answer time', 'value': dns_ms, 'unit': 'ms'}]},
-            {'id': 'dns-2', 'name': 'DNS resolver 2', 'kind': 'dns', 'status': 'up',
-             'summary': f'Answers in {dns_ms + 2} ms',
-             'metrics': [{'label': 'Answer time', 'value': dns_ms + 2, 'unit': 'ms'}]},
             {'id': 'cache', 'name': 'LAN cache', 'kind': 'cache',
              'status': _level(hit / 100, warn=0.5, down=0.2, higher_is_better=True),
              'summary': f'{hit} % hit rate, {saved} GB saved',
              'metrics': [{'label': 'Hit rate', 'value': hit, 'unit': '%'},
                          {'label': 'Saved', 'value': saved, 'unit': 'GB'}]},
-            {'id': 'game-1', 'name': 'Game server 1', 'kind': 'game', 'status': 'up',
-             'summary': '18 of 20 players', 'metrics': [{'label': 'Players', 'value': '18/20'}]},
-            {'id': 'game-2', 'name': 'Game server 2', 'kind': 'game', 'status': 'up',
-             'summary': '9 of 10 players', 'metrics': [{'label': 'Players', 'value': '9/10'}]},
-            {'id': 'game-3', 'name': 'Game server 3', 'kind': 'game', 'status': 'down' if game_down else 'up',
-             'summary': 'Not answering' if game_down else '4 of 10 players',
-             'metrics': [] if game_down else [{'label': 'Players', 'value': '4/10'}]},
-            {'id': 'uplink', 'name': 'Internet uplink', 'kind': 'uplink',
-             'status': _level(uplink / 100, warn=0.8, down=0.95),
-             'summary': f'{uplink / 10:.1f} of 10 Gbit/s in use',
-             'metrics': [{'label': 'In use', 'value': uplink, 'unit': '%', 'tone': 'warn' if uplink >= 80 else ''},
-                         {'label': 'Loss', 'value': 0, 'unit': '%'}]},
         ]
 
     # power ------------------------------------------------------------------------------
@@ -782,6 +827,52 @@ class Plugin(Plugin):
                     domain, blocked = _dns_pick((i * 31 + minute * 17 + k * 13) % (total + 6), i)
                     out.append({'ts': ts, 'domain': domain, 'client': _ip(i), 'blocked': blocked})
         return out
+
+    # servers and services (probes, game servers, RCON) ---------------------------------
+    def answer(self, method, args):
+        """What the demo's made-up servers answer to a probe, a game query or an RCON command, so the
+        services and game servers pages work without sending anything out. None for any other host:
+        that one is asked for real."""
+        now = time.time()
+        if method == 'dns_probe':
+            server, name = args[0], args[1]
+            found = next((r for r in LAYOUT['resolvers'] if r['address'] == server), None)
+            if found is None:
+                return None
+            fast = found['address'] == LANCACHE_IP
+            ms = round((1.5 if fast else 9) + (3 if fast else 14) * _wave(50 + fast, now, period=180), 1)
+            return {'ms': ms, 'rcode': 'NOERROR', 'answers': 1 if fast else 2, 'name': name}
+        if method == 'tcp_probe':
+            host = args[0]
+            line = next((u for u in LAYOUT['uplinks'] if u['probe_host'] == host), None)
+            if line is None:
+                return None
+            k = LAYOUT['uplinks'].index(line)
+            avg = round(8 + 4 * k + 6 * _wave(60 + k, now, period=240), 1)
+            return {'sent': 5, 'lost': 1 if k == 1 and int(now // 60) % 9 == 0 else 0, 'avg_ms': avg}
+        if method == 'game_query':
+            host, port = args[1], int(args[2])
+            server = next((s for s in GAME_SERVERS if (s['host'], s['port']) == (host, port)), None)
+            if server is None:
+                return None
+            from floorbit.game_query import QueryError
+            if server.get('flaky') and int(now // 60) % 5 < 2:      # two minutes in five, so alerts can be tried
+                raise QueryError('No answer to the server query.')
+            k = GAME_SERVERS.index(server)
+            if server['query'] == 'tcp':
+                return {'ping_ms': round(1 + 2 * _wave(80 + k, now, period=60), 1)}
+            top = server['max_players']
+            players = min(top, round(top * (0.45 + 0.5 * _wave(70 + k, now, period=900))))
+            return {'name': server['name'], 'map': server.get('map', ''), 'game': server['game'],
+                    'version': server.get('version', ''), 'players': players, 'max_players': top, 'bots': 0,
+                    'ping_ms': round(1 + 2 * _wave(80 + k, now, period=60), 1)}
+        if method == 'game_rcon':
+            host, port, _password, command = args[0], int(args[1]), args[2], str(args[3])
+            server = next((s for s in GAME_SERVERS if (s['host'], s.get('rcon_port')) == (host, port)), None)
+            if server is None:
+                return None
+            return _rcon_answer(server, command, self.answer('game_query', ('', server['host'], server['port'])), now)
+        return None
 
     def test(self):
         return f'Demo data: {len(_switches())} switches and {sum(_taken(s[3]) for s in _seats())} players.'

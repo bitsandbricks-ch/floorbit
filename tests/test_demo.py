@@ -39,13 +39,13 @@ def test_lay_out_the_hall_once_on_an_empty_plan(demo):
     first = demo.post('/api/demo/layout').get_json()
     assert first == {'placed': 26, 'blocks': 5}   # 16 switches and 10 access points
     switches = demo.get('/api/switches').get_json()
-    # The ten firewalls stand behind the core, not on the floor.
-    placed = [s for s in switches if not s['name'].startswith('fw-')]
+    # The ten firewalls and the LAN cache stand in the rack behind the core, not on the floor.
+    placed = [s for s in switches if not s['name'].startswith(('fw-', 'lancache'))]
     assert len(placed) == 26 and all(s['x'] is not None for s in placed)
     assert len(demo.get('/api/firewalls').get_json()['ranges']) == 10
     lines = demo.get('/api/services').get_json()['uplinks']
     assert [(u['name'], u['device'], u['port'], u['probe_host']) for u in lines] == [
-        ('ISP A', 'core-01', 'Ethernet1/47', ''), ('ISP B', 'core-01', 'Ethernet1/48', '')]     # no probes sent out
+        ('ISP A', 'core-01', 'Ethernet1/47', '203.0.113.1'), ('ISP B', 'core-01', 'Ethernet1/48', '203.0.113.2')]
     assert [b['name'] for b in demo.get('/api/seat-blocks').get_json()] == ['A', 'B', 'C', 'D', 'E']
     assert [h['name'] for h in demo.get('/api/halls').get_json()['halls']] == ['Main hall', 'Side hall']
     # Never moves anything that is already on the plan.
@@ -143,3 +143,41 @@ def test_the_side_hall_seats_have_no_known_port_yet(demo):
     seats = {r['seat']: r for r in demo.get('/api/seat-map').get_json()['seats']}
     assert not seats['E-2'].get('switch') and seats['E-2'].get('ip')
     assert seats['A-2']['switch'] == 'sw-a-01' and seats['A-2']['port'] == 'Gi1/0/2'
+
+
+def test_the_demo_servers_answer_for_themselves(demo, monkeypatch):
+    """DNS, internet lines and game servers are answered by the demo: nothing is sent out."""
+    from floorbit import game_query, probes
+    for name in ('dns', 'tcp'):
+        monkeypatch.setattr(probes, name, lambda *a, **k: pytest.fail('the demo sent a probe out'))
+    for name in ('query', 'rcon'):
+        monkeypatch.setattr(game_query, name, lambda *a, **k: pytest.fail('the demo asked a game server'))
+    demo.post('/api/demo/layout')
+    from floorbit import game_servers, services
+    services.poller.poll_once()
+    body = demo.get('/api/services').get_json()
+    assert [(r['name'], r['address'], r['status']) for r in body['resolvers']] == [
+        ('LAN cache DNS', '198.51.100.53', 'up'), ('Provider DNS', '203.0.113.53', 'up')]
+    assert all(u['latency_ms'] is not None and u['status'] in ('up', 'warn') for u in body['uplinks'])
+    game_servers.poller.poll_once()
+    servers = demo.get('/api/game-servers').get_json()['servers']
+    assert [s['name'] for s in servers] == ['CS2 #1', 'CS2 #2', 'Minecraft', 'Trackmania']
+    assert [s['rcon'] for s in servers] == [True, True, True, False]
+    cs = servers[0]
+    assert cs['status'] == 'up' and cs['info']['map'] == 'de_mirage' and 0 < cs['info']['players'] <= 10
+    answer = demo.post(f"/api/game-servers/rcon/{cs['id']}", json={'command': 'status'}).get_json()
+    assert 'de_mirage' in answer['answer'] and 'player-' in answer['answer']
+    asked = demo.post(f"/api/game-servers/rcon/{cs['id']}", json={'command': 'changelevel de_nuke'})
+    assert asked.status_code == 409                                 # still asks to confirm
+    mc = servers[2]
+    listed = demo.post(f"/api/game-servers/rcon/{mc['id']}", json={'command': 'list'}).get_json()['answer']
+    assert listed.startswith('There are ') and 'max of 40' in listed
+
+
+def test_the_stand_in_lets_other_hosts_through_and_stops_with_the_demo(demo, registry):
+    from floorbit import probes
+    demo.post('/api/demo/layout')
+    assert probes.stood_in('dns_probe', ('198.51.100.53', 'example.com'))['rcode'] == 'NOERROR'
+    assert probes.stood_in('dns_probe', ('192.0.2.200', 'example.com')) is None     # not a demo server
+    demo.put('/api/settings/plugins/demo', json={'enabled': False})
+    assert probes.stood_in('dns_probe', ('198.51.100.53', 'example.com')) is None
