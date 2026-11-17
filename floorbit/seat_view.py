@@ -64,6 +64,10 @@ def _switches_of(seat, data):
     port = _port_of_seat().get(seat)
     if port:
         names.add(short(port[0]))
+    from integrations import seat_sources
+    mapped = (seat_sources.load() or {}).get(seat) or {}
+    if mapped.get('switch'):
+        names.add(short(mapped['switch']))
     with status_page._lock:
         names |= {short(sw) for sw, seats in status_page._seats_of.items() if seat in seats}
     if not names:
@@ -96,7 +100,7 @@ def back_up(seat, after, data=None, statuses=None):
 
 def monitor_statuses():
     """The status monitor's {device id: status}, or None before its first poll."""
-    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    monitor = (_ext('floorbit_integrations') or {}).get('monitor')
     if not monitor or not getattr(monitor, 'last_poll', None):
         return None
     return dict(getattr(monitor, 'statuses', None) or {})
@@ -137,7 +141,7 @@ def _taken():
 
 
 def _switches(data, hall_id, box):
-    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    monitor = (_ext('floorbit_integrations') or {}).get('monitor')
     statuses = getattr(monitor, 'statuses', None) or {}
     ids = {h['id'] for h in halls.halls(data)}
     out = []
@@ -329,7 +333,7 @@ def block(name, now=None):
     counts = dict.fromkeys(('online', 'offline', 'unknown'), 0)
     for row in rows.values():
         counts[row['state']] += 1
-    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    monitor = (_ext('floorbit_integrations') or {}).get('monitor')
     status = {str(st.get('name') or '').lower().split('.')[0]: st.get('status') or 'unknown'
               for st in (getattr(monitor, 'statuses', None) or {}).values()}
     ports = _port_of_seat()
@@ -367,7 +371,7 @@ def switch(name, now=None):
     ports = [(seat, port) for seat, (sw, port) in _port_of_seat().items() if sw.lower().split('.')[0] == short]
     if dev is None and not ports:
         return None
-    monitor = (_ext('lal_integrations') or {}).get('monitor')
+    monitor = (_ext('floorbit_integrations') or {}).get('monitor')
     st = next((s for s in (getattr(monitor, 'statuses', None) or {}).values()
                if str(s.get('name') or '').lower().split('.')[0] == short), None) or {}
     seats = {}
@@ -384,6 +388,7 @@ def switch(name, now=None):
         'model': (dev or {}).get('model') or None,
         'seats': rows,
         'online': sum(1 for r in rows if r['state'] == 'online'),
+        **links.for_switch((dev or {}).get('name') or name, now, data),
     }
 
 

@@ -1,4 +1,4 @@
-import { Alert, Autocomplete, Badge, Button, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 import { IconPlugConnected } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -7,6 +7,7 @@ import { ApiError, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { BlockPlan, CableList, SeatAssigned, SeatBlock, WalkUp, WalkWatch } from '@/api/types'
+import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 
@@ -117,7 +118,7 @@ function Walk({ setup, seats, onStop }: { setup: Setup; seats: string[]; onStop:
         <Button variant="default" disabled={at === 0} onClick={() => { setClash(null); setAt((n) => n - 1) }}>{t('walk.back')}</Button>
         <Button variant="default" onClick={next}>{t('walk.skip')}</Button>
       </Group>
-      <Autocomplete label={t('walk.switch')} data={[switchName]} value={switchName} onChange={restart}
+      <EntitySelect kind="switches" label={t('walk.switch')} value={switchName} onChange={restart}
         description={t('walk.switchHint')} />
       {watch.data && (
         <Text size="sm" c="dimmed">{watch.data.syslog ? t('walk.bySyslog') : t('walk.noSyslog')}</Text>
@@ -131,7 +132,6 @@ function Walk({ setup, seats, onStop }: { setup: Setup; seats: string[]; onStop:
 export default function WalkRow() {
   const { t } = useTranslation()
   const blocks = useQuery({ queryKey: qk.seatBlocks, queryFn: () => get<SeatBlock[]>('/api/seat-blocks') })
-  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
   const [setup, setSetup] = useState<Setup>({ block: '', switch: '', order: 'rows' })
   const [walking, setWalking] = useState(false)
   const ready = Boolean(setup.block && setup.switch.trim())
@@ -153,8 +153,7 @@ export default function WalkRow() {
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
               <Select label={t('cables.block')} required searchable value={setup.block || null} onChange={set('block')}
                 data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.name || '–'} (${b.cols * b.rows})` }))} />
-              <Autocomplete label={t('cables.switch')} required value={setup.switch} onChange={set('switch')}
-                data={(switches.data ?? []).map((s) => s.name)} />
+              <EntitySelect kind="switches" label={t('cables.switch')} required value={setup.switch} onChange={set('switch')} />
               <Select label={t('cables.order')} allowDeselect={false} value={setup.order} onChange={set('order')}
                 data={[{ value: 'rows', label: t('cables.orderRows') }, { value: 'snake', label: t('cables.orderSnake') }]} />
             </SimpleGrid>

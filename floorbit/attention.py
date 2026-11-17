@@ -91,13 +91,13 @@ class AttentionWatch:
 
     def _run(self):
         while not self._stop.is_set():
-            if sources.monitoring().enabled():
-                try:
+            try:
+                if sources.monitoring().enabled():
                     # In an app context: the switch statuses live in the app's extensions.
                     with self.app.app_context():
                         self.poll_once()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[attention] poll failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[attention] poll failed: {exc}')
             self._stop.wait(self.interval())
 
     # ── polling ───────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ class AttentionWatch:
         checked_in = set(checkin.load_all()) if config.get_bool('CHECKIN_ENABLED', False) else None
         flaps = config.get_int('ATTENTION_FLAPS', 3, minimum=2)
         error_step = config.get_int('ATTENTION_ERRORS', 10, minimum=1)
-        statuses = getattr((_app_ext().get('lal_integrations') or {}).get('monitor'), 'statuses', {}) or {}
+        statuses = getattr((_app_ext().get('floorbit_integrations') or {}).get('monitor'), 'statuses', {}) or {}
         found = {}
         reads = []   # every port read, for the stats dashboard (stats.py)
         port_seats = {}

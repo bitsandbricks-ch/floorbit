@@ -22,6 +22,15 @@ describe('WidgetBody', () => {
     expect(screen.getByText('timeout')).toBeInTheDocument()
   })
 
+  it('keeps a long detail inside the tile, whole on hover', () => {
+    const long = 'last answer 12 s ago from status.example.com, 3 of 4 checks up'
+    renderWithApp(<WidgetBody widget={{ ...base, type: 'status', items: [{ label: 'Status page', state: 'up', detail: long }] }} />)
+    const detail = screen.getByText(long)
+    expect(detail).toHaveAttribute('title', long)
+    expect(detail).toHaveAttribute('data-truncate')
+    expect(detail.closest('li')).toHaveStyle({ minWidth: '0px' })
+  })
+
   it('draws a table', () => {
     renderWithApp(
       <WidgetBody

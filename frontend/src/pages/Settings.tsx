@@ -10,6 +10,7 @@ import { useFeature } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { dateTime } from '@/lib/time'
 
 type FieldType = 'url' | 'text' | 'secret' | 'list' | 'bool' | 'int' | 'choice' | 'color' | 'image'
 type Field = {
@@ -31,6 +32,8 @@ const TESTABLE = new Set(['netbox', 'librenms'])
 const HEX = /^#[0-9a-f]{6}$/i
 // i18next splits keys on dots; the setting keys have them.
 const k = (key: string) => key.replace(/\./g, '_')
+// The settings that integrations and the built-in plugins add have their texts in integrationSettings.json.
+const keys = (path: string) => [`settings.${path}`, `integrationSettings.${path}`]
 
 /** Is a typed value one the server takes? Bad ones stay unsaved and mark the field. */
 function invalid(f: Field, v: unknown): boolean {
@@ -137,7 +140,7 @@ function BackupPanel() {
     const created = pending.backup.created ? new Date(pending.backup.created) : null
     return t('settings.backup.summary', {
       name: pending.name,
-      made: created && !Number.isNaN(created.getTime()) ? t('settings.backup.made', { when: created.toLocaleString() }) : '',
+      made: created && !Number.isNaN(created.getTime()) ? t('settings.backup.made', { when: dateTime(created) }) : '',
       switches: t('settings.backup.switches', { count: (l.switches?.length ?? 0) + Object.keys(l.positions ?? {}).length }),
       blocks: t('settings.backup.blocks', { count: l.seat_blocks?.length ?? 0 }),
       settings: t('settings.backup.settings', { count: Object.keys(pending.backup.settings ?? {}).length }),
@@ -174,9 +177,9 @@ function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
   const dirty = change !== undefined
   const resetting = change === null
   const value = dirty && !resetting ? change : info.value
-  const label = t(`settings.fields.${k(field.key)}.label`, { defaultValue: field.label })
-  const help = field.help ? t(`settings.fields.${k(field.key)}.help`, { defaultValue: field.help }) : undefined
-  const placeholder = field.placeholder ? t(`settings.fields.${k(field.key)}.placeholder`, { defaultValue: field.placeholder }) : undefined
+  const label = t(keys(`fields.${k(field.key)}.label`), { defaultValue: field.label })
+  const help = field.help ? t(keys(`fields.${k(field.key)}.help`), { defaultValue: field.help }) : undefined
+  const placeholder = field.placeholder ? t(keys(`fields.${k(field.key)}.placeholder`), { defaultValue: field.placeholder }) : undefined
   const error = dirty && !resetting && invalid(field, change) ? t('settings.invalid') : undefined
   const common = { label, description: help, disabled: resetting, error }
   const wide = { maw: 560 }   // long enough for a URL, short enough to read
@@ -202,7 +205,7 @@ function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
         onChange={(v) => v && onChange(v)} />
       break
     case 'color':
-      input = <ColorInput {...common} maw={260} format="hex" value={(value as string) || ''} placeholder={t('settings.derived')}
+      input = <ColorInput {...common} maw={260} format="hex" eyeDropperButtonProps={{ 'aria-label': t('settings.pickColour') }} value={(value as string) || ''} placeholder={t('settings.derived')}
         onChange={(v) => onChange(v.toLowerCase())} />
       break
     case 'list':
@@ -335,17 +338,16 @@ export default function Settings() {
             <BackupPanel />
             {d.sections.map((s) => {
               const fields = d.fields.filter((f) => f.section === s.id)
-              const custom = current('theme.preset') === 'custom'
               return (
-                <Panel key={s.id} id={`sec-${s.id}`} title={t(`settings.sections.${s.id}.title`, { defaultValue: s.title })}
-                  desc={t(`settings.sections.${s.id}.desc`, { defaultValue: s.description })}
+                <Panel key={s.id} id={`sec-${s.id}`} title={t(keys(`sections.${s.id}.title`), { defaultValue: s.title })}
+                  desc={t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
                   actions={TESTABLE.has(s.id) && (
                     <Button variant="default" size="xs" onClick={() => void test.run(s.id)}>{t('settings.test')}</Button>
                   )}>
                   <Stack gap="lg">
                     {TESTABLE.has(s.id) && <TestLine result={test.results[s.id] ?? null} />}
                     {fields.map((f, i) => (
-                      <Stack key={f.key} gap="lg" style={f.theme === 'custom' && !custom ? { opacity: 0.55 } : undefined}>
+                      <Stack key={f.key} gap="lg">
                         {/* Above the Custom-only colours, which its text ("the colours below") points at. */}
                         {s.id === 'appearance' && f.theme === 'custom' && fields[i - 1]?.theme !== 'custom' && <ThemeHint current={current} />}
                         <FieldRow field={f} info={d.values[f.key]} change={changes[f.key]}

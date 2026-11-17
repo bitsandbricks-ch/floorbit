@@ -119,6 +119,14 @@ def test_the_watch_notices_it_coming_back(db, tmp_path, monkeypatch):
     assert db.down is None                    # and back, also without one
 
 
+def test_a_connection_borrowed_across_a_close_is_not_handed_out_again(db, tmp_path):
+    # Another thread (the watch, a collector) may hold one while the plug is pulled.
+    store.write_json(str(tmp_path / "data.json"), {"a": 1})
+    with db.connection() as held:
+        db.close()
+    assert held not in db._idle and db._idle == []
+
+
 def test_counters_wait_for_their_counts_instead_of_overwriting_them(db, tmp_path):
     from floorbit.dns import DnsStats
     path = str(tmp_path / "dns.json")

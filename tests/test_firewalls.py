@@ -6,12 +6,15 @@ from integrations import seat_sources
 
 
 class Source:
+    name, label = "nms", "Monitoring"
+
     def __init__(self):
         self.up = {}
         self.broken = False
+        self.on = True
 
     def enabled(self):
-        return True
+        return self.on
 
     def devices(self):
         if self.broken:
@@ -83,6 +86,18 @@ def test_an_unreadable_source_is_unknown_not_down(client, net):
     body = client.get("/api/firewalls").get_json()
     assert body["unread"] is True
     assert (body["ranges"][0]["now"], body["ranges"][0]["state"]) == ("fw-01", "unknown")
+
+
+def test_without_a_monitoring_source_it_is_setup_not_trouble(client, net):
+    # A fresh install showed "can't be read right now", as if something had broken.
+    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    net.on = False
+    body = client.get("/api/firewalls").get_json()
+    assert body["monitoring"] is False and body["unread"] is False
+    assert (body["ranges"][0]["now"], body["ranges"][0]["state"]) == ("fw-01", "unknown")
+    net.on = True
+    firewalls.health.reset()
+    assert client.get("/api/firewalls").get_json()["monitoring"] is True
 
 
 def test_the_seat_panel_says_which_firewall_and_never_the_ip(client, net):
@@ -222,3 +237,20 @@ def test_only_planners_import(app_module, client, net):
     from tests.test_rbac import sign_in_as
     viewer = sign_in_as(app_module, "vi1", "viewer")
     assert viewer.post("/api/firewalls/ranges/import").status_code == 403
+
+
+def test_with_the_status_monitor_polling_the_page_never_asks_the_source_itself(client, net):
+    from integrations.monitor import StatusMonitor
+    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    monitor = StatusMonitor(lambda: [])
+    monitor.poll_once()                                # answered: fw-01 and fw-02 up
+    asked = []
+    net.devices = lambda: asked.append(1) or []        # a hanging source would make the page wait
+    assert client.get("/api/firewalls").get_json()["ranges"][0]["state"] == "primary"
+    assert asked == []
+
+    firewalls.health.reset()
+    net.devices = lambda: (_ for _ in ()).throw(OSError("unreachable"))
+    with pytest.raises(OSError):
+        monitor.poll_once()                            # its last poll failed: unknown, like before
+    assert client.get("/api/firewalls").get_json()["ranges"][0]["state"] == "unknown"

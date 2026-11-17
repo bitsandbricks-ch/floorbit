@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Incident, IncidentBoard } from '@/api/types'
+import { OPTIONS, pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Incidents from './Incidents'
 import { matchesFilter } from './incidents/filter'
@@ -28,6 +29,7 @@ const board: IncidentBoard = {
   problems: ['no-internet', 'slow', 'power', 'other'],
 }
 const routes = {
+  ...OPTIONS,
   'GET /api/auth/me': { enabled: true, user: { username: 'sam', display_name: 'Sam', role: 'tech', permissions: ['incidents.work'] } },
   'GET /api/incidents': board,
   'GET /api/incidents/people': { access: [{ username: 'sam', display_name: 'Sam' }] },
@@ -81,9 +83,9 @@ describe('Incident board', () => {
     expect(within(open).getByText('From the seat')).toBeInTheDocument()
     expect(within(open).getByText('2 reports')).toBeInTheDocument()
     expect(within(open).getByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeInTheDocument()
-    expect(within(open).getByText('Speed test at the seat, 2 min ago: 12.5 down, 9.1 up Mbit/s, 3.2 ms')).toBeInTheDocument()
+    expect(within(open).getByText('Speed test at the seat, 2 minutes ago: 12.5 down, 9.1 up Mbit/s, 3.2 ms')).toBeInTheDocument()
     expect(within(open).getAllByRole('link', { name: 'Seat A-1' })[0]).toHaveAttribute('href', '/plan?seat=A-1')
-    expect(open.querySelector('[data-seat-note]')).toHaveTextContent('Crew note: Cable swapped, watch it ana · 10 min ago')
+    expect(open.querySelector('[data-seat-note]')).toHaveTextContent('Crew note: Cable swapped, watch it ana · 10 minutes ago')
     expect(screen.getByRole('region', { name: 'Being worked' }).querySelector('[data-seat-note]')).toBeNull()
     const worked = screen.getByRole('region', { name: 'Being worked' })
     expect(within(worked).getByText('With kim')).toBeInTheDocument()
@@ -215,10 +217,10 @@ describe('Incident board', () => {
     await screen.findByText('No power')
     fireEvent.click(screen.getByRole('button', { name: 'New incident' }))
     const dialog = await screen.findByRole('dialog')
-    const seat = within(dialog).getByRole('textbox', { name: /Seat/ })
-    fireEvent.change(seat, { target: { value: 'B-9' } })
+    within(dialog).getByRole('combobox', { name: /Seat/ })
+    await pick('Seat', 'B-9')
     expect(within(dialog).queryByText(/already open here/i)).toBeNull()
-    fireEvent.change(seat, { target: { value: ' a-1 ' } })
+    await pick('Seat', 'A-1')
     expect(within(dialog).getByText('2 already open here')).toBeInTheDocument()
     expect(within(dialog).getByText('No power · Being worked · kim')).toBeInTheDocument()
     expect(within(dialog).queryByText(/Cable swapped/)).toBeNull()
@@ -249,7 +251,7 @@ describe('Incident board', () => {
     vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': ok }).fn)
     renderWithApp(<Incidents />)
     const said = (await screen.findByText('Fixed itself')).closest('[data-incident]') as HTMLElement
-    expect(within(said).getByText('Seat says it works again · 3 min ago')).toBeInTheDocument()
+    expect(within(said).getByText('Seat says it works again · 3 minutes ago')).toBeInTheDocument()
     const broken = screen.getByText('Still broken').closest('[data-incident]') as HTMLElement
     expect(within(broken).queryByText(/works again/)).not.toBeInTheDocument()
   })
@@ -264,11 +266,11 @@ describe('Incident board', () => {
     vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': down }).fn)
     renderWithApp(<Incidents />)
     const card = (await screen.findByText('On the down switch')).closest('[data-incident]') as HTMLElement
-    expect(within(card).getByText('sw-c-02 down · 5 min ago')).toBeInTheDocument()
+    expect(within(card).getByText('sw-c-02 down · 5 minutes ago')).toBeInTheDocument()
     const other = screen.getByText('Elsewhere').closest('[data-incident]') as HTMLElement
     expect(within(other).queryByText(/ down · /)).not.toBeInTheDocument()
     const back = screen.getByText('Filed during it').closest('[data-incident]') as HTMLElement
-    expect(within(back).getByText('sw-b-01 back up · 2 min ago')).toBeInTheDocument()   // issue #390
+    expect(within(back).getByText('sw-b-01 back up · 2 minutes ago')).toBeInTheDocument()   // issue #390
   })
 
   it('says how long a fixed incident took (issue #332)', async () => {

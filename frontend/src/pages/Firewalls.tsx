@@ -55,6 +55,7 @@ export default function Firewalls() {
           </Alert>
         )}
         {data?.unread && <Alert color="warn">{t('firewalls.unread')}</Alert>}
+        {data && data.monitoring === false && <Alert color="gray">{t('firewalls.noMonitoring')}</Alert>}
         {moved.length > 0 && (
           <Alert color={moved.some((r) => r.state === 'down') ? 'down' : 'warn'} title={t('firewalls.moved', { count: moved.length })}>
             <Stack gap={2}>

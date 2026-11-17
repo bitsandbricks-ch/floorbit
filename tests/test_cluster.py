@@ -167,3 +167,107 @@ def test_cluster_mode_is_off_unless_set(monkeypatch):
     monkeypatch.setenv("FLOORBIT_CLUSTER", "zookeeper")
     with pytest.raises(ValueError):
         cluster.init()
+
+
+# ── RedisBus against a fake redis-py client ─────────────────────────────────────
+
+class FakeRedisClient:
+    """The commands RedisBus sends, with expiry on a clock the test moves."""
+
+    def __init__(self, shared):
+        self.s = shared
+
+    def _live(self, key):
+        value, until = self.s["keys"].get(key, (None, None))
+        if until is not None and until <= self.s["now"]:
+            self.s["keys"].pop(key, None)
+            return None
+        return value
+
+    def set(self, key, value, nx=False, xx=False, px=None):
+        there = self._live(key) is not None
+        if (nx and there) or (xx and not there):
+            return None
+        self.s["keys"][key] = (value, None if px is None else self.s["now"] + px / 1000)
+        return True
+
+    def get(self, key):
+        value = self._live(key)
+        if self.s.get("after_get"):
+            self.s.pop("after_get")()
+        return value
+
+    def pexpire(self, key, ms):
+        if self._live(key) is None:
+            return False
+        self.s["keys"][key] = (self.s["keys"][key][0], self.s["now"] + ms / 1000)
+        return True
+
+    def rpush(self, key, value):
+        self.s["lists"].setdefault(key, []).append(value)
+
+    def expire(self, key, seconds):
+        self.s["ttl"][key] = seconds
+
+    def blpop(self, keys, timeout=0):
+        for key in keys:
+            if self.s["lists"].get(key):
+                return key, self.s["lists"][key].pop(0)
+        return None
+
+    def hset(self, key, field, value):
+        self.s["hashes"].setdefault(key, {})[field] = value
+
+    def hgetall(self, key):
+        return dict(self.s["hashes"].get(key, {}))
+
+
+@pytest.fixture
+def redis_bus(monkeypatch):
+    import redis
+    shared = {"now": 0.0, "keys": {}, "lists": {}, "hashes": {}, "ttl": {}}
+    monkeypatch.setattr(redis, "Redis", lambda **kw: FakeRedisClient(shared))
+    return cluster.RedisBus(host="redis.example.com", port=6379), shared
+
+
+def test_the_lease_is_taken_kept_and_expires(redis_bus):
+    bus, shared = redis_bus
+    assert bus.lease("lead", "pod-a", 20_000) == "pod-a"
+    assert bus.lease("lead", "pod-b", 20_000) == "pod-a"
+    shared["now"] = 15
+    assert bus.lease("lead", "pod-a", 20_000) == "pod-a"     # renewed: still there at 30 s
+    shared["now"] = 30
+    assert bus.lease("lead", "pod-b", 20_000) == "pod-a"
+    shared["now"] = 40
+    assert bus.lease("lead", "pod-b", 20_000) == "pod-b"
+
+
+def test_renewing_never_overwrites_a_lease_another_pod_just_took(redis_bus):
+    bus, shared = redis_bus
+    bus.lease("lead", "pod-a", 20_000)
+
+    def pod_b_takes_it():      # pod-a's lease runs out right after its GET, and pod-b takes it
+        shared["keys"]["lead"] = ("pod-b", shared["now"] + 20)
+    shared["after_get"] = pod_b_takes_it
+    bus.lease("lead", "pod-a", 20_000)
+    assert shared["keys"]["lead"][0] == "pod-b"
+
+
+def test_calls_and_agents_through_the_bus(redis_bus):
+    bus, _ = redis_bus
+    bus.push("calls", "one", ttl=40)
+    assert bus.pop("calls", 1) == "one" and bus.pop("calls", 1) is None
+    bus.hset("agents", "a1", "x")
+    assert bus.hgetall("agents") == {"a1": "x"}
+
+
+def test_rows_from_another_version_are_skipped():
+    bus = MemoryBus()
+    pod = cluster.Cluster(bus, pod="pod-a")
+    for agent_id, raw in {"ok": json.dumps({"pod": "pod-b", "at": 100}), "list": "[1]", "nopod": '{"at": 100}',
+                          "badat": '{"pod": "pod-b", "at": "soon"}', "text": "garbage"}.items():
+        bus.hset(cluster.AGENTS_KEY, agent_id, raw)
+    assert pod.agents_elsewhere(now=110) == {"ok": "pod-b"}
+    for raw in ('{"id": "c1"}', '[]', '{"id": "c2", "method": "check", "timeout": "x", "deadline": 1e12}'):
+        pod._serve_call(raw)       # dropped, not a crash in the worker
+    assert not bus.lists

@@ -252,6 +252,14 @@ class Health:
         with self._lock:
             if self._at is not None and now - self._at < READ_EVERY:
                 return self._devices
+        if StatusMonitor.latest['polled'] is not None:
+            # The status monitor is polling: use its list rather than ask a source that may be
+            # hanging (the page waited for its timeout). None, "unknown", when its last poll failed.
+            latest = StatusMonitor.latest
+            found = latest['devices'] if latest['at'] is not None and latest['at'] >= latest['polled'] else None
+            with self._lock:
+                self._at, self._devices = now, found
+            return found
         try:
             source = sources.monitoring()
             found = source.devices() if source.enabled() else None
@@ -349,7 +357,16 @@ def overview(now=None):
             'counts': {'firewalls': len(cards), 'down': sum(c['status'] == 'offline' for c in cards),
                        'failover': sum(r['state'] == 'failover' for r in ranges),
                        'without': sum(r['state'] == 'down' for r in ranges)},
-            'unread': health.devices(now) is None, 'can_import': can_import()}
+            'monitoring': _monitored(),
+            'unread': _monitored() and health.devices(now) is None, 'can_import': can_import()}
+
+
+def _monitored():
+    # Without a monitoring source the ranges can only show their plan: that is setup, not trouble.
+    try:
+        return bool(sources.monitoring().enabled())
+    except Exception:  # noqa: BLE001 - a source that can't even say is "set up but unreadable"
+        return True
 
 
 def seat_routes(now=None):

@@ -88,14 +88,15 @@ def test_samples_older_than_a_day_drop_out(hall):
     assert len(hall["app"].extensions["floorbit_stats"].samples) == 1
 
 
-def test_nicks_only_for_seats_view_and_never_on_a_screen(client, anon_client, hall):
+def test_nicks_only_for_seats_view_and_never_on_a_screen(client, kiosk_client, anon_client, hall):
     client.put("/api/seat-map/A-1", json={"ip": "198.51.100.7", "nick": "player-one"})
     seat_sources.invalidate()
     busy(hall["mon"])
     poll(hall, 1000)
     assert read(client)["top"][0]["nick"] == "player-one"
     assert "nick" not in read(client, screen=True)["top"][0]
-    assert "nick" not in read(anon_client)["top"][0]   # public read, no seats.view
+    assert "nick" not in read(kiosk_client)["top"][0]   # no seats.view
+    assert anon_client.get("/api/stats").status_code == 401   # not one of the kiosk's public reads
     assert "player-one" not in json.dumps(hall["app"].extensions["floorbit_stats"].snapshot())
 
 
@@ -126,8 +127,11 @@ def test_nothing_yet(client, hall):
     assert body["now"] is None and body["series"] == [] and body["monitoring"] is True
 
 
-def test_demo_history_backfills_only_an_empty_day():
+def test_demo_history_backfills_only_an_empty_day(monkeypatch):
     from floorbit.blueprints.demo import demo_history
+    # No app here, so no fresh fake Redis: an earlier test's client (and the samples its
+    # background reader saved) would otherwise make this day "not empty".
+    monkeypatch.setattr(cache, "get_redis_client", lambda: None)
     s = stats.Stats()
     day = demo_history(now=100_000)
     s.backfill(day)

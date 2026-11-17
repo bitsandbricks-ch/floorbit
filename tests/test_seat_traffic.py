@@ -35,7 +35,7 @@ def test_seat_without_ip_is_not_looked_up():
         raise AssertionError('should not resolve')
     entry = seat_port_usage({'username': 'trin'}, boom)
     assert entry == {'username': 'trin', 'ip_address': None, 'resolved': False,
-                     'port_usage': None, 'error': 'No IP address'}
+                     'port_usage': None, 'error': 'No switch port or IP address'}
 
 
 def test_unresolved_and_failing_seats_do_not_break_the_map():
@@ -109,3 +109,31 @@ def test_resolve_seats_runs_in_parallel():
     start = time.monotonic()
     assert len(resolve_seats(seats, slow)) == 16
     assert time.monotonic() - start < 0.5 and len(set(seen)) > 1
+
+
+def test_a_mapped_port_is_read_without_an_ip():
+    def boom(ip):
+        raise AssertionError('should not resolve')
+    asked = []
+
+    def port_stats(switch, port):
+        asked.append((switch, port))
+        return {'ifInOctets_rate': 1000, 'ifOutOctets_rate': 3000, 'ifOperStatus': 'up', 'ifSpeed': 1e9}
+    entry = seat_port_usage({'username': 'trin', 'switch': 'sw-a1', 'port': 'Gi1/0/7'}, boom, port_stats)
+    assert asked == [('sw-a1', 'Gi1/0/7')]
+    assert entry['resolved'] and entry['ip_address'] is None
+    assert (entry['device_name'], entry['port']) == ('sw-a1', 'Gi1/0/7')
+    assert entry['port_usage']['total_bps'] == 32_000
+
+
+def test_a_port_monitoring_does_not_know_falls_back_to_the_ip():
+    seat = {'switch': 'sw-a1', 'port': 'Gi1/0/99', 'ip_address': '10.0.0.1'}
+    entry = seat_port_usage(seat, fake_resolve, lambda switch, port: {})
+    assert entry['resolved'] and entry['port'] == 'ge-0/0/7'
+
+
+def test_the_heatmap_reads_mapped_ports():
+    seats = {'A-1': {'switch': 'sw-a1', 'port': 'Gi1/0/1'}, 'A-2': {}}
+    got = collect_seat_heatmap(seats, fake_resolve, port_stats=lambda s, p: {'ifOperStatus': 'up'})
+    assert got['A-1']['resolved'] and got['A-1']['port_usage']['status'] == 'up'
+    assert got['A-2']['error'] == 'No switch port or IP address'

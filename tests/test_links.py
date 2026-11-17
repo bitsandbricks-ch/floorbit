@@ -53,7 +53,7 @@ def test_the_topology_says_which_links_are_down_or_slow(client, net):
     by_port = {link["a_port"]: link for link in body["links"]}
     assert (by_port["Te1/1/1"]["issue"], by_port["Te1/1/1"]["speed_bps"]) == ("slow", 1_000_000_000)
     assert by_port["Fo1/1/1"]["issue"] == "down" and by_port["Fo1/1/1"]["media"] == "fiber"
-    assert body["counts"] == {"links": 2, "down": 1, "slow": 1}
+    assert body["counts"] == {"links": 2, "down": 1, "slow": 1, "miswired": 0}
     assert [n["name"] for n in body["nodes"]] == ["core-01", "dist-01", "sw-a-01"]          # no access points
 
 
@@ -164,3 +164,53 @@ def test_the_topology_says_which_boxes_are_up(client, net):
     assert {n["name"]: n["status"] for n in body["nodes"]} == {
         "core-01": "online", "dist-01": "offline", "sw-a-01": "unknown"}
     firewalls.health.reset()
+
+
+def test_lldp_checks_the_planned_links_and_a_wrong_patch_is_a_problem(client, net):
+    # Issue #540: the plan says sw-a-01 Te1/1/1 goes to dist-01 Te1/0/1.
+    _add(client)
+    _add(client, a="dist-01", a_port="Fo1/1/1", b="core-01", b_port="Fo1/0/1", speed=40)
+    _add(client, a="dist-01", a_port="Fo1/1/2", b="core-01", b_port="Fo1/0/2", speed=40)
+    net.seen = {
+        "sw-a-01": [{"port": "TenGigabitEthernet1/1/1", "remote": "dist-01.example.com", "remote_port": "Te1/0/1"}],
+        # Patched into the wrong core port: core-01 Fo1/0/9, not Fo1/0/1.
+        "dist-01": [{"port": "Fo1/1/1", "remote": "core-01", "remote_port": "Fo1/0/9", "protocol": "cdp"},
+                    {"port": "Te1/0/1", "remote": "sw-a-01", "remote_port": "Te1/1/1"}],
+    }
+    body = client.get("/api/links").get_json()
+    by_port = {(link["a"], link["a_port"]): link["lldp"] for link in body["links"]}
+    assert by_port[("sw-a-01", "Te1/1/1")] == {"state": "seen"}
+    assert by_port[("dist-01", "Fo1/1/1")] == {"state": "other", "at": "a", "remote": "core-01",
+                                             "remote_port": "Fo1/0/9"}
+    assert by_port[("dist-01", "Fo1/1/2")] == {"state": "unseen"}       # dist-01 tells, but nothing on Fo1/1/2
+    assert body["counts"]["miswired"] == 1
+    links.reader.reset()
+    links.refresher.read_once()
+    found = [p for p in client.get("/api/problems").get_json()["problems"] if p["id"].startswith("link-lldp:")]
+    assert [(p["level"], p["title"]) for p in found] == [
+        ("warn", "Link dist-01 Fo1/1/1 to core-01 Fo1/0/1: dist-01 Fo1/1/1 sees core-01 Fo1/0/9")]
+    [de] = [p for p in client.get("/api/problems", headers={"Accept-Language": "de-CH"}).get_json()["problems"]
+            if p["id"].startswith("link-lldp:")]
+    assert (de["title"], de["where"]) == ("Verbindung dist-01 Fo1/1/1 zu core-01 Fo1/0/1: dist-01 Fo1/1/1 sieht "
+                                          "core-01 Fo1/0/9", "Patch prüfen (LLDP/CDP)")
+
+
+def test_without_lldp_from_the_source_a_link_is_not_judged(client, net):
+    _add(client)
+    [link] = client.get("/api/links").get_json()["links"]
+    assert link["lldp"] is None
+
+
+def test_the_switch_panel_lists_its_links_and_what_lldp_sees(client, net):
+    _add(client)
+    net.seen = {"sw-a-01": [{"port": "Te1/1/1", "remote": "dist-01", "remote_port": "Te1/0/1", "protocol": "lldp"},
+                            {"port": "Gi1/0/48", "remote": "desk-switch", "remote_port": "Gi0/1", "protocol": "cdp"}]}
+    body = client.get("/api/plan/switches/sw-a-01").get_json()
+    [link] = body["links"]
+    assert (link["port"], link["to"], link["to_port"], link["lldp"]) == ("Te1/1/1", "dist-01", "Te1/0/1",
+                                                                        {"state": "seen"})
+    assert body["neighbours"] == [{"port": "Gi1/0/48", "remote": "desk-switch", "remote_port": "Gi0/1",
+                                   "protocol": "cdp"}]
+    # From the other end the same link points back.
+    [back] = client.get("/api/plan/switches/dist-01").get_json()["links"]
+    assert (back["port"], back["to"], back["to_port"]) == ("Te1/0/1", "sw-a-01", "Te1/1/1")

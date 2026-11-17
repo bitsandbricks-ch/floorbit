@@ -1,5 +1,6 @@
 """The crew's Discord channel (issue #32). Discord itself is faked: nothing leaves the test."""
 import json
+import threading
 import time
 
 import pytest
@@ -35,6 +36,10 @@ class FakeDiscord:
 
     def __call__(self, method, url, json=None, timeout=None, headers=None):
         assert headers["Authorization"] == "Bot test-bot-token"
+        if threading.current_thread().name == "discord-crew-waiting":
+            # The app's once-a-minute ticker (CrewBridge._tick) runs all through the test session;
+            # its calls landing in a test's list made the counts flaky. The tests nudge by hand.
+            return Resp(200, {})
         path = url.removeprefix(crew.API)
         self.calls.append((method, path, json))
         if method == "PATCH" and path.split("/")[-1] in self.gone:
@@ -112,6 +117,17 @@ def test_an_incident_gets_a_message_and_a_thread_that_follow_it(bridge, client, 
     assert ("PATCH", f"/channels/{record['thread']}", {"archived": False}) in fake.calls
     assert "Reopened" in fake.calls[-1][2]["content"]
 
+
+
+def test_the_apps_minute_ticker_does_not_end_up_in_a_tests_calls(bridge, app_module):
+    """What made the test above flaky: the ticker woke mid-test and registered the slash commands."""
+    def tick_once():
+        with app_module.app.app_context():
+            bridge.register_commands()
+    ticker = threading.Thread(target=tick_once, name="discord-crew-waiting")
+    ticker.start()
+    ticker.join()
+    assert bridge.fake.calls == []
 
 def test_a_deleted_message_is_posted_again(bridge, client, app_module):
     inc = client.post("/api/incidents", json={"seat": "A-1", "title": "Slow"}).get_json()

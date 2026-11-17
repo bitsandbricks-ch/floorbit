@@ -7,6 +7,8 @@
   slower than planned (a 10G uplink that came up at 1G is a wrong optic or cable).
 - **Suggestions**: what the switches see by LLDP or CDP (the source's optional ``neighbours``) that
   no link explains yet, to add with one click. The plan stays the crew's.
+- **Checked by LLDP** (issue #540): a planned link whose port sees another box than planned is a
+  wrong patch, on the topology and the Problems page.
 
 Switch names only: nothing here is personal data.
 """
@@ -174,6 +176,11 @@ class Reader:
             hit = self._ports.get(switch.lower())
             return hit[1] if hit else None
 
+    def cached_neighbours(self, switch):
+        with self._lock:
+            hit = self._neighbours.get(switch.lower())
+            return hit[1] if hit else []
+
 
 reader = Reader()
 
@@ -185,9 +192,16 @@ def problems(data=None):
     for link in all_links(data):
         ports = {link[e].lower(): reader.cached(link[e]) for e in ('a', 'b')}
         live = _live(link, ports)
+        ends = f"{link['a']} {link['a_port']} to {link['b']} {link['b_port']}"
+        seen = _lldp(link, {link[e].lower(): reader.cached_neighbours(link[e]) for e in ('a', 'b')})
+        if seen and seen['state'] == 'other':
+            here = f"{link[seen['at']]} {link[seen['at'] + '_port']}"
+            there = f"{seen['remote']} {seen['remote_port']}".strip()
+            out.append({'id': f"link-lldp:{link['id']}", 'kind': 'link', 'level': 'warn',
+                        'title': f'Link {ends}: {here} sees {there}', 'where': 'Check the patch (LLDP/CDP)',
+                        'since': None, 'link': '/topology'})
         if not live['issue']:
             continue
-        ends = f"{link['a']} {link['a_port']} to {link['b']} {link['b_port']}"
         what = ', '.join(x for x in (LABELS.get(link.get('type') or '', ''),
                                      f"{link['speed']}G planned" if link.get('speed') else '') if x)
         if live['issue'] == 'slow':
@@ -223,6 +237,7 @@ class Refresher:
         if names:
             with ThreadPoolExecutor(min(8, len(names))) as pool:
                 list(pool.map(lambda s: reader.ports(s, now), names))
+                list(pool.map(lambda s: reader.neighbours(s, now), names))   # kept 2 minutes, see Reader
 
     def _run(self):
         while not self._stop.is_set():
@@ -281,6 +296,58 @@ def _live(link, ports):
     return {'state': 'unknown', 'speed_bps': None, 'issue': '', 'read_at': None}
 
 
+def _same_box(remote, name):
+    remote, name = str(remote or '').lower(), str(name or '').lower()
+    return bool(remote) and (remote == name or remote.split('.')[0] == name.split('.')[0])
+
+
+def _lldp(link, seen):
+    """What LLDP or CDP sees on the link's ports, from ``seen`` (switch lower -> neighbours).
+    ``seen``: the planned other end. ``other``: something else, with what (a wrong patch).
+    ``unseen``: the switch tells its neighbours but none on this port. None: no end tells."""
+    told, other = False, None
+    for end, far in (('a', 'b'), ('b', 'a')):
+        rows = seen.get(link[end].lower()) or []
+        told = told or bool(rows)
+        for n in rows:
+            if _canon(n.get('port') or '') != _canon(link[f'{end}_port']):
+                continue
+            if _same_box(n.get('remote'), link[far]) and (
+                    not n.get('remote_port') or _canon(n['remote_port']) == _canon(link[f'{far}_port'])):
+                return {'state': 'seen'}
+            other = other or {'state': 'other', 'at': end, 'remote': str(n.get('remote') or '?')[:64],
+                              'remote_port': str(n.get('remote_port') or '')[:48]}
+    return other or ({'state': 'unseen'} if told else None)
+
+
+def for_switch(name, now=None, data=None):
+    """One switch's links and what LLDP or CDP sees on its ports, for the floor plan's switch panel:
+    ``links`` (the planned ones from this end, with their state) and ``neighbours`` (seen, no link yet)."""
+    now = time.time() if now is None else now
+    short = str(name or '').lower().split('.')[0]
+    mine = [link for link in all_links(data)
+            if short in (link['a'].lower().split('.')[0], link['b'].lower().split('.')[0])]
+    try:
+        seen = reader.neighbours(name, now)
+    except Exception:  # noqa: BLE001  # the panel shows the seats either way
+        seen = []
+    rows = []
+    for link in mine:
+        here, far = ('a', 'b') if link['a'].lower().split('.')[0] == short else ('b', 'a')
+        ends = {link[e].lower(): reader.cached(link[e]) for e in ('a', 'b')}
+        lldp = _lldp(link, {link[here].lower(): seen, link[far].lower(): reader.cached_neighbours(link[far])})
+        rows.append({'id': link['id'], 'port': link[f'{here}_port'], 'to': link[far], 'to_port': link[f'{far}_port'],
+                     'type': link.get('type') or '', 'speed': link.get('speed'), 'issue': _live(link, ends)['issue'],
+                     'lldp': lldp})
+    used = {_canon(r['port']) for r in rows}
+    neighbours = [{'port': str(n['port'])[:48], 'remote': str(n.get('remote') or '?')[:64],
+                   'remote_port': str(n.get('remote_port') or '')[:48], 'protocol': str(n.get('protocol') or '')[:8]}
+                  for n in seen if n.get('port') and _canon(n['port']) not in used]
+    from .seat_view import _port_key  # Gi1/0/2 before Gi1/0/10; seat_view imports links
+    return {'links': sorted(rows, key=lambda r: _port_key(r['port'])),
+            'neighbours': sorted(neighbours, key=lambda n: _port_key(n['port']))}
+
+
 def _uplinks(data, names):
     """The internet lines from the services view, on the box they come in at, with how they are."""
     from . import services  # services reads links' ports, so not at the top
@@ -308,7 +375,8 @@ def topology(now=None, suggest=True):
         ports = dict(zip([w.lower() for w in wanted], pool.map(lambda s: reader.ports(s, now), wanted), strict=True))
         seen = dict(zip(names, pool.map(lambda s: reader.neighbours(s, now), names.values()), strict=True)) \
             if suggest else {}
-    rows = [{**link, 'media': MEDIA.get(link.get('type') or '', ''), **_live(link, ports)} for link in links]
+    rows = [{**link, 'media': MEDIA.get(link.get('type') or '', ''), **_live(link, ports),
+             'lldp': _lldp(link, seen)} for link in links]
     used = set().union(*(_ends(link) for link in links)) if links else set()
     suggestions, pairs = [], set()
     for switch, found in seen.items():
@@ -336,5 +404,6 @@ def topology(now=None, suggest=True):
     return {'nodes': sorted(nodes, key=lambda n: n['name'].lower()), 'links': rows, 'uplinks': _uplinks(data, names),
             'suggestions': sorted(suggestions, key=lambda s: (s['a'].lower(), s['a_port'])),
             'counts': {'links': len(rows), 'down': sum(r['issue'] == 'down' for r in rows),
-                       'slow': sum(r['issue'] == 'slow' for r in rows)},
+                       'slow': sum(r['issue'] == 'slow' for r in rows),
+                       'miswired': sum((r['lldp'] or {}).get('state') == 'other' for r in rows)},
             'types': list(TYPES), 'speeds': list(SPEEDS)}

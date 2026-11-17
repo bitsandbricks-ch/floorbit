@@ -1,6 +1,7 @@
 import type { EventFigures } from '@/api/types'
 import { bytes, duration } from '../report/format'
 import { bps } from '../stats/format'
+import { dateOnly } from '@/lib/time'
 
 export type Metric = { key: keyof EventFigures; format: (v: number) => string; better: 'more' | 'less' | null }
 
@@ -25,7 +26,7 @@ export function share(value: number | null, values: (number | null)[]): number {
 }
 
 export function dates(start: number | null, end: number | null): string {
-  const day = (ts: number) => new Date(ts * 1000).toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const day = (ts: number) => dateOnly(ts, undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
   if (!start) return '–'
   const a = day(start)
   const b = end ? day(end) : ''

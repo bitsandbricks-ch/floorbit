@@ -1,7 +1,9 @@
 import { Alert, Button, Group, Modal, SegmentedControl, Select, Stack, Text, TextInput, Textarea } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { EntitySelect } from '@/components/EntitySelect'
 import type { IncidentBoard } from '@/api/types'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 export interface IncidentDraft {
   seat?: string
@@ -55,7 +57,7 @@ export function NewIncident({
           <SegmentedControl value={kind} onChange={(v) => setKind(v as 'seat' | 'switch')}
             data={[{ value: 'seat', label: t('incidents.atSeat') }, { value: 'switch', label: t('incidents.atSwitch') }]} />
           {kind === 'seat' ? (
-            <TextInput label={t('incidents.seatNumber')} placeholder="A-12" value={seat} required onChange={(e) => setSeat(e.currentTarget.value)} />
+            <EntitySelect kind="seats" label={t('incidents.seatNumber')} value={seat} required onChange={setSeat} />
           ) : (
             <Select label={t('incidents.whichSwitch')} data={switches.map((s) => ({ value: s.id, label: s.name }))} value={switchId}
               onChange={setSwitchId} searchable required />
@@ -63,7 +65,7 @@ export function NewIncident({
           {already.length > 0 && (
             <Alert color="warn" variant="light" title={t('incidents.alreadyOpen', { count: already.length })}>
               {already.map((i) => (
-                <Text key={i.id} size="sm">{i.title} · {t(`incidents.status.${i.status}`)}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
+                <Text key={i.id} size="sm">{incidentTitle(i.title, t)} · {t(`incidents.status.${i.status}`)}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
               ))}
             </Alert>
           )}

@@ -10,6 +10,7 @@
   rate limited; only links printed from the QR sheet work.
 """
 import csv
+import functools
 import io
 import re
 import threading
@@ -19,7 +20,7 @@ import segno
 from flask import Blueprint, Response, abort, current_app, jsonify, render_template, request, url_for
 
 from auth import roles, teams
-from integrations import events
+from integrations import checkin, events
 
 from .. import audit, dispatch, incidents, runbooks, seat_notes, spa
 from ..store import load_data
@@ -43,8 +44,17 @@ def current_user():
     return signed_in()
 
 
+def _stand_in():
+    # Sign-in switched off: everyone may do everything, as elsewhere. The board still needs a name
+    # to file, take and sign jobs with, so it is one shared crew account.
+    from auth.users import public
+    return public({'username': 'crew', 'display_name': 'Crew', 'role': 'admin'})
+
+
 def _board_user():
     user = current_user()
+    if not user and not current_app.extensions['auth'].enabled:
+        return _stand_in()
     if not user:
         abort(401)
     if not incidents.can_see_board(user):
@@ -60,7 +70,7 @@ def _view(user, incident, match=None, books=None, notes=None, outages=None):
     return {**incident, 'can_work': incidents.can_work(user, incident),
             'can_assign': incidents.can_assign(user, incident.get('team')),
             'match': (match or {}).get(seat),
-            'runbook': {'id': book['id'], 'title': book['title']} if book else None,
+            'runbook': ({k: book.get(k) for k in ('id', 'title', 'starter')} if book else None),
             'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None,
             # The seat's switch is down right now (issue #386): part of an outage, not a cable.
             'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None,
@@ -249,6 +259,13 @@ def _help_url(seat):
     return _card_url('incidents.help_page', seat=seat, k=incidents.signature(seat))
 
 
+@functools.lru_cache(maxsize=10000)
+def _qr_image(url):
+    # segno tries all eight masks for the best scan, about 4 ms a code: 15 s for a 4000-seat sheet.
+    # A seat's link only changes with the secret key or the address, so each code is made once.
+    return segno.make(url, error='m').svg_data_uri(scale=4, border=2)
+
+
 def _seat_key(seat):
     head, _, tail = seat.rpartition('-')
     return (head, int(tail)) if tail.isdigit() else (seat, 0)
@@ -265,7 +282,7 @@ def qr_codes():
     out = []
     for seat in seats:
         url = _help_url(seat)
-        row = {'seat': seat, 'url': url, 'image': segno.make(url, error='m').svg_data_uri(scale=4, border=2)}
+        row = {'seat': seat, 'url': url, 'image': _qr_image(url)}
         if checkin_on:
             row['pin'] = pins.get(seat)
         out.append(row)
@@ -344,7 +361,8 @@ def _texts():
 
 def _rate_limited(key=None):
     """Too many reports from this client (an IP, or ``discord:<user id>`` for the bot, issue #424)."""
-    ip = key or request.remote_addr or '?'
+    # Behind a trusted proxy every attendee shares the proxy's address: count the real client instead.
+    ip = key or checkin.client_ip() or '?'
     now = time.time()
     with _reports_lock:
         recent = [t for t in _reports.get(ip, []) if now - t < RATE_WINDOW]

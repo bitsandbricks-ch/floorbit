@@ -14,7 +14,7 @@ switch (issue #434).
 """
 from flask import Blueprint, Response, abort, jsonify, request
 
-from integrations import events
+from integrations import checkin, events
 
 from .. import audit, incidents, spa, speedtest
 from ..store import load_data
@@ -60,7 +60,7 @@ def down(seat):
     except ValueError:
         return _error(speedtest.SpeedtestError('bytes is a number.'))
     try:
-        speedtest.take(request.remote_addr or '?', size)
+        speedtest.take(_client(), size)
     except speedtest.SpeedtestError as exc:
         return _error(exc)
     resp = Response(speedtest.download(size), mimetype='application/octet-stream', direct_passthrough=True)
@@ -77,18 +77,22 @@ def up(seat):
     if size <= 0:
         return _error(speedtest.SpeedtestError('Send the bytes to upload.', 411))
     try:
-        speedtest.take(request.remote_addr or '?', size)
+        speedtest.take(_client(), size)
     except speedtest.SpeedtestError as exc:
         return _error(exc)
     got = speedtest.swallow(request.stream, size)
     return _no_store(jsonify({'bytes': got}))
 
 
+def _client():
+    return checkin.client_ip() or '?'   # per attendee behind a trusted proxy, not per proxy
+
+
 @bp.route('/help/<seat>/speed/result', methods=['POST'])
 @_public
 def result(seat):
     seat = _seat(seat)
-    if not speedtest.allow_result(request.remote_addr or '?'):
+    if not speedtest.allow_result(_client()):
         return _error(speedtest.SpeedtestError('Too many tests from here. Wait a few minutes.', 429))
     try:
         found = speedtest.clean(request.get_json(silent=True) or {})

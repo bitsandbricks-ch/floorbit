@@ -8,6 +8,8 @@ from floorbit.attention import AttentionWatch
 from floorbit.builtin_plugins.librenms import client as librenms
 from integrations import checkin, events
 
+PORT_OF = checkin.port_of   # the real one, before the fixture fakes it
+
 
 def edge(switch, port, edge=True):
     return {"switch": switch, "port": port, "mac": None, "edge": edge}
@@ -78,6 +80,14 @@ def test_without_the_pin_option_the_phone_can_still_type_the_seat(hall, monkeypa
     assert check_in(hall, "192.0.2.22", seat="A-4", username="nova").status_code == 403
 
 
+
+def test_a_typed_seat_that_isnt_one_is_answered_about_seats(hall):
+    r = hall.post("/api/checkin", json={"seat": "my desk!", "username": "pixel"},
+                  environ_base={"REMOTE_ADDR": "192.0.2.21"}, headers={"Accept-Language": "de-CH"})
+    assert r.status_code == 400 and r.get_json()["error"].startswith("Gib die Platznummer von deinem Ticket ein")
+    empty = hall.post("/api/checkin", json={"username": "pixel"}, environ_base={"REMOTE_ADDR": "192.0.2.21"})
+    assert empty.status_code == 400 and "PIN" in empty.get_json()["error"]
+
 def test_a_patched_cable_wins_over_a_learned_port(hall):
     hall.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/2", "seat": "A-3"})
     check_in(hall, "192.0.2.22", pin=pins(hall)["A-2"], username="pixel")
@@ -118,8 +128,11 @@ def test_a_pin_is_used_once_and_the_crew_opens_it_again(hall):
     check_in(hall, "192.0.2.21", pin=pin, username="pixel")
     again = check_in(hall, "192.0.2.22", pin=pin, username="nova")
     assert again.status_code == 409 and "already used" in again.get_json()["error"]
-    typed = check_in(hall, "192.0.2.22", seat="A-1", username="nova")
+    typed = check_in(hall, "192.0.2.22", seat="a1", username="nova")
     assert typed.status_code == 409                                   # nor by typing the seat
+    # They typed a seat, so the answer talks about the seat, not about a PIN they never entered.
+    assert typed.get_json()["error"] == ("Seat A-1 was already checked in with its seat card. "
+                                         "Ask the crew if this is your seat.")
     # The PC that checked in may change its nick, with the PIN or without anything.
     assert check_in(hall, "192.0.2.21", pin=pin, username="pixel2").status_code == 200
     r = check_in(hall, "192.0.2.21", username="pixel3")
@@ -273,3 +286,77 @@ def test_seat_inspector_says_where_the_port_lookup_stands(hall):
     assert hall.get("/api/plan/seats/A-2").get_json()["checkin_wired"] == "verified"
     assert hall.get("/api/plan/seats/A-3").get_json()["checkin_wired"] == "pending"   # an AP port is no seat's port
     assert "checkin_wired" not in hall.get("/api/plan/seats/A-1").get_json()
+
+
+def test_a_burst_at_doors_open_is_looked_up_at_the_set_rate_and_drains(hall, monkeypatch):
+    # 2 lookups a second, saved up for one round (20): 30 check-ins take two rounds, oldest first.
+    monkeypatch.setenv("CHECKIN_VERIFY_RATE", "2")
+    monkeypatch.setattr(checkin, "_bucket", {"tokens": None, "at": None})
+    hall.post("/api/seat-blocks", json={"name": "B", "x": 10, "y": 60, "cols": 30, "rows": 1})
+    asked = []
+    monkeypatch.setattr(checkin, "port_of", lambda ip: asked.append(ip) or edge("sw-b-01", ip))
+    seats = pins(hall)
+    for i in range(30):
+        check_in(hall, f"198.51.100.{i + 1}", verify=False, pin=seats[f"B-{i + 1}"], username=f"n{i}")
+    assert checkin.queue_depth() == 30
+    assert len(checkin.verify_pending(now=1000)) == 20
+    assert asked[0] == "198.51.100.1" and checkin.queue_depth() == 10
+    assert len(checkin.verify_pending(now=1001)) == 2 and len(asked) == 22   # 1 s later: 2 more
+    checkin.verify_pending(now=1010)
+    assert checkin.queue_depth() == 0 and len(set(asked)) == 30
+
+
+def test_the_seat_hint_never_waits_for_librenms(hall, monkeypatch):
+    # At doors-open every page load would be a LibreNMS lookup: the hint comes from the cache, and
+    # a miss is looked up in the background, so the next load shows it.
+    hall.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1"})
+    asked = []
+
+    class Monitor:
+        def enabled(self):
+            return True
+
+        def resolve_ip(self, ip):
+            asked.append(ip)
+            return {"device_name": "sw-a-01", "port": "Gi1/0/1", "macs_on_port": 1}
+    monkeypatch.setattr(checkin, "_monitoring", Monitor)
+    monkeypatch.setattr(checkin, "port_of", PORT_OF)
+    info = lambda: hall.get("/api/checkin/info", environ_base={"REMOTE_ADDR": "192.0.2.21"}).get_json()  # noqa: E731
+    assert info()["suggested_seat"] is None and asked == []
+    checkin.verify_pending()
+    assert asked == ["192.0.2.21"] and info()["suggested_seat"] == "A-1"
+
+
+def test_guessing_pins_locks_that_pc_out_for_a_while(hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_PIN_TRIES", "3")
+    good = pins(hall)["A-1"]
+    for _ in range(3):
+        assert check_in(hall, "192.0.2.21", verify=False, pin="ZZZZZ", username="pixel").status_code == 403
+    # Even the right PIN waits now: otherwise the limit would only slow a script down.
+    r = check_in(hall, "192.0.2.21", verify=False, pin=good, username="pixel")
+    assert r.status_code == 429 and "10 min" in r.get_json()["error"]
+    # Another PC is not held up by this one.
+    assert check_in(hall, "192.0.2.22", verify=False, pin=pins(hall)["A-2"], username="nova").status_code == 200
+    # Ten minutes later.
+    guesses = checkin._wrong_pins["192.0.2.21"]
+    checkin._wrong_pins["192.0.2.21"] = [t - checkin.WRONG_PIN_WINDOW for t in guesses]
+    assert check_in(hall, "192.0.2.21", verify=False, pin=good, username="pixel").status_code == 200
+
+
+def test_the_lockout_speaks_german_too(hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_PIN_TRIES", "1")
+    check_in(hall, "192.0.2.21", verify=False, pin="ZZZZZ", username="pixel")
+    r = hall.post("/api/checkin", json={"pin": "ZZZZZ", "username": "pixel"},
+                  environ_base={"REMOTE_ADDR": "192.0.2.21"}, headers={"Accept-Language": "de-CH"})
+    assert r.status_code == 429 and "Zu viele falsche PINs" in r.get_json()["error"]
+
+
+def test_outside_the_event_network_a_pin_is_not_even_looked_at(hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_ALLOWED_NETWORKS", "192.0.2.0/24")
+    good = pins(hall)["A-1"]
+    wrong = check_in(hall, "198.51.100.7", verify=False, pin="ZZZZZ", username="pixel")
+    right = check_in(hall, "198.51.100.7", verify=False, pin=good, username="pixel")
+    # Same answer either way, so the PIN can't be tested from outside.
+    assert wrong.status_code == right.status_code == 403
+    assert wrong.get_json()["error"] == right.get_json()["error"]
+    assert checkin._wrong_pins == {}

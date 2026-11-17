@@ -139,8 +139,10 @@ def record(area, action, user=None, target=None, fields=None, ok=True):
     return entry
 
 
-def read(limit=100, offset=0, user=None, area=None, query=None):
-    """Newest first, filtered. Returns (entries, total matching)."""
+def read(limit=100, offset=0, user=None, area=None, query=None, lang=None):
+    """Newest first, filtered. Returns (entries, total matching). With ``lang``, ``query`` also finds
+    the action in that language, as the page shows it."""
+    from .i18n import log_text
     lines = journal.lines(path())
     rows = []
     q = (query or '').strip().lower()
@@ -149,11 +151,13 @@ def read(limit=100, offset=0, user=None, area=None, query=None):
             e = json.loads(line)
         except ValueError:
             continue
+        if not isinstance(e, dict):
+            continue   # a line that isn't an entry (a hand edit): skipped like a broken one
         if user and (e.get('user') or '') != user:
             continue
         if area and e.get('area') != area:
             continue
-        if q and q not in json.dumps(e).lower():
+        if q and q not in json.dumps(e).lower() and q not in str(log_text(e.get('action'), lang)).lower():
             continue
         rows.append(e)
     return rows[offset:offset + limit], len(rows)

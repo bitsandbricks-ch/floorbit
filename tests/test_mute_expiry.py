@@ -59,8 +59,8 @@ def test_a_service_still_down_when_its_mute_ends(app_module, client, wall, fake_
 def test_the_poll_posts_it(app_module, client, monkeypatch):
     a = client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10}).get_json()["id"]
     client.post("/api/alerts/mutes", json={"switch_id": a, "minutes": 1})
-    notifier = app_module.app.extensions["lal_integrations"]["discord"]
-    assert notifier.monitor is app_module.app.extensions["lal_integrations"]["monitor"]
+    notifier = app_module.app.extensions["floorbit_integrations"]["discord"]
+    assert notifier.monitor is app_module.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setitem(notifier.monitor.statuses, a, {"id": a, "name": "sw-a-01", "status": "offline", "since": 0})
     monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.example.com/api/webhooks/1/x")
     posted = []

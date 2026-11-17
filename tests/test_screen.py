@@ -31,6 +31,12 @@ def test_unknown_seat(anon_client, hall):
     assert resp.status_code == 404 and "No seat" in resp.get_data(as_text=True)
 
 
+
+@pytest.mark.parametrize("typed", ["d6", "D 6", " d-06 ", "d_6"])
+def test_a_seat_is_found_as_people_type_it(anon_client, hall, typed):
+    resp = anon_client.get("/find", query_string={"q": typed})
+    assert resp.status_code == 200 and "Seat D-6" in resp.get_data(as_text=True)
+
 def test_nicks_find_nothing_unless_switched_on(anon_client, hall, monkeypatch):
     assert anon_client.get("/find?q=player-six").status_code == 404
     monkeypatch.setenv("SEAT_FINDER_NICKS", "true")
@@ -46,6 +52,14 @@ def test_finder_can_be_switched_off(anon_client, hall, monkeypatch):
 def test_lookups_are_rate_limited(anon_client, hall):
     codes = [anon_client.get("/find?q=D-6").status_code for _ in range(screen.RATE_LIMIT + 1)]
     assert codes[-1] == 429 and set(codes[:-1]) == {200}
+
+
+def test_lookups_count_each_client_behind_a_trusted_proxy(anon_client, hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    busy = {"X-Forwarded-For": "192.0.2.20"}
+    codes = [anon_client.get("/find?q=D-6", headers=busy).status_code for _ in range(screen.RATE_LIMIT + 1)]
+    assert codes[-1] == 429
+    assert anon_client.get("/find?q=D-6", headers={"X-Forwarded-For": "192.0.2.21"}).status_code == 200
 
 
 def test_german_for_german_browsers(anon_client, hall):

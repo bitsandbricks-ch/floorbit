@@ -22,6 +22,7 @@ import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { Shortcuts } from './plan/Shortcuts'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { clock } from '@/lib/time'
 
 const PANELS = ['seat', 'block', 'switch']
 const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'note', 'checked_in']
@@ -29,7 +30,7 @@ const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'not
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
  *  for colour-blind eyes, three zoom levels, and one inspector for a seat. ``?screen=1`` for a kiosk. */
 export default function FloorPlan() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const hall = params.get('hall') ?? ''
   const selected = params.get('seat')
@@ -191,7 +192,6 @@ export default function FloorPlan() {
     }, dwell)
     return () => window.clearTimeout(timer)
   }, [dwell, current, halls, params, setParams])
-  const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}

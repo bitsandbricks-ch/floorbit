@@ -31,7 +31,7 @@
       document.body.append(el);
     }
     const lang = document.documentElement.lang || 'en';
-    const time = new Date(lastGood).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
+    const time = new Date(lastGood).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     el.textContent = TEXTS[lang.toLowerCase().startsWith('de') ? 'de' : 'en'].replace('{time}', time);
   }
 

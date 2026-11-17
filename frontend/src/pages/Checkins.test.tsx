@@ -58,4 +58,22 @@ describe('Checkins', () => {
     const table = await screen.findByRole('table')
     expect(within(table).getByText('hall-a')).toBeInTheDocument()
   })
+
+  it('shows who sat where and filters on a clicked MAC (the history tab)', async () => {
+    const session = { seat: 'A-3', username: 'nova', mac: '02:00:00:00:00:03', ips: ['192.0.2.24'], start: now - 3600, end: null,
+      start_local: 'Sat 10:00', end_local: '' }
+    const f = fakeFetch({
+      'GET /api/auth/me': me, 'GET /api/checkins/overview': data,
+      'GET /api/checkins/history?view=sessions': { view: 'sessions', total: 1, enabled: true, rows: [session] },
+      'GET /api/checkins/history?view=sessions&mac=02%3A00%3A00%3A00%3A00%3A03': { view: 'sessions', total: 1, enabled: true, rows: [session] },
+    })
+    vi.stubGlobal('fetch', f.fn)
+    renderWithApp(<Checkins />, '/checkins')
+    fireEvent.click(await screen.findByRole('tab', { name: 'History' }))
+    expect(await screen.findByText('Still here')).toBeInTheDocument()
+    expect(screen.getByText('1 session')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '02:00:00:00:00:03' }))
+    await waitFor(() => expect(f.calls.some((c) => c.path.includes('mac=02%3A00'))).toBe(true))
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', expect.stringContaining('mac=02%3A00'))
+  })
 })

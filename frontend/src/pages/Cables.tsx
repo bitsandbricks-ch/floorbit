@@ -13,6 +13,7 @@ import { useCan } from '@/api/queries'
 import type { BlockPlan, Cable, CableImport, CableList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { EntitySelect } from '@/components/EntitySelect'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortAreas } from '@/components/PortAreas'
@@ -47,19 +48,20 @@ function CableModal({ cable, all, canEdit, initial, onClose, onDone }: {
     onSuccess: onDone,
   })
   const remove = useMutation({ mutationFn: () => del(`/api/cables/${cable!.id}`), onSuccess: onDone })
-  const uniq = (k: 'switch' | 'panel') => [...new Set(all.map((c) => c[k]).filter(Boolean))]
+  const uniq = (k: 'panel') => [...new Set(all.map((c) => c[k]).filter(Boolean))]
   return (
     <Modal opened onClose={onClose} title={cable ? cable.label : t('cables.add')} size="lg">
       <Stack gap="sm">
         {imported && <Alert color="info">{t('cables.fromImport', { plugin: cable?.plugin ?? 'NetBox' })}</Alert>}
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-          <Autocomplete label={t('cables.switch')} required data={uniq('switch')} readOnly={readOnly}
-            value={d.switch} onChange={set('switch')} />
-          <TextInput label={t('cables.port')} required placeholder="Gi1/0/3" {...text('port')} />
+          <EntitySelect kind="switches" label={t('cables.switch')} required readOnly={readOnly}
+            value={d.switch} onChange={(v) => setD((x) => ({ ...x, switch: v, port: v === x.switch ? x.port : '' }))} />
+          <EntitySelect kind="ports" switchName={d.switch} label={t('cables.port')} required readOnly={readOnly}
+            value={d.port} onChange={set('port')} />
           <Autocomplete label={t('cables.panel')} data={uniq('panel')} readOnly={readOnly}
             value={d.panel} onChange={set('panel')} placeholder={t('cables.panelPlaceholder')} />
           <TextInput label={t('cables.panelPort')} {...text('panel_port')} />
-          <TextInput label={t('cables.seat')} placeholder="A-12" {...text('seat')} />
+          <EntitySelect kind="seats" label={t('cables.seat')} readOnly={readOnly} value={d.seat} onChange={set('seat')} />
           <TextInput label={t('cables.label')} placeholder={t('cables.labelPlaceholder')} {...text('label')} />
           <TextInput label={t('cables.color')} {...text('color')} />
           <NumberInput label={t('cables.length')} min={0.1} max={500} step={0.5} decimalScale={1} readOnly={readOnly}
@@ -99,14 +101,15 @@ export default function Cables() {
   const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.cables })
+  // Port areas (from master) still pick from the switch list; the cable form uses EntitySelect.
+  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
+    enabled: canEdit })
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
   // A new cable, maybe started from a machine on an unexplained port (its switch and port filled in).
   const [adding, setAdding] = useState<Partial<Draft> | null>(null)
   const [patching, setPatching] = useState(false)
   const [patched, setPatched] = useState<BlockPlan | null>(null)
-  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
-    enabled: canEdit })
   const openId = params.get('cable')
   const close = () => { setAdding(null); if (openId) setParams({}, { replace: true }) }
   const doImport = useMutation({ mutationFn: () => post<CableImport>('/api/cables/import'), onSuccess: refresh })
@@ -205,7 +208,6 @@ export default function Cables() {
       </Stack>
       {patching && d && (
         <PatchBlockModal
-          switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...d.cables.map((c) => c.switch)])].sort()}
           onClose={() => setPatching(false)} onDone={(made) => { setPatching(false); setPatched(made); refresh() }} />
       )}
       {(adding || current) && d && (

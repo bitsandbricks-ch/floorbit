@@ -22,6 +22,8 @@ import threading
 import time
 from contextlib import contextmanager, suppress
 
+from .env import number
+
 ENV = 'FLOORBIT_DATABASE_URL'
 # How many connections one Floorbit process opens at most (docs/database.md), and how long a
 # thread waits for a free one before the request fails.
@@ -125,7 +127,7 @@ class Sql:
         # A small shared pool instead of a connection per thread: Floorbit runs a few dozen
         # threads (gunicorn's request threads, one per live-update tab, and every background
         # watcher), and a connection each used up the slots of a shared Postgres.
-        self.pool_size = max(1, int(os.environ.get(POOL_ENV) or POOL_DEFAULT))
+        self.pool_size = number(POOL_ENV, POOL_DEFAULT, minimum=1)
         self._idle = []                                   # connections nobody holds, newest last
         self._slots = threading.BoundedSemaphore(self.pool_size)
         self._lock = threading.Lock()
@@ -135,6 +137,7 @@ class Sql:
         # what they get, so each read parses its own copy.
         self._docs = {}
         self._keys = {}
+        self._gen = 0         # bumped by close(): connections borrowed before it don't come back
         self.down = None      # {'since', 'error', 'wait', 'next_try'} while it doesn't answer
         if url.startswith('sqlite:///'):
             self.kind, self.mark = 'sqlite', '?'
@@ -225,6 +228,7 @@ class Sql:
         c = None
         try:
             with self._lock:
+                gen = self._gen
                 c = self._idle.pop() if self._idle else None
             if c is None:
                 c = self._open()
@@ -238,7 +242,11 @@ class Sql:
         finally:
             if c is not None and not getattr(c, 'closed', False):
                 with self._lock:
-                    self._idle.append(c)
+                    keep = gen == self._gen
+                    if keep:
+                        self._idle.append(c)
+                if not keep:
+                    _close_quietly(c)
             self._slots.release()
 
     def run(self, sql, args=(), fetch=False):
@@ -268,17 +276,22 @@ class Sql:
     # ── documents ──
 
     def get(self, key):
+        text = self.get_text(key)
+        return text if text is _MISSING else json.loads(text)
+
+    def get_text(self, key):
+        """The document as stored (JSON text), or _MISSING."""
         try:
             rows = self.run('SELECT body, updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         except DatabaseUnavailable:
             if key in self._docs:
-                return json.loads(self._docs[key][0])
+                return self._docs[key][0]
             raise
         if not rows:
             self._docs.pop(key, None)
             return _MISSING
         self._docs[key] = (rows[0][0], rows[0][1])
-        return json.loads(rows[0][0])
+        return rows[0][0]
 
     def updated_at(self, key):
         try:
@@ -361,8 +374,10 @@ class Sql:
             raise DatabaseError(f'{self.describe()}: {exc}') from exc
 
     def close(self):
-        """Close the idle connections (ones in use are closed when they come back broken)."""
+        """Close the idle connections; ones in use are closed when they come back, so none
+        opened before the close is handed out again."""
         with self._lock:
+            self._gen += 1
             idle, self._idle = self._idle, []
         for c in idle:
             _close_quietly(c)
@@ -449,7 +464,7 @@ def wait_until_ready(seconds=None):
     pages, the live status and the big screens work without it, saving waits until it is back,
     and ``watch`` keeps trying (docs/database.md)."""
     if seconds is None:
-        seconds = float(os.environ.get('FLOORBIT_DATABASE_WAIT') or 10)
+        seconds = number('FLOORBIT_DATABASE_WAIT', 10.0, kind=float, minimum=0)
     deadline = time.monotonic() + seconds
     while True:
         out = status()

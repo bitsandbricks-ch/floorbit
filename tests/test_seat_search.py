@@ -121,3 +121,10 @@ def test_go_to_finds_players_for_those_who_may_see_them(app_module, client, hall
     viewer = app_module.app.test_client()
     viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
     assert players(viewer, "player") == [] and players(viewer, "198.51.100.7") == []
+
+
+def test_a_seat_mapped_to_a_port_needs_no_ip_or_mac(client, hall):
+    client.put("/api/seat-map/A-1", json={"switch": "sw-a-01", "port": "Gi1/0/1", "nick": "port-only"})
+    [hit] = client.get("/api/seats/find?q=port-only").get_json()["results"]
+    assert (hit["seat"], hit["switch"], hit["port"], hit["switch_id"]) == ("A-1", "sw-a-01", "Gi1/0/1", hall["id"])
+    assert hit["ip"] == "" and hit["mac"] == ""

@@ -1,8 +1,8 @@
 import type { AlertMute, Problem } from '@/api/types'
+import { clock } from '@/lib/time'
 
 type T = (k: string, o?: Record<string, unknown>) => string
 
-const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 /** Plain text for a chat or a ticket: what the page shows, in its order (issue #280). */
 export function problemsText(problems: Problem[], mutes: AlertMute[], t: T, ago: (ts: number) => string, now = Date.now() / 1000): string {

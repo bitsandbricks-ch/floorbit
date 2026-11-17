@@ -11,16 +11,31 @@ from concurrent.futures import ThreadPoolExecutor
 MAX_WORKERS = 8
 
 
-def seat_port_usage(seat_info, resolve):
-    """Heatmap entry for one seat. `resolve(ip)` is resolve_ip_to_switch_port."""
+def _by_port(seat_info, port_stats):
+    """The seat's switch and port are the mapping (docs/seat-mapping.md): read that port, no IP needed."""
+    switch, port = seat_info['switch'], seat_info['port']
+    stats = port_stats(switch, port)
+    if not stats:     # some sources answer {} for a port they don't know
+        return None
+    mac = seat_info.get('mac_address') or seat_info.get('mac')
+    return {'stats': stats, 'device_name': switch, 'port': port, 'vlan': None, 'mac': mac}
+
+
+def seat_port_usage(seat_info, resolve, port_stats=None):
+    """Heatmap entry for one seat. Its mapped switch port when it has one (``port_stats(switch,
+    port)``), else where its IP is seen (``resolve(ip)``, resolve_ip_to_switch_port). The IP and
+    MAC are optional extras."""
     username = seat_info.get('username')
     ip_address = seat_info.get('ip_address')
-    if not ip_address:
+    by_port = bool(port_stats and seat_info.get('switch') and seat_info.get('port'))
+    if not by_port and not ip_address:
         return {'username': username, 'ip_address': None, 'resolved': False,
-                'port_usage': None, 'error': 'No IP address'}
+                'port_usage': None, 'error': 'No switch port or IP address'}
 
     try:
-        result = resolve(ip_address)
+        result = _by_port(seat_info, port_stats) if by_port else resolve(ip_address)
+        if by_port and result is None and ip_address:
+            result = resolve(ip_address)     # the port isn't known to monitoring: try where the IP is
     except Exception as exc:  # noqa: BLE001 - one bad seat must not fail the whole map
         return {'username': username, 'ip_address': ip_address, 'resolved': False,
                 'port_usage': None, 'error': f'Lookup failed: {exc}'}
@@ -71,9 +86,9 @@ def _each_seat(seats, entry, max_workers):
         return {number: e for (number, _), e in zip(items, entries, strict=True)}
 
 
-def collect_seat_heatmap(seats, resolve, max_workers=MAX_WORKERS):
+def collect_seat_heatmap(seats, resolve, max_workers=MAX_WORKERS, port_stats=None):
     """{seat_number: entry} for every seat in the mapping, looked up in parallel."""
-    return _each_seat(seats, lambda info: seat_port_usage(info, resolve), max_workers)
+    return _each_seat(seats, lambda info: seat_port_usage(info, resolve, port_stats), max_workers)
 
 
 def resolve_seats(seats, resolve, max_workers=MAX_WORKERS):

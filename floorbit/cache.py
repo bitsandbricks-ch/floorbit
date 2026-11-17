@@ -7,54 +7,68 @@ import os
 import time
 
 import redis
+from redis.backoff import NoBackoff
+from redis.retry import Retry
 
+from .env import number
 from .runtime import rt
 
 REDIS_HOST     = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT     = int(os.getenv('REDIS_PORT', 6379))
-REDIS_DB       = int(os.getenv('REDIS_DB', 0))
+REDIS_PORT     = number('REDIS_PORT', 6379, minimum=1)
+REDIS_DB       = number('REDIS_DB', 0, minimum=0)
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 
 redis_client = None
 
 
-def connect():
-    """Establish Redis connection before each request with retry logic."""
-    global redis_client
+RETRY_EVERY = 15     # seconds between tries while Redis is away
+PING_EVERY = 5       # seconds between checks of a working connection
+_next_try = 0.0
+_checked_at = 0.0
 
-    # If Redis client already exists and is connected, reuse it
-    if redis_client:
-        try:
-            redis_client.ping()
+
+def connect(now=None):
+    """Runs before each request: keep the Redis connection, or note that there is none.
+
+    Redis is optional, so a missing one must cost a request nothing: one quick try at most every
+    RETRY_EVERY seconds, never a wait or a retry loop inside the request (that made every page take
+    half a minute while Redis was down)."""
+    global redis_client, _next_try, _checked_at
+    now = time.monotonic() if now is None else now
+    if redis_client is not None:
+        if now - _checked_at < PING_EVERY:
             return
-        except redis.RedisError:
-            redis_client = None
-
-    # Try to establish new connection with retries
-    for attempt in range(5):  # Try up to 5 times
         try:
-            redis_client = redis.Redis(
-                host=REDIS_HOST,
-                port=REDIS_PORT,
-                db=REDIS_DB,
-                password=REDIS_PASSWORD,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                retry_on_timeout=True,
-                health_check_interval=30,
-            )
-            # Test connection
             redis_client.ping()
-            print(f"Connected to Redis at {REDIS_HOST}:{REDIS_PORT} (attempt {attempt + 1})")
+            _checked_at = now
             return
         except redis.RedisError as e:
-            if attempt < 4:  # Don't wait on the last attempt
-                print(f"Redis connection attempt {attempt + 1} failed: {e}. Retrying in 2 seconds...")
-                time.sleep(2)
-            else:
-                print(f"Warning: Could not connect to Redis after 5 attempts: {e}. Caching disabled for this request.")
-                redis_client = None
+            print(f"Redis went away: {e}. Caching is off until it is back.")
+            redis_client, _next_try = None, now + RETRY_EVERY
+            return
+    if now < _next_try:
+        return
+    _next_try = now + RETRY_EVERY
+    client = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_DB,
+        password=REDIS_PASSWORD,
+        decode_responses=True,
+        socket_connect_timeout=1,
+        socket_timeout=5,
+        health_check_interval=30,
+        # redis-py retries a refused connection with growing sleeps by default: seconds per request.
+        retry=Retry(NoBackoff(), 1),
+    )
+    try:
+        client.ping()
+    except redis.RedisError as e:
+        print(f"Redis at {REDIS_HOST}:{REDIS_PORT} is not reachable ({e}); caching is off, trying again in "
+              f"{RETRY_EVERY} s.")
+        return
+    redis_client, _checked_at = client, now
+    print(f"Connected to Redis at {REDIS_HOST}:{REDIS_PORT}")
 
 
 def get_redis_client():
@@ -119,13 +133,23 @@ def set_cached_mac(hostname, mac_data):
 
 
 def invalidate_hostname_cache(hostname):
-    """Invalidate all cache entries for a specific hostname."""
+    """Forget a switch's ARP and MAC tables, and every IP last seen on it, so the next lookup asks
+    LibreNMS again (after a re-patch, say)."""
     client = get_redis_client()
     if not client:
         return
     try:
-        client.delete(f"arp:{hostname}")
-        client.delete(f"mac:{hostname}")
+        client.delete(f"arp:{hostname}", f"mac:{hostname}")
+        name = str(hostname).lower()
+        for key in client.scan_iter(match='resolve:*'):
+            try:
+                seen = json.loads(client.get(key) or 'null') or {}
+            except ValueError:
+                seen = {}
+            if not isinstance(seen, dict) or name in (str(seen.get('hostname') or '').lower(),
+                                                      str(seen.get('device_name') or '').lower(),
+                                                      str(seen.get('arp_source') or '').lower()):
+                client.delete(key)
     except redis.RedisError as e:
         print(f"Redis cache invalidation error: {e}")
 

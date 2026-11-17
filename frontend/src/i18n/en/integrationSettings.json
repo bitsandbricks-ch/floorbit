@@ -1,0 +1,510 @@
+{
+  "sections": {
+    "live": {
+      "title": "Live updates",
+      "desc": "Push changes and switch status to every open browser without a reload."
+    },
+    "monitor": {
+      "title": "Status monitor",
+      "desc": "Background LibreNMS poll that detects switches going offline or coming back."
+    },
+    "health": {
+      "title": "Health wall and security",
+      "desc": "How often the health plugins (DHCP, DNS, cache, game servers, uplink) and the security plugins are asked."
+    },
+    "power": {
+      "title": "Electrics",
+      "desc": "Power boards and circuits: when a circuit counts as loaded, and where its incidents go."
+    },
+    "discord": {
+      "title": "Discord alerts",
+      "desc": "Post to a Discord channel when placed switches go offline or recover."
+    },
+    "crew": {
+      "title": "Crew Discord channel",
+      "desc": "A bot posts each incident with a thread that follows it, and Take it / Fixed buttons for crew whose Discord account is linked. See docs/crew-discord.md."
+    },
+    "seats": {
+      "title": "Seat sources",
+      "desc": "Where the seat to user / IP mapping comes from. Sources are merged in the order listed."
+    },
+    "checkin": {
+      "title": "Seat check-in",
+      "desc": "A /checkin page where players enter seat and username; their IP and MAC (from LibreNMS ARP) are recorded."
+    },
+    "general": {
+      "title": "General",
+      "desc": "Shared settings for integrations."
+    },
+    "plugin-adguard-home": {
+      "title": "Plugin: AdGuard Home",
+      "desc": "Reads AdGuard Home's query log for DNS analytics: what the hall looks up and what AdGuard blocks. Floorbit keeps hall-wide counts only, never who looked up what."
+    },
+    "plugin-aruba": {
+      "title": "Plugin: Aruba AOS-CX",
+      "desc": "Live status, ports and traffic of Aruba AOS-CX switches (REST API v10.08), and which switch port an IP is on (ARP, then the MAC tables). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use an operators-group account."
+    },
+    "plugin-http-check": {
+      "title": "Plugin: HTTP check",
+      "desc": "Checks that web services (the cache, the ticket shop, a game server's web panel) answer, and shows them on the dashboard and the health wall."
+    },
+    "plugin-loki": {
+      "title": "Plugin: Grafana Loki",
+      "desc": "Sends the syslog lines Floorbit receives to Grafana Loki, to keep them longer than a day, and searches them with LogQL on the Logs page."
+    },
+    "plugin-mikrotik": {
+      "title": "Plugin: MikroTik",
+      "desc": "Live status, ports and traffic of MikroTik switches (RouterOS 7 REST API), and which switch port an IP or MAC is on (ARP, then the bridge host tables). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use an account in a read-only group."
+    },
+    "plugin-pihole": {
+      "title": "Plugin: Pi-hole",
+      "desc": "Reads Pi-hole's query log (Pi-hole 6 and newer) for DNS analytics: what the hall looks up and what Pi-hole blocks. Floorbit keeps hall-wide counts only, never who looked up what."
+    },
+    "plugin-prometheus": {
+      "title": "Plugin: Prometheus",
+      "desc": "Live switch status and port state, traffic and errors from Prometheus (SNMP exporter, if_mib). Feeds the floor plan, the status monitor and the seat inspector. Prometheus has no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS or a seat source."
+    },
+    "plugin-ssh-ports": {
+      "title": "Plugin: SSH port actions",
+      "desc": "Bounces a seat's switch port, or shuts it for a security finding, over SSH, and runs the saved switch commands. The tech types their own switch login for each action; it is used for that one connection and never stored. Host keys are pinned on first use."
+    },
+    "plugin-unifi": {
+      "title": "Plugin: UniFi",
+      "desc": "Live status, ports and traffic of UniFi switches, and which switch port an IP or MAC is on (from the controller's client list). Feeds the floor plan, the status monitor, the seat inspector, the check-in page and the Wi-Fi view (access point load and client counts). Only reads: use a View Only account."
+    },
+    "plugin-zabbix": {
+      "title": "Plugin: Zabbix",
+      "desc": "Live switch status and port state, traffic and errors from Zabbix (hosts with the standard SNMP network interface items). Feeds the floor plan, the status monitor and the seat inspector. Zabbix keeps no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS, UniFi, MikroTik or a seat source."
+    }
+  },
+  "fields": {
+    "integrations_live_updates_enabled": {
+      "label": "Live updates",
+      "help": "Push changes and status updates to open browsers (Server-Sent Events)."
+    },
+    "integrations_status_monitor_enabled": {
+      "label": "Switch status monitor",
+      "help": "Poll LibreNMS in the background and detect switches going offline or online. Needs LibreNMS."
+    },
+    "integrations_status_monitor_interval": {
+      "label": "Poll interval (seconds)",
+      "help": "How often to ask LibreNMS for device status. Minimum 10."
+    },
+    "integrations_status_monitor_confirm": {
+      "label": "Polls to confirm a change",
+      "help": "A new status must be seen this many polls in a row before it counts, to ignore flapping."
+    },
+    "integrations_health_interval": {
+      "label": "Check interval (seconds)",
+      "help": "How often to ask the health plugins. Minimum 10."
+    },
+    "integrations_health_confirm": {
+      "label": "Checks to confirm a change",
+      "help": "A service must show its new colour this many checks in a row before it alerts."
+    },
+    "integrations_security_interval": {
+      "label": "Security check interval (seconds)",
+      "help": "How often to ask the security plugins for findings. Minimum 15."
+    },
+    "integrations_power_enabled": {
+      "label": "Power layer",
+      "help": "The Electrics page and the power layer on the floor plan. Turn it off if nobody tracks power."
+    },
+    "integrations_power_warn": {
+      "label": "Amber from (% of the fuse rating)",
+      "help": "A circuit at this load shows amber."
+    },
+    "integrations_power_crit": {
+      "label": "Red from (% of the fuse rating)",
+      "help": "A circuit at this load shows red, files an incident and alerts, before the breaker trips."
+    },
+    "integrations_power_voltage": {
+      "label": "Voltage (V)",
+      "help": "Turns readings in watts into amps."
+    },
+    "integrations_power_interval": {
+      "label": "Meter interval (seconds)",
+      "help": "How often to ask the power plugins for readings. Minimum 15."
+    },
+    "integrations_power_team": {
+      "label": "Electrics team",
+      "help": "The team id power incidents go to. Its members may enter readings and trips."
+    },
+    "integrations_power_incidents": {
+      "label": "File power incidents",
+      "help": "A circuit turning red or a tripped breaker opens an incident for the Electrics team."
+    },
+    "integrations_discord_webhook_url": {
+      "label": "Discord webhook URL",
+      "help": "Channel settings → Integrations → Webhooks → Copy URL."
+    },
+    "integrations_discord_status_webhook_url": {
+      "label": "Attendee status channel webhook",
+      "help": "A webhook in a channel attendees read. Every update the crew posts on Network status goes there too, while the public status page is on. Leave empty to post nothing."
+    },
+    "integrations_discord_schedule_webhook_url": {
+      "label": "Attendee programme channel webhook",
+      "help": "A webhook in a channel attendees read (it can be the status channel's). Shortly before a talk, tournament or meal starts, it is announced there, while the public schedule page is on."
+    },
+    "integrations_schedule_announce_minutes": {
+      "label": "Announce the programme (minutes ahead)",
+      "help": "How long before an item starts it is announced in the programme channel. 0 announces nothing."
+    },
+    "integrations_discord_alerts_enabled": {
+      "label": "Discord alerts",
+      "help": "Post a message when a placed switch goes offline or comes back."
+    },
+    "integrations_discord_notify_recovery": {
+      "label": "Notify on recovery",
+      "help": "Also post when a switch comes back online."
+    },
+    "integrations_discord_mention": {
+      "label": "Mention on outage",
+      "help": "Optional text put in front of outage alerts, e.g. <@&ROLE_ID> or @here."
+    },
+    "integrations_discord_username": {
+      "label": "Bot name",
+      "help": "Name shown on the webhook messages."
+    },
+    "integrations_discord_language": {
+      "label": "Language of the messages",
+      "help": "en (English), de-CH (Swiss German spelling) or de (German for Germany and Austria): alerts, the crew bot and the attendee channels. Slash command answers follow each user's Discord language."
+    },
+    "integrations_discord_cooldown": {
+      "label": "Per-switch cooldown (seconds)",
+      "help": "Do not alert about the same switch more often than this."
+    },
+    "integrations_alert_group_after": {
+      "label": "Group switch alerts after",
+      "help": "More switch changes than this in one poll become one message, grouped by power circuit."
+    },
+    "integrations_alert_quiet_hours": {
+      "label": "Quiet hours",
+      "help": "e.g. 02:00-08:00 (server time). Messages still go out, but silently and without the mention."
+    },
+    "integrations_discord_health_alerts": {
+      "label": "Health wall alerts",
+      "help": "Post when a service on the health wall goes red, and when it is back (with Notify on recovery)."
+    },
+    "integrations_discord_security_alerts": {
+      "label": "Security alerts",
+      "help": "Post new high and medium security findings: where (switch, port, seat), never MACs or IPs."
+    },
+    "integrations_discord_power_alerts": {
+      "label": "Power alerts",
+      "help": "Post when a circuit turns red or its breaker trips, with what it feeds."
+    },
+    "integrations_discord_bot_token": {
+      "label": "Bot token",
+      "help": "Developer Portal → your app → Bot → Reset Token. The bot needs View Channel, Send Messages, Embed Links, Create Public Threads, Send Messages in Threads and Manage Threads in the crew channel."
+    },
+    "integrations_discord_crew_channel": {
+      "label": "Crew channel ID",
+      "help": "Right-click the channel → Copy Channel ID (turn on Developer Mode first). Incidents get a message and a thread here. Without a webhook URL, alerts go here too."
+    },
+    "integrations_discord_app_public_key": {
+      "label": "App public key",
+      "help": "Developer Portal → General Information → Public Key. Turns on the Take it and Fixed buttons. Set the Interactions Endpoint URL there to <public URL>/api/discord/interactions."
+    },
+    "integrations_discord_crew_enabled": {
+      "label": "Crew channel",
+      "help": "Turn the crew channel off without removing the bot token."
+    },
+    "integrations_discord_crew_incidents": {
+      "label": "Incidents in the crew channel",
+      "help": "Post each incident with a thread that follows it until it is fixed."
+    },
+    "integrations_discord_crew_notices": {
+      "label": "Crew notices in the crew channel",
+      "help": "Post each crew notice a lead puts up, so people away from Floorbit see it too."
+    },
+    "integrations_discord_crew_waiting_minutes": {
+      "label": "Nudge after (minutes)",
+      "help": "Say once in an incident's thread when nobody has taken it for this long. 0 turns it off."
+    },
+    "integrations_discord_crew_unseen_minutes": {
+      "label": "Say a sent job is unseen after (minutes)",
+      "help": "Say once in an incident's thread when the tech it was sent to hasn't seen it for this long. 0 turns it off."
+    },
+    "integrations_discord_crew_waiting_role": {
+      "label": "Role to ping when waiting",
+      "help": "Optional. Right-click the role in Server Settings → Roles → Copy Role ID. Its members get pinged by that one line, for example the leads."
+    },
+    "integrations_seat_sources": {
+      "label": "Seat sources",
+      "help": "Comma-separated, merged in order. Built in: json, http, checkin."
+    },
+    "integrations_seat_source_json_path": {
+      "label": "Seat JSON file",
+      "help": "Path of the static seat mapping file."
+    },
+    "integrations_seat_source_http_url": {
+      "label": "Seat HTTP source URL",
+      "help": "Endpoint returning {\"seats\": {\"A-1\": {\"username\": ..., \"ip_address\": ...}}}."
+    },
+    "integrations_seat_source_http_token": {
+      "label": "Seat HTTP source token",
+      "help": "Sent as a Bearer token, if set."
+    },
+    "integrations_seat_source_cache_seconds": {
+      "label": "Seat mapping cache (seconds)",
+      "help": "How long a merged mapping is reused before asking the sources again."
+    },
+    "integrations_checkin_enabled": {
+      "label": "Seat check-in page",
+      "help": "Serve /checkin where people enter seat + username; their IP and MAC are recorded. Add \"checkin\" to Seat sources to use it."
+    },
+    "integrations_checkin_address": {
+      "label": "Short check-in address",
+      "help": "A name people can type on their PC, e.g. checkin.lan: point it at Floorbit in the event DNS. It goes on the seat cards and the sign-in page, and opening it lands on /checkin."
+    },
+    "integrations_checkin_require_pin": {
+      "label": "Always ask for the seat PIN",
+      "help": "Each seat card shows a 5-character PIN; on a PC people type the PIN and their nick, and the PIN names the seat. When on, typing a seat number without its PIN is refused too."
+    },
+    "integrations_checkin_allowed_networks": {
+      "label": "Allowed networks",
+      "help": "Comma-separated CIDRs players check in from, e.g. 10.0.0.0/16. Empty allows any."
+    },
+    "integrations_checkin_trust_proxy": {
+      "label": "Behind a reverse proxy",
+      "help": "Use X-Forwarded-For as the client IP (check-in, per-client limits). Only turn on if a proxy you control sets it."
+    },
+    "integrations_checkin_proxy_hops": {
+      "label": "Proxies in front",
+      "help": "How many proxies you control add to X-Forwarded-For (e.g. 2 for a CDN in front of the ingress). Only used behind a reverse proxy."
+    },
+    "integrations_checkin_validate_seats": {
+      "label": "Only accept seats on the plan",
+      "help": "Reject seat numbers that are not in any seat block."
+    },
+    "integrations_captive_enabled": {
+      "label": "Captive portal (DHCP option 114)",
+      "help": "Tell the local agent which machines checked in, so phones and laptops that did not see a quiet \"sign in to network\" note that opens the check-in page. Needs the check-in page, an agent with FLOORBIT_AGENT_CAPTIVE and option 114 in the event DHCP. Nothing is ever blocked."
+    },
+    "integrations_checkin_verify_rate": {
+      "label": "Port lookups per second",
+      "help": "How many check-ins a second the background looks up in the monitoring source. A burst of check-ins waits its turn instead of flooding LibreNMS."
+    },
+    "integrations_checkin_refresh_interval": {
+      "label": "Lease refresh (seconds)",
+      "help": "How often to re-check each MAC in LibreNMS and follow DHCP IP changes."
+    },
+    "integrations_checkin_admin_token": {
+      "label": "Admin token",
+      "help": "If set, listing or deleting check-ins needs this token (X-Admin-Token header)."
+    },
+    "integrations_checkin_file": {
+      "label": "Check-in data file",
+      "help": "Where check-ins are stored."
+    },
+    "integrations_checkin_history_enabled": {
+      "label": "Keep check-in history",
+      "help": "Log every check-in, seat move, removal and DHCP IP change, for /checkins/history and CSV export."
+    },
+    "integrations_checkin_history_file": {
+      "label": "Check-in history file",
+      "help": "Append-only JSON Lines log. Empty means next to the check-in data file (checkins-history.jsonl)."
+    },
+    "integrations_public_url": {
+      "label": "Public URL",
+      "help": "Where people open the floor plan; used for links in alerts."
+    },
+    "integrations_qr_url": {
+      "label": "Address on the seat QR codes",
+      "help": "Where the QR codes on the seat cards point, e.g. http://help.lan when attendees reach Floorbit under another name than the crew. Empty uses the public URL. Reprint the cards after a change."
+    },
+    "plugin_adguard-home_url": {
+      "label": "AdGuard Home URL",
+      "help": "The address of AdGuard Home's web interface. The query log must be on (Settings > General settings)."
+    },
+    "plugin_adguard-home_username": {
+      "label": "Username"
+    },
+    "plugin_adguard-home_password": {
+      "label": "Password"
+    },
+    "plugin_adguard-home_verify_ssl": {
+      "label": "Verify TLS certificates"
+    },
+    "plugin_aruba_switches": {
+      "label": "Switches",
+      "help": "Comma-separated, each as Name=URL, for example sw-a-01=https://192.0.2.31. The name must match the floor plan. Add the core too, so IPs can be found in its ARP table."
+    },
+    "plugin_aruba_username": {
+      "label": "Username",
+      "help": "A local account in the operators group (read-only)."
+    },
+    "plugin_aruba_password": {
+      "label": "Password"
+    },
+    "plugin_aruba_vlans": {
+      "label": "Player VLANs",
+      "help": "Comma-separated VLAN IDs to search for a player's MAC, like 100,101. Empty: every VLAN on the switch."
+    },
+    "plugin_aruba_timeout": {
+      "label": "Timeout",
+      "help": "Seconds to wait for each switch."
+    },
+    "plugin_aruba_verify_ssl": {
+      "label": "Verify TLS certificates",
+      "help": "Switches ship with a self-signed certificate. Turn this off only on a network you trust."
+    },
+    "plugin_http-check_targets": {
+      "label": "Services",
+      "help": "Comma-separated, each as Name=URL, for example Cache=https://cache.example.com/health. A URL alone is named by its host."
+    },
+    "plugin_http-check_timeout": {
+      "label": "Timeout",
+      "help": "Seconds to wait for each service."
+    },
+    "plugin_http-check_verify_ssl": {
+      "label": "Verify TLS certificates"
+    },
+    "plugin_loki_url": {
+      "label": "Loki URL",
+      "help": "Loki's HTTP API, without /loki/api/v1."
+    },
+    "plugin_loki_tenant": {
+      "label": "Tenant",
+      "help": "Sent as X-Scope-OrgID when Loki runs with several tenants. Leave empty otherwise."
+    },
+    "plugin_loki_username": {
+      "label": "Username",
+      "help": "For Loki behind basic auth, or Grafana Cloud's user id."
+    },
+    "plugin_loki_password": {
+      "label": "Password or token"
+    },
+    "plugin_loki_event_label": {
+      "label": "Event label",
+      "help": "Added to every line as event=..., to tell events apart in one Loki."
+    },
+    "plugin_loki_verify_ssl": {
+      "label": "Verify TLS certificates"
+    },
+    "plugin_mikrotik_switches": {
+      "label": "Switches",
+      "help": "Comma-separated, each as Name=URL, for example sw-a-01=https://192.0.2.21. The name must match the floor plan. Add the router too, so IPs can be found in its ARP table."
+    },
+    "plugin_mikrotik_username": {
+      "label": "Username",
+      "help": "An account in a group with read and api (or rest-api) rights only."
+    },
+    "plugin_mikrotik_password": {
+      "label": "Password"
+    },
+    "plugin_mikrotik_timeout": {
+      "label": "Timeout",
+      "help": "Seconds to wait for each device."
+    },
+    "plugin_mikrotik_verify_ssl": {
+      "label": "Verify TLS certificates",
+      "help": "RouterOS's www-ssl service needs a certificate. Turn this off only for self-signed ones on a network you trust."
+    },
+    "plugin_pihole_url": {
+      "label": "Pi-hole URL",
+      "help": "The address of Pi-hole's web interface, without /admin."
+    },
+    "plugin_pihole_password": {
+      "label": "App password",
+      "help": "Settings > Web interface / API > Configure app password. The web password works too."
+    },
+    "plugin_pihole_verify_ssl": {
+      "label": "Verify TLS certificates"
+    },
+    "plugin_prometheus_url": {
+      "label": "Prometheus URL",
+      "help": "The Prometheus server (or anything that speaks its query API, like Thanos or VictoriaMetrics)."
+    },
+    "plugin_prometheus_token": {
+      "label": "Bearer token",
+      "help": "Only if Prometheus sits behind a proxy that wants one."
+    },
+    "plugin_prometheus_job": {
+      "label": "Job",
+      "help": "The scrape job of the SNMP exporter. Only its series are read."
+    },
+    "plugin_prometheus_device_label": {
+      "label": "Switch name label",
+      "help": "The label that holds the switch's name, to match it to the floor plan (instance, sysName, ...)."
+    },
+    "plugin_prometheus_rate_window": {
+      "label": "Rate window",
+      "help": "How far back traffic rates look, like 2m. At least twice the scrape interval."
+    },
+    "plugin_prometheus_verify_ssl": {
+      "label": "Verify TLS certificates"
+    },
+    "plugin_ssh-ports_platform": {
+      "label": "Switch software",
+      "help": "Which commands take a port down and up again. Custom uses the two lists below."
+    },
+    "plugin_ssh-ports_ssh_port": {
+      "label": "SSH port"
+    },
+    "plugin_ssh-ports_down_seconds": {
+      "label": "Seconds down",
+      "help": "How long the port stays down before it is turned on again."
+    },
+    "plugin_ssh-ports_timeout": {
+      "label": "Timeout",
+      "help": "Seconds to wait for the switch."
+    },
+    "plugin_ssh-ports_trust_new_hosts": {
+      "label": "Trust a switch's key the first time",
+      "help": "Pins each switch's SSH host key on the first connection and refuses the switch if it changes. Off: only switches whose key is already pinned are used."
+    },
+    "plugin_ssh-ports_custom_down": {
+      "label": "Custom commands to take a port down",
+      "help": "Comma-separated, {port} is the interface. Only for Custom."
+    },
+    "plugin_ssh-ports_custom_up": {
+      "label": "Custom commands to bring it back",
+      "help": "Comma-separated, {port} is the interface. Only for Custom."
+    },
+    "plugin_unifi_url": {
+      "label": "Controller URL",
+      "help": "The UniFi console (UniFi OS) or the Network application. No path."
+    },
+    "plugin_unifi_unifi_os": {
+      "label": "UniFi OS console",
+      "help": "On for a Dream Machine, Cloud Key Gen2 or UniFi OS server. Off for the older Network application on port 8443."
+    },
+    "plugin_unifi_username": {
+      "label": "Username",
+      "help": "A local account with the View Only role."
+    },
+    "plugin_unifi_password": {
+      "label": "Password"
+    },
+    "plugin_unifi_site": {
+      "label": "Site",
+      "help": "The site's short name (from the URL in the controller: /manage/<site>/...)."
+    },
+    "plugin_unifi_verify_ssl": {
+      "label": "Verify TLS certificates",
+      "help": "Consoles ship with a self-signed certificate. Turn it off only on a network you trust."
+    },
+    "plugin_zabbix_url": {
+      "label": "Zabbix URL",
+      "help": "The Zabbix front end. Floorbit calls its api_jsonrpc.php (Zabbix 6.4 or newer)."
+    },
+    "plugin_zabbix_token": {
+      "label": "API token",
+      "help": "Administration > Users > API tokens, for a user whose role can only read the switches' host group."
+    },
+    "plugin_zabbix_group": {
+      "label": "Host group",
+      "help": "Only hosts in this group are read."
+    },
+    "plugin_zabbix_verify_ssl": {
+      "label": "Verify TLS certificates"
+    }
+  },
+  "plugins": {
+    "librenms": "Live switch status, port details and traffic, and which switch port an IP or MAC is on (ARP and MAC tables). Feeds the floor plan, the seat heatmap, the status monitor and the check-in page.",
+    "netbox": "Adds the devices with the configured roles from NetBox to the inventory (name, role, model, serial, management IP, site and status). Fields changed by hand in Floorbit stay as they are.",
+    "demo": "A made-up hall: switches, seat blocks, players on documentation IPs, ports going up and down and traffic that moves. Nothing real: example names, 192.0.2.0/24 and 198.51.100.0/24. While it's on it replaces the live monitoring source and fills the health wall."
+  }
+}

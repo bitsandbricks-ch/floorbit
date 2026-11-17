@@ -14,10 +14,10 @@ from threading import Lock
 import segno
 from flask import Blueprint, abort, current_app, render_template, request, url_for
 
-from integrations import config, seat_sources
+from integrations import checkin, config, seat_sources
 
 from .. import halls, plan_marks, seat_gaps
-from ..seat_names import block_rows, row_letters, seat_one_first
+from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
 from ..store import load_data
 
 bp = Blueprint('screen', __name__)
@@ -58,7 +58,7 @@ def _texts():
 
 
 def _rate_limited():
-    ip = request.remote_addr or '?'
+    ip = checkin.client_ip() or '?'   # per attendee behind a trusted proxy, not per proxy
     now = time.time()
     with _lookups_lock:
         recent = [t for t in _lookups.get(ip, []) if now - t < RATE_WINDOW]
@@ -186,7 +186,11 @@ def find_page():
     if _rate_limited():
         return render_template('find.html', lang=lang, t=text, state='busy', nicks=nicks, query=query), 429
     data = load_data()
-    drawing, found = _locate(data, query.upper())
+    drawing, found = None, None
+    for form in typed_forms(query):     # "a3" and "A 3" find A-3
+        drawing, found = _locate(data, form)
+        if found:
+            break
     if not found and nicks:
         by_nick = _by_nick(query)
         if by_nick:

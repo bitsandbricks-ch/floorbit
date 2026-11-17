@@ -5,6 +5,7 @@ LibreNMS: the core asks ``floorbit.sources.monitoring()``. Answers are cached in
 floorbit/cache.py) for the TTLs on the settings page.
 """
 import json
+from urllib.parse import quote
 
 import redis
 import requests
@@ -12,7 +13,13 @@ import requests
 from floorbit.cache import get_cached_arp, get_cached_mac, get_redis_client, set_cached_arp, set_cached_mac
 from floorbit.runtime import rt
 
+from . import breaker
 from . import ports as librenms_ports
+
+
+def _seg(value):
+    """One URL path segment: an IP, MAC or device name from elsewhere can't reach another endpoint."""
+    return quote(str(value), safe=':')   # MACs and IPv6 keep their colons
 
 
 def fetch_librenms_arp_by_ip(ip_address):
@@ -27,8 +34,8 @@ def fetch_librenms_arp_by_ip(ip_address):
     }
 
     try:
-        resp = requests.get(
-            f'{rt.librenms_url}/api/v0/resources/ip/arp/{ip_address}',
+        resp = breaker.get(
+            f'{rt.librenms_url}/api/v0/resources/ip/arp/{_seg(ip_address)}',
             headers=headers,
             timeout=10, verify=rt.librenms_verify_ssl,
         )
@@ -40,8 +47,6 @@ def fetch_librenms_arp_by_ip(ip_address):
                 try:
                     cache_key = f"arp_ip:{ip_address}"
                     client.setex(cache_key, rt.cache_ttl_arp, json.dumps(arp_data))
-                    # print(f"ARP data cached for IP {ip_address}")
-                    # print(f"Cached ARP entries for IP {ip_address}: {arp_data}")
                 except redis.RedisError as e:
                     print(f"Redis cache write error (IP ARP): {e}")
             return arp_data
@@ -58,7 +63,6 @@ def fetch_librenms_arp_table(hostname):
     # Try to get from cache first
     cached = get_cached_arp(hostname)
     if cached is not None:
-        # print(f"ARP cache hit for {hostname}")
         return cached
 
     headers = {
@@ -66,38 +70,15 @@ def fetch_librenms_arp_table(hostname):
         'Accept': 'application/json',
     }
 
-    # First, get the device ID
-    try:
-        resp = requests.get(
-            f'{rt.librenms_url}/api/v0/devices',
-            headers=headers,
-            params={'type': 'display', 'query': hostname},
-            timeout=10, verify=rt.librenms_verify_ssl,
-        )
-        if not resp.ok:
-            return []
-
-        candidates = resp.json().get('devices', [])
-        hn = hostname.lower()
-        device = next(
-            (d for d in candidates if d.get('display', '').lower() == hn),
-            None,
-        ) or next(
-            (d for d in candidates if hn in d.get('hostname', '').lower()),
-            None,
-        )
-
-        if not device:
-            return []
-
-        device_id = device.get('hostname') or device.get('device_id')
-    except requests.RequestException:
+    device = fetch_librenms_device_by_hostname(hostname, headers)
+    if not device:
         return []
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
 
     # Now fetch the ARP table
     arp_data = []
     try:
-        resp = requests.get(
+        resp = breaker.get(
             f'{rt.librenms_url}/api/v0/devices/{device_id}/arp',
             headers=headers,
             timeout=10, verify=rt.librenms_verify_ssl,
@@ -106,7 +87,6 @@ def fetch_librenms_arp_table(hostname):
             arp_data = resp.json().get('arp', [])
             # Cache the result
             set_cached_arp(hostname, arp_data)
-            # print(f"ARP cache miss for {hostname} - fetched and cached")
     except requests.RequestException:
         pass
 
@@ -118,7 +98,6 @@ def fetch_librenms_mac_table(hostname):
     # Try to get from cache first
     cached = get_cached_mac(hostname)
     if cached is not None:
-        # print(f"MAC cache hit for {hostname}")
         return cached
 
     headers = {
@@ -126,38 +105,15 @@ def fetch_librenms_mac_table(hostname):
         'Accept': 'application/json',
     }
 
-    # First, get the device ID
-    try:
-        resp = requests.get(
-            f'{rt.librenms_url}/api/v0/devices',
-            headers=headers,
-            params={'type': 'display', 'query': hostname},
-            timeout=10, verify=rt.librenms_verify_ssl,
-        )
-        if not resp.ok:
-            return []
-
-        candidates = resp.json().get('devices', [])
-        hn = hostname.lower()
-        device = next(
-            (d for d in candidates if d.get('display', '').lower() == hn),
-            None,
-        ) or next(
-            (d for d in candidates if hn in d.get('hostname', '').lower()),
-            None,
-        )
-
-        if not device:
-            return []
-
-        device_id = device.get('hostname') or device.get('device_id')
-    except requests.RequestException:
+    device = fetch_librenms_device_by_hostname(hostname, headers)
+    if not device:
         return []
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
 
     # Now fetch the MAC address table
     mac_data = []
     try:
-        resp = requests.get(
+        resp = breaker.get(
             f'{rt.librenms_url}/api/v0/devices/{device_id}/fdb',
             headers=headers,
             timeout=10, verify=rt.librenms_verify_ssl,
@@ -168,7 +124,6 @@ def fetch_librenms_mac_table(hostname):
             mac_data = body.get('ports_fdb') or body.get('fdb') or []
             # Cache the result
             set_cached_mac(hostname, mac_data)
-            # print(f"MAC cache miss for {hostname} - fetched and cached")
     except requests.RequestException:
         pass
 
@@ -221,8 +176,8 @@ def find_mac_in_all_switches(mac_address):
     }
     mac_normalized = mac_address.lower().replace('-', ':')
     try:
-        resp = requests.get(
-            f'{rt.librenms_url}/api/v0/resources/fdb/{mac_normalized}/detail',
+        resp = breaker.get(
+            f'{rt.librenms_url}/api/v0/resources/fdb/{_seg(mac_normalized)}/detail',
             headers=headers,
             timeout=10, verify=rt.librenms_verify_ssl,
         )
@@ -281,18 +236,17 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
     # Check IP-based cache first
     client = get_redis_client()
     resolve_cache_key = f"resolve:{ip_address}"
-    if client:
-        cached = client.get(resolve_cache_key)
-        if cached:
-            cached_result = json.loads(cached)
-            if cached_result.get('mac'):
-                # print(f"Resolve cache hit for IP {ip_address}")
-                stats = fetch_librenms_device_port_stats_by_interface(
-                    cached_result.get('hostname'), cached_result.get('port'),
-                )
-
-                cached_result["stats"] = stats
-                return cached_result
+    try:
+        cached = client.get(resolve_cache_key) if client else None
+        cached_result = json.loads(cached) if cached else None
+    except (redis.RedisError, ValueError) as e:
+        print(f"Redis cache read error (resolve): {e}")
+        cached_result = None
+    if isinstance(cached_result, dict) and cached_result.get('mac'):
+        # The port's numbers are live; only where the IP sits is cached.
+        cached_result['stats'] = fetch_librenms_device_port_stats_by_interface(
+            cached_result.get('hostname'), cached_result.get('port'))
+        return cached_result
 
     if client:
         try:
@@ -302,9 +256,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
                 # Cast cached to proper type for json.loads
                 cached_str = str(cached)
                 arp_entries = json.loads(cached_str)
-                # print(f"ARP IP cache hit for {ip_address}")
                 # Find the MAC address for the IP
-                # print(f"Cached ARP entries for IP {ip_address}: {arp_entries}")
                 mac_address = None
                 for entry in arp_entries:
                     if entry.get('ipv4_address') == ip_address:
@@ -318,7 +270,6 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
 
     # If not in cache, fetch from LibreNMS
     if not result['mac']:
-        # print(f"ARP IP cache miss for {ip_address}")
         arp_data = fetch_librenms_arp_by_ip(ip_address)
         if arp_data:
             # Find the MAC address for the IP
@@ -338,9 +289,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
 
     # Step 2: Find the switch and port using MAC address
     switch_info = find_mac_in_all_switches(result['mac'])
-    # print(f"Switch info found for MAC {result['mac']}: {switch_info}")
     if switch_info is not None:
-        # print(f"Resolved IP {ip_address} to switch info: {switch_info}")
         result['device_name'] = switch_info.get('device_name')
         result['hostname'] = switch_info.get('hostname')
         result['port'] = switch_info.get('port')
@@ -355,49 +304,45 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
     if client:
         try:
             client.setex(resolve_cache_key, rt.cache_ttl_resolve, json.dumps(result))
-            # print(f"Resolve result cached for IP {ip_address}")
         except redis.RedisError as e:
             print(f"Redis cache write error (resolve): {e}")
 
     return result
 
+def best_device(candidates, hostname):
+    """The candidate that is ``hostname``: the same display name, hostname or sysName, else the same
+    short name (before the first dot), else the one candidate whose name contains it. None when
+    several only contain it: ``sw-a1`` must not turn into ``sw-a10`` by the order LibreNMS lists them."""
+    hn = (hostname or '').strip().lower()
+    if not hn:
+        return None
+    short = hn.split('.')[0]
+
+    def names(d):
+        return [str(d.get(k) or '').lower() for k in ('display', 'hostname', 'sysName')]
+    for test in (lambda n: n == hn, lambda n: n.split('.')[0] == short):
+        for d in candidates:
+            if any(n and test(n) for n in names(d)):
+                return d
+    partial = [d for d in candidates if any(hn in n for n in names(d))]
+    return partial[0] if len(partial) == 1 else None
+
+
 def fetch_librenms_device_by_hostname(hostname, headers):
-    device = None
+    """The LibreNMS device for a switch name from the inventory, or None (see ``best_device``)."""
     try:
-        query = hostname.split('.')[0]  # Use short hostname for broader search
-        resp = requests.get(
+        resp = breaker.get(
             f'{rt.librenms_url}/api/v0/devices',
             headers=headers,
-            params={'type': 'display', 'query': query},
+            params={'type': 'display', 'query': hostname.split('.')[0]},   # short name: the broader search
             timeout=10, verify=rt.librenms_verify_ssl,
         )
-        # print(f"Device search response for hostname {hostname}: {resp.status_code}")
         if resp.ok:
-            candidates = resp.json().get('devices', [])
-            # print(f"Device search candidates for hostname {hostname}: {candidates}")
-            hn = hostname.lower()
-            # Prefer exact displayname match, fall back to partial
-
-            for d in candidates:
-                # print(f"Candidate device: display={d.get('display', '')}, hostname={d.get('hostname', '')}")
-                if d.get('display', '').lower() == hn:
-                    device = d
-                    break
-                if d.get('hostname', '').lower() == hn:
-                    device = d
-                    break
-
-                if hn in d.get('display', '').lower() or hn in d.get('hostname', '').lower():
-                    device = d  # Keep looking for better match, but remember this one
-
-                short = hn.split('.')[0]
-                if short in d.get('display', '').lower() or short in d.get('hostname', '').lower():
-                    device = d  # Also consider short hostname matches
-
-    except requests.RequestException:
+            return best_device(resp.json().get('devices', []) or [], hostname)
+    except (requests.RequestException, ValueError):
         pass
+    return None
 
-    return device
 
 def fetch_librenms_details(hostname):
     """Return a dict with status, ip, cpu_load, mem_percent, up_ports, total_ports.
@@ -426,9 +371,9 @@ def fetch_librenms_details(hostname):
     )
 
     # ── CPU and Memory from device endpoint ───────────────────────────────────
-    device_id = device.get('hostname') or device.get('device_id')
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
     try:
-        resp = requests.get(
+        resp = breaker.get(
             f'{rt.librenms_url}/api/v0/devices/{device_id}',
             headers=headers, timeout=10, verify=rt.librenms_verify_ssl,
         )
@@ -458,7 +403,7 @@ def fetch_librenms_details(hostname):
 
     # ── Temperature from device sensors ────────────────────────────────────────────
     try:
-        resp = requests.get(
+        resp = breaker.get(
             f'{rt.librenms_url}/api/v0/devices/{device_id}/sensors',
             headers=headers, timeout=10, verify=rt.librenms_verify_ssl,
             params={'type': 'temperature'},
@@ -474,7 +419,7 @@ def fetch_librenms_details(hostname):
 
     # ── Port summary + traffic ────────────────────────────────────────────────
     try:
-        resp = requests.get(
+        resp = breaker.get(
             f'{rt.librenms_url}/api/v0/devices/{device_id}/ports',
             headers=headers, timeout=10, verify=rt.librenms_verify_ssl,
             params={'columns': 'ifOperStatus,ifInOctets_rate,ifOutOctets_rate,ifSpeed'},
@@ -507,7 +452,6 @@ def fetch_librenms_details(hostname):
     except requests.RequestException:
         pass
 
-    # print(f"LibreNMS details for {hostname}: {result}")
     return result
 
 def fetch_librenms_device_port_stats_by_interface(hostname, interface):
@@ -540,7 +484,7 @@ def fetch_device_ports(hostname):
     device = fetch_librenms_device_by_hostname(hostname, headers)
     if not device:
         return []
-    device_id = device.get('device_id') or device.get('hostname')
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
     rows = librenms_ports.fetch_ports(
         rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
         tiers=(librenms_ports.WATCH_COLUMNS, librenms_ports.DETAIL_COLUMNS, librenms_ports.BASE_COLUMNS)) or []
@@ -552,7 +496,7 @@ def fetch_device_ports(hostname):
 def list_devices():
     """Every LibreNMS device, as the API returns it (status, display, hostname, sysName, ...).
     Raises on failure, so the status monitor can show the error."""
-    resp = requests.get(f'{rt.librenms_url}/api/v0/devices',
+    resp = breaker.get(f'{rt.librenms_url}/api/v0/devices',
                         headers={'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'},
                         timeout=15, verify=rt.librenms_verify_ssl)
     resp.raise_for_status()
@@ -561,7 +505,7 @@ def list_devices():
 
 def arp_entries(query):
     """ARP rows matching an IP or a MAC ([] when LibreNMS has none)."""
-    resp = requests.get(f'{rt.librenms_url}/api/v0/resources/ip/arp/{query}',
+    resp = breaker.get(f'{rt.librenms_url}/api/v0/resources/ip/arp/{_seg(query)}',
                         headers={'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'},
                         timeout=10, verify=rt.librenms_verify_ssl)
     if not resp.ok:
@@ -576,13 +520,13 @@ def port_clients(hostname):
     device = fetch_librenms_device_by_hostname(hostname, headers)
     if not device:
         raise LookupError(f'LibreNMS does not know {hostname}')
-    device_id = device.get('device_id') or device.get('hostname')
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
     ports = librenms_ports.fetch_ports(rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
                                        tiers=(['port_id', 'ifName'],))
     if ports is None:
         raise LookupError(f'LibreNMS did not list the ports of {hostname}')
     names = {p.get('port_id'): p.get('ifName') for p in ports if p.get('ifName')}
-    resp = requests.get(f'{rt.librenms_url}/api/v0/devices/{device_id}/fdb', headers=headers,
+    resp = breaker.get(f'{rt.librenms_url}/api/v0/devices/{device_id}/fdb', headers=headers,
                         timeout=15, verify=rt.librenms_verify_ssl)
     resp.raise_for_status()
     body = resp.json()
@@ -598,13 +542,13 @@ def neighbours(hostname):
     device = fetch_librenms_device_by_hostname(hostname, headers)
     if not device:
         raise LookupError(f'LibreNMS does not know {hostname}')
-    device_id = device.get('device_id') or device.get('hostname')
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
     ports = librenms_ports.fetch_ports(rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
                                        tiers=(['port_id', 'ifName'],))
     if ports is None:
         raise LookupError(f'LibreNMS did not list the ports of {hostname}')
     names = {p.get('port_id'): p.get('ifName') for p in ports if p.get('ifName')}
-    resp = requests.get(f'{rt.librenms_url}/api/v0/devices/{device_id}/links', headers=headers,
+    resp = breaker.get(f'{rt.librenms_url}/api/v0/devices/{device_id}/links', headers=headers,
                         timeout=15, verify=rt.librenms_verify_ssl)
     resp.raise_for_status()
     return [{'port': names[r.get('local_port_id')], 'remote': r.get('remote_hostname'),

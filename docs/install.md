@@ -89,7 +89,15 @@ beyond a test, then set in `.env`:
 ```sh
 PUBLIC_URL=https://floor.example.com   # links in Discord messages, QR codes and sign-in providers
 AUTH_COOKIE_SECURE=true                # the session cookie only travels over HTTPS
+CHECKIN_TRUST_PROXY=true               # the client's address comes from X-Forwarded-For
 ```
+
+Without `CHECKIN_TRUST_PROXY`, every visitor looks like the proxy: five wrong passwords from anyone
+lock that username for everyone for five minutes, and check-in can't tell seats apart. Floorbit
+logs a `[proxy]` hint when it sees this. Turn it on only when nothing but your proxy can reach
+Floorbit's port: bind it to localhost (`FLOORBIT_PORT=127.0.0.1:8080`) or keep it off the
+firewall. Otherwise anyone could send their own `X-Forwarded-For`. With a second proxy in front
+(a CDN before nginx), also set `CHECKIN_PROXY_HOPS=2`.
 
 Live updates are a long-running request (`/api/events`): don't buffer it (Floorbit already sends
 `X-Accel-Buffering: no` for nginx) and allow it a long read timeout.
@@ -109,6 +117,8 @@ What it keeps and for how long: [flows.md](flows.md).
 
 Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): `data.json` (floor plan,
 accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Redis holds only a cache.
+Each `.json` file has a `.json.next` twin: the last complete write. If a write is cut short (a full disk, a
+killed pod), Floorbit starts from the twin and says so in its log, and the next save mends the file.
 
 - **In the app:** **Settings > Backup and restore** downloads the floor plan and settings as one file, without
   accounts or tokens, and restores it on any Floorbit ([backup.md](backup.md)).

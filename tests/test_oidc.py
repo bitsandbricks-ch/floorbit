@@ -125,6 +125,18 @@ def test_bad_provider_settings_are_refused(client, change, error):
     assert resp.status_code == 400 and error in resp.get_json()["error"]
 
 
+def test_the_issuer_cannot_move_to_another_host_with_the_secret(client, issuer, monkeypatch):
+    add_provider(client)
+    body = {"name": "Example ID", "client_id": CLIENT_ID}
+    moved = client.put("/api/settings/oidc/idp", json={**body, "issuer": "https://attacker.example.net/app"})
+    assert moved.status_code == 400 and "same host" in moved.get_json()["error"]
+    assert oidc.all_configs()["idp"]["issuer"] == ISSUER
+    fixed = client.put("/api/settings/oidc/idp", json={**body, "issuer": "https://id.example.com/other"})
+    assert fixed.status_code == 200                       # a path on the same host is fine
+    monkeypatch.delenv("OIDC_IDP_CLIENT_SECRET")          # no secret yet: nothing to send anywhere
+    assert client.put("/api/settings/oidc/idp", json={**body, "issuer": "https://id2.example.com"}).status_code == 200
+
+
 def test_localhost_issuer_is_allowed_for_development(client):
     assert client.put("/api/settings/oidc/dev", json={"name": "Dev", "issuer": "http://localhost:9000",
                                                       "client_id": "x"}).status_code == 200

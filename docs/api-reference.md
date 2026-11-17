@@ -18,6 +18,8 @@ Source: [`auth/__init__.py`](https://github.com/bitsandbricks-ch/floorbit/blob/m
 | POST | `/api/auth/login` | `settings.manage` |  |
 | GET | `/api/auth/login-options` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/auth/me` | anyone |  |
+| GET | `/api/auth/me/nav` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/auth/me/nav` | `floorplan.view` |  |
 
 ## auth.admin
 
@@ -477,6 +479,16 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/notice` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/notice` | `incidents.assign` |  |
 
+## floorbit.blueprints.options
+
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users and teams.
+
+Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/options/<kind>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.pages
 
 The HTML pages of the editor and the kiosk view, and the list of pages for "Go to".
@@ -710,7 +722,9 @@ Source: [`floorbit/blueprints/seat_map.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/seat-map.csv` | `seats.view` |  |
 | DELETE | `/api/seat-map/<seat>` | `seats.edit` |  |
 | PUT | `/api/seat-map/<seat>` | `seats.edit` |  |
+| POST | `/api/seat-map/find-port` | `seats.edit` |  |
 | POST | `/api/seat-map/import` | `seats.edit` |  |
+| POST | `/api/seat-map/resolve-ports` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 

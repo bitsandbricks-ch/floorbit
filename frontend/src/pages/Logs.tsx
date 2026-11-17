@@ -3,6 +3,7 @@ import { useMediaQuery } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { EntitySelect } from '@/components/EntitySelect'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -11,6 +12,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { onPlan } from './plan/links'
 import { ErrorBanner } from '@/components/ui'
+import { clockSeconds, formatWhen } from '@/lib/time'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/syslog.md'
 const SEVERITIES: LogSeverity[] = ['emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug']
@@ -72,7 +74,7 @@ function StatusLine({ status }: { status: LogStatus }) {
 
 function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
-  const time = new Date(line.ts * 1000).toLocaleString(i18n.language, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const time = formatWhen(line.ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }, i18n.language)
   return (
     <Table.Tr>
       <Table.Td style={{ whiteSpace: 'nowrap' }}><Text size="xs" ff="monospace">{time}</Text></Table.Td>
@@ -102,7 +104,7 @@ function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => v
 /** Phones: one card-like block per line, the message on its own row at full width. */
 function Compact({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
-  const time = new Date(line.ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const time = clockSeconds(line.ts, i18n.language)
   return (
     <li className="fb-log-line">
       <Group gap={6} wrap="wrap">
@@ -207,10 +209,10 @@ export default function Logs() {
             <>
               <Select label={t('logs.device')} placeholder={t('logs.all')} data={data?.status.devices ?? []} value={filters.device || null}
                 onChange={set('device')} clearable searchable style={{ flex: '1 1 160px' }} />
-              <TextInput label={t('logs.seatFilter')} placeholder="A-12" value={filters.seat} style={{ flex: '0 1 110px' }}
-                onChange={(e) => set('seat')(e.currentTarget.value)} />
-              <TextInput label={t('logs.port')} placeholder="Gi1/0/4" value={filters.port} style={{ flex: '0 1 120px' }}
-                onChange={(e) => set('port')(e.currentTarget.value)} />
+              <EntitySelect kind="seats" label={t('logs.seatFilter')} placeholder={t('logs.all')} value={filters.seat}
+                style={{ flex: '0 1 130px' }} onChange={set('seat')} />
+              <EntitySelect kind="ports" switchName={filters.device} showUsed label={t('logs.port')} placeholder={t('logs.all')}
+                value={filters.port} style={{ flex: '0 1 140px' }} onChange={set('port')} />
             </>
           )}
           <Select label={t('logs.severity')} placeholder={t('logs.all')} value={filters.severity || null} onChange={set('severity')} clearable

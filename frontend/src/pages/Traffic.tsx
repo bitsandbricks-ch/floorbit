@@ -8,8 +8,8 @@ import { PageHead } from '@/components/PageHead'
 import { bytes, CATEGORIES, mostly, total } from './traffic/format'
 import { onPlan } from './plan/links'
 import { ErrorBanner } from '@/components/ui'
+import { clock } from '@/lib/time'
 
-const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 /** One bar split by category, with the shares as its accessible name. */
 function MixBar({ mix, label, big }: { mix: FlowMix | undefined; label: string; big?: boolean }) {
@@ -57,7 +57,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
             return (
               <Table.Tr key={s.seat}>
                 <Table.Td><Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor></Table.Td>
-                <Table.Td style={{ whiteSpace: 'nowrap' }}>{bytes(s.bytes)}{main && <Text span size="xs" c="dimmed"> · {t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</Table.Td>
+                <Table.Td style={{ whiteSpace: 'nowrap' }}>{bytes(s.bytes)}{main && <Text size="xs" c="dimmed">{t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</Table.Td>
                 <Table.Td style={{ width: '45%' }}><MixBar mix={s.mix} label={s.seat} /></Table.Td>
               </Table.Tr>
             )

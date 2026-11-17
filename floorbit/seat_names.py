@@ -87,3 +87,22 @@ def block_rows(block):
 
 def seats(block):
     return [s for row in block_rows(block) for s in row]
+
+
+_TYPED_RE = re.compile(r'([A-Z0-9]*[A-Z])\s*[-_ ]?\s*0*(\d{1,4})')
+
+
+def typed_forms(text):
+    """What someone may have meant by a typed seat, most literal first: "a3", "A 3" and "A03"
+    all mean ``A-3``. People type what's on the ticket, not the plan's spelling."""
+    seat = re.sub(r'\s+', ' ', str(text or '').strip()).upper()
+    forms = [seat] if seat else []
+    m = _TYPED_RE.fullmatch(seat)
+    if m and f'{m[1]}-{int(m[2])}' not in forms:
+        forms.append(f'{m[1]}-{int(m[2])}')
+    return forms
+
+
+def match_typed(text, known):
+    """The seat in ``known`` that ``text`` means, or None."""
+    return next((form for form in typed_forms(text) if form in known), None)

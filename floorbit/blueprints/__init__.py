@@ -32,6 +32,7 @@ from . import (
                metrics,
                network,
                notice,
+               options,
                pages,
                past_events,
                plan,
@@ -76,4 +77,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp,
        cables.bp, teardown.bp, past_events.bp,
        features.bp, firewalls.bp, api_tokens.bp, agent.bp, webhooks.bp, credentials.bp, wifi.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
-       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp]
+       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp]

@@ -163,13 +163,14 @@ def test_history_api_and_csv(env, client):
 
     r = client.get('/api/checkins/history.csv?view=sessions&seat=D-22')
     assert r.mimetype == 'text/csv'
-    assert 'attachment; filename="lal-checkins-sessions-' in r.headers['Content-Disposition']
+    assert 'attachment; filename="floorbit-checkins-sessions-' in r.headers['Content-Disposition']
     rows = list(csv.DictReader(io.StringIO(r.data.decode('utf-8-sig'))))
     assert len(rows) == 1 and rows[0]['mac'] == 'aa:bb:cc:00:11:22' and rows[0]['left'] == ''
 
     assert client.get('/api/checkins/history?view=nope').status_code == 400
     assert client.get('/api/checkins/history?since=saturday').status_code == 400
-    assert b'Check-in history' in client.get('/checkins/history').data
+    page = client.get('/checkins/history')   # now a tab of the crew's Check-ins page
+    assert page.status_code == 302 and page.headers['Location'].endswith('/checkins?tab=history')
 
 
 def test_history_stays_readable_when_checkin_closes(env, client, monkeypatch):

@@ -12,7 +12,8 @@ puts check-ins in front of the static file.
 Things that make an IP wrong, and what this does about them:
 
 * NAT / proxies: if the app sits behind a reverse proxy, set
-  ``CHECKIN_TRUST_PROXY=true`` so ``X-Forwarded-For`` is used. If players are
+  ``CHECKIN_TRUST_PROXY=true`` so ``X-Forwarded-For`` is used (the entry the
+  proxy added, ``CHECKIN_PROXY_HOPS`` from the right). If players are
   behind NAT the IP is the router's and nothing can fix that, so
   ``CHECKIN_ALLOWED_NETWORKS`` (CIDRs, e.g. ``10.0.0.0/16``) rejects check-ins
   from outside the player networks instead of storing a useless IP.
@@ -100,12 +101,26 @@ def lookup_ip(mac):
 
 
 # ── request helpers ──────────────────────────────────────────────────────────
+_proxy_hint = {'logged': False}
+
+
 def client_ip():
     ip = request.remote_addr or ''
-    if config.get_bool('CHECKIN_TRUST_PROXY', False):
-        forwarded = request.headers.get('X-Forwarded-For', '')
+    if not config.get_bool('CHECKIN_TRUST_PROXY', False):
+        if not _proxy_hint['logged'] and request.headers.get('X-Forwarded-For'):
+            # Every client then looks like the proxy: one guesser locks a username for everyone.
+            _proxy_hint['logged'] = True
+            print(f'[proxy] Requests arrive through a proxy at {ip}, but CHECKIN_TRUST_PROXY is off: '
+                  'every client counts as that one address for check-in, the sign-in lockout and the '
+                  "per-client limits. Turn it on if only your proxy can reach Floorbit's port.")
+    else:
+        # Proxies append the address they saw, so only the last ones are trustworthy: the leftmost
+        # entry is whatever the client sent, and taking it let anyone pick their own address
+        # (check in as another seat, dodge the sign-in lockout).
+        forwarded = [a.strip() for a in request.headers.get('X-Forwarded-For', '').split(',') if a.strip()]
+        hops = config.get_int('CHECKIN_PROXY_HOPS', 1, minimum=1)
         if forwarded:
-            ip = forwarded.split(',')[0].strip()
+            ip = forwarded[-min(hops, len(forwarded))]
     return ip
 
 
@@ -156,6 +171,28 @@ def ip_allowed(ip):
 # No 0/O, 1/I/L, 5/S, 8/B: read off a printed card and typed, they get mixed up.
 PIN_ALPHABET = '2346789ACDEFGHJKMNPQRTUVWXYZ'
 PIN_LENGTH = 5   # 17 million PINs: a guess hits one of 4000 seats about once in 4000 tries
+# ...so a script would find a seat in seconds. Wrong PINs are counted per PC; past the limit it
+# waits out the window. A typo or two is fine, guessing isn't.
+WRONG_PIN_WINDOW = 600
+_wrong_pins = {}          # ip -> [times of wrong PINs]
+
+
+def _wrong_pin_wait(ip, now):
+    """Seconds this PC must wait before it may try a PIN again, 0 when it may."""
+    limit = config.get_int('CHECKIN_PIN_TRIES', 10, minimum=1)
+    recent = [t for t in _wrong_pins.get(ip, []) if now - t < WRONG_PIN_WINDOW]
+    if recent:
+        _wrong_pins[ip] = recent
+    else:
+        _wrong_pins.pop(ip, None)
+    return int(recent[-limit] + WRONG_PIN_WINDOW - now) + 1 if len(recent) >= limit else 0
+
+
+def _wrong_pin(ip, now):
+    if len(_wrong_pins) > 10000:   # a flood of addresses must not grow this forever
+        for key in [k for k, v in _wrong_pins.items() if now - v[-1] >= WRONG_PIN_WINDOW]:
+            del _wrong_pins[key]
+    _wrong_pins.setdefault(ip, []).append(now)
 
 
 def _beside_checkins(name):
@@ -248,6 +285,19 @@ def is_short_address(host):
 _port_cache = {}      # ip -> (time, {"switch", "port", "mac", "edge"} or None)
 PORT_CACHE_SECONDS = 60
 EDGE_PORT_MACS = 4
+
+
+def cached_port(ip):
+    """``port_of`` from the cache only. A miss is looked up in the background, at the set rate."""
+    hit = _port_cache.get(ip) if ip else None
+    if hit and time.time() - hit[0] < PORT_CACHE_SECONDS:
+        return hit[1]
+    if ip:
+        with _warm_lock:      # the page's threads add while the verifier takes
+            if len(_warm) < 10000:
+                _warm.add(ip)
+        _wake.set()
+    return None
 
 
 def port_of(ip):
@@ -389,7 +439,8 @@ def suggest_seat(ip, load_data, app=None):
     finder = (app.extensions if app else {}).get('floorbit_port_clients')
     if finder is not None and ip in (finder.seat_ips or {}):
         return finder.seat_ips[ip]
-    port = port_of(ip)
+    # Never wait for LibreNMS here: at doors-open a thousand pages load at once. A reload shows it.
+    port = cached_port(ip)
     if not port:
         return None
     from floorbit import cables
@@ -415,9 +466,19 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     seats = known_seats(load_data)
     username = (username or '').strip()
     pin_ok = False
+    # First, so that from outside the event network a PIN can't even be tested.
+    if not ip_allowed(ip):
+        raise CheckinError('Check in from your seat PC on the event network.', 403)
     mine = find_by_ip(ip)
     if pin:
-        seat = seat_for_pin(pin)
+        with _lock:
+            wait = _wrong_pin_wait(ip, time.time())
+            if wait:
+                minutes = (wait + 59) // 60
+                raise CheckinError(f'Too many wrong PINs. Try again in {minutes} min or ask the crew.', 429)
+            seat = seat_for_pin(pin)
+            if seat is None:
+                _wrong_pin(ip, time.time())
         if seat is None:
             raise CheckinError('That PIN is not on any seat card. Check the card at your seat.', 403)
         held = load_all().get(seat)
@@ -431,16 +492,18 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
         seat, pin_ok = mine['seat'], bool(mine.get('pin_ok'))
     else:
         seat = normalise_seat(seat, seats)
-        if not SEAT_RE.match(seat):
+        if not seat:
             raise CheckinError('Enter the PIN from the card at your seat.')
+        if not SEAT_RE.match(seat):
+            # They typed a seat, not a PIN: say what a seat number looks like.
+            raise CheckinError('Enter the seat number from your ticket, for example A-12.')
         held = load_all().get(seat)
         if held and held.get('pin_ok') and held.get('ip') != ip:
             # The seat's card already checked it in: a typed number must not take it over.
-            raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
+            raise CheckinError(f'Seat {seat} was already checked in with its seat card. '
+                               'Ask the crew if this is your seat.', 409)
     if not USER_RE.match(username):
         raise CheckinError('Enter a username (up to 48 characters).')
-    if not ip_allowed(ip):
-        raise CheckinError('Check in from your seat PC on the event network.', 403)
     if not pin and config.get_bool('CHECKIN_VALIDATE_SEATS', True) and seats and seat not in seats:
         raise CheckinError(f'Seat {seat} is not on the floor plan.')
     if not pin_ok and config.get_bool('CHECKIN_REQUIRE_PIN', False) and (mine or {}).get('seat') != seat:
@@ -504,15 +567,39 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
 VERIFY_EVERY = 10          # seconds between tries while check-ins wait
 VERIFY_GIVE_UP = 15 * 60   # LibreNMS polls ARP and MAC tables every few minutes: give it time
 _wake = threading.Event()
+_bucket = {'tokens': None, 'at': None}
+_warm = set()              # IPs the check-in page asked about: their port is looked up when there's room
+_warm_lock = threading.Lock()
+
+
+def _budget(now, wanted):
+    """Port lookups allowed this round, up to ``wanted``: CHECKIN_VERIFY_RATE a second, saved up
+    to VERIFY_EVERY seconds' worth, taken from the bucket."""
+    rate = config.get_int('CHECKIN_VERIFY_RATE', 10, minimum=1)
+    cap = rate * VERIFY_EVERY
+    tokens, at = _bucket['tokens'], _bucket['at']
+    tokens = cap if tokens is None else min(cap, tokens + max(0, now - at) * rate)
+    allowed = min(int(tokens), wanted)
+    _bucket.update(tokens=tokens - allowed, at=now)
+    return allowed
+
+
+def queue_depth():
+    """Check-ins waiting for their port lookup."""
+    return sum(1 for r in load_all().values() if r.get('wired') == 'pending')
 
 
 def verify_pending(now=None):
     """Look up the switch port of each check-in that waits for it. Found on one access port:
     ``verified``, and with a PIN the seat learns that port. Returns the seats that changed."""
     now = time.time() if now is None else now
-    pending = {s: r for s, r in load_all().items() if r.get('wired') == 'pending'}
+    everyone = load_all()
+    pending = {s: r for s, r in everyone.items() if r.get('wired') == 'pending'}
     found = {}
-    for seat, row in pending.items():
+    # Oldest first, and only as many as the rate allows: a burst at doors-open waits its turn
+    # instead of sending LibreNMS a thousand lookups at once. The rest come next round.
+    queue = sorted(pending.items(), key=lambda kv: kv[1].get('checked_in_at') or 0)
+    for seat, row in queue[:_budget(now, len(queue))]:
         port = port_of(row.get('ip'))
         mac = row.get('mac') or (port or {}).get('mac') or lookup_mac(row.get('ip'))
         if port and port.get('edge'):
@@ -521,6 +608,14 @@ def verify_pending(now=None):
             found[seat] = ('unverified', None, mac)
         elif mac and not row.get('mac'):
             found[seat] = ('pending', None, mac)
+    # What's left of the budget warms the cache for the check-in page's seat hint. A PC that has
+    # checked in meanwhile needs no hint.
+    with _warm_lock:
+        _warm.difference_update(r.get('ip') for r in everyone.values())
+        take = list(_warm)[:_budget(now, len(_warm))]
+        _warm.difference_update(take)
+    for ip in take:
+        port_of(ip)
     if not found:
         return []
     changed = []
@@ -607,12 +702,16 @@ class CheckinVerifier:
             self._thread.start()
 
     def _run(self):
+        wait = VERIFY_EVERY
         while True:
-            _wake.wait(VERIFY_EVERY)
+            _wake.wait(wait)
             _wake.clear()
+            wait = VERIFY_EVERY
             try:
                 if config.get_bool('CHECKIN_ENABLED', False) and _monitoring().enabled():
                     verify_pending()
+                    if queue_depth() or _warm:
+                        wait = 1      # a burst drains at the rate, not one batch per VERIFY_EVERY
                     self.last_error = None
             except Exception as exc:  # noqa: BLE001  # keep the thread alive, try again next round
                 self.last_error = str(exc)

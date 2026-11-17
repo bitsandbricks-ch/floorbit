@@ -57,7 +57,7 @@ def render(now=None):
     out.metric('floorbit_incidents', 'gauge', 'Incidents by status.',
                [({'status': k}, n) for k, n in by_status.items()])
 
-    monitor = (current_app.extensions.get('lal_integrations') or {}).get('monitor')
+    monitor = (current_app.extensions.get('floorbit_integrations') or {}).get('monitor')
     switches = {}
     for st in (getattr(monitor, 'statuses', None) or {}).values():
         key = st.get('status') or 'unknown'

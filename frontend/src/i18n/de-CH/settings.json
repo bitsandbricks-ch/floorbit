@@ -228,5 +228,6 @@
       "label": "Text",
       "help": "Leer: fast weiss oder fast schwarz, je nach Hintergrund."
     }
-  }
+  },
+  "pickColour": "Farbe vom Bildschirm wählen"
 }
