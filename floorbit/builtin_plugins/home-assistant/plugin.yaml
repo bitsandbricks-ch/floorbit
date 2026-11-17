@@ -1,0 +1,22 @@
+# Power sensors in a Home Assistant on the event network, read by the local agent, for Electrics.
+# See docs/power.md, "Shelly and Home Assistant".
+id: home-assistant
+name: Home Assistant meters
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
+author: Floorbit
+homepage: https://www.home-assistant.io
+uses: [agent, settings, power]
+settings:
+  - {key: url, label: Home Assistant URL, type: url, placeholder: "http://homeassistant.lan.example:8123",
+     help: "As the agent reaches it."}
+  - {key: token, label: Access token, type: secret,
+     help: "A long-lived access token (your profile in Home Assistant, Security). Read access is enough. If Home Assistant refuses it, it is not tried again until a tech clears it on Local agents, or the token here changes."}
+  - {key: sensors, label: Sensors, type: text, placeholder: "db1-1 = sensor.db1_l1_power\ndb1-2 = sensor.db1_l2_current",
+     help: "One per line: the circuit's meter id = the sensor's entity id. Its unit decides: W, kW or A."}
+  - {key: verify_ssl, label: Check the certificate, type: bool, default: true}
+  - {key: interval, label: Seconds between readings, type: int, default: 15, min: 5, max: 600}
+agent:
+  sends:
+    readings: {privacy: device, latest: true}

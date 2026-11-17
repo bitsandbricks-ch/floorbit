@@ -91,6 +91,14 @@
     "plugin-captive-note": {
       "title": "Plugin: Check-in note on phones",
       "desc": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."
+    },
+    "plugin-shelly": {
+      "title": "Plugin: Shelly meters",
+      "desc": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id."
+    },
+    "plugin-home-assistant": {
+      "title": "Plugin: Home Assistant meters",
+      "desc": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
     }
   },
   "fields": {
@@ -570,6 +578,39 @@
     "plugin_captive-note_proxies": {
       "label": "Reverse proxy addresses",
       "help": "Comma-separated. From these, the client's address is taken from X-Forwarded-For."
+    },
+    "plugin_shelly_devices": {
+      "label": "Meters",
+      "help": "One per line: the circuit's meter id = the Shelly's address, and optionally which channel (switch:0, pm1:0, em:0, em1:1 or a number on the first generation). Without a channel, all its channels added up."
+    },
+    "plugin_shelly_username": {
+      "label": "Username",
+      "help": "Only when the Shellys have a password (later generations always use admin)."
+    },
+    "plugin_shelly_password": {
+      "label": "Password",
+      "help": "The same for all of them. A Shelly that refuses it is not asked again until a tech clears it on Local agents, or the password here changes."
+    },
+    "plugin_shelly_interval": {
+      "label": "Seconds between readings"
+    },
+    "plugin_home-assistant_url": {
+      "label": "Home Assistant URL",
+      "help": "As the agent reaches it."
+    },
+    "plugin_home-assistant_token": {
+      "label": "Access token",
+      "help": "A long-lived access token (your profile in Home Assistant, Security). Read access is enough. If Home Assistant refuses it, it is not tried again until a tech clears it on Local agents, or the token here changes."
+    },
+    "plugin_home-assistant_sensors": {
+      "label": "Sensors",
+      "help": "One per line: the circuit's meter id = the sensor's entity id. Its unit decides: W, kW or A."
+    },
+    "plugin_home-assistant_verify_ssl": {
+      "label": "Check the certificate"
+    },
+    "plugin_home-assistant_interval": {
+      "label": "Seconds between readings"
     }
   },
   "plugins": {
@@ -579,6 +620,8 @@
     "lancache": "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only.",
     "syslog-relay": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached.",
     "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent.",
-    "captive-note": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."
+    "captive-note": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away.",
+    "shelly": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id.",
+    "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
   }
 }
