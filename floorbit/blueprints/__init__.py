@@ -42,6 +42,7 @@ from . import (
                past_events,
                plan,
                plan_groups,
+               plan_locks,
                plan_marks,
                plugins,
                ports,
@@ -72,7 +73,7 @@ from . import (
                wifi,
 )
 
-ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_groups.bp,
+ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_groups.bp, plan_locks.bp,
        cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
        inventory.bp, seat_map.bp, demo.bp, incidents.bp,
        health.bp, ports.bp, commands.bp, terminal.bp, configs.bp, security.bp, power.bp, problems.bp, setup.bp,

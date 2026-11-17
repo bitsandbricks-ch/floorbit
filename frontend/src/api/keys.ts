@@ -55,6 +55,7 @@ export const qk = {
   switches: ['switches'] as const,
   seatBlocks: ['seat-blocks'] as const,
   planGroups: (hall: string) => ['plan-groups', hall] as const,
+  planLocks: (hall: string) => ['plan-locks', hall] as const,
   cableCheck: ['cable-check'] as const,
   cablePlan: (hall: string) => ['cables', 'plan', hall] as const,
   portClients: ['port-clients'] as const,
