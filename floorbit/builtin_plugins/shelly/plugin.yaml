@@ -1,0 +1,21 @@
+# Shelly plugs and meters on the event network, read by the local agent, for Electrics.
+# See docs/power.md, "Shelly and Home Assistant".
+id: shelly
+name: Shelly meters
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id."
+author: Floorbit
+homepage: https://shelly.cloud
+uses: [agent, settings, power]
+settings:
+  - {key: devices, label: Meters, type: text, placeholder: "db1-1 = 192.0.2.50\ndb1-2 = 192.0.2.51 em:0",
+     help: "One per line: the circuit's meter id = the Shelly's address, and optionally which channel (switch:0, pm1:0, em:0, em1:1 or a number on the first generation). Without a channel, all its channels added up."}
+  - {key: username, label: Username, type: string, default: admin,
+     help: "Only when the Shellys have a password (later generations always use admin)."}
+  - {key: password, label: Password, type: secret,
+     help: "The same for all of them. A Shelly that refuses it is not asked again until a tech clears it on Local agents, or the password here changes."}
+  - {key: interval, label: Seconds between readings, type: int, default: 15, min: 5, max: 600}
+agent:
+  sends:
+    readings: {privacy: device, latest: true}

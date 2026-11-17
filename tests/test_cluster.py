@@ -271,3 +271,16 @@ def test_rows_from_another_version_are_skipped():
     for raw in ('{"id": "c1"}', '[]', '{"id": "c2", "method": "check", "timeout": "x", "deadline": 1e12}'):
         pod._serve_call(raw)       # dropped, not a crash in the worker
     assert not bus.lists
+
+
+def test_pods_say_who_leads_for_the_agents_page():
+    bus = MemoryBus()
+    a = cluster.Cluster(bus, pod="pod-a", log=lambda *_: None)
+    b = cluster.Cluster(bus, pod="pod-b", log=lambda *_: None)
+    a.renew()
+    b.renew()
+    pods = b.pods()
+    assert [(p["pod"], p["leader"], p["me"]) for p in pods] == [("pod-b", False, True), ("pod-a", True, False)]
+    bus.hashes[cluster.PODS_KEY]["pod-old"] = json.dumps({"at": time.time() - 3600, "leader": False})
+    bus.hashes[cluster.PODS_KEY]["junk"] = "not json"
+    assert {p["pod"] for p in a.pods()} == {"pod-a", "pod-b"}

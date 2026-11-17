@@ -34,7 +34,6 @@ shift handover. **Past events** needs the **event report**. The page says why su
 | `replay` | `/replay`, `/api/replay` |
 | `report` | `/report`, `/api/report` |
 | `past_events` | `/events`, `/api/past-events` |
-| `planner` | `/planner`, `/api/planner` |
 | `preflight` | `/preflight`, `/api/preflight` |
 | `teardown` | `/teardown`, `/api/teardown` |
 | `public_hall` | `/hall`, `/api/public` |
