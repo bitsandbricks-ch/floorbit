@@ -24,7 +24,7 @@ ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}$')
 # requests ask on every path they build; this keeps that from being a read each time.
 RECHECK = 2.0
 
-_lock = threading.Lock()
+_lock = threading.RLock()
 _cache = {}     # tenant.json path -> (monotonic time, stamp, registry)
 
 
@@ -111,9 +111,100 @@ def forget():
         _cache.clear()
 
 
+def current():
+    """The event this request or block works on: the one it picked, else the live one."""
+    folder = store.event_dir()
+    for e in registry()['events']:
+        if e['folder'] == folder:
+            return dict(e)
+    return live()
+
+
+def is_live():
+    return current()['status'] == 'live'
+
+
 def using_event(event):
     """Read and write the documents of this event (a dict from ``events()``) in a ``with`` block."""
     return store.using(event=event['folder'])
+
+
+# ── Changing the event list ─────────────────────────────────────────────────────────────────
+
+MAX_NAME = 120
+MAX_EVENTS = 200
+
+
+class EventError(ValueError):
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.status = status
+
+
+def _name(value):
+    name = ' '.join(str(value or '').split())[:MAX_NAME]
+    if not name:
+        raise EventError('Give the event a name.')
+    return name
+
+
+def _new_id(name, taken):
+    base = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')[:32].strip('-') or 'event'
+    candidate, n = base, 2
+    while candidate in taken or candidate == FIRST_EVENT:
+        candidate, n = f'{base}-{n}', n + 1
+    return candidate
+
+
+def _save(events):
+    store.write_json(path(), {'events': [{k: v for k, v in e.items() if k != 'folder'} for e in events]})
+    forget()
+
+
+def create(name, copy_from=None, now=None):
+    """Add an event in planning, starting from a copy of ``copy_from``'s floor plan (an event id;
+    see event_copy.py) or empty."""
+    name = _name(name)
+    with _lock:
+        events = [dict(e) for e in registry(fresh=True)['events']]
+        if len(events) >= MAX_EVENTS:
+            raise EventError('This tenant has too many events.')
+        source = None
+        if copy_from:
+            source = next((e for e in events if e['id'] == copy_from), None)
+            if source is None:
+                raise EventError('No such event.', 404)
+        event = {'id': _new_id(name, {e['id'] for e in events}), 'name': name, 'status': 'planning',
+                 'created_at': now or time.time()}
+        event['folder'] = f"{EVENT_FOLDER}/{event['id']}"
+        _save([*events, event])
+    if source:
+        from . import event_copy
+        event_copy.copy(source['id'], event['id'], mode='replace')
+    return find(event['id'])
+
+
+def update(event_id, name=None, status=None):
+    """Rename an event or change its status. Making one live sets the live one back to planning."""
+    with _lock:
+        events = [dict(e) for e in registry(fresh=True)['events']]
+        event = next((e for e in events if e['id'] == event_id), None)
+        if event is None:
+            raise EventError('No such event.', 404)
+        if name is not None:
+            event['name'] = _name(name)
+        if status is not None:
+            if status not in STATUSES:
+                raise EventError('The status must be planning, live or closed.')
+            if event['status'] == 'live' and status != 'live':
+                raise EventError('Make another event live first: one event is always live.', 409)
+            if status == 'live':
+                for e in events:
+                    if e['status'] == 'live':
+                        e['status'] = 'planning'
+            event['status'] = status
+        _save(events)
+    return find(event_id)
 
 
 store.live_event_dir = _live_folder

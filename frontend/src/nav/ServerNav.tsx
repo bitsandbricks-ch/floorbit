@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DatabaseBanner } from '@/components/DatabaseBanner'
+import { EventBanner } from '@/components/EventBanner'
 import { readBoot } from './boot'
 import { Sidebar, type LinkProps } from './Sidebar'
 
@@ -41,6 +42,7 @@ export function ServerNav() {
       />
       {/* The pages Flask draws have their own layout: the banner floats over it. */}
       {boot.user && createPortal(<DatabaseBanner floating />, document.body)}
+      {boot.user && createPortal(<EventBanner floating />, document.body)}
     </>
   )
 }

@@ -261,5 +261,24 @@
       "help": "Empty: near white or near black, by background."
     }
   },
-  "pickColour": "Pick a colour from the screen"
+  "pickColour": "Pick a colour from the screen",
+  "nav": {
+    "search": "Search settings",
+    "clear": "Clear search",
+    "section": "Settings sections",
+    "overview": "Overview",
+    "plugins": "Plugin settings",
+    "results_zero": "No setting matches.",
+    "results_one": "{{count}} setting matches",
+    "results_other": "{{count}} settings match",
+    "whereFrom": "A value saved here wins over its environment variable; clear it to go back to the environment or the default. The database, Redis, keys and time zone are set in the environment only.",
+    "groups": {
+      "event": "Event and look",
+      "sources": "Sources",
+      "monitoring": "Monitoring",
+      "alerts": "Alerts and Discord",
+      "access": "Sign-in and switches",
+      "other": "Other"
+    }
+  }
 }
