@@ -161,6 +161,13 @@ def app_module(tmp_path, monkeypatch):
     receiver = app.app.extensions.get("floorbit_syslog")
     if receiver is not None:
         monkeypatch.setattr(receiver, "relayed", {})
+    # The app's status monitor starts polling with the first request and goes on every minute: a
+    # poll landing mid-test replaced the statuses or "last poll" a test had set up. Tests that
+    # want a poll call one themselves.
+    monitor = app.app.extensions["floorbit_integrations"]["monitor"]
+    monkeypatch.setattr(monitor, "poll_once", lambda *a, **k: None)
+    from integrations.monitor import StatusMonitor
+    StatusMonitor.latest.update(polled=None, at=None, devices=None)   # one that ran between tests
     app.app.config["TESTING"] = True
     return app
 
