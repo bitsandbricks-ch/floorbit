@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PlanCable, PlanPanel } from '@/api/types'
-import type { EntityOption } from '@/components/EntitySelect'
+import { type EntityOption, EntitySelect } from '@/components/EntitySelect'
 import { nextName } from './tools'
 
 const PORT_COUNTS = ['12', '24', '48']
@@ -96,28 +96,46 @@ export function PanelFields({ panel, onPorts }: { panel: PlanPanel; onPorts: (be
   )
 }
 
-/** A selected cable: where it runs, how its corners are drawn, back to the automatic route, and a
- *  button to change it in the cable form. Its bends are dragged on the plan. */
-export function CableFields({ cable, onEdit, onCorners, onReset }: {
-  cable: PlanCable; onEdit: () => void; onCorners: (corners: 'square' | 'round') => void; onReset: () => void
+export type CableLook = 'straight' | 'square' | 'round'
+export interface CableEnds { switch?: string; port?: string; seat?: string }
+
+/** A selected cable: both its ends (switch and port, seat) picked right here, how it is drawn
+ *  (straight, angled, rounded), back to the automatic route, and the full cable form. Its bends
+ *  are dragged on the plan. */
+export function CableFields({ cable, onEdit, onCorners, onReset, onEnds }: {
+  cable: PlanCable; onEdit: () => void; onCorners: (corners: CableLook) => void; onReset: () => void
+  onEnds: (change: CableEnds) => void
 }) {
   const { t } = useTranslation()
   const r = cable.ref
+  const imported = r.source === 'import'
+  // A new switch needs its port before the cable can move there: kept here until the port is picked.
+  const [sw, setSw] = useState<string | null>(null)
+  const switchNow = sw ?? r.switch ?? ''
   return (
     <>
-      <Stack gap={2}>
-        <Text size="sm"><Text span c="dimmed">{t('plan.edit.cable.switch')}</Text> {r.switch} {r.port}</Text>
+      <Stack gap="xs">
+        <Text size="sm" fw={500}>{t('plan.edit.cable.ends')}</Text>
+        <Group gap="xs" grow wrap="nowrap" align="flex-start">
+          <EntitySelect kind="switches" size="xs" label={t('plan.edit.cable.switch')} readOnly={imported} value={switchNow}
+            onChange={(v) => setSw(v && v !== r.switch ? v : null)} />
+          <EntitySelect kind="ports" size="xs" switchName={switchNow} label={t('plan.edit.cable.port')} readOnly={imported}
+            value={sw ? '' : r.port ?? ''} error={sw ? t('plan.edit.cable.pickPort') : undefined}
+            onChange={(v) => { if (!v) return; onEnds(sw ? { switch: sw, port: v } : { port: v }); setSw(null) }} />
+        </Group>
         {cable.via && <Text size="sm"><Text span c="dimmed">{t('plan.edit.cable.panel')}</Text> {cable.via}</Text>}
-        <Text size="sm"><Text span c="dimmed">{t('plan.edit.cable.seat')}</Text> {r.seat}</Text>
-        {r.source === 'import' && <Text size="xs" c="dimmed">{t('plan.edit.cable.imported')}</Text>}
+        <EntitySelect kind="seats" size="xs" label={t('plan.edit.cable.seat')} readOnly={imported} value={r.seat ?? ''}
+          onChange={(v) => { if (v && v !== r.seat) onEnds({ seat: v }) }} />
+        {imported && <Text size="xs" c="dimmed">{t('plan.edit.cable.imported')}</Text>}
       </Stack>
       <div>
-        <Text size="sm" fw={500} mb={4}>{t('plan.edit.cable.corners')}</Text>
-        <SegmentedControl fullWidth value={cable.corners} onChange={(v) => onCorners(v as 'square' | 'round')}
-          data={[{ value: 'square', label: t('plan.edit.cable.square') }, { value: 'round', label: t('plan.edit.cable.round') }]} />
+        <Text size="sm" fw={500} mb={4}>{t('plan.edit.cable.look')}</Text>
+        <SegmentedControl fullWidth value={cable.corners} onChange={(v) => onCorners(v as CableLook)} aria-label={t('plan.edit.cable.look')}
+          data={[{ value: 'straight', label: t('plan.edit.cable.straight') }, { value: 'square', label: t('plan.edit.cable.square') },
+            { value: 'round', label: t('plan.edit.cable.round') }]} />
       </div>
       <Text size="xs" c="dimmed">{t('plan.edit.cable.bendHelp')}</Text>
-      {cable.manual && <Button variant="default" leftSection={<IconRoute size={16} />} onClick={onReset}>{t('plan.edit.cable.auto')}</Button>}
+      {(cable.manual || cable.corners !== 'square') && <Button variant="default" leftSection={<IconRoute size={16} />} onClick={onReset}>{t('plan.edit.cable.auto')}</Button>}
       <Button variant="light" leftSection={<IconPencil size={16} />} onClick={onEdit}>{t('plan.edit.cable.edit')}</Button>
     </>
   )

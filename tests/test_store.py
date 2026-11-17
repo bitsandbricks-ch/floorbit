@@ -205,3 +205,11 @@ def test_the_app_starts_on_a_data_file_that_is_a_list(app_module):
     client = app_module.app.test_client()
     assert client.get("/api/version").status_code < 500
     assert client.get("/api/seat-blocks").status_code < 500
+
+
+def test_data_of_dropped_features_goes_with_the_next_write(client):
+    from floorbit import store
+    data = store.load_data()
+    data["planner"] = {"settings": {"model": "example"}}
+    store.save_data(data)
+    assert "planner" not in store.load_data()

@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PlanCable } from '@/api/types'
+import { pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 
@@ -58,13 +59,25 @@ describe('Cable fields', () => {
     ref: { switch: 'sw-a-01', port: 'Gi1/0/3', seat: 'A-3', source: 'import' },
   } as PlanCable
 
-  it('says where the cable runs, and offers the corners, the automatic route and the form', () => {
+  const options = {
+    'GET /api/options/switches': { options: [{ value: 'sw-a-01', label: 'sw-a-01' }, { value: 'sw-a-02', label: 'sw-a-02' }] },
+    'GET /api/options/ports?switch=sw-a-01': { options: [{ value: 'Gi1/0/3', label: 'Gi1/0/3' }] },
+    'GET /api/options/ports?switch=sw-a-02': { options: [{ value: 'Gi1/0/7', label: 'Gi1/0/7' }] },
+    'GET /api/options/seats': { options: [{ value: 'A-3', label: 'A-3' }, { value: 'A-4', label: 'A-4' }] },
+  }
+
+  it('says where the cable runs, and offers straight, angled or rounded, the automatic route and the form', async () => {
+    vi.stubGlobal('fetch', fakeFetch(options).fn)
     const onCorners = vi.fn(), onReset = vi.fn(), onEdit = vi.fn()
-    renderWithApp(<CableFields cable={cable} onEdit={onEdit} onCorners={onCorners} onReset={onReset} />)
-    expect(screen.getByText('sw-a-01 Gi1/0/3')).toBeInTheDocument()
+    renderWithApp(<CableFields cable={cable} onEdit={onEdit} onCorners={onCorners} onReset={onReset} onEnds={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Switch' })).toHaveValue('sw-a-01'))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Port' })).toHaveValue('Gi1/0/3'))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Seat' })).toHaveValue('A-3'))
     expect(screen.getByText('PP-01')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Straight'))
+    expect(onCorners).toHaveBeenCalledWith('straight')
     expect(screen.getByText('Imported: change it in the source and import again.')).toBeInTheDocument()
-    fireEvent.click(screen.getByText('Round'))
+    fireEvent.click(screen.getByText('Rounded'))
     expect(onCorners).toHaveBeenCalledWith('round')
     fireEvent.click(screen.getByRole('button', { name: 'Back to the automatic route' }))
     expect(onReset).toHaveBeenCalled()
@@ -72,8 +85,23 @@ describe('Cable fields', () => {
     expect(onEdit).toHaveBeenCalled()
   })
 
+  it('moves either end of the cable from the panel: the seat at once, a new switch once its port is picked', async () => {
+    vi.stubGlobal('fetch', fakeFetch(options).fn)
+    const onEnds = vi.fn()
+    renderWithApp(<CableFields cable={{ ...cable, ref: { ...cable.ref, source: 'manual' } }} onEdit={() => {}} onCorners={() => {}} onReset={() => {}} onEnds={onEnds} />)
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Seat' })).toHaveValue('A-3'))
+    await pick('Seat', 'A-4')
+    expect(onEnds).toHaveBeenCalledWith({ seat: 'A-4' })
+    await pick('Switch', 'sw-a-02')
+    expect(onEnds).toHaveBeenCalledTimes(1)          // not without a port on the new switch
+    expect(screen.getByText('Pick the port on the new switch')).toBeInTheDocument()
+    await pick('Port', 'Gi1/0/7')
+    expect(onEnds).toHaveBeenLastCalledWith({ switch: 'sw-a-02', port: 'Gi1/0/7' })
+  })
+
   it('has no way back to the automatic route for a cable that already takes it', () => {
-    renderWithApp(<CableFields cable={{ ...cable, manual: false, via: null }} onEdit={() => {}} onCorners={() => {}} onReset={() => {}} />)
+    vi.stubGlobal('fetch', fakeFetch(options).fn)
+    renderWithApp(<CableFields cable={{ ...cable, manual: false, via: null }} onEdit={() => {}} onCorners={() => {}} onReset={() => {}} onEnds={() => {}} />)
     expect(screen.queryByRole('button', { name: 'Back to the automatic route' })).toBeNull()
     expect(screen.queryByText('Patch panel')).toBeNull()
   })

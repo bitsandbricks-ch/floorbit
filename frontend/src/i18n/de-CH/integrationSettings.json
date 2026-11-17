@@ -75,6 +75,34 @@
     "plugin-zabbix": {
       "title": "Plugin: Zabbix",
       "desc": "Live-Status der Switches und Zustand, Verkehr und Fehler der Ports aus Zabbix (Hosts mit den üblichen SNMP-Items für Netzwerkschnittstellen). Speist den Hallenplan, die Statusüberwachung und den Platz-Inspektor. Zabbix führt keine ARP- oder MAC-Tabellen: Um den Port eines Platzes über die IP zu finden, braucht es weiterhin LibreNMS, UniFi, MikroTik oder eine Platzquelle."
+    },
+    "plugin-lancache": {
+      "title": "Plugin: LAN-Cache",
+      "desc": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle."
+    },
+    "plugin-syslog-relay": {
+      "title": "Plugin: Syslog aus der Halle",
+      "desc": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten."
+    },
+    "plugin-telemetry": {
+      "title": "Plugin: Geräte-Telemetrie",
+      "desc": "Liest Switches und Firewalls direkt über Telegraf (SNMP, Traps, gNMI, Cisco MDT) und die Geräte-APIs und antwortet wie ein Monitoring-Werkzeug. Die Geräte richtest du unter Einstellungen, Telemetrie ein."
+    },
+    "plugin-netflow-relay": {
+      "title": "Plugin: Traffic aus der Halle",
+      "desc": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten."
+    },
+    "plugin-captive-note": {
+      "title": "Plugin: Check-in-Hinweis auf Handys",
+      "desc": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten."
+    },
+    "plugin-shelly": {
+      "title": "Plugin: Shelly-Messgeräte",
+      "desc": "Der lokale Agent liest die Last von Shelly-Steckdosen, -Relais und -Energiemessern im Eventnetz (erste und spätere Generationen) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
+    },
+    "plugin-home-assistant": {
+      "title": "Plugin: Home-Assistant-Messgeräte",
+      "desc": "Der lokale Agent liest Leistungssensoren aus einem Home Assistant im Eventnetz (Watt, Kilowatt oder Ampere) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
     }
   },
   "fields": {
@@ -500,11 +528,112 @@
     },
     "plugin_zabbix_verify_ssl": {
       "label": "TLS-Zertifikate prüfen"
+    },
+    "plugin_lancache_access_log": {
+      "label": "Zugriffsprotokoll",
+      "help": "Das access.log des Caches, so wie der Agent es sieht (den Log-Ordner des Caches schreibgeschützt in den Agenten einhängen)."
+    },
+    "plugin_lancache_dns_log": {
+      "label": "DNS-Abfrageprotokoll",
+      "help": "Das Abfrageprotokoll von lancache-dns (bind mit querylog an), so wie der Agent es sieht. Leer: keine DNS-Zahlen."
+    },
+    "plugin_lancache_cache_dir": {
+      "label": "Cache-Ordner",
+      "help": "Der Ordner mit den Hash-Ordnern von nginx (00 bis ff), so wie der Agent ihn sieht: für die Disk-Belegung und zum Leeren des Caches (dann beschreibbar eingehängt)."
+    },
+    "plugin_lancache_cache_host": {
+      "label": "Cache-Adresse",
+      "help": "Name oder Adresse des Caches im Eventnetz, für die Heartbeat-Prüfung."
+    },
+    "plugin_lancache_dns_server": {
+      "label": "Adresse von lancache-dns",
+      "help": "Prüft, dass er die gecachten Dienste zum Cache schickt. Braucht die Cache-Adresse."
+    },
+    "plugin_lancache_min_clients": {
+      "label": "Spieler, bevor ein Download oder eine Seite genannt wird"
+    },
+    "plugin_lancache_interval": {
+      "label": "Sekunden zwischen zwei Lesevorgängen"
+    },
+    "plugin_syslog-relay_port": {
+      "label": "UDP-Port auf dem Agenten",
+      "help": "Wohin die Switches und Firewalls Syslog schicken, auf der Agent-Maschine (üblich ist 514; der Agent braucht das Recht dazu). 0: aus."
+    },
+    "plugin_syslog-relay_bind": {
+      "label": "Adresse zum Hören",
+      "help": "Die Adresse des Agenten, auf der er hört. Leer: alle."
+    },
+    "plugin_telemetry_uplink_macs": {
+      "label": "MAC-Grenze für Uplinks",
+      "help": "Ein Port, der mehr MAC-Adressen sieht als diese Zahl, gilt als Uplink und wird übersprungen, wenn Floorbit sucht, wo ein Platz eingesteckt ist."
+    },
+    "plugin_telemetry_exclude": {
+      "label": "Ports ignorieren",
+      "help": "Teile von Portnamen, die nie der Port eines Platzes sind (Trunks, Port-Channels, SVIs), durch Kommas getrennt."
+    },
+    "plugin_netflow-relay_port": {
+      "label": "UDP-Port auf dem Agenten",
+      "help": "Wohin die Switches und Router NetFlow oder IPFIX exportieren, auf der Agent-Maschine (üblich ist 2055). 0: aus."
+    },
+    "plugin_netflow-relay_bind": {
+      "label": "Adresse zum Hören",
+      "help": "Die Adresse des Agenten, auf der er hört. Leer: alle."
+    },
+    "plugin_captive-note_address": {
+      "label": "Adresse auf dem Agenten",
+      "help": "host:port, auf dem der Agent antwortet. Hinter dem Reverse Proxy des Events mit Zertifikat betreiben: RFC 8908 will HTTPS. Leer: aus."
+    },
+    "plugin_captive-note_portal_url": {
+      "label": "Anmeldeseite",
+      "help": "Wohin der Hinweis führt. Leer: die Check-in-Seite, die das gehostete Floorbit nennt."
+    },
+    "plugin_captive-note_proxies": {
+      "label": "Adressen der Reverse Proxys",
+      "help": "Durch Kommas getrennt. Von diesen wird die Adresse des Clients aus X-Forwarded-For genommen."
+    },
+    "plugin_shelly_devices": {
+      "label": "Messgeräte",
+      "help": "Eines pro Zeile: Messgerät-ID des Stromkreises = Adresse des Shelly, optional der Kanal (switch:0, pm1:0, em:0, em1:1 oder bei der ersten Generation eine Zahl). Ohne Kanal werden alle Kanäle zusammengezählt."
+    },
+    "plugin_shelly_username": {
+      "label": "Benutzername",
+      "help": "Nur wenn die Shellys ein Passwort haben (spätere Generationen nutzen immer admin)."
+    },
+    "plugin_shelly_password": {
+      "label": "Passwort",
+      "help": "Für alle gleich. Ein Shelly, der es ablehnt, wird nicht mehr gefragt, bis ein Techniker es unter Lokale Agenten zurücksetzt oder das Passwort hier geändert wird."
+    },
+    "plugin_shelly_interval": {
+      "label": "Sekunden zwischen zwei Messungen"
+    },
+    "plugin_home-assistant_url": {
+      "label": "URL von Home Assistant",
+      "help": "So, wie der Agent es erreicht."
+    },
+    "plugin_home-assistant_token": {
+      "label": "Zugriffstoken",
+      "help": "Ein langlebiges Zugriffstoken (dein Profil in Home Assistant, Sicherheit). Lesezugriff reicht. Lehnt Home Assistant es ab, wird es nicht mehr versucht, bis ein Techniker es unter Lokale Agenten zurücksetzt oder das Token hier geändert wird."
+    },
+    "plugin_home-assistant_sensors": {
+      "label": "Sensoren",
+      "help": "Einer pro Zeile: Messgerät-ID des Stromkreises = Entitäts-ID des Sensors. Seine Einheit entscheidet: W, kW oder A."
+    },
+    "plugin_home-assistant_verify_ssl": {
+      "label": "Zertifikat prüfen"
+    },
+    "plugin_home-assistant_interval": {
+      "label": "Sekunden zwischen zwei Messungen"
     }
   },
   "plugins": {
     "librenms": "Live-Status der Switches, Port-Details und Verkehr, und an welchem Switch-Port eine IP oder MAC hängt (ARP- und MAC-Tabellen). Speist den Hallenplan, die Platz-Heatmap, die Statusüberwachung und die Check-in-Seite.",
     "netbox": "Übernimmt die Geräte mit den eingestellten Rollen aus NetBox ins Inventar (Name, Rolle, Modell, Seriennummer, Management-IP, Standort und Status). Felder, die in Floorbit von Hand geändert wurden, bleiben, wie sie sind.",
-    "demo": "Eine erfundene Halle: Switches, Platzblöcke, Spieler auf Dokumentations-IPs, Ports, die aus- und angehen, und Verkehr, der sich bewegt. Nichts davon ist echt: Beispielnamen, 192.0.2.0/24 und 198.51.100.0/24. Solange es an ist, ersetzt es die Live-Überwachungsquelle und füllt die Health-Wall."
+    "demo": "Eine erfundene Halle: Switches, Platzblöcke, Spieler auf Dokumentations-IPs, Ports, die aus- und angehen, und Verkehr, der sich bewegt. Nichts davon ist echt: Beispielnamen, 192.0.2.0/24 und 198.51.100.0/24. Solange es an ist, ersetzt es die Live-Überwachungsquelle und füllt die Health-Wall.",
+    "lancache": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle.",
+    "syslog-relay": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten.",
+    "netflow-relay": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten.",
+    "captive-note": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten.",
+    "shelly": "Der lokale Agent liest die Last von Shelly-Steckdosen, -Relais und -Energiemessern im Eventnetz (erste und spätere Generationen) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite.",
+    "home-assistant": "Der lokale Agent liest Leistungssensoren aus einem Home Assistant im Eventnetz (Watt, Kilowatt oder Ampere) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
   }
 }

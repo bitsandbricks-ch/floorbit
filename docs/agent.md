@@ -77,6 +77,18 @@ again (below). An agent that hasn't asked anything yet is never flagged. An agen
 traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
 agent forwards what.
 
+**Rename** changes the name it is shown and logged under. **New key** makes another key, shown once
+like the first: the old key keeps working until the agent first uses the new one, 24 hours at most,
+so the hall can swap it without the agent going dark. **Plugins it leaves off** lists plugins that
+are on here but that this agent doesn't start, because another agent runs them (the LAN cache
+plugin on the agent next to the cache, say). Each agent also shows the version of every plugin it
+runs, an update that waits and why, and its last rollouts ([agent-plugins.md](agent-plugins.md),
+"Updates"). All of these are written to the [audit log](audit.md).
+
+**This Floorbit** at the top says how the hosted side itself stands: one instance, or several
+sharing Redis ([kubernetes.md](kubernetes.md)) with the one that leads; and whether the database and
+Redis answer.
+
 Revoking the agent stops it at its next request, and an open WebSocket link is closed within a few
 seconds: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
@@ -104,6 +116,29 @@ limited like that:
   "NetBox, Hall 2 agent"), so two sites' NetBox servers don't mark each other's devices as gone.
 
 Changing an agent's halls is written to the [audit log](audit.md).
+
+### Two agents in one hall (failover)
+
+Agents that answer for the same halls back each other up. For the event network to reach them at
+one address that moves, turn on VRRP in the agents (floorbit-agent's `docs/vrrp.md`): they share
+virtual IPs, and the agent holding the first one is the hall's **primary**.
+
+- **Active/passive:** every VIP on one agent (the same `FLOORBIT_AGENT_VRRP_PREFER` on both). The
+  standby only takes over.
+- **Active/active:** the VIPs spread over the agents (`PREFER` 1 on one, 2 on the other). Both take
+  syslog, NetFlow and traps sent to their address, and both answer this Floorbit's calls.
+
+Either way only the primary polls devices and logs in to them (agent plugins ask `ctx.primary()`,
+and a standby's `may_login` is always no), so no device is polled twice and no login is tried twice.
+Syslog that reached both agents is kept once (each line has the same id on every agent), and a
+standby's NetFlow summary doesn't replace the primary's on the Traffic page. Point devices' syslog,
+NetFlow and traps at the first VIP.
+
+**Agents per hall** on the Local agents page shows each group: who is primary or standby, which
+addresses each holds, active/active or active/passive, and what needs a look: **Backup missing**
+(a standby is offline), **No VRRP** (several agents without it, so each polls), **Two primaries**
+(they can't hear each other: check the VLAN or set `FLOORBIT_AGENT_VRRP_PEERS`), **No primary**, or
+**One agent** (no failover).
 
 ## Running the agent
 
@@ -231,10 +266,15 @@ menu only shows when the hosted Floorbit has a Wi-Fi plugin of its own; open the
 ## Syslog through the agent
 
 Syslog is UDP, unencrypted and unauthenticated: the switches shouldn't send it across the internet
-to a hosted Floorbit. Let the agent take it instead. Set `FLOORBIT_AGENT_SYSLOG_PORT=5514`, publish
-the port (in `docker-compose.agent.yml`, uncomment the `ports` lines, which map the host's
-udp/514 to it) and point the switches, firewalls and DHCP servers at the agent's machine, as
-[Syslog](syslog.md) describes for a Floorbit of your own.
+to a hosted Floorbit. Let the agent take it instead: turn on the **Syslog from the hall** plugin
+under Settings > Plugins and set its UDP port (such as `5514`); every agent picks it up within a
+minute (docs/agent-plugins.md). Publish the port (in `docker-compose.agent.yml`, uncomment the
+`ports` lines, which map the host's udp/514 to it) and point the switches, firewalls and DHCP
+servers at the agent's machine, as [Syslog](syslog.md) describes for a Floorbit of your own.
+
+`FLOORBIT_AGENT_SYSLOG_PORT=5514` on the agent still works the old way, without the plugin. Use one
+or the other: both on the same port can't listen. With the plugin, lines wait in the plugin's disk
+spool (256 MB and 24 hours) and its numbers show on Local agents.
 
 The agent sends the lines on over its HTTPS connection every two seconds, each with the address
 it came from and when it arrived. The hosted Floorbit treats them as if they had come straight to it:
@@ -263,9 +303,11 @@ and counted as `duplicates` in the syslog status.
 ## Traffic (NetFlow) through the agent
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
-the [flow collector](flows.md) itself: set `FLOORBIT_AGENT_FLOWS_PORT=2055`, publish the port
-(the `ports` lines in `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or
-IPFIX export at the agent's machine.
+the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
+Settings > Plugins and set its UDP port (such as `2055`), publish the port (the `ports` lines in
+`docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
+agent's machine. `FLOORBIT_AGENT_FLOWS_PORT=2055` on the agent still works the old way; use one or
+the other. With the plugin, only the newest summary waits while the hosted side is away.
 
 - Every 10 seconds the agent sends the hosted Floorbit **only the summary** the Traffic page shows:
   hall, area and service totals, services only once enough seats used them (`FLOWS_MIN_SEATS`), and
@@ -342,7 +384,7 @@ Floorbit needs to pass the upgrade for `/api/agent/v2/link` (nginx: `proxy_http_
 | `GET /api/agent/v2/link` | the WebSocket link (protocol 2, above), or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
-| `POST /api/agent/v1/report` | `{"report": {"up_seconds", "reconnects", "link_drops", "calls_busy", "answers_failed", "syslog_received", "syslog_sent", "syslog_dropped", "syslog_backlog", "flows_packets", "captive_shown", "captive_done"}}`: the report above, from an agent on the long poll |
+| `POST /api/agent/v1/report` | `{"report": {"up_seconds", "reconnects", "link_drops", "calls_busy", "answers_failed", "syslog_received", "syslog_sent", "syslog_dropped", "syslog_backlog", "flows_packets", "captive_shown", "captive_done", "plugins"}}`: the report above, from an agent on the long poll |
 | `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
 | `GET /api/agent/v1/seats` | `{"seat_of", "area_of"}`: the seat addresses for the flow collector, or 409 while Traffic is off |
 | `POST /api/agent/v1/flows` | `{"snapshot"}`: the flow collector's summary, or 409 while Traffic is off |
