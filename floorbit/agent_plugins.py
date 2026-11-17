@@ -22,7 +22,8 @@ ACTION_TIMEOUT = 120
 PLUGIN_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
 NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
 MAX_PLUGINS_REPORTED = 40
-# Plugins the agent also turns on in its own copy of Floorbit when they are on here: it answers the hosted side's monitoring, inventory, health, DNS, Wi-Fi and port calls.
+# Plugins the agent also turns on in its own copy of Floorbit when they are on here: with them it
+# answers the hosted side's monitoring, inventory, health, DNS, Wi-Fi and port calls.
 LOCAL_AREAS = ('monitoring', 'inventory', 'health', 'dns', 'wifi', 'ports')
 NEVER_LOCAL = ('demo',)
 
