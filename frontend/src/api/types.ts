@@ -105,8 +105,10 @@ export interface LogLine {
   line: string
 }
 
-export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes'] as const
+export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes',
+  'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 export type InventoryField = (typeof INVENTORY_FIELDS)[number]
+export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 
 export interface Device extends Record<InventoryField, string> {
   id: string
@@ -120,6 +122,131 @@ export interface Device extends Record<InventoryField, string> {
   locked: InventoryField[]
   gone: string[]
   fed: Record<string, Partial<Record<InventoryField, string>>>
+  icon?: string
+  color?: string
+  group_id?: string | null
+  tags?: string[]
+  properties?: Record<string, string>
+  features?: Record<string, boolean>
+  interface_count?: number
+  blocked?: number
+}
+
+/** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
+export interface ScopeHolder {
+  id: string
+  name: string
+  icon: string
+  color: string
+  properties: Record<string, string>
+  features: Record<string, boolean>
+}
+
+export interface InventoryGroup extends ScopeHolder {
+  parent_id: string | null
+  tags: string[]
+  notes: string
+  devices: number
+  credentials: string[]
+}
+
+export interface InventoryTag extends ScopeHolder {
+  description: string
+  used: number
+  credentials: string[]
+}
+
+export interface FeatureInfo {
+  id: string
+  core: boolean
+  name: string
+  default: boolean
+  agent?: boolean
+}
+
+export interface InventoryOverview {
+  groups: InventoryGroup[]
+  tags: InventoryTag[]
+  defaults: { properties: Record<string, string>; features: Record<string, boolean>; credentials: string[] }
+  features: FeatureInfo[]
+  icons: string[]
+  credential_kinds: string[]
+  auth_protocols: string[]
+  priv_protocols: string[]
+  ungrouped: number
+}
+
+export const INTERFACE_FIELDS = ['type', 'speed_mbps', 'mac', 'ips', 'vlan', 'mode', 'description', 'enabled', 'mgmt', 'lag'] as const
+export type InterfaceField = (typeof INTERFACE_FIELDS)[number]
+
+export interface DeviceInterface {
+  id: string
+  name: string
+  type: string
+  speed_mbps: number | null
+  mac: string
+  ips: string[]
+  vlan: number | null
+  mode: string
+  description: string
+  enabled: boolean
+  mgmt: boolean
+  lag: string
+  origin: string
+  hidden: boolean
+  sources: string[]
+  locked: InterfaceField[]
+  gone: string[]
+  fed: Record<string, Partial<Record<InterfaceField, unknown>>>
+}
+
+export interface Origin {
+  type: 'device' | 'tag' | 'group' | 'defaults' | 'switch-logins'
+  id: string
+  name: string
+}
+
+export interface CredentialInfo {
+  id: string
+  kind: string
+  owner_type: string
+  owner_id: string
+  owner_name?: string
+  username: string
+  auth_protocol: string
+  priv_protocol: string
+  rev: string
+  set_at: number | null
+  set_by: string | null
+  secrets: string[]
+}
+
+export interface LoginBlock {
+  credential_id: string
+  rev: string
+  kind: string
+  plugin: string
+  message: string
+  agent: string | null
+  at: number
+  device_id: string
+  device: string
+}
+
+export interface DeviceDetail extends Device {
+  interfaces: DeviceInterface[]
+  own_credentials: CredentialInfo[]
+  blocks: LoginBlock[]
+  /** What goes down with this device: VMs on it, and game servers on it or on those VMs. */
+  runs_here?: { kind: 'device' | 'game-server'; id: string; name: string; role?: string; via?: string }[]
+  resolved: {
+    properties: Record<string, { value: string; from: Origin }>
+    features: Record<string, { on: boolean; from: Origin | null }>
+    tags: { id: string; name: string; color: string; icon: string; own: boolean }[]
+    look: { icon: { value: string; from: Origin | null }; color: { value: string; from: Origin | null } }
+    credentials: Record<string, CredentialInfo & { from: Origin; blocked: boolean }>
+    group_path: { id: string; name: string }[]
+  }
 }
 
 export interface SyncReport {
@@ -1624,6 +1751,8 @@ export interface GameServerInfo {
 export interface GameServer {
   id: string; name: string; game: string; host: string; port: number; query: 'a2s' | 'minecraft' | 'tcp'
   rcon_port: number | null; rcon: boolean
+  /** The inventory server or VM it runs on, or ''. */
+  runs_on?: string
   status: 'up' | 'down' | 'unknown'; info: GameServerInfo | null; error: string
   checked_at: number | null; since: number | null
   /** [when, players] oldest first; players is null while it was down. */

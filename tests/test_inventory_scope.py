@@ -299,3 +299,16 @@ def test_feature_switched_off_stops_port_actions(client):
     with pytest.raises(ports.PortError, match="switched off"):
         ports._feature(inventory.find(data, sw["id"]), "ports")
     ports._feature(inventory.find(data, sw["id"]), "terminal")      # the others stay on
+
+
+def test_game_servers_and_vms_say_which_host_they_run_on(client):
+    host = add(client, name="hv-01", role="server")
+    vm = add(client, name="vm-games", role="vm", host="hv-01")
+    bad = {"name": "CS", "host": "192.0.2.50", "port": 27015, "query": "tcp", "runs_on": "nowhere"}
+    assert client.post("/api/game-servers", json=bad).status_code == 400
+    r = client.post("/api/game-servers", json=bad | {"runs_on": "VM-GAMES"})
+    assert r.status_code == 201, r.get_json()
+    assert r.get_json()["runs_on"] == "vm-games"
+    runs = detail(client, host)["runs_here"]
+    assert [(x["kind"], x["name"]) for x in runs] == [("device", "vm-games"), ("game-server", "CS")]
+    assert [x["name"] for x in detail(client, vm)["runs_here"]] == ["CS"]

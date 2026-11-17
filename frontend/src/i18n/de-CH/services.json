@@ -41,7 +41,7 @@
   "name": "Name",
   "uplinkPlaceholder": "Provider A",
   "resolverPlaceholder": "Resolver 1",
-  "device": "Router oder Firewall",
+  "device": "Gerät (Core-Switch, Router oder Firewall)",
   "port": "Port",
   "capacity": "Kapazität (Mbit/s)",
   "probeHost": "Prüf-Host",

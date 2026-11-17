@@ -33,7 +33,20 @@ def detail(data, dev):
     out['resolved'] = resolved
     out['own_credentials'] = inventory_scope.credentials_of(data, 'device', dev['id']) if _can('floorplan.edit') else []
     out['blocks'] = inventory_scope.blocks(data, dev['id'])
+    out['runs_here'] = runs_here(data, dev)
     return out
+
+
+def runs_here(data, dev):
+    """What goes down with this device: VMs whose host it is, and game servers that run on it or
+    on one of those VMs."""
+    name = dev['name'].lower()
+    vms = [d for d in inventory.devices(data) if (d.get('host') or '').lower() == name and d['id'] != dev['id']]
+    on = {name} | {v['name'].lower() for v in vms}
+    games = [s for s in data.get('game_servers') or [] if (s.get('runs_on') or '').lower() in on]
+    return ([{'kind': 'device', 'id': v['id'], 'name': v['name'], 'role': v.get('role') or ''} for v in vms]
+            + [{'kind': 'game-server', 'id': s.get('id'), 'name': s.get('name'), 'via': s.get('runs_on')}
+               for s in games])
 
 
 @bp.route('/api/inventory/<device_id>', methods=['GET'])

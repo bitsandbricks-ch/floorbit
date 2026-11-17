@@ -866,5 +866,7 @@
  "{} is true (on), false (off) or null (inherit).": "{} ist true (an), false (aus) oder null (erben).",
  "{} is true or false": "{} ist true oder false",
  "{}: at most {} interfaces at a time": "{}: höchstens {} Interfaces aufs Mal",
- "{}: the range runs backwards": "{}: der Bereich läuft rückwärts"
+ "{}: the range runs backwards": "{}: der Bereich läuft rückwärts",
+ "Pick the server or VM it runs on from the inventory.": "Wähle den Server oder die VM aus dem Inventar, auf dem er läuft.",
+ "Pick the device the line is on (core switch, router or firewall) from the inventory.": "Wähle das Gerät aus dem Inventar, an dem die Leitung hängt (Core-Switch, Router oder Firewall)."
 }

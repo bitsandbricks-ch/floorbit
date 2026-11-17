@@ -686,3 +686,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-text-button:focus-visible { box-shadow: none; outline: 2px solid var(--color-bit); outline-offset: 2px; }
 /* Mantine clips the alert's message box, which would cut the ring off. */
 .mantine-Alert-message:has(.fb-text-button) { overflow: visible; }
+
+/* Inventory: the groups and tags beside the device list on wide screens, above it on phones. */
+.fb-inventory-layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 62em) {
+  .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
+}
+.fb-tree-row:hover { background: var(--mantine-color-default-hover); }

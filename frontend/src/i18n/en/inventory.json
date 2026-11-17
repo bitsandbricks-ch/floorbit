@@ -1,6 +1,6 @@
 {
   "title": "Inventory",
-  "intro": "Every switch, access point and other device Floorbit knows. Add them by hand, or let a plugin such as NetBox fill the list. What you change here wins: a sync never overwrites a field you edited and never deletes a device.",
+  "intro": "Every switch, router, firewall, server, VM and other device Floorbit knows, with their interfaces. Add them by hand, or let a plugin such as NetBox fill the list. What you change here wins: a sync never overwrites a field you edited and never deletes a device. Groups and tags carry settings, feature switches and credentials that their devices inherit.",
   "search": "Search",
   "searchPlaceholder": "Name, model, serial, IP…",
   "allRoles": "All roles",
@@ -42,7 +42,14 @@
     "mgmt_ip": "Management IP",
     "hall": "Hall / site",
     "status": "Status",
-    "notes": "Notes"
+    "notes": "Notes",
+    "platform": "Platform",
+    "os": "Operating system",
+    "cpu": "CPU",
+    "cores": "Cores",
+    "memory_mb": "Memory (MB)",
+    "disk_gb": "Disk (GB)",
+    "host": "Runs on"
   },
   "role": {
     "switch": "Switch",
@@ -50,6 +57,209 @@
     "firewall": "Firewall",
     "access-point": "Access point",
     "server": "Server",
-    "other": "Other"
+    "other": "Other",
+    "vm": "Virtual machine",
+    "pdu": "PDU"
+  },
+  "specs": "Specs",
+  "hostHint": "The server or cluster host this VM runs on.",
+  "editDetails": "Edit details",
+  "placedLabel": "Floor plan",
+  "tabs": {
+    "overview": "Overview",
+    "interfaces": "Interfaces",
+    "settings": "Settings",
+    "credentials": "Credentials"
+  },
+  "icon": {
+    "switch": "Switch",
+    "router": "Router",
+    "firewall": "Firewall",
+    "server": "Server",
+    "vm": "Virtual machine",
+    "access-point": "Access point",
+    "pdu": "PDU",
+    "ups": "UPS",
+    "storage": "Storage",
+    "camera": "Camera",
+    "printer": "Printer",
+    "screen": "Screen",
+    "phone": "Phone",
+    "cloud": "Cloud",
+    "cpu": "Chip",
+    "antenna": "Antenna",
+    "other": "Device"
+  },
+  "look": {
+    "title": "Icon and colour",
+    "icon": "Icon",
+    "color": "Colour",
+    "pickColor": "Pick a colour from the screen",
+    "inherits": "From the group: {{value}}",
+    "roleIcon": "The role's icon",
+    "noColor": "No colour (inherit)"
+  },
+  "scope": {
+    "default": "default",
+    "fromDevice": "set here",
+    "from": {
+      "tag": "from tag {{name}}",
+      "group": "from group {{name}}",
+      "defaults": "from {{name}}",
+      "switch-logins": "from switch logins ({{name}})"
+    }
+  },
+  "groups": {
+    "title": "Groups",
+    "one": "Group",
+    "all": "All devices",
+    "allHint": "Settings, feature switches and credentials for every device, unless a group, a tag or the device says otherwise.",
+    "none": "No group",
+    "new": "New group",
+    "first": "Make the first group",
+    "edit": "Edit {{name}}",
+    "editDefaults": "Edit what every device gets",
+    "subtitle_one": "{{count}} device directly in it",
+    "subtitle_other": "{{count}} devices directly in it",
+    "basics": "Group",
+    "parent": "Inside",
+    "top": "Top level",
+    "create": "Create",
+    "saveFirst": "Create it first, then add settings, feature switches and credentials.",
+    "deleteQ": "Remove the group {{name}}? Its devices and groups move up one level; nothing is deleted."
+  },
+  "tags": {
+    "title": "Tags",
+    "label": "Tags",
+    "pick": "Pick tags",
+    "none": "No tags yet: make one in the list of tags",
+    "noneYet": "No tags yet.",
+    "new": "New tag",
+    "edit": "Edit tag {{name}}",
+    "subtitle_one": "On {{count}} device or group",
+    "subtitle_other": "On {{count}} devices and groups",
+    "description": "What it means",
+    "deleteQ": "Remove the tag {{name}}? It comes off every device and group that has it.",
+    "noneOnDevice": "No tags.",
+    "outlineHint": "Outlined tags come from the device's group."
+  },
+  "props": {
+    "title": "Properties",
+    "none": "None set here.",
+    "name": "Name",
+    "value": "Value",
+    "add": "Add property",
+    "remove": "Remove {{name}}"
+  },
+  "features": {
+    "title": "Feature switches",
+    "core": "Floorbit",
+    "plugins": "Plugins",
+    "pluginsHint": "A plugin works on a device only where it is switched on here, on a tag or group, or for all devices, and a credential resolves.",
+    "inherit": "Inherit",
+    "on": "On",
+    "off": "Off",
+    "isOn": "On",
+    "isOff": "Off",
+    "defaultOn": "On unless switched off",
+    "defaultOff": "Off unless switched on"
+  },
+  "feature": {
+    "ports": "Port actions",
+    "commands": "Switch commands",
+    "terminal": "Terminal",
+    "configs": "Config backups"
+  },
+  "creds": {
+    "title": "Credentials",
+    "intro": "The logins this device uses, and where each comes from. One set on the device wins over its tags and groups.",
+    "inheritIntro": "Devices in it use these unless a closer tag, group or the device has its own.",
+    "kind": "Kind",
+    "username": "Username",
+    "usedFrom": "From",
+    "noneHere": "None set here.",
+    "setHere": "Set by {{who}}",
+    "replace": "Replace",
+    "remove": "Remove",
+    "removeQ": "Remove the {{kind}} credential? Devices fall back to what their tags and groups have.",
+    "add": "Add credential",
+    "save": "Save credential",
+    "keep": "Leave empty to keep the stored one",
+    "writeOnly": "Write-only: Floorbit never shows it again. Opened only when used, and each use is in the audit log.",
+    "adminsOnly": "Only admins set credentials.",
+    "authProtocol": "Authentication",
+    "privProtocol": "Privacy",
+    "privSecret": "Privacy passphrase",
+    "kinds": {
+      "ssh": "SSH login",
+      "snmp_v2c": "SNMP v2c community",
+      "snmp_v3": "SNMP v3 user",
+      "api": "API token",
+      "http": "HTTP login"
+    },
+    "secretLabel": {
+      "ssh": "Password",
+      "snmp_v2c": "Community",
+      "snmp_v3": "Authentication passphrase",
+      "api": "Token",
+      "http": "Password"
+    }
+  },
+  "blocks": {
+    "title": "Stored login blocked",
+    "badge": "blocked",
+    "line": "The {{kind}} failed for {{by}} at {{when}}. Nothing tries it again until it is cleared.",
+    "clear": "Clear",
+    "techsClear": "A tech clears it once the login is fixed."
+  },
+  "ifaces": {
+    "name": "Interface",
+    "names": "Interfaces",
+    "namesHint": "One, several (comma) or a range: Gi1/0/1-48",
+    "add": "Add",
+    "added_one": "Added {{count}} interface.",
+    "added_other": "Added {{count}} interfaces.",
+    "type": "Type",
+    "speed": "Speed",
+    "mode": "Mode",
+    "vlan": "VLAN",
+    "vlanMode": "VLAN / mode",
+    "ips": "Addresses",
+    "mac": "MAC",
+    "lag": "Part of",
+    "noLag": "No LAG on this device",
+    "description": "Description",
+    "enabled": "Enabled",
+    "mgmt": "Management interface",
+    "mgmtShort": "mgmt",
+    "edit": "Edit {{name}} on {{device}}",
+    "none": "No interfaces yet.",
+    "locked": "Changed by hand",
+    "lockedHint": "Fields with an unlock button were changed by hand; {{source}} won't overwrite them.",
+    "fromMonitoring": "Take ports from monitoring",
+    "synced": "From monitoring: {{added}} added, {{updated}} updated, {{gone}} gone.",
+    "summary": "{{count}} interfaces, fastest {{fastest}}.",
+    "types": {
+      "copper": "Copper",
+      "fiber": "Fiber",
+      "dac": "DAC",
+      "virtual": "Virtual",
+      "lag": "LAG",
+      "wireless": "Wireless",
+      "mgmt": "Management",
+      "other": "Other"
+    },
+    "modes": {
+      "access": "Access",
+      "trunk": "Trunk",
+      "routed": "Routed"
+    }
+  },
+  "runsHere": {
+    "title": "Runs here",
+    "hint": "If this device goes down, these go down with it.",
+    "vm": "VM",
+    "game": "Game server",
+    "via": "on {{name}}"
   }
 }

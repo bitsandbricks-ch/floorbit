@@ -6,7 +6,14 @@
   "group": {
     "switches": "Switches",
     "infrastructure": "Infrastructure",
-    "other": "Other"
+    "other": "Other",
+    "switch": "Switches",
+    "router": "Routers",
+    "firewall": "Firewalls",
+    "access-point": "Access points",
+    "server": "Servers",
+    "vm": "Virtual machines",
+    "pdu": "PDUs"
   },
   "noPanelPorts": "This patch panel has no port count yet: type the port, or place the panel on the plan.",
   "pickPanelFirst": "Pick the patch panel first"

@@ -1,6 +1,6 @@
 {
   "title": "Inventar",
-  "intro": "Alle Switches, Access Points und weiteren Geräte, die Floorbit kennt. Erfasse sie von Hand oder lass ein Plugin wie NetBox die Liste füllen. Was du hier änderst, gilt: Ein Sync überschreibt kein von Hand geändertes Feld und löscht nie ein Gerät.",
+  "intro": "Alle Switches, Router, Firewalls, Server, VMs und weiteren Geräte, die Floorbit kennt, mit ihren Interfaces. Erfasse sie von Hand oder lass ein Plugin wie NetBox die Liste füllen. Was du hier änderst, gilt: Ein Sync überschreibt kein von Hand geändertes Feld und löscht nie ein Gerät. Gruppen und Tags tragen Einstellungen, Funktionsschalter und Zugangsdaten, die ihre Geräte erben.",
   "search": "Suchen",
   "searchPlaceholder": "Name, Modell, Seriennummer, IP…",
   "allRoles": "Alle Rollen",
@@ -42,7 +42,14 @@
     "mgmt_ip": "Management-IP",
     "hall": "Halle / Standort",
     "status": "Status",
-    "notes": "Notizen"
+    "notes": "Notizen",
+    "platform": "Plattform",
+    "os": "Betriebssystem",
+    "cpu": "CPU",
+    "cores": "Kerne",
+    "memory_mb": "Arbeitsspeicher (MB)",
+    "disk_gb": "Speicher (GB)",
+    "host": "Läuft auf"
   },
   "role": {
     "switch": "Switch",
@@ -50,6 +57,209 @@
     "firewall": "Firewall",
     "access-point": "Access Point",
     "server": "Server",
-    "other": "Andere"
+    "other": "Andere",
+    "vm": "Virtuelle Maschine",
+    "pdu": "PDU"
+  },
+  "specs": "Ausstattung",
+  "hostHint": "Der Server oder Cluster-Host, auf dem diese VM läuft.",
+  "editDetails": "Angaben bearbeiten",
+  "placedLabel": "Hallenplan",
+  "tabs": {
+    "overview": "Übersicht",
+    "interfaces": "Interfaces",
+    "settings": "Einstellungen",
+    "credentials": "Zugangsdaten"
+  },
+  "icon": {
+    "switch": "Switch",
+    "router": "Router",
+    "firewall": "Firewall",
+    "server": "Server",
+    "vm": "Virtuelle Maschine",
+    "access-point": "Access Point",
+    "pdu": "PDU",
+    "ups": "USV",
+    "storage": "Speicher",
+    "camera": "Kamera",
+    "printer": "Drucker",
+    "screen": "Bildschirm",
+    "phone": "Telefon",
+    "cloud": "Cloud",
+    "cpu": "Chip",
+    "antenna": "Antenne",
+    "other": "Gerät"
+  },
+  "look": {
+    "title": "Symbol und Farbe",
+    "icon": "Symbol",
+    "color": "Farbe",
+    "pickColor": "Farbe vom Bildschirm wählen",
+    "inherits": "Von der Gruppe: {{value}}",
+    "roleIcon": "Symbol der Rolle",
+    "noColor": "Keine Farbe (erben)"
+  },
+  "scope": {
+    "default": "Standard",
+    "fromDevice": "hier gesetzt",
+    "from": {
+      "tag": "vom Tag {{name}}",
+      "group": "von der Gruppe {{name}}",
+      "defaults": "von {{name}}",
+      "switch-logins": "aus den Switch-Logins ({{name}})"
+    }
+  },
+  "groups": {
+    "title": "Gruppen",
+    "one": "Gruppe",
+    "all": "Alle Geräte",
+    "allHint": "Einstellungen, Funktionsschalter und Zugangsdaten für jedes Gerät, sofern keine Gruppe, kein Tag und nicht das Gerät selbst etwas anderes sagt.",
+    "none": "Keine Gruppe",
+    "new": "Neue Gruppe",
+    "first": "Erste Gruppe anlegen",
+    "edit": "{{name}} bearbeiten",
+    "editDefaults": "Bearbeiten, was jedes Gerät bekommt",
+    "subtitle_one": "{{count}} Gerät direkt darin",
+    "subtitle_other": "{{count}} Geräte direkt darin",
+    "basics": "Gruppe",
+    "parent": "Liegt in",
+    "top": "Oberste Ebene",
+    "create": "Anlegen",
+    "saveFirst": "Lege sie zuerst an, dann kommen Einstellungen, Funktionsschalter und Zugangsdaten dazu.",
+    "deleteQ": "Gruppe {{name}} entfernen? Ihre Geräte und Gruppen rutschen eine Ebene nach oben; gelöscht wird nichts."
+  },
+  "tags": {
+    "title": "Tags",
+    "label": "Tags",
+    "pick": "Tags wählen",
+    "none": "Noch keine Tags: lege einen in der Tag-Liste an",
+    "noneYet": "Noch keine Tags.",
+    "new": "Neuer Tag",
+    "edit": "Tag {{name}} bearbeiten",
+    "subtitle_one": "An {{count}} Gerät oder Gruppe",
+    "subtitle_other": "An {{count}} Geräten und Gruppen",
+    "description": "Was er bedeutet",
+    "deleteQ": "Tag {{name}} entfernen? Er verschwindet von allen Geräten und Gruppen.",
+    "noneOnDevice": "Keine Tags.",
+    "outlineHint": "Umrandete Tags kommen von der Gruppe des Geräts."
+  },
+  "props": {
+    "title": "Eigenschaften",
+    "none": "Hier keine gesetzt.",
+    "name": "Name",
+    "value": "Wert",
+    "add": "Eigenschaft hinzufügen",
+    "remove": "{{name}} entfernen"
+  },
+  "features": {
+    "title": "Funktionsschalter",
+    "core": "Floorbit",
+    "plugins": "Plugins",
+    "pluginsHint": "Ein Plugin arbeitet nur auf Geräten, für die es hier, an einem Tag, einer Gruppe oder für alle Geräte eingeschaltet ist und für die Zugangsdaten vorhanden sind.",
+    "inherit": "Erben",
+    "on": "An",
+    "off": "Aus",
+    "isOn": "An",
+    "isOff": "Aus",
+    "defaultOn": "An, ausser ausgeschaltet",
+    "defaultOff": "Aus, ausser eingeschaltet"
+  },
+  "feature": {
+    "ports": "Port-Aktionen",
+    "commands": "Switch-Befehle",
+    "terminal": "Terminal",
+    "configs": "Konfigurationssicherungen"
+  },
+  "creds": {
+    "title": "Zugangsdaten",
+    "intro": "Die Logins, die dieses Gerät verwendet, und woher sie kommen. Am Gerät gesetzte gehen vor Tags und Gruppen.",
+    "inheritIntro": "Geräte darin verwenden diese, ausser ein näherer Tag, eine Gruppe oder das Gerät hat eigene.",
+    "kind": "Art",
+    "username": "Benutzername",
+    "usedFrom": "Von",
+    "noneHere": "Hier keine gesetzt.",
+    "setHere": "Gesetzt von {{who}}",
+    "replace": "Ersetzen",
+    "remove": "Entfernen",
+    "removeQ": "Zugangsdaten {{kind}} entfernen? Die Geräte nehmen dann, was ihre Tags und Gruppen haben.",
+    "add": "Zugangsdaten hinzufügen",
+    "save": "Zugangsdaten speichern",
+    "keep": "Leer lassen, um die gespeicherten zu behalten",
+    "writeOnly": "Nur schreibbar: Floorbit zeigt sie nie wieder an. Sie werden nur bei Gebrauch geöffnet, und jeder Gebrauch steht im Audit-Log.",
+    "adminsOnly": "Nur Admins setzen Zugangsdaten.",
+    "authProtocol": "Authentifizierung",
+    "privProtocol": "Verschlüsselung",
+    "privSecret": "Passphrase für die Verschlüsselung",
+    "kinds": {
+      "ssh": "SSH-Login",
+      "snmp_v2c": "SNMP-v2c-Community",
+      "snmp_v3": "SNMP-v3-Benutzer",
+      "api": "API-Token",
+      "http": "HTTP-Login"
+    },
+    "secretLabel": {
+      "ssh": "Passwort",
+      "snmp_v2c": "Community",
+      "snmp_v3": "Passphrase für die Authentifizierung",
+      "api": "Token",
+      "http": "Passwort"
+    }
+  },
+  "blocks": {
+    "title": "Gespeichertes Login gesperrt",
+    "badge": "gesperrt",
+    "line": "{{kind}} ist bei {{by}} am {{when}} fehlgeschlagen. Nichts versucht es erneut, bis es freigegeben ist.",
+    "clear": "Freigeben",
+    "techsClear": "Ein Tech gibt es frei, sobald das Login behoben ist."
+  },
+  "ifaces": {
+    "name": "Interface",
+    "names": "Interfaces",
+    "namesHint": "Eines, mehrere (Komma) oder ein Bereich: Gi1/0/1-48",
+    "add": "Hinzufügen",
+    "added_one": "{{count}} Interface hinzugefügt.",
+    "added_other": "{{count}} Interfaces hinzugefügt.",
+    "type": "Typ",
+    "speed": "Geschwindigkeit",
+    "mode": "Modus",
+    "vlan": "VLAN",
+    "vlanMode": "VLAN / Modus",
+    "ips": "Adressen",
+    "mac": "MAC",
+    "lag": "Teil von",
+    "noLag": "Kein LAG auf diesem Gerät",
+    "description": "Beschreibung",
+    "enabled": "Eingeschaltet",
+    "mgmt": "Management-Interface",
+    "mgmtShort": "mgmt",
+    "edit": "{{name}} auf {{device}} bearbeiten",
+    "none": "Noch keine Interfaces.",
+    "locked": "Von Hand geändert",
+    "lockedHint": "Felder mit Entsperr-Knopf wurden von Hand geändert; {{source}} überschreibt sie nicht.",
+    "fromMonitoring": "Ports aus dem Monitoring übernehmen",
+    "synced": "Aus dem Monitoring: {{added}} neu, {{updated}} geändert, {{gone}} verschwunden.",
+    "summary": "{{count}} Interfaces, schnellstes {{fastest}}.",
+    "types": {
+      "copper": "Kupfer",
+      "fiber": "Glasfaser",
+      "dac": "DAC",
+      "virtual": "Virtuell",
+      "lag": "LAG",
+      "wireless": "Funk",
+      "mgmt": "Management",
+      "other": "Andere"
+    },
+    "modes": {
+      "access": "Access",
+      "trunk": "Trunk",
+      "routed": "Geroutet"
+    }
+  },
+  "runsHere": {
+    "title": "Läuft hier",
+    "hint": "Fällt dieses Gerät aus, fallen diese mit aus.",
+    "vm": "VM",
+    "game": "Gameserver",
+    "via": "auf {{name}}"
   }
 }

@@ -41,7 +41,7 @@
   "name": "Name",
   "uplinkPlaceholder": "Provider A",
   "resolverPlaceholder": "Resolver 1",
-  "device": "Router or firewall",
+  "device": "Device (core switch, router or firewall)",
   "port": "Port",
   "capacity": "Capacity (Mbit/s)",
   "probeHost": "Probe host",
