@@ -427,6 +427,44 @@ def test_calls_go_to_the_agent_for_the_hall(client, app_module):
             w.join(30)
 
 
+def test_two_agents_for_the_same_halls_answer_from_the_primary(client, app_module):
+    """Agents sharing VIPs (VRRP): only the primary has the telemetry picture; the standby's empty
+    answers never win, and lists come once."""
+    one, two = enrol(client, 'Agent A'), enrol(client, 'Agent B')
+
+    def site(primary):
+        def execute(method, args):
+            if method == 'devices':
+                return [{'hostname': 'sw-a-01', 'status': 1}] if primary else []
+            if method == 'device_ports':
+                return [{'name': 'Gi1/0/1'}] if primary else []
+            if method == 'arp':
+                return [{'ipv4_address': '192.0.2.40', 'mac_address': '020000000007', 'hostname': 'core'}]
+            raise RuntimeError('not here')
+        return execute
+
+    agents = [make(app_module, one['key'], site(False)), make(app_module, two['key'], site(True))]
+    workers = []
+    for a in agents:
+        a.poll_wait = 0.5
+        workers.append(threading.Thread(target=a.run, daemon=True))
+        workers[-1].start()
+    try:
+        deadline = time.time() + 5
+        while len(agent_link.tunnel.connected_agents()) < 2 and time.time() < deadline:
+            time.sleep(0.05)
+        mon = sources.monitoring()
+        for _ in range(4):      # whichever agent polls first
+            assert [d['hostname'] for d in mon.devices()] == ['sw-a-01']
+            assert mon.device_ports('sw-a-01') == [{'name': 'Gi1/0/1'}]
+        assert len(agent_link.ask('arp', ('192.0.2.40',))) == 1      # the same row from both, once
+    finally:
+        for a in agents:
+            a.stop()
+        for w in workers:
+            w.join(30)
+
+
 def test_each_sites_netbox_keeps_its_own_devices(client, app_module):
     """With agents per hall, two NetBox servers sync under their own ids and don't mark each
     other's devices gone."""
