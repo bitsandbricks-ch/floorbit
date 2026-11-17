@@ -84,6 +84,7 @@ def seed():
     _import_cables()
     _seed_game_servers(layout)
     _seed_event()
+    _seed_telemetry()
     return {'placed': placed, 'blocks': len(blocks)}
 
 
@@ -174,6 +175,54 @@ def _seed_uplinks(data, layout):
         if layout.get(kind) and not stored.get(kind):
             stored = {**stored, kind: [{'id': uuid.uuid4().hex[:12], **u} for u in layout[kind]]}
     data['services'] = stored
+
+
+def _seed_telemetry():
+    """The demo's switches and firewalls in Settings > Telemetry, unless devices are set up there."""
+    from ..builtin_plugins.demo import telemetry as demo_telemetry
+    from ..telemetry import state, targets
+    if targets.raw_targets():
+        return
+    try:
+        for target in demo_telemetry.targets():
+            targets.save(target, 'demo')
+        state.state.know(targets.raw_targets())
+    except Exception as exc:  # noqa: BLE001  # a demo hiccup must not stop the rest
+        print(f'[demo] telemetry: {exc}')
+
+
+def start_telemetry_feed(app):
+    """Every 30 s while the demo is on, what Telegraf would send for the demo's devices goes to the
+    collector, as if it came to /api/telemetry/write. Started once; quiet while the demo is off."""
+    import threading
+
+    from ..builtin_plugins.demo import telemetry as demo_telemetry
+    from ..plugins import Context
+    registry = _registry(app)
+    # Tests feed by hand: a thread would write into the next test's picture.
+    if registry is None or app.testing or app.extensions.get('floorbit_demo_telemetry'):
+        return
+    stop = threading.Event()
+    app.extensions['floorbit_demo_telemetry'] = stop
+
+    def once(now=None):
+        spec = registry.specs.get('demo')
+        if spec is None or not registry.demo_on() or spec.plugin_class() is None:
+            return None
+        with app.app_context():
+            return demo_telemetry.feed(Context(spec, registry), now)
+
+    def run():
+        import time
+        once(time.time() - demo_telemetry.FEED_EVERY)     # two reads, so the first page shows rates
+        while not stop.is_set():
+            try:
+                once()
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[demo] telemetry feed: {exc}')
+            stop.wait(demo_telemetry.FEED_EVERY)
+
+    threading.Thread(target=run, name='demo-telemetry', daemon=True).start()
 
 
 def _seed_game_servers(layout):
@@ -369,7 +418,9 @@ def lay_out():
     if not demo_on():
         return jsonify({'error': 'Turn on the demo data plugin first (Settings > Plugins).'}), 409
     install_stand_in(current_app)
-    return jsonify(seed())
+    result = seed()
+    start_telemetry_feed(current_app._get_current_object())
+    return jsonify(result)
 
 
 def install_stand_in(app):
@@ -416,6 +467,7 @@ def seed_on_start(app):
         if receiver is not None:
             from ..syslog import start_demo
             start_demo(receiver)
+        start_telemetry_feed(app)
 
 
 def demo_history(now=None, step=120):
