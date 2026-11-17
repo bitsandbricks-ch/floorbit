@@ -14,6 +14,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { dates, METRICS, share } from './events/metrics'
+import { TenantEvents } from './events/TenantEvents'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
@@ -132,6 +133,7 @@ export default function Events() {
       <PageHead title={t('events.title')} desc={t('events.intro')} />
       <Stack gap="md">
         <ErrorBanner error={error} />
+        <TenantEvents isAdmin={isAdmin} />
         {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
         {query.isPending ? <LoadingState /> : d && (
           <>
