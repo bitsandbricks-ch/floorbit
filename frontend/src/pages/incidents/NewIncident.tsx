@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EntitySelect } from '@/components/EntitySelect'
 import type { IncidentBoard } from '@/api/types'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 export interface IncidentDraft {
   seat?: string
@@ -64,7 +65,7 @@ export function NewIncident({
           {already.length > 0 && (
             <Alert color="warn" variant="light" title={t('incidents.alreadyOpen', { count: already.length })}>
               {already.map((i) => (
-                <Text key={i.id} size="sm">{i.title} · {t(`incidents.status.${i.status}`)}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
+                <Text key={i.id} size="sm">{incidentTitle(i.title, t)} · {t(`incidents.status.${i.status}`)}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
               ))}
             </Alert>
           )}

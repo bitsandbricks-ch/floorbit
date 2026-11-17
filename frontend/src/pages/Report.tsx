@@ -15,6 +15,7 @@ import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { StatCard } from '@/components/StatCard'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 const W = 1000
 const H = 140
@@ -205,7 +206,7 @@ export default function Report() {
                 <Table.Tr key={n}>
                   <Table.Td>{stamp(i.start)}</Table.Td>
                   <Table.Td>{i.seat ?? i.switch ?? i.circuit ?? '–'}</Table.Td>
-                  <Table.Td>{i.title}{i.source === 'helpdesk' && <Text span c="dimmed" size="xs"> ({t('report.fromSeat')}{i.reports > 1 ? `, ${i.reports}×` : ''})</Text>}</Table.Td>
+                  <Table.Td>{incidentTitle(i.title, t)}{i.source === 'helpdesk' && <Text span c="dimmed" size="xs"> ({t('report.fromSeat')}{i.reports > 1 ? `, ${i.reports}×` : ''})</Text>}</Table.Td>
                   <Table.Td>{i.team ?? '–'}</Table.Td>
                   <Table.Td>{i.end ? duration(i.end - i.start) : <Text span c="down" size="sm">{t('report.open')}</Text>}</Table.Td>
                   {r.people && <><Table.Td>{i.reported_by ?? '–'}</Table.Td><Table.Td>{i.nick ?? '–'}</Table.Td></>}
