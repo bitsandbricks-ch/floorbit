@@ -117,11 +117,12 @@ class SecurityWatch:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('security') and self.registry.feeders('security'):
-                try:
+            try:
+                # Inside the try too: reading the settings can fail (a database not there yet).
+                if features.on('security') and self.registry.feeders('security'):
                     self.poll_once()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[security] poll failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[security] poll failed: {exc}')
             self._stop.wait(self.interval())
 
     # ── polling ───────────────────────────────────────────────────────────────
