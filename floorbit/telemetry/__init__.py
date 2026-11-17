@@ -53,7 +53,8 @@ def conf_path():
 
 def render_here(target_list=None):
     """Telegraf's config for the sidecar next to this Floorbit."""
-    target_list = [targets.opened(t) for t in (target_list if target_list is not None else targets.raw_targets())]
+    target_list = ([targets.opened(t) for t in target_list] if target_list is not None
+                   else targets.all_opened())
     output = os.environ.get(OUTPUT_ENV) or 'http://floorbit:5000/api/telemetry/write'
     return telegraf.render(target_list, output, targets.ingest_token())
 
@@ -91,13 +92,13 @@ class Runner:
         now = time.time() if now is None else now
         from ..database import DatabaseUnavailable
         try:
-            raw = targets.raw_targets()
+            every = targets.all_opened()
         except DatabaseUnavailable:
-            raw = None
-        if raw is not None:
-            state_mod.state.know(raw)
+            every = None
+        if every is not None:
+            state_mod.state.know(every)
             if collector_here():
-                with_secrets = [targets.opened(t) for t in raw if set(t['drivers']) & set(pollers.POLLERS)]
+                with_secrets = [t for t in every if set(t['drivers']) & set(pollers.POLLERS)]
                 found, self.poll_errors = pollers.poll_all(with_secrets, now, log=self.log, blocks=self._blocks())
                 state_mod.state.apply(found, now)
                 storage_mod.storage().forward_raw(found)
@@ -132,6 +133,12 @@ class Runner:
                 def auth_failed(blocks, device, credential, rev=None, message=''):
                     if blocks.failed(device, credential, rev, message):
                         self.log(f'[telemetry] {message}: not trying {device} again until its login is changed')
+                        # An inventory login: blocked on the device too, where a tech clears it.
+                        from .. import inventory_scope
+                        try:
+                            inventory_scope.auth_failed(device, credential, rev, 'telemetry', message)
+                        except Exception as exc:  # noqa: BLE001
+                            self.log(f'[telemetry] could not keep the block on {device}: {exc}')
 
             self.blocks = Blocks(os.path.join(state_root(), 'telemetry-logins.json'))
         return self.blocks
