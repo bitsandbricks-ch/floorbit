@@ -394,6 +394,20 @@ Source: [`floorbit/blueprints/health.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/health` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `health` |
 | POST | `/api/health/check` | `plugins.run` | `health` |
 
+## floorbit.blueprints.icons
+
+The shared icon library (floorbit/icon_library.py).
+
+Source: [`floorbit/blueprints/icons.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/icons.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/icons` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/icons` | `settings.manage` |  |
+| DELETE | `/api/icons/<icon_id>` | `settings.manage` |  |
+| PATCH | `/api/icons/<icon_id>` | `settings.manage` |  |
+| GET | `/api/icons/<icon_id>.svg` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.incidents
 
 Incident board and the seat QR helpdesk (issue #27). Rules live in floorbit/incidents.py.

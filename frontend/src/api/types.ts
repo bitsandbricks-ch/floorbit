@@ -164,12 +164,16 @@ export interface FeatureInfo {
   agent?: boolean
 }
 
+/** An SVG from the shared icon library (floorbit/icon_library.py); `id` starts with `custom-`. */
+export interface CustomIcon { id: string; name: string; url: string; by: string; at: number | null }
+
 export interface InventoryOverview {
   groups: InventoryGroup[]
   tags: InventoryTag[]
   defaults: { properties: Record<string, string>; features: Record<string, boolean>; credentials: string[] }
   features: FeatureInfo[]
   icons: string[]
+  custom_icons?: CustomIcon[]
   credential_kinds: string[]
   auth_protocols: string[]
   priv_protocols: string[]

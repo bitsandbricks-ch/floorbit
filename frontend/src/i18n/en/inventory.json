@@ -90,7 +90,20 @@
     "antenna": "Antenna",
     "other": "Device"
   },
+  "library": {
+    "open": "Icons",
+    "title": "Icon library",
+    "intro": "SVG icons for devices, groups, tags and the floor plan. Floorbit keeps only the shapes (no scripts, links or styles) and draws them in the colour you pick. At most {{kb}} KB each.",
+    "upload": "Upload SVG",
+    "adminsOnly": "Only admins upload icons.",
+    "empty": "No icons uploaded yet.",
+    "name": "Name",
+    "remove": "Remove",
+    "removeQ": "Remove the icon {{name}}? Devices, groups and tags that show it go back to their default icon."
+  },
   "look": {
+    "builtIn": "Built in",
+    "uploaded": "Uploaded",
     "title": "Icon and colour",
     "icon": "Icon",
     "color": "Colour",

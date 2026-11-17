@@ -26,6 +26,7 @@ from . import (
                halls,
                handover,
                health,
+               icons,
                incidents,
                inventory,
                inventory_agent,
@@ -74,7 +75,7 @@ from . import (
 
 ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_groups.bp,
        cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
-       inventory.bp, inventory_groups.bp, inventory_interfaces.bp, inventory_agent.bp,
+       inventory.bp, inventory_groups.bp, inventory_interfaces.bp, inventory_agent.bp, icons.bp,
        seat_map.bp, demo.bp, incidents.bp,
        health.bp, ports.bp, commands.bp, terminal.bp, configs.bp, security.bp, power.bp, problems.bp, setup.bp,
        stats.bp, flows.bp, dns.bp, games.bp, game_servers.bp, services.bp,

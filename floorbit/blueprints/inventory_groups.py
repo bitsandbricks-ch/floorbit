@@ -16,7 +16,7 @@ from flask import Blueprint, g, jsonify, request
 
 from integrations import events
 
-from .. import audit, inventory, inventory_scope, vault
+from .. import audit, icon_library, inventory, inventory_scope, vault
 from ..store import load_data, save_data
 from .inventory import data_lock
 
@@ -59,6 +59,7 @@ def overview(data):
         'defaults': {**inventory_scope.defaults(data), 'credentials': creds.get(('defaults', 'defaults'), [])},
         'features': _feature_catalog(),
         'icons': list(inventory.ICONS),
+        'custom_icons': icon_library.listing(data),
         'credential_kinds': list(inventory_scope.KINDS),
         'auth_protocols': list(inventory_scope.AUTH_PROTOCOLS),
         'priv_protocols': list(inventory_scope.PRIV_PROTOCOLS),

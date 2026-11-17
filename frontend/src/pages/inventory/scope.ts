@@ -1,10 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { CredentialInfo, DeviceDetail, InventoryGroup, InventoryOverview } from '@/api/types'
+import type { CredentialInfo, CustomIcon, DeviceDetail, InventoryGroup, InventoryOverview } from '@/api/types'
 
 export function useInventoryGroups() {
   return useQuery({ queryKey: qk.inventoryGroups, queryFn: () => get<InventoryOverview>('/api/inventory/groups') })
+}
+
+/** The uploaded icons, shared by inventory and plan. Cached long: an icon's file never changes. */
+export function useCustomIcons(enabled = true) {
+  return useQuery({
+    queryKey: qk.customIcons, queryFn: () => get<{ icons: CustomIcon[]; max_kb: number }>('/api/icons'), staleTime: 60_000, enabled,
+  })
 }
 
 export function useDeviceDetail(id: string | null) {

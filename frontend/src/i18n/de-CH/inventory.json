@@ -90,7 +90,20 @@
     "antenna": "Antenne",
     "other": "Gerät"
   },
+  "library": {
+    "open": "Icons",
+    "title": "Icon-Bibliothek",
+    "intro": "SVG-Icons für Geräte, Gruppen, Tags und den Hallenplan. Floorbit behält nur die Formen (keine Skripte, Links oder Styles) und zeichnet sie in der gewählten Farbe. Höchstens {{kb}} KB pro Icon.",
+    "upload": "SVG hochladen",
+    "adminsOnly": "Nur Admins laden Icons hoch.",
+    "empty": "Noch keine Icons hochgeladen.",
+    "name": "Name",
+    "remove": "Entfernen",
+    "removeQ": "Icon {{name}} entfernen? Geräte, Gruppen und Tags damit zeigen wieder ihr Standard-Icon."
+  },
   "look": {
+    "builtIn": "Eingebaut",
+    "uploaded": "Hochgeladen",
     "title": "Symbol und Farbe",
     "icon": "Symbol",
     "color": "Farbe",

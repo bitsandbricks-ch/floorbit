@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { CredentialInfo, FeatureInfo, InventoryOverview, InventoryTag, Origin } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { DEVICE_ICONS, DeviceIcon } from './icons'
+import { useCustomIcons } from './scope'
 
 /** Where an inherited value comes from, in words ("from group Hall A"). */
 export function FromLabel({ from }: { from: Origin | null | undefined }) {
@@ -26,17 +27,23 @@ export function LookFields({ icon, color, icons, onIcon, onColor, inherited }: {
   inherited?: { icon: string; color: string }
 }) {
   const { t } = useTranslation()
+  const uploaded = useCustomIcons().data?.icons ?? []
+  const label = (i: string) => uploaded.find((u) => u.id === i)?.name ?? t(`inventory.icon.${i}`, { defaultValue: i })
+  const data = [
+    { group: t('inventory.look.builtIn'), items: icons.map((i) => ({ value: i, label: label(i) })) },
+    ...(uploaded.length ? [{ group: t('inventory.look.uploaded'), items: uploaded.map((u) => ({ value: u.id, label: u.name })) }] : []),
+  ]
   return (
     <Group grow align="flex-start">
       <Select
         label={t('inventory.look.icon')}
-        placeholder={inherited?.icon ? t('inventory.look.inherits', { value: t(`inventory.icon.${inherited.icon}`) }) : t('inventory.look.roleIcon')}
-        data={icons.map((i) => ({ value: i, label: t(`inventory.icon.${i}`, { defaultValue: i }) }))}
+        placeholder={inherited?.icon ? t('inventory.look.inherits', { value: label(inherited.icon) }) : t('inventory.look.roleIcon')}
+        data={data}
         value={icon || null}
         onChange={(v) => onIcon(v ?? '')}
         clearable
         searchable
-        leftSection={icon && DEVICE_ICONS[icon] ? <DeviceIcon icon={icon} color={color} size={20} /> : undefined}
+        leftSection={icon && (DEVICE_ICONS[icon] || uploaded.some((u) => u.id === icon)) ? <DeviceIcon icon={icon} color={color} size={20} /> : undefined}
         renderOption={({ option }) => (
           <Group gap="xs" wrap="nowrap">
             <DeviceIcon icon={option.value} size={20} />

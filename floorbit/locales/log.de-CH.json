@@ -272,5 +272,8 @@
   "Stored {} login failed; blocked until a tech clears it": "Gespeichertes {}-Login fehlgeschlagen; gesperrt, bis ein Tech es freigibt",
   "Stored {} login for {} did not open": "Gespeichertes {}-Login für {} liess sich nicht öffnen",
   "Took the interfaces from the monitoring source": "Interfaces aus der Monitoring-Quelle übernommen",
-  "Used the stored {} login set on {} {}": "Gespeichertes {}-Login von {} {} verwendet"
+  "Used the stored {} login set on {} {}": "Gespeichertes {}-Login von {} {} verwendet",
+  "Uploaded an icon": "Icon hochgeladen",
+  "Renamed an icon": "Icon umbenannt",
+  "Removed an icon": "Icon entfernt"
 }

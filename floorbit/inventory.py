@@ -23,6 +23,8 @@ import threading
 import time
 import uuid
 
+from . import icon_library
+
 # Fields a plugin may feed (and a hand edit then locks). The second row are the specs of servers,
 # VMs and firewalls: what runs on it, how big it is, and for a VM the device it runs on.
 FIELDS = ('name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes',
@@ -198,11 +200,14 @@ def clean_field(field, value):
 
 
 def clean_look(key, value):
-    """A device's or group's icon (one of ICONS) or colour (#rrggbb); '' for the default."""
+    """A device's or group's icon (one of ICONS or an uploaded one) or colour (#rrggbb); '' for the default."""
     value = '' if value is None else str(value).strip()
     if not value:
         return ''
     if key == 'icon':
+        # Uploaded icons (floorbit/icon_library.py) by id; one removed later falls back to the role's.
+        if icon_library.ID_RE.match(value):
+            return value
         if value not in ICONS:
             raise InventoryError(f"icon must be one of {', '.join(ICONS)}")
         return value

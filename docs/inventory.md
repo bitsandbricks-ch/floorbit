@@ -20,6 +20,20 @@ Each device can have its own **icon** and **colour** (or take them from its grou
 **tags**, a **group**, **properties** (name and value pairs, such as `rack` or `snmp.port`),
 **feature switches** and **credentials**; see [Groups and tags](#groups-and-tags).
 
+The device page lists what **runs here**: VMs whose host it is, and [game servers](game-servers.md)
+that run on it or on one of those VMs. If the device goes down, those go down with it.
+
+### Icon library
+
+Next to the built-in icons, admins upload their own under **Inventory > Icons** (SVG, at most
+64 KB). Floorbit rebuilds each file from plain shapes: scripts, event handlers, links, external
+references, embedded images, `foreignObject` and styles are dropped, a file with a DOCTYPE is
+refused, and every colour becomes `currentColor`, so the icon takes the colour picked for the
+device, group or tag. The page draws an uploaded icon as an image mask, never as inline markup.
+Uploaded icons are served at `/api/icons/<id>.svg` for anything else that shows icons, such as
+items on the floor plan. Removing an icon puts the devices, groups and tags that showed it back on
+their default icon.
+
 ## Interfaces
 
 A device's interfaces are its ports: switch ports, a server's NICs, a firewall's interfaces, a VM's
@@ -117,9 +131,9 @@ stored.
 
 ## Who may do what
 
-Viewers and up see the inventory. Editors and up add, change, hide and sync devices, interfaces,
+Viewers and up see the inventory and the icon library; admins upload, rename and remove icons. Editors and up add, change, hide and sync devices, interfaces,
 groups and tags. Admins set credentials; techs and up clear blocked logins. Changes are in the
-audit log (area *inventory* and *credentials*), with field names, never values or secrets.
+audit log (area *inventory*, *credentials* and *icons*), with field names, never values or secrets.
 
 ## API
 
@@ -141,6 +155,8 @@ audit log (area *inventory* and *credentials*), with field names, never values o
 | `PATCH /api/inventory/defaults` | Properties and features for all devices |
 | `GET` / `PUT /api/inventory/credentials`, `DELETE /api/inventory/credentials/<id>` | Credentials: `{"owner_type": "device" \| "tag" \| "group" \| "defaults", "owner_id", "kind", "username", "secret", "priv_secret"}` |
 | `GET /api/inventory/blocks`, `POST /api/inventory/blocks/clear` | Blocked logins; clear with `{"device_id", "credential_id"?}` |
+| `GET /api/icons`, `GET /api/icons/<id>.svg` | The icon library and one cleaned icon |
+| `POST /api/icons`, `PATCH` / `DELETE /api/icons/<id>` | Upload `{"name", "svg"}`, rename `{"name"}`, remove. Admins |
 
 The floor plan's `/api/switches` API works on the same list.
 

@@ -11,6 +11,7 @@ export const qk = {
   inventory: (hidden: boolean) => ['inventory', { hidden }] as const,
   inventoryAll: ['inventory'] as const,
   inventoryGroups: ['inventory', 'groups'] as const,
+  customIcons: ['icons'] as const,
   inventoryDevice: (id: string) => ['inventory', 'device', id] as const,
   inventoryCredentials: ['inventory', 'credentials'] as const,
   seatMap: ['seat-map'] as const,

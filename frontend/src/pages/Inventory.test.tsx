@@ -136,6 +136,27 @@ describe('Inventory page', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ model: 'X1' }))
   })
 
+  it('lets admins upload SVG icons to the shared library', async () => {
+    const admin = { ...editor, user: { ...editor.user, permissions: [...editor.user.permissions, 'settings.manage'] } }
+    const rack = { id: 'custom-0123456789ab', name: 'server rack', url: '/api/icons/custom-0123456789ab.svg', by: 'ed', at: 1 }
+    let uploaded = false
+    const api = fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/icons': () => ({ body: { icons: uploaded ? [rack] : [], max_kb: 64 } }),
+      'POST /api/icons': () => { uploaded = true; return { status: 201, body: rack } },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Inventory />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Icons' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Icon library' })
+    expect(await within(dialog).findByText('No icons uploaded yet.')).toBeInTheDocument()
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>'
+    const file = new File([svg], 'server_rack.svg', { type: 'image/svg+xml' })
+    fireEvent.change(document.querySelector('input[type=file]')!, { target: { files: [file] } })
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({ name: 'server rack', svg }))
+    expect(await within(dialog).findByRole('img', { name: 'server rack' })).toBeInTheDocument()
+  })
+
   it('shows viewers the list without edit buttons', async () => {
     vi.stubGlobal(
       'fetch',

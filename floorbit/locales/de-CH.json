@@ -868,5 +868,17 @@
  "{}: at most {} interfaces at a time": "{}: höchstens {} Interfaces aufs Mal",
  "{}: the range runs backwards": "{}: der Bereich läuft rückwärts",
  "Pick the server or VM it runs on from the inventory.": "Wähle den Server oder die VM aus dem Inventar, auf dem er läuft.",
- "Pick the device the line is on (core switch, router or firewall) from the inventory.": "Wähle das Gerät aus dem Inventar, an dem die Leitung hängt (Core-Switch, Router oder Firewall)."
+ "Pick the device the line is on (core switch, router or firewall) from the inventory.": "Wähle das Gerät aus dem Inventar, an dem die Leitung hängt (Core-Switch, Router oder Firewall).",
+ "An icon is at most {} KB once cleaned.": "Ein Icon ist bereinigt höchstens {} KB gross.",
+ "An icon is at most {} KB.": "Ein Icon ist höchstens {} KB gross.",
+ "Choose an SVG file.": "Wähle eine SVG-Datei.",
+ "Give the icon a name.": "Gib dem Icon einen Namen.",
+ "No such icon": "Dieses Icon gibt es nicht",
+ "The SVG has a DOCTYPE or entities; save it as plain SVG.": "Das SVG enthält einen DOCTYPE oder Entities; speichere es als einfaches SVG.",
+ "The SVG has nothing to draw once cleaned.": "Nach dem Bereinigen bleibt im SVG nichts zum Zeichnen.",
+ "The SVG has too many parts for an icon.": "Das SVG hat zu viele Teile für ein Icon.",
+ "The SVG needs a viewBox (or a width and height).": "Das SVG braucht eine viewBox (oder Breite und Höhe).",
+ "The file is not a valid SVG.": "Die Datei ist kein gültiges SVG.",
+ "The file is not an SVG (UTF-8 text).": "Die Datei ist kein SVG (UTF-8-Text).",
+ "The library holds at most {} icons; remove one first.": "Die Bibliothek fasst höchstens {} Icons; entferne zuerst eines."
 }

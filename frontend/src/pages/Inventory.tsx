@@ -1,6 +1,6 @@
 import { Alert, Anchor, Badge, Box, Button, Group, Paper, Select, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconAlertTriangle, IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
+import { IconAlertTriangle, IconIcons, IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +15,7 @@ import { DeviceForm } from './inventory/DeviceForm'
 import { DevicePanel } from './inventory/DevicePanel'
 import { GroupPanel, type ScopeTarget } from './inventory/GroupPanel'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
+import { IconLibrary } from './inventory/IconLibrary'
 import { DeviceIcon } from './inventory/icons'
 import { effectiveLook, matches, roleIcon, type Draft } from './inventory/model'
 import { groupAndBelow, useInventoryGroups } from './inventory/scope'
@@ -45,6 +46,8 @@ export default function Inventory() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const canEdit = useCan('floorplan.edit')
+  const canManage = useCan('settings.manage')
+  const [libraryOpen, library] = useDisclosure(false)
   const [showHidden, setShowHidden] = useState(false)
   // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
@@ -142,6 +145,9 @@ export default function Inventory() {
         actions={
           canEdit && (
             <>
+              <Button variant="default" leftSection={<IconIcons size={16} />} onClick={library.open}>
+                {t('inventory.library.open')}
+              </Button>
               {!!data?.sources.length && (
                 <Button variant="default" leftSection={<IconRefresh size={16} />} loading={sync.isPending} onClick={() => sync.mutate()}>
                   {t('inventory.sync')}
@@ -348,6 +354,7 @@ export default function Inventory() {
           onUnlock={(f) => save.mutate({ unlock: [f] })}
         />
       )}
+      <IconLibrary opened={libraryOpen} canManage={canManage} onClose={library.close} />
     </Layout>
   )
 }
