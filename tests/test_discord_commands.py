@@ -216,6 +216,12 @@ def test_seat_answer_reports_a_problem_through_a_form(bridge, client, anon_clien
     form = _answer(anon_client, key, _press("fb:report:B-1"))
     assert form["type"] == 9 and form["data"]["custom_id"] == "fb:report:B-1"
     assert form["data"]["components"][0]["components"][0]["custom_id"] == "problem"
+    assert form["data"]["title"] == "Report a problem at seat B-1"
+    german = _answer(anon_client, key, {**_press("fb:report:B-1"), "locale": "de"})["data"]
+    field = german["components"][0]["components"][0]
+    assert (german["title"], field["label"]) == ("Problem an Platz B-1 melden", "Was ist kaputt")
+    assert field["custom_id"] == "problem"
+    assert german["custom_id"] == "fb:report:B-1"
     assert "works incidents" in _answer(anon_client, key, _press("fb:report:B-1", user_id="222"))["data"]["content"]
 
     sent = _press("fb:report:B-1", kind=5, components=[{"type": 1, "components": [
