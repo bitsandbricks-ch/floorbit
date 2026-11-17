@@ -121,7 +121,7 @@ def teams_of(user):
 
 # writes ---------------------------------------------------------------------------------------
 def _clean_name(name):
-    name = (name or '').strip()
+    name = name.strip() if isinstance(name, str) else ''
     if not NAME_RE.match(name):
         raise TeamError('A team name is 1 to 40 characters.')
     return name
@@ -130,7 +130,7 @@ def _clean_name(name):
 def _check_parent(teams, team_id, parent):
     if parent is None:
         return
-    if parent not in teams:
+    if not isinstance(parent, str) or parent not in teams:
         raise TeamError(f'No team called {parent}.')
     chain = ancestors(parent, teams)
     if team_id in chain:
