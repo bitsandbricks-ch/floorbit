@@ -7,7 +7,7 @@ import { TOOL_GESTURE, type Tool } from './tools'
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox }: {
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu }: {
   ctx: OverlayContext
   data: SeatViewData
   selection: ItemRef[]
@@ -24,6 +24,10 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   onLine?: (a: Point, b: Point) => void
   /** A box was drawn (the zone tool). */
   onBox?: (box: Box) => void
+  /** Where the pointer is over the plan (paste goes there). */
+  onPointer?: (at: Point) => void
+  /** Right click on an item (null: on empty plan), at a screen point. */
+  onMenu?: (item: ItemRef | null, clientX: number, clientY: number) => void
 }) {
   const gesture = TOOL_GESTURE[tool]
   const [draft, setDraft] = useState<{ a: Point; b: Point } | null>(null)
@@ -62,7 +66,15 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     }
     drag.current = { start: ctx.toPlan(e.clientX, e.clientY), lead: ref, moved: false, additive, id: e.pointerId }
   }
+  const menu = (e: React.MouseEvent, ref: ItemRef | null) => {
+    if (!onMenu) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (ref && !selection.some((r) => sameRef(r, ref))) onSelect([ref])
+    onMenu(ref, e.clientX, e.clientY)
+  }
   const move = (e: React.PointerEvent) => {
+    onPointer?.(ctx.toPlan(e.clientX, e.clientY))
     if (draft) {
       e.stopPropagation()
       setDraft({ a: draft.a, b: snap(ctx.toPlan(e.clientX, e.clientY), e.altKey, gesture === 'line' && e.shiftKey, draft.a) })
@@ -111,6 +123,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   return (
     <g className={`fb-edit${space ? ' panning' : ''}${gesture !== 'select' ? ' tooling' : ''}`}>
       <rect className="fb-edit-bg" x={shown.x} y={shown.y} width={shown.w} height={shown.h} onPointerDown={(e) => begin(e, null)}
+        onContextMenu={(e) => menu(e, null)}
         onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
       {allItems(data).map((r) => {
         const o = outlineOf(data, r)
@@ -119,6 +132,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
         return (
           <rect key={refKey(r)} className={`fb-edit-hit k-${r.kind}`} data-item={refKey(r)} x={box.x} y={box.y} width={box.w} height={box.h}
             transform={rotation ? `rotate(${rotation} ${centre.x} ${centre.y})` : undefined} onPointerDown={(e) => begin(e, r)}
+            onContextMenu={(e) => menu(e, r)}
             onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
         )
       })}

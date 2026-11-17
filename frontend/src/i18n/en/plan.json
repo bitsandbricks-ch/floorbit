@@ -265,7 +265,13 @@
         "icon": "add icon",
         "wall": "add wall",
         "zone": "add zone"
-      }
+      },
+      "paste_one": "paste",
+      "paste_other": "paste {{count}} items",
+      "duplicate_one": "duplicate",
+      "duplicate_other": "duplicate {{count}} items",
+      "front": "bring to front",
+      "back": "send to back"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -274,7 +280,8 @@
       "delete": "delete",
       "nudge": "move",
       "free": "off the grid",
-      "pan": "+ drag to pan"
+      "pan": "+ drag to pan",
+      "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · right-click for more"
     },
     "classic": "Tools not here yet (cables, power, groups, align): classic editor",
     "kind": {
@@ -351,6 +358,40 @@
         "l": "Large"
       },
       "place": "Place"
+    },
+    "copied_one": "Copied",
+    "copied_other": "{{count}} items copied",
+    "cut_one": "Cut",
+    "cut_other": "{{count}} items cut",
+    "menu": {
+      "duplicate": "Duplicate",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste here",
+      "front": "Bring to front",
+      "back": "Send to back",
+      "delete": "Delete"
+    },
+    "layer": "Layer",
+    "layers": {
+      "overview": "Overview",
+      "safety": "Safety",
+      "network": "Network",
+      "electrical": "Electrical",
+      "services": "Services"
+    },
+    "color": "Colour",
+    "colors": {
+      "muted": "Grey",
+      "bit": "Green",
+      "trace": "Cyan",
+      "warn": "Amber",
+      "down": "Red"
+    },
+    "style": "Line",
+    "styles": {
+      "solid": "Solid",
+      "dashed": "Dashed"
     }
   }
 }

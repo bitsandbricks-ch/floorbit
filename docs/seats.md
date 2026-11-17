@@ -26,7 +26,14 @@ The floor plan editor is moving into this page. Edit mode already does:
   removes; dragging on empty plan selects everything inside the box; Ctrl+A selects all.
 - **Move:** drag, or the arrow keys (Shift for five steps). Items land on the editor's 0.5 % grid;
   hold Alt while dragging to place freely. Space + drag (or the middle mouse button) moves the view.
-- **Change:** a block's name and rotation, a label's or zone's text.
+- **Change:** in the panel on the right: a block's name, rotation, seats per row and rows; a label's
+  text, size and rotation; an icon's size and rotation; a zone's label and colour; a wall's style;
+  which layer a mark is on.
+- **Copy and paste:** Ctrl+C, Ctrl+X and Ctrl+V. Paste puts the copy where the pointer is; Ctrl+D
+  duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
+  so no seat exists twice. The clipboard survives a reload.
+- **Order:** ] brings the selection to the front, [ sends it to the back.
+- **Right click** an item (or empty plan) for the same actions in a menu.
 - **Delete** (Del) seat blocks and marks; switches stay (remove them in the editor).
 - **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes.
 
