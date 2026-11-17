@@ -89,7 +89,7 @@ def test_check_in_and_kiosk_paths_are_open(app_module, auth):
     assert not public("/kioskadmin")
 
 
-def test_auth_can_be_switched_off(anon_client, auth, monkeypatch):
+def test_auth_can_be_switched_off(anon_client, auth, monkeypatch, built):
     monkeypatch.setattr(auth, "enabled", False)
     assert anon_client.get("/plan").status_code == 200
     assert anon_client.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
@@ -97,7 +97,7 @@ def test_auth_can_be_switched_off(anon_client, auth, monkeypatch):
 
 # ── Signing in and out ─────────────────────────────────────────────────────────
 
-def test_sign_in_and_out(anon_client, user):
+def test_sign_in_and_out(anon_client, user, built):
     resp = sign_in(anon_client, next="/settings")
     assert resp.status_code == 302
     assert resp.headers["Location"] == "/settings"
@@ -300,7 +300,7 @@ def signed_in_as(app_module, auth):
     return make
 
 
-def test_viewer_can_look_but_not_change(signed_in_as):
+def test_viewer_can_look_but_not_change(signed_in_as, built):
     viewer = signed_in_as("viewer")
     assert viewer.get("/plan").status_code == 200
     resp = viewer.post("/api/switches", json={"name": "sw", "x": 1, "y": 1})

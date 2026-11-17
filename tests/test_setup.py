@@ -55,7 +55,7 @@ def test_a_bad_password_issues_a_new_code(anon_client, code):
     assert code() != first
 
 
-def test_admins_walk_through_the_steps(client):
+def test_admins_walk_through_the_steps(client, built):
     assert client.get("/").headers["Location"].endswith("/setup")
     body = client.get("/api/setup").get_json()
     assert body["can_set_up"] and not body["done"] and body["switches"] == {"total": 0, "placed": 0}
@@ -68,7 +68,7 @@ def test_admins_walk_through_the_steps(client):
     assert client.get("/plan").status_code == 200
 
 
-def test_only_admins_set_up(app_module, client):
+def test_only_admins_set_up(app_module, client, built):
     app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")
     viewer = app_module.app.test_client()
     viewer.post("/login", data={"username": "watcher", "password": "role-password-1"})
@@ -78,7 +78,7 @@ def test_only_admins_set_up(app_module, client):
     assert viewer.get("/setup").status_code == 302
 
 
-def test_an_install_with_content_counts_as_set_up(client):
+def test_an_install_with_content_counts_as_set_up(client, built):
     client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10})
     setup.mark_existing()
     assert setup.state()["done"] is True
