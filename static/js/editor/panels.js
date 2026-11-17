@@ -60,14 +60,8 @@ for (const btn of document.querySelectorAll('.rail-panel-btn')) {
   btn.addEventListener('click', () => togglePanel(btn.dataset.panel, { focus: btn.dataset.panel === 'search' }));
 }
 for (const tab of editPanel.querySelectorAll('.panel-tab')) {
+  // Arrow keys come from the shared tabs (static/js/ui/tabs.js).
   tab.addEventListener('click', () => openPanel(tab.dataset.panel));
-  tab.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const i = PANELS.indexOf(tab.dataset.panel);
-    const next = PANELS[(i + (e.key === 'ArrowRight' ? 1 : PANELS.length - 1)) % PANELS.length];
-    openPanel(next);
-    editPanel.querySelector(`.panel-tab[data-panel="${next}"]`).focus();
-  });
 }
 $('btn-panel-close').addEventListener('click', closePanel);
 // The ☰ drawer on phones (touch.js) always shows a page, even when the panel was closed on a computer.

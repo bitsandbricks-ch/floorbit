@@ -7,6 +7,7 @@
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/ui.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
   <link rel="stylesheet" href="/static/css/goto.css" />
 </head>
@@ -739,7 +740,7 @@
     <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <h3 class="modal-title" id="modal-title">Place switch</h3>
 
-      <div class="modal-tabs hidden" id="modal-tabs">
+      <div class="modal-tabs ui-tabs hidden" id="modal-tabs" role="tablist">
         <button class="modal-tab active" id="tab-netbox" data-tab="netbox">From NetBox</button>
         <button class="modal-tab" id="tab-manual" data-tab="manual">Manual</button>
       </div>
@@ -1075,6 +1076,8 @@
   <script src="/static/js/auth.js" defer></script>
   <script src="/static/js/notify.js" defer></script>
   <!-- Editor scripts share one global scope; order matters (static/js/editor/README.md). -->
+  <script src="/static/js/ui/select.js" defer></script>
+  <script src="/static/js/ui/tabs.js" defer></script>
   <script src="/static/js/editor/core.js" defer></script>
   <script src="/static/js/editor/halls.js" defer></script>
   <script src="/static/js/editor/data.js" defer></script>
