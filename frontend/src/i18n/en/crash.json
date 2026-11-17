@@ -1,0 +1,9 @@
+{
+  "title": "This page hit an error",
+  "text": "The rest of Floorbit still works: use the sidebar, or reload this page. If it keeps happening, tell whoever runs Floorbit what you did just before.",
+  "updatedTitle": "Floorbit was updated",
+  "updatedText": "This tab still has the old version. Reload to get the new one.",
+  "reload": "Reload",
+  "retry": "Try again",
+  "details": "Details for whoever runs Floorbit"
+}
