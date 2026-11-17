@@ -18,6 +18,15 @@ numbers and its last errors. The same numbers are on the agent's `/metrics`
 (`floorbit_agent_plugin_<name>{plugin="<id>"}`, and `floorbit_agent_plugin_up`).
 `python -m floorbit_agent check` asks every plugin's own check too.
 
+### Plugins without an agent part
+
+LibreNMS, NetBox, Pi-hole, AdGuard Home, the health checks and the other built-in plugins that
+answer for the hall (monitoring, inventory, health, DNS, Wi-Fi, ports) also follow the hosted
+Floorbit: what is on there is turned on in the agent, with the settings saved there. The agent
+keeps those settings in memory only, so tokens never land on its disk, and its own environment
+(`LIBRENMS_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`, ...) still wins over them. A plugin named in
+`FLOORBIT_AGENT_PLUGINS` stays on whatever the hosted side says.
+
 ### Actions need the hall's yes
 
 Some plugins can change things in the hall (the LAN cache plugin can clear the cache). The hosted
