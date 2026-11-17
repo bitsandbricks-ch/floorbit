@@ -13,7 +13,7 @@ import uuid
 
 from flask import Blueprint, current_app, jsonify
 
-from .. import inventory
+from .. import cable_plan, halls, inventory, plan_groups, plan_marks, port_areas
 from ..store import load_data, save_data
 from .inventory import data_lock, run_sync
 
@@ -50,20 +50,88 @@ def seed():
         placed_already = any(d.get('x') is not None for d in inventory.devices(data))
         if placed_already or data.get('seat_blocks'):
             return {'placed': 0, 'blocks': 0, 'skipped': 'the floor plan is not empty'}
-        placed = 0
-        for dev in inventory.devices(data):
-            pos = layout['devices'].get(dev['name'])
-            if pos and 'demo' in (dev.get('refs') or {}):
-                inventory.update(data, dev['id'], {'x': pos[0], 'y': pos[1]})
-                placed += 1
-        blocks = [{'id': str(uuid.uuid4()), 'seat_width': 3, 'seat_height': 3, 'spacing_x': 0.5,
-                   'spacing_y': 1, 'rotation': 0, 'reverse_numbers': False, **b} for b in layout['blocks']]
-        data['seat_blocks'] = blocks
+        # The first hall gets the plugin's hall name; the others are added after it.
+        main = halls.ensure(data)[0]
+        main['name'] = layout.get('hall') or main['name']
+        spots = [(main['id'], layout['devices'], layout['blocks'], layout.get('marks') or [])]
+        for spec in layout.get('halls') or []:
+            hall = halls.create(data, spec['name'])
+            spots.append((hall['id'], spec.get('devices') or {}, spec.get('blocks') or [], spec.get('marks') or []))
+        placed, blocks = 0, []
+        for hall_id, devices, hall_blocks, marks in spots:
+            for dev in inventory.devices(data):
+                pos = devices.get(dev['name'])
+                if pos and 'demo' in (dev.get('refs') or {}):
+                    inventory.update(data, dev['id'], {'x': pos[0], 'y': pos[1], 'hall_id': hall_id})
+                    placed += 1
+            blocks += [{'id': str(uuid.uuid4()), 'seat_width': 3, 'seat_height': 3, 'spacing_x': 0.5,
+                        'spacing_y': 1, 'rotation': 0, 'reverse_numbers': False, 'hall_id': hall_id, **b}
+                       for b in hall_blocks]
+            data['seat_blocks'] = blocks
+            for mark in marks:
+                plan_marks.add(data, {**mark, 'hall_id': hall_id})
         _seed_power(data, layout)
         _seed_firewalls(data, layout)
         _seed_uplinks(data, layout)
+        _seed_links(data, layout)
+        _seed_panels(data, layout, main['id'])
+        _seed_groups(data, layout, main['id'])
+        _seed_areas(data, layout)
+        if layout.get('cable_routes') and not data.get(cable_plan.KEY):
+            data[cable_plan.KEY] = {cable_plan.lan_key(*k[4:].split('|', 1)): {**v, 'by': 'demo'}
+                                    for k, v in layout['cable_routes'].items()}
         save_data(data)
+    _import_cables()
     return {'placed': placed, 'blocks': len(blocks)}
+
+
+def _import_cables():
+    """The demo's patching, as an import from NetBox would bring it (block A through its panel)."""
+    from .. import cables
+    try:
+        cables.import_from(_registry(), 'demo')
+    except Exception as exc:  # noqa: BLE001  # the hall works without the cable list
+        print(f'[demo] could not import the demo cables: {exc}')
+
+
+def _seed_links(data, layout):
+    """The uplinks with their cable type and planned speed, for the topology and the plan's cables."""
+    if not layout.get('links') or data.get('links'):
+        return
+    data['links'] = [{'id': uuid.uuid4().hex[:12], 'note': '', 'by': 'demo', **link} for link in layout['links']]
+
+
+def _seed_panels(data, layout, hall_id):
+    if not layout.get('patch_panels') or data.get(cable_plan.PANELS_KEY):
+        return
+    data[cable_plan.PANELS_KEY] = [{**p, 'hall_id': hall_id} for p in layout['patch_panels']]
+
+
+def _seed_groups(data, layout, hall_id):
+    """Each block with its switches (and patch panel), so the editor moves them as one."""
+    if data.get(plan_groups.KEY):
+        return
+    blocks = {b['name']: b['id'] for b in data.get('seat_blocks') or []}
+    devices = {d['name']: d['id'] for d in inventory.devices(data)}
+    for g in layout.get('groups') or []:
+        members = ([{'kind': 'block', 'id': blocks[g['block']]}] if g['block'] in blocks else []) \
+            + [{'kind': 'switch', 'id': devices[n]} for n in g['switches'] if n in devices] \
+            + [{'kind': 'panel', 'id': p} for p in g['panels']]
+        if len(members) > 1:
+            plan_groups.add(data, {'name': g['name'], 'hall_id': hall_id, 'members': members})
+
+
+def _seed_areas(data, layout):
+    """Rough port areas where nobody wrote the patching down (the side hall)."""
+    if data.get(port_areas.KEY):
+        return
+    areas = []
+    for spec in layout.get('port_areas') or []:
+        for a in port_areas.quick_entry(spec['switch'], spec['starts'], size=spec['size']):
+            areas.append({'id': uuid.uuid4().hex[:12], **a, 'label': f"{a['seats'][0]}..{a['seats'][-1]}",
+                          'updated_at': 0, 'by': 'demo'})
+    if areas:
+        data[port_areas.KEY] = areas
 
 
 def _seed_power(data, layout):
@@ -142,7 +210,12 @@ def demo_history(now=None, step=120):
     hours, then quiet at night and busy in the evening."""
     import math
     import time
+
+    from ..builtin_plugins.demo.plugin import PORTS, _model, _switches, _uplinks
     now = time.time() if now is None else now
+    # Every port of every switch is read, so most of them are down: nothing is plugged in.
+    ports = sum(len(PORTS[_model(name)]) for name, _role, _i in _switches())
+    links = 2 * len(_uplinks())
     out = []
     start = now - 24 * 3600
     for k in range(24 * 3600 // step, 0, -1):
@@ -154,7 +227,7 @@ def demo_history(now=None, step=120):
         online = round((70 + 15 * busy) * arrived)
         down = 3.3e9 * (0.55 + 0.45 * busy) * jitter * max(0.05, arrived)   # about what the live demo hall sends
         out.append({'t': t, 'down': round(down), 'up': round(down * 0.14), 'online': online,
-                    'ports_up': online + 12, 'ports_down': 96 - online, 'ports_errors': 0})
+                    'ports_up': online + links, 'ports_down': ports - online - links, 'ports_errors': 0})
     return out
 
 
