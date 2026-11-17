@@ -84,6 +84,7 @@ export function followPlan(cables: PlanCable[], data: Pick<SeatViewData, 'switch
     const start = sw ?? first
     const end = at ? pct(size, at.x, at.y) : last
     if (same(start, first) && same(end, last)) return c
+    if (c.corners === 'straight') return { ...c, points: [start, end] }
     // Through a patch panel the panel's leg stays as drawn; the rest follows the seat.
     if (c.manual || c.via) return { ...c, points: [start, ...c.points.slice(1, -1), end] }
     return { ...c, points: tidy([start, ...toSeat(start, end, blockOf(c.ref.seat)), end]) }

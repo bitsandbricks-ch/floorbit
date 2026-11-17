@@ -770,7 +770,7 @@
  "A bend is a point on the plan: [x, y] in percent.": "Ein Knick ist ein Punkt auf dem Plan: [x, y] in Prozent.",
  "Say which cables to change.": "Gib an, welche Kabel du ändern willst.",
  "That is not a cable on the plan.": "Das ist kein Kabel auf dem Plan.",
- "Corners are square or round.": "Ecken sind eckig oder rund.",
+ "A cable is drawn straight, angled or rounded.": "Ein Kabel wird gerade, eckig oder gerundet gezeichnet.",
  "Floorbit keeps the drawing of at most {} cables.": "Floorbit speichert die Zeichnung von höchstens {} Kabeln.",
  "A patch panel name is up to 40 letters, digits, spaces, . _ / # or -.": "Ein Patchpanel-Name hat bis zu 40 Buchstaben, Ziffern, Leerzeichen, . _ / # oder -.",
  "A patch panel position is a point on the plan in percent.": "Die Position eines Patchpanels ist ein Punkt auf dem Plan in Prozent.",

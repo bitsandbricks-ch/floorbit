@@ -501,7 +501,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .seatcable { stroke: var(--mantine-color-blue-6); stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; }
 .fb-plan .seatcable.m-fiber { stroke: var(--mantine-color-cyan-6); }
 .fb-plan .seatcable.m-dac { stroke: var(--mantine-color-violet-6); }
-.fb-plan .seatcable.learned { stroke-dasharray: 4 3; opacity: 0.35; }
+.fb-plan .seatcable.learned { opacity: 0.3; }
+/* The seat's port on its cable: dashed when down, dotted when not read (NetworkLayer.portLook). */
+.fb-plan .seatcable.down { stroke-dasharray: 6 4; }
+.fb-plan .seatcable.unread { stroke-dasharray: 1 4; }
 /* Runs shared by several cables: one soft band under them and a count (pages/plan/cableRoute.ts). */
 .fb-plan .cable-bundle { stroke: color-mix(in srgb, var(--mantine-color-blue-6) 22%, transparent); stroke-linecap: round; }
 .fb-plan .cable-count circle { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
@@ -511,6 +514,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .plug.m-fiber { fill: var(--mantine-color-cyan-6); }
 .fb-plan .plug.m-dac { fill: var(--mantine-color-violet-6); }
 .fb-plan .plug.learned { opacity: 0.6; }
+.fb-plan .plug.down, .fb-plan .plug.unread { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; }
 .fb-plan .ppanel > rect:first-of-type { fill: var(--mantine-color-dark-6); stroke: var(--color-ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .fb-plan .ppanel .pp-port { fill: color-mix(in srgb, #fff 30%, transparent); }
 .fb-plan .ppanel .pp-port.lit { fill: var(--color-bit); }
