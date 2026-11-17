@@ -1,15 +1,20 @@
 import { ActionIcon, Anchor, Button, Group, Kbd, Paper, SegmentedControl, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { IconArrowBackUp, IconArrowForwardUp, IconTrash } from '@tabler/icons-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
+import { qk } from '@/api/keys'
 import type { SeatViewData } from '@/api/types'
 import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { EditOverlay } from './EditOverlay'
-import { type ItemRef, type Point, allItems, fromPct, movePatch, moved, refKey, sameRef, snappedDelta } from './geometry'
+import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, refKey, sameRef, snappedDelta, toPct } from './geometry'
+import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
+import { ToolRail } from './ToolRail'
+import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 
 const PATH: Record<ItemRef['kind'], string> = { block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches' }
@@ -34,7 +39,11 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
   // A move the server has saved but the plan hasn't fetched again yet: keep drawing it moved.
   const [pending, setPending] = useState<{ items: ItemRef[]; d: Point; data: SeatViewData } | null>(null)
   const [space, setSpace] = useState(false)
+  const [tool, setTool] = useState<Tool>('select')
+  // Where a click with the block, text or icon tool asked for something, while its dialog is open.
+  const [placing, setPlacing] = useState<{ kind: 'block' | 'text' | 'icon'; at: Point } | null>(null)
   const history = useHistory()
+  const qc = useQueryClient()
   // A deleted item comes back with a new id; steps recorded before still name the old one.
   const alias = useRef(new Map<string, string>())
   const idOf = useCallback((ref: ItemRef) => {
@@ -127,6 +136,60 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     await refresh()
   }, [send, history, t, refresh, fail])
 
+  const pct = useCallback((p: Point) => { const v = toPct(data.size, p); return { x: Math.round(v.x * 100) / 100, y: Math.round(v.y * 100) / 100 } }, [data.size])
+
+  /** New items from one request (a block, ``count`` blocks, a mark), with undo and redo. */
+  const create = useCallback(async (kind: ItemRef['kind'], path: string, body: Record<string, unknown>, label: string) => {
+    try {
+      const out = await post<{ id: string } | { id: string }[]>(path, { ...body, hall_id: data.hall })
+      let made: ItemRef[] = (Array.isArray(out) ? out : [out]).map((x) => ({ kind, id: x.id }))
+      history.push({
+        label,
+        undo: () => Promise.all(made.map((r) => del(`${PATH[kind]}/${encodeURIComponent(idOf(r))}`))).then(refresh),
+        redo: async () => {
+          const again = await post<{ id: string } | { id: string }[]>(path, { ...body, hall_id: data.hall })
+          const list = Array.isArray(again) ? again : [again]
+          made.forEach((r, i) => { if (list[i]) alias.current.set(`${kind}:${idOf(r)}`, list[i].id) })
+          made = made.map((r) => ({ ...r }))
+          await refresh()
+        },
+      })
+      await refresh()
+      if (kind === 'block') void qc.invalidateQueries({ queryKey: qk.seatBlocks })
+      return made
+    } catch (err) {
+      fail(err)
+      return []
+    }
+  }, [data.hall, history, idOf, refresh, fail, qc])
+
+  const placeBlock = useCallback(async (block: NewBlock, copies: { count: number; dx: number; dy: number } | null) => {
+    if (!placing) return
+    const at = pct(placing.at)
+    const made = copies
+      ? await create('block', '/api/seat-blocks/many', { ...block, ...at, ...copies }, t('plan.edit.step.addBlocks', { count: copies.count }))
+      : await create('block', '/api/seat-blocks', { ...block, ...at }, t('plan.edit.step.addBlock'))
+    if (made.length) setPlacing(null)
+  }, [placing, pct, create, t])
+
+  const placeMark = useCallback(async (body: Record<string, unknown>) => {
+    if (!placing) return
+    const made = await create('mark', '/api/plan-marks', { ...body, ...pct(placing.at) }, t(`plan.edit.step.add.${body.kind}`))
+    if (made.length) setPlacing(null)
+  }, [placing, pct, create, t])
+
+  const drawWall = (a: Point, b: Point) => {
+    const p = pct(a), q = pct(b)
+    void create('mark', '/api/plan-marks', { kind: 'wall', x: p.x, y: p.y, x2: q.x, y2: q.y }, t('plan.edit.step.add.wall'))
+  }
+  const drawZone = async (box: Box) => {
+    const p = pct(box), size = toPct(data.size, { x: box.w, y: box.h })
+    const made = await create('mark', '/api/plan-marks', { kind: 'zone', ...p, w: Math.round(size.x * 100) / 100, h: Math.round(size.y * 100) / 100 },
+      t('plan.edit.step.add.zone'))
+    // A new zone usually gets a name next: select it so the panel shows its label field.
+    if (made.length) { setTool('select'); setSelection(made) }
+  }
+
   const step = useCallback(async (way: 'undo' | 'redo') => {
     try {
       const done = await history[way]()
@@ -145,6 +208,11 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     if (mod && k === 'y') { take(); void step('redo'); return }
     if (mod && k === 'a') { take(); setSelection(present); return }
     if (e.key === ' ') { take(); setSpace(true); return }
+    if (!mod && !e.altKey) {
+      const picked = TOOLS.find((id) => TOOL_KEYS[id] === k)
+      if (picked) { take(); setTool(picked); return }
+    }
+    if (e.key === 'Escape' && tool !== 'select') { take(); setTool('select'); return }
     if (!selected.length) return
     if (e.key === 'Escape') { take(); setSelection([]); return }
     if (e.key === 'Delete' || e.key === 'Backspace') { take(); void remove(selected); return }
@@ -167,12 +235,19 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
   const one = selected.length === 1 ? selected[0] : null
   return (
     <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
+      <div className="fb-edit-stage">
+      <ToolRail tool={tool} onTool={setTool} />
       <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}}
         overlay={(ctx) => (
-          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={setSelection} space={space}
+          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={setSelection} space={space} tool={tool}
+            onPlace={(at) => { if (tool === 'block' || tool === 'text' || tool === 'icon') setPlacing({ kind: tool, at }) }}
+            onLine={drawWall} onBox={(b) => void drawZone(b)}
             onDrag={(raw, snap, lead) => setDrag({ d: snappedDelta(data, lead, raw, snap) })}
             onDrop={(raw, snap, lead) => { setDrag(null); void moveBy(selected, snappedDelta(data, lead, raw, snap)) }} />
         )} />
+      </div>
+      <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
+      <PlaceMarkDialog kind={placing && placing.kind !== 'block' ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
         <Stack gap="sm">
           <Group justify="space-between" wrap="nowrap">
@@ -193,7 +268,7 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
             </Button>
           )}
           {!selected.length && (
-            <Text size="sm" c="dimmed">{t('plan.edit.help')}</Text>
+            <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
           )}
           <Text size="xs" c="dimmed">
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}

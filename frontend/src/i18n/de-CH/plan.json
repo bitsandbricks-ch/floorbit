@@ -256,7 +256,16 @@
       "move_other": "{{count}} Elemente verschieben",
       "delete_one": "löschen",
       "delete_other": "{{count}} Elemente löschen",
-      "change": "ändern"
+      "change": "ändern",
+      "addBlock": "Sitzblock hinzufügen",
+      "addBlocks_one": "Sitzblock hinzufügen",
+      "addBlocks_other": "{{count}} Sitzblöcke hinzufügen",
+      "add": {
+        "text": "Beschriftung hinzufügen",
+        "icon": "Symbol hinzufügen",
+        "wall": "Wand hinzufügen",
+        "zone": "Zone hinzufügen"
+      }
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -267,7 +276,7 @@
       "free": "ohne Raster",
       "pan": "+ ziehen zum Verschieben der Ansicht"
     },
-    "classic": "Werkzeuge, die noch fehlen (neue Blöcke, Beschriftungen, Kabel, Strom): klassischer Editor",
+    "classic": "Werkzeuge, die noch fehlen (Kabel, Strom, Gruppen, Ausrichten): klassischer Editor",
     "kind": {
       "block": "Sitzblock {{name}}",
       "switch": "Switch {{name}}",
@@ -279,6 +288,69 @@
     "name": "Name",
     "rotation": "Drehung",
     "text": "Text",
-    "label": "Beschriftung"
+    "label": "Beschriftung",
+    "tools": "Werkzeuge",
+    "tool": {
+      "select": "Auswählen",
+      "block": "Sitzblock",
+      "text": "Beschriftung",
+      "icon": "Symbol",
+      "wall": "Wand",
+      "zone": "Zone"
+    },
+    "hint": {
+      "block": "Klicke, wo der neue Sitzblock hinkommt.",
+      "text": "Klicke, wo die Beschriftung hinkommt.",
+      "icon": "Klicke, wo das Symbol hinkommt.",
+      "wall": "Ziehe von einem Ende der Wand zum anderen. Shift hält 15°-Schritte, Alt löst vom Raster.",
+      "zone": "Ziehe einen Rahmen für die Zone."
+    },
+    "block": {
+      "title": "Neuer Sitzblock",
+      "naming": "Platznamen",
+      "namingRows": "Ein Buchstabe pro Reihe: A-1, A-2 … dann B-1, B-2",
+      "namingBlock": "Blockname und eine Nummer: A-1 bis A-24",
+      "name": "Blockname",
+      "nameRows": "Optional, wird über dem Block angezeigt",
+      "nameBlock": "Optional, das Präfix der Plätze: A-1, A-2 …",
+      "cols": "Plätze pro Reihe",
+      "rows": "Reihen",
+      "count": "Wie viele Blöcke",
+      "more": "Weitere Optionen",
+      "rowStart": "Erster Reihenbuchstabe",
+      "rowLabels": "Reihenbuchstaben",
+      "labels": {
+        "start": "Neben Platz 1",
+        "end": "Nach dem letzten Platz",
+        "both": "Beidseitig",
+        "none": "Keine"
+      },
+      "reverse": "Platz 1 rechts",
+      "direction": "Kopien gehen",
+      "down": "Nach unten",
+      "right": "Nach rechts",
+      "gap": "Abstand zwischen Blöcken",
+      "defaults": "Platzabstand und diese Vorgaben sind unter",
+      "defaultsLink": "Einstellungen › Hallenplan",
+      "previewRows_one": "{{count}} Platz, Reihe {{row}}, nummeriert 1 bis {{cols}}",
+      "previewRows_other": "{{count}} Plätze, ab Reihe {{row}}, jede Reihe nummeriert 1 bis {{cols}}",
+      "previewBlock_one": "{{count}} Platz: {{name}}-1",
+      "previewBlock_other": "{{count}} Plätze: {{name}}-1 bis {{name}}-{{last}}",
+      "create_one": "Block erstellen",
+      "create_other": "{{count}} Blöcke erstellen"
+    },
+    "mark": {
+      "textTitle": "Neue Beschriftung",
+      "iconTitle": "Neues Symbol",
+      "icon": "Symbol",
+      "none": "Kein Symbol mit diesem Namen",
+      "size": "Grösse",
+      "sizes": {
+        "s": "Klein",
+        "m": "Mittel",
+        "l": "Gross"
+      },
+      "place": "Platzieren"
+    }
   }
 }

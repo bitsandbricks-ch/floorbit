@@ -256,7 +256,16 @@
       "move_other": "move {{count}} items",
       "delete_one": "delete",
       "delete_other": "delete {{count}} items",
-      "change": "change"
+      "change": "change",
+      "addBlock": "add seat block",
+      "addBlocks_one": "add seat block",
+      "addBlocks_other": "add {{count}} seat blocks",
+      "add": {
+        "text": "add label",
+        "icon": "add icon",
+        "wall": "add wall",
+        "zone": "add zone"
+      }
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -267,7 +276,7 @@
       "free": "off the grid",
       "pan": "+ drag to pan"
     },
-    "classic": "Tools not here yet (new blocks, labels, cables, power): classic editor",
+    "classic": "Tools not here yet (cables, power, groups, align): classic editor",
     "kind": {
       "block": "Seat block {{name}}",
       "switch": "Switch {{name}}",
@@ -279,6 +288,69 @@
     "name": "Name",
     "rotation": "Rotation",
     "text": "Text",
-    "label": "Label"
+    "label": "Label",
+    "tools": "Tools",
+    "tool": {
+      "select": "Select",
+      "block": "Seat block",
+      "text": "Label",
+      "icon": "Icon",
+      "wall": "Wall",
+      "zone": "Zone"
+    },
+    "hint": {
+      "block": "Click where the new seat block goes.",
+      "text": "Click where the label goes.",
+      "icon": "Click where the icon goes.",
+      "wall": "Drag from one end of the wall to the other. Shift keeps 15° steps, Alt leaves the grid.",
+      "zone": "Drag a box for the zone."
+    },
+    "block": {
+      "title": "New seat block",
+      "naming": "Seat names",
+      "namingRows": "A letter per row: A-1, A-2 … then B-1, B-2",
+      "namingBlock": "Block name and a number: A-1 to A-24",
+      "name": "Block name",
+      "nameRows": "Optional, shown above the block",
+      "nameBlock": "Optional, the seats' prefix: A-1, A-2 …",
+      "cols": "Seats per row",
+      "rows": "Rows",
+      "count": "How many blocks",
+      "more": "More options",
+      "rowStart": "First row letter",
+      "rowLabels": "Row letters",
+      "labels": {
+        "start": "Beside seat 1",
+        "end": "After the last seat",
+        "both": "Both sides",
+        "none": "None"
+      },
+      "reverse": "Seat 1 on the right",
+      "direction": "Copies go",
+      "down": "Down",
+      "right": "To the right",
+      "gap": "Gap between blocks",
+      "defaults": "Seat spacing and these defaults are in",
+      "defaultsLink": "Settings › Floor plan",
+      "previewRows_one": "{{count}} seat, row {{row}}, numbered 1 to {{cols}}",
+      "previewRows_other": "{{count}} seats, from row {{row}}, each row numbered 1 to {{cols}}",
+      "previewBlock_one": "{{count}} seat: {{name}}-1",
+      "previewBlock_other": "{{count}} seats: {{name}}-1 to {{name}}-{{last}}",
+      "create_one": "Create block",
+      "create_other": "Create {{count}} blocks"
+    },
+    "mark": {
+      "textTitle": "New label",
+      "iconTitle": "New icon",
+      "icon": "Icon",
+      "none": "No icon with that name",
+      "size": "Size",
+      "sizes": {
+        "s": "Small",
+        "m": "Medium",
+        "l": "Large"
+      },
+      "place": "Place"
+    }
   }
 }
