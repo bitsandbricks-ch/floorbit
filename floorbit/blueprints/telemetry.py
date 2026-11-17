@@ -22,16 +22,10 @@ For admins (``settings.manage``):
 - ``GET /api/settings/telemetry/telegraf.conf``: Telegraf's config, secrets in it, for a
   Telegraf that doesn't run in the sidecar.
 
-For the local agent, with its key (as blueprints/agent.py):
-
-- ``GET /api/agent/v1/telemetry/config``: ``{"telegraf", "targets", "interval"}``. The agent writes
-  the config for its Telegraf (with its own output address and token) and runs the API pollers.
-- ``POST /api/agent/v1/telemetry`` ``{"at", "values": {series: value}, "lines": [...]}``: its
-  normalised series, and (when this Floorbit has VictoriaMetrics) the points that came in, minus
-  MAC tables and ARP.
+A local agent gets the devices and sends its series through the telemetry plugin's agent part
+(builtin_plugins/telemetry/agent.py, docs/agent-plugins.md), not through routes here.
 """
 import base64
-import time
 import zlib
 
 from flask import Blueprint, g, jsonify, request
@@ -154,7 +148,15 @@ def _save(target_id=None):
     name = entry['name']
     label = f'Changed telemetry from {name}' if target_id else f'Added telemetry from {name}'
     audit.record('telemetry', label, g.get('audit_user'), ', '.join(entry['drivers']))
+    _tell_agents()
     return jsonify(entry), 200 if target_id else 201
+
+
+def _tell_agents():
+    """Agents collecting for this Floorbit pick up the change now instead of within a minute."""
+    from .. import agent_link, agent_plugins
+    if agent_link.active():
+        agent_plugins.reload_agents()
 
 
 @bp.route('/api/settings/telemetry/targets', methods=['POST'])
@@ -173,6 +175,7 @@ def delete_target(target_id):
     if gone is None:
         return jsonify({'error': 'That device is gone.'}), 404
     audit.record('telemetry', f"Removed telemetry from {gone['name']}", g.get('audit_user'))
+    _tell_agents()
     return jsonify({'ok': True})
 
 
@@ -211,68 +214,3 @@ def telegraf_conf():
     return telemetry.render_here(), 200, {'Content-Type': 'text/plain; charset=utf-8',
                                           'Content-Disposition': 'attachment; filename="telegraf.conf"',
                                           'Cache-Control': 'no-store'}
-
-
-# ── the local agent ────────────────────────────────────────────────────────────────────────────
-
-AGENT_TOKEN = '@@FLOORBIT_AGENT_INGEST_TOKEN@@'
-AGENT_OUTPUT = '@@FLOORBIT_AGENT_INGEST_URL@@'
-
-
-@bp.route('/api/agent/v1/telemetry/config', methods=['GET'])
-def agent_config():
-    from .agent import _agent, _refused
-    agent = _agent()
-    if agent is None:
-        return _refused()
-    raw = targets.raw_targets()
-    opened = [targets.opened(t) for t in raw]
-    # The agent puts in its own listener's address and token: they never leave the hall.
-    conf = telegraf.render(opened, AGENT_OUTPUT, AGENT_TOKEN)
-    version = _version(raw)
-    if _sent.get(agent['id']) != version:
-        # It carries the devices' secrets: say so once per change, not on every fetch.
-        _sent[agent['id']] = version
-        audit.record('telemetry', f"Sent the telemetry setup to the agent {agent['name']}", None, f'{len(raw)} devices')
-    return jsonify({'telegraf': conf, 'token_placeholder': AGENT_TOKEN, 'output_placeholder': AGENT_OUTPUT,
-                    'targets': opened, 'version': version})
-
-
-_sent = {}
-
-
-def _version(raw):
-    """Changes when the devices do, so the agent only rewrites Telegraf's config then."""
-    import hashlib
-    import json
-    return hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest()[:16]
-
-
-@bp.route('/api/agent/v1/telemetry', methods=['POST'])
-def agent_series():
-    from .. import agent_link
-    from ..telemetry import lineproto
-    from .agent import _agent, _agent_body, _refused
-    agent = _agent()
-    if agent is None:
-        return _refused()
-    body = _agent_body()
-    values = body.get('values') if isinstance(body.get('values'), dict) else {}
-    clean = {}
-    for key, value in list(values.items())[:200_000]:
-        if isinstance(key, str) and key.count('|') == 2 and len(key) <= 300 and isinstance(value, (int, float)):
-            clean[key] = float(value)
-    at = body.get('at') if isinstance(body.get('at'), (int, float)) else time.time()
-    # The hosted clock decides: an agent whose clock is off by more than a minute is not trusted.
-    if abs(at - time.time()) > 60:
-        at = time.time()
-    store = storage.storage()
-    if clean:
-        store.sample(clean, at)
-    lines = body.get('lines') if isinstance(body.get('lines'), list) else []
-    if lines and storage.vm_url():
-        points, _bad = lineproto.parse('\n'.join(str(x) for x in lines[:100_000]))
-        store.forward_raw(points)
-    agent_link.tunnel.relayed(agent['id'], 'telemetry', len(clean))
-    return jsonify({'taken': len(clean), 'lines': bool(storage.vm_url())})
-

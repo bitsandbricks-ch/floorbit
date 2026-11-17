@@ -4,9 +4,11 @@ No network: pollers get a fake requests session, storage a local SQLite file."""
 import base64
 import gzip
 import os
+import time
 
 import pytest
 
+from floorbit.plugins.agent import MemoryContext
 from floorbit.telemetry import lineproto, pollers, state, storage, telegraf
 
 SW = "device=sw-a-01,address=192.0.2.21,driver=snmp"
@@ -342,25 +344,68 @@ def test_settings_intake_and_series(client, anon_client, tmp_path):
     assert "Added telemetry from sw-a-01" in actions and "Looked at the telemetry token" in actions
 
 
-def test_the_agent_gets_its_config_and_sends_series(client, anon_client):
+def test_the_agent_gets_the_devices_and_sends_series(client, anon_client):
     from tests.test_agent import enrol
     key = enrol(client)["key"]
+    head = {"Floorbit-Agent-Key": key}
+    client.put("/api/settings/plugins/telemetry", json={"enabled": True})
     client.post("/api/settings/telemetry/targets", json={
         "name": "core-01", "address": "192.0.2.1", "drivers": ["nxapi"], "platform": "nxos",
         "username": "ro", "password": "nx-secret"})
-    head = {"Floorbit-Agent-Key": key}
-    assert anon_client.get("/api/agent/v1/telemetry/config").status_code == 401
-    got = anon_client.get("/api/agent/v1/telemetry/config", headers=head).get_json()
-    assert got["targets"][0]["password"] == "nx-secret"          # opened for the collector only
-    assert "@@FLOORBIT_AGENT_INGEST_TOKEN@@" in got["telegraf"] and got["version"]
+    cfg = anon_client.get("/api/agent/v1/plugins", headers=head).get_json()["plugins"]["telemetry"]
+    assert cfg["settings"]["targets"][0]["password"] == "nx-secret"     # opened for the agent only
+    assert cfg["sends"] == {"series": {"privacy": "device"}}
     import time
-    sent = anon_client.post("/api/agent/v1/telemetry", headers=head,
-                            json={"at": time.time(), "values": {"core-01|Eth1/1|in_bps": 1e6, "bad": 1}})
-    assert sent.get_json()["taken"] == 1
+    sent = anon_client.post("/api/agent/v1/plugins/telemetry/series", headers=head, json={"payload": {
+        "at": time.time(), "values": {"core-01|Eth1/1|in_bps": 1e6, "bad": 1}}})
+    assert sent.status_code == 200 and sent.get_json() == {"taken": 1}
     # While an agent collects, Telegraf next to the hosted Floorbit is told to send there.
     token = client.get("/api/settings/telemetry/token").get_json()["token"]
     assert anon_client.post("/api/telemetry/write", data=b"pf,host=fw-01 entries=1i",
                             headers={"Authorization": f"Token {token}"}).status_code == 409
+
+
+class AgentCtx(MemoryContext):
+    def listen_http(self, port, handler, host="0.0.0.0"):
+        self.handler = handler
+        return port
+
+
+def test_the_agent_part_collects_in_the_hall(tmp_path, monkeypatch):
+    import gzip
+    import importlib
+    agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
+    monkeypatch.setattr(state, "state", state.State())
+    monkeypatch.delenv("FLOORBIT_TELEGRAF_CONF", raising=False)
+    target = {"id": "a1", "name": "sw-a-01", "address": "192.0.2.21", "kind": "switch", "platform": "ios",
+              "drivers": ["snmp", "traps"], "snmp_version": "2c", "community": "example", "fdb": "cisco_vlans",
+              "vlans": [10], "tables": True}
+    ctx = AgentCtx("telemetry", {"targets": [target]}, {"sends": {"series": {"privacy": "device"}}},
+                   state_dir=str(tmp_path))
+    plugin = agent.AgentPlugin(ctx)
+    plugin.start()
+    try:
+        conf = (tmp_path / "telegraf.conf").read_text()
+        token = (tmp_path / "ingest-token").read_text()
+        assert token in conf and "udp://192.0.2.21:161" in conf and "floorbit-agent:8186/write" in conf
+        assert ctx.handler("POST", "/write", {"Authorization": "Token nope"}, b"x a=1")[0] == 401
+        line = (b'fb_if,agent_host=192.0.2.21,ifIndex=1,ifName=Gi1/0/1 '
+                b'ifHCInOctets=1000i,ifHCOutOctets=1000i,ifOperStatus=1i')
+        status, _ = ctx.handler("POST", "/api/v2/write", {"Authorization": f"Token {token}",
+                                                          "Content-Encoding": "gzip"}, gzip.compress(line))
+        assert status == 204 and state.state.find("sw-a-01").interfaces
+        plugin.send_series(time.time())
+        kind, payload = ctx.sent[-1]
+        assert kind == "series" and any(k.startswith("sw-a-01|Gi1/0/1|") for k in payload["values"])
+        assert not any("fdb" in k or "arp" in k for k in payload["values"])
+        plugin.report(time.time())
+        report = ctx.health_.report()
+        assert report["status"] == "ok" and report["metrics"]["points"] == 1
+        # New devices from the hosted side: taken without a restart, Telegraf's config rewritten.
+        assert plugin.configure({"targets": []}) is True
+        assert "192.0.2.21" not in (tmp_path / "telegraf.conf").read_text()
+    finally:
+        ctx.stopping.set()
 
 
 def test_plugins_can_add_measurements_and_drivers(monkeypatch):

@@ -12,9 +12,9 @@ The pieces:
 
 **Where it runs.** Self-hosted, Floorbit is the collector: the Telegraf sidecar posts to
 ``/api/telemetry/write`` and the pollers run here. Hosted, with a local agent enrolled, the agent is
-the collector: it gets the Telegraf config and the targets over its link, keeps the picture
-itself (monitoring calls reach it through the tunnel as before) and sends the hosted side only the
-normalised series (``/api/agent/v1/telemetry``).
+the collector: the telemetry plugin's agent part (builtin_plugins/telemetry/agent.py) gets the
+targets as its settings, writes Telegraf's config, keeps the picture itself (monitoring calls
+reach it through the link) and sends the hosted side only the normalised series.
 """
 import os
 import threading

@@ -47,7 +47,12 @@ history (see [Storage](#storage)).
       `/app/state/telegraf/telegraf.conf` and Telegraf reloads it when the devices change. Publish
       udp/162 (traps) and tcp/57000 (MDT) to the machine if the devices send.
     - Kubernetes: see [`deploy/kubernetes/telemetry.yaml`](https://github.com/bitsandbricks-ch/floorbit/blob/master/deploy/kubernetes/telemetry.yaml).
-    - Hosted with a local agent: Telegraf runs next to the agent; the agent fetches the config.
+    - Hosted with a local agent: the Telemetry plugin's agent part is the collector. Run Telegraf
+      next to the agent (`docker compose --profile telemetry up -d` in the agent's folder); the
+      agent writes its config into the shared state volume and takes its line protocol on port
+      8186. Set `FLOORBIT_AGENT_PLUGINS=telemetry` on the agent so monitoring calls are answered
+      from what the devices sent. The Local agents page shows how the collector is doing (points,
+      devices heard, errors, whether Telegraf is quiet).
     - Your own Telegraf: **Download telegraf.conf** and point its HTTP output at Floorbit.
 
 4. **Settings > Plugins**: turn on **Telemetry**. If LibreNMS is set up too, LibreNMS still wins
@@ -58,8 +63,10 @@ history (see [Storage](#storage)).
 Neither does model-driven streaming. What comes closest:
 
 - **Their own Telegraf** every 10 s: in the firewall's Telegraf settings, add an InfluxDB output
-  to `https://<floorbit>/api/telemetry` (or the local agent) with the token from Settings >
-  Telemetry: as the token for InfluxDB v2, or as the password for v1. CPU, memory, interfaces and
+  to `https://<floorbit>/api/telemetry` with the token from Settings > Telemetry: as the token for
+  InfluxDB v2, or as the password for v1. With a local agent, point it at `http://<agent>:8186`
+  instead, with the agent's own token (the `ingest-token` file in the agent's
+  `plugins/telemetry` state folder). CPU, memory, interfaces and
   `pf` states arrive with the firewall in the `host` tag; name the device the same on the
   Telemetry page.
 - **NetFlow** (OPNsense's built-in NetFlow, pfSense's softflowd package) to the flow collector
@@ -89,15 +96,16 @@ from whichever storage is in use.
 
 MAC tables, ARP and neighbour tables name the machines at the seats. They are kept only as the
 latest picture in the collector's memory (like a LibreNMS answer) and are **never stored** as
-series, sent to VictoriaMetrics or, with a local agent, sent to the hosted Floorbit. Monitoring
-calls that need them (which port is this IP on?) reach the agent through its tunnel, as before.
+series, sent to VictoriaMetrics or, with a local agent, sent to the hosted Floorbit: the agent
+sends only the per-port and per-device numbers. Monitoring calls that need the tables (which port
+is this IP on?) reach the agent through its link and are answered there.
 
 ## Secrets
 
 Communities, SNMPv3 passphrases, gNMI, NX-API, RESTCONF logins and OPNsense API secrets are
 encrypted with Floorbit's key ([credentials.md](credentials.md)) and never come back to a browser.
 They are opened only to write Telegraf's config (a file only Floorbit's user can read) or to send
-it to an enrolled agent over its TLS link; that hand-over is in the audit log. Use read-only
+to an enrolled agent over its TLS link, as the Telemetry plugin's settings. Use read-only
 accounts on the devices.
 
 ## Extending it

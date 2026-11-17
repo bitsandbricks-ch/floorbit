@@ -257,7 +257,6 @@
   "Looked at the telemetry token": "Telemetrie-Token angesehen",
   "Made a new telemetry token": "Neues Telemetrie-Token erstellt",
   "Downloaded the Telegraf configuration": "Telegraf-Konfiguration heruntergeladen",
-  "Sent the telemetry setup to the agent {}": "Telemetrie-Einrichtung an den Agenten {} gesendet",
   "Saved port areas": "Port-Bereiche gespeichert",
   "Removed port area": "Port-Bereich entfernt",
   "Removed port areas": "Port-Bereiche entfernt"

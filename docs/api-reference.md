@@ -883,8 +883,6 @@ Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
-| POST | `/api/agent/v1/telemetry` | `settings.manage` |  |
-| GET | `/api/agent/v1/telemetry/config` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/settings/telemetry` | `settings.manage` |  |
 | POST | `/api/settings/telemetry/targets` | `settings.manage` |  |
 | DELETE | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |

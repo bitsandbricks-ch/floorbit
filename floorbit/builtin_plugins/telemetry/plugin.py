@@ -20,6 +20,30 @@ class Plugin(Base):
     def _device(self, hostname):
         return state.find(hostname)
 
+    # the local agent (agent.py there) -----------------------------------------------------------
+    def agent_settings(self, settings):
+        """What the agent part gets: the devices from Settings > Telemetry, secrets opened, sent
+        over the agent's link only. The plugin's own settings (uplink limit, ignored ports) too."""
+        from floorbit.telemetry import targets
+        return {**settings, 'targets': [targets.opened(t) for t in targets.raw_targets()]}
+
+    def agent_series(self, agent, payload):
+        """The agent's per-port and per-device numbers, for the history here."""
+        import time
+
+        from floorbit.telemetry import storage
+        values = payload.get('values') if isinstance(payload, dict) else None
+        clean = {k: float(v) for k, v in list((values or {}).items())[:200_000]
+                 if isinstance(k, str) and k.count('|') == 2 and len(k) <= 300
+                 and isinstance(v, (int, float)) and not isinstance(v, bool)}
+        at = payload.get('at') if isinstance(payload.get('at'), (int, float)) else time.time()
+        # This clock decides: an agent whose clock is off by more than a minute is not trusted.
+        if abs(at - time.time()) > 60:
+            at = time.time()
+        if clean:
+            storage.storage().sample(clean, at)
+        return {'taken': len(clean)}
+
     # the monitoring interface -----------------------------------------------------------------
     def devices(self):
         with state._lock:
