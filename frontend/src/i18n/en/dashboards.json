@@ -85,7 +85,9 @@
     "text": "Text",
     "textHint": "Markdown: # heading, - list, **bold**, [link](https://example.com).",
     "size": "Text size",
-    "align": "Alignment"
+    "align": "Alignment",
+    "marks": "Plan marks",
+    "marksHint": "Public: only the Overview and Safety marks, for a screen people walk past."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -97,7 +99,8 @@
     "dashboardGone": "This tile layout is gone.",
     "empty": "Empty pane",
     "viewGone": "This widget is gone.",
-    "noText": "Write something in the pane's settings."
+    "noText": "Write something in the pane's settings.",
+    "private": "Needs an account: not shown on a public screen."
   },
   "textSize": {
     "s": "S",
@@ -121,5 +124,13 @@
     "remove": "Remove section and its widgets",
     "empty": "No widgets here yet: add one, or remove the section."
   },
-  "builtin": "Ready-made"
+  "builtin": "Ready-made",
+  "public": "Public",
+  "publicHint": "Opens without signing in, for a screen in the hall. Shows the plan, switch and seat counts, the switches down and texts; other panes need an account.",
+  "publicBadge": "Public",
+  "marks": {
+    "all": "All",
+    "public": "Public",
+    "none": "None"
+  }
 }

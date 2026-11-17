@@ -12,7 +12,7 @@ Code: [`floorbit/health.py`](../floorbit/health.py) and
 
 **Big screen** (`/health?screen=1`) drops the header and makes the tiles readable from across the
 hall. The wall gets the kiosk theme unless the screen picks another one with `?theme=` (see
-[themes.md](themes.md)), so a kiosk account works as it does for `/kiosk`: sign the screen in
+[themes.md](themes.md)), so a kiosk account works here: sign the screen in
 with a `kiosk` account and open `/health?screen=1`. The page refreshes on its own and as soon as
 a service changes colour.
 

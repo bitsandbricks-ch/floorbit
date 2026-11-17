@@ -1,9 +1,11 @@
-import type { NavPage } from './sections'
+import type { CustomSection, NavPage } from './sections'
 
 /** What the server puts into every crew page for the sidebar (templates/_nav.html), so it draws
  *  at once, without waiting for an API call. */
 export interface NavBoot {
   pages: NavPage[]
+  /** The sections admins made, with only the links this account may open (floorbit/nav_sections.py). */
+  custom?: CustomSection[]
   brand: { logo: string | null; name: string | null }
   user: { name: string; username: string } | null
   /** Sign-in is on: offer "Sign out". */
@@ -17,7 +19,7 @@ export interface NavBoot {
 /** Favourite pages first in the sidebar, and whether opening a section folds the others. */
 export interface NavPrefs { favourites: string[]; accordion: boolean }
 
-const EMPTY: NavBoot = { pages: [], brand: { logo: null, name: null }, user: null, signOut: false, prefs: null }
+const EMPTY: NavBoot = { pages: [], custom: [], brand: { logo: null, name: null }, user: null, signOut: false, prefs: null }
 const PREFS_KEY = 'floorbit-nav-prefs'
 export const DEFAULT_PREFS: NavPrefs = { favourites: [], accordion: true }
 

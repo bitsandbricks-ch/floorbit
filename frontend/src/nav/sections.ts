@@ -2,9 +2,10 @@ import {
   IconActivityHeartbeat,
   IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
-  IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid,
+  IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
+  IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
   IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLock, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
-  IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
+  IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTournament, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWall, IconWebhook, IconWifi, IconWorldWww,
   type Icon,
 } from '@tabler/icons-react'
@@ -27,7 +28,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'preflight', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
-  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'apiTokens', 'agents', 'telemetry', 'webhooks', 'switchLogins', 'users', 'teams', 'signIn', 'audit'] },
+  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'sidebarSections', 'apiTokens', 'agents', 'telemetry', 'webhooks', 'switchLogins', 'users', 'teams', 'signIn', 'audit'] },
 ]
 
 const ICONS: Record<string, Icon> = {
@@ -38,7 +39,7 @@ const ICONS: Record<string, Icon> = {
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug,
   preflight: IconChecklist, templates: IconTemplate,
   tournament: IconTrophy, brackets: IconTournament, schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
-  report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight,
+  report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
   apiTokens: IconKey, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, switchLogins: IconLock, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
@@ -48,6 +49,38 @@ export function pageIcon(id: string): Icon {
 
 export function sectionIcon(id: SectionId): Icon {
   return SECTIONS.find((s) => s.id === id)?.icon ?? IconApps
+}
+
+/** A row in a section an admin made (floorbit/nav_sections.py): only the links this account may open. */
+export interface CustomLink {
+  kind: 'dashboard' | 'page' | 'url'
+  href: string
+  label: string
+  /** A page link: the page's id, for its icon and (without ``own``) its name in the reader's language. */
+  page?: string
+  own?: boolean
+  /** An address on another site: opens in a new tab. */
+  external?: boolean
+}
+export interface CustomSection { id: string; name: string; icon: string; links: CustomLink[] }
+
+/** The icons an admin can give a section; the same names as ICONS in floorbit/nav_sections.py. */
+export const CUSTOM_ICONS: Record<string, Icon> = {
+  dashboard: IconLayoutDashboard, star: IconStar, bolt: IconBolt, network: IconNetwork, server: IconServer,
+  chart: IconChartLine, heart: IconHeart, users: IconUsers, trophy: IconTrophy, calendar: IconCalendar,
+  wifi: IconWifi, shield: IconShield, tools: IconTools, book: IconBook, flag: IconFlag, gamepad: IconDeviceGamepad2,
+  bell: IconBell, eye: IconEye, folder: IconFolder, link: IconLink, map: IconMap, screen: IconDeviceTv,
+}
+
+export function customIcon(name: string): Icon {
+  return CUSTOM_ICONS[name] ?? IconFolder
+}
+
+/** The icon of a row in an admin's section: the page's own, or one for a dashboard or an address. */
+export function linkIcon(link: CustomLink): Icon {
+  if (link.kind === 'page' && link.page) return pageIcon(link.page)
+  if (link.kind === 'dashboard') return IconLayoutDashboard
+  return link.external ? IconExternalLink : IconLink
 }
 
 export interface Grouped {
@@ -67,7 +100,7 @@ export function group(pages: NavPage[]): Grouped {
 
 /** Is ``href`` the page at ``path``? Sub pages (/incidents/qr) count for their parent unless the
  *  parent is "/" or has its own entry, so exactly one row is lit. */
-export function activeHref(pages: NavPage[], path: string): string | null {
+export function activeHref(pages: { href: string }[], path: string): string | null {
   let best: string | null = null
   for (const p of pages) {
     const hit = p.href === path || (p.href !== '/' && path.startsWith(p.href + '/'))

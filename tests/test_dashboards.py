@@ -31,7 +31,7 @@ def test_save_read_replace_delete(client):
     right = root["children"][1]
     assert right["sizes"] == [50, 50]   # missing sizes share the split evenly
     assert right["children"][0]["pane"] == {"kind": "plan", "title": "VIP", "hall": "", "preset": "ops", "show": "all",
-                                            "labels": "auto", "area": {"kind": "zone", "id": "z-vip"}}
+                                            "labels": "auto", "marks": "all", "area": {"kind": "zone", "id": "z-vip"}}
     assert client.get("/api/dashboards/main-hall").get_json()["name"] == "Main hall wall"
     client.put("/api/dashboards/main-hall", json={**MIXED, "name": "Wall"})
     listed = client.get("/api/dashboards").get_json()
@@ -113,7 +113,9 @@ def test_old_layouts_read_as_one_panel(app_module, client):
 def test_kiosk_is_ready_made_until_replaced(client):
     kiosk = client.get("/api/dashboards/kiosk").get_json()
     assert kiosk["builtin"] is True and kiosk["fit"] is True
-    assert kiosk["sections"][0]["panels"][0]["node"]["pane"]["kind"] == "plan"
+    panes = [p["node"]["pane"] for p in kiosk["sections"][0]["panels"]]
+    assert panes[0]["kind"] == "plan" and panes[0]["marks"] == "public"   # often in a public place
+    assert [p.get("tile") for p in panes[1:]] == ["floorbit/w/switches", "floorbit/w/seats", "floorbit/w/down"]
     assert client.delete("/api/dashboards/kiosk").status_code == 404   # nothing saved to remove
     mine = {"name": "Kiosk", "sections": [{"panels": [_panel(0, 0, 24, 12, "text")]}], "fit": True}
     assert client.put("/api/dashboards/kiosk", json=mine).status_code == 200
@@ -132,6 +134,7 @@ def test_checks(client):
     assert put(root={"pane": {"kind": "iframe", "url": "https://example.com"}}) == 400
     assert put(root={"pane": {"kind": "page", "page": "https://example.com"}}) == 400
     assert put(root={"pane": {"kind": "plan", "preset": "everything"}}) == 400
+    assert put(root={"pane": {"kind": "plan", "marks": "secret"}}) == 400
     assert put(root={"pane": {"kind": "plan", "area": {"kind": "block"}}}) == 400
     assert put(root={"pane": {"kind": "plan", "area": {"kind": "box", "x": 0, "y": 0, "w": "nan", "h": 5}}}) == 400
     assert put(root={"pane": {"kind": "tile", "tile": "../etc"}}) == 400
@@ -154,3 +157,56 @@ def test_viewers_read_editors_write(app_module, client):
     assert viewer.get("/api/dashboards/wall").status_code == 200
     assert viewer.put("/api/dashboards/wall", json=MIXED).status_code == 403
     assert viewer.delete("/api/dashboards/wall").status_code == 403
+
+
+def test_public_dashboards_open_without_an_account(client, anon_client, monkeypatch):
+    from integrations import seat_sources
+    monkeypatch.setenv("SEAT_SOURCES", "manual")
+    seat_sources.invalidate()
+    client.post("/api/seat-blocks", json={"name": "D", "x": 40, "y": 50, "cols": 4, "rows": 2})
+    client.post("/api/switches", json={"name": "sw-d-01", "x": 30, "y": 50})
+    client.put("/api/seat-map/D-6", json={"ip": "198.51.100.7", "nick": "player-six"})
+    client.put("/api/plan/seats/D-6/note", json={"text": "cable loose"})
+    seat_sources.invalidate()
+    wall = {"name": "Hall", "public": True, "fit": True, "sections": [{"panels": [
+        {"x": 0, "y": 0, "w": 12, "h": 12, "node": {"pane": {"kind": "plan", "preset": "ops"}}},
+        {"x": 12, "y": 0, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/down"}}},
+        {"x": 12, "y": 6, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/problems",
+                                                            "title": "Crew"}}},
+        {"x": 18, "y": 0, "w": 6, "h": 12, "node": {"pane": {"kind": "page", "page": "health"}}},
+    ]}]}
+    assert client.put("/api/dashboards/hall", json=wall).get_json()["public"] is True
+    assert anon_client.get("/dashboards/hall").status_code in (200, 503)   # 503: no frontend build in CI
+
+    body = anon_client.get("/api/dashboards/hall/public").get_json()
+    assert body["account"] is False
+    panes = [p["node"]["pane"] for p in body["board"]["sections"][0]["panels"]]
+    assert panes[0]["kind"] == "plan" and panes[0]["marks"] == "public"   # "all" turns public
+    assert panes[1]["tile"] == "floorbit/w/down"
+    assert panes[2] == {"kind": "private"} and panes[3] == {"kind": "private", "title": "Crew"}   # by row
+    assert client.get("/api/dashboards/hall/public").get_json()["account"] is True
+
+    plan = anon_client.get("/api/dashboards/hall/public/plan").get_json()
+    seat = plan["seats"]["D-6"]
+    assert seat.get("taken") is True and "note" not in seat and "problems" not in seat
+    assert set(plan["switches"][0]) == {"id", "name", "status", "x", "y"}
+    assert "198.51.100.7" not in str(plan) and "player-six" not in str(plan)
+    assert anon_client.get("/api/dashboards/hall/public/tiles/down").get_json()["type"] == "status"
+    assert anon_client.get("/api/dashboards/hall/public/tiles/problems").status_code == 404
+    assert anon_client.get("/api/dashboards/hall/public/tiles/switches").status_code == 404   # not on it
+
+    # Not public: nothing to see signed out, and the page asks for an account.
+    assert client.put("/api/dashboards/hall", json={**wall, "public": False}).status_code == 200
+    assert anon_client.get("/api/dashboards/hall/public").get_json()["board"] is None
+    assert anon_client.get("/api/dashboards/hall/public/plan").status_code == 404
+    assert anon_client.get("/api/dashboards/hall/public/tiles/down").status_code == 404
+    assert anon_client.get("/dashboards/hall").status_code == 302
+    assert anon_client.get("/api/dashboards/hall").status_code == 401
+
+
+def test_the_ready_made_kiosk_is_public(anon_client):
+    board = anon_client.get("/api/dashboards/kiosk/public").get_json()["board"]
+    assert board["name"] == "Kiosk" and board["public"] is True
+    assert anon_client.get("/api/dashboards/kiosk/public/plan").status_code == 200
+    seats = anon_client.get("/api/dashboards/kiosk/public/tiles/seats").get_json()
+    assert seats["type"] == "stat" and seats["link"] == ""   # its page needs an account

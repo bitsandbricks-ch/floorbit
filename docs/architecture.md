@@ -19,7 +19,7 @@ different features touch different files.
 
    | Module | Routes |
    | --- | --- |
-   | `pages.py` | `/`, `/kiosk` |
+   | `pages.py` | `/`, `/kiosk` (goes to the Kiosk dashboard) |
    | `config.py` | `/api/config` |
    | `switches.py` | `/api/switches...`: the floor plan's view of the inventory (list, sync, add, move, rename, remove) |
    | `inventory.py` | `/inventory`, `/api/inventory...` (see [inventory.md](inventory.md)) |
@@ -79,7 +79,7 @@ to make one.
 Plain JavaScript and CSS, no build step.
 
 - The floor plan editor moved to React (`frontend/src/pages/plan/edit/`); `/editor/classic` redirects there.
-- Other pages have their own script and stylesheet (`kiosk.js`, ...).
+- Other pages have their own script and stylesheet (`screen.js`, ...).
 - `templates/_attribution.html` and `static/css/attribution.css` are the "Buy me a coffee" and
   "Powered by bitsandbricks.ch" links every page includes.
 

@@ -85,7 +85,9 @@
     "text": "Text",
     "textHint": "Markdown: # Titel, - Liste, **fett**, [Link](https://example.com).",
     "size": "Textgrösse",
-    "align": "Ausrichtung"
+    "align": "Ausrichtung",
+    "marks": "Plan-Markierungen",
+    "marksHint": "Öffentliche: nur die Markierungen aus Übersicht und Sicherheit, für einen Bildschirm, an dem Leute vorbeigehen."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -97,7 +99,8 @@
     "dashboardGone": "Dieses Kachel-Layout gibt es nicht mehr.",
     "empty": "Leerer Bereich",
     "viewGone": "Dieses Widget gibt es nicht mehr.",
-    "noText": "Schreib etwas in die Einstellungen des Bereichs."
+    "noText": "Schreib etwas in die Einstellungen des Bereichs.",
+    "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt."
   },
   "textSize": {
     "s": "S",
@@ -121,5 +124,13 @@
     "remove": "Abschnitt mit seinen Widgets entfernen",
     "empty": "Noch keine Widgets hier: füge eines hinzu oder entferne den Abschnitt."
   },
-  "builtin": "Vorgefertigt"
+  "builtin": "Vorgefertigt",
+  "public": "Öffentlich",
+  "publicHint": "Öffnet ohne Anmeldung, für einen Bildschirm in der Halle. Zeigt den Plan, Switch- und Platzzahlen, ausgefallene Switches und Texte; andere Bereiche brauchen ein Konto.",
+  "publicBadge": "Öffentlich",
+  "marks": {
+    "all": "Alle",
+    "public": "Öffentliche",
+    "none": "Keine"
+  }
 }

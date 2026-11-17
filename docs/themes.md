@@ -13,7 +13,7 @@ Pick the site default under **Settings > Appearance** (or with `FLOORBIT_THEME`)
 | --- | --- | --- |
 | `floorbit` | Default everywhere | Seatbit neutrals, Bit Green accent, Trace Cyan for selection. Light and dark. |
 | `ops` | The orga desk | Denser type; the accent turns cyan so green on screen only ever means "up". |
-| `kiosk` | The big screen in the hall | Pure black, stronger lines, larger type. Dark only. The default on `/kiosk`. |
+| `kiosk` | The big screen in the hall | Pure black, stronger lines, larger type. Dark only. The default on the Kiosk dashboard and big screens (`?screen=1`). |
 | `classic` | People who liked the old look | The previous GitHub-dark surfaces and orange accent. Dark only. |
 | `custom` | An event's own look | Accent, background, panel and text colours from settings; the rest is derived. |
 
@@ -22,11 +22,11 @@ only come in one hide the button.
 
 ## One screen, another preset
 
-Add `?theme=<preset>` to any page: `/kiosk?theme=classic` or `/?theme=ops`. The browser keeps it in
+Add `?theme=<preset>` to any page: `/kiosk?theme=classic` or `/plan?theme=ops`. The browser keeps it in
 a cookie, so the hall projector stays on its preset after a reload while the orga desk uses another
 from the same server. `?theme=default` goes back to the site default.
 
-`/kiosk` uses the `kiosk` preset while the site default is `floorbit`. When the site uses `custom`
+The Kiosk dashboard uses the `kiosk` preset while the site default is `floorbit`. When the site uses `custom`
 (or any other preset), the kiosk follows it, so an event's colours reach the big screen too.
 
 ## Event name and logo
