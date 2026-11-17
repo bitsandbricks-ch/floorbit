@@ -4,15 +4,16 @@ floorbit/services.py, docs in docs/services.md.
 - ``GET /services``: the page.
 - ``GET /api/services``: every uplink and resolver with how it was when last checked, and the LAN cache.
 - ``POST /api/services/check``: check everything now (``floorplan.edit``).
-- ``POST /api/services/<kind>``, ``PUT/DELETE /api/services/<kind>/<id>`` (kind ``uplinks`` or
-  ``resolvers``): ``floorplan.edit``.
+- ``POST /api/services/<kind>``, ``PUT/DELETE /api/services/<kind>/<id>`` (kind ``uplinks``,
+  ``resolvers`` or ``sites``): ``floorplan.edit``.
+- ``POST /api/services/sites/common``: add the usual internet sites that are missing (``floorplan.edit``).
 """
 from flask import Blueprint, abort, g, jsonify, request
 
 from .. import audit, services, spa
 
 bp = Blueprint('services', __name__)
-WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver'}
+WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver', 'sites': 'internet site'}
 
 
 @bp.route('/services')
@@ -29,6 +30,14 @@ def get_services():
 def check_services():
     services.poller.poll_once()
     return jsonify(services.overview())
+
+
+@bp.route('/api/services/sites/common', methods=['POST'])
+def add_common_sites():
+    added = services.add_common_sites(g.get('audit_user'))
+    if added:
+        audit.record('floor plan', 'Added internet sites', g.get('audit_user'), ', '.join(s['name'] for s in added))
+    return jsonify({'added': len(added), **services.overview()})
 
 
 @bp.route('/api/services/<kind>', methods=['POST'])
