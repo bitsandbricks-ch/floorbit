@@ -21,4 +21,6 @@ def get_config():
         'demo': bool(registry and registry.demo_on()),
         'netbox_device_roles': rt.netbox_roles,
         'display_defaults':  rt.display_defaults,
+        # New seat blocks in the editor start from these (Settings > Floor plan).
+        'floorplan_defaults': rt.floorplan_defaults,
     })

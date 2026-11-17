@@ -48,7 +48,7 @@ C,20,60,12,2,90
 | `x`, `y` | yes | The block's centre, in percent of the plan box (0 to 100 is the box the background image fills; the plan has no edge, so values outside it work too). A decimal comma works. |
 | `cols`, `rows` | yes | Seats per row and rows. |
 | `rotation` | no | Degrees, 0 by default. |
-| `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Sizes in percent of the plan, as in the editor. |
+| `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Kept for older files; every block draws its seats at the same size. |
 | `reverse_numbers` | no | `true` to number right to left. |
 | `naming` | no | `block` (default: `<name>-1` to `<name>-<n>`) or `rows` (a letter per row, see below). |
 | `row_start`, `row_labels` | no | With `rows`: the first row's letter (`A`), and where the letter is drawn: `start`, `end`, `both` or `none`. |
@@ -69,7 +69,13 @@ A seat block names its seats in one of two ways:
 
 Turning a block (the Rotation buttons, or <kbd>R</kbd> and <kbd>Shift</kbd>+<kbd>R</kbd> on the floor plan)
 turns the numbering with it: seat 1 and the first row letter stay where a reader starts, left and top as seen.
-**Reverse numbering** runs the numbers the other way.
+**Seat 1 on the right** runs the numbers the other way.
+
+**Defaults:** every block draws its seats at the same size and spacing. What a new block starts with (seat
+names, where the row letter goes, seat 1 on the left or right, and the room between blocks made at once) is
+set under Settings > Floor plan (`FLOORPLAN_NAMING`, `FLOORPLAN_ROW_LABELS`, `FLOORPLAN_REVERSE_NUMBERS`,
+`FLOORPLAN_BLOCK_GAP`); the New seat block dialog keeps the rest under **More options**, and a block's details
+can still change it later.
 
 **Add several blocks at once:** in the New seat block dialog, set **How many blocks**, whether the next one
 goes below or to the right, and the gap. The row letters (or single-letter block names) count on, so 4 blocks
