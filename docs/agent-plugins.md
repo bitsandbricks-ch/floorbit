@@ -44,7 +44,9 @@ its own, not even after the agent restarts.
 
 A plugin that works on the inventory's devices (`agent: {targets: {credentials: [ssh]}}`) gets the
 devices it is turned on for (on the device, a tag or a group) that have a credential of a kind it
-can use. A device without credentials, or with the plugin off, is never asked.
+can use. A device without credentials, or with the plugin off, is never asked. They arrive in
+`settings["targets"]`; a hosted `agent_settings(settings)` hook sees them first and may merge them
+with devices it keeps itself.
 
 ### Privacy
 

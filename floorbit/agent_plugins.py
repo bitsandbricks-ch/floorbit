@@ -44,6 +44,11 @@ def config(registry=None):
     for spec in agent_specs(registry):
         block = spec.agent
         settings = registry.settings_of(spec)
+        if block.get('targets'):
+            # The devices this plugin may work on: enabled for them (device, group, tag) and with
+            # credentials, as the inventory resolves it (inventory_scope, docs/agent-plugins.md).
+            # Before agent_settings, so a plugin with devices of its own can merge both lists.
+            settings = {**settings, 'targets': plugin_targets(spec.id, block['targets'].get('credentials'))}
         cls = spec.plugin_class()
         if cls is not None and callable(getattr(cls, 'agent_settings', None)):
             # Settings kept elsewhere (Settings > Telemetry): the hosted part says what the agent gets.
@@ -53,10 +58,6 @@ def config(registry=None):
             except PluginError as exc:
                 registry.log(spec.id, f'agent_settings: {exc}')
                 continue
-        if block.get('targets'):
-            # The devices this plugin may work on: enabled for them (device, group, tag) and with
-            # credentials, as the inventory resolves it (inventory_scope, docs/agent-plugins.md).
-            settings = {**settings, 'targets': plugin_targets(spec.id, block['targets'].get('credentials'))}
         plugins[spec.id] = {
             'version': str(spec.manifest.get('version', '')),
             'settings': settings,
