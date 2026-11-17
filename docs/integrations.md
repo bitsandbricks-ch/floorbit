@@ -7,12 +7,36 @@ from integrations import init_integrations
 init_integrations(app, load_data=load_data)
 ```
 
-Each integration reads its settings through `integrations.config`, which uses environment
-variables today. The settings page can take over later by calling
-`integrations.config.set_provider(fn)`; anything the provider doesn't return still falls back
-to the env var. `GET /api/integrations` returns `settings`, a schema of every key (label, type,
-default, whether it's secret, current value with secrets masked), so a settings UI can render
-the fields without hard-coding them.
+Each integration reads its settings through `integrations.config`. `GET /api/integrations` returns
+`settings`, a schema of every key (label, type, default, whether it's secret, current value with
+secrets masked), and the settings page renders its fields from it.
+
+## Where a setting lives
+
+Most settings are on the **Settings** page, stored in the database (or `data.json`) and in the audit
+log when they change. Each one still has its environment variable:
+
+1. a value saved on the Settings page wins,
+2. otherwise the environment variable,
+3. otherwise the default.
+
+So an existing `.env` keeps working as it is: nothing has to be imported, and the page shows where each
+value comes from. Saving a field overrides the env var; clearing it goes back to the env var. Secrets
+(tokens, passwords) are write-only on the page.
+
+These stay in the environment only, because they are needed before the database is open, or because
+whoever runs the server sets them and an admin of the app must not be able to change them:
+
+| Setting | Why it isn't on the page |
+| --- | --- |
+| `FLOORBIT_DATABASE_URL`, `FLOORBIT_DATA_FILE`, `REDIS_*`, `FLOORBIT_CLUSTER` | needed before settings can be read |
+| `SECRET_KEY`, `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD`, `OIDC_*_CLIENT_SECRET` | sign-in: the session key, the first admin, the OIDC client secrets |
+| `FLOORBIT_SECRET_KEY_FILE`, `FLOORBIT_SECRET_OLD_KEY_FILES` | the key stored logins and passwords are encrypted with ([credentials.md](credentials.md)) |
+| `TZ`, `FLOORBIT_PORT`, `FLOORBIT_VERSION` | the container itself |
+| `OUTBOUND_BLOCK_NETS`, `PROBE_NETS` | where a hosted server may send requests: the host's choice, not the event's |
+| `SYSLOG_ENABLED`, `SYSLOG_PORT`, `SYSLOG_TCP`, `SYSLOG_BIND`, `FLOWS_*` | listeners that open a port when the server starts |
+| `LANCACHE_LOG`, `LANCACHE_CACHE_DIR`, `MONITORING_CACHE_FILE`, `AUDIT_FILE` and the other state paths | paths inside the container |
+| `FLOORBIT_DEMO`, `SCREENSHOT_*` | demo and screenshot runs |
 
 ## Live push updates
 
