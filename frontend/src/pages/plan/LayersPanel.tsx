@@ -1,12 +1,13 @@
 import { Badge, Button, Divider, Popover, SegmentedControl, Slider, Stack, Switch, Text } from '@mantine/core'
 import { IconStack2 } from '@tabler/icons-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LAYERS, type LayerId, type LayerState, PRESETS, type PresetId, applyPreset, opacity, presetOf } from './layers'
 
 /** The layer picker over the Seats view: presets, one switch per layer and how strong it is drawn.
  *  ``available`` leaves out what isn't set up (no power boards, no firewall ranges, …). */
-export function LayersPanel({ state, onChange, available }: {
-  state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>
+export function LayersPanel({ state, onChange, available, legends }: {
+  state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>; legends?: LayerLegends
 }) {
   const { t } = useTranslation()
   const shown = LAYERS.filter((l) => state.on.has(l) && available[l]).length
@@ -19,15 +20,18 @@ export function LayersPanel({ state, onChange, available }: {
         </Button>
       </Popover.Target>
       <Popover.Dropdown aria-label={t('plan.layers.title')}>
-        <LayersBody state={state} onChange={onChange} available={available} />
+        <LayersBody state={state} onChange={onChange} available={available} legends={legends} />
       </Popover.Dropdown>
     </Popover>
   )
 }
 
+/** What each layer draws, shown under its switch while it is on; ``seats`` under the seats line. */
+export type LayerLegends = Partial<Record<LayerId | 'seats', ReactNode>>
+
 /** The layer presets and switches themselves: in the Layers popover, or in the plan's side panel. */
-export function LayersBody({ state, onChange, available }: {
-  state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>
+export function LayersBody({ state, onChange, available, legends = {} }: {
+  state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>; legends?: LayerLegends
 }) {
   const { t } = useTranslation()
   const preset = presetOf(state.on)
@@ -51,6 +55,7 @@ export function LayersBody({ state, onChange, available }: {
         onChange={(p) => onChange(applyPreset(state, p as PresetId))} />
       <Divider />
       <Text size="xs" c="dimmed">{t('plan.layers.seats')}</Text>
+      {legends.seats && <div className="fb-layer-legend seats">{legends.seats}</div>}
       {LAYERS.map((id) => {
         const on = state.on.has(id) && available[id]
         return (
@@ -61,6 +66,7 @@ export function LayersBody({ state, onChange, available }: {
               <Slider size="xs" min={10} max={100} step={10} value={Math.round(opacity(state, id) * 100)} label={(v) => `${v} %`}
                 onChange={(v) => fade(id, v)} thumbProps={{ 'aria-label': t('plan.layers.opacity', { layer: t(`plan.layers.item.${id}`) }) }} />
             ) : <span />}
+            {on && legends[id] && <div className="fb-layer-legend">{legends[id]}</div>}
           </div>
         )
       })}
