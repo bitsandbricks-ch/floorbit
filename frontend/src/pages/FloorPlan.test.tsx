@@ -285,6 +285,16 @@ describe('Seats page', () => {
     }
   })
 
+  it('shows the time, blocks with problems and other halls\' problems on a big screen', async () => {
+    const two = [...data.halls, { id: 'annex', name: 'Annex', seats: 2, online: 0, problems: 2 }]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, halls: two } }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?screen=1')
+    const blocks = await screen.findByLabelText('Blocks with problems')
+    expect(within(blocks).getByText('D: 1 seat')).toBeInTheDocument()
+    expect(screen.getByText('2 seats with problems in other halls')).toBeInTheDocument()
+    expect(container.querySelector('.fb-screen-clock')?.textContent).toMatch(/^\d\d:\d\d$/)
+  })
+
   it('lists the seats in a sortable table that follows the filter', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan?view=list')

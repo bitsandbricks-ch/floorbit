@@ -262,6 +262,10 @@ the totals. It reloads every 30 seconds and with each port read.
 When Floorbit stops answering (the network or the server is down), a red "Not updated since …"
 badge appears next to the totals, on the big screen and in Live mode, so nobody takes old seat
 states for live ones. It goes away by itself with the next answer.
+In the top right corner the big screen shows the time, the blocks with problems (most first, up to
+six, e.g. "D: 2 seats"), and how many seats have problems in the other halls, so the crew sees where
+to go from across the room. While it rotates through the halls, the other halls come up anyway, so
+that last line is left out.
 
 With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
 hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A
