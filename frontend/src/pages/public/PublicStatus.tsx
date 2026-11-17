@@ -124,7 +124,7 @@ export default function PublicStatus() {
     )
   }
   return (
-    <PublicPage title={title} wide>
+    <PublicPage title={title} size="page">
       {feed.stale && <StaleNote since={feed.lastGood} />}
       <Stack gap="md">{body}</Stack>
     </PublicPage>

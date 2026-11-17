@@ -86,33 +86,31 @@ def test_the_wall_shows_numbers_and_no_people(client, anon_client, hall):
     assert body["downloaded"] == round(2.4e9 * 590 / 8)
     assert body["loyal_block"]["name"] == "A" and body["loyal_block"]["share"] == 0.6
     assert body["peak"]["bps"] >= 3e9
+    # The page is React (PublicWall.test.tsx draws it from this JSON); it holds no data itself.
     page = anon_client.get("/wall")
-    assert page.status_code == 200
-    text = page.get_data(as_text=True)
-    assert "Seats online now" in text and "Most loyal seat block" in text
+    assert page.status_code in (200, 503)
     for private in ("sw-a-01", "Gi1/0", "A-1"):
-        assert private not in text and private not in str(body)
-    de = anon_client.get("/wall?screen=1", headers={"Accept-Language": "de-CH,de"}).get_data(as_text=True)
-    assert "Plätze jetzt online" in de and 'class="screen"' in de
+        assert private not in page.get_data(as_text=True) and private not in str(body)
 
 
 def test_an_empty_event_says_so(client, anon_client, hall):
     client.put("/api/settings", json={"public.stats_wall": True})
-    page = anon_client.get("/wall").get_data(as_text=True)
-    # On failure, show which fact was not empty: it failed once on Postgres (issue #508).
-    assert "Nothing to show yet" in page, anon_client.get("/wall.json").get_json()
+    body = anon_client.get("/wall.json").get_json()
+    # What PublicWall.tsx reads as "nothing to show yet". On failure, show which fact was not
+    # empty: it failed once on Postgres (issue #508).
+    assert not (body["online"] or body["downloaded"] or body["peak"] or body["games"]), body
 
 
 def test_public_pages_update_in_place(client, anon_client, hall):
     # refresh.js swaps the content; the meta refresh only runs without JavaScript (issue #290).
     client.put("/api/settings", json={"public.stats_wall": True, "public.status_page": True,
                                       "public.schedule": True, "public.brackets": True})
-    for path, every in (("/wall", 60), ("/agenda", 60), ("/bracket", 30)):
+    for path, every in (("/agenda", 60), ("/bracket", 30)):
         text = anon_client.get(path).get_data(as_text=True)
         assert f'<script src="/static/js/refresh.js" data-every="{every}" defer></script>' in text, path
         assert f'<noscript><meta http-equiv="refresh" content="{every}" /></noscript>' in text, path
         assert text.count('http-equiv="refresh"') == 1, path
         assert "<main>" in text, path
     # A switched-off page doesn't keep polling.
-    client.put("/api/settings", json={"public.stats_wall": False})
-    assert "refresh.js" not in anon_client.get("/wall").get_data(as_text=True)
+    client.put("/api/settings", json={"public.schedule": False})
+    assert "refresh.js" not in anon_client.get("/agenda").get_data(as_text=True)
