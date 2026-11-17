@@ -45,6 +45,7 @@ PUBLIC_READ_PATHS = ('/api/auth/me', '/api/plugins/menu',   # answer for "nobody
 PUBLIC_READ_EXACT = ('/api/seats',)    # not /api/seats/info and the rest below it
 MAX_FAILURES = 5                 # per address and username ...
 FAILURE_WINDOW = 300             # ... within this many seconds
+MAX_FAILURE_KEYS = 10000         # address/username pairs remembered before stale ones are dropped
 
 
 def _env_bool(name, default):
@@ -293,7 +294,7 @@ class Auth:
     def _failure_key(self, username):
         # The real client behind a trusted proxy: else one guesser locks the name for everyone.
         from integrations import checkin
-        return (checkin.client_ip() or '?', (username or '').strip().lower())
+        return (checkin.client_ip() or '?', (username or '').strip().lower()[:200])
 
     def locked_for(self, username):
         now = time.time()
@@ -306,6 +307,10 @@ class Auth:
         key = self._failure_key(username)
         now = time.time()
         self._failures[key] = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW] + [now]
+        if len(self._failures) > MAX_FAILURE_KEYS:
+            # Every made-up username is a new key: forget the stale ones so guessing can't fill memory.
+            for stale in [k for k, v in self._failures.items() if now - v[-1] >= FAILURE_WINDOW]:
+                self._failures.pop(stale, None)
 
     def sign_in(self, user, provider_id):
         self._failures.pop(self._failure_key(user['username']), None)
