@@ -16,7 +16,7 @@
 Changing the network from an event that isn't live (port actions, switch commands, the terminal,
 RCON) is refused: those always reach the live event's network.
 """
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
@@ -88,8 +88,16 @@ def _error(exc):
     return jsonify({'error': str(exc)}), getattr(exc, 'status', 400)
 
 
+def _public(event):
+    out = {k: v for k, v in event.items() if k != 'folder'}
+    if not out.get('name') and event['id'] == tenancy.FIRST_EVENT:
+        # The first event was named in the theme settings before events had names of their own.
+        out['name'] = current_app.extensions['floorbit_settings'].get('theme.name') or ''
+    return out
+
+
 def _listing():
-    return {'events': [{k: v for k, v in e.items() if k != 'folder'} for e in tenancy.events()],
+    return {'events': [_public(e) for e in tenancy.events()],
             'live': tenancy.live()['id'], 'current': g.tenant_event['id']}
 
 

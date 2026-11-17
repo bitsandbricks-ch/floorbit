@@ -239,3 +239,20 @@
 }
 .fb-skip:focus-visible { transform: none; }
 main[tabindex="-1"]:focus, main[tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }
+
+/* Working on an event that isn't live (components/EventBanner.tsx). */
+.fb-event-banner { align-items: center; background: color-mix(in srgb, var(--color-warn) 10%, var(--color-surface)); }
+.fb-event-banner > svg { color: var(--color-warn); }
+.fb-event-banner > div { flex: 1; min-width: 0; }
+.fb-event-banner-back {
+  flex: none; padding: 6px 12px; border: 1px solid var(--color-line); border-radius: 8px;
+  background: var(--color-surface); color: var(--color-fg); font: inherit; font-weight: 600; cursor: pointer;
+}
+.fb-event-banner-back:hover { background: var(--fb-nav-hover); }
+.fb-event-banner.is-floating { top: auto; bottom: 16px; }
+@media (max-width: 767.98px) {
+  .fb-event-banner { flex-wrap: wrap; }
+  .fb-event-banner > div { flex-basis: calc(100% - 28px); }
+  .fb-event-banner-back { margin-left: 28px; }
+  .fb-event-banner.is-floating { bottom: 88px; }   /* above the bottom bar */
+}
