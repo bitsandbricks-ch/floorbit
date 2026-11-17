@@ -27,10 +27,10 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
 | The Traffic page (NetFlow and IPFIX), when the agent collects flows (`FLOORBIT_AGENT_FLOWS_PORT`) | traffic |
 | Port actions (SSH ports), switch commands, config backups and the switch terminal | switch SSH |
+| Attendee check-in, the seat help page and its speed test, with each PC's own address | front door |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, electrics
-readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
-inside the hall), and so on.
+readings typed in, tournaments, and so on.
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
 
@@ -246,6 +246,36 @@ same **SSH port actions** plugin with the hosted settings; nothing to set on the
 - **Terminals** live on the agent (at most 10). The browser reads them through the hosted side as
   before; a terminal nobody reads for 90 seconds is closed on the agent. If the agent goes away,
   the terminal says the connection was lost.
+
+## Attendees through the agent (front door)
+
+A hosted Floorbit sees every attendee as the hall's one public NAT address, so check-in can't tell
+which PC asks, the seat speed test measures the internet line, and all attendees share one
+sign-in lockout. The agent's **front door** fixes that: it answers on the event network and passes
+each request on to the hosted Floorbit, adding the address it saw and its own key.
+
+Set on the agent:
+
+| Variable | Example | What |
+| --- | --- | --- |
+| `FLOORBIT_AGENT_FRONT_DOOR` | `0.0.0.0:8443` | Where it answers (host:port). Off by default. |
+| `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | `/certs/checkin.pem` | Serve HTTPS. Crew sign-in needs it (session cookies only go over HTTPS); check-in works on plain HTTP. |
+| `FLOORBIT_AGENT_FRONT_DOOR_PROXIES` | `10.0.0.5` | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
+
+Then point the check-in name (`CHECKIN_ADDRESS`, for example `checkin.lan`) at the agent in the
+event DNS: typing it on a PC opens the check-in page, through the agent.
+
+- **The hosted side only believes the agent.** `Floorbit-Client-IP` counts only on a request that
+  also carries a valid agent key (`Floorbit-Front-Door`); a revoked key stops counting within 30
+  seconds. The agent drops whatever a client sends under those names, and `X-Forwarded-For`.
+- **The speed test measures the hall.** Its data (`/help/<seat>/speed/ping`, `down`, `up`) is
+  answered by the agent itself, with the same per-client budget, so the result is the seat's path
+  to the agent. The result goes to the hosted side as before.
+- **Nothing else is reachable through it.** It only talks to the hosted Floorbit, and never passes
+  on the agent's own API (`/api/agent/`).
+- **When the hosted side is away,** attendees get a short page in English and German that tries
+  again every 30 seconds, instead of an error. The Local agents page counts what went through and
+  what failed.
 
 ## Cables through the agent
 
