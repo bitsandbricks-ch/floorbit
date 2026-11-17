@@ -259,3 +259,9 @@ def test_inspector_says_what_was_fixed_at_the_seat_before(client, hall):
     d = client.get("/api/plan/seats/D-6").get_json()
     assert d["fixed_before"]["count"] == 2 and d["fixed_before"]["last"]["title"] == "Slow again"
     assert d["fixed_before"]["last"]["fixed_at"] and [i["title"] for i in d["incidents"]] == ["Down"]
+
+
+def test_the_plan_says_which_switches_were_added_by_hand(client):
+    client.post("/api/switches", json={"name": "sw-x-01", "x": 10, "y": 5})
+    switches = client.get("/api/plan").get_json()["switches"]
+    assert [(w["name"], w["manual"]) for w in switches] == [("sw-x-01", True)]

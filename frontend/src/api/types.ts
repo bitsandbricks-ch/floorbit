@@ -1356,6 +1356,8 @@ export interface PlanSwitch {
   id: string
   name: string
   status: string
+  /** Added by hand on the plan (deleting removes it), not from the inventory (deleting unplaces it). */
+  manual?: boolean
   x: number
   y: number
 }

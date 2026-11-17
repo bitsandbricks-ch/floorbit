@@ -145,7 +145,9 @@ def _switches(data, hall_id, box):
         if dev.get('x') is None or dev.get('y') is None or halls.hall_of(dev, data, ids) != hall_id:
             continue
         status = (statuses.get(dev['id']) or {}).get('status') or 'unknown'
+        # ``manual``: added by hand, so the editor deletes it; an inventory switch only leaves the plan.
         out.append({'id': dev['id'], 'name': dev.get('name') or '', 'status': status,
+                    'manual': (dev.get('origin') or 'manual') == 'manual',
                     'x': float(dev['x']) / 100 * PLAN_W, 'y': float(dev['y']) / 100 * PLAN_H})
     return out
 

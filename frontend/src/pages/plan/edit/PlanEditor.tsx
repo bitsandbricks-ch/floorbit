@@ -599,6 +599,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const pick = (next: ItemRef[]) => setSelection(withGroups(data, next, groups))
   const grouped = groupsOf(groups, selected).length > 0 || selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
   const movable = selected.filter((r) => r.kind !== 'cable')
+  // Inventory switches only leave the plan (they stay in the inventory): say so on the button.
+  const onlyUnplace = selected.length > 0 && selected.every((r) => r.kind === 'switch' && !data.switches.find((w) => w.id === r.id)?.manual)
   // Group again only when that changes something: not one whole group already.
   const canGroup = movable.length > 1 && !(groupsOf(groups, movable).length === 1 && groupsOf(groups, movable)[0].members.every((m) => movable.some((r) => sameRef(r, m))))
 
@@ -674,7 +676,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 {selected.length > 0 && (
                   <>
                     <Menu.Divider />
-                    <Menu.Item color="down" leftSection={<IconTrash size={14} />} rightSection={<Kbd size="xs">Del</Kbd>} onClick={() => void remove(selected)}>{t('plan.edit.menu.delete')}</Menu.Item>
+                    <Menu.Item color="down" leftSection={<IconTrash size={14} />} rightSection={<Kbd size="xs">Del</Kbd>} onClick={() => void remove(selected)}>{t(onlyUnplace ? 'plan.edit.menu.unplace' : 'plan.edit.menu.delete')}</Menu.Item>
                   </>
                 )}
               </>
@@ -704,6 +706,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             </Group>
           </Group>
           {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} />}
+          {one?.kind === 'switch' && (
+            <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
+          )}
           {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
             <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
           )}
@@ -724,7 +729,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           )}
           {selected.length > 0 && (
             <Button variant="light" color="down" leftSection={<IconTrash size={16} />} onClick={() => void remove(selected)}>
-              {t('plan.edit.delete', { count: selected.length })}
+              {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
             </Button>
           )}
           {!selected.length && (
