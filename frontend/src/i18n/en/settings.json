@@ -47,7 +47,13 @@
     "ops": "Ops desk (dense, cyan accent)",
     "kiosk": "Kiosk (big screen, dark)",
     "classic": "Classic (the old orange look, dark)",
-    "custom": "Custom (your event colours below)"
+    "custom": "Custom (your event colours below)",
+    "rows": "A letter per row: A-1, A-2 … then B-1, B-2",
+    "block": "Block name and a number: A-1 to A-24",
+    "start": "Before seat 1",
+    "end": "After the last seat",
+    "both": "On both ends",
+    "none": "Hidden"
   },
   "backup": {
     "title": "Backup and restore",
@@ -97,6 +103,14 @@
     "metrics": {
       "title": "Prometheus metrics",
       "desc": "GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an API token (Settings > API) that has a read-only viewer role."
+    },
+    "floorplan": {
+      "title": "Floor plan",
+      "desc": "Defaults for new seat blocks in the floor plan editor. Every block draws its seats at the same size and spacing; a block can still be set differently in its details."
+    },
+    "cabling": {
+      "title": "Cabling",
+      "desc": "Cables drawn on the floor plan: LAN and fiber from switch ports to seats, uplinks, and power."
     },
     "appearance": {
       "title": "Appearance",
@@ -199,6 +213,24 @@
     "public_schedule": {
       "label": "Schedule and countdown",
       "help": "/agenda shows the countdown to the event, what is on now and next, and the programme, for big screens (/agenda?screen=1) and phones. Off by default."
+    },
+    "floorplan_naming": {
+      "label": "Seat names"
+    },
+    "floorplan_row_labels": {
+      "label": "Row letter"
+    },
+    "floorplan_reverse_numbers": {
+      "label": "Seat 1 on the right",
+      "help": "Number the seats from the right as seen on the plan, instead of from the left."
+    },
+    "floorplan_block_gap": {
+      "label": "Room between copied blocks",
+      "help": "When several blocks are made at once, the space between one and the next, in % of the plan."
+    },
+    "cabling_auto": {
+      "label": "Draw cables automatically",
+      "help": "Draw a cable from the switch to every seat whose port is known (from the cables and the port descriptions), routed along the seat blocks. Turn it off when seats are patched through panels and draw the cables you want with the Cable tool instead."
     },
     "theme_preset": {
       "label": "Theme"

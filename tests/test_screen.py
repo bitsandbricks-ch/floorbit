@@ -94,6 +94,15 @@ def test_seat_traffic_for_the_heat_view(client, app_module):
     assert client.get("/api/stats/seats").get_json() == {"seats": {"D-6": 6_000_000}, "last_poll": 1000}
 
 
+def test_plan_shapes_name_their_block():
+    """The React editor selects blocks by id."""
+    from floorbit.blueprints.screen import plan
+    data = {'seat_blocks': [{'id': 'b1', 'name': 'A', 'x': 30, 'y': 30, 'cols': 2, 'rows': 1}]}
+    assert plan(data)[0]['shapes'][0]['id'] == 'b1'
+    data['seat_blocks'][0]['group'] = 'g-1'
+    assert plan(data)[0]['shapes'][0]['group'] == 'g-1'
+
+
 def test_plan_box_takes_in_every_block():
     """The fit box covers all blocks of the hall, not only the last one, and not the origin."""
     from floorbit.blueprints.screen import CELL, PLAN_H, PLAN_W, plan

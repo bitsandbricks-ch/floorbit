@@ -78,13 +78,13 @@ def test_a_missing_checkin_is_not_a_problem(client, app_module, hall, monkeypatc
 
 
 def test_editor_has_the_seat_states_layer(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/editor/classic").get_data(as_text=True)
     assert 'id="btn-seat-states"' in page and "/static/js/editor/seat-states.js" in page
     assert page.index("editor/seat-states.js") < page.index("editor/main.js")
 
 
 def test_notifications_script_is_on_the_editor(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/editor/classic").get_data(as_text=True)
     assert "/static/js/notify.js" in page
 
 
@@ -259,3 +259,9 @@ def test_inspector_says_what_was_fixed_at_the_seat_before(client, hall):
     d = client.get("/api/plan/seats/D-6").get_json()
     assert d["fixed_before"]["count"] == 2 and d["fixed_before"]["last"]["title"] == "Slow again"
     assert d["fixed_before"]["last"]["fixed_at"] and [i["title"] for i in d["incidents"]] == ["Down"]
+
+
+def test_the_plan_says_which_switches_were_added_by_hand(client):
+    client.post("/api/switches", json={"name": "sw-x-01", "x": 10, "y": 5})
+    switches = client.get("/api/plan").get_json()["switches"]
+    assert [(w["name"], w["manual"]) for w in switches] == [("sw-x-01", True)]

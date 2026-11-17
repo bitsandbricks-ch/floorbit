@@ -220,6 +220,7 @@ RULES = (
     ('/api/services', WRITE, 'floorplan.edit'),
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/plan-marks', WRITE, 'floorplan.edit'),
+    ('/api/plan-groups', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),
     ('/api/tournament', WRITE, 'floorplan.edit'),
@@ -261,6 +262,7 @@ RULES = (
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
+    ('/api/cable-plan', WRITE, 'floorplan.edit'),
     # Which seats a range of ports roughly goes to: part of the patch plan (floorbit/port_areas.py).
     ('/api/port-areas/lookup', None, 'seats.view'),
     ('/api/port-areas', WRITE, 'floorplan.edit'),

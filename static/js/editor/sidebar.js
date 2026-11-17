@@ -228,13 +228,15 @@ universalSearch.addEventListener('keydown', (e) => {
 });
 // ── Tool selection ───────────────────────────────────────────────────────────────────
 const TOOL_HINTS = {
-  'add-switch': 'Click on the map to place a switch · Esc to cancel',
-  'add-block':  'Click on the map to place a seat block · Esc to cancel',
+  'add-switch': 'Click on the map to place switches · Esc or V to stop',
+  'add-block':  'Click on the map to place seat blocks · Esc or V to stop',
   'add-text':   'Click on the map to place a label · Esc to cancel',
-  'add-icon':   'Click on the map to place the icon · Esc to cancel',
-  'add-wall':   'Click where the wall starts, then where it ends · Esc to stop',
-  'add-dashed': 'Click where the line starts, then where it ends · Esc to stop',
-  'add-zone':   'Click one corner of the zone, then the opposite one · Esc to cancel',
+  'add-icon':   'Click on the map to place icons · Esc or V to stop',
+  'add-wall':   'Click where the wall starts, then where it ends · Esc or V to stop',
+  'add-dashed': 'Click where the line starts, then where it ends · Esc or V to stop',
+  'add-zone':   'Click one corner of the zone, then the opposite one · Esc or V to stop',
+  'cable-lan':  'Click the switch the cable starts at · Esc to stop',
+  'cable-power': 'Click the distribution board the cable starts at · Esc to stop',
 };
 
 function setTool(tool) {
@@ -244,6 +246,8 @@ function setTool(tool) {
   toolAddBlock.classList.toggle('active', tool === 'add-block');
   $('tool-draw')?.classList.toggle('active', /^add-(text|icon|wall|dashed|zone)$/.test(tool));
   if (typeof markDraft !== 'undefined') markDraft = null;
+  $('tool-cable')?.classList.toggle('active', tool.startsWith('cable-'));
+  if (typeof cableToolChanged === 'function') cableToolChanged();
   wrapper.dataset.tool = tool;
   toolHint.textContent = TOOL_HINTS[tool] || '';
   toolHint.classList.toggle('hidden', !TOOL_HINTS[tool]);

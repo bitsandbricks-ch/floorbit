@@ -49,6 +49,11 @@ SECTIONS = [
      'description': 'GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, '
                     'incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an '
                     'API token (Settings > API) that has a read-only viewer role.'},
+    {'id': 'floorplan', 'title': 'Floor plan',
+     'description': 'Defaults for new seat blocks in the floor plan editor. Every block draws its seats at the same '
+                    'size and spacing; a block can still be set differently in its details.'},
+    {'id': 'cabling', 'title': 'Cabling',
+     'description': 'Cables drawn on the floor plan: LAN and fiber from switch ports to seats, uplinks, and power.'},
     {'id': 'appearance', 'title': 'Appearance',
      'description': 'The look of every page. A screen can pick its own preset with ?theme= '
                     '(for example /kiosk?theme=kiosk); ?theme=default goes back to this one.'},
@@ -147,6 +152,27 @@ FIELDS = [
          env='SCHEDULE_PAGE', default=False,
          help='/agenda shows the countdown to the event, what is on now and next, and the programme, for big '
               'screens (/agenda?screen=1) and phones. Off by default.'),
+
+    dict(key='floorplan.naming', section='floorplan', label='Seat names', type='choice',
+         options=[{'value': 'rows', 'label': 'A letter per row: A-1, A-2 … then B-1, B-2'},
+                  {'value': 'block', 'label': 'Block name and a number: A-1 to A-24'}],
+         env='FLOORPLAN_NAMING', default='rows'),
+    dict(key='floorplan.row_labels', section='floorplan', label='Row letter', type='choice',
+         options=[{'value': 'start', 'label': 'Before seat 1'}, {'value': 'end', 'label': 'After the last seat'},
+                  {'value': 'both', 'label': 'On both ends'}, {'value': 'none', 'label': 'Hidden'}],
+         env='FLOORPLAN_ROW_LABELS', default='start'),
+    dict(key='floorplan.reverse_numbers', section='floorplan', label='Seat 1 on the right', type='bool',
+         env='FLOORPLAN_REVERSE_NUMBERS', default=False,
+         help='Number the seats from the right as seen on the plan, instead of from the left.'),
+    dict(key='floorplan.block_gap', section='floorplan', label='Room between copied blocks', type='int', unit='%',
+         env='FLOORPLAN_BLOCK_GAP', default=3, min=0, max=50,
+         help='When several blocks are made at once, the space between one and the next, in % of the plan.'),
+
+    dict(key='cabling.auto', section='cabling', label='Draw cables automatically', type='bool',
+         env='CABLE_AUTO', default=True,
+         help='Draw a cable from the switch to every seat whose port is known (from the cables and the '
+              'port descriptions), routed along the seat blocks. Turn it off when seats are patched through '
+              'panels and draw the cables you want with the Cable tool instead.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),

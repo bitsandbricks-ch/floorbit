@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 
-export type EntityKind = 'switches' | 'ports' | 'seats' | 'blocks' | 'halls' | 'firewalls' | 'agents' | 'users' | 'teams'
+export type EntityKind = 'switches' | 'ports' | 'seats' | 'blocks' | 'halls' | 'firewalls' | 'agents' | 'users' | 'teams' | 'panels' | 'panel-ports'
 export interface EntityOption { value: string; label: string; group?: string; hint?: string; used?: string | null }
 
 type Props = Omit<SelectProps, 'data' | 'value' | 'onChange'> & {
@@ -13,6 +13,8 @@ type Props = Omit<SelectProps, 'data' | 'value' | 'onChange'> & {
   onChange: (value: string) => void
   /** Ports: the switch whose ports to list. */
   switchName?: string
+  /** Panel ports: the patch panel whose ports to list. */
+  panelName?: string
   /** Ports: also list the ones a cable already holds (marked with who holds them). */
   showUsed?: boolean
 }
@@ -20,22 +22,25 @@ type Props = Omit<SelectProps, 'data' | 'value' | 'onChange'> & {
 /** Every field that names something Floorbit knows (a switch, a port, a seat, a block, a team...)
  *  picks it from the real list (GET /api/options/<kind>, floorbit/blueprints/options.py), never
  *  free text. Ports list only free ones unless asked; the current value always stays listed. */
-export function EntitySelect({ kind, value, onChange, switchName, showUsed = false, ...rest }: Props) {
+export function EntitySelect({ kind, value, onChange, switchName, panelName, showUsed = false, ...rest }: Props) {
   const { t } = useTranslation()
-  const needsSwitch = kind === 'ports'
+  // Ports belong to a switch, panel ports to a patch panel: nothing to list until that is picked.
+  const parent = kind === 'ports' ? { key: 'switch', name: switchName } : kind === 'panel-ports' ? { key: 'panel', name: panelName } : null
+  const needsSwitch = !!parent
   const query = useQuery({
-    queryKey: qk.options(kind, switchName ?? ''),
-    queryFn: () => get<{ options: EntityOption[] }>(`/api/options/${kind}${needsSwitch ? `?switch=${encodeURIComponent(switchName ?? '')}` : ''}`),
-    enabled: !needsSwitch || Boolean(switchName),
+    queryKey: qk.options(kind, parent?.name ?? ''),
+    queryFn: () => get<{ options: EntityOption[] }>(`/api/options/${kind}${parent ? `?${parent.key}=${encodeURIComponent(parent.name ?? '')}` : ''}`),
+    enabled: !parent || Boolean(parent.name),
     staleTime: 30_000,
   })
   const all = query.data?.options ?? []
-  // A switch the monitoring source can't list ports for: say so and let the crew type the port.
-  if (needsSwitch && switchName && query.isSuccess && all.length === 0) {
+  // A switch the monitoring source can't list ports for (or a panel without its port count): say so
+  // and let the crew type the port.
+  if (parent?.name && query.isSuccess && all.length === 0) {
     return (
-      // eslint-disable-next-line no-restricted-syntax -- the one place a port is typed: the source lists none
-      <TextInput label={rest.label} required={rest.required} error={rest.error} placeholder="Gi1/0/1"
-        description={t('ui.noPortList')} value={value ?? ''} onChange={(e) => onChange(e.currentTarget.value)} />
+      // The one place a port is typed: the source lists none.
+      <TextInput label={rest.label} required={rest.required} error={rest.error} placeholder={kind === 'ports' ? 'Gi1/0/1' : '1'}
+        description={t(kind === 'ports' ? 'ui.noPortList' : 'ui.noPanelPorts')} value={value ?? ''} onChange={(e) => onChange(e.currentTarget.value)} />
     )
   }
   const shown = all.filter((o) => showUsed || !o.used || o.value === value)
@@ -47,8 +52,8 @@ export function EntitySelect({ kind, value, onChange, switchName, showUsed = fal
   return (
     <Select searchable clearable={!rest.required} allowDeselect={false} data={data} value={value || null}
       onChange={(v) => onChange(v ?? '')}
-      disabled={rest.disabled || (needsSwitch && !switchName)}
-      placeholder={needsSwitch && !switchName ? t('ui.pickSwitchFirst') : rest.placeholder}
+      disabled={rest.disabled || (needsSwitch && !parent?.name)}
+      placeholder={needsSwitch && !parent?.name ? t(kind === 'ports' ? 'ui.pickSwitchFirst' : 'ui.pickPanelFirst') : rest.placeholder}
       nothingFoundMessage={query.isPending ? t('common.loading') : t('ui.nothingFound')}
       renderOption={({ option, checked }) => {
         const o = byValue.get(option.value)

@@ -434,11 +434,14 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 /* ── Switch marker ─────────────────────────────────────────────────────────── */
 .switch-marker {
   position: absolute;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%);   /* the switch box is centred on its spot */
   display: flex; flex-direction: column; align-items: center;
   pointer-events: all; cursor: grab; user-select: none;
-  z-index: 4;   /* above seat blocks, so a switch in a lane between rows stays on top */
 }
+/* Switches always draw over seat blocks, seats and marks: their overlay has its own layer on top. */
+#marks-svg, #marks-overlay { z-index: 1; }
+#blocks-overlay, #seats-overlay, #group-frames { z-index: 2; }
+#switches-overlay { z-index: 4; }
 .switch-marker:hover    { z-index: 6; filter: brightness(1.2) drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .switch-marker.dragging { cursor: grabbing; z-index: 10; }
 .switch-marker.selected { z-index: 7; }
@@ -446,15 +449,15 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 .switch-marker.marquee-hit .switch-pin { filter: drop-shadow(0 0 4px var(--color-trace)); }
 .switch-marker.dimmed   { opacity: .25; }
 
-.switch-pin { position: relative; width: 16px; height: 21px; color: var(--unknown); flex-shrink: 0; }
+.switch-pin { position: relative; width: 24px; height: 16px; color: var(--unknown); flex-shrink: 0; }
 .switch-pin svg { width: 100%; height: 100%; display: block; }
 .switch-pin.status-online  { color: var(--success); }
 .switch-pin.status-offline { color: var(--danger); }
 .switch-pin.status-warning { color: var(--warning); }
 .switch-pin.status-unknown { color: var(--unknown); }
 .switch-pin.status-online::after {
-  content: ''; position: absolute; top: 6px; left: 50%;
-  width: 12px; height: 12px; border-radius: 50%;
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 22px; height: 14px; border-radius: 4px;
   border: 1.5px solid var(--success); opacity: 0;
   transform: translate(-50%, -50%);
   animation: pulse 2.5s ease-out infinite;
@@ -469,6 +472,7 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
 }
 
 .switch-label {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   font-size: 10px; font-weight: 600; color: var(--text-primary);
   background: var(--label-bg);
   padding: 1px 5px; border-radius: 4px; border: 1px solid var(--label-border);
@@ -1163,3 +1167,34 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
   background: color-mix(in srgb, var(--color-trace) 5%, transparent);
 }
 .multi-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* Cables on the plan (static/js/editor/cables.js): over the seat blocks, under the switches. The
+   strokes keep their width at any zoom; only the line itself takes clicks. */
+#cables-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+#cables-svg .cable { --cable: color-mix(in srgb, var(--color-trace) 55%, var(--color-muted)); }
+#cables-svg .media-copper { --cable: var(--color-trace); }
+#cables-svg .media-fiber { --cable: var(--color-bit); }
+#cables-svg .media-dac { --cable: var(--color-fg); }
+#cables-svg .cable-power { --cable: var(--color-warn); }
+#cables-svg .cable-line { fill: none; stroke: var(--cable); stroke-linecap: round; stroke-linejoin: round; opacity: 0.75; vector-effect: non-scaling-stroke; }
+#cables-svg .cable-uplink .cable-line { stroke-dasharray: none; opacity: 0.95; }
+#cables-svg .cable-power .cable-line { stroke-dasharray: 6 3; }
+#cables-svg .cable-hit { fill: none; stroke: transparent; stroke-width: 10px; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
+#cables-svg .cable:hover .cable-line, #cables-svg .cable.selected .cable-line { opacity: 1; filter: drop-shadow(0 0 2px var(--cable)); }
+#cables-svg .cable.selected .cable-hit { cursor: copy; }
+#cables-svg .cable-bend, #cables-svg .cable-end { pointer-events: all; vector-effect: non-scaling-stroke; stroke-width: 2px;
+  transform-box: fill-box; transform-origin: center; transform: scale(calc(1 / var(--cable-k, 1))); }
+#cables-svg .cable-bend { fill: var(--color-surface); stroke: var(--cable); cursor: move; }
+#cables-svg .cable-end { fill: var(--cable); stroke: var(--color-surface); }
+#cables-svg .cable-draft { fill: none; stroke: var(--color-trace); stroke-width: 2px; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+#cables-svg .cable-panel { pointer-events: all; cursor: move; }
+#cables-svg .cable-panel rect { fill: var(--color-surface); stroke: var(--color-trace); stroke-width: 1.5px; }
+#cables-svg .cable-panel path { stroke: var(--color-trace); stroke-width: 3px; stroke-linecap: round; }
+#cables-svg .cable-panel text { fill: var(--text-secondary); font-size: 10px; font-weight: 700; text-anchor: middle; }
+.read-only #cables-svg .cable-panel { cursor: default; }
+.floorplan-wrapper[data-tool^="cable-"] .switch-marker, .floorplan-wrapper[data-tool^="cable-"] .seat-block-seat,
+.floorplan-wrapper[data-tool^="cable-"] .seat-block, .floorplan-wrapper[data-tool^="cable-"] .power-board { cursor: crosshair; }
+#cable-form .form-grid { margin-top: var(--sp-2); }
+/* The block dialog's "More options" (templates/index.html). */
+.block-more > summary { cursor: pointer; color: var(--text-secondary); font-size: var(--fs-sm, 13px); padding: var(--sp-1) 0; }
+.block-more[open] > summary { margin-bottom: var(--sp-2); }

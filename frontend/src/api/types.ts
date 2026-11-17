@@ -643,6 +643,10 @@ export interface PlanCell {
 }
 
 export interface PlanShape {
+  /** The seat block's id, for the editor; missing on older answers. */
+  id?: string
+  /** Blocks with the same group are selected, moved and copied together in the editor. */
+  group?: string | null
   cx: number
   cy: number
   rotation: number
@@ -655,13 +659,26 @@ export interface PlanShape {
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
+/** Items of one hall the editor moves as one (floorbit/plan_groups.py). */
+export interface PlanGroup {
+  id: string
+  hall_id?: string
+  name: string
+  members: { kind: 'block' | 'mark' | 'switch' | 'panel' | 'board'; id: string }[]
+}
+
 export interface PlanMark {
+  id?: string
   kind: 'text' | 'icon' | 'wall' | 'zone'
+  /** Drawing order, higher on top (floorbit/stacking.py). */
+  z?: number
   x: number
   y: number
   text?: string
   icon?: string
   size?: 's' | 'm' | 'l'
+  /** Stretch on top of ``size`` for a label or icon (0.25 to 8; missing is 1). */
+  scale?: number
   rotation?: number
   x2?: number
   y2?: number
@@ -1364,10 +1381,23 @@ export interface PlanSwitch {
   id: string
   name: string
   status: string
+  /** Added by hand on the plan (deleting removes it), not from the inventory (deleting unplaces it). */
+  manual?: boolean
   x: number
   y: number
 }
 
+/** A patch panel placed on this plan (drawing units), with its port count and how many have a cable. */
+export interface PlanPanel { name: string; x: number; y: number; ports: number; used: number }
+/** GET /api/cable-plan?hall= (floorbit/cable_plan.py): the cables to draw, points in % of the plan. */
+export interface PlanCable {
+  key: string; kind: 'lan' | 'uplink' | 'power'; layer: string; points: [number, number][]; manual: boolean
+  /** The crew has drawn this cable (bends or corners) rather than leaving it automatic. */
+  drawn?: boolean
+  corners: 'square' | 'round'; via: string | null; label: string; media?: string; speed?: number | null
+  ref: { cable?: string | null; source?: string; switch?: string; port?: string; seat?: string; link?: string; circuit?: string }
+}
+export interface CablePlan { cables: PlanCable[]; panels: { name: string; x: number | null; y: number | null; ports: number }[]; auto: boolean }
 export interface PlanLink { id: string; a: string; b: string; type: LinkType | ''; media: string; speed: number | null; issue: '' | 'down' | 'slow' }
 /** GET /api/power/markers (floorbit/power.py): the boards and each circuit's cable, for the plan's power layer. */
 /** GET /api/firewalls/seats (issue #470): the seats whose traffic isn't on its planned firewall. */
@@ -1393,6 +1423,10 @@ export interface SeatViewData {
   switches: PlanSwitch[]
   /** Links between switches placed on this plan (issue #468); older servers send none. */
   links?: PlanLink[]
+  /** Patch panels placed on this plan; older servers send none. */
+  panels?: PlanPanel[]
+  /** Power distribution boards placed on the plan (drawing units); none with power off. */
+  boards?: { id: string; name: string; x: number; y: number }[]
   seats: Record<string, PlanSeat>
   blocks: PlanBlock[]
   monitoring: boolean

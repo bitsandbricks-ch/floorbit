@@ -10,7 +10,7 @@ rt = SimpleNamespace(
     netbox_url='', netbox_token='', netbox_roles=[], netbox_verify_ssl=True,
     librenms_url='', librenms_token='', librenms_verify_ssl=True, librenms_fdb_exclude=[],
     cache_ttl_arp=300, cache_ttl_mac=300, cache_ttl_resolve=30,
-    netbox_enabled=False, librenms_enabled=False, display_defaults={},
+    netbox_enabled=False, librenms_enabled=False, display_defaults={}, floorplan_defaults={},
 )
 
 
@@ -30,6 +30,12 @@ def apply(store):
     rt.cache_ttl_resolve    = s.get('cache.ttl_resolve')
     rt.netbox_enabled       = bool(rt.netbox_url and rt.netbox_token)
     rt.librenms_enabled     = bool(rt.librenms_url and rt.librenms_token)
+    rt.floorplan_defaults   = {
+        'naming':          s.get('floorplan.naming'),
+        'row_labels':      s.get('floorplan.row_labels'),
+        'reverse_numbers': s.get('floorplan.reverse_numbers'),
+        'block_gap':       s.get('floorplan.block_gap'),
+    }
     rt.display_defaults     = {
         'hide_labels':     s.get('display.hide_labels'),
         'exclude_heatmap': s.get('display.exclude_heatmap'),

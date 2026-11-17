@@ -149,9 +149,34 @@ def _switches(data, hall_id, box):
         if dev.get('x') is None or dev.get('y') is None or halls.hall_of(dev, data, ids) != hall_id:
             continue
         status = (statuses.get(dev['id']) or {}).get('status') or 'unknown'
+        # ``manual``: added by hand, so the editor deletes it; an inventory switch only leaves the plan.
         out.append({'id': dev['id'], 'name': dev.get('name') or '', 'status': status,
+                    'manual': (dev.get('origin') or 'manual') == 'manual',
                     'x': float(dev['x']) / 100 * PLAN_W, 'y': float(dev['y']) / 100 * PLAN_H})
     return out
+
+
+def _panels(data, hall_id):
+    """The patch panels placed in this hall, in drawing units, with how many of their ports have a cable."""
+    from . import cable_plan
+    from .cables import all_cables
+    used = {}
+    for c in all_cables(data):
+        if c.get('panel') and c.get('panel_port'):
+            used[str(c['panel']).lower()] = used.get(str(c['panel']).lower(), 0) + 1
+    return [{'name': p['name'], 'x': float(p['x']) / 100 * PLAN_W, 'y': float(p['y']) / 100 * PLAN_H,
+             'ports': int(p.get('ports') or cable_plan.PANEL_PORTS), 'used': used.get(p['name'].lower(), 0)}
+            for p in cable_plan.panels(data, hall_id) if p.get('x') is not None and p.get('y') is not None]
+
+
+def _boards(data):
+    """Power distribution boards placed on the plan, in drawing units (none with power off)."""
+    from . import power
+    if not power.enabled():
+        return []
+    boards, _ = power._stored(data)
+    return [{'id': b['id'], 'name': b['name'], 'x': float(b['x']) / 100 * PLAN_W, 'y': float(b['y']) / 100 * PLAN_H}
+            for b in boards if b.get('x') is not None and b.get('y') is not None]
 
 
 def _state(seat, online, ports):
@@ -251,6 +276,8 @@ def view(hall_id=None, now=None, seat=None, switch=None):
         'background': f"/api/halls/{hall['id']}/background?v={bg['version']}" if bg else None,
         'switches': plan_switches,
         'links': links.on_plan(data, plan_switches),
+        'panels': _panels(data, hall['id']),
+        'boards': _boards(data),
         'seats': seats,
         'blocks': blocks,
         'monitoring': online is not None,

@@ -81,6 +81,9 @@ function menuEntries(target) {
         add('Select the group', () => selectGroup(grp));
         add('Ungroup', () => { selectGroup(grp); ungroupSelection(); }, { key: 'Ctrl+Shift+G' });
       }
+      sep();
+      items.push(...stackMenuEntries({ kind: 'block', ids: new Set([target.id]) }));
+      sep();
       add('Delete', () => actionDeleteBlock(target.id), { danger: true, key: 'Del' });
     }
   } else if (target.type === 'multi') {
@@ -94,14 +97,27 @@ function menuEntries(target) {
       }
       add('Turn a quarter', () => rotateSelection(90), { key: 'R' });
       if (blocks.length) add('Copy', () => duplicateSelection(), { key: 'Ctrl+D' });
+      if (blocks.length) { sep(); items.push(...stackMenuEntries({ kind: 'block', ids: new Set(blocks.map(b => b.id)) })); }
       sep();
       add(`Delete ${selection.size} items`, () => actionDeleteSelection(), { danger: true, key: 'Del' });
     }
+  } else if (target.type === 'mark') {
+    if (menuCanEdit()) {
+      items.push(...stackMenuEntries({ kind: 'mark', ids: new Set([target.id]) }));
+      sep();
+      add('Delete', () => removeMark(target.id), { danger: true, key: 'Del' });
+    }
+  } else if (target.type === 'cable') {
+    items.push(...cableMenuEntries(target.key));
+  } else if (target.type === 'panel') {
+    if (menuCanEdit()) add('Take off the plan', () => removePanel(target.name), { danger: true });
   } else if (target.type === 'floor') {
     if (menuCanEdit() && target.at) {
       const here = (open) => () => { pendingCoords = target.at; open(); };
       add('Add a switch here…', here(openAddModal));
       add('Add a seat block here…', here(openBlockModal));
+      const panels = typeof panelMenuEntries === 'function' ? panelMenuEntries(target.at) : [];
+      if (panels.length) { sep(); items.push(...panels); }
       sep();
     }
     add('Fit to screen', () => fitToContent());
@@ -118,6 +134,12 @@ function menuTitle(target) {
   if (target.type === 'switch') return switches.find(s => s.id === target.id)?.name || 'Switch';
   if (target.type === 'block') return seatBlocks.find(b => b.id === target.id)?.name || 'Seat block';
   if (target.type === 'multi') return `${selection.size} selected`;
+  if (target.type === 'cable') return cableMenuTitle(target.key);
+  if (target.type === 'panel') return `Patch panel ${target.name}`;
+  if (target.type === 'mark') {
+    const m = planMarks.find(x => x.id === target.id);
+    return m ? ({ text: m.text, icon: 'Icon', wall: 'Wall', zone: m.label || 'Zone' })[m.kind] || 'Mark' : 'Mark';
+  }
   return '';
 }
 
@@ -187,6 +209,12 @@ function contextTargetOf(el, clientX, clientY) {
   const seatEl = el.closest('.seat-block-seat');
   const blockEl = el.closest('.seat-block');
   const switchEl = el.closest('.switch-marker');
+  const markEl = el.closest('[data-mark]');
+  const cableEl = el.closest('[data-cable]');
+  if (cableEl) return { type: 'cable', key: cableEl.dataset.cable };
+  const panelEl = el.closest('[data-patch-panel]');
+  if (panelEl && panelEl.closest('#cables-svg')) return { type: 'panel', name: panelEl.dataset.patchPanel };
+  if (markEl && !switchEl && !blockEl) return { type: 'mark', id: markEl.dataset.mark };
   if (switchEl) {
     const id = switchEl.dataset.id;
     if (selection.size > 1 && inSelection('switch', id)) return { type: 'multi' };
@@ -210,6 +238,8 @@ canvasArea.addEventListener('contextmenu', (e) => {
   // Right-clicking something selects it, like a click, so the inspector matches the menu.
   if (target.type === 'switch') selectSwitch(target.id);
   else if (target.type === 'block') selectBlock(target.id);
+  else if (target.type === 'mark') selectMark(target.id);
+  else if (target.type === 'cable') selectCable(target.key);
   openContextMenu(e.clientX, e.clientY, target);
 });
 

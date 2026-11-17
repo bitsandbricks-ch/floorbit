@@ -1,5 +1,5 @@
 """The choices for every field that names something Floorbit already knows: switches, their ports,
-seats, blocks, halls, firewalls, agents, users and teams.
+seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 A switch or a seat is never typed in: the page asks ``GET /api/options/<kind>`` and shows a
 searchable list (``frontend/src/components/ui/EntitySelect.tsx``). One endpoint, one component, so
@@ -67,6 +67,18 @@ def _ports(data, switch):
     return sorted(out, key=lambda o: (bool(o['used']), _natural(o['value'])))
 
 
+def _panels(data):
+    """Patch panels: the ones placed on a plan (with their port count) and names cables give."""
+    from .. import cable_plan
+    size = lambda p: str(p.get('ports') or cable_plan.PANEL_PORTS)   # noqa: E731
+    out = {p['name'].lower(): {'value': p['name'], 'label': p['name'], 'hint': size(p)}
+           for p in cable_plan.panels(data)}
+    for c in cables.all_cables(data):
+        if c.get('panel') and c['panel'].lower() not in out:
+            out[c['panel'].lower()] = {'value': c['panel'], 'label': c['panel']}
+    return sorted(out.values(), key=lambda o: _natural(o['value']))
+
+
 def _seats(data):
     out = [{'value': s, 'label': s, 'group': s.rsplit('-', 1)[0] if '-' in s else ''}
            for s in incidents.seat_numbers(data)]
@@ -108,6 +120,7 @@ def _teams(_data):
 KINDS = {
     'switches': ('floorplan.view', _switches),
     'seats': ('floorplan.view', _seats),
+    'panels': ('floorplan.view', _panels),
     'blocks': ('floorplan.view', _blocks),
     'halls': ('floorplan.view', _halls),
     'firewalls': ('floorplan.view', _firewalls),
@@ -124,6 +137,11 @@ def options(kind):
         if not _can('floorplan.view'):
             return jsonify({'error': 'Not allowed.'}), 403
         return jsonify({'options': _ports(data, (request.args.get('switch') or '').strip())})
+    if kind == 'panel-ports':
+        from .. import cable_plan
+        if not _can('floorplan.view'):
+            return jsonify({'error': 'Not allowed.'}), 403
+        return jsonify({'options': cable_plan.panel_ports(data, (request.args.get('panel') or '').strip())})
     if kind not in KINDS:
         return jsonify({'error': 'Unknown list.'}), 404
     permission, make = KINDS[kind]

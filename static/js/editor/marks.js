@@ -87,7 +87,7 @@ function renderMarks() {
   const svg = [];
   const html = [];
   updateSeatsViewLink();
-  for (const m of planMarks) {
+  for (const m of byZ(planMarks)) {
     if (hiddenMarkLayers.has(markLayerOf(m))) continue;
     const sel = m.id === selectedMark ? ' selected' : '';
     if (m.kind === 'zone') {
@@ -98,7 +98,7 @@ function renderMarks() {
         `<line class="hit" x1="${m.x}" y1="${m.y}" x2="${m.x2}" y2="${m.y2}" vector-effect="non-scaling-stroke"/>` +
         `<line x1="${m.x}" y1="${m.y}" x2="${m.x2}" y2="${m.y2}" vector-effect="non-scaling-stroke"/></g>`);
     } else {
-      const turn = m.rotation ? ` rotate(${m.rotation}deg)` : '';
+      const turn = (m.rotation ? ` rotate(${m.rotation}deg)` : '') + (m.scale ? ` scale(${+m.scale})` : '');
       const inner = m.kind === 'text' ? escHtml(m.text) : iconSvg(m.icon);
       html.push(`<div class="mark-${m.kind} size-${m.size}${sel}" style="left:${m.x}%;top:${m.y}%;transform:translate(-50%,-50%)${turn}" data-mark="${m.id}"` +
         `${m.kind === 'icon' ? ` title="${escHtml(MARK_ICON_NAMES[m.icon] || m.icon)}"` : ''}>${inner}</div>`);
@@ -124,15 +124,16 @@ async function placeMark(tool, at) {
       ? { kind: 'zone', x: Math.min(start.x, at.x), y: Math.min(start.y, at.y), w: Math.abs(at.x - start.x), h: Math.abs(at.y - start.y) }
       : { kind: 'wall', x: start.x, y: start.y, x2: at.x, y2: at.y, style: tool === 'dashed' ? 'dashed' : 'solid' };
     await addMark(body);
-    setTool(tool === 'zone' ? 'select' : currentTool);   // walls: keep drawing the next one
-    if (tool !== 'zone') toolHint.textContent = TOOL_HINTS[currentTool];
+    toolHint.textContent = TOOL_HINTS[currentTool];   // the tool stays: draw the next one (Esc or V to stop)
     return;
   }
   const body = tool === 'text'
     ? { kind: 'text', x: at.x, y: at.y, text: 'Label', size: 'm' }
     : { kind: 'icon', x: at.x, y: at.y, icon: markIconChoice, size: 'm' };
+  // A label needs its text typed: back to Select with the details open. Icons stay: place the next one.
+  if (tool === 'text') setTool('select');
   await addMark(body);
-  setTool('select');
+  if (tool === 'text') { markField('text').focus(); markField('text').select(); }
 }
 
 async function addMark(body) {
@@ -142,7 +143,7 @@ async function addMark(body) {
     planMarks.push(mark);
     revealMarkLayer(mark);
     renderMarks();
-    selectMark(mark.id);
+    if (currentTool === 'select') selectMark(mark.id);   // while placing, the details stay closed
     const ref = { id: mark.id };
     pushHistory({
       label: `add ${MARK_LABEL[mark.kind].toLowerCase()}`,

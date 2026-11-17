@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 
 from integrations import checkin, config, seat_sources
 
-from .. import halls, plan_marks, seat_gaps
+from .. import halls, plan_marks, seat_gaps, stacking
 from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
 from ..store import load_data
 
@@ -95,7 +95,7 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
     shapes, xs, ys, found = [], [], [], None
     hall_id = hall_id or halls.default_id(data)
     ids = {h['id'] for h in halls.halls(data)}
-    for block in data.get('seat_blocks') or []:
+    for block in stacking.by_z(data.get('seat_blocks') or []):
         if halls.hall_of(block, data, ids) != hall_id:
             continue
         rows = block_rows(block)
@@ -118,7 +118,8 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
         reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]
         ys += [cy - reach - 40, cy + reach]   # room for the block's name above it
-        shapes.append({'cx': cx, 'cy': cy, 'rotation': int(block.get('rotation') or 0) % 360, 'w': w, 'h': h,
+        shapes.append({'id': block.get('id'), 'group': block.get('group') or None,
+                       'cx': cx, 'cy': cy, 'rotation': int(block.get('rotation') or 0) % 360, 'w': w, 'h': h,
                        'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h, row_at)})
     if not shapes:
         return None, None

@@ -60,14 +60,8 @@ for (const btn of document.querySelectorAll('.rail-panel-btn')) {
   btn.addEventListener('click', () => togglePanel(btn.dataset.panel, { focus: btn.dataset.panel === 'search' }));
 }
 for (const tab of editPanel.querySelectorAll('.panel-tab')) {
+  // Arrow keys come from the shared tabs (static/js/ui/tabs.js).
   tab.addEventListener('click', () => openPanel(tab.dataset.panel));
-  tab.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const i = PANELS.indexOf(tab.dataset.panel);
-    const next = PANELS[(i + (e.key === 'ArrowRight' ? 1 : PANELS.length - 1)) % PANELS.length];
-    openPanel(next);
-    editPanel.querySelector(`.panel-tab[data-panel="${next}"]`).focus();
-  });
 }
 $('btn-panel-close').addEventListener('click', closePanel);
 // The ☰ drawer on phones (touch.js) always shows a page, even when the panel was closed on a computer.
@@ -97,6 +91,8 @@ const EDITOR_DE = {
   'Draw': 'Zeichnen', 'Add a label, wall, zone or icon (D)': 'Beschriftung, Wand, Zone oder Symbol hinzufügen (D)',
   'Text label': 'Beschriftung', 'Wall': 'Wand', 'Dashed line (fence, door)': 'Gestrichelte Linie (Zaun, Tür)',
   'Zone': 'Zone', 'Icon': 'Symbol',
+  'Cable': 'Kabel', 'Draw a network or power cable (C)': 'Ein Netzwerk- oder Stromkabel zeichnen (C)',
+  'Network cable (copper, fiber, DAC)': 'Netzwerkkabel (Kupfer, Glasfaser, DAC)', 'Power cable': 'Stromkabel',
   'Search': 'Suche', 'Search (/)': 'Suche (/)', 'Layers': 'Ebenen', 'Layers (L)': 'Ebenen (L)',
   'Switches': 'Switches', 'Switches (W)': 'Switches (W)', 'Panels': 'Bereiche',
   'Undo': 'Rückgängig', 'Undo (Ctrl+Z)': 'Rückgängig (Ctrl+Z)',
@@ -120,11 +116,11 @@ const EDITOR_DE = {
   'Under the amber mark': 'Unter der gelben Marke', 'Getting close': 'Wird knapp',
   'About to trip, or tripped': 'Kurz vor dem Auslösen oder ausgelöst', 'No reading yet': 'Noch kein Messwert',
   'Always show switch labels': 'Switch-Namen immer zeigen', 'Always show switch names on the map': 'Switch-Namen immer auf dem Plan zeigen',
-  'Labels, walls, zones and icons': 'Beschriftungen, Wände, Zonen und Symbole',
+  'Labels, walls, zones, icons and cables': 'Beschriftungen, Wände, Zonen, Symbole und Kabel',
   'Overview': 'Übersicht', 'Labels, walls and zones for everyone': 'Beschriftungen, Wände und Zonen für alle',
   'Safety': 'Sicherheit', 'Exits, escape routes, extinguishers and the assembly point': 'Ausgänge, Fluchtwege, Feuerlöscher und der Sammelplatz',
-  'Network': 'Netzwerk', 'Network gear drawn on the plan': 'Netzwerkgeräte, auf den Plan gezeichnet',
-  'Electrical': 'Strom', 'Power sockets and boards drawn on the plan': 'Steckdosen und Verteiler, auf den Plan gezeichnet',
+  'Network': 'Netzwerk', 'Network gear and network cables drawn on the plan': 'Netzwerkgeräte und Netzwerkkabel, auf den Plan gezeichnet',
+  'Electrical': 'Strom', 'Power sockets, boards and power cables drawn on the plan': 'Steckdosen, Verteiler und Stromkabel, auf den Plan gezeichnet',
   'Services': 'Dienste', 'Servers and services drawn on the plan': 'Server und Dienste, auf den Plan gezeichnet',
   'Open these layers on the Seats view': 'Diese Ebenen in der Plätze-Ansicht öffnen',
   'Sync devices': 'Geräte synchronisieren', 'Filter switches…': 'Switches filtern…', 'Filter switches': 'Switches filtern',

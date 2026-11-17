@@ -7,6 +7,7 @@
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/ui.css" />
   <link rel="stylesheet" href="/static/css/user-menu.css" />
   <link rel="stylesheet" href="/static/css/goto.css" />
 </head>
@@ -26,6 +27,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
         </button>
       </div>
+
+      <nav class="ui-segmented plan-modes" id="plan-modes" aria-label="Mode">
+        <a href="/plan" data-mode="live">Live</a>
+        <a href="/plan?mode=checkin" data-mode="checkin">Check-in</a>
+        <a href="/plan?mode=network" data-mode="network">Network</a>
+        <a href="/" data-mode="edit" aria-current="page">Edit</a>
+      </nav>
 
       <div class="status-chips" role="group" aria-label="Filter switches by status">
         <button class="status-chip" data-status="all" title="Show all switches">
@@ -112,6 +120,17 @@
               <div class="mark-icon-picker" id="mark-icon-picker"></div>
             </div>
           </span>
+          {# Cables on the plan (static/js/editor/cables.js, floorbit/cable_plan.py). #}
+          <span class="draw-wrap">
+            <button class="tool-btn" id="tool-cable" title="Draw a network or power cable (C)" aria-label="Cable" aria-haspopup="menu" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/><path d="M5 8v5a3 3 0 0 0 3 3h8"/></svg>
+              <span class="tool-label">Cable</span><kbd>C</kbd>
+            </button>
+            <div class="draw-menu hidden" id="cable-menu" role="menu" aria-label="Cable">
+              <button type="button" role="menuitem" data-cable="lan">Network cable (copper, fiber, DAC)</button>
+              <button type="button" role="menuitem" data-cable="power">Power cable</button>
+            </div>
+          </span>
         </div>
         <span class="rail-sep" aria-hidden="true"></span>
         <div class="rail-group rail-panels">
@@ -156,6 +175,7 @@
           <canvas id="seat-heatmap-canvas"></canvas>
           <svg id="marks-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div id="marks-overlay"></div>
+          <svg id="cables-svg" aria-hidden="true"></svg>
           <div id="switches-overlay"></div>
           <div id="seats-overlay"></div>
           <div id="blocks-overlay"></div>
@@ -291,7 +311,7 @@
             </button>
 
             {# Hide one layer of labels, walls, zones and icons while editing (static/js/editor/marks.js). #}
-            <p class="layer-subhead">Labels, walls, zones and icons</p>
+            <p class="layer-subhead">Labels, walls, zones, icons and cables</p>
             <button class="layer-row" data-mark-layer="overview" aria-pressed="true" title="Labels, walls and zones for everyone">
               <span class="layer-name">Overview</span>
               <span class="layer-switch" aria-hidden="true"></span>
@@ -300,11 +320,11 @@
               <span class="layer-name">Safety</span>
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
-            <button class="layer-row" data-mark-layer="network" aria-pressed="true" title="Network gear drawn on the plan">
+            <button class="layer-row" data-mark-layer="network" aria-pressed="true" title="Network gear and network cables drawn on the plan">
               <span class="layer-name">Network</span>
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
-            <button class="layer-row" data-mark-layer="electrical" aria-pressed="true" title="Power sockets and boards drawn on the plan">
+            <button class="layer-row" data-mark-layer="electrical" aria-pressed="true" title="Power sockets, boards and power cables drawn on the plan">
               <span class="layer-name">Electrical</span>
               <span class="layer-switch" aria-hidden="true"></span>
             </button>
@@ -727,7 +747,7 @@
     <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <h3 class="modal-title" id="modal-title">Place switch</h3>
 
-      <div class="modal-tabs hidden" id="modal-tabs">
+      <div class="modal-tabs ui-tabs hidden" id="modal-tabs" role="tablist">
         <button class="modal-tab active" id="tab-netbox" data-tab="netbox">From NetBox</button>
         <button class="modal-tab" id="tab-manual" data-tab="manual">Manual</button>
       </div>
@@ -830,6 +850,71 @@
     </form>
   </div>
 
+  <!-- ── A new cable (static/js/editor/cables.js) ─────────────────────────────── -->
+  <div class="modal-backdrop hidden" id="cable-backdrop">
+    <form class="modal" role="dialog" aria-modal="true" aria-labelledby="cable-title" id="cable-form" autocomplete="off">
+      <h3 class="modal-title" id="cable-title">New cable</h3>
+      <p class="modal-text" id="cable-text"></p>
+      <div class="cable-net">
+        <label class="field">
+          <span class="field-label" id="cable-port-label">Switch port</span>
+          <input class="modal-input" type="text" id="cable-port" maxlength="48" placeholder="Gi1/0/1" />
+        </label>
+        <label class="field" id="cable-port-b-field">
+          <span class="field-label" id="cable-port-b-label">Port on the other switch</span>
+          <input class="modal-input" type="text" id="cable-port-b" maxlength="48" placeholder="Te1/1/1" />
+        </label>
+        <label class="field" id="cable-order-field">
+          <span class="field-label">Order</span>
+          <select class="modal-input" id="cable-order">
+            <option value="rows">Every row the same way</option>
+            <option value="snake">Snaking: every other row back</option>
+          </select>
+        </label>
+        <div class="form-grid">
+          <label class="field">
+            <span class="field-label">Type</span>
+            <select class="modal-input" id="cable-type">
+              <option value="">Not known</option>
+              <option value="cat5e">Copper Cat5e</option>
+              <option value="cat6">Copper Cat6</option>
+              <option value="cat6a">Copper Cat6a</option>
+              <option value="fiber-sm">Fiber single-mode</option>
+              <option value="fiber-mm">Fiber multi-mode</option>
+              <option value="dac">DAC</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Speed</span>
+            <select class="modal-input" id="cable-speed">
+              <option value="">Not known</option>
+              <option value="1">1 Gbit/s</option>
+              <option value="10">10 Gbit/s</option>
+              <option value="25">25 Gbit/s</option>
+              <option value="40">40 Gbit/s</option>
+              <option value="100">100 Gbit/s</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="cable-power">
+        <label class="field">
+          <span class="field-label">Circuit</span>
+          <select class="modal-input" id="cable-circuit"></select>
+        </label>
+        <label class="field" id="cable-circuit-name-field">
+          <span class="field-label">Name of the new circuit</span>
+          <input class="modal-input" type="text" id="cable-circuit-name" maxlength="40" placeholder="A row 1" />
+        </label>
+      </div>
+      <p class="modal-error" id="cable-error" role="alert" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cable-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="cable-ok">Add cable</button>
+      </div>
+    </form>
+  </div>
+
   <!-- ── Seat Block Modal ─────────────────────────────────────────────────── -->
   <div class="modal-backdrop hidden" id="block-backdrop">
     <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="block-modal-title">
@@ -846,15 +931,6 @@
           <span class="field-label">First row</span>
           <input class="modal-input" type="text" id="block-row-start" value="A" maxlength="2" autocomplete="off" />
         </label>
-        <label class="field" id="block-row-labels-field">
-          <span class="field-label">Row letter</span>
-          <select class="modal-input" id="block-row-labels">
-            <option value="start">Before seat 1</option>
-            <option value="end">After the last seat</option>
-            <option value="both">On both ends</option>
-            <option value="none">Hidden</option>
-          </select>
-        </label>
         <label class="field field-full">
           <span class="field-label">Block name <span class="field-optional" id="block-name-hint">(optional, shown above the block)</span></span>
           <input class="modal-input" type="text" id="block-name" placeholder="e.g. A" maxlength="48" autocomplete="off" />
@@ -866,25 +942,6 @@
         <label class="field">
           <span class="field-label">Rows</span>
           <input class="modal-input" type="number" id="block-rows" value="1" min="1" max="20" />
-        </label>
-        <label class="field">
-          <span class="field-label">Spacing X (%)</span>
-          <input class="modal-input" type="number" id="block-spacing-x" value="0.5" min="0" max="5" step="0.1" />
-        </label>
-        <label class="field">
-          <span class="field-label">Spacing Y (%)</span>
-          <input class="modal-input" type="number" id="block-spacing-y" value="1" min="0" max="5" step="0.1" />
-        </label>
-        <label class="field">
-          <span class="field-label">Rotation (°)</span>
-          <input class="modal-input" type="number" id="block-rotation" value="0" min="0" max="360" step="45" />
-        </label>
-        <label class="setting-row field setting-inline">
-          <span class="setting-label">Reverse numbering</span>
-          <span class="toggle-switch">
-            <input type="checkbox" id="block-reverse-numbers-modal" />
-            <span class="toggle-track"></span>
-          </span>
         </label>
         <label class="field">
           <span class="field-label">How many blocks</span>
@@ -901,6 +958,33 @@
           <span class="field-label">Gap between blocks (%)</span>
           <input class="modal-input" type="number" id="block-gap" value="3" min="0" max="50" step="0.5" />
         </label>
+        {# The defaults come from Settings > Floor plan; seat size and spacing are the same for every block. #}
+        <details class="field-full block-more" id="block-more">
+          <summary>More options</summary>
+          <div class="form-grid">
+            <label class="field" id="block-row-labels-field">
+              <span class="field-label">Row letter</span>
+              <select class="modal-input" id="block-row-labels">
+                <option value="start">Before seat 1</option>
+                <option value="end">After the last seat</option>
+                <option value="both">On both ends</option>
+                <option value="none">Hidden</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Rotation (°)</span>
+              <input class="modal-input" type="number" id="block-rotation" value="0" min="0" max="360" step="45" />
+            </label>
+            <label class="setting-row field setting-inline">
+              <span class="setting-label">Seat 1 on the right</span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="block-reverse-numbers-modal" />
+                <span class="toggle-track"></span>
+              </span>
+            </label>
+          </div>
+          <p class="field-hint">The defaults are under <a href="/settings#sec-floorplan">Settings &gt; Floor plan</a>.</p>
+        </details>
       </div>
       <p class="field-hint" id="block-preview">8 seats</p>
 
@@ -960,10 +1044,13 @@
         <dt><kbd>S</kbd></dt><dd>Add switch</dd>
         <dt><kbd>B</kbd></dt><dd>Add seat block</dd>
         <dt><kbd>D</kbd></dt><dd>Draw: a label, wall, zone or icon</dd>
+        <dt><kbd>C</kbd></dt><dd>Cable: a network cable from a switch, or a power cable from a board</dd>
+        <dt>Click a selected cable</dt><dd>Add a bend there and drag it; double-click a bend to remove it</dd>
         <dt><kbd>G</kbd></dt><dd>Toggle snap to grid</dd>
         <dt><kbd>R</kbd></dt><dd>Turn the selected seat block or selection a quarter (<kbd>Shift</kbd> the other way)</dd>
         <dt><kbd>Ctrl</kbd> <kbd>G</kbd></dt><dd>Group the selected seat blocks (<kbd>Shift</kbd> ungroups)</dd>
         <dt><kbd>Ctrl</kbd> <kbd>D</kbd></dt><dd>Copy the selected seat blocks</dd>
+        <dt><kbd>Ctrl</kbd> <kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring the selected blocks or mark forward / send backward (<kbd>Shift</kbd>: to the front / back)</dd>
         <dt><kbd>Alt</kbd> while dragging</dt><dd>Place freely, without the alignment guides</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Z</kbd></dt><dd>Undo</dd>
         <dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></dt><dd>Redo</dd>
@@ -996,6 +1083,8 @@
   <script src="/static/js/auth.js" defer></script>
   <script src="/static/js/notify.js" defer></script>
   <!-- Editor scripts share one global scope; order matters (static/js/editor/README.md). -->
+  <script src="/static/js/ui/select.js" defer></script>
+  <script src="/static/js/ui/tabs.js" defer></script>
   <script src="/static/js/editor/core.js" defer></script>
   <script src="/static/js/editor/halls.js" defer></script>
   <script src="/static/js/editor/data.js" defer></script>
@@ -1026,7 +1115,10 @@
   <script src="/static/js/editor/gaps.js" defer></script>
   <script src="/static/js/editor/align.js" defer></script>
   <script src="/static/js/editor/groups.js" defer></script>
+  <script src="/static/js/editor/stacking.js" defer></script>
+  <script src="/static/js/editor/cables.js" defer></script>
   <script src="/static/js/editor/panels.js" defer></script>
+  <script src="/static/js/editor/modes.js" defer></script>
   <script src="/static/js/editor/main.js" defer></script>
   <script src="/static/js/live.js" defer></script>
   <script src="/static/js/goto.js" defer></script>

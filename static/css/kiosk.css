@@ -183,18 +183,21 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 
 /* ── Map items (same geometry as the editor so layouts match) ───────────── */
 .switch-marker {
-  position: absolute; transform: translate(-50%, -100%);
-  display: flex; flex-direction: column; align-items: center; z-index: 4;   /* above seat blocks (a switch in a lane between rows) */
+  position: absolute; transform: translate(-50%, -50%);   /* the switch box is centred on its spot */
+  display: flex; flex-direction: column; align-items: center;
 }
-.switch-pin { position: relative; width: 16px; height: 21px; color: var(--unknown); }
+/* Switches always draw over seat blocks and marks. */
+#k-switches { z-index: 4; }
+#k-blocks, #k-seats-layer { z-index: 2; }
+.switch-pin { position: relative; width: 24px; height: 16px; color: var(--unknown); }
 .switch-pin svg { width: 100%; height: 100%; display: block; }
 .switch-pin.status-online  { color: var(--success); }
 .switch-pin.status-offline { color: var(--danger); }
 .switch-pin.status-warning { color: var(--warning); }
 .switch-marker.is-offline { z-index: 6; }
 .switch-marker.is-offline .switch-pin::after {
-  content: ''; position: absolute; top: 6px; left: 50%;
-  width: 14px; height: 14px; border-radius: 50%;
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 24px; height: 16px; border-radius: 4px;
   border: 2px solid var(--danger);
   transform: translate(-50%, -50%);
   animation: alarm 1.6s ease-out infinite;
@@ -204,6 +207,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
 }
 .switch-label {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   font-size: 10px; font-weight: 600; color: var(--text-primary);
   background: color-mix(in srgb, var(--color-ink) 88%, transparent);
   padding: 1px 5px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--color-fg) 10%, transparent);
@@ -261,4 +265,33 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 .k-heat-bar {
   display: inline-block; width: calc(var(--u) * 8); height: calc(var(--u) * 0.6); border-radius: 99px;
   background: linear-gradient(90deg, hsl(130 75% 45%), hsl(65 75% 45%), hsl(0 75% 45%));
+}
+
+/* ── Phones ─────────────────────────────────────────────────────────────── */
+/* Attendees open the public /kiosk link on a phone: the header wraps into a title-and-clock row and
+   a row of tiles, the down list goes under the map, and the legend wraps instead of squeezing. */
+@media (hover: none) { .k-legend-hint { display: none; } }
+@media (max-width: 40em) {
+  .k-header { flex-wrap: wrap; gap: 8px 12px; padding: 8px 12px; }
+  .k-brand { order: 0; }
+  .k-meta { order: 1; flex: 0 0 auto; }
+  .k-clock { font-size: 20px; }
+  .k-sync { font-size: 11px; }
+  .k-title { font-size: 18px; }
+  .k-logo { --fb-brand-h: 26px; }
+  .k-stats { order: 2; flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+  .k-stat { flex: 1 1 auto; justify-content: center; padding: 4px 8px; gap: 5px; border-radius: 8px; }
+  .k-stat-glyph { font-size: 13px; }
+  .k-stat-val { font-size: 17px; white-space: nowrap; }
+  .k-stat-label { font-size: 12px; white-space: nowrap; }
+  .k-stale { padding: 6px 12px; font-size: 13px; }
+  .k-body { flex-direction: column; }
+  .k-alerts { width: auto; max-height: 30vh; padding: 8px 12px; border-left: 0; border-top: 2px solid var(--danger); }
+  .k-alerts-title { font-size: 15px; margin-bottom: 6px; }
+  .k-alert { padding: 4px 8px; }
+  .k-alert-name, .k-alert-since { font-size: 13px; }
+  .k-legend { flex-wrap: wrap; gap: 6px 12px; padding: 8px 12px; font-size: 12px; }
+  .k-legend-sep, .k-legend-hint { display: none; }
+  .k-swatch { width: 10px; height: 10px; }
+  .fb-pill--legend { margin-left: auto; }
 }

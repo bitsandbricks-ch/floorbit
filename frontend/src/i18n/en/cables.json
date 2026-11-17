@@ -85,6 +85,7 @@
   "clientsPatch": "Patch to a seat",
   "clientsInfra": "Infrastructure",
   "clientsInfraNote": "Infrastructure",
+  "anyPort": "Also list ports that have a cable",
   "areasTitle": "Rough port areas",
   "areasIntro": "Which seats a batch of ports goes to, before each seat's port is known. Used to say where a port probably is, and to catch check-ins far from their seat.",
   "areasAdd": "Add port areas",

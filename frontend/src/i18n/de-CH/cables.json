@@ -85,6 +85,7 @@
   "clientsPatch": "Auf einen Platz patchen",
   "clientsInfra": "Infrastruktur",
   "clientsInfraNote": "Infrastruktur",
+  "anyPort": "Auch Ports mit Kabel anzeigen",
   "areasTitle": "Ungefähre Port-Bereiche",
   "areasIntro": "Zu welchen Plätzen eine Gruppe von Ports geht, bevor der Port jedes Platzes bekannt ist. Damit sagt Floorbit, wo ein Port wahrscheinlich ist, und merkt Check-ins weit weg von ihrem Platz.",
   "areasAdd": "Port-Bereiche erfassen",

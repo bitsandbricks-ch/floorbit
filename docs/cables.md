@@ -9,11 +9,15 @@ patched straight into the switch has no panel, and an uplink has no seat.
 | Field | |
 | --- | --- |
 | Switch, switch port | Needed. One cable per switch port: a second one is almost always a typo. |
-| Patch panel, panel port | Optional. A panel port needs its panel. |
+| Patch panel, panel port | Optional. A panel port needs its panel. A panel placed on the plan has a port count (24 unless set, up to 96): its ports are 1 to that, and each takes one cable. |
 | Seat | Optional, written in capitals (`A-12`). |
 | Label | Printed on both ends. Left empty, Floorbit numbers the cables `C-0001`, `C-0002`, ... Labels are unique. |
 | Colour, length, note | Optional. The length is 0.1 to 500 metres. |
 | Type, speed | Optional: copper Cat5e/6/6a, fiber single-mode or multi-mode, or DAC, and 1, 10, 25, 40 or 100G, as for the [links between switches](topology.md). |
+
+Nothing that Floorbit already knows is typed in: the switch, its port, the patch panel, its port and
+the seat are picked from lists. Ports list only the free ones (and keep the cable's own); tick
+**Also list ports that have a cable** to see the rest, with the seat on each.
 
 ## A whole block at once
 
@@ -143,10 +147,39 @@ network and sends the cables.
 Other inventory plugins can offer cables too, with a `cables()` method (see
 [plugins.md](plugins.md)). The demo plugin has a cable for every demo seat.
 
+## Cables drawn on the floor plan
+
+The editor draws the cables on the plan, each on its layer: network cables (to seats, and uplinks
+between switches) on **Network**, power cables on **Electrical**. Turn a layer off under Layers to
+hide its cables. The colour says the medium (cyan copper, green fiber, light DAC, amber dashed power,
+grey when the type is not known) and a thicker line a faster cable.
+
+- **Automatic cabling** (on by default) draws a cable from the switch to every seat whose port is
+  known: from the cables here, from NetBox, and from the port descriptions on the switches. The cables
+  of one seat block run together along the side of the block that faces the switch, then into each
+  row. Venues that patch seats through panels can turn it off under Settings > Cabling
+  (`CABLE_AUTO=false`) and draw the cables they want with the Cable tool. A cable that names a patch
+  panel runs through it once the panel is on the plan: right-click the floor and pick **Put patch panel
+  … here**; drag it to move it.
+- **The Cable tool** (`C` in the tool rail): **Network cable** starts at a switch; click a seat, a
+  seat block (one cable per seat, the ports counting up, as above) or another switch (an uplink), then
+  give the port, the type (copper, fiber or DAC) and the speed. **Power cable** starts at a
+  distribution board (the power layer comes on); click a seat block or a switch and pick the circuit,
+  or make a new one ([power.md](power.md)).
+- **Routing by hand**: click a cable to select it, then click it again and drag to add a bend; drag a
+  bend to move it (it snaps to the grid, unless snapping is off); double-click a bend to remove it.
+  A cable with bends of its own keeps them when the seat behind its port changes. Right-click a cable
+  for round or square corners, **Back to the automatic route**, or to delete it (an imported cable is
+  changed in NetBox; one from a port description goes away with the description). Everything can be
+  undone with Ctrl+Z.
+
+The drawing is kept apart from the cables (data.json `cable_routes` and `patch_panels`), so importing
+from NetBox again keeps the bends.
+
 ## Who can do what
 
 Everyone who can see the floor plan can see the cables and print labels. Adding, changing,
-removing and importing need `floorplan.edit` (leads and admins). Each change is in the audit log
+removing, importing and routing them on the plan need `floorplan.edit` (leads and admins). Each change is in the audit log
 under **cables**, with the cable's label and route.
 
 ## API
@@ -167,5 +200,12 @@ under **cables**, with the cable's label and route.
   "dry_run", "replace"}`. Answers `{"block", "cables": [{"seat", "switch", "port"}], "clashes", "created", "removed"}`;
   409 when cables are in the way and `replace` isn't set.
 - `GET /api/cables/labels.pdf?q=&ids=`, `GET /api/cables.csv?q=`.
+- `GET /api/cable-plan?hall=`: the cables to draw in a hall: `{"cables": [{"key", "kind": "lan" | "uplink" | "power",
+  "layer", "points": [[x, y], ...], "manual", "drawn", "corners", "media", "speed", "via", "label", "ref"}],
+  "panels", "panel_names", "auto"}`, positions in % of the plan.
+- `PUT /api/cable-plan/routes`: `{"routes": {"<key>": {"points": [[x, y], ...] | null, "corners": "square" | "round"} | null}}`:
+  the bends between the ends; `points: null` draws the cable on the automatic route (shown with automatic cabling
+  off too), `null` forgets the drawing.
+- `PUT /api/cable-plan/panels/<name>` `{"x", "y", "hall_id"}`, `DELETE /api/cable-plan/panels/<name>`.
 
 The feature can be turned off under Settings > Features (`cables`).

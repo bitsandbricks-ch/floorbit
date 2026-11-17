@@ -12,10 +12,13 @@ function isTyping(e) {
 const ARROW_DIRS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 document.addEventListener('keydown', (e) => {
-  if (contextMenu.contains(e.target)) return;   // the open menu handles its own keys (menus.js)
+  if (contextMenu.contains(e.target)) {
+    if (!contextMenu.classList.contains('hidden')) return;   // the open menu handles its own keys (menus.js)
+    e.target.blur();   // focus stayed on a closed menu: the shortcuts work again
+  }
   if (e.key === 'Escape') {
     if (anyModalOpen()) { closeAllModals(); return; }
-    if (!contextMenu.classList.contains('hidden')) { contextMenu.classList.add('hidden'); return; }
+    if (!contextMenu.classList.contains('hidden')) { closeContextMenu({ refocus: true }); return; }
     if (isTyping(e)) { e.target.blur(); return; }
     deselectAll();
     setTool('select');
@@ -36,6 +39,13 @@ document.addEventListener('keydown', (e) => {
   if (mod && key === 'a') { e.preventDefault(); setTool('select'); selectAllItems(); return; }
   if (mod && key === 'g' && !document.body.classList.contains('read-only')) { e.preventDefault(); if (e.shiftKey) ungroupSelection(); else groupSelection(); return; }
   if (mod && key === 'd' && !document.body.classList.contains('read-only')) { e.preventDefault(); duplicateSelection(); return; }
+  // Ctrl+] / Ctrl+[ one step up or down, with Shift all the way (stacking.js). e.code: Shift turns ] into }.
+  if (mod && (e.code === 'BracketRight' || e.code === 'BracketLeft') && !document.body.classList.contains('read-only')) {
+    e.preventDefault();
+    const up = e.code === 'BracketRight';
+    restackSelection(e.shiftKey ? (up ? 'front' : 'back') : (up ? 'up' : 'down'));
+    return;
+  }
   if (mod) return;
 
   if (e.key === ' ' && !spaceHeld) { spaceHeld = true; canvasArea.classList.add('panning'); e.preventDefault(); return; }
@@ -51,11 +61,13 @@ document.addEventListener('keydown', (e) => {
     case 'Backspace':
       if (selection.size) { e.preventDefault(); deleteSelection(); }
       else if (selectedMark) { e.preventDefault(); deleteSelectedMark(); }
+      else if (typeof selectedCable !== 'undefined' && selectedCable) { e.preventDefault(); deleteCable(selectedCable); }
       break;
     case 'v': case 'V': setTool('select'); break;
     case 's': case 'S': setTool('add-switch'); break;
     case 'b': case 'B': setTool('add-block'); break;
     case 'd': case 'D': $('tool-draw')?.click(); break;
+    case 'c': case 'C': if (!mod) $('tool-cable')?.click(); break;
     case 'g': case 'G': setSnap(!snapEnabled); break;
     case 'f': case 'F': fitToContent(); break;
     case 'r': case 'R':

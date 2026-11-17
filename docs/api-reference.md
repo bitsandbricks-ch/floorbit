@@ -129,6 +129,21 @@ Source: [`floorbit/blueprints/brackets.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/tournament/brackets/<bracket_id>/matches/<match_id>` | `floorplan.edit` | `tournament` |
 | POST | `/api/tournament/brackets/import` | `floorplan.edit` | `tournament` |
 
+## floorbit.blueprints.cable_plan
+
+Cables drawn on the floor plan (floorbit/cable_plan.py).
+
+Source: [`floorbit/blueprints/cable_plan.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/cable_plan.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/cable-plan` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/cable-plan/panels` | `floorplan.edit` |  |
+| DELETE | `/api/cable-plan/panels/<path:name>` | `floorplan.edit` |  |
+| PUT | `/api/cable-plan/panels/<path:name>` | `floorplan.edit` |  |
+| GET | `/api/cable-plan/panels/<path:name>/ports` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/cable-plan/routes` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.cables
 
 Cables and patching (issue #97). The rules live in floorbit/cables.py.
@@ -481,7 +496,7 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 
 ## floorbit.blueprints.options
 
-The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users and teams.
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
 
@@ -529,6 +544,20 @@ Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/plan/seats/<seat>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/plan/seats/<seat>/note` | `incidents.work` |  |
 | GET | `/api/plan/switches/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
+## floorbit.blueprints.plan_groups
+
+Groups of items on the floor plan (floorbit/plan_groups.py).
+
+Source: [`floorbit/blueprints/plan_groups.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_groups.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-groups` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/plan-groups` | `floorplan.edit` |  |
+| PUT | `/api/plan-groups` | `floorplan.edit` |  |
+| DELETE | `/api/plan-groups/<group_id>` | `floorplan.edit` |  |
+| PUT | `/api/plan-groups/<group_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.plan_marks
 

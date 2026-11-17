@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import block_merge, halls, seat_gaps, seat_names
+from .. import block_merge, halls, seat_gaps, seat_names, stacking
 from ..plan_marks import on_plan
 from ..store import load_data, save_data
 from .inventory import data_lock
@@ -16,7 +16,7 @@ bp = Blueprint('seat_blocks', __name__)
 
 # The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
 KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group')
+        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group', 'z')
 MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
 MAX_MANY = 30       # blocks in one "add several"
 
@@ -85,6 +85,10 @@ def _clean(block):
     if len(group) > 64:
         raise BlockError('A group id is at most 64 characters')
     block['group'] = group or None
+    try:
+        block['z'] = stacking.z_of(block.get('z'))
+    except stacking.StackError as exc:
+        raise BlockError(str(exc)) from None
     return block
 
 
@@ -115,7 +119,7 @@ def _clash_error(seat):
 def get_seat_blocks():
     """All seat blocks, or with ``?hall=<id>`` only that hall's."""
     data = load_data()
-    blocks = with_hall(data.get('seat_blocks', []), data)
+    blocks = with_hall(stacking.by_z(data.get('seat_blocks', [])), data)
     wanted = request.args.get('hall')
     return jsonify([b for b in blocks if b['hall_id'] == wanted] if wanted else blocks)
 
@@ -141,6 +145,7 @@ def make_block(body, hall_id):
         'col_gaps': body.get('col_gaps'),
         'row_gaps': body.get('row_gaps'),
         'group': body.get('group'),
+        'z': body.get('z'),
         'hall_id': hall_id,
     })
 

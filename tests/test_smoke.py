@@ -2,7 +2,7 @@
 
 
 def test_index_renders(client):
-    resp = client.get("/")
+    resp = client.get("/editor/classic")
     assert resp.status_code == 200
     assert b"<html" in resp.data.lower()
 
@@ -11,6 +11,15 @@ def test_kiosk_renders(client):
     resp = client.get("/kiosk")
     assert resp.status_code == 200
     assert b"/static/js/kiosk.js" in resp.data
+
+
+def test_kiosk_speaks_the_browsers_language(client):
+    """Attendees open /kiosk on their own phones: German browsers get German, with no sharp s for Swiss."""
+    swiss = client.get("/kiosk", headers={"Accept-Language": "de-CH,de;q=0.9"}).get_data(as_text=True)
+    assert '<html lang="de-CH"' in swiss and "Plätze besetzt" in swiss and "seats taken" not in swiss
+    assert '"updated_s": "vor {n} s aktualisiert"' in swiss   # kiosk.js's texts come along
+    english = client.get("/kiosk", headers={"Accept-Language": "en-GB"}).get_data(as_text=True)
+    assert '<html lang="en"' in english and "seats taken" in english
 
 
 def test_config_without_integrations(client):
@@ -71,3 +80,9 @@ def test_settings_round_trip(client):
 
 def test_settings_reject_unknown_keys(client):
     assert client.put("/api/settings", json={"hide_labels": True}).status_code == 400
+
+
+def test_the_old_editor_address_opens_the_floor_plan(client):
+    """``/`` is the React floor plan now; old links keep what they pointed at, in Edit mode."""
+    assert client.get("/").headers["Location"] == "/plan"
+    assert client.get("/?seat=A-1&hall=main").headers["Location"] == "/plan?seat=A-1&hall=main&mode=edit"

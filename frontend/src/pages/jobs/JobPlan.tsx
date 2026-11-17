@@ -1,4 +1,5 @@
 import type { Job } from '@/api/types'
+import { blockTop } from '@/pages/plan/blockTop'
 
 /** The job's hall with its seat marked, and a straight line from where the tech is. */
 export function JobPlan({ job, label, you }: { job: Job; label: string; you: string }) {
@@ -15,7 +16,7 @@ export function JobPlan({ job, label, you }: { job: Job; label: string; you: str
                 width={d.cell - 2} height={d.cell - 2} rx={3} />
             ))}
           </g>
-          {b.name && <text className="name" x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 18}>{b.name}</text>}
+          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
         </g>
       ))}
       {job.from && <line className="route" x1={job.from[0]} y1={job.from[1]} x2={tx} y2={ty} />}

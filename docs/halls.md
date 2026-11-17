@@ -1,12 +1,12 @@
 # Halls and floor plan import
 
 An event can have more than one hall or floor. Each has its own floor plan: a background image,
-switches and seat blocks. The editor shows one hall at a time.
+switches and seat blocks. The floor plan shows one hall at a time.
 
 ## Halls
 
-The hall picker in the editor's top bar switches between halls (the address gets `?hall=<id>`, and
-the browser remembers the last one). The button next to it opens **Halls**:
+The hall picker above the plan switches between halls (the address gets `?hall=<id>`; Edit mode
+stays in Edit mode). In Edit mode, **Halls** in the panel on the right opens the Halls dialog:
 
 - **Add hall**, rename one by editing its name.
 - **Delete** a hall once it is empty: move or delete its switches and seat blocks first. The last
@@ -48,7 +48,7 @@ C,20,60,12,2,90
 | `x`, `y` | yes | The block's centre, in percent of the plan box (0 to 100 is the box the background image fills; the plan has no edge, so values outside it work too). A decimal comma works. |
 | `cols`, `rows` | yes | Seats per row and rows. |
 | `rotation` | no | Degrees, 0 by default. |
-| `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Sizes in percent of the plan, as in the editor. |
+| `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Kept for older files; every block draws its seats at the same size. |
 | `reverse_numbers` | no | `true` to number right to left. |
 | `naming` | no | `block` (default: `<name>-1` to `<name>-<n>`) or `rows` (a letter per row, see below). |
 | `row_start`, `row_labels` | no | With `rows`: the first row's letter (`A`), and where the letter is drawn: `start`, `end`, `both` or `none`. |
@@ -69,7 +69,13 @@ A seat block names its seats in one of two ways:
 
 Turning a block (the Rotation buttons, or <kbd>R</kbd> and <kbd>Shift</kbd>+<kbd>R</kbd> on the floor plan)
 turns the numbering with it: seat 1 and the first row letter stay where a reader starts, left and top as seen.
-**Reverse numbering** runs the numbers the other way.
+**Seat 1 on the right** runs the numbers the other way.
+
+**Defaults:** every block draws its seats at the same size and spacing. What a new block starts with (seat
+names, where the row letter goes, seat 1 on the left or right, and the room between blocks made at once) is
+set under Settings > Floor plan (`FLOORPLAN_NAMING`, `FLOORPLAN_ROW_LABELS`, `FLOORPLAN_REVERSE_NUMBERS`,
+`FLOORPLAN_BLOCK_GAP`); the New seat block dialog keeps the rest under **More options**, and a block's details
+can still change it later.
 
 **Add several blocks at once:** in the New seat block dialog, set **How many blocks**, whether the next one
 goes below or to the right, and the gap. The row letters (or single-letter block names) count on, so 4 blocks
@@ -119,11 +125,27 @@ left block keeps its name and settings, so the other blocks' seats get new names
 becomes a gap. Undo brings the separate blocks back. For scripts: `POST /api/seat-blocks/merge` with
 `{"ids": [...]}`; a block's `group` is a free text id.
 
+## What is drawn on top
+
+Switches are always drawn over seat blocks, seats, labels, walls and zones, as a small switch box (lit ports
+when it is online, a cross when it is offline, a dashed outline when its status is unknown). That is the same in
+the editor, on the Seats view and on the kiosk.
+
+Seat blocks overlap in the order you set: right-click a block (or a selection of blocks) or a label, wall,
+zone or icon and pick **Bring to front**, **Bring forward**, **Send backward** or **Send to back**, or press
+<kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>Ctrl</kbd>+<kbd>[</kbd> (with <kbd>Shift</kbd>: all the way). Blocks are
+ordered among blocks and marks among marks; marks always stay under the blocks. Every view draws in the same
+order. In the API it is `z` on a block or mark (a whole number, higher on top, 0 by default).
+
 ## The editor's menu
 
 The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block
-<kbd>B</kbd>, Draw <kbd>D</kbd>), the buttons for the three panels, and at the bottom Undo, Redo, Snap
-to grid <kbd>G</kbd> and the keyboard shortcuts <kbd>?</kbd>.
+<kbd>B</kbd>, Draw <kbd>D</kbd>, Cable <kbd>C</kbd>), the buttons for the three panels, and at the bottom
+Undo, Redo, Snap to grid <kbd>G</kbd> and the keyboard shortcuts <kbd>?</kbd>.
+
+A tool stays on after you place something, so several switches, blocks, icons, walls or zones go down in
+a row; <kbd>Esc</kbd> or <kbd>V</kbd> goes back to Select. Only a text label goes straight back to Select,
+with its text ready to type.
 
 The **panel on the right** shows **Search** (<kbd>/</kbd>), **Layers** (<kbd>L</kbd>) or **Switches**
 (<kbd>W</kbd>, with the NetBox sync when NetBox is set up). Pressing the button of the open panel again

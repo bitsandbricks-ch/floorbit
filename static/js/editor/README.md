@@ -8,6 +8,9 @@ The files are **classic scripts that share one global scope**: a top-level `let`
 `function` in one file is visible in every file loaded after it. `index.html` loads them in this
 order, and `main.js` runs `init()` last, once everything is defined:
 
+Before them, `index.html` loads the shared dropdowns and tabs from `static/js/ui/` (see its
+README). Every `<select>` in the editor becomes that dropdown by itself; tab strips follow too.
+
 | File | What lives there |
 | --- | --- |
 | `core.js` | State, DOM references, localStorage, the `api()` helper, toasts, dialogs, undo/redo, utils. |
@@ -39,8 +42,11 @@ order, and `main.js` runs `init()` last, once everything is defined:
 | `marks.js` | Text labels, walls, zones and icons on the plan: the Draw menu, placing, moving and the inspector (`floorbit/plan_marks.py`). |
 | `align.js` | Alignment guides while dragging seat blocks: edges, middles, seat rows and equal spacing; Alt places freely. |
 | `groups.js` | Groups of seat blocks (`group`): select, move, turn and copy as one, Ctrl+G and Ctrl+Shift+G; merging blocks next to each other (`floorbit/block_merge.py`). |
+| `cables.js` | Cables on the plan (`floorbit/cable_plan.py`): network and power cables on their layers, bends to drag, round corners, patch panels, and the Cable tool (C). |
+| `stacking.js` | Which seat block or mark is drawn over which (`z`): bring to front, send to back, one step (Ctrl+] / Ctrl+[, Shift for all the way). |
 | `gaps.js` | Gaps inside a seat block: room in every row after a column, lanes between rows (`col_gaps`, `row_gaps`, as `floorbit/seat_gaps.py`); the Gaps section of the block inspector and the seat's right-click entries. |
 | `panels.js` | The tool rail on the left and the panel on the right (search, layers, switches; keys `/`, `L`, `W`), which steps aside while an inspector is open; German for the rail and the panel. |
+| `modes.js` | The mode switch in the top bar: Live, Check-in and Network open the plan workspace (`/plan`) on the same hall; the editor is its Edit mode. |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:

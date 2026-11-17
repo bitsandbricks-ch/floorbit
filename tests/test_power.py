@@ -160,7 +160,7 @@ def test_the_layer_can_be_switched_off(client, floor, monkeypatch):
     assert client.get("/api/power/markers").get_json() == {"enabled": False, "seats": {}, "switches": {},
                                                            "boards": [], "circuits": [], "counts": {}}
     assert client.post("/api/power/boards", json={"name": "DB-2"}).status_code == 409
-    assert b'href="/power"' not in client.get("/").data
+    assert b'href="/power"' not in client.get("/editor/classic").data
 
 
 def test_demo_meters_feed_the_circuits(client, watch):
@@ -183,3 +183,11 @@ def test_discord_power_message():
     assert embed["title"] == "⚡ Breaker tripped: A row 2"
     assert {"name": "Feeds", "value": "12 seats and sw-a-01", "inline": False} in embed["fields"]
     assert DiscordNotifier().build_power_message({"state": "warn"}) is None
+
+
+def test_placed_boards_are_on_the_plan(client, floor):
+    """The React editor selects and moves boards: /api/plan lists the placed ones in drawing units."""
+    client.post("/api/power/boards", json={"name": "DB-9", "x": 50, "y": 10})
+    client.post("/api/power/boards", json={"name": "DB-nowhere"})
+    names = {b["name"]: b for b in client.get("/api/plan").get_json()["boards"]}
+    assert "DB-nowhere" not in names and names["DB-9"]["x"] == 800
