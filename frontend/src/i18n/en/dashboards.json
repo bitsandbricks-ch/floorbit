@@ -32,7 +32,8 @@
     "tile": "Tile",
     "dashboard": "Tiles",
     "page": "Page",
-    "empty": "Empty"
+    "empty": "Empty",
+    "text": "Text"
   },
   "area": {
     "hall": "Whole hall",
@@ -75,7 +76,12 @@
     "noDashboards": "No tile layouts saved yet.",
     "page": "Page",
     "view": "Widget",
-    "noViews": "No widgets yet."
+    "noViews": "No widgets yet.",
+    "hideTitle": "Hide the title",
+    "text": "Text",
+    "textHint": "Markdown: # heading, - list, **bold**, [link](https://example.com).",
+    "size": "Text size",
+    "align": "Alignment"
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -86,6 +92,17 @@
     "tileGone": "This tile is gone (plugin off or removed).",
     "dashboardGone": "This tile layout is gone.",
     "empty": "Empty pane",
-    "viewGone": "This widget is gone."
+    "viewGone": "This widget is gone.",
+    "noText": "Write something in the pane's settings."
+  },
+  "textSize": {
+    "s": "S",
+    "m": "M",
+    "l": "L",
+    "xl": "XL"
+  },
+  "align": {
+    "start": "Left",
+    "center": "Centre"
   }
 }

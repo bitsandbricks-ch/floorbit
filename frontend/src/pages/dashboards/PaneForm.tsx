@@ -1,4 +1,4 @@
-import { Button, Select, SegmentedControl, Stack, Text, TextInput } from '@mantine/core'
+import { Button, Select, SegmentedControl, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,19 +11,20 @@ import { VIEWS } from '@/widgets/views'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, PAGES, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, areaView, planPane } from './model'
+import { type Area, PAGES, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
 /** A fresh pane of ``kind``, keeping the title. */
-function blank(kind: PaneKind, title?: string): Pane {
-  const base = title ? { title } : {}
+function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
+  const base = { ...(title ? { title } : {}), ...(hide ? { hide_title: true } : {}) }
   switch (kind) {
     case 'plan': return planPane(base)
     case 'tile': return { kind, tile: '', ...base }
     case 'dashboard': return { kind, layout: '', ...base }
     case 'page': return { kind, page: 'health', ...base }
     case 'view': return { kind, view: VIEWS[0]?.id ?? '', ...base }
+    case 'text': return { kind, text: '', size: 'l', align: 'start', ...base }
     default: return { kind: 'empty', ...base }
   }
 }
@@ -33,13 +34,15 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
   const { t } = useTranslation()
   return (
     <Stack gap="sm">
-      <div>
-        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.kind')}</Text>
-        <SegmentedControl fullWidth size="xs" value={pane.kind} onChange={(v) => onChange(blank(v as PaneKind, pane.title))}
-          aria-label={t('dashboards.form.kind')} data={PANE_KINDS.map((k) => ({ value: k, label: t(`dashboards.kind.${k}`) }))} />
-      </div>
+      {/* Seven kinds no longer fit a segmented control in the side panel. */}
+      <Select label={t('dashboards.form.kind')} allowDeselect={false} value={pane.kind}
+        data={PANE_KINDS.map((k) => ({ value: k, label: t(`dashboards.kind.${k}`) }))}
+        onChange={(v) => v && onChange(blank(v as PaneKind, pane.title, pane.hide_title))} />
       <TextInput label={t('dashboards.form.title')} description={t('dashboards.form.titleHint')} maxLength={40} value={pane.title ?? ''}
         onChange={(e) => onChange({ ...pane, title: e.currentTarget.value || undefined })} />
+      <Switch label={t('dashboards.form.hideTitle')} checked={!!pane.hide_title}
+        onChange={(e) => onChange({ ...pane, hide_title: e.currentTarget.checked || undefined })} />
+      {pane.kind === 'text' && <TextFields pane={pane} onChange={onChange} />}
       {pane.kind === 'plan' && <PlanFields pane={pane} onChange={onChange} />}
       {pane.kind === 'view' && (
         <Select label={t('dashboards.form.view')} allowDeselect={false} searchable value={pane.view || null}
@@ -55,6 +58,28 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
           onChange={(v) => v && onChange({ ...pane, page: v as typeof pane.page })} />
       )}
     </Stack>
+  )
+}
+
+function TextFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'text' }>; onChange: (p: Pane) => void }) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <Textarea label={t('dashboards.form.text')} description={t('dashboards.form.textHint')} autosize minRows={5} maxRows={14}
+        maxLength={TEXT_MAX} value={pane.text} onChange={(e) => onChange({ ...pane, text: e.currentTarget.value })} />
+      <div>
+        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.size')}</Text>
+        <SegmentedControl fullWidth size="xs" value={pane.size} aria-label={t('dashboards.form.size')}
+          data={TEXT_SIZES.map((v) => ({ value: v, label: t(`dashboards.textSize.${v}`) }))}
+          onChange={(v) => onChange({ ...pane, size: v as TextSize })} />
+      </div>
+      <div>
+        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.align')}</Text>
+        <SegmentedControl fullWidth size="xs" value={pane.align} aria-label={t('dashboards.form.align')}
+          data={(['start', 'center'] as const).map((v) => ({ value: v, label: t(`dashboards.align.${v}`) }))}
+          onChange={(v) => onChange({ ...pane, align: v as 'start' | 'center' })} />
+      </div>
+    </>
   )
 }
 

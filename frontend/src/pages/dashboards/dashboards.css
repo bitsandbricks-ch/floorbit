@@ -65,3 +65,18 @@
 /* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
 .fb-board-screen .fb-pane-head { padding-right: 156px; }
 .fb-board-screen .fb-pane-count { display: none; }
+
+/* Text panes: sizes follow the pane's width (container units), from desk (s) to across the hall (xl). */
+.fb-pane-text .fb-pane-body { container-type: inline-size; }
+.fb-pane-text { --fb-text: clamp(13px, 3.2cqi, 30px); }
+.fb-pane-text.fb-text-s { --fb-text: clamp(12px, 2.4cqi, 22px); }
+.fb-pane-text.fb-text-l { --fb-text: clamp(16px, 4.5cqi, 44px); }
+.fb-pane-text.fb-text-xl { --fb-text: clamp(20px, 6.5cqi, 64px); }
+.fb-pane-text .fb-pane-body { padding-top: 6px; }
+.fb-pane-text .fb-markdown p, .fb-pane-text .fb-markdown li { font-size: var(--fb-text); line-height: 1.4; }
+.fb-pane-text .fb-markdown :is(h3, h4, h5) { font-size: calc(var(--fb-text) * 1.5); line-height: 1.2; }
+.fb-pane-text.fb-text-center .fb-pane-body { display: flex; flex-direction: column; text-align: center; }
+/* Auto margins centre it but, unlike justify-content, keep the top reachable when it overflows. */
+.fb-pane-text.fb-text-center .fb-pane-body > * { flex: none; margin-block: auto; }
+.fb-pane-text.fb-text-center .fb-markdown ul, .fb-pane-text.fb-text-center .fb-markdown ol { display: inline-block; text-align: left; }
+.fb-pane-headless { padding-top: 12px; }

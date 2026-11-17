@@ -10,6 +10,7 @@ wall in the hall, or your own second monitor. Each pane shows one thing:
 | **Tile** | One dashboard tile: Floorbit's own (problems, incidents, switches, seats) or a plugin's. |
 | **Tiles** | A saved tile layout from the [tile dashboard](dashboard.md). |
 | **Page** | Service health, stats, the public stats wall or the status page. |
+| **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
 For example: the whole hall on the left, the VIP zone zoomed in at the top right, and the network
 layer at the bottom right.
@@ -24,6 +25,8 @@ layer at the bottom right.
   them. Up to 12 panes, splits up to four deep.
 - **Plan** panes show their hall's name and area as a title, and how many of the seats in that area
   are online or have problems. A title you type replaces it.
+- **Hide the title** leaves a pane's head off, for a cleaner wall (on a plan pane, the online count
+  goes with it).
 - **Zone** lists the zones of the hall that have a label: draw one around the VIP area with the
   editor's Zone tool first. **My view** shows a small plan: move and zoom it, then **Use this view**.
 - **Rotate halls every** makes plan panes without a fixed hall that show a whole hall go through all

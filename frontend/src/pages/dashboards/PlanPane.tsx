@@ -108,8 +108,8 @@ export function PlanPane({ pane, cycle }: { pane: PlanPaneDef; cycle?: number })
     )
   }
   return (
-    <div className="fb-pane fb-pane-plan">
-      <div className="fb-pane-head">
+    <div className="fb-pane fb-pane-plan" role="region" aria-label={title}>
+      {!pane.hide_title && <div className="fb-pane-head">
         <Text fw={800} className="fb-pane-title" truncate>{title}</Text>
         {data && inArea && (
           <Text className="fb-pane-count">
@@ -117,7 +117,7 @@ export function PlanPane({ pane, cycle }: { pane: PlanPaneDef; cycle?: number })
             {problems > 0 && <Text span c="down" fw={700}> · {t('dashboards.pane.problems', { count: problems })}</Text>}
           </Text>
         )}
-      </div>
+      </div>}
       <div className="fb-pane-body">{body}</div>
     </div>
   )

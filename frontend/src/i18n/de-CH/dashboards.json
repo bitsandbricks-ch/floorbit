@@ -32,7 +32,8 @@
     "tile": "Kachel",
     "dashboard": "Kacheln",
     "page": "Seite",
-    "empty": "Leer"
+    "empty": "Leer",
+    "text": "Text"
   },
   "area": {
     "hall": "Ganze Halle",
@@ -75,7 +76,12 @@
     "noDashboards": "Noch keine Kachel-Layouts gespeichert.",
     "page": "Seite",
     "view": "Widget",
-    "noViews": "Noch keine Widgets."
+    "noViews": "Noch keine Widgets.",
+    "hideTitle": "Titel ausblenden",
+    "text": "Text",
+    "textHint": "Markdown: # Titel, - Liste, **fett**, [Link](https://example.com).",
+    "size": "Textgrösse",
+    "align": "Ausrichtung"
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -86,6 +92,17 @@
     "tileGone": "Diese Kachel gibt es nicht mehr (Plugin aus oder entfernt).",
     "dashboardGone": "Dieses Kachel-Layout gibt es nicht mehr.",
     "empty": "Leerer Bereich",
-    "viewGone": "Dieses Widget gibt es nicht mehr."
+    "viewGone": "Dieses Widget gibt es nicht mehr.",
+    "noText": "Schreib etwas in die Einstellungen des Bereichs."
+  },
+  "textSize": {
+    "s": "S",
+    "m": "M",
+    "l": "L",
+    "xl": "XL"
+  },
+  "align": {
+    "start": "Links",
+    "center": "Zentriert"
   }
 }

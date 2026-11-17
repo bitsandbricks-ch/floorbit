@@ -835,5 +835,8 @@
  "Send the dashboard as a JSON object.": "Sende das Dashboard als JSON-Objekt.",
  "Give the dashboard a name.": "Gib dem Dashboard einen Namen.",
  "No such dashboard.": "Kein solches Dashboard.",
- "Pick a widget.": "Wähle ein Widget."
+ "Pick a widget.": "Wähle ein Widget.",
+ "A text is at most {} characters.": "Ein Text hat höchstens {} Zeichen.",
+ "A text size is one of: {}.": "Eine Textgrösse ist eine von: {}.",
+ "A text is aligned one of: {}.": "Ein Text ist ausgerichtet als eines von: {}."
 }

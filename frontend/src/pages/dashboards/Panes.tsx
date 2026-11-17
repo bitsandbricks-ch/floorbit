@@ -10,6 +10,7 @@ import { TileGrid, WidgetCard } from '../Dashboard'
 import { PAGE_URL, type Pane } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
+import { Markdown } from '@/components/Markdown'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -17,11 +18,11 @@ function Note({ children }: { children: React.ReactNode }) {
   return <Text c="dimmed" className="fb-pane-note">{children}</Text>
 }
 
-function Framed({ title, children }: { title?: string; children: React.ReactNode }) {
+function Framed({ title, hide, className = '', children }: { title?: string; hide?: boolean; className?: string; children: React.ReactNode }) {
   return (
-    <div className="fb-pane">
-      {title && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text></div>}
-      <div className="fb-pane-body fb-pane-scroll">{children}</div>
+    <div className={`fb-pane ${className}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
+      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text></div>}
+      <div className={`fb-pane-body fb-pane-scroll${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>
   )
 }
@@ -31,7 +32,7 @@ function TilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   const { data, isPending } = useDashboard()
   const tile = data?.tiles.find((x) => tileKey(x) === pane.tile)
   return (
-    <Framed title={pane.title}>
+    <Framed title={pane.title} hide={pane.hide_title}>
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} />
         : tile && tile.kind !== 'action' ? <WidgetCard tile={tile as WidgetTile} /> : <Note>{t('dashboards.pane.tileGone')}</Note>}
     </Framed>
@@ -45,7 +46,7 @@ function DashboardPane({ pane }: { pane: Extract<Pane, { kind: 'dashboard' }> })
   const layout = layouts.data?.layouts.find((l) => l.id === pane.layout)
   const shown = layout ? layout.tiles.map((k) => tiles.data?.tiles.find((x) => tileKey(x) === k)).filter((x): x is Tile => !!x) : []
   return (
-    <Framed title={pane.title ?? layout?.name}>
+    <Framed title={pane.title ?? layout?.name} hide={pane.hide_title}>
       {tiles.isPending || layouts.isPending ? <Loader size="sm" aria-label={t('common.loading')} />
         : !layout ? <Note>{t('dashboards.pane.dashboardGone')}</Note>
         : <TileGrid tiles={shown} columns={layout.columns} />}
@@ -69,9 +70,19 @@ function ViewPane({ pane }: { pane: Extract<Pane, { kind: 'view' }> }) {
   const def = VIEWS.find((v) => v.id === pane.view)
   const View = def ? VIEW_COMPONENTS[def.id] : null
   return (
-    <Framed title={pane.title ?? (def ? t(def.label) : undefined)}>
+    <Framed title={pane.title ?? (def ? t(def.label) : undefined)} hide={pane.hide_title}>
       {View ? <Suspense fallback={<Loader size="sm" aria-label={t('common.loading')} />}><View expanded /></Suspense>
         : <Note>{t('dashboards.pane.viewGone')}</Note>}
+    </Framed>
+  )
+}
+
+/** Your own words, big enough to read from across the hall. */
+function TextPane({ pane }: { pane: Extract<Pane, { kind: 'text' }> }) {
+  const { t } = useTranslation()
+  return (
+    <Framed title={pane.title} hide={pane.hide_title} className={`fb-pane-text fb-text-${pane.size} fb-text-${pane.align}`}>
+      {pane.text ? <Markdown source={pane.text} breaks /> : <Note>{t('dashboards.pane.noText')}</Note>}
     </Framed>
   )
 }
@@ -85,6 +96,7 @@ export function PaneView({ pane, cycle }: { pane: Pane; cycle?: number }) {
     case 'dashboard': return <DashboardPane pane={pane} />
     case 'page': return <PagePane pane={pane} />
     case 'view': return <ViewPane pane={pane} />
-    default: return <Framed title={pane.title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.empty')}</Note></Stack></Framed>
+    case 'text': return <TextPane pane={pane} />
+    default: return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.empty')}</Note></Stack></Framed>
   }
 }

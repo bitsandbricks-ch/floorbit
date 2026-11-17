@@ -13,16 +13,25 @@ export type Area =
 
 export type PlanFilter = 'all' | 'problems' | 'offline' | 'recent' | 'note' | 'checked_in'
 
-export type Pane =
-  | { kind: 'plan'; title?: string; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode }
-  | { kind: 'tile'; title?: string; tile: string }
-  | { kind: 'dashboard'; title?: string; layout: string }
-  | { kind: 'page'; title?: string; page: PageId }
-  | { kind: 'view'; title?: string; view: string }
-  | { kind: 'empty'; title?: string }
+export type TextSize = 's' | 'm' | 'l' | 'xl'
+export const TEXT_SIZES: TextSize[] = ['s', 'm', 'l', 'xl']
+export const TEXT_MAX = 2000
+
+/** ``hide_title`` leaves the pane's head off; the title still names it for screen readers. */
+type Head = { title?: string; hide_title?: boolean }
+
+export type Pane = Head & (
+  | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode }
+  | { kind: 'tile'; tile: string }
+  | { kind: 'dashboard'; layout: string }
+  | { kind: 'page'; page: PageId }
+  | { kind: 'view'; view: string }
+  | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
+  | { kind: 'empty' }
+)
 
 export type PaneKind = Pane['kind']
-export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'dashboard', 'page', 'empty']
+export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'dashboard', 'page', 'text', 'empty']
 export const PAGES = ['health', 'stats', 'wall', 'status'] as const
 export type PageId = (typeof PAGES)[number]
 export const PAGE_URL: Record<PageId, string> = { health: '/health?screen=1', stats: '/stats?screen=1', wall: '/wall?screen=1', status: '/status' }

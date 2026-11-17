@@ -54,6 +54,19 @@ def test_other_panes(client):
     assert saved["cycle"] == 30
 
 
+def test_text_pane(client):
+    text = {"kind": "text", "title": "Welcome", "hide_title": True, "size": "xl",
+            "text": "# Doors open 18:00\r\n\n- **Wi-Fi**: LAN\x07"}
+    saved = client.put("/api/dashboards/info", json={"name": "Info", "root": {"pane": text}}).get_json()
+    pane = saved["root"]["pane"]
+    assert pane == {"kind": "text", "title": "Welcome", "hide_title": True,
+                    "text": "# Doors open 18:00\n\n- **Wi-Fi**: LAN", "size": "xl", "align": "start"}
+    body = {"name": "Info", "root": {"pane": {**text, "size": "huge"}}}
+    assert client.put("/api/dashboards/info", json=body).status_code == 400
+    body = {"name": "Info", "root": {"pane": {**text, "text": "x" * 2001}}}
+    assert client.put("/api/dashboards/info", json=body).status_code == 400
+
+
 def test_checks(client):
     def put(**change):
         return client.put("/api/dashboards/wall", json={**MIXED, **change}).status_code

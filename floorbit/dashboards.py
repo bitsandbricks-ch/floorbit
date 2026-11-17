@@ -12,7 +12,11 @@ A layout is a tree: a node is either a split (``split`` "row" puts its children 
 - ``dashboard``: a saved dashboard layout, by id;
 - ``page``: one of the other big-screen pages (:data:`PAGES`);
 - ``view``: a rich widget by id (frontend/src/widgets/views.ts); unknown ids show a note;
+- ``text``: your own words (``text``, the Markdown subset of frontend/src/components/Markdown.tsx),
+  in a ``size`` that reads from across the hall and ``align``-ed left or centred;
 - ``empty``: nothing yet.
+
+Every pane may have a ``title``; ``hide_title`` leaves its head off for a cleaner wall.
 
 Kept in data.json under ``dashboards``. Panes that name something gone (a hall, a tile, a
 dashboard layout) show a note on the screen instead of failing: the screen keeps running.
@@ -30,7 +34,7 @@ MAX_DEPTH = 4
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}$')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}$')
 REF_RE = re.compile(r'^[\w .:-]{1,120}$')
-KINDS = ('plan', 'tile', 'dashboard', 'page', 'view', 'empty')
+KINDS = ('plan', 'tile', 'dashboard', 'page', 'view', 'text', 'empty')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
 PRESETS = ('overview', 'network', 'electrical', 'ops')
@@ -39,6 +43,9 @@ LABELS = ('auto', 'all', 'none')
 # The big-screen pages a pane can hold (each one's ``?screen=1`` version).
 PAGES = {'health': '/health?screen=1', 'stats': '/stats?screen=1', 'wall': '/wall?screen=1', 'status': '/status'}
 TITLE_MAX = 40
+TEXT_MAX = 2000
+TEXT_SIZES = ('s', 'm', 'l', 'xl')
+TEXT_ALIGN = ('start', 'center')
 _lock = threading.Lock()
 
 
@@ -97,6 +104,8 @@ def _pane(raw):
     title = _text(raw.get('title'), TITLE_MAX)
     if title:
         pane['title'] = title
+    if raw.get('hide_title'):
+        pane['hide_title'] = True
     if kind == 'plan':
         hall = str(raw.get('hall') or '').strip()
         if hall and not REF_RE.match(hall):
@@ -126,6 +135,18 @@ def _pane(raw):
         if not ID_RE.match(view):
             raise LayoutError('Pick a widget.')
         pane['view'] = view
+    elif kind == 'text':
+        # Keep line breaks (they are the Markdown), drop other control characters.
+        text = ''.join(c for c in str(raw.get('text') or '').replace('\r\n', '\n') if c == '\n' or c >= ' ').strip()
+        if len(text) > TEXT_MAX:
+            raise LayoutError(f'A text is at most {TEXT_MAX} characters.')
+        size = raw.get('size') or 'm'
+        align = raw.get('align') or 'start'
+        if size not in TEXT_SIZES:
+            raise LayoutError(f'A text size is one of: {", ".join(TEXT_SIZES)}.')
+        if align not in TEXT_ALIGN:
+            raise LayoutError(f'A text is aligned one of: {", ".join(TEXT_ALIGN)}.')
+        pane.update(text=text, size=size, align=align)
     elif kind == 'page':
         if raw.get('page') not in PAGES:
             raise LayoutError(f'A page is one of: {", ".join(PAGES)}.')
