@@ -255,12 +255,16 @@ def poll_all(targets, now=None, log=print, blocks=None):
     the device refused is not tried again until it is cleared or the login changes."""
     points, errors = [], {}
     for t in targets:
-        rev = login_rev(t)
+        # A device from the inventory: the block goes on its stored login (device, credential,
+        # revision), so the inventory shows it and the hosted SSH path leaves it alone too.
+        login = (t.get('logins') or {}).get('api')
+        device, rev = (login['device'], login['rev']) if login else (t['name'], login_rev(t))
         for driver in t.get('drivers') or []:
             poller = POLLERS.get(driver)
             if poller is None:
                 continue
-            if blocks is not None and not blocks.may_login(t['name'], driver, rev):
+            credential = login['credential'] if login else driver
+            if blocks is not None and not blocks.may_login(device, credential, rev):
                 errors[t['name']] = f'{driver}: login refused before, not tried again until cleared'
                 continue
             try:
@@ -268,7 +272,7 @@ def poll_all(targets, now=None, log=print, blocks=None):
             except LoginRefused as exc:
                 errors[t['name']] = str(exc)
                 if blocks is not None:
-                    blocks.auth_failed(t['name'], driver, rev, str(exc))
+                    blocks.auth_failed(device, credential, rev, str(exc))
                 log(f'[telemetry] {exc}')
             except PollError as exc:
                 errors[t['name']] = str(exc)

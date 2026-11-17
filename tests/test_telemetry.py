@@ -3,6 +3,7 @@ each device, the telemetry monitoring plugin, Telegraf's config, the API pollers
 No network: pollers get a fake requests session, storage a local SQLite file."""
 import base64
 import gzip
+import json
 import os
 import time
 
@@ -518,3 +519,65 @@ def test_a_standby_picture_is_not_answered(plugin):
         assert plugin.devices() == [] and plugin.device_ports("sw-a-01") == [] and not plugin.device_details("sw-a-01")
     finally:
         state.state.collecting = True
+
+
+def test_devices_from_the_inventory_are_collected_with_their_stored_logins(client, tmp_path, monkeypatch):
+    """Inventory devices with the Telemetry feature on become targets: SNMP v3 for polling and
+    traps, the API login for NX-API; a device set up on Settings > Telemetry by the same name wins."""
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred, tag
+
+    from floorbit import inventory_scope
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    inventory_scope._handed.clear()
+    core = tag(client, name="core", features={"telemetry": True})
+    nx = add(client, name="core-1", mgmt_ip="192.0.2.1", platform="NX-OS 10.3", tags=[core["id"]],
+             properties={"telemetry_vlans": "10, 20"})
+    add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", tags=[core["id"]])
+    add(client, name="sw-off", mgmt_ip="192.0.2.99")                        # feature off
+    put_cred(client, owner_type="tag", owner_id=core["id"], kind="snmp_v3", username="mon",
+             auth_protocol="SHA", priv_protocol="AES", secret="auth-pass-1", priv_secret="priv-pass-1")
+    put_cred(client, owner_type="device", owner_id=nx["id"], kind="api", username="nxapi", secret="api-pass-1")
+    found = {t["name"]: t for t in targets.from_inventory()}
+    assert sorted(found) == ["core-1", "sw-a-01"]
+    core1, sw = found["core-1"], found["sw-a-01"]
+    assert core1["platform"] == "nxos" and core1["drivers"] == ["snmp", "traps", "nxapi"]
+    assert core1["snmp_version"] == "3" and core1["sec_name"] == "mon" and core1["auth_password"] == "auth-pass-1"
+    assert core1["username"] == "nxapi" and core1["password"] == "api-pass-1" and core1["vlans"] == [10, 20]
+    assert core1["logins"]["api"]["device"] == nx["id"]
+    assert sw["platform"] == "ios" and sw["fdb"] == "cisco_vlans" and sw["drivers"] == ["snmp", "traps"]
+    conf = telegraf.render(targets.all_opened(), "http://agent:8186/write", "t")
+    assert "udp://192.0.2.21:161" in conf and "auth-pass-1" in conf
+    # The settings page lists them without secrets.
+    listed = client.get("/api/settings/telemetry").get_json()["inventory"]
+    assert {t["name"] for t in listed} == {"core-1", "sw-a-01"}
+    assert "api-pass-1" not in json.dumps(listed) and "auth-pass-1" not in json.dumps(listed)
+    # A device set up here by the same name wins.
+    client.post("/api/settings/telemetry/targets", json={"name": "sw-a-01", "address": "192.0.2.22",
+                                                         "drivers": ["snmp"], "community": "example"})
+    assert [t["address"] for t in targets.all_opened() if t["name"] == "sw-a-01"] == ["192.0.2.22"]
+
+
+def test_a_refused_inventory_login_blocks_the_stored_credential():
+    target = {"name": "core-1", "address": "192.0.2.1", "drivers": ["nxapi"],
+              "logins": {"api": {"device": "dev-1", "credential": "cred-1", "rev": "r1"}}}
+    seen = []
+
+    class Blocks:
+        def may_login(self, device, credential, rev=None):
+            seen.append(("may", device, credential, rev))
+            return True
+
+        def auth_failed(self, device, credential, rev=None, message=""):
+            seen.append(("failed", device, credential, rev))
+
+    def refuse(t, now):
+        raise pollers.LoginRefused("core-1: NX-API refused the login (401)")
+    old = pollers.POLLERS["nxapi"]
+    pollers.POLLERS["nxapi"] = refuse
+    try:
+        pollers.poll_all([target], blocks=Blocks(), log=lambda *_: None)
+    finally:
+        pollers.POLLERS["nxapi"] = old
+    assert seen == [("may", "dev-1", "cred-1", "r1"), ("failed", "dev-1", "cred-1", "r1")]

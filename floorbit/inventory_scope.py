@@ -759,10 +759,12 @@ def plugin_targets(plugin_id, kinds=None, data=None, registry=None):
                     'role': dev.get('role') or '', 'platform': dev.get('platform') or '',
                     'model': dev.get('model') or '', 'properties': _properties(stack), 'credential': secret})
     fingerprint = hashlib.sha256('|'.join(sorted(opened)).encode()).hexdigest()
-    if opened and _handed.get(plugin_id) != fingerprint:
+    # Per plugin and kinds: a plugin asking once for SNMP and once for API logins logs each once.
+    key = f"{plugin_id}:{','.join(kinds or ())}"
+    if opened and _handed.get(key) != fingerprint:
         audit.record('credentials', f'Handed stored logins for {len(opened)} devices to the {plugin_id} plugin',
                      user='agent', target=plugin_id)
-    _handed[plugin_id] = fingerprint
+    _handed[key] = fingerprint
     return out
 
 
