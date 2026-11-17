@@ -44,6 +44,13 @@ class Plugin(Base):
             storage.storage().sample(clean, at)
         return {'taken': len(clean)}
 
+    def agent_endpoints(self, agent, payload):
+        """Where the agent saw each machine: into the IP/MAC history (floorbit/endpoints.py)."""
+        from floorbit import endpoints
+        rows = payload.get('rows') if isinstance(payload, dict) else None
+        rows = [r for r in (rows or [])[:50_000] if isinstance(r, dict)]
+        return {'taken': endpoints.history().record(rows)}
+
     # the monitoring interface -----------------------------------------------------------------
     def devices(self):
         with state._lock:
@@ -130,20 +137,9 @@ class Plugin(Base):
         return out
 
     def _uplinks(self, dev):
-        """Port keys that lead to other switches (LLDP/CDP neighbours, or too many MACs), and the
-        MAC count per port."""
-        most = int(self.settings.get('uplink_macs') or 8)
-        counts = {}
-        for port, _seen in dev.fdb.values():
-            counts[port] = counts.get(port, 0) + 1
-        ups = {p for p, n in counts.items() if n > most}
-        ups |= {row['local'] for row, _ in dev.cdp.values()}
-        for row, _ in dev.lldp.values():
-            name = dev.lldp_local.get(row['local'])
-            ups.add(row['local'])        # often the ifIndex
-            if name:
-                ups.update(k for k, i in dev.interfaces.items() if i.name == name)
-        return ups, counts
+        """Port keys that lead to other switches, and the MAC count per port."""
+        from floorbit.telemetry.clients import uplinks
+        return uplinks(dev, int(self.settings.get('uplink_macs') or 8))
 
     def find_mac(self, mac):
         """(device, port name, vlan, MACs on that port) of the access port a MAC is on, or None."""

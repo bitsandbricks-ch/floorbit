@@ -237,6 +237,9 @@ RULES = (
     ('/checkins', READ, 'seats.view'),
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
+    # Where each machine was seen: IPs and MACs by port and seat (floorbit/endpoints.py).
+    ('/api/endpoints', READ, 'seats.view'),
+    ('/endpoints', READ, 'seats.view'),
     ('/api/seats/find', READ, 'seats.view'),
     ('/api/plan/find', READ, 'seats.view'),
     ('/api/seats/sources', READ, 'seats.view'),

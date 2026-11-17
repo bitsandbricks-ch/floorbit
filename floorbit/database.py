@@ -59,6 +59,23 @@ MIGRATIONS = (
         PRIMARY KEY (series, step, bucket)
     )""",
     'CREATE INDEX floorbit_telemetry_by_bucket ON floorbit_telemetry (step, bucket)',
+    # Where each machine was seen, for the IP/MAC search and port and seat history (floorbit/endpoints.py).
+    """CREATE TABLE floorbit_endpoints (
+        mac VARCHAR(12) NOT NULL,
+        ip VARCHAR(45) NOT NULL,
+        device VARCHAR(120) NOT NULL,
+        port_key VARCHAR(120) NOT NULL,
+        first_seen BIGINT NOT NULL,
+        port VARCHAR(120) NOT NULL,
+        seat VARCHAR(60) NOT NULL,
+        vlan INTEGER,
+        last_seen BIGINT NOT NULL,
+        PRIMARY KEY (mac, ip, device, port_key, first_seen)
+    )""",
+    'CREATE INDEX floorbit_endpoints_by_ip ON floorbit_endpoints (ip)',
+    'CREATE INDEX floorbit_endpoints_by_port ON floorbit_endpoints (device, port_key, last_seen)',
+    'CREATE INDEX floorbit_endpoints_by_seat ON floorbit_endpoints (seat, last_seen)',
+    'CREATE INDEX floorbit_endpoints_by_last_seen ON floorbit_endpoints (last_seen)',
 )
 
 

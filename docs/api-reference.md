@@ -290,6 +290,16 @@ Source: [`floorbit/blueprints/dns.py`](https://github.com/bitsandbricks-ch/floor
 | --- | --- | --- | --- |
 | GET | `/api/dns` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dns` |
 
+## floorbit.blueprints.endpoints
+
+IP and MAC history (docs/endpoints.md): where each machine was seen. ``seats.view`` (auth/roles.py).
+
+Source: [`floorbit/blueprints/endpoints.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/endpoints.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/endpoints` | `seats.view` |  |
+
 ## floorbit.blueprints.features
 
 Feature switches (issue #114). Rules in floorbit/features.py.

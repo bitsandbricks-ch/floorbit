@@ -1,7 +1,7 @@
 {
   "button": "Gehe zu",
   "title": "Zu einer Seite",
-  "placeholder": "Seite, Platz oder Switch eingeben",
+  "placeholder": "Seite, Platz, Switch, IP oder MAC eingeben",
   "none": "Nichts passt.",
   "close": "Schliessen",
   "recent": "zuletzt",
@@ -67,6 +67,8 @@
     "topology": "Topologie",
     "gameServers": "Gameserver",
     "switchLogins": "Switch-Logins",
-    "telemetry": "Telemetrie"
-  }
+    "telemetry": "Telemetrie",
+    "endpoints": "IP- und MAC-Verlauf"
+  },
+  "endpoint": "Gesehen"
 }

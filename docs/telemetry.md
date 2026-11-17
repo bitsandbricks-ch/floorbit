@@ -95,11 +95,11 @@ from whichever storage is in use.
 
 ## Privacy
 
-MAC tables, ARP and neighbour tables name the machines at the seats. They are kept only as the
-latest picture in the collector's memory (like a LibreNMS answer) and are **never stored** as
-series, sent to VictoriaMetrics or, with a local agent, sent to the hosted Floorbit: the agent
-sends only the per-port and per-device numbers. Monitoring calls that need the tables (which port
-is this IP on?) reach the agent through its link and are answered there.
+MAC tables, ARP and neighbour tables name the machines at the seats. They are never written into
+the telemetry series or sent to VictoriaMetrics. Where each machine was seen (MAC, IP, port, seat)
+goes into the [IP and MAC history](endpoints.md) instead, kept for 7 days and shown only to roles
+that may see who sits where. With a local agent, the agent sends that history to the hosted
+Floorbit once a minute; live lookups (which port is this IP on?) still ask the agent.
 
 ## Secrets
 

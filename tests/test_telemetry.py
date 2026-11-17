@@ -389,7 +389,7 @@ def test_the_agent_gets_the_devices_and_sends_series(client, anon_client):
         "username": "ro", "password": "nx-secret"})
     cfg = anon_client.get("/api/agent/v1/plugins", headers=head).get_json()["plugins"]["telemetry"]
     assert cfg["settings"]["targets"][0]["password"] == "nx-secret"     # opened for the agent only
-    assert cfg["sends"] == {"series": {"privacy": "device"}}
+    assert cfg["sends"] == {"series": {"privacy": "device"}, "endpoints": {"privacy": "device"}}
     import time
     sent = anon_client.post("/api/agent/v1/plugins/telemetry/series", headers=head, json={"payload": {
         "at": time.time(), "values": {"core-01|Eth1/1|in_bps": 1e6, "bad": 1}}})
@@ -412,7 +412,6 @@ def test_the_agent_part_collects_in_the_hall(tmp_path, monkeypatch):
     import gzip
     import importlib
     agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
-    monkeypatch.setattr(state, "state", state.State())
     monkeypatch.delenv("FLOORBIT_TELEGRAF_CONF", raising=False)
     target = {"id": "a1", "name": "sw-a-01", "address": "192.0.2.21", "kind": "switch", "platform": "ios",
               "drivers": ["snmp", "traps"], "snmp_version": "2c", "community": "example", "fdb": "cisco_vlans",

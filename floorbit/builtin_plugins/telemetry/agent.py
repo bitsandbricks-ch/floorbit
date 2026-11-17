@@ -163,6 +163,7 @@ class AgentPlugin(Base):
                 if now >= next_send:
                     next_send = now + SEND_EVERY
                     self.send_series(now)
+                    self.send_endpoints(now)
                 self.report(now)
             except Exception as exc:  # noqa: BLE001  # a bad round must not end the collector
                 self.ctx.error(f'{type(exc).__name__}: {exc}')
@@ -179,6 +180,14 @@ class AgentPlugin(Base):
         self.poll_errors = errors
         self.state.apply(found, now)
         self.ctx.counter('polled_points', len(found))
+
+    def send_endpoints(self, now):
+        from floorbit.telemetry import clients
+        settings = self.ctx.settings or {}
+        rows = clients.sightings(self.state, settings.get('uplink_macs') or 8, settings.get('exclude') or ())
+        if rows:
+            self.ctx.send('endpoints', {'at': now, 'rows': rows})
+            self.ctx.gauge('endpoints', len(rows))
 
     def send_series(self, now):
         values = storage_mod.snapshot(self.state, now)

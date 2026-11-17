@@ -108,6 +108,19 @@ class Runner:
                     self.log(f'[telemetry] cannot write {conf_path()}: {exc}')
         if collector_here() and state_mod.state.devices:
             storage_mod.storage().sample(storage_mod.snapshot(now=now), now)
+            self.record_endpoints(now)
+
+    def record_endpoints(self, now):
+        """Where each machine is, into the IP/MAC history (floorbit/endpoints.py)."""
+        from .. import endpoints, sources
+        from . import clients
+        registry = sources.registry
+        spec = registry.specs.get('telemetry') if registry is not None else None
+        if spec is None or not registry.enabled(spec):
+            return
+        settings = registry.settings_of(spec)
+        endpoints.history().record(clients.sightings(state_mod.state, settings.get('uplink_macs') or 8,
+                                                     settings.get('exclude') or ()), now)
 
     def _blocks(self):
         """Refused logins, kept next to the state so a restart doesn't try them again either."""
