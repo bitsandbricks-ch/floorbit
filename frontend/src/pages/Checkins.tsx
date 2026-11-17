@@ -1,9 +1,9 @@
 import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
-import { IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
+import { IconPlugConnectedX, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, get, post } from '@/api/client'
+import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
@@ -36,6 +36,7 @@ export default function Checkins() {
   const lang = i18n.language
   const qc = useQueryClient()
   const canEdit = useCan('seats.edit')
+  const canSettings = useCan('settings.manage')
   const [q, setQ] = useState('')
   const [state, setState] = useState<WiredState | null>(null)
   const query = useQuery({
@@ -59,6 +60,8 @@ export default function Checkins() {
   })
 
   const d = query.data
+  // Check-in turned off answers 404: say so and where to turn it on, instead of an error over an endless skeleton.
+  const off = query.error instanceof ApiError && query.error.status === 404
   const rows = (d?.rows ?? []).filter((r) => (!state || r.wired === state) && matches(r, q))
   const pick = (s: WiredState) => () => setState((cur) => (cur === s ? null : s))
   const num = (n: number) => n.toLocaleString(lang)
@@ -68,12 +71,23 @@ export default function Checkins() {
       <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')}
         actions={<Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
       <Stack gap="md">
-        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        <ErrorBanner error={off ? null : query.error} onRetry={() => void query.refetch()} />
         <ErrorBanner error={act.error} />
         {d?.verifier.last_error && (
           <Alert color="warn" role="alert">{t('crewCheckin.verifierError', { error: d.verifier.last_error })}</Alert>
         )}
-        {query.isPending || !d ? <LoadingState /> : (
+        {off ? (
+          <>
+            <Panel>
+              <EmptyState icon={<IconPlugConnectedX size={24} />} title={t('crewCheckin.off.title')}
+                desc={t(canSettings ? 'crewCheckin.off.desc' : 'crewCheckin.off.askAdmin')}
+                action={canSettings && (
+                  <Button component={Link} to="/settings/checkin">{t('crewCheckin.off.turnOn')}</Button>
+                )} />
+            </Panel>
+            <History />
+          </>
+        ) : query.isPending || !d ? <LoadingState /> : (
           <>
             <div className="fb-stat-row">
               <StatCard label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
