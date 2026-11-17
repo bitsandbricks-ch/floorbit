@@ -50,6 +50,15 @@ MIGRATIONS = (
         line TEXT NOT NULL
     )"""},
     'CREATE INDEX floorbit_log_by_key ON floorbit_log (log_key, id)',
+    # Telemetry rollups for the lite mode, without VictoriaMetrics (floorbit/telemetry/storage.py).
+    """CREATE TABLE floorbit_telemetry (
+        series VARCHAR(300) NOT NULL,
+        step INTEGER NOT NULL,
+        bucket BIGINT NOT NULL,
+        value DOUBLE PRECISION NOT NULL,
+        PRIMARY KEY (series, step, bucket)
+    )""",
+    'CREATE INDEX floorbit_telemetry_by_bucket ON floorbit_telemetry (step, bucket)',
 )
 
 

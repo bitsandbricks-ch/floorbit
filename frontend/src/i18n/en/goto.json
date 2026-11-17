@@ -65,6 +65,7 @@
     "services": "Services",
     "topology": "Topology",
     "gameServers": "Game servers",
-    "switchLogins": "Switch logins"
+    "switchLogins": "Switch logins",
+    "telemetry": "Telemetry"
   }
 }

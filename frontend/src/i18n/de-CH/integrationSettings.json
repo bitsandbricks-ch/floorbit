@@ -75,6 +75,10 @@
     "plugin-zabbix": {
       "title": "Plugin: Zabbix",
       "desc": "Live-Status der Switches und Zustand, Verkehr und Fehler der Ports aus Zabbix (Hosts mit den üblichen SNMP-Items für Netzwerkschnittstellen). Speist den Hallenplan, die Statusüberwachung und den Platz-Inspektor. Zabbix führt keine ARP- oder MAC-Tabellen: Um den Port eines Platzes über die IP zu finden, braucht es weiterhin LibreNMS, UniFi, MikroTik oder eine Platzquelle."
+    },
+    "plugin-telemetry": {
+      "title": "Plugin: Geräte-Telemetrie",
+      "desc": "Liest Switches und Firewalls direkt über Telegraf (SNMP, Traps, gNMI, Cisco MDT) und die Geräte-APIs und antwortet wie ein Monitoring-Werkzeug. Die Geräte richtest du unter Einstellungen, Telemetrie ein."
     }
   },
   "fields": {
@@ -500,6 +504,14 @@
     },
     "plugin_zabbix_verify_ssl": {
       "label": "TLS-Zertifikate prüfen"
+    },
+    "plugin_telemetry_uplink_macs": {
+      "label": "MAC-Grenze für Uplinks",
+      "help": "Ein Port, der mehr MAC-Adressen sieht als diese Zahl, gilt als Uplink und wird übersprungen, wenn Floorbit sucht, wo ein Platz eingesteckt ist."
+    },
+    "plugin_telemetry_exclude": {
+      "label": "Geräte auslassen",
+      "help": "Geräte, die Floorbit aus der Telemetrie nicht zeigen soll, nach Name."
     }
   },
   "plugins": {

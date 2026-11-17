@@ -90,6 +90,7 @@ nav:
       - Wi-Fi view: wifi.md
       - Game insights: games.md
       - Syslog: syslog.md
+      - Device telemetry: telemetry.md
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md
       - Floor plan: seats.md

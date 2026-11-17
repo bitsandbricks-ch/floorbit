@@ -1,0 +1,63 @@
+# Optional: device telemetry next to Floorbit on Kubernetes or k3s (docs/telemetry.md).
+# Apply after floorbit.yaml:   kubectl -n floorbit apply -f deploy/kubernetes/telemetry.yaml
+#
+# - VictoriaMetrics keeps the history. Then set FLOORBIT_VICTORIAMETRICS_URL=http://victoriametrics:8428
+#   in the Floorbit Deployment's env. Without it, Floorbit keeps two days in its own database.
+# - Telegraf runs as a sidecar of the Floorbit pod (it reads the config Floorbit writes into the same
+#   volume): add the container below to floorbit.yaml's pod template by hand.
+#
+#       - name: telegraf
+#         image: telegraf:1.40.3
+#         securityContext: {runAsUser: 10001}
+#         command: ["sh", "-c", "until [ -f /app/state/telegraf/telegraf.conf ]; do sleep 5; done;
+#                   exec telegraf --config /app/state/telegraf/telegraf.conf --watch-config notify"]
+#         env: [{name: FLOORBIT_TELEGRAF_OUTPUT, value: "http://127.0.0.1:5000/api/telemetry/write"}]
+#         volumeMounts: [{name: state, mountPath: /app/state, readOnly: true}]
+#
+#   and set FLOORBIT_TELEGRAF_OUTPUT=http://127.0.0.1:5000/api/telemetry/write on the Floorbit
+#   container (the sidecar shares its network). Traps (udp/1162) and MDT (57000) need a Service of
+#   type LoadBalancer or NodePort to reach it from the switches.
+#
+# With a hosted Floorbit and a local agent, none of this: Telegraf runs next to the agent.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: victoriametrics-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: victoriametrics
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: victoriametrics}
+  template:
+    metadata:
+      labels: {app: victoriametrics}
+    spec:
+      containers:
+        - name: victoriametrics
+          image: victoriametrics/victoria-metrics:v1.156.0
+          args: ["-storageDataPath=/storage", "-retentionPeriod=30d"]
+          ports: [{containerPort: 8428}]
+          readinessProbe:
+            httpGet: {path: /health, port: 8428}
+          volumeMounts: [{name: data, mountPath: /storage}]
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: victoriametrics-data}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: victoriametrics
+spec:
+  selector: {app: victoriametrics}
+  ports: [{port: 8428, targetPort: 8428}]

@@ -75,6 +75,10 @@
     "plugin-zabbix": {
       "title": "Plugin: Zabbix",
       "desc": "Live switch status and port state, traffic and errors from Zabbix (hosts with the standard SNMP network interface items). Feeds the floor plan, the status monitor and the seat inspector. Zabbix keeps no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS, UniFi, MikroTik or a seat source."
+    },
+    "plugin-telemetry": {
+      "title": "Plugin: Device telemetry",
+      "desc": "Reads switches and firewalls directly through Telegraf (SNMP, traps, gNMI, Cisco MDT) and the device APIs, and answers like a monitoring tool. Set the devices up under Settings, Telemetry."
     }
   },
   "fields": {
@@ -500,6 +504,14 @@
     },
     "plugin_zabbix_verify_ssl": {
       "label": "Verify TLS certificates"
+    },
+    "plugin_telemetry_uplink_macs": {
+      "label": "Uplink MAC limit",
+      "help": "A port that sees more MAC addresses than this counts as an uplink and is skipped when Floorbit looks for where a seat is plugged in."
+    },
+    "plugin_telemetry_exclude": {
+      "label": "Skip devices",
+      "help": "Devices that Floorbit should not show from telemetry, by name."
     }
   },
   "plugins": {
