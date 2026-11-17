@@ -1,4 +1,4 @@
-import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
@@ -26,6 +26,7 @@ import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
 import { MarkHandles } from './MarkHandles'
+import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
@@ -35,7 +36,7 @@ import { type CableEnds, type CableLook, CableFields, PanelFields, PlacePanelDia
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { ToolRail } from './ToolRail'
-import { quarterTurns } from './turn'
+import { canTurnOne, quarterTurns } from './turn'
 import { frameOf } from './frame'
 import { similar } from './similar'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
@@ -82,6 +83,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [pending, setPending] = useState<{ moves: [ItemRef, Point][]; data: SeatViewData } | null>(null)
   // A mark being resized with its handles: drawn as it is now, and after the drop until the plan comes back.
   const [shaping, setShaping] = useState<{ mark: PlanMark; data: SeatViewData; done?: boolean } | null>(null)
+  // The rotate handle's angle while it is dragged, and after until the plan comes back with it.
+  const [turning, setTurning] = useState<{ ref: ItemRef; deg: number; data: SeatViewData; done?: boolean } | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>('select')
@@ -119,6 +122,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
 
   if (pending && pending.data !== data) setPending(null)
   if (shaping?.done && shaping.data !== data) setShaping(null)
+  if (turning?.done && turning.data !== data) setTurning(null)
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
   const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
@@ -131,8 +135,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       const marks = d.drawing.marks?.map((m) => (m.id === shaping.mark.id ? shaping.mark : m))
       d = { ...d, drawing: { ...d.drawing, marks } }
     }
+    if (turning && d.drawing) {
+      const { ref, deg } = turning
+      const shapes = d.drawing.shapes.map((b) => (ref.kind === 'block' && b.id === ref.id ? { ...b, rotation: deg } : b))
+      const marks = d.drawing.marks?.map((m) => (ref.kind === 'mark' && m.id === ref.id ? { ...m, rotation: deg } : m))
+      d = { ...d, drawing: { ...d.drawing, shapes, marks } }
+    }
     return d
-  }, [data, pending, drag, selected, shaping])
+  }, [data, pending, drag, selected, shaping, turning])
 
   // Boards drawn where the editor has them (dragged or just moved), not where the markers last said.
   const power = useMemo(() => {
@@ -681,6 +691,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
+  // From the saved plan: the handle turns round where the item is, not where a drag drew it.
+  const turnable = one && canTurnOne(data, one) ? outlineOf(data, one) : null
   // From the saved plan, not the one drawn while dragging: the handles start over once a change is
   // saved (a wall's new bend is a new handle), but not mid-drag, which would drop the pointer.
   const handlesKey = (id: string) => { const m = data.drawing?.marks?.find((x) => x.id === id); return m ? `${id}:${JSON.stringify([m.x, m.y, m.x2, m.y2, m.points])}` : id }
@@ -718,6 +730,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
               anchors={oneMark.kind === 'wall' ? wallCorners(data, oneMark.id) : undefined}
               onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
+          )}
+          {one && turnable && tool === 'select' && !drag && (
+            <RotateHandle key={refKey(one)} ctx={ctx} box={turnable.box} centre={turnable.centre} rotation={turnable.rotation}
+              onDraft={(deg) => setTurning(deg == null ? null : { ref: one, deg, data })}
+              onDone={(deg) => {
+                setTurning({ ref: one, deg, data, done: true })
+                void change(one, { rotation: turnable.rotation }, { rotation: deg })
+              }} />
           )}
           {oneCable && tool === 'select' && (
             <BendHandles key={JSON.stringify(oneCable.points)} ctx={ctx} route={routeOf(oneCable)} cell={data.drawing?.cell ?? 32} path={pathOf}
@@ -892,8 +912,14 @@ function ItemFields({ data, item, onChange }: {
   const turn = (value: number, field = 'rotation') => (
     <div>
       <Text size="sm" fw={500} mb={4}>{t('plan.edit.rotation')}</Text>
-      <SegmentedControl fullWidth value={String(value)} data={['0', '90', '180', '270'].map((v) => ({ value: v, label: `${v}°` }))}
-        onChange={(v) => set(field, value, Number(v))} />
+      <Group gap="xs" wrap="nowrap">
+        {/* A free angle (from the rotate handle) leaves the quarter steps unpicked. */}
+        <SegmentedControl style={{ flex: 1 }} value={String(value)} data={['0', '90', '180', '270'].map((v) => ({ value: v, label: `${v}°` }))}
+          onChange={(v) => set(field, value, Number(v))} />
+        <NumberInput key={value} w={84} min={0} max={359} step={1} suffix="°" defaultValue={value} aria-label={t('plan.edit.rotationDegrees')} clampBehavior="strict"
+          onBlur={(e) => { const v = Number(e.currentTarget.value.replace('°', '')); if (Number.isFinite(v)) set(field, value, ((Math.round(v) % 360) + 360) % 360) }}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }} />
+      </Group>
     </div>
   )
   if (shape) {
@@ -931,6 +957,7 @@ function ItemFields({ data, item, onChange }: {
         <TextInput label={t(mark.kind === 'text' ? 'plan.edit.text' : 'plan.edit.label')} value={name} onChange={(e) => setName(e.currentTarget.value)}
           onBlur={() => set(field, before, name)} onKeyDown={(e) => { if (e.key === 'Enter') set(field, before, name) }} />
         {mark.kind === 'text' && <>{size}{turn(mark.rotation ?? 0)}</>}
+        {mark.kind === 'zone' && turn(mark.rotation ?? 0)}
         {mark.kind === 'zone' && (
           <div>
             <Text size="sm" fw={500} mb={4}>{t('plan.edit.color')}</Text>

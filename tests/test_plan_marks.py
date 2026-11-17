@@ -27,7 +27,7 @@ def test_marks_are_added_changed_and_removed(client):
     {"kind": "icon", "x": 1, "y": 1},
     {"kind": "wall", "x": 1, "y": 1, "x2": 1, "y2": 1},
     {"kind": "zone", "x": 1, "y": 1, "w": 0, "h": 5},
-    {"kind": "text", "x": 1, "y": 1, "text": "Tilted", "rotation": 45},
+    {"kind": "text", "x": 1, "y": 1, "text": "Tilted", "rotation": "steep"},
     {"kind": "icon", "x": 1, "y": 1, "icon": "wc", "scale": 20},
     {"kind": "icon", "x": 1, "y": 1, "icon": "wc", "scale": "big"},
 ])
@@ -120,3 +120,16 @@ def test_a_wall_bends_round_corners(client):
     # Straight again: no points kept.
     res = client.put(f"/api/plan-marks/{mark['id']}", json={'points': []})
     assert 'points' not in res.get_json()
+
+
+def test_marks_and_zones_turn_to_any_angle(client):
+    # Mike: a rotate handle on zones, icons and labels, at any angle.
+    body = {'kind': 'text', 'x': 1, 'y': 1, 'text': 'Bar', 'rotation': 37.4}
+    label = client.post('/api/plan-marks', json=body).get_json()
+    assert label['rotation'] == 37
+    assert client.put(f"/api/plan-marks/{label['id']}", json={'rotation': -15}).get_json()['rotation'] == 345
+    zone = client.post('/api/plan-marks', json={'kind': 'zone', 'x': 1, 'y': 1, 'w': 10, 'h': 5}).get_json()
+    assert 'rotation' not in zone
+    turned = client.put(f"/api/plan-marks/{zone['id']}", json={'rotation': 30}).get_json()
+    assert turned['rotation'] == 30
+    assert 'rotation' not in client.put(f"/api/plan-marks/{zone['id']}", json={'rotation': 360}).get_json()

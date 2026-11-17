@@ -65,8 +65,10 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Order:** Ctrl+] brings the selection to the front, Ctrl+[ sends it to the back.
 - **Selection buttons:** with something selected, the panel on the right has buttons for what the
   right-click menu does: duplicate, turn, bring to front, send to back and zoom to the selection.
-- **Turn:** R turns the selected seat blocks, labels and icons a quarter turn each, Shift+R turns
-  them back (also "Turn 90°" in the right-click menu). One undo puts them all back.
+- **Turn:** R turns the selected seat blocks, labels, icons and zones a quarter turn each, Shift+R
+  turns them back (also "Turn 90°" in the right-click menu). One undo puts them all back. To turn one
+  item to any angle, drag the round handle above it (Shift keeps 15° steps), or type the angle next
+  to the quarter steps in the panel.
 - **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
   or double-click an item in the items list); 0 shows the whole hall again.
 - **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,

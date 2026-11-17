@@ -134,7 +134,7 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
   if (ref.kind === 'cable') return null
   const m = data.drawing?.marks?.find((x) => x.id === ref.id)
   if (!m) return null
-  if (m.kind === 'zone') return { box: { x: m.x, y: m.y, w: m.w ?? 0, h: m.h ?? 0 }, rotation: 0, centre: { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 } }
+  if (m.kind === 'zone') return { box: { x: m.x, y: m.y, w: m.w ?? 0, h: m.h ?? 0 }, rotation: m.rotation ?? 0, centre: { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 } }
   if (m.kind === 'wall') {
     const r = wallRoute(m)
     const xs = r.map((p) => p.x), ys = r.map((p) => p.y)

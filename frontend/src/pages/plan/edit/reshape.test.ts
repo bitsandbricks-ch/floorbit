@@ -47,6 +47,19 @@ describe('reshape', () => {
   })
 })
 
+describe('turned zones', () => {
+  it('puts the corner handles on the turned corners and keeps the opposite corner still', () => {
+    const z: PlanMark = { id: 'z', kind: 'zone', x: 0, y: 0, w: 100, h: 50, rotation: 90 }
+    const corners = Object.fromEntries(handlesOf(z, { x: 0, y: 0 }).map(([h, p]) => [h, { x: Math.round(p.x), y: Math.round(p.y) }]))
+    // Turned a quarter round its middle (50, 25): the top left corner swings to the top right.
+    expect(corners.nw).toEqual({ x: 75, y: -25 })
+    const out = reshape(z, 'se', { x: 15, y: 105 }, corners.se, size, false)
+    const after = Object.fromEntries(handlesOf(out, { x: 0, y: 0 }).map(([h, p]) => [h, { x: Math.round(p.x), y: Math.round(p.y) }]))
+    expect(after.nw).toEqual(corners.nw)
+    expect(after.se).toEqual({ x: 15, y: 105 })
+  })
+})
+
 describe('walls with bends', () => {
   const wall: PlanMark = { id: 'w', kind: 'wall', x: 0, y: 0, x2: 160, y2: 100, points: [[160, 0]] }
 
