@@ -182,9 +182,33 @@ def write_json(path, data):
             with open(path, 'w') as f:
                 f.write(text)
             _warned.discard(path)
+    _generation[0] += 1
     if isinstance(data, Doc):
         # What the caller's copy now stands for: a second save from it changes only what it changes.
         data._base = (path, text if out is data else json.dumps(data, indent=None if db.kind != 'files' else 2))
+
+
+_shared = {}            # path -> (stamp, generation, document)
+_generation = [0]       # bumped by every write here: a write within one mtime tick still counts
+
+
+def read_shared(path, default=None):
+    """Like ``read_json``, for hot read-only paths (who is signed in, their role, which plugins are
+    on): parsed once per change, not on every call. Every request asked these several times, and
+    each time parsed the whole data.json; at a 400-switch event that was 86% of the server's CPU.
+    The document is shared: never change it, copy what you hand on."""
+    mark = stamp(path)
+    if mark is None:
+        return read_json(path, default)
+    hit = _shared.get(path)
+    if hit and hit[0] == mark and hit[1] == _generation[0]:
+        return hit[2]
+    generation = _generation[0]
+    doc = read_json(path, default)
+    if len(_shared) > 256:
+        _shared.clear()
+    _shared[path] = (mark, generation, doc)
+    return doc
 
 
 def stamp(path):

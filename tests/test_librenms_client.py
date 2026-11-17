@@ -1,13 +1,14 @@
 """The LibreNMS client against a fake LibreNMS (no network): which device a switch name means, and
 IP to switch port (core ARP, then the access switch's MAC table, uplinks left out)."""
 import json
+import time
 
 import pytest
 import requests
 from conftest import FakeRedis
 
 from floorbit import cache
-from floorbit.builtin_plugins.librenms import client
+from floorbit.builtin_plugins.librenms import client, memo
 from floorbit.runtime import rt
 
 IP, MAC = "192.0.2.10", "aa:bb:cc:00:00:01"
@@ -94,7 +95,7 @@ def test_a_switch_name_means_that_switch_not_one_that_starts_like_it():
     assert client.best_device(DEVICES, "") is None
 
 
-def test_an_ip_resolves_to_the_access_port_not_an_uplink(librenms):
+def test_an_ip_resolves_to_the_access_port_not_an_uplink(librenms, monkeypatch):
     got = client.resolve_ip_to_switch_port(IP)
     assert (got["mac"], got["device_name"], got["hostname"], got["port"], got["vlan"]) == \
         (MAC, "sw-a1", "198.51.100.11", "Gi1/0/7", 20)
@@ -104,8 +105,34 @@ def test_an_ip_resolves_to_the_access_port_not_an_uplink(librenms):
     librenms.asked.clear()
     again = client.resolve_ip_to_switch_port(IP)       # where it sits comes from the cache
     assert again["port"] == "Gi1/0/7"
+    assert librenms.asked == []                        # the port's numbers too, for a few seconds
+
+    later = time.monotonic() + client.PORT_ROWS_TTL + 1
+    monkeypatch.setattr(memo.time, "monotonic", lambda: later)
+    assert client.resolve_ip_to_switch_port(IP)["port"] == "Gi1/0/7"
     assert not any(a.startswith("resources/") for a in librenms.asked)
-    assert any(a.endswith("/ports") for a in librenms.asked)   # its numbers stay live
+    assert any(a.endswith("/ports") for a in librenms.asked)   # then its numbers are read again
+
+
+def test_lookups_at_once_ask_librenms_once(librenms):
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(20) as pool:
+        found = list(pool.map(lambda _i: client.resolve_ip_to_switch_port(IP), range(40)))
+    assert {f["port"] for f in found} == {"Gi1/0/7"}
+    assert sum(a.startswith("resources/ip/arp") for a in librenms.asked) == 1
+    assert sum(a.startswith("resources/fdb") for a in librenms.asked) == 1
+
+
+def test_what_is_not_an_ip_never_reaches_librenms(librenms):
+    for junk in ("../../devices", "10.0.0.1/../x", "", None, "a" * 300):
+        assert client.resolve_ip_to_switch_port(junk) is None
+    assert librenms.asked == []
+
+
+def test_a_switch_is_looked_up_once_not_on_every_call(librenms):
+    client.fetch_librenms_device_by_hostname("sw-a1", {"X-Auth-Token": "token-example"})
+    client.fetch_librenms_device_by_hostname("sw-a1", {"X-Auth-Token": "token-example"})
+    assert sum(a == "devices" for a in librenms.asked) <= 1
 
 
 def test_an_ip_nobody_has_seen_is_none(librenms):

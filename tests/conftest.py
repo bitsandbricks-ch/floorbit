@@ -212,12 +212,18 @@ def client(app_module):
 def _librenms_answers_again():
     """A LibreNMS that didn't answer in one test answers in the next (librenms/breaker.py), and no
     status monitor has polled yet."""
-    from floorbit.builtin_plugins.librenms import breaker
+    import requests
+
+    from floorbit.builtin_plugins.librenms import breaker, client
     from integrations.monitor import StatusMonitor
     breaker.reset()
+    client.reset_caches()
+    # Through requests.get, so a test's fake LibreNMS (monkeypatched requests.get) answers.
+    breaker._send = lambda url, **kw: requests.get(url, **kw)
     StatusMonitor.latest.update(polled=None, at=None, devices=None)
     yield
     breaker.reset()
+    client.reset_caches()
 
 
 @pytest.fixture(autouse=True)

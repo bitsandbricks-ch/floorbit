@@ -201,6 +201,11 @@ def _hall_of(by_name, hostname):
     return by_name.get(name) or by_name.get(name.split('.')[0])
 
 
+def _agent_back():
+    from . import sources
+    sources.wake_status_monitor()
+
+
 def ask(method, args=()):
     """A monitoring call, sent to the right agent.
 
@@ -586,10 +591,20 @@ class Tunnel:
         with self._cond:
             return {kind: dict(v) for kind, v in self._relayed.get(agent, {}).items() if now - v['at'] < RELAY_RECENT}
 
+    def _back(self, agent, now):
+        """Was the agent away until now? Then the monitoring source answers again: the status
+        monitor checks right away instead of within its interval, during which every lookup was
+        answered from old data (a restart of the agent or of Floorbit cost up to a minute)."""
+        last = self._seen.get(agent)
+        return last is None or now - last > CONNECTED_FOR
+
     def seen(self, now=None, agent=None):
         self.last_seen = time.time() if now is None else now
         if agent is not None:
+            back = self._back(agent, self.last_seen)
             self._seen[agent] = self.last_seen
+            if back:
+                _agent_back()
             from . import cluster
             if cluster.current is not None:
                 cluster.current.agent_seen(agent, self.last_seen)
@@ -608,7 +623,10 @@ class Tunnel:
         with self._cond:
             if not self._links.get(agent):
                 return False
+            back = self._back(agent, now)
             self.last_seen = self._seen[agent] = now
+        if back:
+            _agent_back()
         from . import cluster
         if cluster.current is not None:
             cluster.current.agent_seen(agent, now)

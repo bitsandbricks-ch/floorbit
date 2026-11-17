@@ -72,6 +72,12 @@ class UserStore:
     def _users(self):
         return dict(self._read().get(self.KEY) or {})
 
+    def _users_shared(self):
+        """For reads only (every request asks who is signed in): parsed once per change. The
+        records are shared, so the readers below hand out copies."""
+        from floorbit.store import read_shared
+        return read_shared(self.path, {}).get(self.KEY) or {}
+
     def _write_users(self, users):
         data = self._read()
         data[self.KEY] = users
@@ -81,12 +87,12 @@ class UserStore:
 
     # reads ---------------------------------------------------------------
     def count(self):
-        return len(self._users())
+        return len(self._users_shared())
 
     def get(self, username):
         if not username:
             return None
-        user = self._users().get(username.lower())
+        user = self._users_shared().get(username.lower())
         return dict(user) if user else None
 
     def list(self):

@@ -485,6 +485,18 @@ class Registry:
             print(f'[plugins] could not read {path}: {exc}')
             return {}
 
+    def _all_shared(self):
+        """``_all()`` for the hot reads (is this plugin on?), parsed once per change. Shared: read only."""
+        from .. import database, store
+        try:
+            data = store.read_shared(self.path(), {})
+            return data if isinstance(data, dict) else {}
+        except database.DatabaseUnavailable:
+            return {}
+        except (OSError, ValueError) as exc:
+            print(f'[plugins] could not read {self.path()}: {exc}')
+            return {}
+
     def _record(self, plugin_id):
         return self._all().get(plugin_id) or {}
 
@@ -516,7 +528,7 @@ class Registry:
         env = spec.manifest.get('enable_env') if spec.trust == 'builtin' else None
         if env and os.environ.get(str(env), '').strip().lower() in TRUE_WORDS:
             return True
-        record = self._record(spec.id)
+        record = self._all_shared().get(spec.id) or {}
         if 'enabled' in record:
             return bool(record['enabled'])
         return bool(spec.trust == 'builtin' and spec.manifest.get('default_enabled'))
