@@ -270,6 +270,8 @@ In the top right corner the big screen shows the time, the blocks with problems 
 six, e.g. "D: 2 seats"), and how many seats have problems in the other halls, so the crew sees where
 to go from across the room. While it rotates through the halls, the other halls come up anyway, so
 that last line is left out.
+After three seconds without use, the mouse pointer and the zoom buttons hide, so they don't sit
+on top of the plan; moving the mouse brings them back.
 
 With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
 hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A
