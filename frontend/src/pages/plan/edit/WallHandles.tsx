@@ -10,10 +10,12 @@ import { measure, snapCorner, withRoute } from './reshape'
  *  middle of a stretch to add a bend there, double-click a bend to take it out. Each stretch shows
  *  its length (in seats) and angle. Corners snap onto other walls' ends and bends so walls meet,
  *  keep 15° steps with Shift, and leave the grid with Alt. */
-export function WallHandles({ ctx, mark, size, cell, anchors, onDraft, onDone }: {
+export function WallHandles({ ctx, mark, size, cell, anchors, snapGrid = true, onDraft, onDone }: {
   ctx: OverlayContext; mark: PlanMark; size: { w: number; h: number }; cell: number
   /** Other walls' ends and bends, in drawing units. */
   anchors: Point[]
+  /** Off: corners land where they are dropped, as with Alt. */
+  snapGrid?: boolean
   onDraft: (m: PlanMark | null) => void
   onDone: (m: PlanMark) => void
 }) {
@@ -38,7 +40,7 @@ export function WallHandles({ ctx, mark, size, cell, anchors, onDraft, onDone }:
     e.stopPropagation()
     d.moved = true
     const from = d.base[d.i === 0 ? 1 : d.i - 1]
-    const at = snapCorner(ctx.toPlan(e.clientX, e.clientY), { anchors, reach: 10 * px, from, angle: e.shiftKey, free: e.altKey, size })
+    const at = snapCorner(ctx.toPlan(e.clientX, e.clientY), { anchors, reach: 10 * px, from, angle: e.shiftKey, free: e.altKey || !snapGrid, size })
     show(d.base.map((p, k) => (k === d.i ? at : p)))
   }
   const end = (e: React.PointerEvent) => {

@@ -425,6 +425,7 @@
     "tool": {
       "select": "Auswählen",
       "hand": "Hand",
+      "measure": "Messen",
       "block": "Sitzblock",
       "text": "Beschriftung",
       "icon": "Symbol",
@@ -437,6 +438,7 @@
     },
     "hint": {
       "hand": "Ziehen verschiebt die Ansicht. Leertaste + Ziehen oder die mittlere Maustaste tun das mit jedem Werkzeug.",
+      "measure": "Ziehen misst eine Strecke in Plätzen und ihren Winkel; Shift hält 15°-Schritte. Gespeichert wird nichts.",
       "block": "Klicke, wo der neue Sitzblock hinkommt.",
       "text": "Klicke, wo die Beschriftung hinkommt.",
       "icon": "Klicke, wo das Symbol hinkommt.",
@@ -680,6 +682,13 @@
     "sharedFields": "Alle ausgewählten",
     "lockedN_one": "{{count}} gesperrtes Element bleibt, wo es ist (Ctrl+Shift+L entsperrt)",
     "lockedN_other": "{{count}} gesperrte Elemente bleiben, wo sie sind (Ctrl+Shift+L entsperrt)",
+    "snap": {
+      "label": "Einrasten und Lineale",
+      "showGrid": "Raster zeigen",
+      "grid": "Am Raster einrasten (Alt beim Ziehen hebt es auf)",
+      "items": "An anderen Elementen und Wänden einrasten",
+      "rulers": "Lineale"
+    },
     "tint": {
       "label": "Eigene Farbe",
       "theme": "Farbe des Themes (folgt hell und dunkel)",
