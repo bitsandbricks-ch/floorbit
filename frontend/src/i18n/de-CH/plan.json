@@ -30,6 +30,7 @@
   "zoomIn": "Hineinzoomen",
   "zoomOut": "Herauszoomen",
   "fit": "Ganze Halle zeigen",
+  "minimap": "Übersicht über die Halle: klicken oder ziehen, um dorthin zu gehen",
   "state": {
     "online": "Online",
     "offline": "Offline",

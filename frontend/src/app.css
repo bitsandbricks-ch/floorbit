@@ -513,6 +513,12 @@ body {
 .fb-plan .pboard text.pload-text.pw-tripped { fill: var(--color-down); font-weight: 700; }
 .fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
 .fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
+/* The overview while zoomed in: the hall's blocks and the part on screen. */
+.fb-minimap { position: absolute; left: 10px; bottom: 10px; max-width: 30%; height: auto; border: 1px solid var(--color-line); border-radius: 6px; cursor: crosshair; touch-action: none; }
+.fb-minimap .bg { fill: color-mix(in srgb, var(--color-raised) 88%, transparent); }
+.fb-minimap .blk { fill: var(--color-muted); }
+.fb-minimap .blk.alarm { fill: var(--color-down); }
+.fb-minimap .view { fill: color-mix(in srgb, var(--color-bit) 12%, transparent); stroke: var(--color-bit); stroke-width: 2px; }
 .fb-plan-screen .fb-plan-zoom { transition: opacity .3s; }
 .fb-plan-screen.idle, .fb-plan-screen.idle * { cursor: none !important; }
 .fb-plan-screen.idle .fb-plan-zoom { opacity: 0; pointer-events: none; }

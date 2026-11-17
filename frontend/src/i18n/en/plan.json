@@ -30,6 +30,7 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "fit": "Show the whole hall",
+  "minimap": "Overview of the hall: click or drag to move there",
   "state": {
     "online": "Online",
     "offline": "Offline",

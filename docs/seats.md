@@ -123,6 +123,10 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
   problems ("C ! 7").
 - **Near** (a seat 30 px or more): seat numbers and switch names too.
 
+Zoomed in so that part of the hall is off screen, a small overview of the hall shows in the bottom
+left corner: the seat blocks (red where a block has many problems) and a frame for the part on
+screen. Click or drag on it to move there. It shows in Edit mode too.
+
 A block where a quarter of its seats or more have problems (two at least) gets a red outline at
 every zoom level. That many at once usually has one cause, such as the block's switch or its power.
 
