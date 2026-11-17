@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconRotateClockwise, IconSelectAll, IconStack2, IconTrash, IconUnlink, IconZoomIn,
+  IconLink, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -827,6 +827,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               onGroup={(join) => void regroup(selected, join)} />
           )}
           {selected.length > 0 && (
+            <QuickActions canTurn={canTurn} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
+              onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
+          )}
+          {selected.length > 0 && (
             <Button variant="light" color="down" leftSection={<IconTrash size={16} />} onClick={() => void remove(selected)}>
               {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
             </Button>
@@ -950,6 +954,27 @@ function ItemFields({ data, item, onChange }: {
       </div>
       {layer}
     </>
+  )
+}
+
+/** What the right-click menu does to a selection, as buttons, so it can be found without knowing it's there. */
+function QuickActions({ canTurn, onDuplicate, onRotate, onFront, onBack, onFrame }: {
+  canTurn: boolean; onDuplicate: () => void; onRotate: () => void; onFront: () => void; onBack: () => void; onFrame: () => void
+}) {
+  const { t } = useTranslation()
+  const icon = (label: string, keys: string, Icon: typeof IconLink, onClick: () => void) => (
+    <Tooltip key={label} label={<>{label} <Kbd size="xs">{keys}</Kbd></>}>
+      <ActionIcon variant="default" size="lg" aria-label={label} aria-keyshortcuts={keys.replace(/ /g, '+').replace('Ctrl', 'Control')} onClick={onClick}><Icon size={18} /></ActionIcon>
+    </Tooltip>
+  )
+  return (
+    <Group gap={4} role="toolbar" aria-label={t('plan.edit.quick')}>
+      {icon(t('plan.edit.menu.duplicate'), 'Ctrl D', IconCopy, onDuplicate)}
+      {canTurn && icon(t('plan.edit.menu.rotate'), 'R', IconRotateClockwise, onRotate)}
+      {icon(t('plan.edit.menu.front'), 'Ctrl ]', IconStackFront, onFront)}
+      {icon(t('plan.edit.menu.back'), 'Ctrl [', IconStackBack, onBack)}
+      {icon(t('plan.edit.menu.frame'), 'F', IconZoomIn, onFrame)}
+    </Group>
   )
 }
 

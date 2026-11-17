@@ -7,7 +7,7 @@ import { TOOL_GESTURE, type Tool } from './tools'
 
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
- *  Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
+ *  The Hand tool, Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
 export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r] }: {
   ctx: OverlayContext
   data: SeatViewData
@@ -54,7 +54,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   const [marquee, setMarquee] = useState<Box | null>(null)
   const px = 1 / ctx.scale   // one screen pixel in drawing units
 
-  const passes = (e: React.PointerEvent) => space || e.button === 1
+  const panning = space || gesture === 'pan'
+  const passes = (e: React.PointerEvent) => panning || e.button === 1
   const begin = (e: React.PointerEvent, ref: ItemRef | null) => {
     if (passes(e) || e.button === 2) return
     e.stopPropagation()
@@ -140,7 +141,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
 
   const shown = ctx.shown
   return (
-    <g className={`fb-edit${space ? ' panning' : ''}${gesture !== 'select' ? ' tooling' : ''}`}>
+    <g className={`fb-edit${panning ? ' panning' : ''}${gesture !== 'select' && gesture !== 'pan' ? ' tooling' : ''}`}>
       <rect className="fb-edit-bg" x={shown.x} y={shown.y} width={shown.w} height={shown.h} onPointerDown={(e) => begin(e, null)}
         onContextMenu={(e) => menu(e, null)}
         onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
