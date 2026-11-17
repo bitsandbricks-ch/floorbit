@@ -386,7 +386,7 @@ class MemoryContext:
             self.error(f'login to {device} with {credential} failed: {message}; not trying again until cleared')
 
     def may_login(self, device, credential, rev=None):
-        return self.auth.may_login(device, credential, rev)
+        return self.primary() and self.auth.may_login(device, credential, rev)
 
     def send(self, kind, payload):
         err = check_payload(self.spec_block, kind, payload)

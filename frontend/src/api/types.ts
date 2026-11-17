@@ -1612,6 +1612,44 @@ export interface Agent {
   relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
   /** The agent's own numbers, sent every half minute (null: none lately, or an older agent). */
   report?: AgentReport | null
+  /** Plugins that are on here but this agent leaves off (another agent runs them). */
+  plugins_off?: string[]
+  /** When its key was made, and until when the key before still works (after "New key"). */
+  renewed_at?: number
+  old_works_until?: number | null
+}
+
+/** An agent's plugin updates (docs/agent-plugins.md, "Updates"). */
+export interface AgentUpdates {
+  policy: 'auto' | 'approve' | 'off'
+  image: string
+  /** Whether the agent's image pins a signing key at all. */
+  signed: boolean
+  plugins: Record<string, {
+    version: string; source: 'image' | 'bundle'; probation: boolean; rolled_back: string[]
+    pending: { version: string; why: string } | null
+  }>
+  events: { at: number; plugin: string; event: 'installed' | 'kept' | 'rolled back' | 'refused' | 'waiting' | 'dropped'; version: string; detail: string }[]
+}
+
+/** Agents that serve the same halls, and how their failover stands (floorbit/agent_ha.py). */
+export interface AgentGroup {
+  id: string
+  halls: string[]
+  label: string
+  state: 'down' | 'split' | 'no_vrrp' | 'no_primary' | 'degraded' | 'single' | 'ok'
+  mode: 'active-active' | 'active-passive' | null
+  primary: string | null
+  agents: { id: string; name: string; connected: boolean; role: 'primary' | 'standby' | 'active' | 'offline'; holds: string[] }[]
+  vips: string[]
+}
+
+/** This Floorbit's own availability (floorbit/cluster.py). */
+export interface HostedState {
+  mode: 'single' | 'redis'
+  pods: { pod: string; at: number; leader: boolean; me: boolean }[]
+  database: { kind: string; ok: boolean; since?: number | null }
+  redis: { ok: boolean }
 }
 
 export interface AgentReport {
@@ -1631,6 +1669,9 @@ export interface AgentReport {
   captive_done?: number
   /** Agent plugins (docs/agent-plugins.md): how each one that should run is doing. */
   plugins?: Record<string, AgentPluginHealth>
+  updates?: AgentUpdates
+  /** With VRRP: whether it is its hall's primary, and the addresses it holds. */
+  vrrp?: { primary: boolean; holds: string[] }
 }
 
 export interface AgentPluginHealth {

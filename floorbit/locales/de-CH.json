@@ -907,5 +907,6 @@
   "the files differ from what was signed": "die Dateien weichen vom Signierten ab",
   "too many files in the bundle": "zu viele Dateien im Paket",
   "unreadable bundle: {}": "unlesbares Paket: {}",
-  "unreadable signature: {}": "unlesbare Signatur: {}"
+  "unreadable signature: {}": "unlesbare Signatur: {}",
+  "plugins_off must be a list of plugin ids.": "plugins_off muss eine Liste von Plugin-IDs sein."
 }

@@ -35,7 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          for i in $(seq 1 40); do
+          for _ in $(seq 1 40); do
             if gh release view "$TAG" >/dev/null 2>&1; then
               if gh release download "$TAG" --pattern 'agent-plugins-*.tar.gz' --dir "$RUNNER_TEMP/ap" 2>/dev/null; then
                 tar -xzf "$RUNNER_TEMP"/ap/agent-plugins-*.tar.gz -C agent-bundles

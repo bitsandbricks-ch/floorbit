@@ -77,6 +77,18 @@ again (below). An agent that hasn't asked anything yet is never flagged. An agen
 traffic summary in the last ten minutes gets a **Syslog** or **NetFlow** badge, so it's clear which
 agent forwards what.
 
+**Rename** changes the name it is shown and logged under. **New key** makes another key, shown once
+like the first: the old key keeps working until the agent first uses the new one, 24 hours at most,
+so the hall can swap it without the agent going dark. **Plugins it leaves off** lists plugins that
+are on here but that this agent doesn't start, because another agent runs them (the LAN cache
+plugin on the agent next to the cache, say). Each agent also shows the version of every plugin it
+runs, an update that waits and why, and its last rollouts ([agent-plugins.md](agent-plugins.md),
+"Updates"). All of these are written to the [audit log](audit.md).
+
+**This Floorbit** at the top says how the hosted side itself stands: one instance, or several
+sharing Redis ([kubernetes.md](kubernetes.md)) with the one that leads; and whether the database and
+Redis answer.
+
 Revoking the agent stops it at its next request, and an open WebSocket link is closed within a few
 seconds: it has to be enrolled again with a new key. Up to
 10 agents can be enrolled. Enrolling and revoking are written to the [audit log](audit.md).
@@ -104,6 +116,29 @@ limited like that:
   "NetBox, Hall 2 agent"), so two sites' NetBox servers don't mark each other's devices as gone.
 
 Changing an agent's halls is written to the [audit log](audit.md).
+
+### Two agents in one hall (failover)
+
+Agents that answer for the same halls back each other up. For the event network to reach them at
+one address that moves, turn on VRRP in the agents (floorbit-agent's `docs/vrrp.md`): they share
+virtual IPs, and the agent holding the first one is the hall's **primary**.
+
+- **Active/passive:** every VIP on one agent (the same `FLOORBIT_AGENT_VRRP_PREFER` on both). The
+  standby only takes over.
+- **Active/active:** the VIPs spread over the agents (`PREFER` 1 on one, 2 on the other). Both take
+  syslog, NetFlow and traps sent to their address, and both answer this Floorbit's calls.
+
+Either way only the primary polls devices and logs in to them (agent plugins ask `ctx.primary()`,
+and a standby's `may_login` is always no), so no device is polled twice and no login is tried twice.
+Syslog that reached both agents is kept once (each line has the same id on every agent), and a
+standby's NetFlow summary doesn't replace the primary's on the Traffic page. Point devices' syslog,
+NetFlow and traps at the first VIP.
+
+**Agents per hall** on the Local agents page shows each group: who is primary or standby, which
+addresses each holds, active/active or active/passive, and what needs a look: **Backup missing**
+(a standby is offline), **No VRRP** (several agents without it, so each polls), **Two primaries**
+(they can't hear each other: check the VLAN or set `FLOORBIT_AGENT_VRRP_PEERS`), **No primary**, or
+**One agent** (no failover).
 
 ## Running the agent
 

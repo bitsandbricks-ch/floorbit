@@ -41,12 +41,19 @@ def agent_specs(registry=None):
     return [s for s in registry.feeders('agent') if s.agent and not s.error]
 
 
-def config(registry=None):
-    """What every agent runs: ``{"plugins": {id: {...}}, "etag": ...}``. The agent compares the
-    etag and restarts only the plugins whose part changed."""
+def config(registry=None, agent_id=None):
+    """What an agent runs: ``{"plugins": {id: {...}}, "local", "bundles", "etag"}``. The agent
+    compares the etag and restarts only the plugins whose part changed. ``agent_id``: leaves out the
+    plugins that agent was told to leave off (Local agents page)."""
     registry = registry or _registry()
+    off = set()
+    if agent_id is not None:
+        from . import agent_link
+        off = agent_link.plugins_off(agent_id)
     plugins = {}
     for spec in agent_specs(registry):
+        if spec.id in off:
+            continue
         block = spec.agent
         settings = registry.settings_of(spec)
         if block.get('targets'):
@@ -72,7 +79,7 @@ def config(registry=None):
             'calls': list(block.get('calls') or []),
             'actions': list(block.get('actions') or []),
         }
-    local = local_config(registry)
+    local = {k: v for k, v in local_config(registry).items() if k not in off}
     offered = bundles_offer(set(plugins) | set(local))
     raw = json.dumps([plugins, local, offered], sort_keys=True, default=str).encode()
     return {'plugins': plugins, 'local': local, 'bundles': offered,
