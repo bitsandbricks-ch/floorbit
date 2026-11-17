@@ -288,7 +288,8 @@
       "autoRoute": "automatische Kabelführung",
       "addSwitch": "Switch {{name}} hinzufügen",
       "placeSwitch_one": "Switch platzieren",
-      "placeSwitch_other": "{{count}} Switches platzieren"
+      "placeSwitch_other": "{{count}} Switches platzieren",
+      "renameGroup": "Gruppe umbenennen"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -535,6 +536,23 @@
       "added": "{{name}} hinzugefügt",
       "csvHelp": "Eine CSV hat eine Kopfzeile und einen Block pro Zeile: name, x, y, cols, rows (rotation, naming und der Rest sind optional; siehe die Doku zu Hallen).",
       "templates": "Vorlagen"
+    },
+    "groups": {
+      "name": "Gruppe {{n}}",
+      "unnamed": "Gruppe"
+    },
+    "items": {
+      "title": "Elemente auf diesem Plan",
+      "count_one": "{{count}} Element",
+      "count_other": "{{count}} Elemente",
+      "search": "Element suchen",
+      "fold": "Elemente der Gruppe ausblenden",
+      "unfold": "Elemente der Gruppe zeigen",
+      "none": "Nichts gefunden.",
+      "empty": "Noch nichts auf diesem Plan.",
+      "groupHelp": "Mehrere Elemente wählen und Ctrl G drücken, um sie zu gruppieren.",
+      "rename": "Gruppenname",
+      "renameHelp": "Klicken zum Auswählen, Doppelklick zum Umbenennen"
     }
   },
   "net": {

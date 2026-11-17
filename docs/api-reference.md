@@ -538,6 +538,20 @@ Source: [`floorbit/blueprints/plan.py`](https://github.com/bitsandbricks-ch/floo
 | PUT | `/api/plan/seats/<seat>/note` | `incidents.work` |  |
 | GET | `/api/plan/switches/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.plan_groups
+
+Groups of items on the floor plan (floorbit/plan_groups.py).
+
+Source: [`floorbit/blueprints/plan_groups.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_groups.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-groups` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/plan-groups` | `floorplan.edit` |  |
+| PUT | `/api/plan-groups` | `floorplan.edit` |  |
+| DELETE | `/api/plan-groups/<group_id>` | `floorplan.edit` |  |
+| PUT | `/api/plan-groups/<group_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.plan_marks
 
 Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py).

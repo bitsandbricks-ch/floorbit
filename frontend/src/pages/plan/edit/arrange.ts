@@ -1,4 +1,4 @@
-import type { SeatViewData } from '@/api/types'
+import type { PlanGroup, SeatViewData } from '@/api/types'
 import { type Box, type ItemRef, type Point, outlineOf, refKey, sameRef } from './geometry'
 
 /** The axis-aligned box an item takes on the plan (its outline turned with it), in drawing units. */
@@ -26,13 +26,32 @@ function union(boxes: Box[]): Box | null {
 const groupOfBlock = (data: SeatViewData, ref: ItemRef) =>
   ref.kind === 'block' ? data.drawing?.shapes.find((s) => s.id === ref.id)?.group ?? null : null
 
-/** ``refs`` with every block of their groups added: a group is picked as one. */
-export function withGroups(data: SeatViewData, refs: ItemRef[]): ItemRef[] {
-  const groups = new Set(refs.map((r) => groupOfBlock(data, r)).filter(Boolean))
-  if (!groups.size) return refs
-  const more = (data.drawing?.shapes ?? []).filter((s) => s.id && s.group && groups.has(s.group))
-    .map((s) => ({ kind: 'block' as const, id: s.id! }))
-  return [...refs, ...more.filter((m) => !refs.some((r) => sameRef(r, m)))]
+/** ``refs`` with everything in their groups added: a group is picked as one. Groups are the
+ *  plan's (``groups``, any items) and the older seat block ``group`` field. */
+export function withGroups(data: SeatViewData, refs: ItemRef[], groups: PlanGroup[] = []): ItemRef[] {
+  let out = refs
+  for (;;) {
+    const blockGroups = new Set(out.map((r) => groupOfBlock(data, r)).filter(Boolean))
+    const more: ItemRef[] = [
+      ...(data.drawing?.shapes ?? []).filter((s) => s.id && s.group && blockGroups.has(s.group)).map((s) => ({ kind: 'block' as const, id: s.id! })),
+      ...groups.filter((g) => g.members.some((m) => out.some((r) => sameRef(r, m)))).flatMap((g) => g.members),
+    ].filter((m) => !out.some((r) => sameRef(r, m)))
+    if (!more.length) return out
+    // Each added item can bring its own group along (a block in an old block group and a plan group).
+    out = [...out, ...more.filter((m, i) => more.findIndex((x) => sameRef(x, m)) === i)]
+  }
+}
+
+/** The plan groups any of ``refs`` is in. */
+export const groupsOf = (groups: PlanGroup[], refs: ItemRef[]) => groups.filter((g) => g.members.some((m) => refs.some((r) => sameRef(r, m))))
+
+/** The hall's groups after putting ``members`` in a new group ``made`` (taken out of their old
+ *  ones; a group left with one item goes), or, without ``made``, taking them out. */
+export function regrouped(groups: PlanGroup[], members: ItemRef[], made?: { id: string; name: string }): PlanGroup[] {
+  const kept = groups
+    .map((g) => ({ ...g, members: made ? g.members.filter((m) => !members.some((r) => sameRef(r, m))) : g.members }))
+    .filter((g) => (made ? g.members.length >= 2 : !g.members.some((m) => members.some((r) => sameRef(r, m)))))
+  return made ? [...kept, { ...made, members: members.filter((r) => r.kind !== 'cable') as PlanGroup['members'] }] : kept
 }
 
 export type AlignHow = 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom'

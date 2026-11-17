@@ -39,8 +39,12 @@ The floor plan editor is moving into this page. Edit mode already does:
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.
 - **Order:** ] brings the selection to the front, [ sends it to the back.
-- **Groups:** Ctrl+G puts the selected seat blocks in a group, Ctrl+Shift+G takes them out. A click
-  on one block of a group picks the whole group; Shift-click takes the group out of the selection.
+- **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,
+  switches, patch panels, boards; cables follow their ends), Ctrl+Shift+G takes them out. A click on
+  one item of a group picks the whole group; Shift-click takes the group out of the selection.
+- **Items list:** the panel on the right lists everything on the hall's plan, the groups first. Click
+  an item or a group to select it (Shift adds), search by name, double-click a group to rename it, or
+  take it apart with its unlink button. Groups travel in backups; layout templates leave them out.
 - **Arrange:** with several items selected, the panel lines them up (left, centre, right, top,
   middle, bottom edges) or spreads three or more with the same gap.
 - **Guides:** while dragging, the selection snaps to another item's edge or middle when it comes

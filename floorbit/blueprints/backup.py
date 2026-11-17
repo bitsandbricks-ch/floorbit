@@ -19,7 +19,7 @@ bp = Blueprint('backup', __name__)
 FORMAT = 'floorbit-backup'
 FORMAT_VERSION = 1
 # The parts of data.json a backup carries. Everything else (accounts, the session key) stays put.
-LAYOUT_KEYS = ('halls', 'inventory', 'seats', 'seat_blocks', 'plan_marks')
+LAYOUT_KEYS = ('halls', 'inventory', 'seats', 'seat_blocks', 'plan_marks', 'plan_groups')
 # Backups from before the inventory: still restored, moved over like data.json is.
 OLD_LAYOUT_KEYS = ('switches', 'cached_devices', 'positions')
 MAX_BYTES = 64 * 1024 * 1024   # background images travel inline, up to 5 MB each
@@ -90,7 +90,7 @@ def validate(backup):
     unknown = sorted(set(layout) - set(LAYOUT_KEYS) - set(OLD_LAYOUT_KEYS))
     if unknown:
         raise BackupError(f'Unknown layout part(s): {", ".join(unknown)}')
-    for key in ('switches', 'cached_devices', 'seat_blocks', 'plan_marks'):
+    for key in ('switches', 'cached_devices', 'seat_blocks', 'plan_marks', 'plan_groups'):
         if key in layout:
             _check_list(key, layout[key])
     if 'inventory' in layout:
@@ -129,7 +129,7 @@ def restore(data, backup, settings_store):
     data['inventory'] = parts['inventory']
     for key in OLD_LAYOUT_KEYS:
         data.pop(key, None)
-    for key in ('seats', 'seat_blocks', 'plan_marks'):
+    for key in ('seats', 'seat_blocks', 'plan_marks', 'plan_groups'):
         data[key] = layout.get(key, [])
     for hall in halls.halls(data):
         halls.remove_background(hall)

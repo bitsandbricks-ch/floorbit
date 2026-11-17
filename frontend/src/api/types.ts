@@ -637,6 +637,14 @@ export interface PlanShape {
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
+/** Items of one hall the editor moves as one (floorbit/plan_groups.py). */
+export interface PlanGroup {
+  id: string
+  hall_id?: string
+  name: string
+  members: { kind: 'block' | 'mark' | 'switch' | 'panel' | 'board'; id: string }[]
+}
+
 export interface PlanMark {
   id?: string
   kind: 'text' | 'icon' | 'wall' | 'zone'

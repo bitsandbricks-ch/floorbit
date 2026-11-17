@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { SeatViewData } from '@/api/types'
-import { alignMoves, distributeMoves, snapToGuides, withGroups } from './arrange'
+import type { PlanGroup, SeatViewData } from '@/api/types'
+import { alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
 
 const shape = (id: string, cx: number, cy: number, group: string | null = null) =>
   ({ id, group, cx, cy, rotation: 0, w: 100, h: 40, name: id, cells: [] })
@@ -15,6 +15,21 @@ describe('arranging items', () => {
   it('picks and drops groups whole', () => {
     expect(withGroups(data, [r('a')]).map((x) => x.id)).toEqual(['a', 'b'])
     expect(withGroups(data, [r('c')]).map((x) => x.id)).toEqual(['c'])
+  })
+
+  it('picks plan groups of any items, and the block groups they reach', () => {
+    const groups: PlanGroup[] = [{ id: 'p', name: 'P', members: [{ kind: 'mark', id: 'm' }, { kind: 'block', id: 'b' }] }]
+    const got = withGroups(data, [{ kind: 'mark', id: 'm' }], groups).map((x) => `${x.kind}:${x.id}`)
+    expect(got.sort()).toEqual(['block:a', 'block:b', 'mark:m'])
+  })
+
+  it('makes and takes apart groups', () => {
+    const m = (id: string) => ({ kind: 'mark' as const, id })
+    const groups: PlanGroup[] = [{ id: 'old', name: 'Old', members: [m('x'), m('y')] }, { id: 'keep', name: 'K', members: [m('p'), m('q'), m('s')] }]
+    const made = regrouped(groups, [m('y'), m('s'), { kind: 'cable', id: 'c' }], { id: 'new', name: 'New' })
+    expect(made.map((g) => [g.id, g.members.map((x) => x.id)])).toEqual([['keep', ['p', 'q']], ['new', ['y', 's']]])
+    expect(groupsOf(made, [m('p')]).map((g) => g.id)).toEqual(['keep'])
+    expect(regrouped(made, [m('p')]).map((g) => g.id)).toEqual(['new'])
   })
 
   it('lines items up on the selection edge', () => {
