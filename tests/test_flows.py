@@ -266,6 +266,20 @@ def test_api_hides_seats_without_seats_view(client, kiosk_client, anon_client, m
     assert public["anomalies"][0]["title"] == "DHCP server at a seat"
 
 
+def test_api_anomalies_in_german(client, monkeypatch, agg):
+    from conftest import FakeRedis
+
+    from floorbit import cache
+    monkeypatch.setattr(cache, "redis_client", FakeRedis())
+    agg.add([STEAM, rec("192.0.2.17", "255.255.255.255", 67, 68)], now=NOW)
+    agg.tick(now=NOW + 60)
+    store.publish(agg.snapshot(now=NOW + 61))
+    [a] = client.get("/api/flows", headers={"Accept-Language": "de-CH"}).get_json()["anomalies"]
+    assert (a["title"], a["detail"]) == ("Platz A-8 antwortet auf DHCP", "ein DHCP-Server, der nicht unserer ist")
+    # the German is per answer: the next English reader gets English
+    assert client.get("/api/flows").get_json()["anomalies"][0]["title"] == "Seat A-8 answers DHCP"
+
+
 def test_demo_flows_show_every_kind():
     from floorbit.flows.demo import DemoFlows
     demo = DemoFlows()
