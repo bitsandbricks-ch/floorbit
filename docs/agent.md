@@ -27,7 +27,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
 | The Traffic page (NetFlow and IPFIX), when the agent collects flows (`FLOORBIT_AGENT_FLOWS_PORT`) | traffic |
 
-Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, gear, electrics
+Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
 inside the hall), and so on.
 

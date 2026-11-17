@@ -11,7 +11,7 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
   to every browser (`GET` and `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
 - **Floor plan**, **Seats**, **Dashboard**, **Problems** and **Incidents** are always at the top.
   Problems shows how many switches are down.
-- The other pages are folded into sections: **Helpdesk**, **Network**, **Build and teardown**,
+- The other pages are folded into sections: **Helpdesk**, **Network**, **Build**,
   **Event** and **Settings**. The section of the page you are on is open. Opening another section
   folds the open one, so the sidebar stays short. Turn that off in the account menu (**Fold other
   sections when one opens**) to keep several open; they then stay open on this browser.

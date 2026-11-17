@@ -83,8 +83,7 @@ def test_the_shift_handover_post_reads_german():
     counts = {"open": 3, "waiting": 2, "opened": 2, "fixed": 1, "median_fix_s": 720, "outages": 2, "still_down": 1,
               "problems": 4, "changes": 9}
     record = {"by": "ana", "note": "Spare switch is under the desk.", "at": 1_800_000_000, "counts": counts}
-    summary = {"incidents": {"open": []}, "mutes": [{"name": "sw-a-01", "until": 1_800_003_600}],
-               "gear": [{"to": "Ana", "count": 2}]}
+    summary = {"incidents": {"open": []}, "mutes": [{"name": "sw-a-01", "until": 1_800_003_600}]}
     post = i18n.translate_payload(handover.discord_message(record, summary), "de-CH")
     embed = post["embeds"][0]
     assert embed["title"] == "🔁 Schichtübergabe von ana"
@@ -94,8 +93,7 @@ def test_the_shift_handover_post_reads_german():
         "**2** Switch-Ausfälle, **1** immer noch down",
         "**4** Probleme gerade jetzt, **9** Änderungen im Audit-Log",
         # Discord itself writes the time in the reader's language and time zone.
-        "🔕 **1** stummgeschaltet: sw-a-01 (<t:1800003600:R>)",
-        "🎒 **2** Stück Material ausgegeben: Ana (2)"]
+        "🔕 **1** stummgeschaltet: sw-a-01 (<t:1800003600:R>)"]
     assert embed["fields"] == [{"name": "Notiz für die nächste Schicht", "value": "Spare switch is under the desk."}]
 
 

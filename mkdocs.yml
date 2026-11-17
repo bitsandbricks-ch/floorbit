@@ -64,7 +64,6 @@ nav:
   - Before the event:
       - Pre-flight check: preflight.md
       - Tournament seats: tournament.md
-      - Gear loans: gear.md
       - Cables and patching: cables.md
   - During the event:
       - Incidents and the seat helpdesk: incidents.md
@@ -81,7 +80,8 @@ nav:
       - Service health: health.md
       - Security detection: security.md
       - Electrics: power.md
-      - Dashboards and layouts: dashboard.md
+      - Dashboards: dashboards.md
+      - Tile dashboard: dashboard.md
       - Stats dashboard: stats.md
       - Bandwidth forecast: forecast.md
       - Traffic insights: flows.md
@@ -107,7 +107,6 @@ nav:
       - Stats wall: stats-wall.md
       - Schedule and countdown: schedule.md
       - Runbooks: runbooks.md
-      - Teardown checklist: teardown.md
       - Past events: events.md
   - Extend:
       - Plugins: plugins.md

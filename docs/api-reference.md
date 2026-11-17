@@ -256,6 +256,19 @@ Source: [`floorbit/blueprints/crew.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | POST | `/api/discord/interactions` | anyone |  |
 
+## floorbit.blueprints.dashboards
+
+Dashboards: screens split into panes (floorbit/dashboards.py, docs/dashboards.md).
+
+Source: [`floorbit/blueprints/dashboards.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/dashboards.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/dashboards` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| DELETE | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
+| GET | `/api/dashboards/<layout_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.demo
 
 Demo mode: the built-in ``demo`` plugin's made-up data, laid out on an empty floor plan.
@@ -365,19 +378,6 @@ Source: [`floorbit/blueprints/games.py`](https://github.com/bitsandbricks-ch/flo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/games` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `games` |
-
-## floorbit.blueprints.gear
-
-Gear loans (issue #36). Rules in floorbit/gear.py.
-
-Source: [`floorbit/blueprints/gear.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/gear.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/gear` | `incidents.work` | `gear` |
-| POST | `/api/gear/<device_id>/in` | `incidents.work` | `gear` |
-| POST | `/api/gear/<device_id>/out` | `incidents.work` | `gear` |
-| GET | `/api/gear/labels.pdf` | `incidents.work` | `gear` |
 
 ## floorbit.blueprints.halls
 
@@ -889,21 +889,6 @@ Source: [`floorbit/blueprints/switches.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/switches/<switch_id>` | `floorplan.edit` |  |
 | PUT | `/api/switches/<switch_id>` | `floorplan.edit` |  |
 | POST | `/api/switches/sync` | `floorplan.edit` |  |
-
-## floorbit.blueprints.teardown
-
-Teardown checklist (issue #37). Rules in floorbit/teardown.py.
-
-Source: [`floorbit/blueprints/teardown.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/teardown.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/teardown` | `floorplan.edit` | `teardown` |
-| GET | `/api/teardown/export.zip` | `settings.manage` | `teardown` |
-| POST | `/api/teardown/items` | `floorplan.edit` | `teardown` |
-| DELETE | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
-| PATCH | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
-| PUT | `/api/teardown/switches/<device_id>` | `floorplan.edit` | `teardown` |
 
 ## floorbit.blueprints.telemetry
 

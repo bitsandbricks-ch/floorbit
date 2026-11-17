@@ -82,3 +82,6 @@ agent.env
 # Signed agent plugin bundles: built by the release workflow, never committed.
 agent-bundles/*
 !agent-bundles/.gitkeep
+
+# Written by the telemetry collector (Settings > Telemetry), never committed.
+telegraf/
