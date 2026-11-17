@@ -12,36 +12,15 @@
 
 Reading the crew's page needs ``floorplan.view``, changing it ``floorplan.edit`` (auth/roles.py).
 """
-import time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
 from .. import audit, schedule, spa
-from .status_page import _stamp
 
 bp = Blueprint('schedule', __name__)
-
-TEXTS = {
-    'en': {'title': 'Schedule', 'off': 'This page is switched off.', 'starts_in': 'The event starts in',
-           'days': 'd', 'now': 'On now', 'next': 'Up next', 'nothing_now': 'Nothing on the programme right now.',
-           'quiet': 'Quiet hours until {time}. Please keep it down.', 'over': 'The event is over. Thanks for coming!',
-           'programme': 'Programme', 'empty': 'The programme is not out yet.', 'until': 'until {time}',
-           'kind': {'talk': 'Talk', 'tournament': 'Tournament', 'meal': 'Food', 'quiet': 'Quiet hours',
-                    'other': 'Event'},
-           'updated': 'Updated {time}. This page updates every minute.',
-           'subscribe': 'Add the programme to your calendar'},
-    'de': {'title': 'Programm', 'off': 'Diese Seite ist ausgeschaltet.', 'starts_in': 'Der Event beginnt in',
-           'days': 'T', 'now': 'Jetzt', 'next': 'Als Nächstes', 'nothing_now': 'Gerade steht nichts auf dem Programm.',
-           'quiet': 'Nachtruhe bis {time}. Bitte leise sein.', 'over': 'Der Event ist vorbei. Danke fürs Kommen!',
-           'programme': 'Programm', 'empty': 'Das Programm ist noch nicht draussen.', 'until': 'bis {time}',
-           'kind': {'talk': 'Vortrag', 'tournament': 'Turnier', 'meal': 'Essen', 'quiet': 'Nachtruhe',
-                    'other': 'Programmpunkt'},
-           'updated': 'Stand {time}. Die Seite aktualisiert sich jede Minute.',
-           'subscribe': 'Programm im eigenen Kalender abonnieren'},
-}
 
 
 def page_on():
@@ -138,24 +117,12 @@ def import_ics():
     return jsonify(result)
 
 
-def _countdown(secs):
-    d, rest = divmod(int(secs), 86400)
-    h, rest = divmod(rest, 3600)
-    m, s = divmod(rest, 60)
-    return {'d': d, 'h': h, 'm': m, 's': s}
-
-
 @bp.route('/agenda')
 def agenda_page():
-    lang = request.accept_languages.best_match(['en', 'de'], default='en')
-    text = TEXTS[lang]
-    if not page_on():
-        return render_template('agenda.html', lang=lang, t=text, off=True), 404
-    now = time.time()
-    s = schedule.public(now=now)
-    return render_template('agenda.html', lang=lang, t=text, off=False, s=s, now=now, stamp=_stamp,
-                           left=_countdown(s['countdown']) if s['countdown'] is not None else None,
-                           screen=request.args.get('screen') == '1')
+    """The page is React (frontend/src/pages/public/PublicAgenda.tsx), reading /agenda.json; 404
+    while it is switched off."""
+    html, status = spa.render('Schedule')
+    return html, status if page_on() else 404
 
 
 @bp.route('/agenda.json')
@@ -169,7 +136,7 @@ def agenda_json():
 def agenda_ics():
     if not page_on():
         return jsonify({'error': 'The schedule page is switched off.'}), 404
-    name = current_app.extensions['floorbit_settings'].get('theme.name') or TEXTS['en']['title']
+    name = current_app.extensions['floorbit_settings'].get('theme.name') or 'Schedule'
     body = schedule.to_ics(schedule.public()['items'], name, request.host.split(':')[0])
     # inline, not a download: calendar apps subscribe to the URL and fetch it again every hour
     return Response(body, mimetype='text/calendar', headers={'Content-Disposition': 'inline; filename="agenda.ics"',
