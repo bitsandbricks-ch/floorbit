@@ -27,6 +27,7 @@
     "traffic": "Traffic",
     "dns": "DNS",
     "games": "Games",
+    "lancache": "LAN cache",
     "logs": "Logs",
     "security": "Security",
     "wifi": "Wi-Fi",

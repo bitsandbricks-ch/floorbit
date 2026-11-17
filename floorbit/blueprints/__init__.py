@@ -29,6 +29,7 @@ from . import (
                health,
                incidents,
                inventory,
+               lancache,
                layout_templates,
                logs,
                metrics,
@@ -80,4 +81,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        cables.bp, cable_plan.bp, teardown.bp, past_events.bp,
        features.bp, firewalls.bp, api_tokens.bp, agent.bp, agent_plugins.bp, webhooks.bp, credentials.bp, wifi.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
-       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp]
+       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp,
+       lancache.bp]

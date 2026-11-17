@@ -89,6 +89,7 @@ nav:
       - DNS analytics: dns.md
       - Wi-Fi view: wifi.md
       - Game insights: games.md
+      - LAN cache: lancache.md
       - Syslog: syslog.md
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md

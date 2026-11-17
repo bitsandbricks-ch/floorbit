@@ -437,6 +437,16 @@ Source: [`floorbit/blueprints/inventory.py`](https://github.com/bitsandbricks-ch
 | GET | `/api/inventory/log` | `floorplan.edit` |  |
 | POST | `/api/inventory/sync` | `floorplan.edit` |  |
 
+## floorbit.blueprints.lancache
+
+The LAN cache page (docs/lancache.md):
+
+Source: [`floorbit/blueprints/lancache.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/lancache.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/lancache` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.layout_templates
 
 The floor plan template library (issue #48). Rules live in floorbit/layout_templates.py.
