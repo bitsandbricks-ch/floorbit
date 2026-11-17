@@ -76,3 +76,21 @@ def test_a_report_from_the_seat_reads_german_in_the_crew_channel():
     embed = {"embeds": [{"title": "🔧 No power at the seat", "fields": [field]}]}
     out = i18n.translate_payload(embed, "de-CH")["embeds"][0]
     assert out["title"] == "🔧 Kein Strom am Platz" and out["fields"][0]["name"] == "B-3: Braucht Hilfe am Platz"
+
+
+def test_the_shift_handover_post_reads_german():
+    from floorbit import handover, i18n
+    counts = {"open": 3, "waiting": 2, "opened": 2, "fixed": 1, "median_fix_s": 720, "outages": 2, "still_down": 1,
+              "problems": 4, "changes": 9}
+    record = {"by": "ana", "note": "Spare switch is under the desk.", "at": 1_800_000_000, "counts": counts}
+    summary = {"incidents": {"open": []}, "mutes": [], "gear": [{"to": "Ana", "count": 2}]}
+    post = i18n.translate_payload(handover.discord_message(record, summary), "de-CH")
+    embed = post["embeds"][0]
+    assert embed["title"] == "🔁 Schichtübergabe von ana"
+    assert embed["description"].split("\n") == [
+        "**3** Störungen offen (2 warten 10+ Min., 2 neu, 1 behoben in dieser Schicht, "
+        "die Hälfte innerhalb von 12 min)",
+        "**2** Switch-Ausfälle, **1** immer noch down",
+        "**4** Probleme gerade jetzt, **9** Änderungen im Audit-Log",
+        "🎒 **2** Stück Material ausgegeben: Ana (2)"]
+    assert embed["fields"] == [{"name": "Notiz für die nächste Schicht", "value": "Spare switch is under the desk."}]
