@@ -353,6 +353,30 @@ def test_a_forged_forwarded_address_is_ignored(app, checkin_env, monkeypatch):
     assert r['ip'] == '10.0.3.3'
 
 
+def test_a_proxy_that_isnt_trusted_is_pointed_out_once(app, checkin_env, monkeypatch, capsys):
+    from integrations import checkin
+    monkeypatch.setattr(checkin, '_proxy_hint', {'logged': False})
+    monkeypatch.delenv('CHECKIN_TRUST_PROXY', raising=False)
+    c = app.test_client()
+    via_proxy = {'headers': {'X-Forwarded-For': '10.0.3.3'}, 'environ_base': {'REMOTE_ADDR': '172.16.0.1'}}
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, **via_proxy).get_json()
+    assert r['ip'] == '172.16.0.1'   # not trusted: the header is not used
+    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, **via_proxy)
+    out = capsys.readouterr().out
+    assert out.count('[proxy] Requests arrive through a proxy at 172.16.0.1') == 1
+    assert 'CHECKIN_TRUST_PROXY' in out
+
+
+def test_no_proxy_hint_when_the_proxy_is_trusted_or_absent(app, checkin_env, monkeypatch, capsys):
+    from integrations import checkin
+    monkeypatch.setattr(checkin, '_proxy_hint', {'logged': False})
+    c = app.test_client()
+    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, environ_base={'REMOTE_ADDR': '10.0.3.3'})
+    monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
+    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers={'X-Forwarded-For': '10.0.3.3'},
+           environ_base={'REMOTE_ADDR': '172.16.0.1'})
+    assert '[proxy]' not in capsys.readouterr().out
+
 # ── settings store bridge ──────────────────────────────────────────────────────────────────
 def test_settings_bridge(monkeypatch, tmp_path):
     import types
