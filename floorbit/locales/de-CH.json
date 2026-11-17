@@ -1086,5 +1086,8 @@
  "Pick two different events.": "Wähle zwei verschiedene Events.",
  "Copy with replace or merge.": "Kopiere mit «Ersetzen» oder «Zusammenführen».",
  "Pick what to copy: {}.": "Wähle, was kopiert wird: {}.",
- "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {})."
+ "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {}).",
+ "A tenant name is lower-case letters, digits and -, at most 40.": "Ein Tenant-Name besteht aus Kleinbuchstaben, Ziffern und -, höchstens 40.",
+ "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
+ "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}."
 }

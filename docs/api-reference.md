@@ -1003,6 +1003,7 @@ Source: [`floorbit/blueprints/tenant_events.py`](https://github.com/bitsandbrick
 | POST | `/api/tenant/events` | `settings.manage` |  |
 | PATCH | `/api/tenant/events/<event_id>` | `settings.manage` |  |
 | POST | `/api/tenant/events/<event_id>/copy` | `settings.manage` |  |
+| GET | `/api/tenant/mine` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.terminal
 

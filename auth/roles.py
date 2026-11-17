@@ -194,6 +194,7 @@ RULES = (
     ('/api/auth/me', None, 'floorplan.view'),
     # Which of the tenant's events this browser works on (floorbit/blueprints/tenant_events.py).
     ('/api/tenant/current', None, 'floorplan.view'),
+    ('/api/tenant/mine', None, 'floorplan.view'),
     ('/api/settings/audit', READ, 'audit.read'),
     # The event changelog has the audit log in it, with who (floorbit/timeline.py).
     ('/api/timeline', READ, 'audit.read'),

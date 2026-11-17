@@ -264,3 +264,72 @@ def test_hosted_tenants_share_one_redis_apart(monkeypatch):
     assert a.dbsize() == 1 and b.dbsize() == 0
     monkeypatch.delenv(store.TENANT_ENV)
     assert cache._scoped(shared) is shared            # self-hosted: the keys as always
+
+
+# ── The hosted platform: its tenants and people in several of them ─────────────────────────────
+
+def _account(tenant, username, **identities):
+    from auth.users import UserStore
+    with store.using(tenant=f"tenants/{tenant}", event=""):
+        UserStore(store.tenant_file).add(username, identities=identities)
+
+
+def test_a_platform_admin_adds_tenants(state):
+    from floorbit import hosting
+    hosting.add("club-a", "Club A", "https://a.example.com/")
+    hosting.add("club-b")
+    assert hosting.tenants() == [{"id": "club-a", "name": "Club A", "url": "https://a.example.com"},
+                                 {"id": "club-b", "name": "", "url": ""}]
+    for bad in (("club-a",), ("../x",), ("club-c", "", "http://c.example.com"), ("club-c", "", "javascript:x")):
+        with pytest.raises(hosting.HostingError):
+            hosting.add(*bad)
+
+
+def test_the_same_outside_login_links_accounts_across_tenants(state, monkeypatch):
+    from floorbit import hosting
+    for name in ("club-a", "club-b", "club-c"):
+        hosting.add(name, name.title(), f"https://{name}.example.com")
+    _account("club-a", "anna", discord="111")
+    _account("club-b", "anna-b", discord="111")
+    _account("club-c", "anna", discord="222")             # the same username is not the same person
+    monkeypatch.setenv(store.TENANT_ENV, "club-a")
+    me = {"identities": {"discord": "111"}}
+    assert hosting.memberships(me) == [
+        {"id": "club-b", "name": "Club-B", "url": "https://club-b.example.com", "username": "anna-b"}]
+    assert hosting.memberships({"identities": {}}) == []  # a password account matches nobody
+    monkeypatch.delenv(store.TENANT_ENV)
+    assert hosting.memberships(me) == []                  # self-hosted: no platform
+
+
+def test_an_oidc_login_only_links_at_the_same_issuer(state, monkeypatch):
+    from floorbit import hosting
+    hosting.add("club-a")
+    hosting.add("club-b")
+    hosting.add("club-c")
+    for name, issuer in (("club-a", "https://id.example.com"), ("club-b", "https://id.example.com"),
+                         ("club-c", "https://other.example.com")):
+        store.write_json(str(state / "tenants" / name / "data.json"),
+                         {"auth_oidc": {"oidc": {"issuer": issuer}}})
+        _account(name, "anna", oidc="sub-1")
+    monkeypatch.setenv(store.TENANT_ENV, "club-a")
+    assert [t["id"] for t in hosting.memberships({"identities": {"oidc": "sub-1"}})] == ["club-b"]
+
+
+def test_tenants_add_on_the_command_line(app_module, monkeypatch):
+    from floorbit import hosting
+    runner = app_module.app.test_cli_runner()
+    out = runner.invoke(args=["tenants", "add", "club-b", "--name", "Club B", "--url", "https://b.example.com",
+                              "--admin", "boss", "--password", "long-enough-1"])
+    assert out.exit_code == 0, out.output
+    assert hosting.tenants()[0]["id"] == "club-b"
+    users = hosting.tenant_data("club-b")["auth_users"]
+    assert users["boss"]["role"] == "admin"
+    assert "boss" not in (store.read_json(store.DATA_FILE, {}).get("auth_users") or {})   # not here
+    assert runner.invoke(args=["tenants", "add", "club-b"]).exit_code != 0
+    assert "club-b" in runner.invoke(args=["tenants", "list"]).output
+
+
+def test_the_account_menu_asks_for_other_tenants(client):
+    resp = client.get("/api/tenant/mine")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"here": None, "tenants": []}
