@@ -285,3 +285,16 @@ def test_a_hosted_tenant_s_bus_keeps_to_its_keys(monkeypatch):
     assert b.pop("calls", 1) is None and a.pop("calls", 1) == "one"
     a.hset("agents", "a1", "x")
     assert b.hgetall("agents") == {} and set(shared["hashes"]) == {"club-a:agents"}
+
+
+def test_pods_say_who_leads_for_the_agents_page():
+    bus = MemoryBus()
+    a = cluster.Cluster(bus, pod="pod-a", log=lambda *_: None)
+    b = cluster.Cluster(bus, pod="pod-b", log=lambda *_: None)
+    a.renew()
+    b.renew()
+    pods = b.pods()
+    assert [(p["pod"], p["leader"], p["me"]) for p in pods] == [("pod-b", False, True), ("pod-a", True, False)]
+    bus.hashes[cluster.PODS_KEY]["pod-old"] = json.dumps({"at": time.time() - 3600, "leader": False})
+    bus.hashes[cluster.PODS_KEY]["junk"] = "not json"
+    assert {p["pod"] for p in a.pods()} == {"pod-a", "pod-b"}

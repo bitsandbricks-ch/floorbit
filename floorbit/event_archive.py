@@ -2,7 +2,7 @@
 
 Closing an event keeps it as its own record: its report (without nicks or IPs), its floor plan as a
 backup, and the key figures the events page compares side by side. Then the next event starts from
-the last one: the floor plan, settings, planner and teardown steps stay, while the report's history,
+the last one: the floor plan, settings and teardown steps stay, while the report's history,
 incidents, handovers, pre-flight results and the gear log begin again.
 
 Each archived event is a file in ``events/`` next to data.json, so data.json doesn't grow with every

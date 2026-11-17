@@ -390,7 +390,13 @@ def load_data():
     return found
 
 
+# Features Mike dropped (2026-11-17): their data goes with the next write instead of lingering.
+RETIRED_KEYS = ('planner',)
+
+
 def save_data(data):
+    for key in RETIRED_KEYS:
+        data.pop(key, None)
     path, tenant_path_ = _files()
     if not tenant_path_:
         write_json(path, data)
