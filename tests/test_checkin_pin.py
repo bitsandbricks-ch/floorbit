@@ -80,6 +80,14 @@ def test_without_the_pin_option_the_phone_can_still_type_the_seat(hall, monkeypa
     assert check_in(hall, "192.0.2.22", seat="A-4", username="nova").status_code == 403
 
 
+
+def test_a_typed_seat_that_isnt_one_is_answered_about_seats(hall):
+    r = hall.post("/api/checkin", json={"seat": "my desk!", "username": "pixel"},
+                  environ_base={"REMOTE_ADDR": "192.0.2.21"}, headers={"Accept-Language": "de-CH"})
+    assert r.status_code == 400 and r.get_json()["error"].startswith("Gib die Platznummer von deinem Ticket ein")
+    empty = hall.post("/api/checkin", json={"username": "pixel"}, environ_base={"REMOTE_ADDR": "192.0.2.21"})
+    assert empty.status_code == 400 and "PIN" in empty.get_json()["error"]
+
 def test_a_patched_cable_wins_over_a_learned_port(hall):
     hall.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/2", "seat": "A-3"})
     check_in(hall, "192.0.2.22", pin=pins(hall)["A-2"], username="pixel")
@@ -120,8 +128,11 @@ def test_a_pin_is_used_once_and_the_crew_opens_it_again(hall):
     check_in(hall, "192.0.2.21", pin=pin, username="pixel")
     again = check_in(hall, "192.0.2.22", pin=pin, username="nova")
     assert again.status_code == 409 and "already used" in again.get_json()["error"]
-    typed = check_in(hall, "192.0.2.22", seat="A-1", username="nova")
+    typed = check_in(hall, "192.0.2.22", seat="a1", username="nova")
     assert typed.status_code == 409                                   # nor by typing the seat
+    # They typed a seat, so the answer talks about the seat, not about a PIN they never entered.
+    assert typed.get_json()["error"] == ("Seat A-1 was already checked in with its seat card. "
+                                         "Ask the crew if this is your seat.")
     # The PC that checked in may change its nick, with the PIN or without anything.
     assert check_in(hall, "192.0.2.21", pin=pin, username="pixel2").status_code == 200
     r = check_in(hall, "192.0.2.21", username="pixel3")

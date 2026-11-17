@@ -101,9 +101,19 @@ def lookup_ip(mac):
 
 
 # ── request helpers ──────────────────────────────────────────────────────────
+_proxy_hint = {'logged': False}
+
+
 def client_ip():
     ip = request.remote_addr or ''
-    if config.get_bool('CHECKIN_TRUST_PROXY', False):
+    if not config.get_bool('CHECKIN_TRUST_PROXY', False):
+        if not _proxy_hint['logged'] and request.headers.get('X-Forwarded-For'):
+            # Every client then looks like the proxy: one guesser locks a username for everyone.
+            _proxy_hint['logged'] = True
+            print(f'[proxy] Requests arrive through a proxy at {ip}, but CHECKIN_TRUST_PROXY is off: '
+                  'every client counts as that one address for check-in, the sign-in lockout and the '
+                  "per-client limits. Turn it on if only your proxy can reach Floorbit's port.")
+    else:
         # Proxies append the address they saw, so only the last ones are trustworthy: the leftmost
         # entry is whatever the client sent, and taking it let anyone pick their own address
         # (check in as another seat, dodge the sign-in lockout).
@@ -482,12 +492,16 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
         seat, pin_ok = mine['seat'], bool(mine.get('pin_ok'))
     else:
         seat = normalise_seat(seat, seats)
-        if not SEAT_RE.match(seat):
+        if not seat:
             raise CheckinError('Enter the PIN from the card at your seat.')
+        if not SEAT_RE.match(seat):
+            # They typed a seat, not a PIN: say what a seat number looks like.
+            raise CheckinError('Enter the seat number from your ticket, for example A-12.')
         held = load_all().get(seat)
         if held and held.get('pin_ok') and held.get('ip') != ip:
             # The seat's card already checked it in: a typed number must not take it over.
-            raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
+            raise CheckinError(f'Seat {seat} was already checked in with its seat card. '
+                               'Ask the crew if this is your seat.', 409)
     if not USER_RE.match(username):
         raise CheckinError('Enter a username (up to 48 characters).')
     if not pin and config.get_bool('CHECKIN_VALIDATE_SEATS', True) and seats and seat not in seats:

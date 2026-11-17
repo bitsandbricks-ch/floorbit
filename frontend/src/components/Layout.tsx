@@ -10,6 +10,7 @@ import { AppNav } from './AppNav'
 import { Attribution } from './Attribution'
 import { CrewNoticeBanner } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
+import { PageError } from './PageError'
 import { rememberPage } from './pages'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
@@ -31,6 +32,7 @@ export function PageSkeleton() {
  *  page's code, never takes the sidebar away (it used to come and go with every page). */
 export function AppShell({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
   return (
     <div className="fb-shell">
       <div className="fb-nav-slot" data-state={readRail() ? 'rail' : 'full'}>
@@ -48,7 +50,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </header>
         <DatabaseBanner />
         <CrewNoticeBanner />
-        <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+        <PageError resetKey={pathname}>
+          <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+        </PageError>
         <Attribution />
       </div>
     </div>

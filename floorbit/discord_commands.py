@@ -15,6 +15,8 @@ import time
 
 from flask import current_app
 
+from .seat_names import match_typed
+
 GUILD_ONLY = [0]   # Discord's interaction context for a server, not a DM
 
 SUB = 1           # Discord's option type for a subcommand
@@ -69,6 +71,45 @@ COMMANDS = [
           'max_length': 500},
          {'type': STRING, 'name': 'area', 'description': 'Where, e.g. Hall B (optional)', 'max_length': 80}]},
 ]
+
+# German descriptions for the slash commands, sent with them as Discord's description_localizations:
+# a German Discord client shows these in the command list.
+DESCRIPTIONS_DE = {
+    'How the network is doing: the state, the areas down, the latest crew update.':
+        'Wie es dem Netzwerk geht: der Zustand, die Bereiche, die down sind, die letzte Crew-Meldung.',
+    'One seat: online or not, its switch port and open incidents.':
+        'Ein Platz: online oder nicht, sein Switch-Port und offene Störungen.',
+    'One switch: up or down, and which of its seats are offline.':
+        'Ein Switch: up oder down, und welche seiner Plätze offline sind.',
+    'Seat number, e.g. A-12': 'Platznummer, z. B. A-12',
+    'Switch name, e.g. sw-a-01': 'Switch-Name, z. B. sw-a-01',
+    'The incident board from Discord.': 'Die Störungen aus Discord.',
+    'File an incident for a seat.': 'Eine Störung für einen Platz erfassen.',
+    'What is wrong, in a few words': 'Was nicht geht, in ein paar Worten',
+    'Take an open incident.': 'Eine offene Störung übernehmen.',
+    'Start typing a seat or a few words': 'Platz oder ein paar Wörter tippen',
+    'Mark an incident fixed.': 'Eine Störung als behoben markieren.',
+    'What you did (optional)': 'Was du gemacht hast (optional)',
+    'Your seat number, e.g. A-12': 'Deine Platznummer, z. B. A-12',
+    'What is wrong': 'Was nicht geht',
+    'The incidents you have, oldest first.': 'Deine Störungen, die älteste zuerst.',
+    'Post an update for attendees on the public network status page.':
+        'Eine Meldung für die Teilnehmenden auf der öffentlichen Netzwerkstatus-Seite.',
+    'What attendees should know': 'Was die Teilnehmenden wissen sollen',
+    'Where, e.g. Hall B (optional)': 'Wo, z. B. Halle B (optional)',
+}
+
+
+def _with_german(items):
+    for item in items:
+        german = DESCRIPTIONS_DE.get(item.get('description'))
+        if german:
+            item.setdefault('description_localizations', {'de': german})
+        _with_german(item.get('options') or [])
+    return items
+
+
+_with_german(COMMANDS)
 
 STATE_TEXT = {'operational': 'All systems running', 'degraded': 'Part of the network is down',
               'outage': 'Network outage', 'maintenance': 'Maintenance',
@@ -136,7 +177,7 @@ REPORT_INPUT = 'problem'
 def report_modal(seat):
     """The form "Report a problem" opens: one line, like /incident report's problem."""
     from integrations.crew import custom_id
-    return {'custom_id': custom_id('report', seat), 'title': f'Report a problem at seat {seat}'[:45],
+    return {'custom_id': custom_id('report', seat), 'title': f'Report a problem at seat {seat}',
             'components': [{'type': 1, 'components': [
                 {'type': 4, 'custom_id': REPORT_INPUT, 'style': 1, 'label': 'What is wrong',
                  'placeholder': 'e.g. No link at all', 'required': True, 'max_length': 120}]}]}
@@ -164,7 +205,11 @@ def handle(body):
             return NOT_LINKED
         if not _crew(user):
             return f'/{name} needs a Floorbit account that works incidents.'
-        return _seat(_option(body, 'seat')) if name == 'seat' else _switch(_option(body, 'name'))
+        if name == 'seat':
+            from . import incidents
+            typed = _option(body, 'seat')
+            return _seat(match_typed(typed, incidents.seat_numbers()) or typed)
+        return _switch(_option(body, 'name'))
     if name == 'statusupdate':
         return _statusupdate(linked_user(body), _options(body)[0])
     if name in ('incident', 'jobs'):
@@ -330,9 +375,10 @@ def _attendee_report(body):
     if not features.on('helpdesk'):
         return OFF[lang]
     given, _sub = _options(body)
-    seat, problem = given.get('seat', '').upper(), given.get('problem')
-    if seat not in incidents.seat_numbers() or problem not in incidents.PROBLEMS:
-        return NO_SEAT[lang].format(seat=seat or '?')
+    typed, problem = given.get('seat', ''), given.get('problem')
+    seat = match_typed(typed, incidents.seat_numbers())
+    if not seat or problem not in incidents.PROBLEMS:
+        return NO_SEAT[lang].format(seat=typed.strip().upper() or '?')
     since = seat_view.outage_since(seat)
     if since and problem in ('no-internet', 'slow'):
         # Already known: the crew needs no extra report for every seat on a dead switch.

@@ -17,7 +17,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 from integrations import checkin, config, seat_sources
 
 from .. import halls, plan_marks, seat_gaps
-from ..seat_names import block_rows, row_letters, seat_one_first
+from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
 from ..store import load_data
 
 bp = Blueprint('screen', __name__)
@@ -186,7 +186,11 @@ def find_page():
     if _rate_limited():
         return render_template('find.html', lang=lang, t=text, state='busy', nicks=nicks, query=query), 429
     data = load_data()
-    drawing, found = _locate(data, query.upper())
+    drawing, found = None, None
+    for form in typed_forms(query):     # "a3" and "A 3" find A-3
+        drawing, found = _locate(data, form)
+        if found:
+            break
     if not found and nicks:
         by_nick = _by_nick(query)
         if by_nick:

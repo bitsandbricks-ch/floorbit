@@ -662,6 +662,8 @@
  "That PIN is not on any seat card. Check the card at your seat.": "Diese PIN steht auf keiner Platzkarte. Schau auf die Karte an deinem Platz.",
  "Enter the PIN from the card at your seat.": "Gib die PIN von der Karte an deinem Platz ein.",
  "That PIN was already used. Ask the crew if this is your seat.": "Diese PIN wurde schon verwendet. Frag die Crew, wenn das dein Platz ist.",
+ "Enter the seat number from your ticket, for example A-12.": "Gib die Platznummer von deinem Ticket ein, zum Beispiel A-12.",
+ "Seat {} was already checked in with its seat card. Ask the crew if this is your seat.": "Platz {} wurde schon mit seiner Platzkarte eingecheckt. Frag die Crew, wenn das dein Platz ist.",
  "Link {} to {} is down": "Verbindung {} zu {} ist down",
  "Link {} to {} runs at {}G": "Verbindung {} zu {} läuft mit {}G",
  "Link {} to {}: {} sees {}": "Verbindung {} zu {}: {} sieht {}",

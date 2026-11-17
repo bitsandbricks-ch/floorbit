@@ -131,11 +131,11 @@ class ForecastWatch:
 
     def _run(self):
         while True:
-            if features.on('forecast'):
-                try:
+            try:
+                if features.on('forecast'):
                     self.check()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[forecast] check failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[forecast] check failed: {exc}')
             if self._stop.wait(300):
                 return
 

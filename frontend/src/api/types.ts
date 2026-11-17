@@ -337,7 +337,7 @@ export interface Incident {
   can_work: boolean
   can_assign: boolean
   /** The first runbook for this kind of incident (issue #102). */
-  runbook?: { id: string; title: string } | null
+  runbook?: { id: string; title: string; starter?: boolean } | null
   /** The seat's crew note (issue #204). */
   seat_note?: { text: string; by: string | null; at: number } | null
 }
@@ -752,7 +752,7 @@ export interface Job {
   seat_ok_at?: number | null
   drawing: PlanDrawing | null; target: [number, number] | null; from: [number, number] | null; hall: string | null
   /** The steps for this kind of incident, right on the job (issue #102). */
-  runbook?: { id: string; title: string; body: string } | null
+  runbook?: { id: string; title: string; body: string; starter?: boolean } | null
 }
 export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number; auto?: boolean }
 export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number; done?: number }

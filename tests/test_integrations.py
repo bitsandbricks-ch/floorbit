@@ -230,6 +230,24 @@ def test_discord_test_endpoint_needs_webhook(app):
     assert r.status_code == 400
 
 
+def test_a_failed_discord_send_never_shows_the_webhook_token(app, monkeypatch):
+    import requests
+
+    from integrations import discord as discord_mod
+    url = 'https://discord.example.com/api/webhooks/123456/s3cret-webhook-token'
+    monkeypatch.setenv('DISCORD_WEBHOOK_URL', url)
+
+    def refused(target, **kwargs):   # what requests says: the URL, token and all
+        raise requests.ConnectionError(f"Max retries exceeded with url: {target.split('.com')[1]} (refused)")
+    monkeypatch.setattr(discord_mod.requests, 'post', refused)
+    r = app.test_client().post('/api/integrations/discord/test')
+    assert r.status_code == 502
+    error = r.get_json()['error']
+    assert 's3cret-webhook-token' not in error and '/api/webhooks/123456/' in error
+    # The background sender logs what went wrong: the token stays out of the log too.
+    assert discord_mod.hide_webhook(f"failed: {url}") == "failed: https://discord.example.com/api/webhooks/123456/…"
+
+
 # ── check-in ─────────────────────────────────────────────────────────────────────────
 @pytest.fixture
 def checkin_env(tmp_path, monkeypatch):
@@ -334,6 +352,30 @@ def test_a_forged_forwarded_address_is_ignored(app, checkin_env, monkeypatch):
                environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
     assert r['ip'] == '10.0.3.3'
 
+
+def test_a_proxy_that_isnt_trusted_is_pointed_out_once(app, checkin_env, monkeypatch, capsys):
+    from integrations import checkin
+    monkeypatch.setattr(checkin, '_proxy_hint', {'logged': False})
+    monkeypatch.delenv('CHECKIN_TRUST_PROXY', raising=False)
+    c = app.test_client()
+    via_proxy = {'headers': {'X-Forwarded-For': '10.0.3.3'}, 'environ_base': {'REMOTE_ADDR': '172.16.0.1'}}
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, **via_proxy).get_json()
+    assert r['ip'] == '172.16.0.1'   # not trusted: the header is not used
+    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, **via_proxy)
+    out = capsys.readouterr().out
+    assert out.count('[proxy] Requests arrive through a proxy at 172.16.0.1') == 1
+    assert 'CHECKIN_TRUST_PROXY' in out
+
+
+def test_no_proxy_hint_when_the_proxy_is_trusted_or_absent(app, checkin_env, monkeypatch, capsys):
+    from integrations import checkin
+    monkeypatch.setattr(checkin, '_proxy_hint', {'logged': False})
+    c = app.test_client()
+    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, environ_base={'REMOTE_ADDR': '10.0.3.3'})
+    monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
+    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers={'X-Forwarded-For': '10.0.3.3'},
+           environ_base={'REMOTE_ADDR': '172.16.0.1'})
+    assert '[proxy]' not in capsys.readouterr().out
 
 # ── settings store bridge ──────────────────────────────────────────────────────────────────
 def test_settings_bridge(monkeypatch, tmp_path):

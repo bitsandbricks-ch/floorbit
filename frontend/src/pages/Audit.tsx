@@ -19,6 +19,7 @@ const FILTERS = ['area', 'user', 'q'] as const
  *  in the link, so a filtered view can be shared or reloaded. */
 export default function Audit() {
   const { t, i18n } = useTranslation()
+  const areaText = (a: string) => t(`audit.areas.${a}`, { defaultValue: a })
   const [params, setParams] = useSearchParams()
   const [area, setArea] = useState(params.get('area') ?? '')
   const [user, setUser] = useState(params.get('user') ?? '')
@@ -64,7 +65,7 @@ export default function Audit() {
         <Stack gap="sm">
           <Group align="flex-end" gap="sm" role="search">
             <Select label={t('audit.area')} w={{ base: '100%', sm: 170 }} value={area} onChange={(v) => setArea(v ?? '')} allowDeselect={false}
-              data={[{ value: '', label: t('audit.allAreas') }, ...areas.map((a) => ({ value: a, label: a }))]} />
+              data={[{ value: '', label: t('audit.allAreas') }, ...areas.map((a) => ({ value: a, label: areaText(a) }))]} />
             <TextInput label={t('audit.account')} placeholder={t('audit.any')} w={{ base: '100%', sm: 170 }} value={user} autoCapitalize="none"
               spellCheck={false} onChange={(e) => setUser(e.currentTarget.value)} />
             <TextInput label={t('audit.search')} placeholder={t('audit.searchHint')} style={{ flex: 1, minWidth: 180 }}
@@ -87,7 +88,7 @@ export default function Audit() {
                   <Text size="sm" fw={600} c={e.ok === false ? 'down' : undefined}>
                     {e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}
                   </Text>
-                  <Badge variant="light" color="gray" style={{ flexShrink: 0 }}>{e.area}</Badge>
+                  <Badge variant="light" color="gray" style={{ flexShrink: 0 }}>{areaText(e.area)}</Badge>
                 </Group>
                 {e.target && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
                 <Text size="xs" c="dimmed">
@@ -114,7 +115,7 @@ export default function Audit() {
                   <Table.Tr key={`${e.time}-${i}`}>
                     <Table.Td title={e.time} style={{ whiteSpace: 'nowrap' }}>{when(e.time)}</Table.Td>
                     <Table.Td c={e.user ? undefined : 'dimmed'}>{e.user || t('audit.nobody')}</Table.Td>
-                    <Table.Td><Badge variant="light" color="gray">{e.area}</Badge></Table.Td>
+                    <Table.Td><Badge variant="light" color="gray">{areaText(e.area)}</Badge></Table.Td>
                     <Table.Td>
                       <Text size="sm" c={e.ok === false ? 'down' : undefined}>
                         {e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}

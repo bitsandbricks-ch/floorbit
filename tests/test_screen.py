@@ -31,6 +31,12 @@ def test_unknown_seat(anon_client, hall):
     assert resp.status_code == 404 and "No seat" in resp.get_data(as_text=True)
 
 
+
+@pytest.mark.parametrize("typed", ["d6", "D 6", " d-06 ", "d_6"])
+def test_a_seat_is_found_as_people_type_it(anon_client, hall, typed):
+    resp = anon_client.get("/find", query_string={"q": typed})
+    assert resp.status_code == 200 and "Seat D-6" in resp.get_data(as_text=True)
+
 def test_nicks_find_nothing_unless_switched_on(anon_client, hall, monkeypatch):
     assert anon_client.get("/find?q=player-six").status_code == 404
     monkeypatch.setenv("SEAT_FINDER_NICKS", "true")

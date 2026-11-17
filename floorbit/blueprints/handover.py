@@ -11,7 +11,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import config, events
 
-from .. import handover, problems, spa
+from .. import handover, i18n, problems, spa
 
 bp = Blueprint('handover', __name__)
 
@@ -34,6 +34,8 @@ def handover_page():
 @bp.route('/api/handover', methods=['GET'])
 def get_summary():
     out = _summary()
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    out['changes'] = [{**c, 'action': i18n.log_text(c.get('action'), lang)} for c in out['changes']]
     out['history'] = handover.history()[:10]
     out['discord'] = bool(current_app.extensions.get('floorbit_discord')
                           and current_app.extensions['floorbit_discord'].enabled())

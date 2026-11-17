@@ -7,9 +7,9 @@
 """
 import time
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, current_app, jsonify, request
 
-from .. import spa
+from .. import i18n, spa
 from ..flows import classify, store
 
 bp = Blueprint('flows', __name__)
@@ -58,11 +58,16 @@ def get_flows():
     may_see_people = _can('seats.view')
     if not snap:
         return jsonify({'collector': False, 'rules_error': rules_error, 'can_see_seats': may_see_people})
-    out = public(snap, may_see_people)
+    out = dict(public(snap, may_see_people))   # a copy: the answer below is per request
     out['collector'] = True
     out['stale'] = time.time() - (snap.get('updated') or 0) > 60
     out['rules_error'] = rules_error
     out['can_see_seats'] = may_see_people
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    if out.get('anomalies') and lang != 'en':
+        # The summary keeps them in English (the agent sends it too); a new list, so it stays that way.
+        out['anomalies'] = [{**a, 'title': i18n.log_text(a.get('title'), lang),
+                             'detail': i18n.log_text(a.get('detail'), lang)} for a in out['anomalies']]
     return jsonify(out)
 
 

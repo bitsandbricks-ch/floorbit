@@ -135,7 +135,9 @@ def _report(body, user, seat):
     if not roles.can(user, 'incidents.work'):
         return _say('Reporting from Discord needs a Floorbit account that works incidents.')
     if body.get('type') == COMPONENT:
-        return jsonify({'type': MODAL, 'data': discord_commands.report_modal(seat)})
+        from .. import i18n
+        form = i18n.translate_payload(discord_commands.report_modal(seat), str(body.get('locale') or ''))
+        return jsonify({'type': MODAL, 'data': {**form, 'title': form['title'][:45]}})
     return _say(discord_commands.report(user, seat, discord_commands.modal_value(body)))
 
 
