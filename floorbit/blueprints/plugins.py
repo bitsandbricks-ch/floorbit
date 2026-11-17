@@ -14,7 +14,7 @@ Who may do what:
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
-from .. import audit, spa
+from .. import audit, i18n, spa
 from .. import dashboard_core as core
 from ..plugins import SETTING_TYPES, PluginError
 from ..plugins.widgets import check_widget
@@ -156,7 +156,9 @@ def run_action(plugin_id, action_id):
         return _error(str(exc))
     audit.record('plugins', f"Ran {spec.name}: {action['label']}", user=user, target=spec.id, fields=list(params))
     result = result if isinstance(result, dict) else {'message': str(result or 'Done')}
-    return jsonify({'ok': True, 'message': str(result.get('message') or 'Done')[:500],
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    message = i18n.translate(str(result.get('message') or 'Done'), lang)
+    return jsonify({'ok': True, 'message': message[:500],
                     'data': {k: v for k, v in result.items() if k != 'message'}})
 
 
@@ -170,9 +172,27 @@ def widget(plugin_id, widget_id):
     if refused:
         return refused
     try:
-        return jsonify(_registry().widget(spec, widget_id))
+        body = _registry().widget(spec, widget_id)
     except PluginError as exc:
         return _error(str(exc), 502)
+    return jsonify(german_widget(body, i18n.language(request.headers.get('Accept-Language'))))
+
+
+def german_widget(body, lang):
+    """A plugin widget's own texts in ``lang`` where Floorbit's catalog knows them, like the Health
+    page does for the same checks ("GET … failed: …"). Values (names, numbers, hosts) stay."""
+    if lang == 'en' or not isinstance(body, dict):
+        return body
+
+    def tr(text):
+        return i18n.translate(text, lang)
+    out = {**body, **{k: tr(body[k]) for k in ('label', 'sub', 'unit') if isinstance(body.get(k), str)}}
+    if isinstance(body.get('items'), list):
+        out['items'] = [{**i, **{k: tr(i[k]) for k in ('label', 'detail') if isinstance(i.get(k), str)}}
+                        if isinstance(i, dict) else i for i in body['items']]
+    if isinstance(body.get('columns'), list):
+        out['columns'] = [{**c, 'label': tr(c.get('label'))} if isinstance(c, dict) else c for c in body['columns']]
+    return out
 
 
 @bp.route('/api/plugins/<plugin_id>/endpoints/<endpoint_id>', methods=['GET'])
@@ -248,6 +268,9 @@ def dashboard():
                 tiles.append({'plugin': spec.id, 'plugin_name': spec.name, 'id': a['id'], 'label': a['label'],
                               'kind': 'action', 'danger': bool(a.get('danger')),
                               'url': f"/api/plugins/{spec.id}/actions/{a['id']}"})
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    tiles = [{**t, 'label': i18n.translate(t['label'], lang), 'plugin_name': i18n.translate(t['plugin_name'], lang)}
+             for t in tiles]
     # Floorbit's own tiles first: they work with no plugin set up (issue #302).
     return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user), _may_see_gear(user)) + tiles})
 
