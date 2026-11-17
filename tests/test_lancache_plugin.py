@@ -198,6 +198,14 @@ def _feed_and_read(client, anon_client, key):
     assert page["downloads"][0]["item"] == "depot 228988" and page["downloads"][0]["hit_ratio"] == 1.0
     assert page["agents"][0]["name"] == "Demo LAN 2026" and page["agents"][0]["heartbeat"]["ok"]
     assert page["agents"][0]["disk"]["used"] == 800 and page["suspects"][0]["item"] == "tpr/wow"
+    # The same as dashboard widgets.
+    widget = lambda w: client.get(f"/api/plugins/lancache/widgets/{w}").get_json()  # noqa: E731
+    assert widget("hit_ratio")["type"] == "stat" and widget("hit_ratio")["unit"] == "%"
+    assert widget("served")["type"] == "sparkline" and widget("served")["points"]
+    machine = widget("machine")
+    assert [i["state"] for i in machine["items"]] == ["up", "unknown", "up"]
+    assert "80 % full" in machine["items"][2]["detail"]
+    assert widget("downloads")["items"][0] == {"label": "depot 228988", "value": "6 players", "tone": ""}
     assert any(row["cache"] == "steam" for row in page["caches"])
     # An address in an aggregate payload never gets here.
     bad = {**payload, "downloads": [{"cache": "steam", "item": "192.0.2.10"}]}

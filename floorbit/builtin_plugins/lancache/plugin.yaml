@@ -26,6 +26,9 @@ actions:
      help: "Empties the cache folder on the cache machine. Players download everything from the internet again. The agent must allow it (FLOORBIT_AGENT_ALLOW_ACTIONS=lancache.clear_cache)."}
 widgets:
   - {id: hit_ratio, label: LAN cache, refresh: 60}
+  - {id: served, label: Served by the LAN cache, size: wide, refresh: 60}
+  - {id: machine, label: Cache machine, refresh: 30}
+  - {id: downloads, label: Popular downloads, refresh: 60}
 agent:
   sends:
     stats: {privacy: aggregate}

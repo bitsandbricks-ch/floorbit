@@ -19,14 +19,6 @@ def _plugin_on():
     return bool(spec and registry.enabled(spec))
 
 
-@bp.app_context_processor
-def lancache_flags():
-    try:
-        return {'lancache_on': _plugin_on()}
-    except Exception:  # noqa: BLE001 - a nav link must never break a page
-        return {'lancache_on': False}
-
-
 @bp.route('/lancache')
 def page():
     return spa.render('LAN cache')

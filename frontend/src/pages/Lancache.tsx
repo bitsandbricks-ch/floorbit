@@ -241,8 +241,9 @@ function Lookups({ data }: { data: LancacheOverview }) {
   )
 }
 
-/** The LAN cache: what it saved, whether the machine is healthy, and what the hall downloads. Hall-wide only. */
-export default function Lancache() {
+/** The LAN cache as a view (a dashboard pane, or a widget's expanded size): what it saved, the
+ *  cache machine and, expanded, what the hall downloads. Hall-wide only. */
+export function LancacheView({ expanded = true }: { expanded?: boolean }) {
   const { t } = useTranslation()
   const [hours, setHours] = useState(24)
   const query = useQuery({
@@ -253,12 +254,13 @@ export default function Lancache() {
   const data = query.data
   const peak = data?.clients.reduce((m, c) => Math.max(m, c.clients), 0) ?? 0
   return (
-    <Layout title={t('lancache.title')}>
-      <PageHead title={t('lancache.title')} desc={t('lancache.intro')}
-        actions={
+    <>
+      {expanded && (
+        <Group justify="flex-end" mb="sm">
           <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('lancache.range')}
             data={RANGES.map((h) => ({ value: String(h), label: t(`games.hours.${h}`) }))} />
-        } />
+        </Group>
+      )}
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : (
         <>
@@ -277,14 +279,29 @@ export default function Lancache() {
           </SimpleGrid>
           <div className="fb-stats">
             <Machines data={data} />
-            <Chart data={data} />
-            <Downloads data={data} />
-            <Services data={data} />
-            <Suspects data={data} />
-            <Lookups data={data} />
+            {expanded && (
+              <>
+                <Chart data={data} />
+                <Downloads data={data} />
+                <Services data={data} />
+                <Suspects data={data} />
+                <Lookups data={data} />
+              </>
+            )}
           </div>
         </>
       )}
+    </>
+  )
+}
+
+/** Until dashboards have views: the expanded view on a page of its own, where the widgets link. */
+export default function Lancache() {
+  const { t } = useTranslation()
+  return (
+    <Layout title={t('lancache.title')}>
+      <PageHead title={t('lancache.title')} desc={t('lancache.intro')} />
+      <LancacheView expanded />
     </Layout>
   )
 }

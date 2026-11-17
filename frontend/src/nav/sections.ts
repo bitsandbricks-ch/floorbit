@@ -22,7 +22,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'checkins', 'speedtests', 'networkStatus'] },
   {
     id: 'network', icon: IconNetwork,
-    pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'lancache', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
+    pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'gear', 'planner', 'preflight', 'teardown', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
