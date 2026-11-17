@@ -190,7 +190,7 @@ Per provider:
 | --- | --- |
 | ID | Lowercase letters and digits. It is part of the redirect URL and of the secret's variable name. |
 | Name | The button text. |
-| Issuer URL | Endpoints and signing keys come from `<issuer>/.well-known/openid-configuration`, which must name the same issuer. https only, except `localhost`. |
+| Issuer URL | Endpoints and signing keys come from `<issuer>/.well-known/openid-configuration`, which must name the same issuer. https only, except `localhost`. Once the client secret is set, the issuer can only change within the same host: the secret belongs to it, so a new identity provider gets a new ID. |
 | Client ID | From the identity provider. |
 | Scopes | Default `openid profile email`; must include `openid`. Add `groups` (or what your provider calls it) for role mapping. |
 | Role claim | Default `groups`. If the ID token doesn't carry it, Floorbit asks the userinfo endpoint. |
