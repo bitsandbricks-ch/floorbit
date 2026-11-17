@@ -9,7 +9,8 @@ import { TOOL_GESTURE, type Tool } from './tools'
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  The Hand tool, Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r] }: {
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r],
+  snapping = { grid: true, items: true } }: {
   ctx: OverlayContext
   data: SeatViewData
   selection: ItemRef[]
@@ -36,13 +37,19 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   guides?: Guide[]
   /** The items that go with one (its group): Shift-click takes them out together. */
   together?: (ref: ItemRef) => ItemRef[]
+  /** Snap to the grid, and wall corners to other walls' (the top bar's toggles). */
+  snapping?: { grid: boolean; items: boolean }
 }) {
   const gesture = TOOL_GESTURE[tool]
   const [draft, setDraft] = useState<{ a: Point; b: Point } | null>(null)
-  const corners = useMemo(() => (tool === 'wall' ? wallCorners(data) : []), [data, tool])
-  const snap = (p: Point, free: boolean, angle = false, from?: Point): Point => {
+  const lineLike = gesture === 'line' || gesture === 'measure'
+  const corners = useMemo(() => (lineLike && snapping.items ? wallCorners(data) : []), [data, lineLike, snapping.items])
+  // The last line the Measure tool drew stays until the next one, or another tool.
+  const [measured, setMeasured] = useState<{ a: Point; b: Point; tool: Tool } | null>(null)
+  const snap = (p: Point, alt: boolean, angle = false, from?: Point): Point => {
+    const free = alt || !snapping.grid
     // A wall's ends land on other walls' ends and bends when near, so walls meet.
-    if (gesture === 'line') return snapCorner(p, { anchors: corners, reach: 10 / ctx.scale, from, angle, free, size: data.size })
+    if (lineLike) return snapCorner(p, { anchors: corners, reach: 10 / ctx.scale, from, angle, free, size: data.size })
     if (angle && from) {
       // Shift: the line keeps to 15 degree steps from where it started.
       const dx = p.x - from.x, dy = p.y - from.y
@@ -93,7 +100,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     onPointer?.(ctx.toPlan(e.clientX, e.clientY))
     if (draft) {
       e.stopPropagation()
-      setDraft({ a: draft.a, b: snap(ctx.toPlan(e.clientX, e.clientY), e.altKey, gesture === 'line' && e.shiftKey, draft.a) })
+      setDraft({ a: draft.a, b: snap(ctx.toPlan(e.clientX, e.clientY), e.altKey, lineLike && e.shiftKey, draft.a) })
       return
     }
     const d = drag.current
@@ -113,6 +120,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       e.stopPropagation()
       setDraft(null)
       const tiny = Math.hypot(draft.b.x - draft.a.x, draft.b.y - draft.a.y) < 4 * px
+      if (gesture === 'measure') { setMeasured(tiny ? null : { ...draft, tool }); return }
       if (tiny) return
       if (gesture === 'line') onLine?.(draft.a, draft.b)
       else onBox?.(boxFrom(draft.a, draft.b))
@@ -172,7 +180,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       {guides.map((g, i) => (g.axis === 'x'
         ? <line key={i} className="fb-edit-guide" x1={g.at} x2={g.at} y1={shown.y} y2={shown.y + shown.h} vectorEffect="non-scaling-stroke" />
         : <line key={i} className="fb-edit-guide" y1={g.at} y2={g.at} x1={shown.x} x2={shown.x + shown.w} vectorEffect="non-scaling-stroke" />))}
-      {draft && <Draft draft={draft} gesture={gesture} px={px} cell={data.drawing?.cell ?? 32} />}
+      {draft && <Draft draft={draft} gesture={lineLike ? 'line' : gesture} px={px} cell={data.drawing?.cell ?? 32} />}
+      {!draft && measured && measured.tool === tool && <Draft draft={measured} gesture="line" px={px} cell={data.drawing?.cell ?? 32} />}
       {marquee && <rect className="fb-edit-marquee" x={marquee.x} y={marquee.y} width={marquee.w} height={marquee.h} vectorEffect="non-scaling-stroke" />}
     </g>
   )

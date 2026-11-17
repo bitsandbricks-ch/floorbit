@@ -13,6 +13,9 @@ sets it when someone drags the corner handle. Missing means 1.
 - ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label``, ``color``
   and ``rotation`` (turned round its middle; missing is 0).
 
+Any mark may have a ``tint`` (``#rrggbb``): the crew's own colour for it, over the theme's. Missing
+means the theme's colour, which follows light and dark.
+
 Every mark is on a ``layer`` of the floor plan (:data:`LAYERS`, ``overview`` unless set), so the Seats view
 can show the escape routes or the server racks on their own and hide them otherwise.
 
@@ -20,6 +23,7 @@ They are kept in data.json under ``plan_marks``, travel in backups and templates
 floor plan editor, the Seats view and the attendee hall view. The icons are Tabler's (MIT), the same set
 the React app uses, so one list serves every page.
 """
+import re
 import uuid
 
 from . import halls, stacking
@@ -31,6 +35,7 @@ SIZES = ('s', 'm', 'l')
 STYLES = ('solid', 'dashed')
 BENDS_MAX = 50
 COLORS = ('muted', 'bit', 'trace', 'warn', 'down')
+TINT = re.compile(r'#[0-9a-fA-F]{6}')
 # The Seats view's layers a mark can be on (frontend/src/pages/plan/layers.ts).
 LAYERS = ('overview', 'safety', 'network', 'electrical', 'services')
 PUBLIC_LAYERS = ('overview', 'safety')   # what attendee pages show; the rest is for the crew
@@ -85,6 +90,9 @@ def clean(body, old=None):
         out['z'] = stacking.z_of(m.get('z'))
     except stacking.StackError as exc:
         raise MarkError(str(exc)) from None
+    tint = _tint(m.get('tint'))
+    if tint:
+        out['tint'] = tint
     if kind == 'text':
         text = str(m.get('text') or '').strip()
         if not text or len(text) > TEXT_MAX:
@@ -115,6 +123,15 @@ def clean(body, old=None):
         if _int(m.get('rotation')):
             out['rotation'] = _int(m.get('rotation'))
     return out
+
+
+def _tint(value):
+    # A colour the crew picked, over the theme's; missing or empty keeps the theme's, light or dark.
+    if value in (None, ''):
+        return None
+    if not isinstance(value, str) or not TINT.fullmatch(value):
+        raise MarkError('tint is a colour like #3fb950')
+    return value.lower()
 
 
 def _bends(value):

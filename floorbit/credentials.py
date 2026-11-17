@@ -100,25 +100,60 @@ def _match(entries, switch):
     return next((c for c in entries if c['scope'] == DEFAULT), None)
 
 
+def _device(switch, data):
+    """The inventory device with this name (or short name), or None."""
+    from . import inventory
+    name = str(switch or '').lower()
+    short = name.split('.')[0]
+    return next((d for d in inventory.devices(data, include_hidden=True)
+                 if d['name'].lower() in (name, short) or d['name'].lower().split('.')[0] == short), None)
+
+
 def covers(switch):
-    """Is a login stored for this switch? (Without opening it.)"""
-    return _match(_all(), switch) is not None
+    """Is a login stored for this switch, on it, its tags or groups, or here? (Without opening it.)"""
+    from . import inventory_scope
+    data = load_data()
+    dev = _device(switch, data)
+    if dev is not None:
+        return inventory_scope._credential_for(data, dev, 'ssh')[0] is not None
+    return _match(_all(data), switch) is not None
+
+
+def _inventory_ssh(data):
+    from . import inventory_scope
+    return [c for c in inventory_scope._creds(data) if c['kind'] == 'ssh']
 
 
 def has_default():
-    return any(c['scope'] == DEFAULT for c in _all())
+    data = load_data()
+    return any(c['scope'] == DEFAULT for c in _all(data)) or any(c['owner_type'] == 'defaults'
+                                                                  for c in _inventory_ssh(data))
 
 
 def any_set():
-    return bool(_all())
+    data = load_data()
+    return bool(_all(data)) or bool(_inventory_ssh(data))
 
 
 def ssh_login_for(switch, user=None):
-    """``{"username", "password"}`` for this switch, opened now, or None. Logged in the audit log."""
-    entry = _match(_all(), switch)
+    """``{"username", "password", "ref"}`` for this switch, opened now, or None. Logged in the audit
+    log. The inventory's credentials (device, tags, groups, defaults) come first, then the logins
+    here by name pattern. ``ref`` says which one it was, for ``report_failed``."""
+    from . import audit, inventory_scope
+    data = load_data()
+    dev = _device(switch, data)
+    if dev is not None:
+        try:
+            opened = inventory_scope.login_for(data, dev, 'ssh', user)
+        except inventory_scope.ScopeError as exc:
+            raise CredentialError(str(exc), exc.status) from None
+        if opened is None:
+            return None
+        return {'username': opened['username'], 'password': opened.get('secret') or '',
+                'ref': {'device_id': dev['id'], 'credential_id': opened['id'], 'rev': opened['rev']}}
+    entry = _match(_all(data), switch)
     if entry is None:
         return None
-    from . import audit
     try:
         password = vault.open_(_slot(entry), entry['password'])
     except vault.VaultError as exc:
@@ -127,6 +162,18 @@ def ssh_login_for(switch, user=None):
         raise CredentialError(str(exc), 500) from None
     audit.record('credentials', f'Used the stored login for {entry["scope"]}', user=user, target=switch)
     return {'username': entry['username'], 'password': password}
+
+
+def report_failed(ref, message, plugin=''):
+    """A stored login was refused: block it on the device until a tech clears it (inventory_scope)."""
+    if not ref:
+        return None
+    from . import inventory_scope
+    return inventory_scope.auth_failed(ref['device_id'], ref['credential_id'], ref['rev'], plugin, message)
+
+
+def is_login_error(exc):
+    return 'login' in str(exc).lower() or 'auth' in str(exc).lower()
 
 
 def rotate():

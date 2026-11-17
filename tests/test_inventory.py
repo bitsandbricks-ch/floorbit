@@ -140,7 +140,7 @@ class FakeHttp:
 
     def get(self, path, **kw):
         self.calls.append((path, kw.get('params')))
-        return self.pages[path]
+        return self.pages.get(path, FakeResponse({}, 404))
 
 
 def netbox_plugin(registry, http):
@@ -159,7 +159,8 @@ NB_DEVICE = {'id': 12, 'name': 'sw-a-01', 'role': {'slug': 'access-switch'}, 'de
 def test_netbox_device_mapping_works_for_netbox_3_and_4():
     from floorbit.builtin_plugins.netbox.plugin import device
     assert device(NB_DEVICE) == {'id': '12', 'name': 'sw-a-01', 'role': 'switch', 'model': 'C9200',
-                                 'serial': 'FOC123', 'mgmt_ip': '192.0.2.5', 'hall': 'Hall A', 'status': 'active'}
+                                 'serial': 'FOC123', 'mgmt_ip': '192.0.2.5', 'hall': 'Hall A', 'status': 'active',
+                                 'platform': ''}
     old = {'id': 3, 'name': 'ap-1', 'device_role': {'slug': 'wifi-ap'}, 'location': {'name': 'Stage'}}
     assert device(old)['role'] == 'access-point' and device(old)['hall'] == 'Stage'
     assert device({'id': 4, 'name': 'x', 'role': {'slug': 'core'}})['role'] == 'other'

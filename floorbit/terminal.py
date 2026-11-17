@@ -19,7 +19,7 @@ import time
 
 from integrations import config
 
-from . import audit, ports
+from . import audit, credentials, ports
 from .plugins import PluginError
 from .store import load_data
 
@@ -154,8 +154,9 @@ def open_session(registry, account, body):
             raise TerminalError(f'You have {MAX_PER_ACCOUNT} terminals open. Close one first.', 429)
     try:
         dev = ports._switch(load_data(), body.get('switch'))
+        ports._feature(dev, 'terminal')
     except ports.PortError as exc:
-        raise TerminalError(str(exc)) from None
+        raise TerminalError(str(exc), exc.status) from None
     needs_login = ports.info(registry)['plugin_login']
     try:
         login = ports._login(body, needs_login, dev['name'], account)
@@ -163,6 +164,7 @@ def open_session(registry, account, body):
         raise TerminalError(str(exc)) from None
     body.pop('password', None)
     stored = bool(login and login.get('stored'))   # the plugin clears the login it gets
+    ref = (login or {}).get('ref')
     with ports._lock:
         try:
             ports._check_failures(account, time.time())
@@ -179,6 +181,8 @@ def open_session(registry, account, body):
         if needs_login and not stored and 'login' in str(exc).lower():
             with ports._lock:
                 ports._failures.setdefault(account, []).append(time.time())
+        elif stored and credentials.is_login_error(exc):
+            credentials.report_failed(ref, str(exc), 'terminal')
         audit.record('terminal', 'Opened terminal: failed', user=account, target=dev['name'], ok=False)
         raise TerminalError(str(exc), 502) from None
     finally:

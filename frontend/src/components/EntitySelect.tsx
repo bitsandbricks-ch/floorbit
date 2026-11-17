@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 
-export type EntityKind = 'switches' | 'ports' | 'seats' | 'blocks' | 'halls' | 'firewalls' | 'agents' | 'users' | 'teams' | 'panels' | 'panel-ports'
+export type EntityKind = 'devices' | 'switches' | 'ports' | 'seats' | 'blocks' | 'halls' | 'firewalls' | 'agents' | 'users' | 'teams' | 'panels' | 'panel-ports'
 export interface EntityOption { value: string; label: string; group?: string; hint?: string; used?: string | null }
 
 type Props = Omit<SelectProps, 'data' | 'value' | 'onChange'> & {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SeatViewData } from '@/api/types'
-import { sharedEdits, sharedFields } from './shared'
+import { MIXED, sharedEdits, sharedFields } from './shared'
 
 const data = {
   drawing: {
@@ -14,11 +14,17 @@ const data = {
 
 describe('editing several selected items at once', () => {
   it('offers the fields they all have, with the value when they agree', () => {
-    expect(sharedFields(data, [{ kind: 'mark', id: 'w1' }, { kind: 'mark', id: 'w2' }])).toEqual({ layer: 'safety', style: null })
-    expect(sharedFields(data, [{ kind: 'mark', id: 't' }, { kind: 'mark', id: 'i' }])).toEqual({ layer: 'overview', size: null, rotation: null })
+    expect(sharedFields(data, [{ kind: 'mark', id: 'w1' }, { kind: 'mark', id: 'w2' }])).toEqual({ layer: 'safety', style: MIXED, tint: null })
+    expect(sharedFields(data, [{ kind: 'mark', id: 't' }, { kind: 'mark', id: 'i' }])).toEqual({ layer: 'overview', size: MIXED, rotation: MIXED, tint: null })
     expect(sharedFields(data, [{ kind: 'block', id: 'a' }, { kind: 'mark', id: 't' }])).toEqual({ rotation: 90 })
     expect(sharedFields(data, [{ kind: 'mark', id: 'z' }])).toEqual({})
     expect(sharedFields(data, [{ kind: 'mark', id: 'z' }, { kind: 'switch', id: 's' }])).toEqual({})
+  })
+  it('tells the theme colour on all of them from colours that differ', () => {
+    const tinted = { drawing: { shapes: [], marks: [{ id: 'a', kind: 'wall', tint: '#e03131' }, { id: 'b', kind: 'wall' }] } } as unknown as SeatViewData
+    const both = [{ kind: 'mark', id: 'a' }, { kind: 'mark', id: 'b' }] as const
+    expect(sharedFields(tinted, [...both]).tint).toBe(MIXED)
+    expect(sharedEdits(tinted, [...both], 'tint', null)).toEqual([[{ kind: 'mark', id: 'a' }, { tint: '#e03131' }, { tint: null }]])
   })
   it('changes only the items not at that value already, keeping what each had to undo', () => {
     expect(sharedEdits(data, [{ kind: 'mark', id: 'w1' }, { kind: 'mark', id: 'w2' }], 'style', 'dashed'))
