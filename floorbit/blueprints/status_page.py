@@ -17,7 +17,6 @@ Reading the crew's view needs ``incidents.work``, changing it ``incidents.assign
 import time
 
 from flask import Blueprint, Response, current_app, g, jsonify, request
-from markupsafe import Markup, escape
 
 from integrations import events
 
@@ -67,14 +66,6 @@ def _who():
     user = current_user() or {}
     return user.get('display_name') or user.get('username')
 
-
-
-def _stamp(text, at):
-    """``text`` with ``{time}`` as a <time> the page's script shows in the reader's own time zone.
-    For the public pages still drawn by Jinja (stats wall, schedule, brackets)."""
-    clock = time.strftime('%H:%M', time.localtime(at))
-    tag = Markup('<time data-at="{}">{}</time>').format(int(at), clock)
-    return Markup(str(escape(text)).replace('{time}', str(tag)))
 
 
 def _base_url():

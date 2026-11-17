@@ -68,6 +68,7 @@ const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const PublicWall = lazy(() => import('@/pages/public/PublicWall'))
 const PublicAgenda = lazy(() => import('@/pages/public/PublicAgenda'))
+const PublicBracket = lazy(() => import('@/pages/public/PublicBracket'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/status" element={<PublicStatus />} />
           <Route path="/wall" element={<PublicWall />} />
           <Route path="/agenda" element={<PublicAgenda />} />
+          <Route path="/bracket" element={<PublicBracket />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route element={<AppShell />}>
