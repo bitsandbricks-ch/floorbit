@@ -295,6 +295,14 @@ describe('Seats page', () => {
     expect(container.querySelector('.fb-screen-clock')?.textContent).toMatch(/^\d\d:\d\d$/)
   })
 
+  it('counts seats with problems by each block\'s name, and marks a block where many have them', async () => {
+    const bad = { ...data, blocks: [{ name: 'D', seats: 4, online: 1, problems: 2 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': bad }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await waitFor(() => expect(container.querySelector('.fb-plan .name-bad')?.textContent).toBe('! 2'))
+    expect(container.querySelector('.fb-plan .blk.alarm')).not.toBeNull()
+  })
+
   it('lists the seats in a sortable table that follows the filter', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan?view=list')

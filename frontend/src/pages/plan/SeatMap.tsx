@@ -11,7 +11,7 @@ import {
 import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
 import { CableLines, PanelGlyphs } from './NetworkLayer'
 import { PowerLayer } from './PowerLayer'
-import { blockTop } from './blockTop'
+import { blockAlarm, blockTop } from './blockTop'
 import { WifiLayer } from './WifiLayer'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
@@ -334,10 +334,12 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         })}</g>}
         {network && cables && <g opacity={opacity(layers, 'network')}><CableLines cables={cables} size={data.size} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
-        {drawing.shapes.map((b, bi) => (
+        {drawing.shapes.map((b, bi) => {
+          const sum = data.blocks.find((x) => x.name === b.name)
+          return (
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
-              <rect className="blk" x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
+              <rect className={blockAlarm(sum) ? 'blk alarm' : 'blk'} x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
               {level !== 'far' && b.rows?.map((r, ri) => (
                 <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em" fontSize={drawing.cell * 0.6}
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
@@ -346,9 +348,15 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
-            {b.name && level !== 'far' && <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>{b.name}</text>}
+            {b.name && level !== 'far' && (
+              <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>
+                {b.name}
+                {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
+              </text>
+            )}
           </g>
-        ))}
+          )
+        })}
         {level === 'far' && drawing.shapes.map((b, bi) => {
           const sum = data.blocks.find((x) => x.name === b.name)
           if (!sum) return null

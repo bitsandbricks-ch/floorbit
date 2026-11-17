@@ -450,6 +450,9 @@ body {
 .fb-plan .cell.dim { opacity: .18; }
 .fb-plan .cell:hover .seat { stroke: var(--color-bit); stroke-width: 3; }
 .fb-plan .name { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: 6px; }
+/* Live stats on the block label: seats with problems, and a red outline when a quarter or more have them. */
+.fb-plan .name .name-bad { fill: var(--color-down); font-size: 0.8em; }
+.fb-plan .blk.alarm { stroke: var(--color-down); stroke-width: 2px; fill: color-mix(in srgb, var(--color-down) 10%, transparent); }
 .fb-plan .sum text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; }
 .fb-plan .sum .sub { font-weight: 600; }
 .fb-marks .wall { stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; opacity: .8; }
