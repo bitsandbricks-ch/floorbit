@@ -52,9 +52,46 @@ class Plugin(Base):
     def widget_hit_ratio(self):
         snap = _stats().snapshot(hours=1)
         ratio = snap.get('hit_ratio')
-        return {'type': 'stat', 'value': '-' if ratio is None else f'{round(ratio * 100)} %',
-                'label': 'From the cache this hour', 'link': '/lancache',
-                'tone': 'warn' if ratio is not None and ratio < 0.5 else ''}
+        return {'type': 'stat', 'value': '-' if ratio is None else round(ratio * 100), 'unit': '%',
+                'tone': 'warn' if ratio is not None and ratio < 0.5 else '',
+                'sub': 'From the cache this hour', 'link': '/lancache'}
+
+    def widget_served(self):
+        snap = _stats().snapshot(hours=24)
+        points = [round((h['hit_bytes'] + h['miss_bytes']) / 1024 ** 3, 1) for h in snap.get('hours') or []]
+        saved = round(snap.get('hit_bytes', 0) / 1024 ** 3, 1)
+        return {'type': 'sparkline', 'points': points, 'value': points[-1] if points else 0, 'unit': 'GB',
+                'min': 0, 'sub': f'{saved} GB from the cache in 24 hours', 'link': '/lancache'}
+
+    def widget_machine(self):
+        page = overview(_stats(), None, hours=1)
+        items = []
+        for a in page['agents']:
+            beat, dns, disk = a.get('heartbeat') or {}, a.get('dns_check') or {}, a.get('disk') or {}
+            items.append({'label': f"{a['name']}: cache", 'state': _state(beat, a['stale']),
+                          'detail': beat.get('error') or (f"{beat.get('ms')} ms" if beat else 'not checked')})
+            items.append({'label': f"{a['name']}: DNS", 'state': _state(dns, a['stale']),
+                          'detail': dns.get('error') or ('points at the cache' if dns else 'not checked')})
+            if disk.get('total'):
+                used = round(disk['used'] * 100 / disk['total'])
+                items.append({'label': f"{a['name']}: disk", 'state': 'warn' if used >= 90 else 'up',
+                              'detail': f'{used} % full'})
+        return {'type': 'status', 'items': items, 'link': '/lancache',
+                'sub': '' if items else 'No agent has reported on the cache yet.'}
+
+    def widget_downloads(self):
+        page = overview(_stats(), None, hours=24)
+        items = [{'label': d['item'], 'value': f"{d['clients']} players", 'tone': ''} for d in page['downloads'][:8]]
+        return {'type': 'list', 'items': items, 'link': '/lancache',
+                'sub': '' if items else 'Nothing downloaded by enough players yet.'}
+
+
+def _state(check, stale):
+    if not check:
+        return 'unknown'
+    if stale:
+        return 'warn'
+    return 'up' if check.get('ok') else 'down'
 
 
 def overview(stats, health=None, hours=24, now=None):

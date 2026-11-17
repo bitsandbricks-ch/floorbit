@@ -876,5 +876,21 @@
  "cannot listen for flows on UDP {}: {}": "kann nicht auf UDP {} auf Flows hören: {}",
  "agent.fetches does not list {}": "agent.fetches führt {} nicht auf",
  "Telemetry devices": "Telemetrie-Geräte",
- "No devices set up yet.": "Noch keine Geräte eingerichtet."
+ "No devices set up yet.": "Noch keine Geräte eingerichtet.",
+ "cannot answer on {} (host:port): {}": "kann nicht auf {} antworten (host:port): {}",
+ "LAN cache": "LAN-Cache",
+ "Served by the LAN cache": "Vom LAN-Cache ausgeliefert",
+ "Cache machine": "Cache-Maschine",
+ "Popular downloads": "Beliebte Downloads",
+ "From the cache this hour": "Aus dem Cache in dieser Stunde",
+ "{} GB from the cache in 24 hours": "{} GB aus dem Cache in 24 Stunden",
+ "{}: cache": "{}: Cache",
+ "{}: DNS": "{}: DNS",
+ "{}: disk": "{}: Disk",
+ "not checked": "nicht geprüft",
+ "points at the cache": "zeigt auf den Cache",
+ "{} % full": "{} % voll",
+ "No agent has reported on the cache yet.": "Noch kein Agent hat über den Cache berichtet.",
+ "{} players": "{} Spieler",
+ "Nothing downloaded by enough players yet.": "Noch nichts, das genug Spieler heruntergeladen haben."
 }

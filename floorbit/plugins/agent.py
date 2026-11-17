@@ -178,6 +178,11 @@ def _mask(found):
 
 # ── the agent part ───────────────────────────────────────────────────────────────────────
 
+class HostedSaidNo(PluginError):
+    """``ctx.fetch``: the hosted part answered, and said no (turned off there). Any other
+    PluginError from it means the hosted side couldn't be asked; keep what you had."""
+
+
 class AgentPlugin:
     """Base class for a plugin's ``agent.py``. ``self.ctx`` is what the agent gives it.
 
@@ -352,7 +357,10 @@ class MemoryContext:
     def fetch(self, kind):
         if kind not in (self.spec_block.get('fetches') or []):
             raise PluginError(f'agent.fetches does not list {kind}')
-        return self.fetched.get(kind)
+        answer = self.fetched.get(kind)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
 
     def on_stop(self, fn):
         self._closers.append(fn)

@@ -3,11 +3,12 @@
 The **LAN cache** plugin watches a [lancache.net](https://lancache.net) cache from the local agent
 (docs/agent.md), in the hall, and sends Floorbit hall-wide numbers only. It feeds:
 
-- the **LAN cache** page (`/lancache`, under Network): what the cache saved, the cache machine's
-  health, popular downloads, files the cache isn't keeping, and lancache-dns lookups;
+- four dashboard widgets: this hour's hit ratio, what the cache served per hour, the cache
+  machine (cache, lancache-dns, disk) and popular downloads;
+- the full **LAN cache** view, opened from those widgets (`/lancache`): the same numbers over a
+  chosen range, files the cache isn't keeping, lancache-dns lookups, and clearing the cache;
 - the cache numbers on **Games**, the stats wall and the health wall (docs/games.md);
 - **DNS analytics** (docs/dns.md), from lancache-dns's query log;
-- a dashboard tile with this hour's hit ratio.
 
 It is a plugin like any other: turn it on under **Settings > Plugins > LAN cache** and fill in the
 paths as the agent sees them. The agent picks the settings up on its own (docs/agent-plugins.md).
