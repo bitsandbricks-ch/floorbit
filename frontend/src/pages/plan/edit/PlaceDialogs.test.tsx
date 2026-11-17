@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import { PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
+import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -11,7 +11,7 @@ function blockDialog(defaults: Record<string, unknown> = {}) {
     // Rows A and B are taken, so a new block starts at C.
     'GET /api/seat-blocks': [{ naming: 'rows', row_start: 'A', rows: 2, name: 'A' }],
   }).fn)
-  const onCreate = vi.fn(() => Promise.resolve())
+  const onCreate = vi.fn<(block: NewBlock, copies: { count: number; dx: number; dy: number } | null) => Promise<void>>(() => Promise.resolve())
   renderWithApp(<PlaceBlockDialog opened onClose={() => {}} onCreate={onCreate} />)
   return onCreate
 }
