@@ -679,7 +679,12 @@
     "mixed": "gemischt",
     "sharedFields": "Alle ausgewählten",
     "lockedN_one": "{{count}} gesperrtes Element bleibt, wo es ist (Ctrl+Shift+L entsperrt)",
-    "lockedN_other": "{{count}} gesperrte Elemente bleiben, wo sie sind (Ctrl+Shift+L entsperrt)"
+    "lockedN_other": "{{count}} gesperrte Elemente bleiben, wo sie sind (Ctrl+Shift+L entsperrt)",
+    "tint": {
+      "label": "Eigene Farbe",
+      "theme": "Farbe des Themes (folgt hell und dunkel)",
+      "reset": "Zurück zur Farbe des Themes"
+    }
   },
   "net": {
     "uplinks_one": "{{count}} Verbindung zwischen Switches",

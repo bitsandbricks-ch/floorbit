@@ -30,6 +30,7 @@ import { MarkHandles } from './MarkHandles'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
+import { TintField } from './TintField'
 import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
@@ -986,6 +987,7 @@ function ItemFields({ data, item, onChange }: {
     <Select label={t('plan.edit.layer')} allowDeselect={false} value={mark.layer ?? 'overview'} onChange={(v) => v && set('layer', mark.layer ?? 'overview', v)}
       data={LAYER_IDS.map((l) => ({ value: l, label: t(`plan.edit.layers.${l}`) }))} />
   )
+  const tint = <TintField key={mark.tint ?? ''} value={mark.tint ?? null} onChange={(v) => set('tint', mark.tint ?? null, v)} />
   const size = (
     <div>
       <Text size="sm" fw={500} mb={4}>{t('plan.edit.mark.size')}</Text>
@@ -1021,11 +1023,12 @@ function ItemFields({ data, item, onChange }: {
             </Group>
           </div>
         )}
+        {tint}
         {layer}
       </>
     )
   }
-  if (mark.kind === 'icon') return <>{size}{turn(mark.rotation ?? 0)}{layer}</>
+  if (mark.kind === 'icon') return <>{size}{turn(mark.rotation ?? 0)}{tint}{layer}</>
   return (
     <>
       <div>
@@ -1039,6 +1042,7 @@ function ItemFields({ data, item, onChange }: {
           {t('plan.edit.wall.straighten', { count: mark.points.length })}
         </Button>
       )}
+      {tint}
       {layer}
     </>
   )

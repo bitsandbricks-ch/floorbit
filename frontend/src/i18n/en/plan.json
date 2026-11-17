@@ -679,7 +679,12 @@
     "mixed": "mixed",
     "sharedFields": "All selected",
     "lockedN_one": "{{count}} locked item stays where it is (Ctrl+Shift+L unlocks)",
-    "lockedN_other": "{{count}} locked items stay where they are (Ctrl+Shift+L unlocks)"
+    "lockedN_other": "{{count}} locked items stay where they are (Ctrl+Shift+L unlocks)",
+    "tint": {
+      "label": "Own colour",
+      "theme": "Theme colour (follows light and dark)",
+      "reset": "Back to the theme colour"
+    }
   },
   "net": {
     "uplinks_one": "{{count}} link between switches",

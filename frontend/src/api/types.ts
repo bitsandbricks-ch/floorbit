@@ -691,6 +691,8 @@ export interface PlanMark {
   color?: 'muted' | 'bit' | 'trace' | 'warn' | 'down'
   /** The floor plan layer it's on (floorbit/plan_marks.py LAYERS); overview when missing. */
   layer?: 'overview' | 'safety' | 'network' | 'electrical' | 'services'
+  /** The crew's own colour, ``#rrggbb``; missing is the theme's. */
+  tint?: string
 }
 
 export interface PlanDrawing {

@@ -5,17 +5,18 @@ export const LAYER_IDS = ['overview', 'safety', 'network', 'electrical', 'servic
 export const ZONE_COLORS = ['muted', 'bit', 'trace', 'warn', 'down'] as const
 
 /** The fields several selected items can be given at once. */
-export type SharedField = 'layer' | 'style' | 'color' | 'size' | 'rotation'
+export type SharedField = 'layer' | 'style' | 'color' | 'size' | 'rotation' | 'tint'
 type Edit = [ItemRef, Record<string, unknown>, Record<string, unknown>]
 
 // What a field reads as when it's missing, so "missing" and the default count as the same value.
-const DEFAULTS: Record<SharedField, unknown> = { layer: 'overview', style: 'solid', color: 'muted', size: 'm', rotation: 0 }
+const DEFAULTS: Record<SharedField, unknown> = { layer: 'overview', style: 'solid', color: 'muted', size: 'm', rotation: 0, tint: null }
 const HAS: Record<SharedField, (m: PlanMark) => boolean> = {
   layer: () => true,
   style: (m) => m.kind === 'wall',
   color: (m) => m.kind === 'zone',
   size: (m) => m.kind === 'text' || m.kind === 'icon',
   rotation: (m) => m.kind !== 'wall',
+  tint: () => true,
 }
 
 function rowsOf(data: SeatViewData, items: ItemRef[]) {
@@ -32,8 +33,11 @@ function rowsOf(data: SeatViewData, items: ItemRef[]) {
   })
 }
 
+/** What a shared field reads as when the selected items differ. */
+export const MIXED = Symbol('mixed')
+
 /** For a selection of two or more, each field every item in it has, with its value when they all
- *  agree and null when they differ. A field some item lacks (a wall's colour) is left out. */
+ *  agree and MIXED when they differ. A field some item lacks (a wall's colour) is left out. */
 export function sharedFields(data: SeatViewData, items: ItemRef[]): Partial<Record<SharedField, unknown>> {
   const rows = rowsOf(data, items)
   if (rows.length < 2 || rows.some((r) => !r)) return {}
@@ -42,7 +46,7 @@ export function sharedFields(data: SeatViewData, items: ItemRef[]): Partial<Reco
     const fits = rows.every((r) => (r!.mark ? HAS[f](r!.mark) : f === 'rotation'))
     if (!fits) continue
     const values = new Set(rows.map((r) => r!.read(f)))
-    out[f] = values.size === 1 ? [...values][0] : null
+    out[f] = values.size === 1 ? [...values][0] : MIXED
   }
   return out
 }
