@@ -347,7 +347,8 @@ def listing(data, type_id=None):
             for e in _entries(data):
                 if e['type'] == t['id']:
                     out.append({'id': e['id'], 'type': t['id'], 'name': e.get('name') or '', 'summary': '',
-                                'detail': '', 'link': '', **_settings(e)})
+                                'detail': '', 'link': '', **_settings(e), 'sources': sorted(e.get('refs') or {}),
+                                'locked': list(e.get('locked') or []), 'gone': list(e.get('gone') or [])})
     return sorted(out, key=lambda e: (e['type'], e['name'].lower()))
 
 
@@ -425,7 +426,15 @@ def update(data, type_id, entry_id, body):
                         raise ScopeError(f'There is a {t["name"]} called {name} already.', 409)
                     own['name'] = name
                     changed.append('name')
+            before = dict(own.get('fields') or {})
             _apply(data, type_id, own, body, changed)
+            if own.get('refs'):
+                # Changed by hand: a sync keeps it from now on.
+                locked = own.setdefault('locked', [])
+                touched = (['name'] if 'name' in changed else []) + [
+                    f'fields.{k}' for k in set(before) | set(own.get('fields') or {})
+                    if before.get(k) != (own.get('fields') or {}).get(k)]
+                locked += [k for k in touched if k not in locked]
         else:
             attached = _attached(data)
             key = f"{type_id}:{entry['id']}"
@@ -457,3 +466,163 @@ def counts(data):
     for e in listing(data):
         out[e['type']] = out.get(e['type'], 0) + 1
     return out
+
+
+# ── Feeds from plugins (NetBox) ──────────────────────────────────────────────────
+
+MAX_FEED = 20000
+
+
+def clean_feed(raw):
+    """A plugin's ``entries()``: {type: [{'ref', 'name', 'fields'?, ...}]}, checked. Unknown types and
+    entries without a ref or name are skipped and counted."""
+    if not isinstance(raw, dict):
+        raise ScopeError('the plugin must return entries by type')
+    out, skipped = {}, 0
+    for type_id, items in raw.items():
+        if type_id not in BUILTIN or BUILTIN[type_id]['sort'] == 'device' or type_id in ('cable', 'patch-panel') \
+                or not isinstance(items, list):
+            skipped += len(items) if isinstance(items, list) else 1
+            continue
+        rows = []
+        for item in items[:MAX_FEED]:
+            if not isinstance(item, dict) or not item.get('ref') or not str(item.get('name') or '').strip():
+                skipped += 1
+                continue
+            row = {'ref': str(item['ref'])[:80], 'name': ' '.join(str(item['name']).split())[:80]}
+            fields = item.get('fields') if isinstance(item.get('fields'), dict) else {}
+            row['fields'] = {str(k)[:40]: v for k, v in fields.items() if isinstance(v, (str, int, float, bool))}
+            for key in ('location', 'board_ref', 'phase', 'rating_a'):
+                if key in item:
+                    row[key] = item[key]
+            rows.append(row)
+        out[type_id] = rows
+    return out, skipped
+
+
+def _fed_fields(data, type_id, values):
+    """The values a type has fields for, each checked; one that doesn't fit is left out."""
+    t = type_of(data, type_id)
+    out = {}
+    for f in t['fields'] if t else []:
+        if f['key'] in values and values[f['key']] not in (None, ''):
+            try:
+                value = _value(f, values[f['key']], data)
+            except ScopeError:
+                continue
+            if value:
+                out[f['key']] = value
+    return out
+
+
+def _sync_stored(data, plugin_id, type_id, rows, report):
+    entries = _entries(data)
+    mine = [e for e in entries if e['type'] == type_id]
+    by_ref = {e['refs'][plugin_id]: e for e in mine if plugin_id in (e.get('refs') or {})}
+    by_name = {(e.get('name') or '').lower(): e for e in mine if plugin_id not in (e.get('refs') or {})}
+    sent = set()
+    for row in rows:
+        sent.add(row['ref'])
+        fed = _fed_fields(data, type_id, row['fields'])
+        values = {'name': row['name'], **{f'fields.{k}': v for k, v in fed.items()}}
+        entry = by_ref.get(row['ref'])
+        if entry is None:
+            entry = by_name.pop(row['name'].lower(), None)
+            if entry is not None:
+                entry.setdefault('refs', {})[plugin_id] = row['ref']
+                locked = entry.setdefault('locked', [])
+                for key, value in values.items():
+                    if _get(entry, key) and _get(entry, key) != value and key not in locked:
+                        locked.append(key)
+                report['joined'] += 1
+            elif len(entries) >= MAX_ENTRIES:
+                report['skipped'] += 1
+                continue
+            else:
+                entry = {'id': uuid.uuid4().hex[:12], 'type': type_id, 'name': row['name'], 'origin': plugin_id,
+                         'refs': {plugin_id: row['ref']}, 'locked': []}
+                entries.append(entry)
+                report['added'] += 1
+        entry.setdefault('fed', {})[plugin_id] = values
+        entry['gone'] = [g for g in entry.get('gone') or [] if g != plugin_id]
+        changed = False
+        for key, value in values.items():
+            if key in (entry.get('locked') or []):
+                report['locked'] += _get(entry, key) != value
+            elif _get(entry, key) != value:
+                _set(entry, key, value)
+                changed = True
+        report['updated'] += int(changed)
+    for entry in mine:
+        if plugin_id in (entry.get('refs') or {}) and entry['refs'][plugin_id] not in sent \
+                and plugin_id not in (entry.get('gone') or []):
+            entry['gone'] = [*(entry.get('gone') or []), plugin_id]
+            report['gone'] += 1
+    data[ENTRIES] = entries
+
+
+def _get(entry, key):
+    if key.startswith('fields.'):
+        return (entry.get('fields') or {}).get(key[7:], '')
+    return entry.get(key) or ''
+
+
+def _set(entry, key, value):
+    if key.startswith('fields.'):
+        entry.setdefault('fields', {})[key[7:]] = value
+    else:
+        entry[key] = value
+
+
+def _sync_power(data, plugin_id, boards_feed, circuits_feed, report):
+    """Power panels and feeds become boards and circuits on the power page: new ones are added,
+    ones already there stay as the crew set them."""
+    from . import power
+    boards, circuits = power._stored(data)
+    by_ref = {b.get('ref'): b for b in boards if b.get('ref')}
+    names = {(b.get('name') or '').lower() for b in boards}
+    for row in boards_feed:
+        ref = f'{plugin_id}:{row["ref"]}'
+        if ref in by_ref:
+            continue
+        if row['name'].lower() in names:     # one the crew made by hand: link it, don't add another
+            board = next(b for b in boards if (b.get('name') or '').lower() == row['name'].lower() and not b.get('ref'))
+            board['ref'] = ref
+            by_ref[ref] = board
+            report['joined'] += 1
+            continue
+        board = {'id': uuid.uuid4().hex[:10], 'name': row['name'][:40], 'location': str(row.get('location') or '')[:80],
+                 'x': None, 'y': None, 'ref': ref}
+        boards.append(board)
+        by_ref[ref] = board
+        report['added'] += 1
+    have = {c.get('ref') for c in circuits if c.get('ref')}
+    for row in circuits_feed:
+        ref = f'{plugin_id}:{row["ref"]}'
+        board = by_ref.get(f'{plugin_id}:{row.get("board_ref")}')
+        if ref in have or board is None:
+            continue
+        phase = row.get('phase') if row.get('phase') in power.PHASES else 'L1'
+        try:
+            rating = int(float(row.get('rating_a') or 16))
+        except (TypeError, ValueError):
+            rating = 16
+        circuits.append({'id': uuid.uuid4().hex[:10], 'board': board['id'], 'name': row['name'][:40], 'phase': phase,
+                         'rating_a': max(1, min(rating, 400)), 'meter': '', 'blocks': [], 'switches': [],
+                         'tripped': None, 'ref': ref})
+        report['added'] += 1
+    data[power.KEY] = {'boards': boards, 'circuits': circuits}
+
+
+def sync_entries(data, plugin_id, feed, skipped=0):
+    """Merges a plugin's entries. Hand changes win; nothing is deleted (an entry the plugin no longer
+    sends is marked gone)."""
+    with _lock:
+        report = {'plugin': plugin_id, 'added': 0, 'updated': 0, 'joined': 0, 'locked': 0, 'gone': 0,
+                  'skipped': skipped}
+        for type_id, rows in feed.items():
+            if BUILTIN[type_id]['sort'] == 'stored':
+                _sync_stored(data, plugin_id, type_id, rows, report)
+        if feed.get('power-board') or feed.get('circuit'):
+            _sync_power(data, plugin_id, feed.get('power-board') or [], feed.get('circuit') or [], report)
+        return report

@@ -161,7 +161,7 @@ export default function Inventory() {
               <Button variant="default" leftSection={<IconIcons size={16} />} onClick={library.open}>
                 {t('inventory.library.open')}
               </Button>
-              {typeTab === 'device' && !!data?.sources.length && (
+              {!!data?.sources.length && (
                 <Button variant="default" leftSection={<IconRefresh size={16} />} loading={sync.isPending} onClick={() => sync.mutate()}>
                   {t('inventory.sync')}
                 </Button>
@@ -207,7 +207,7 @@ export default function Inventory() {
         </Tabs>
       )}
       {typeTab !== 'device' && currentType && overview ? (
-        <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={setEntryOpen} />
+        <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={setEntryOpen} sourceName={sourceName} />
       ) : (<>
       <Group gap="sm" mb="md" wrap="wrap" align="flex-end">
         <TextInput

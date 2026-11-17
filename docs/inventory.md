@@ -109,6 +109,26 @@ agent plugins in [agent.md](agent.md)). Agent parts that ask themselves use, wit
 
 Handing out logins is in the audit log each time the set changes.
 
+## Types and entries
+
+Devices are one **type** of inventory entry. The others sit in tabs on the Inventory page:
+
+| Type | Where its entries live |
+| --- | --- |
+| Cable, Circuit, Power board, Patch panel | The cables, power and floor plan pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
+| Rack or location | The inventory (height in U, hall). |
+| Transceiver | The inventory (device, port, form factor, media, speed, serial). |
+| VLAN or IP range | The inventory (VLAN ID, prefix, gateway, purpose). |
+| Item | The inventory, for anything else worth listing. |
+
+Admins add their own types under **Inventory > Types**, and give any type, built-in or their own,
+extra **fields**: text, number, choice, yes/no, or a link to a device or an entry of another type (the rack a
+switch sits in, the VLAN of a range).
+Each field can have a default. Entries also take an icon, colour, tags, a group and properties,
+and inherit them like devices do: entry > its tags > group > parent groups > the type > all
+entries. Credentials and feature switches stay with devices. A custom type with entries can't be
+deleted until they are.
+
 ## How plugins feed it
 
 A plugin with `uses: [inventory]` returns its devices when asked (**Sync now** on the Inventory
@@ -129,10 +149,25 @@ page, or the sync button on the floor plan). Floorbit merges them with these rul
 Bad entries from a plugin (no ID, no name, an IP that isn't one) are skipped and counted, never
 stored.
 
+### What NetBox sends besides devices
+
+The NetBox plugin also fills these types, with the same rules (hand edits lock a field, nothing is
+deleted, the first sync joins by name):
+
+- **Racks and locations** from racks and locations.
+- **VLANs and IP ranges** from VLANs and prefixes.
+- **Transceivers** from modules and from inventory items that look like optics (SFP, QSFP, ...).
+- **Power boards and circuits** from power panels and power feeds. They go onto the power page;
+  a board that already exists there by name is joined, never overwritten.
+- **Custom fields** fill the type's field with the same key.
+
+NetBox versions or tokens without one of these lists just skip it. A sync through the local agent
+brings devices only for now.
+
 ## Who may do what
 
 Viewers and up see the inventory and the icon library; admins upload, rename and remove icons. Editors and up add, change, hide and sync devices, interfaces,
-groups and tags. Admins set credentials; techs and up clear blocked logins. Changes are in the
+groups and tags. Admins set credentials and manage types; techs and up clear blocked logins. Changes are in the
 audit log (area *inventory*, *credentials* and *icons*), with field names, never values or secrets.
 
 ## API
@@ -157,6 +192,11 @@ audit log (area *inventory*, *credentials* and *icons*), with field names, never
 | `GET /api/inventory/blocks`, `POST /api/inventory/blocks/clear` | Blocked logins; clear with `{"device_id", "credential_id"?}` |
 | `GET /api/icons`, `GET /api/icons/<id>.svg` | The icon library and one cleaned icon |
 | `POST /api/icons`, `PATCH` / `DELETE /api/icons/<id>` | Upload `{"name", "svg"}`, rename `{"name"}`, remove. Admins |
+| `GET /api/inventory/types` | Every type with its fields and how many entries it has |
+| `POST /api/inventory/types`, `PATCH` / `DELETE /api/inventory/types/<id>` | Add a type, change its fields, icon, colour and properties, delete an empty custom type. Admins |
+| `GET /api/inventory/entries?type=<id>` | Entries of one type (or all but devices) |
+| `POST /api/inventory/entries/<type>` | Add an entry (`name`, `fields`, `tags`, `group_id`, `properties`, `icon`, `color`) |
+| `GET` / `PATCH` / `DELETE /api/inventory/entries/<type>/<id>` | One entry with what it inherits; change it; delete it |
 
 The floor plan's `/api/switches` API works on the same list.
 

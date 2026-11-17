@@ -97,3 +97,58 @@ def test_only_admins_change_types(app_module, client):
     assert lead.get("/api/inventory/types").status_code == 200
     assert lead.post("/api/inventory/types", json={"name": "Screen"}).status_code == 403
     assert lead.post("/api/inventory/entries/item", json={"name": "Ladder"}).status_code == 201
+
+
+# ── From NetBox ────────────────────────────────────────────────────────────────
+
+NB_PAGES = {
+    "/api/dcim/racks/": {"results": [{"id": 1, "name": "R1", "u_height": 47, "site": {"name": "Hall A"},
+                                      "custom_fields": {"serial": "X", "owner": "core team"}}]},
+    "/api/dcim/locations/": {"results": [{"id": 2, "name": "Stage", "site": {"name": "Hall A"}}]},
+    "/api/ipam/vlans/": {"results": [{"id": 3, "name": "seats-a", "vid": 110}]},
+    "/api/ipam/prefixes/": {"results": [{"id": 4, "prefix": "198.51.100.0/24", "description": "Hall A seats",
+                                         "vlan": {"vid": 110}}]},
+    "/api/dcim/modules/": {"results": [{"id": 5, "device": {"name": "core-01"}, "module_bay": {"name": "Te1/1/1"},
+                                        "module_type": {"model": "SFP-10G-LR"}, "serial": "ABC1"}]},
+    "/api/dcim/inventory-items/": {"results": [
+        {"id": 6, "name": "Fan tray", "device": {"name": "core-01"}},
+        {"id": 7, "name": "SFP+ uplink", "device": {"name": "core-01"}, "component": {"name": "Te1/1/2"}}]},
+    "/api/dcim/power-panels/": {"results": [{"id": 8, "name": "DB-Stage", "site": {"name": "Hall A"}}]},
+    "/api/dcim/power-feeds/": {"results": [{"id": 9, "name": "Stage L", "power_panel": {"id": 8},
+                                            "phase": {"value": "three-phase"}, "amperage": 32}]},
+}
+
+
+def test_netbox_feeds_racks_vlans_optics_and_power(app_module, client):
+    from floorbit import inventory_types, store
+    from tests.test_inventory import FakeHttp, FakeResponse, netbox_plugin
+    client.post("/api/inventory", json={"name": "core-01", "role": "router"})
+    http = FakeHttp({k: FakeResponse(v) for k, v in NB_PAGES.items()})
+    plugin = netbox_plugin(app_module.app.extensions["floorbit_plugins"], http)
+    feed, skipped = inventory_types.clean_feed(plugin.entries())
+    assert [e["name"] for e in feed["transceiver"]] == ["core-01 Te1/1/1", "core-01 Te1/1/2"]   # not the fan tray
+    data = store.load_data()
+    report = inventory_types.sync_entries(data, "netbox", feed, skipped)
+    store.save_data(data)
+    assert report["added"] == 8 and report["gone"] == 0
+    racks = {e["name"]: e for e in client.get("/api/inventory/entries?type=rack").get_json()["entries"]}
+    assert racks["R1"]["fields"] == {"height_u": "47", "hall": "Hall A"} and racks["R1"]["sources"] == ["netbox"]
+    optic = client.get("/api/inventory/entries?type=transceiver").get_json()["entries"][0]
+    assert optic["fields"]["device"] == "core-01" and optic["fields"]["speed"] == "10G"
+    boards = client.get("/api/power").get_json()
+    assert [b["name"] for b in boards["boards"]] == ["DB-Stage"]
+    assert boards["circuits"][0]["phase"] == "3P" and boards["circuits"][0]["rating_a"] == 32
+
+    # A hand change wins over the next sync; nothing the sync no longer sends is deleted.
+    r1 = racks["R1"]
+    client.patch(f"/api/inventory/entries/rack/{r1['id']}", json={"fields": {"height_u": "42"}})
+    NB = {**NB_PAGES, "/api/dcim/locations/": {"results": []}}
+    http = FakeHttp({k: FakeResponse(v) for k, v in NB.items()})
+    plugin = netbox_plugin(app_module.app.extensions["floorbit_plugins"], http)
+    data = store.load_data()
+    report = inventory_types.sync_entries(data, "netbox", inventory_types.clean_feed(plugin.entries())[0])
+    store.save_data(data)
+    assert report["added"] == 0 and report["gone"] == 1 and report["locked"] == 1
+    racks = {e["name"]: e for e in client.get("/api/inventory/entries?type=rack").get_json()["entries"]}
+    assert racks["R1"]["fields"]["height_u"] == "42" and racks["Stage"]["gone"] == ["netbox"]
+    assert len(client.get("/api/power").get_json()["boards"]) == 1

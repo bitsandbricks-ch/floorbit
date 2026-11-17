@@ -13,9 +13,9 @@ import { effectiveLook, typeName } from './model'
 import { groupAndBelow, useEntries } from './scope'
 
 /** Every entry of one type (cables, circuits, racks, ...), filtered by the group tree and tags. */
-export function EntriesView({ type, overview, group, tags, canEdit, onOpen }: {
+export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sourceName }: {
   type: InventoryType; overview: InventoryOverview; group: GroupFilter; tags: string[]; canEdit: boolean
-  onOpen: (id: string) => void
+  onOpen: (id: string) => void; sourceName: (id: string) => string
 }) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
@@ -70,7 +70,14 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen }: {
                         <Table.Tr key={e.id}>
                           <Table.Td><DeviceIcon icon={look.icon || type.icon || type.default_icon} color={look.color || type.color} size={24} /></Table.Td>
                           <Table.Td>
-                            <Anchor component="button" type="button" fw={600} ta="left" onClick={() => onOpen(e.id)}>{e.name}</Anchor>
+                            <Group gap={6} wrap="nowrap">
+                              <Anchor component="button" type="button" fw={600} ta="left" onClick={() => onOpen(e.id)}>{e.name}</Anchor>
+                              {e.sources?.map((s) => (
+                                <Badge key={s} size="xs" variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'trace'} tt="none">
+                                  {e.gone?.includes(s) ? t('inventory.gone', { source: sourceName(s) }) : sourceName(s)}
+                                </Badge>
+                              ))}
+                            </Group>
                             {e.tags.length > 0 && (
                               <Group gap={4} mt={2}>
                                 {e.tags.map((tid) => {

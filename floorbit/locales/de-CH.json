@@ -912,5 +912,6 @@
  "fields is an object of field: value.": "fields ist ein Objekt aus Feld: Wert.",
  "{} is not a field of this type.": "{} ist kein Feld dieses Typs.",
  "{} is one of: {}.": "{} ist eines von: {}.",
- "{} is yes or no.": "{} ist ja oder nein."
+ "{} is yes or no.": "{} ist ja oder nein.",
+ "the plugin must return entries by type": "das Plugin muss Einträge nach Typ liefern"
 }

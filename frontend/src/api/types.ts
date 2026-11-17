@@ -185,6 +185,8 @@ export interface InventoryEntry {
   id: string; type: string; name: string; summary: string; detail: string; link: string
   group_id: string | null; tags: string[]; properties: Record<string, string>
   icon: string; color: string; notes: string; fields: Record<string, string>
+  /** Stored entries a plugin feeds (NetBox): which, and which no longer send it. */
+  sources?: string[]; gone?: string[]; locked?: string[]
 }
 export interface EntryDetail extends InventoryEntry {
   resolved: Omit<DeviceDetail['resolved'], 'credentials' | 'features'>

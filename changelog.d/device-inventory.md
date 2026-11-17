@@ -16,6 +16,12 @@
 - A device whose stored login is refused is blocked for it until a tech clears it, so a wrong
   password doesn't lock the switch account.
 
+- Inventory types: racks and locations, transceivers, VLANs and IP ranges, items and your own
+  types, next to devices. Cables, circuits, power boards and patch panels show up there too. Every
+  type can have its own fields (text, number, choice, yes/no, links) with defaults.
+- NetBox also fills racks, locations, VLANs, prefixes, optics, power panels and power feeds, and
+  its custom fields fill the type fields with the same key.
+
 ### Changed
 
 - An internet line can be on any device in the inventory, such as the core switch or each firewall.

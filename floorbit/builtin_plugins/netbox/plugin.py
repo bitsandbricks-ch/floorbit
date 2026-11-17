@@ -196,6 +196,74 @@ def firewall_range(raw):
     return {'cidr': raw['prefix'], 'name': (raw.get('description') or '')[:60], 'firewalls': line}
 
 
+
+# ── Other inventory types (floorbit/inventory_types.py) ───────────────────────────
+
+TRANSCEIVER_WORDS = ('sfp', 'qsfp', 'xfp', 'transceiver', 'optic', 'gbic', 'dac')
+
+
+def _custom(raw):
+    """NetBox custom fields with a plain value: they fill type fields with the same key."""
+    return {k: v for k, v in (raw.get('custom_fields') or {}).items() if isinstance(v, (str, int, float, bool))}
+
+
+def rack(raw):
+    site = _name(raw, 'location', 'name') or _name(raw, 'site', 'name')
+    return {'ref': f"rack-{raw['id']}", 'name': raw.get('name') or '',
+            'fields': {**_custom(raw), 'height_u': raw.get('u_height') or '', 'hall': site}}
+
+
+def location(raw):
+    return {'ref': f"location-{raw['id']}", 'name': raw.get('name') or '',
+            'fields': {**_custom(raw), 'hall': _name(raw, 'site', 'name')}}
+
+
+def vlan(raw):
+    return {'ref': f"vlan-{raw['id']}", 'name': raw.get('name') or f"VLAN {raw.get('vid')}",
+            'fields': {**_custom(raw), 'vlan_id': raw.get('vid') or ''}}
+
+
+def prefix(raw):
+    return {'ref': f"prefix-{raw['id']}", 'name': raw.get('description') or raw.get('prefix') or '',
+            'fields': {**_custom(raw), 'prefix': raw.get('prefix') or '', 'vlan_id': _name(raw, 'vlan', 'vid')}}
+
+
+def _speed_word(text):
+    for speed in ('100G', '40G', '25G', '10G', '1G'):
+        if speed.lower() in text.lower().replace(' ', ''):
+            return speed
+    return ''
+
+
+def transceiver(raw, kind):
+    """A NetBox module (in a module bay) or inventory item that looks like an optic, or None."""
+    if kind == 'module':
+        model = _name(raw, 'module_type', 'model')
+        port, name = _name(raw, 'module_bay', 'name'), model
+    else:
+        model = raw.get('part_id') or _name(raw, 'manufacturer', 'name')
+        port, name = _name(raw, 'component', 'name'), raw.get('name') or ''
+        words = ' '.join([name, model, _name(raw, 'role', 'slug'), _name(raw, 'role', 'name')]).lower()
+        if not any(w in words for w in TRANSCEIVER_WORDS):
+            return None
+    device_name = _name(raw, 'device', 'name')
+    label = ' '.join(x for x in (device_name, port) if x) or name
+    return {'ref': f"{kind}-{raw['id']}", 'name': label or f"{kind} {raw['id']}",
+            'fields': {**_custom(raw), 'device': device_name, 'port': port, 'serial': raw.get('serial') or '',
+                       'speed': _speed_word(f'{model} {name}')}}
+
+
+def power_panel(raw):
+    return {'ref': f"panel-{raw['id']}", 'name': raw.get('name') or '',
+            'location': _name(raw, 'location', 'name') or _name(raw, 'site', 'name')}
+
+
+def power_feed(raw):
+    phase = _name(raw, 'phase', 'value')
+    return {'ref': f"feed-{raw['id']}", 'name': raw.get('name') or '',
+            'board_ref': f"panel-{_name(raw, 'power_panel', 'id')}",
+            'phase': '3P' if phase == 'three-phase' else 'L1', 'rating_a': raw.get('amperage') or 16}
+
 class Plugin(Plugin):
     def _client(self):
         s = self.settings
@@ -287,6 +355,25 @@ class Plugin(Plugin):
     def cables(self):
         """NetBox cables that end on a switch interface, as Floorbit cables."""
         return [c for c in (cable(raw) for raw in self._all('/api/dcim/cables/', {'limit': PAGE}, 'cable')) if c]
+
+    def entries(self):
+        """Racks and locations, VLANs and prefixes, optics, power panels and feeds, for the inventory's
+        other types. Lists this NetBox doesn't give (or the token can't read) are left out."""
+        page = {'limit': PAGE}
+        optics = [transceiver(m, 'module') for m in self._optional('/api/dcim/modules/', dict(page), 'module')]
+        optics += [transceiver(i, 'item')
+                   for i in self._optional('/api/dcim/inventory-items/', dict(page), 'inventory item')]
+        panels = self._optional('/api/dcim/power-panels/', dict(page), 'power panel')
+        feeds = self._optional('/api/dcim/power-feeds/', dict(page), 'power feed')
+        return {
+            'rack': [rack(r) for r in self._optional('/api/dcim/racks/', dict(page), 'rack')]
+            + [location(x) for x in self._optional('/api/dcim/locations/', dict(page), 'location')],
+            'vlan': [vlan(v) for v in self._optional('/api/ipam/vlans/', dict(page), 'VLAN')]
+            + [prefix(p) for p in self._optional('/api/ipam/prefixes/', dict(page), 'prefix')],
+            'transceiver': [o for o in optics if o],
+            'power-board': [power_panel(p) for p in panels],
+            'circuit': [power_feed(f) for f in feeds],
+        }
 
     def firewall_ranges(self):
         """Prefixes whose custom field ``floorbit_firewalls`` names their firewalls, in order."""
