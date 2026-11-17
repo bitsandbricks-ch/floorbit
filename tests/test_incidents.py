@@ -473,7 +473,8 @@ def test_with_sign_in_off_the_board_and_jobs_work_as_one_crew(anon_client, app_m
     assert made.status_code == 201, made.get_json()
     assert anon_client.get("/api/incidents/markers").get_json()["seats"] == {"A-1": 1}
     assert anon_client.get("/api/incidents").status_code == 200
-    assert anon_client.get("/jobs").status_code == 200
+    # The page itself: 503 where no frontend is built (CI), never the 401 it was.
+    assert anon_client.get("/jobs").status_code in (200, 503)
     assert anon_client.get("/api/jobs").status_code == 200
 
 
