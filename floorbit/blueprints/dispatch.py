@@ -41,7 +41,7 @@ def _job(incident, data, seats, switches, me_at, books=()):
                                         'dispatched_at', 'taken_at', 'notes', 'seat_ok_at')}
     out['drawing'] = out['target'] = out['from'] = out['hall'] = None
     book = runbooks.for_incident(incident, books)
-    out['runbook'] = {k: book[k] for k in ('id', 'title', 'body')} if book else None
+    out['runbook'] = {k: book.get(k) for k in ('id', 'title', 'body', 'starter')} if book else None
     if target:
         hall_id = target[0]
         drawing, _found = plan(data, highlight=incident.get('seat'), hall_id=hall_id)

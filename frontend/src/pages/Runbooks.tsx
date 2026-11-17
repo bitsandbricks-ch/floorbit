@@ -16,6 +16,7 @@ import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { dateTime } from '@/lib/time'
+import { runbookText } from '@/lib/runbookText'
 
 type Draft = { title: string; kinds: RunbookKind[]; body: string }
 
@@ -71,7 +72,7 @@ export default function Runbooks() {
   const remove = useMutation({ mutationFn: (id: string) => del(`/api/runbooks/${id}`), onSuccess: () => { setParams({}); refresh() } })
   const move = useMutation({ mutationFn: (v: { id: string; step: number }) => post(`/api/runbooks/${v.id}/move`, { step: v.step }), onSuccess: refresh })
   const d = query.data
-  const books = d?.runbooks ?? []
+  const books = (d?.runbooks ?? []).map((b) => runbookText(b, t))
   const open = books.find((b) => b.id === params.get('open')) ?? books[0]
   const pick = (id: string) => { setEditing(null); setParams({ open: id }, { replace: true }) }
   const first = (k: RunbookKind) => books.find((b) => b.kinds.includes(k))?.id
