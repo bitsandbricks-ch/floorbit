@@ -553,7 +553,8 @@
       "groupHelp": "Mehrere Elemente wählen und Ctrl G drücken, um sie zu gruppieren.",
       "rename": "Gruppenname",
       "renameHelp": "Klicken zum Auswählen, Doppelklick zum Umbenennen"
-    }
+    },
+    "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel ist unter dem Plan. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm."
   },
   "net": {
     "learned": "vom Port gelesen, nicht erfasst",

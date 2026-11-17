@@ -1,5 +1,6 @@
 import type { PlanDrawing } from '@/api/types'
 import { chartPath } from './model'
+import { blockTop } from '@/pages/plan/blockTop'
 
 export const CHART_W = 1000
 export const CHART_H = 120
@@ -22,7 +23,7 @@ export function Plan({ drawing, on, rings, label }: { drawing: PlanDrawing; on: 
               </g>
             ))}
           </g>
-          {b.name && <text className="name" x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 18}>{b.name}</text>}
+          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
         </g>
       ))}
     </svg>

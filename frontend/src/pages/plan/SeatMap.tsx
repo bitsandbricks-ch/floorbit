@@ -11,6 +11,7 @@ import {
 import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
 import { CableLines, PanelGlyphs } from './NetworkLayer'
 import { PowerLayer } from './PowerLayer'
+import { blockTop } from './blockTop'
 import { WifiLayer } from './WifiLayer'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
@@ -346,14 +347,14 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 )
               })}
             </g>
-            {b.name && level !== 'far' && <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={b.cy - Math.max(b.w, b.h) / 2 - 16} fontSize={Math.max(18, label)}>{b.name}</text>}
+            {b.name && level !== 'far' && <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>{b.name}</text>}
           </g>
         ))}
         {level === 'far' && drawing.shapes.map((b, bi) => {
           const sum = data.blocks.find((x) => x.name === b.name)
           if (!sum) return null
           return (
-            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${b.cx} ${b.cy - Math.max(b.w, b.h) / 2 - 10})`} fontSize={label}>
+            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${b.cx} ${blockTop(b) - 4})`} fontSize={label}>
               <text y={-label * 1.3}>{b.name}</text>
               <text y={-label * 0.2} className="sub">
                 {sum.online}/{sum.seats}{sum.problems ? ` · ! ${sum.problems}` : ''}
