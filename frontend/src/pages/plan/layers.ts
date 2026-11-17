@@ -12,6 +12,8 @@ export const PRESETS = {
   ops: ['marks', 'network', 'status', 'firewalls', 'crew', 'checkin'],
 } satisfies Record<string, LayerId[]>
 export type PresetId = keyof typeof PRESETS
+/** Keys 1 to 4 pick these presets in Live mode, in the order the layer panel lists them. */
+export const PRESET_KEYS = Object.keys(PRESETS) as PresetId[]
 
 /** What the page showed before it had layers (switches and uplinks, labels, check-in corners), on the
  *  editor's grid. */

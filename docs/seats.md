@@ -151,6 +151,7 @@ Tab to the plan, then:
 | Enter or Space | Open the seat under the cursor in the inspector. |
 | Escape | Close the open seat, block or switch panel (from anywhere on the page; in the search box, Esc clears it). |
 | B | Open the block of the seat under the cursor. |
+| **1** to **4** | Anywhere on the page: switch the layers to a preset, Overview, Network, Electrical or Ops, as in the **Layers** panel. Not in Edit mode or the list. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
