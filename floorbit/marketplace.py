@@ -157,13 +157,13 @@ def _offers(force=False):
 
 # where installed plugins live -------------------------------------------------------------------
 def plugin_dir():
-    from .database import state_root
-    return Path((_env(DIR_ENV, '') or '').strip() or Path(state_root()) / 'plugins')
+    from . import store  # each tenant installs its own (docs/tenancy.md)
+    return Path((_env(DIR_ENV, '') or '').strip() or store.tenant_path('plugins'))
 
 
 def _state_path():
-    from .database import state_root
-    return os.path.join(state_root(), 'marketplace.json')
+    from . import store
+    return store.tenant_path('marketplace.json')
 
 
 def installed():

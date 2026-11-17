@@ -47,8 +47,8 @@ def collector_here():
 
 
 def conf_path():
-    from ..database import state_root
-    return os.environ.get(CONF_ENV) or os.path.join(state_root(), 'telegraf', 'telegraf.conf')
+    from .. import store
+    return os.environ.get(CONF_ENV) or store.tenant_path('telegraf', 'telegraf.conf')
 
 
 def render_here(target_list=None):
@@ -125,7 +125,7 @@ class Runner:
     def _blocks(self):
         """Refused logins, kept next to the state so a restart doesn't try them again either."""
         if self.blocks is None:
-            from ..database import state_root
+            from .. import store
             from ..plugins.agent import AuthBlocks
 
             class Blocks(AuthBlocks):
@@ -133,7 +133,7 @@ class Runner:
                     if blocks.failed(device, credential, rev, message):
                         self.log(f'[telemetry] {message}: not trying {device} again until its login is changed')
 
-            self.blocks = Blocks(os.path.join(state_root(), 'telemetry-logins.json'))
+            self.blocks = Blocks(store.tenant_path('telemetry-logins.json'))
         return self.blocks
 
     def loop(self):
