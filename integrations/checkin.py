@@ -101,9 +101,19 @@ def lookup_ip(mac):
 
 
 # ── request helpers ──────────────────────────────────────────────────────────
+_proxy_hint = {'logged': False}
+
+
 def client_ip():
     ip = request.remote_addr or ''
-    if config.get_bool('CHECKIN_TRUST_PROXY', False):
+    if not config.get_bool('CHECKIN_TRUST_PROXY', False):
+        if not _proxy_hint['logged'] and request.headers.get('X-Forwarded-For'):
+            # Every client then looks like the proxy: one guesser locks a username for everyone.
+            _proxy_hint['logged'] = True
+            print(f'[proxy] Requests arrive through a proxy at {ip}, but CHECKIN_TRUST_PROXY is off: '
+                  'every client counts as that one address for check-in, the sign-in lockout and the '
+                  "per-client limits. Turn it on if only your proxy can reach Floorbit's port.")
+    else:
         # Proxies append the address they saw, so only the last ones are trustworthy: the leftmost
         # entry is whatever the client sent, and taking it let anyone pick their own address
         # (check in as another seat, dodge the sign-in lockout).
