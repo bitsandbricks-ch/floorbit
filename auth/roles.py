@@ -249,6 +249,10 @@ RULES = (
     ('/api/checkins', READ, 'seats.view'),
     ('/api/checkins', WRITE, 'seats.edit'),
     ('/checkins', READ, 'seats.view'),
+    # The crew's walk-through check-in names the laptop's MAC; saving a seat's port is seats.edit.
+    ('/api/seat-walk', READ, 'seats.view'),
+    ('/api/seat-walk', WRITE, 'seats.edit'),
+    ('/seat-walk', READ, 'seats.view'),
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
     # Where each machine was seen: IPs and MACs by port and seat (floorbit/endpoints.py).

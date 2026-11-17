@@ -470,6 +470,14 @@ class SyslogReceiver:
         s = settings()
         if not s['enabled'] or self._servers:
             return
+        from . import agent_link
+        if not agent_link.lan_here():
+            # The switches send to the local agent, which relays (FLOORBIT_AGENT_SYSLOG_PORT): this
+            # server never listens on the event network itself.
+            self.error = ('Syslog comes in through the local agent (FLOORBIT_AGENT_SYSLOG_PORT on the agent); '
+                          'this server does not listen itself.')
+            print(f'[syslog] {self.error}')
+            return
         receiver = self
 
         class Udp(socketserver.BaseRequestHandler):

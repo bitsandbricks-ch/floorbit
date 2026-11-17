@@ -73,7 +73,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         check-in page. First, before sign-in, which would send it to the crew's login."""
         if request.path != '/' or not config.get_bool('CHECKIN_ENABLED', False):
             return None
-        if checkin.is_short_address(request.host):
+        if checkin.is_short_address(request.host) or checkin.is_short_address(checkin.front_door_host()):
             return redirect('/checkin', code=302)
         return None
     app.before_request_funcs.setdefault(None, []).insert(0, short_checkin_address)
