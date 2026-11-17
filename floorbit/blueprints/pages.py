@@ -3,7 +3,7 @@ from urllib.parse import quote, urlencode
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 
-from .. import nav, page_index, seat_view, spa
+from .. import kiosk_texts, nav, page_index, seat_view, spa
 
 bp = Blueprint('pages', __name__)
 
@@ -36,7 +36,8 @@ def classic_editor():
 @bp.route('/kiosk')
 def kiosk():
     """Read-only floor plan for a big screen (see docs/kiosk.md)."""
-    return render_template('kiosk.html')
+    lang = nav.language()
+    return render_template('kiosk.html', lang=lang, t=kiosk_texts.texts(lang))
 
 
 @bp.route('/checkin')

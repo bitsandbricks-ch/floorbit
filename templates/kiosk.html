@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" {{ theme.html_attrs if theme is defined }}>
+<html lang="{{ lang }}" {{ theme.html_attrs if theme is defined }}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kiosk · Floorbit</title>
+  <title>{{ t.page }} · Floorbit</title>
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   <link rel="stylesheet" href="/static/css/kiosk.css" />
@@ -23,33 +23,33 @@
     <header class="k-header">
       <div class="k-brand">
         <span class="fb-brand k-logo">
-          {%- if theme.logo_url %}<img class="fb-brand-logo" src="{{ theme.logo_url }}" alt="{{ theme.name or 'Event logo' }}" />
+          {%- if theme.logo_url %}<img class="fb-brand-logo" src="{{ theme.logo_url }}" alt="{{ theme.name or t.logo }}" />
           {%- else %}<span class="fb-brand-mark" role="img" aria-label="Floorbit"></span>{% endif %}
         </span>
-        <h1 class="k-title" id="k-title" data-default="{{ theme.name or 'Floor plan' }}">{{ theme.name or 'Floor plan' }}</h1>
+        <h1 class="k-title" id="k-title" data-default="{{ theme.name or t.plan }}">{{ theme.name or t.plan }}</h1>
       </div>
 
       <div class="k-stats" aria-live="polite">
         <div class="k-stat k-stat-online">
           <span class="k-stat-glyph" aria-hidden="true">●</span>
           <span class="k-stat-val" id="k-online">–</span>
-          <span class="k-stat-label">switches up</span>
+          <span class="k-stat-label">{{ t.up }}</span>
         </div>
         <div class="k-stat k-stat-offline" id="k-offline-stat">
           <span class="k-stat-glyph" aria-hidden="true">✕</span>
           <span class="k-stat-val" id="k-offline">–</span>
-          <span class="k-stat-label">down</span>
+          <span class="k-stat-label">{{ t.down }}</span>
         </div>
         <div class="k-stat k-stat-unknown" id="k-unknown-stat">
           <span class="k-stat-glyph" aria-hidden="true">?</span>
           <span class="k-stat-val" id="k-unknown">–</span>
-          <span class="k-stat-label">unknown</span>
+          <span class="k-stat-label">{{ t.unknown }}</span>
         </div>
         <div class="k-stat k-stat-seats" id="k-seats-stat">
           <span class="k-stat-val" id="k-seats">–</span>
-          <span class="k-stat-label">seats taken</span>
+          <span class="k-stat-label">{{ t.seats }}</span>
         </div>
-        <div class="k-stat k-heat-legend hidden" id="k-heat-legend" aria-label="Seat colour: traffic from 100 kbit/s (green) to 1 Gbit/s (red)">
+        <div class="k-stat k-heat-legend hidden" id="k-heat-legend" aria-label="{{ t.heat }}">
           <span class="k-stat-label">100 kbit/s</span>
           <span class="k-heat-bar" aria-hidden="true"></span>
           <span class="k-stat-label">1 Gbit/s</span>
@@ -60,7 +60,7 @@
         <div class="k-clock" id="k-clock">--:--</div>
         <div class="k-sync">
           <span class="k-live-dot" id="k-live-dot" aria-hidden="true"></span>
-          <span id="k-sync-text">Connecting…</span>
+          <span id="k-sync-text">{{ t.connecting }}</span>
         </div>
       </div>
     </header>
@@ -79,29 +79,30 @@
           <div class="k-layer" id="k-switches"></div>
         </div>
         <div class="k-empty hidden" id="k-empty">
-          <p class="k-empty-title">Nothing on the floor plan yet</p>
-          <p class="k-empty-text">Place switches and seat blocks in the editor and they show up here.</p>
+          <p class="k-empty-title">{{ t.empty_title }}</p>
+          <p class="k-empty-text">{{ t.empty_text }}</p>
         </div>
       </div>
 
-      <aside class="k-alerts hidden" id="k-alerts" aria-label="Switches that are down">
-        <h2 class="k-alerts-title"><span aria-hidden="true">✕</span> Down <span id="k-alerts-count"></span></h2>
+      <aside class="k-alerts hidden" id="k-alerts" aria-label="{{ t.alerts }}">
+        <h2 class="k-alerts-title"><span aria-hidden="true">✕</span> {{ t.alerts_title }} <span id="k-alerts-count"></span></h2>
         <ul class="k-alerts-list" id="k-alerts-list"></ul>
       </aside>
     </main>
 
-    <footer class="k-legend" aria-label="Legend">
-      <span class="k-legend-item"><span class="k-swatch k-swatch-online"></span>Switch up</span>
-      <span class="k-legend-item"><span class="k-swatch k-swatch-offline"></span>Switch down</span>
-      <span class="k-legend-item"><span class="k-swatch k-swatch-unknown"></span>No status</span>
+    <footer class="k-legend" aria-label="{{ t.legend }}">
+      <span class="k-legend-item"><span class="k-swatch k-swatch-online"></span>{{ t.sw_up }}</span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-offline"></span>{{ t.sw_down }}</span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-unknown"></span>{{ t.no_status }}</span>
       <span class="k-legend-sep"></span>
-      <span class="k-legend-item"><span class="k-swatch k-swatch-seat-taken"></span>Seat taken</span>
-      <span class="k-legend-item"><span class="k-swatch k-swatch-seat-free"></span>Seat free</span>
-      <span class="k-legend-hint" id="k-fs-hint">Double-click for full screen</span>
-      <a class="fb-pill fb-pill--bnb fb-pill--legend" href="https://bitsandbricks.ch" target="_blank" rel="noopener noreferrer">Powered by <strong>bitsandbricks.ch</strong></a>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-seat-taken"></span>{{ t.seat_taken }}</span>
+      <span class="k-legend-item"><span class="k-swatch k-swatch-seat-free"></span>{{ t.seat_free }}</span>
+      <span class="k-legend-hint" id="k-fs-hint">{{ t.fullscreen }}</span>
+      <a class="fb-pill fb-pill--bnb fb-pill--legend" href="https://bitsandbricks.ch" target="_blank" rel="noopener noreferrer">{{ t.powered }} <strong>bitsandbricks.ch</strong></a>
     </footer>
   </div>
 
+  <script type="application/json" id="k-texts">{{ t|tojson }}</script>
   <script src="/static/js/kiosk.js"></script>
 </body>
 </html>

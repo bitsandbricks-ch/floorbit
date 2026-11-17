@@ -41,13 +41,29 @@ export function useHistory() {
     }
   }, [write])
 
+  /** Several steps at once (the history list): stops at the first one that fails. */
+  const jump = useCallback(async (way: 'undo' | 'redo', count: number) => {
+    let last: Step | null = null
+    for (let i = 0; i < count; i++) {
+      const done = await run(way)
+      if (!done) break
+      last = done
+    }
+    return last
+  }, [run])
+
   return {
     push,
+    jump,
     undo: useCallback(() => run('undo'), [run]),
     redo: useCallback(() => run('redo'), [run]),
     canUndo: stacks.past.length > 0,
     canRedo: stacks.future.length > 0,
     nextUndo: stacks.past[stacks.past.length - 1]?.label,
     nextRedo: stacks.future[stacks.future.length - 1]?.label,
+    // Newest first, as the history list shows them: the undone steps (the furthest redo first),
+    // then the done ones from the latest back.
+    future: stacks.future.map((s) => s.label),
+    past: stacks.past.map((s) => s.label).reverse(),
   }
 }

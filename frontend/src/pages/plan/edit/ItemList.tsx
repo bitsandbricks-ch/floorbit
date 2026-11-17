@@ -8,14 +8,16 @@ import { type ItemRef, allItems, refKey, sameRef } from './geometry'
 const ORDER: Record<string, number> = { block: 0, switch: 1, panel: 2, board: 3, text: 4, icon: 5, zone: 6, wall: 7 }
 
 /** Every item on this hall's plan, the groups first, then the rest by kind. Click picks an item or
- *  a whole group (Shift adds to the selection); a group can be renamed or taken apart here. */
-export function ItemList({ data, groups, selected, onSelect, onRename, onUngroup }: {
+ *  a whole group (Shift adds to the selection), double-click also zooms to it; a group can be
+ *  renamed or taken apart here. */
+export function ItemList({ data, groups, selected, onSelect, onRename, onUngroup, onFrame }: {
   data: SeatViewData
   groups: PlanGroup[]
   selected: ItemRef[]
   onSelect: (refs: ItemRef[], add: boolean) => void
   onRename: (group: PlanGroup, name: string) => void
   onUngroup: (group: PlanGroup) => void
+  onFrame?: (refs: ItemRef[]) => void
 }) {
   const { t } = useTranslation()
   const [q, setQ] = useState('')
@@ -35,7 +37,7 @@ export function ItemList({ data, groups, selected, onSelect, onRename, onUngroup
 
   const row = (r: ItemRef, indent = false) => (
     <UnstyledButton key={refKey(r)} className="fb-item-row" data-selected={isSel(r) || undefined} pl={indent ? 28 : 8}
-      onClick={(e) => onSelect([r], e.shiftKey || e.metaKey || e.ctrlKey)}>
+      onClick={(e) => onSelect([r], e.shiftKey || e.metaKey || e.ctrlKey)} onDoubleClick={() => onFrame?.([r])}>
       <Text size="sm" truncate>{name(r)}</Text>
     </UnstyledButton>
   )

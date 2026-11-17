@@ -9,7 +9,7 @@
   "elsewhere_other": "{{count}} seats with problems in other halls",
   "hall": "Hall",
   "find": "Find a seat",
-  "findHint": "Seat, e.g. D-6",
+  "findHint": "Seat, block or switch",
   "notFound": "No such seat here",
   "show": "Show",
   "filter": {
@@ -30,6 +30,7 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "fit": "Show the whole hall",
+  "minimap": "Overview of the hall: click or drag to move there",
   "state": {
     "online": "Online",
     "offline": "Offline",
@@ -162,28 +163,74 @@
     "hAgo_one": "{{count}} h ago",
     "hAgo_other": "{{count}} h ago"
   },
-  "findPlayerHint": "Seat or nick, e.g. D-6",
+  "findPlayerHint": "Seat, nick, block or switch",
   "players": "Players found",
   "notFoundPlayer": "No seat or player found",
+  "screen": {
+    "blocks": "Blocks with problems",
+    "block_one": "{{name}}: {{count}} seat",
+    "block_other": "{{name}}: {{count}} seats",
+    "more_one": "and {{count}} more block",
+    "more_other": "and {{count}} more blocks"
+  },
+  "stale": {
+    "since": "Not updated since {{time}}",
+    "help": "Floorbit hasn't answered for a while, so seat states here may be old. It keeps trying; check the network or the server."
+  },
   "print": {
     "title": "Seats: {{hall}}",
     "only": "Only: {{filter}}",
     "back": "Back",
-    "print": "Print"
+    "print": "Print",
+    "image": "Save as image",
+    "png": "PNG picture",
+    "svg": "SVG (sharp at any size)",
+    "imageFailed": "The picture could not be made. Try SVG, or print to PDF."
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
     "show": "Keyboard shortcuts",
-    "intro": "Tab to the plan first. / and ? work anywhere on the page.",
+    "intro": "Tab to the plan first. /, ?, Esc, L and 1 to 4 work anywhere on the page.",
     "or": "or",
     "arrows": "Go from seat to seat",
     "open": "Open the seat under the cursor",
     "close": "Close the seat",
     "block": "Open the block of the seat under the cursor",
+    "presets": "Layers: Overview, Network, Electrical, Ops",
+    "list": "Switch between map and list",
     "pan": "Move the map",
     "zoom": "Zoom in, out, or show the whole hall",
     "find": "Find a seat",
-    "help": "Show this list"
+    "help": "Show this list",
+    "editTitle": "Edit mode keys",
+    "editIntro": "Click the plan first, so the keys go to the editor. On a Mac, Cmd works where Ctrl is shown.",
+    "edit": {
+      "tools": "Tools",
+      "select": "Select",
+      "move": "Move",
+      "change": "Change",
+      "help": "Show this list",
+      "addSelect": "Add to or take out of the selection (a whole group at once)",
+      "all": "Select everything on the plan",
+      "similar": "Select everything like the selection (all walls, all blocks, …)",
+      "deselect": "Select nothing, or go back to the Select tool",
+      "nudge": "Move the selection one grid step",
+      "nudgeMore": "Move it five steps",
+      "free": "Move or draw off the grid",
+      "pan": "Move the view",
+      "frame": "Zoom to the selection",
+      "undo": "Undo",
+      "redo": "Redo",
+      "clipboard": "Copy, cut, paste (where the pointer is)",
+      "duplicate": "Duplicate one seat further on",
+      "group": "Group the selection",
+      "ungroup": "Take the selection out of its group",
+      "stack": "Bring to front, send to back",
+      "rotate": "Turn a quarter turn, or back",
+      "delete": "Delete, or take switches off the plan",
+      "cycle": "With something selected: the next or previous item, top to bottom"
+    },
+    "allKeys": "All keys"
   },
   "fixedBefore_one": "Fixed here once before: {{title}} ({{time}})",
   "fixedBefore_other": "Fixed here {{count}} times before, last: {{title}} ({{time}})",
@@ -196,6 +243,10 @@
     "down": "Seat has no firewall up"
   },
   "power": {
+    "trippedCount_one": "{{count}} tripped",
+    "trippedCount_other": "{{count}} tripped",
+    "board_one": "{{name}}: {{count}} circuit, busiest at {{pct}} %",
+    "board_other": "{{name}}: {{count}} circuits, busiest at {{pct}} %",
     "layer": "Power",
     "ok": "Circuit fine",
     "warn": "Circuit high",
@@ -251,6 +302,11 @@
     "redoWhat": "Redo: {{what}}",
     "undone": "Undone: {{what}}",
     "redone": "Redone: {{what}}",
+    "history": {
+      "title": "History",
+      "help": "Click a step to undo it and everything after it. Grey steps are undone: click one to redo up to it.",
+      "latest": "latest"
+    },
     "step": {
       "move_one": "move",
       "move_other": "move {{count}} items",
@@ -272,6 +328,8 @@
       "duplicate_other": "duplicate {{count}} items",
       "front": "bring to front",
       "back": "send to back",
+      "rotate_one": "turn",
+      "rotate_other": "turn {{count}} items",
       "addPanel": "add patch panel {{name}}",
       "addCable": "add cable",
       "changeCable": "change cable",
@@ -403,6 +461,9 @@
       "paste": "Paste here",
       "front": "Bring to front",
       "back": "Send to back",
+      "rotate": "Turn 90°",
+      "frame": "Zoom to selection",
+      "similar": "Select all like this",
       "delete": "Delete",
       "group": "Group",
       "ungroup": "Ungroup",
@@ -562,6 +623,19 @@
     "unplace_other": "Take {{count}} off the plan"
   },
   "net": {
+    "uplinks_one": "{{count}} link between switches",
+    "uplinks_other": "{{count}} links between switches",
+    "uplinksDown_one": "{{count}} down",
+    "uplinksDown_other": "{{count}} down",
+    "uplinksSlow_one": "{{count}} slower than it should be",
+    "uplinksSlow_other": "{{count}} slower than they should be",
+    "legend": "What the cables show",
+    "cables_one": "{{count}} seat cable",
+    "cables_other": "{{count}} seat cables",
+    "media": { "copper": "Copper", "fiber": "Fiber", "dac": "DAC" },
+    "speed": "{{gbps}} Gbit/s",
+    "learnedCount_one": "{{count}} read from the ports, not typed in",
+    "learnedCount_other": "{{count}} read from the ports, not typed in",
     "learned": "read from the port, not typed in",
     "panel": "Patch panel {{name}}: {{used}} of {{ports}} ports in use"
   }

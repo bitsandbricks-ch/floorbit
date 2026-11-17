@@ -285,6 +285,24 @@ describe('Seats page', () => {
     }
   })
 
+  it('shows the time, blocks with problems and other halls\' problems on a big screen', async () => {
+    const two = [...data.halls, { id: 'annex', name: 'Annex', seats: 2, online: 0, problems: 2 }]
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': { ...data, halls: two } }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?screen=1')
+    const blocks = await screen.findByLabelText('Blocks with problems')
+    expect(within(blocks).getByText('D: 1 seat')).toBeInTheDocument()
+    expect(screen.getByText('2 seats with problems in other halls')).toBeInTheDocument()
+    expect(container.querySelector('.fb-screen-clock')?.textContent).toMatch(/^\d\d:\d\d$/)
+  })
+
+  it('counts seats with problems by each block\'s name, and marks a block where many have them', async () => {
+    const bad = { ...data, blocks: [{ name: 'D', seats: 4, online: 1, problems: 2 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': bad }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    await waitFor(() => expect(container.querySelector('.fb-plan .name-bad')?.textContent).toBe('! 2'))
+    expect(container.querySelector('.fb-plan .blk.alarm')).not.toBeNull()
+  })
+
   it('lists the seats in a sortable table that follows the filter', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan?view=list')
@@ -487,7 +505,7 @@ describe('Seats page', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<FloorPlan />, '/plan')
     const box = await screen.findByRole('textbox', { name: 'Find a seat' })
-    await waitFor(() => expect(box).toHaveAttribute('placeholder', 'Seat or nick, e.g. D-6'))
+    await waitFor(() => expect(box).toHaveAttribute('placeholder', 'Seat, nick, block or switch'))
     fireEvent.change(box, { target: { value: 'sam' } })
     fireEvent.submit(box.closest('form')!)
     const list = await screen.findByRole('list', { name: 'Players found' })
@@ -580,6 +598,130 @@ describe('Seats page', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Copy link' }))
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/plan?hall=main&show=offline&seat=D-2`)
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
+
+  it('finds a block or a switch by its name and opens its panel', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'up', x: 640, y: 420 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withSwitch }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan')
+    const find = await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.change(find, { target: { value: 'd' } })
+    expect(screen.queryByText('No such seat here')).toBeNull()
+    fireEvent.submit(find.closest('form')!)
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('block=D'))
+    fireEvent.change(find, { target: { value: 'sw-d' } })
+    fireEvent.submit(find.closest('form')!)
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('switch=sw-d-01'))
+    expect(screen.getByLabelText('address')).not.toHaveTextContent('block=')
+  })
+
+  it('shows an overview of the hall once zoomed in, and a click on it moves the plan there', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    const map = await screen.findByRole('application', { name: 'Seat map' })
+    expect(screen.queryByRole('img', { name: /Overview of the hall/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    const mini = await screen.findByRole('img', { name: /Overview of the hall/ })
+    expect(container.querySelectorAll('.fb-minimap .blk')).toHaveLength(1)
+    mini.getBoundingClientRect = () => ({ left: 0, top: 0, width: 192, height: 128, right: 192, bottom: 128, x: 0, y: 0, toJSON: () => ({}) })
+    const before = map.getAttribute('viewBox')
+    fireEvent.pointerDown(mini, { pointerId: 1, clientX: 0, clientY: 0 })
+    expect(map.getAttribute('viewBox')).not.toBe(before)
+    const [x, y, w, h] = map.getAttribute('viewBox')!.split(' ').map(Number)
+    expect(x + w / 2).toBeCloseTo(544)   // the drawing box's left edge
+    expect(y + h / 2).toBeCloseTo(420)
+  })
+
+  it('lights up the seats of the switch whose panel is open', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 640, y: 420 }] }
+    const sw = { name: 'sw-d-01', status: 'online', since: null, model: null, online: 1,
+      seats: [{ seat: 'D-1', port: 'Gi1/0/1', state: 'online', problems: 0 }, { seat: 'D-2', port: 'Gi1/0/2', state: 'offline', problems: 1 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': withSwitch, 'GET /api/plan/switches/sw-d-01': sw }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?hall=main&switch=sw-d-01')
+    await waitFor(() => expect(container.querySelector('[data-seat="D-3"]')).toHaveClass('dim'))
+    expect(container.querySelector('[data-seat="D-1"]')).not.toHaveClass('dim')
+    expect(container.querySelector('[data-seat="D-2"]')).not.toHaveClass('dim')
+    expect(container.querySelector('[data-seat="D-4"]')).toHaveClass('dim')
+    expect(container.querySelector('.sw-focus')).not.toBeNull()
+  })
+
+  it('rings an open seat\'s switch and draws the way there, dimming nothing', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 640, y: 420 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': withSwitch, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?hall=main&seat=D-2')
+    await waitFor(() => expect(container.querySelector('.sw-trace')).not.toBeNull())
+    const line = container.querySelector('.sw-trace')!
+    expect([line.getAttribute('x2'), line.getAttribute('y2')]).toEqual(['640', '420'])
+    expect(container.querySelector('.sw-focus')).not.toBeNull()
+    expect(container.querySelector('.cell.dim')).toBeNull()
+  })
+
+  it('closes the open panel with Esc, and Esc in the search box only clears it', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan/seats/D-2': details }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main&seat=D-2')
+    const find = await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.change(find, { target: { value: 'z9' } })
+    fireEvent.keyDown(find, { key: 'Escape' })
+    expect(find).toHaveValue('')
+    expect(screen.getByLabelText('address')).toHaveTextContent('seat=D-2')
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+  })
+
+  it('filters to the seats with problems from the count above the plan, and back', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&show=problems': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main')
+    const count = await screen.findByRole('button', { name: '1 with problems' })
+    expect(count).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(count)
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('show=problems'))
+    expect(screen.getByRole('button', { name: '1 with problems' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: '1 with problems' }))
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+  })
+
+  it('switches between the map and the list with L', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&view=list': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main')
+    await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.keyDown(document.body, { key: 'l' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('view=list'))
+    fireEvent.keyDown(document.body, { key: 'l' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+    // Not while the shortcut list is open.
+    fireEvent.keyDown(document.body, { key: '?' })
+    await screen.findByRole('dialog')
+    fireEvent.keyDown(document.body, { key: 'l' })
+    fireEvent.keyDown(document.body, { key: '2' })
+    await new Promise((r) => setTimeout(r, 20))
+    expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/)
+  })
+
+  it('switches the layer preset with 1 to 4, but not while typing', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main')
+    const find = await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.keyDown(document.body, { key: '2' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('layers=grid%2Cmarks%2Cnetwork%2Cwifi'))
+    fireEvent.keyDown(document.body, { key: '3' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('layers=grid%2Cmarks%2Celectrical'))
+    fireEvent.keyDown(find, { key: '1' })
+    expect(screen.getByLabelText('address')).toHaveTextContent('electrical')
+  })
+
+  it('keeps only the open block bright', async () => {
+    const two = { ...drawing, shapes: [...drawing.shapes, { cx: 640, cy: 700, rotation: 0, w: 32, h: 32, name: 'E', cells: [{ x: -16, y: -16, hit: false, seat: 'E-1', on: null }] }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': { ...data, drawing: two, seats: { ...data.seats, 'E-1': { state: 'online' } } } }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?hall=main&block=E')
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
+    expect(container.querySelector('[data-seat="E-1"]')).not.toHaveClass('dim')
+    expect(container.querySelector('.sw-focus')).toBeNull()
   })
 
   it('keeps the filter in the address', async () => {

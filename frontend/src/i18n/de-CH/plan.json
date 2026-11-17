@@ -9,7 +9,7 @@
   "elsewhere_other": "{{count}} Plätze mit Problemen in anderen Hallen",
   "hall": "Halle",
   "find": "Platz suchen",
-  "findHint": "Platz, z. B. D-6",
+  "findHint": "Platz, Block oder Switch",
   "notFound": "Diesen Platz gibt es hier nicht",
   "show": "Zeigen",
   "filter": {
@@ -30,6 +30,7 @@
   "zoomIn": "Hineinzoomen",
   "zoomOut": "Herauszoomen",
   "fit": "Ganze Halle zeigen",
+  "minimap": "Übersicht über die Halle: klicken oder ziehen, um dorthin zu gehen",
   "state": {
     "online": "Online",
     "offline": "Offline",
@@ -162,28 +163,74 @@
     "hAgo_one": "vor {{count}} Std.",
     "hAgo_other": "vor {{count}} Std."
   },
-  "findPlayerHint": "Platz oder Nick, z. B. D-6",
+  "findPlayerHint": "Platz, Nick, Block oder Switch",
   "players": "Gefundene Spieler",
   "notFoundPlayer": "Kein Platz und kein Spieler gefunden",
+  "screen": {
+    "blocks": "Blöcke mit Problemen",
+    "block_one": "{{name}}: {{count}} Platz",
+    "block_other": "{{name}}: {{count}} Plätze",
+    "more_one": "und {{count}} weiterer Block",
+    "more_other": "und {{count}} weitere Blöcke"
+  },
+  "stale": {
+    "since": "Nicht aktualisiert seit {{time}}",
+    "help": "Floorbit hat eine Weile nicht geantwortet, die Platzzustände hier sind vielleicht alt. Es versucht es weiter; prüf das Netz oder den Server."
+  },
   "print": {
     "title": "Plätze: {{hall}}",
     "only": "Nur: {{filter}}",
     "back": "Zurück",
-    "print": "Drucken"
+    "print": "Drucken",
+    "image": "Als Bild speichern",
+    "png": "PNG-Bild",
+    "svg": "SVG (scharf in jeder Grösse)",
+    "imageFailed": "Das Bild konnte nicht erstellt werden. Versuch es als SVG oder druck als PDF."
   },
   "shortcuts": {
     "title": "Tastaturkürzel",
     "show": "Tastaturkürzel",
-    "intro": "Zuerst mit Tab zum Plan. / und ? gehen überall auf der Seite.",
+    "intro": "Zuerst mit Tab zum Plan. /, ?, Esc, L und 1 bis 4 gehen überall auf der Seite.",
     "or": "oder",
     "arrows": "Von Platz zu Platz",
     "open": "Platz unter dem Cursor öffnen",
     "close": "Platz schliessen",
     "block": "Block des Platzes unter dem Cursor öffnen",
+    "presets": "Ebenen: Übersicht, Netzwerk, Strom, Betrieb",
+    "list": "Zwischen Plan und Liste wechseln",
     "pan": "Plan verschieben",
     "zoom": "Hinein-, herauszoomen oder ganze Halle zeigen",
     "find": "Platz suchen",
-    "help": "Diese Liste zeigen"
+    "help": "Diese Liste zeigen",
+    "editTitle": "Tasten im Bearbeiten-Modus",
+    "editIntro": "Zuerst auf den Plan klicken, damit die Tasten beim Editor ankommen. Auf dem Mac geht Cmd, wo Ctrl steht.",
+    "edit": {
+      "tools": "Werkzeuge",
+      "select": "Auswählen",
+      "move": "Verschieben",
+      "change": "Ändern",
+      "help": "Diese Liste zeigen",
+      "addSelect": "Zur Auswahl hinzufügen oder herausnehmen (eine Gruppe auf einmal)",
+      "all": "Alles auf dem Plan auswählen",
+      "similar": "Alles wie die Auswahl auswählen (alle Wände, alle Blöcke, …)",
+      "deselect": "Nichts auswählen oder zurück zum Auswahl-Werkzeug",
+      "nudge": "Auswahl um einen Rasterschritt verschieben",
+      "nudgeMore": "Um fünf Schritte verschieben",
+      "free": "Ohne Raster verschieben oder zeichnen",
+      "pan": "Ansicht verschieben",
+      "frame": "Auf die Auswahl zoomen",
+      "undo": "Rückgängig",
+      "redo": "Wiederholen",
+      "clipboard": "Kopieren, ausschneiden, einfügen (beim Zeiger)",
+      "duplicate": "Einen Platz weiter duplizieren",
+      "group": "Auswahl gruppieren",
+      "ungroup": "Auswahl aus ihrer Gruppe nehmen",
+      "stack": "Nach vorne, nach hinten",
+      "rotate": "Eine Vierteldrehung, oder zurück",
+      "delete": "Löschen, oder Switches vom Plan nehmen",
+      "cycle": "Mit einer Auswahl: das nächste oder vorherige Element, von oben nach unten"
+    },
+    "allKeys": "Alle Tasten"
   },
   "fixedBefore_one": "Hier schon einmal behoben: {{title}} ({{time}})",
   "fixedBefore_other": "Hier schon {{count}}-mal behoben, zuletzt: {{title}} ({{time}})",
@@ -196,6 +243,10 @@
     "down": "Platz hat keine Firewall mehr"
   },
   "power": {
+    "trippedCount_one": "{{count}} ausgelöst",
+    "trippedCount_other": "{{count}} ausgelöst",
+    "board_one": "{{name}}: {{count}} Stromkreis, höchste Last {{pct}} %",
+    "board_other": "{{name}}: {{count}} Stromkreise, höchste Last {{pct}} %",
     "layer": "Strom",
     "ok": "Stromkreis gut",
     "warn": "Stromkreis hoch",
@@ -251,6 +302,11 @@
     "redoWhat": "Wiederholen: {{what}}",
     "undone": "Rückgängig gemacht: {{what}}",
     "redone": "Wiederholt: {{what}}",
+    "history": {
+      "title": "Verlauf",
+      "help": "Klick auf einen Schritt macht ihn und alles danach rückgängig. Graue Schritte sind rückgängig gemacht: Klick wiederholt bis dorthin.",
+      "latest": "zuletzt"
+    },
     "step": {
       "move_one": "verschieben",
       "move_other": "{{count}} Elemente verschieben",
@@ -272,6 +328,8 @@
       "duplicate_other": "{{count}} Elemente duplizieren",
       "front": "in den Vordergrund",
       "back": "in den Hintergrund",
+      "rotate_one": "drehen",
+      "rotate_other": "{{count}} Elemente drehen",
       "addPanel": "Patchpanel {{name}} hinzufügen",
       "addCable": "Kabel hinzufügen",
       "changeCable": "Kabel ändern",
@@ -403,6 +461,9 @@
       "paste": "Hier einfügen",
       "front": "In den Vordergrund",
       "back": "In den Hintergrund",
+      "rotate": "Um 90° drehen",
+      "frame": "Auf Auswahl zoomen",
+      "similar": "Alle solchen auswählen",
       "delete": "Löschen",
       "group": "Gruppieren",
       "ungroup": "Gruppe auflösen",
@@ -562,6 +623,19 @@
     "unplace_other": "{{count}} vom Plan nehmen"
   },
   "net": {
+    "uplinks_one": "{{count}} Verbindung zwischen Switches",
+    "uplinks_other": "{{count}} Verbindungen zwischen Switches",
+    "uplinksDown_one": "{{count}} unterbrochen",
+    "uplinksDown_other": "{{count}} unterbrochen",
+    "uplinksSlow_one": "{{count}} langsamer als vorgesehen",
+    "uplinksSlow_other": "{{count}} langsamer als vorgesehen",
+    "legend": "Was die Kabel zeigen",
+    "cables_one": "{{count}} Platzkabel",
+    "cables_other": "{{count}} Platzkabel",
+    "media": { "copper": "Kupfer", "fiber": "Glasfaser", "dac": "DAC" },
+    "speed": "{{gbps}} Gbit/s",
+    "learnedCount_one": "{{count}} von den Ports gelesen, nicht erfasst",
+    "learnedCount_other": "{{count}} von den Ports gelesen, nicht erfasst",
     "learned": "vom Port gelesen, nicht erfasst",
     "panel": "Patchpanel {{name}}: {{used}} von {{ports}} Ports belegt"
   }
