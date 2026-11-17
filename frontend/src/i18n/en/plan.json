@@ -383,7 +383,9 @@
       "unlock_one": "unlock",
       "unlock_other": "unlock {{count}} items",
       "changeAll_one": "change {{count}} item",
-      "changeAll_other": "change {{count}} items"
+      "changeAll_other": "change {{count}} items",
+      "background": "move the background",
+      "scale": "set the scale"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -639,7 +641,7 @@
       "open": "Open",
       "counts": "{{switches}} switches, {{blocks}} seat blocks",
       "hasBackground": "background image",
-      "background": "Background image…",
+      "background": "Background image or PDF…",
       "replaceBackground": "Replace background…",
       "removeBackground": "Remove background",
       "backgroundSet": "Background set",
@@ -688,6 +690,25 @@
       "grid": "Snap to the grid (Alt leaves it while dragging)",
       "items": "Snap to other items and walls",
       "rulers": "Rulers"
+    },
+    "background": {
+      "title": "Background",
+      "opacity": "See-through",
+      "place": "Move and resize",
+      "donePlacing": "Done",
+      "fit": "Fill the plan",
+      "scaleKnown": "One seat is {{m}} m. Measure (M) a line to change it.",
+      "scaleHelp": "No scale yet: measure (M) a known distance on the drawing to set one.",
+      "dragHelp": "Drag to move the background, the corner to scale it"
+    },
+    "calibrate": {
+      "title": "Scale",
+      "measured": "This line is {{seats}} seats long.",
+      "metres": "Its real length",
+      "setScale": "Set the scale from this line",
+      "fit": "Fit the background to the seats",
+      "help": "Draw a line over something whose length you know, then give its real length.",
+      "helpBackground": "Over the drawing: \"Set the scale\" when the seats already match it; \"Fit the background\" scales the drawing so the line has its real length at the current scale."
     },
     "tint": {
       "label": "Own colour",

@@ -9,7 +9,8 @@ import { qk } from '@/api/keys'
 import type { Hall } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 
-const IMAGES = 'image/png,image/jpeg,image/webp,image/svg+xml'
+// A PDF's first page becomes the image (./pdf.ts).
+const IMAGES = 'image/png,image/jpeg,image/webp,image/svg+xml,application/pdf'
 
 const read = (file: File, text: boolean) => new Promise<string>((resolve, reject) => {
   const r = new FileReader()
@@ -48,7 +49,7 @@ export function HallsDialog({ opened, current, onClose, onOpen, onChanged }: {
     if (next && next !== h.name) void run(() => put(`/api/halls/${encodeURIComponent(h.id)}`, { name: next }))
   }
   const background = (h: Hall, file: File | null) => {
-    if (file) void run(async () => put(`/api/halls/${encodeURIComponent(h.id)}/background`, { image: await read(file, false) }), t('plan.edit.halls.backgroundSet'))
+    if (file) void run(async () => put(`/api/halls/${encodeURIComponent(h.id)}/background`, { image: file.type === 'application/pdf' ? await (await import('./pdf')).pdfToImage(file) : await read(file, false) }), t('plan.edit.halls.backgroundSet'))
   }
   const csv = async (h: Hall, file: File | null) => {
     if (!file) return

@@ -1089,5 +1089,7 @@
  "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {}).",
  "A tenant name is lower-case letters, digits and -, at most 40.": "Ein Tenant-Name besteht aus Kleinbuchstaben, Ziffern und -, höchstens 40.",
  "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
- "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}."
+ "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}.",
+ "{} is a number from {} to {}": "{} ist eine Zahl von {} bis {}",
+ "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans"
 }

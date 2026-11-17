@@ -11,16 +11,17 @@ const CURSOR: Record<Handle, string> = { scale: 'nwse-resize', nw: 'nwse-resize'
 /** Handles on the one selected mark: drag a label's or icon's corner to make it bigger or smaller,
  *  a zone's corners to resize it; a wall gets WallHandles (ends, bends, lengths). Snaps to the grid (or to tenths of
  *  the size) unless Alt is held. ``onDraft`` shows the mark while dragging; ``onDone`` saves it. */
-export function MarkHandles({ ctx, mark, corner, size, cell = 32, anchors = [], snapGrid = true, onDraft, onDone }: {
+export function MarkHandles({ ctx, mark, corner, size, cell = 32, anchors = [], snapGrid = true, seatM, onDraft, onDone }: {
   ctx: OverlayContext; mark: PlanMark; corner: Point; size: { w: number; h: number }
   /** A wall's: the grid cell (for its lengths) and the other walls' corners it snaps to. */
   cell?: number; anchors?: Point[]
   /** Off: handles land where they are dropped, as with Alt. */
   snapGrid?: boolean
+  seatM?: number | null
   onDraft: (m: PlanMark | null) => void
   onDone: (m: PlanMark) => void
 }) {
-  if (mark.kind === 'wall') return <WallHandles ctx={ctx} mark={mark} size={size} cell={cell} anchors={anchors} snapGrid={snapGrid} onDraft={onDraft} onDone={onDone} />
+  if (mark.kind === 'wall') return <WallHandles ctx={ctx} mark={mark} size={size} cell={cell} anchors={anchors} snapGrid={snapGrid} seatM={seatM} onDraft={onDraft} onDone={onDone} />
   return <BoxHandles ctx={ctx} mark={mark} corner={corner} size={size} snapGrid={snapGrid} onDraft={onDraft} onDone={onDone} />
 }
 

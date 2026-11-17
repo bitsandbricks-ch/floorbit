@@ -326,7 +326,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
         onPointerLeave={() => setHover(null)}>
         {!forced && layers.on.has('grid') && <g opacity={opacity(layers, 'grid')}><PlanGrid view={px.w && px.h ? { x: view.x + view.w / 2 - px.w / s / 2, y: view.y + view.h / 2 - px.h / s / 2, w: px.w / s, h: px.h / s } : view} size={data.size} scale={s} /></g>}
-        {data.background && <image href={data.background} x={0} y={0} width={data.size.w} height={data.size.h} preserveAspectRatio="none" className="bg" />}
+        {data.background && <image href={data.background} x={data.background_frame?.x ?? 0} y={data.background_frame?.y ?? 0}
+          width={data.background_frame?.w ?? data.size.w} height={data.background_frame?.h ?? data.size.h} preserveAspectRatio="none" className="bg"
+          opacity={data.background_opacity ?? undefined} />}
         <PlanMarks drawing={drawing} layers={layers} />
         {wifi && <g opacity={opacity(layers, 'wifi')}><WifiLayer wifi={wifi} idPrefix={ids} /></g>}
         {network && <g opacity={opacity(layers, 'network')}>{(data.links ?? []).map((l) => {

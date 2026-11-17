@@ -91,3 +91,20 @@ def test_settings_page_is_the_react_app(client):
     # The backup panel itself is tested in frontend/src/pages/Settings.test.tsx.
     page = client.get("/settings").get_data(as_text=True)
     assert '<div id="root">' in page and "<title>Settings" in page
+
+
+def test_a_backup_keeps_where_the_background_sits_and_the_scale(client):
+    png = ('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA'
+           'SUVORK5CYII=')
+    client.put('/api/halls/main/background', json={'image': png})
+    client.patch('/api/halls/main/background', json={'frame': {'x': 5, 'y': 5, 'w': 90, 'h': 60}, 'opacity': 0.5})
+    client.put('/api/halls/main/scale', json={'seat_m': 0.75})
+    backup = client.get('/api/settings/backup').get_json()
+    client.patch('/api/halls/main/background', json={'frame': None, 'opacity': None})
+    client.put('/api/halls/main/scale', json={'seat_m': None})
+    assert client.post('/api/settings/backup', json=backup).status_code == 200
+    (hall,) = client.get('/api/halls').get_json()['halls']
+    assert hall['background_frame'] == {'x': 5, 'y': 5, 'w': 90, 'h': 60}
+    assert hall['background_opacity'] == 0.5 and hall['seat_m'] == 0.75
+    backup['layout']['halls'][0]['opacity'] = 7
+    assert client.post('/api/settings/backup', json=backup).status_code == 400

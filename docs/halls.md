@@ -24,10 +24,29 @@ Block names stay unique across halls, so seat numbers do too, and everything tha
 
 ## Background image
 
-A PNG, JPEG, WebP or SVG of the hall plan, up to 5 MB, drawn faded under the switches and seats in
-the editor and on the kiosk. It is stretched to the plan area, so an image with the hall's aspect ratio
-lines up best; place a few seat blocks over it and adjust. Images are kept next to `data.json` in a
-`halls/` folder, and backups carry them.
+A PNG, JPEG, WebP or SVG of the hall plan, up to 5 MB, or a PDF: the browser turns its first page
+into an image (on white, 3200 pixels on the longest side) before it is sent. It is drawn under the
+switches and seats in the editor and on the kiosk, first stretched to the plan area. Images are kept
+next to `data.json` in a `halls/` folder, and backups carry them, with where they sit.
+
+### Placing it and setting the scale
+
+In Edit mode, with nothing selected, the panel has **Background**:
+
+- **See-through** fades the drawing so the seats stand out.
+- **Move and resize** puts a frame round it: drag inside to move it, the corner to scale it (it keeps
+  its shape). **Done** ends it, **Fill the plan** puts it back on the whole plan area. Each change is a
+  step to undo.
+
+The **scale** says how many metres one seat (one grid cell) is. With the Measure tool (M), draw a
+line over something whose length you know, give its real length, and:
+
+- **Set the scale from this line** when the seats already match the drawing: from then on walls, zones
+  and the Measure tool show metres next to seats.
+- **Fit the background to the seats** once there is a scale: the drawing is scaled round the line's
+  start so the line gets its real length.
+
+A template carries the image but not where it sits or the scale.
 
 An uploaded SVG is served so it can't run script when opened on its own.
 
