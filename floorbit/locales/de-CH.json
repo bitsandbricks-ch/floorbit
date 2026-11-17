@@ -744,7 +744,7 @@
  "At most {} groups on the plan": "Höchstens {} Gruppen auf dem Plan",
  "No such group on the plan": "Diese Gruppe gibt es auf dem Plan nicht",
  "groups is a list": "groups ist eine Liste",
- "rotation is 0, 90, 180 or 270": "rotation ist 0, 90, 180 oder 270",
+ "rotation is a whole number of degrees": "rotation ist eine ganze Zahl Grad",
  "scale is a number from {} to {}": "scale ist eine Zahl von {} bis {}",
  "{} is a number from -10000 to 10000": "{} ist eine Zahl von -10000 bis 10000",
  "{} is missing": "{} fehlt",

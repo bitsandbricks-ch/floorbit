@@ -19,7 +19,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 export function handlesOf(m: PlanMark, corner: Point): [Handle, Point][] {
   if (m.kind === 'zone') {
     const x2 = m.x + (m.w ?? 0), y2 = m.y + (m.h ?? 0)
-    return [['nw', { x: m.x, y: m.y }], ['ne', { x: x2, y: m.y }], ['sw', { x: m.x, y: y2 }], ['se', { x: x2, y: y2 }]]
+    const c = { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 }, deg = m.rotation ?? 0
+    return ([['nw', { x: m.x, y: m.y }], ['ne', { x: x2, y: m.y }], ['sw', { x: m.x, y: y2 }], ['se', { x: x2, y: y2 }]] as [Handle, Point][])
+      .map(([h, p]) => [h, turn(p, c, deg)])
   }
   if (m.kind === 'wall') return [['a', { x: m.x, y: m.y }], ['b', { x: m.x2 ?? m.x, y: m.y2 ?? m.y }]]
   return [['scale', turn(corner, m, m.rotation ?? 0)]]
@@ -47,14 +49,20 @@ export function reshape(m: PlanMark, handle: Handle, p: Point, from: Point, size
     return handle === 'a' ? { ...m, x: q.x, y: q.y } : { ...m, x2: q.x, y2: q.y }
   }
   // A zone corner: the opposite corner stays put; the box never turns inside out or gets thinner
-  // than half a seat.
-  const q = grid(p)
+  // than half a seat. A turned zone is worked out in its own frame, then turned back.
+  const deg = m.rotation ?? 0
+  const c = { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 }
+  const q = deg ? turn(p, c, -deg) : grid(p)
   const min = (size.w / 100) * 1
   const left = handle === 'nw' || handle === 'sw', top = handle === 'nw' || handle === 'ne'
   const x1 = m.x, y1 = m.y, x2 = m.x + (m.w ?? 0), y2 = m.y + (m.h ?? 0)
   const nx1 = left ? Math.min(q.x, x2 - min) : x1, nx2 = left ? x2 : Math.max(q.x, x1 + min)
   const ny1 = top ? Math.min(q.y, y2 - min) : y1, ny2 = top ? y2 : Math.max(q.y, y1 + min)
-  return { ...m, x: nx1, y: ny1, w: nx2 - nx1, h: ny2 - ny1 }
+  const w = nx2 - nx1, h = ny2 - ny1
+  if (!deg) return { ...m, x: nx1, y: ny1, w, h }
+  // The new middle, turned back into the plan; the box is kept by its unturned top left corner.
+  const mid = turn({ x: nx1 + w / 2, y: ny1 + h / 2 }, c, deg)
+  return { ...m, x: mid.x - w / 2, y: mid.y - h / 2, w, h }
 }
 
 const r3 = (v: number) => Math.round(v * 1000) / 1000

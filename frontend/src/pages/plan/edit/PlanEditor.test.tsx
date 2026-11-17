@@ -92,6 +92,23 @@ describe('Plan editor keys', () => {
     expect(e.sent('PUT')[0]).toMatchObject({ path: '/api/seat-blocks/B', body: { rotation: 90 } })
   })
 
+  it('turns a block to any angle with the rotate handle, in 15° steps with Shift', async () => {
+    const e = editor()
+    e.select('B')
+    const handle = await waitFor(() => { const h = e.container.querySelector('[data-handle="rotate"]'); if (!h) throw new Error('no handle'); return h })
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 2, clientX: 800, clientY: 400 })
+    fireEvent.pointerMove(handle, { pointerId: 2, clientX: 900, clientY: 410, shiftKey: true })
+    fireEvent.pointerUp(handle, { pointerId: 2, clientX: 900, clientY: 410, shiftKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    const put = e.sent('PUT')[0] as { path: string; body: { rotation: number } }
+    expect(put.path).toBe('/api/seat-blocks/B')
+    expect(put.body.rotation % 15).toBe(0)
+    expect(put.body.rotation).not.toBe(0)
+    e.key('z', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
+    expect(e.sent('PUT')[1].body).toEqual({ rotation: 0 })
+  })
+
   it('takes the Hand tool with H: a click on a block no longer selects it', async () => {
     const e = editor()
     e.key('h')
