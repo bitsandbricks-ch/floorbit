@@ -21,7 +21,7 @@ export interface ViewDef {
 }
 
 export const VIEWS: ViewDef[] = [
-  // { id: 'lancache', area: 'services', label: 'lancache.title', load: () => import('@/pages/lancache/LancacheView') },
+  { id: 'lancache', area: 'services', label: 'lancache.title', load: () => import('@/pages/lancache/LancacheView') },
 ]
 
 /** Each view's component, loaded on first use. */

@@ -201,6 +201,8 @@ RULES = (
     ('/api/settings', None, 'settings.manage'),
     # Local agents (floorbit/agent_link.py): enrolling one hands out a key to the event's data.
     ('/api/agents', None, 'settings.manage'),
+    # Clearing a failed agent login lets the agent try that password again (floorbit/agent_plugins.py).
+    ('/api/agent-plugins', WRITE, 'plugins.run'),
     ('/settings/users', None, 'accounts.manage'),
     ('/settings/teams', None, 'accounts.manage'),
     ('/settings', None, 'settings.manage'),
@@ -235,6 +237,9 @@ RULES = (
     ('/checkins', READ, 'seats.view'),
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
+    # Where each machine was seen: IPs and MACs by port and seat (floorbit/endpoints.py).
+    ('/api/endpoints', READ, 'seats.view'),
+    ('/endpoints', READ, 'seats.view'),
     ('/api/seats/find', READ, 'seats.view'),
     ('/api/plan/find', READ, 'seats.view'),
     ('/api/seats/sources', READ, 'seats.view'),
@@ -282,9 +287,6 @@ RULES = (
     ('/network-status', READ, 'incidents.work'),
     # Pre-flight checks ask the monitoring source and the health plugins now (floorbit/preflight.py).
     ('/api/preflight/run', WRITE, 'incidents.work'),
-    # Build planner: the configs are the network's design (floorbit/planner.py).
-    ('/api/planner', None, 'floorplan.edit'),
-    ('/planner', READ, 'floorplan.edit'),
     # Past events: closing one clears the running event's history, and a backup is an admin's.
     ('/api/past-events/backup', READ, 'settings.manage'),
     ('/api/past-events', WRITE, 'settings.manage'),
