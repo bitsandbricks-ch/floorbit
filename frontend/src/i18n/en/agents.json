@@ -50,5 +50,14 @@
   "reportFlows": "NetFlow {{n}} packets",
   "reportCaptive": "check-in note {{shown}} shown, {{done}} not needed",
   "reportBusy_one": "1 call answered busy",
-  "reportBusy_other": "{{count}} calls answered busy"
+  "reportBusy_other": "{{count}} calls answered busy",
+  "plugins": "Agent plugins",
+  "pluginNotRunning": "not running",
+  "pluginStatus": {
+    "ok": "running",
+    "warning": "running, with a warning",
+    "error": "failing",
+    "off": "idle"
+  },
+  "pluginLastError": "last error {{when}}: {{error}}"
 }

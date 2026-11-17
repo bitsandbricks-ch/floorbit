@@ -842,5 +842,11 @@
  "Unknown device kind or platform.": "Unbekannte Geräteart oder Plattform.",
  "VLANs are numbers, like 10, 20, 30.": "VLANs sind Zahlen, zum Beispiel 10, 20, 30.",
  "{} is already in the list.": "{} ist schon in der Liste.",
- "{} must be one of {}.": "{} muss eines von {} sein."
+ "{} must be one of {}.": "{} muss eines von {} sein.",
+ "No agent plugin {} here.": "Hier gibt es kein Agent-Plugin {}.",
+ "bad metric name {}: lowercase letters, digits and _": "Ungültiger Messwertname {}: Kleinbuchstaben, Ziffern und _",
+ "bad plugin or kind": "Ungültiges Plugin oder ungültige Art",
+ "health status must be one of {}": "Der Zustand muss eines davon sein: {}",
+ "{} has no agent {} {}": "{} hat auf dem Agent kein {} {}",
+ "{} is turned off on this Floorbit.": "{} ist in diesem Floorbit ausgeschaltet."
 }

@@ -1603,6 +1603,16 @@ export interface AgentReport {
   /** Captive portal answers: the note shown, or not (checked in). */
   captive_shown?: number
   captive_done?: number
+  /** Agent plugins (docs/agent-plugins.md): how each one that should run is doing. */
+  plugins?: Record<string, AgentPluginHealth>
+}
+
+export interface AgentPluginHealth {
+  status: 'ok' | 'warning' | 'error' | 'off'
+  message: string
+  running: boolean
+  metrics: Record<string, number>
+  errors: { at: number | null; error: string }[]
 }
 
 export interface AgentStats {

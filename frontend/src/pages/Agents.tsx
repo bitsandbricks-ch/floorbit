@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent, AgentReport, AgentStats, Hall } from '@/api/types'
+import type { Agent, AgentPluginHealth, AgentReport, AgentStats, Hall } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -77,6 +77,40 @@ function Report({ report, lang }: { report?: AgentReport | null; lang: string })
     <Text size="xs" c="dimmed">
       {parts.map((p, i) => <span key={i}>{i > 0 && ' · '}{p}</span>)}
     </Text>
+  )
+}
+
+const PLUGIN_COLOR: Record<AgentPluginHealth['status'], string> = { ok: 'up', warning: 'warn', error: 'down', off: 'gray' }
+const SHOWN_METRICS = 4
+
+/** Each agent plugin the agent runs (docs/agent-plugins.md): its state, a few numbers, its last error. */
+function PluginHealth({ plugins, lang }: { plugins?: Record<string, AgentPluginHealth>; lang: string }) {
+  const { t } = useTranslation()
+  const ids = Object.keys(plugins ?? {}).sort()
+  if (!plugins || !ids.length) return null
+  return (
+    <Stack gap={2} mt={4} aria-label={t('agents.plugins')}>
+      {ids.map((id) => {
+        const p = plugins[id]
+        const last = p.errors[p.errors.length - 1]
+        const numbers = Object.entries(p.metrics).slice(0, SHOWN_METRICS)
+        return (
+          <Group key={id} gap={6} wrap="nowrap" align="flex-start">
+            <Badge variant="light" color={PLUGIN_COLOR[p.status] ?? 'gray'} tt="none" style={{ flexShrink: 0 }}>
+              {id}
+            </Badge>
+            <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
+              {[
+                p.running ? t(`agents.pluginStatus.${p.status}`) : t('agents.pluginNotRunning'),
+                p.message,
+                ...numbers.map(([k, v]) => `${k.replace(/_/g, ' ')} ${v.toLocaleString(lang)}`),
+              ].filter(Boolean).join(' · ')}
+              {last && <>{' · '}<Text span size="xs" c="down">{t('agents.pluginLastError', { when: last.at ? ago(last.at, lang) : '?', error: last.error })}</Text></>}
+            </Text>
+          </Group>
+        )
+      })}
+    </Stack>
   )
 }
 
@@ -154,6 +188,7 @@ export default function Agents() {
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
                         <Report report={a.report} lang={i18n.language} />
+                        <PluginHealth plugins={a.report?.plugins} lang={i18n.language} />
                         {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.protocol ?? '' })}</Text>}
                         {hallOptions.length > 1 && (
                           <MultiSelect size="xs" mt={6} maw={420} label={t('agents.halls')} placeholder={a.halls?.length ? undefined : t('agents.allHalls')}

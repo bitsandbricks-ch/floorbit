@@ -69,6 +69,17 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
 
+## floorbit.blueprints.agent_plugins
+
+Agent plugins (floorbit/agent_plugins.py, docs/agent-plugins.md), for the agent with its key:
+
+Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_plugins.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agent/v1/plugins` | anyone |  |
+| POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
+
 ## floorbit.blueprints.api_tokens
 
 API tokens and the API's version (issue #40). Rules in auth/tokens.py, docs in docs/api.md.
