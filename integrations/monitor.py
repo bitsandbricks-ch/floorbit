@@ -50,12 +50,12 @@ class StatusMonitor:
     def _run(self):
         while not self._stop.is_set():
             interval = config.get_int('STATUS_MONITOR_INTERVAL', 60, minimum=10)
-            if self.enabled():
-                try:
+            try:
+                if self.enabled():
                     self.poll_once()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    self.last_error = str(exc)
-                    print(f"[integrations] status monitor poll failed: {exc}")
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                self.last_error = str(exc)
+                print(f"[integrations] status monitor poll failed: {exc}")
             self._stop.wait(interval)
 
     # ── config ────────────────────────────────────────────────────────────────────────────
