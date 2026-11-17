@@ -340,9 +340,19 @@ class MemoryContext:
         self.health_ = Health()
         self.auth = AuthBlocks()
         self._threads = []
+        self._closers = []
 
     def log(self, message):
         self.lines.append(str(message))
+
+    def on_stop(self, fn):
+        self._closers.append(fn)
+
+    def close(self):
+        """What the agent does when the plugin stops: tell its threads, run what it asked for."""
+        self.stopping.set()
+        for fn in reversed(self._closers):
+            fn()
 
     def auth_failed(self, device, credential, rev=None, message=''):
         if self.auth.failed(device, credential, rev, message):
