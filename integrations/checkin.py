@@ -102,10 +102,40 @@ def lookup_ip(mac):
 
 
 # ── request helpers ──────────────────────────────────────────────────────────
+def front_door_host():
+    """The name the attendee typed, when the agent's front door passed the request on (it can't keep
+    the Host header: the request goes to the hosted Floorbit's own name). None otherwise."""
+    key = request.headers.get('Floorbit-Front-Door')
+    if not key:
+        return None
+    from floorbit import agent_link
+    return request.headers.get('Floorbit-Front-Door-Host') if agent_link.front_door(key) else None
+
+
+def _front_door_ip():
+    """The attendee's own address, when the local agent's front door passed the request on (the
+    agent's front_door.py): it sets the address it saw, with its key, so a hosted Floorbit behind the
+    hall's NAT still knows which PC asks. Without a valid key the header means nothing."""
+    key = request.headers.get('Floorbit-Front-Door')
+    if not key:
+        return None
+    from floorbit import agent_link
+    if not agent_link.front_door(key):
+        return None
+    try:
+        return str(ipaddress.ip_address(request.headers.get('Floorbit-Client-IP', '').strip()))
+    except ValueError:
+        return None
+
+
+
 _proxy_hint = {'logged': False}
 
 
 def client_ip():
+    door = _front_door_ip()
+    if door:
+        return door
     ip = request.remote_addr or ''
     if not config.get_bool('CHECKIN_TRUST_PROXY', False):
         if not _proxy_hint['logged'] and request.headers.get('X-Forwarded-For'):

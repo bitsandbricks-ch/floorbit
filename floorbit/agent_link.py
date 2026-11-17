@@ -111,6 +111,7 @@ def active():
 def _forget_cache():
     global _active, _routes
     _active = _routes = None
+    _doors.clear()
 
 
 _routes = None   # ((data file, mtime), routing)
@@ -148,7 +149,7 @@ def enrolled(agent_id):
 # What an agent may report about itself (the agent's report(), floorbit-agent issue #3).
 REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_failed',
                'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets',
-               'captive_shown', 'captive_done')
+               'captive_shown', 'captive_done', 'front_door_passed', 'front_door_failed')
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 
@@ -388,6 +389,33 @@ def check(key, version=None, address=None, now=None, protocol=None):
                              address=(str(address)[:64] if address else None), protocol=protocol)
             save_data(data)
     return {'id': found['id'], 'name': found['name']}
+
+
+_doors = {}               # key -> (agent id or None, checked at): front-door requests come per asset
+DOOR_RECHECK = 30         # seconds a key's answer is kept; a revoked key stops working within this
+
+
+def front_door(key, now=None):
+    """The id of the agent whose front door passed this request on, or None (agent's front_door.py).
+    Only checks the key: the request is an attendee's, not the agent's own."""
+    key = str(key or '').strip()
+    m = KEY_RE.match(key)
+    if not m:
+        return None
+    now = time.monotonic() if now is None else now
+    cached = _doors.get(key)
+    if cached and now - cached[1] < DOOR_RECHECK:
+        return cached[0]
+    agent_id, secret = m.groups()
+    found = next((a for a in load_data().get(KEY) or [] if a['id'] == agent_id), None)
+    wall = time.time()
+    ok = bool(found) and (hmac.compare_digest(found['hash'], _hash(secret)) or bool(
+        found.get('prev_hash') and (found.get('prev_until') or 0) > wall
+        and hmac.compare_digest(found['prev_hash'], _hash(secret))))
+    if len(_doors) > 50:            # only ever a few real keys: don't let guesses grow it
+        _doors.clear()
+    _doors[key] = (agent_id if ok else None, now)
+    return _doors[key][0]
 
 
 # ── The call tunnel ────────────────────────────────────────────────────────────────────────────
