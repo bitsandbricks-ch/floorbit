@@ -282,7 +282,10 @@
       "distribute": "gleichmässig verteilen",
       "addBoard": "Stromverteiler {{name}} hinzufügen",
       "addCircuit": "Stromkreis {{name}} hinzufügen",
-      "feed": "über {{name}} speisen"
+      "feed": "über {{name}} speisen",
+      "bend": "Kabel knicken",
+      "corners": "Kabelecken",
+      "autoRoute": "automatische Kabelführung"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -294,7 +297,7 @@
       "pan": "+ ziehen zum Verschieben der Ansicht",
       "more": "Ctrl C/X/V kopieren, ausschneiden, einfügen · Ctrl D duplizieren · Ctrl G gruppieren · Rechtsklick für mehr"
     },
-    "classic": "Werkzeuge, die noch fehlen (Kabelknicke): klassischer Editor",
+    "classic": "Klassischer Editor",
     "kind": {
       "block": "Sitzblock {{name}}",
       "switch": "Switch {{name}}",
@@ -432,7 +435,14 @@
       "panel": "Patchpanel",
       "seat": "Platz",
       "imported": "Importiert: In der Quelle ändern und neu importieren.",
-      "edit": "Kabel ändern"
+      "edit": "Kabel ändern",
+      "addBend": "Ziehen oder klicken, um einen Knick hinzuzufügen",
+      "bend": "Ziehen zum Verschieben, Doppelklick zum Entfernen",
+      "corners": "Ecken",
+      "square": "Eckig",
+      "round": "Rund",
+      "bendHelp": "Einen Knick ziehen, um ihn zu verschieben; einen Punkt in der Mitte eines Abschnitts ziehen, um einen hinzuzufügen; Doppelklick auf einen Knick entfernt ihn. Alt setzt ihn neben das Raster.",
+      "auto": "Zurück zur automatischen Führung"
     },
     "arrange": {
       "title": "Anordnen",
