@@ -89,7 +89,7 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  // Same as pinSVG() in static/js/editor/core.js: a switch box with two rows of ports.
+  // A switch box with two rows of ports, as the floor plan draws it (frontend/src/pages/plan/SeatMap.tsx).
   function pinSVG  (status) {
     const lit = status === 'online' || status === 'warning';
     let ports = '';
@@ -123,7 +123,7 @@
     return wanted ? `<div class="seat-block-rowlabel" style="${rotation ? `transform: rotate(${-rotation}deg);` : ''}">${escHtml(letter)}</div>` : '';
   }
 
-  // ── Labels, walls, zones and icons (as the editor draws them, static/js/editor/marks.js) ──
+  // ── Labels, walls, zones and icons (as the floor plan draws them, frontend/src/pages/plan/PlanMarks.tsx) ──
   function renderMarks() {
     const svg = [], html = [];
     for (const m of marks) {
@@ -145,7 +145,7 @@
   }
 
   // ── Grid ───────────────────────────────────────────────────────────────────
-  // The editor's grid (static/js/editor/layers.js): steps in % of the plan, the finest one that
+  // The floor plan grid (frontend/src/pages/plan/SeatMap.tsx): steps in % of the plan, the finest one that
   // stays at least GRID_MIN_PX apart, a stronger line every few steps. Follows the fit.
   const GRID_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50];
   const GRID_MIN_PX = 12;

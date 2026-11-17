@@ -225,3 +225,10 @@ def _no_wrong_pins_yet(monkeypatch):
     """Wrong check-in PINs count per PC for ten minutes; one test's guesses don't lock the next."""
     from integrations import checkin
     monkeypatch.setattr(checkin, "_wrong_pins", {})
+
+
+@pytest.fixture
+def built(tmp_path, monkeypatch):
+    """The React app counts as built, so its pages answer 200 (without a build they answer 503)."""
+    from tests.test_spa import _manifest
+    _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})

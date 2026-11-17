@@ -70,7 +70,7 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return px
 }
 
-// The editor's grid steps, in % of the plan (static/js/editor/layers.js), so things sit on the same lines.
+// The editor's grid steps, in % of the plan, so things sit on the same lines.
 const GRID_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50]
 const GRID_MIN_PX = 12
 
@@ -98,7 +98,7 @@ export function PlanGrid({ view, size, scale: k }: { view: View; size: { w: numb
   return <g className="fb-grid" aria-hidden="true">{lines}</g>
 }
 
-/** A switch seen from the front, centred on its spot (the editor draws the same, static/js/editor/core.js):
+/** A switch seen from the front, centred on its spot (the editor draws the same):
  *  lit ports when online, a cross when offline, a dashed box when unknown. */
 export function SwitchGlyph({ status }: { status: string }) {
   const lit = status === 'online' || status === 'warning'

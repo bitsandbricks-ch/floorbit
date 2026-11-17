@@ -29,8 +29,10 @@ def index():
 
 @bp.route('/editor/classic')
 def classic_editor():
-    """The older editor, kept for a while as a fallback; nothing links to it but the editor's panel."""
-    return render_template('index.html')
+    """The older editor is retired (Mike: not kept in sync); bookmarks open the plan's editor on the
+    same hall."""
+    hall = request.args.get('hall')
+    return redirect('/plan?' + urlencode({'edit': '1', **({'hall': hall} if hall else {})}))
 
 
 @bp.route('/kiosk')

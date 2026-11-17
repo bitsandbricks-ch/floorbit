@@ -399,7 +399,6 @@
       "pan": "+ drag to pan",
       "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · Ctrl G group · right-click for more"
     },
-    "classic": "Classic editor (fallback)",
     "kind": {
       "block": "Seat block {{name}}",
       "switch": "Switch {{name}}",

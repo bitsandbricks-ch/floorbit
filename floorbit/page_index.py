@@ -1,7 +1,7 @@
 """Every page a crew member may want to jump to, for "Go to" (Ctrl+K) on every page (issues #242, #250).
 
 One list on the server, so the React pages, the floor plan and Settings offer the same pages, and the
-conditions match the floor plan's top bar (templates/index.html): the features that are on, the
+conditions match what the floor plan offers: the features that are on, the
 account's permissions, and what this server has set up (a Wi-Fi source, power boards, ...).
 The server still checks every page; this only keeps the list honest.
 """
