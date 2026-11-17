@@ -1,0 +1,26 @@
+# Switch and firewall status from the hall's own telemetry: Telegraf polling SNMP, taking traps,
+# gNMI and Cisco model-driven telemetry, NX-API and the OPNsense API (docs/telemetry.md). No
+# LibreNMS needed. Off until turned on under Settings > Plugins.
+id: telemetry
+name: Telemetry
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Live switch status, ports, traffic and errors, MAC tables, ARP and LLDP/CDP neighbours from the devices themselves (SNMP, traps, gNMI, Cisco MDT, NX-API, OPNsense), collected by Telegraf on the local agent or next to Floorbit. Feeds the floor plan, the status monitor, the seat inspector, the topology and the check-in page, without LibreNMS."
+author: Floorbit
+homepage: https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/telemetry.md
+uses: [agent, settings, monitoring, widgets]
+# On a local agent this plugin is the collector (agent.py): the devices' picture stays in the hall,
+# the hosted Floorbit gets the per-port numbers for its history.
+agent:
+  module: agent.py
+  sends:
+    series: {privacy: device}
+    # Where each machine was seen (MAC, IP, port), for the history and search (docs/endpoints.md).
+    endpoints: {privacy: device}
+settings:
+  - {key: uplink_macs, label: Uplink above, type: int, default: 8, min: 2, max: 1000,
+     help: "A port that has learned more MACs than this is an uplink or a desk switch: a seat's machine is looked for on another port first."}
+  - {key: exclude, label: Ports to ignore, type: list, placeholder: "port-channel, vlan",
+     help: "Comma-separated parts of port names that are never a seat's port (trunks, port channels, SVIs)."}
+widgets:
+  - {id: devices, label: Telemetry devices, size: wide, refresh: 60}

@@ -64,6 +64,8 @@ class LancacheStats:
         self.last_error = None
         self.demo = False     # FLOORBIT_DEMO=1 with no log: made-up lines (demo_lines)
         self._loaded = False   # False while the database was away at start (docs/database.md)
+        # What local agents sent (the LAN cache plugin, docs/lancache.md): {agent id: {...}}.
+        self.remote = {}
         self._load()
 
     # ── storage ──────────────────────────────────────────────────────────────
@@ -90,6 +92,8 @@ class LancacheStats:
                 continue
         if isinstance(raw.get('position'), dict):
             self.position = raw['position']
+        if isinstance(raw.get('remote'), dict):
+            self.remote = {str(k): v for k, v in raw['remote'].items() if isinstance(v, dict)}
 
     def ready(self):
         if not self._loaded:
@@ -100,7 +104,7 @@ class LancacheStats:
         if not self._loaded:
             return
         try:
-            store.write_json(self._file(), {'version': 1, 'position': self.position,
+            store.write_json(self._file(), {'version': 1, 'position': self.position, 'remote': self.remote,
                                             'hours': {str(k): v for k, v in self.hours.items()}})
         except (OSError, database.DatabaseError) as exc:
             print(f'[lancache] could not save {self._file()}: {exc}')
@@ -120,6 +124,49 @@ class LancacheStats:
             keep = settings()['retention_hours'] * 3600
             for h in [h for h in self.hours if h < now - keep]:
                 del self.hours[h]
+
+    def merge_agent(self, agent, payload, now=None):
+        """Counts a local agent read in the hall (``stats`` of the LAN cache plugin). Its hours are
+        whole hours so far: they replace what it sent for them before."""
+        now = time.time() if now is None else now
+        name = str(agent.get('name') or agent.get('id'))
+        with self._lock:
+            for key, caches in (payload.get('hours') or {}).items():
+                try:
+                    hour = int(key)
+                    rows = {str(c)[:40]: [int(v[0]), int(v[1]), int(v[2])] for c, v in caches.items()}
+                except (TypeError, ValueError, IndexError, AttributeError):
+                    continue
+                if hour > now + 3600:
+                    continue
+                self.hours.setdefault(hour, {}).update(rows)
+            keep = settings()['retention_hours'] * 3600
+            for h in [h for h in self.hours if h < now - keep]:
+                del self.hours[h]
+            mine = self.remote.setdefault(str(agent.get('id')), {})
+            mine.update(name=name, updated=now, lines=payload.get('lines'),
+                        downloads=list(payload.get('downloads') or [])[:50],
+                        other_downloads=payload.get('other_downloads') or {},
+                        suspects=list(payload.get('suspects') or [])[:20],
+                        min_clients=payload.get('min_clients'), window_hours=payload.get('window_hours'),
+                        dns_services=(payload.get('dns') or {}).get('services') or {})
+            clients = mine.setdefault('clients', {})
+            for key, n in (payload.get('clients') or {}).items():
+                if isinstance(n, int):
+                    clients[str(key)] = n
+            for key in sorted(clients)[:-48]:
+                del clients[key]
+            self.last_read = now
+            self.last_error = None
+        self._save()
+
+    def merge_status(self, agent, status, now=None):
+        """The cache machine as a local agent sees it: disk, heartbeat, DNS check, clearing."""
+        now = time.time() if now is None else now
+        with self._lock:
+            mine = self.remote.setdefault(str(agent.get('id')), {})
+            mine.update(name=str(agent.get('name') or agent.get('id')), status={**status, 'received': now})
+        self._save()
 
     def read_log(self, now=None):
         """Read what the log gained since last time. Starts again at the top after a rotation."""
@@ -209,7 +256,8 @@ class LancacheStats:
         hit = sum(c['hit_bytes'] for c in caches.values())
         miss = sum(c['miss_bytes'] for c in caches.values())
         return {
-            'configured': bool(settings()['log']) or self.demo or bool(self.hours), 'demo': self.demo, 'hours': series,
+            'configured': bool(settings()['log']) or self.demo or bool(self.hours) or bool(self.remote),
+            'demo': self.demo, 'hours': series,
             'hit_bytes': hit, 'miss_bytes': miss,
             'hit_ratio': round(hit / (hit + miss), 4) if hit + miss else None,
             'caches': sorted(caches.values(), key=lambda c: -(c['hit_bytes'] + c['miss_bytes'])),

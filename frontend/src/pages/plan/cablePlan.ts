@@ -21,7 +21,7 @@ export function useCablePlan(hall: string | undefined, enabled: boolean) {
 }
 
 /** A cable's points (% of the plan) as an SVG path in drawing units, with round corners when asked. */
-export function cablePath(points: [number, number][], size: { w: number; h: number }, corners: 'square' | 'round' = 'square') {
+export function cablePath(points: [number, number][], size: { w: number; h: number }, corners: 'square' | 'round' | 'straight' = 'square') {
   const pts = points.map(([x, y]) => [(x / 100) * size.w, (y / 100) * size.h])
   if (pts.length < 2) return ''
   const f = (n: number) => n.toFixed(1)

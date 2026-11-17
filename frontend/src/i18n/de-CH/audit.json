@@ -43,6 +43,7 @@
     "configs": "Switch-Konfigurationen",
     "credentials": "Switch-Logins",
     "report": "Bericht",
-    "terminal": "Terminal"
+    "terminal": "Terminal",
+    "telemetry": "Telemetrie"
   }
 }

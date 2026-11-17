@@ -197,7 +197,7 @@ def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_
 
 
 def csv_text(rows):
-    from .planner import _csv
+    from .csvcell import cell as _csv
     lines = ['time,kind,title,target,who']
     for r in rows:
         when = datetime.datetime.fromtimestamp(r['t']).astimezone().isoformat(timespec='seconds')

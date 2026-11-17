@@ -63,7 +63,6 @@ nav:
       - Backup and restore: backup.md
       - Demo mode: demo.md
   - Before the event:
-      - Build planner: planner.md
       - Pre-flight check: preflight.md
       - Tournament seats: tournament.md
       - Gear loans: gear.md
@@ -90,7 +89,10 @@ nav:
       - DNS analytics: dns.md
       - Wi-Fi view: wifi.md
       - Game insights: games.md
+      - LAN cache: lancache.md
       - Syslog: syslog.md
+      - Device telemetry: telemetry.md
+      - IP and MAC history: endpoints.md
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md
       - Floor plan: seats.md
@@ -110,8 +112,10 @@ nav:
       - Past events: events.md
   - Extend:
       - Plugins: plugins.md
+      - Marketplace: marketplace.md
       - Integrations: integrations.md
       - Local agent (hosted): agent.md
+      - Agent plugins: agent-plugins.md
       - The API: api.md
       - API reference: api-reference.md
       - Architecture: architecture.md

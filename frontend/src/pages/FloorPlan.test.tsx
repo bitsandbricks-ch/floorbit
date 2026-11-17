@@ -671,17 +671,34 @@ describe('Seats page', () => {
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
   })
 
-  it('filters to the seats with problems from the count above the plan, and back', async () => {
+  it('filters to the seats with problems from the Problems chip in the top bar, and back', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&show=problems': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }
     renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main')
-    const count = await screen.findByRole('button', { name: '1 with problems' })
-    expect(count).toHaveAttribute('aria-pressed', 'false')
-    fireEvent.click(count)
+    const show = within(await screen.findByRole('radiogroup', { name: 'Show' }))
+    // The chip carries the count, so it is the summary too (the separate "1 with problems" link is gone).
+    expect(show.getByText('Problems').parentElement).toHaveTextContent('Problems 1')
+    expect(screen.queryByRole('button', { name: '1 with problems' })).toBeNull()
+    fireEvent.click(show.getByText('Problems'))
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('show=problems'))
-    expect(screen.getByRole('button', { name: '1 with problems' })).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.click(screen.getByRole('button', { name: '1 with problems' }))
+    fireEvent.click(show.getByText('All'))
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+  })
+
+  it('fills the page like a map editor: no reading width, the legend floats over the plan and folds', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
+    renderWithApp(<FloorPlan />, '/plan?hall=main')
+    await screen.findByRole('application', { name: 'Seat map' })
+    expect(screen.getByRole('main')).toHaveClass('fb-main-full')
+    const key = screen.getByRole('region', { name: 'Legend' })
+    const fold = within(key).getByRole('button', { name: 'Legend' })
+    expect(fold).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(fold)
+    expect(fold).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('list', { name: 'Legend' })).toBeNull()
+    // The how-to moved from under the map into the shortcuts dialog.
+    fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }))
+    expect(await screen.findByText(/^Drag to move, scroll or pinch to zoom/)).toBeInTheDocument()
   })
 
   it('switches between the map and the list with L', async () => {
