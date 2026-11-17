@@ -81,6 +81,27 @@ describe('Plan editor keys', () => {
     expect(e.sent('PUT')[1].body).toEqual({ rotation: 270 })
   })
 
+  it('shows what the right-click menu does as buttons once something is selected', async () => {
+    const e = editor()
+    expect(screen.queryByRole('toolbar', { name: 'Selection' })).toBeNull()
+    e.select('B')
+    const bar = await screen.findByRole('toolbar', { name: 'Selection' })
+    expect(bar).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Turn 90°' }))
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    expect(e.sent('PUT')[0]).toMatchObject({ path: '/api/seat-blocks/B', body: { rotation: 90 } })
+  })
+
+  it('takes the Hand tool with H: a click on a block no longer selects it', async () => {
+    const e = editor()
+    e.key('h')
+    expect(await screen.findByRole('button', { name: 'Hand', pressed: true })).toBeInTheDocument()
+    e.select('A')
+    expect(screen.queryByRole('toolbar', { name: 'Selection' })).toBeNull()
+    e.key('Escape')
+    expect(await screen.findByRole('button', { name: 'Select', pressed: true })).toBeInTheDocument()
+  })
+
   it('deletes with Delete and brings the block back with Ctrl+Z', async () => {
     const e = editor({
       'GET /api/seat-blocks?hall=main': [blockRow('A', 25), blockRow('B', 50)],

@@ -1,10 +1,10 @@
 import { ActionIcon, Kbd, Stack, Tooltip } from '@mantine/core'
-import { IconArmchair, IconBolt, IconBorderOuter, IconLetterT, IconLine, IconPlugConnected, IconPointer, IconRouter, IconServer2, IconStar } from '@tabler/icons-react'
+import { IconArmchair, IconBolt, IconBorderOuter, IconHandStop, IconLetterT, IconLine, IconPlugConnected, IconPointer, IconRouter, IconServer2, IconStar } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 
 const ICON: Record<Tool, typeof IconPointer> = {
-  select: IconPointer, block: IconArmchair, switch: IconRouter, text: IconLetterT, icon: IconStar, wall: IconLine, zone: IconBorderOuter,
+  select: IconPointer, hand: IconHandStop, block: IconArmchair, switch: IconRouter, text: IconLetterT, icon: IconStar, wall: IconLine, zone: IconBorderOuter,
   panel: IconServer2, cable: IconPlugConnected, board: IconBolt,
 }
 

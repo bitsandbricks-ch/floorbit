@@ -405,8 +405,10 @@
     "text": "Text",
     "label": "Beschriftung",
     "tools": "Werkzeuge",
+    "quick": "Auswahl",
     "tool": {
       "select": "Auswählen",
+      "hand": "Hand",
       "block": "Sitzblock",
       "text": "Beschriftung",
       "icon": "Symbol",
@@ -418,6 +420,7 @@
       "switch": "Switch"
     },
     "hint": {
+      "hand": "Ziehen verschiebt die Ansicht. Leertaste + Ziehen oder die mittlere Maustaste tun das mit jedem Werkzeug.",
       "block": "Klicke, wo der neue Sitzblock hinkommt.",
       "text": "Klicke, wo die Beschriftung hinkommt.",
       "icon": "Klicke, wo das Symbol hinkommt.",
