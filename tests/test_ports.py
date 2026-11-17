@@ -6,6 +6,9 @@ from conftest import stored
 
 from floorbit import audit, journal, ports
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 SWITCH = {"name": "sw-a-01", "mgmt_ip": "198.51.100.4", "role": "switch"}
 
 

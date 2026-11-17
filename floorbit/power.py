@@ -340,7 +340,10 @@ class PowerWatch:
     def poll_once(self):
         now = time.time()
         found = {}
+        from . import agent_link
         for spec in self.registry.feeders('power'):
+            if not agent_link.may_call_here(spec):    # a smart PDU on the LAN: its agent part sends readings
+                continue
             try:
                 raw = self.registry.call(spec, 'power_readings')
             except PluginError:

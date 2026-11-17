@@ -1,8 +1,16 @@
-# Local agent (hosted Floorbit)
+# Local agent
 
-Floorbit normally runs on the event network, next to LibreNMS and NetBox. A **hosted** Floorbit
-runs somewhere else, such as a server on the internet, and can't reach them: they sit behind the
-event's firewall. The **local agent** closes that gap ([issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2)).
+**The local agent is the only way Floorbit reaches the event network**, whether Floorbit is hosted on
+the internet or runs on a server in the hall. One path for both: what works self-hosted works hosted,
+and both are tested the same way. A self-hosted install runs the two side by side (the compose file
+starts both, [install.md](install.md)).
+
+The Floorbit server itself never asks LibreNMS, NetBox, a switch, a resolver or a smart PDU, and never
+listens for syslog: those plugins run on the agent with the settings made here, and the server
+refuses to call their network methods itself. Without a connected agent, pages show their last
+known state, greyed out with "stale since", and say that no agent is connected; nothing breaks.
+`LAN_ACCESS=direct` (environment only) lets the server call the plugins itself again: for
+development and tests, not for an event. The demo data (`FLOORBIT_DEMO`) needs no agent.
 
 The agent runs on the event network and opens the connection itself, out to the hosted Floorbit
 over HTTPS. Nothing on the event network has to be reachable from outside, and no port has to be
@@ -26,17 +34,11 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
 | Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
 | The Traffic page (NetFlow and IPFIX), when the agent collects flows (`FLOORBIT_AGENT_FLOWS_PORT`) | traffic |
+| Port actions (SSH ports), switch commands, config backups and the switch terminal | switch SSH |
+| Attendee check-in, the seat help page and its speed test, with each PC's own address | front door |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, electrics
-readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
-inside the hall), and so on.
-
-**Not through the agent yet.** These need the hosted Floorbit itself to reach the event network,
-so on a hosted Floorbit they only work when that service is reachable from it:
-
-| Feature | Why |
-| --- | --- |
-| Port actions (SSH ports), switch commands and terminal | they connect to the switch directly |
+readings typed in, tournaments, and so on.
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
 
@@ -59,6 +61,18 @@ A refused request fails like an unreachable server, with "Refused: ..." in the e
 proxy (`HTTPS_PROXY`) the server connects to the proxy, so only the proxy's address is checked: let the
 proxy refuse the hosting network too. The server's own probes, game server queries and RCON follow
 `PROBE_NETS` ([services](services.md#what-the-server-itself-may-reach)).
+
+## The agent next to a self-hosted Floorbit
+
+`docker-compose.yml` and the Kubernetes manifest start the agent next to Floorbit, and it enrols
+itself: with `FLOORBIT_LOCAL_AGENT_KEY_FILE` set, Floorbit writes a key into that file at start
+(mode 600, in a volume only the two containers share) and keeps the agent as **Local agent** (id
+`10ca1000`). The agent reads it from `FLOORBIT_AGENT_KEY_FILE` (it waits up to two minutes for the
+file) and connects to `http://floorbit:5000` inside the Compose network, or `http://localhost:5000`
+in the pod. The file is the truth: a key written there by hand is taken over at the next start.
+**Renew key** on Settings writes the new key to the file as well; the agent takes it at its next
+start, and the old key keeps working until then (at most 24 hours). Revoking it removes it only
+until Floorbit's next start: to run without it, remove the `agent` service.
 
 ## Enrolling an agent
 
@@ -230,6 +244,58 @@ sync. A plugin that fails on the agent fails on its own; the others still sync. 
 the sync says so and nothing changes. A sync waits up to 25 seconds for the agent.
 
 A plugin the agent feeds is not asked on the hosted Floorbit itself, which can't reach it anyway.
+
+## Switch logins through the agent
+
+[Port actions](ports.md), [switch commands](commands.md), [config backups](configs.md) and the
+[terminal](terminal.md) open their SSH connection on the agent, in the hall. The agent turns on the
+same **SSH port actions** plugin with the hosted settings; nothing to set on the agent.
+
+- **What stays on the hosted side:** who may do it, the cooldowns and failed-login pauses, the audit
+  log, the stored logins and the pinned host keys. A stored login is opened for the one call and
+  sent with it over the agent's link (TLS); the agent drops it when the connection is done and never
+  writes it down. A typed login goes the same way.
+- **Host keys** stay pinned on the hosted side and go along with each call, so two agents in one
+  hall, or an agent that was replaced, check a switch against the same key. **Forget pinned host
+  keys** works as before.
+- **Which agent:** the one serving the switch's hall ([several agents](#several-agents)); with two
+  in one hall, always the same one of them, so a terminal stays with the agent that opened it.
+- **What the agent will reach:** only private addresses, or the networks in
+  `FLOORBIT_AGENT_SWITCH_NETS` (comma separated) on the agent. A hosted Floorbit that was taken
+  over can't send the agent to log in anywhere else.
+- **Terminals** live on the agent (at most 10). The browser reads them through the hosted side as
+  before; a terminal nobody reads for 90 seconds is closed on the agent. If the agent goes away,
+  the terminal says the connection was lost.
+
+## Attendees through the agent (front door)
+
+A hosted Floorbit sees every attendee as the hall's one public NAT address, so check-in can't tell
+which PC asks, the seat speed test measures the internet line, and all attendees share one
+sign-in lockout. The agent's **front door** fixes that: it answers on the event network and passes
+each request on to the hosted Floorbit, adding the address it saw and its own key.
+
+Set on the agent:
+
+| Variable | Example | What |
+| --- | --- | --- |
+| `FLOORBIT_AGENT_FRONT_DOOR` | `0.0.0.0:8443` | Where it answers (host:port). Off by default. |
+| `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | `/certs/checkin.pem` | Serve HTTPS. Crew sign-in needs it (session cookies only go over HTTPS); check-in works on plain HTTP. |
+| `FLOORBIT_AGENT_FRONT_DOOR_PROXIES` | `10.0.0.5` | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
+
+Then point the check-in name (`CHECKIN_ADDRESS`, for example `checkin.lan`) at the agent in the
+event DNS: typing it on a PC opens the check-in page, through the agent.
+
+- **The hosted side only believes the agent.** `Floorbit-Client-IP` counts only on a request that
+  also carries a valid agent key (`Floorbit-Front-Door`); a revoked key stops counting within 30
+  seconds. The agent drops whatever a client sends under those names, and `X-Forwarded-For`.
+- **The speed test measures the hall.** Its data (`/help/<seat>/speed/ping`, `down`, `up`) is
+  answered by the agent itself, with the same per-client budget, so the result is the seat's path
+  to the agent. The result goes to the hosted side as before.
+- **Nothing else is reachable through it.** It only talks to the hosted Floorbit, and never passes
+  on the agent's own API (`/api/agent/`).
+- **When the hosted side is away,** attendees get a short page in English and German that tries
+  again every 30 seconds, instead of an error. The Local agents page counts what went through and
+  what failed.
 
 ## Cables through the agent
 

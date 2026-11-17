@@ -193,7 +193,8 @@ def act(registry, account, body, action):
             raise PortError(f'Another port action on {dev["name"]} is still running.', 409)
         _busy.add(dev['name'])
     try:
-        result = registry.call(spec, method, {
+        from . import switch_link
+        result = switch_link.call(registry, spec, method, {
             'switch': dev['name'], 'host': dev['mgmt_ip'], 'port': port, 'model': dev.get('model') or '',
             'login': login, **extra})
     except PluginError as exc:

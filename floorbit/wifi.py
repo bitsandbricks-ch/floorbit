@@ -85,8 +85,9 @@ def ask(registry):
                 ap = clean_ap(raw)
                 if ap and ap['name'].lower() not in aps and len(aps) < MAX_APS:
                     aps[ap['name'].lower()] = {**ap, 'source': f"{feed['name']} (local agent)"}
+    from . import agent_link
     for spec in registry.feeders('wifi'):
-        if spec.id in answered:
+        if spec.id in answered or not agent_link.may_call_here(spec):
             continue
         try:
             for raw in registry.call(spec, 'wifi_aps') or []:

@@ -2,8 +2,15 @@
 
 On Kubernetes or k3s, see [kubernetes.md](kubernetes.md) instead.
 
-Floorbit and Redis in two containers, on any machine with Docker. It works without NetBox or
-LibreNMS: you place switches by hand and connect those later.
+Floorbit, its local agent and Redis in three containers, on any machine with Docker. It works
+without NetBox or LibreNMS: you place switches by hand and connect those later.
+
+Floorbit itself never talks to the event network: the switches, LibreNMS, NetBox, game servers and
+the rest are reached through the [local agent](agent.md), the same way as with a hosted Floorbit.
+Here the agent runs next to it, and Floorbit enrols it by itself at start: it writes the agent's key
+into the `agent_key` volume, which only the two containers share, and lists it as "Local agent"
+under **Settings > Local agents**. Run this machine where it can reach the event network, or run
+only the agent there ([agent.md](agent.md)).
 
 You need Docker with Compose 2.24 or newer (`docker compose version`).
 
@@ -102,16 +109,11 @@ firewall. Otherwise anyone could send their own `X-Forwarded-For`. With a second
 Live updates are a long-running request (`/api/events`): don't buffer it (Floorbit already sends
 `X-Accel-Buffering: no` for nginx) and allow it a long read timeout.
 
-## 6. Traffic insights (optional)
+## 6. Syslog and traffic insights (optional)
 
-For the **Traffic** page, start the NetFlow/IPFIX collector too and point the switches or the router
-at this host, udp/2055:
-
-```sh
-docker compose --profile flows up -d
-```
-
-What it keeps and for how long: [flows.md](flows.md).
+The agent takes syslog on udp/514 (`SYSLOG_PUBLISH_PORT`, [syslog.md](syslog.md)) and NetFlow/IPFIX
+for the **Traffic** page on udp/2055 (`FLOWS_PORT`, [flows.md](flows.md)). Point the switches,
+firewalls and the router at this host.
 
 ## Backups
 

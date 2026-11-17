@@ -14,7 +14,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import credentials, inventory, ports
+from . import credentials, inventory, ports, switch_link
 from .plugins import PluginError
 from .store import load_data, save_data
 
@@ -194,7 +194,7 @@ def _one(registry, spec, dev, commands, login, stored_for=None, max_output=MAX_O
             except ports.PortError as exc:
                 return {'switch': name, 'ok': False, 'output': '', 'error': str(exc)[:300], 'ms': 0}
             ref = (mine or {}).get('ref')
-        result = registry.call(spec, 'send_commands', {'switch': name, 'host': dev['mgmt_ip'],
+        result = switch_link.call(registry, spec, 'send_commands', {'switch': name, 'host': dev['mgmt_ip'],
                                                       'commands': commands, 'login': mine})
         output = str((result or {}).get('output') or '') if isinstance(result, dict) else str(result or '')
         refused = (result or {}).get('refused') if isinstance(result, dict) else None

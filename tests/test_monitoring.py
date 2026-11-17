@@ -5,6 +5,9 @@ from floorbit import sources
 from integrations import checkin
 from integrations.monitor import StatusMonitor
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 @pytest.fixture
 def registry(app_module):

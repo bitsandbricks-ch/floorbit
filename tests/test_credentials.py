@@ -10,6 +10,9 @@ from conftest import stored
 from floorbit import credentials, ports, store, vault
 from tests.test_ports import SWITCH, FakeSwitch, audit_lines, bounce
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 def key_file(path):
     path.write_bytes(base64.b64encode(os.urandom(32)))

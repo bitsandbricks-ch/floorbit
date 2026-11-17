@@ -9,6 +9,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { CheckinConflict, CheckinOverview, CrewCheckin, WiredState } from '@/api/types'
 import { Layout } from '@/components/Layout'
+import { Link } from 'react-router-dom'
 import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
@@ -64,7 +65,8 @@ export default function Checkins() {
 
   return (
     <Layout title={t('crewCheckin.title')} back={{ href: '/seats', label: t('crewCheckin.seats') }}>
-      <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')} />
+      <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')}
+        actions={<Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         <ErrorBanner error={act.error} />
