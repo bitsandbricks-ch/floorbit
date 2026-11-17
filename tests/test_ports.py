@@ -70,7 +70,7 @@ def test_demo_bounce_takes_the_port_down_and_is_audited(client, switch):
 def test_a_seat_is_resolved_by_the_server(client, switch, monkeypatch):
     client.put("/api/settings/plugins/demo", json={"enabled": True})
     from integrations import seat_sources
-    monkeypatch.setattr(seat_sources, "load", lambda *a, **k: {"A-1": {"ip_address": "192.0.2.10"}})
+    monkeypatch.setattr(seat_sources, "load", lambda *a, **k: {"A-1": {"ip_address": "192.0.2.1"}})
     resp = client.post("/api/ports/bounce", json={"seat": "a-1", "switch": "core-01", "port": "Gi9/9/9"})
     body = resp.get_json()
     assert resp.status_code == 200, body

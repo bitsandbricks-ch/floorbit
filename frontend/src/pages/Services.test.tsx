@@ -14,6 +14,8 @@ const data: ServicesData = {
     probe_host: 'www.example.com', probe_port: 443, port_state: 'up', in_bps: 850e6, out_bps: 90e6, utilization: 0.85, latency_ms: 12.5, loss: 0.2 }],
   resolvers: [{ ...base, status: 'down', id: 'r1', name: 'Resolver 1', address: '192.0.2.53', lookup: 'example.com', rcode: 'SERVFAIL',
     answers: 0, latency_ms: 3, error: 'example.com: SERVFAIL' }],
+  sites: [{ ...base, status: 'down', id: 's1', name: 'Steam', host: 'store.example.com', port: 443, latency_ms: null, loss: null,
+    error: 'store.example.com does not answer on port 443.' }],
   lan_cache: { status: 'up', hit_ratio: 0.72, served_bytes: 120e9, bps: 4e8, disk: { used: 8e12, total: 10e12, ratio: 0.8 }, error: '', demo: false },
   interval: 30, last_poll: 2, via_agent: false, probe_ports: [53, 80, 443, 853], devices: ['core-01'],
 }
@@ -46,5 +48,18 @@ describe('Services', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
       name: 'Resolver 1', address: '192.0.2.53', lookup: 'example.com',
     }))
+  })
+
+  it('shows each internet site and adds the usual ones in one go', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/services': { ...data, sites: [] },
+      'POST /api/services/sites/common': () => ({ status: 200, body: data }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Services />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add the usual sites' }))
+    const site = await screen.findByRole('region', { name: 'Steam' })
+    expect(within(site).getByText('store.example.com does not answer on port 443.')).toBeInTheDocument()
+    expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/services/sites/common')).toBe(true)
   })
 })

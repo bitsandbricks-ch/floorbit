@@ -829,6 +829,7 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
+| POST | `/api/services/sites/common` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.setup
 
