@@ -1,5 +1,5 @@
-import { Alert, Anchor, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
-import { IconDeviceTv, IconPencil, IconPlus } from '@tabler/icons-react'
+import { Alert, Anchor, Badge, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,13 +12,14 @@ import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import {
-  type Board, type Node, type Path, MAX_PANES, at, isPane, panes, remove, resize, setPane, slug, split, starter,
-} from './dashboards/model'
+  COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
+} from './dashboards/grid'
+import { GridView } from './dashboards/GridView'
+import { type Board, type Node, MAX_PANES, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
-import { SplitView } from './dashboards/SplitView'
 import './dashboards/dashboards.css'
 
-/** Dashboards (floorbit/dashboards.py): screens split into panes, for the ops desk or a big screen.
+/** Dashboards (floorbit/dashboards.py): widgets on a grid, for the ops desk or a big screen.
  *  ``?edit=<id>`` (or ``?edit=new``) opens the editor. */
 export default function Dashboards() {
   const { t } = useTranslation()
@@ -53,11 +54,14 @@ export default function Dashboards() {
         {q.data?.layouts.map((b) => (
           <Paper key={b.id} withBorder radius="lg" p="md" component="section" aria-label={b.name}>
             <Stack gap="sm">
-              <div className="fb-board-thumb" aria-hidden="true"><Thumb node={b.root} /></div>
+              <div className="fb-board-thumb" aria-hidden="true"><Thumbs sections={b.sections} /></div>
               <div>
-                <Title order={3} fz="md">{b.name}</Title>
+                <Group gap={6}>
+                  <Title order={3} fz="md">{b.name}</Title>
+                  {b.builtin && <Badge size="xs" variant="light">{t('dashboards.builtin')}</Badge>}
+                </Group>
                 <Text size="xs" c="dimmed">
-                  {t('dashboards.panes', { count: panes(b.root) })}
+                  {t('dashboards.panes', { count: paneCount(b.sections) })}
                   {b.updated_at ? ` · ${t('dashboards.updated', { when: dateTime(b.updated_at) })}` : ''}
                 </Text>
               </div>
@@ -76,7 +80,21 @@ export default function Dashboards() {
   )
 }
 
-/** The split as boxes, for the list. */
+/** The grid as boxes, for the list. */
+function Thumbs({ sections }: { sections: Section[] }) {
+  return (
+    <div className="fb-thumb-grid">
+      {sections.map((s, i) => (
+        <div key={i} className="fb-thumb-section" style={{ flex: `${Math.max(1, rows(s.panels))} 1 0`, gridTemplateRows: `repeat(${Math.max(1, rows(s.panels))}, 1fr)` }}>
+          {s.panels.map((p, j) => (
+            <div key={j} style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, display: 'flex' }}><Thumb node={p.node} /></div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Thumb({ node }: { node: Node }) {
   if (isPane(node)) return <div className={`fb-thumb-pane k-${node.pane.kind}`} />
   return (
@@ -90,17 +108,37 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
   const { t } = useTranslation()
   const qc = useQueryClient()
   const [name, setName] = useState(board?.name ?? '')
-  const [root, setRoot] = useState<Node>(() => board?.root ?? starter())
+  const [sections, setSections] = useState<Section[]>(() => board?.sections ?? starterSections())
+  const [fit, setFit] = useState(board?.fit ?? true)
   const [cycle, setCycle] = useState<number | ''>(board?.cycle ?? '')
-  const [selected, setSelected] = useState<Path | null>([0])
-  const picked = selected ? at(root, selected) : null
+  const [selected, setSelected] = useState<Spot | null>({ section: 0, panel: 0, path: [] })
+  const node = selected ? sections[selected.section]?.panels[selected.panel]?.node : undefined
+  const picked = node && selected ? at(node, selected.path) : null
   const done = () => { void qc.invalidateQueries({ queryKey: qk.boards }); onDone() }
   const id = board?.id ?? slug(name)
   const save = useMutation({
-    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, root, ...(cycle ? { cycle } : {}) }),
+    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, ...(cycle ? { cycle } : {}) }),
     onSuccess: done,
   })
   const drop = useMutation({ mutationFn: () => del(`/api/dashboards/${board!.id}`), onSuccess: done })
+
+  const panels = (s: number, fn: (ps: Panel[]) => Panel[]) =>
+    setSections((all) => all.map((sec, i) => (i === s ? { ...sec, panels: fn(sec.panels) } : sec)))
+  const withNode = (spot: Spot, fn: (n: Node) => Node) =>
+    panels(spot.section, (ps) => ps.map((p, i) => (i === spot.panel ? { ...p, node: fn(p.node) } : p)))
+  const full = paneCount(sections) >= MAX_PANES
+  const target = selected?.section ?? sections.length - 1
+  const addWidget = () => {
+    if (total(sections) >= MAX_PANELS || full) return
+    const ps = add(sections[target].panels, { pane: { kind: 'empty' } })
+    panels(target, () => ps)
+    setSelected({ section: target, panel: ps.length - 1, path: [] })
+  }
+  const addSection = () => {
+    if (sections.length >= MAX_SECTIONS) return
+    setSections([...sections, { title: t('dashboards.section.new'), panels: [] }])
+    setSelected(null)
+  }
   return (
     <div className="fb-board-editor">
       <Group className="fb-board-bar" gap="sm" align="flex-end" wrap="wrap">
@@ -112,26 +150,54 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
           <Button loading={save.isPending} disabled={!name.trim()} onClick={() => save.mutate()}>{t('dashboards.save')}</Button>
           <Button variant="default" onClick={() => onDone()}>{t('dashboards.cancel')}</Button>
           {board && <Button variant="default" component="a" href={`/dashboards/${encodeURIComponent(board.id)}`} leftSection={<IconDeviceTv size={16} />}>{t('dashboards.open')}</Button>}
-          {board && <Button variant="subtle" color="down" loading={drop.isPending} onClick={() => drop.mutate()}>{t('dashboards.delete')}</Button>}
+          {board && !board.builtin && <Button variant="subtle" color="down" loading={drop.isPending} onClick={() => drop.mutate()}>{t('dashboards.delete')}</Button>}
         </Group>
       </Group>
       {(save.error || drop.error) && <Alert color="down" role="alert" mb="sm">{(save.error || drop.error)!.message}</Alert>}
+      <Group gap="sm" wrap="wrap">
+        <Button size="xs" variant="default" leftSection={<IconLayoutGridAdd size={16} />} onClick={addWidget}
+          disabled={total(sections) >= MAX_PANELS || full}>{t('dashboards.edit.addWidget')}</Button>
+        <Button size="xs" variant="default" leftSection={<IconSeparator size={16} />} onClick={addSection}
+          disabled={sections.length >= MAX_SECTIONS}>{t('dashboards.edit.addSection')}</Button>
+        <Switch size="sm" label={t('dashboards.fit')} checked={fit} onChange={(e) => setFit(e.currentTarget.checked)} />
+        <Text size="xs" c="dimmed" style={{ flex: 1, minWidth: 200 }}>{t('dashboards.canvasHint', { max: MAX_PANELS, cols: COLS })}</Text>
+      </Group>
       <div className="fb-board-work">
         <div className="fb-board-canvas">
-          <Text size="xs" c="dimmed" mb={4}>{t('dashboards.canvasHint', { max: MAX_PANES })}</Text>
-          <div className="fb-board-screen">
-            <SplitView node={root} cycle={cycle || undefined} editing={{
+          <div className={`fb-board-screen${fit ? '' : ' scroll'}`}>
+            <GridView sections={sections} fit={fit} cycle={cycle || undefined} editing={{
               selected,
               onSelect: setSelected,
-              onSplit: (p, dir) => { const next = split(root, p, dir); setRoot(next); setSelected(p) },
-              onRemove: (p) => { setRoot(remove(root, p)); setSelected(null) },
-              onResize: (p, border, pct) => setRoot((r) => resize(r, p, border, pct)),
+              onSplit: (spot, dir) => { if (!full) withNode(spot, (n) => split(n, spot.path, dir)); setSelected(spot) },
+              onRemove: (spot) => {
+                if (spot.path.length) withNode(spot, (n) => remove(n, spot.path))
+                else panels(spot.section, (ps) => ps.filter((_, i) => i !== spot.panel))
+                setSelected(null)
+              },
+              onResizeSplit: (spot, border, pct) => withNode(spot, (n) => resize(n, spot.path, border, pct)),
+              onPlace: (s, i, box, base) => panels(s, () => place(base, i, box)),
+              onSection: (s, change) => {
+                if (change === null) {
+                  setSections((all) => all.filter((_, i) => i !== s))
+                  setSelected(null)
+                } else setSections((all) => all.map((sec, i) => (i === s ? { ...sec, ...change } : sec)))
+              },
+              onMoveSection: (s, by) => {
+                setSections((all) => {
+                  const next = [...all]
+                  const [one] = next.splice(s, 1)
+                  next.splice(s + by, 0, one)
+                  return next
+                })
+                setSelected(null)
+              },
             }} />
           </div>
         </div>
         <Paper withBorder radius="lg" p="md" className="fb-board-side" component="aside" aria-label={t('dashboards.form.label')}>
-          {picked && isPane(picked)
-            ? <PaneForm key={selected!.join('.')} pane={picked.pane} onChange={(pane) => setRoot(setPane(root, selected!, pane))} />
+          {picked && isPane(picked) && selected
+            ? <PaneForm key={`${selected.section}.${selected.panel}.${selected.path.join('.')}`} pane={picked.pane}
+                onChange={(pane) => withNode(selected, (n) => setPane(n, selected.path, pane))} />
             : <Text size="sm" c="dimmed">{t('dashboards.form.pickOne')}</Text>}
         </Paper>
       </div>

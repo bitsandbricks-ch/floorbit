@@ -1,6 +1,6 @@
 {
   "title": "Dashboards",
-  "intro": "Bildschirme in Bereiche geteilt: der Hallenplan auf einen Ausschnitt gezoomt mit den Ebenen deiner Wahl, Dashboard-Kacheln und die anderen Grossbildschirm-Seiten. Öffne eines im Vollbild auf einem TV.",
+  "intro": "Widgets in einem Raster, in Abschnitten: der Hallenplan auf einen Ausschnitt gezoomt mit den Ebenen deiner Wahl, Widgets, Kacheln, eigener Text und die anderen Grossbildschirm-Seiten. Teile ein Widget, um Bereiche nebeneinander zu stellen. Öffne eines im Vollbild auf einem TV.",
   "new": "Neues Dashboard",
   "open": "Im Vollbild öffnen",
   "editOne": "Bearbeiten",
@@ -18,13 +18,17 @@
   "cancel": "Abbrechen",
   "delete": "Löschen",
   "clock": "Uhrzeit",
-  "canvasHint": "Klick auf einen Bereich, um ihn einzurichten. Teile ihn nach rechts oder unten, zieh die Ränder für die Grösse. Höchstens {{max}} Bereiche.",
+  "canvasHint": "Zieh ein Widget am Griff, ändere die Grösse an der Ecke (mit der Tastatur: Pfeile, Shift+Pfeile). Klick es an, um es einzurichten oder zu teilen. Höchstens {{max}} Widgets auf {{cols}} Spalten.",
   "edit": {
     "pick": "Diesen Bereich einrichten",
     "settings": "Einstellungen",
     "splitRight": "Nach rechts teilen",
     "splitDown": "Nach unten teilen",
-    "remove": "Bereich entfernen"
+    "remove": "Bereich entfernen",
+    "addWidget": "Widget hinzufügen",
+    "addSection": "Abschnitt hinzufügen",
+    "move": "Widget verschieben",
+    "moveHint": "Ziehen zum Verschieben. Pfeiltasten verschieben, Shift+Pfeile ändern die Grösse."
   },
   "kind": {
     "plan": "Plan",
@@ -104,5 +108,18 @@
   "align": {
     "start": "Links",
     "center": "Zentriert"
-  }
+  },
+  "fit": "An Bildschirm anpassen",
+  "section": {
+    "new": "Neuer Abschnitt",
+    "untitled": "Titel des Abschnitts (leer: nur eine Trennlinie)",
+    "title": "Titel des Abschnitts",
+    "fold": "Abschnitt einklappen",
+    "open": "Abschnitt öffnen",
+    "up": "Abschnitt nach oben",
+    "down": "Abschnitt nach unten",
+    "remove": "Abschnitt mit seinen Widgets entfernen",
+    "empty": "Noch keine Widgets hier: füge eines hinzu oder entferne den Abschnitt."
+  },
+  "builtin": "Vorgefertigt"
 }

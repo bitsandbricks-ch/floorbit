@@ -8,7 +8,7 @@ import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 import type { Board } from './dashboards/model'
-import { SplitView } from './dashboards/SplitView'
+import { GridView } from './dashboards/GridView'
 import { useIdle } from './plan/idle'
 import { useReloadOnUpdate } from './plan/update'
 import './dashboards/dashboards.css'
@@ -32,10 +32,10 @@ export default function DashboardScreen() {
   }, [])
   useEffect(() => { if (q.data) document.title = `${q.data.name} · Floorbit` }, [q.data])
   return (
-    <main className={`fb-board-show${idle ? ' idle' : ''}`}>
+    <main className={`fb-board-show${idle ? ' idle' : ''}${q.data && !q.data.fit ? ' scroll' : ''}`}>
       {q.isPending && <LoadingState />}
       {q.error && <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />}
-      {q.data && <SplitView node={q.data.root} cycle={q.data.cycle} />}
+      {q.data && <GridView sections={q.data.sections} fit={q.data.fit} cycle={q.data.cycle} />}
       <Text className="fb-board-clock" fw={800} aria-label={t('dashboards.clock')}>{clock(now, i18n.language)}</Text>
     </main>
   )

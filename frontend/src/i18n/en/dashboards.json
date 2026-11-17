@@ -1,6 +1,6 @@
 {
   "title": "Dashboards",
-  "intro": "Screens split into panes: the floor plan zoomed to an area with the layers you pick, dashboard tiles and the other big-screen pages. Open one full screen on a TV.",
+  "intro": "Widgets on a grid, in sections: the floor plan zoomed to an area with the layers you pick, widgets, tiles, your own text and the other big-screen pages. Split a widget to put panes side by side. Open one full screen on a TV.",
   "new": "New dashboard",
   "open": "Open full screen",
   "editOne": "Edit",
@@ -18,13 +18,17 @@
   "cancel": "Cancel",
   "delete": "Delete",
   "clock": "Time",
-  "canvasHint": "Click a pane to set it up. Split it right or down, drag the borders to resize. At most {{max}} panes.",
+  "canvasHint": "Drag a widget by its handle, resize it by its corner (with the keyboard: arrows, Shift+arrows). Click it to set it up or split it. At most {{max}} widgets on {{cols}} columns.",
   "edit": {
     "pick": "Set up this pane",
     "settings": "Settings",
     "splitRight": "Split right",
     "splitDown": "Split down",
-    "remove": "Remove pane"
+    "remove": "Remove pane",
+    "addWidget": "Add widget",
+    "addSection": "Add section",
+    "move": "Move widget",
+    "moveHint": "Drag to move. Arrow keys move it, Shift+arrows resize it."
   },
   "kind": {
     "plan": "Plan",
@@ -104,5 +108,18 @@
   "align": {
     "start": "Left",
     "center": "Centre"
-  }
+  },
+  "fit": "Fit to screen",
+  "section": {
+    "new": "New section",
+    "untitled": "Section title (empty: just a divider)",
+    "title": "Section title",
+    "fold": "Fold section",
+    "open": "Open section",
+    "up": "Move section up",
+    "down": "Move section down",
+    "remove": "Remove section and its widgets",
+    "empty": "No widgets here yet: add one, or remove the section."
+  },
+  "builtin": "Ready-made"
 }
