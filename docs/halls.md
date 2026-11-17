@@ -134,8 +134,12 @@ order. In the API it is `z` on a block or mark (a whole number, higher on top, 0
 ## The editor's menu
 
 The **tool rail** on the left holds the tools (Select <kbd>V</kbd>, Switch <kbd>S</kbd>, Seat block
-<kbd>B</kbd>, Draw <kbd>D</kbd>), the buttons for the three panels, and at the bottom Undo, Redo, Snap
-to grid <kbd>G</kbd> and the keyboard shortcuts <kbd>?</kbd>.
+<kbd>B</kbd>, Draw <kbd>D</kbd>, Cable <kbd>C</kbd>), the buttons for the three panels, and at the bottom
+Undo, Redo, Snap to grid <kbd>G</kbd> and the keyboard shortcuts <kbd>?</kbd>.
+
+A tool stays on after you place something, so several switches, blocks, icons, walls or zones go down in
+a row; <kbd>Esc</kbd> or <kbd>V</kbd> goes back to Select. Only a text label goes straight back to Select,
+with its text ready to type.
 
 The **panel on the right** shows **Search** (<kbd>/</kbd>), **Layers** (<kbd>L</kbd>) or **Switches**
 (<kbd>W</kbd>, with the NetBox sync when NetBox is set up). Pressing the button of the open panel again

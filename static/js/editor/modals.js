@@ -168,10 +168,8 @@ modalConfirm.addEventListener('click', async () => {
         }
       }
       closeAddModal();
-      setTool('select');
-      renderAll();
+      renderAll();   // the tool stays: place the next one (Esc or V to stop)
       if (placed.length) {
-        if (placed.length === 1) selectSwitch(placed[0].id);
         pushHistory({
           label: placed.length === 1 ? 'place switch' : `place ${placed.length} switches`,
           undo: async () => { for (const p of placed) await deleteSwitch(resolveId(p.id)); },
@@ -185,9 +183,7 @@ modalConfirm.addEventListener('click', async () => {
       const sw = await createManualSwitch(data);
       const ref = { id: sw.id };
       closeAddModal();
-      setTool('select');
       renderAll();
-      selectSwitch(sw.id);
       pushHistory({
         label: `add ${name}`,
         undo: () => deleteSwitch(resolveId(ref.id)),
@@ -340,9 +336,7 @@ blockConfirm.addEventListener('click', async () => {
       const many = { ...data, count: blockCopies(), ...blockStep(data) };
       let made = await createBlocks(many);
       closeBlockModal();
-      setTool('select');
       renderAll();
-      selectBlock(made[0].id);
       toast(`${made.length} seat blocks added`, { type: 'success', duration: 2500 });
       pushHistory({
         label: `add ${made.length} seat blocks`,
@@ -358,9 +352,7 @@ blockConfirm.addEventListener('click', async () => {
     const block = await createBlock(data);
     const ref = { id: block.id };
     closeBlockModal();
-    setTool('select');
     renderAll();
-    selectBlock(block.id);
     pushHistory({
       label: `add ${data.name || 'seat block'}`,
       undo: () => deleteBlock(resolveId(ref.id)),
