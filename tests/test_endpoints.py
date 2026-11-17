@@ -121,6 +121,10 @@ def test_the_agent_sends_where_it_saw_each_machine(client, anon_client, tmp_path
                                     "port": "Gi1/0/1", "vlan": "10"} in payload["rows"]
     key = enrol(client)["key"]
     client.put("/api/settings/plugins/telemetry", json={"enabled": True})
+    # A shared test database (Postgres) may hold this machine from another test, dated in the
+    # future (NOW): the agent's batch is dated now and would add nothing to that row.
+    if endpoints.history().db is not None:
+        endpoints.history().db.run("DELETE FROM floorbit_endpoints")
     got = anon_client.post("/api/agent/v1/plugins/telemetry/endpoints", json={"payload": payload},
                            headers={"Floorbit-Agent-Key": key})
     assert got.status_code == 200 and got.get_json()["taken"] >= 1
