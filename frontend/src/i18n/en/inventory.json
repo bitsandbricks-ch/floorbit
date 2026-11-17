@@ -106,7 +106,7 @@
     "empty": "No icons uploaded yet.",
     "name": "Name",
     "remove": "Remove",
-    "removeQ": "Remove the icon {{name}}? Devices, groups and tags that show it go back to their default icon."
+    "removeQ": "Remove the icon {{name}}? Devices, groups and tags that show it go back to their default icon, icons on the floor plan to the info icon."
   },
   "look": {
     "builtIn": "Built in",

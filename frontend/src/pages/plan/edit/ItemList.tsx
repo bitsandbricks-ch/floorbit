@@ -3,6 +3,7 @@ import { IconChevronDown, IconChevronRight, IconSearch, IconUnlink } from '@tabl
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanGroup, SeatViewData } from '@/api/types'
+import { useCustomIcons } from '../../inventory/scope'
 import { type ItemRef, allItems, refKey, sameRef } from './geometry'
 
 const ORDER: Record<string, number> = { block: 0, switch: 1, panel: 2, board: 3, text: 4, icon: 5, zone: 6, wall: 7 }
@@ -26,7 +27,8 @@ export function ItemList({ data, groups, selected, onSelect, onRename, onUngroup
   const exists = (r: ItemRef) => items.some((x) => sameRef(x, r))
   const live = groups.map((g) => ({ ...g, members: g.members.filter(exists) })).filter((g) => g.members.length >= 2)
   const inGroup = (r: ItemRef) => live.some((g) => g.members.some((m) => sameRef(m, r)))
-  const name = (r: ItemRef) => itemName(t, data, r)
+  const uploaded = useCustomIcons().data?.icons
+  const name = (r: ItemRef) => itemName(t, data, r, uploaded)
   const kindOf = (r: ItemRef) => (r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id)?.kind ?? 'text' : r.kind)
   const match = (r: ItemRef) => !q.trim() || name(r).toLowerCase().includes(q.trim().toLowerCase())
   const loose = items.filter((r) => !inGroup(r) && match(r))
@@ -101,7 +103,7 @@ function GroupName({ group, onSelect, onRename }: { group: PlanGroup; onSelect: 
   )
 }
 
-function itemName(t: (k: string, o?: Record<string, unknown>) => string, data: SeatViewData, r: ItemRef): string {
+function itemName(t: (k: string, o?: Record<string, unknown>) => string, data: SeatViewData, r: ItemRef, uploaded?: { id: string; name: string }[]): string {
   if (r.kind === 'block') return t('plan.edit.kind.block', { name: data.drawing?.shapes.find((s) => s.id === r.id)?.name || '—' })
   if (r.kind === 'switch') return t('plan.edit.kind.switch', { name: data.switches.find((w) => w.id === r.id)?.name ?? '' })
   if (r.kind === 'panel') return t('plan.edit.kind.panel', { name: r.id })
@@ -109,6 +111,11 @@ function itemName(t: (k: string, o?: Record<string, unknown>) => string, data: S
   if (r.kind === 'cable') return t('plan.edit.kind.cable')
   const m = data.drawing?.marks?.find((x) => x.id === r.id)
   const what = t(`plan.edit.kind.${m?.kind ?? 'text'}`)
-  const detail = m?.kind === 'text' ? m.text : m?.kind === 'zone' ? m.label : m?.kind === 'icon' ? m.icon : ''
+  const detail = m?.kind === 'text' ? m.text : m?.kind === 'zone' ? m.label : m?.kind === 'icon' ? iconName(t, m.icon ?? '', uploaded) : ''
   return detail ? `${what}: ${detail}` : what
+}
+
+/** An uploaded icon by its name in the library, a built-in one by its translated name. */
+function iconName(t: (k: string, o?: Record<string, unknown>) => string, icon: string, uploaded?: { id: string; name: string }[]) {
+  return uploaded?.find((u) => u.id === icon)?.name ?? t(`plan.edit.icons.${icon}`, { defaultValue: icon.replace(/[-_]/g, ' ') })
 }

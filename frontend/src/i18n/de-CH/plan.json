@@ -491,6 +491,8 @@
       "create_other": "{{count}} Blöcke erstellen"
     },
     "mark": {
+      "builtIn": "Eingebaut",
+      "uploaded": "Hochgeladen",
       "textTitle": "Neue Beschriftung",
       "iconTitle": "Neues Symbol",
       "icon": "Symbol",

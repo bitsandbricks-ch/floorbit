@@ -876,6 +876,8 @@ export interface PlanDrawing {
   marks?: PlanMark[]
   /** The path data of the icons the marks use, by name (24 x 24, stroked). */
   icons?: Record<string, string[]>
+  /** Uploaded icons the marks use, by id, as ``data:`` URIs (floorbit/icon_library.py). */
+  custom_icons?: Record<string, string>
 }
 
 /** [time, seat, 1 online / 0 offline] */

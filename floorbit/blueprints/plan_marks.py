@@ -1,7 +1,8 @@
-"""Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py)."""
+"""Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py). An icon is a built-in one
+or an uploaded one from the icon library; ``custom_icons`` carries the uploaded ones the marks use."""
 from flask import Blueprint, jsonify, request
 
-from .. import plan_marks
+from .. import icon_library, plan_marks
 from ..store import load_data, save_data
 from .inventory import data_lock
 
@@ -12,8 +13,9 @@ bp = Blueprint('plan_marks', __name__)
 def list_marks():
     """The marks (``?hall=<id>`` for one hall's) and the icons they can use."""
     data = load_data()
-    return jsonify({'marks': plan_marks.all_marks(data, request.args.get('hall') or None),
-                    'icons': plan_marks.ICONS})
+    marks = plan_marks.all_marks(data, request.args.get('hall') or None)
+    return jsonify({'marks': marks, 'icons': plan_marks.ICONS,
+                    'custom_icons': icon_library.data_uris(data, (m.get('icon') for m in marks))})
 
 
 @bp.route('/api/plan-marks', methods=['POST'])

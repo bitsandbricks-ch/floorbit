@@ -715,7 +715,7 @@ Source: [`floorbit/blueprints/plan_locks.py`](https://github.com/bitsandbricks-c
 
 ## floorbit.blueprints.plan_marks
 
-Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py).
+Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py). An icon is a built-in one or an uploaded one from the icon library; ``custom_icons`` carries the uploaded ones the marks use.
 
 Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_marks.py)
 

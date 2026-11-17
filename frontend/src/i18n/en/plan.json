@@ -491,6 +491,8 @@
       "create_other": "Create {{count}} blocks"
     },
     "mark": {
+      "builtIn": "Built in",
+      "uploaded": "Uploaded",
       "textTitle": "New label",
       "iconTitle": "New icon",
       "icon": "Icon",
