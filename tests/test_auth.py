@@ -153,6 +153,20 @@ def test_a_guesser_behind_a_trusted_proxy_locks_only_themself(anon_client, app_m
     assert resp.status_code == 302
 
 
+def test_failed_sign_ins_dont_pile_up_forever(app_module, monkeypatch):
+    import auth as auth_pkg
+    guard = app_module.app.extensions["auth"]
+    monkeypatch.setattr(auth_pkg, "MAX_FAILURE_KEYS", 50)
+    with app_module.app.test_request_context("/login", method="POST"):
+        for n in range(50):
+            guard.record_failure(f"made-up-{n}")
+        for key in guard._failures:            # all of them long ago
+            guard._failures[key] = [t - auth_pkg.FAILURE_WINDOW for t in guard._failures[key]]
+        guard.record_failure("x" * 5000)
+        [(_, name)] = guard._failures
+        assert name == "x" * 200
+
+
 def test_password_change_signs_out_existing_sessions(client, auth):
     assert client.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
     auth.users.set_password(TEST_USER, "a-brand-new-password")
