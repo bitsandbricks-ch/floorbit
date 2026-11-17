@@ -103,12 +103,14 @@
   "conflict": {
     "shared": "Seats {{seat}} and {{other}} checked in on the same port",
     "plan": "Seat {{seat}} checked in on the port the patch plan gives to {{other}}",
-    "taken": "Seat {{seat}} was taken over by another nick"
+    "taken": "Seat {{seat}} was taken over by another nick",
+    "area": "Seat {{seat}} checked in on a port meant for seats {{other}}"
   },
   "conflictHelp": {
     "shared": "Usually a small switch under the table or a wrong PIN. Walk over, then forget the wrong seat's port.",
     "plan": "Either the patch plan or the check-in is wrong. Check the cable, then fix the plan or forget the port.",
-    "taken": "Someone checked in with this seat's card after another nick. Ask at the seat if that is right."
+    "taken": "Someone checked in with this seat's card after another nick. Ask at the seat if that is right.",
+    "area": "A wrong PIN or a card on the wrong seat. Walk over, then forget the port if it is wrong, or fix the area."
   },
   "forget": "Forget port of {{seat}}",
   "portalIntro": "Phones and laptops ask the local agent whether they still need to check in (DHCP option 114). The agent fetches the list of checked-in clients from here; each fetch is listed below. Nothing is ever blocked, and it stays off unless you add the DHCP option.",

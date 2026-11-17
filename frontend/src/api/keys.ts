@@ -61,6 +61,8 @@ export const qk = {
   walkOrder: (form: object) => ['walk-order', form] as const,
   blockPlan: (form: object) => ['block-plan', form] as const,
   options: (kind: string, scope: string) => ['options', kind, scope] as const,
+  portAreas: ['port-areas'] as const,
+  portAreasPreview: (form: object) => ['port-areas', 'preview', form] as const,
   health: ['health'] as const,
   security: ['security'] as const,
   power: ['power'] as const,

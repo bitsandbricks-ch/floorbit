@@ -103,7 +103,8 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
             continue
         cols, nrows = len(rows[0]), len(rows)
         cx, cy = float(block['x']) / 100 * PLAN_W, float(block['y']) / 100 * PLAN_H
-        xs, width, ys, height = seat_gaps.layout(block, cols, nrows)
+        # Seat offsets inside the block; not ``xs``/``ys``, which collect the hall's extent.
+        col_at, width, row_at, height = seat_gaps.layout(block, cols, nrows)
         w, h = width * CELL, height * CELL
         cells = []
         for r, row in enumerate(rows):
@@ -112,13 +113,13 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                 if hit:
                     found = {'seat': seat, 'block': block.get('name') or '', 'row': r + 1, 'rows': nrows,
                              'col': c + 1}
-                cells.append({'x': xs[c] * CELL - w / 2, 'y': ys[r] * CELL - h / 2, 'hit': hit, 'seat': seat,
+                cells.append({'x': col_at[c] * CELL - w / 2, 'y': row_at[r] * CELL - h / 2, 'hit': hit, 'seat': seat,
                               'on': None if online is None else seat in online})
         reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]
         ys += [cy - reach - 40, cy + reach]   # room for the block's name above it
         shapes.append({'cx': cx, 'cy': cy, 'rotation': int(block.get('rotation') or 0) % 360, 'w': w, 'h': h,
-                       'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h, ys)})
+                       'name': block.get('name') or '', 'cells': cells, 'rows': _row_labels(block, w, h, row_at)})
     if not shapes:
         return None, None
     marks, icons = _marks(data, hall_id, xs, ys, public)

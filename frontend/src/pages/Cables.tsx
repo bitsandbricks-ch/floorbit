@@ -16,6 +16,7 @@ import { PageHead } from '@/components/PageHead'
 import { EntitySelect } from '@/components/EntitySelect'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
+import { PortAreas } from '@/components/PortAreas'
 import { PortClients } from '@/components/PortClients'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
@@ -100,6 +101,9 @@ export default function Cables() {
   const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.cables })
+  // Port areas (from master) still pick from the switch list; the cable form uses EntitySelect.
+  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
+    enabled: canEdit })
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
   // A new cable, maybe started from a machine on an unexplained port (its switch and port filled in).
@@ -154,6 +158,8 @@ export default function Cables() {
           </Alert>
         )}
         <PatchCheck />
+        <PortAreas canEdit={canEdit}
+          switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...(d?.cables ?? []).map((c) => c.switch)])].sort()} />
         {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => setAdding({ switch: c.switch, port: c.port, seat: c.ip_seat })} />}
         {query.isPending ? <LoadingState /> : d && (
           <>

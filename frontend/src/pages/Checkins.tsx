@@ -130,6 +130,7 @@ export default function Checkins() {
                             <Table.Td>
                               <Text size="sm" ff="monospace">{portText(r.port ?? r.learned)}</Text>
                               {r.learned && <Text size="xs" c="dimmed">{t('crewCheckin.learned')}</Text>}
+                              {r.area && <Text size="xs" c="dimmed">{t('cables.areaHint', { label: r.area.label })}</Text>}
                             </Table.Td>
                             <Table.Td><Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
                               {r.mac && <Text size="xs" c="dimmed" ff="monospace">{r.mac}</Text>}</Table.Td>

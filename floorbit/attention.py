@@ -211,6 +211,7 @@ MAPPING_TITLES = {
     'shared': 'Seats {} and {} checked in on the same port',
     'plan': 'Seat {} checked in on the port the patch plan gives to seat {}',
     'taken': 'Seat {} was taken over by another nick',
+    'area': 'Seat {} checked in on a port meant for seats {}',
 }
 
 
