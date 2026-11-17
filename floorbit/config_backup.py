@@ -203,7 +203,7 @@ def backup(registry, account, body):
                                     'actions under Settings > Plugins.', 409)
     plat = commands.platform(registry, spec)
     results = commands.run_on(registry, spec, account, body, SHOW_RUN.get(plat) or SHOW_RUN['*'],
-                              max_output=MAX_BYTES)
+                              max_output=MAX_BYTES, feature='configs')
     out = []
     for r in results:
         row = {'switch': r['switch'], 'ok': r['ok'], 'error': r.get('error')}
@@ -257,7 +257,7 @@ def run_nightly(registry, now=None):
         batch = names[i:i + commands.MAX_SWITCHES]
         try:
             results = commands.run_on(registry, spec, NIGHTLY_USER, {'switches': batch},
-                                      SHOW_RUN.get(plat) or SHOW_RUN['*'], max_output=MAX_BYTES)
+                                      SHOW_RUN.get(plat) or SHOW_RUN['*'], max_output=MAX_BYTES, feature='configs')
         except commands.CommandError as exc:
             failed += [{'switch': n, 'error': str(exc)[:200]} for n in batch]
             continue

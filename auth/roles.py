@@ -225,6 +225,11 @@ RULES = (
     ('/api/templates', WRITE, 'floorplan.edit'),
     ('/api/tournament', WRITE, 'floorplan.edit'),
     ('/api/inventory/log', READ, 'floorplan.edit'),
+    # Stored credentials on devices, groups and tags: set by admins, like switch logins (floorbit/inventory_scope.py).
+    ('/api/inventory/credentials', WRITE, 'settings.manage'),
+    ('/api/inventory/credentials', READ, 'floorplan.edit'),
+    # A device blocked after a failed login: any tech clears it once the login is fixed.
+    ('/api/inventory/blocks', None, 'ports.act'),
     ('/api/inventory', WRITE, 'floorplan.edit'),
     ('/api/seat-map', READ, 'seats.view'),
     ('/api/seat-map.csv', READ, 'seats.view'),

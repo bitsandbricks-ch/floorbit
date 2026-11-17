@@ -14,7 +14,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import inventory, ports
+from . import credentials, inventory, ports
 from .plugins import PluginError
 from .store import load_data, save_data
 
@@ -173,21 +173,27 @@ def info(registry, may_change):
     }
 
 
-def _one(registry, spec, dev, commands, login, stored_for=None, max_output=MAX_OUTPUT):
+def _one(registry, spec, dev, commands, login, stored_for=None, max_output=MAX_OUTPUT, feature='commands'):
     """``stored_for``: no login was typed, so open the stored one for this switch (credentials.py)."""
     started = time.monotonic()
     name = dev['name']
+    try:
+        ports._feature(dev, feature)
+    except ports.PortError as exc:
+        return {'switch': name, 'ok': False, 'output': '', 'error': str(exc)[:300], 'ms': 0}
     with ports._lock:
         if name in ports._busy:
             return {'switch': name, 'ok': False, 'error': f'Another action on {name} is still running.', 'output': ''}
         ports._busy.add(name)
     mine = dict(login) if login else None   # each connection gets its own copy, cleared after
+    ref = None
     try:
         if stored_for is not None:
             try:
                 mine = ports._login({}, True, name, stored_for)
             except ports.PortError as exc:
                 return {'switch': name, 'ok': False, 'output': '', 'error': str(exc)[:300], 'ms': 0}
+            ref = (mine or {}).get('ref')
         result = registry.call(spec, 'send_commands', {'switch': name, 'host': dev['mgmt_ip'],
                                                       'commands': commands, 'login': mine})
         output = str((result or {}).get('output') or '') if isinstance(result, dict) else str(result or '')
@@ -196,6 +202,8 @@ def _one(registry, spec, dev, commands, login, stored_for=None, max_output=MAX_O
                 'error': f'The switch refused "{refused}".' if refused else None,
                 'ms': int((time.monotonic() - started) * 1000)}
     except PluginError as exc:
+        if ref and credentials.is_login_error(exc):
+            credentials.report_failed(ref, str(exc), 'commands')
         return {'switch': name, 'ok': False, 'output': '', 'error': str(exc)[:300], 'login_failed':
                 'login' in str(exc).lower(), 'ms': int((time.monotonic() - started) * 1000)}
     finally:
@@ -205,7 +213,7 @@ def _one(registry, spec, dev, commands, login, stored_for=None, max_output=MAX_O
             ports._busy.discard(name)
 
 
-def run_on(registry, spec, account, body, commands, max_output=MAX_OUTPUT):
+def run_on(registry, spec, account, body, commands, max_output=MAX_OUTPUT, feature='commands'):
     """Run commands on ``body['switches']`` with the login in ``body``. Returns one result per switch.
 
     Shared by templates and config backups (floorbit/config_backup.py)."""
@@ -239,7 +247,8 @@ def run_on(registry, spec, account, body, commands, max_output=MAX_OUTPUT):
     try:
         with ThreadPoolExecutor(max_workers=min(WORKERS, len(devs))) as pool:
             stored_for = account if needs_login and not typed else None
-            results = list(pool.map(lambda d: _one(registry, spec, d, commands, login, stored_for, max_output), devs))
+            results = list(pool.map(lambda d: _one(registry, spec, d, commands, login, stored_for, max_output,
+                                                   feature), devs))
     finally:
         if login:
             login.clear()
