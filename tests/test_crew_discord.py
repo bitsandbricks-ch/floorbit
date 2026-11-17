@@ -271,7 +271,7 @@ def test_a_switch_alert_can_be_muted_from_discord(bridge, client, anon_client, a
 
     assert "works incidents" in press("222") and alerting.mutes() == {}
     assert "not on the floor plan" in press("111", "gone-switch")
-    assert press("111").startswith("Muted sw-a-01 until ")
+    assert press("111").startswith("Muted sw-a-01 until <t:")
     entry = alerting.mutes()[sw]
     assert entry["by"] == "tech-ana" and entry["reason"] == "Muted from Discord"
     assert 3500 < entry["until"] - time.time() <= 3600
