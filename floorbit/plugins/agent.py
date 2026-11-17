@@ -27,6 +27,13 @@ three ways, all over the agent's link (TLS, the agent key, docs/agent.md):
   action only when ``FLOORBIT_AGENT_ALLOW_ACTIONS`` names it (``lancache.clear_cache``,
   ``lancache.*`` or ``*``), so a stolen hosted login can't change things in the hall by itself.
 
+Logins: before it logs in to a device, an agent part asks ``ctx.may_login(device, credential,
+rev)``; when the device refuses the credential it says ``ctx.auth_failed(device, credential, rev,
+message)``. From then on that device and credential are left alone until a tech clears it on the
+Local agents page (or the credential is edited: a new ``rev``), so a wrong password never locks
+an account out or sets off the AAA server. The block is reported, audit-logged on the hosted side,
+and kept on the agent's disk.
+
 Health: an agent part says how it is doing with ``ctx.health(...)``, ``ctx.error(...)``,
 ``ctx.counter(...)`` and ``ctx.gauge(...)``. They go into the agent's ``/metrics`` and its report
 every half minute, and the hosted Local agents page shows them per plugin.
@@ -38,6 +45,8 @@ sent over the link only).
 from __future__ import annotations
 
 import ipaddress
+import json
+import os
 import re
 import threading
 import time
@@ -48,6 +57,7 @@ from .base import PluginError
 __all__ = ['PRIVACY', 'AgentPlugin', 'MemoryContext', 'check_agent_block', 'personal_data']
 
 PRIVACY = ('aggregate', 'device')
+CREDENTIAL_KINDS = ('ssh', 'snmp_v2c', 'snmp_v3', 'api', 'http')
 KIND_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
 STATUSES = ('ok', 'warning', 'error', 'off')
 SEND_MAX_BYTES = 4 * 1024 * 1024      # one payload, as JSON
@@ -77,6 +87,15 @@ def check_agent_block(m):
         how = sends[kind] = how if isinstance(how, dict) else {}
         if how.setdefault('privacy', 'aggregate') not in PRIVACY:
             return f"agent.sends.{kind}: privacy must be {' or '.join(PRIVACY)}"
+    targets = block.setdefault('targets', False)
+    if targets is True:
+        targets = block['targets'] = {'credentials': None}
+    if isinstance(targets, dict):
+        kinds = targets.setdefault('credentials', None)
+        if kinds is not None and (not isinstance(kinds, list) or any(k not in CREDENTIAL_KINDS for k in kinds)):
+            return f"agent.targets.credentials: some of {', '.join(CREDENTIAL_KINDS)}"
+    elif targets is not False:
+        return 'agent.targets: true, or {credentials: [ssh, ...]}, when the plugin works on inventory devices'
     for key in ('calls', 'actions'):
         names = block.setdefault(key, [])
         if not isinstance(names, list) or any(not isinstance(n, str) or not KIND_RE.match(n) for n in names):
@@ -237,6 +256,75 @@ def _metric_name(name):
         raise PluginError(f'bad metric name {name!r}: lowercase letters, digits and _')
 
 
+class AuthBlocks:
+    """Logins that failed, per device and credential: the plugin doesn't try them again until a
+    tech clears them on the hosted side, so a wrong password never locks an account out or fills
+    the AAA server with alarms. A new revision of the credential (edited password) is a new key.
+    Kept in ``path`` (the plugin's state folder) when given, so a restart doesn't retry either."""
+
+    MAX = 500
+
+    def __init__(self, path=None):
+        self.path = path
+        self._lock = threading.Lock()
+        self.blocks = {}
+        if path:
+            try:
+                with open(path, encoding='utf-8') as f:
+                    raw = json.load(f)
+                self.blocks = {k: v for k, v in raw.items() if isinstance(v, dict)} if isinstance(raw, dict) else {}
+            except (OSError, ValueError):
+                self.blocks = {}
+
+    @staticmethod
+    def _key(device, credential, rev):
+        return f'{device}|{credential}|{rev}'
+
+    def failed(self, device, credential, rev=None, message=''):
+        """Returns True when this is new (worth saying), False when it was already blocked."""
+        key = self._key(device, credential, rev)
+        with self._lock:
+            if key in self.blocks:
+                return False
+            if len(self.blocks) >= self.MAX:
+                return False
+            self.blocks[key] = {'device': str(device)[:120], 'credential': str(credential)[:120],
+                                'rev': None if rev is None else str(rev)[:40], 'since': time.time(),
+                                'message': str(message)[:300]}
+            self._save()
+        return True
+
+    def may_login(self, device, credential, rev=None):
+        with self._lock:
+            return self._key(device, credential, rev) not in self.blocks
+
+    def clear(self, device=None, credential=None):
+        """Clear the blocks of a device (and credential); every one when both are None."""
+        with self._lock:
+            gone = [k for k, v in self.blocks.items()
+                    if (device is None or v['device'] == str(device))
+                    and (credential is None or v['credential'] == str(credential))]
+            for k in gone:
+                del self.blocks[k]
+            if gone:
+                self._save()
+        return len(gone)
+
+    def list(self):
+        with self._lock:
+            return sorted((dict(v) for v in self.blocks.values()), key=lambda b: b['since'])
+
+    def _save(self):
+        if not self.path:
+            return
+        try:
+            with open(self.path + '.tmp', 'w', encoding='utf-8') as f:
+                json.dump(self.blocks, f)
+            os.replace(self.path + '.tmp', self.path)
+        except OSError:
+            pass
+
+
 class MemoryContext:
     """An agent context that keeps everything in memory: for plugin tests, and the reference for
     what the real one (floorbit_agent/plugin_host.py) offers."""
@@ -250,10 +338,18 @@ class MemoryContext:
         self.lines = []
         self.stopping = threading.Event()
         self.health_ = Health()
+        self.auth = AuthBlocks()
         self._threads = []
 
     def log(self, message):
         self.lines.append(str(message))
+
+    def auth_failed(self, device, credential, rev=None, message=''):
+        if self.auth.failed(device, credential, rev, message):
+            self.error(f'login to {device} with {credential} failed: {message}; not trying again until cleared')
+
+    def may_login(self, device, credential, rev=None):
+        return self.auth.may_login(device, credential, rev)
 
     def send(self, kind, payload):
         err = check_payload(self.spec_block, kind, payload)

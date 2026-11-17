@@ -201,6 +201,8 @@ RULES = (
     ('/api/settings', None, 'settings.manage'),
     # Local agents (floorbit/agent_link.py): enrolling one hands out a key to the event's data.
     ('/api/agents', None, 'settings.manage'),
+    # Clearing a failed agent login lets the agent try that password again (floorbit/agent_plugins.py).
+    ('/api/agent-plugins', WRITE, 'plugins.run'),
     ('/settings/users', None, 'accounts.manage'),
     ('/settings/teams', None, 'accounts.manage'),
     ('/settings', None, 'settings.manage'),

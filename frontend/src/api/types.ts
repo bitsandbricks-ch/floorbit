@@ -1613,6 +1613,8 @@ export interface AgentPluginHealth {
   running: boolean
   metrics: Record<string, number>
   errors: { at: number | null; error: string }[]
+  /** Logins the plugin stopped trying until a tech clears them (docs/agent-plugins.md). */
+  auth_blocked?: { device: string; credential: string; rev: string | null; since: number | null; message: string }[]
 }
 
 export interface AgentStats {

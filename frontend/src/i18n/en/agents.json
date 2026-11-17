@@ -59,5 +59,7 @@
     "error": "failing",
     "off": "idle"
   },
-  "pluginLastError": "last error {{when}}: {{error}}"
+  "pluginLastError": "last error {{when}}: {{error}}",
+  "authBlocked": "Login to {{device}} with {{credential}} failed {{when}} ({{message}}). Not tried again until cleared.",
+  "authClear": "Clear, try again"
 }

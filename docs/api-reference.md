@@ -77,6 +77,7 @@ Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbrick
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| POST | `/api/agent-plugins/<agent_id>/<plugin_id>/unblock` | `plugins.run` |  |
 | GET | `/api/agent/v1/plugins` | anyone |  |
 | POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 

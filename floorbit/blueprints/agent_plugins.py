@@ -2,6 +2,13 @@
 
 - ``GET /api/agent/v1/plugins``: ``{"plugins": {id: {version, settings, sends, calls, actions}},
   "etag"}``, the plugins it runs. ``If-None-Match`` with the etag: 304 while nothing changed.
+For the crew (``plugins.run``):
+
+- ``POST /api/agent-plugins/<agent id>/<plugin id>/unblock`` ``{"device", "credential"}``: a tech
+  cleared a failed login; the agent may try it again. Audit-logged.
+
+For the agent:
+
 - ``POST /api/agent/v1/plugins/<id>/<kind>`` ``{"payload"}``: what a plugin's agent part sent.
   404 for a plugin with no agent part, 409 while it is off here, 422 when the payload breaks the
   plugin's privacy rule (an address in an aggregate kind).
@@ -41,6 +48,21 @@ def plugin_sent(plugin_id, kind):
     from .. import agent_link
     agent_link.tunnel.relayed(agent['id'], f'plugin:{plugin_id}', 1)
     return jsonify(answer)
+
+
+@bp.route('/api/agent-plugins/<agent_id>/<plugin_id>/unblock', methods=['POST'])
+def unblock(agent_id, plugin_id):
+    from ..plugins.base import PluginError
+    from .agent import _who
+    body = request.get_json(silent=True) or {}
+    device, credential = body.get('device'), body.get('credential')
+    if not isinstance(device, str) or not device or not (credential is None or isinstance(credential, str)):
+        return jsonify({'error': 'Send the device and the credential.'}), 400
+    try:
+        cleared = agent_plugins.unblock(agent_id, plugin_id, device, credential, user=_who())
+    except PluginError as exc:
+        return jsonify({'error': str(exc)}), 409
+    return jsonify({'ok': True, 'cleared': cleared})
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
