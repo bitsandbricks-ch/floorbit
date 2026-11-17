@@ -1,0 +1,336 @@
+"""Crew walk-through check-in (docs/seat-walk.md): before doors open, the crew walk the rows with a
+laptop, plug it into each seat's port and press Locate. Floorbit looks the laptop up from the
+request's IP (ARP: IP to MAC, then the switches' MAC tables: MAC to switch port) and keeps
+seat to port for this event, in the same place a seat check-in keeps it (integrations/checkin.py).
+
+Freshest answer first, because every seat counts:
+
+1. **The switch itself** (``switch``): over SSH with the stored login (floorbit/credentials.py), ask
+   ``show mac address-table address <mac>`` on the switch the last seat was on (rows are mostly on
+   one switch), then on the other switches. One to three seconds.
+2. **The monitoring source** (``monitoring``): telemetry or LibreNMS, through the local agent when
+   one is enrolled. Only as fresh as their last poll of the MAC tables, so this is retried.
+
+The laptop keeps its IP and MAC from seat to seat; only its port changes. So an answer that still
+names the last seat's port is old (a MAC table nobody read again yet) and is not taken.
+
+A mapping belongs to the event (it is a document of the event's folder) and is cleared one day
+after the event ends: the end in its schedule, else when it was closed (``purge_ended``).
+"""
+import re
+import threading
+import time
+
+from integrations import checkin
+
+from . import audit, cables, inventory, sources
+from .store import load_data
+
+ATTEMPT_SECONDS = 20       # one request keeps trying this long; the page asks again after
+RETRY_EVERY = 3
+KEEP_AFTER_END = 24 * 3600
+MAX_CANDIDATES = 12        # switches asked at once when the likely ones didn't have the MAC
+MAC_RE = re.compile(r'\b([0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}|(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})\b', re.I)
+UPLINK_NAME_RE = re.compile(r'^(po|port-channel|vlan|vl|nve|tunnel|mgmt|lag|ae)\s*\d', re.I)
+SOURCE = 'walk'
+
+
+class WalkError(ValueError):
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.status = status
+
+
+def _mac(text):
+    return sources.normalise_mac(text) if text else None
+
+
+def _same(a, b):
+    from .syslog import canonical_port
+    return bool(a and b and str(a.get('switch') or '').lower().split('.')[0]
+                == str(b.get('switch') or '').lower().split('.')[0]
+                and canonical_port(a.get('port') or '') == canonical_port(b.get('port') or ''))
+
+
+def _short(name):
+    return str(name or '').split('.')[0]
+
+
+# ── IP to MAC ──────────────────────────────────────────────────────────────────────────────────
+
+def mac_for(ip, registry=None, account=None):
+    """The laptop's MAC, from what is known already, else from the routers' ARP over SSH.
+    ``(mac, how)`` or ``(None, None)``."""
+    monitor = sources.monitoring()
+    try:
+        if monitor.enabled():
+            mac = _mac(monitor.mac_for_ip(ip))
+            if mac:
+                return mac, 'monitoring'
+    except Exception as exc:  # noqa: BLE001  # the other ways still answer
+        print(f'[seat-walk] ARP from the monitoring source failed: {exc}')
+    try:
+        from . import endpoints
+        for row in endpoints.history().search(ip, limit=5):
+            if row.get('ip') == ip and row.get('mac'):
+                return _mac(row['mac']), 'history'
+    except Exception as exc:  # noqa: BLE001
+        print(f'[seat-walk] endpoint history failed: {exc}')
+    if registry is not None:
+        routers = [d['name'] for d in _devices() if d.get('role') == 'router']
+        for result in _run(registry, account, routers, f'show ip arp {ip}'):
+            for line in (result.get('output') or '').splitlines():
+                if ip in line.split():
+                    found = MAC_RE.search(line)
+                    if found:
+                        return _mac(found.group(1)), 'switch'
+    return None, None
+
+
+# ── MAC to port, from the switches themselves ──────────────────────────────────────────────────
+
+def _devices():
+    return [d for d in inventory.devices(load_data(), include_hidden=True) if d.get('mgmt_ip')]
+
+
+def _ssh(registry):
+    """The plugin that runs show commands, if a login for it needs no typing."""
+    from . import commands, ports
+    spec = commands.plugin(registry) if registry is not None else None
+    if spec is None:
+        return None, False
+    return spec, ports.info(registry)['plugin_login']
+
+
+def _run(registry, account, names, command):
+    """``command`` on the switches a login is stored for (or that need none). Never asks anyone."""
+    from . import commands, credentials
+    spec, needs_login = _ssh(registry)
+    if spec is None or not names:
+        return []
+    names = [n for n in dict.fromkeys(names) if not needs_login or credentials.covers(n)]
+    if not names:
+        return []
+    try:
+        return commands.run_on(registry, spec, account or 'seat walk', {'switches': names[:commands.MAX_SWITCHES]},
+                               [command], max_output=16 * 1024)
+    except commands.CommandError as exc:
+        print(f'[seat-walk] {command} failed: {exc}')
+        return []
+
+
+def _uplinks(switch):
+    """Ports of ``switch`` that lead to another switch (LLDP/CDP): the MAC shows up there too."""
+    try:
+        return {str(n.get('port') or '').lower() for n in sources.monitoring().neighbours(switch) or []}
+    except Exception:  # noqa: BLE001  # no neighbours known: the port names still help
+        return set()
+
+
+def _parse_mac_table(output, mac):
+    """Ports on which this MAC table shows ``mac``: IOS, NX-OS and most others print the port
+    last on the line."""
+    out = []
+    for line in str(output or '').splitlines():
+        found = MAC_RE.search(line)
+        if not found or _mac(found.group(1)) != mac:
+            continue
+        words = line.replace('*', ' ').split()
+        if words:
+            out.append(words[-1])
+    return out
+
+
+def _mac_command(mac):
+    digits = mac.replace(':', '')
+    return f'show mac address-table address {digits[0:4]}.{digits[4:8]}.{digits[8:12]}'
+
+
+def port_from_switches(mac, registry, account, likely=()):
+    """``{"switch", "port"}`` where ``mac`` is on an access port now, or None. The likely switches
+    first (the last seat's, the seat's patch plan), then every other switch at once."""
+    switches = [d['name'] for d in _devices() if d.get('role') == 'switch']
+    if not switches or _ssh(registry)[0] is None:
+        return None
+    first = [s for s in dict.fromkeys(likely) if s and any(_short(s).lower() == _short(x).lower() for x in switches)]
+    rest = [s for s in switches if _short(s).lower() not in {_short(f).lower() for f in first}]
+    for batch in ([first] if first else []) + [rest[i:i + MAX_CANDIDATES] for i in range(0, len(rest), MAX_CANDIDATES)]:
+        hits = []
+        for result in _run(registry, account, batch, _mac_command(mac)):
+            if not result.get('ok'):
+                continue
+            ups = _uplinks(result['switch'])
+            for port in _parse_mac_table(result.get('output'), mac):
+                if port.lower() in ups or UPLINK_NAME_RE.match(port):
+                    continue
+                hits.append({'switch': result['switch'], 'port': port})
+        if len(hits) == 1:
+            return hits[0]
+        if hits:
+            # Seen on several access ports: an uplink LLDP didn't name. The access-style name wins
+            # (Gi1/0/7 before Te1/1/1); still unsure, nothing.
+            access = [h for h in hits if re.match(r'^(gi|fa|eth?|ge)', h['port'], re.I)]
+            return access[0] if len(access) == 1 else None
+    return None
+
+
+# ── one lookup ─────────────────────────────────────────────────────────────────────────────────
+
+def _from_monitoring(ip):
+    monitor = sources.monitoring()
+    if not monitor.enabled():
+        return None
+    try:
+        found = monitor.resolve_ip(ip)
+    except Exception as exc:  # noqa: BLE001
+        print(f'[seat-walk] monitoring lookup failed: {exc}')
+        return None
+    if isinstance(found, dict) and 'value' in found and not found.get('port'):
+        found = found.get('value')       # a stale answer: the last good one
+    if not isinstance(found, dict) or not found.get('port'):
+        return None
+    return {'switch': found.get('device_name') or _short(found.get('hostname')), 'port': found['port'],
+            'mac': _mac(found.get('mac'))}
+
+
+def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=None):
+    """One try: ``{"found": {"switch", "port"} | None, "mac", "how", "steps": [...], "stale"}``."""
+    steps, stale = [], False
+    if not mac:
+        mac, how = mac_for(ip, registry, account)
+        steps.append({'step': 'mac', 'ok': bool(mac), 'how': how})
+    if mac and _ssh(registry)[0] is not None:
+        port = port_from_switches(mac, registry, account, likely)
+        steps.append({'step': 'switch', 'ok': bool(port)})
+        if port and _same(port, previous):
+            stale, port = True, None
+        if port:
+            return {'found': port, 'mac': mac, 'how': 'switch', 'steps': steps, 'stale': False}
+    port = _from_monitoring(ip)
+    steps.append({'step': 'monitoring', 'ok': bool(port)})
+    if port and port.get('mac') and not mac:
+        mac = port['mac']
+    if port and _same(port, previous):
+        stale, port = True, None
+    if port:
+        return {'found': {'switch': port['switch'], 'port': port['port']}, 'mac': mac, 'how': 'monitoring',
+                'steps': steps, 'stale': False}
+    return {'found': None, 'mac': mac, 'how': None, 'steps': steps, 'stale': stale}
+
+
+def locate(ip, registry=None, account=None, previous=None, likely=(), mac=None, seconds=ATTEMPT_SECONDS,
+           sleep=time.sleep, clock=time.monotonic):
+    """Try for up to ``seconds``. The answer of the last try, with ``tries``. ``mac``: the laptop's,
+    when the last seat already found it (it doesn't change from seat to seat)."""
+    started, tries = clock(), 0
+    while True:
+        tries += 1
+        result = locate_once(ip, registry, account, previous, likely, mac)
+        mac = result['mac'] or mac
+        if result['found'] or clock() - started + RETRY_EVERY > seconds:
+            return {**result, 'tries': tries, 'ms': int((clock() - started) * 1000)}
+        sleep(RETRY_EVERY)
+
+
+# ── keeping it ─────────────────────────────────────────────────────────────────────────────────
+
+def likely_switches(seat, previous=None):
+    """Where to look first: the switch of the seat walked just before, the patch plan's."""
+    out = [previous.get('switch')] if previous and previous.get('switch') else []
+    for c in cables.all_cables():
+        if (c.get('seat') or '').upper() == seat:
+            out.append(c['switch'])
+    held = checkin.learned_ports().get(seat)
+    if held:
+        out.append(held['switch'])
+    return out
+
+
+def save(seat, port, by, now=None):
+    """Seat ``seat`` is on ``port``: kept for this event. Another seat that had this port loses it
+    (the crew just plugged in here). Returns ``{"replaced": [seats], "plan_seat"}``: the patch plan
+    naming another seat for this port wins over a walk, so the page offers to correct it."""
+    from .syslog import canonical_port
+    key = (port['switch'].lower(), canonical_port(port['port']))
+    replaced = []
+    for other, row in checkin.learned_ports().items():
+        if other != seat and (str(row.get('switch') or '').lower(), canonical_port(row.get('port') or '')) == key:
+            checkin.forget_port(other)
+            replaced.append(other)
+    checkin.learn_port(seat, port, by, now=now, source=SOURCE)
+    plan = cables.port_seats(learned=False).get(key)
+    target = ' '.join([port['switch'], port['port']] + [f'(was {s})' for s in replaced])
+    audit.record('check-in', f'Walk-through: seat {seat} found on its port', by, target)
+    return {'replaced': replaced, 'plan_seat': plan if plan and plan != seat else None}
+
+
+def seats(block_id, order='rows', data=None):
+    """The block's seats in walking order, each with the port it has in this event so far."""
+    from .seat_names import block_rows
+    data = load_data() if data is None else data
+    block = next((b for b in data.get('seat_blocks') or [] if b.get('id') == block_id), None)
+    if not block:
+        raise WalkError('Pick a seat block.', 404)
+    if order not in ('rows', 'snake'):
+        raise WalkError('The order is rows or snake.')
+    out = []
+    for i, row in enumerate(block_rows(block)):
+        out += list(reversed(row)) if order == 'snake' and i % 2 else row
+    learned = checkin.learned_ports()
+    return {'block': block.get('name') or '', 'seats': [
+        {'seat': s.upper(), 'port': ({k: learned[s.upper()].get(k) for k in ('switch', 'port', 'learned_at', 'source')}
+                                     if s.upper() in learned else None)} for s in out]}
+
+
+# ── retention ──────────────────────────────────────────────────────────────────────────────────
+
+def event_end(event, data):
+    """When the event ended: its schedule's end (or start, for a one-day event without an end), else
+    when it was closed. None while nobody can tell."""
+    from . import schedule
+    window = schedule.get(data).get('event') or {}
+    end = window.get('end') or None
+    if end is None and event.get('status') == 'closed':
+        end = event.get('closed_at')
+    return end
+
+
+def purge_ended(now=None):
+    """Forget the seat ports of every event that ended more than a day ago. Returns the event ids."""
+    from . import tenancy
+    now = time.time() if now is None else now
+    cleared = []
+    for event in tenancy.events():
+        with tenancy.using_event(event):
+            try:
+                end = event_end(event, load_data())
+            except Exception as exc:  # noqa: BLE001  # one broken event must not stop the others
+                print(f"[seat-walk] could not read {event['id']}'s schedule: {exc}")
+                continue
+            if end is None or now < end + KEEP_AFTER_END:
+                continue
+            count = checkin.forget_all_ports()
+            if count:
+                cleared.append(event['id'])
+                audit.record('check-in', f'Cleared {count} seat ports one day after the event ended', 'Floorbit',
+                             event.get('name') or event['id'])
+    return cleared
+
+
+def _loop(app, stop):
+    from . import cluster
+    while not stop.wait(3600):
+        try:
+            if cluster.leading():
+                with app.app_context():
+                    purge_ended()
+        except Exception as exc:  # noqa: BLE001  # the loop must outlive one bad run
+            print(f'[seat-walk] clearing old seat ports failed: {exc}')
+
+
+def init_app(app, start_background=True):
+    if not start_background:
+        return None
+    stop = threading.Event()
+    threading.Thread(target=_loop, args=(app, stop), name='seat-walk-retention', daemon=True).start()
+    return stop

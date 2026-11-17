@@ -41,6 +41,7 @@ const Handover = lazy(() => import('@/pages/Handover'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
+const SeatWalk = lazy(() => import('@/pages/SeatWalk'))
 const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
 const Telemetry = lazy(() => import('@/pages/Telemetry'))
 const Endpoints = lazy(() => import('@/pages/Endpoints'))
@@ -113,6 +114,7 @@ export default function App() {
             <Route path="/preflight" element={<Preflight />} />
             <Route path="/cables" element={<Cables />} />
             <Route path="/cables/walk" element={<WalkRow />} />
+            <Route path="/seat-walk" element={<SeatWalk />} />
             <Route path="/wifi" element={<Wifi />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/network-status" element={<NetworkStatus />} />

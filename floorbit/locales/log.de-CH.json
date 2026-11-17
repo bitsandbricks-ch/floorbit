@@ -310,5 +310,7 @@
   "Added an event": "Event hinzugefügt",
   "Made an event live": "Event live geschaltet",
   "Changed an event": "Event geändert",
-  "Copied an event's plan": "Plan eines Events kopiert"
+  "Copied an event's plan": "Plan eines Events kopiert",
+ "Walk-through: seat {} found on its port": "Rundgang: Port von Platz {} gefunden",
+ "Cleared {} seat ports one day after the event ended": "{} Platz-Ports einen Tag nach dem Anlass gelöscht"
 }

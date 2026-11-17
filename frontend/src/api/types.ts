@@ -1351,6 +1351,19 @@ export interface PortClients {
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
+/** The crew's walk-through check-in (floorbit/seat_walk.py). */
+export interface WalkPort { switch: string; port: string; learned_at?: number; source?: 'walk' | 'checkin' }
+export interface SeatWalkInfo {
+  ip: string; ip_allowed: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  event: { id: string; name: string; status: string }
+  block?: string; seats?: { seat: string; port: WalkPort | null }[]
+}
+export interface SeatLocated {
+  ok: boolean; retry: boolean; seat: string; ip: string; mac: string | null; how: 'switch' | 'monitoring' | null
+  ms: number; tries: number; stale: boolean; found: WalkPort | null
+  steps: { step: 'mac' | 'switch' | 'monitoring'; ok: boolean; how?: string | null }[]
+  replaced?: string[]; plan_seat?: string | null
+}
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
 export interface StoredLogin { id: string; kind: 'ssh'; scope: string; username: string; set_at: number; set_by: string | null }

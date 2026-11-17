@@ -1094,5 +1094,8 @@
  "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
  "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}.",
  "{} is a number from {} to {}": "{} ist eine Zahl von {} bis {}",
- "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans"
+ "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans",
+ "Nothing can look up switch ports: turn on SSH port actions, telemetry or LibreNMS, or connect a local agent.": "Nichts kann Switch-Ports nachschlagen: Schalte SSH-Port-Aktionen, Telemetrie oder LibreNMS ein oder verbinde einen lokalen Agent.",
+ "That seat is not on the floor plan.": "Diesen Platz gibt es im Hallenplan nicht.",
+ "This laptop has {}, which is not in the seat networks. Turn off Wi-Fi and plug the cable in.": "Dieser Laptop hat {}, das ist nicht in den Platz-Netzen. Schalte das WLAN aus und steck das Kabel ein."
 }

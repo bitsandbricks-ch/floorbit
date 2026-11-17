@@ -202,6 +202,9 @@ def update(event_id, name=None, status=None):
                 for e in events:
                     if e['status'] == 'live':
                         e['status'] = 'planning'
+            if status == 'closed' and event['status'] != 'closed':
+                # Seat ports are cleared a day after an event ends (seat_walk.py), even without a schedule.
+                event['closed_at'] = time.time()
             event['status'] = status
         _save(events)
     return find(event_id)
