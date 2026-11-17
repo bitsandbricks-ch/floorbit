@@ -35,6 +35,14 @@ __all__ = ['Auth', 'AuthError', 'Identity', 'current_user', 'init_auth', 'login_
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 DEFAULT_PUBLIC_PATHS = '/checkin,/api/checkin,/kiosk'
+# What AUTH_PUBLIC_READ opens to someone not signed in: what the kiosk view and the big screens
+# draw (static/js/kiosk.js), and nothing else. Anything more (inventory with management IPs,
+# incidents, the firewall per seat, reports) needs an account. A path covers what is below it.
+PUBLIC_READ_PATHS = ('/api/auth/me', '/api/plugins/menu',   # answer for "nobody" themselves
+                     '/api/config', '/api/version', '/api/features', '/api/halls', '/api/plan-marks',
+                     '/api/seat-blocks', '/api/seats/occupancy', '/api/stats/seats', '/api/status/snapshot',
+                     '/api/switches', '/api/events')
+PUBLIC_READ_EXACT = ('/api/seats',)    # not /api/seats/info and the rest below it
 MAX_FAILURES = 5                 # per address and username ...
 FAILURE_WINDOW = 300             # ... within this many seconds
 
@@ -240,7 +248,9 @@ class Auth:
         if any(path == p or path.startswith(p + '/') for p in self.public_paths):
             return True
         # Reads of admin-only data (settings, accounts) never count as public.
-        return bool(self.public_read and request.method in SAFE_METHODS and path.startswith('/api/')
+        return bool(self.public_read and request.method in SAFE_METHODS
+                    and (path in PUBLIC_READ_EXACT
+                         or any(path == p or path.startswith(p + '/') for p in PUBLIC_READ_PATHS))
                     and roles.needed_for(path, request.method, SAFE_METHODS) == 'floorplan.view')
 
     def guard(self):

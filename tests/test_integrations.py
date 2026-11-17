@@ -213,6 +213,18 @@ def test_sse_stream_delivers_events(app):
     assert events.client_count() == 0
 
 
+def test_the_stream_drops_who_and_where_for_readers_without_seats_view(app):
+    gen = events.stream({}, private=False)
+    next(gen), next(gen)
+    threading.Timer(0.05, lambda: events.publish('checkin', {
+        'seat': 'A-1', 'username': 'player-one', 'ip': '192.0.2.7', 'mac': 'aa:bb:cc:00:00:01',
+        'nested': [{'nick': 'player-one', 'seat': 'A-2'}]})).start()
+    msg = next(gen)
+    gen.close()
+    assert '"A-1"' in msg and '"A-2"' in msg
+    assert 'player-one' not in msg and '192.0.2.7' not in msg and 'aa:bb:cc' not in msg
+
+
 def test_discord_test_endpoint_needs_webhook(app):
     r = app.test_client().post('/api/integrations/discord/test')
     assert r.status_code == 400

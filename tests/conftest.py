@@ -171,6 +171,15 @@ def anon_client(app_module):
 
 
 @pytest.fixture
+def kiosk_client(app_module):
+    """Signed in with a kiosk account: floorplan.view only, like a big screen."""
+    app_module.app.extensions["auth"].users.add("screen-1", "kiosk-password-1", role="kiosk")
+    c = app_module.app.test_client()
+    c.post("/login", data={"username": "screen-1", "password": "kiosk-password-1"})
+    return c
+
+
+@pytest.fixture
 def client(app_module):
     """Signed in as TEST_USER, an admin, so tests can change anything."""
     app_module.app.extensions["auth"].users.add(TEST_USER, TEST_PASSWORD, role="admin")

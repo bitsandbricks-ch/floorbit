@@ -45,7 +45,8 @@ use can't be removed, and no change may leave nobody with `accounts.manage`.
 | Request | Signed out | Needs |
 | --- | --- | --- |
 | `/` (floor plan editor) | redirected to `/login` | `floorplan.view`; editing tools need `floorplan.edit` |
-| `GET /api/...` (switches, status, live events, `/api/seats/occupancy`) | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
+| What the kiosk view draws: `GET /api/config`, `/api/switches`, `/api/halls`, `/api/plan-marks`, `/api/seat-blocks`, `/api/seats`, `/api/seats/occupancy`, `/api/stats/seats`, `/api/status/snapshot`, live events | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
+| Every other `GET /api/...` (inventory, incidents, firewalls, reports, replay, DNS, ...) | 401 / login | `floorplan.view` (a kiosk account is enough) |
 | `/api/seats/info`, `/api/seat-map`, `/api/checkins`, `/seat-mapping` (nicks, IPs, MACs) | 401 / login | `seats.view` (changes: `seats.edit`) |
 | Floor plan, seat block and inventory changes | 401 | `floorplan.edit` |
 | `/settings/audit`, `/api/settings/audit` | 401 / login | `audit.read` |
@@ -74,8 +75,12 @@ Accounts from before roles existed have no role stored and count as admin, so no
 The old `editor` role is now **Lead** (stored values are read as `lead`), which now also reads the
 audit log. Viewers lost access to `/api/seats/info`; the kiosk view uses `/api/seats/occupancy`.
 
-Reads stay open by default so a kiosk screen or the check-in page can load the floor plan without an
-account. Set `AUTH_PUBLIC_READ=false` to close them too; a kiosk then needs to be signed in.
+What the kiosk view draws stays open by default, so a kiosk screen or the check-in page can load the
+floor plan without an account. Nothing else is: switch management IPs, incidents, the firewall per
+seat and reports need an account, and the other big screens (`/stats?screen=1`, `/health?screen=1`,
+`/screen`) are signed in with a `kiosk` account anyway. Live events reach signed-out readers and
+accounts without `seats.view` without nicks, account names, IPs and MACs. Set
+`AUTH_PUBLIC_READ=false` to close the kiosk's reads too; a kiosk then needs to be signed in.
 
 A path in `AUTH_PUBLIC_PATHS` covers itself and everything below it (`/kiosk` covers `/kiosk/hall-a`,
 not `/kioskadmin`). A single view can also be opened from code with `@public_endpoint` (from `auth`).
@@ -114,7 +119,7 @@ password reset signs that account out everywhere.
 | `AUTH_ENABLED` | `true` | `false` turns sign-in off (everyone can edit, like before). |
 | `SECRET_KEY` | generated | Signs the session cookie. Unset, a random key is generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | First account, created only when there are no accounts. |
-| `AUTH_PUBLIC_READ` | `true` | Read-only `GET /api/...` requests work without signing in. |
+| `AUTH_PUBLIC_READ` | `true` | What the kiosk view reads (above) works without signing in. |
 | `AUTH_PUBLIC_PATHS` | `/checkin,/api/checkin,/kiosk` | Paths open to everyone, comma separated. |
 | `AUTH_SESSION_HOURS` | `12` | How long a sign-in lasts. |
 | `AUTH_COOKIE_SECURE` | `false` | `true` when the app is only reached over HTTPS. |

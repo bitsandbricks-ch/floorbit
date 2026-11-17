@@ -66,7 +66,13 @@ def test_live_data_looks_real_and_uses_documentation_addresses(demo):
     found = demo.get(f'/api/resolve/{ip}').get_json()
     assert found['device_name'].startswith('sw-') and found['port'].startswith('Gi1/0/')
     assert found['stats']['state'] in ('up', 'down') and found['stats']['speed_bps'] == 1e9
-    assert demo.get('/api/switches/core-01/status').get_json()['status'] == 'online'
+    status = demo.get('/api/switches/core-01/status').get_json()
+    assert status['status'] == 'online' and status['ip']
+
+
+def test_a_signed_out_kiosk_gets_the_status_without_the_management_ip(demo, anon_client):
+    body = anon_client.get('/api/switches/core-01/status').get_json()
+    assert body['status'] == 'online' and 'ip' not in body
 
 
 def test_one_switch_flaps(app_module, registry):

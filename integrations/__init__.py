@@ -93,7 +93,11 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         if not config.get_bool('LIVE_UPDATES_ENABLED', True):
             return jsonify({'error': 'Live updates are disabled'}), 404
         hello = {'statuses': monitor.snapshot(), 'monitor': monitor.enabled()}
-        resp = Response(stream_with_context(events.stream(hello)), mimetype='text/event-stream')
+        from auth import current_user, roles
+        user = current_user()
+        guard = current_app.extensions.get('auth')
+        private = not (guard and guard.enabled) or bool(user and roles.can(user, 'seats.view'))
+        resp = Response(stream_with_context(events.stream(hello, private=private)), mimetype='text/event-stream')
         resp.headers['Cache-Control'] = 'no-cache'
         resp.headers['X-Accel-Buffering'] = 'no'   # nginx: don't buffer the stream
         return resp

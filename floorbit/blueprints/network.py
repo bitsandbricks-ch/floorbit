@@ -26,7 +26,13 @@ def get_switch_status(switch_id):
     device = inventory.find(load_data(), switch_id)
     hostname = device['name'] if device else switch_id
 
-    details = sources.monitoring().device_details(hostname)
+    details = dict(sources.monitoring().device_details(hostname) or {})
+    from flask import current_app
+
+    from auth import current_user  # late: auth imports floorbit while it loads
+    guard = current_app.extensions.get('auth')
+    if guard and guard.enabled and current_user() is None:
+        details.pop('ip', None)    # a signed-out kiosk only draws the status; management IPs need an account
     return jsonify({'id': switch_id, **details})
 
 

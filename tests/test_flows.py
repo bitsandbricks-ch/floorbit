@@ -249,7 +249,7 @@ def test_api_without_a_collector(client):
     assert client.get("/api/flows").get_json()["collector"] is False
 
 
-def test_api_hides_seats_without_seats_view(client, anon_client, monkeypatch, agg):
+def test_api_hides_seats_without_seats_view(client, kiosk_client, anon_client, monkeypatch, agg):
     from conftest import FakeRedis
 
     from floorbit import cache
@@ -259,7 +259,8 @@ def test_api_hides_seats_without_seats_view(client, anon_client, monkeypatch, ag
     store.publish(agg.snapshot(now=NOW + 61))
     full = client.get("/api/flows").get_json()
     assert full["collector"] and full["seats"][0]["seat"] == "A-1" and full["anomalies"][0]["seat"] == "A-8"
-    public = anon_client.get("/api/flows").get_json()
+    assert anon_client.get("/api/flows").status_code == 401
+    public = kiosk_client.get("/api/flows").get_json()
     assert public["seats"] is None and public["mix_hour"] == full["mix_hour"]
     assert "A-8" not in json.dumps(public) and "A-1" not in json.dumps(public["anomalies"])
     assert public["anomalies"][0]["title"] == "DHCP server at a seat"
