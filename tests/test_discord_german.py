@@ -94,3 +94,11 @@ def test_the_shift_handover_post_reads_german():
         "**4** Probleme gerade jetzt, **9** Änderungen im Audit-Log",
         "🎒 **2** Stück Material ausgegeben: Ana (2)"]
     assert embed["fields"] == [{"name": "Notiz für die nächste Schicht", "value": "Spare switch is under the desk."}]
+
+
+def test_a_power_incident_reads_german_in_the_crew_channel():
+    from floorbit import i18n
+    post = i18n.translate_payload({"embeds": [{"title": "🔧 Circuit C-2 at 98.8 % of 16 A"}]}, "de-CH")
+    assert post["embeds"][0]["title"] == "🔧 Stromkreis C-2 bei 98.8 % von 16 A"
+    opened = i18n.log_text("Incident opened: Breaker tripped: PDU 3", "de-CH")
+    assert opened == "Störung eröffnet: Sicherung ausgelöst: PDU 3"

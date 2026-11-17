@@ -246,5 +246,8 @@
   "Packet burst": "Paketspitze",
   "DHCP server at a seat": "DHCP-Server an einem Platz",
   "DNS server at a seat": "DNS-Server an einem Platz",
-  "Anomaly": "Auffälligkeit"
+  "Anomaly": "Auffälligkeit",
+  "// Power alert incidents (floorbit/power.py), inside 'Incident opened: {}'": "",
+  "Circuit {} at {} % of {} A": "Stromkreis {} bei {} % von {} A",
+  "Breaker tripped: {}": "Sicherung ausgelöst: {}"
 }

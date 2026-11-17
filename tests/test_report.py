@@ -223,3 +223,6 @@ def test_pdf_shows_seat_report_titles_in_its_language():
     assert report_pdf._title("Needs help at the seat", de) == "Braucht Hilfe am Platz"
     assert report_pdf._title("No internet at the seat", en) == "No internet at the seat"
     assert report_pdf._title("Cable cut at A-1", de) == "Cable cut at A-1"   # typed by the crew: as written
+    assert report_pdf._title("Circuit C row 2 at 98.8 % of 16 A", de) == "Stromkreis C row 2 bei 98.8 % von 16 A"
+    assert report_pdf._title("Breaker tripped: PDU 3", de) == "Sicherung ausgelöst: PDU 3"
+    assert report_pdf._title("Breaker tripped: PDU 3", en) == "Breaker tripped: PDU 3"
