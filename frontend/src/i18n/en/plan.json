@@ -165,6 +165,10 @@
   "findPlayerHint": "Seat or nick, e.g. D-6",
   "players": "Players found",
   "notFoundPlayer": "No seat or player found",
+  "stale": {
+    "since": "Not updated since {{time}}",
+    "help": "Floorbit hasn't answered for a while, so seat states here may be old. It keeps trying; check the network or the server."
+  },
   "print": {
     "title": "Seats: {{hall}}",
     "only": "Only: {{filter}}",

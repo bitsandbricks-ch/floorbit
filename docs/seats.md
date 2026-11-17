@@ -255,6 +255,9 @@ light on white, with the hall's background picture if it has one.
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
 the totals. It reloads every 30 seconds and with each port read.
+When Floorbit stops answering (the network or the server is down), a red "Not updated since …"
+badge appears next to the totals, on the big screen and in Live mode, so nobody takes old seat
+states for live ones. It goes away by itself with the next answer.
 
 With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
 hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A

@@ -23,6 +23,7 @@ import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
 import { download, fileName, inlineImages, standaloneSvg, svgToPng } from './plan/exportImage'
 import { Shortcuts } from './plan/Shortcuts'
+import { StaleNotice } from './plan/StaleNotice'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
 import { PlanEditor } from './plan/edit/PlanEditor'
@@ -230,6 +231,7 @@ export default function FloorPlan() {
       <Text><b>{online}</b> / {total} {t('plan.online')}</Text>
       <Text c={problems ? 'down' : 'dimmed'}><b>{problems}</b> {t('plan.withProblems')}</Text>
       {data.last_read && <Text c="dimmed" size="sm">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
+      {!print && <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />}
     </Group>
   )
 
