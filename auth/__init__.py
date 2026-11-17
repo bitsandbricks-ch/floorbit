@@ -291,7 +291,9 @@ class Auth:
 
     # sign-in -------------------------------------------------------------
     def _failure_key(self, username):
-        return (request.remote_addr or '?', (username or '').strip().lower())
+        # The real client behind a trusted proxy: else one guesser locks the name for everyone.
+        from integrations import checkin
+        return (checkin.client_ip() or '?', (username or '').strip().lower())
 
     def locked_for(self, username):
         now = time.time()
