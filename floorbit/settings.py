@@ -49,6 +49,8 @@ SECTIONS = [
      'description': 'GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, '
                     'incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an '
                     'API token (Settings > API) that has a read-only viewer role.'},
+    {'id': 'cabling', 'title': 'Cabling',
+     'description': 'Cables drawn on the floor plan: LAN and fiber from switch ports to seats, uplinks, and power.'},
     {'id': 'appearance', 'title': 'Appearance',
      'description': 'The look of every page. A screen can pick its own preset with ?theme= '
                     '(for example /kiosk?theme=kiosk); ?theme=default goes back to this one.'},
@@ -147,6 +149,12 @@ FIELDS = [
          env='SCHEDULE_PAGE', default=False,
          help='/agenda shows the countdown to the event, what is on now and next, and the programme, for big '
               'screens (/agenda?screen=1) and phones. Off by default.'),
+
+    dict(key='cabling.auto', section='cabling', label='Draw cables automatically', type='bool',
+         env='CABLE_AUTO', default=True,
+         help='Draw a cable from the switch to every seat whose port is known (from the cables and the '
+              'port descriptions), routed along the seat blocks. Turn it off when seats are patched through '
+              'panels and draw the cables you want with the Cable tool instead.'),
 
     dict(key='theme.preset', section='appearance', label='Theme', type='choice',
          options=THEME_PRESETS, env='FLOORBIT_THEME', default='floorbit'),

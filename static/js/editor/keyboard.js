@@ -12,10 +12,13 @@ function isTyping(e) {
 const ARROW_DIRS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 document.addEventListener('keydown', (e) => {
-  if (contextMenu.contains(e.target)) return;   // the open menu handles its own keys (menus.js)
+  if (contextMenu.contains(e.target)) {
+    if (!contextMenu.classList.contains('hidden')) return;   // the open menu handles its own keys (menus.js)
+    e.target.blur();   // focus stayed on a closed menu: the shortcuts work again
+  }
   if (e.key === 'Escape') {
     if (anyModalOpen()) { closeAllModals(); return; }
-    if (!contextMenu.classList.contains('hidden')) { contextMenu.classList.add('hidden'); return; }
+    if (!contextMenu.classList.contains('hidden')) { closeContextMenu({ refocus: true }); return; }
     if (isTyping(e)) { e.target.blur(); return; }
     deselectAll();
     setTool('select');
@@ -58,11 +61,13 @@ document.addEventListener('keydown', (e) => {
     case 'Backspace':
       if (selection.size) { e.preventDefault(); deleteSelection(); }
       else if (selectedMark) { e.preventDefault(); deleteSelectedMark(); }
+      else if (typeof selectedCable !== 'undefined' && selectedCable) { e.preventDefault(); deleteCable(selectedCable); }
       break;
     case 'v': case 'V': setTool('select'); break;
     case 's': case 'S': setTool('add-switch'); break;
     case 'b': case 'B': setTool('add-block'); break;
     case 'd': case 'D': $('tool-draw')?.click(); break;
+    case 'c': case 'C': if (!mod) $('tool-cable')?.click(); break;
     case 'g': case 'G': setSnap(!snapEnabled); break;
     case 'f': case 'F': fitToContent(); break;
     case 'r': case 'R':

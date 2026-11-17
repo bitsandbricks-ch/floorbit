@@ -235,6 +235,8 @@ const TOOL_HINTS = {
   'add-wall':   'Click where the wall starts, then where it ends · Esc to stop',
   'add-dashed': 'Click where the line starts, then where it ends · Esc to stop',
   'add-zone':   'Click one corner of the zone, then the opposite one · Esc to cancel',
+  'cable-lan':  'Click the switch the cable starts at · Esc to stop',
+  'cable-power': 'Click the distribution board the cable starts at · Esc to stop',
 };
 
 function setTool(tool) {
@@ -244,6 +246,8 @@ function setTool(tool) {
   toolAddBlock.classList.toggle('active', tool === 'add-block');
   $('tool-draw')?.classList.toggle('active', /^add-(text|icon|wall|dashed|zone)$/.test(tool));
   if (typeof markDraft !== 'undefined') markDraft = null;
+  $('tool-cable')?.classList.toggle('active', tool.startsWith('cable-'));
+  if (typeof cableToolChanged === 'function') cableToolChanged();
   wrapper.dataset.tool = tool;
   toolHint.textContent = TOOL_HINTS[tool] || '';
   toolHint.classList.toggle('hidden', !TOOL_HINTS[tool]);

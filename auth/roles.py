@@ -258,6 +258,7 @@ RULES = (
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
+    ('/api/cable-plan', WRITE, 'floorplan.edit'),
     # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
     # Runbooks: the crew reads them, leads write them (floorbit/runbooks.py).

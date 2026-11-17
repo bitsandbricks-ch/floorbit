@@ -88,6 +88,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
 | `SEAT_FINDER` | `true` | the public "find your seat" page `/find` ([kiosk.md](kiosk.md#find-your-seat)) |
 | `SEAT_FINDER_NICKS` | `false` | let `/find` also find a seat by the exact nick |
+| `CABLE_AUTO` | `true` | draw a cable to every seat whose switch port is known ([cables.md](cables.md#cables-drawn-on-the-floor-plan)); also under Settings > Cabling |
 | `ATTENDEE_VIEW` | `false` | the public attendee view `/hall`, seats online or offline ([kiosk.md](kiosk.md#attendee-view)); also under Settings > Attendee pages |
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
 | `STATUS_SWITCH_NAMES` | `false` | name the switches that are down on `/status` |

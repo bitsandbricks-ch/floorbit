@@ -21,6 +21,7 @@ function renderAll() {
   if (typeof markMutes === 'function') markMutes();
   if (typeof markMatchSeats === 'function') markMatchSeats();
   if (typeof markSeatStates === 'function') markSeatStates();
+  if (typeof scheduleCablePlan === 'function') scheduleCablePlan();
 }
 
 function matchesStatusFilter(sw) {

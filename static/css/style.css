@@ -1167,3 +1167,31 @@ body.fb-has-nav > .app { flex: 1; min-width: 0; }
   background: color-mix(in srgb, var(--color-trace) 5%, transparent);
 }
 .multi-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* Cables on the plan (static/js/editor/cables.js): over the seat blocks, under the switches. The
+   strokes keep their width at any zoom; only the line itself takes clicks. */
+#cables-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+#cables-svg .cable { --cable: color-mix(in srgb, var(--color-trace) 55%, var(--color-muted)); }
+#cables-svg .media-copper { --cable: var(--color-trace); }
+#cables-svg .media-fiber { --cable: var(--color-bit); }
+#cables-svg .media-dac { --cable: var(--color-fg); }
+#cables-svg .cable-power { --cable: var(--color-warn); }
+#cables-svg .cable-line { fill: none; stroke: var(--cable); stroke-linecap: round; stroke-linejoin: round; opacity: 0.75; vector-effect: non-scaling-stroke; }
+#cables-svg .cable-uplink .cable-line { stroke-dasharray: none; opacity: 0.95; }
+#cables-svg .cable-power .cable-line { stroke-dasharray: 6 3; }
+#cables-svg .cable-hit { fill: none; stroke: transparent; stroke-width: 10px; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
+#cables-svg .cable:hover .cable-line, #cables-svg .cable.selected .cable-line { opacity: 1; filter: drop-shadow(0 0 2px var(--cable)); }
+#cables-svg .cable.selected .cable-hit { cursor: copy; }
+#cables-svg .cable-bend, #cables-svg .cable-end { pointer-events: all; vector-effect: non-scaling-stroke; stroke-width: 2px;
+  transform-box: fill-box; transform-origin: center; transform: scale(calc(1 / var(--cable-k, 1))); }
+#cables-svg .cable-bend { fill: var(--color-surface); stroke: var(--cable); cursor: move; }
+#cables-svg .cable-end { fill: var(--cable); stroke: var(--color-surface); }
+#cables-svg .cable-draft { fill: none; stroke: var(--color-trace); stroke-width: 2px; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+#cables-svg .cable-panel { pointer-events: all; cursor: move; }
+#cables-svg .cable-panel rect { fill: var(--color-surface); stroke: var(--color-trace); stroke-width: 1.5px; }
+#cables-svg .cable-panel path { stroke: var(--color-trace); stroke-width: 3px; stroke-linecap: round; }
+#cables-svg .cable-panel text { fill: var(--text-secondary); font-size: 10px; font-weight: 700; text-anchor: middle; }
+.read-only #cables-svg .cable-panel { cursor: default; }
+.floorplan-wrapper[data-tool^="cable-"] .switch-marker, .floorplan-wrapper[data-tool^="cable-"] .seat-block-seat,
+.floorplan-wrapper[data-tool^="cable-"] .seat-block, .floorplan-wrapper[data-tool^="cable-"] .power-board { cursor: crosshair; }
+#cable-form .form-grid { margin-top: var(--sp-2); }

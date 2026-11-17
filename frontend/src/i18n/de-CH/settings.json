@@ -98,6 +98,10 @@
       "title": "Prometheus-Metriken",
       "desc": "GET /api/metrics im Prometheus-Textformat, für ein NOC-Grafana: Sitze online, Probleme, Vorfälle und Switches, pro Halle gezählt. Keine Sitze, Nicks oder Adressen. Hol sie mit einem API-Token (Einstellungen > API) mit einer Nur-Lesen-Rolle."
     },
+    "cabling": {
+      "title": "Verkabelung",
+      "desc": "Kabel auf dem Hallenplan: LAN und Glasfaser von Switch-Ports zu Sitzen, Uplinks und Strom."
+    },
     "appearance": {
       "title": "Aussehen",
       "desc": "Das Aussehen jeder Seite. Ein Bildschirm kann mit ?theme= sein eigenes Design wählen (zum Beispiel /kiosk?theme=kiosk); ?theme=default kehrt zu diesem zurück."
@@ -199,6 +203,10 @@
     "public_schedule": {
       "label": "Programm und Countdown",
       "help": "/agenda zeigt den Countdown zum Event, was jetzt und als Nächstes läuft, und das Programm, für grosse Bildschirme (/agenda?screen=1) und Handys. Standardmässig aus."
+    },
+    "cabling_auto": {
+      "label": "Kabel automatisch zeichnen",
+      "help": "Zeichnet ein Kabel vom Switch zu jedem Sitz, dessen Port bekannt ist (aus den Kabeln und den Port-Beschreibungen), entlang der Sitzblöcke geführt. Schalte es aus, wenn Sitze über Patchpanels laufen, und zeichne die gewünschten Kabel mit dem Kabel-Werkzeug."
     },
     "theme_preset": {
       "label": "Design"
