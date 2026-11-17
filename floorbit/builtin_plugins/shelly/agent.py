@@ -122,7 +122,11 @@ class AgentPlugin(Base):
 
     def loop(self):
         while not self.ctx.stopping.is_set():
-            self.tick()
+            # Two agents in one hall (VRRP): only the primary asks, so no device is asked twice.
+            if self.ctx.primary():
+                self.tick()
+            else:
+                self.ctx.health('ok', 'Standby: the primary agent reads the meters')
             self.ctx.stopping.wait(self.interval)
 
     def check(self):

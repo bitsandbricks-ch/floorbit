@@ -32,7 +32,7 @@ def plugins_config():
     agent = _agent()
     if agent is None:
         return _refused()
-    cfg = agent_plugins.config()
+    cfg = agent_plugins.config(agent_id=agent['id'])
     if request.headers.get('If-None-Match', '').strip('"') == cfg['etag']:
         return '', 304
     resp = jsonify(cfg)
