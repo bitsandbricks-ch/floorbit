@@ -20,6 +20,7 @@ now, so one saving a copy it loaded a moment ago doesn't undo what another saved
 import contextvars
 import json
 import os
+import re
 import threading
 import time
 from contextlib import contextmanager
@@ -262,8 +263,30 @@ def state_folder():
     return os.path.dirname(os.path.abspath(DATA_FILE))
 
 
+# Hosted Floorbit runs one process per tenant (docs/tenancy.md): FLOORBIT_TENANT names it, and its
+# documents live in tenants/<name>/ of a state folder or database the tenants share.
+TENANT_ENV = 'FLOORBIT_TENANT'
+TENANTS_FOLDER = 'tenants'
+_TENANT_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}$')
+
+
+def hosted_tenant():
+    """The tenant this process serves on a hosted platform, or None on a self-hosted install."""
+    name = (os.environ.get(TENANT_ENV) or '').strip()
+    if not name:
+        return None
+    if not _TENANT_RE.match(name):
+        # It becomes a folder and a key prefix: nothing else gets through.
+        raise ValueError(f'{TENANT_ENV} must be lower-case letters, digits and -, at most 40 (got {name!r}).')
+    return name
+
+
 def tenant_dir():
-    return _tenant_dir.get()
+    chosen = _tenant_dir.get()
+    if chosen:
+        return chosen
+    hosted = hosted_tenant()
+    return f'{TENANTS_FOLDER}/{hosted}' if hosted else ''
 
 
 def event_dir():

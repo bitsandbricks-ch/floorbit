@@ -84,6 +84,27 @@ Into an existing event, `mode` is `merge` (the default: things with the same id 
 copy, the target's others stay) or `replace` (the part becomes the source's). `"preview": true`
 answers what would change per part (`added`, `changed`, `removed`) without saving.
 
+## Hosted: one tenant per process
+
+On a hosted platform each tenant (club) runs its own Floorbit process: the same image with
+`FLOORBIT_TENANT=<name>` (lower-case letters, digits and `-`, at most 40). The processes share one
+database (`FLOORBIT_DATABASE_URL`, Postgres) and one Redis, and keep apart by name:
+
+| What | Self-hosted | `FLOORBIT_TENANT=club-a` |
+| --- | --- | --- |
+| Tenant documents | `data.json`, `tenant.json`, ... | `tenants/club-a/data.json`, `tenants/club-a/tenant.json`, ... |
+| Event documents | `event-data/<id>/...` | `tenants/club-a/event-data/<id>/...` |
+| Redis keys and channels | as they are (`arp:...`, `floorbit:stats`) | `club-a:arp:...`, `club-a:floorbit:stats` |
+
+Everything a tenant sets up is its own: accounts and roles, settings and the look (name, logo,
+colours, Discord), the public status page, the check-in portal, plugins and local agents. Each
+tenant reaches its Floorbit under its own host name (`club-a.floor.example.com`, set by the
+platform's ingress), and its agent connects there. The flow collector of a tenant needs the same
+`FLOORBIT_TENANT`.
+
+A wrong `FLOORBIT_TENANT` stops Floorbit at start. Without it, nothing changes: a self-hosted
+install is its own single tenant.
+
 ## For developers
 
 Never build a path from `store.DATA_FILE`. Use:
