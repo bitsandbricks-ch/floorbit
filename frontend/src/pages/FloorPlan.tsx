@@ -26,6 +26,7 @@ import { Shortcuts } from './plan/Shortcuts'
 import { StaleNotice } from './plan/StaleNotice'
 import { ScreenBar } from './plan/ScreenBar'
 import { useIdle } from './plan/idle'
+import { useReloadOnUpdate } from './plan/update'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
@@ -222,6 +223,7 @@ export default function FloorPlan() {
   }, [dwell, current, halls, params, setParams])
   // A wall screen hides the cursor and the zoom buttons while nobody uses it.
   const idle = useIdle(3000, screen)
+  useReloadOnUpdate(screen)
   const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', hour12: false })
 
   const map = data?.drawing && view && (

@@ -272,6 +272,8 @@ to go from across the room. While it rotates through the halls, the other halls 
 that last line is left out.
 After three seconds without use, the mouse pointer and the zoom buttons hide, so they don't sit
 on top of the plan; moving the mouse brings them back.
+The big screen asks every five minutes which version of Floorbit runs, and loads the page again
+after an update, so a screen left on for the whole event doesn't keep running the old version.
 
 With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
 hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A
