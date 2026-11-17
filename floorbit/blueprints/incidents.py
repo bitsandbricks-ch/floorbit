@@ -70,7 +70,7 @@ def _view(user, incident, match=None, books=None, notes=None, outages=None):
     return {**incident, 'can_work': incidents.can_work(user, incident),
             'can_assign': incidents.can_assign(user, incident.get('team')),
             'match': (match or {}).get(seat),
-            'runbook': {'id': book['id'], 'title': book['title']} if book else None,
+            'runbook': ({k: book.get(k) for k in ('id', 'title', 'starter')} if book else None),
             'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None,
             # The seat's switch is down right now (issue #386): part of an outage, not a cable.
             'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None,

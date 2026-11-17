@@ -13,6 +13,7 @@ import { JobPlan } from './jobs/JobPlan'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
+import { runbookText } from '@/lib/runbookText'
 
 function since(ts: number) {
   return clock(ts)
@@ -46,8 +47,8 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
         {job.runbook && (
           <Accordion variant="contained" radius="md">
             <Accordion.Item value="runbook">
-              <Accordion.Control>{t('jobs.runbook', { title: job.runbook.title })}</Accordion.Control>
-              <Accordion.Panel><Markdown source={job.runbook.body} /></Accordion.Panel>
+              <Accordion.Control>{t('jobs.runbook', { title: runbookText(job.runbook, t).title })}</Accordion.Control>
+              <Accordion.Panel><Markdown source={runbookText(job.runbook, t).body} /></Accordion.Panel>
             </Accordion.Item>
           </Accordion>
         )}

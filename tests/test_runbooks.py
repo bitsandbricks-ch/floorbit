@@ -81,3 +81,25 @@ def test_the_list_says_how_often_each_runbook_was_shown_and_what_is_missing(clie
     body = client.get("/api/runbooks").get_json()
     slow = next(b["id"] for b in body["runbooks"] if b["kinds"] == ["slow"])
     assert body["used"] == {slow: 2} and body["missing"] == {"other": 1}
+
+
+def test_the_starters_are_in_the_react_app_word_for_word():
+    # The app shows the starters in the reader's language by id, so its English has to match.
+    import json
+    import os
+
+    from floorbit import runbooks
+    root = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'src', 'i18n')
+    for lang in ('en', 'de-CH'):
+        with open(os.path.join(root, lang, 'runbooks.json'), encoding='utf-8') as f:
+            starters = json.load(f)['starters']
+        assert sorted(starters) == [str(n) for n in range(1, len(runbooks.STARTERS) + 1)]
+        if lang == 'en':
+            for n, (title, _kinds, body) in enumerate(runbooks.STARTERS, 1):
+                assert starters[str(n)] == {'title': title, 'body': body}
+
+
+def test_the_incident_and_the_job_say_when_the_runbook_is_a_starter(client, floor):
+    inc = client.post("/api/incidents", json={"seat": "A-1", "title": "Slow", "problem": "slow"}).get_json()
+    board = client.get("/api/incidents").get_json()["incidents"]
+    assert next(i for i in board if i["id"] == inc["id"])["runbook"]["starter"] is True

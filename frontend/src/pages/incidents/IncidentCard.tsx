@@ -7,6 +7,7 @@ import { useNowSeconds } from '@/components/useNowSeconds'
 import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
 import { ago } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
+import { runbookText } from '@/lib/runbookText'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
@@ -127,7 +128,7 @@ export function IncidentCard({
         )}
         {i.runbook && (
           <Anchor size="sm" href={`/runbooks?open=${encodeURIComponent(i.runbook.id)}`} data-runbook>
-            <IconBook size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{t('incidents.runbook', { title: i.runbook.title })}
+            <IconBook size={14} style={{ verticalAlign: -2, marginRight: 4 }} />{t('incidents.runbook', { title: runbookText(i.runbook, t).title })}
           </Anchor>
         )}
         {lastNote && <Text size="sm">“{lastNote.text}” <Text span size="xs" c="dimmed">{lastNote.by ?? (i.source === 'power' ? 'Floorbit' : t('incidents.attendee'))}</Text></Text>}
