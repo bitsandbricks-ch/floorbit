@@ -286,15 +286,23 @@ def _check_methods(spec):
                 elif callable(getattr(cls, method, None)):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
     kinds = set((spec.agent or {}).get('sends') or {})
+    fetches = set((spec.agent or {}).get('fetches') or [])
     for name in dir(cls):
-        if name.startswith('agent_') and name != 'agent_settings' and callable(getattr(cls, name, None)) \
-                and name[6:] not in kinds:
+        if not name.startswith('agent_') or name == 'agent_settings' or not callable(getattr(cls, name, None)):
+            pass
+        elif name.startswith('agent_get_'):
+            if name[10:] not in fetches:
+                return f'plugin.py: {name}() answers the agent, but agent.fetches has no {name[10:]}'
+        elif name[6:] not in kinds:
             return f'plugin.py: {name}() takes what the agent sends, but agent.sends has no {name[6:]}'
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
     for name in sorted(allowed - {'test'}):
         if not callable(getattr(cls, name, None)):
             return f'plugin.py: plugin.yaml lists it, but Plugin has no {name}()'
+    for kind in sorted(fetches):
+        if not callable(getattr(cls, f'agent_get_{kind}', None)):
+            return f'plugin.py: agent.fetches lists {kind}, but Plugin has no agent_get_{kind}()'
     return ''
 
 

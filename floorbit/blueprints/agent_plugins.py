@@ -1,7 +1,9 @@
 """Agent plugins (floorbit/agent_plugins.py, docs/agent-plugins.md), for the agent with its key:
 
-- ``GET /api/agent/v1/plugins``: ``{"plugins": {id: {version, settings, sends, calls, actions}},
-  "etag"}``, the plugins it runs. ``If-None-Match`` with the etag: 304 while nothing changed.
+- ``GET /api/agent/v1/plugins``: ``{"plugins": {id: {version, settings, sends, calls, actions,
+  fetches}}, "local": {...}, "etag"}``, the plugins it runs. ``If-None-Match`` with the etag: 304
+  while nothing changed.
+
 For the crew (``plugins.run``):
 
 - ``POST /api/agent-plugins/<agent id>/<plugin id>/unblock`` ``{"device", "credential"}``: a tech
@@ -12,6 +14,8 @@ For the agent:
 - ``POST /api/agent/v1/plugins/<id>/<kind>`` ``{"payload"}``: what a plugin's agent part sent.
   404 for a plugin with no agent part, 409 while it is off here, 422 when the payload breaks the
   plugin's privacy rule (an address in an aggregate kind).
+- ``GET /api/agent/v1/plugins/<id>/<kind>``: ``{"data": ...}``, what the agent part asks the
+  hosted part for (``agent_get_<kind>``, listed under ``agent.fetches``), such as the seats' addresses.
 """
 from flask import Blueprint, jsonify, request
 
@@ -50,6 +54,20 @@ def plugin_sent(plugin_id, kind):
     return jsonify(answer)
 
 
+@bp.route('/api/agent/v1/plugins/<plugin_id>/<kind>', methods=['GET'])
+def plugin_fetch(plugin_id, kind):
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    try:
+        answer = agent_plugins.give(agent, plugin_id, kind)
+    except agent_plugins.Refused as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    resp = jsonify({'data': answer})
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
 @bp.route('/api/agent-plugins/<agent_id>/<plugin_id>/unblock', methods=['POST'])
 def unblock(agent_id, plugin_id):
     from ..plugins.base import PluginError
@@ -66,5 +84,5 @@ def unblock(agent_id, plugin_id):
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (plugins_config, plugin_sent):
+for _view in (plugins_config, plugin_sent, plugin_fetch):
     _view._auth_public = True

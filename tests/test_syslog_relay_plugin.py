@@ -71,3 +71,16 @@ def test_the_hosted_part_takes_the_lines(client, anon_client, app_module):
     finally:
         receiver.relay = real
         client.put("/api/settings/plugins/syslog-relay", json={"enabled": False})
+
+
+def test_lines_while_syslog_is_off_are_declined_not_retried(client, anon_client):
+    key = enrol(client)["key"]
+    client.put("/api/settings/plugins/syslog-relay", json={"enabled": True})
+    client.put("/api/settings/features", json={"syslog": False})
+    try:
+        res = anon_client.post("/api/agent/v1/plugins/syslog-relay/lines", headers=head(key),
+                               json={"payload": {"lines": [], "dropped": 0}})
+        assert res.status_code == 409 and "turned off" in res.get_json()["error"]
+    finally:
+        client.put("/api/settings/features", json={"syslog": True})
+        client.put("/api/settings/plugins/syslog-relay", json={"enabled": False})

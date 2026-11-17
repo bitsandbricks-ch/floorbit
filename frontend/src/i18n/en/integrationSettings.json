@@ -83,6 +83,10 @@
     "plugin-syslog-relay": {
       "title": "Plugin: Syslog from the hall",
       "desc": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached."
+    },
+    "plugin-netflow-relay": {
+      "title": "Plugin: Traffic from the hall",
+      "desc": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."
     }
   },
   "fields": {
@@ -542,6 +546,14 @@
     "plugin_syslog-relay_bind": {
       "label": "Listen address",
       "help": "The agent's address to listen on. Empty: all of them."
+    },
+    "plugin_netflow-relay_port": {
+      "label": "UDP port on the agent",
+      "help": "Where the switches and routers export NetFlow or IPFIX to, on the agent machine (2055 is usual). 0: off."
+    },
+    "plugin_netflow-relay_bind": {
+      "label": "Listen address",
+      "help": "The agent's address to listen on. Empty: all of them."
     }
   },
   "plugins": {
@@ -549,6 +561,7 @@
     "netbox": "Adds the devices with the configured roles from NetBox to the inventory (name, role, model, serial, management IP, site and status). Fields changed by hand in Floorbit stay as they are.",
     "demo": "A made-up hall: switches, seat blocks, players on documentation IPs, ports going up and down and traffic that moves. Nothing real: example names, 192.0.2.0/24 and 198.51.100.0/24. While it's on it replaces the live monitoring source and fills the health wall.",
     "lancache": "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only.",
-    "syslog-relay": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached."
+    "syslog-relay": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached.",
+    "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."
   }
 }

@@ -268,9 +268,11 @@ and counted as `duplicates` in the syslog status.
 ## Traffic (NetFlow) through the agent
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
-the [flow collector](flows.md) itself: set `FLOORBIT_AGENT_FLOWS_PORT=2055`, publish the port
-(the `ports` lines in `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or
-IPFIX export at the agent's machine.
+the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
+Settings > Plugins and set its UDP port (such as `2055`), publish the port (the `ports` lines in
+`docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
+agent's machine. `FLOORBIT_AGENT_FLOWS_PORT=2055` on the agent still works the old way; use one or
+the other. With the plugin, only the newest summary waits while the hosted side is away.
 
 - Every 10 seconds the agent sends the hosted Floorbit **only the summary** the Traffic page shows:
   hall, area and service totals, services only once enough seats used them (`FLOWS_MIN_SEATS`), and

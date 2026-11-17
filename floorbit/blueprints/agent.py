@@ -269,9 +269,15 @@ def flows():
     if not features.on('traffic'):
         return _traffic_off()
     body = _agent_body()
-    snap = body.get('snapshot')
-    if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
+    if not take_flow_summary(agent, body.get('snapshot')):
         return jsonify({'error': 'snapshot is missing'}), 400
+    return jsonify({'ok': True})
+
+
+def take_flow_summary(agent, snap):
+    """Keep an agent's traffic summary (also the Traffic from the hall plugin's). False: not one."""
+    if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
+        return False
     clean = {}
     for key, most in FLOW_KEYS.items():
         if key in snap:
@@ -283,7 +289,7 @@ def flows():
     from ..flows import store
     store.publish(clean, keep_locally=True)
     agent_link.tunnel.relayed(agent['id'], 'flows', 1)
-    return jsonify({'ok': True})
+    return True
 
 
 def _link_answers(agent, message):

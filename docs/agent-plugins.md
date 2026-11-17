@@ -78,6 +78,8 @@ agent:
   sends:                         # kind: how private it is
     stats: {privacy: aggregate}
     devices: {privacy: device}
+    summary: {privacy: device, latest: true}   # only the newest counts: one waits, not a backlog
+  fetches: [seats]               # the agent part asks the hosted part (agent_get_seats)
   calls: [status]                # read-only questions from the hosted side
   actions: [clear_cache]         # changes; each is also an action under actions:
 actions:
@@ -122,6 +124,8 @@ class AgentPlugin(Base):
 | `log(message)` | the agent's log, prefixed with the plugin's id |
 | `thread(fn)`, `stopping` | background work that ends when the plugin stops |
 | `listen_udp(port, handler)`, `listen_http(port, handler, tls=False)` | listeners that close when the plugin stops; with `tls=True` HTTPS when the hall set `FLOORBIT_AGENT_TLS_CERT` and `FLOORBIT_AGENT_TLS_KEY` (`ctx.tls` says which) |
+| `fetch(kind)` | what the hosted part's `agent_get_<kind>(agent)` answers, for a kind under `fetches:`; `PluginError` while the hosted side is away or says no |
+| `on_stop(fn)` | runs when the plugin stops |
 | `state_dir` | a folder of its own in the agent's state volume |
 | `may_login(device, credential, rev)`, `auth_failed(device, credential, rev, message)` | ask before each login; say when it was refused (see Failed logins) |
 
@@ -134,7 +138,10 @@ keeps everything in memory, for tests.
 ```python
 class Plugin(Base):
     def agent_stats(self, agent, payload):       # agent: {"id", "name"}
-        self.ctx.set_state('last', payload)
+        self.ctx.set_state('last', payload)      # PluginError: declined (409), not sent again
+
+    def agent_get_seats(self, agent):            # what ctx.fetch('seats') gets on the agent
+        return {'seat_of': ...}
 
     def run_clear_cache(self, params):           # role checked, audited
         answers = self.ctx.agent_action('clear_cache', params)
