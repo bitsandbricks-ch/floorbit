@@ -159,6 +159,10 @@ def create_app(start_background=True):
     from .lancache import init_lancache
     init_lancache(app, start_background=start_background)
 
+    # Device telemetry: Telegraf, gNMI, MDT and API pollers, without LibreNMS (docs/telemetry.md).
+    from . import telemetry
+    telemetry.init_app(app, start_background=start_background)
+
     # Game servers: up or down, players and map, an RCON console (docs/game-servers.md).
     from . import game_servers
     game_servers.init_app(app, start_background=start_background)

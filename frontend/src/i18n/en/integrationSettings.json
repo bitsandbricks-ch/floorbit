@@ -84,6 +84,10 @@
       "title": "Plugin: Syslog from the hall",
       "desc": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached."
     },
+    "plugin-telemetry": {
+      "title": "Plugin: Device telemetry",
+      "desc": "Reads switches and firewalls directly through Telegraf (SNMP, traps, gNMI, Cisco MDT) and the device APIs, and answers like a monitoring tool. Set the devices up under Settings, Telemetry."
+    },
     "plugin-netflow-relay": {
       "title": "Plugin: Traffic from the hall",
       "desc": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."
@@ -558,6 +562,14 @@
     "plugin_syslog-relay_bind": {
       "label": "Listen address",
       "help": "The agent's address to listen on. Empty: all of them."
+    },
+    "plugin_telemetry_uplink_macs": {
+      "label": "Uplink MAC limit",
+      "help": "A port that sees more MAC addresses than this counts as an uplink and is skipped when Floorbit looks for where a seat is plugged in."
+    },
+    "plugin_telemetry_exclude": {
+      "label": "Ports to ignore",
+      "help": "Parts of port names that are never a seat's port (trunks, port channels, SVIs), separated by commas."
     },
     "plugin_netflow-relay_port": {
       "label": "UDP port on the agent",

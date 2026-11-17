@@ -1,5 +1,6 @@
 import {
-  IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBackpack, IconBolt, IconBook,
+  IconActivityHeartbeat,
+  IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBackpack, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
   IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutDashboard, IconLayoutGrid,
   IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLock, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport, IconRuler2,
@@ -22,11 +23,11 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'checkins', 'speedtests', 'networkStatus'] },
   {
     id: 'network', icon: IconNetwork,
-    pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
+    pages: ['health', 'topology', 'endpoints', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'gear', 'planner', 'preflight', 'teardown', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
-  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'apiTokens', 'agents', 'webhooks', 'switchLogins', 'users', 'teams', 'signIn', 'audit'] },
+  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'apiTokens', 'agents', 'telemetry', 'webhooks', 'switchLogins', 'users', 'teams', 'signIn', 'audit'] },
 ]
 
 const ICONS: Record<string, Icon> = {
@@ -38,7 +39,7 @@ const ICONS: Record<string, Icon> = {
   gear: IconBackpack, planner: IconRuler2, preflight: IconChecklist, teardown: IconTruck, templates: IconTemplate,
   tournament: IconTrophy, brackets: IconTournament, schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight,
-  apiTokens: IconKey, agents: IconPlugConnected, webhooks: IconWebhook, switchLogins: IconLock, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
+  apiTokens: IconKey, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, switchLogins: IconLock, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
 export function pageIcon(id: string): Icon {

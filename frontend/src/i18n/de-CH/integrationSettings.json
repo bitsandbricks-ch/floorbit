@@ -84,6 +84,10 @@
       "title": "Plugin: Syslog aus der Halle",
       "desc": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten."
     },
+    "plugin-telemetry": {
+      "title": "Plugin: Geräte-Telemetrie",
+      "desc": "Liest Switches und Firewalls direkt über Telegraf (SNMP, Traps, gNMI, Cisco MDT) und die Geräte-APIs und antwortet wie ein Monitoring-Werkzeug. Die Geräte richtest du unter Einstellungen, Telemetrie ein."
+    },
     "plugin-netflow-relay": {
       "title": "Plugin: Traffic aus der Halle",
       "desc": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten."
@@ -558,6 +562,14 @@
     "plugin_syslog-relay_bind": {
       "label": "Adresse zum Hören",
       "help": "Die Adresse des Agenten, auf der er hört. Leer: alle."
+    },
+    "plugin_telemetry_uplink_macs": {
+      "label": "MAC-Grenze für Uplinks",
+      "help": "Ein Port, der mehr MAC-Adressen sieht als diese Zahl, gilt als Uplink und wird übersprungen, wenn Floorbit sucht, wo ein Platz eingesteckt ist."
+    },
+    "plugin_telemetry_exclude": {
+      "label": "Ports ignorieren",
+      "help": "Teile von Portnamen, die nie der Port eines Platzes sind (Trunks, Port-Channels, SVIs), durch Kommas getrennt."
     },
     "plugin_netflow-relay_port": {
       "label": "UDP-Port auf dem Agenten",

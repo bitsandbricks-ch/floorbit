@@ -163,12 +163,21 @@ def ask(method, args=()):
     list, an IP, ARP) goes to every connected agent, and their answers are put together."""
     scoped, everyone, by_name = _routing()
     if not scoped:
-        return tunnel.call(method, args)
+        # Two agents for the same halls (VIPs shared with VRRP, the agent's docs/vrrp.md): only the
+        # primary one collects telemetry, so ask both and keep the answer that has something.
+        if len(tunnel.connected_agents() & set(everyone)) < 2:
+            return tunnel.call(method, args)
+        return _ask_all(method, args, everyone)
     if method in HOST_METHODS and args:
         hall = _hall_of(by_name, args[0])
         if hall is None:        # a switch Floorbit doesn't know: whoever answers
             return tunnel.call(method, args)
         return tunnel.call(method, args, targets={a for a in everyone if a not in scoped or hall in scoped[a]})
+    return _ask_all(method, args, everyone)
+
+
+def _ask_all(method, args, everyone):
+    """Every connected agent, the answers put together."""
     agents = sorted(tunnel.connected_agents() & set(everyone))
     if not agents:
         raise AgentUnavailable('No local agent is connected.')
@@ -191,7 +200,14 @@ def ask(method, args=()):
                     merged.append(d)
         return merged
     if method == 'arp':
-        return [row for result in results for row in result or []]
+        merged, seen = [], set()
+        for row in (row for result in results for row in result or []):
+            key = (row.get('ipv4_address'), row.get('mac_address'), row.get('hostname')) \
+                if isinstance(row, dict) else id(row)
+            if key not in seen:
+                seen.add(key)
+                merged.append(row)
+        return merged
     if method == 'configured':
         return any(results)
     return next((r for r in results if r), None)     # resolve_ip: the agent that knows it

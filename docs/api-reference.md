@@ -293,6 +293,16 @@ Source: [`floorbit/blueprints/dns.py`](https://github.com/bitsandbricks-ch/floor
 | --- | --- | --- | --- |
 | GET | `/api/dns` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dns` |
 
+## floorbit.blueprints.endpoints
+
+IP and MAC history (docs/endpoints.md): where each machine was seen. ``seats.view`` (auth/roles.py).
+
+Source: [`floorbit/blueprints/endpoints.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/endpoints.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/endpoints` | `seats.view` |  |
+
 ## floorbit.blueprints.features
 
 Feature switches (issue #114). Rules in floorbit/features.py.
@@ -901,6 +911,27 @@ Source: [`floorbit/blueprints/teardown.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
 | PATCH | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
 | PUT | `/api/teardown/switches/<device_id>` | `floorplan.edit` | `teardown` |
+
+## floorbit.blueprints.telemetry
+
+Device telemetry (docs/telemetry.md). Rules in floorbit/telemetry/.
+
+Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/telemetry.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/telemetry` | `settings.manage` |  |
+| POST | `/api/settings/telemetry/targets` | `settings.manage` |  |
+| DELETE | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
+| PUT | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/targets/<target_id>/device-config` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/telegraf.conf` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/token` | `settings.manage` |  |
+| POST | `/api/settings/telemetry/token` | `settings.manage` |  |
+| POST | `/api/telemetry/api/v2/write` | anyone |  |
+| GET | `/api/telemetry/series` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/telemetry/status` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/telemetry/write` | anyone |  |
 
 ## floorbit.blueprints.terminal
 

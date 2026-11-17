@@ -1589,8 +1589,9 @@ export interface PageLink {
 
 /** A seat or switch for "Go to", from GET /api/pages/find (issue #252). */
 export interface Place {
-  /** player: a nick, IP or MAC and its seat, only for seats.view (issue #292). */
-  kind: 'seat' | 'switch' | 'player'
+  /** player: a nick, IP or MAC and its seat, only for seats.view (issue #292); endpoint: where an
+   *  IP or MAC was seen, from the history (also seats.view). */
+  kind: 'seat' | 'switch' | 'player' | 'endpoint'
   name: string
   href: string
 }
@@ -1867,4 +1868,21 @@ export interface CheckinOverview {
   conflicts: CheckinConflict[]
   portal: { fetches: { at: number; agent: string | null; done: number }[]; public_url: string | null }
   verifier: { last_error: string | null }
+}
+
+/** One row of the IP and MAC history (floorbit/endpoints.py): a machine seen on a port. */
+export interface EndpointRow {
+  mac: string
+  ip: string | null
+  device: string
+  port: string | null
+  seat: string | null
+  vlan: number | null
+  first_seen: number
+  last_seen: number
+}
+
+export interface EndpointAnswer {
+  rows: EndpointRow[]
+  status: { store: 'database' | 'memory'; written: number; open: number; keep_days: number; error: string | null }
 }
