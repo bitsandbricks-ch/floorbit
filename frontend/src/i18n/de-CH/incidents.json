@@ -128,5 +128,13 @@
   "powerTitle": {
     "tripped": "Sicherung ausgelöst: {{name}}",
     "load": "Stromkreis {{name}} bei {{pct, number}} % von {{rating, number}} A"
+  },
+  "powerNote": {
+    "board": "Verteiler {{board}}, Phase {{phase}}.",
+    "feeds": "Speist {{what}}.",
+    "seats": "{{count}} Plätze ({{first}} bis {{last}})",
+    "seat": "Platz {{seat}}",
+    "switches": "Switches {{names}}",
+    "and": " und "
   }
 }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
-import { incidentTitle } from './incidentTitle'
+import { incidentTitle, powerNote } from './incidentTitle'
 
 describe('incidentTitle', () => {
   afterEach(async () => { await i18n.changeLanguage('en') })
@@ -20,5 +20,16 @@ describe('incidentTitle', () => {
     expect(incidentTitle('Breaker tripped: PDU 3', i18n.t)).toBe('Sicherung ausgelöst: PDU 3')
     await i18n.changeLanguage('en')
     expect(incidentTitle('Circuit C row 2 at 98.8 % of 16 A', i18n.t)).toBe('Circuit C row 2 at 98.8 % of 16 A')
+  })
+
+  it('shows the note Floorbit writes on a power incident in the reader\'s language', async () => {
+    const note = 'Board DB-2, phase L3. Feeds 12 seats (C-13 to C-24) and switches sw-c-01, sw-c-02.'
+    await i18n.changeLanguage('de-CH')
+    expect(powerNote(note, i18n.t)).toBe('Verteiler DB-2, Phase L3. Speist 12 Plätze (C-13 bis C-24) und Switches sw-c-01, sw-c-02.')
+    expect(powerNote('Board DB-2, phase L1. Feeds seat A-1.', i18n.t)).toBe('Verteiler DB-2, Phase L1. Speist Platz A-1.')
+    expect(powerNote('Board DB-2, phase L1.', i18n.t)).toBe('Verteiler DB-2, Phase L1.')
+    expect(powerNote('Swapped the strip', i18n.t)).toBe('Swapped the strip')
+    await i18n.changeLanguage('en')
+    expect(powerNote(note, i18n.t)).toBe(note)
   })
 })

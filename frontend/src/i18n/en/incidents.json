@@ -128,5 +128,13 @@
   "powerTitle": {
     "tripped": "Breaker tripped: {{name}}",
     "load": "Circuit {{name}} at {{pct, number}} % of {{rating, number}} A"
+  },
+  "powerNote": {
+    "board": "Board {{board}}, phase {{phase}}.",
+    "feeds": "Feeds {{what}}.",
+    "seats": "{{count}} seats ({{first}} to {{last}})",
+    "seat": "seat {{seat}}",
+    "switches": "switches {{names}}",
+    "and": " and "
   }
 }
