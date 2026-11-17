@@ -109,6 +109,11 @@ def create_app(start_background=True):
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
 
+    # A stopping gunicorn worker ends the live-update streams first, so it exits at once.
+    if start_background:
+        from integrations import events
+        events.close_streams_on_sigterm()
+
     # Features an admin turned off answer 404 and leave the navigation (docs/features.md).
     from .features import init_features
     init_features(app)
