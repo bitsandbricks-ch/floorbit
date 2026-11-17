@@ -26,6 +26,18 @@ PROBE_PORTS = (53, 80, 443, 853)   # what a TCP probe may connect to: answered b
 RCODES = {0: 'NOERROR', 1: 'FORMERR', 2: 'SERVFAIL', 3: 'NXDOMAIN', 4: 'NOTIMP', 5: 'REFUSED'}
 MAX_COUNT = 10
 DNS_PORT = 53
+_stand_in = None
+
+
+def stand_in(answer):
+    """Demo mode (floorbit/blueprints/demo.py) answers for its made-up servers, so nothing is sent out.
+    ``answer(method, args)`` returns what the probe would, or None to send it for real."""
+    global _stand_in
+    _stand_in = answer
+
+
+def stood_in(method, args):
+    return _stand_in(method, args) if _stand_in is not None else None
 
 
 class ProbeError(RuntimeError):

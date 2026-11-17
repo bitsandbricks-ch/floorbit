@@ -11,13 +11,17 @@ Where plugins come from, and how far they are trusted:
 trust          where                                           runs
 =============  ==============================================  =========================
 builtin        ``floorbit/builtin_plugins/`` (ships with it)   inside Floorbit
+official       the Marketplace, signed with a key built into    inside Floorbit
+               this image (``floorbit/keys/plugins/``)
+community      a Marketplace source the operator added, signed  inside Floorbit
+               with a key in ``FLOORBIT_COMMUNITY_KEYS``
 development    ``FLOORBIT_DEV_PLUGINS`` (a folder of           inside Floorbit; never set
                checkouts, for writing plugins)                 it in production
 =============  ==============================================  =========================
 
-Installing other plugins (signed releases, run in a locked-down process of their own) comes in a
-later step; until then no outside code runs. Every plugin starts switched off; an admin turns it on
-under Settings > Plugins. See docs/plugins.md.
+Nothing unsigned is ever installed: an admin picks from signed indexes, and only the server's
+operator can trust a key (floorbit/marketplace.py, docs/marketplace.md). Every plugin starts
+switched off; an admin turns it on under Settings > Plugins. See docs/plugins.md.
 """
 from __future__ import annotations
 
@@ -60,6 +64,7 @@ AREAS = {
     'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
     'brackets': 'tournament brackets from a tournament tool, shown read-only on the bracket view',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
+    'agent': 'runs a part of it on the local agent, in the hall (agent.py; docs/agent-plugins.md)',
 }
 # What a context_menu entry can be on, and the action parameter that carries the target.
 MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
@@ -123,6 +128,12 @@ class Spec:
 
     def item(self, kind, item_id):
         return next((i for i in self.items(kind) if i.get('id') == item_id), None)
+
+    @property
+    def agent(self):
+        """The manifest's ``agent:`` block (floorbit/plugins/agent.py), or None."""
+        block = self.manifest.get('agent') if 'agent' in self.uses else None
+        return block if isinstance(block, dict) else None
 
     def plugin_class(self):
         cls = getattr(self.module, 'Plugin', None) if self.module else None
@@ -219,6 +230,10 @@ def validate(m):
                     return f"widgets.{item['id']}: size must be small or wide"
                 item['refresh'] = max(10, int(item.get('refresh') or 60))
     actions = {a['id'] for a in m.get('actions') or []}
+    from .agent import check_agent_block
+    err = check_agent_block(m)
+    if err:
+        return err
     err = _check_menu(m)
     if err:
         return err
@@ -274,12 +289,24 @@ def _check_methods(spec):
                     (allowed if table is AREA_METHODS else optional).add(method)
                 elif callable(getattr(cls, method, None)):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
+    kinds = set((spec.agent or {}).get('sends') or {})
+    fetches = set((spec.agent or {}).get('fetches') or [])
     for name in dir(cls):
+        if not name.startswith('agent_') or name == 'agent_settings' or not callable(getattr(cls, name, None)):
+            pass
+        elif name.startswith('agent_get_'):
+            if name[10:] not in fetches:
+                return f'plugin.py: {name}() answers the agent, but agent.fetches has no {name[10:]}'
+        elif name[6:] not in kinds:
+            return f'plugin.py: {name}() takes what the agent sends, but agent.sends has no {name[6:]}'
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
     for name in sorted(allowed - {'test'}):
         if not callable(getattr(cls, name, None)):
             return f'plugin.py: plugin.yaml lists it, but Plugin has no {name}()'
+    for kind in sorted(fetches):
+        if not callable(getattr(cls, f'agent_get_{kind}', None)):
+            return f'plugin.py: agent.fetches lists {kind}, but Plugin has no agent_get_{kind}()'
     return ''
 
 
@@ -322,6 +349,10 @@ def _load(path, trust, current_version):
         except Exception as exc:  # noqa: BLE001  # a broken plugin must not take Floorbit down
             spec.error = f'plugin.py: {type(exc).__name__}: {exc}'
             return spec
+    agent = spec.agent
+    if agent and not (path / agent['module']).is_file():
+        spec.error = f"agent.module: {agent['module']} is missing"
+        return spec
     spec.error = _check_methods(spec)
     return spec
 
@@ -355,6 +386,26 @@ class Registry:
                     spec.id = f'{spec.id}@{sub.name}'
                 self.specs[spec.id] = spec
         self._register_settings()
+
+    # Marketplace plugins (floorbit/marketplace.py) come and go while Floorbit runs --------
+    def add(self, path, trust):
+        """Load one plugin folder, replacing an installed one with the same id. Returns its Spec."""
+        spec = _load(Path(path), trust, self.version)
+        if spec is None:
+            spec = Spec(id=Path(path).name, path=Path(path), trust=trust, error='plugin.yaml is missing')
+        cur = self.specs.get(spec.id)
+        if cur is not None and cur.trust in ('builtin', 'development'):
+            spec.error = f'a plugin with id {spec.id} ships with this Floorbit'
+            return spec
+        self.specs[spec.id] = spec
+        self._register_settings()
+        return spec
+
+    def drop(self, plugin_id):
+        """Forget an installed plugin (its settings and state stay, for a later install)."""
+        spec = self.specs.get(plugin_id)
+        if spec is not None and spec.trust not in ('builtin', 'development'):
+            del self.specs[plugin_id]
 
     # settings ------------------------------------------------------------------------------
     def _register_settings(self):
@@ -591,6 +642,8 @@ class Registry:
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}
                               for e in spec.items('endpoints')],
                 'hooks': [{'events': h['events'], 'action': h['action']} for h in spec.items('hooks')],
+                'agent': ({'sends': sorted(spec.agent.get('sends') or {}), 'calls': spec.agent.get('calls') or [],
+                           'actions': spec.agent.get('actions') or []} if spec.agent else None),
                 'has_test': bool(spec.plugin_class() and spec.plugin_class().test is not Plugin.test),
             })
         return out
