@@ -4,7 +4,13 @@ On the agent it is the collector: Telegraf (a sidecar next to the agent) gets it
 and posts line protocol to this plugin's own listener; the API pollers (NX-API, RESTCONF,
 OPNsense) run here too. The picture of each device stays in the agent's memory, where the
 monitoring calls through the agent link read it, so MAC tables and ARP never leave the hall. The
-hosted Floorbit only gets the per-port and per-device numbers for its history (``series``).
+hosted Floorbit gets the per-port and per-device numbers for its history (``series``) and where
+each machine was seen (``endpoints``).
+
+With several agents sharing VIPs (VRRP, the agent's docs/vrrp.md) only the primary one, the holder
+of the first VIP, collects: it polls and sends. The others listen only, so no device is polled or
+logged into twice and the hosted Floorbit gets each minute once; a standby takes over within a
+few seconds of the VIP moving to it.
 """
 import base64
 import contextlib
@@ -41,6 +47,7 @@ class AgentPlugin(Base):
         self.poll_errors = {}
         self.token = self._token()
         self.targets = []
+        self.primary = self.state.collecting = self.is_primary()
         self.configure(self.settings)
         # HTTPS when the hall gave the agent a certificate (FLOORBIT_AGENT_TLS_CERT/KEY): a firewall's
         # own Telegraf sends here across the event network.
@@ -76,6 +83,21 @@ class AgentPlugin(Base):
                 f.write(token)
         return token
 
+    def is_primary(self):
+        """Does this agent collect? Yes without VRRP; with it, while it holds the first VIP."""
+        check = getattr(self.ctx, 'primary', None)
+        return True if check is None else bool(check())
+
+    def follow_role(self):
+        """Became primary or standby since the last look (the VIP moved)? Then Telegraf's config
+        changes with it. True when it changed."""
+        if self.is_primary() == self.primary:
+            return False
+        self.primary = self.state.collecting = not self.primary
+        self.ctx.log(f'[telemetry] {"primary: collecting" if self.primary else "standby: another agent collects"}')
+        self.write_conf()
+        return True
+
     def conf_path(self):
         return os.environ.get(CONF_ENV) or os.path.join(self.ctx.state_dir or '.', 'telegraf.conf')
 
@@ -88,7 +110,8 @@ class AgentPlugin(Base):
         with self.lock:
             # The sidecar reaches the agent by its compose name, which the hall's certificate doesn't name.
             text = telegraf.render(list(self.targets), self.output_url(), self.token,
-                                   output_insecure=self.output_url().startswith('https://agent:'))
+                                   output_insecure=self.output_url().startswith('https://agent:'),
+                                   poll=self.primary)
         path = self.conf_path()
         try:
             with open(path, encoding='utf-8') as f:
@@ -157,6 +180,11 @@ class AgentPlugin(Base):
         while not self.ctx.stopping.wait(5):
             now = time.time()
             try:
+                if self.follow_role():
+                    next_poll = next_send = 0.0
+                if not self.primary:
+                    self.report(now)
+                    continue
                 if now >= next_poll:
                     next_poll = now + POLL_EVERY
                     self.poll(now)
@@ -204,8 +232,11 @@ class AgentPlugin(Base):
         self.ctx.gauge('devices_heard', heard)
         if self.last_write is not None:
             self.ctx.gauge('telegraf_quiet_seconds', round(now - self.last_write))
+        self.ctx.gauge('primary', int(self.primary))
         if not count:
             self.ctx.health('ok', 'no devices set up')
+        elif not self.primary:
+            self.ctx.health('ok', 'standby: the agent holding the first VIP collects')
         elif telegraf_work and (self.last_write is None or now - self.last_write > QUIET_AFTER):
             self.ctx.health('warning', 'nothing from Telegraf: is the telegraf sidecar running?')
         elif self.poll_errors:

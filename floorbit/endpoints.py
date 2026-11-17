@@ -113,11 +113,14 @@ class History:
                         'vlan': int(vlan) if str(vlan or '').isdigit() else None, 'last_seen': now}
                     if self.db is None:
                         self.memory.append(row)
-                else:
+                elif now > row['last_seen']:
                     row['last_seen'] = now
+                else:
+                    continue        # an older batch (an agent's spool, a second agent): nothing new
                 changed.append(row)
             # Rows not seen for a while are closed: forget them here, they stay in the table.
-            self.open = {k: r for k, r in self.open.items() if now - r['last_seen'] <= GAP}
+            latest = max([now, *(r['last_seen'] for r in self.open.values())])
+            self.open = {k: r for k, r in self.open.items() if latest - r['last_seen'] <= GAP}
             if self.db is None:
                 self.memory = [r for r in self.memory if r['last_seen'] >= now - MEMORY_HOURS * 3600]
         if self.db is not None and changed:

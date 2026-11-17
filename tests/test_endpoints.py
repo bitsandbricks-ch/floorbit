@@ -125,3 +125,29 @@ def test_the_agent_sends_where_it_saw_each_machine(client, anon_client, tmp_path
                            headers={"Floorbit-Agent-Key": key})
     assert got.status_code == 200 and got.get_json()["taken"] >= 1
     assert client.get("/api/endpoints?q=02:00:00:00:00:07").get_json()["rows"][0]["seat"] == "A-1"
+
+
+def test_a_late_batch_changes_nothing_twice(db):
+    """A batch replayed from an agent's spool, or sent by a second agent, adds no rows."""
+    h = endpoints.History(db)
+    seen = {"mac": "02:00:00:00:00:07", "ip": "192.0.2.40", "device": "sw-a-01", "port": "Gi1/0/1"}
+    assert h.record([seen], NOW) == 1
+    assert h.record([seen], NOW + 120) == 1
+    assert h.record([seen], NOW + 60) == 0          # older than what is known: nothing new
+    assert h.record([seen], NOW + 120) == 0         # the same batch from a second agent
+    rows = h.search("192.0.2.40")
+    assert len(rows) == 1 and rows[0]["last_seen"] == NOW + 120
+    # A batch from before a gap (kept on the agent while the link was down) fills the past in.
+    h.record([{**seen, "port": "Gi1/0/2"}], NOW - 3600)
+    assert [r["port"] for r in h.search("192.0.2.40")] == ["Gi1/0/1", "Gi1/0/2"]
+
+
+def test_the_agents_time_is_kept_within_its_spool():
+    import time
+
+    from floorbit.builtin_plugins.telemetry import plugin
+    now = time.time()
+    assert plugin._when({"at": now - 600}) == now - 600
+    assert abs(plugin._when({"at": now + 3600}) - now) < 5           # from the future: this clock
+    assert abs(plugin._when({"at": now - 2 * plugin.REPLAY}) - now) < 5
+    assert abs(plugin._when({"at": True}) - now) < 5

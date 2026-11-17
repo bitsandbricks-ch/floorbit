@@ -58,6 +58,28 @@ history (see [Storage](#storage)).
 4. **Settings > Plugins**: turn on **Telemetry**. If LibreNMS is set up too, LibreNMS still wins
    (plugins are tried in id order); clear LibreNMS's URL to switch.
 
+## Two agents (VRRP)
+
+With two or more local agents sharing virtual IPs (the agent's `docs/vrrp.md`, active/passive or
+active/active), only one collects: the agent that holds the **first** VIP. It runs Telegraf's
+polling (SNMP, gNMI) and the NX-API, RESTCONF and OPNsense pollers, and sends the numbers and the
+IP and MAC history. The others write a Telegraf config with the listeners only, answer nothing
+about the devices, and send nothing. So a device is never polled or logged into by two agents,
+and the hosted Floorbit gets each minute once. When the first VIP moves, the agent that now holds
+it starts collecting within about 5 seconds; its picture fills within a polling round.
+
+Point the devices' traps, model-driven telemetry and a firewall's own Telegraf at the first VIP.
+
+Nothing comes in twice on the hosted side either:
+
+- Floorbit asks every connected agent and keeps the answer that has something, the device and
+  ARP lists merged once.
+- What an agent kept on its disk while the link was down keeps its own time (up to 6 hours back).
+  A batch older than what is known, or the same batch from a second agent, adds no history row.
+  The lite rollups keep one value per series and minute.
+- VictoriaMetrics runs with `-dedup.minScrapeInterval=30s` in the compose file and the k3s
+  manifest, so a point written twice is kept once.
+
 ## Firewalls: pfSense and OPNsense
 
 Neither does model-driven streaming. What comes closest:

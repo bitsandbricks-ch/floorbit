@@ -29,17 +29,13 @@ class Plugin(Base):
 
     def agent_series(self, agent, payload):
         """The agent's per-port and per-device numbers, for the history here."""
-        import time
 
         from floorbit.telemetry import storage
         values = payload.get('values') if isinstance(payload, dict) else None
         clean = {k: float(v) for k, v in list((values or {}).items())[:200_000]
                  if isinstance(k, str) and k.count('|') == 2 and len(k) <= 300
                  and isinstance(v, (int, float)) and not isinstance(v, bool)}
-        at = payload.get('at') if isinstance(payload.get('at'), (int, float)) else time.time()
-        # This clock decides: an agent whose clock is off by more than a minute is not trusted.
-        if abs(at - time.time()) > 60:
-            at = time.time()
+        at = _when(payload)
         if clean:
             storage.storage().sample(clean, at)
         return {'taken': len(clean)}
@@ -49,7 +45,8 @@ class Plugin(Base):
         from floorbit import endpoints
         rows = payload.get('rows') if isinstance(payload, dict) else None
         rows = [r for r in (rows or [])[:50_000] if isinstance(r, dict)]
-        return {'taken': endpoints.history().record(rows)}
+        # A batch the agent kept while the link was down (or from before a failover) keeps its time.
+        return {'taken': endpoints.history().record(rows, _when(payload))}
 
     # the dashboard -----------------------------------------------------------------------------
     def widget_devices(self):
@@ -68,6 +65,8 @@ class Plugin(Base):
 
     # the monitoring interface -----------------------------------------------------------------
     def devices(self):
+        if not state.collecting:     # a standby agent: the primary one answers
+            return []
         with state._lock:
             found = list(state.devices.values())
         return [{'hostname': d.name, 'display': d.name, 'sysName': d.sys_name or d.name, 'ip': d.address,
@@ -75,6 +74,8 @@ class Plugin(Base):
                 for d in sorted(found, key=lambda d: d.name)]
 
     def device_ports(self, hostname):
+        if not state.collecting:
+            return []
         dev = self._device(hostname)
         if dev is None:
             return []
@@ -84,6 +85,8 @@ class Plugin(Base):
                     for i in sorted(rows, key=lambda i: _natural(i.name))]
 
     def port_stats(self, hostname, interface):
+        if not state.collecting:
+            return {}
         want = str(interface or '').lower()
         for port in self.device_ports(hostname):
             if str(port['name']).lower() == want:
@@ -91,6 +94,8 @@ class Plugin(Base):
         return {}
 
     def device_details(self, hostname):
+        if not state.collecting:
+            return {}
         dev = self._device(hostname)
         if dev is None:
             return {'status': 'unknown', 'hostname': hostname}
@@ -114,6 +119,8 @@ class Plugin(Base):
 
     def arp(self, query):
         """ARP rows matching an IP or a MAC, LibreNMS-shaped."""
+        if not state.collecting:
+            return []
         q = str(query or '').strip()
         mac = normalise_mac(q)
         out = []
@@ -126,6 +133,8 @@ class Plugin(Base):
         return out
 
     def port_clients(self, hostname):
+        if not state.collecting:
+            return []
         dev = self._device(hostname)
         if dev is None:
             raise PluginError(f'No telemetry from {hostname} yet.')
@@ -134,6 +143,8 @@ class Plugin(Base):
                     for (mac, vlan), (port, _seen) in sorted(dev.fdb.items()) if dev.port_name(port)]
 
     def neighbours(self, hostname):
+        if not state.collecting:
+            return []
         dev = self._device(hostname)
         if dev is None:
             return []
@@ -158,6 +169,8 @@ class Plugin(Base):
 
     def find_mac(self, mac):
         """(device, port name, vlan, MACs on that port) of the access port a MAC is on, or None."""
+        if not state.collecting:
+            return None
         mac = normalise_mac(mac)
         if not mac:
             return None
@@ -181,6 +194,8 @@ class Plugin(Base):
         return device, port, vlan, count
 
     def resolve_ip(self, ip_address, search_device=None):
+        if not state.collecting:
+            return None
         rows = [r for r in self.arp(ip_address) if r['ipv4_address'] == ip_address
                 and (not search_device or r['hostname'] == search_device)]
         if not rows:
@@ -202,6 +217,20 @@ class Plugin(Base):
                               'Telegraf (docs/telemetry.md).')
         online = sum(d['status'] == 1 for d in found)
         return f'Receiving: {len(found)} devices, {online} sent something in the last {_minutes()} minutes.'
+
+
+REPLAY = 6 * 3600     # an agent's spool may bring batches this old
+
+
+def _when(payload):
+    """When the agent saw it: its ``at``, unless that is in the future or older than its spool can
+    be (then this clock's now: an agent with a wrong clock is not trusted)."""
+    import time
+    now = time.time()
+    at = payload.get('at') if isinstance(payload, dict) else None
+    if isinstance(at, bool) or not isinstance(at, (int, float)) or not now - REPLAY <= at <= now + 60:
+        return now
+    return min(at, now)
 
 
 def _minutes():

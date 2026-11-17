@@ -151,6 +151,8 @@ class Storage:
                     if step != FINE:
                         continue
                     points = self.memory[key]
+                    if points and points[-1][0] > bucket:
+                        continue        # a late batch: memory keeps only what is in order
                     if points and points[-1][0] == bucket:
                         points[-1] = (bucket, value)
                     else:

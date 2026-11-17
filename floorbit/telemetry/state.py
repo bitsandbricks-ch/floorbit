@@ -203,6 +203,8 @@ class State:
     def __init__(self):
         self._lock = threading.Lock()
         self.devices = {}
+        # False on a standby agent (VRRP): another agent collects, this picture is not the hall's.
+        self.collecting = True
         self.points = 0
         self.unknown = 0               # points no driver here understands (kept in storage only)
 
@@ -210,6 +212,7 @@ class State:
         with self._lock:
             self.devices.clear()
             self.points = self.unknown = 0
+            self.collecting = True
 
     def device(self, name):
         with self._lock:

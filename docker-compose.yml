@@ -80,7 +80,8 @@ services:
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.156.0
     profiles: ["metrics"]
-    command: ["-storageDataPath=/storage", "-retentionPeriod=${TELEMETRY_RETENTION:-30d}"]
+    # dedup: a batch sent twice (two agents, a replay after a failover) is kept once.
+    command: ["-storageDataPath=/storage", "-retentionPeriod=${TELEMETRY_RETENTION:-30d}", "-dedup.minScrapeInterval=30s"]
     volumes:
       - victoriametrics_data:/storage
     restart: unless-stopped

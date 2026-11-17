@@ -11,3 +11,5 @@
   switch port and seat, kept for 7 days in Floorbit's database. Search any IP or MAC (also from
   Go to), and open a port's or a seat's history. Fed by telemetry, also through the local agent.
   See `docs/endpoints.md`.
+- Telemetry with two local agents sharing VIPs (VRRP): only the agent holding the first VIP polls
+  and sends, the other takes over when the VIP moves, and nothing is counted twice.

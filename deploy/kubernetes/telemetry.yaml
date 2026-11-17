@@ -45,7 +45,7 @@ spec:
       containers:
         - name: victoriametrics
           image: victoriametrics/victoria-metrics:v1.156.0
-          args: ["-storageDataPath=/storage", "-retentionPeriod=30d"]
+          args: ["-storageDataPath=/storage", "-retentionPeriod=30d", "-dedup.minScrapeInterval=30s"]
           ports: [{containerPort: 8428}]
           readinessProbe:
             httpGet: {path: /health, port: 8428}

@@ -164,8 +164,9 @@ def gnmi(t, interval='10s'):
 
 
 def render(targets, output_url, token, interval='30s', tables_interval='60s', listen_traps=True, listen_mdt=True,
-           output_insecure=False):
-    """The whole telegraf.conf. ``targets`` with secrets opened (targets.opened)."""
+           output_insecure=False, poll=True):
+    """The whole telegraf.conf. ``targets`` with secrets opened (targets.opened). ``poll=False``
+    (a standby agent): only the listeners, so a device is never polled by two agents."""
     lines = ['# Made by Floorbit from Settings > Telemetry (docs/telemetry.md). Changes here are',
              '# overwritten: change the devices there instead.', '',
              '[agent]', f'  interval = {q(interval)}', '  round_interval = true', '  flush_interval = "5s"',
@@ -176,7 +177,7 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
              f'    Authorization = {q("Token " + token)}', '']
     traps = [t for t in targets if 'traps' in t['drivers']]
     mdt = [t for t in targets if 'mdt' in t['drivers']]
-    for t in targets:
+    for t in targets if poll else ():
         if 'snmp' in t['drivers']:
             lines += [*snmp(t, interval, tables_interval), '']
         if 'gnmi' in t['drivers']:
@@ -211,6 +212,9 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
                   '    fb_mdt_nxos_if = "sys/intf"',
                   '    fb_mdt_iosxe_arp = "Cisco-IOS-XE-arp-oper:arp-data/arp-vrf/arp-oper"',
                   '  [inputs.cisco_telemetry_mdt.tags]', '    driver = "mdt"', '']
+    if not any(line.startswith('[[inputs.') for line in lines):
+        # Telegraf won't start without an input: one that never sends anything keeps it waiting.
+        lines += ['[[inputs.internal]]', '  collect_memstats = false', '  namedrop = ["*"]', '']
     return '\n'.join(lines) + '\n'
 
 

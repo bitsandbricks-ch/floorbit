@@ -472,3 +472,51 @@ def test_plugins_can_add_measurements_and_drivers(monkeypatch):
     points, errors = pollers.poll_all([{"name": "ups-1", "address": "192.0.2.50", "drivers": ["eaton"]}], now=1)
     state.state.apply(points, 1)
     assert errors == {} and state.state.device("ups-1").kind == "ups"
+
+
+def test_a_standby_agent_listens_but_never_polls(tmp_path, monkeypatch):
+    """Two agents sharing VIPs (VRRP): only the one with the first VIP polls and sends."""
+    import importlib
+    agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
+    monkeypatch.delenv("FLOORBIT_TELEGRAF_CONF", raising=False)
+    target = {"id": "a1", "name": "sw-a-01", "address": "192.0.2.21", "kind": "switch", "platform": "ios",
+              "drivers": ["snmp", "traps"], "snmp_version": "2c", "community": "example", "tables": True}
+    ctx = AgentCtx("telemetry", {"targets": [target]}, {"sends": {"series": {"privacy": "device"}}},
+                   state_dir=str(tmp_path))
+    primary = [False]
+    ctx.primary = lambda: primary[0]
+    plugin = agent.AgentPlugin(ctx)
+    plugin.start()
+    try:
+        conf = (tmp_path / "telegraf.conf").read_text()
+        assert "inputs.snmp]]" not in conf.replace("inputs.snmp_trap", "") and "inputs.snmp_trap" in conf
+        assert state.state.collecting is False
+        plugin.report(time.time())
+        assert "standby" in ctx.health_.report()["message"]
+        # The VIP moves here: polling goes into Telegraf's config at once.
+        primary[0] = True
+        assert plugin.follow_role() is True and state.state.collecting is True
+        assert "udp://192.0.2.21:161" in (tmp_path / "telegraf.conf").read_text()
+        assert plugin.follow_role() is False
+    finally:
+        ctx.stopping.set()
+        state.state.reset()
+
+
+def test_telegraf_without_polling_or_listeners_still_starts():
+    import tomllib
+    conf = telegraf.render([{"name": "sw", "address": "192.0.2.1", "drivers": ["snmp"], "snmp_version": "2c",
+                             "community": "example"}], "http://agent:8186/write", "t", poll=False)
+    parsed = tomllib.loads(conf)
+    assert list(parsed["inputs"]) == ["internal"] and parsed["inputs"]["internal"][0]["namedrop"] == ["*"]
+
+
+def test_a_standby_picture_is_not_answered(plugin):
+    now = time.time()
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert plugin.devices()
+    state.state.collecting = False
+    try:
+        assert plugin.devices() == [] and plugin.device_ports("sw-a-01") == [] and not plugin.device_details("sw-a-01")
+    finally:
+        state.state.collecting = True
