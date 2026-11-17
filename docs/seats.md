@@ -54,6 +54,11 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Resize:** select one label, icon, zone or wall and drag its handles: a label's or icon's corner
   makes it any size (shown in %, picking Small, Medium or Large again undoes the stretch), a zone's
   corners resize the box, a wall's ends move. Handles snap to the grid unless you hold Alt.
+- **Walls:** while drawing a wall and while one is selected, each stretch shows its length (in seats,
+  one grid cell each) and its angle. Drag the dot in the middle of a stretch to bend the wall there,
+  drag a bend to move it, double-click a bend to take it out; **Straighten** in the panel removes them
+  all. Ends and bends snap onto other walls' ends and bends, so walls meet; Shift keeps 15° steps from
+  the neighbouring corner, Alt leaves the grid.
 - **Copy and paste:** Ctrl+C, Ctrl+X and Ctrl+V. Paste puts the copy where the pointer is; Ctrl+D
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.

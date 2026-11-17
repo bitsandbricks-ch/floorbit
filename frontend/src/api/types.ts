@@ -682,6 +682,8 @@ export interface PlanMark {
   rotation?: number
   x2?: number
   y2?: number
+  /** A wall's bends between its ends, [x, y] each (drawing units in the plan, % from /api/plan-marks). */
+  points?: [number, number][]
   style?: 'solid' | 'dashed'
   w?: number
   h?: number

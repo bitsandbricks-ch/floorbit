@@ -100,3 +100,23 @@ def test_marks_sit_on_layers_and_crew_layers_stay_off_attendee_pages(client):
     public, _ = plan(load_data(), public=True)
     assert {m["layer"] for m in crew["marks"]} == {"overview", "safety", "services"}
     assert {m["layer"] for m in public["marks"]} == {"overview", "safety"} and "server" not in public["icons"]
+
+
+def test_a_wall_bends_round_corners(client):
+    # Mike: walls with bends, like cables. The bends travel with the wall into the plan.
+    client.post('/api/seat-blocks', json={'name': 'A', 'cols': 4, 'rows': 1, 'x': 50, 'y': 50})
+    body = {'kind': 'wall', 'x': 10, 'y': 10, 'x2': 30, 'y2': 30, 'points': [[30, 10], [30, 10]]}
+    res = client.post('/api/plan-marks', json=body)
+    assert res.status_code == 201, res.get_json()
+    mark = res.get_json()
+    assert mark['points'] == [[30, 10]]      # the same bend twice is one
+    wall = next(m for m in client.get('/api/plan').get_json()['drawing']['marks'] if m['kind'] == 'wall')
+    assert wall['points'] == [[480, 100]] and wall['x2'] == 480
+    # A wall back to where it started is fine when it bends on the way.
+    loop = {**body, 'x2': 10, 'y2': 10, 'points': [[30, 10], [30, 30]]}
+    assert client.post('/api/plan-marks', json=loop).status_code == 201
+    for bad in ([[1]], 'x', [[1, 2]] * 51, [['a', 1]]):
+        assert client.post('/api/plan-marks', json={**body, 'points': bad}).status_code == 400, bad
+    # Straight again: no points kept.
+    res = client.put(f"/api/plan-marks/{mark['id']}", json={'points': []})
+    assert 'points' not in res.get_json()

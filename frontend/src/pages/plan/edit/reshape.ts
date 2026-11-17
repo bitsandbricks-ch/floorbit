@@ -67,7 +67,48 @@ export function shapeBody(m: PlanMark, size: Size): Record<string, unknown> {
   }
   if (m.kind === 'wall') {
     const a = toPct(size, m), b = toPct(size, { x: m.x2 ?? m.x, y: m.y2 ?? m.y })
-    return { x: r3(a.x), y: r3(a.y), x2: r3(b.x), y2: r3(b.y) }
+    // Always sent, even empty: undoing a bend has to take it out again.
+    const points = (m.points ?? []).map(([x, y]) => { const q = toPct(size, { x, y }); return [r3(q.x), r3(q.y)] })
+    return { x: r3(a.x), y: r3(a.y), x2: r3(b.x), y2: r3(b.y), points }
   }
   return { scale: m.scale ?? 1 }
+}
+
+/** ``m`` with its corners at ``route`` (start, bends, end). */
+export function withRoute(m: PlanMark, route: Point[]): PlanMark {
+  const a = route[0], b = route[route.length - 1], mid = route.slice(1, -1)
+  const out: PlanMark = { ...m, x: a.x, y: a.y, x2: b.x, y2: b.y }
+  if (mid.length) out.points = mid.map((p) => [p.x, p.y])
+  else delete out.points
+  return out
+}
+
+/** Where a wall's corner lands when dragged to ``p``: on another wall's end or bend within ``reach``
+ *  (so walls meet), else in 15° steps from ``from`` with Shift, else on the grid unless ``free``. */
+export function snapCorner(p: Point, { anchors = [], reach = 0, from, angle = false, free = false, size }: {
+  anchors?: Point[]; reach?: number; from?: Point; angle?: boolean; free?: boolean; size: Size
+}): Point {
+  let best: Point | null = null, dist = reach
+  for (const q of anchors) {
+    const d = Math.hypot(q.x - p.x, q.y - p.y)
+    if (d <= dist) { best = q; dist = d }
+  }
+  if (best) return { x: best.x, y: best.y }
+  if (angle && from) {
+    const dx = p.x - from.x, dy = p.y - from.y
+    const len = Math.hypot(dx, dy)
+    const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 12)) * (Math.PI / 12)
+    return { x: from.x + Math.cos(a) * len, y: from.y + Math.sin(a) * len }
+  }
+  if (free) return p
+  const v = toPct(size, p)
+  return fromPct(size, { x: snapPct(v.x), y: snapPct(v.y) })
+}
+
+/** How long a stretch is in seats (one grid cell each) and which way it points, in degrees
+ *  counter-clockwise from east, the way a protractor reads: "4.5 · 90°". */
+export function measure(a: Point, b: Point, cell: number): string {
+  const len = Math.round((Math.hypot(b.x - a.x, b.y - a.y) / cell) * 10) / 10
+  const deg = (Math.round((Math.atan2(-(b.y - a.y), b.x - a.x) * 180) / Math.PI) + 360) % 360
+  return `${len} · ${deg}°`
 }

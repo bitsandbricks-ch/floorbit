@@ -406,6 +406,13 @@
     "label": "Label",
     "tools": "Tools",
     "quick": "Selection",
+    "wall": {
+      "help": "Drag the corner squares to move the ends, the dots in the middle of a stretch to bend the wall, double-click a bend to take it out. Ends snap onto other walls; Shift keeps 15° steps, Alt leaves the grid.",
+      "straighten_one": "Straighten (remove {{count}} bend)",
+      "straighten_other": "Straighten (remove {{count}} bends)",
+      "addBend": "Drag to bend the wall here",
+      "bend": "Bend: drag to move, double-click to take it out"
+    },
     "tool": {
       "select": "Select",
       "hand": "Hand",
