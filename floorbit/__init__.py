@@ -123,6 +123,9 @@ def create_app(start_background=True):
     version_file = ROOT / 'VERSION'
     app.config['FLOORBIT_VERSION'] = version_file.read_text().strip() if version_file.is_file() else '0'
     registry = init_plugins(app, settings_store, app.config['FLOORBIT_VERSION'])
+    # Plugins installed from the Marketplace, signed (floorbit/marketplace.py, docs/marketplace.md).
+    from .marketplace import init_marketplace
+    init_marketplace(app, registry, start_background=start_background)
 
     # The service health wall: health plugins polled in the background (docs/health.md).
     from .health import init_health
@@ -155,6 +158,10 @@ def create_app(start_background=True):
     # What the LAN cache served, from its access log (docs/games.md).
     from .lancache import init_lancache
     init_lancache(app, start_background=start_background)
+
+    # Device telemetry: Telegraf, gNMI, MDT and API pollers, without LibreNMS (docs/telemetry.md).
+    from . import telemetry
+    telemetry.init_app(app, start_background=start_background)
 
     # Game servers: up or down, players and map, an RCON console (docs/game-servers.md).
     from . import game_servers

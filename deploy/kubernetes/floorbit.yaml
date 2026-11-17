@@ -49,6 +49,7 @@ spec:
           env:
             - {name: REDIS_HOST, value: floorbit-redis}
             - {name: PUBLIC_URL, value: "https://floor.example.com"}
+            - {name: TZ, value: "UTC"}                      # the event's time zone, e.g. Europe/Zurich
             # Only the Ingress reaches the pod, so its X-Forwarded-For names the real client
             # (the sign-in lockout and check-in count each visitor, not Traefik).
             - {name: CHECKIN_TRUST_PROXY, value: "true"}

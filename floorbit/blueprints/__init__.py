@@ -1,6 +1,7 @@
 """One blueprint per area of the app. A new area gets its own module, added to ALL."""
 from . import (
                agent,
+               agent_plugins,
                api_tokens,
                attendee,
                audit,
@@ -17,6 +18,7 @@ from . import (
                demo,
                dispatch,
                dns,
+               endpoints,
                features,
                firewalls,
                flows,
@@ -28,8 +30,10 @@ from . import (
                health,
                incidents,
                inventory,
+               lancache,
                layout_templates,
                logs,
+               marketplace,
                metrics,
                network,
                notice,
@@ -61,6 +65,7 @@ from . import (
                status_page,
                switches,
                teardown,
+               telemetry,
                terminal,
                timeline,
                topology,
@@ -77,6 +82,8 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        logs.bp, screen.bp, attendee.bp, halls.bp, layout_templates.bp,
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, planner.bp, preflight.bp, gear.bp,
        cables.bp, cable_plan.bp, teardown.bp, past_events.bp,
-       features.bp, firewalls.bp, api_tokens.bp, agent.bp, webhooks.bp, credentials.bp, wifi.bp,
+       features.bp, firewalls.bp, api_tokens.bp, agent.bp, agent_plugins.bp, telemetry.bp, endpoints.bp, webhooks.bp,
+       credentials.bp, wifi.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
-       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp]
+       runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp,
+       lancache.bp, marketplace.bp]

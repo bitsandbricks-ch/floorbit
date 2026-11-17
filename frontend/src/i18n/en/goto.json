@@ -1,7 +1,7 @@
 {
   "button": "Go to",
   "title": "Go to a page",
-  "placeholder": "Type a page, seat or switch",
+  "placeholder": "Type a page, seat, switch, IP or MAC",
   "none": "Nothing matches.",
   "close": "Close",
   "recent": "recent",
@@ -27,6 +27,7 @@
     "traffic": "Traffic",
     "dns": "DNS",
     "games": "Games",
+    "lancache": "LAN cache",
     "logs": "Logs",
     "security": "Security",
     "wifi": "Wi-Fi",
@@ -65,6 +66,9 @@
     "services": "Services",
     "topology": "Topology",
     "gameServers": "Game servers",
-    "switchLogins": "Switch logins"
-  }
+    "switchLogins": "Switch logins",
+    "telemetry": "Telemetry",
+    "endpoints": "IP and MAC history"
+  },
+  "endpoint": "Seen"
 }

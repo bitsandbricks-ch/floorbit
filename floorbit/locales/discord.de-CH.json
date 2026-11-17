@@ -177,5 +177,6 @@
  "**{}** switch outages, **{}** still down": "**{}** Switch-Ausfälle, **{}** immer noch down",
  "**{}** problems right now, **{}** changes in the audit log": "**{}** Probleme gerade jetzt, **{}** Änderungen im Audit-Log",
  "🎒 **{}** pieces of gear out: {}": "🎒 **{}** Stück Material ausgegeben: {}",
+ "🔕 **{}** muted: {}": "🔕 **{}** stummgeschaltet: {}",
  "{} Circuit {} at {} % of {} A": "{} Stromkreis {} bei {} % von {} A"
 }

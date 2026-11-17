@@ -1,7 +1,7 @@
 {
   "button": "Gehe zu",
   "title": "Zu einer Seite",
-  "placeholder": "Seite, Platz oder Switch eingeben",
+  "placeholder": "Seite, Platz, Switch, IP oder MAC eingeben",
   "none": "Nichts passt.",
   "close": "Schliessen",
   "recent": "zuletzt",
@@ -27,6 +27,7 @@
     "traffic": "Verkehr",
     "dns": "DNS",
     "games": "Games",
+    "lancache": "LAN-Cache",
     "logs": "Logs",
     "security": "Sicherheit",
     "wifi": "Wi-Fi",
@@ -65,6 +66,9 @@
     "services": "Dienste",
     "topology": "Topologie",
     "gameServers": "Gameserver",
-    "switchLogins": "Switch-Logins"
-  }
+    "switchLogins": "Switch-Logins",
+    "telemetry": "Telemetrie",
+    "endpoints": "IP- und MAC-Verlauf"
+  },
+  "endpoint": "Gesehen"
 }

@@ -67,8 +67,11 @@ def agents_page():
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
     agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
+    from .. import agent_ha, cluster, halls
+    names = {h['id']: h['name'] for h in halls.halls(agent_link.load_data())}
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
-                    'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL})
+                    'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL,
+                    'groups': agent_ha.groups(agents, names), 'hosted': cluster.status()})
 
 
 @bp.route('/api/agents', methods=['POST'])
@@ -83,16 +86,43 @@ def enrol():
 
 
 @bp.route('/api/agents/<agent_id>', methods=['PATCH'])
-def set_halls(agent_id):
+def change(agent_id):
+    """``{"name"}``, ``{"halls": [hall id]}`` and/or ``{"plugins_off": [plugin id]}``."""
     body = request.get_json(silent=True) or {}
+    out = {'id': agent_id}
     try:
-        name, halls = agent_link.set_halls(agent_id, body.get('halls', []))
+        if 'name' in body:
+            old, name = agent_link.rename(agent_id, body['name'])
+            audit.record('agents', f'Renamed a local agent: {old}', g.get('audit_user'), name, fields=['name'])
+            out['name'] = name
+        if 'halls' in body:
+            name, halls = agent_link.set_halls(agent_id, body.get('halls') or [])
+            audit.record('agents', f"Set the halls of a local agent: {', '.join(halls) or 'every hall'}",
+                         g.get('audit_user'), name, fields=['halls'])
+            out['halls'] = halls
+        if 'plugins_off' in body:
+            name, off = agent_link.set_plugins_off(agent_id, body.get('plugins_off'))
+            audit.record('agents', f"Set the plugins a local agent leaves off: {', '.join(off) or 'none'}",
+                         g.get('audit_user'), name, fields=['plugins_off'])
+            out['plugins_off'] = off
+            from .. import agent_plugins
+            agent_plugins.reload_agents()
     except agent_link.AgentError as exc:
         return jsonify({'error': str(exc)}), exc.status
-    audit.record('agents', f"Set the halls of a local agent: {', '.join(halls) or 'every hall'}",
-                 g.get('audit_user'), name, fields=['halls'])
     events.publish('agents.changed', {})
-    return jsonify({'id': agent_id, 'halls': halls})
+    return jsonify(out)
+
+
+@bp.route('/api/agents/<agent_id>/rotate', methods=['POST'])
+def rotate(agent_id):
+    """A new key, shown once. The old one works until the agent uses the new one (24 h at most)."""
+    try:
+        name, key = agent_link.rotate(agent_id)
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('agents', 'Made a new key for a local agent', g.get('audit_user'), name)
+    events.publish('agents.changed', {})
+    return jsonify({'id': agent_id, 'name': name, 'key': key})
 
 
 @bp.route('/api/agents/<agent_id>', methods=['DELETE'])
@@ -269,21 +299,32 @@ def flows():
     if not features.on('traffic'):
         return _traffic_off()
     body = _agent_body()
-    snap = body.get('snapshot')
-    if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
+    if not take_flow_summary(agent, body.get('snapshot')):
         return jsonify({'error': 'snapshot is missing'}), 400
+    return jsonify({'ok': True})
+
+
+def take_flow_summary(agent, snap):
+    """Keep an agent's traffic summary (also the Traffic from the hall plugin's). False: not one."""
+    if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
+        return False
     clean = {}
     for key, most in FLOW_KEYS.items():
         if key in snap:
             value = snap[key]
             clean[key] = value[:most] if most and isinstance(value, list) else value
+    from .. import agent_ha
+    if agent_ha.standby_with_primary(agent['id'], time.time()):
+        # Two agents in one hall: the primary's summary stands; a standby's would replace it with part of it.
+        agent_link.tunnel.relayed(agent['id'], 'flows', 0)
+        return True
     # The hosted clock decides whether the summary is stale, not the agent's.
     clean['updated'] = time.time()
     clean['agent'] = agent['name']
     from ..flows import store
     store.publish(clean, keep_locally=True)
     agent_link.tunnel.relayed(agent['id'], 'flows', 1)
-    return jsonify({'ok': True})
+    return True
 
 
 def _link_answers(agent, message):
