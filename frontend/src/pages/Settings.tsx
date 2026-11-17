@@ -202,7 +202,7 @@ function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
         onChange={(v) => v && onChange(v)} />
       break
     case 'color':
-      input = <ColorInput {...common} maw={260} format="hex" value={(value as string) || ''} placeholder={t('settings.derived')}
+      input = <ColorInput {...common} maw={260} format="hex" eyeDropperButtonProps={{ 'aria-label': t('settings.pickColour') }} value={(value as string) || ''} placeholder={t('settings.derived')}
         onChange={(v) => onChange(v.toLowerCase())} />
       break
     case 'list':
@@ -335,7 +335,6 @@ export default function Settings() {
             <BackupPanel />
             {d.sections.map((s) => {
               const fields = d.fields.filter((f) => f.section === s.id)
-              const custom = current('theme.preset') === 'custom'
               return (
                 <Panel key={s.id} id={`sec-${s.id}`} title={t(`settings.sections.${s.id}.title`, { defaultValue: s.title })}
                   desc={t(`settings.sections.${s.id}.desc`, { defaultValue: s.description })}
@@ -345,7 +344,7 @@ export default function Settings() {
                   <Stack gap="lg">
                     {TESTABLE.has(s.id) && <TestLine result={test.results[s.id] ?? null} />}
                     {fields.map((f, i) => (
-                      <Stack key={f.key} gap="lg" style={f.theme === 'custom' && !custom ? { opacity: 0.55 } : undefined}>
+                      <Stack key={f.key} gap="lg">
                         {/* Above the Custom-only colours, which its text ("the colours below") points at. */}
                         {s.id === 'appearance' && f.theme === 'custom' && fields[i - 1]?.theme !== 'custom' && <ThemeHint current={current} />}
                         <FieldRow field={f} info={d.values[f.key]} change={changes[f.key]}
