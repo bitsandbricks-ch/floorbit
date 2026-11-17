@@ -33,3 +33,19 @@ def test_wrong_types_inside_an_object(client):
 
 def test_signed_out_still_gets_401_first(anon_client):
     assert anon_client.post("/api/halls", json=[1]).status_code in (401, 403)
+
+
+@pytest.mark.parametrize("field", ["username", "password", "role", "display_name"])
+@pytest.mark.parametrize("value", [{"a": 1}, [1], 5, ["x"] * 20])
+def test_an_account_field_of_the_wrong_type_is_a_400(client, field, value):
+    body = {"username": "kim", "password": "a-long-example-pw", "role": "viewer", field: value}
+    r = client.post("/api/users", json=body)
+    # A display name that isn't text is ignored; everything else is refused.
+    assert r.status_code == (201 if field == "display_name" else 400), r.get_json()
+    if field == "display_name":
+        assert client.patch("/api/users/kim", json={"display_name": value}).status_code == 200
+
+
+@pytest.mark.parametrize("value", [{"a": 1}, [1], 5])
+def test_an_api_token_role_of_the_wrong_type_is_a_400(client, value):
+    assert client.post("/api/settings/api-tokens", json={"name": "Bot", "role": value}).status_code == 400

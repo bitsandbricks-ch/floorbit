@@ -29,14 +29,14 @@ class UserError(ValueError):
 
 
 def validate_username(username):
-    username = (username or '').strip()
+    username = username.strip() if isinstance(username, str) else ''
     if not USERNAME_RE.match(username):
         raise UserError('Usernames are 1 to 32 letters, digits, dots, dashes or underscores.')
     return username
 
 
 def validate_password(password):
-    if len(password or '') < MIN_PASSWORD_LENGTH:
+    if not isinstance(password, str) or len(password) < MIN_PASSWORD_LENGTH:
         raise UserError(f'Passwords need at least {MIN_PASSWORD_LENGTH} characters.')
     return password
 
@@ -112,7 +112,7 @@ class UserStore:
                 raise UserError(f'User {username} already exists.')
             users[username.lower()] = {
                 'username': username,
-                'display_name': (display_name or '').strip() or username,
+                'display_name': (display_name.strip() if isinstance(display_name, str) else '') or username,
                 'password_hash': generate_password_hash(password) if password else None,
                 'identities': {k: str(v) for k, v in (identities or {}).items()},
                 'role': role,
@@ -150,7 +150,7 @@ class UserStore:
                     raise UserError('This is the last admin. Make someone else admin first.')
                 # Sessions read the record on every request, so this applies at once.
                 user['role'] = role
-            if display_name is not None:
+            if isinstance(display_name, str):
                 user['display_name'] = display_name.strip()[:64] or user['username']
             self._write_users(users)
             return dict(user)
