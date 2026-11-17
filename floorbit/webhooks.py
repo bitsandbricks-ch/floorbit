@@ -175,7 +175,9 @@ def on_event(event):
     out = translate(event)
     if not out:
         return
-    hooks = [h for h in _hooks(load_data()) if h.get('active')]
+    # Every alert and status change comes through here: read data.json only when it changed.
+    from .store import load_shared
+    hooks = [h for h in _hooks(load_shared()) if h.get('active')]
     for name, payload in out:
         for hook in hooks:
             if name in (hook.get('events') or []):

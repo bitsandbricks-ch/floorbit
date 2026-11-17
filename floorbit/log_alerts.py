@@ -41,6 +41,7 @@ class LogAlerts:
     def __init__(self):
         self._lock = threading.Lock()
         self.items = {}   # id -> item
+        self._pruned = 0.0
 
     def observe(self, line, now=None):
         """Count one kept line. Returns the item when the line started a new one."""
@@ -51,7 +52,11 @@ class LogAlerts:
         device = str(line.get('device') or '')
         key = f"log:{pid}:{device.lower()}:{line.get('port') or ''}"
         with self._lock:
-            self._prune(now)
+            # Once a second, not per line: with every port of 400 switches flapping the list is
+            # tens of thousands long, and a scan per line held a 500-lines-a-second hall back.
+            if now - self._pruned >= 1 or now < self._pruned:
+                self._prune(now)
+                self._pruned = now
             item = self.items.get(key)
             if item:
                 item['count'] += 1

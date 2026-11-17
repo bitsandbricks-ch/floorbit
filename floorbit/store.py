@@ -197,7 +197,7 @@ def read_shared(path, default=None):
     on): parsed once per change, not on every call. Every request asked these several times, and
     each time parsed the whole data.json; at a 400-switch event that was 86% of the server's CPU.
     The document is shared: never change it, copy what you hand on."""
-    mark = stamp(path)
+    mark = _mark(path)
     if mark is None:
         return read_json(path, default)
     hit = _shared.get(path)
@@ -209,6 +209,19 @@ def read_shared(path, default=None):
         _shared.clear()
     _shared[path] = (mark, generation, doc)
     return doc
+
+
+def _mark(path):
+    """``stamp`` plus, for a file, its size and inode: a rewrite by rename, or two writes inside
+    one mtime tick, still reads as a change."""
+    from . import database
+    if database.backend().kind != 'files':
+        return stamp(path)
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (st.st_mtime_ns, st.st_size, st.st_ino)
 
 
 def stamp(path):
@@ -393,6 +406,21 @@ def _empty():
         'seats':          [],   # individual seats
         'seat_blocks':    [],   # seating blocks (rows/sections)
     })
+
+
+def load_shared():
+    """``load_data()`` for hot read-only paths (an event handler per syslog alert), parsed once per
+    change of the file (``read_shared``). Shared: never change it."""
+    path, tenant_path_ = _files()
+    found = read_shared(path)
+    if not isinstance(found, dict):
+        return _empty()
+    if not tenant_path_:
+        return found
+    tenant = read_shared(tenant_path_, {})
+    out = {k: v for k, v in found.items() if k not in TENANT_KEYS}
+    out.update({k: tenant[k] for k in TENANT_KEYS if k in tenant})
+    return out
 
 
 def load_data():
