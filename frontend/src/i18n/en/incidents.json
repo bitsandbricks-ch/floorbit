@@ -124,5 +124,9 @@
     "slow": "Slow connection",
     "power": "No power at the seat",
     "other": "Needs help at the seat"
+  },
+  "powerTitle": {
+    "tripped": "Breaker tripped: {{name}}",
+    "load": "Circuit {{name}} at {{pct, number}} % of {{rating, number}} A"
   }
 }

@@ -124,5 +124,9 @@
     "slow": "Langsame Verbindung",
     "power": "Kein Strom am Platz",
     "other": "Braucht Hilfe am Platz"
+  },
+  "powerTitle": {
+    "tripped": "Sicherung ausgelöst: {{name}}",
+    "load": "Stromkreis {{name}} bei {{pct, number}} % von {{rating, number}} A"
   }
 }

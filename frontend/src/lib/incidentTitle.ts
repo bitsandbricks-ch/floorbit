@@ -9,7 +9,16 @@ const FROM_SEAT: Record<string, string> = {
   'Needs help at the seat': 'other',
 }
 
+// The titles a power alert gives its incident (floorbit/power.py), with the circuit's values in them.
+const TRIPPED = /^Breaker tripped: (.+)$/
+const LOAD = /^Circuit (.+) at (\d+(?:\.\d+)?) % of (\d+(?:\.\d+)?) A$/
+
 export function incidentTitle(title: string, t: TFunction): string {
   const key = FROM_SEAT[title]
-  return key ? t(`incidents.seatTitle.${key}`) : title
+  if (key) return t(`incidents.seatTitle.${key}`)
+  const tripped = TRIPPED.exec(title)
+  if (tripped) return t('incidents.powerTitle.tripped', { name: tripped[1] })
+  const load = LOAD.exec(title)
+  if (load) return t('incidents.powerTitle.load', { name: load[1], pct: Number(load[2]), rating: Number(load[3]) })
+  return title
 }
