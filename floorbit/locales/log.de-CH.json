@@ -259,5 +259,7 @@
   "Downloaded the Telegraf configuration": "Telegraf-Konfiguration heruntergeladen",
   "Saved port areas": "Port-Bereiche gespeichert",
   "Removed port area": "Port-Bereich entfernt",
-  "Removed port areas": "Port-Bereiche entfernt"
+  "Removed port areas": "Port-Bereiche entfernt",
+  "Cleared the failed login of {} to {} ({})": "Fehlgeschlagene Anmeldung von {} bei {} ({}) zurückgesetzt",
+  "{}: {} stopped logging in to {} with {} ({})": "{}: {} meldet sich nicht mehr bei {} mit {} an ({})"
 }
