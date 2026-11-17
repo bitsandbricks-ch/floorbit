@@ -255,3 +255,14 @@ def test_health_in_the_report_is_cleaned(client, anon_client):
 
 def test_plugin_method_names_are_known_to_the_tunnel():
     assert {"plugin", "plugins_reload"} <= set(agent_link.METHODS)
+
+
+def test_the_hosted_part_can_say_what_the_agent_gets(client, anon_client, hallthing):
+    key = enrol(client)["key"]
+    client.put("/api/settings/plugins/hallthing", json={"enabled": True})
+    hallthing.module.Plugin.agent_settings = lambda self, settings: {**settings, "targets": ["sw-a-01"]}
+    try:
+        cfg = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["plugins"]["hallthing"]
+        assert cfg["settings"]["targets"] == ["sw-a-01"] and cfg["settings"]["path"] == "/logs/access.log"
+    finally:
+        del hallthing.module.Plugin.agent_settings

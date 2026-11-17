@@ -287,7 +287,8 @@ def _check_methods(spec):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
     kinds = set((spec.agent or {}).get('sends') or {})
     for name in dir(cls):
-        if name.startswith('agent_') and callable(getattr(cls, name, None)) and name[6:] not in kinds:
+        if name.startswith('agent_') and name != 'agent_settings' and callable(getattr(cls, name, None)) \
+                and name[6:] not in kinds:
             return f'plugin.py: {name}() takes what the agent sends, but agent.sends has no {name[6:]}'
         if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
