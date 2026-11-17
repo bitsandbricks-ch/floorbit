@@ -421,6 +421,20 @@ Source: [`floorbit/blueprints/health.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/health` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `health` |
 | POST | `/api/health/check` | `plugins.run` | `health` |
 
+## floorbit.blueprints.icons
+
+The shared icon library (floorbit/icon_library.py).
+
+Source: [`floorbit/blueprints/icons.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/icons.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/icons` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/icons` | `settings.manage` |  |
+| DELETE | `/api/icons/<icon_id>` | `settings.manage` |  |
+| PATCH | `/api/icons/<icon_id>` | `settings.manage` |  |
+| GET | `/api/icons/<icon_id>.svg` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.incidents
 
 Incident board and the seat QR helpdesk (issue #27). Rules live in floorbit/incidents.py.
@@ -451,6 +465,71 @@ Source: [`floorbit/blueprints/inventory.py`](https://github.com/bitsandbricks-ch
 | PATCH | `/api/inventory/<device_id>` | `floorplan.edit` |  |
 | GET | `/api/inventory/log` | `floorplan.edit` |  |
 | POST | `/api/inventory/sync` | `floorplan.edit` |  |
+
+## floorbit.blueprints.inventory_agent
+
+The inventory for local agents, with their key (docs/inventory.md#for-agents):
+
+Source: [`floorbit/blueprints/inventory_agent.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_agent.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agent/v1/inventory/<plugin_id>` | anyone |  |
+| POST | `/api/agent/v1/inventory/auth-failed` | anyone |  |
+
+## floorbit.blueprints.inventory_groups
+
+Inventory groups, tags, defaults, credentials and login blocks (floorbit/inventory_scope.py).
+
+Source: [`floorbit/blueprints/inventory_groups.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_groups.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/blocks` | `ports.act` |  |
+| POST | `/api/inventory/blocks/clear` | `ports.act` |  |
+| GET | `/api/inventory/credentials` | `floorplan.edit` |  |
+| PUT | `/api/inventory/credentials` | `settings.manage` |  |
+| DELETE | `/api/inventory/credentials/<cred_id>` | `settings.manage` |  |
+| PATCH | `/api/inventory/defaults` | `floorplan.edit` |  |
+| GET | `/api/inventory/groups` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/groups` | `floorplan.edit` |  |
+| DELETE | `/api/inventory/groups/<group_id>` | `floorplan.edit` |  |
+| PATCH | `/api/inventory/groups/<group_id>` | `floorplan.edit` |  |
+| POST | `/api/inventory/tags` | `floorplan.edit` |  |
+| DELETE | `/api/inventory/tags/<tag_id>` | `floorplan.edit` |  |
+| PATCH | `/api/inventory/tags/<tag_id>` | `floorplan.edit` |  |
+
+## floorbit.blueprints.inventory_interfaces
+
+One inventory device in detail, and its interfaces (floorbit/inventory_interfaces.py).
+
+Source: [`floorbit/blueprints/inventory_interfaces.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_interfaces.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/<device_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/<device_id>/interfaces` | `floorplan.edit` |  |
+| DELETE | `/api/inventory/<device_id>/interfaces/<iface_id>` | `floorplan.edit` |  |
+| PATCH | `/api/inventory/<device_id>/interfaces/<iface_id>` | `floorplan.edit` |  |
+| POST | `/api/inventory/interfaces/sync` | `floorplan.edit` |  |
+
+## floorbit.blueprints.inventory_types
+
+Inventory types and entries (floorbit/inventory_types.py).
+
+Source: [`floorbit/blueprints/inventory_types.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_types.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/entries` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/entries/<type_id>` | `floorplan.edit` |  |
+| DELETE | `/api/inventory/entries/<type_id>/<entry_id>` | `floorplan.edit` |  |
+| GET | `/api/inventory/entries/<type_id>/<entry_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PATCH | `/api/inventory/entries/<type_id>/<entry_id>` | `floorplan.edit` |  |
+| GET | `/api/inventory/types` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/types` | `settings.manage` |  |
+| DELETE | `/api/inventory/types/<type_id>` | `settings.manage` |  |
+| PATCH | `/api/inventory/types/<type_id>` | `settings.manage` |  |
 
 ## floorbit.blueprints.lancache
 

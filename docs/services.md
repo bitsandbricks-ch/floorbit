@@ -10,7 +10,7 @@ there as one tile.
 | Field | Meaning |
 | --- | --- |
 | Name | Like the provider: `Provider A`. |
-| Router or firewall, port | Where the line comes in, from the inventory (`core-01`, `Te1/0/48`). |
+| Device, port | Where the line comes in, from the inventory: the core switch, a router or a firewall (`core-01`, `Te1/0/48`). A device can have several lines, so each firewall can have its own. |
 | Capacity | What the line is booked for, in Mbit/s (not the port speed). |
 | Probe host, port | Optional: a server always reachable over the line. Port 53, 80, 443 or 853. |
 

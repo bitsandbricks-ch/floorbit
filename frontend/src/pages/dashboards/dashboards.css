@@ -1,4 +1,4 @@
-/* Dashboards (pages/Dashboards.tsx, DashboardScreen.tsx): screens split into panes. */
+/* Dashboards (pages/Dashboards.tsx, DashboardScreen.tsx): widgets on a grid, each one pane or split panes. */
 .fb-split { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; gap: 0; }
 .fb-split-row { flex-direction: row; }
 .fb-split-column { flex-direction: column; }
@@ -33,16 +33,51 @@
 .fb-board-editor { display: flex; flex-direction: column; height: 100%; padding: 12px 16px; gap: 8px; }
 .fb-board-work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
 .fb-board-canvas { min-width: 0; display: flex; flex-direction: column; }
-.fb-board-screen { aspect-ratio: 16 / 9; max-height: 100%; width: 100%; background: var(--color-ink); border-radius: 12px; padding: 6px; }
+.fb-board-screen { aspect-ratio: 16 / 9; max-height: 100%; width: 100%; background: var(--color-ink); border-radius: 12px; padding: 6px; display: flex; }
+/* Scrolling dashboards are as long as they are: the canvas scrolls instead of keeping 16:9. */
+.fb-board-screen.scroll { aspect-ratio: auto; height: 100%; overflow: auto; display: block; }
 .fb-board-side { overflow: auto; }
 .fb-box-picker .fb-plan-wrap { height: 200px; }
 @media (max-width: 62em) {
   .fb-board-work { grid-template-columns: 1fr; }
 }
 
+/* The grid: sections one below the other, panels placed on COLS columns (grid.ts). */
+.fb-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; min-width: 0; }
+.fb-grid.fit { height: 100%; min-height: 0; }
+.fb-grid-section { display: flex; flex-direction: column; min-height: 0; gap: 6px; }
+.fb-grid-body { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); flex: 1; min-height: 0; position: relative; }
+.fb-grid-item { position: relative; display: flex; min-width: 0; min-height: 0; }
+.fb-grid-item > .fb-split, .fb-grid-item > .fb-split-pane { flex: 1; }
+.fb-grid-head { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 4px; color: var(--color-fg); }
+.fb-grid-head.line { min-height: 0; }
+.fb-grid-title { font-size: clamp(15px, 1.2vw, 24px); white-space: nowrap; }
+.fb-grid-title-input { flex: 0 1 360px; }
+.fb-grid-title-input input { font-weight: 800; font-size: 15px; color: var(--color-fg); }
+.fb-grid-rule { flex: 1; height: 1px; background: var(--color-line); }
+.fb-grid-fold { display: inline-flex; color: var(--color-muted); border-radius: 6px; }
+.fb-grid-fold:hover { color: var(--color-fg); }
+.fb-grid-empty { grid-column: 1 / -1; padding: 16px; text-align: center; border: 1px dashed var(--color-line); border-radius: 12px; }
+.fb-grid.editing .fb-grid-body { min-height: 80px;
+  background-image: linear-gradient(to right, color-mix(in srgb, var(--color-line) 50%, transparent) 1px, transparent 1px);
+  background-size: calc((100% + 8px) / 24) 100%; }
+/* Move by the grip, resize by the corner; both above the pane's own pick layer. */
+.fb-grid-grip { position: absolute; top: 8px; left: 8px; z-index: 4; display: inline-flex; padding: 4px; border-radius: 6px; cursor: grab;
+  border: 1px solid var(--color-line); background: var(--color-raised); color: var(--color-muted); touch-action: none; }
+.fb-grid-grip:active { cursor: grabbing; }
+.fb-grid-grip:focus-visible { outline: 2px solid var(--color-bit); }
+.fb-grid-corner { position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; z-index: 4; cursor: nwse-resize; touch-action: none;
+  background: linear-gradient(135deg, transparent 50%, var(--color-bit) 50%); border-radius: 0 0 10px 0; opacity: .7; }
+.fb-grid-corner:hover { opacity: 1; }
+.fb-board-screen .fb-grid-item .fb-pane-head { padding-left: 44px; }
+/* No head to sit in: the grip and tools get a strip of their own above the content. */
+.fb-board-screen .fb-grid-item .fb-pane-nohead { padding-top: 40px; }
+
 /* The list's little picture of each split. */
 .fb-board-thumb { aspect-ratio: 16 / 9; background: var(--color-ink); border-radius: 8px; padding: 4px; }
 .fb-board-thumb .fb-split-border { display: none; }
+.fb-thumb-grid { display: flex; flex-direction: column; gap: 4px; height: 100%; }
+.fb-thumb-section { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 4px; min-height: 0; }
 .fb-board-thumb .fb-split { gap: 4px; }
 .fb-thumb-pane { flex: 1; border-radius: 4px; background: var(--color-raised); border: 1px solid var(--color-line); }
 .fb-thumb-pane.k-plan { background: color-mix(in srgb, var(--color-bit) 30%, var(--color-raised)); }
@@ -50,7 +85,8 @@
 
 /* Full screen. */
 .fb-board-show { height: 100vh; padding: 1vh 1vw; background: var(--color-ink); position: relative; display: flex; }
-.fb-board-show > .fb-split, .fb-board-show > .fb-split-pane { flex: 1; }
+.fb-board-show > .fb-grid { flex: 1; }
+.fb-board-show.scroll { height: auto; min-height: 100vh; }
 .fb-board-clock { position: absolute; left: 1.6vw; bottom: 1.4vh; z-index: 4; font-size: clamp(16px, 1.6vw, 36px);
   color: var(--color-fg); background: color-mix(in srgb, var(--color-raised) 85%, transparent); padding: 2px 10px; border-radius: 8px; }
 .fb-board-show .fb-plan-zoom { transition: opacity .3s; }
@@ -61,6 +97,9 @@
   .fb-board-show { height: auto; min-height: 100vh; }
   .fb-board-show .fb-split { flex-direction: column; height: auto; }
   .fb-board-show .fb-split-part { flex-basis: auto !important; min-height: 60vh; }
+  .fb-board-show .fb-grid-section { flex: none !important; }
+  .fb-board-show .fb-grid-body { display: flex; flex-direction: column; }
+  .fb-board-show .fb-grid-item { min-height: max(calc(var(--rows) * 40px), 30vh); }
 }
 /* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
 .fb-board-screen .fb-pane-head { padding-right: 156px; }

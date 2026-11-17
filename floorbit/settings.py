@@ -270,7 +270,8 @@ def check_changes(changes):
 
 class SettingsStore:
     def __init__(self, data_file, environ=None):
-        self.data_file = data_file
+        # A path, or a function giving it: the tenant's data.json (store.tenant_file).
+        self._data_file = data_file
         self.environ = os.environ if environ is None else environ
         self._lock = threading.Lock()
         self._overrides = {}
@@ -279,6 +280,14 @@ class SettingsStore:
         self._remote = {}
         self._mtime = None
         self.reload()
+
+    @property
+    def data_file(self):
+        return self._data_file() if callable(self._data_file) else self._data_file
+
+    @data_file.setter
+    def data_file(self, value):
+        self._data_file = value
 
     # file IO -------------------------------------------------------------
     def _read_file(self, strict=False):

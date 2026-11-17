@@ -34,7 +34,7 @@ def _redis():
 
 def path():
     configured = os.environ.get('MONITORING_CACHE_FILE')
-    return configured or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'monitoring-cache.json')
+    return configured or store.event_path('monitoring-cache.json')
 
 
 def _load():

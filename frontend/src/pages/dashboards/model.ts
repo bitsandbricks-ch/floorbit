@@ -2,8 +2,10 @@ import type { PlanDrawing } from '@/api/types'
 import type { View } from '../plan/model'
 import type { PresetId } from '../plan/layers'
 import type { LabelMode } from '../plan/labels'
+import type { Section } from './grid'
 
-/** Dashboards (floorbit/dashboards.py): a screen split into panes, saved under a name. */
+/** Dashboards (floorbit/dashboards.py): widgets on a grid (grid.ts), each one pane or panes split
+ *  side by side or stacked, saved under a name. */
 
 export type Area =
   | { kind: 'hall' }
@@ -42,14 +44,19 @@ export type Node = { pane: Pane } | { split: Split; sizes: number[]; children: N
 export interface Board {
   id: string
   name: string
-  root: Node
+  sections: Section[]
+  /** Rows stretch so the whole dashboard fills the screen (a wall); otherwise the page scrolls. */
+  fit: boolean
   /** Seconds per hall on the plan panes that show a whole hall; missing is no rotation. */
   cycle?: number
   updated_at?: number
   by?: string | null
+  /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
+  builtin?: boolean
 }
 
-export const MAX_PANES = 12
+/** Panes on a whole dashboard, all panels and their splits together. */
+export const MAX_PANES = 40
 export const MAX_DEPTH = 4
 
 /** Where a node sits in the tree: the child index at each split on the way down. */

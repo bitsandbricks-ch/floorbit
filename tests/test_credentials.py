@@ -114,10 +114,17 @@ def test_a_port_action_uses_the_stored_login_and_says_so(client, ssh):
 
 def test_a_wrong_stored_password_does_not_lock_the_tech_out(client, ssh):
     client.put("/api/settings/credentials/ssh", json={"scope": "*", "username": "ops", "password": "wrong"})
+    assert bounce(client).status_code == 502
+    # Blocked after one refusal, so the switch account isn't locked by retries (inventory_scope.py).
     for _ in range(ports.LOGIN_FAILURES + 1):
         ports._last.clear()
-        assert bounce(client).status_code == 502
+        r = bounce(client)
+        assert r.status_code == 409 and "failed before" in r.get_json()["error"]
     assert bounce(client, username="kim", password=FakeSwitch.password).status_code == 200
+    dev = client.get("/api/inventory").get_json()["devices"][0]
+    assert client.post("/api/inventory/blocks/clear", json={"device_id": dev["id"]}).get_json() == {"cleared": 1}
+    ports._last.clear()
+    assert bounce(client).status_code == 502          # tried again once cleared
 
 
 def test_only_admins_set_logins(app_module):

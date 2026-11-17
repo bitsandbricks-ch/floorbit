@@ -6,7 +6,14 @@
   "group": {
     "switches": "Switches",
     "infrastructure": "Infrastruktur",
-    "other": "Andere"
+    "other": "Andere",
+    "switch": "Switches",
+    "router": "Router",
+    "firewall": "Firewalls",
+    "access-point": "Access Points",
+    "server": "Server",
+    "vm": "Virtuelle Maschinen",
+    "pdu": "PDUs"
   },
   "noPanelPorts": "Für dieses Patchpanel ist keine Portzahl hinterlegt: Port eintippen oder das Panel auf dem Plan platzieren.",
   "pickPanelFirst": "Zuerst das Patchpanel wählen"

@@ -102,8 +102,8 @@ listeners = []
 
 def path():
     # Compose bind-mounts only data.json itself, so it points AUDIT_FILE into the state volume.
-    return os.environ.get('AUDIT_FILE') or os.path.join(
-        os.path.dirname(os.path.abspath(store.DATA_FILE)), 'audit.jsonl')
+    configured = os.environ.get('AUDIT_FILE')
+    return store.tenant_file(configured) if configured else store.tenant_path('audit.jsonl')
 
 
 def record(area, action, user=None, target=None, fields=None, ok=True):

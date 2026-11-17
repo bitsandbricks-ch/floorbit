@@ -155,7 +155,7 @@ class SyslogReceiver:
 
     # ── storage: one JSON line per log line, a file per hour ────────────────────────────
     def folder(self):
-        return self.path or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'syslog')
+        return self.path or store.event_path('syslog')
 
     def _load(self):
         folder = self.folder()

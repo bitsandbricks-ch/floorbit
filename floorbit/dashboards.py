@@ -1,7 +1,13 @@
-"""Dashboards: a screen split into panes, saved under a name, for the ops desk or a big screen.
+"""Dashboards: widgets on a grid, saved under a name, for the ops desk or a big screen.
 See docs/dashboards.md.
 
-A layout is a tree: a node is either a split (``split`` "row" puts its children side by side,
+A dashboard is a list of ``sections``, each with an optional ``title`` (a named, foldable section;
+every section after the first draws a divider) and its ``panels``. A panel sits on a grid of
+:data:`COLS` columns (``x``, ``w``) and rows (``y``, ``h``) and holds a ``node``. ``fit`` stretches the
+rows so the whole dashboard fills the screen, for a wall; otherwise rows have a fixed height and the
+page scrolls. Older layouts with one ``root`` node are read as one panel filling the first section.
+
+A node is a tree: a node is either a split (``split`` "row" puts its children side by side,
 "column" stacks them; ``sizes`` are their shares in percent) or one pane. A pane is
 
 - ``plan``: a hall (``hall``, empty for the first one), the part of it to show (``area``: the whole
@@ -21,6 +27,7 @@ Every pane may have a ``title``; ``hide_title`` leaves its head off for a cleane
 Kept in data.json under ``dashboards``. Panes that name something gone (a hall, a tile, a
 dashboard layout) show a note on the screen instead of failing: the screen keeps running.
 """
+import copy
 import re
 import threading
 import time
@@ -29,7 +36,11 @@ from .store import load_data, save_data
 
 KEY = 'dashboards'
 MAX_LAYOUTS = 30
-MAX_PANES = 12
+COLS = 24
+MAX_ROWS = 200
+MAX_SECTIONS = 12
+MAX_PANELS = 24
+MAX_PANES = 40
 MAX_DEPTH = 4
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}$')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}$')
@@ -55,10 +66,45 @@ class LayoutError(ValueError):
         self.status = status
 
 
-def all_layouts(data=None):
+def _plan(**over):
+    return {'pane': {'kind': 'plan', 'hall': '', 'area': {'kind': 'hall'}, 'preset': 'overview', 'show': 'all',
+                     'labels': 'auto', **over}}
+
+
+# Ready-made dashboards, listed until someone saves their own under the same id (deleting that brings
+# the ready-made one back). The kiosk: the plan on a big screen, with what's down beside it.
+BUILTIN = {
+    'kiosk': {'name': 'Kiosk', 'fit': True, 'sections': [{'panels': [
+        {'x': 0, 'y': 0, 'w': 18, 'h': 12, 'node': _plan()},
+        {'x': 18, 'y': 0, 'w': 6, 'h': 5, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/switches'}}},
+        {'x': 18, 'y': 5, 'w': 6, 'h': 7, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/problems'}}},
+    ]}]},
+}
+
+
+def _whole(node):
+    return {'x': 0, 'y': 0, 'w': COLS, 'h': 12, 'node': node}
+
+
+def _upgrade(layout):
+    """A layout saved as one split tree, read as a grid with that tree filling the screen."""
+    if 'root' not in layout or 'sections' in layout:
+        return layout
+    rest = {k: v for k, v in layout.items() if k != 'root'}
+    return {**rest, 'fit': True, 'sections': [{'panels': [_whole(layout['root'])]}]}
+
+
+def _saved(data=None):
     data = load_data() if data is None else data
     raw = data.get(KEY)
-    return [x for x in raw if isinstance(x, dict)] if isinstance(raw, list) else []
+    return [_upgrade(x) for x in raw if isinstance(x, dict)] if isinstance(raw, list) else []
+
+
+def all_layouts(data=None):
+    """The saved dashboards, then the ready-made ones nobody replaced (``builtin``: true)."""
+    saved = _saved(data)
+    taken = {x.get('id') for x in saved}
+    return saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
 
 
 def get(layout_id, data=None):
@@ -181,13 +227,64 @@ def _node(raw, depth, count):
     return {'split': raw['split'], 'sizes': sizes, 'children': [_node(c, depth + 1, count) for c in children]}
 
 
+def _int(value, low, high, message):
+    n = _number(value, low, high, message)
+    if n != int(n):
+        raise LayoutError(message)
+    return int(n)
+
+
+def _panel(raw, count):
+    if not isinstance(raw, dict):
+        raise LayoutError('A section is made of panels.')
+    off = f'A panel sits inside the {COLS} columns of the grid.'
+    x, w = _int(raw.get('x', 0), 0, COLS - 1, off), _int(raw.get('w', COLS), 1, COLS, off)
+    if x + w > COLS:
+        raise LayoutError(off)
+    y = _int(raw.get('y', 0), 0, MAX_ROWS, f'A dashboard has at most {MAX_ROWS} rows.')
+    h = _int(raw.get('h', 8), 1, 60, 'A panel is 1 to 60 rows high.')
+    return {'x': x, 'y': y, 'w': w, 'h': h, 'node': _node(raw.get('node'), 0, count)}
+
+
+def _overlap(a, b):
+    return (a['x'] < b['x'] + b['w'] and b['x'] < a['x'] + a['w']
+            and a['y'] < b['y'] + b['h'] and b['y'] < a['y'] + a['h'])
+
+
+def _sections(raw, count):
+    if not isinstance(raw, list) or not 1 <= len(raw) <= MAX_SECTIONS:
+        raise LayoutError(f'A dashboard has 1 to {MAX_SECTIONS} sections.')
+    out, panels = [], 0
+    for part in raw:
+        if not isinstance(part, dict) or not isinstance(part.get('panels', []), list):
+            raise LayoutError('A section is made of panels.')
+        items = [_panel(p, count) for p in part.get('panels', [])]
+        panels += len(items)
+        if panels > MAX_PANELS:
+            raise LayoutError(f'A dashboard has at most {MAX_PANELS} panels.')
+        if any(_overlap(a, b) for n, a in enumerate(items) for b in items[n + 1:]):
+            raise LayoutError('Two panels of a section overlap.')
+        section = {'panels': sorted(items, key=lambda p: (p['y'], p['x']))}
+        title = _text(part.get('title'), 60)
+        if title:
+            section['title'] = title
+        if part.get('folded'):
+            section['folded'] = True
+        out.append(section)
+    return out
+
+
 def clean(body):
     """The layout in ``body`` checked and trimmed, without id and bookkeeping."""
     name = _text(body.get('name'), 60)
     if not name:
         raise LayoutError('Give the dashboard a name.')
-    root = _node(body.get('root'), 0, [0])
-    out = {'name': name, 'root': root}
+    count = [0]
+    if 'sections' in body:
+        sections = _sections(body.get('sections'), count)
+    else:   # one split tree, as saved before the grid
+        sections = [{'panels': [_whole(_node(body.get('root'), 0, count))]}]
+    out = {'name': name, 'sections': sections, 'fit': bool(body.get('fit', 'sections' not in body))}
     # Rotate through the halls on every plan pane that shows a whole hall, like /plan?cycle=.
     if body.get('cycle'):
         out['cycle'] = int(_number(body.get('cycle'), 10, 600, 'Each hall stays 10 to 600 seconds.'))
@@ -203,7 +300,7 @@ def save(layout_id, body, by):
     layout = {'id': layout_id, **clean(body), 'updated_at': time.time(), 'by': by}
     with _lock:
         data = load_data()
-        layouts = all_layouts(data)
+        layouts = _saved(data)
         old = next((n for n, x in enumerate(layouts) if x.get('id') == layout_id), None)
         if old is None:
             if len(layouts) >= MAX_LAYOUTS:
@@ -219,7 +316,7 @@ def save(layout_id, body, by):
 def delete(layout_id):
     with _lock:
         data = load_data()
-        layouts = all_layouts(data)
+        layouts = _saved(data)
         kept = [x for x in layouts if x.get('id') != layout_id]
         if len(kept) == len(layouts):
             raise LayoutError('No such dashboard.', 404)

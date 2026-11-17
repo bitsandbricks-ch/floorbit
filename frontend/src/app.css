@@ -677,7 +677,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }
 
 /* Side panels, sections and fields (components/ui.tsx): one way to show an item's details. */
-.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
+/* Mantine puts the class on the drawer's inner wrapper too; only the panel itself is a column. */
+.mantine-Drawer-content.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
 .fb-sidepanel-head {
   display: flex; align-items: center; gap: 12px; padding: 16px 20px; flex-shrink: 0;
   border-bottom: 1px solid var(--color-line);
@@ -717,6 +718,12 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* Mantine clips the alert's message box, which would cut the ring off. */
 .mantine-Alert-message:has(.fb-text-button) { overflow: visible; }
 
+/* Inventory: the groups and tags beside the device list on wide screens, above it on phones. */
+.fb-inventory-layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 62em) {
+  .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
+}
+.fb-tree-row:hover { background: var(--mantine-color-default-hover); }
 /* The floor plan as a full-screen workspace (Layout full), like a map editor: one slim bar on top,
    the plan from edge to edge below it, panels docked to the sides. Nothing on the page scrolls;
    the plan pans and zooms, the panels scroll on their own. */
