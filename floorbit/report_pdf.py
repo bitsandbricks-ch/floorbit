@@ -62,6 +62,8 @@ TEXTS = {
         'kind': {'flapping': 'Flattern', 'errors': 'Fehler', 'duplex': 'Halbduplex', 'checkin': 'kein Check-in',
                  'mapping': 'Platz-Port'},
         'helpdesk': 'Platzmeldung',
+        'seat_titles': {'no-internet': 'Kein Internet am Platz', 'slow': 'Langsame Verbindung',
+                        'power': 'Kein Strom am Platz', 'other': 'Braucht Hilfe am Platz'},
     },
 }
 
@@ -247,6 +249,13 @@ def _table(doc, title, columns, rows, empty, note=''):
     doc.y += 16
 
 
+def _title(title, tx):
+    """A seat report's title in the report's language; any other title as it was written."""
+    from .incidents import SEAT_TITLES
+    german = tx.get('seat_titles') or {}
+    return next((german[k] for k, english in SEAT_TITLES.items() if english == title and k in german), title)
+
+
 def pdf(report, lang='en', tz=0):
     lang = lang if lang in TEXTS else 'en'
     tx = TEXTS[lang]
@@ -324,7 +333,7 @@ def pdf(report, lang='en', tz=0):
     rows = []
     for i in found['items']:
         where = i['seat'] or i['switch'] or i['circuit']
-        title = i['title']
+        title = _title(i['title'], tx)
         if i['source'] == 'helpdesk':
             title += f" ({tx['helpdesk']}, {i['reports']}{TIMES})" if i['reports'] > 1 else f" ({tx['helpdesk']})"
         took = duration(i['end'] - i['start']) if i['end'] else (tx['open'],)

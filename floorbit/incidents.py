@@ -28,6 +28,10 @@ KEY = 'incidents'
 STATUSES = ('open', 'assigned', 'fixed')
 # What an attendee can pick on the help page, and the team it goes to first (if that team exists).
 # Admins rename or remove teams; then the report lands without a team for anyone with incidents.assign.
+# The titles of seat reports (the help page, Discord's /report). The app, the Discord bot and the
+# report PDF show them in German by these texts (frontend/src/lib/incidentTitle.ts).
+SEAT_TITLES = {'no-internet': 'No internet at the seat', 'slow': 'Slow connection', 'power': 'No power at the seat',
+               'other': 'Needs help at the seat'}
 PROBLEMS = {
     'no-internet': 'access',
     'slow': 'access',
@@ -241,9 +245,7 @@ def report_from_seat(seat, problem, snapshot):
                 _save(data, _all(data))
                 return incident, False
     team = PROBLEMS[problem] if PROBLEMS[problem] in teams.all_teams() else None
-    titles = {'no-internet': 'No internet at the seat', 'slow': 'Slow connection', 'power': 'No power at the seat',
-              'other': 'Needs help at the seat'}
-    return create(None, {'seat': seat, 'title': titles[problem], 'problem': problem, 'team': team},
+    return create(None, {'seat': seat, 'title': SEAT_TITLES[problem], 'problem': problem, 'team': team},
                   snapshot=snapshot, source='helpdesk', speedtest=test), True
 
 
