@@ -28,6 +28,13 @@
         </button>
       </div>
 
+      <nav class="ui-segmented plan-modes" id="plan-modes" aria-label="Mode">
+        <a href="/plan" data-mode="live">Live</a>
+        <a href="/plan?mode=checkin" data-mode="checkin">Check-in</a>
+        <a href="/plan?mode=network" data-mode="network">Network</a>
+        <a href="/" data-mode="edit" aria-current="page">Edit</a>
+      </nav>
+
       <div class="status-chips" role="group" aria-label="Filter switches by status">
         <button class="status-chip" data-status="all" title="Show all switches">
           <span class="status-chip-val" id="hero-total">0</span>
@@ -1111,6 +1118,7 @@
   <script src="/static/js/editor/stacking.js" defer></script>
   <script src="/static/js/editor/cables.js" defer></script>
   <script src="/static/js/editor/panels.js" defer></script>
+  <script src="/static/js/editor/modes.js" defer></script>
   <script src="/static/js/editor/main.js" defer></script>
   <script src="/static/js/live.js" defer></script>
   <script src="/static/js/goto.js" defer></script>

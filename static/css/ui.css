@@ -140,3 +140,21 @@ select.ui-select-native { display: none !important; }
 .context-title, .draw-menu-label { font-size: 0.6875rem; font-weight: 650; letter-spacing: .05em; color: var(--color-muted); }
 @keyframes ui-pop-in { from { opacity: 0; transform: translateY(-3px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .context-menu, .draw-menu { animation: none; } }
+
+/* ── Segmented links (a small set of modes or views, one of them current) ─────────────── */
+.ui-segmented {
+  display: inline-flex; flex-shrink: 0; gap: 2px; padding: 3px;
+  background: var(--color-raised); border-radius: calc(var(--_ui-radius) + 3px);
+}
+.ui-segmented > a, .ui-segmented > button {
+  display: inline-flex; align-items: center; height: calc(var(--_ui-h-sm) - 2px); padding: 0 0.75rem;
+  border: 0; border-radius: var(--_ui-radius); background: none; color: var(--color-muted);
+  font: inherit; font-size: var(--_ui-font); font-weight: 550; text-decoration: none; white-space: nowrap;
+  transition: color .15s, background-color .15s, box-shadow .15s;
+}
+.ui-segmented > a:hover, .ui-segmented > button:hover { color: var(--color-fg); }
+.ui-segmented > [aria-current="page"], .ui-segmented > [aria-pressed="true"] {
+  background: var(--color-surface); color: var(--color-fg); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+}
+.ui-segmented > a:focus-visible, .ui-segmented > button:focus-visible { outline: none; box-shadow: var(--_ui-focus); }
+@media (max-width: 900px) { .plan-modes { display: none; } }

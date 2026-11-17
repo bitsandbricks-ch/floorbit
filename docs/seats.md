@@ -4,6 +4,21 @@
 one state, drawn the same way everywhere. It is for reading the hall during the event; seat blocks
 are still placed and changed in the floor plan editor (`/`).
 
+## Modes
+
+The top of the page switches between modes of the same plan, kept in the address (`?mode=`):
+
+| Mode | What it shows |
+| --- | --- |
+| **Live** | Seats with their state, the network, traffic, the crew's incidents and check-ins. |
+| **Check-in** | Labels and check-ins only, filtered to the seats that checked in (only when check-in is on). |
+| **Network** | Switches and uplinks, traffic, firewalls and Wi-Fi. |
+
+**Kiosk** opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
+you were looking at. **Edit** (crew who may edit the plan) opens the floor plan editor on the same
+hall; the editor's top bar has the same switch to come back. The editor is moving into this page
+as its Edit mode.
+
 ## What a seat shows
 
 Each state has its own shape as well as its own colour, so the plan reads in grey scale, in every

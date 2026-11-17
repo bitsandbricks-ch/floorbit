@@ -46,6 +46,7 @@ README). Every `<select>` in the editor becomes that dropdown by itself; tab str
 | `stacking.js` | Which seat block or mark is drawn over which (`z`): bring to front, send to back, one step (Ctrl+] / Ctrl+[, Shift for all the way). |
 | `gaps.js` | Gaps inside a seat block: room in every row after a column, lanes between rows (`col_gaps`, `row_gaps`, as `floorbit/seat_gaps.py`); the Gaps section of the block inspector and the seat's right-click entries. |
 | `panels.js` | The tool rail on the left and the panel on the right (search, layers, switches; keys `/`, `L`, `W`), which steps aside while an inspector is open; German for the rail and the panel. |
+| `modes.js` | The mode switch in the top bar: Live, Check-in and Network open the plan workspace (`/plan`) on the same hall; the editor is its Edit mode. |
 | `main.js` | `init()` and start-up. Always last. |
 
 Rules that keep this working:

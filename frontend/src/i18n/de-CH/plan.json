@@ -230,5 +230,14 @@
       "services": "Dienste: Server, LANcache, DNS"
     },
     "hint": "Sicherheit und Dienste sind Markierungen, die du im Editor auf ihrer Ebene zeichnest."
+  },
+  "modes": {
+    "label": "Modus",
+    "live": "Live",
+    "checkin": "Check-in",
+    "network": "Netzwerk",
+    "kiosk": "Kiosk",
+    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm",
+    "edit": "Bearbeiten"
   }
 }
