@@ -810,5 +810,11 @@
  "{} is not on the plan.": "{} ist nicht im Plan.",
  "{} are not on the plan.": "{} sind nicht im Plan.",
  "Give a first seat for at least one batch.": "Gib für mindestens eine Gruppe einen ersten Platz an.",
- "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche."
+ "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche.",
+ "No agent plugin {} here.": "Hier gibt es kein Agent-Plugin {}.",
+ "bad metric name {}: lowercase letters, digits and _": "Ungültiger Messwertname {}: Kleinbuchstaben, Ziffern und _",
+ "bad plugin or kind": "Ungültiges Plugin oder ungültige Art",
+ "health status must be one of {}": "Der Zustand muss eines davon sein: {}",
+ "{} has no agent {} {}": "{} hat auf dem Agent kein {} {}",
+ "{} is turned off on this Floorbit.": "{} ist in diesem Floorbit ausgeschaltet."
 }

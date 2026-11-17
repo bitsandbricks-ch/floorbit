@@ -94,6 +94,26 @@ class Context:
         return HttpClient(base_url, verify=verify, timeout=min(float(timeout), 60), auth=auth,
                           headers=headers, log=self.log)
 
+    # the plugin's part on the local agent (floorbit/plugins/agent.py) ----------------
+    def agent_call(self, op, args=None, agent=None):
+        """Ask the agent part ``call_<op>(args)``. ``agent``: one agent's id; None asks every
+        connected agent. Returns ``[{agent, name, result | error}]``."""
+        from .. import agent_plugins
+        self._registry.require(self.spec, 'agent')
+        return agent_plugins.ask(self.spec, 'call', op, args, agent)
+
+    def agent_action(self, op, params=None, agent=None):
+        """Run the agent part's ``action_<op>(params)``: call it from one of the plugin's own
+        actions, which already checked the role and wrote the audit log. Same answer as agent_call."""
+        from .. import agent_plugins
+        self._registry.require(self.spec, 'agent')
+        return agent_plugins.ask(self.spec, 'action', op, params, agent)
+
+    def agent_health(self):
+        """``{agent id: {name, connected, health}}``: what each agent last reported about this plugin."""
+        from .. import agent_plugins
+        return agent_plugins.health_of(self.spec.id)
+
     # small private state, kept in plugins.json next to data.json -------------------
     @property
     def state(self):

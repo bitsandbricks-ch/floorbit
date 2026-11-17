@@ -47,7 +47,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
            'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
-           'dns_probe', 'tcp_probe')
+           'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -481,6 +481,10 @@ class Tunnel:
             return
         clean = {k: raw[k] for k in REPORT_KEYS
                  if isinstance(raw.get(k), (int, float)) and not isinstance(raw.get(k), bool) and raw[k] >= 0}
+        from .agent_plugins import clean_health
+        plugins = clean_health(raw.get('plugins'))
+        if plugins:
+            clean['plugins'] = plugins
         clean['at'] = time.time() if now is None else now
         with self._cond:
             self._reports[agent] = clean

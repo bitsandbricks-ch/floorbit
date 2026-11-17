@@ -50,5 +50,14 @@
   "reportFlows": "NetFlow {{n}} Pakete",
   "reportCaptive": "Check-in-Hinweis {{shown}} gezeigt, {{done}} nicht nötig",
   "reportBusy_one": "1 Anfrage mit «beschäftigt» beantwortet",
-  "reportBusy_other": "{{count}} Anfragen mit «beschäftigt» beantwortet"
+  "reportBusy_other": "{{count}} Anfragen mit «beschäftigt» beantwortet",
+  "plugins": "Agent-Plugins",
+  "pluginNotRunning": "läuft nicht",
+  "pluginStatus": {
+    "ok": "läuft",
+    "warning": "läuft, mit Warnung",
+    "error": "fehlerhaft",
+    "off": "untätig"
+  },
+  "pluginLastError": "letzter Fehler {{when}}: {{error}}"
 }

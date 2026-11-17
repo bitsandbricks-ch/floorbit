@@ -11,7 +11,12 @@ const agent: Agent = {
   id: 'a1b2c3d4', name: 'Spring LAN, hall 2', created_at: 1_790_000_000, created_by: 'ada',
   last_seen: Date.now() / 1000 - 5, version: '0.9.0', address: null, connected: true,
   stats: { calls: 412, failed: 2, median_ms: 84, last_error: { at: Date.now() / 1000 - 60, method: 'port_stats', error: 'LibreNMS said no' } },
-  report: { at: Date.now() / 1000 - 10, up_seconds: 3 * 3600 + 120, reconnects: 2, link_drops: 2, syslog_received: 12345, syslog_backlog: 0, syslog_dropped: 3, flows_packets: 4567, captive_shown: 1200, captive_done: 3400 },
+  report: { at: Date.now() / 1000 - 10, up_seconds: 3 * 3600 + 120, reconnects: 2, link_drops: 2, syslog_received: 12345, syslog_backlog: 0, syslog_dropped: 3, flows_packets: 4567, captive_shown: 1200, captive_done: 3400,
+    plugins: {
+      lancache: { status: 'ok', message: '', running: true, metrics: { lines: 52000, backlog: 0 }, errors: [] },
+      telemetry: { status: 'error', message: 'cannot listen on 8186', running: true, metrics: {}, errors: [{ at: Date.now() / 1000 - 30, error: 'port in use' }] },
+      netbox: { status: 'error', message: 'this agent does not have this plugin: update the agent', running: false, metrics: {}, errors: [] },
+    } },
   relays: { syslog: { at: Date.now() / 1000 - 3, count: 120 }, flows: { at: Date.now() / 1000 - 8, count: 6 } },
 }
 
@@ -35,6 +40,11 @@ describe('Agents', () => {
     expect(screen.getByText('2 failed')).toBeInTheDocument()
     expect(screen.getByText(/port_stats: LibreNMS said no/)).toBeInTheDocument()
     // What the agent reports about itself
+    expect(screen.getByText('lancache')).toBeInTheDocument()
+    expect(screen.getByText(/running · lines 52,000 · backlog 0/)).toBeInTheDocument()
+    expect(screen.getByText(/failing · cannot listen on 8186/)).toBeInTheDocument()
+    expect(screen.getByText(/last error .*: port in use/)).toBeInTheDocument()
+    expect(screen.getByText(/not running · this agent does not have this plugin/)).toBeInTheDocument()
     expect(screen.getByText(/Up 3 hours/)).toBeInTheDocument()
     expect(screen.getByText('2 reconnects')).toBeInTheDocument()
     expect(screen.getByText(/syslog 12,345 received, 0 waiting/)).toBeInTheDocument()
