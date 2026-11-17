@@ -1,6 +1,8 @@
 """Checking in from a PC (docs/seat-mapping.md): the PIN from the seat card and a nick, never the
 seat. The PIN names the seat, the PC's switch port is learned, and that seat to port pair is what
 the floor plan keeps. Made-up nicks, RFC 5737 addresses."""
+import threading
+
 import pytest
 
 from floorbit import cables, port_clients, sources
@@ -308,9 +310,11 @@ def test_a_burst_at_doors_open_is_looked_up_at_the_set_rate_and_drains(hall, mon
 
 def test_the_seat_hint_never_waits_for_librenms(hall, monkeypatch):
     # At doors-open every page load would be a LibreNMS lookup: the hint comes from the cache, and
-    # a miss is looked up in the background, so the next load shows it.
+    # a miss is looked up in the background, so the next load shows it. The app's own verify thread
+    # may do that lookup while the test runs, so only lookups on the request's thread count as waiting.
     hall.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1"})
     asked = []
+    waited = []
 
     class Monitor:
         def enabled(self):
@@ -318,13 +322,16 @@ def test_the_seat_hint_never_waits_for_librenms(hall, monkeypatch):
 
         def resolve_ip(self, ip):
             asked.append(ip)
+            if threading.current_thread() is request_thread:
+                waited.append(ip)
             return {"device_name": "sw-a-01", "port": "Gi1/0/1", "macs_on_port": 1}
     monkeypatch.setattr(checkin, "_monitoring", Monitor)
     monkeypatch.setattr(checkin, "port_of", PORT_OF)
+    request_thread = threading.current_thread()   # the test client serves requests on this thread
     info = lambda: hall.get("/api/checkin/info", environ_base={"REMOTE_ADDR": "192.0.2.21"}).get_json()  # noqa: E731
-    assert info()["suggested_seat"] is None and asked == []
+    assert info()["suggested_seat"] is None and waited == []
     checkin.verify_pending()
-    assert asked == ["192.0.2.21"] and info()["suggested_seat"] == "A-1"
+    assert "192.0.2.21" in asked and info()["suggested_seat"] == "A-1"
 
 
 def test_guessing_pins_locks_that_pc_out_for_a_while(hall, monkeypatch):
