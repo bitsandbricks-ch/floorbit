@@ -124,7 +124,7 @@ class AgentPlugin(Base):
 | `log(message)` | the agent's log, prefixed with the plugin's id |
 | `thread(fn)`, `stopping` | background work that ends when the plugin stops |
 | `listen_udp(port, handler)`, `listen_http(port, handler, tls=False)` | listeners that close when the plugin stops; with `tls=True` HTTPS when the hall set `FLOORBIT_AGENT_TLS_CERT` and `FLOORBIT_AGENT_TLS_KEY` (`ctx.tls` says which) |
-| `fetch(kind)` | what the hosted part's `agent_get_<kind>(agent)` answers, for a kind under `fetches:`; `PluginError` while the hosted side is away or says no |
+| `fetch(kind)` | what the hosted part's `agent_get_<kind>(agent)` answers, for a kind under `fetches:`. `HostedSaidNo` when it answered no (turned off there), another `PluginError` while it is away (keep what you had) |
 | `on_stop(fn)` | runs when the plugin stops |
 | `state_dir` | a folder of its own in the agent's state volume |
 | `may_login(device, credential, rev)`, `auth_failed(device, credential, rev, message)` | ask before each login; say when it was refused (see Failed logins) |

@@ -5,6 +5,8 @@
   settings. `FLOORBIT_AGENT_SYSLOG_PORT` on the agent still works.
 - Traffic from the hall is now a plugin too: **Traffic from the hall** under Settings > Plugins
   with the UDP port for NetFlow and IPFIX. `FLOORBIT_AGENT_FLOWS_PORT` on the agent still works.
+- The check-in note on phones (Captive Portal API) is a plugin as well: **Check-in note on
+  phones**. `FLOORBIT_AGENT_CAPTIVE` on the agent still works.
 - Local agents now run the plugins that are on in the hosted Floorbit (LibreNMS, NetBox, Pi-hole,
   health checks, ...) with the settings saved there; the agent keeps them in memory only, and its
   own environment still wins.

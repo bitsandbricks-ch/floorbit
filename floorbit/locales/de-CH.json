@@ -841,5 +841,6 @@
  "{} is read-only for the agent: mount it writable to clear the cache.": "{} ist für den Agent schreibgeschützt: hänge ihn beschreibbar ein, um den Cache zu leeren.",
  "cannot listen for syslog on UDP {}: {}": "kann nicht auf UDP {} auf Syslog hören: {}",
  "cannot listen for flows on UDP {}: {}": "kann nicht auf UDP {} auf Flows hören: {}",
- "agent.fetches does not list {}": "agent.fetches führt {} nicht auf"
+ "agent.fetches does not list {}": "agent.fetches führt {} nicht auf",
+ "cannot answer on {} (host:port): {}": "kann nicht auf {} antworten (host:port): {}"
 }

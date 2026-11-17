@@ -87,6 +87,10 @@
     "plugin-netflow-relay": {
       "title": "Plugin: Traffic aus der Halle",
       "desc": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten."
+    },
+    "plugin-captive-note": {
+      "title": "Plugin: Check-in-Hinweis auf Handys",
+      "desc": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten."
     }
   },
   "fields": {
@@ -554,6 +558,18 @@
     "plugin_netflow-relay_bind": {
       "label": "Adresse zum Hören",
       "help": "Die Adresse des Agenten, auf der er hört. Leer: alle."
+    },
+    "plugin_captive-note_address": {
+      "label": "Adresse auf dem Agenten",
+      "help": "host:port, auf dem der Agent antwortet. Hinter dem Reverse Proxy des Events mit Zertifikat betreiben: RFC 8908 will HTTPS. Leer: aus."
+    },
+    "plugin_captive-note_portal_url": {
+      "label": "Anmeldeseite",
+      "help": "Wohin der Hinweis führt. Leer: die Check-in-Seite, die das gehostete Floorbit nennt."
+    },
+    "plugin_captive-note_proxies": {
+      "label": "Adressen der Reverse Proxys",
+      "help": "Durch Kommas getrennt. Von diesen wird die Adresse des Clients aus X-Forwarded-For genommen."
     }
   },
   "plugins": {
@@ -562,6 +578,7 @@
     "demo": "Eine erfundene Halle: Switches, Platzblöcke, Spieler auf Dokumentations-IPs, Ports, die aus- und angehen, und Verkehr, der sich bewegt. Nichts davon ist echt: Beispielnamen, 192.0.2.0/24 und 198.51.100.0/24. Solange es an ist, ersetzt es die Live-Überwachungsquelle und füllt die Health-Wall.",
     "lancache": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle.",
     "syslog-relay": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten.",
-    "netflow-relay": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten."
+    "netflow-relay": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten.",
+    "captive-note": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten."
   }
 }

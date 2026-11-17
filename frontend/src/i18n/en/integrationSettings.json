@@ -87,6 +87,10 @@
     "plugin-netflow-relay": {
       "title": "Plugin: Traffic from the hall",
       "desc": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."
+    },
+    "plugin-captive-note": {
+      "title": "Plugin: Check-in note on phones",
+      "desc": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."
     }
   },
   "fields": {
@@ -554,6 +558,18 @@
     "plugin_netflow-relay_bind": {
       "label": "Listen address",
       "help": "The agent's address to listen on. Empty: all of them."
+    },
+    "plugin_captive-note_address": {
+      "label": "Address on the agent",
+      "help": "host:port the agent answers on. Serve it behind the event's reverse proxy with a certificate: RFC 8908 wants HTTPS. Empty: off."
+    },
+    "plugin_captive-note_portal_url": {
+      "label": "Sign-in page",
+      "help": "Where the note leads. Empty: the check-in page the hosted Floorbit names."
+    },
+    "plugin_captive-note_proxies": {
+      "label": "Reverse proxy addresses",
+      "help": "Comma-separated. From these, the client's address is taken from X-Forwarded-For."
     }
   },
   "plugins": {
@@ -562,6 +578,7 @@
     "demo": "A made-up hall: switches, seat blocks, players on documentation IPs, ports going up and down and traffic that moves. Nothing real: example names, 192.0.2.0/24 and 198.51.100.0/24. While it's on it replaces the live monitoring source and fills the health wall.",
     "lancache": "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only.",
     "syslog-relay": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached.",
-    "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."
+    "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent.",
+    "captive-note": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."
   }
 }
