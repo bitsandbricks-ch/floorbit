@@ -22,6 +22,8 @@ import threading
 import time
 from contextlib import contextmanager, suppress
 
+from .env import number
+
 ENV = 'FLOORBIT_DATABASE_URL'
 # How many connections one Floorbit process opens at most (docs/database.md), and how long a
 # thread waits for a free one before the request fails.
@@ -125,7 +127,7 @@ class Sql:
         # A small shared pool instead of a connection per thread: Floorbit runs a few dozen
         # threads (gunicorn's request threads, one per live-update tab, and every background
         # watcher), and a connection each used up the slots of a shared Postgres.
-        self.pool_size = max(1, int(os.environ.get(POOL_ENV) or POOL_DEFAULT))
+        self.pool_size = number(POOL_ENV, POOL_DEFAULT, minimum=1)
         self._idle = []                                   # connections nobody holds, newest last
         self._slots = threading.BoundedSemaphore(self.pool_size)
         self._lock = threading.Lock()
@@ -462,7 +464,7 @@ def wait_until_ready(seconds=None):
     pages, the live status and the big screens work without it, saving waits until it is back,
     and ``watch`` keeps trying (docs/database.md)."""
     if seconds is None:
-        seconds = float(os.environ.get('FLOORBIT_DATABASE_WAIT') or 10)
+        seconds = number('FLOORBIT_DATABASE_WAIT', 10.0, kind=float, minimum=0)
     deadline = time.monotonic() + seconds
     while True:
         out = status()

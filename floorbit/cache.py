@@ -10,11 +10,12 @@ import redis
 from redis.backoff import NoBackoff
 from redis.retry import Retry
 
+from .env import number
 from .runtime import rt
 
 REDIS_HOST     = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT     = int(os.getenv('REDIS_PORT', 6379))
-REDIS_DB       = int(os.getenv('REDIS_DB', 0))
+REDIS_PORT     = number('REDIS_PORT', 6379, minimum=1)
+REDIS_DB       = number('REDIS_DB', 0, minimum=0)
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 
 redis_client = None

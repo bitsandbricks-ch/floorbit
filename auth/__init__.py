@@ -26,6 +26,8 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
 
+from floorbit.env import number
+
 from . import oidc, roles, teams, tokens
 from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
@@ -178,7 +180,7 @@ class Auth:
         app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
         app.config['SESSION_COOKIE_SECURE'] = _env_bool('AUTH_COOKIE_SECURE', False)
         app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(
-            hours=float(os.environ.get('AUTH_SESSION_HOURS') or 12))
+            hours=number('AUTH_SESSION_HOURS', 12.0, kind=float, minimum=0.1))
 
         app.extensions['auth'] = self
         app.register_blueprint(_blueprint())

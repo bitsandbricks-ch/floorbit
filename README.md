@@ -203,6 +203,9 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `AUTH_ENABLED`, `AUTH_PUBLIC_READ`, ... | `true`, `true` | Sign-in switches; all of them are in [docs/auth.md](docs/auth.md). |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID` | empty | Sign in with Discord; also under Settings > Discord sign-in ([docs/auth.md](docs/auth.md#sign-in-with-discord)). |
 
+A number setting that isn't a number (`REDIS_PORT=abc`) doesn't stop Floorbit: the log names it
+and the default is used instead.
+
 The floor plan itself (positions, seat blocks, settings) lives in `data.json`: back it up, or use
 Settings > Backup and restore ([docs/backup.md](docs/backup.md)).
 
