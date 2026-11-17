@@ -480,6 +480,8 @@ body {
 .fb-plan .uplink.t-fiber-sm { stroke: var(--mantine-color-yellow-6); }
 .fb-plan .uplink.slow { stroke: var(--mantine-color-orange-6); }
 .fb-plan .uplink.down { stroke: var(--color-down); stroke-dasharray: 6 4; }
+.fb-plan .uplink-break circle { fill: var(--color-down); stroke: var(--mantine-color-body); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.fb-plan .uplink-break path { stroke: #fff; stroke-width: 2px; stroke-linecap: round; }
 /* The power layer (issue #468): boards and their cables, by the circuit's load. */
 .fb-plan .pcable { stroke: var(--mantine-color-gray-5); stroke-width: 2.5; stroke-linecap: round; opacity: 0.7; }
 .fb-plan .seatcable { stroke: var(--mantine-color-blue-6); stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; }
@@ -640,3 +642,4 @@ body {
 .fb-item-row:hover { background: var(--color-raised); }
 .fb-item-row[data-selected] { background: color-mix(in srgb, var(--color-bit) 16%, transparent); }
 .fb-plan-screen .fb-plan-stale { font-size: 1.2vw; height: auto; padding: 0.4vw 0.9vw; }
+.fb-cable-legend .fb-legend-down { color: var(--color-down); font-weight: 600; }

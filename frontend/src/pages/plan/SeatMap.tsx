@@ -313,11 +313,23 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         {network && <g opacity={opacity(layers, 'network')}>{(data.links ?? []).map((l) => {
           const a = data.switches.find((w) => w.name === l.a), b = data.switches.find((w) => w.name === l.b)
           if (!a || !b) return null
+          const tip = `${l.a} – ${l.b}${l.speed ? ` · ${l.speed}G` : ''}${l.issue ? ` · ${t(`topology.${l.issue}`)}` : ''}`
+          // A broken link gets a mark in its middle that stays the same size on screen, so it shows when zoomed out too.
+          const r = 8 / (s || 1), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2
           return (
-            <line key={l.id} className={`uplink m-${l.media || 'none'} t-${l.type || 'none'}${l.issue ? ` ${l.issue}` : ''}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-              strokeWidth={UPLINK_WIDTH[l.speed ?? 0] ?? 2} vectorEffect="non-scaling-stroke">
-              <title>{`${l.a} – ${l.b}${l.speed ? ` · ${l.speed}G` : ''}${l.issue ? ` · ${t(`topology.${l.issue}`)}` : ''}`}</title>
-            </line>
+            <g key={l.id}>
+              <line className={`uplink m-${l.media || 'none'} t-${l.type || 'none'}${l.issue ? ` ${l.issue}` : ''}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                strokeWidth={UPLINK_WIDTH[l.speed ?? 0] ?? 2} vectorEffect="non-scaling-stroke">
+                <title>{tip}</title>
+              </line>
+              {l.issue === 'down' && (
+                <g className="uplink-break" transform={`translate(${mx} ${my})`}>
+                  <circle r={r} />
+                  <path d={`M${-r / 2} ${-r / 2}L${r / 2} ${r / 2}M${r / 2} ${-r / 2}L${-r / 2} ${r / 2}`} vectorEffect="non-scaling-stroke" />
+                  <title>{tip}</title>
+                </g>
+              )}
+            </g>
           )
         })}</g>}
         {network && cables && <g opacity={opacity(layers, 'network')}><CableLines cables={cables} size={data.size} /></g>}

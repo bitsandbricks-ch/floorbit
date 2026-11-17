@@ -84,7 +84,8 @@ Seat numbers carry on across a gap.
 
 Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
 the switches, not recorded yet. In Network mode a legend under the plan explains the colours (copper,
-fiber, DAC), widths (speed) and dashes for the cables on that plan. Click one to select it, Del removes it, **Change cable** opens its
+fiber, DAC), widths (speed) and dashes for the cables on that plan, and counts the links between switches
+and how many are down or slow. A link that is down gets a red ✕ in its middle, the same size at every zoom. Click one to select it, Del removes it, **Change cable** opens its
 form. A selected cable shows its bends: drag one to move it, drag the dot in the middle of a
 stretch to add one, double-click a bend to remove it (Alt places it off the grid). The panel sets
 square or round corners and puts a drawn cable back on its automatic route. Every change is
