@@ -1,6 +1,7 @@
 import { ColorSwatch, Group, SegmentedControl, Select, Stack, Text, Tooltip } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
-import { LAYER_IDS, type SharedField, ZONE_COLORS } from './shared'
+import { TintField } from './TintField'
+import { LAYER_IDS, MIXED, type SharedField, ZONE_COLORS } from './shared'
 
 /** The fields several selected items share (``sharedFields``): picking a value sets it on all of
  *  them. A field whose items differ shows nothing picked. */
@@ -10,11 +11,12 @@ export function SharedFields({ fields, onChange }: {
 }) {
   const { t } = useTranslation()
   const has = (f: SharedField) => f in fields
-  const value = (f: SharedField) => (fields[f] == null ? '' : String(fields[f]))
+  const mixed = (f: SharedField) => fields[f] === MIXED
+  const value = (f: SharedField) => (mixed(f) || fields[f] == null ? '' : String(fields[f]))
   if (!Object.keys(fields).length) return null
   const segments = (f: SharedField, label: string, data: { value: string; label: string }[]) => (
     <div>
-      <Text size="sm" fw={500} mb={4}>{label}{fields[f] == null && <Text span size="xs" c="dimmed" ml={6}>{t('plan.edit.mixed')}</Text>}</Text>
+      <Text size="sm" fw={500} mb={4}>{label}{mixed(f) && <Text span size="xs" c="dimmed" ml={6}>{t('plan.edit.mixed')}</Text>}</Text>
       <SegmentedControl fullWidth value={value(f)} data={data} onChange={(v) => onChange(f, f === 'rotation' ? Number(v) : v)} />
     </div>
   )
@@ -38,8 +40,12 @@ export function SharedFields({ fields, onChange }: {
           </Group>
         </div>
       )}
+      {has('tint') && (
+        <TintField key={String(fields.tint)} value={mixed('tint') || fields.tint == null ? null : String(fields.tint)} mixed={mixed('tint')}
+          onChange={(v) => onChange('tint', v)} />
+      )}
       {has('layer') && (
-        <Select label={t('plan.edit.layer')} allowDeselect={false} value={fields.layer == null ? null : String(fields.layer)} placeholder={t('plan.edit.mixed')}
+        <Select label={t('plan.edit.layer')} allowDeselect={false} value={mixed('layer') ? null : String(fields.layer)} placeholder={t('plan.edit.mixed')}
           onChange={(v) => v && onChange('layer', v)} data={LAYER_IDS.map((l) => ({ value: l, label: t(`plan.edit.layers.${l}`) }))} />
       )}
     </Stack>

@@ -404,6 +404,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-edit-lock circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 1.5; }
 .fb-edit-lock rect { fill: var(--color-bit); }
 .fb-edit-lock path { fill: none; stroke: var(--color-bit); stroke-width: 1.6; stroke-linecap: round; }
+.fb-edit-rulers rect { fill: color-mix(in srgb, var(--color-surface) 92%, transparent); }
+.fb-edit-rulers rect.corner { fill: var(--color-surface); }
+.fb-edit-rulers line { stroke: var(--color-muted); stroke-width: 1; }
+.fb-edit-rulers text { fill: var(--color-muted); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
 .fb-edit-measure { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; pointer-events: none; }
 .fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
 .fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
@@ -487,8 +491,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-marks .zone-warn { --zone: var(--color-warn); }
 .fb-marks .zone-down { --zone: var(--color-down); }
 .fb-marks .label { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
-.fb-marks .icon rect { fill: var(--color-raised); stroke: var(--color-line, var(--color-muted)); stroke-width: 1.5; }
-.fb-marks .icon svg { color: var(--color-fg); }
+.fb-marks .icon rect { fill: var(--color-raised); stroke: var(--tint, var(--color-line, var(--color-muted))); stroke-width: 1.5; }
+.fb-marks .icon svg { color: var(--tint, var(--color-fg)); }
 .fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; font-size: var(--row-lbl, 19px); text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; stroke-linejoin: round; }
 .fb-plan .sw .body { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .fb-plan .sw-online .body, .fb-plan .sw-offline .body, .fb-plan .sw-warning .body { stroke-dasharray: none; }
@@ -671,7 +675,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }
 
 /* Side panels, sections and fields (components/ui.tsx): one way to show an item's details. */
-.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
+/* Mantine puts the class on the drawer's inner wrapper too; only the panel itself is a column. */
+.mantine-Drawer-content.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
 .fb-sidepanel-head {
   display: flex; align-items: center; gap: 12px; padding: 16px 20px; flex-shrink: 0;
   border-bottom: 1px solid var(--color-line);
@@ -711,6 +716,12 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* Mantine clips the alert's message box, which would cut the ring off. */
 .mantine-Alert-message:has(.fb-text-button) { overflow: visible; }
 
+/* Inventory: the groups and tags beside the device list on wide screens, above it on phones. */
+.fb-inventory-layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 62em) {
+  .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
+}
+.fb-tree-row:hover { background: var(--mantine-color-default-hover); }
 /* The floor plan as a full-screen workspace (Layout full), like a map editor: one slim bar on top,
    the plan from edge to edge below it, panels docked to the sides. Nothing on the page scrolls;
    the plan pans and zooms, the panels scroll on their own. */

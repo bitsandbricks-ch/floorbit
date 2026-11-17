@@ -117,7 +117,20 @@ def _teams(_data):
     return [{'value': t['id'], 'label': t['name']} for t in teams.all_teams().values()]
 
 
+def _devices(data):
+    """Every inventory device, grouped by role (a VM's host, ...). Links go by name, so two devices
+    with the same name (a plugin's and one added by hand) are one option."""
+    seen, out = set(), []
+    for d in inventory.devices(data):
+        name = d.get('name')
+        if name and name.lower() not in seen:
+            seen.add(name.lower())
+            out.append({'value': name, 'label': name, 'group': d.get('role') or 'other'})
+    return sorted(out, key=lambda o: (o['group'], _natural(o['label'])))
+
+
 KINDS = {
+    'devices': ('floorplan.view', _devices),
     'switches': ('floorplan.view', _switches),
     'seats': ('floorplan.view', _seats),
     'panels': ('floorplan.view', _panels),

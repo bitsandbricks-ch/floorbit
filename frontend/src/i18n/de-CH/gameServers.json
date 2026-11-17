@@ -40,5 +40,7 @@
   "confirmTitle": "Diesen Befehl senden?",
   "confirmText": "{{command}} kann den Server stoppen, die Map wechseln oder Spieler rauswerfen.",
   "sendAnyway": "Senden",
-  "audited": "Jeder Befehl steht mit deinem Namen im Audit-Log."
+  "audited": "Jeder Befehl steht mit deinem Namen im Audit-Log.",
+  "runsOn": "Läuft auf",
+  "runsOnHint": "Der Server oder die VM aus dem Inventar, auf dem er läuft. Fällt der Host aus, zeigt er seine Gameserver."
 }

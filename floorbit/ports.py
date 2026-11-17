@@ -15,7 +15,7 @@ import re
 import threading
 import time
 
-from . import inventory, sources
+from . import credentials, inventory, sources
 from .plugins import PluginError
 from .store import load_data
 
@@ -118,6 +118,16 @@ def target(body):
     return _switch(load_data(), name), port, seat or None
 
 
+def _feature(dev, feature):
+    """Port actions, commands, the terminal and config backups can be switched off per device,
+    tag or group in the inventory (floorbit/inventory_scope.py)."""
+    from . import inventory_scope
+    try:
+        inventory_scope.require(dev, feature)
+    except inventory_scope.ScopeError as exc:
+        raise PortError(str(exc), exc.status) from None
+
+
 def _login(body, needs_login, switch=None, account=None):
     """The login for one action: the one the tech typed, else the stored one for ``switch``.
     ``login['stored']`` says which, so a wrong stored password doesn't count against the tech."""
@@ -161,6 +171,7 @@ def act(registry, account, body, action):
     if not spec:
         raise PortError('No port actions plugin is on. An admin turns one on under Settings > Plugins.', 409)
     dev, port, seat = target(body)
+    _feature(dev, 'ports')
     if seat and body.get('confirm_match') is not True:
         from .tournament import zone_of
         zone = zone_of(seat)
@@ -172,6 +183,7 @@ def act(registry, account, body, action):
     login = _login(body, needs_login, dev['name'], account)
     key = (dev['name'], port)
     stored = bool(login and login.get('stored'))   # the plugin clears the login it gets
+    ref = (login or {}).get('ref')
     now = time.time()
     with _lock:
         _check_failures(account, now)
@@ -188,6 +200,8 @@ def act(registry, account, body, action):
         if needs_login and not stored and 'login' in str(exc).lower():
             with _lock:
                 _failures.setdefault(account, []).append(time.time())
+        elif stored and credentials.is_login_error(exc):
+            credentials.report_failed(ref, str(exc), 'ports')
         raise PortError(str(exc), 502) from None
     finally:
         if login:

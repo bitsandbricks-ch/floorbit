@@ -85,7 +85,7 @@ def _clean_uplink(body, data, old):
     devices = {str(d['name']).lower(): d['name'] for d in inventory.devices(data, include_hidden=True) if d.get('name')}
     device = devices.get(str(body.get('device', old.get('device')) or '').strip().lower())
     if not device:
-        raise ServiceError('Pick the router or firewall the line is on from the inventory.')
+        raise ServiceError('Pick the device the line is on (core switch, router or firewall) from the inventory.')
     port = str(body.get('port', old.get('port')) or '').strip()
     if not links.PORT_RE.match(port):
         raise ServiceError('Name the port, like Te1/0/48.')

@@ -103,6 +103,22 @@
     "plugin-home-assistant": {
       "title": "Plugin: Home-Assistant-Messgeräte",
       "desc": "Der lokale Agent liest Leistungssensoren aus einem Home Assistant im Eventnetz (Watt, Kilowatt oder Ampere) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
+    },
+    "attention": {
+      "title": "Port-Probleme",
+      "desc": "Welche Access-Ports die Seite Probleme als anschauenswert listet."
+    },
+    "syslog": {
+      "title": "Logs",
+      "desc": "Wer Syslog an Floorbit senden darf und wie viel behalten wird. Den Empfänger selbst (Port, TCP) legt die Umgebung fest."
+    },
+    "insights": {
+      "title": "DNS, Games und Bandbreite",
+      "desc": "Wie oft die DNS- und LAN-Cache-Logs gelesen werden, was behalten wird, und die Bandbreiten-Prognose."
+    },
+    "switchtools": {
+      "title": "Switch-Konfigurationen und Terminal",
+      "desc": "Nächtliche Konfigurationssicherungen und Grenzen für das Switch-Terminal."
     }
   },
   "fields": {
@@ -623,6 +639,126 @@
     },
     "plugin_home-assistant_interval": {
       "label": "Sekunden zwischen zwei Messungen"
+    },
+    "integrations_attention_interval": {
+      "label": "Port-Abfrage (Sekunden)",
+      "help": "Wie oft jeder Access-Port auf Port-Probleme gelesen wird: Flattern, steigende Fehler, Halbduplex. Mindestens 30."
+    },
+    "integrations_attention_flaps": {
+      "label": "Link-Wechsel, die als Flattern zählen",
+      "help": "So viele Link-Wechsel innert 10 Minuten setzen einen Port auf die Liste."
+    },
+    "integrations_attention_errors": {
+      "label": "Fehler pro Abfrage",
+      "help": "Ein Port, dessen Fehlerzähler zwischen zwei Abfragen um so viel steigt, kommt auf die Liste."
+    },
+    "integrations_syslog_allow": {
+      "label": "Erlaubte Absender",
+      "help": "Kommagetrennte Adressen oder CIDRs, die Syslog senden dürfen, zusätzlich zu den Switches im Plan. Leer: nur die Switches."
+    },
+    "integrations_syslog_allow_switches": {
+      "label": "Switches im Plan annehmen",
+      "help": "Zeilen von der Management-Adresse jedes Switches im Inventar werden angenommen."
+    },
+    "integrations_syslog_rate": {
+      "label": "Zeilen pro Sekunde und Absender",
+      "help": "Was ein Absender in einer Sekunde mehr schickt, wird verworfen und gezählt, damit ein geschwätziges Gerät die Seite nicht flutet."
+    },
+    "integrations_syslog_retention_hours": {
+      "label": "Zeilen behalten (Stunden)",
+      "help": "Wie lange Logzeilen für die Seite Logs behalten werden."
+    },
+    "integrations_syslog_max_lines": {
+      "label": "Höchstens behaltene Zeilen",
+      "help": "Bei mehr fallen die ältesten zuerst weg."
+    },
+    "integrations_syslog_max_mb": {
+      "label": "Höchste Loggrösse (MB)",
+      "help": "Das gespeicherte Log wird auf diese Grösse gekürzt."
+    },
+    "integrations_log_alert_minutes": {
+      "label": "Log-Alarm wiederholen nach (Minuten)",
+      "help": "Derselbe Log-Alarm vom selben Gerät wird erst nach dieser Zeit wieder gesendet."
+    },
+    "integrations_dns_interval": {
+      "label": "DNS-Log lesen (Sekunden)",
+      "help": "Wie oft die Abfrageprotokolle der DNS-Plugins gelesen werden."
+    },
+    "integrations_dns_min_seats": {
+      "label": "Plätze, bevor eine Domain genannt wird",
+      "help": "Eine Domain erscheint auf der DNS-Seite erst, wenn so viele verschiedene Clients sie nachgeschlagen haben, damit niemand einzeln erkennbar wird. Mindestens 5."
+    },
+    "integrations_dns_retention_hours": {
+      "label": "DNS-Zahlen behalten (Stunden)",
+      "help": "Wie lange die Zahlen für die ganze Halle behalten werden."
+    },
+    "integrations_lancache_interval": {
+      "label": "LAN-Cache-Log lesen (Sekunden)",
+      "help": "Wie oft das Zugriffslog des LAN-Caches für die Seite Games gelesen wird."
+    },
+    "integrations_lancache_retention_hours": {
+      "label": "LAN-Cache-Zahlen behalten (Stunden)",
+      "help": "Wie lange die Downloads pro Spiel behalten werden."
+    },
+    "integrations_stats_uplink_pattern": {
+      "label": "Namen der Uplink-Ports",
+      "help": "Ein regulärer Ausdruck für Port-Beschreibungen, die Uplinks kennzeichnen, für die Bandbreiten-Zahlen. Leer: uplink oder trunk."
+    },
+    "integrations_forecast_capacity_mbps": {
+      "label": "Internetleitung (Mbit/s)",
+      "help": "Die Internet-Bandbreite des Events, für die Prognose. 0 schaltet die Prognose-Warnung aus."
+    },
+    "integrations_forecast_warn_percent": {
+      "label": "Warnen ab (% der Leitung)",
+      "help": "Warnen, wenn die Prognose diesen Anteil der Leitung erreicht."
+    },
+    "integrations_forecast_lead_hours": {
+      "label": "Vorausschau (Stunden)",
+      "help": "Wie weit voraus die Prognose warnt."
+    },
+    "integrations_discord_forecast_alerts": {
+      "label": "Prognose-Warnungen posten",
+      "help": "Auf Discord posten, wenn die Bandbreiten-Prognose eine volle Leitung erwartet."
+    },
+    "integrations_game_interval": {
+      "label": "Gameserver abfragen (Sekunden)",
+      "help": "Wie oft jeder Gameserver nach Spielern und Map gefragt wird."
+    },
+    "integrations_services_interval": {
+      "label": "Dienste prüfen (Sekunden)",
+      "help": "Wie oft DNS, DHCP und die anderen Dienste geprüft werden."
+    },
+    "integrations_config_backup_hour": {
+      "label": "Nächtliche Konfigurationssicherung (Stunde)",
+      "help": "Die Stunde (0-23), zu der die Switch-Konfigurationen jede Nacht gesichert werden, oder off."
+    },
+    "integrations_config_keep": {
+      "label": "Behaltene Konfigurationen pro Switch",
+      "help": "Ältere Kopien werden gelöscht."
+    },
+    "integrations_terminal_idle_minutes": {
+      "label": "Inaktives Terminal schliessen nach (Minuten)",
+      "help": "Ein Switch-Terminal ohne Eingabe wird nach dieser Zeit geschlossen."
+    },
+    "integrations_terminal_max_minutes": {
+      "label": "Längste Terminal-Sitzung (Minuten)",
+      "help": "Ein Switch-Terminal wird nach dieser Zeit auf jeden Fall geschlossen."
+    },
+    "integrations_checkin_pin_tries": {
+      "label": "Falsche PINs bis zur Pause",
+      "help": "Nach so vielen falschen PINs von einer Adresse pausiert der Check-in für sie."
+    },
+    "integrations_seat_source_http_verify_ssl": {
+      "label": "TLS-Zertifikat der HTTP-Quelle prüfen",
+      "help": "Nur ausschalten für eine Quelle mit selbstsigniertem Zertifikat im Event-Netz."
+    },
+    "integrations_seat_finder": {
+      "label": "Seite «Finde deinen Platz»",
+      "help": "Die öffentliche Seite /find, auf der Teilnehmende eine Platznummer nachschlagen."
+    },
+    "integrations_seat_finder_nicks": {
+      "label": "Plätze per Nick finden",
+      "help": "Einen Platz auch per Nick finden. Standardmässig aus: Es verrät allen, wo ein bestimmter Spieler sitzt."
     }
   },
   "plugins": {
