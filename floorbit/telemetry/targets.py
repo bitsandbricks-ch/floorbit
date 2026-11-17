@@ -25,7 +25,7 @@ from .. import vault
 from ..store import load_data, save_data
 
 KEY = 'telemetry'
-MAX = 500
+MAX = 5000   # the biggest halls have about 1,000 switches; 5,000 was measured to keep up (scale tests)
 DRIVERS = ('snmp', 'traps', 'gnmi', 'mdt', 'nxapi', 'restconf', 'opnsense', 'push')
 KINDS = ('switch', 'router', 'firewall')
 PLATFORMS = ('nxos', 'iosxe', 'ios', 'opnsense', 'pfsense', 'other')

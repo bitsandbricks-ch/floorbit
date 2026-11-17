@@ -458,6 +458,27 @@ def test_the_agent_part_collects_in_the_hall(tmp_path, monkeypatch):
         ctx.stopping.set()
 
 
+def test_a_big_hall_sends_its_minute_in_parts_under_the_limit(tmp_path, monkeypatch):
+    import importlib
+    import json
+
+    from floorbit.plugins.agent import SEND_MAX_BYTES
+    agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
+    # 1,000 switches, 50 ports, 4 numbers each: one payload of it is past the limit.
+    big = {f"sw-{s:04d}|Gi1/0/{p}|{m}": 123456.7 for s in range(1000) for p in range(1, 51)
+           for m in ("up", "in_bps", "out_bps", "errors")}
+    assert len(json.dumps({"values": big})) > SEND_MAX_BYTES
+    monkeypatch.setattr(agent.storage_mod, "snapshot", lambda *_a, **_k: big)
+    ctx = AgentCtx("telemetry", {"targets": []}, {"sends": {"series": {"privacy": "device"}}},
+                   state_dir=str(tmp_path))
+    plugin = agent.AgentPlugin(ctx)
+    plugin.state = state.state
+    plugin.send_series(1_800_000_000)
+    parts = [payload for kind, payload in ctx.sent if kind == "series"]
+    assert len(parts) > 1 and all(len(json.dumps(p)) < SEND_MAX_BYTES for p in parts)
+    assert sum(len(p["values"]) for p in parts) == len(big)
+
+
 def test_plugins_can_add_measurements_and_drivers(monkeypatch):
     from floorbit.telemetry import targets
     monkeypatch.setattr(state, "_HANDLERS", dict(state._HANDLERS))

@@ -33,6 +33,8 @@ POLL_EVERY = 60
 SEND_EVERY = 60
 QUIET_AFTER = 180          # no line from Telegraf for this long, while it has work: warn
 MAX_BODY = 32 * 1024 * 1024
+SERIES_PER_SEND = 30_000   # about 2 MB as JSON (keys like "sw-0001|Gi1/0/48|in_bps")
+ENDPOINTS_PER_SEND = 10_000
 # Drivers that Telegraf does; the others are pollers that run in this plugin.
 TELEGRAF_DRIVERS = frozenset({'snmp', 'traps', 'gnmi', 'mdt'})
 
@@ -214,14 +216,20 @@ class AgentPlugin(Base):
         settings = self.ctx.settings or {}
         rows = clients.sightings(self.state, settings.get('uplink_macs') or 8, settings.get('exclude') or ())
         if rows:
-            self.ctx.send('endpoints', {'at': now, 'rows': rows})
+            for start in range(0, len(rows), ENDPOINTS_PER_SEND):   # in parts, as the series
+                self.ctx.send('endpoints', {'at': now, 'rows': rows[start:start + ENDPOINTS_PER_SEND]})
             self.ctx.gauge('endpoints', len(rows))
 
     def send_series(self, now):
         values = storage_mod.snapshot(self.state, now)
-        if values:
-            self.ctx.send('series', {'at': now, 'values': values})
-            self.ctx.gauge('series', len(values))
+        if not values:
+            return
+        # In parts: a 1,000-switch hall is about 200,000 series, past the 4 MB a send may carry,
+        # and the whole minute was refused. The hosted side stores each part as it comes.
+        items = list(values.items())
+        for start in range(0, len(items), SERIES_PER_SEND):
+            self.ctx.send('series', {'at': now, 'values': dict(items[start:start + SERIES_PER_SEND])})
+        self.ctx.gauge('series', len(values))
 
     def report(self, now):
         with self.lock:

@@ -219,7 +219,7 @@ def test_collector_reads_writes_raw_and_publishes(tmp_path, monkeypatch, app_mod
     assert col.receive(b"nonsense", "198.51.100.1", now=NOW) == 0 and col.errors == 1
     col.housekeeping(now=NOW + 1, refresh_seats=lambda: (SEATS, AREAS))   # seats come after the first packet
     col.receive(v5([STEAM]), "198.51.100.1", now=NOW + 2)
-    col._next["publish"] = 0
+    col._next["publish"] = col._next["raw"] = 0   # both are due (raw is written every RAW_EVERY s)
     col.housekeeping(now=NOW + 3, refresh_seats=lambda: (SEATS, AREAS))
     snap = store.latest()
     assert snap["mix_hour"] == {"gaming": 5_000_000} and snap["raw"]["files"] == 1 and snap["errors"] == 1
