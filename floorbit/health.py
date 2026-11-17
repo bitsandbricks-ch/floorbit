@@ -111,13 +111,15 @@ class HealthWall:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('health') and (self.registry.feeders('health') or self._agent_active()
-                                          or game_servers.listing() or services.health_checks()
-                                          or firewalls.configured()):
-                try:
+            try:
+                # Inside the try too: these read the saved data, which can fail (a database not
+                # there yet), and the wall must start checking once it is.
+                if features.on('health') and (self.registry.feeders('health') or self._agent_active()
+                                              or game_servers.listing() or services.health_checks()
+                                              or firewalls.configured()):
                     self.poll_once()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[health] poll failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[health] poll failed: {exc}')
             self._stop.wait(self.interval())
 
     @staticmethod

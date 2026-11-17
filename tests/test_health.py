@@ -174,3 +174,23 @@ def test_http_check_feeds_the_wall(client, wall, monkeypatch):
     checks = {c["name"]: c for c in client.get("/api/health").get_json()["checks"]}
     assert checks["Tickets"]["status"] == "up" and checks["Tickets"]["kind"] == "web"
     assert checks["down.example.com"]["status"] == "down"
+
+
+def test_the_wall_keeps_going_when_the_saved_data_cant_be_read_yet(monkeypatch):
+    # Started before the database answers: reading which checks exist fails. Before, that killed
+    # the thread for good and the wall never checked anything after the database came back.
+    from floorbit import database, game_servers
+    wall = health.HealthWall(registry=type("Registry", (), {"feeders": lambda self, kind: []})())
+    calls = []
+
+    def listing():
+        calls.append(1)
+        if len(calls) == 1:
+            raise database.DatabaseUnavailable("postgres: connection refused")
+        wall.stop()
+        return []
+    monkeypatch.setattr(game_servers, "listing", listing)
+    monkeypatch.setattr(health.HealthWall, "_agent_active", staticmethod(lambda: False))
+    monkeypatch.setattr(wall._stop, "wait", lambda timeout=None: wall._stop.is_set())
+    wall._run()
+    assert len(calls) == 2

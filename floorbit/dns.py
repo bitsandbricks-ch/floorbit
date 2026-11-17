@@ -276,11 +276,12 @@ class DnsStats:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('dns') and (dns_plugins(self.registry) or _agent_active()):
-                try:
+            try:
+                # Inside the try too: reading the settings can fail (a database not there yet).
+                if features.on('dns') and (dns_plugins(self.registry) or _agent_active()):
                     self.poll_once()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[dns] poll failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[dns] poll failed: {exc}')
             self._stop.wait(settings()['interval'])
 
     # ── reading ──────────────────────────────────────────────────────────────

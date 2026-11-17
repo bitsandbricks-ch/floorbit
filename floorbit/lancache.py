@@ -167,15 +167,15 @@ class LancacheStats:
 
     def _run(self):
         while not self._stop.is_set():
-            if features.on('games') and (settings()['log'] or self.demo):
-                try:
+            try:
+                if features.on('games') and (settings()['log'] or self.demo):
                     if settings()['log']:
                         self.read_log()
                     else:
                         self.add_lines(demo_lines(time.time(), settings()['interval']))
                         self.last_read = time.time()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[lancache] read failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[lancache] read failed: {exc}')
             self._stop.wait(settings()['interval'])
 
     # ── reading ──────────────────────────────────────────────────────────────

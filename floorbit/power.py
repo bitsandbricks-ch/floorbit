@@ -297,11 +297,12 @@ class PowerWatch:
 
     def _run(self):
         while not self._stop.is_set():
-            if enabled() and features.on('power') and self.registry.feeders('power'):
-                try:
+            try:
+                # Inside the try too: reading the settings can fail (a database not there yet).
+                if enabled() and features.on('power') and self.registry.feeders('power'):
                     self.poll_once()
-                except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
-                    print(f'[power] poll failed: {exc}')
+            except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
+                print(f'[power] poll failed: {exc}')
             self._stop.wait(self.interval())
 
     def poll_once(self):
