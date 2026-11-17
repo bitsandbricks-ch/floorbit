@@ -9,7 +9,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
-import { ago } from '@/lib/time'
+import { ago, dateOnly } from '@/lib/time'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
 type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number }
@@ -101,7 +101,7 @@ export default function Agents() {
   })
   const d = query.data
   const error = query.error ?? revoke.error ?? setHalls.error
-  const date = (ts: number) => new Date(ts * 1000).toLocaleDateString(i18n.language)
+  const date = (ts: number) => dateOnly(ts, i18n.language)
   const run = made ? [
     'docker run -d --restart on-failure:3 --name floorbit-agent \\',
     `  -e FLOORBIT_URL=${window.location.origin} \\`,

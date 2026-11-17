@@ -11,7 +11,7 @@
 
   function showUpdated(at) {
     updated.textContent = at ? updated.dataset.text.replace('{time}',
-      new Date(at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
+      new Date(at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })) : '';
   }
 
   async function refresh() {

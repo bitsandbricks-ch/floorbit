@@ -5,6 +5,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { ForecastData } from '@/api/types'
 import { bps } from './format'
+import { clock } from '@/lib/time'
 
 const W = 1000
 const H = 140
@@ -16,7 +17,7 @@ export function Forecast() {
   const query = useQuery({ queryKey: qk.forecast, queryFn: () => get<ForecastData>('/api/forecast'), refetchInterval: 300_000 })
   const f = query.data
   if (!f) return null
-  const hour = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+  const hour = (ts: number) => clock(ts, i18n.language)
   return (
     <section className="fb-stats-panel wide" aria-labelledby="stats-forecast">
       <Group justify="space-between" mb={6}>

@@ -1,4 +1,5 @@
 import type { ReportHour } from '@/api/types'
+import { formatWhen } from '@/lib/time'
 
 /** 1 h 05 min, like the PDF (floorbit/report_pdf.py). */
 export function duration(seconds: number | null | undefined): string {
@@ -19,7 +20,7 @@ export function bytes(value: number): string {
 }
 
 export function stamp(ts: number): string {
-  return new Date(ts * 1000).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return formatWhen(ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 /** An SVG path through one value per hour, in a w×h box with `top` at the top. */
