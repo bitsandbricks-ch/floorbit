@@ -117,7 +117,10 @@ class Plugin(Base):
         return self.ctx.agent_call('status')     # [{agent, name, result | error}]
 ```
 
-`self.ctx.agent_health()` has what each agent last reported about the plugin.
+`self.ctx.agent_health()` has what each agent last reported about the plugin. When the agent part
+needs settings that live elsewhere (Settings > Telemetry), define `agent_settings(self, settings)`
+on the hosted part and return what the agent gets; call `floorbit.agent_plugins.reload_agents()`
+after they change.
 
 ### How it travels
 

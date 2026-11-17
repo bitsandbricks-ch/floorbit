@@ -43,9 +43,19 @@ def config(registry=None):
     plugins = {}
     for spec in agent_specs(registry):
         block = spec.agent
+        settings = registry.settings_of(spec)
+        cls = spec.plugin_class()
+        if cls is not None and callable(getattr(cls, 'agent_settings', None)):
+            # Settings kept elsewhere (Settings > Telemetry): the hosted part says what the agent gets.
+            from .plugins.base import PluginError
+            try:
+                settings = registry.call(spec, 'agent_settings', settings)
+            except PluginError as exc:
+                registry.log(spec.id, f'agent_settings: {exc}')
+                continue
         plugins[spec.id] = {
             'version': str(spec.manifest.get('version', '')),
-            'settings': registry.settings_of(spec),
+            'settings': settings,
             'sends': {k: {'privacy': v.get('privacy', 'aggregate')} for k, v in (block.get('sends') or {}).items()},
             'calls': list(block.get('calls') or []),
             'actions': list(block.get('actions') or []),
