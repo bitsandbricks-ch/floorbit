@@ -4,13 +4,25 @@ import type { PlanMark } from '@/api/types'
 import type { OverlayContext } from '../SeatMap'
 import type { Point } from './geometry'
 import { type Handle, handlesOf, reshape } from './reshape'
+import { WallHandles } from './WallHandles'
 
 const CURSOR: Record<Handle, string> = { scale: 'nwse-resize', nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', a: 'move', b: 'move' }
 
 /** Handles on the one selected mark: drag a label's or icon's corner to make it bigger or smaller,
- *  a zone's corners to resize it, a wall's ends to move them. Snaps to the grid (or to tenths of
+ *  a zone's corners to resize it; a wall gets WallHandles (ends, bends, lengths). Snaps to the grid (or to tenths of
  *  the size) unless Alt is held. ``onDraft`` shows the mark while dragging; ``onDone`` saves it. */
-export function MarkHandles({ ctx, mark, corner, size, onDraft, onDone }: {
+export function MarkHandles({ ctx, mark, corner, size, cell = 32, anchors = [], onDraft, onDone }: {
+  ctx: OverlayContext; mark: PlanMark; corner: Point; size: { w: number; h: number }
+  /** A wall's: the grid cell (for its lengths) and the other walls' corners it snaps to. */
+  cell?: number; anchors?: Point[]
+  onDraft: (m: PlanMark | null) => void
+  onDone: (m: PlanMark) => void
+}) {
+  if (mark.kind === 'wall') return <WallHandles ctx={ctx} mark={mark} size={size} cell={cell} anchors={anchors} onDraft={onDraft} onDone={onDone} />
+  return <BoxHandles ctx={ctx} mark={mark} corner={corner} size={size} onDraft={onDraft} onDone={onDone} />
+}
+
+function BoxHandles({ ctx, mark, corner, size, onDraft, onDone }: {
   ctx: OverlayContext; mark: PlanMark; corner: Point; size: { w: number; h: number }
   onDraft: (m: PlanMark | null) => void
   onDone: (m: PlanMark) => void

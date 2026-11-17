@@ -181,20 +181,6 @@ export default function Handover() {
               </Paper>
             )}
 
-            {!!d.gear?.length && (
-              <Paper withBorder radius="lg" p="md">
-                <Title order={2} size="h4" mb="xs">{t('handover.gearTitle', { count: d.counts.gear_out ?? 0 })}</Title>
-                <Stack gap={6}>
-                  {d.gear.map((g) => (
-                    <Group key={g.to} gap="sm" wrap="nowrap" align="baseline">
-                      <Anchor href={`/gear?holder=${encodeURIComponent(g.to)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{g.to}</Anchor>
-                      <Text size="sm" style={{ flex: 1, overflowWrap: 'anywhere' }}>{g.names.join(', ')}</Text>
-                    </Group>
-                  ))}
-                </Stack>
-              </Paper>
-            )}
-
             {!!d.coming_up?.length && (
               <Paper withBorder radius="lg" p="md">
                 <Title order={2} size="h4" mb="xs">{t('handover.comingUp')}</Title>

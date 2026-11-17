@@ -28,6 +28,14 @@ describe('Edit overlay', () => {
     expect(onSelect).toHaveBeenCalledWith([A])
   })
 
+  it('leaves the pointer to the plan with the Hand tool, so a drag moves the view', () => {
+    const { onSelect, hit, view } = overlay({ tool: 'hand' })
+    expect(view.container.querySelector('.fb-edit')).toHaveClass('panning')
+    fireEvent.pointerDown(hit('A'), { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerUp(hit('A'), { button: 0, pointerId: 1, clientX: 140, clientY: 100 })
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
   it('adds with Shift, and takes a whole group out again', () => {
     const together = (r: ItemRef) => (r.id === 'B' ? [A, B] : [r])
     const added = overlay({ selection: [A] })

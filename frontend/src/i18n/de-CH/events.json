@@ -28,7 +28,7 @@
   "delete": "Löschen",
   "deleteQuestion": "{{name}} mit Bericht und Hallenplan löschen? Das lässt sich nicht rückgängig machen.",
   "closeTitle": "Dieses Event abschliessen und das nächste starten",
-  "closeHelp": "Das Event bleibt mit Bericht und Hallenplan erhalten. Das nächste startet davon aus: Hallenplan, Einstellungen, Aufbauplan und eure Abbau-Schritte bleiben; der Verlauf des Berichts, Störungen, Schichtübergaben, Pre-Flight-Ergebnisse und das Material-Protokoll beginnen neu. Material, das noch draussen ist, bleibt draussen.",
+  "closeHelp": "Das Event bleibt mit Bericht und Hallenplan erhalten. Das nächste startet davon aus: Hallenplan und Einstellungen bleiben; der Verlauf des Berichts, Störungen, Schichtübergaben, und Pre-Flight-Ergebnisse beginnen neu.",
   "nextName": "Name des nächsten Events",
   "nextNameHelp": "Freiwillig. Wird zum Event-Namen in den Theme-Einstellungen.",
   "typeToConfirm": "Zum Bestätigen «{{word}}» eintippen",
