@@ -1,0 +1,49 @@
+import { fireEvent, render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { SeatViewData } from '@/api/types'
+import { EditOverlay } from './EditOverlay'
+import type { ItemRef } from './geometry'
+
+const shape = (id: string, cx: number) => ({ id, group: null, cx, cy: 100, rotation: 0, w: 100, h: 40, name: id, cells: [] })
+const data = {
+  size: { w: 1600, h: 1000, cell: 32 }, seats: {}, blocks: [], halls: [], hall: 'main', switches: [],
+  drawing: { shapes: [shape('A', 100), shape('B', 400)], marks: [], box: { x: 0, y: 0, w: 1600, h: 1000 }, cell: 32 },
+} as unknown as SeatViewData
+const ctx = { toPlan: (x: number, y: number) => ({ x, y }), scale: 1, shown: { x: 0, y: 0, w: 1600, h: 1000 } }
+const A: ItemRef = { kind: 'block', id: 'A' }, B: ItemRef = { kind: 'block', id: 'B' }
+
+function overlay(props: Partial<React.ComponentProps<typeof EditOverlay>> = {}) {
+  const onSelect = vi.fn(), onDrop = vi.fn()
+  const view = render(
+    <svg><EditOverlay ctx={ctx} data={data} selection={[]} onSelect={onSelect} onDrag={() => {}} onDrop={onDrop} space={false} {...props} /></svg>,
+  )
+  const hit = (id: string) => view.container.querySelector(`[data-item="block:${id}"]`)!
+  return { onSelect, onDrop, hit, view }
+}
+
+describe('Edit overlay', () => {
+  it('selects the item clicked', () => {
+    const { onSelect, hit } = overlay()
+    fireEvent.pointerDown(hit('A'), { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    expect(onSelect).toHaveBeenCalledWith([A])
+  })
+
+  it('adds with Shift, and takes a whole group out again', () => {
+    const together = (r: ItemRef) => (r.id === 'B' ? [A, B] : [r])
+    const added = overlay({ selection: [A] })
+    fireEvent.pointerDown(added.hit('B'), { button: 0, pointerId: 1, shiftKey: true, clientX: 400, clientY: 100 })
+    expect(added.onSelect).toHaveBeenCalledWith([A, B])
+    added.view.unmount()
+    const taken = overlay({ selection: [A, B], together })
+    fireEvent.pointerDown(taken.hit('B'), { button: 0, pointerId: 1, shiftKey: true, clientX: 400, clientY: 100 })
+    expect(taken.onSelect).toHaveBeenCalledWith([])
+  })
+
+  it('drops a drag by how far the pointer went', () => {
+    const { onDrop, hit } = overlay({ selection: [A] })
+    fireEvent.pointerDown(hit('A'), { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(hit('A'), { pointerId: 1, clientX: 140, clientY: 130 })
+    fireEvent.pointerUp(hit('A'), { pointerId: 1, clientX: 140, clientY: 130 })
+    expect(onDrop).toHaveBeenCalledWith({ x: 40, y: 30 }, true, A, 1)
+  })
+})
