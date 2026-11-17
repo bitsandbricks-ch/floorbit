@@ -11,9 +11,30 @@ import time
 import urllib.error
 import urllib.request
 
-from floorbit.builtin_plugins.lancache.logs import Counter, Tail
 from floorbit.plugins.agent import AgentPlugin as Base
 from floorbit.plugins.base import PluginError
+
+
+def _sibling(name):
+    # By file, not by package: the plugin runs from wherever it was installed (built in, the
+    # Marketplace, or an agent's bundle folder), and none of those is an importable package.
+    import hashlib
+    import importlib.util
+    import sys
+    from pathlib import Path
+    path = Path(__file__).resolve().with_name(f'{name}.py')
+    # One module per folder, so a new version's copy never reuses the old one's.
+    modname = f'floorbit_plugin_lancache_{name}_{hashlib.sha256(str(path).encode()).hexdigest()[:12]}'
+    if modname not in sys.modules:
+        spec = importlib.util.spec_from_file_location(modname, path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[modname] = module
+        spec.loader.exec_module(module)
+    return sys.modules[modname]
+
+
+_logs = _sibling('logs')
+Counter, Tail = _logs.Counter, _logs.Tail
 
 HEARTBEAT_PATH = '/lancache-heartbeat'
 CHECK_NAME = 'lancache.steamcontent.com'    # every lancache-dns answers this with the cache
