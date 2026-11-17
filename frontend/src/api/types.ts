@@ -1354,12 +1354,14 @@ export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
 /** The crew's walk-through check-in (floorbit/seat_walk.py). */
 export interface WalkPort { switch: string; port: string; learned_at?: number; source?: 'walk' | 'checkin' }
 export interface SeatWalkInfo {
-  ip: string; ip_allowed: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
+  agent_url: string | null; switch_lookup: boolean; monitoring: boolean; keep_hours: number
   event: { id: string; name: string; status: string }
   block?: string; seats?: { seat: string; port: WalkPort | null }[]
 }
+export interface SeatWalkHello { hello: string; url: string }
 export interface SeatLocated {
-  ok: boolean; retry: boolean; seat: string; ip: string; mac: string | null; how: 'switch' | 'monitoring' | null
+  ok: boolean; retry: boolean; seat: string; ip: string | null; mac: string | null; how: 'switch' | 'monitoring' | null
   ms: number; tries: number; stale: boolean; found: WalkPort | null
   steps: { step: 'mac' | 'switch' | 'monitoring'; ok: boolean; how?: string | null }[]
   replaced?: string[]; plan_seat?: string | null

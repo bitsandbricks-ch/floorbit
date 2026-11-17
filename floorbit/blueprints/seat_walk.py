@@ -2,11 +2,17 @@
 
 - ``GET /seat-walk``: the page (React).
 - ``GET /api/seat-walk?block=&order=``: the block's seats in walking order with the port each has
-  in this event, this laptop's IP and which ways of looking it up are on.
-- ``POST /api/seat-walk/locate``: ``{"seat", "previous": {"switch", "port"}, "mac"}``: find the
-  port this laptop is plugged into now and keep it for the seat. Tries for about 20 seconds;
-  ``retry`` says whether trying again is worth it.
+  in this event, the local agent's address and which ways of looking a port up are on.
+- ``POST /api/seat-walk/hello``: a one-time code and the agent URL the laptop opens with it.
+  ``GET /api/seat-walk/hello/<code>``: the laptop's own IP once the agent saw it.
+- ``POST /api/seat-walk/locate``: ``{"seat", "hello", "previous": {"switch", "port"}, "mac", "mac_ip"}``:
+  find the port the laptop the agent identified is plugged into now and keep it for the seat. Tries
+  for about 20 seconds; ``retry`` says whether trying again is worth it. Or ``mac`` with ``mac_typed``:
+  the crew typed the laptop's MAC, no agent needed.
 - ``DELETE /api/seat-walk/<seat>``: forget the seat's port (a wrong one).
+
+The laptop is always identified through the local agent, also when Floorbit runs in the hall: the
+agent sees the laptop's own address, Floorbit may see a proxy's or the hall's public one.
 
 Reading needs ``seats.view`` (it names the laptop's MAC), changing ``seats.edit`` (auth/roles.py).
 """
@@ -37,8 +43,7 @@ def page():
 
 @bp.route('/api/seat-walk', methods=['GET'])
 def overview():
-    ip = checkin.client_ip()
-    body = {'ip': ip, 'ip_allowed': checkin.ip_allowed(ip),
+    body = {'agent_url': seat_walk.agent_url() or None,
             'switch_lookup': seat_walk._ssh(_registry())[0] is not None,
             'monitoring': sources.monitoring().enabled(),
             'event': {k: tenancy.current().get(k) for k in ('id', 'name', 'status')},
@@ -64,8 +69,18 @@ def locate():
     seat = str(body.get('seat') or '').strip().upper()[:16]
     if not seat or seat not in {s.upper() for s in checkin.known_seats(load_data)}:
         return jsonify({'error': 'That seat is not on the floor plan.'}), 400
-    ip = checkin.client_ip()
-    if not checkin.ip_allowed(ip):
+    typed = seat_walk._mac(body.get('mac')) if body.get('mac_typed') else None
+    if body.get('mac_typed') and not typed:
+        return jsonify({'error': 'That is not a MAC address.'}), 400
+    ip = None              # a typed MAC: no address needed
+    if not typed:
+        # Always through the local agent, self-hosted or not: it sees the laptop's own address,
+        # where Floorbit may see a proxy's or the hall's public one.
+        said = seat_walk.hello(body.get('hello')) if body.get('hello') else None
+        if not said or not said.get('ip'):
+            return jsonify({'error': "The local agent hasn't seen this laptop yet. Identify it again."}), 409
+        ip = said['ip']
+    if ip and not checkin.ip_allowed(ip):
         return jsonify({'error': f'This laptop has {ip}, which is not in the seat networks. '
                                  'Turn off Wi-Fi and plug the cable in.', 'ip': ip}), 409
     registry = _registry()
@@ -74,7 +89,7 @@ def locate():
                                  'or LibreNMS, or connect a local agent.'}), 409
     previous = _port(body.get('previous'))
     # The MAC the last seat found, while the laptop still has the same IP: saves the ARP lookup.
-    mac = seat_walk._mac(body.get('mac')) if body.get('mac') and body.get('mac_ip') == ip else None
+    mac = typed or (seat_walk._mac(body.get('mac')) if body.get('mac') and body.get('mac_ip') == ip else None)
     result = seat_walk.locate(ip, registry, g.get('audit_user') or _who(), previous,
                               seat_walk.likely_switches(seat, previous), mac=mac)
     out = {'seat': seat, 'ip': ip, 'mac': result['mac'], 'how': result['how'], 'ms': result['ms'],
@@ -83,6 +98,27 @@ def locate():
         return jsonify({**out, 'ok': False, 'retry': True})
     saved = seat_walk.save(seat, result['found'], _who())
     return jsonify({**out, 'ok': True, 'retry': False, **saved})
+
+
+@bp.route('/api/seat-walk/hello', methods=['POST'])
+def new_hello():
+    url = seat_walk.agent_url()
+    if not url:
+        return jsonify({'error': 'No address for the local agent: set SEAT_WALK_AGENT_URL, or '
+                                 'FLOORBIT_AGENT_LAN_URL on the agent.'}), 409
+    try:
+        token = seat_walk.new_hello(_who())
+    except seat_walk.WalkError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    return jsonify({'hello': token, 'url': f'{url}/floorbit/hello/{token}'})
+
+
+@bp.route('/api/seat-walk/hello/<token>', methods=['GET'])
+def get_hello(token):
+    said = seat_walk.hello(token)
+    if said is None:
+        return jsonify({'error': 'That code is unknown or too old.'}), 404
+    return jsonify(said)
 
 
 @bp.route('/api/seat-walk/<seat>', methods=['DELETE'])

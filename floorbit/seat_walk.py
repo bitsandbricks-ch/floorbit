@@ -14,10 +14,18 @@ Freshest answer first, because every seat counts:
 The laptop keeps its IP and MAC from seat to seat; only its port changes. So an answer that still
 names the last seat's port is old (a MAC table nobody read again yet) and is not taken.
 
+**Behind NAT or hosted**, the request's address is the hall's public one. Then the laptop says
+hello through the local agent once (``hello``): the page sends the browser to the agent's address
+on the event network with a one-time code, the agent sees the laptop's own IP and reports it over
+its link, and the walk goes on with that IP and, once found, the laptop's MAC.
+
 A mapping belongs to the event (it is a document of the event's folder) and is cleared one day
 after the event ends: the end in its schedule, else when it was closed (``purge_ended``).
 """
+import contextlib
+import ipaddress
 import re
+import secrets
 import threading
 import time
 
@@ -206,7 +214,12 @@ def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=N
             stale, port = True, None
         if port:
             return {'found': port, 'mac': mac, 'how': 'switch', 'steps': steps, 'stale': False}
-    port = _from_monitoring(ip)
+    if mac:
+        # The laptop may have a new lease in another seat block's network (or the crew typed only
+        # its MAC): ask by the MAC. The IP we have still answers while ARP keeps it.
+        with contextlib.suppress(Exception):
+            ip = sources.monitoring().ip_for_mac(mac) or ip
+    port = _from_monitoring(ip) if ip else None
     steps.append({'step': 'monitoring', 'ok': bool(port)})
     if port and port.get('mac') and not mac:
         mac = port['mac']
@@ -230,6 +243,94 @@ def locate(ip, registry=None, account=None, previous=None, likely=(), mac=None, 
         if result['found'] or clock() - started + RETRY_EVERY > seconds:
             return {**result, 'tries': tries, 'ms': int((clock() - started) * 1000)}
         sleep(RETRY_EVERY)
+
+
+# ── the laptop's own address, through the local agent ───────────────────────────────────────────
+
+HELLO_SECONDS = 10 * 60     # a code is good this long after the page asked for it
+HELLO_KEEP = 12 * 3600      # and the laptop it named is remembered this long (a walk's length)
+TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{16,64}$')
+_hello_lock = threading.Lock()
+
+
+def _hellos_path():
+    from . import store
+    return store.event_path('seat_walk_hellos.json')
+
+
+def _hellos(now):
+    """The codes, without the old ones. A document, so every pod sees the agent's report."""
+    from . import store
+    rows = store.read_json(_hellos_path(), {}) or {}
+    return {t: r for t, r in rows.items() if isinstance(r, dict)
+            and now - (r.get('at') or 0) < (HELLO_KEEP if r.get('ip') else HELLO_SECONDS)}
+
+
+def private_ip(ip):
+    try:
+        addr = ipaddress.ip_address(str(ip or '').strip())
+    except ValueError:
+        return False
+    return addr.is_private and not addr.is_loopback
+
+
+def agent_url():
+    """Where laptops on the event network reach the local agent: the setting, else what an
+    agent reported (FLOORBIT_AGENT_LAN_URL)."""
+    from integrations import config
+
+    from . import agent_link
+    configured = (config.get('SEAT_WALK_AGENT_URL', '') or '').strip().rstrip('/')
+    if configured:
+        return configured
+    try:
+        for a in agent_link.all_agents():
+            url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
+            if a.get('connected') and url:
+                return url
+    except Exception as exc:  # noqa: BLE001  # no agents: the page says what to set
+        print(f'[seat-walk] could not read the agents: {exc}')
+    return ''
+
+
+def new_hello(by, now=None):
+    """A one-time code for the laptop to take through the agent."""
+    from . import store
+    now = time.time() if now is None else now
+    token = secrets.token_urlsafe(18)
+    with _hello_lock:
+        rows = _hellos(now)
+        if len(rows) > 500:
+            raise WalkError('Too many walk-throughs are waiting for their laptop.', 429)
+        rows[token] = {'at': now, 'by': by}
+        store.write_json(_hellos_path(), rows)
+    return token
+
+
+def agent_said_hello(token, ip, agent_name, now=None):
+    """The agent saw the laptop with this code at ``ip``. False for an unknown or used code."""
+    from . import store
+    now = time.time() if now is None else now
+    if not TOKEN_RE.match(str(token or '')) or not private_ip(ip):
+        return False
+    with _hello_lock:
+        rows = _hellos(now)
+        row = rows.get(token)
+        if row is None or row.get('ip'):
+            return False
+        row.update(ip=str(ipaddress.ip_address(ip)), agent=str(agent_name or '')[:60], at=now)
+        store.write_json(_hellos_path(), rows)
+    return True
+
+
+def hello(token, now=None):
+    """``{"ip", "agent", "at"}`` once the agent saw the laptop, ``{}`` while waiting, None when unknown."""
+    if not TOKEN_RE.match(str(token or '')):
+        return None
+    row = _hellos(time.time() if now is None else now).get(token)
+    if row is None:
+        return None
+    return {k: row[k] for k in ('ip', 'agent', 'at') if row.get('ip')}
 
 
 # ── keeping it ─────────────────────────────────────────────────────────────────────────────────

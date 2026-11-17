@@ -24,8 +24,16 @@ def demo_seat(label):
     return (demo_plugin._ip(i), demo_plugin._mac(i), *demo_plugin._switch_for(block, number))
 
 
+def identify(client, ip):
+    """The laptop opened the local agent's hello page: the agent saw it at ``ip``."""
+    with client.application.app_context():
+        token = seat_walk.new_hello("crew")
+        assert seat_walk.agent_said_hello(token, ip, "Hall agent")
+    return token
+
+
 def locate(client, seat, ip, **body):
-    return client.post("/api/seat-walk/locate", json={"seat": seat, **body}, environ_base={"REMOTE_ADDR": ip})
+    return client.post("/api/seat-walk/locate", json={"seat": seat, "hello": identify(client, ip), **body})
 
 
 def test_walk_a_row_with_the_laptop(hall):
@@ -33,7 +41,7 @@ def test_walk_a_row_with_the_laptop(hall):
     block = hall.get("/api/seat-blocks").get_json()[0]["id"]
     first = hall.get(f"/api/seat-walk?block={block}").get_json()
     assert first["switch_lookup"] and [s["seat"] for s in first["seats"][:3]] == ["A-1", "A-2", "A-3"]
-    assert first["seats"][0]["port"] is None and first["keep_hours"] == 24
+    assert first["seats"][0]["port"] is None and first["keep_hours"] == 24 and "ip" not in first
 
     r = locate(hall, "A-1", a1[0]).get_json()
     # The MAC from what the monitoring source knows, the port read from the access switch itself.
@@ -60,6 +68,52 @@ def test_what_the_page_refuses(hall, monkeypatch):
     monkeypatch.setenv("CHECKIN_ALLOWED_NETWORKS", "10.0.0.0/8")
     r = locate(hall, "A-1", ip)
     assert r.status_code == 409 and "Wi-Fi" in r.get_json()["error"]
+
+
+def test_the_laptop_is_always_identified_through_the_agent(hall, client, monkeypatch):
+    from tests.test_agent import enrol, head
+    ip, _mac, switch, port = demo_seat("A-1")
+    # Even on the hall's own network: the request's address is never taken for the laptop's.
+    r = hall.post("/api/seat-walk/locate", json={"seat": "A-1"}, environ_base={"REMOTE_ADDR": ip})
+    assert r.status_code == 409 and "Identify it again" in r.get_json()["error"]
+
+    assert hall.post("/api/seat-walk/hello").status_code == 409     # no agent address yet
+    monkeypatch.setenv("SEAT_WALK_AGENT_URL", "http://192.0.2.10:8908/")
+    made = hall.post("/api/seat-walk/hello").get_json()
+    token = made["hello"]
+    assert made["url"] == f"http://192.0.2.10:8908/floorbit/hello/{token}"
+    assert hall.get(f"/api/seat-walk/hello/{token}").get_json() == {}             # waiting for the laptop
+    assert hall.post("/api/seat-walk/locate", json={"seat": "A-1", "hello": token}).status_code == 409
+
+    agent = enrol(client, "Hall agent")
+    key = agent["key"]
+    said = client.post("/api/agent/v1/seat-walk", json={"token": token, "ip": ip}, headers=head(key))
+    assert said.status_code == 200
+    # A code is used once, and only a signed-in page makes them.
+    assert client.post("/api/agent/v1/seat-walk", json={"token": token, "ip": "192.0.2.66"},
+                       headers=head(key)).status_code == 404
+    assert client.post("/api/agent/v1/seat-walk", json={"token": "x" * 20, "ip": ip},
+                       headers=head(key)).status_code == 404
+    assert client.post("/api/agent/v1/seat-walk", json={"token": token, "ip": ip}).status_code == 401
+    assert hall.get(f"/api/seat-walk/hello/{token}").get_json()["ip"] == ip
+    assert hall.get("/api/seat-walk/hello/" + "y" * 20).status_code == 404
+    # The ports come from the demo hall here, not through this agent, which never answers calls.
+    assert client.delete(f"/api/agents/{agent['id']}").status_code == 200
+    from floorbit import agent_link, sources
+    agent_link.tunnel.reset()
+    sources._agent = None
+
+    r = hall.post("/api/seat-walk/locate", json={"seat": "A-1", "hello": token}).get_json()
+    assert r["ok"] and r["ip"] == ip and r["found"] == {"switch": switch, "port": port}
+
+
+def test_a_typed_mac_needs_no_agent(hall):
+    _ip, mac, switch, port = demo_seat("A-2")
+    r = hall.post("/api/seat-walk/locate", json={"seat": "A-2", "mac": mac.upper().replace(":", "-"),
+                                                 "mac_typed": True}).get_json()
+    assert r["ok"] and r["mac"] == mac and r["found"] == {"switch": switch, "port": port}
+    bad = hall.post("/api/seat-walk/locate", json={"seat": "A-2", "mac": "not a mac", "mac_typed": True})
+    assert bad.status_code == 400
 
 
 def test_only_seat_editors_save(app_module, hall):

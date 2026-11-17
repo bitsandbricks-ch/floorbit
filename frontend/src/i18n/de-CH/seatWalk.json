@@ -1,6 +1,6 @@
 {
   "title": "Platz-Rundgang",
-  "intro": "Geh vor dem Einlass mit einem Laptop am Kabel durch die Reihen. Steck ihn an jedem Platz ein und drück Finden: Floorbit sucht den Switch-Port über die Adresse des Laptops und merkt ihn sich für den Platz.",
+  "intro": "Geh vor der Türöffnung mit einem Laptop am Kabel durch die Reihen. Steck ihn bei jedem Platz ein und drück Finden: Der lokale Agent erkennt den Laptop, Floorbit findet seinen Switch-Port und merkt ihn sich für den Platz.",
   "block": "Platzblock",
   "order": "Reihenfolge",
   "orderRows": "Jede Reihe gleich herum",
@@ -10,7 +10,6 @@
   "pick": "Wähl einen Platzblock",
   "allKnown": "Jeder Platz dieses Blocks hat einen Port",
   "start": "Bei {{seat}} beginnen",
-  "laptop": "Dieser Laptop: {{ip}}",
   "switchOn": "Liest die Switches direkt",
   "switchOff": "Kein direktes Lesen der Switches",
   "monitoringOn": "Monitoring-Quelle an",
@@ -18,7 +17,6 @@
   "thisEvent": "diesen Anlass",
   "kept": "Gefundene Ports gelten nur für {{event}} und werden {{hours}} Stunden nach dem Ende gelöscht.",
   "portfast": "Die Access-Ports brauchen Portfast (oder Edge-Port): ohne dauert es etwa 30 Sekunden, bis ein Port nach dem Einstecken oben ist.",
-  "notSeatNetwork": "Dieser Laptop hat {{ip}}, das ist nicht in den Platz-Netzen. Schalte das WLAN aus und steck den Laptop an einem Platz ein.",
   "noLookup": "Noch kann nichts Switch-Ports nachschlagen. Schalte SSH-Port-Aktionen mit einem gespeicherten Switch-Login, Telemetrie oder LibreNMS ein oder verbinde einen lokalen Agent.",
   "progress": "Platz {{n}} von {{of}} · {{done}} gefunden",
   "stop": "Aufhören",
@@ -54,5 +52,13 @@
   "again": "Nächsten Block ablaufen",
   "seat": "Platz",
   "port": "Port",
-  "time": "Zeit"
+  "time": "Zeit",
+  "agentAt": "Laptops werden über den lokalen Agent erkannt unter",
+  "agentNone": "Kein lokaler Agent hat gemeldet, wo Laptops ihn erreichen.",
+  "noAgent": "Floorbit weiss nicht, wo Laptops in der Halle den lokalen Agent erreichen. Setze FLOORBIT_AGENT_LAN_URL beim Agent (oder SEAT_WALK_AGENT_URL hier) oder tippe unten die MAC des Laptops ein.",
+  "mac": "MAC des Laptops (optional)",
+  "macHelp": "Eintippen, um ohne lokalen Agent zu suchen: Floorbit sucht dann diese MAC in den Tabellen der Switches.",
+  "macBad": "Das ist keine MAC-Adresse.",
+  "usingMac": "Sucht die eingetippte MAC {{mac}}.",
+  "identifying": "Laptop wird über den lokalen Agent erkannt…"
 }

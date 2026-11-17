@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Checkbox, Group, Loader, Paper, Select, SimpleGrid, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Checkbox, Code, Group, Loader, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { IconCircleCheck, IconCircleX, IconPlugConnected } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next'
 import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { SeatBlock, SeatLocated, SeatWalkInfo, WalkPort } from '@/api/types'
+import type { SeatBlock, SeatLocated, SeatWalkHello, SeatWalkInfo, WalkPort } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { leave } from './seatWalkLeave'
 
 /** How long the page keeps asking before it says the lookup failed. Each request tries about 20 s;
  *  a monitoring source that only polls the MAC tables every minute or so needs a few of them. */
@@ -17,27 +18,69 @@ export const GIVE_UP_MS = 90_000
 type Done = { seat: string; port: WalkPort; how: SeatLocated['how']; ms: number }
 type Status =
   | { kind: 'idle' }
+  | { kind: 'identifying' }
   | { kind: 'looking'; started: number; last?: SeatLocated }
   | { kind: 'found'; result: SeatLocated; ms: number }
   | { kind: 'failed'; result?: SeatLocated; error?: string }
 
 const portText = (p: WalkPort) => `${p.switch} ${p.port}`
 
+/** A MAC as the crew might type it: colons, dashes, dots or nothing. */
+export const MAC_RE = /^([0-9a-f]{2}[:-]?){5}[0-9a-f]{2}$|^([0-9a-f]{4}\.){2}[0-9a-f]{4}$/i
+
+/** What survives the trip through the local agent: the page leaves for the agent's hello and
+ *  comes back with ?hello=<code>. Only in this tab, never shared. */
+const KEPT = 'floorbit-seat-walk'
+export type Kept = {
+  block: string; order: string; at: number; done: Done[]; previous: WalkPort | null
+  laptop: { mac: string; ip: string } | null; mac: string
+}
+function readKept(): Kept | null {
+  try { return JSON.parse(sessionStorage.getItem(KEPT) ?? 'null') as Kept | null } catch { return null }
+}
+function keep(k: Kept | null) {
+  try { if (k) sessionStorage.setItem(KEPT, JSON.stringify(k)); else sessionStorage.removeItem(KEPT) } catch { /* private window */ }
+}
+/** Read once per page load: the page may mount more than once while the app starts, and the
+ *  first mount takes the code off the address. */
+let cameBack: { hello: string; kept: Kept } | null = null
+function comingBack() {
+  if (new URLSearchParams(window.location.search).has('hello')) {
+    const hello = takeHello()
+    const kept = readKept()
+    cameBack = hello && kept ? { hello, kept } : null
+  }
+  return cameBack
+}
+
+/** The code the agent sent the laptop back with, taken off the address so a reload doesn't reuse it. */
+function takeHello(): string | null {
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('hello')
+  if (!code) return null
+  params.delete('hello')
+  const rest = params.toString()
+  window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}`)
+  return code
+}
+
 /** The walk: one seat at a time. Plug in, Locate, see the port (or why not), next seat. */
-function Walk({ info, seats, startAt, onStop }: {
-  info: SeatWalkInfo; seats: { seat: string; port: WalkPort | null }[]; startAt: number; onStop: () => void
+function Walk({ info, seats, startAt, block, order, typedMac, resumed, onStop }: {
+  info: SeatWalkInfo; seats: { seat: string; port: WalkPort | null }[]; startAt: number
+  block: string; order: string; typedMac: string
+  resumed: { kept: Kept; hello: string } | null; onStop: () => void
 }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const canFixPlan = useCan('floorplan.edit')
-  const [at, setAt] = useState(startAt)
+  const [at, setAt] = useState(resumed ? resumed.kept.at : startAt)
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
-  const [done, setDone] = useState<Done[]>([])
+  const [done, setDone] = useState<Done[]>(resumed?.kept.done ?? [])
   const [now, setNow] = useState(() => Date.now())
   const [planFixed, setPlanFixed] = useState(false)
   const run = useRef(0)                      // a new Locate, Cancel or seat drops answers of the old one
-  const laptop = useRef<{ mac: string; ip: string } | null>(null)
-  const previous = useRef<WalkPort | null>(null)
+  const laptop = useRef<{ mac: string; ip: string } | null>(resumed?.kept.laptop ?? null)
+  const previous = useRef<WalkPort | null>(resumed?.kept.previous ?? null)
   const seat = seats[at]?.seat
 
   useEffect(() => {
@@ -46,9 +89,24 @@ function Walk({ info, seats, startAt, onStop }: {
     return () => window.clearInterval(timer)
   }, [status.kind])
 
-  const locate = useCallback(async () => {
+  const locate = useCallback(async (hello?: string) => {
     if (!seat) return
     const mine = ++run.current
+    if (!typedMac && !hello) {
+      // Always through the local agent: it sees the laptop's own address, Floorbit may not
+      // (a proxy, NAT, a hosted Floorbit). The laptop gets a new address at some seats, so every seat.
+      setStatus({ kind: 'identifying' })
+      try {
+        const made = await post<SeatWalkHello>('/api/seat-walk/hello')
+        if (run.current !== mine) return
+        keep({ block, order, at, done, previous: previous.current, laptop: laptop.current, mac: typedMac })
+        const back = `${window.location.origin}${window.location.pathname}?hello=${encodeURIComponent(made.hello)}`
+        leave.to(`${made.url}?back=${encodeURIComponent(back)}`)
+      } catch (e) {
+        if (run.current === mine) setStatus({ kind: 'failed', error: e instanceof ApiError ? e.message : String(e) })
+      }
+      return
+    }
     const started = Date.now()
     setPlanFixed(false)
     setNow(started)
@@ -56,14 +114,15 @@ function Walk({ info, seats, startAt, onStop }: {
     for (;;) {
       let result: SeatLocated
       try {
-        result = await post<SeatLocated>('/api/seat-walk/locate', {
-          seat, previous: previous.current, mac: laptop.current?.mac, mac_ip: laptop.current?.ip })
+        result = await post<SeatLocated>('/api/seat-walk/locate', typedMac
+          ? { seat, previous: previous.current, mac: typedMac, mac_typed: true }
+          : { seat, previous: previous.current, hello, mac: laptop.current?.mac, mac_ip: laptop.current?.ip })
       } catch (e) {
         if (run.current === mine) setStatus({ kind: 'failed', error: e instanceof ApiError ? e.message : String(e) })
         return
       }
       if (run.current !== mine) return
-      if (result.mac) laptop.current = { mac: result.mac, ip: result.ip }
+      if (result.mac && result.ip) laptop.current = { mac: result.mac, ip: result.ip }
       if (result.ok && result.found) {
         previous.current = result.found
         const row: Done = { seat, port: result.found, how: result.how, ms: Date.now() - started }
@@ -78,7 +137,17 @@ function Walk({ info, seats, startAt, onStop }: {
       }
       setStatus({ kind: 'looking', started, last: result })
     }
-  }, [seat, qc])
+  }, [seat, qc, typedMac, block, order, at, done])
+
+  // Back from the agent with this seat's code: carry on where the crew pressed Locate.
+  const resumedOnce = useRef(false)
+  useEffect(() => {
+    if (!resumed || resumedOnce.current) return
+    resumedOnce.current = true
+    keep(null)
+    cameBack = null
+    void locate(resumed.hello)
+  }, [resumed, locate])
 
   const go = (n: number) => { run.current++; setStatus({ kind: 'idle' }); setAt(n) }
   const undo = async () => {
@@ -100,7 +169,7 @@ function Walk({ info, seats, startAt, onStop }: {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || (e.target as HTMLElement)?.closest('input, textarea, [role="combobox"]')) return
       if (status.kind === 'found') go(at + 1)
-      else if (status.kind !== 'looking') void locate()
+      else if (status.kind !== 'looking' && status.kind !== 'identifying') void locate()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -130,11 +199,12 @@ function Walk({ info, seats, startAt, onStop }: {
           </Group>
           <Title order={2} size="h1">{seat}</Title>
           <Text>{t('seatWalk.plugIn', { seat })}</Text>
+          {typedMac && <Text size="sm" c="dimmed">{t('seatWalk.usingMac', { mac: typedMac })}</Text>}
           {had && status.kind === 'idle' && (
             <Text size="sm" c="dimmed">{t(had.source === 'walk' ? 'seatWalk.hadWalk' : 'seatWalk.hadCheckin', { port: portText(had) })}</Text>
           )}
           {status.kind !== 'found' && (
-            <Button size="lg" mt="xs" leftSection={<IconPlugConnected size={20} />} loading={status.kind === 'looking'}
+            <Button size="lg" mt="xs" leftSection={<IconPlugConnected size={20} />} loading={status.kind === 'looking' || status.kind === 'identifying'}
               onClick={() => void locate()}>
               {status.kind === 'failed' ? t('seatWalk.tryAgain') : t('seatWalk.locate')}
             </Button>
@@ -143,6 +213,11 @@ function Walk({ info, seats, startAt, onStop }: {
       </Paper>
 
       <div aria-live="polite">
+        {status.kind === 'identifying' && (
+          <Paper withBorder radius="lg" p="lg">
+            <Group gap="sm" wrap="nowrap"><Loader size="sm" /><Text fw={600}>{t('seatWalk.identifying')}</Text></Group>
+          </Paper>
+        )}
         {status.kind === 'looking' && (
           <Paper withBorder radius="lg" p="lg">
             <Stack gap="xs">
@@ -198,7 +273,7 @@ function Walk({ info, seats, startAt, onStop }: {
             <Stack gap="xs">
               <Text size="sm">
                 {status.error ?? (status.result?.stale ? t('seatWalk.failedStale')
-                  : status.result?.mac ? t('seatWalk.failedPort') : t('seatWalk.failedMac', { ip: status.result?.ip ?? info.ip }))}
+                  : status.result?.mac ? t('seatWalk.failedPort') : t('seatWalk.failedMac', { ip: status.result?.ip ?? '?' }))}
               </Text>
               {!status.error && <Text size="sm" c="dimmed">{t('seatWalk.failedHint')}</Text>}
             </Stack>
@@ -241,10 +316,14 @@ function DoneList({ done }: { done: Done[] }) {
  *  its IP, kept for this event and cleared a day after it ends. */
 export default function SeatWalk() {
   const { t } = useTranslation()
-  const [block, setBlock] = useState('')
-  const [order, setOrder] = useState('rows')
+  // Back from the local agent: the walk picks up at the seat it left.
+  const [resumed] = useState(comingBack)
+  const [block, setBlock] = useState(resumed?.kept.block ?? '')
+  const [order, setOrder] = useState(resumed?.kept.order ?? 'rows')
   const [skipKnown, setSkipKnown] = useState(true)
-  const [walking, setWalking] = useState(false)
+  const [walking, setWalking] = useState(!!resumed)
+  const [mac, setMac] = useState(resumed?.kept.mac ?? '')
+  const macOk = !mac.trim() || MAC_RE.test(mac.trim())
   const blocks = useQuery({ queryKey: qk.seatBlocks, queryFn: () => get<SeatBlock[]>('/api/seat-blocks') })
   const info = useQuery({
     queryKey: qk.seatWalk(block, order),
@@ -258,10 +337,11 @@ export default function SeatWalk() {
     <Layout title={t('seatWalk.title')} back={{ href: '/checkins', label: t('crewCheckin.title') }}>
       <PageHead title={t('seatWalk.title')} desc={walking ? undefined : t('seatWalk.intro')} />
       {walking && d && seats.length ? (
-        <Walk info={d} seats={seats} startAt={Math.max(0, firstOpen)} onStop={() => setWalking(false)} />
+        <Walk info={d} seats={seats} startAt={Math.max(0, firstOpen)} block={block} order={order}
+          typedMac={macOk ? mac.trim() : ''} resumed={resumed} onStop={() => { keep(null); cameBack = null; setWalking(false) }} />
       ) : (
         <Stack gap="md">
-          {d && !d.ip_allowed && <Alert color="warn">{t('seatWalk.notSeatNetwork', { ip: d.ip })}</Alert>}
+          {d && !d.agent_url && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
           {d && !d.switch_lookup && !d.monitoring && <Alert color="down">{t('seatWalk.noLookup')}</Alert>}
           <Paper withBorder radius="lg" p="lg">
             <Stack gap="sm">
@@ -275,8 +355,11 @@ export default function SeatWalk() {
                 <Checkbox checked={skipKnown} onChange={(e) => setSkipKnown(e.currentTarget.checked)}
                   label={t('seatWalk.skipKnown', { count: known })} />
               )}
+              <TextInput label={t('seatWalk.mac')} description={t('seatWalk.macHelp')} placeholder="02:00:00:00:00:10"
+                value={mac} onChange={(e) => setMac(e.currentTarget.value)} maxLength={17}
+                error={macOk ? undefined : t('seatWalk.macBad')} autoComplete="off" spellCheck={false} />
               {info.error && <Alert color="down" role="alert">{info.error.message}</Alert>}
-              <Button disabled={!seats.length || firstOpen < 0} onClick={() => setWalking(true)}>
+              <Button disabled={!seats.length || firstOpen < 0 || !macOk} onClick={() => setWalking(true)}>
                 {!seats.length ? t('seatWalk.pick') : firstOpen < 0 ? t('seatWalk.allKnown')
                   : t('seatWalk.start', { seat: seats[Math.max(0, firstOpen)].seat })}
               </Button>
@@ -285,7 +368,7 @@ export default function SeatWalk() {
           {d && (
             <Paper withBorder radius="lg" p="lg">
               <Stack gap={6}>
-                <Text size="sm">{t('seatWalk.laptop', { ip: d.ip })}</Text>
+                <Text size="sm">{d.agent_url ? <>{t('seatWalk.agentAt')} <Code>{d.agent_url}</Code></> : t('seatWalk.agentNone')}</Text>
                 <Group gap="xs">
                   <Badge variant="light" color={d.switch_lookup ? 'up' : 'gray'} tt="none">
                     {t(d.switch_lookup ? 'seatWalk.switchOn' : 'seatWalk.switchOff')}</Badge>

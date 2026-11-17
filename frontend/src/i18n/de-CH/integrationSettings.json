@@ -326,6 +326,10 @@
       "label": "Captive Portal (DHCP-Option 114)",
       "help": "Sagt dem lokalen Agent, welche Geräte eingecheckt haben, damit die anderen Handys und Laptops einen leisen Hinweis «Im Netzwerk anmelden» sehen, der die Check-in-Seite öffnet. Braucht die Check-in-Seite, einen Agent mit FLOORBIT_AGENT_CAPTIVE und Option 114 im Event-DHCP. Es wird nie etwas blockiert."
     },
+    "integrations_seat_walk_agent_url": {
+      "label": "Adresse des lokalen Agents für den Platz-Rundgang",
+      "help": "Wo Laptops in der Halle den Captive-Port des lokalen Agents erreichen, z. B. http://192.0.2.10:8908. Leer: die Adresse, die der Agent meldet (FLOORBIT_AGENT_LAN_URL)."
+    },
     "integrations_checkin_verify_rate": {
       "label": "Port-Abfragen pro Sekunde",
       "help": "Wie viele Check-ins pro Sekunde im Hintergrund in der Überwachungsquelle nachgeschlagen werden. Viele Check-ins auf einmal warten, bis sie dran sind, statt LibreNMS zu überfluten."
