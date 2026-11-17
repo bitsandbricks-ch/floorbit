@@ -39,8 +39,8 @@
     "hide": "Seitenleiste ausblenden",
     "show": "Seitenleiste einblenden",
     "allGood": "Nichts zu tun: kein Platz mit Problem, keiner offline, alle Switches aktiv.",
-    "switchesDown_one": "{{count}} Switch nicht aktiv",
-    "switchesDown_other": "{{count}} Switches nicht aktiv",
+    "switchesDown_one": "{{count}} Switch offline",
+    "switchesDown_other": "{{count}} Switches offline",
     "withProblems_one": "{{count}} Platz mit Problem",
     "withProblems_other": "{{count}} Plätze mit Problemen",
     "offline_one": "{{count}} Platz offline",
@@ -49,8 +49,7 @@
     "blocks_other": "{{count}} Sitzblöcke",
     "block": "Block {{name}}",
     "switches_one": "{{count}} Switch",
-    "switches_other": "{{count}} Switches",
-    "sw": { "up": "Aktiv", "down": "Aus", "unknown": "Unbekannt" }
+    "switches_other": "{{count}} Switches"
   },
   "state": {
     "online": "Online",

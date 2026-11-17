@@ -39,8 +39,8 @@
     "hide": "Hide the panel",
     "show": "Show the panel",
     "allGood": "Nothing to look at: no seat with a problem, none offline, every switch up.",
-    "switchesDown_one": "{{count}} switch not up",
-    "switchesDown_other": "{{count}} switches not up",
+    "switchesDown_one": "{{count}} switch offline",
+    "switchesDown_other": "{{count}} switches offline",
     "withProblems_one": "{{count}} seat with a problem",
     "withProblems_other": "{{count}} seats with problems",
     "offline_one": "{{count}} seat offline",
@@ -49,8 +49,7 @@
     "blocks_other": "{{count}} seat blocks",
     "block": "Block {{name}}",
     "switches_one": "{{count}} switch",
-    "switches_other": "{{count}} switches",
-    "sw": { "up": "Up", "down": "Down", "unknown": "Unknown" }
+    "switches_other": "{{count}} switches"
   },
   "state": {
     "online": "Online",

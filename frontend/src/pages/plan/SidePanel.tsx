@@ -24,14 +24,15 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
   const seats = Object.entries(data.seats)
   const problems = seats.filter(([, s]) => s.problems).map(([n]) => n).sort(seatOrder)
   const offline = seats.filter(([, s]) => s.state === 'offline' && !s.problems).map(([n]) => n).sort(seatOrder)
-  const down = data.switches.filter((w) => w.status !== 'up').length
+  const isDown = (w: { status: string }) => w.status === 'offline'
+  const down = data.switches.filter(isDown).length
   return (
     <aside className="fb-ws-panel tabs" aria-label={t('plan.side.label')}>
       <Tabs value={tab} onChange={(v) => v && onTab(v as SideTab)} keepMounted={false} className="fb-side-tabs">
         <Tabs.List grow>
           <Tabs.Tab value="layers" leftSection={<IconStack2 size={14} />}>{t('plan.side.layers')}</Tabs.Tab>
           <Tabs.Tab value="problems" leftSection={<IconAlertTriangle size={14} />}
-            rightSection={problems.length + down ? <Badge size="xs" color="down" circle>{problems.length + down}</Badge> : null}>{t('plan.side.problems')}</Tabs.Tab>
+            rightSection={problems.length + down ? <Badge size="xs" color="down">{problems.length + down}</Badge> : null}>{t('plan.side.problems')}</Tabs.Tab>
           <Tabs.Tab value="items" leftSection={<IconList size={14} />}>{t('plan.side.items')}</Tabs.Tab>
         </Tabs.List>
         <ScrollArea className="fb-side-body" type="auto">
@@ -44,8 +45,8 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
               {!problems.length && !offline.length && !down && <Text size="sm" c="dimmed">{t('plan.side.allGood')}</Text>}
               {down > 0 && (
                 <Section title={t('plan.side.switchesDown', { count: down })}>
-                  {data.switches.filter((w) => w.status !== 'up').map((w) => (
-                    <Row key={w.id} onClick={() => onSwitch(w.name)} name={w.name} detail={t(`plan.side.sw.${w.status}`, { defaultValue: w.status })} bad />
+                  {data.switches.filter(isDown).map((w) => (
+                    <Row key={w.id} onClick={() => onSwitch(w.name)} name={w.name} detail={t(`plan.state.${w.status}`, { defaultValue: w.status })} bad />
                   ))}
                 </Section>
               )}
@@ -71,7 +72,7 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
               </Section>
               <Section title={t('plan.side.switches', { count: data.switches.length })}>
                 {[...data.switches].sort((a, b) => a.name.localeCompare(b.name)).map((w) => (
-                  <Row key={w.id} onClick={() => onSwitch(w.name)} name={w.name} detail={t(`plan.side.sw.${w.status}`, { defaultValue: w.status })} bad={w.status !== 'up'} />
+                  <Row key={w.id} onClick={() => onSwitch(w.name)} name={w.name} detail={t(`plan.state.${w.status}`, { defaultValue: w.status })} bad={isDown(w)} />
                 ))}
               </Section>
             </Stack>

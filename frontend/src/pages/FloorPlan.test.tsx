@@ -702,13 +702,18 @@ describe('Seats page', () => {
   })
 
   it('docks a panel on the right with layers, problems and items, folds it with ], and opens what is clicked there', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&block=D': data }).fn)
+    const switches = [{ id: 's1', name: 'sw-d-01', status: 'online', x: 600, y: 300 }, { id: 's2', name: 'sw-d-02', status: 'offline', x: 700, y: 300 }]
+    const two = { ...data, switches }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': two, 'GET /api/plan?hall=main&block=D': two }).fn)
     try { localStorage.removeItem('floorbit-plan-side') } catch { /* fine */ }
     renderWithApp(<FloorPlan />, '/plan?hall=main')
     const panel = await screen.findByRole('complementary', { name: 'Plan panel' })
     expect(within(panel).getByRole('tab', { name: /Layers/ })).toHaveAttribute('aria-selected', 'true')
     fireEvent.click(within(panel).getByRole('tab', { name: /Problems/ }))
     expect(await within(panel).findByText('1 seat with a problem')).toBeInTheDocument()
+    // Only the switch that is offline counts as a problem.
+    expect(within(panel).getByRole('button', { name: /sw-d-02/ })).toHaveTextContent('Offline')
+    expect(within(panel).queryByRole('button', { name: /sw-d-01/ })).toBeNull()
     fireEvent.click(within(panel).getByRole('tab', { name: /Items/ }))
     fireEvent.click(await within(panel).findByRole('button', { name: /Block D/ }))
     expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
