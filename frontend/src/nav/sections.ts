@@ -1,7 +1,7 @@
 import {
   IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBackpack, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
-  IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutDashboard, IconLayoutGrid,
+  IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid,
   IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLock, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport, IconRuler2,
   IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTournament, IconTrophy, IconTruck, IconUserCheck, IconUsers, IconUsersGroup, IconWall, IconWebhook, IconWifi, IconWorldWww,
@@ -14,7 +14,7 @@ export interface NavPage { href: string; id: string; label: string }
 export type SectionId = 'helpdesk' | 'network' | 'build' | 'event' | 'admin' | 'more'
 
 /** The pages crews open all the time: always at the top of the sidebar, never folded away. */
-export const PINNED = ['floorPlan', 'seats', 'dashboard', 'problems', 'incidents']
+export const PINNED = ['floorPlan', 'seats', 'dashboards', 'problems', 'incidents']
 
 /** The rest, folded into sections. A page the server lists that isn't here lands in "more",
  *  so a new page shows up before anyone sorts it in. */
@@ -22,7 +22,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'checkins', 'speedtests', 'networkStatus'] },
   {
     id: 'network', icon: IconNetwork,
-    pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
+    pages: ['dashboard', 'health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'gear', 'planner', 'preflight', 'teardown', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
@@ -30,7 +30,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
 ]
 
 const ICONS: Record<string, Icon> = {
-  floorPlan: IconLayoutGrid, seats: IconArmchair, dashboard: IconLayoutDashboard, problems: IconAlertTriangle,
+  floorPlan: IconLayoutGrid, seats: IconArmchair, dashboards: IconLayoutDashboard, dashboard: IconLayoutCards, problems: IconAlertTriangle,
   incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange, runbooks: IconBook,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,

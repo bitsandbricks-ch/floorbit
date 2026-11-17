@@ -1,0 +1,67 @@
+/* Dashboards (pages/Dashboards.tsx, DashboardScreen.tsx): screens split into panes. */
+.fb-split { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; gap: 0; }
+.fb-split-row { flex-direction: row; }
+.fb-split-column { flex-direction: column; }
+.fb-split-part { flex-grow: 0; flex-shrink: 1; min-width: 0; min-height: 0; display: flex; }
+.fb-split-part > * { flex: 1; }
+.fb-split-border { flex: 0 0 8px; }
+.fb-split-border.movable { cursor: col-resize; background: transparent; position: relative; touch-action: none; }
+.fb-split-column > .fb-split-border.movable { cursor: row-resize; }
+.fb-split-border.movable::after { content: ''; position: absolute; inset: 2px; border-radius: 2px; background: var(--color-line); }
+.fb-split-border.movable:hover::after { background: var(--color-bit); }
+
+.fb-split-pane { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; }
+.fb-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--color-raised);
+  border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; }
+.fb-pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 12px 6px; }
+.fb-pane-title { font-size: clamp(14px, 1.1vw, 22px); color: var(--color-fg); min-width: 0; }
+.fb-pane-count { font-size: clamp(13px, 0.95vw, 19px); white-space: nowrap; }
+.fb-pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
+.fb-pane-body > * { flex: 1; }
+.fb-pane-scroll { overflow: auto; padding: 0 12px 12px; display: block; }
+.fb-pane-note { margin: auto; padding: 16px; text-align: center; }
+.fb-pane-frame { flex: 1; border: 0; width: 100%; height: 100%; background: var(--color-surface); }
+/* A plan pane is the plan edge to edge: its own frame is the pane's. */
+.fb-pane-plan .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; }
+.fb-pane-plan .fb-minimap { display: none; }
+
+/* The editor: each pane picks itself and carries its tools. */
+.fb-pane-pick { position: absolute; inset: 0; z-index: 2; background: transparent; border: 0; cursor: pointer; border-radius: 12px; }
+.fb-pane-pick:hover { background: color-mix(in srgb, var(--color-bit) 6%, transparent); }
+.fb-split-pane.selected .fb-pane-pick { box-shadow: inset 0 0 0 3px var(--color-bit); }
+.fb-pane-tools { position: absolute; top: 8px; right: 8px; z-index: 3; }
+.fb-board-editor { display: flex; flex-direction: column; height: 100%; padding: 12px 16px; gap: 8px; }
+.fb-board-work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
+.fb-board-canvas { min-width: 0; display: flex; flex-direction: column; }
+.fb-board-screen { aspect-ratio: 16 / 9; max-height: 100%; width: 100%; background: var(--color-ink); border-radius: 12px; padding: 6px; }
+.fb-board-side { overflow: auto; }
+.fb-box-picker .fb-plan-wrap { height: 200px; }
+@media (max-width: 62em) {
+  .fb-board-work { grid-template-columns: 1fr; }
+}
+
+/* The list's little picture of each split. */
+.fb-board-thumb { aspect-ratio: 16 / 9; background: var(--color-ink); border-radius: 8px; padding: 4px; }
+.fb-board-thumb .fb-split-border { display: none; }
+.fb-board-thumb .fb-split { gap: 4px; }
+.fb-thumb-pane { flex: 1; border-radius: 4px; background: var(--color-raised); border: 1px solid var(--color-line); }
+.fb-thumb-pane.k-plan { background: color-mix(in srgb, var(--color-bit) 30%, var(--color-raised)); }
+.fb-thumb-pane.k-empty { background: transparent; border-style: dashed; }
+
+/* Full screen. */
+.fb-board-show { height: 100vh; padding: 1vh 1vw; background: var(--color-ink); position: relative; display: flex; }
+.fb-board-show > .fb-split, .fb-board-show > .fb-split-pane { flex: 1; }
+.fb-board-clock { position: absolute; left: 1.6vw; bottom: 1.4vh; z-index: 4; font-size: clamp(16px, 1.6vw, 36px);
+  color: var(--color-fg); background: color-mix(in srgb, var(--color-raised) 85%, transparent); padding: 2px 10px; border-radius: 8px; }
+.fb-board-show .fb-plan-zoom { transition: opacity .3s; }
+.fb-board-show.idle, .fb-board-show.idle * { cursor: none !important; }
+.fb-board-show.idle .fb-plan-zoom { opacity: 0; pointer-events: none; }
+@media (max-width: 48em) {
+  /* Phones: parts stack, each a usable height. */
+  .fb-board-show { height: auto; min-height: 100vh; }
+  .fb-board-show .fb-split { flex-direction: column; height: auto; }
+  .fb-board-show .fb-split-part { flex-basis: auto !important; min-height: 60vh; }
+}
+/* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
+.fb-board-screen .fb-pane-head { padding-right: 156px; }
+.fb-board-screen .fb-pane-count { display: none; }

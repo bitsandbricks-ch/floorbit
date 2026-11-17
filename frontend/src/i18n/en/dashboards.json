@@ -1,0 +1,91 @@
+{
+  "title": "Dashboards",
+  "intro": "Screens split into panes: the floor plan zoomed to an area with the layers you pick, dashboard tiles and the other big-screen pages. Open one full screen on a TV.",
+  "new": "New dashboard",
+  "open": "Open full screen",
+  "editOne": "Edit",
+  "empty": "No dashboards yet.",
+  "panes_one": "{{count}} pane",
+  "panes_other": "{{count}} panes",
+  "updated": "changed {{when}}",
+  "tiles": "Looking for the plugin tiles?",
+  "tilesLink": "Tile dashboard",
+  "name": "Name",
+  "namePlaceholder": "Main hall wall",
+  "cycle": "Rotate halls every (seconds)",
+  "cycleHint": "Plan panes showing a whole hall without a fixed hall",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "clock": "Time",
+  "canvasHint": "Click a pane to set it up. Split it right or down, drag the borders to resize. At most {{max}} panes.",
+  "edit": {
+    "pick": "Set up this pane",
+    "settings": "Settings",
+    "splitRight": "Split right",
+    "splitDown": "Split down",
+    "remove": "Remove pane"
+  },
+  "kind": {
+    "plan": "Plan",
+    "view": "Widget",
+    "tile": "Tile",
+    "dashboard": "Tiles",
+    "page": "Page",
+    "empty": "Empty"
+  },
+  "area": {
+    "hall": "Whole hall",
+    "block": "Seat block",
+    "zone": "Zone",
+    "box": "My view",
+    "blockName": "Block {{name}}"
+  },
+  "labels": {
+    "auto": "By zoom",
+    "all": "Always",
+    "none": "Never"
+  },
+  "page": {
+    "health": "Service health",
+    "stats": "Stats",
+    "wall": "Public stats wall",
+    "status": "Status page"
+  },
+  "form": {
+    "label": "Pane settings",
+    "pickOne": "Pick a pane on the left to set it up.",
+    "kind": "Shows",
+    "title": "Title",
+    "titleHint": "Optional; plan panes name their hall and area by themselves.",
+    "hall": "Hall",
+    "hallHint": "Empty: the first hall (or all of them in turn)",
+    "area": "Part of the hall",
+    "preset": "Layers",
+    "show": "Seats",
+    "labels": "Seat numbers",
+    "noBlocks": "This hall has no seat blocks.",
+    "noZones": "This hall has no zones yet. Draw one on the plan (Zone tool) and give it a label, for example VIP.",
+    "unnamedZone": "Zone without a label",
+    "boxHint": "Move and zoom the plan to the part this pane should show, then keep it.",
+    "useView": "Use this view",
+    "tile": "Tile",
+    "noTiles": "No tiles. Turn on a plugin with tiles under Settings > Plugins.",
+    "dashboard": "Tile layout",
+    "noDashboards": "No tile layouts saved yet.",
+    "page": "Page",
+    "view": "Widget",
+    "noViews": "No widgets yet."
+  },
+  "pane": {
+    "failed": "Couldn't load the plan. Trying again.",
+    "noPlan": "This hall has no plan yet.",
+    "areaGone": "The part of the hall this pane shows is gone. Edit the dashboard to pick another.",
+    "problems_one": "{{count}} with problems",
+    "problems_other": "{{count}} with problems",
+    "tileGone": "This tile is gone (plugin off or removed).",
+    "dashboardGone": "This tile layout is gone.",
+    "empty": "Empty pane",
+    "viewGone": "This widget is gone."
+  }
+}

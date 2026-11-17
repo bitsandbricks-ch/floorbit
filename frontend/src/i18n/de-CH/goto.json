@@ -16,7 +16,8 @@
   "pages": {
     "floorPlan": "Hallenplan",
     "seats": "Plätze",
-    "dashboard": "Dashboard",
+    "dashboards": "Dashboards",
+    "dashboard": "Kachel-Dashboard",
     "problems": "Probleme",
     "incidents": "Störungen",
     "jobs": "Meine Aufträge",
