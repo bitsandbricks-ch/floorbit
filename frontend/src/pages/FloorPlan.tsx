@@ -163,18 +163,20 @@ export default function FloorPlan() {
   const [shortcuts, setShortcuts] = useState(false)
   const showShortcuts = () => setShortcuts(true)
   // Esc closes the open seat, block or switch panel (Edit mode has its own Esc; dialogs close themselves).
+  // Page keys stay out of the way while a dialog (the shortcut list, a form) is open.
+  const dialogOpen = () => !!document.querySelector('[role="dialog"]')
   const closePanel = () => {
-    if (mode === 'edit' || document.querySelector('[role="dialog"]') || !PANELS.some((k) => params.get(k))) return
+    if (mode === 'edit' || dialogOpen() || !PANELS.some((k) => params.get(k))) return
     const next = new URLSearchParams(params)
     PANELS.forEach((k) => next.delete(k))
     setParams(next, { replace: true })
   }
   // 1 to 4 switch the layer preset, so the crew at a big screen can flip views without the mouse.
   const presetKeys = PRESET_KEYS.map((p, i): [string, () => void] => [String(i + 1), () => {
-    if (mode !== 'edit' && !list) setLayers(applyPreset(layers, p))
+    if (mode !== 'edit' && !list && !dialogOpen()) setLayers(applyPreset(layers, p))
   }])
   // L flips between the map and the list, like the Map/List switch.
-  const toggleList = () => { if (mode !== 'edit' && !screen) set('view', list ? null : 'list') }
+  const toggleList = () => { if (mode !== 'edit' && !screen && !dialogOpen()) set('view', list ? null : 'list') }
   useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], ...presetKeys])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.

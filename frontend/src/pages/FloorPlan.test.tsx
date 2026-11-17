@@ -693,6 +693,13 @@ describe('Seats page', () => {
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('view=list'))
     fireEvent.keyDown(document.body, { key: 'l' })
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+    // Not while the shortcut list is open.
+    fireEvent.keyDown(document.body, { key: '?' })
+    await screen.findByRole('dialog')
+    fireEvent.keyDown(document.body, { key: 'l' })
+    fireEvent.keyDown(document.body, { key: '2' })
+    await new Promise((r) => setTimeout(r, 20))
+    expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/)
   })
 
   it('switches the layer preset with 1 to 4, but not while typing', async () => {
