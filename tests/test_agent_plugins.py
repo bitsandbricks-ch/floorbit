@@ -1,6 +1,7 @@
 """Agent plugins: the manifest's agent: block, the privacy check, config and intake for the agent,
 calls and actions over the tunnel, and per-plugin health in the agent's report."""
 import threading
+import time
 
 import pytest
 from test_agent import clean_tunnel, enrol, head  # noqa: F401  # clean_tunnel is autouse there
@@ -294,7 +295,7 @@ def test_failed_logins_are_audited_once_and_listed(client, anon_client, monkeypa
 
 
 def test_clearing_a_block_needs_plugins_run_and_reaches_the_agent(client, app_module, monkeypatch):
-    from floorbit import agent_plugins
+    from floorbit import agent_link, agent_plugins
     from tests.test_rbac import sign_in_as
     made = enrol(client)
     cleared = []
@@ -308,6 +309,10 @@ def test_clearing_a_block_needs_plugins_run_and_reaches_the_agent(client, app_mo
     t = threading.Thread(target=fake_agent, args=(app_module.app.test_client(), made["key"], stop, seen), daemon=True)
     t.start()
     try:
+        # Unblocking doesn't wait for an agent that isn't there yet, so let the fake one poll first.
+        deadline = time.time() + 5
+        while made["id"] not in agent_link.tunnel.connected_agents() and time.time() < deadline:
+            time.sleep(0.01)
         res = client.post(url, json={"device": "sw-a-01", "credential": "ssh-ops"})
         assert res.status_code == 200, res.data
         assert ("plugin", ["hallthing", "unblock", "", {"device": "sw-a-01", "credential": "ssh-ops"}]) in seen
