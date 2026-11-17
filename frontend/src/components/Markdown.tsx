@@ -21,7 +21,7 @@ function inline(text: string): ReactNode[] {
 
 type Block = { kind: 'h'; level: number; text: string } | { kind: 'ol' | 'ul'; items: string[] } | { kind: 'p'; text: string }
 
-function blocks(source: string): Block[] {
+function blocks(source: string, breaks = false): Block[] {
   const out: Block[] = []
   for (const raw of source.replace(/\r\n/g, '\n').split('\n')) {
     const line = raw.trim()
@@ -36,17 +36,18 @@ function blocks(source: string): Block[] {
       const text = (ol ?? ul)![1]
       if (last && last.kind === kind) last.items.push(text)
       else out.push({ kind, items: [text] })
-    } else if (last && last.kind === 'p' && last.text) last.text += ` ${line}`
+    } else if (!breaks && last && last.kind === 'p' && last.text) last.text += ` ${line}`
     else if (last && (last.kind === 'ol' || last.kind === 'ul') && raw.startsWith(' ')) last.items[last.items.length - 1] += ` ${line}`
     else out.push({ kind: 'p', text: line })
   }
   return out.filter((b) => b.kind !== 'p' || b.text)
 }
 
-export function Markdown({ source }: { source: string }) {
+/** ``breaks``: every line is its own paragraph, as on a sign (text panes on a dashboard). */
+export function Markdown({ source, breaks }: { source: string; breaks?: boolean }) {
   return (
     <div className="fb-markdown">
-      {blocks(source).map((b, i) => {
+      {blocks(source, breaks).map((b, i) => {
         if (b.kind === 'h') return <Title key={i} order={Math.min(6, b.level + 2) as 3 | 4 | 5} mt="xs" mb={4}>{inline(b.text)}</Title>
         if (b.kind === 'p') return <Text key={i} size="sm" mb="xs">{inline(b.text)}</Text>
         return (

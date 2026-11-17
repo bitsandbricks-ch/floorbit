@@ -35,7 +35,7 @@ function TileFrame({ title, from, wide, children }: { title: string; from: strin
   )
 }
 
-function WidgetCard({ tile }: { tile: WidgetTile }) {
+export function WidgetCard({ tile }: { tile: WidgetTile }) {
   const { t } = useTranslation()
   const { data, error, isPending } = useWidget(tile)
   return (

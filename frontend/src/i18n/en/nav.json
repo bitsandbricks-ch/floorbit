@@ -12,7 +12,7 @@
   "sections": {
     "helpdesk": "Helpdesk",
     "network": "Network",
-    "build": "Build and teardown",
+    "build": "Build",
     "event": "Event",
     "admin": "Settings",
     "more": "More"

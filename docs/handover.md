@@ -24,8 +24,6 @@ last handover. It also gives them a place to leave a note for the next shift. Is
 - **Muted right now:** every switch and service whose [alerts are muted](alerts.md#muting-a-switch-or-a-service),
   until when, by whom and why, so a mute set by the last shift is not forgotten. The
   [crew notice](crew-notice.md) that is up is shown at the top.
-- **Gear still out:** who holds [gear](gear.md) and which pieces, most first; each name opens the
-  gear page on that person's pieces. Only shown when something is out and the gear page is on.
 - **Coming up this shift:** the [programme](schedule.md) items that start in the next 8 hours,
   earliest first, with where; tournaments are marked, since a final means more calls. In the
   copied text too. Only shown when there are some.
@@ -38,12 +36,12 @@ ended.
 Write the note and press **Hand over**. The handover is saved with its figures (the newest 100 are
 kept in `data.json` under `handover`). The next summary starts from that moment, and the handover
 is written to the audit log. With Discord alerts or the [crew channel](crew-discord.md) set up,
-**Also post the summary to Discord** posts the figures, what is muted, who still has gear, the five oldest open
+**Also post the summary to Discord** posts the figures, what is muted, the five oldest open
 incidents and the note. The message mentions nobody.
 
 **Copy as text** at the top puts the summary on the clipboard as plain text, for a crew that hands
 over in another chat or by mail: the figures, every open incident, those fixed this shift, the
-switch outages, the crew notice, what is muted, the gear still out, what is coming up and the note as written so far. Changes and seat notes stay on the page.
+switch outages, the crew notice, what is muted, what is coming up and the note as written so far. Changes and seat notes stay on the page.
 
 ## Who can use it
 
