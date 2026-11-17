@@ -203,6 +203,12 @@
     "since": "Not updated since {{time}}",
     "help": "Floorbit hasn't answered for a while, so seat states here may be old. It keeps trying; check the network or the server."
   },
+  "export": {
+    "title": "Export",
+    "view": "This view, as on screen",
+    "hall": "The whole hall, in print colours",
+    "sheet": "Print sheet: print, PDF or picture"
+  },
   "print": {
     "title": "Seats: {{hall}}",
     "only": "Only: {{filter}}",
@@ -709,6 +715,24 @@
       "fit": "Fit the background to the seats",
       "help": "Draw a line over something whose length you know, then give its real length.",
       "helpBackground": "Over the drawing: \"Set the scale\" when the seats already match it; \"Fit the background\" scales the drawing so the line has its real length at the current scale."
+    },
+    "versions": {
+      "button": "Versions",
+      "title": "Versions of {{hall}}",
+      "name": "Name",
+      "save": "Save this version",
+      "keep": "Save the plan as it is before restoring another",
+      "none": "No saved versions of a single hall yet.",
+      "list": "Saved versions",
+      "meta": "{{when}} · {{blocks}} seat blocks · {{switches}} switches",
+      "restore": "Restore",
+      "confirm": "Replace this hall's plan",
+      "cancel": "Cancel",
+      "saved": "Saved “{{name}}”",
+      "restored": "Restored “{{name}}”",
+      "before": "Before restoring “{{name}}” ({{when}})",
+      "help": "Versions are kept in the template library, the last 10 saves of each.",
+      "library": "Template library"
     },
     "tint": {
       "label": "Own colour",

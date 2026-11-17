@@ -545,13 +545,14 @@ describe('Seats page', () => {
     expect(printed).toHaveBeenCalled()
   })
 
-  it('links to the print sheet with the current filter', async () => {
+  it('links to the print sheet with the current filter from the export menu', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     renderWithApp(<FloorPlan />, '/plan')
-    const link = await screen.findByRole('link', { name: 'Print' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Export' }))
+    const link = await screen.findByRole('menuitem', { name: /Print sheet/ })
     expect(link).toHaveAttribute('href', '/plan?print=1&hall=main')
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Offline'))
-    await waitFor(() => expect(link).toHaveAttribute('href', '/plan?print=1&hall=main&show=offline'))
+    await waitFor(() => expect(screen.getByRole('menuitem', { name: /Print sheet/, hidden: true })).toHaveAttribute('href', '/plan?print=1&hall=main&show=offline'))
   })
 
   it('puts the cursor in Find on /', async () => {

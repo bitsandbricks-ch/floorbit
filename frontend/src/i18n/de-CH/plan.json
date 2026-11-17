@@ -203,6 +203,12 @@
     "since": "Nicht aktualisiert seit {{time}}",
     "help": "Floorbit hat eine Weile nicht geantwortet, die Platzzustände hier sind vielleicht alt. Es versucht es weiter; prüf das Netz oder den Server."
   },
+  "export": {
+    "title": "Exportieren",
+    "view": "Diese Ansicht, wie am Bildschirm",
+    "hall": "Die ganze Halle, in Druckfarben",
+    "sheet": "Druckblatt: drucken, PDF oder Bild"
+  },
   "print": {
     "title": "Plätze: {{hall}}",
     "only": "Nur: {{filter}}",
@@ -709,6 +715,24 @@
       "fit": "Hintergrund an die Plätze anpassen",
       "help": "Eine Linie über etwas ziehen, dessen Länge du kennst, dann die echte Länge eingeben.",
       "helpBackground": "Über der Zeichnung: «Massstab setzen», wenn die Plätze schon zur Zeichnung passen; «Hintergrund anpassen» skaliert die Zeichnung, bis die Linie beim aktuellen Massstab ihre echte Länge hat."
+    },
+    "versions": {
+      "button": "Versionen",
+      "title": "Versionen von {{hall}}",
+      "name": "Name",
+      "save": "Diese Version speichern",
+      "keep": "Den Plan vor dem Wiederherstellen speichern",
+      "none": "Noch keine gespeicherten Versionen einer einzelnen Halle.",
+      "list": "Gespeicherte Versionen",
+      "meta": "{{when}} · {{blocks}} Sitzblöcke · {{switches}} Switches",
+      "restore": "Wiederherstellen",
+      "confirm": "Plan dieser Halle ersetzen",
+      "cancel": "Abbrechen",
+      "saved": "«{{name}}» gespeichert",
+      "restored": "«{{name}}» wiederhergestellt",
+      "before": "Vor dem Wiederherstellen von «{{name}}» ({{when}})",
+      "help": "Versionen liegen in der Vorlagenbibliothek, je die letzten 10 Speicherungen.",
+      "library": "Vorlagenbibliothek"
     },
     "tint": {
       "label": "Eigene Farbe",

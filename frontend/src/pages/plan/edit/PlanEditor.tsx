@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
+  IconHistoryToggle, IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -36,6 +36,7 @@ import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
 import { TintField } from './TintField'
+import { VersionsDialog } from './VersionsDialog'
 import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
@@ -106,6 +107,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
   const [hallsOpen, setHallsOpen] = useState(false)
+  const [versionsOpen, setVersionsOpen] = useState(false)
   const small = useMediaQuery('(max-width: 48em)')
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
@@ -874,6 +876,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
       <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
+      <VersionsDialog opened={versionsOpen} hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall}
+        onClose={() => setVersionsOpen(false)} onRestored={() => { history.clear(); return refresh() }} />
       <HallsDialog opened={hallsOpen} current={data.hall} onClose={() => setHallsOpen(false)} onOpen={onHall} onChanged={refresh} />
       <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
@@ -976,6 +980,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           </Text>
           <Group gap="xs">
             <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
+            <Button size="xs" variant="default" leftSection={<IconHistoryToggle size={14} />} onClick={() => setVersionsOpen(true)}>{t('plan.edit.versions.button')}</Button>
             <Anchor size="sm" href={`/editor/classic?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
           </Group>
           <Attribution compact />

@@ -49,11 +49,26 @@ def snapshot(data, hall_id=None):
                 for d in inventory.devices(data) if d.get('x') is not None and halls.hall_of(d, data, ids) in wanted]
     marks = [{k: v for k, v in m.items() if k != 'id'} for m in plan_marks.all_marks(data) if m['hall_id'] in wanted]
     return {
-        'halls': [{'id': h['id'], 'name': h['name'], 'background': halls.background_data_url(h)} for h in chosen],
+        'halls': [{'id': h['id'], 'name': h['name'], 'background': halls.background_data_url(h), **_placing(h)}
+                  for h in chosen],
         'switches': switches,
         'seat_blocks': blocks,
         'plan_marks': marks,
     }
+
+
+def _placing(h):
+    """Where a hall's background sits and the hall's scale, the parts that are set."""
+    bg = h.get('background') or {}
+    found = {'frame': bg.get('frame'), 'opacity': bg.get('opacity'), 'seat_m': h.get('seat_m')}
+    return {k: v for k, v in found.items() if v is not None}
+
+
+def _put_placing(hall, h):
+    """Puts a template hall's background placement and scale on ``hall`` (checked by halls.py)."""
+    halls.set_scale(hall, h.get('seat_m'))
+    if hall.get('background'):
+        halls.place_background(hall, {k: h[k] for k in ('frame', 'opacity') if h.get(k) is not None})
 
 
 def _naming(b, what):
@@ -90,7 +105,7 @@ def clean_layout(layout):
     for h in raw_halls:
         if not isinstance(h, dict):
             raise TemplateError('A hall is not an object')
-        dropped |= set(h) - {'id', 'name', 'background'}
+        dropped |= set(h) - {'id', 'name', 'background', 'frame', 'opacity', 'seat_m'}
         hid = str(h.get('id') or '')[:40]
         if not re.fullmatch(r'[\w-]{1,40}', hid) or hid in ids:
             raise TemplateError(f'Hall id "{hid}" is not valid or used twice')
@@ -98,8 +113,10 @@ def clean_layout(layout):
         try:
             if h.get('background'):
                 halls.decode_image(h['background'])
+            placing = {k: h[k] for k in ('frame', 'opacity', 'seat_m') if h.get(k) is not None}
+            _put_placing({'background': {'stand-in': True}}, placing)   # checked now, put on when applied
             out_halls.append({'id': hid, 'name': halls.clean_name(h.get('name')),
-                              'background': h.get('background') or None})
+                              'background': h.get('background') or None, **placing})
         except halls.HallError as exc:
             raise TemplateError(f'Hall "{hid}": {exc}') from None
 
@@ -329,6 +346,7 @@ def apply(data, layout, hall_id=None):
             halls.set_background(target, *halls.decode_image(bg))
         else:
             halls.remove_background(target)
+        _put_placing(target, layout['halls'][0])
         hall_map = {layout['halls'][0]['id']: hall_id}
     else:
         for hall in halls.halls(data):
@@ -339,6 +357,7 @@ def apply(data, layout, hall_id=None):
             hall = {'id': h['id'], 'name': h['name'], 'background': None}
             if h['background']:
                 halls.set_background(hall, *halls.decode_image(h['background']))
+            _put_placing(hall, h)
             data['halls'].append(hall)
             hall_map[h['id']] = h['id']
         data['seat_blocks'] = []
