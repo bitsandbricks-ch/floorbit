@@ -42,6 +42,16 @@ describe('Topology', () => {
     }))
   })
 
+  it('flags a link whose port LLDP sees on another box as a wrong patch', async () => {
+    const wrong: SwitchLink = { ...up, lldp: { state: 'other', at: 'a', remote: 'core-01', remote_port: 'Fo1/0/9' } }
+    const seen: SwitchLink = { ...slow, issue: '', speed_bps: 1e10, lldp: { state: 'seen' } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': { ...data, links: [wrong, seen] } }).fn)
+    renderWithApp(<Topology />)
+    expect(await screen.findByText('1 link needs a look')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('dist-01 Fo1/1/1 – core-01 Fo1/0/1: dist-01 Fo1/1/1 sees core-01 Fo1/0/9, check the patch'))
+    expect(await screen.findByText('Sees core-01 Fo1/0/9: check the patch')).toBeInTheDocument()
+  })
+
   it('marks a box that is down and says so in its panel', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
     const { container } = renderWithApp(<Topology />)

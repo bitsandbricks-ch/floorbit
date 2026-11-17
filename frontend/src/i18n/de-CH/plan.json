@@ -131,7 +131,13 @@
   "switchPanel": {
     "seats": "Plätze an diesem Switch",
     "port": "Port",
-    "noSeats": "An diesem Switch ist noch kein Platz bekannt."
+    "noSeats": "An diesem Switch ist noch kein Platz bekannt.",
+    "links": "Uplinks",
+    "to": "Nach",
+    "lldp": "LLDP/CDP",
+    "lldpState": { "seen": "Gesehen", "unseen": "Nicht gesehen", "other": "Sieht {{there}}: Patch prüfen" },
+    "neighbours": "Auch per LLDP/CDP gesehen",
+    "neighboursHint": "Nachbarn an Ports, die kein Uplink erklärt. Unter Topologie hinzufügen."
   },
   "watch": {
     "start": "Platz beobachten",

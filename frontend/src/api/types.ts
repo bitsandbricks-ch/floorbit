@@ -1500,6 +1500,9 @@ export interface SwitchDetails {
   model: string | null
   online: number
   seats: { seat: string; port: string; state: SeatState; problems: number }[]
+  /** Its planned links (topology) and what LLDP or CDP sees on ports no link explains (issue #540). */
+  links?: { id: string; port: string; to: string; to_port: string; type: LinkType | ''; speed: number | null; issue: '' | 'down' | 'slow'; lldp: LinkLldp | null }[]
+  neighbours?: { port: string; remote: string; remote_port: string; protocol: string }[]
 }
 
 /** GET /api/notice (issue #246): the lead's message to the whole crew. */
@@ -1601,7 +1604,10 @@ export interface SwitchLink {
   id: string; a: string; a_port: string; b: string; b_port: string; type: LinkType | ''; speed: number | null; note: string
   media: 'copper' | 'fiber' | 'dac' | ''
   state: 'up' | 'down' | 'unknown'; speed_bps: number | null; issue: '' | 'down' | 'slow'
+  /** What LLDP or CDP sees on its ports (issue #540); null when the source doesn't tell. */
+  lldp?: LinkLldp | null
 }
+export interface LinkLldp { state: 'seen' | 'other' | 'unseen'; at?: 'a' | 'b'; remote?: string; remote_port?: string }
 export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean; status: 'online' | 'offline' | 'unknown' }
 export interface LinkSuggestion { a: string; a_port: string; b: string; b_port: string; protocol: string; speed: number | null }
 /** An internet line from the services view (issue #471), drawn above the box it comes in at. */
@@ -1611,7 +1617,7 @@ export interface TopologyUplink {
 }
 export interface Topology {
   nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
-  counts: { links: number; down: number; slow: number }; types: LinkType[]; speeds: number[]
+  counts: { links: number; down: number; slow: number; miswired?: number }; types: LinkType[]; speeds: number[]
 }
 /** One kept switch config (floorbit/config_backup.py, issue #96). */
 export interface ConfigCopy {
