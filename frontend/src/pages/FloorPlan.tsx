@@ -33,6 +33,7 @@ import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
+import { revealActive } from './plan/reveal'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const PANELS = ['seat', 'block', 'switch']
@@ -148,6 +149,10 @@ export default function FloorPlan() {
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
+  const filterRow = useRef<HTMLDivElement | null>(null)
+  useEffect(() => revealActive(filterRow.current), [filter])
+  // Also when the row first appears (data loaded), with the filter from the link already chosen.
+  const mountFilterRow = useCallback((el: HTMLDivElement | null) => { filterRow.current = el; revealActive(el) }, [])
   const [search, setSearch] = useState('')
   // "/" jumps to the Find box, as on most sites with a search (issue #194). Mantine skips it while typing elsewhere.
   const findBox = useRef<HTMLInputElement>(null)
@@ -374,12 +379,12 @@ export default function FloorPlan() {
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
           <Group mb="sm" gap="lg" wrap="wrap">
             {!editing && <>
-            <SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
+            <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
               data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                 value: f,
                 // Each filter says how many seats it holds (issue #190), so the row doubles as a summary.
                 label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
-              }))} />
+              }))} /></div>
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             </>}

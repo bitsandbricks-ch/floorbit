@@ -602,6 +602,9 @@ body {
 /* Counts on the Seats page filters (issue #190). */
 /* The count sets itself apart by weight, not by a fainter colour: faded text failed contrast (issue #230). */
 .fb-filter-count { font-variant-numeric: tabular-nums; font-weight: 400; }
+/* On a phone the filter row is wider than the screen: it scrolls sideways instead of cutting off the last filter. */
+.fb-filter-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.fb-filter-scroll::-webkit-scrollbar { display: none; }
 
 /* "Go to" palette (issue #242). */
 .fb-goto-list { list-style: none; margin: 12px 0 0; padding: 0; max-height: min(60vh, 420px); overflow-y: auto; }
