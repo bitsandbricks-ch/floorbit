@@ -217,7 +217,7 @@ def endpoint(plugin_id, endpoint_id):
         return refused
     args = {k: v[:200] for k, v in list(request.args.items())[:20]}
     try:
-        return jsonify(_registry().call(spec, f'endpoint_{endpoint_id}', args))
+        return jsonify(_registry().timed(spec, f'endpoint_{endpoint_id}', args))
     except PluginError as exc:
         return _error(str(exc), 502)
     except TypeError:

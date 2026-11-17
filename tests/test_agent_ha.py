@@ -113,3 +113,15 @@ def test_the_page_shows_groups_and_this_floorbit(client, anon_client):
     hosted = page["hosted"]
     assert hosted["mode"] == "single" and hosted["pods"][0]["me"] and hosted["pods"][0]["leader"]
     assert "ok" in hosted["database"] and "ok" in hosted["redis"]
+
+
+def test_a_plugin_action_goes_to_one_agent_per_hall(monkeypatch):
+    agents = [agent("a", halls=["h1"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]}),
+              agent("b", halls=["h1"], vrrp={"primary": False, "holds": []}),
+              agent("c", halls=["h2"]),                                   # another hall, alone
+              agent("d", halls=["h3"]), agent("e", halls=["h3"]),         # no VRRP: both stay
+              agent("f", halls=["h4"], vrrp={"primary": True}), agent("g", halls=["h4"], vrrp={"primary": True})]
+    monkeypatch.setattr("floorbit.agent_link.all_agents", lambda now=None: agents)
+    assert agent_ha.action_targets([a["id"] for a in agents]) == ["a", "c", "d", "e", "f", "g"]
+    # The primary away: its standby takes the action.
+    assert agent_ha.action_targets(["b", "c"]) == ["b", "c"]

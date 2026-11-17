@@ -245,6 +245,9 @@ def ask(spec, way, op, args=None, agent=None):
         raise PluginError(f'{spec.name} has no agent {way} {op}')
     names = {a['id']: a['name'] for a in agent_link.load_data().get(agent_link.KEY) or []}
     targets = [agent] if agent else sorted(agent_link.tunnel.connected_agents() & set(names))
+    if way == 'action' and not agent and len(targets) > 1:
+        from . import agent_ha
+        targets = agent_ha.action_targets(targets)   # one per hall: its primary
     if not targets:
         raise PluginError('No local agent is connected.')
     timeout = CALL_TIMEOUT if way == 'call' else ACTION_TIMEOUT
