@@ -8,13 +8,22 @@ import { TOOL_KEYS, TOOLS } from './tools'
 describe('Tool rail', () => {
   it('has one button per tool with its key, and only the current one pressed', () => {
     const onTool = vi.fn()
-    renderWithApp(<ToolRail tool="wall" onTool={onTool} />)
+    const onView = vi.fn()
+    renderWithApp(<ToolRail tool="wall" onTool={onTool} onView={onView} />)
     const bar = screen.getByRole('toolbar', { name: 'Tools' })
-    const buttons = bar.querySelectorAll('button')
+    const buttons = bar.querySelectorAll('button[aria-keyshortcuts]')
     expect(buttons).toHaveLength(TOOLS.length)
     expect([...buttons].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.getAttribute('aria-keyshortcuts'))).toEqual(['W'])
     fireEvent.click(buttons[TOOLS.indexOf('zone')])
     expect(onTool).toHaveBeenCalledWith('zone')
+    fireEvent.click(screen.getByRole('button', { name: 'View' }))
+    expect(onView).toHaveBeenCalled()
+  })
+
+  it('shows View pressed while no tool is in hand', () => {
+    renderWithApp(<ToolRail tool={null} onTool={vi.fn()} onView={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'View' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^Select/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('gives every single-key shortcut in Edit mode one meaning only', () => {

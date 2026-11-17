@@ -732,6 +732,36 @@ describe('Seats page', () => {
     expect(screen.getByRole('button', { name: /Layers/ })).toBeInTheDocument()   // back in the top bar
   })
 
+  it('is one map editor: the rail takes a tool up and View puts it down, keeping filter and layers', async () => {
+    const editor = { ...me, user: { ...me.user, permissions: ['floorplan.view', 'floorplan.edit'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/plan?hall=main': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main&show=problems')
+    const rail = await screen.findByRole('toolbar', { name: 'Tools' })
+    expect(within(rail).getByRole('button', { name: 'View' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(within(rail).getByRole('button', { name: 'Wall' }))
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('edit=1'))
+    expect(screen.getByLabelText('address')).toHaveTextContent('show=problems')
+    const tools = await screen.findByRole('toolbar', { name: 'Tools' })
+    await waitFor(() => expect(within(tools).getByRole('button', { name: 'Wall' })).toHaveAttribute('aria-pressed', 'true'))
+    fireEvent.click(within(tools).getByRole('button', { name: 'View' }))
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main&show=problems$/))
+    // A tool's key does the same from the live plan.
+    fireEvent.keyDown(document.body, { key: 'z' })
+    await waitFor(() => expect(within(screen.getByRole('toolbar', { name: 'Tools' })).getByRole('button', { name: 'Zone' })).toHaveAttribute('aria-pressed', 'true'))
+  })
+
+  it('has no rail for crew who only look, and opens old mode links on what they showed', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main&mode=checkin')
+    await screen.findByRole('application', { name: 'Seat map' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('show=checked_in'))
+    expect(screen.getByLabelText('address')).not.toHaveTextContent('mode=')
+    expect(screen.queryByRole('toolbar', { name: 'Tools' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: 'Edit' })).toBeNull()
+  })
+
   it('switches between the map and the list with L', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&view=list': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }

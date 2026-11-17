@@ -230,12 +230,13 @@
     "close": "Close the seat",
     "block": "Open the block of the seat under the cursor",
     "presets": "Layers: Overview, Network, Electrical, Ops",
+    "tools": "Take up an editing tool, as on the rail on the left (each tool shows its key)",
     "list": "Switch between map and list",
     "pan": "Move the map",
     "zoom": "Zoom in, out, or show the whole hall",
     "find": "Find a seat",
     "help": "Show this list",
-    "editTitle": "Edit mode keys",
+    "editTitle": "Editing keys",
     "editIntro": "Click the plan first, so the keys go to the editor. On a Mac, Cmd works where Ctrl is shown.",
     "edit": {
       "tools": "Tools",
@@ -319,13 +320,8 @@
     "hint": "Safety and services are marks you draw in the editor on their layer."
   },
   "modes": {
-    "label": "Mode",
-    "live": "Live",
-    "checkin": "Check-in",
-    "network": "Network",
     "kiosk": "Kiosk",
-    "kioskHint": "The same plan full screen, for a big screen",
-    "edit": "Edit"
+    "kioskHint": "The same plan full screen, for a big screen"
   },
   "edit": {
     "title": "Edit",
@@ -431,6 +427,8 @@
       "bend": "Bend: drag to move, double-click to take it out"
     },
     "tool": {
+      "view": "View",
+      "viewHint": "View: the live plan, click a seat for its details",
       "select": "Select",
       "hand": "Hand",
       "measure": "Measure",

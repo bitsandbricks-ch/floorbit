@@ -5,8 +5,8 @@ switches and seat blocks. The floor plan shows one hall at a time.
 
 ## Halls
 
-The hall picker above the plan switches between halls (the address gets `?hall=<id>`; Edit mode
-stays in Edit mode). In Edit mode, **Halls** in the panel on the right opens the Halls dialog:
+The hall picker above the plan switches between halls (the address gets `?hall=<id>`; editing
+stays editing). While editing, **Halls** in the panel on the right opens the Halls dialog:
 
 - **Add hall**, rename one by editing its name.
 - **Delete** a hall once it is empty: move or delete its switches and seat blocks first. The last
@@ -31,7 +31,7 @@ next to `data.json` in a `halls/` folder, and backups carry them, with where the
 
 ### Placing it and setting the scale
 
-In Edit mode, with nothing selected, the panel has **Background**:
+While editing, with nothing selected, the panel has **Background**:
 
 - **See-through** fades the drawing so the seats stand out.
 - **Move and resize** puts a frame round it: drag inside to move it, the corner to scale it (it keeps
