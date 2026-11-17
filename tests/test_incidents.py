@@ -100,6 +100,43 @@ def test_report_holds_no_personal_data(client, anon_client, app_module, floor, m
     assert "192.0.2.33" not in text and "02:00:00:00:00:33" not in text and "player-three" not in text
 
 
+
+def test_snapshot_reads_the_mapped_port_without_an_ip(monkeypatch):
+    from floorbit import sources
+    from integrations import seat_sources
+
+    class Monitoring:
+        def port_stats(self, hostname, interface):
+            assert (hostname, interface) == ("sw-a-01", "Gi1/0/4")
+            return {"state": "up", "speed_bps": 1e9, "duplex": "full", "error_rate": 0}
+
+        def resolve_ip(self, ip):
+            raise AssertionError("the port is known: no IP lookup")
+    monkeypatch.setattr(seat_sources, "load", lambda: {"A-4": {"switch": "sw-a-01", "port": "Gi1/0/4"}})
+    monkeypatch.setattr(sources, "monitoring", lambda: Monitoring())
+    snap = incidents.seat_snapshot("A-4")
+    assert snap["known"] and (snap["switch"], snap["port"], snap["link"]) == ("sw-a-01", "Gi1/0/4", "up")
+    assert snap["mac_seen"] is False
+    assert incidents.seat_snapshot("A-1") == {
+        "known": False, "reason": "No switch port, IP or MAC known for this seat"}
+
+
+def test_snapshot_finds_a_seat_known_only_by_its_mac(monkeypatch):
+    from floorbit import sources
+    from integrations import seat_sources
+
+    class Monitoring:
+        def ip_for_mac(self, mac):
+            return "192.0.2.5" if mac == "02:00:00:00:00:05" else None
+
+        def resolve_ip(self, ip):
+            return {"device_name": "sw-a-01", "port": "Gi1/0/5", "mac": "02:00:00:00:00:05", "stats": {}}
+    # The seat sources name it mac_address, as the seat-map does.
+    monkeypatch.setattr(seat_sources, "load", lambda: {"A-1": {"mac_address": "02:00:00:00:00:05"}})
+    monkeypatch.setattr(sources, "monitoring", lambda: Monitoring())
+    snap = incidents.seat_snapshot("A-1")
+    assert snap["known"] and snap["port"] == "Gi1/0/5" and snap["mac_seen"]
+
 # ── The board ──────────────────────────────────────────────────────────────────
 
 def test_board_needs_incidents_work(anon_client, app_module):

@@ -85,7 +85,6 @@
  "The file has no seat blocks": "Die Datei hat keine Platzblöcke",
  "The header row has no {} column": "Die Kopfzeile hat keine Spalte {}",
  "At most {} seat blocks in one import": "Höchstens {} Platzblöcke pro Import",
- "No IP address": "Keine IP-Adresse",
  "Could not resolve port stats": "Port-Statistik nicht gefunden",
  "Could not resolve": "Nicht gefunden",
  "Lookup failed: {}": "Abfrage fehlgeschlagen: {}",
@@ -765,5 +764,7 @@
  "Only a signed-in account keeps sidebar settings.": "Nur ein angemeldetes Konto speichert Einstellungen der Seitenleiste.",
  "The captive portal is turned off on this Floorbit.": "Das Captive Portal ist in diesem Floorbit ausgeschaltet.",
  "Enter the API token again for the new URL: a saved token is only sent to the URL it was saved for.": "Gib das API-Token für die neue URL nochmals ein: Ein gespeichertes Token geht nur an die URL, mit der es gespeichert wurde.",
- "The issuer can only change within the same host, because the client secret belongs to it. Add the new identity provider under a new ID.": "Der Issuer kann sich nur innerhalb desselben Hosts ändern, weil das Client-Secret zu ihm gehört. Füge den neuen Identity-Provider unter einer neuen ID hinzu."
+ "The issuer can only change within the same host, because the client secret belongs to it. Add the new identity provider under a new ID.": "Der Issuer kann sich nur innerhalb desselben Hosts ändern, weil das Client-Secret zu ihm gehört. Füge den neuen Identity-Provider unter einer neuen ID hinzu.",
+ "No switch port or IP address": "Kein Switch-Port und keine IP-Adresse",
+ "No switch port, IP or MAC known for this seat": "Für diesen Platz ist kein Switch-Port, keine IP und keine MAC bekannt"
 }
