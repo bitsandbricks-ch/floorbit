@@ -22,6 +22,7 @@ import collections
 import hashlib
 import hmac
 import itertools
+import os
 import re
 import secrets
 import threading
@@ -74,7 +75,8 @@ def _public(a, now):
     return {'id': a['id'], 'name': a['name'], 'created_at': a['created_at'], 'created_by': a.get('created_by'),
             'last_seen': seen, 'version': a.get('version'), 'address': a.get('address'), 'protocol': a.get('protocol'),
             'connected': bool(seen and now - seen < CONNECTED_FOR), 'halls': list(a.get('halls') or []),
-            'plugins_off': list(a.get('plugins_off') or []), 'renewed_at': a.get('renewed_at') or a['created_at'],
+            'plugins_off': list(a.get('plugins_off') or []), 'local': bool(a.get('local')),
+            'renewed_at': a.get('renewed_at') or a['created_at'],
             'old_works_until': a['prev_until'] if a.get('prev_hash') and (a.get('prev_until') or 0) > now else None}
 
 
@@ -94,8 +96,40 @@ def all_agents(data=None, now=None):
             for a in data.get(KEY) or []]
 
 
+def agent_only():
+    """Does Floorbit reach the event network only through local agents? Yes, also self-hosted
+    (Mike, 2026-11-17: one way for hosted and self-hosted alike, tested the same). ``LAN_ACCESS=direct``
+    lets this server call the plugins itself again: for development and tests, not for an event."""
+    return (os.environ.get('LAN_ACCESS') or 'agent').strip().lower() != 'direct'
+
+
+def lan_here():
+    """May this process talk to the event network itself? The agent (it has an agent key) may; the
+    Floorbit server only with ``LAN_ACCESS=direct``."""
+    return not agent_only() or bool(os.environ.get('FLOORBIT_AGENT_KEY'))
+
+
+def may_call_here(spec):
+    """May this server ask a plugin's LAN methods itself? The demo plugin has no LAN, and a plugin
+    with an agent part answers from what its agent sent."""
+    return lan_here() or spec is None or spec.id == 'demo' or 'agent' in (spec.uses or ())
+
+
 def active():
-    """Is an agent enrolled? Every monitoring call asks, so the answer is kept until data.json changes."""
+    """Does this server ask the event network's questions through the agent? Always, unless
+    ``LAN_ACCESS=direct`` or the demo data stands in for the hall; with direct access, once an agent
+    is enrolled. Every monitoring call asks, so the enrolment is kept until data.json changes."""
+    if agent_only() and not lan_here() and not _demo_on():
+        return True
+    return _enrolled()
+
+
+def _demo_on():
+    from . import sources
+    return bool(sources.registry is not None and sources.registry.demo_on())
+
+
+def _enrolled():
     global _active
     from . import store
     # Agents are the tenant's, the halls they serve the event's: either changing counts.
@@ -256,6 +290,62 @@ def enrol(name, by, now=None):
     return _public(record, now), f'{PREFIX}{agent_id}_{secret}'
 
 
+LOCAL_ID = '10ca1000'       # the agent next to a self-hosted Floorbit: one fixed id, so restarts don't pile up agents
+LOCAL_KEY_FILE_ENV = 'FLOORBIT_LOCAL_AGENT_KEY_FILE'
+
+
+def _local_key_file():
+    return (os.environ.get(LOCAL_KEY_FILE_ENV) or '').strip()
+
+
+def _write_key_file(path, key):
+    """The key, readable only by the image's user (the agent container runs as the same one)."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), mode=0o700, exist_ok=True)
+    tmp = path + '.tmp'
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w', encoding='utf-8') as f:
+        f.write(key + '\n')
+    os.replace(tmp, path)
+
+
+def bootstrap_local(path=None, now=None):
+    """Self-hosted, Floorbit and its agent start side by side (docker-compose.yml, the Kubernetes
+    pod) and share ``FLOORBIT_LOCAL_AGENT_KEY_FILE``: this side writes the key there and enrols the
+    agent ("Local agent"), so nobody has to copy a key from Settings. The file is the truth: a key
+    written by hand is taken over. Returns the agent id, or None when not set up this way."""
+    path = path or _local_key_file()
+    if not path or not agent_only() or os.environ.get('FLOORBIT_AGENT_KEY'):
+        return None
+    now = time.time() if now is None else now
+    try:
+        with open(path, encoding='utf-8') as f:
+            m = KEY_RE.match(f.read().strip())
+    except OSError:
+        m = None
+    if m:
+        agent_id, secret = m.groups()
+    else:
+        agent_id, secret = LOCAL_ID, secrets.token_urlsafe(32)
+        _write_key_file(path, f'{PREFIX}{agent_id}_{secret}')
+    digest = _hash(secret)
+    with _lock:
+        data = load_data()
+        agents = data.setdefault(KEY, [])
+        found = next((a for a in agents if a['id'] == agent_id), None)
+        if found is None:
+            agents.append({'id': agent_id, 'name': 'Local agent', 'hash': digest, 'created_at': now,
+                           'created_by': 'setup', 'last_seen': None, 'version': None, 'address': None,
+                           'local': True})
+        elif found['hash'] != digest or found.get('prev_hash'):
+            found.update(hash=digest, local=True, renewed_at=now)
+            found.pop('prev_hash', None)
+            found.pop('prev_until', None)
+        else:
+            return agent_id
+        save_data(data)
+    _forget_cache()
+    return agent_id
+
+
 def revoke(agent_id):
     with _lock:
         data = load_data()
@@ -295,7 +385,15 @@ def rotate(agent_id, now=None):
     def swap(a):
         a.update(prev_hash=a['hash'], prev_until=now + ROTATE_GRACE, hash=_hash(secret), renewed_at=now)
     found = _change(agent_id, swap)
-    return found['name'], f'{PREFIX}{agent_id}_{secret}'
+    key = f'{PREFIX}{agent_id}_{secret}'
+    if found.get('local') and _local_key_file():
+        # The agent next to us reads it from the shared file: it takes it at its next start, and
+        # the old key keeps working until then (ROTATE_GRACE).
+        try:
+            _write_key_file(_local_key_file(), key)
+        except OSError as exc:
+            print(f'[agent] cannot write the new key to {_local_key_file()}: {exc}', flush=True)
+    return found['name'], key
 
 
 def rename(agent_id, name):

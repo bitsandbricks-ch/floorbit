@@ -181,7 +181,7 @@ def import_from(registry, by):
                 found += [(feed['name'], r) for r in feed['items']]
                 answered.update({feed['name'], feed.get('base_name', feed['name'])})
     for spec in import_sources(registry):
-        if spec.name in answered:
+        if spec.name in answered or not agent_link.may_call_here(spec):
             continue
         try:
             found += [(spec.name, r) for r in registry.call(spec, 'firewall_ranges') or []]

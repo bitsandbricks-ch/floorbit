@@ -47,7 +47,7 @@ def test_the_board_checks_switches_uplinks_and_services(client, monkeypatch, wal
     assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
 
 
-def test_without_sources_checks_are_skipped(client):
+def test_without_sources_checks_are_skipped(lan_here, client):
     body = client.post("/api/preflight/run", json={}).get_json()
     assert body["groups"]["switches"]["items"][0]["status"] == "skip"
     assert body["groups"]["services"]["items"][0]["status"] == "warn"

@@ -7,6 +7,9 @@ from floorbit import sources, walk
 from integrations import events
 from tests.test_attention import Monitoring, port
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 @pytest.fixture
 def hall(client, app_module, monkeypatch):
