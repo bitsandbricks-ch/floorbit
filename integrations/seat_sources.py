@@ -21,6 +21,9 @@ what people type in wins; plugins with ``uses: [mapping]`` follow them, then ``S
 Built-in sources:
 
 * ``manual``   the entries on the Seat mapping page (always first, never needs listing)
+* ``ports``    the switch port of each seat from the cables and the ports check-ins found (always on)
+* ``network``  the MAC and IP on each seat's port, from the last read of the switches' MAC tables
+               (always on). The port is the key; an IP or MAC from a file is only a hint.
 * ``json``     reads ``SEAT_SOURCE_JSON_PATH`` (default ``seats.json``)
 * ``http``     GETs ``SEAT_SOURCE_HTTP_URL``; the response must be the shape
                above, either at the top level or under ``"seats"``. Optional
@@ -109,9 +112,43 @@ class ManualSource(SeatSource):
                 for seat, entry in seatmap.entries(store.load_data()).items()}
 
 
+class PortsSource(SeatSource):
+    """Switch and port per seat: a cable to the seat wins over the port a check-in found."""
+    name = 'ports'
+    label = 'Cables and check-ins'
+
+    def fetch(self):
+        from floorbit import cables, store
+        out = {}
+        try:
+            from . import checkin
+            for seat, row in checkin.learned_ports().items():
+                if row.get('switch') and row.get('port'):
+                    out[seat] = {'switch': row['switch'], 'port': row['port'], 'port_origin': 'checkin'}
+        except Exception as exc:  # noqa: BLE001  # the cables alone still answer
+            print(f'[integrations] could not read the learned seat ports: {exc}')
+        for c in cables.all_cables(store.load_data()):
+            if c.get('seat'):
+                out[c['seat']] = {'switch': c['switch'], 'port': c['port'], 'port_origin': 'cable'}
+        return out
+
+
+class NetworkSource(SeatSource):
+    """The machine on each seat's port, from the switches' MAC tables and the ARP table."""
+    name = 'network'
+    label = 'Switch MAC tables'
+
+    def fetch(self):
+        from floorbit import port_clients
+        return port_clients.seat_clients()
+
+
 register(JsonFileSource)
 register(HttpJsonSource)
 register(ManualSource)
+register(PortsSource)
+register(NetworkSource)
+BUILT_IN = ('manual', 'ports', 'network')
 
 # Set by floorbit.plugins: returns [(name, label, fetch)] for the plugins that feed the mapping.
 plugin_sources = None
@@ -119,7 +156,7 @@ plugin_sources = None
 
 def configured_names():
     raw = config.get('SEAT_SOURCES', 'json') or 'json'
-    return [n.strip().lower() for n in str(raw).split(',') if n.strip() and n.strip().lower() != 'manual']
+    return [n.strip().lower() for n in str(raw).split(',') if n.strip() and n.strip().lower() not in BUILT_IN]
 
 
 def _plugins():
@@ -131,7 +168,8 @@ def _plugins():
 
 
 def active_names():
-    return ['manual', *[p[0] for p in _plugins()], *configured_names()]
+    # The port first: what is read off it beats a typed or imported IP, which only fills a gap.
+    return [*BUILT_IN, *[p[0] for p in _plugins()], *configured_names()]
 
 
 def _normalise(entry):

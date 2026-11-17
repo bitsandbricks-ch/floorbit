@@ -1,4 +1,7 @@
-"""The seat mapping: which IP, MAC and nick belong to which seat.
+"""The seat mapping: which switch port each seat is on, and the IP, MAC and nick that go with it.
+
+The switch and port are the key. A seat's IP and MAC are read off that port (the switch's MAC table
+and the core's ARP table); one typed in here is only a hint for a seat whose port isn't known yet.
 
 Floorbit merges it from seat sources (integrations/seat_sources.py): the entries people type in by
 hand (this module, stored in data.json under ``seat_map``), plugins with ``uses: [mapping]``, the
@@ -18,8 +21,9 @@ import time
 SEAT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 _\-]{0,15}$')
 MAC_RE = re.compile(r'^[0-9a-f]{12}$')
 # Field names as the seat sources use them (check-in, seats.json, HTTP).
-FIELDS = {'ip_address': 'ip', 'mac_address': 'mac', 'username': 'nick', 'note': 'note'}
-CSV_COLUMNS = ('seat', 'ip', 'mac', 'nick', 'note')
+FIELDS = {'switch': 'switch', 'port': 'port', 'ip_address': 'ip', 'mac_address': 'mac',
+          'username': 'nick', 'note': 'note'}
+CSV_COLUMNS = ('seat', 'switch', 'port', 'ip', 'mac', 'nick', 'note')
 MAX_ROWS = 5000
 MAX_CSV_BYTES = 1024 * 1024
 
@@ -66,8 +70,17 @@ def _clean_text(value, limit, what):
 
 
 def clean_entry(body):
-    """{'ip', 'mac', 'nick', 'note'} from a request or a CSV row, checked and normalised."""
+    """{'switch', 'port', 'ip', 'mac', 'nick', 'note'} from a request or a CSV row, checked and
+    normalised."""
+    switch = _clean_text(body.get('switch'), 64, 'Switch')
+    port = _clean_text(body.get('port'), 32, 'Port')
+    if port and not switch:
+        raise MappingError('A port needs its switch.')
+    if switch and not port:
+        raise MappingError('Pick the port on the switch too.')
     return {
+        'switch': switch,
+        'port': port,
         'ip_address': clean_ip(body.get('ip')),
         'mac_address': clean_mac(body.get('mac')),
         'username': _clean_text(body.get('nick'), 64, 'Nick'),
@@ -80,6 +93,22 @@ def entries(data):
     return raw if isinstance(raw, dict) else {}
 
 
+def port_key(switch, port):
+    from .syslog import canonical_port  # late: syslog reads attention, which reads the mapping
+    return (str(switch or '').lower(), canonical_port(str(port or '')))
+
+
+def holder(table, entry, seat):
+    """The other seat whose hand entry already has this entry's switch port, or None."""
+    if not entry.get('switch'):
+        return None
+    key = port_key(entry['switch'], entry['port'])
+    for other, e in table.items():
+        if other != seat and e.get('switch') and port_key(e['switch'], e.get('port')) == key:
+            return other
+    return None
+
+
 def put(data, seat, body, user=None):
     """Set a seat's hand entry. Empty fields are dropped; an entry with nothing left is removed.
     Returns the entry, or None when it was removed."""
@@ -90,6 +119,9 @@ def put(data, seat, body, user=None):
         if not entry:
             table.pop(seat, None)
             return None
+        other = holder(table, entry, seat)
+        if other:
+            raise MappingError(f'{entry["switch"]} {entry["port"]} is already seat {other}.')
         entry['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
         if user:
             entry['updated_by'] = str(user)[:64]
@@ -139,12 +171,12 @@ def parse_csv(text):
     reader = csv.DictReader(io.StringIO(text))
     header = [h.strip().lower() for h in (reader.fieldnames or [])]
     if 'seat' not in header:
-        raise MappingError('The first line must name the columns: seat, ip, mac, nick, note')
+        raise MappingError('The first line must name the columns: seat, switch, port, ip, mac, nick, note')
     unknown = [h for h in header if h and h not in CSV_COLUMNS]
     if unknown:
         raise MappingError(f"Unknown column(s): {', '.join(unknown)}")
     reader.fieldnames = header
-    rows, errors = {}, []
+    rows, errors, ports = {}, [], {}
     for n, raw in enumerate(reader, start=2):
         if n - 1 > MAX_ROWS:
             errors.append(f'line {n}: more than {MAX_ROWS} rows; stopped')
@@ -157,10 +189,27 @@ def parse_csv(text):
             seat = clean_seat(values.get('seat'))
             if seat in rows:
                 raise MappingError(f'seat {seat} is in the file twice')
-            rows[seat] = {k: v for k, v in clean_entry(values).items() if v}
+            entry = {k: v for k, v in clean_entry(values).items() if v}
+            if entry.get('switch'):
+                key = port_key(entry['switch'], entry['port'])
+                if key in ports:
+                    raise MappingError(f'{entry["switch"]} {entry["port"]} is already seat {ports[key]}.')
+                ports[key] = seat
+            rows[seat] = entry
         except MappingError as exc:
             errors.append(f'line {n}: {exc}')
     return rows, errors
+
+
+def import_conflicts(data, rows, replace=False):
+    """The file rows whose port a hand entry that stays already holds, one line each."""
+    table = {s: e for s, e in entries(data).items() if s not in rows and not replace}
+    out = []
+    for seat, entry in rows.items():
+        other = holder(table, entry, seat)
+        if other:
+            out.append(f'seat {seat}: {entry["switch"]} {entry["port"]} is already seat {other}')
+    return out
 
 
 def import_rows(data, rows, replace=False, user=None):
@@ -183,7 +232,8 @@ def import_rows(data, rows, replace=False, user=None):
 
 
 def clean_feed(raw):
-    """A plugin's {seat: {ip, mac, nick}} checked; bad entries are dropped. Returns (mapping, skipped)."""
+    """A plugin's {seat: {switch, port, ip, mac, nick}} checked; bad entries are dropped.
+    Returns (mapping, skipped)."""
     if not isinstance(raw, dict):
         raise MappingError('the plugin must return a dict of seat: {ip, mac, nick}')
     out, skipped = {}, 0
@@ -191,7 +241,8 @@ def clean_feed(raw):
         try:
             if not isinstance(entry, dict):
                 raise MappingError('not a dict')
-            clean = clean_entry({'ip': entry.get('ip') or entry.get('ip_address'),
+            clean = clean_entry({'switch': entry.get('switch'), 'port': entry.get('port'),
+                                 'ip': entry.get('ip') or entry.get('ip_address'),
                                  'mac': entry.get('mac') or entry.get('mac_address'),
                                  'nick': entry.get('nick') or entry.get('username')})
             out[clean_seat(seat)] = {k: v for k, v in clean.items() if v and k != 'note'}

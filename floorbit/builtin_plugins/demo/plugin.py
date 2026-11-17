@@ -279,8 +279,12 @@ class Plugin(Plugin):
 
     # seat mapping -----------------------------------------------------------------------
     def seat_mapping(self):
-        return {seat: {'ip': _ip(i), 'mac': _mac(i), 'nick': f'player-{i + 1:02d}'}
-                for seat, _b, _n, i in _seats() if _taken(i)}
+        # Every seat has its port (the key); only a taken seat has a machine, so an IP and MAC.
+        out = {seat: dict(zip(('switch', 'port'), _switch_for(b, n), strict=True)) for seat, b, n, _i in _seats()}
+        for seat, _b, _n, i in _seats():
+            if _taken(i):
+                out[seat].update(ip=_ip(i), mac=_mac(i), nick=f'player-{i + 1:02d}')
+        return out
 
     # monitoring -------------------------------------------------------------------------
     def configured(self):

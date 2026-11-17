@@ -29,7 +29,7 @@ def test_csv_round_trip_escapes_formulas():
     seatmap.put(data, 'A-2', {'nick': '=HYPERLINK("x")', 'mac': 'aabbccddeeff'})
     seatmap.put(data, 'A-10', {'ip': '192.0.2.10'})
     text = seatmap.to_csv(data)
-    assert text.splitlines()[0] == 'seat,ip,mac,nick,note'
+    assert text.splitlines()[0] == 'seat,switch,port,ip,mac,nick,note'
     assert [line.split(',')[0] for line in text.splitlines()[1:]] == ['A-2', 'A-10']   # natural order
     assert "'=HYPERLINK" in text
     rows, errors = seatmap.parse_csv(text)
@@ -95,7 +95,7 @@ def test_import_dry_run_then_replace(client, seats_file):
     bad = client.post('/api/seat-map/import', json={'csv': 'seat,ip\nA-1,nope\n'})
     assert bad.status_code == 400 and bad.get_json()['problems'] == ['line 2: "nope" is not an IP address']
     export = client.get('/api/seat-map.csv')
-    assert export.mimetype == 'text/csv' and b'A-1,192.0.2.50' in export.data
+    assert export.mimetype == 'text/csv' and b'A-1,,,192.0.2.50' in export.data
 
 
 def test_changes_are_audited_without_values(client, app_module, seats_file):
@@ -136,7 +136,8 @@ def test_a_plugin_feeds_the_mapping_after_hand_entries(client, app_module, seats
         client.put('/api/settings/plugins/dhcp-feed', json={'enabled': True})
         client.put('/api/seat-map/A-2', json={'ip': '192.0.2.22'})
         body = client.get('/api/seat-map').get_json()
-        assert body['sources'][:2] == ['manual', 'dhcp-feed'] and body['labels']['dhcp-feed'] == 'DHCP feed'
+        assert body['sources'][:4] == ['manual', 'ports', 'network', 'dhcp-feed']
+        assert body['labels']['dhcp-feed'] == 'DHCP feed'
         a2 = {r['seat']: r for r in body['seats']}['A-2']
         assert (a2['ip'], a2['mac']) == ('192.0.2.22', 'aa:bb:cc:00:00:02')
         assert a2['from'] == {'ip': 'manual', 'mac': 'dhcp-feed', 'nick': 'json'}

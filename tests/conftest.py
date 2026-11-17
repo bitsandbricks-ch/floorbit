@@ -110,6 +110,9 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     yield
     lastgood.clear()
     sources.mark_ok(None)
+    from floorbit import port_clients  # its last MAC table read feeds the seat mapping
+    if port_clients._finder is not None:
+        port_clients._finder.reset()
 
 
 @pytest.fixture

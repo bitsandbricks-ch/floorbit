@@ -64,6 +64,10 @@ def _switches_of(seat, data):
     port = _port_of_seat().get(seat)
     if port:
         names.add(short(port[0]))
+    from integrations import seat_sources
+    mapped = (seat_sources.load() or {}).get(seat) or {}
+    if mapped.get('switch'):
+        names.add(short(mapped['switch']))
     with status_page._lock:
         names |= {short(sw) for sw, seats in status_page._seats_of.items() if seat in seats}
     if not names:
