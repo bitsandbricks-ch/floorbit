@@ -132,8 +132,9 @@ export interface OverlayContext {
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
   layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus }: {
   /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. An
-   *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. */
-  focus?: { switch: string; seats?: ReadonlySet<string>; seat?: string }
+   *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. An
+   *  open block: only ``seats``. */
+  focus?: { switch?: string; seats?: ReadonlySet<string>; seat?: string }
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean

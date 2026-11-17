@@ -243,7 +243,8 @@ Click a block's name (or its totals when zoomed out), click **Block** in the sea
 **B** on a seat to open the block instead of a seat: online, offline and unknown seats with a bar,
 check-ins, traffic in total, the switches that serve the block with how many of their seats are
 online, and the seats with problems (click one to open it). When half a block goes dark, it shows
-at a glance whether it is one switch. `/plan?block=D` opens it. It shows states only, never who
+at a glance whether it is one switch. While it is open, the plan dims the other blocks' seats.
+`/plan?block=D` opens it. It shows states only, never who
 sits where.
 
 ## The switch panel

@@ -671,6 +671,15 @@ describe('Seats page', () => {
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
   })
 
+  it('keeps only the open block bright', async () => {
+    const two = { ...drawing, shapes: [...drawing.shapes, { cx: 640, cy: 700, rotation: 0, w: 32, h: 32, name: 'E', cells: [{ x: -16, y: -16, hit: false, seat: 'E-1', on: null }] }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': { ...data, drawing: two, seats: { ...data.seats, 'E-1': { state: 'online' } } } }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?hall=main&block=E')
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
+    expect(container.querySelector('[data-seat="E-1"]')).not.toHaveClass('dim')
+    expect(container.querySelector('.sw-focus')).toBeNull()
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }

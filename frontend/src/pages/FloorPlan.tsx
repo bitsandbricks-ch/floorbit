@@ -58,11 +58,6 @@ export default function FloorPlan() {
     queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(selected ?? '')}`),
   })
   const seatSwitch = selected ? seatQ.data?.switch : null
-  const switchFocus = useMemo(() => {
-    if (switchSel && switchQ.data) return { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) }
-    if (selected && seatSwitch) return { switch: seatSwitch, seat: selected }
-    return undefined
-  }, [switchSel, switchQ.data, selected, seatSwitch])
   const screen = params.get('screen') === '1'
   // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
   const print = !screen && params.get('print') === '1'
@@ -142,6 +137,14 @@ export default function FloorPlan() {
       ...d.switches.filter((w) => fed.has(w.id))]
     return { ...d, drawing: { ...d.drawing, box: widen(d.drawing.box, at) } }
   }, [q.data, power, mode])
+  const planFocus = useMemo(() => {
+    if (switchSel && switchQ.data) return { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) }
+    if (selected && seatSwitch) return { switch: seatSwitch, seat: selected }
+    // An open block panel keeps that block bright.
+    const block = blockSel ? data?.drawing?.shapes.find((b) => b.name === blockSel) : undefined
+    if (block) return { seats: new Set(block.cells.map((c) => c.seat).filter((x): x is string => !!x)) }
+    return undefined
+  }, [switchSel, switchQ.data, selected, seatSwitch, blockSel, data])
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
@@ -260,7 +263,7 @@ export default function FloorPlan() {
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
-      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables} focus={switchFocus}
+      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables} focus={planFocus}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
