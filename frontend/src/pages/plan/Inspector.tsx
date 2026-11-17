@@ -15,6 +15,7 @@ import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
 import { ErrorBanner } from '@/components/ui'
 import { clock, dayClock } from '@/lib/time'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown: 'gray' }
 
@@ -85,7 +86,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
             <Stack gap={4}>
               <Title order={3} size="h5">{t('plan.problems')}</Title>
               {d.incidents.map((i) => (
-                <Text key={i.id} size="sm">{i.title} <Text span c="dimmed" size="xs">({t(`plan.incidentStatus.${i.status}`, { defaultValue: i.status })}, {dayClock(i.created_at)})</Text></Text>
+                <Text key={i.id} size="sm">{incidentTitle(i.title, t)} <Text span c="dimmed" size="xs">({t(`plan.incidentStatus.${i.status}`, { defaultValue: i.status })}, {dayClock(i.created_at)})</Text></Text>
               ))}
               {d.attention.map((a, n) => <Text key={n} size="sm">{a.title} <Text span c="dimmed" size="xs">({t('plan.since', { time: dayClock(a.since) })})</Text></Text>)}
               {d.fixed_before?.last && (

@@ -6,6 +6,7 @@ import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
 import { ago } from '@/lib/time'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
 
@@ -62,7 +63,7 @@ export function IncidentCard({
     <Paper withBorder radius="lg" p="sm" data-incident={i.id}>
       <Stack gap={6}>
         <Group justify="space-between" gap="xs" wrap="nowrap" align="flex-start">
-          <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{i.title}</Text>
+          <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{incidentTitle(i.title, t)}</Text>
           <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{ago(i.created_at)}</Text>
         </Group>
         <Group gap={6}>

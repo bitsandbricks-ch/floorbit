@@ -68,3 +68,11 @@ def test_slash_answers_follow_the_askers_discord_language(bridge, client, anon_c
     assert "An diesem Switch sind noch keine Plätze bekannt." in german
     assert "Floorbit kennt diesen Befehl nicht." in _ask(anon_client, key, {**_command("frobnicate"), "locale": "de"})
     assert "does not know" in _ask(anon_client, key, {**_command("frobnicate"), "locale": "en-US"})
+
+
+def test_a_report_from_the_seat_reads_german_in_the_crew_channel():
+    from floorbit import i18n
+    field = {"name": "B-3: Needs help at the seat", "value": "x"}
+    embed = {"embeds": [{"title": "🔧 No power at the seat", "fields": [field]}]}
+    out = i18n.translate_payload(embed, "de-CH")["embeds"][0]
+    assert out["title"] == "🔧 Kein Strom am Platz" and out["fields"][0]["name"] == "B-3: Braucht Hilfe am Platz"

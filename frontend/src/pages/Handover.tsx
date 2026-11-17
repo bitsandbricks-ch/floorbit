@@ -14,6 +14,7 @@ import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
 import { LoadingState } from '@/components/ui'
 import { StatCard } from '@/components/StatCard'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 /** A count that only takes its colour when there is something to count. */
 function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
@@ -27,7 +28,7 @@ function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
   return (
     <Group justify="space-between" wrap="nowrap" align="flex-start">
       <Stack gap={2} style={{ minWidth: 0 }}>
-        <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{i.title}</Text>
+        <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{incidentTitle(i.title, t)}</Text>
         <Text size="sm" c="dimmed">{where}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
       </Stack>
       <Group gap={4} wrap="nowrap">

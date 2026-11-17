@@ -13,6 +13,7 @@ import { openAt, sampleAt, seatsAt, SPEEDS, when } from './replay/model'
 import { Chart, Plan } from './replay/Plan'
 import { bps } from './stats/format'
 import { LoadingState } from '@/components/ui'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 const TICK = 200   // ms between steps while playing
 
@@ -142,7 +143,7 @@ export default function Replay() {
               <Text size="sm" fw={600} mb={6}>{t('replay.openAt')}</Text>
               <Stack gap={4}>
                 {open.map((i) => (
-                  <Text key={i.id} size="sm">{i.seat ?? i.switch ?? ''} · {i.title} <Text span c="dimmed" size="xs">({when(i.start)})</Text></Text>
+                  <Text key={i.id} size="sm">{i.seat ?? i.switch ?? ''} · {incidentTitle(i.title, t)} <Text span c="dimmed" size="xs">({when(i.start)})</Text></Text>
                 ))}
               </Stack>
             </Paper>

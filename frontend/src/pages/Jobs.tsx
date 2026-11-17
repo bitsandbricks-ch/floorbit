@@ -12,6 +12,7 @@ import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
+import { incidentTitle } from '@/lib/incidentTitle'
 
 function since(ts: number) {
   return clock(ts)
@@ -28,7 +29,7 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
     <Paper withBorder radius="lg" p="sm" component="article" aria-label={job.title}>
       <Stack gap={8}>
         <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Title order={2} size="h4" style={{ overflowWrap: 'anywhere' }}>{job.title}</Title>
+          <Title order={2} size="h4" style={{ overflowWrap: 'anywhere' }}>{incidentTitle(job.title, t)}</Title>
           {job.dispatched_at && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('jobs.sent', { when: since(job.dispatched_at) })}</Text>}
         </Group>
         <Group gap={6}>

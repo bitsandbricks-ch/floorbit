@@ -118,5 +118,11 @@
   "backUpHint": "Der Switch des Platzes war aus und läuft wieder, seit das gemeldet wurde. Prüf, ob es jetzt geht, bevor du hingehst.",
   "qrCheckin": "Am PC: {{address}}",
   "qrOpens": "Die Codes öffnen {{address}}. Erreichen die Teilnehmenden Floorbit unter einem anderen Namen?",
-  "qrChangeAddress": "Die Adresse auf den QR-Codes stellst du unter Einstellungen › General ein."
+  "qrChangeAddress": "Die Adresse auf den QR-Codes stellst du unter Einstellungen › General ein.",
+  "seatTitle": {
+    "noInternet": "Kein Internet am Platz",
+    "slow": "Langsame Verbindung",
+    "power": "Kein Strom am Platz",
+    "other": "Braucht Hilfe am Platz"
+  }
 }

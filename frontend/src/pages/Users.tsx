@@ -168,7 +168,7 @@ export default function Users() {
           <>
             <Text size="sm" c="dimmed">
               {list.roles.map((r, i) => (
-                <span key={r.id}>{i ? ' ' : ''}<strong>{r.label}:</strong> {r.description}</span>
+                <span key={r.id}>{i ? ' ' : ''}<strong>{r.label}:</strong> {t(`teams.roleText.${r.id}`, { defaultValue: r.description })}</span>
               ))}
             </Text>
             <Paper withBorder radius="lg" p="md">
