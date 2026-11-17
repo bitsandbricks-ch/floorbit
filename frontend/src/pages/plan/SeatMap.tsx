@@ -131,8 +131,9 @@ export interface OverlayContext {
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
   layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus }: {
-  /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. */
-  focus?: { switch: string; seats: ReadonlySet<string> }
+  /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. An
+   *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. */
+  focus?: { switch: string; seats?: ReadonlySet<string>; seat?: string }
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
@@ -299,6 +300,10 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
   const network = layers.on.has('network')
+  // The open seat's way to its switch, when both are on this plan.
+  const traceTo = focus?.seat ? data.switches.find((w) => w.name === focus.switch) : undefined
+  const traceFrom = focus?.seat ? seatCenter(drawing, focus.seat) : null
+  const trace = traceTo && traceFrom ? { from: traceFrom, to: { x: traceTo.x, y: traceTo.y } } : null
   const tip = hover && data.seats[hover.seat]
   const ringAt = cursor ? seatCenter(drawing, cursor) : null
   const ring = ringAt && { at: ringAt, rotation: drawing.shapes.find((b) => b.cells.some((c) => c.seat === cursor))?.rotation ?? 0 }
@@ -373,6 +378,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}
+        {network && trace && <line className="sw-trace" x1={trace.from.x} y1={trace.from.y} x2={trace.to.x} y2={trace.to.y} vectorEffect="non-scaling-stroke" />}
         {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
         {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (
           <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
@@ -380,7 +386,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             {incidents?.switches[w.id] ? <circle className="sw-inc" r={17} /> : null}
             <SwitchGlyph status={w.status} />
             <title>{`${w.name}: ${w.status}`}</title>
-            {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
+            {level === 'near' && <text y={focus?.switch === w.name ? 34 : 22} fontSize={11}>{w.name}</text>}
           </g>
         ))}</g>}
         {network && data.panels?.length ? <g opacity={opacity(layers, 'network')}><PanelGlyphs panels={data.panels} near={level === 'near'} /></g> : null}

@@ -201,6 +201,8 @@ now, check-in, match zone, open incidents and needs-attention items, how often a
 fixed at the seat before (with the latest one), and links to the seat in the editor and to its
 incidents (the board filtered to the seat, `/incidents?q=seat:D-6`). A seat that keeps breaking usually has a cable or port
 to swap. On a phone it opens from the bottom.
+While a seat is open, its switch gets a ring on the plan and a dashed line leads from the seat to it
+(with the network layer on and the switch placed in this hall), so you know where to walk.
 
 **Copy link** puts the page's address with this seat open on the clipboard (hall, filter and view
 included), to paste into the crew chat. It holds the seat number only, nothing about the player.
