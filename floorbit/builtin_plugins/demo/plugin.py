@@ -12,6 +12,7 @@ import ipaddress
 import math
 import time
 
+from floorbit.builtin_plugins.demo.texts import text
 from floorbit.builtin_plugins.librenms.ports import summarize_port
 from floorbit.plugins.base import Plugin, PluginError
 
@@ -22,10 +23,11 @@ SEATS_PER_SWITCH = 8
 SWITCHES_PER_BLOCK = COLS * ROWS // SEATS_PER_SWITCH   # 3
 # The side hall: one block on one switch whose patching nobody wrote down. Only rough port areas
 # say which ports go where (and the ports have no descriptions), as at many events.
-SIDE_HALL = 'Side hall'
+T = text()            # English, or German with FLOORBIT_DEMO_LANGUAGE=de (texts.py)
+SIDE_HALL = T['side_hall']
 SIDE_BLOCK, SIDE_COLS, SIDE_ROWS = 'E', 8, 2
 SIDE_SWITCH = 'sw-e-01'
-MAIN_HALL = 'Main hall'
+MAIN_HALL = T['main_hall']
 FLAPPING = 'sw-c-02'          # goes down for a minute every four
 HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
@@ -86,21 +88,21 @@ LAYOUT = {
                'blocks': [{'name': SIDE_BLOCK, 'x': 50, 'y': 55, 'cols': SIDE_COLS, 'rows': SIDE_ROWS}]}],
     # Two boards, one 16 A circuit per seat row (phases in turn) and one for the network rack.
     'power': {
-        'boards': [{'name': 'DB-1', 'location': 'West wall', 'x': 4, 'y': 42},
-                   {'name': 'DB-2', 'location': 'East wall', 'x': 96, 'y': 78}],
-        'circuits': [{'board': 'DB-1' if b in 'AB' else 'DB-2', 'name': f'{b} row {r}', 'rating_a': 16,
+        'boards': [{'name': 'DB-1', 'location': T['board_west'], 'x': 4, 'y': 42},
+                   {'name': 'DB-2', 'location': T['board_east'], 'x': 96, 'y': 78}],
+        'circuits': [{'board': 'DB-1' if b in 'AB' else 'DB-2', 'name': T['row'].format(b, r), 'rating_a': 16,
                       'phase': ('L1', 'L2', 'L3')[(BLOCKS.index(b) * ROWS + r - 1) % 3],
                       'meter': f'{b.lower()}{r}', 'block': b, 'rows': [r]}
                      for b in BLOCKS for r in range(1, ROWS + 1)]
-        + [{'board': 'DB-1', 'name': 'Network rack', 'rating_a': 32, 'phase': '3P', 'meter': 'rack',
+        + [{'board': 'DB-1', 'name': T['rack'], 'rating_a': 32, 'phase': '3P', 'meter': 'rack',
             'switches': ['core-01', 'dist-01', 'dist-02']}],
     },
     # The seats are spread over 192.0.2.0 to .159 (see _ip): one /28 per firewall, the next one as its backup.
-    'firewalls': [{'cidr': f'192.0.2.{16 * i}/28', 'name': f'Seat range {i + 1}',
+    'firewalls': [{'cidr': f'192.0.2.{16 * i}/28', 'name': T['range'].format(i + 1),
                    'firewalls': [fw, FIREWALLS[(i + 1) % len(FIREWALLS)]]} for i, fw in enumerate(FIREWALLS)],
     # The internet lines on core-01's ISP ports. The probes to their far ends are answered by the demo
     # itself (Plugin.answer), so nothing is sent out.
-    'uplinks': [{'name': f'ISP {chr(65 + i)}', 'device': 'core-01', 'port': port,
+    'uplinks': [{'name': T['isp'].format(chr(65 + i)), 'device': 'core-01', 'port': port,
                  'capacity_mbps': bps // 1_000_000, 'probe_host': f'203.0.113.{i + 1}', 'probe_port': 443}
                 for i, (port, bps, _busy) in enumerate(ISP_PORTS)],
 }
@@ -108,8 +110,8 @@ LAYOUT = {
 # The servers in the rack. The LAN cache box is also the hall's DNS server (it answers the game
 # download names with itself); the second resolver is the provider's, for comparison.
 LANCACHE, LANCACHE_IP = 'lancache-01', '198.51.100.53'
-LAYOUT['resolvers'] = [{'name': 'LAN cache DNS', 'address': LANCACHE_IP, 'lookup': 'lancache.steamcontent.com'},
-                       {'name': 'Provider DNS', 'address': '203.0.113.53', 'lookup': 'example.com'}]
+LAYOUT['resolvers'] = [{'name': T['lancache_dns'], 'address': LANCACHE_IP, 'lookup': 'lancache.steamcontent.com'},
+                       {'name': T['provider_dns'], 'address': '203.0.113.53', 'lookup': 'example.com'}]
 # Game servers with RCON. The second one stops answering two minutes in five, so alerts can be tried.
 # Their RCON password is made up when the hall is laid out; the demo answers whatever is sent.
 GAME_SERVERS = (
@@ -254,8 +256,9 @@ LAYOUT['cable_routes'] = {
 LAYOUT['port_areas'] = [{'switch': SIDE_SWITCH, 'starts': [f'{SIDE_BLOCK}-1', f'{SIDE_BLOCK}-9'], 'size': 8}]
 # - labels, walls, zones and icons on their layers (escape routes on safety, the rack on network);
 LAYOUT['marks'] = [
-    {'kind': 'zone', 'x': 40, 'y': 50, 'w': 20, 'h': 14, 'label': 'Main stage', 'color': 'trace'},
-    {'kind': 'zone', 'x': 44, 'y': 2, 'w': 12, 'h': 10, 'label': 'Network rack', 'color': 'bit', 'layer': 'network'},
+    {'kind': 'zone', 'x': 40, 'y': 50, 'w': 20, 'h': 14, 'label': T['stage'], 'color': 'trace'},
+    {'kind': 'zone', 'x': 44, 'y': 2, 'w': 12, 'h': 10, 'label': T['rack'], 'color': 'bit',
+     'layer': 'network'},
     {'kind': 'icon', 'icon': 'server', 'x': 57, 'y': 8, 'layer': 'network'},
     {'kind': 'icon', 'icon': 'power', 'x': 4, 'y': 48, 'layer': 'electrical'},
     {'kind': 'icon', 'icon': 'socket', 'x': 96, 'y': 84, 'layer': 'electrical'},
@@ -270,15 +273,15 @@ LAYOUT['marks'] = [
     {'kind': 'icon', 'icon': 'bar', 'x': 4, 'y': 8},
     {'kind': 'icon', 'icon': 'wc', 'x': 4, 'y': 92},
     {'kind': 'icon', 'icon': 'info', 'x': 94, 'y': 92},
-    {'kind': 'text', 'text': 'Entrance', 'x': 50, 'y': 92, 'size': 's'},
+    {'kind': 'text', 'text': T['entrance'], 'x': 50, 'y': 92, 'size': 's'},
 ]
 LAYOUT['halls'][0]['marks'] = [
-    {'kind': 'text', 'text': 'Side hall', 'x': 50, 'y': 10, 'size': 'l'},
+    {'kind': 'text', 'text': SIDE_HALL, 'x': 50, 'y': 10, 'size': 'l'},
     {'kind': 'icon', 'icon': 'exit', 'x': 95, 'y': 90, 'layer': 'safety'},
     {'kind': 'icon', 'icon': 'coffee', 'x': 10, 'y': 85},
 ]
 # - each block grouped with its switches (and block A with its patch panel), so they move as one.
-LAYOUT['groups'] = [{'name': f'Block {b}', 'block': b,
+LAYOUT['groups'] = [{'name': T['block'].format(b), 'block': b,
                      'switches': [f'sw-{b.lower()}-{n:02d}' for n in range(1, SWITCHES_PER_BLOCK + 1)],
                      'panels': ['PP-A'] if b == 'A' else []} for b in BLOCKS]
 

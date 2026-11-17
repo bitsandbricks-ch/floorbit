@@ -83,6 +83,7 @@ def seed():
         save_data(data)
     _import_cables()
     _seed_game_servers(layout)
+    _seed_event()
     return {'placed': placed, 'blocks': len(blocks)}
 
 
@@ -185,6 +186,179 @@ def _seed_game_servers(layout):
             game_servers.save(body)
         except Exception as exc:  # noqa: BLE001  # the hall works without its game servers
             print(f"[demo] could not add {server['name']}: {exc}")
+
+
+# ── The event so far: crew, incidents, check-ins, status page, runbook, dashboards, schedule ──────
+CREW = (('alex', 'Alex', 'tech', 'access'), ('sam', 'Sam', 'tech', 'operations'),
+        ('robin', 'Robin', 'lead', 'electrics'))
+
+
+def _seed_event(now=None):
+    """What a day of the event leaves behind, so the crew pages aren't empty. Each part only when its
+    page has nothing yet; a part that fails is skipped, never the demo."""
+    import time
+    now = time.time() if now is None else now
+    from ..builtin_plugins.demo.texts import text
+    words = text()
+    for part in (_seed_crew, _seed_incidents, _seed_checkins, _seed_status, _seed_runbook, _seed_dashboards,
+                 _seed_schedule, _seed_settings):
+        try:
+            part(words, now)
+        except Exception as exc:  # noqa: BLE001  # a demo hiccup must not stop the rest
+            print(f'[demo] {part.__name__[6:]}: {exc}')
+
+
+def _seed_crew(_words, _now):
+    """Three crew accounts without a password (nobody signs in as them), in the default teams."""
+    from auth import teams
+    users = current_app.extensions['auth'].users
+    for username, name, role, team in CREW:
+        if users.get(username) is None:
+            users.add(username, display_name=name, role=role)
+            teams.set_member(username, team, role)
+
+
+def _seed_incidents(words, now):
+    from .. import incidents
+    with data_lock:
+        data = load_data()
+        if data.get(incidents.KEY):
+            return
+        circuits = {c.get('meter'): c for c in (data.get('power') or {}).get('circuits') or []}
+        devices = {d['name']: d for d in inventory.devices(data)}
+        items = []
+        for where, problem, title, status, ago, assignee, team, notes in words['incidents']:
+            kind, ref = where.split(':', 1)
+            at = now - ago * 60
+            if kind == 'seat':
+                spot = {'seat': ref, 'switch_id': None}
+            elif kind == 'switch' and ref in devices:
+                spot = {'seat': None, 'switch_id': devices[ref]['id'], 'switch_name': ref}
+            elif kind == 'circuit' and ref in circuits:
+                spot = {'seat': None, 'switch_id': None, 'circuit_id': circuits[ref]['id'],
+                        'circuit_name': circuits[ref]['name']}
+            else:
+                continue
+            step = ago * 60 / (len(notes) + 1)
+            items.append({
+                'id': uuid.uuid4().hex[:12], **spot, 'title': title, 'problem': problem, 'team': team,
+                'status': status, 'assignee': assignee, 'source': 'helpdesk' if problem else 'board',
+                'reported_by': None if problem else 'demo', 'reports': 1, 'snapshot': None,
+                'notes': [{'by': assignee or 'demo', 'at': at + step * (n + 1), 'text': t}
+                          for n, t in enumerate(notes)],
+                'created_at': at, 'updated_at': at + step * len(notes),
+                **({'picked_up_at': at + 120} if assignee else {}),
+                **({'fixed_at': at + step * len(notes)} if status == 'fixed' else {}),
+            })
+        data[incidents.KEY] = items
+        save_data(data)
+
+
+def _seed_checkins(_words, now):
+    """Most players checked in with their seat card's PIN over the last day. In the side hall, where
+    nobody wrote the patching down, the check-ins taught Floorbit most seats' ports; E-12's PIN card
+    was swapped with E-4's, so it learned a port the port areas give to E-1..E-8 (a conflict to look at)."""
+    from integrations import checkin, history
+
+    from ..builtin_plugins.demo.plugin import SIDE_BLOCK, _ip, _mac, _seats, _switch_for, _taken
+    from ..store import write_json
+    if checkin.load_all():
+        return
+    rows, learned, events = {}, {}, []
+    seats = [s for s in _seats() if _taken(s[3])]
+    for n, (seat, block, number, i) in enumerate(seats):
+        if n % 9 == 4:
+            continue                    # online without a check-in: the crew sees these
+        at = now - 22 * 3600 + (n * 997) % (20 * 3600)
+        switch, port = _switch_for(block, number)
+        if seat == f'{SIDE_BLOCK}-12':
+            port = _switch_for(SIDE_BLOCK, 4)[1]
+        rows[seat] = {'seat': seat, 'username': f'player-{i + 1:02d}', 'ip': _ip(i), 'mac': _mac(i),
+                      'checked_in_at': at, 'last_seen': now - (n * 37) % 600, 'ip_changed': None,
+                      'user_agent': None, 'pin_ok': True, 'device': 'pc', 'wired': 'verified',
+                      'port_seen': {'switch': switch, 'port': port}, 'taken_from': None}
+        if block == SIDE_BLOCK and number not in (7, 15):
+            learned[seat] = {'switch': switch, 'port': port, 'learned_at': at, 'username': rows[seat]['username']}
+        events.append((at, 'checkin', rows[seat], {}))
+    # Two players moved seats during the night: the history keeps where they were first.
+    for seat, old in (('C-20', 'C-6'), ('D-2', 'B-11')):
+        if seat in rows:
+            first = {**rows[seat], 'seat': old}
+            events.append((rows[seat]['checked_in_at'] - 3 * 3600, 'checkin', first, {}))
+            events.append((rows[seat]['checked_in_at'], 'moved', first, {'to_seat': seat}))
+    checkin._save_all(rows)
+    if learned:
+        write_json(checkin._ports_path(), learned)
+    for at, event, row, extra in sorted(events, key=lambda e: e[0]):
+        history.record(event, row, ts=at, **extra)
+
+
+def _seed_status(words, now):
+    from .. import status_page
+    if status_page._stored(load_data())['updates']:
+        return
+    for ago, state, area, message in reversed(words['status_updates']):
+        update = status_page.post_update({'text': message, 'state': state, 'area': area}, 'demo')
+        _backdate(status_page.KEY, 'updates', update['id'], now - ago * 60)
+    start_in, minutes, area, message = words['maintenance']
+    status_page.plan_maintenance({'start': now + start_in * 60, 'end': now + (start_in + minutes) * 60,
+                                  'text': message, 'area': area}, 'demo', now=now)
+
+
+def _backdate(key, part, item_id, at):
+    with data_lock:
+        data = load_data()
+        for item in (data.get(key) or {}).get(part) or []:
+            if item.get('id') == item_id:
+                item['at'] = at
+        save_data(data)
+
+
+def _seed_runbook(words, _now):
+    """The starters plus one of the event's own, as a crew would write it."""
+    from .. import runbooks
+    if isinstance(load_data().get(runbooks.KEY), list):
+        return
+    title, kinds, body = words['runbook']
+    runbooks.add({'title': title, 'kinds': kinds, 'body': body}, 'demo')
+
+
+def _seed_dashboards(words, _now):
+    from .. import dashboard_layouts
+    if dashboard_layouts.all_layouts():
+        return
+    tiles = {'noc-wall': ['problems', 'incidents', 'switches', 'seats'], 'ops-desk': ['incidents', 'problems']}
+    for layout_id, name, columns in words['layouts']:
+        dashboard_layouts.save(layout_id, {'name': name, 'columns': columns,
+                                           'tiles': [f'floorbit/w/{t}' for t in tiles[layout_id]]}, 'demo')
+
+
+def _seed_schedule(words, now):
+    from .. import schedule
+    if schedule.get()['items']:
+        return
+    import time
+    hour = 3600
+    # Real clock times read better than "an hour ago": the event runs from yesterday afternoon to tonight.
+    day = time.localtime(now)
+    base = time.mktime((day.tm_year, day.tm_mon, day.tm_mday, 0, 0, 0, 0, 0, -1))
+    schedule.set_event({'start': base - 8 * hour, 'end': base + 20 * hour})
+    for start, length, kind, title, where in words['schedule']:
+        schedule.add({'title': title, 'kind': kind, 'where': where, 'start': base + start * hour,
+                      'end': base + (start + length) * hour if length else None}, 'demo')
+
+
+def _seed_settings(_words, _now):
+    """Check-in, the public status page and the schedule on, so their pages show up."""
+    store = current_app.extensions.get('floorbit_settings')
+    if store is None:
+        return
+    for key in ('integrations.checkin_enabled', 'public.status_page', 'public.schedule'):
+        try:
+            if store.source(key) != 'saved':
+                store.update({key: True})
+        except Exception as exc:  # noqa: BLE001  # a setting this install doesn't have
+            print(f'[demo] could not turn on {key}: {exc}')
 
 
 @bp.route('/api/demo/layout', methods=['POST'])

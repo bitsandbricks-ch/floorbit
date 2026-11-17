@@ -139,7 +139,8 @@ def test_the_plan_has_typed_uplinks_a_patch_panel_bends_areas_marks_and_groups(d
     assert {'kind': 'panel', 'id': 'PP-A'} in groups[0]['members']
 
 
-def test_the_side_hall_seats_have_no_known_port_yet(demo):
+def test_the_side_hall_seats_have_no_patched_port(demo):
+    """Nobody wrote the side hall's patching down: until check-ins teach its ports, a seat has only its IP."""
     seats = {r['seat']: r for r in demo.get('/api/seat-map').get_json()['seats']}
     assert not seats['E-2'].get('switch') and seats['E-2'].get('ip')
     assert seats['A-2']['switch'] == 'sw-a-01' and seats['A-2']['port'] == 'Gi1/0/2'
@@ -181,3 +182,41 @@ def test_the_stand_in_lets_other_hosts_through_and_stops_with_the_demo(demo, reg
     assert probes.stood_in('dns_probe', ('192.0.2.200', 'example.com')) is None     # not a demo server
     demo.put('/api/settings/plugins/demo', json={'enabled': False})
     assert probes.stood_in('dns_probe', ('198.51.100.53', 'example.com')) is None
+
+
+def test_the_event_so_far_fills_the_crew_pages(demo, app_module):
+    """Incidents, check-ins, status page, runbook, dashboards and schedule, so no crew page starts empty."""
+    demo.post('/api/demo/layout')
+    board = demo.get('/api/incidents').get_json()['incidents']
+    assert len(board) == 6 and {i['status'] for i in board} == {'open', 'assigned', 'fixed'}
+    assert any(i.get('switch_name') == 'sw-c-02' for i in board)
+    users = app_module.app.extensions['auth'].users
+    assert all(users.get(name) is not None for name in ('alex', 'sam', 'robin'))
+    checkins = demo.get('/api/checkins').get_json()
+    rows = checkins['checkins'] if isinstance(checkins, dict) else checkins
+    assert len(rows) > 50 and all(r['username'].startswith('player-') for r in rows)
+    seats = {r['seat']: r for r in demo.get('/api/seat-map').get_json()['seats']}
+    assert seats['E-2']['switch'] == 'sw-e-01'      # the side hall learned its ports from check-ins
+    assert not seats['E-7'].get('switch')
+    history = demo.get('/api/checkins/history').get_json()
+    assert history['total'] > 50 and 'moved' in repr(history['rows'])
+    assert 'Spare switch' in [r['title'] for r in demo.get('/api/runbooks').get_json()['runbooks']]
+    layouts = demo.get('/api/dashboard/layouts').get_json()
+    assert {'noc-wall', 'ops-desk'} <= {lay['id'] for lay in (layouts.get('layouts') or layouts)}
+    items = demo.get('/api/schedule').get_json()['items']
+    assert len(items) == 8 and items[-1]['title'] == 'Doors close'
+    # A second layout run never adds them twice.
+    demo.post('/api/demo/layout')
+    assert len(demo.get('/api/incidents').get_json()['incidents']) == 6
+
+
+def test_the_demo_speaks_swiss_german_when_asked(monkeypatch):
+    from floorbit.builtin_plugins.demo import texts
+    monkeypatch.setenv('FLOORBIT_DEMO_LANGUAGE', 'de-CH')
+    assert texts.text()['main_hall'] == 'Haupthalle'
+    monkeypatch.delenv('FLOORBIT_DEMO_LANGUAGE')
+    assert texts.text()['main_hall'] == 'Main hall'
+    english, german = texts.TEXTS['en'], texts.TEXTS['de']
+    assert english.keys() == german.keys() and 'ß' not in repr(german)
+    for key in ('incidents', 'schedule', 'status_updates', 'layouts'):
+        assert len(english[key]) == len(german[key]), key

@@ -65,6 +65,32 @@ The demo answers the DNS lookups, latency probes, game queries and RCON commands
 itself, so it sends nothing out. Try `status` on a Counter-Strike server or `list` on Minecraft in the
 RCON console.
 
+## The event so far
+
+The layout also leaves behind what a day of the event would, so no crew page starts empty. Each part is
+only added while its page has nothing yet:
+
+- **Crew:** three accounts without a password (`alex`, `sam`, `robin`) in the access, operations and
+  electrics teams, so incidents have someone to be assigned to.
+- **Incidents:** six of them, open, being worked and fixed, on seats, on `sw-c-02` and on a power circuit,
+  with the crew's notes.
+- **Check-ins:** most players checked in with their seat card's PIN over the last day. In the side hall
+  the check-ins taught Floorbit most seats' ports (two are still unknown), and one PIN card was swapped,
+  so the review tab has a port clash to look at. Two players moved seats during the night.
+- **Status page:** two updates and a planned maintenance, with the public status page turned on.
+- **Runbooks:** the starters plus one of the event's own.
+- **Dashboards:** a "NOC wall" and an "Ops desk" layout.
+- **Schedule:** the event from yesterday to tonight, with talks, meals, a tournament and quiet hours,
+  shown on the public schedule.
+
+Check-in is turned on as well, unless a setting already says otherwise.
+
+## Language
+
+Hall names, plan labels, incidents, status updates, the runbook and the schedule are written in English.
+Set `FLOORBIT_DEMO_LANGUAGE=de` before the demo is laid out to get them in Swiss German. What the demo
+reports live (health tiles, findings) follows each viewer's language anyway.
+
 Your own switches, seat blocks and hand entries stay as they are. To go back, turn the plugin off,
 or unset `FLOORBIT_DEMO`. The demo devices stay in the inventory, marked as fed by the demo, until
 you delete them.
