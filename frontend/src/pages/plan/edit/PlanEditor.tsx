@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
+  IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -25,9 +25,12 @@ import { BlockFields } from './BlockFields'
 import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
+import { LockBadges } from './LockBadges'
 import { MarkHandles } from './MarkHandles'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
+import { SharedFields } from './SharedFields'
+import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
@@ -108,6 +111,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     await put('/api/plan-groups', { hall_id: data.hall, groups: list })
     await qc.invalidateQueries({ queryKey: qk.planGroups(data.hall) })
   }, [data.hall, qc])
+  // Locked items (floorbit/plan_locks.py) stay where they are: moves, turns, handles and deletes skip them.
+  const locksQ = useQuery({ queryKey: qk.planLocks(data.hall), queryFn: () => get<{ locks: ItemRef[] }>(`/api/plan-locks?hall=${encodeURIComponent(data.hall)}`) })
+  const lockedKeys = useMemo(() => new Set((locksQ.data?.locks ?? []).map(refKey)), [locksQ.data])
+  const isLocked = useCallback((r: ItemRef) => lockedKeys.has(refKey(r)), [lockedKeys])
+  const unlocked = useCallback((items: ItemRef[]) => items.filter((r) => !lockedKeys.has(refKey(r))), [lockedKeys])
   // The power layer, so boards and what they feed show while they're placed and moved.
   const markers = useQuery({ queryKey: qk.powerMarkers, queryFn: () => get<PowerMarkers>('/api/power/markers'), staleTime: 30_000 })
   const cablePlan = useCablePlan(data.hall, true)
@@ -130,7 +138,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const shown = useMemo(() => {
     let d = data
     if (pending) for (const [r, m] of pending.moves) d = moved(d, [r], m)
-    if (drag) d = moved(d, selected, drag.d)
+    if (drag) d = moved(d, unlocked(selected), drag.d)
     if (shaping && d.drawing) {
       const marks = d.drawing.marks?.map((m) => (m.id === shaping.mark.id ? shaping.mark : m))
       d = { ...d, drawing: { ...d.drawing, marks } }
@@ -142,7 +150,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       d = { ...d, drawing: { ...d.drawing, shapes, marks } }
     }
     return d
-  }, [data, pending, drag, selected, shaping, turning])
+  }, [data, pending, drag, selected, shaping, turning, unlocked])
 
   // Boards drawn where the editor has them (dragged or just moved), not where the markers last said.
   const power = useMemo(() => {
@@ -156,13 +164,26 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     notifications.show({ color: 'down', title: t('plan.edit.failed'), message: err instanceof Error ? err.message : String(err) })
   }, [t])
 
+  const setLocked = useCallback(async (items: ItemRef[], locked: boolean) => {
+    const refs = items.filter((r) => r.kind !== 'cable' && lockedKeys.has(refKey(r)) !== locked)
+    if (!refs.length) return
+    const save = (on: boolean) => put('/api/plan-locks', { hall_id: data.hall, items: refs, locked: on })
+      .then(() => qc.invalidateQueries({ queryKey: qk.planLocks(data.hall) }))
+    try {
+      await save(locked)
+      history.push({ label: t(locked ? 'plan.edit.step.lock' : 'plan.edit.step.unlock', { count: refs.length }), undo: () => save(!locked), redo: () => save(locked) })
+    } catch (err) {
+      fail(err)
+    }
+  }, [data.hall, lockedKeys, qc, history, t, fail])
+
   // Boards and cables change with PATCH, the plan's own items with PUT.
   const send = useCallback(async (ref: ItemRef, body: Record<string, unknown>) =>
     (ref.kind === 'board' ? patch : put)(`${PATH[ref.kind]}/${encodeURIComponent(idOf(ref))}`, body), [idOf])
 
   /** Moves each item by its own amount (drawing units), saved at once, as one step to undo. */
   const moveEach = useCallback(async (moves: [ItemRef, Point][], label?: string) => {
-    moves = moves.filter(([, d]) => d.x || d.y)
+    moves = moves.filter(([r, d]) => (d.x || d.y) && !isLocked(r))
     if (!moves.length) return
     const there = moves.map(([r, d]) => [r, movePatch(data, r, d), movePatch(data, r, { x: 0, y: 0 })] as const).filter(([, a, b]) => a && b)
     setPending({ moves, data })
@@ -178,7 +199,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       fail(err)
     }
     await refresh()
-  }, [data, send, history, t, refresh, fail])
+  }, [data, send, history, t, refresh, fail, isLocked])
   const moveBy = useCallback((items: ItemRef[], d: Point) => moveEach(items.map((r) => [r, d] as [ItemRef, Point])), [moveEach])
 
   /** Puts the selected items in one new group (``join``) or takes them out of theirs. Seat blocks
@@ -241,6 +262,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }, [data.hall, idOf])
 
   const remove = useCallback(async (items: ItemRef[]) => {
+    items = items.filter((r) => !isLocked(r))
     if (!items.length) return
     try {
       const saved = await snapshot(items)
@@ -265,7 +287,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       fail(err)
     }
     await refresh()
-  }, [data.hall, idOf, history, t, refresh, fail, snapshot])
+  }, [data.hall, idOf, history, t, refresh, fail, snapshot, isLocked])
 
   /** Posts ``raws`` as new items in this hall (paste, duplicate), selects them, with undo. */
   const addRaws = useCallback(async (raws: Raw[], label: string) => {
@@ -358,7 +380,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
 
   /** R turns the selected blocks, labels and icons a quarter turn each, in place (Shift+R back). */
   const rotate = useCallback(async (items: ItemRef[], back: boolean) => {
-    const turns = quarterTurns(data, items, back)
+    const turns = quarterTurns(data, items.filter((r) => !isLocked(r)), back)
     if (!turns.length) return
     try {
       await Promise.all(turns.map(([r, , a]) => send(r, a)))
@@ -371,7 +393,25 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       fail(err)
     }
     await refresh()
-  }, [data, send, history, t, refresh, fail])
+  }, [data, send, history, t, refresh, fail, isLocked])
+
+  /** Gives every selected item that has ``field`` the same value, as one step to undo. Locked items
+   *  keep their angle. */
+  const changeAll = useCallback(async (items: ItemRef[], field: SharedField, value: unknown) => {
+    const edits = sharedEdits(data, field === 'rotation' ? items.filter((r) => !isLocked(r)) : items, field, value)
+    if (!edits.length) return
+    try {
+      await Promise.all(edits.map(([r, , a]) => send(r, a)))
+      history.push({
+        label: t('plan.edit.step.changeAll', { count: edits.length }),
+        undo: () => Promise.all(edits.map(([r, b]) => send(r, b))).then(refresh),
+        redo: () => Promise.all(edits.map(([r, , a]) => send(r, a))).then(refresh),
+      })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [data, send, history, t, refresh, fail, isLocked])
 
   const change = useCallback(async (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => {
     try {
@@ -632,6 +672,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       if (next) { take(); pick([next]); follow(next) }
       return
     }
+    if (mod && e.shiftKey && k === 'l') { take(); void setLocked(selected, !allLocked); return }
     if (e.key === 'Delete' || e.key === 'Backspace') { take(); void remove(selected); return }
     if (k === 'r' && !mod && !e.altKey) { take(); void rotate(selected, e.shiftKey); return }
     if (k === 'f' && !mod && !e.altKey) { take(); frame(selected); return }
@@ -684,7 +725,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // Inventory switches only leave the plan (they stay in the inventory): say so on the button.
   const onlyUnplace = selected.length > 0 && selected.every((r) => r.kind === 'switch' && !data.switches.find((w) => w.id === r.id)?.manual)
   // Group again only when that changes something: not one whole group already.
-  const canTurn = quarterTurns(data, selected).length > 0
+  const canTurn = quarterTurns(data, unlocked(selected)).length > 0
+  // Lock while any of it is free to move; unlock once all of it is locked.
+  const allLocked = movable.length > 0 && movable.every(isLocked)
+  const lockedSel = movable.filter(isLocked)
   const canGroup = movable.length > 1 && !(groupsOf(groups, movable).length === 1 && groupsOf(groups, movable)[0].members.every((m) => movable.some((r) => sameRef(r, m))))
 
   const one = selected.length === 1 ? selected[0] : null
@@ -692,7 +736,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
   // From the saved plan: the handle turns round where the item is, not where a drag drew it.
-  const turnable = one && canTurnOne(data, one) ? outlineOf(data, one) : null
+  const turnable = one && !isLocked(one) && canTurnOne(data, one) ? outlineOf(data, one) : null
   // From the saved plan, not the one drawn while dragging: the handles start over once a change is
   // saved (a wall's new bend is a new handle), but not mid-drag, which would drop the pointer.
   const handlesKey = (id: string) => { const m = data.drawing?.marks?.find((x) => x.id === id); return m ? `${id}:${JSON.stringify([m.x, m.y, m.x2, m.y2, m.points])}` : id }
@@ -725,7 +769,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
-          {oneMark && markBox && tool === 'select' && !drag && (
+          {lockedSel.length > 0 && tool === 'select' && <LockBadges ctx={ctx} boxes={lockedSel.map((r) => outlineOf(shown, r)).filter((o) => !!o)} />}
+          {oneMark && markBox && tool === 'select' && !drag && !isLocked(one!) && (
             <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}
               corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
               anchors={oneMark.kind === 'wall' ? wallCorners(data, oneMark.id) : undefined}
@@ -775,6 +820,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 <Menu.Item leftSection={<IconSelectAll size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ A</Kbd>} onClick={() => setSelection(similar(data, present, selected))}>{t('plan.edit.menu.similar')}</Menu.Item>
                 {canTurn && (
                   <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={<Kbd size="xs">R</Kbd>} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
+                )}
+                {movable.length > 0 && (
+                  <Menu.Item leftSection={allLocked ? <IconLockOpen size={14} /> : <IconLock size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ L</Kbd>}
+                    onClick={() => void setLocked(selected, !allLocked)}>{t(allLocked ? 'plan.edit.menu.unlock' : 'plan.edit.menu.lock')}</Menu.Item>
                 )}
                 {selected.length > 0 && (
                   <>
@@ -845,6 +894,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}
               onAddCircuit={(name) => addCircuit(boardSel, name)} onFeed={(c) => feed(c, feedable)} />
           )}
+          {selected.length > 1 && <SharedFields fields={sharedFields(data, selected)} onChange={(f, v) => void changeAll(selected, f, v)} />}
+          {lockedSel.length > 0 && <Text size="xs" c="dimmed">{t('plan.edit.lockedN', { count: lockedSel.length })}</Text>}
           {movable.length > 1 && (
             <Arrange count={movable.length} grouped={grouped} canGroup={canGroup}
               onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
@@ -852,11 +903,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               onGroup={(join) => void regroup(selected, join)} />
           )}
           {selected.length > 0 && (
-            <QuickActions canTurn={canTurn} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
+            <QuickActions canTurn={canTurn} locked={movable.length ? allLocked : null} onLock={() => void setLocked(selected, !allLocked)} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
               onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
           )}
           {selected.length > 0 && (
-            <Button variant="light" color="down" leftSection={<IconTrash size={16} />} onClick={() => void remove(selected)}>
+            <Button variant="light" color="down" leftSection={<IconTrash size={16} />} disabled={allLocked} onClick={() => void remove(selected)}>
               {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
             </Button>
           )}
@@ -896,8 +947,6 @@ function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: 
   return t(`plan.edit.kind.${m?.kind ?? 'text'}`)
 }
 
-const LAYER_IDS = ['overview', 'safety', 'network', 'electrical', 'services'] as const
-const ZONE_COLORS = ['muted', 'bit', 'trace', 'warn', 'down'] as const
 
 /** One item's fields. Each change is saved on its own (Enter or leaving a text field). */
 function ItemFields({ data, item, onChange }: {
@@ -996,8 +1045,11 @@ function ItemFields({ data, item, onChange }: {
 }
 
 /** What the right-click menu does to a selection, as buttons, so it can be found without knowing it's there. */
-function QuickActions({ canTurn, onDuplicate, onRotate, onFront, onBack, onFrame }: {
-  canTurn: boolean; onDuplicate: () => void; onRotate: () => void; onFront: () => void; onBack: () => void; onFrame: () => void
+function QuickActions({ canTurn, locked, onLock, onDuplicate, onRotate, onFront, onBack, onFrame }: {
+  canTurn: boolean
+  /** Whether the selection is all locked; null when nothing in it can be. */
+  locked: boolean | null; onLock: () => void
+  onDuplicate: () => void; onRotate: () => void; onFront: () => void; onBack: () => void; onFrame: () => void
 }) {
   const { t } = useTranslation()
   const icon = (label: string, keys: string, Icon: typeof IconLink, onClick: () => void) => (
@@ -1012,6 +1064,7 @@ function QuickActions({ canTurn, onDuplicate, onRotate, onFront, onBack, onFrame
       {icon(t('plan.edit.menu.front'), 'Ctrl ]', IconStackFront, onFront)}
       {icon(t('plan.edit.menu.back'), 'Ctrl [', IconStackBack, onBack)}
       {icon(t('plan.edit.menu.frame'), 'F', IconZoomIn, onFrame)}
+      {locked != null && icon(t(locked ? 'plan.edit.menu.unlock' : 'plan.edit.menu.lock'), 'Ctrl ⇧ L', locked ? IconLockOpen : IconLock, onLock)}
     </Group>
   )
 }
