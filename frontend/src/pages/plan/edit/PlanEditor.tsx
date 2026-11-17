@@ -25,6 +25,9 @@ import { BlockFields } from './BlockFields'
 import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
+import { BackgroundFields, CalibrateFields } from './BackgroundFields'
+import { BackgroundHandles } from './BackgroundHandles'
+import { fitFactor, framePct, scaleFrame, seatMetres } from './background'
 import { LockBadges } from './LockBadges'
 import { Rulers } from './Rulers'
 import { useSnapPrefs } from './snap'
@@ -91,6 +94,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [shaping, setShaping] = useState<{ mark: PlanMark; data: SeatViewData; done?: boolean } | null>(null)
   // The rotate handle's angle while it is dragged, and after until the plan comes back with it.
   const [turning, setTurning] = useState<{ ref: ItemRef; deg: number; data: SeatViewData; done?: boolean } | null>(null)
+  // The Measure tool's last line (for calibrating), and the background while it is being placed.
+  const [measured, setMeasured] = useState<{ a: Point; b: Point } | null>(null)
+  const [bgPlacing, setBgPlacing] = useState(false)
+  const [bgDraft, setBgDraft] = useState<{ frame: Box; data: SeatViewData; done?: boolean } | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>('select')
@@ -135,6 +142,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   if (pending && pending.data !== data) setPending(null)
   if (shaping?.done && shaping.data !== data) setShaping(null)
   if (turning?.done && turning.data !== data) setTurning(null)
+  if (bgDraft?.done && bgDraft.data !== data) setBgDraft(null)
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
   const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
@@ -153,8 +161,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       const marks = d.drawing.marks?.map((m) => (ref.kind === 'mark' && m.id === ref.id ? { ...m, rotation: deg } : m))
       d = { ...d, drawing: { ...d.drawing, shapes, marks } }
     }
+    if (bgDraft) d = { ...d, background_frame: bgDraft.frame }
     return d
-  }, [data, pending, drag, selected, shaping, turning, unlocked])
+  }, [data, pending, drag, selected, shaping, turning, unlocked, bgDraft])
 
   // Boards drawn where the editor has them (dragged or just moved), not where the markers last said.
   const power = useMemo(() => {
@@ -416,6 +425,24 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     }
     await refresh()
   }, [data, send, history, t, refresh, fail, isLocked])
+
+  /** Changes the hall itself (its background's place, its scale), as one step to undo. */
+  const changeHall = useCallback(async (path: 'background' | 'scale', before: Record<string, unknown>, after: Record<string, unknown>, label: string) => {
+    const url = `/api/halls/${encodeURIComponent(data.hall)}/${path}`
+    const save = (body: Record<string, unknown>) => (path === 'background' ? patch(url, body) : put(url, body))
+    try {
+      await save(after)
+      history.push({ label, undo: () => save(before).then(refresh), redo: () => save(after).then(refresh) })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [data.hall, history, refresh, fail])
+  const bgFrame: Box = data.background_frame ?? { x: 0, y: 0, w: data.size.w, h: data.size.h }
+  const placeBackground = (frame: Box | null) => {
+    setBgDraft(frame ? { frame, data, done: true } : null)
+    void changeHall('background', { frame: framePct(bgFrame, data.size) }, { frame: frame ? framePct(frame, data.size) : null }, t('plan.edit.step.background'))
+  }
 
   const change = useCallback(async (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => {
     try {
@@ -767,18 +794,21 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
               else if (tool === 'cable') startCable(raw)
             }}
-            onLine={drawWall} onBox={(b) => void drawZone(b)}
+            onLine={drawWall} onBox={(b) => void drawZone(b)} onMeasure={setMeasured}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
+          {bgPlacing && data.background && tool === 'select' && (
+            <BackgroundHandles ctx={ctx} frame={bgFrame} onDraft={(f) => setBgDraft(f ? { frame: f, data } : null)} onDone={placeBackground} />
+          )}
           {snapping.rulers && <Rulers ctx={ctx} cell={data.drawing?.cell ?? 32} />}
           {lockedSel.length > 0 && tool === 'select' && <LockBadges ctx={ctx} boxes={lockedSel.map((r) => outlineOf(shown, r)).filter((o) => !!o)} />}
           {oneMark && markBox && tool === 'select' && !drag && !isLocked(one!) && (
             <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}
               corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
-              anchors={oneMark.kind === 'wall' && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid}
+              anchors={oneMark.kind === 'wall' && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid} seatM={data.seat_m}
               onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
           )}
           {one && turnable && tool === 'select' && !drag && (
@@ -916,6 +946,19 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
             </Button>
           )}
+          {!selected.length && tool === 'select' && data.background && (
+            <BackgroundFields opacity={data.background_opacity ?? 1} placing={bgPlacing} seatM={data.seat_m} onPlacing={setBgPlacing}
+              onOpacity={(v) => void changeHall('background', { opacity: data.background_opacity ?? 1 }, { opacity: v }, t('plan.edit.step.background'))}
+              onFit={() => placeBackground(null)} />
+          )}
+          {tool === 'measure' && measured && (() => {
+            const seats = Math.hypot(measured.b.x - measured.a.x, measured.b.y - measured.a.y) / (data.drawing?.cell ?? 32)
+            return (
+              <CalibrateFields seats={seats} seatM={data.seat_m} hasBackground={!!data.background}
+                onScale={(m) => void changeHall('scale', { seat_m: data.seat_m ?? null }, { seat_m: seatMetres(seats, m) }, t('plan.edit.step.scale'))}
+                onFit={(m) => placeBackground(scaleFrame(bgFrame, measured.a, fitFactor(seats, m, data.seat_m!)))} />
+            )
+          })()}
           {!selected.length && (
             <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
           )}

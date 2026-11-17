@@ -817,5 +817,7 @@
  "{} is not on the plan.": "{} ist nicht im Plan.",
  "{} are not on the plan.": "{} sind nicht im Plan.",
  "Give a first seat for at least one batch.": "Gib für mindestens eine Gruppe einen ersten Platz an.",
- "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche."
+ "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche.",
+ "{} is a number from {} to {}": "{} ist eine Zahl von {} bis {}",
+ "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans"
 }

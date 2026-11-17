@@ -8,6 +8,11 @@ and an item without a ``hall_id`` (or with one of a hall that's gone) is in the 
 Seat numbers stay unique across halls (block names are), so everything that works with seats
 (seat map, stats, incidents, power) works the same with more than one hall.
 
+A background sits in its ``frame`` (``{x, y, w, h}`` in % of the plan; missing is the whole plan) at
+its ``opacity`` (missing is 1), so a drawing can be moved and scaled under the seats. A hall's
+``seat_m`` is how many metres one seat (one grid cell) is, set by calibrating against the
+background; with it, lengths read in metres too.
+
 Background images are files next to data.json (``halls/<id>.<ext>``), not in it, because data.json is
 read on every request. Backups carry them inline (floorbit/blueprints/backup.py).
 """
@@ -127,7 +132,9 @@ def public(data, hall):
     bg = hall.get('background') or None
     return {'id': hall['id'], 'name': hall['name'],
             'background': f"/api/halls/{hall['id']}/background?v={bg['version']}" if bg else None,
-            **counts(data, hall['id'])}
+            'background_frame': frame_of(hall) if bg else None,
+            'background_opacity': bg.get('opacity', 1) if bg else None,
+            'seat_m': hall.get('seat_m'), **counts(data, hall['id'])}
 
 
 # ── Background images ─────────────────────────────────────────────────────────────────────
@@ -158,8 +165,61 @@ def decode_image(data_url):
     return m.group(1), raw
 
 
+FRAME = {'x': 0, 'y': 0, 'w': 100, 'h': 100}
+SEAT_M = (0.1, 10)
+
+
+def _num(value, low, high, what):
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        raise HallError(f'{what} is a number from {low:g} to {high:g}') from None
+    if n != n or not low <= n <= high:
+        raise HallError(f'{what} is a number from {low:g} to {high:g}')
+    return round(n, 3)
+
+
+def place_background(hall, body):
+    """Moves, scales or fades the hall's background (``frame``, ``opacity``). Raises HallError."""
+    bg = hall.get('background')
+    if not bg:
+        raise HallError('This hall has no background')
+    if not isinstance(body, dict):
+        raise HallError('Expected a JSON object')
+    if 'frame' in body:
+        f = body['frame']
+        if f is None:
+            bg.pop('frame', None)
+        elif not isinstance(f, dict):
+            raise HallError('frame is {x, y, w, h} in % of the plan')
+        else:
+            bg['frame'] = {'x': _num(f.get('x'), -1000, 1000, 'frame x'), 'y': _num(f.get('y'), -1000, 1000, 'frame y'),
+                           'w': _num(f.get('w'), 1, 10000, 'frame w'), 'h': _num(f.get('h'), 1, 10000, 'frame h')}
+    if 'opacity' in body:
+        if body['opacity'] is None:
+            bg.pop('opacity', None)
+        else:
+            bg['opacity'] = _num(body['opacity'], 0.05, 1, 'opacity')
+    return hall
+
+
+def set_scale(hall, seat_m):
+    """How many metres one seat is (None: not known). Raises HallError."""
+    if seat_m in (None, ''):
+        hall.pop('seat_m', None)
+    else:
+        hall['seat_m'] = _num(seat_m, *SEAT_M, 'seat_m')
+    return hall
+
+
+def frame_of(hall):
+    """Where the background sits, in % of the plan."""
+    return {**FRAME, **((hall.get('background') or {}).get('frame') or {})}
+
+
 def set_background(hall, mime, raw):
     remove_background(hall)
+    # A new image starts over on the whole plan: the old one's frame was for another drawing.
     hall['background'] = {'type': mime, 'version': hashlib.sha256(raw).hexdigest()[:12]}
     os.makedirs(_folder(), exist_ok=True)
     with open(_path(hall), 'wb') as f:

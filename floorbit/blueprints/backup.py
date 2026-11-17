@@ -44,10 +44,17 @@ def make_backup(data):
         'version': FORMAT_VERSION,
         'created': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
         'layout': {**{k: data[k] for k in LAYOUT_KEYS if k in data and k != 'halls'},
-                   'halls': [{'id': h['id'], 'name': h['name'], 'background': halls.background_data_url(h)}
-                             for h in halls.halls(data)]},
+                   'halls': [_hall_out(h) for h in halls.halls(data)]},
         'settings': settings,
     }
+
+
+def _hall_out(h):
+    # Where the background sits and the hall's scale go with it (missing: the whole plan, no scale).
+    bg = h.get('background') or {}
+    extra = {'frame': bg.get('frame'), 'opacity': bg.get('opacity'), 'seat_m': h.get('seat_m')}
+    return {'id': h['id'], 'name': h['name'], 'background': halls.background_data_url(h),
+            **{k: v for k, v in extra.items() if v is not None}}
 
 
 def _check_list(name, value, required=('id',)):
@@ -72,7 +79,12 @@ def _check_halls(value):
         seen.add(hid)
         try:
             image = halls.decode_image(raw['background']) if raw.get('background') else None
-            out.append(({'id': hid, 'name': halls.clean_name(raw['name']), 'background': None}, image))
+            hall = {'id': hid, 'name': halls.clean_name(raw['name']), 'background': None}
+            halls.set_scale(hall, raw.get('seat_m'))
+            # Checked now on a stand-in, put on the background once it is written.
+            place = {k: raw[k] for k in ('frame', 'opacity') if raw.get(k) is not None}
+            halls.place_background({'background': {'stand-in': True}}, place)
+            out.append((hall, image, place))
         except halls.HallError as exc:
             raise BackupError(f'Hall "{hid}": {exc}') from None
     return out
@@ -134,9 +146,10 @@ def restore(data, backup, settings_store):
     for hall in halls.halls(data):
         halls.remove_background(hall)
     data['halls'] = []
-    for hall, image in layout.get('halls') or []:
+    for hall, image, place in layout.get('halls') or []:
         if image:
             halls.set_background(hall, *image)
+            halls.place_background(hall, place)
         data['halls'].append(hall)
     store.save_data(data)
     if settings:

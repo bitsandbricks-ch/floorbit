@@ -368,7 +368,9 @@ Source: [`floorbit/blueprints/halls.py`](https://github.com/bitsandbricks-ch/flo
 | PUT | `/api/halls/<hall_id>` | `floorplan.edit` |  |
 | DELETE | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
 | GET | `/api/halls/<hall_id>/background` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PATCH | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
 | PUT | `/api/halls/<hall_id>/background` | `floorplan.edit` |  |
+| PUT | `/api/halls/<hall_id>/scale` | `floorplan.edit` |  |
 | POST | `/api/halls/<hall_id>/seat-blocks.csv` | `floorplan.edit` |  |
 | POST | `/api/halls/example` | `floorplan.edit` |  |
 

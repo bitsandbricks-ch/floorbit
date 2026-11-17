@@ -20,7 +20,9 @@ def two_halls(client):
 def test_an_old_install_is_one_hall(client):
     client.post("/api/seat-blocks", json={"name": "A", "x": 10, "y": 10, "cols": 2, "rows": 1})
     halls = client.get("/api/halls").get_json()["halls"]
-    assert halls == [{"id": "main", "name": "Hall", "background": None, "switches": 0, "seat_blocks": 1}]
+    assert halls == [{"id": "main", "name": "Hall", "background": None, "background_frame": None,
+                      "background_opacity": None,
+                      "seat_m": None, "switches": 0, "seat_blocks": 1}]
     assert client.get("/api/seat-blocks").get_json()[0]["hall_id"] == "main"
 
 
@@ -138,3 +140,27 @@ def test_screen_passes_the_hall_on(client, two_halls):
     page = client.get(f"/screen?views=floor,stats&hall={h2}").get_data(as_text=True)
     assert f'data-src="/kiosk?hall={h2}"' in page and 'data-src="/stats?screen=1"' in page
     assert "hall=" not in client.get("/screen?hall=../x").get_data(as_text=True)
+
+
+PNG = ('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA'
+       'SUVORK5CYII=')
+
+
+def test_a_background_moves_scales_and_fades_and_a_hall_gets_its_scale(client):
+    # Mike: a drawing under the plan, calibrated to the seats.
+    assert client.put('/api/halls/main/background', json={'image': PNG}).status_code == 200
+    placed = {'frame': {'x': -5, 'y': 10, 'w': 120, 'h': 80}, 'opacity': 0.4}
+    body = client.patch('/api/halls/main/background', json=placed).get_json()
+    assert body['background_frame'] == {'x': -5, 'y': 10, 'w': 120, 'h': 80} and body['background_opacity'] == 0.4
+    plan = client.get('/api/plan?hall=main').get_json()
+    assert plan['background_frame'] == {'x': -80, 'y': 100, 'w': 1920, 'h': 800} and plan['background_opacity'] == 0.4
+    for bad in ({'opacity': 0}, {'opacity': 'x'}, {'frame': {'x': 0, 'y': 0, 'w': 0, 'h': 5}}, {'frame': [1, 2]}):
+        assert client.patch('/api/halls/main/background', json=bad).status_code == 400, bad
+    assert client.put('/api/halls/main/scale', json={'seat_m': 0.8}).get_json()['seat_m'] == 0.8
+    assert client.put('/api/halls/main/scale', json={'seat_m': 50}).status_code == 400
+    assert client.put('/api/halls/main/scale', json={'seat_m': None}).get_json()['seat_m'] is None
+    # A new image starts on the whole plan again.
+    again = client.put('/api/halls/main/background', json={'image': PNG}).get_json()
+    assert again['background_frame'] == {'x': 0, 'y': 0, 'w': 100, 'h': 100}
+    client.delete('/api/halls/main/background')
+    assert client.patch('/api/halls/main/background', json={'opacity': 0.5}).status_code == 400

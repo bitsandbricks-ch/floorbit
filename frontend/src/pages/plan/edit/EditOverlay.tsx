@@ -9,7 +9,7 @@ import { TOOL_GESTURE, type Tool } from './tools'
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  The Hand tool, Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r],
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onMeasure, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r],
   snapping = { grid: true, items: true } }: {
   ctx: OverlayContext
   data: SeatViewData
@@ -25,6 +25,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   onPlace?: (at: Point, raw: Point) => void
   /** A line was drawn (the wall tool). */
   onLine?: (a: Point, b: Point) => void
+  /** The Measure tool drew a line (null: a click took it away). */
+  onMeasure?: (line: { a: Point; b: Point } | null) => void
   /** A box was drawn (the zone tool). */
   onBox?: (box: Box) => void
   /** Where the pointer is over the plan (paste goes there). */
@@ -120,7 +122,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       e.stopPropagation()
       setDraft(null)
       const tiny = Math.hypot(draft.b.x - draft.a.x, draft.b.y - draft.a.y) < 4 * px
-      if (gesture === 'measure') { setMeasured(tiny ? null : { ...draft, tool }); return }
+      if (gesture === 'measure') { setMeasured(tiny ? null : { ...draft, tool }); onMeasure?.(tiny ? null : draft); return }
       if (tiny) return
       if (gesture === 'line') onLine?.(draft.a, draft.b)
       else onBox?.(boxFrom(draft.a, draft.b))
@@ -180,8 +182,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       {guides.map((g, i) => (g.axis === 'x'
         ? <line key={i} className="fb-edit-guide" x1={g.at} x2={g.at} y1={shown.y} y2={shown.y + shown.h} vectorEffect="non-scaling-stroke" />
         : <line key={i} className="fb-edit-guide" y1={g.at} y2={g.at} x1={shown.x} x2={shown.x + shown.w} vectorEffect="non-scaling-stroke" />))}
-      {draft && <Draft draft={draft} gesture={lineLike ? 'line' : gesture} px={px} cell={data.drawing?.cell ?? 32} />}
-      {!draft && measured && measured.tool === tool && <Draft draft={measured} gesture="line" px={px} cell={data.drawing?.cell ?? 32} />}
+      {draft && <Draft draft={draft} gesture={lineLike ? 'line' : gesture} px={px} cell={data.drawing?.cell ?? 32} seatM={data.seat_m} />}
+      {!draft && measured && measured.tool === tool && <Draft draft={measured} gesture="line" px={px} cell={data.drawing?.cell ?? 32} seatM={data.seat_m} />}
       {marquee && <rect className="fb-edit-marquee" x={marquee.x} y={marquee.y} width={marquee.w} height={marquee.h} vectorEffect="non-scaling-stroke" />}
     </g>
   )
@@ -189,7 +191,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
 
 /** A wall or zone being drawn, with what it measures: length and angle, or width and height, in
  *  seats (one seat is one grid cell), so it reads the same at every zoom. */
-function Draft({ draft, gesture, px, cell }: { draft: { a: Point; b: Point }; gesture: string; px: number; cell: number }) {
+function Draft({ draft, gesture, px, cell, seatM }: { draft: { a: Point; b: Point }; gesture: string; px: number; cell: number; seatM?: number | null }) {
   const { a, b } = draft
   const fmt = (n: number) => (Math.round(n * 10) / 10).toString()
   if (gesture === 'line') {
@@ -197,7 +199,7 @@ function Draft({ draft, gesture, px, cell }: { draft: { a: Point; b: Point }; ge
       <g className="fb-edit-draft">
         <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} vectorEffect="non-scaling-stroke" />
         <circle cx={a.x} cy={a.y} r={4 * px} />
-        <text x={b.x + 10 * px} y={b.y - 10 * px} fontSize={13 * px}>{measure(a, b, cell)}</text>
+        <text x={b.x + 10 * px} y={b.y - 10 * px} fontSize={13 * px}>{measure(a, b, cell, seatM)}</text>
       </g>
     )
   }

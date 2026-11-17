@@ -383,7 +383,9 @@
       "unlock_one": "entsperren",
       "unlock_other": "{{count}} Elemente entsperren",
       "changeAll_one": "{{count}} Element ändern",
-      "changeAll_other": "{{count}} Elemente ändern"
+      "changeAll_other": "{{count}} Elemente ändern",
+      "background": "Hintergrund verschieben",
+      "scale": "Massstab setzen"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -639,7 +641,7 @@
       "open": "Öffnen",
       "counts": "{{switches}} Switches, {{blocks}} Sitzblöcke",
       "hasBackground": "Hintergrundbild",
-      "background": "Hintergrundbild…",
+      "background": "Hintergrundbild oder PDF…",
       "replaceBackground": "Hintergrund ersetzen…",
       "removeBackground": "Hintergrund entfernen",
       "backgroundSet": "Hintergrund gesetzt",
@@ -688,6 +690,25 @@
       "grid": "Am Raster einrasten (Alt beim Ziehen hebt es auf)",
       "items": "An anderen Elementen und Wänden einrasten",
       "rulers": "Lineale"
+    },
+    "background": {
+      "title": "Hintergrund",
+      "opacity": "Deckkraft",
+      "place": "Verschieben und skalieren",
+      "donePlacing": "Fertig",
+      "fit": "Ganzen Plan füllen",
+      "scaleKnown": "Ein Platz ist {{m}} m. Mit Messen (M) eine Linie ziehen, um es zu ändern.",
+      "scaleHelp": "Noch kein Massstab: mit Messen (M) eine bekannte Strecke auf der Zeichnung messen.",
+      "dragHelp": "Ziehen verschiebt den Hintergrund, die Ecke skaliert ihn"
+    },
+    "calibrate": {
+      "title": "Massstab",
+      "measured": "Diese Linie ist {{seats}} Plätze lang.",
+      "metres": "Ihre echte Länge",
+      "setScale": "Massstab aus dieser Linie setzen",
+      "fit": "Hintergrund an die Plätze anpassen",
+      "help": "Eine Linie über etwas ziehen, dessen Länge du kennst, dann die echte Länge eingeben.",
+      "helpBackground": "Über der Zeichnung: «Massstab setzen», wenn die Plätze schon zur Zeichnung passen; «Hintergrund anpassen» skaliert die Zeichnung, bis die Linie beim aktuellen Massstab ihre echte Länge hat."
     },
     "tint": {
       "label": "Eigene Farbe",

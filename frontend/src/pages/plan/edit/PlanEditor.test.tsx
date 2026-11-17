@@ -282,3 +282,26 @@ describe('Plan editor: own colours', () => {
     expect(api.calls.find((c) => c.method === 'PUT')).toMatchObject({ path: '/api/plan-marks/w', body: { tint: null } })
   })
 })
+
+describe('Plan editor: background and scale', () => {
+  it('sets the hall\'s scale from a measured line, as a step to undo', async () => {
+    // A plan box as large as the plan, so one screen pixel is one drawing unit.
+    const box = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 1600, height: 1000, x: 0, y: 0, right: 1600, bottom: 1000, toJSON: () => ({}) } as DOMRect)
+    const e = editor({ 'PUT /api/halls/main/scale': { seat_m: 0.8 } })
+    e.key('m')
+    const bg = e.container.querySelector('.fb-edit-bg')!
+    // 640 units is 20 seats.
+    fireEvent.pointerDown(bg, { button: 0, pointerId: 1, clientX: 0, clientY: 0, altKey: true })
+    fireEvent.pointerMove(bg, { pointerId: 1, clientX: 640, clientY: 0, altKey: true })
+    fireEvent.pointerUp(bg, { pointerId: 1, clientX: 640, clientY: 0, altKey: true })
+    const scale = await screen.findByRole('group', { name: 'Scale' })
+    fireEvent.change(within(scale).getByLabelText('Its real length'), { target: { value: '16' } })
+    fireEvent.click(within(scale).getByRole('button', { name: 'Set the scale from this line' }))
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    expect(e.sent('PUT')[0]).toMatchObject({ path: '/api/halls/main/scale', body: { seat_m: 0.8 } })
+    e.key('z', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
+    expect(e.sent('PUT')[1].body).toEqual({ seat_m: null })
+    box.mockRestore()
+  })
+})
