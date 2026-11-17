@@ -232,6 +232,10 @@
     "down": "Seat has no firewall up"
   },
   "power": {
+    "trippedCount_one": "{{count}} tripped",
+    "trippedCount_other": "{{count}} tripped",
+    "board_one": "{{name}}: {{count}} circuit, busiest at {{pct}} %",
+    "board_other": "{{name}}: {{count}} circuits, busiest at {{pct}} %",
     "layer": "Power",
     "ok": "Circuit fine",
     "warn": "Circuit high",

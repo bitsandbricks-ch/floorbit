@@ -498,6 +498,14 @@ body {
 .fb-plan .pw-crit.pcable, .fb-plan .pw-crit rect { stroke: var(--color-down); }
 .fb-plan .pw-tripped.pcable { stroke: var(--color-down); stroke-dasharray: 6 4; }
 .fb-plan .pw-tripped rect { stroke: var(--color-down); fill: color-mix(in srgb, var(--color-down) 18%, var(--mantine-color-body)); }
+.fb-plan .pboard .pload rect { stroke: none; }
+.fb-plan .pboard .pload-track { fill: color-mix(in srgb, var(--mantine-color-gray-5) 35%, transparent); }
+.fb-plan .pboard .pload-fill { fill: var(--mantine-color-gray-5); }
+.fb-plan .pboard .pw-ok .pload-fill { fill: var(--color-up); }
+.fb-plan .pboard .pw-warn .pload-fill { fill: var(--color-warn); }
+.fb-plan .pboard .pw-crit .pload-fill { fill: var(--color-down); }
+.fb-plan .pboard .pload-text { fill: var(--mantine-color-text); font: 700 11px var(--font-mono); paint-order: stroke; stroke: var(--mantine-color-body); stroke-width: 3px; stroke-linejoin: round; }
+.fb-plan .pboard text.pload-text.pw-tripped { fill: var(--color-down); font-weight: 700; }
 .fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
 .fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
 .fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
