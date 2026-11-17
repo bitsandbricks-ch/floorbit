@@ -132,6 +132,14 @@ def create_app(start_background=True):
     from .schedule_announce import init_schedule_announce
     init_schedule_announce(app, start_background=start_background)
 
+    # A bare "x" or 5 as a JSON body is refused before any handler reads it (floorbit/json_body.py).
+    from .json_body import init_json_body
+    init_json_body(app)
+
+    # Clickjacking and MIME sniffing guards on every answer (floorbit/headers.py).
+    from .headers import init_headers
+    init_headers(app)
+
     # Security findings from security plugins, polled in the background (docs/security.md).
     from .security import init_security
     init_security(app, registry, start_background=start_background)

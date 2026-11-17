@@ -9,19 +9,12 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ago, dateOnly } from '@/lib/time'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
 type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number }
 type Made = Agent & { key: string }
 
-function ago(ts: number, lang: string): string {
-  const s = Math.max(0, Date.now() / 1000 - ts)
-  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' })
-  if (s < 60) return rtf.format(-Math.round(s), 'second')
-  if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute')
-  if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour')
-  return rtf.format(-Math.round(s / 86400), 'day')
-}
 
 function Copy({ value }: { value: string }) {
   const { t } = useTranslation()
@@ -76,6 +69,9 @@ function Report({ report, lang }: { report?: AgentReport | null; lang: string })
     if (report.syslog_dropped) parts.push(<Text span size="xs" c="down" key="d">{t('agents.reportSyslogDropped', { count: report.syslog_dropped, n: num(report.syslog_dropped) })}</Text>)
   }
   if (report.flows_packets) parts.push(t('agents.reportFlows', { n: num(report.flows_packets) }))
+  if (report.captive_shown || report.captive_done) {
+    parts.push(t('agents.reportCaptive', { shown: num(report.captive_shown ?? 0), done: num(report.captive_done ?? 0) }))
+  }
   if (report.calls_busy) parts.push(<Text span size="xs" c="warn" key="b">{t('agents.reportBusy', { count: report.calls_busy })}</Text>)
   return (
     <Text size="xs" c="dimmed">
@@ -105,7 +101,7 @@ export default function Agents() {
   })
   const d = query.data
   const error = query.error ?? revoke.error ?? setHalls.error
-  const date = (ts: number) => new Date(ts * 1000).toLocaleDateString(i18n.language)
+  const date = (ts: number) => dateOnly(ts, i18n.language)
   const run = made ? [
     'docker run -d --restart on-failure:3 --name floorbit-agent \\',
     `  -e FLOORBIT_URL=${window.location.origin} \\`,

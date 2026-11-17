@@ -1,13 +1,13 @@
 import { Alert, Badge, Button, Group, Paper, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconDownload, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react'
+import { IconDownload, IconPlugConnected, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, put } from '@/api/client'
+import { del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useSeatMap } from '@/api/queries'
-import type { SeatRow } from '@/api/types'
+import type { ResolvePortsResult, SeatRow } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -27,6 +27,34 @@ function Cell({ value, source, label, mono }: { value: string; source?: string; 
         <Tooltip label={label('manual')}>
           <Badge size="xs" variant="filled" color="bit" aria-label={label('manual')}>
             ✎
+          </Badge>
+        </Tooltip>
+      )}
+      {source === 'network' && (
+        <Tooltip label={label('network')}>
+          <Badge size="xs" variant="light" color="trace" aria-label={label('network')}>
+            ⇄
+          </Badge>
+        </Tooltip>
+      )}
+    </Group>
+  )
+}
+
+/** The key of the mapping: switch and port, and where they came from. */
+function PortCell({ row }: { row: SeatRow }) {
+  const { t } = useTranslation()
+  if (!row.port) return <Text size="sm" c="dimmed">{t('seatmap.noPort')}</Text>
+  const origin = row.port_origin ? t(`seatmap.origin.${row.port_origin}`) : ''
+  return (
+    <Group gap={6} wrap="nowrap">
+      <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>
+        {row.switch} <b>{row.port}</b>
+      </Text>
+      {origin && (
+        <Tooltip label={t(`seatmap.originLong.${row.port_origin}`)}>
+          <Badge size="xs" variant={row.port_origin === 'manual' ? 'filled' : 'light'} color={row.port_origin === 'manual' ? 'bit' : 'trace'} tt="none">
+            {origin}
           </Badge>
         </Tooltip>
       )}
@@ -54,7 +82,9 @@ export default function SeatMapping() {
 
   const save = useMutation({
     mutationFn: (d: SeatDraft) =>
-      put(`/api/seat-map/${encodeURIComponent(editing?.seat ?? d.seat.trim())}`, { ip: d.ip, mac: d.mac, nick: d.nick, note: d.note }),
+      put(`/api/seat-map/${encodeURIComponent(editing?.seat ?? d.seat.trim())}`, {
+        switch: d.switch, port: d.port, ip: d.ip, mac: d.mac, nick: d.nick, note: d.note,
+      }),
     onSuccess: () => {
       void refresh()
       form.close()
@@ -67,6 +97,17 @@ export default function SeatMapping() {
     onSuccess: () => {
       void refresh()
       setMessage({ ok: true, text: t('seatmap.removed') })
+    },
+    onError: (e) => setMessage({ ok: false, text: e.message }),
+  })
+
+  // Hand entries from before the port was the key: offer to look their port up once.
+  const portless = (data?.seats ?? []).filter((r) => r.manual && !r.manual.switch && (r.manual.ip || r.manual.mac)).length
+  const resolve = useMutation({
+    mutationFn: () => post<ResolvePortsResult>('/api/seat-map/resolve-ports', {}),
+    onSuccess: (r) => {
+      void refresh()
+      setMessage({ ok: true, text: t('seatmap.resolved', { found: Object.keys(r.found).length, missed: r.missed.length, taken: r.taken.length }) })
     },
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
@@ -121,6 +162,11 @@ export default function SeatMapping() {
           style={{ flex: '1 1 260px' }}
         />
         <Switch label={t('seatmap.onlyManual')} checked={onlyManual} onChange={(e) => setOnlyManual(e.currentTarget.checked)} mb={8} />
+        {canEdit && portless > 0 && (
+          <Button variant="light" leftSection={<IconPlugConnected size={16} />} loading={resolve.isPending} onClick={() => resolve.mutate()}>
+            {t('seatmap.resolve', { count: portless })}
+          </Button>
+        )}
       </Group>
       {isPending && <LoadingState />}
       {error && (
@@ -137,11 +183,12 @@ export default function SeatMapping() {
             <Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>
           ) : (
             <Paper withBorder radius="lg">
-              <Table.ScrollContainer minWidth={720}>
+              <Table.ScrollContainer minWidth={860}>
                 <Table highlightOnHover verticalSpacing="xs" fz="sm">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>{t('seatmap.seat')}</Table.Th>
+                      <Table.Th>{t('seatmap.port')}</Table.Th>
                       <Table.Th>{t('seatmap.nick')}</Table.Th>
                       <Table.Th>{t('seatmap.ip')}</Table.Th>
                       <Table.Th>{t('seatmap.mac')}</Table.Th>
@@ -162,6 +209,9 @@ export default function SeatMapping() {
                               {r.seat}
                             </Text>
                           )}
+                        </Table.Td>
+                        <Table.Td>
+                          <PortCell row={r} />
                         </Table.Td>
                         <Table.Td>
                           <Cell value={r.nick} source={r.from.nick} label={label} />

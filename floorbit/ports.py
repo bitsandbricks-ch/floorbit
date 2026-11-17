@@ -75,13 +75,17 @@ def _switch(data, name):
 
 
 def resolve_seat(seat):
-    """(switch name, port) for a seat: from the seat mapping and the monitoring source, else from
-    the port descriptions the needs-attention watch read last (an offline seat often has no IP)."""
+    """(switch name, port) for a seat: the port the seat mapping names (by hand, a cable or a
+    check-in), else where its IP or MAC is seen, else the port descriptions the needs-attention
+    watch read last (an offline seat often has no IP)."""
     from integrations import seat_sources
     mapping = (seat_sources.load() or {}).get(seat) or {}
+    if mapping.get('switch') and mapping.get('port'):
+        return mapping['switch'], mapping['port']
     ip = mapping.get('ip_address')
-    if not ip and mapping.get('mac'):
-        ip = sources.monitoring().ip_for_mac(mapping['mac'])
+    mac = mapping.get('mac_address') or mapping.get('mac')   # seat sources call it mac_address
+    if not ip and mac:
+        ip = sources.monitoring().ip_for_mac(mac)
     found = (sources.monitoring().resolve_ip(ip) or {}) if ip else {}
     if found.get('device_name') and found.get('port'):
         return found['device_name'], found['port']
@@ -90,7 +94,7 @@ def resolve_seat(seat):
     if described:
         return described
     if not ip:
-        raise PortError(f'Seat {seat} has no IP or MAC in the seat mapping.')
+        raise PortError(f'Seat {seat} has no switch port in the seat mapping.')
     raise PortError(f'Seat {seat} was not found on any switch port.')
 
 

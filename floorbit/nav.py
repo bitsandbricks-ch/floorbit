@@ -31,7 +31,20 @@ def boot(ctx):
         'brand': {'logo': theme.get('logo_url') or None, 'name': theme.get('name') or None},
         'user': account,
         'signOut': bool(ctx.get('auth_enabled')),
+        # Saved with the account; None without sign-in, where the browser keeps them instead.
+        'prefs': _prefs(user),
     }
+
+
+def _prefs(user):
+    if not user or user.get('api_token'):
+        return None
+    auth = current_app.extensions.get('auth')
+    record = auth.users.get(user.get('username')) if auth and auth.enabled else None
+    if not record:
+        return None
+    from auth.users import clean_nav  # late: auth imports floorbit while it loads
+    return clean_nav(record.get('nav'))
 
 
 def state():
@@ -124,12 +137,23 @@ def markup(boot):
     def label(p):
         return page_t.get(p['id']) or p['label']
 
+    prefs = boot.get('prefs') or {}
+    favs = [by_id[i] for i in prefs.get('favourites') or [] if i in by_id]
+
+    def star(p):
+        if rail or 'favAdd' not in nav_t:   # an older build without favourites
+            return ''
+        fav = p['id'] in (prefs.get('favourites') or [])
+        text = e(nav_t['favRemove' if fav else 'favAdd'].replace('{{page}}', label(p)))
+        return (f'<button type="button" class="fb-nav-fav" aria-pressed="{"true" if fav else "false"}" '
+                f'aria-label="{text}" title="{text}">{icons["starFilled" if fav else "star"]}</button>')
+
     def row(p):
         cur = ' aria-current="page"' if p['href'] == lit else ''
         title = f' title="{e(label(p))}"' if rail else ''
         icon = icons['page'].get(p['id']) or icons['page']['*']
-        return (f'<li><a href="{e(p["href"])}" class="fb-nav-row"{title}{cur}>{icon}'
-                f'<span class="fb-nav-text">{e(label(p))}</span></a></li>')
+        return (f'<li class="fb-nav-item"><a href="{e(p["href"])}" class="fb-nav-row"{title}{cur}>{icon}'
+                f'<span class="fb-nav-text">{e(label(p))}</span></a>{star(p)}</li>')
 
     out = [f'<nav class="fb-nav" data-state="{"rail" if rail else "full"}" aria-label="{e(nav_t["label"])}">',
            f'<div class="fb-nav-top"><a href="/" class="fb-nav-brand" title="{e(nav_t["home"])}">'
@@ -139,7 +163,12 @@ def markup(boot):
     out.append(f'<button type="button" class="fb-nav-row fb-nav-search"{title} aria-keyshortcuts="Control+K Meta+K">'
                f'{icons["search"]}<span class="fb-nav-text">{e(nav_t["goTo"])}</span>'
                f'<kbd class="fb-nav-kbd">{"⌘K" if mac else "Ctrl K"}</kbd></button>')
-    out.append('<div class="fb-nav-scroll"><ul class="fb-nav-list">' + ''.join(row(p) for p in pinned) + '</ul>')
+    out.append('<div class="fb-nav-scroll">')
+    if favs and 'favourites' in nav_t:
+        head = '' if rail else f'<div class="fb-nav-group-label">{e(nav_t["favourites"])}</div>'
+        out.append(f'<div class="fb-nav-favs">{head}<ul class="fb-nav-list" aria-label="{e(nav_t["favourites"])}">'
+                   + ''.join(row(p) for p in favs) + '</ul></div>')
+    out.append('<ul class="fb-nav-list">' + ''.join(row(p) for p in pinned) + '</ul>')
     for sid, ps in sections:
         name = nav_t['sections'].get(sid, sid)
         expanded = not rail and sid == lit_section

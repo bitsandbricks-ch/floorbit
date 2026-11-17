@@ -2,7 +2,9 @@
 // icons, the order and the texts to static/app/nav-shell.json, Flask draws the same markup as
 // Sidebar.tsx from it, and the script takes over that markup when it runs. So the sidebar is
 // there in the first paint, before the floor plan, and never pops in after it.
-import { IconChevronDown, IconDots, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMenu2, IconSearch } from '@tabler/icons-react'
+import {
+  IconChevronDown, IconDots, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMenu2, IconSearch, IconStar, IconStarFilled,
+} from '@tabler/icons-react'
 import { readFileSync } from 'fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -38,6 +40,8 @@ export function navShell(i18nDir: string) {
       expand: svg(IconLayoutSidebarLeftExpand, 18),
       menu: svg(IconMenu2, 22),
       dots: svg(IconDots, 16),
+      star: svg(IconStar, 14),
+      starFilled: svg(IconStarFilled, 14),
     },
     texts: Object.fromEntries(['en', 'de-CH'].map((lang) => [lang, texts(i18nDir, lang)])),
   }

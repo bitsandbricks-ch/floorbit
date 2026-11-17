@@ -74,7 +74,13 @@ export function PluginCard({ plugin }: { plugin: PluginInfo }) {
             aria-label={`${plugin.name}: ${plugin.enabled ? t('plugins.on') : t('plugins.off')}`}
           />
         </Group>
-        {plugin.description && <Text c="dimmed">{plugin.description}</Text>}
+        {plugin.description && (
+          <Text c="dimmed">
+            {plugin.trust === 'builtin'
+              ? t([`integrationSettings.plugins.${plugin.id}`, `integrationSettings.sections.plugin-${plugin.id}.desc`], { defaultValue: plugin.description })
+              : plugin.description}
+          </Text>
+        )}
         {plugin.error && (
           <Alert color="down" role="alert">
             ✕ {plugin.error}

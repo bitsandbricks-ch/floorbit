@@ -152,6 +152,8 @@ export interface InventoryList {
 
 export interface ManualSeat {
   seat: string
+  switch: string
+  port: string
   ip: string
   mac: string
   nick: string
@@ -162,10 +164,15 @@ export interface ManualSeat {
 
 export interface SeatRow {
   seat: string
+  /** The key: the switch port the seat is on. IP and MAC are read off it. */
+  switch: string
+  port: string
+  /** Where the port came from: typed in, a cable, or a check-in. */
+  port_origin: '' | 'manual' | 'cable' | 'checkin'
   ip: string
   mac: string
   nick: string
-  from: Partial<Record<'ip' | 'mac' | 'nick' | 'note', string>>
+  from: Partial<Record<'switch' | 'port' | 'ip' | 'mac' | 'nick' | 'note', string>>
   manual: ManualSeat | null
   sources: string[]
 }
@@ -175,6 +182,21 @@ export interface SeatMapList {
   sources: string[]
   errors: Record<string, string>
   labels: Record<string, string>
+}
+
+export interface FoundPort {
+  switch: string
+  port: string
+  ip: string
+  mac: string
+  held_by: string | null
+}
+
+export interface ResolvePortsResult {
+  dry_run: boolean
+  found: Record<string, { switch: string; port: string }>
+  missed: string[]
+  taken: { seat: string; held_by: string; switch: string; port: string }[]
 }
 
 export interface ImportResult {
@@ -315,7 +337,7 @@ export interface Incident {
   can_work: boolean
   can_assign: boolean
   /** The first runbook for this kind of incident (issue #102). */
-  runbook?: { id: string; title: string } | null
+  runbook?: { id: string; title: string; starter?: boolean } | null
   /** The seat's crew note (issue #204). */
   seat_note?: { text: string; by: string | null; at: number } | null
 }
@@ -747,7 +769,7 @@ export interface Job {
   seat_ok_at?: number | null
   drawing: PlanDrawing | null; target: [number, number] | null; from: [number, number] | null; hall: string | null
   /** The steps for this kind of incident, right on the job (issue #102). */
-  runbook?: { id: string; title: string; body: string } | null
+  runbook?: { id: string; title: string; body: string; starter?: boolean } | null
 }
 export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number; auto?: boolean }
 export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number; done?: number }
@@ -1459,7 +1481,7 @@ export interface FirewallCard {
   serving: string[]; planned: string[]; backup_for: string[]; seats: number
 }
 export interface FirewallList {
-  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean; can_import?: boolean
+  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean; monitoring?: boolean; can_import?: boolean
   counts: { firewalls: number; down: number; failover: number; without: number }
 }
 
@@ -1515,6 +1537,9 @@ export interface SwitchDetails {
   model: string | null
   online: number
   seats: { seat: string; port: string; state: SeatState; problems: number }[]
+  /** Its planned links (topology) and what LLDP or CDP sees on ports no link explains (issue #540). */
+  links?: { id: string; port: string; to: string; to_port: string; type: LinkType | ''; speed: number | null; issue: '' | 'down' | 'slow'; lldp: LinkLldp | null }[]
+  neighbours?: { port: string; remote: string; remote_port: string; protocol: string }[]
 }
 
 /** GET /api/notice (issue #246): the lead's message to the whole crew. */
@@ -1575,6 +1600,9 @@ export interface AgentReport {
   syslog_dropped?: number
   syslog_backlog?: number
   flows_packets?: number
+  /** Captive portal answers: the note shown, or not (checked in). */
+  captive_shown?: number
+  captive_done?: number
 }
 
 export interface AgentStats {
@@ -1613,7 +1641,10 @@ export interface SwitchLink {
   id: string; a: string; a_port: string; b: string; b_port: string; type: LinkType | ''; speed: number | null; note: string
   media: 'copper' | 'fiber' | 'dac' | ''
   state: 'up' | 'down' | 'unknown'; speed_bps: number | null; issue: '' | 'down' | 'slow'
+  /** What LLDP or CDP sees on its ports (issue #540); null when the source doesn't tell. */
+  lldp?: LinkLldp | null
 }
+export interface LinkLldp { state: 'seen' | 'other' | 'unseen'; at?: 'a' | 'b'; remote?: string; remote_port?: string }
 export interface TopologyNode { id: string; name: string; role: string; hall: string; unread: boolean; status: 'online' | 'offline' | 'unknown' }
 export interface LinkSuggestion { a: string; a_port: string; b: string; b_port: string; protocol: string; speed: number | null }
 /** An internet line from the services view (issue #471), drawn above the box it comes in at. */
@@ -1623,7 +1654,7 @@ export interface TopologyUplink {
 }
 export interface Topology {
   nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
-  counts: { links: number; down: number; slow: number }; types: LinkType[]; speeds: number[]
+  counts: { links: number; down: number; slow: number; miswired?: number }; types: LinkType[]; speeds: number[]
 }
 /** One kept switch config (floorbit/config_backup.py, issue #96). */
 export interface ConfigCopy {

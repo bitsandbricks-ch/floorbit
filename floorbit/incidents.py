@@ -28,6 +28,10 @@ KEY = 'incidents'
 STATUSES = ('open', 'assigned', 'fixed')
 # What an attendee can pick on the help page, and the team it goes to first (if that team exists).
 # Admins rename or remove teams; then the report lands without a team for anyone with incidents.assign.
+# The titles of seat reports (the help page, Discord's /report). The app, the Discord bot and the
+# report PDF show them in German by these texts (frontend/src/lib/incidentTitle.ts).
+SEAT_TITLES = {'no-internet': 'No internet at the seat', 'slow': 'Slow connection', 'power': 'No power at the seat',
+               'other': 'Needs help at the seat'}
 PROBLEMS = {
     'no-internet': 'access',
     'slow': 'access',
@@ -241,9 +245,7 @@ def report_from_seat(seat, problem, snapshot):
                 _save(data, _all(data))
                 return incident, False
     team = PROBLEMS[problem] if PROBLEMS[problem] in teams.all_teams() else None
-    titles = {'no-internet': 'No internet at the seat', 'slow': 'Slow connection', 'power': 'No power at the seat',
-              'other': 'Needs help at the seat'}
-    return create(None, {'seat': seat, 'title': titles[problem], 'problem': problem, 'team': team},
+    return create(None, {'seat': seat, 'title': SEAT_TITLES[problem], 'problem': problem, 'team': team},
                   snapshot=snapshot, source='helpdesk', speedtest=test), True
 
 
@@ -384,12 +386,21 @@ def seat_snapshot(seat):
     from . import sources
     try:
         mapping = (seat_sources.load() or {}).get(seat) or {}
-        ip = mapping.get('ip_address')
-        if not ip and mapping.get('mac'):
-            ip = sources.monitoring().ip_for_mac(mapping['mac'])
-        if not ip:
-            return {'known': False, 'reason': 'No IP or MAC known for this seat'}
-        found = sources.monitoring().resolve_ip(ip) or {}
+        found = {}
+        mac = mapping.get('mac_address') or mapping.get('mac')
+        # The seat's switch port is the mapping; an IP or MAC only helps when no port is known.
+        if mapping.get('switch') and mapping.get('port'):
+            stats = sources.monitoring().port_stats(mapping['switch'], mapping['port'])
+            if stats:
+                found = {'device_name': mapping['switch'], 'port': mapping['port'], 'stats': stats,
+                         'mac': mac, 'stale': bool(stats.get('stale'))}
+        if not found:
+            ip = mapping.get('ip_address')
+            if not ip and mac:
+                ip = sources.monitoring().ip_for_mac(mac)
+            if not ip:
+                return {'known': False, 'reason': 'No switch port, IP or MAC known for this seat'}
+            found = sources.monitoring().resolve_ip(ip) or {}
     except Exception as exc:  # noqa: BLE001  # a report must never fail because the network lookup did
         print(f'[incidents] snapshot for {seat} failed: {exc}')
         return {'known': False, 'reason': 'The network lookup failed'}

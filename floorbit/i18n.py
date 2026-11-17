@@ -9,6 +9,9 @@ values in another order with ``{1}``, ``{2}``.
 Standard German (``de``: Germany, Austria) is made from the Swiss texts, like in the React app
 (frontend/src/i18n/germany.ts): only "ss" becomes "ß" in the words that need it.
 
+The audit log, event changelog and handover show their entries through ``log_text``, from
+``locales/log.de-CH.json`` (``tests/test_i18n_log.py`` checks every audit action has German).
+
 ``tests/test_i18n_server.py`` checks that every message in the code has a German text, so a new
 message without one fails CI. ``locales/untranslated.txt`` lists the ones still waiting.
 """
@@ -47,7 +50,7 @@ def to_germany(text):
     return text
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=4)
 def catalog(files=('de-CH.json',)):
     """(exact texts, [(pattern, German)] for texts with values), from ``files`` (later ones win)."""
     texts = {}
@@ -96,6 +99,38 @@ def translate(text, lang, files=('de-CH.json',)):
     if german is None:
         return text
     return german if lang.lower() in ('de-ch', 'de-li') else to_germany(german)
+
+
+LOG = ('log.de-CH.json',)
+_FIELDS = re.compile(r'^(.+) \(([^()]*)\)$', re.S)
+
+
+def log_text(text, lang):
+    """An audit action or changelog title in ``lang``, from ``locales/log.de-CH.json``. Unlike
+    ``translate``, the values go through too ("Incident opened: No internet at the seat"), and a
+    title with the changed fields after it ("Changed cable (label, route)") keeps them as they are."""
+    if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
+        return text
+    german = _log_german(text)
+    if german is None:
+        return text
+    return german if lang.lower() in ('de-ch', 'de-li') else to_germany(german)
+
+
+def _log_german(text, depth=0):
+    exact, patterns = catalog(LOG)
+    if text in exact:
+        return exact[text]
+    if depth < 2:
+        for pattern, target in patterns:
+            m = pattern.match(text)
+            if m:
+                return _fill(target, [_log_german(v, depth + 1) or v for v in m.groups()])
+    m = _FIELDS.match(text)
+    if m:
+        head = _log_german(m.group(1), depth)
+        return f'{head} ({m.group(2)})' if head is not None else None
+    return None
 
 
 _TEXT_KEYS = ('content', 'title', 'description', 'name', 'value', 'text', 'label', 'placeholder')

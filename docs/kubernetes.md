@@ -25,6 +25,12 @@ The first account and the rest of the setup are the same as with Docker Compose
 ([install.md](install.md#2-the-first-account-and-setup)). Settings go in the Deployment's `env`, or
 under **Settings** in the app.
 
+The manifest sets `CHECKIN_TRUST_PROXY=true`. Only the Ingress reaches the pod, so Floorbit takes
+the visitor's address from Traefik's `X-Forwarded-For` header and not Traefik's own address. Without it,
+five wrong passwords from anyone would lock that username for everyone. If Traefik itself only sees
+node addresses (k3s's built-in load balancer can hide the client), set
+`externalTrafficPolicy: Local` on Traefik's Service.
+
 `SECRET_KEY` signs the sign-in cookies. Without it, Floorbit makes one and keeps it in `data.json`,
 which works too as long as the volume stays. Keeping it in a Secret also keeps everyone signed in
 across a restore.

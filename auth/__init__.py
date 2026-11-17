@@ -26,17 +26,28 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
 
+from floorbit.env import number
+
 from . import oidc, roles, teams, tokens
 from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
-from .users import UserError, UserStore, public
+from .users import UserError, UserStore, clean_nav, public
 
 __all__ = ['Auth', 'AuthError', 'Identity', 'current_user', 'init_auth', 'login_required', 'public_endpoint']
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 DEFAULT_PUBLIC_PATHS = '/checkin,/api/checkin,/kiosk'
+# What AUTH_PUBLIC_READ opens to someone not signed in: what the kiosk view and the big screens
+# draw (static/js/kiosk.js), and nothing else. Anything more (inventory with management IPs,
+# incidents, the firewall per seat, reports) needs an account. A path covers what is below it.
+PUBLIC_READ_PATHS = ('/api/auth/me', '/api/plugins/menu',   # answer for "nobody" themselves
+                     '/api/config', '/api/version', '/api/features', '/api/halls', '/api/plan-marks',
+                     '/api/seat-blocks', '/api/seats/occupancy', '/api/stats/seats', '/api/status/snapshot',
+                     '/api/switches', '/api/events')
+PUBLIC_READ_EXACT = ('/api/seats',)    # not /api/seats/info and the rest below it
 MAX_FAILURES = 5                 # per address and username ...
 FAILURE_WINDOW = 300             # ... within this many seconds
+MAX_FAILURE_KEYS = 10000         # address/username pairs remembered before stale ones are dropped
 
 
 def _env_bool(name, default):
@@ -164,12 +175,12 @@ class Auth:
         self._key_pending = False
         if not app.config.get('SECRET_KEY'):
             app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or self._secret_key_or_stand_in()
-        app.config['SESSION_COOKIE_NAME'] = 'lal_session'
+        app.config['SESSION_COOKIE_NAME'] = 'floorbit_session'
         app.config['SESSION_COOKIE_HTTPONLY'] = True
         app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
         app.config['SESSION_COOKIE_SECURE'] = _env_bool('AUTH_COOKIE_SECURE', False)
         app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(
-            hours=float(os.environ.get('AUTH_SESSION_HOURS') or 12))
+            hours=number('AUTH_SESSION_HOURS', 12.0, kind=float, minimum=0.1))
 
         app.extensions['auth'] = self
         app.register_blueprint(_blueprint())
@@ -240,7 +251,9 @@ class Auth:
         if any(path == p or path.startswith(p + '/') for p in self.public_paths):
             return True
         # Reads of admin-only data (settings, accounts) never count as public.
-        return bool(self.public_read and request.method in SAFE_METHODS and path.startswith('/api/')
+        return bool(self.public_read and request.method in SAFE_METHODS
+                    and (path in PUBLIC_READ_EXACT
+                         or any(path == p or path.startswith(p + '/') for p in PUBLIC_READ_PATHS))
                     and roles.needed_for(path, request.method, SAFE_METHODS) == 'floorplan.view')
 
     def guard(self):
@@ -281,7 +294,9 @@ class Auth:
 
     # sign-in -------------------------------------------------------------
     def _failure_key(self, username):
-        return (request.remote_addr or '?', (username or '').strip().lower())
+        # The real client behind a trusted proxy: else one guesser locks the name for everyone.
+        from integrations import checkin
+        return (checkin.client_ip() or '?', (username or '').strip().lower()[:200])
 
     def locked_for(self, username):
         now = time.time()
@@ -294,6 +309,10 @@ class Auth:
         key = self._failure_key(username)
         now = time.time()
         self._failures[key] = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW] + [now]
+        if len(self._failures) > MAX_FAILURE_KEYS:
+            # Every made-up username is a new key: forget the stale ones so guessing can't fill memory.
+            for stale in [k for k, v in self._failures.items() if now - v[-1] >= FAILURE_WINDOW]:
+                self._failures.pop(stale, None)
 
     def sign_in(self, user, provider_id):
         self._failures.pop(self._failure_key(user['username']), None)
@@ -428,6 +447,17 @@ def _blueprint():
     def me():
         auth = _auth()
         return jsonify({'enabled': auth.enabled, 'user': current_user()})
+
+    @bp.route('/api/auth/me/nav', methods=['GET', 'PUT'])
+    def my_nav():
+        """The sidebar's favourites and fold behaviour for the signed-in account."""
+        auth = _auth()
+        user = current_user()
+        if not auth.enabled or not user or user.get('api_token'):
+            return jsonify({'error': 'Only a signed-in account keeps sidebar settings.'}), 400
+        if request.method == 'GET':
+            return jsonify(clean_nav((auth.users.get(user['username']) or {}).get('nav')))
+        return jsonify(auth.users.set_nav(user['username'], request.get_json(silent=True) or {}))
 
     @bp.route('/auth/<provider_id>/start')
     def start(provider_id):

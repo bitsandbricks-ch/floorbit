@@ -99,7 +99,7 @@ def test_quiet_hours_window(monkeypatch, hours, minute, quiet):
 
 
 def test_problems_gather_everything(app_module, client, floor, monkeypatch):
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "statuses", {
         floor["a"]: {"id": floor["a"], "name": "sw-a-01", "status": "offline", "since": time.time() - 600},
         floor["b"]: {"id": floor["b"], "name": "sw-a-02", "status": "online", "since": time.time()}})
@@ -162,7 +162,7 @@ def test_the_floor_plan_can_mute_a_switch(client):
 
 def test_an_offline_switch_links_its_incident(app_module, client, floor, monkeypatch):
     """Issue #278: make an incident from the problem, then the problem links it."""
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "statuses", {
         floor["a"]: {"id": floor["a"], "name": "sw-a-01", "status": "offline", "since": time.time() - 600}})
     body = client.get("/api/problems").get_json()

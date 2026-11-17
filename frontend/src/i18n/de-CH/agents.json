@@ -48,6 +48,7 @@
   "reportSyslogDropped_one": "1 Syslog-Zeile verworfen",
   "reportSyslogDropped_other": "{{n}} Syslog-Zeilen verworfen",
   "reportFlows": "NetFlow {{n}} Pakete",
+  "reportCaptive": "Check-in-Hinweis {{shown}} gezeigt, {{done}} nicht nötig",
   "reportBusy_one": "1 Anfrage mit «beschäftigt» beantwortet",
   "reportBusy_other": "{{count}} Anfragen mit «beschäftigt» beantwortet"
 }

@@ -282,8 +282,8 @@ IPFIX export at the agent's machine.
 ## What the agent says about itself
 
 Every half minute the agent sends a short report: how long it has been up, how often its link
-dropped, the syslog lines it received, still holds and dropped, the NetFlow packets it read and the
-calls it answered "busy" because too many of one kind were waiting. The Local agents page shows it
+dropped, the syslog lines it received, still holds and dropped, the NetFlow packets it read, how often its captive portal showed
+the check-in note or said it wasn't needed, and the calls it answered "busy" because too many of one kind were waiting. The Local agents page shows it
 under each agent, with dropped lines and busy calls in colour. Only these numbers are kept, only
 in memory, and a report older than three minutes isn't shown. The agent's own `/metrics` has
 the full detail for Prometheus.
@@ -342,7 +342,7 @@ Floorbit needs to pass the upgrade for `/api/agent/v2/link` (nginx: `proxy_http_
 | `GET /api/agent/v2/link` | the WebSocket link (protocol 2, above), or 401 |
 | `GET /api/agent/v1/calls?wait=25` | the calls waiting for the agent, `{"calls": [{"id", "method", "args"}]}`; waits up to `wait` seconds (at most 25) for the first one |
 | `POST /api/agent/v1/answers` | `{"answers": [{"id", "ok", "result", "error"}]}`; `{"taken": n}` says how many were still awaited |
-| `POST /api/agent/v1/report` | `{"report": {"up_seconds", "reconnects", "link_drops", "calls_busy", "answers_failed", "syslog_received", "syslog_sent", "syslog_dropped", "syslog_backlog", "flows_packets"}}`: the report above, from an agent on the long poll |
+| `POST /api/agent/v1/report` | `{"report": {"up_seconds", "reconnects", "link_drops", "calls_busy", "answers_failed", "syslog_received", "syslog_sent", "syslog_dropped", "syslog_backlog", "flows_packets", "captive_shown", "captive_done"}}`: the report above, from an agent on the long poll |
 | `POST /api/agent/v1/syslog` | `{"lines": [{"raw", "from", "at"}], "dropped"}`: up to 2,000 syslog lines; `{"taken", "received"}`, or 409 while Syslog is off |
 | `GET /api/agent/v1/seats` | `{"seat_of", "area_of"}`: the seat addresses for the flow collector, or 409 while Traffic is off |
 | `POST /api/agent/v1/flows` | `{"snapshot"}`: the flow collector's summary, or 409 while Traffic is off |

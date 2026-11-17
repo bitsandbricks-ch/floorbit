@@ -110,6 +110,13 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     yield
     lastgood.clear()
     sources.mark_ok(None)
+    from floorbit import port_clients  # its last MAC table read feeds the seat mapping
+    if port_clients._finder is not None:
+        port_clients._finder.reset()
+    from integrations import checkin  # the port lookup budget is per process
+    checkin._bucket.update(tokens=None, at=None)
+    checkin._warm.clear()
+    checkin._port_cache.clear()
 
 
 @pytest.fixture
@@ -122,7 +129,7 @@ def app_module(tmp_path, monkeypatch):
 
     import redis
 
-    # Without this, every request retries a real Redis five times with a 2 s sleep.
+    # No test talks to a real Redis.
     monkeypatch.setattr(redis, "Redis", FakeRedis)
 
     import app
@@ -138,6 +145,7 @@ def app_module(tmp_path, monkeypatch):
     settings.reload()
     runtime.apply(settings)
     monkeypatch.setattr(cache, "redis_client", None)
+    monkeypatch.setattr(cache, "_next_try", 0.0)   # a Redis away in one test is not away in the next
     from floorbit import recording
     # The whole-event recording remembers its last frame: start each test without one.
     monkeypatch.setattr(recording, "_state", {"last": None, "compacted": 0.0})
@@ -149,6 +157,17 @@ def app_module(tmp_path, monkeypatch):
     monkeypatch.setattr(auth, "enabled", True)
     monkeypatch.setattr(auth, "public_read", True)
     monkeypatch.setattr(auth, "_failures", {})
+    # Lines a local agent relayed in an earlier test would show as relayed in the next one.
+    receiver = app.app.extensions.get("floorbit_syslog")
+    if receiver is not None:
+        monkeypatch.setattr(receiver, "relayed", {})
+    # The app's status monitor starts polling with the first request and goes on every minute: a
+    # poll landing mid-test replaced the statuses or "last poll" a test had set up. Tests that
+    # want a poll call one themselves.
+    monitor = app.app.extensions["floorbit_integrations"]["monitor"]
+    monkeypatch.setattr(monitor, "poll_once", lambda *a, **k: None)
+    from integrations.monitor import StatusMonitor
+    StatusMonitor.latest.update(polled=None, at=None, devices=None)   # one that ran between tests
     app.app.config["TESTING"] = True
     return app
 
@@ -160,6 +179,15 @@ def anon_client(app_module):
 
 
 @pytest.fixture
+def kiosk_client(app_module):
+    """Signed in with a kiosk account: floorplan.view only, like a big screen."""
+    app_module.app.extensions["auth"].users.add("screen-1", "kiosk-password-1", role="kiosk")
+    c = app_module.app.test_client()
+    c.post("/login", data={"username": "screen-1", "password": "kiosk-password-1"})
+    return c
+
+
+@pytest.fixture
 def client(app_module):
     """Signed in as TEST_USER, an admin, so tests can change anything."""
     app_module.app.extensions["auth"].users.add(TEST_USER, TEST_PASSWORD, role="admin")
@@ -167,3 +195,22 @@ def client(app_module):
     resp = test_client.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD})
     assert resp.status_code == 302, resp.data
     return test_client
+
+
+@pytest.fixture(autouse=True)
+def _librenms_answers_again():
+    """A LibreNMS that didn't answer in one test answers in the next (librenms/breaker.py), and no
+    status monitor has polled yet."""
+    from floorbit.builtin_plugins.librenms import breaker
+    from integrations.monitor import StatusMonitor
+    breaker.reset()
+    StatusMonitor.latest.update(polled=None, at=None, devices=None)
+    yield
+    breaker.reset()
+
+
+@pytest.fixture(autouse=True)
+def _no_wrong_pins_yet(monkeypatch):
+    """Wrong check-in PINs count per PC for ten minutes; one test's guesses don't lock the next."""
+    from integrations import checkin
+    monkeypatch.setattr(checkin, "_wrong_pins", {})

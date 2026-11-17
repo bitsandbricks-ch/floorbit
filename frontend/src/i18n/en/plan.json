@@ -132,7 +132,13 @@
   "switchPanel": {
     "seats": "Seats on this switch",
     "port": "Port",
-    "noSeats": "No seat is known on this switch yet."
+    "noSeats": "No seat is known on this switch yet.",
+    "links": "Uplinks",
+    "to": "To",
+    "lldp": "LLDP/CDP",
+    "lldpState": { "seen": "Seen", "unseen": "Not seen", "other": "Sees {{there}}: check the patch" },
+    "neighbours": "Also seen by LLDP/CDP",
+    "neighboursHint": "Neighbours on ports no uplink explains. Add them on Topology."
   },
   "watch": {
     "start": "Watch this seat",

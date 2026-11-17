@@ -8,6 +8,7 @@ and ``power.alert`` post new findings and circuits that turn red or trip. Sendin
 on its own thread so a slow Discord never delays the status monitor.
 """
 import queue
+import re
 import threading
 import time
 from datetime import UTC, datetime
@@ -63,6 +64,17 @@ def _grouped(changes):
     return '\n'.join(lines)
 
 
+
+_WEBHOOK_PATH = re.compile(r'(/api/webhooks/\d+/)[\w.-]+')
+
+
+def hide_webhook(text, url=None):
+    """``text`` without a webhook's token: the part of its URL that lets anyone post."""
+    if url:
+        text = text.replace(url, '<webhook URL>')
+    return _WEBHOOK_PATH.sub(r'\1…', text)
+
+
 class DiscordNotifier:
     def __init__(self, crew=None, app=None):
         self.crew = crew          # CrewBridge: with no webhook, alerts go to the crew channel
@@ -111,8 +123,8 @@ class DiscordNotifier:
             try:
                 self.send(payload)
             except Exception as exc:  # noqa: BLE001  # keep the sender thread alive
-                self.last_error = str(exc)
-                print(f"[integrations] Discord send failed: {exc}")
+                self.last_error = hide_webhook(str(exc))
+                print(f"[integrations] Discord send failed: {self.last_error}")
 
     def post(self, payload):
         """Queue a message. In quiet hours it goes out silently, without the mention."""
@@ -574,7 +586,12 @@ class DiscordNotifier:
             raise RuntimeError('DISCORD_WEBHOOK_URL is not set')
         payload = {k: v for k, v in payload.items() if not k.startswith('_')}
         for attempt in range(retries + 1):
-            resp = requests.post(url, json=payload, timeout=10)
+            try:
+                resp = requests.post(url, json=payload, timeout=10)
+            except requests.RequestException as exc:
+                # The error names the URL, and a webhook URL is its own password: never log or show it.
+                self.last_error = hide_webhook(str(exc), url)
+                raise RuntimeError(self.last_error) from None
             if resp.status_code == 429 and attempt < retries:
                 try:
                     wait = float(resp.json().get('retry_after', 1))

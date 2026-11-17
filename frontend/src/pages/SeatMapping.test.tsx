@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatMapList } from '@/api/types'
+import { OPTIONS, pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import SeatMapping from './SeatMapping'
 import { matches } from './seatmap/model'
@@ -11,14 +12,20 @@ const list: SeatMapList = {
   seats: [
     {
       seat: 'A-1',
+      switch: 'sw-a-01',
+      port: 'Gi1/0/1',
+      port_origin: 'cable',
       ip: '192.0.2.99',
       mac: '',
       nick: 'player1',
       from: { ip: 'manual', nick: 'checkin' },
-      manual: { seat: 'A-1', ip: '192.0.2.99', mac: '', nick: '', note: 'console', updated_at: null, updated_by: null },
+      manual: { seat: 'A-1', switch: '', port: '', ip: '192.0.2.99', mac: '', nick: '', note: 'console', updated_at: null, updated_by: null },
       sources: ['manual', 'checkin'],
     },
-    { seat: 'A-2', ip: '192.0.2.2', mac: 'aa:bb:cc:dd:ee:02', nick: 'player2', from: { ip: 'checkin', mac: 'checkin', nick: 'checkin' }, manual: null, sources: ['checkin'] },
+    {
+      seat: 'A-2', switch: '', port: '', port_origin: '', ip: '192.0.2.2', mac: 'aa:bb:cc:dd:ee:02', nick: 'player2',
+      from: { ip: 'checkin', mac: 'checkin', nick: 'checkin' }, manual: null, sources: ['checkin'],
+    },
   ],
   sources: ['manual', 'checkin'],
   errors: {},
@@ -37,7 +44,7 @@ describe('matches', () => {
 
 describe('Seat mapping page', () => {
   it('marks hand-entered fields and lists the sources', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map': list }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map?read=1': list }).fn)
     renderWithApp(<SeatMapping />)
     const row = (await screen.findByRole('button', { name: 'A-1' })).closest('tr')!
     expect(within(row).getAllByLabelText('By hand')).toHaveLength(1)   // only the IP
@@ -48,7 +55,7 @@ describe('Seat mapping page', () => {
 
   it('is read-only for a tech (seats.view without seats.edit)', async () => {
     const tech = { ...lead, role: 'tech', permissions: ['floorplan.view', 'seats.view'] }
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': { enabled: true, user: tech }, 'GET /api/seat-map': list }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': { enabled: true, user: tech }, 'GET /api/seat-map?read=1': list }).fn)
     renderWithApp(<SeatMapping />)
     expect(await screen.findByText('A-1')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'A-1' })).toBeNull()
@@ -58,7 +65,7 @@ describe('Seat mapping page', () => {
   })
 
   it('shows what an empty field falls back to and saves the hand entry', async () => {
-    const api = fakeFetch({ ...me, 'GET /api/seat-map': list, 'PUT /api/seat-map/A-2': { seat: 'A-2', entry: {} } })
+    const api = fakeFetch({ ...me, 'GET /api/seat-map?read=1': list, 'PUT /api/seat-map/A-2': { seat: 'A-2', entry: {} } })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<SeatMapping />)
     fireEvent.click(await screen.findByRole('button', { name: 'A-2' }))
@@ -66,14 +73,62 @@ describe('Seat mapping page', () => {
     fireEvent.change(screen.getByLabelText('MAC'), { target: { value: 'AA-BB-CC-00-00-01' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
-      expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ ip: '', mac: 'AA-BB-CC-00-00-01', nick: '', note: '' }),
+      expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({
+        switch: '', port: '', ip: '', mac: 'AA-BB-CC-00-00-01', nick: '', note: '',
+      }),
     )
+  })
+
+  it('shows the switch port as the key, with where it came from', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map?read=1': list }).fn)
+    renderWithApp(<SeatMapping />)
+    const a1 = (await screen.findByRole('button', { name: 'A-1' })).closest('tr')!
+    expect(within(a1).getByText('Gi1/0/1')).toBeInTheDocument()
+    expect(within(a1).getByText('Cable')).toBeInTheDocument()
+    const a2 = screen.getByRole('button', { name: 'A-2' }).closest('tr')!
+    expect(within(a2).getByText('No port yet')).toBeInTheDocument()
+    expect(matches(list.seats[0], 'sw-a-01 gi1/0/1', false)).toBe(true)
+  })
+
+  it('picks the port from the switch, or finds it by MAC, and saves it', async () => {
+    const api = fakeFetch({
+      ...me,
+      ...OPTIONS,
+      'GET /api/seat-map?read=1': list,
+      'POST /api/seat-map/find-port': { switch: 'sw-b-02', port: 'Gi1/0/7', ip: '192.0.2.7', mac: '02:00:00:00:00:07', held_by: null },
+      'PUT /api/seat-map/A-2': { seat: 'A-2', entry: {} },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<SeatMapping />)
+    fireEvent.click(await screen.findByRole('button', { name: 'A-2' }))
+    await pick('Switch', 'sw-a-01')
+    fireEvent.click(await screen.findByRole('combobox', { name: 'Port' }))
+    const five = await screen.findByRole('option', { name: 'Gi1/0/5', hidden: true })
+    expect(screen.queryByRole('option', { name: 'Gi1/0/3', hidden: true })).toBeNull()   // held by A-3
+    fireEvent.click(five)
+    fireEvent.change(screen.getByLabelText('MAC to look for'), { target: { value: '0200.0000.0007' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Find port' }))
+    expect(await screen.findByText('Found on sw-b-02 Gi1/0/7. Save to keep it.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ switch: 'sw-b-02', port: 'Gi1/0/7' }))
+  })
+
+  it('looks up the ports of old entries that have only an IP or MAC', async () => {
+    const api = fakeFetch({
+      ...me,
+      'GET /api/seat-map?read=1': list,
+      'POST /api/seat-map/resolve-ports': { dry_run: false, found: { 'A-1': { switch: 'sw-a-01', port: 'Gi1/0/1' } }, missed: [], taken: [] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<SeatMapping />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Find the port for 1 entry with only an IP or MAC' }))
+    expect(await screen.findByText(/1 got their port, 0 not seen on the network/)).toBeInTheDocument()
   })
 
   it('checks a CSV before importing and lists the problems', async () => {
     const api = fakeFetch({
       ...me,
-      'GET /api/seat-map': list,
+      'GET /api/seat-map?read=1': list,
       'POST /api/seat-map/import': () => ({ status: 400, body: { error: '1 line(s) have problems; nothing was imported', problems: ['line 2: "x" is not an IP address'] } }),
     })
     vi.stubGlobal('fetch', api.fn)

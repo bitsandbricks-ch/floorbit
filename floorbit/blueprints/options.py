@@ -56,6 +56,10 @@ def _ports(data, switch):
     for c in cables.all_cables(data):
         if c['switch'].lower() == switch.lower():
             held[canonical_port(c['port'])] = c.get('seat') or c.get('label')
+    from integrations import seat_sources
+    for seat, m in (seat_sources.load() or {}).items():   # hand entries and ports check-ins found
+        if str(m.get('switch') or '').lower() == switch.lower() and m.get('port'):
+            held.setdefault(canonical_port(m['port']), seat)
     for c in cables.all_cables(data):   # a cabled port the source doesn't list (switch away) still shows
         if c['switch'].lower() == switch.lower() and c['port'] not in names:
             names.append(c['port'])

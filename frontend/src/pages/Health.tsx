@@ -10,6 +10,7 @@ import { useCan, useHealth } from '@/api/queries'
 import type { HealthCheck, HealthKind, HealthWall, State } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { clock } from '@/lib/time'
 
 const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other']
 const STATES: State[] = ['down', 'warn', 'up', 'unknown']
@@ -57,7 +58,7 @@ function Tile({ check }: { check: HealthCheck }) {
         {t('health.since')} <Ago since={check.since} />
         {check.muted_until && (
           <span className="fb-health-muted">
-            {' · '}<IconBellOff size={13} aria-hidden="true" /> {t('health.mutedUntil', { time: new Date(check.muted_until * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
+            {' · '}<IconBellOff size={13} aria-hidden="true" /> {t('health.mutedUntil', { time: clock(check.muted_until) })}
           </span>
         )}
       </footer>

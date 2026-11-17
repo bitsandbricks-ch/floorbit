@@ -7,6 +7,8 @@ traffic from the player's side, errors and load.
 
 import requests
 
+from . import breaker
+
 # Columns the app has always asked for; every LibreNMS version has them.
 BASE_COLUMNS = ['port_id', 'device_id', 'ifName', 'ifOperStatus', 'ifInOctets_rate', 'ifOutOctets_rate', 'ifSpeed']
 # The extra detail. If LibreNMS rejects one of these, fetch_port() falls back to BASE_COLUMNS.
@@ -27,7 +29,7 @@ def fetch_ports(base_url, headers, device_id, verify=True, timeout=10, tiers=Non
     resp = None
     for columns in tiers or (DETAIL_COLUMNS, BASE_COLUMNS):
         try:
-            resp = requests.get(
+            resp = breaker.get(
                 f'{base_url}/api/v0/devices/{device_id}/ports',
                 headers=headers, timeout=timeout, verify=verify,
                 params={'columns': ','.join(columns)},

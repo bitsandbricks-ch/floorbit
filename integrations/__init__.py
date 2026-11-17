@@ -33,7 +33,7 @@ import hmac
 import threading
 import time
 
-from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request, stream_with_context
+from flask import Blueprint, Response, current_app, jsonify, redirect, request, stream_with_context
 
 from . import checkin, config, events, history, seat_sources, settings_bridge
 from .crew import CrewBridge
@@ -93,7 +93,11 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         if not config.get_bool('LIVE_UPDATES_ENABLED', True):
             return jsonify({'error': 'Live updates are disabled'}), 404
         hello = {'statuses': monitor.snapshot(), 'monitor': monitor.enabled()}
-        resp = Response(stream_with_context(events.stream(hello)), mimetype='text/event-stream')
+        from auth import current_user, roles
+        user = current_user()
+        guard = current_app.extensions.get('auth')
+        private = not (guard and guard.enabled) or bool(user and roles.can(user, 'seats.view'))
+        resp = Response(stream_with_context(events.stream(hello, private=private)), mimetype='text/event-stream')
         resp.headers['Cache-Control'] = 'no-cache'
         resp.headers['X-Accel-Buffering'] = 'no'   # nginx: don't buffer the stream
         return resp
@@ -290,7 +294,8 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
 
     @bp.route('/checkins/history')
     def history_page():
-        return render_template('checkin_history.html')
+        # The history is a tab of the crew's Check-ins page now; old links and bookmarks land there.
+        return redirect('/checkins?tab=history')
 
     @bp.route('/api/checkins/history')
     def history_list():
@@ -314,7 +319,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             view, rows = history_rows()
         except ValueError as exc:
             return jsonify({'error': str(exc)}), 400
-        filename = f"lal-checkins-{view}-{time.strftime('%Y%m%d-%H%M')}.csv"
+        filename = f"floorbit-checkins-{view}-{time.strftime('%Y%m%d-%H%M')}.csv"
         return Response(history.to_csv(rows, view), mimetype='text/csv',
                         headers={'Content-Disposition': f'attachment; filename="{filename}"',
                                  'Cache-Control': 'no-store'})
@@ -348,6 +353,6 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             verifier.start()
             crew.start()
 
-    app.extensions['lal_integrations'] = {'monitor': monitor, 'discord': discord,
+    app.extensions['floorbit_integrations'] = {'monitor': monitor, 'discord': discord,
                                           'checkin_refresher': refresher}
-    return app.extensions['lal_integrations']
+    return app.extensions['floorbit_integrations']

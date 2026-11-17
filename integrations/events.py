@@ -90,8 +90,22 @@ def _format(event):
     return f"id: {event['id']}\nevent: {event['type']}\ndata: {json.dumps(event, default=str)}\n\n"
 
 
-def stream(hello=None):
-    """Generator for a Flask streaming response."""
+# Who did what: nicks and account names, and the IP and MAC a check-in came from. Only readers who may
+# see people (seats.view) get them; the stream is open to the kiosk and, by default, to anyone.
+PERSONAL = frozenset(('username', 'nick', 'nicks', 'ip', 'mac', 'assignee', 'user', 'by'))
+
+
+def scrub(value):
+    """``value`` without PERSONAL keys, at any depth."""
+    if isinstance(value, dict):
+        return {k: scrub(v) for k, v in value.items() if k not in PERSONAL}
+    if isinstance(value, list):
+        return [scrub(v) for v in value]
+    return value
+
+
+def stream(hello=None, private=True):
+    """Generator for a Flask streaming response. ``private=False`` drops PERSONAL fields."""
     q = queue.Queue(maxsize=CLIENT_QUEUE_SIZE)
     with _lock:
         _clients.add(q)
@@ -105,7 +119,7 @@ def stream(hello=None):
             except queue.Empty:
                 yield ': keepalive\n\n'
                 continue
-            yield _format(event)
+            yield _format(event if private else {**event, 'data': scrub(event.get('data'))})
     finally:
         with _lock:
             _clients.discard(q)

@@ -29,7 +29,7 @@
     "title": "Braucht Aufmerksamkeit",
     "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in und Syslog-Zeilen wie err-disable oder DHCP-Snooping. Sie verschwinden von selbst, sobald der Port sich normal verhält."
   },
-  "since": "seit {{ago}}",
+  "since": "begonnen {{ago}}",
   "open": "Öffnen",
   "mute": "Stumm",
   "unmute": "Wieder laut",
@@ -52,11 +52,6 @@
     "1440": "1 Tag"
   },
   "cancel": "Abbrechen",
-  "justNow": "gerade eben",
-  "minutesAgo_one": "{{count}} Min.",
-  "minutesAgo_other": "{{count}} Min.",
-  "hoursAgo_one": "{{count}} Std.",
-  "hoursAgo_other": "{{count}} Std.",
   "match": "Match-Platz · {{zone}}",
   "card": {
     "down": "Down",

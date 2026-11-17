@@ -80,14 +80,19 @@ _local = {'at': 0, 'snapshot': None}
 
 
 def publish(snapshot, keep_locally=False):
+    if not keep_locally:
+        cache.connect()   # the collector has no requests to (re)connect it: Redis may start after it
     client = cache.get_redis_client()
-    if not client:
-        if keep_locally:
-            _local.update(at=time.time(), snapshot=snapshot)
+    if client:
+        try:
+            client.setex(REDIS_KEY, SNAPSHOT_TTL, json.dumps(snapshot, separators=(',', ':')))
             return True
-        return False
-    client.setex(REDIS_KEY, SNAPSHOT_TTL, json.dumps(snapshot, separators=(',', ':')))
-    return True
+        except Exception as exc:  # noqa: BLE001  # a Redis gone for a moment must not stop the collector
+            print(f'[flows] could not hand the summary to Redis: {exc}')
+    if keep_locally:
+        _local.update(at=time.time(), snapshot=snapshot)
+        return True
+    return False
 
 
 def latest():

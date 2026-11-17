@@ -8,6 +8,7 @@ import type { StoredLogin } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { dateTime } from '@/lib/time'
 
 /** Switch logins Floorbit keeps, encrypted and write-only (issue #474). */
 export default function SwitchLogins() {
@@ -23,7 +24,7 @@ export default function SwitchLogins() {
   })
   const remove = useMutation({ mutationFn: (id: string) => del(`/api/settings/credentials/${id}`), onSuccess: refresh })
   const rows = list.data?.credentials ?? []
-  const when = (s: number) => new Date(s * 1000).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+  const when = (s: number) => dateTime(s)
   return (
     <Layout title={t('switchLogins.title')}>
       <PageHead title={t('switchLogins.title')} desc={t('switchLogins.intro')} />

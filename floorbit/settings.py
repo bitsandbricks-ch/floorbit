@@ -248,6 +248,13 @@ def _check_image(field, data_url):
         raise SettingsError(f"{field['label']} must be {LOGO_MAX_BYTES // 1024} KB or smaller")
 
 
+# A saved token only goes to the URL it was saved with. Otherwise someone who may change settings, but
+# never sees the token (it is write-only), could point the URL at their own server and receive it.
+BOUND_SECRETS = (('netbox.url', 'netbox.token'), ('librenms.url', 'librenms.token'))
+NEW_URL_NEEDS_TOKEN = ('Enter the API token again for the new URL: a saved token is only sent to the URL '
+                       'it was saved for.')
+
+
 def check_changes(changes):
     """Validate {key: value} the way a save does, without saving. Returns the coerced values."""
     out = {}
@@ -322,12 +329,15 @@ class SettingsStore:
         return 'default'
 
     def get(self, key):
+        return self._value(self._overrides, key)
+
+    def _value(self, overrides, key):
+        """What ``get`` answers with these saved values (to compare a save's before and after)."""
         field = FIELDS_BY_KEY[key]
-        src = self.source(key)
         try:
-            if src == 'saved':
-                return _coerce(field, self._overrides[key])
-            if src == 'env':
+            if key in overrides:
+                return _coerce(field, overrides[key])
+            if field.get('env') and self.environ.get(field['env'], '') != '':
                 return _coerce(field, self.environ[field['env']])
         except SettingsError:
             pass   # a bad env/stored value falls back to the default
@@ -376,11 +386,16 @@ class SettingsStore:
         with self._lock:
             data = self._read_file(strict=True)
             stored = self._overrides_from(data)
+            before = dict(stored)
             for key, val in staged.items():
                 if val is None:
                     stored.pop(key, None)
                 else:
                     stored[key] = val
+            for url_key, token_key in BOUND_SECRETS:
+                moved = self._value(stored, url_key) != self._value(before, url_key)
+                if moved and token_key not in staged and self._value(stored, token_key):
+                    raise SettingsError(NEW_URL_NEEDS_TOKEN)
             data['app_settings'] = stored
             data.pop('default_settings', None)   # migrated into app_settings
             # Write in place: data.json is bind-mounted in docker-compose, so an
@@ -492,13 +507,21 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
         """Test a connection using the form's unsaved values, falling back to saved ones."""
         body = request.get_json(silent=True) or {}
 
+        def given(key):
+            return key in body and body[key] not in (None, '')
+
         def pick(key):
-            if key in body and body[key] not in (None, ''):
+            if given(key):
                 try:
                     return _coerce(FIELDS_BY_KEY[key], body[key])
                 except SettingsError:
                     return None
             return store.get(key)
+
+        for url_key, token_key in BOUND_SECRETS:
+            if url_key.split('.')[0] == service and not given(token_key) \
+                    and pick(url_key) != store.get(url_key) and store.get(token_key):
+                return jsonify({'ok': False, 'message': NEW_URL_NEEDS_TOKEN})
 
         if service == 'netbox':
             return jsonify(test_netbox(pick('netbox.url'), pick('netbox.token'), pick('netbox.verify_ssl')))

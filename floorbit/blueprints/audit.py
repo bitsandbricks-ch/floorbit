@@ -5,7 +5,7 @@ import time
 
 from flask import Blueprint, Response, jsonify, request
 
-from .. import audit, spa
+from .. import audit, i18n, spa
 
 bp = Blueprint('audit', __name__)
 
@@ -39,9 +39,11 @@ def audit_page():
 @bp.route('/api/settings/audit')
 def audit_entries():
     try:
-        rows, total = audit.read(**_query())
+        lang = i18n.language(request.headers.get('Accept-Language'))
+        rows, total = audit.read(**_query(), lang=lang)
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
+    rows = [{**e, 'action': i18n.log_text(e.get('action'), lang)} for e in rows]
     return jsonify({'entries': rows, 'total': total, 'areas': list(audit.AREAS)})
 
 

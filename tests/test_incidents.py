@@ -79,6 +79,18 @@ def test_help_page_is_rate_limited_and_takes_only_known_problems(anon_client, ap
     assert anon_client.post(url, data={"problem": "slow"}).status_code == 429
 
 
+def test_rate_limit_counts_each_client_behind_a_trusted_proxy(anon_client, app_module, floor, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    url = help_url(app_module, "A-2")
+    first = {"X-Forwarded-For": "192.0.2.10"}
+    for _ in range(incidents_bp.RATE_LIMIT):
+        assert anon_client.post(url, data={"problem": "slow"}, headers=first).status_code == 200
+    assert anon_client.post(url, data={"problem": "slow"}, headers=first).status_code == 429
+    # Another attendee behind the same proxy can still ask for help.
+    other = {"X-Forwarded-For": "192.0.2.11"}
+    assert anon_client.post(url, data={"problem": "slow"}, headers=other).status_code == 200
+
+
 def test_report_holds_no_personal_data(client, anon_client, app_module, floor, monkeypatch):
     client.put("/api/seat-map/A-3", json={"ip_address": "192.0.2.33", "nick": "player-three"})
 
@@ -99,6 +111,43 @@ def test_report_holds_no_personal_data(client, anon_client, app_module, floor, m
     text = str(incident)
     assert "192.0.2.33" not in text and "02:00:00:00:00:33" not in text and "player-three" not in text
 
+
+
+def test_snapshot_reads_the_mapped_port_without_an_ip(monkeypatch):
+    from floorbit import sources
+    from integrations import seat_sources
+
+    class Monitoring:
+        def port_stats(self, hostname, interface):
+            assert (hostname, interface) == ("sw-a-01", "Gi1/0/4")
+            return {"state": "up", "speed_bps": 1e9, "duplex": "full", "error_rate": 0}
+
+        def resolve_ip(self, ip):
+            raise AssertionError("the port is known: no IP lookup")
+    monkeypatch.setattr(seat_sources, "load", lambda: {"A-4": {"switch": "sw-a-01", "port": "Gi1/0/4"}})
+    monkeypatch.setattr(sources, "monitoring", lambda: Monitoring())
+    snap = incidents.seat_snapshot("A-4")
+    assert snap["known"] and (snap["switch"], snap["port"], snap["link"]) == ("sw-a-01", "Gi1/0/4", "up")
+    assert snap["mac_seen"] is False
+    assert incidents.seat_snapshot("A-1") == {
+        "known": False, "reason": "No switch port, IP or MAC known for this seat"}
+
+
+def test_snapshot_finds_a_seat_known_only_by_its_mac(monkeypatch):
+    from floorbit import sources
+    from integrations import seat_sources
+
+    class Monitoring:
+        def ip_for_mac(self, mac):
+            return "192.0.2.5" if mac == "02:00:00:00:00:05" else None
+
+        def resolve_ip(self, ip):
+            return {"device_name": "sw-a-01", "port": "Gi1/0/5", "mac": "02:00:00:00:00:05", "stats": {}}
+    # The seat sources name it mac_address, as the seat-map does.
+    monkeypatch.setattr(seat_sources, "load", lambda: {"A-1": {"mac_address": "02:00:00:00:00:05"}})
+    monkeypatch.setattr(sources, "monitoring", lambda: Monitoring())
+    snap = incidents.seat_snapshot("A-1")
+    assert snap["known"] and snap["port"] == "Gi1/0/5" and snap["mac_seen"]
 
 # ── The board ──────────────────────────────────────────────────────────────────
 
@@ -173,6 +222,21 @@ def test_qr_sheet_needs_assign_and_holds_signed_links(client, app_module, floor)
     seats = client.get("/api/helpdesk/qr").get_json()["seats"]
     assert [s["seat"] for s in seats] == ["A-1", "A-2", "A-3", "A-4"]
     assert seats[0]["url"].endswith(help_url(app_module, "A-1")) and seats[0]["image"].startswith("data:image/svg+xml")
+
+
+def test_each_qr_code_is_made_once(client, floor, monkeypatch):
+    # A 4000-seat sheet took 15 s on every load while each code was drawn again.
+    made = []
+    real = incidents_bp.segno.make
+    monkeypatch.setattr(incidents_bp.segno, "make", lambda *a, **kw: made.append(a[0]) or real(*a, **kw))
+    incidents_bp._qr_image.cache_clear()
+    first = client.get("/api/helpdesk/qr").get_json()["seats"]
+    again = client.get("/api/helpdesk/qr").get_json()["seats"]
+    assert len(made) == 4 and first == again
+    # A new address is a new link, so a new code.
+    monkeypatch.setenv("QR_URL", "https://help.example.com")
+    client.get("/api/helpdesk/qr")
+    assert len(made) == 8 and all("help.example.com" in u for u in made[4:])
 
 
 def test_qr_codes_can_point_at_their_own_address(client, app_module, floor, monkeypatch, tmp_path):
@@ -291,7 +355,7 @@ def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, a
 def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, client, app_module, floor, monkeypatch):
     # Issue #384: a known outage, so attendees don't each report it.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -314,7 +378,7 @@ def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, client, 
 def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_module, floor, monkeypatch):
     # Issue #386: the crew sees it is part of an outage, not a cable.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -333,7 +397,7 @@ def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_
 def test_the_board_says_when_the_switch_came_back(client, app_module, floor, monkeypatch):
     # Issue #390: filed during the outage, the switch is back since: maybe fixed already.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -354,7 +418,7 @@ def test_the_board_says_when_the_switch_came_back(client, app_module, floor, mon
 def test_the_help_page_asks_when_the_switch_came_back(anon_client, app_module, floor, monkeypatch):
     # Issue #392: reported during the outage, the switch is back: ask before a tech walks over.
     from floorbit import status_page
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     watch = app_module.app.extensions["floorbit_attention"]
     monkeypatch.setattr(watch, "port_seats", {("sw-a-01", "Gi1/0/1"): "A-1"}, raising=False)
     monkeypatch.setattr(status_page, "_seats_of", {})
@@ -412,3 +476,20 @@ def test_csv_times_follow_the_browser_clock():
     rows = incidents_bp.csv_rows([{"id": "x", "seat": "A-1", "title": "t", "status": "open", "created_at": 3600}],
                                  {}, tz=-120)
     assert rows[1][1] == "1970-01-01 03:00"
+
+
+def test_with_sign_in_off_the_board_and_jobs_work_as_one_crew(anon_client, app_module, floor, monkeypatch):
+    # AUTH_ENABLED=false means everyone can do everything; the board answered 401 to everyone.
+    monkeypatch.setattr(app_module.app.extensions["auth"], "enabled", False)
+    made = anon_client.post("/api/incidents", json={"seat": "A-1", "title": "No link"})
+    assert made.status_code == 201, made.get_json()
+    assert anon_client.get("/api/incidents/markers").get_json()["seats"] == {"A-1": 1}
+    assert anon_client.get("/api/incidents").status_code == 200
+    # The page itself: 503 where no frontend is built (CI), never the 401 it was.
+    assert anon_client.get("/jobs").status_code in (200, 503)
+    assert anon_client.get("/api/jobs").status_code == 200
+
+
+def test_with_sign_in_on_a_stranger_is_still_turned_away(anon_client, floor):
+    assert anon_client.get("/api/incidents/markers").status_code == 401
+    assert anon_client.get("/jobs").status_code == 302          # to the sign-in page

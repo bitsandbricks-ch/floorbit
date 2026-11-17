@@ -53,6 +53,20 @@ through its links), the page lists the neighbours that no link explains yet. **A
 with both ends filled in, and the speed the port runs at. The plan stays the crew's: nothing is added
 on its own.
 
+It also checks the links you planned (issue #540). Each link's panel says what LLDP or CDP sees on
+its ports:
+
+- **Seen as planned**: the port sees the box and port at the other end of the link.
+- **Sees … : check the patch** (orange): the port sees another box or another port than planned. That
+  is a wrong patch, and it is listed at the top of the page and on the Problems page.
+- **Not seen on this port**: the switch tells its neighbours, but none on this port. LLDP may be off
+  on the other box, so this is only a hint.
+- **–**: the source doesn't tell neighbours for these switches.
+
+The floor plan's switch panel shows the same: the switch's uplinks with what LLDP sees on each, and
+the neighbours on ports no uplink explains yet (a desk switch or an access point someone plugged in).
+Neighbours are read at most every two minutes per switch.
+
 A plugin offers this with an optional `neighbours(hostname)` returning
 `[{"port", "remote", "remote_port", "protocol"}]`. With a [local agent](agent.md), the agent answers it.
 

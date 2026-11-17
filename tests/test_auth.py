@@ -54,6 +54,22 @@ def test_settings_api_is_never_open(anon_client):
     assert anon_client.get("/api/users").status_code == 401
 
 
+@pytest.mark.parametrize("path", ["/api/inventory", "/api/firewalls/seats", "/api/incidents.csv", "/api/report",
+                                  "/api/replay/event.json", "/api/past-events", "/api/cables.csv", "/api/dns",
+                                  "/api/game-servers", "/api/seats/heatmap", "/api/power", "/api/plan",
+                                  "/api/plan/seats/A-1"])
+def test_signed_out_reads_are_only_what_the_kiosk_draws(anon_client, kiosk_client, path):
+    # Management IPs, the firewall per seat, incidents and reports need an account, even a kiosk one.
+    assert anon_client.get(path).status_code == 401
+    assert kiosk_client.get(path).status_code != 401
+
+
+def test_the_kiosk_view_still_loads_signed_out(anon_client):
+    for path in ("/api/config", "/api/switches", "/api/seat-blocks", "/api/seats", "/api/halls", "/api/plan-marks",
+                 "/api/seats/occupancy", "/api/status/snapshot", "/api/stats/seats"):
+        assert anon_client.get(path).status_code == 200, path
+
+
 def test_public_read_can_be_turned_off(anon_client, auth, monkeypatch):
     monkeypatch.setattr(auth, "public_read", False)
     assert anon_client.get("/api/switches").status_code == 401
@@ -121,6 +137,34 @@ def test_repeated_failures_lock_the_username_for_a_while(anon_client, user):
     resp = sign_in(anon_client)
     assert resp.status_code == 429
     assert "Too many failed attempts" in login_error(anon_client)
+
+
+def test_a_guesser_behind_a_trusted_proxy_locks_only_themself(anon_client, app_module, user, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    guesser = {"environ_overrides": {"HTTP_X_FORWARDED_FOR": "192.0.2.66"}}
+    for _ in range(5):
+        assert anon_client.post("/login", data={"username": TEST_USER, "password": "wrong-password"},
+                                **guesser).status_code == 401
+    assert anon_client.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD},
+                            **guesser).status_code == 429
+    crew = app_module.app.test_client()
+    resp = crew.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD},
+                     environ_overrides={"HTTP_X_FORWARDED_FOR": "192.0.2.7"})
+    assert resp.status_code == 302
+
+
+def test_failed_sign_ins_dont_pile_up_forever(app_module, monkeypatch):
+    import auth as auth_pkg
+    guard = app_module.app.extensions["auth"]
+    monkeypatch.setattr(auth_pkg, "MAX_FAILURE_KEYS", 50)
+    with app_module.app.test_request_context("/login", method="POST"):
+        for n in range(50):
+            guard.record_failure(f"made-up-{n}")
+        for key in guard._failures:            # all of them long ago
+            guard._failures[key] = [t - auth_pkg.FAILURE_WINDOW for t in guard._failures[key]]
+        guard.record_failure("x" * 5000)
+        [(_, name)] = guard._failures
+        assert name == "x" * 200
 
 
 def test_password_change_signs_out_existing_sessions(client, auth):

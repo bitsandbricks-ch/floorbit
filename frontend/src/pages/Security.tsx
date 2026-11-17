@@ -12,15 +12,10 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PortDialog, type PortRequest } from './security/PortDialog'
 import { ErrorBanner } from '@/components/ui'
+import { ago } from '@/lib/time'
 
 const TONE: Record<Severity, string> = { high: 'down', medium: 'warn', low: 'gray' }
 
-function ago(ts: number, t: (k: string, o?: Record<string, unknown>) => string) {
-  const mins = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60))
-  if (mins < 1) return t('security.justNow')
-  if (mins < 60) return t('security.minutesAgo', { count: mins })
-  return t('security.hoursAgo', { count: Math.round(mins / 60) })
-}
 
 function where(f: { switch: string; port: string; seat?: string | null }, t: (k: string, o?: Record<string, unknown>) => string) {
   const port = [f.switch, f.port].filter(Boolean).join(' · ')
@@ -53,7 +48,7 @@ function FindingCard({ f, list, busy, onShut, onAck }: {
             </ul>
           )}
           <Text size="xs" c="dimmed">
-            {t('security.seen', { first: ago(f.first_seen, t), plugin: f.plugin_name })}
+            {t('security.seen', { first: ago(f.first_seen), plugin: f.plugin_name })}
           </Text>
         </Stack>
         <Stack gap="xs" style={{ flexShrink: 0 }}>
@@ -165,7 +160,7 @@ export default function Security() {
                       <Table.Tr key={`${p.switch} ${p.port}`}>
                         <Table.Td>{where(p, t)}</Table.Td>
                         <Table.Td>{p.reason || '—'}</Table.Td>
-                        <Table.Td>{p.by}, {ago(p.at, t)}</Table.Td>
+                        <Table.Td>{p.by}, {ago(p.at)}</Table.Td>
                         <Table.Td>
                           {data.can_act && (
                             <Button size="xs" variant="default"
@@ -188,7 +183,7 @@ export default function Security() {
               <Stack gap={4}>
                 {data.cleared.map((f) => (
                   <Text key={`${f.id}-${f.cleared_at}`} size="sm" c="dimmed">
-                    {t(`security.kind.${f.kind}`)}: {f.title} · {where(f, t)} · {t('security.clearedAgo', { ago: ago(f.cleared_at ?? f.last_seen, t) })}
+                    {t(`security.kind.${f.kind}`)}: {f.title} · {where(f, t)} · {t('security.clearedAgo', { ago: ago(f.cleared_at ?? f.last_seen) })}
                   </Text>
                 ))}
               </Stack>

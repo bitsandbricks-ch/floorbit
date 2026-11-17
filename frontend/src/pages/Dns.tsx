@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, SimpleGrid, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Group, Loader, SegmentedControl, SimpleGrid, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,28 +8,21 @@ import type { DnsData, DnsSite } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner } from '@/components/ui'
+import { StatCard } from '@/components/StatCard'
+import { clock, dayClock } from '@/lib/time'
 
 const W = 1000
 const H = 140
 const RANGES = [6, 24, 168]
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/dns.md'
 
-function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Paper withBorder radius="lg" p="sm">
-      <Text size="xs" c="dimmed">{label}</Text>
-      <Text fw={700} size="xl">{value}</Text>
-      {sub && <Text size="xs" c="dimmed">{sub}</Text>}
-    </Paper>
-  )
-}
 
 /** Lookups per hour as bars, the blocked part in red on top. */
 function Chart({ hours, label }: { hours: DnsData['hours']; label: string }) {
   const { t, i18n } = useTranslation()
   const top = Math.max(1, ...hours.map((h) => h.lookups))
   const w = W / Math.max(1, hours.length)
-  const stamp = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
     <section className="fb-stats-panel wide" aria-labelledby="dns-hours">
       <Group justify="space-between" mb={6}>
@@ -91,11 +84,11 @@ function Board({ data }: { data: DnsData }) {
   return (
     <>
       <SimpleGrid cols={{ base: 2, sm: 4 }} mb="md">
-        <Figure label={t('dns.lookups')} value={num(data.lookups)} />
-        <Figure label={t('dns.blocked')} value={num(data.blocked)}
+        <StatCard label={t('dns.lookups')} value={num(data.lookups)} />
+        <StatCard label={t('dns.blocked')} value={num(data.blocked)}
           sub={data.block_share != null ? t('dns.share', { pct: (data.block_share * 100).toFixed(1) }) : undefined} />
-        <Figure label={t('dns.named')} value={num(data.sites.length)} sub={t('dns.namedSub', { count: data.min_clients })} />
-        <Figure label={t('dns.unnamed')} value={num(data.unnamed_lookups)} sub={t('dns.unnamedSub')} />
+        <StatCard label={t('dns.named')} value={num(data.sites.length)} sub={t('dns.namedSub', { count: data.min_clients })} />
+        <StatCard label={t('dns.unnamed')} value={num(data.unnamed_lookups)} sub={t('dns.unnamedSub')} />
       </SimpleGrid>
       <div className="fb-stats">
         <Chart hours={data.hours} label={t('dns.chartLabel', { lookups: num(data.lookups), blocked: num(data.blocked) })} />
@@ -117,7 +110,7 @@ function Board({ data }: { data: DnsData }) {
         <Sites id="dns-blocked" title={t('dns.blockedSites')} sites={data.blocked_sites} empty={t('dns.noneBlocked')}
           value={(s) => num(s.blocked)} />
         <Sites id="dns-new" title={t('dns.new')} sites={data.new} empty={t('dns.noneNew')}
-          value={(s) => new Date((s.first_seen ?? 0) * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })} />
+          value={(s) => clock(s.first_seen ?? 0, i18n.language)} />
       </div>
     </>
   )

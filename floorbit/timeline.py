@@ -167,8 +167,10 @@ def _incidents():
     return out
 
 
-def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_ROWS):
-    """Every entry, newest first, filtered. Returns (rows, total matching, counts per kind)."""
+def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_ROWS, lang=None):
+    """Every entry, newest first, filtered. Returns (rows, total matching, counts per kind). With
+    ``lang``, ``q`` also finds the title and target in that language, as the page shows them."""
+    from .i18n import log_text
     rows = _audit_rows() + _outages(switch_events) + _incidents() + [
         {k: e.get(k) for k in ('t', 'kind', 'title', 'target', 'severity', 'version')} for e in _journal()]
     words = [w for w in str(q or '').lower().split() if w]
@@ -180,6 +182,8 @@ def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_
         if (since is not None and r['t'] < since) or (until is not None and r['t'] >= until):
             continue
         text = ' '.join(str(r.get(k) or '') for k in ('title', 'target', 'who', 'area')).lower()
+        if words and lang and not all(w in text for w in words):
+            text += ' ' + ' '.join(str(log_text(r.get(k), lang) or '') for k in ('title', 'target')).lower()
         if words and not all(w in text for w in words):
             continue
         counts[r['kind']] += 1

@@ -84,6 +84,15 @@ body {
   .fb-pagehead-actions > * { flex: none; }
 }
 
+/* A row of filters wider than the screen (German labels on a phone) wraps onto a second line
+   instead of pushing the whole page sideways. Wrapping, not scrolling: the moving highlight is
+   placed relative to the control and would land on the wrong option in a scrolled one. */
+.mantine-SegmentedControl-root { max-width: 100%; flex-wrap: wrap; }
+.mantine-SegmentedControl-root:not([data-full-width]) > .mantine-SegmentedControl-control { flex: none; }
+
+/* A link inside running text is underlined: told apart by more than its colour (WCAG 1.4.1). */
+p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underline; }
+
 /* "‹ Incidents" above a sub page's title. */
 .fb-up { margin: -12px 0 12px; font-size: var(--fs-sm); }
 .fb-up a { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); text-decoration: none; }
@@ -154,8 +163,8 @@ body {
   background: var(--color-surface); border: 1px solid var(--color-line); border-left: 6px solid var(--color-unknown);
 }
 .fb-health-tile.up { border-left-color: var(--color-up); }
-.fb-health-tile.warn { border-left-color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 10%, var(--color-surface)); }
-.fb-health-tile.down { border-left-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 16%, var(--color-surface)); }
+.fb-health-tile.warn { border-left-color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 7%, var(--color-surface)); }
+.fb-health-tile.down { border-left-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 12%, var(--color-surface)); }
 .fb-health-tile header { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .fb-health-tile header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-health-state { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--color-muted); white-space: nowrap; }
@@ -667,3 +676,13 @@ body {
 .fb-item-row[data-selected] { background: color-mix(in srgb, var(--color-bit) 16%, transparent); }
 .fb-plan-screen .fb-plan-stale { font-size: 1.2vw; height: auto; padding: 0.4vw 0.9vw; }
 .fb-cable-legend .fb-legend-down { color: var(--color-down); font-weight: 600; }
+
+/* A line of text that opens something. Reset by class, not an inline `all: unset`,
+   which would also wipe the keyboard focus ring. */
+.fb-text-button {
+  background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: start;
+  cursor: pointer; text-decoration: underline dotted; border-radius: 2px; align-self: flex-start;
+}
+.fb-text-button:focus-visible { box-shadow: none; outline: 2px solid var(--color-bit); outline-offset: 2px; }
+/* Mantine clips the alert's message box, which would cut the ring off. */
+.mantine-Alert-message:has(.fb-text-button) { overflow: visible; }

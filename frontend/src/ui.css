@@ -49,7 +49,7 @@
 .mantine-Combobox-option[data-combobox-active] .mantine-Combobox-optionsDropdownCheckIcon { color: var(--color-bit); }
 .mantine-Combobox-group + .mantine-Combobox-group { margin-top: var(--ui-pop-pad); }
 .mantine-Combobox-groupLabel,
-.mantine-Menu-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-faint); font-weight: 650; }
+.mantine-Menu-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); font-weight: 650; }
 .mantine-Combobox-empty { font-size: var(--ui-font); color: var(--color-muted); padding: 8px; }
 .mantine-Menu-divider { border-color: var(--color-line); }
 

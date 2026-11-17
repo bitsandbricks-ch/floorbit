@@ -154,7 +154,9 @@ def make_block(body, hall_id):
 @_locked
 def add_seat_block():
     """Create a seating block (row or multiple rows)."""
-    body = request.get_json(force=True)
+    body = request.get_json(force=True, silent=True)
+    if not isinstance(body, dict):
+        return jsonify({'error': 'Send the block as a JSON object.'}), 400
     data = load_data()
     try:
         hall_id = halls.check_id(data, body.get('hall_id'))

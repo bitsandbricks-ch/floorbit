@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { SeatNote } from '@/api/types'
+import { dayClock } from '@/lib/time'
 
 export const MAX_NOTE = 500
 
@@ -22,7 +23,7 @@ export function SeatNoteBox({ seat, note }: { seat: string; note: SeatNote | nul
       void qc.invalidateQueries({ queryKey: qk.planAll })
     },
   })
-  const when = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  const when = (ts: number) => dayClock(ts, i18n.language)
   const start = () => { setText(note?.text ?? ''); save.reset(); setEditing(true) }
 
   if (editing) {

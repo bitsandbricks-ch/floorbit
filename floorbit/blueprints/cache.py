@@ -8,37 +8,41 @@ from ..runtime import rt
 bp = Blueprint('cache', __name__)
 
 
+KINDS = ('arp', 'mac', 'resolve')   # resolve: where an IP was last seen, so a cleared cache finds it anew
+MAX_HOSTNAMES = 500
+
+
 @bp.route('/api/cache/invalid', methods=['POST'])
 def invalidate_cache():
-    """Invalidate Redis cache entries for specific hostnames."""
+    """Forget the cached LibreNMS answers: for some switches (``hostnames``), or all of them."""
     client = get_redis_client()
     if not client:
         return jsonify({'error': 'Redis is not configured'}), 503
 
-    body = request.get_json(force=True) or {}
-    hostnames = body.get('hostnames', [])
+    body = request.get_json(silent=True)
+    body = body if isinstance(body, dict) else {}
+    hostnames = body.get('hostnames') or []
+    if not isinstance(hostnames, list) or len(hostnames) > MAX_HOSTNAMES \
+            or not all(isinstance(h, str) and h.strip() for h in hostnames):
+        return jsonify({'error': 'hostnames is a list of switch names'}), 400
 
     if not hostnames:
-        # Invalidate all cache if no hostnames specified
         try:
-            # Delete all ARP and MAC cache keys
-            for key in client.scan_iter(match='arp:*'):
-                client.delete(key)
-            for key in client.scan_iter(match='mac:*'):
-                client.delete(key)
+            for kind in KINDS:
+                keys = list(client.scan_iter(match=f'{kind}:*'))
+                if keys:
+                    client.delete(*keys)
             return jsonify({'success': True, 'message': 'All cache entries invalidated'})
         except redis.RedisError as e:
             return jsonify({'error': f'Failed to clear cache: {e!s}'}), 500
 
-    # Invalidate cache for specific hostnames
     invalidated = []
     for hostname in hostnames:
         try:
-            invalidate_hostname_cache(hostname)
-            invalidated.append(hostname)
+            invalidate_hostname_cache(hostname.strip())
+            invalidated.append(hostname.strip())
         except redis.RedisError as e:
             print(f"Failed to invalidate cache for {hostname}: {e}")
-
     return jsonify({
         'success': True,
         'message': f'Cache invalidated for {len(invalidated)} hostnames',

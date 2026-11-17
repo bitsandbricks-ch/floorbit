@@ -85,6 +85,16 @@ def test_result_is_checked_and_limited(anon_client, app_module, floor):
     assert len(speedtest.results("A-2")) == speedtest.KEEP
 
 
+def test_budget_is_per_client_behind_a_trusted_proxy(anon_client, app_module, floor, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    monkeypatch.setattr(speedtest, "BUDGET", 5000)
+    url = speed_url(app_module, "A-1", "down", "&bytes=4000")
+    first, other = {"X-Forwarded-For": "192.0.2.30"}, {"X-Forwarded-For": "192.0.2.31"}
+    assert anon_client.get(url, headers=first).status_code == 200
+    assert anon_client.get(url, headers=first).status_code == 429
+    assert anon_client.get(url, headers=other).status_code == 200
+
+
 def test_help_page_has_the_test(anon_client, app_module, floor):
     page = anon_client.get(help_url(app_module, "A-1")).data.decode()
     assert "Test your connection" in page and 'data-base="/help/A-1/speed/"' in page

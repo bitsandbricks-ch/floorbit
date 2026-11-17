@@ -10,6 +10,7 @@ import { AppNav } from './AppNav'
 import { Attribution } from './Attribution'
 import { CrewNoticeBanner } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
+import { PageError } from './PageError'
 import { rememberPage } from './pages'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
@@ -31,7 +32,8 @@ export function PageSkeleton() {
  *  page's code, never takes the sidebar away (it used to come and go with every page). */
 export function AppShell({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
-  const params = new URLSearchParams(useLocation().search)
+  const { pathname, search } = useLocation()
+  const params = new URLSearchParams(search)
   // A wall screen or a print sheet is the page alone: no sidebar, banners or footer on the TV or the paper.
   if (params.get('screen') === '1' || params.get('print') === '1') {
     return <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
@@ -53,7 +55,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </header>
         <DatabaseBanner />
         <CrewNoticeBanner />
-        <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+        <PageError resetKey={pathname}>
+          <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+        </PageError>
         <Attribution />
       </div>
     </div>

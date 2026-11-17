@@ -11,6 +11,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { dateTime } from '@/lib/time'
 
 type Answer = { webhooks: Webhook[]; events: string[] }
 type WithSecret = { webhook: Webhook; secret: string }
@@ -72,7 +73,7 @@ function Hook({ hook, events, onSecret, onChanged }: {
   const test = useMutation({ mutationFn: () => post<Ping>(`/api/settings/webhooks/${hook.id}/test`), onSuccess: (p) => { setPing(p); onChanged() } })
   const rotate = useMutation({ mutationFn: () => post<WithSecret>(`/api/settings/webhooks/${hook.id}/secret`), onSuccess: onSecret })
   const remove = useMutation({ mutationFn: () => del(`/api/settings/webhooks/${hook.id}`), onSuccess: onChanged })
-  const time = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { dateStyle: 'short', timeStyle: 'medium' })
+  const time = (ts: number) => dateTime(ts, i18n.language, true)
   const error = change.error ?? test.error ?? rotate.error ?? remove.error
   return (
     <Paper withBorder radius="lg" p="md">

@@ -117,7 +117,7 @@ def test_a_change_counts_once_confirmed(client, wall, fake_checks, monkeypatch):
 
 
 def test_red_services_reach_discord(app_module):
-    discord = app_module.app.extensions["lal_integrations"]["discord"]
+    discord = app_module.app.extensions["floorbit_integrations"]["discord"]
     discord._last_alert.clear()
     msg = discord.build_health_message([
         {"id": "demo:game-1", "name": "Game server 1", "status": "down", "previous": "up", "summary": "Not answering"},
@@ -174,3 +174,23 @@ def test_http_check_feeds_the_wall(client, wall, monkeypatch):
     checks = {c["name"]: c for c in client.get("/api/health").get_json()["checks"]}
     assert checks["Tickets"]["status"] == "up" and checks["Tickets"]["kind"] == "web"
     assert checks["down.example.com"]["status"] == "down"
+
+
+def test_the_wall_keeps_going_when_the_saved_data_cant_be_read_yet(monkeypatch):
+    # Started before the database answers: reading which checks exist fails. Before, that killed
+    # the thread for good and the wall never checked anything after the database came back.
+    from floorbit import database, game_servers
+    wall = health.HealthWall(registry=type("Registry", (), {"feeders": lambda self, kind: []})())
+    calls = []
+
+    def listing():
+        calls.append(1)
+        if len(calls) == 1:
+            raise database.DatabaseUnavailable("postgres: connection refused")
+        wall.stop()
+        return []
+    monkeypatch.setattr(game_servers, "listing", listing)
+    monkeypatch.setattr(health.HealthWall, "_agent_active", staticmethod(lambda: False))
+    monkeypatch.setattr(wall._stop, "wait", lambda timeout=None: wall._stop.is_set())
+    wall._run()
+    assert len(calls) == 2

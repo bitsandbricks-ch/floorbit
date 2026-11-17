@@ -152,9 +152,12 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 |---|---|---|
 | `CHECKIN_ENABLED` | `false` | |
 | `CHECKIN_ALLOWED_NETWORKS` | | CIDRs, e.g. `10.0.0.0/16`. Rejects check-ins from elsewhere (VPN, NAT, guest Wi-Fi) |
-| `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For`; only behind a proxy you control |
+| `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, seat finder, sign-in lockout); only behind a proxy you control |
+| `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
+| `CHECKIN_VERIFY_RATE` | `10` | port lookups a second for new check-ins; a burst waits its turn ([sizing](sizing.md#doors-open)) |
+| `CAPTIVE_ENABLED` | `false` | answer the agents' captive portal (DHCP option 114), see below |
 | `CHECKIN_ADMIN_TOKEN` | | if set, `GET/DELETE /api/checkins` need `X-Admin-Token` |
 | `CHECKIN_FILE` | `checkins.json` | |
 
@@ -169,7 +172,9 @@ user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refr
 ### The "sign in to network" note (Captive Portal API)
 
 With a [local agent](agent.md), phones and laptops can be reminded to check in without blocking
-anything. Set `FLOORBIT_AGENT_CAPTIVE=0.0.0.0:8908` on the agent and let your DHCP server hand out
+anything. It is off until you turn on **Captive portal (DHCP option 114)** in the check-in
+settings (`CAPTIVE_ENABLED`); until then agents asking get a 409 and say nothing. Set
+`FLOORBIT_AGENT_CAPTIVE=0.0.0.0:8908` on the agent and let your DHCP server hand out
 option 114 (RFC 8910) with the URL of the agent's `/.well-known/captive-portal`. Clients that
 support it ask that URL, and until their seat has checked in they show a quiet "sign in to
 network" note that opens the check-in page. Gaming PCs that ignore it lose nothing, because
@@ -195,7 +200,7 @@ traffic is never held back.
 
 Every change to the check-in table is appended to a JSON Lines log: `checkin`, `moved`
 (the same machine checked in at another seat, `to_seat`), `removed`, `ip_changed` (DHCP,
-`previous_ip`) and `mac_found`. `/checkins/history` shows it two ways:
+`previous_ip`) and `mac_found`. The **History** tab of the crew Check-in page (`/checkins?tab=history`; `/checkins/history` still leads there) shows it two ways:
 
 - **Who sat where**: one row per person per seat, from check-in until someone else took the
   seat, they moved, or an admin removed them, with every IP seen in between.

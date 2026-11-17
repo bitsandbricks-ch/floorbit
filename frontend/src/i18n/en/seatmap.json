@@ -1,8 +1,8 @@
 {
   "title": "Seat mapping",
-  "intro": "Which IP, MAC and nick belong to which seat. Floorbit merges it from the check-in page, plugins and seat files. What you enter here wins over all of them; fields you leave empty come from the other sources. Only accounts with seat access see it: this is personal data.",
+  "intro": "Which switch port each seat is on. The IP and MAC are read off that port from the switches' MAC tables, so you only type one in for a seat whose port isn't known yet. Ports come from the cables and from check-ins; what you enter here wins over them. Only accounts with seat access see it: this is personal data.",
   "search": "Search",
-  "searchPlaceholder": "Seat, nick, IP, MAC…",
+  "searchPlaceholder": "Seat, switch, port, nick, IP, MAC…",
   "onlyManual": "Only hand entries",
   "count_one": "{{count}} seat",
   "count_other": "{{count}} seats",
@@ -28,11 +28,38 @@
   "removed": "Hand entry removed.",
   "sourceErrors": "Some sources failed: {{errors}}",
   "importTitle": "Import a CSV",
-  "importHelp": "Columns: seat, ip, mac, nick, note (the first line names them). Every row is checked first; if one is wrong, nothing is imported.",
+  "importHelp": "Columns: seat, switch, port, ip, mac, nick, note (the first line names them; leave out the ones you don't have). Every row is checked first; if one is wrong, nothing is imported.",
   "file": "CSV file",
   "replace": "Replace all hand entries (seats not in the file lose theirs)",
   "check": "Check file",
   "preview": "{{added}} new, {{updated}} changed, {{removed}} removed.",
   "importNow": "Import",
-  "imported": "Imported: {{added}} new, {{updated}} changed, {{removed}} removed."
+  "imported": "Imported: {{added}} new, {{updated}} changed, {{removed}} removed.",
+  "port": "Switch port",
+  "switch": "Switch",
+  "portOnSwitch": "Port",
+  "noPort": "No port yet",
+  "origin": {
+    "manual": "By hand",
+    "cable": "Cable",
+    "checkin": "Check-in"
+  },
+  "live": "Read off the port",
+  "hints": "IP and MAC",
+  "hintsHelp": "Only needed while the seat's port isn't known: Floorbit reads both off the port.",
+  "findTitle": "Find the port by MAC",
+  "findHelp": "Plug the machine in, type its MAC, and Floorbit looks up the port it is on. You can change it again later.",
+  "find": "Find port",
+  "found": "Found on {{switch}} {{port}}. Save to keep it.",
+  "foundHeld": "Found on {{switch}} {{port}}, but that port is seat {{seat}} now. Free it there first.",
+  "resolve_one": "Find the port for {{count}} entry with only an IP or MAC",
+  "resolve_other": "Find the ports for {{count}} entries with only an IP or MAC",
+  "resolved": "{{found}} got their port, {{missed}} not seen on the network, {{taken}} on a port another seat has.",
+  "findMac": "MAC to look for",
+  "originLong": {
+    "manual": "By hand",
+    "cable": "From a cable",
+    "checkin": "Found at check-in"
+  },
+  "fromOrigin": "Without a hand entry: {{value}} ({{origin}})"
 }

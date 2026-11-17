@@ -11,9 +11,12 @@ import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { clock } from '@/lib/time'
+import { incidentTitle } from '@/lib/incidentTitle'
+import { runbookText } from '@/lib/runbookText'
 
 function since(ts: number) {
-  return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return clock(ts)
 }
 
 function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (kind: 'take' | 'done' | 'give-back', note: string) => void }) {
@@ -27,7 +30,7 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
     <Paper withBorder radius="lg" p="sm" component="article" aria-label={job.title}>
       <Stack gap={8}>
         <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Title order={2} size="h4" style={{ overflowWrap: 'anywhere' }}>{job.title}</Title>
+          <Title order={2} size="h4" style={{ overflowWrap: 'anywhere' }}>{incidentTitle(job.title, t)}</Title>
           {job.dispatched_at && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('jobs.sent', { when: since(job.dispatched_at) })}</Text>}
         </Group>
         <Group gap={6}>
@@ -44,8 +47,8 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
         {job.runbook && (
           <Accordion variant="contained" radius="md">
             <Accordion.Item value="runbook">
-              <Accordion.Control>{t('jobs.runbook', { title: job.runbook.title })}</Accordion.Control>
-              <Accordion.Panel><Markdown source={job.runbook.body} /></Accordion.Panel>
+              <Accordion.Control>{t('jobs.runbook', { title: runbookText(job.runbook, t).title })}</Accordion.Control>
+              <Accordion.Panel><Markdown source={runbookText(job.runbook, t).body} /></Accordion.Panel>
             </Accordion.Item>
           </Accordion>
         )}

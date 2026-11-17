@@ -33,7 +33,7 @@ def floor(client, app_module, monkeypatch):
     sw = client.post("/api/switches", json={"name": "sw-b-01", "x": 60, "y": 60}).get_json()
     for n in range(3):   # still up, so it's "part of the network", not an outage
         client.post("/api/switches", json={"name": f"sw-z-0{n}", "x": 900 + n * 40, "y": 600})
-    monitor = app_module.app.extensions["lal_integrations"]["monitor"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "last_poll", time.time())
     down = {"id": sw["id"], "name": "sw-b-01", "status": "offline", "since": time.time() - 300}
     monkeypatch.setattr(monitor, "statuses", {sw["id"]: down})
@@ -105,6 +105,7 @@ def test_seat_shows_state_port_and_incidents_but_no_people(bridge, client, anon_
     assert text.startswith("**Seat B-1**") and "Port: sw-b-01 Gi1/0/1" in text
     assert "No link at all" in text and "https://floor.example.com/plan?seat=B-1" in text
     assert "192.0.2" not in text and "nick" not in text.lower()
+    assert _ask(anon_client, key, _command("seat", options=_opt("seat", "b1"))).startswith("**Seat B-1**")
     assert "no seat Z-9" in _ask(anon_client, key, _command("seat", options=_opt("seat", "Z-9")))
     assert "works incidents" in _ask(anon_client, key, _command("seat", user_id="222", options=_opt("seat", "B-1")))
     assert "not linked" in _ask(anon_client, key, _command("seat", user_id="333", options=_opt("seat", "B-1")))
@@ -215,6 +216,12 @@ def test_seat_answer_reports_a_problem_through_a_form(bridge, client, anon_clien
     form = _answer(anon_client, key, _press("fb:report:B-1"))
     assert form["type"] == 9 and form["data"]["custom_id"] == "fb:report:B-1"
     assert form["data"]["components"][0]["components"][0]["custom_id"] == "problem"
+    assert form["data"]["title"] == "Report a problem at seat B-1"
+    german = _answer(anon_client, key, {**_press("fb:report:B-1"), "locale": "de"})["data"]
+    field = german["components"][0]["components"][0]
+    assert (german["title"], field["label"]) == ("Problem an Platz B-1 melden", "Was ist kaputt")
+    assert field["custom_id"] == "problem"
+    assert german["custom_id"] == "fb:report:B-1"
     assert "works incidents" in _answer(anon_client, key, _press("fb:report:B-1", user_id="222"))["data"]["content"]
 
     sent = _press("fb:report:B-1", kind=5, components=[{"type": 1, "components": [
@@ -286,6 +293,14 @@ def test_attendee_reports_a_seat_without_an_account(bridge, client, anon_client,
     assert "Too many reports" in _ask(anon_client, key, _report("B-4", "other"))   # 5 per 10 min per user
 
 
+
+def test_attendee_report_takes_the_seat_as_typed(bridge, client, anon_client, key, floor, monkeypatch):
+    from floorbit import seat_view
+    monkeypatch.setattr(seat_view, "outage_since", lambda seat, data=None: None)
+    assert _ask(anon_client, key, _report("b 3", "power")) == \
+        "Thanks, we know. Someone from the team will come to seat B-3."
+    assert "There is no seat B 99" in _ask(anon_client, key, _report("b 99", "power"))
+
 def test_attendee_report_when_the_switch_is_known_down(bridge, client, anon_client, key, floor, monkeypatch):
     from floorbit import seat_view
     monkeypatch.setattr(seat_view, "outage_since", lambda seat, data=None: time.time() - 600)
@@ -303,3 +318,16 @@ def test_attendee_report_off_with_the_helpdesk_and_seats_suggested_to_anyone(bri
     assert resp["data"]["choices"][0]["value"] == "B-1"
     assert client.put("/api/settings/features", json={"helpdesk": False}).status_code == 200
     assert "off at this event" in _ask(anon_client, key, _report("B-1", "power"))
+
+
+def test_every_slash_command_text_has_german():
+    # Discord shows description_localizations to German clients in the command list (max 100 characters).
+    def walk(items):
+        for item in items:
+            if "description" in item:
+                german = item.get("description_localizations", {}).get("de")
+                assert german and len(german) <= 100 and german != item["description"], item["description"]
+            yield from [item, *walk(item.get("options") or [])]
+    found = list(walk(discord_commands.COMMANDS))
+    seat = next(c for c in found if c.get("name") == "seat" and c.get("type") == 1)
+    assert seat["description_localizations"]["de"].startswith("Ein Platz:")

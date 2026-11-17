@@ -42,7 +42,7 @@ export default function Topology() {
   const uplink = picked?.kind === 'uplink' ? data?.uplinks.find((u) => u.id === picked.id) : undefined
   const link = picked?.kind === 'link' ? data?.links.find((l) => l.id === picked.id) : undefined
   const node = picked?.kind === 'node' ? data?.nodes.find((n) => n.name === picked.name) : undefined
-  const problems = data?.links.filter((l) => l.issue) ?? []
+  const problems = data?.links.filter((l) => l.issue || l.lldp?.state === 'other') ?? []
 
   const panel = uplink ? <UplinkPanel uplink={uplink} />
     : link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
@@ -60,9 +60,11 @@ export default function Topology() {
           <Alert color={problems.some((l) => l.issue === 'down') ? 'down' : 'warn'} title={t('topology.problems', { count: problems.length })}>
             <Stack gap={2}>
               {problems.map((l) => (
-                <Text key={l.id} size="sm" component="button" onClick={() => setPicked({ kind: 'link', id: l.id })}
-                  style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted' }}>
-                  {t(`topology.issue.${l.issue}`, { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, planned: `${l.speed}G`, actual: gbit(l.speed_bps) })}
+                <Text key={l.id} size="sm" component="button" type="button" className="fb-text-button"
+                  onClick={() => setPicked({ kind: 'link', id: l.id })}>
+                  {l.issue
+                    ? t(`topology.issue.${l.issue}`, { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, planned: `${l.speed}G`, actual: gbit(l.speed_bps) })
+                    : t('topology.issue.miswired', { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, ...seenAt(l) })}
                 </Text>
               ))}
             </Stack>
@@ -167,6 +169,12 @@ export default function Topology() {
   )
 }
 
+/** Where a wrong patch was seen and what is on the other end, for the texts. */
+function seenAt(l: SwitchLink) {
+  const at = l.lldp?.at ?? 'a'
+  return { here: `${l[at]} ${l[`${at}_port`]}`, there: `${l.lldp?.remote ?? ''} ${l.lldp?.remote_port ?? ''}`.trim() }
+}
+
 function fromSuggestion(s: LinkSuggestion): Draft {
   return { a: s.a, a_port: s.a_port, b: s.b, b_port: s.b_port, speed: s.speed, type: '' }
 }
@@ -211,6 +219,10 @@ function LinkPanel({ link: l, canEdit, onEdit, onGone }: { link: SwitchLink; can
         <Text size="sm" c="dimmed">{t('topology.type')}</Text><Text size="sm">{l.type ? t(`topology.types.${l.type}`) : '–'}</Text>
         <Text size="sm" c="dimmed">{t('topology.planned')}</Text><Text size="sm">{l.speed ? `${l.speed}G` : '–'}</Text>
         <Text size="sm" c="dimmed">{t('topology.actual')}</Text><Text size="sm">{gbit(l.speed_bps) || '–'}</Text>
+        <Text size="sm" c="dimmed">{t('topology.lldp')}</Text>
+        <Text size="sm" className={l.lldp?.state === 'other' ? 'fb-tone-warn' : undefined}>
+          {l.lldp ? t(`topology.lldpState.${l.lldp.state}`, seenAt(l)) : '–'}
+        </Text>
       </SimpleGrid>
       {l.note && <Text size="sm">{l.note}</Text>}
       {canEdit && (

@@ -115,6 +115,11 @@ def _clean_mapping(rules):
     return out[:50]
 
 
+def _origin(url):
+    parts = urlsplit(url or '')
+    return parts.scheme.lower(), (parts.hostname or '').lower(), parts.port
+
+
 def save(provider_id, body):
     provider_id = (provider_id or '').strip().lower()
     if not ID_RE.match(provider_id):
@@ -136,6 +141,12 @@ def save(provider_id, body):
         stored = {k: v for k, v in (data.get(KEY) or {}).items() if isinstance(v, dict)}
         if provider_id not in stored and len(stored) >= MAX_PROVIDERS:
             raise OIDCError(f'At most {MAX_PROVIDERS} sign-in providers.')
+        # The client secret comes from the server's environment, by provider ID: moving the issuer to
+        # another host would send it there. A fix within the same host (a path) is fine.
+        was = (stored.get(provider_id) or {}).get('issuer')
+        if was and _origin(was) != _origin(config['issuer']) and client_secret(provider_id):
+            raise OIDCError('The issuer can only change within the same host, because the client secret '
+                            'belongs to it. Add the new identity provider under a new ID.')
         stored[provider_id] = config
         data[KEY] = stored
         _write(data)

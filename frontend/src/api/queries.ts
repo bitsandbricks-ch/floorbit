@@ -105,7 +105,7 @@ export function useInventory(hidden: boolean) {
 }
 
 export function useSeatMap() {
-  return useQuery({ queryKey: qk.seatMap, queryFn: () => get<SeatMapList>('/api/seat-map') })
+  return useQuery({ queryKey: qk.seatMap, queryFn: () => get<SeatMapList>('/api/seat-map?read=1') })
 }
 
 export function useRoles() {

@@ -3,6 +3,7 @@
 Drawn with ``pdf.py``. Texts in English and German; times in the reader's time zone, which the page
 passes as ``tz`` (minutes behind UTC, like JavaScript's ``getTimezoneOffset``).
 """
+import re
 import time
 
 from .pdf import Page, fit, render, text_width
@@ -62,6 +63,9 @@ TEXTS = {
         'kind': {'flapping': 'Flattern', 'errors': 'Fehler', 'duplex': 'Halbduplex', 'checkin': 'kein Check-in',
                  'mapping': 'Platz-Port'},
         'helpdesk': 'Platzmeldung',
+        'seat_titles': {'no-internet': 'Kein Internet am Platz', 'slow': 'Langsame Verbindung',
+                        'power': 'Kein Strom am Platz', 'other': 'Braucht Hilfe am Platz'},
+        'power_titles': ('Sicherung ausgelöst: {}', 'Stromkreis {} bei {} % von {} A'),
     },
 }
 
@@ -247,6 +251,23 @@ def _table(doc, title, columns, rows, empty, note=''):
     doc.y += 16
 
 
+_POWER = (re.compile(r'^Breaker tripped: (.+)$'), re.compile(r'^Circuit (.+) at ([\d.]+) % of ([\d.]+) A$'))
+
+
+def _title(title, tx):
+    """A seat report's or power alert's title in the report's language; any other title as written."""
+    from .incidents import SEAT_TITLES
+    german = tx.get('seat_titles') or {}
+    found = next((german[k] for k, english in SEAT_TITLES.items() if english == title and k in german), None)
+    if found:
+        return found
+    for pattern, target in zip(_POWER, tx.get('power_titles') or (), strict=False):
+        m = pattern.match(title)
+        if m:
+            return target.format(*m.groups())
+    return title
+
+
 def pdf(report, lang='en', tz=0):
     lang = lang if lang in TEXTS else 'en'
     tx = TEXTS[lang]
@@ -324,7 +345,7 @@ def pdf(report, lang='en', tz=0):
     rows = []
     for i in found['items']:
         where = i['seat'] or i['switch'] or i['circuit']
-        title = i['title']
+        title = _title(i['title'], tx)
         if i['source'] == 'helpdesk':
             title += f" ({tx['helpdesk']}, {i['reports']}{TIMES})" if i['reports'] > 1 else f" ({tx['helpdesk']})"
         took = duration(i['end'] - i['start']) if i['end'] else (tx['open'],)

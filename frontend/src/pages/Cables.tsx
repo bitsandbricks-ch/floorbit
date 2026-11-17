@@ -29,6 +29,7 @@ export default function Cables() {
   const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.cables })
+  // Port areas still pick from the switch list; the cable form uses EntitySelect.
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
     enabled: canEdit })
   useLiveEvent('cables.changed', refresh)
