@@ -130,14 +130,23 @@ def _elbow(a, b):
 
 def _to_seat(start, seat, box):
     """From a switch (or panel) to a seat: to the side of the seat's block that faces the start,
-    along it, then into the seat's row. The cables of one block share that run."""
+    along it, then into the seat's row. The cables of one block share that run.
+
+    Coming from above or below, a seat in the far half of the block is reached from the far side:
+    the cable goes round the block's end instead of crossing the near rows, so it plugs into its
+    own seat and the block's cables split over two runs instead of piling onto one."""
     if box is None:
         return _elbow(start, seat)
     sx, sy = start
     if box['sideways'] or box['l'] <= sx <= box['r']:
-        # Above or below the block (or its rows run up and down): the run is along the top or bottom.
-        y = box['t'] - TRUNK * PITCH_Y / 2 if sy < box['cy'] else box['b'] + TRUNK * PITCH_Y / 2
-        return [(sx, y), (seat[0], y)]
+        top = box['t'] - TRUNK * PITCH_Y / 2
+        bottom = box['b'] + TRUNK * PITCH_Y / 2
+        near, far = (top, bottom) if sy < box['cy'] else (bottom, top)
+        if box['sideways'] or (seat[1] < box['cy']) == (sy < box['cy']):
+            return [(sx, near), (seat[0], near)]
+        # Round the block's nearer end, then along the far side.
+        x = box['l'] - TRUNK * PITCH_X / 2 if sx < box['cx'] else box['r'] + TRUNK * PITCH_X / 2
+        return [(sx, near), (x, near), (x, far), (seat[0], far)]
     x = box['l'] - TRUNK * PITCH_X / 2 if sx < box['cx'] else box['r'] + TRUNK * PITCH_X / 2
     return [(x, sy), (x, seat[1])]
 

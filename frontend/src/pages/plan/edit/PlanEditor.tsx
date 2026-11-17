@@ -15,6 +15,7 @@ import { qk } from '@/api/keys'
 import type { Cable, Circuit, PlanCable, PlanGroup, PlanMark, PowerMarkers, SeatViewData } from '@/api/types'
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { cablePath, useCablePlan } from '../cablePlan'
+import { followPlan } from '../cableRoute'
 import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
@@ -683,7 +684,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power}
         overlay={(ctx) => (<>
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool}
-            lines={cables.map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
+            lines={followPlan(cables, shown).map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
               else if (tool === 'cable') startCable(raw)

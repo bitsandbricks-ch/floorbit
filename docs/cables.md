@@ -157,7 +157,10 @@ grey when the type is not known) and a thicker line a faster cable.
 - **Automatic cabling** (on by default) draws a cable from the switch to every seat whose port is
   known: from the cables here, from NetBox, and from the port descriptions on the switches. The cables
   of one seat block run together along the side of the block that faces the switch, then into each
-  row. Venues that patch seats through panels can turn it off under Settings > Cabling
+  row; coming from above or below, the far row is reached round the end of the block, so no cable
+  crosses the near row. A dot on the seat's edge shows where each cable plugs in. Where three or more
+  cables share a run they are drawn as one band with the number of cables on it. Moving a switch or a
+  seat block takes its cables along at once. Venues that patch seats through panels can turn it off under Settings > Cabling
   (`CABLE_AUTO=false`) and draw the cables they want with the Cable tool. A cable that names a patch
   panel runs through it once the panel is on the plan: right-click the floor and pick **Put patch panel
   … here**; drag it to move it.

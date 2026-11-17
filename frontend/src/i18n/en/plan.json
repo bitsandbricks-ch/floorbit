@@ -636,6 +636,8 @@
     "uplinksSlow_one": "{{count}} slower than it should be",
     "uplinksSlow_other": "{{count}} slower than they should be",
     "legend": "What the cables show",
+    "bundle_one": "{{count}} cable on this run",
+    "bundle_other": "{{count}} cables on this run",
     "cables_one": "{{count}} seat cable",
     "cables_other": "{{count}} seat cables",
     "media": { "copper": "Copper", "fiber": "Fiber", "dac": "DAC" },
