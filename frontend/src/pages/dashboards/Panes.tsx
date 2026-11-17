@@ -20,7 +20,7 @@ function Note({ children }: { children: React.ReactNode }) {
 
 function Framed({ title, hide, className = '', children }: { title?: string; hide?: boolean; className?: string; children: React.ReactNode }) {
   return (
-    <div className={`fb-pane ${className}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
+    <div className={`fb-pane ${className}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
       {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text></div>}
       <div className={`fb-pane-body fb-pane-scroll${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>

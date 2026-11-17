@@ -108,7 +108,7 @@ export function PlanPane({ pane, cycle }: { pane: PlanPaneDef; cycle?: number })
     )
   }
   return (
-    <div className="fb-pane fb-pane-plan" role="region" aria-label={title}>
+    <div className={`fb-pane fb-pane-plan${pane.hide_title ? ' fb-pane-nohead' : ''}`} role="region" aria-label={title}>
       {!pane.hide_title && <div className="fb-pane-head">
         <Text fw={800} className="fb-pane-title" truncate>{title}</Text>
         {data && inArea && (
