@@ -149,6 +149,8 @@ def read(limit=100, offset=0, user=None, area=None, query=None):
             e = json.loads(line)
         except ValueError:
             continue
+        if not isinstance(e, dict):
+            continue   # a line that isn't an entry (a hand edit): skipped like a broken one
         if user and (e.get('user') or '') != user:
             continue
         if area and e.get('area') != area:
