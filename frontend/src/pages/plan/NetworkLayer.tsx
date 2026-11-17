@@ -1,22 +1,54 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanCable, PlanLink, PlanPanel } from '@/api/types'
 import { cablePath } from './cablePlan'
 import { cableSummary, uplinkSummary } from './cableLegend'
+import { bundles, plugAt } from './cableRoute'
 
 const SPEED_W: Record<number, number> = { 1: 1.6, 10: 2.4, 25: 2.8, 40: 3.2, 100: 3.6 }
 
 /** Seat cables (switch port, through its patch panel, to the seat) and the patch panels, on the
- *  Network layer. Uplinks and power have their own layers. */
-export function CableLines({ cables, size }: { cables: PlanCable[]; size: { w: number; h: number } }) {
+ *  Network layer. Uplinks and power have their own layers.
+ *
+ *  Seat cables: the bundles under them (where three or more share a run, one band with a count),
+ *  then each cable. ``scale`` keeps the counts the same size on screen at every zoom. */
+export function CableLines({ cables, size, scale = 1 }: { cables: PlanCable[]; size: { w: number; h: number }; scale?: number }) {
   const { t } = useTranslation()
+  const runs = useMemo(() => bundles(cables, size), [cables, size])
+  const r = 9 / (scale || 1)
   return (
     <g className="seat-cables">
+      {runs.map((b, i) => (
+        <line key={`b${i}`} className="cable-bundle" x1={b.x1} y1={b.y1} x2={b.x2} y2={b.y2}
+          strokeWidth={Math.min(14, 4 + b.count / 2)} vectorEffect="non-scaling-stroke" />
+      ))}
       {cables.filter((c) => c.kind === 'lan').map((c) => (
         <path key={c.key} className={`seatcable m-${c.media || 'copper'}${c.ref.cable ? '' : ' learned'}`} d={cablePath(c.points, size, c.corners)}
           strokeWidth={SPEED_W[c.speed ?? 1] ?? 1.6} vectorEffect="non-scaling-stroke" fill="none">
           <title>{`${c.label ? `${c.label}: ` : ''}${c.ref.switch} ${c.ref.port}${c.via ? ` → ${c.via}` : ''} → ${c.ref.seat}${c.ref.cable ? '' : ` (${t('plan.net.learned')})`}`}</title>
         </path>
       ))}
+      {/* One count per bundle line, on its fullest stretch, so it reads as "12 cables" at a glance. */}
+      {runs.filter((b) => b.label && Math.hypot(b.x2 - b.x1, b.y2 - b.y1) > r * 3).map((b, i) => (
+        <g key={`n${i}`} className="cable-count" transform={`translate(${(b.x1 + b.x2) / 2} ${(b.y1 + b.y2) / 2})`}>
+          <circle r={r} />
+          <text dy="0.35em" fontSize={r * 1.1}>{b.count}</text>
+          <title>{t('plan.net.bundle', { count: b.count })}</title>
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** Where each seat cable plugs in: a dot on the seat's edge, drawn over the seats, so a cable
+ *  visibly ends at its seat and not somewhere at the block. */
+export function CablePlugs({ cables, size, cell }: { cables: PlanCable[]; size: { w: number; h: number }; cell: number }) {
+  return (
+    <g className="cable-plugs" aria-hidden="true">
+      {cables.map((c) => {
+        const at = plugAt(c, size, cell)
+        return at ? <circle key={c.key} className={`plug m-${c.media || 'copper'}${c.ref.cable ? '' : ' learned'}`} cx={at[0]} cy={at[1]} r={Math.max(2.5, cell * 0.09)} /> : null
+      })}
     </g>
   )
 }

@@ -143,3 +143,17 @@ def test_turned_blocks_keep_their_seats_in_place(client):
     x, y, _ = seats["A-1"]
     # Turned a quarter clockwise, the first row runs down the right-hand side, numbered from the bottom.
     assert (round(x, 2), round(y, 2)) == (41, 57.6)
+
+
+def test_a_cable_from_above_reaches_the_far_row_round_the_block(client):
+    # Mike: cables seemed to end at the block, not the seat; the near row hid the drop to the far row.
+    client.put("/api/settings", json={"cabling.auto": True})
+    client.post("/api/seat-blocks", json=A)
+    client.post("/api/switches", json={"name": "sw-a-02", "x": 36, "y": 20})
+    for port, seat in (("Gi1/0/1", "A-2"), ("Gi1/0/2", "A-14")):
+        assert client.post("/api/cables", json={"switch": "sw-a-02", "port": port, "seat": seat}).status_code == 201
+    far, near = sorted(_drawn(client, "lan"), key=lambda c: c["ref"]["seat"])  # "A-14" sorts first
+    # A-2 is in the near row: down to the run above the block, along it, into the seat.
+    assert near["points"] == [[36, 20], [36, 35.2], [31, 35.2], [31, 38.4]]
+    # A-14 is in the far row: round the block's left end and in from below, not across A-2.
+    assert far["points"] == [[36, 20], [36, 35.2], [27, 35.2], [27, 44.8], [31, 44.8], [31, 41.6]]

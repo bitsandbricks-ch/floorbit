@@ -9,7 +9,8 @@ import {
   parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
 import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
-import { CableLines, PanelGlyphs } from './NetworkLayer'
+import { CableLines, CablePlugs, PanelGlyphs } from './NetworkLayer'
+import { followPlan } from './cableRoute'
 import { PowerLayer } from './PowerLayer'
 import { blockAlarm, blockTop } from './blockTop'
 import { Minimap } from './Minimap'
@@ -301,6 +302,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
   const network = layers.on.has('network')
+  // Cables drawn from where their switch and seat are now (a block or switch just moved, or being dragged).
+  const placed = useMemo(() => (cables ? followPlan(cables, { drawing, switches: data.switches, size: data.size }) : undefined), [cables, drawing, data.switches, data.size])
   // The open seat's way to its switch, when both are on this plan.
   const traceTo = focus?.seat ? data.switches.find((w) => w.name === focus.switch) : undefined
   const traceFrom = focus?.seat ? seatCenter(drawing, focus.seat) : null
@@ -342,7 +345,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}</g>}
-        {network && cables && <g opacity={opacity(layers, 'network')}><CableLines cables={cables} size={data.size} /></g>}
+        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
         {drawing.shapes.map((b, bi) => {
           const sum = data.blocks.find((x) => x.name === b.name)
@@ -379,6 +382,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}
+        {network && placed && level !== 'far' && <g opacity={opacity(layers, 'network')}><CablePlugs cables={placed} size={data.size} cell={drawing.cell} /></g>}
         {network && trace && <line className="sw-trace" x1={trace.from.x} y1={trace.from.y} x2={trace.to.x} y2={trace.to.y} vectorEffect="non-scaling-stroke" />}
         {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
         {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (

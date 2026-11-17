@@ -636,6 +636,8 @@
     "uplinksSlow_one": "{{count}} langsamer als vorgesehen",
     "uplinksSlow_other": "{{count}} langsamer als vorgesehen",
     "legend": "Was die Kabel zeigen",
+    "bundle_one": "{{count}} Kabel auf diesem Stück",
+    "bundle_other": "{{count}} Kabel auf diesem Stück",
     "cables_one": "{{count}} Platzkabel",
     "cables_other": "{{count}} Platzkabel",
     "media": { "copper": "Kupfer", "fiber": "Glasfaser", "dac": "DAC" },
