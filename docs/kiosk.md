@@ -5,6 +5,13 @@ map scaled to fit the screen, switch status, which seats are taken, and a
 "Down" list of switches that are offline and for how long. It never writes to
 the server and has no editing controls.
 
+## On a phone and in German
+
+The kiosk speaks the browser's language: English, Swiss German or German, the same choice the
+crew pages make (the language picked in Floorbit, else the browser's). On a phone the top bar
+wraps into two rows (title and clock, then the counts), the "Down" list moves under the map, and
+the legend wraps.
+
 ## Options
 
 Add them to the URL, for example `/kiosk?title=LAN%20Party&refresh=10`.

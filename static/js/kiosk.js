@@ -13,6 +13,14 @@
  * Nothing here writes to the server.
  */
 (function () {
+  // Texts in the page's language (floorbit/kiosk_texts.py); {name} fields filled in here.
+  let TEXT = {};
+  try { TEXT = JSON.parse(document.getElementById('k-texts')?.textContent || '{}'); } catch { /* English below */ }
+  function t(key, fallback, vars) {
+    return String(TEXT[key] || fallback).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : m));
+  }
+  const STATUS_TEXT = { online: () => t('online', 'up'), offline: () => t('offline', 'down'), unknown: () => t('status_unknown', 'no status') };
+
   // ── Options ────────────────────────────────────────────────────────────────
   const params = new URLSearchParams(location.search);
   function intParam(name, def, min, max) {
@@ -193,7 +201,7 @@
       const st = sw.status || 'unknown';
       html.push(
         `<div class="switch-marker${st === 'offline' ? ' is-offline' : ''}" data-id="${escHtml(sw.id)}"
-              style="left:${Number(sw.x)}%;top:${Number(sw.y)}%" title="${escHtml(sw.name)} · ${escHtml(st)}">
+              style="left:${Number(sw.x)}%;top:${Number(sw.y)}%" title="${escHtml(sw.name)} · ${escHtml(STATUS_TEXT[st] ? STATUS_TEXT[st]() : st)}">
            <div class="switch-pin status-${escHtml(st)}">${pinSVG(st)}</div>
            ${OPT.labels ? `<div class="switch-label">${escHtml(sw.name)}</div>` : ''}
          </div>`);
@@ -268,10 +276,10 @@
 
   function fmtSince(ts) {
     const mins = Math.floor((Date.now() - ts) / 60_000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins} min`;
+    if (mins < 1) return t('just_now', 'just now');
+    if (mins < 60) return t('mins', '{n} min', { n: mins });
     const h = Math.floor(mins / 60);
-    return `${h} h ${mins % 60} min`;
+    return t('hours', '{h} h {m} min', { h, m: mins % 60 });
   }
 
   function renderAlerts() {
@@ -284,7 +292,7 @@
     let html = shown.map(sw =>
       `<li class="k-alert"><span class="k-alert-name">${escHtml(sw.name)}</span>` +
       `<span class="k-alert-since">${downSince[sw.id] ? fmtSince(downSince[sw.id]) : ''}</span></li>`).join('');
-    if (down.length > shown.length) html += `<li class="k-alert-more">+ ${down.length - shown.length} more</li>`;
+    if (down.length > shown.length) html += `<li class="k-alert-more">${t('more', '+ {n} more', { n: down.length - shown.length })}</li>`;
     $('k-alerts-list').innerHTML = html;
   }
 
@@ -383,8 +391,8 @@
 
   async function loadConfig() {
     try { config = await getJSON('/api/config'); } catch { /* keep defaults */ }
-    $('k-title').textContent = OPT.title || $('k-title').dataset.default || 'Floor plan';
-    document.title = `${$('k-title').textContent} · Kiosk`;
+    $('k-title').textContent = OPT.title || $('k-title').dataset.default || t('plan', 'Floor plan');
+    document.title = `${$('k-title').textContent} · ${t('page', 'Kiosk')}`;
   }
 
   async function loadSeatInfo() {
@@ -563,16 +571,16 @@
     const dot = $('k-live-dot');
     const text = $('k-sync-text');
     const age = lastOkAt ? Math.round((Date.now() - lastOkAt) / 1000) : null;
-    const ageText = age == null ? '' : age < 5 ? 'updated just now'
-      : age < 60 ? `updated ${age}s ago` : `updated ${Math.round(age / 60)} min ago`;
+    const ageText = age == null ? '' : age < 5 ? t('updated_now', 'updated just now')
+      : age < 60 ? t('updated_s', 'updated {n}s ago', { n: age }) : t('updated_min', 'updated {n} min ago', { n: Math.round(age / 60) });
 
     dot.className = 'k-live-dot' + (lastError && (!lastOkAt || age * 1000 > STALE_AFTER) ? ' error' : live ? ' live' : ' polling');
     if (!config.librenms_enabled && lastOkAt) {
-      text.textContent = `No switch status (LibreNMS not set up) · ${ageText}`;
+      text.textContent = `${t('no_monitoring', 'No switch status (LibreNMS not set up)')} · ${ageText}`;
     } else if (live) {
-      text.textContent = `Live · ${ageText || 'waiting for data'}`;
+      text.textContent = `${t('live', 'Live')} · ${ageText || t('waiting', 'waiting for data')}`;
     } else {
-      text.textContent = `Every ${Math.round(OPT.statusEvery / 1000)}s · ${ageText || 'loading'}`;
+      text.textContent = `${t('every', 'Every {n}s', { n: Math.round(OPT.statusEvery / 1000) })} · ${ageText || t('loading', 'loading')}`;
     }
 
     const stale = $('k-stale');
@@ -581,8 +589,8 @@
     if (isStale) {
       const when = lastOkAt ? new Date(lastOkAt) : null;
       stale.textContent = when
-        ? `No fresh data since ${pad2(when.getHours())}:${pad2(when.getMinutes())}. Status shown may be out of date.`
-        : 'Cannot reach the server. Retrying…';
+        ? t('stale', 'No fresh data since {time}. Status shown may be out of date.', { time: `${pad2(when.getHours())}:${pad2(when.getMinutes())}` })
+        : t('unreachable', 'Cannot reach the server. Retrying…');
     }
   }
 
@@ -636,7 +644,7 @@
     connectLive();
     if (hall && hallCount > 1 && !OPT.title) $('k-title').textContent += ` · ${hall.name}`;
     if (OPT.heat) {
-      $('k-title').textContent += ' · Traffic';
+      $('k-title').textContent += ` · ${t('traffic', 'Traffic')}`;
       $('k-heat-legend')?.classList.remove('hidden');
       loadHeat();
       setInterval(loadHeat, HEAT_EVERY);
