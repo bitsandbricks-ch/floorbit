@@ -759,5 +759,6 @@
  "{} {} is already seat {}.": "{} {} ist schon Platz {}.",
  "The first line must name the columns: seat, switch, port, ip, mac, nick, note": "Die erste Zeile muss die Spalten nennen: seat, switch, port, ip, mac, nick, note",
  "Give a MAC or an IP to look for.": "Gib eine MAC oder eine IP an, nach der gesucht wird.",
- "No switch sees this machine right now.": "Kein Switch sieht dieses Gerät gerade."
+ "No switch sees this machine right now.": "Kein Switch sieht dieses Gerät gerade.",
+ "Only a signed-in account keeps sidebar settings.": "Nur ein angemeldetes Konto speichert Einstellungen der Seitenleiste."
 }

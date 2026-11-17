@@ -189,6 +189,8 @@ WRITE = ('POST', 'PUT', 'PATCH', 'DELETE')
 # no rule matches needs floorplan.view to read and an admin (settings.manage) to change anything:
 # a new route is closed until someone gives it a rule here.
 RULES = (
+    # Everyone signed in keeps their own sidebar settings.
+    ('/api/auth/me', None, 'floorplan.view'),
     ('/api/settings/audit', READ, 'audit.read'),
     # The event changelog has the audit log in it, with who (floorbit/timeline.py).
     ('/api/timeline', READ, 'audit.read'),

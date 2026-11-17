@@ -155,6 +155,18 @@ class UserStore:
             self._write_users(users)
             return dict(user)
 
+    def set_nav(self, username, prefs):
+        """The sidebar as this person set it up: favourite pages and whether sections fold up when
+        another opens. Kept with the account so it follows them to every browser."""
+        with self._lock:
+            users = self._users()
+            user = users.get((username or '').lower())
+            if not user:
+                raise UserError(f'No user called {username}.')
+            user['nav'] = clean_nav(prefs)
+            self._write_users(users)
+            return dict(user['nav'])
+
     def link_identity(self, username, provider, subject):
         """Link an outside login to this account; an empty subject unlinks it."""
         subject = str(subject or '').strip()
@@ -191,6 +203,21 @@ def _manager(user):
 def _admin_count(users):
     """Accounts that can still manage accounts (so nobody locks everyone out)."""
     return sum(1 for u in users.values() if _manager(u))
+
+
+NAV_PAGE_RE = re.compile(r'^[A-Za-z][A-Za-z0-9]{0,40}$')
+MAX_FAVOURITES = 20
+
+
+def clean_nav(prefs):
+    """{'favourites': [page ids], 'accordion': bool}; anything else is dropped."""
+    prefs = prefs if isinstance(prefs, dict) else {}
+    raw = prefs.get('favourites') if isinstance(prefs.get('favourites'), list) else []
+    favourites = []
+    for page in raw:
+        if isinstance(page, str) and NAV_PAGE_RE.match(page) and page not in favourites:
+            favourites.append(page)
+    return {'favourites': favourites[:MAX_FAVOURITES], 'accordion': prefs.get('accordion') is not False}
 
 
 def public(user):

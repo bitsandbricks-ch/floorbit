@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import '@/i18n'
 import type { NavBoot } from './boot'
 import { activeHref, group, isServerPage } from './sections'
@@ -15,7 +15,7 @@ const pages = [
   { href: '/settings/agents', id: 'agents', label: 'Local agents' },
   { href: '/brand-new', id: 'brandNew', label: 'Brand new page' },
 ]
-const boot: NavBoot = { pages, brand: { logo: null, name: null }, user: { name: 'Kim', username: 'kim' }, signOut: true }
+const boot: NavBoot = { pages, brand: { logo: null, name: null }, user: { name: 'Kim', username: 'kim' }, signOut: true, prefs: null }
 const link = ({ children, ...rest }: LinkProps) => <a {...rest}>{children}</a>
 
 function sidebar(path = '/problems', extra: Partial<Parameters<typeof Sidebar>[0]> = {}) {
@@ -24,6 +24,7 @@ function sidebar(path = '/problems', extra: Partial<Parameters<typeof Sidebar>[0
 const main = () => screen.getByRole('navigation', { name: 'Main' })
 
 afterEach(() => {
+  vi.unstubAllGlobals()
   localStorage.clear()
   document.cookie = 'floorbit_nav=; max-age=0; path=/'
 })
@@ -60,15 +61,46 @@ describe('Sidebar', () => {
     expect(row).toHaveTextContent('3 down')
   })
 
-  it('opens the section of the page on screen, and others on a click', () => {
+  it('opens the section of the page on screen, and folds it when another opens', () => {
     sidebar('/traffic')
     expect(within(main()).getByRole('link', { name: 'Traffic' })).toHaveAttribute('aria-current', 'page')
+    const network = within(main()).getByRole('button', { name: 'Network' })
     const admin = within(main()).getByRole('button', { name: 'Settings' })
-    expect(admin).toHaveAttribute('aria-expanded', 'false')
+    expect(network).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(admin)
     expect(admin).toHaveAttribute('aria-expanded', 'true')
+    expect(network).toHaveAttribute('aria-expanded', 'false')
     expect(within(main()).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
+    fireEvent.click(admin)
+    expect(admin).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('keeps several sections open when folding is switched off', () => {
+    sidebar('/traffic')
+    fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as kim' }))
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Fold other sections when one opens' }))
+    expect(JSON.parse(localStorage.getItem('floorbit-nav-prefs')!)).toEqual({ favourites: [], accordion: false })
+    const admin = within(main()).getByRole('button', { name: 'Settings' })
+    fireEvent.click(admin)
+    expect(admin).toHaveAttribute('aria-expanded', 'true')
+    expect(within(main()).getByRole('button', { name: 'Network' })).toHaveAttribute('aria-expanded', 'true')
     expect(JSON.parse(localStorage.getItem('floorbit-nav-open')!)).toEqual(['admin'])
+  })
+
+  it('pins favourites to the top, saved with the account when signed in', () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<Sidebar boot={{ ...boot, prefs: { favourites: ['stats'], accordion: true } }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+    const favs = within(main()).getByRole('list', { name: 'Favourites' })
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Stats'])
+    fireEvent.click(within(main()).getByRole('button', { name: 'Add Incidents to favourites' }))
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Stats', 'Incidents'])
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/nav', expect.objectContaining({
+      method: 'PUT', body: JSON.stringify({ favourites: ['stats', 'incidents'], accordion: true }),
+    }))
+    fireEvent.click(within(favs).getByRole('button', { name: 'Remove Stats from favourites' }))
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Incidents'])
+    expect(localStorage.getItem('floorbit-nav-prefs')).toBeNull()
   })
 
   it('folds to icons, keeps that in a cookie, and lists a section in a flyout', () => {

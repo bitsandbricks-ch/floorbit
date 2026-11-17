@@ -29,7 +29,7 @@ from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_te
 from . import oidc, roles, teams, tokens
 from .admin import create_users_blueprint
 from .providers import AuthError, Identity, LocalProvider, Registry
-from .users import UserError, UserStore, public
+from .users import UserError, UserStore, clean_nav, public
 
 __all__ = ['Auth', 'AuthError', 'Identity', 'current_user', 'init_auth', 'login_required', 'public_endpoint']
 
@@ -428,6 +428,17 @@ def _blueprint():
     def me():
         auth = _auth()
         return jsonify({'enabled': auth.enabled, 'user': current_user()})
+
+    @bp.route('/api/auth/me/nav', methods=['GET', 'PUT'])
+    def my_nav():
+        """The sidebar's favourites and fold behaviour for the signed-in account."""
+        auth = _auth()
+        user = current_user()
+        if not auth.enabled or not user or user.get('api_token'):
+            return jsonify({'error': 'Only a signed-in account keeps sidebar settings.'}), 400
+        if request.method == 'GET':
+            return jsonify(clean_nav((auth.users.get(user['username']) or {}).get('nav')))
+        return jsonify(auth.users.set_nav(user['username'], request.get_json(silent=True) or {}))
 
     @bp.route('/auth/<provider_id>/start')
     def start(provider_id):
