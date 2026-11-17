@@ -36,11 +36,20 @@ SECTIONS = [
     {'id': 'checkin', 'title': 'Seat check-in',
      'description': ('A /checkin page where players enter seat and username; '
                      'their IP and MAC (from LibreNMS ARP) are recorded.')},
+    {'id': 'attention', 'title': 'Port trouble',
+     'description': 'Which access ports the Problems page lists as needing a look.'},
+    {'id': 'syslog', 'title': 'Logs',
+     'description': 'Who may send syslog to Floorbit and how much is kept. The listener itself (port, TCP) is set in '
+                    'the environment.'},
+    {'id': 'insights', 'title': 'DNS, games and bandwidth',
+     'description': 'How often the DNS and LAN cache logs are read, what is kept, and the bandwidth forecast.'},
+    {'id': 'switchtools', 'title': 'Switch configs and terminal',
+     'description': 'Nightly config backups and limits for the switch terminal.'},
     {'id': 'general', 'title': 'General', 'description': 'Shared settings for integrations.'},
 ]
 
 # Keys whose comma-separated value is better edited as a list
-LIST_KEYS = {'SEAT_SOURCES', 'CHECKIN_ALLOWED_NETWORKS'}
+LIST_KEYS = {'SEAT_SOURCES', 'CHECKIN_ALLOWED_NETWORKS', 'SYSLOG_ALLOW'}
 URL_KEYS = {'SEAT_SOURCE_HTTP_URL', 'PUBLIC_URL', 'QR_URL'}
 INT_LIMITS = {
     'STATUS_MONITOR_INTERVAL': (10, 86400),
@@ -57,6 +66,28 @@ INT_LIMITS = {
     'SEAT_SOURCE_CACHE_SECONDS': (0, 86400),
     'CHECKIN_REFRESH_INTERVAL': (30, 86400),
     'CHECKIN_VERIFY_RATE': (1, 1000),
+    'ATTENTION_INTERVAL': (30, 86400),
+    'ATTENTION_FLAPS': (2, 100),
+    'ATTENTION_ERRORS': (1, 1000000),
+    'SYSLOG_RATE': (1, 100000),
+    'SYSLOG_RETENTION_HOURS': (1, 720),
+    'SYSLOG_MAX_LINES': (100, 10000000),
+    'SYSLOG_MAX_MB': (1, 100000),
+    'LOG_ALERT_MINUTES': (1, 1440),
+    'DNS_INTERVAL': (15, 86400),
+    'DNS_MIN_SEATS': (5, 1000),   # the privacy floor: the page can raise it, not lower it
+    'DNS_RETENTION_HOURS': (1, 8760),
+    'LANCACHE_INTERVAL': (5, 86400),
+    'LANCACHE_RETENTION_HOURS': (1, 8760),
+    'FORECAST_CAPACITY_MBPS': (0, 10000000),
+    'FORECAST_WARN_PERCENT': (10, 200),
+    'FORECAST_LEAD_HOURS': (1, 48),
+    'GAME_INTERVAL': (10, 86400),
+    'SERVICES_INTERVAL': (10, 86400),
+    'CONFIG_KEEP': (2, 10000),
+    'TERMINAL_IDLE_MINUTES': (1, 1440),
+    'TERMINAL_MAX_MINUTES': (1, 1440),
+    'CHECKIN_PIN_TRIES': (1, 1000),
 }
 
 

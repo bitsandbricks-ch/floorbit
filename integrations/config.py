@@ -249,6 +249,117 @@ SCHEMA = [
      'label': 'Check-in history file',
      'help': 'Append-only JSON Lines log. Empty means next to the check-in data file (checkins-history.jsonl).'},
 
+    # Port trouble
+    {'key': 'ATTENTION_INTERVAL', 'group': 'attention', 'type': 'int', 'default': 120,
+     'label': 'Port read (seconds)',
+     'help': 'How often every access port is read for port trouble: flapping, errors rising, half duplex. Minimum 30.'},
+    {'key': 'ATTENTION_FLAPS', 'group': 'attention', 'type': 'int', 'default': 3,
+     'label': 'Link changes that count as flapping',
+     'help': 'This many link ups and downs within 10 minutes put a port on the list.'},
+    {'key': 'ATTENTION_ERRORS', 'group': 'attention', 'type': 'int', 'default': 10,
+     'label': 'Errors per read',
+     'help': 'A port whose error counter rises by this much between two reads is listed.'},
+
+    # Logs
+    {'key': 'SYSLOG_ALLOW', 'group': 'syslog', 'type': 'string', 'default': '',
+     'label': 'Allowed senders',
+     'help': 'Comma-separated addresses or CIDRs that may send syslog, besides the switches on the plan. Empty: only '
+             'the switches.'},
+    {'key': 'SYSLOG_ALLOW_SWITCHES', 'group': 'syslog', 'type': 'bool', 'default': True,
+     'label': 'Accept the switches on the plan',
+     'help': 'Lines from the management address of every switch in the inventory are accepted.'},
+    {'key': 'SYSLOG_RATE', 'group': 'syslog', 'type': 'int', 'default': 200,
+     'label': 'Lines per second per sender',
+     'help': "More from one sender in a second are dropped and counted, so one chatty box can't flood the page."},
+    {'key': 'SYSLOG_RETENTION_HOURS', 'group': 'syslog', 'type': 'int', 'default': 24,
+     'label': 'Keep lines (hours)',
+     'help': 'How long log lines are kept for the Logs page.'},
+    {'key': 'SYSLOG_MAX_LINES', 'group': 'syslog', 'type': 'int', 'default': 50000,
+     'label': 'Lines kept at most',
+     'help': 'Older lines go first when there are more.'},
+    {'key': 'SYSLOG_MAX_MB', 'group': 'syslog', 'type': 'int', 'default': 100,
+     'label': 'Log size at most (MB)',
+     'help': 'The stored log is cut back to this size.'},
+    {'key': 'LOG_ALERT_MINUTES', 'group': 'syslog', 'type': 'int', 'default': 15,
+     'label': 'Repeat a log alert after (minutes)',
+     'help': 'The same log alert on the same box is sent again only after this long.'},
+
+    # DNS, games and bandwidth
+    {'key': 'DNS_INTERVAL', 'group': 'insights', 'type': 'int', 'default': 60,
+     'label': 'DNS log read (seconds)',
+     'help': "How often the DNS plugins' query logs are read."},
+    {'key': 'DNS_MIN_SEATS', 'group': 'insights', 'type': 'int', 'default': 5,
+     'label': 'Seats before a domain is named',
+     'help': 'A domain shows on the DNS page only once this many different clients looked it up, so nobody '
+             'can be singled out. 5 at least.'},
+    {'key': 'DNS_RETENTION_HOURS', 'group': 'insights', 'type': 'int', 'default': 168,
+     'label': 'Keep DNS counts (hours)',
+     'help': 'How long the hall-wide DNS counts are kept.'},
+    {'key': 'LANCACHE_INTERVAL', 'group': 'insights', 'type': 'int', 'default': 30,
+     'label': 'LAN cache log read (seconds)',
+     'help': "How often the LAN cache's access log is read for the Games page."},
+    {'key': 'LANCACHE_RETENTION_HOURS', 'group': 'insights', 'type': 'int', 'default': 168,
+     'label': 'Keep LAN cache counts (hours)',
+     'help': 'How long downloads per game are kept.'},
+    {'key': 'STATS_UPLINK_PATTERN', 'group': 'insights', 'type': 'string', 'default': '',
+     'label': 'Uplink port names',
+     'help': 'A regular expression for port descriptions that mark uplinks, for the bandwidth figures. Empty: uplink '
+             'or trunk.'},
+    {'key': 'FORECAST_CAPACITY_MBPS', 'group': 'insights', 'type': 'int', 'default': 0,
+     'label': 'Internet line (Mbit/s)',
+     'help': "The event's internet bandwidth, for the forecast. 0 turns the forecast warning off."},
+    {'key': 'FORECAST_WARN_PERCENT', 'group': 'insights', 'type': 'int', 'default': 80,
+     'label': 'Warn at (% of the line)',
+     'help': 'Warn when the forecast reaches this share of the line.'},
+    {'key': 'FORECAST_LEAD_HOURS', 'group': 'insights', 'type': 'int', 'default': 3,
+     'label': 'Look ahead (hours)',
+     'help': 'How far ahead the forecast warns.'},
+
+    # Discord
+    {'key': 'DISCORD_FORECAST_ALERTS', 'group': 'discord', 'type': 'bool', 'default': True,
+     'label': 'Post forecast warnings',
+     'help': 'Post to Discord when the bandwidth forecast expects the line to fill up.'},
+
+    # Health
+    {'key': 'GAME_INTERVAL', 'group': 'health', 'type': 'int', 'default': 30,
+     'label': 'Game server query (seconds)',
+     'help': 'How often each game server is asked for players and map.'},
+    {'key': 'SERVICES_INTERVAL', 'group': 'health', 'type': 'int', 'default': 30,
+     'label': 'Service check (seconds)',
+     'help': 'How often DNS, DHCP and the other services are checked.'},
+
+    # Switch configs and terminal
+    {'key': 'CONFIG_BACKUP_HOUR', 'group': 'switchtools', 'type': 'string', 'default': '',
+     'label': 'Nightly config backup (hour)',
+     'help': 'The hour (0-23) the switch configs are saved each night, or off.'},
+    {'key': 'CONFIG_KEEP', 'group': 'switchtools', 'type': 'int', 'default': 50,
+     'label': 'Config copies kept per switch',
+     'help': 'Older copies are deleted.'},
+    {'key': 'TERMINAL_IDLE_MINUTES', 'group': 'switchtools', 'type': 'int', 'default': 10,
+     'label': 'Close an idle terminal after (minutes)',
+     'help': 'A switch terminal with no typing for this long is closed.'},
+    {'key': 'TERMINAL_MAX_MINUTES', 'group': 'switchtools', 'type': 'int', 'default': 60,
+     'label': 'Longest terminal session (minutes)',
+     'help': 'A switch terminal is closed after this long in any case.'},
+
+    # Check-in
+    {'key': 'CHECKIN_PIN_TRIES', 'group': 'checkin', 'type': 'int', 'default': 10,
+     'label': 'Wrong PINs before a pause',
+     'help': 'After this many wrong PINs from one address, check-in pauses for it.'},
+
+    # Seats
+    {'key': 'SEAT_SOURCE_HTTP_VERIFY_SSL', 'group': 'seats', 'type': 'bool', 'default': True,
+     'label': "Verify the HTTP source's TLS certificate",
+     'help': 'Turn off only for a source with a self-signed certificate on the event network.'},
+
+    # Attendee pages
+    {'key': 'SEAT_FINDER', 'group': 'public', 'type': 'bool', 'default': True,
+     'label': 'Find your seat page',
+     'help': 'The public /find page where attendees look up a seat number.'},
+    {'key': 'SEAT_FINDER_NICKS', 'group': 'public', 'type': 'bool', 'default': False,
+     'label': 'Find seats by nick',
+     'help': "Also find a seat by a player's nick. Off by default: it tells anyone where a named player sits."},
+
     # General
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',
      'label': 'Public URL', 'help': 'Where people open the floor plan; used for links in alerts.'},
