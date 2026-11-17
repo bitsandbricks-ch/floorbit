@@ -215,5 +215,19 @@
   "No internet at the seat": "Kein Internet am Platz",
   "Slow connection": "Langsame Verbindung",
   "No power at the seat": "Kein Strom am Platz",
-  "Needs help at the seat": "Braucht Hilfe am Platz"
+  "Needs help at the seat": "Braucht Hilfe am Platz",
+  "// Log alert rules (floorbit/log_alerts.py) and security finding kinds, inside the titles above": "",
+  "Port shut down by the switch (err-disable)": "Port vom Switch abgeschaltet (err-disable)",
+  "Port security violation": "Port-Security-Verletzung",
+  "DHCP snooping dropped packets": "DHCP-Snooping hat Pakete verworfen",
+  "MAC address moving between ports": "MAC-Adresse wechselt zwischen Ports",
+  "Loop detected": "Schleife erkannt",
+  "Storm control": "Storm-Control",
+  "Spanning tree topology change": "Spanning-Tree-Topologiewechsel",
+  "rogue-dhcp": "Fremder DHCP",
+  "arp-spoof": "ARP-Spoofing",
+  "mac-flap": "MAC-Flapping",
+  "loop": "Schleife",
+  "storm": "Broadcast-Sturm",
+  "other": "Weiteres"
 }

@@ -113,3 +113,13 @@ def test_the_changelog_and_handover_in_german(client, tmp_path, monkeypatch):
     assert client.get('/api/timeline?q=eröffnet', headers=de).get_json()['total'] >= 1
     changes = client.get('/api/handover', headers=de).get_json()['changes']
     assert any(c['action'] == 'Platzblock hinzugefügt' for c in changes)
+
+
+def test_log_alerts_and_security_kinds_inside_the_titles():
+    from floorbit import log_alerts, security
+    for _pid, _rx, title in log_alerts.PATTERNS:
+        assert i18n.log_text(f'Log alert: {title}', 'de-CH').startswith('Log-Alarm: ') and \
+            i18n.log_text(title, 'de-CH') != title
+    for kind in security.KINDS:
+        assert i18n._log_german(kind) is not None
+    assert i18n.log_text('Security: rogue-dhcp (seat A-7)', 'de-CH') == 'Sicherheit: Fremder DHCP (Platz A-7)'
