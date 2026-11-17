@@ -405,8 +405,10 @@
     "text": "Text",
     "label": "Label",
     "tools": "Tools",
+    "quick": "Selection",
     "tool": {
       "select": "Select",
+      "hand": "Hand",
       "block": "Seat block",
       "text": "Label",
       "icon": "Icon",
@@ -418,6 +420,7 @@
       "switch": "Switch"
     },
     "hint": {
+      "hand": "Drag to move the view. Space + drag or the middle mouse button do the same with any tool.",
       "block": "Click where the new seat block goes.",
       "text": "Click where the label goes.",
       "icon": "Click where the icon goes.",

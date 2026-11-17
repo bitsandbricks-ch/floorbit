@@ -45,7 +45,9 @@ The floor plan editor is moving into this page. Edit mode already does:
   selection: all seat blocks, all switches, or with a wall selected all walls (text, icons and
   zones the same way).
 - **Move:** drag, or the arrow keys (Shift for five steps). Items land on the editor's 0.5 % grid;
-  hold Alt while dragging to place freely. Space + drag (or the middle mouse button) moves the view.
+  hold Alt while dragging to place freely.
+- **Move the view:** the **Hand** tool (H, under Select) drags the view; Space + drag or the middle
+  mouse button do the same with any tool. Esc or V goes back to Select.
 - **Change:** in the panel on the right: a block's name, rotation, seats per row and rows; a label's
   text, size and rotation; an icon's size and rotation; a zone's label and colour; a wall's style;
   which layer a mark is on.
@@ -55,7 +57,9 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Copy and paste:** Ctrl+C, Ctrl+X and Ctrl+V. Paste puts the copy where the pointer is; Ctrl+D
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.
-- **Order:** ] brings the selection to the front, [ sends it to the back.
+- **Order:** Ctrl+] brings the selection to the front, Ctrl+[ sends it to the back.
+- **Selection buttons:** with something selected, the panel on the right has buttons for what the
+  right-click menu does: duplicate, turn, bring to front, send to back and zoom to the selection.
 - **Turn:** R turns the selected seat blocks, labels and icons a quarter turn each, Shift+R turns
   them back (also "Turn 90°" in the right-click menu). One undo puts them all back.
 - **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
