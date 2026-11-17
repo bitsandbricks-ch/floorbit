@@ -283,6 +283,8 @@ RULES = (
     ('/api/port-areas', WRITE, 'floorplan.edit'),
     # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
+    # Dashboards (floorbit/dashboards.py): arranged by the floor crew, like the older tile layouts.
+    ('/api/dashboards', WRITE, 'floorplan.edit'),
     # Runbooks: the crew reads them, leads write them (floorbit/runbooks.py).
     ('/api/runbooks', READ, 'incidents.work'),
     ('/api/runbooks', WRITE, 'incidents.assign'),

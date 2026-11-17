@@ -16,7 +16,8 @@ from .store import load_data
 # (frontend/src/i18n/*/goto.json).
 PAGES = (
     ('/plan', 'floorPlan', 'Floor plan', None),
-    ('/dashboard', 'dashboard', 'Dashboard', lambda c, can: c['feature_on']('dashboard')),
+    ('/dashboards', 'dashboards', 'Dashboards', None),
+    ('/dashboard', 'dashboard', 'Tile dashboard', lambda c, can: c['feature_on']('dashboard')),
     ('/problems', 'problems', 'Problems', None),
     ('/incidents', 'incidents', 'Incidents',
      lambda c, can: c['feature_on']('incidents') and c.get('incidents_board')),

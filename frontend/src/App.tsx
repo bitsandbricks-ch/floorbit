@@ -5,6 +5,8 @@ import { PageError } from '@/components/PageError'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const Dashboards = lazy(() => import('@/pages/Dashboards'))
+const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
@@ -73,8 +75,11 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/checkin" element={<Checkin />} />
+          {/* A dashboard on a big screen: the page alone, no sidebar. */}
+          <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboards" element={<Dashboards />} />
             <Route path="/settings/plugins" element={<Plugins />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />

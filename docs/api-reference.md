@@ -256,6 +256,19 @@ Source: [`floorbit/blueprints/crew.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | POST | `/api/discord/interactions` | anyone |  |
 
+## floorbit.blueprints.dashboards
+
+Dashboards: screens split into panes (floorbit/dashboards.py, docs/dashboards.md).
+
+Source: [`floorbit/blueprints/dashboards.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/dashboards.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/dashboards` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| DELETE | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
+| GET | `/api/dashboards/<layout_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.demo
 
 Demo mode: the built-in ``demo`` plugin's made-up data, laid out on an empty floor plan.

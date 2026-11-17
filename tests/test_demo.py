@@ -221,3 +221,44 @@ def test_the_demo_speaks_swiss_german_when_asked(monkeypatch):
     assert english.keys() == german.keys() and 'ß' not in repr(german)
     for key in ('incidents', 'schedule', 'status_updates', 'layouts'):
         assert len(english[key]) == len(german[key]), key
+
+
+def test_telemetry_hears_the_demo_devices(demo, registry, tmp_path, monkeypatch):
+    """Settings > Telemetry lists the demo's devices, and what Telegraf would send for them fills the
+    picture: ports with rates, MAC tables on the access switches, ARP on the core, the firewalls."""
+    from floorbit.builtin_plugins.demo import telemetry as demo_telemetry
+    from floorbit.plugins import Context
+    from floorbit.telemetry import clients, state, storage
+    monkeypatch.setenv("FLOORBIT_TELEGRAF_CONF", str(tmp_path / "telegraf" / "telegraf.conf"))
+    state.state.reset()
+    storage.reset()
+    from floorbit import endpoints
+    endpoints.reset()
+    try:
+        demo.post('/api/demo/layout')
+        body = demo.get('/api/settings/telemetry').get_json()
+        kinds = {t['name']: (t['platform'], t['drivers']) for t in body['targets']}
+        assert kinds['core-01'] == ('nxos', ['snmp', 'traps', 'gnmi']) and kinds['sw-a-01'][0] == 'ios'
+        assert kinds['fw-01'] == ('opnsense', ['push']) and len(kinds) == 26      # 16 switches, 10 firewalls
+        assert not any(set(d) & {'nxapi', 'restconf', 'opnsense'} for _p, d in kinds.values())   # nothing polled
+        context = Context(registry.specs['demo'], registry)
+        import time
+        now = time.time()
+        demo_telemetry.feed(context, now=now - 30)
+        taken = demo_telemetry.feed(context, now=now)
+        assert taken['bad'] == 0 and taken['taken'] == taken['points']
+        core = state.state.device('core-01')
+        assert core.online() and core.arp and core.lldp
+        access = state.state.device('sw-a-01')
+        seat = next(i for i in access.interfaces.values() if i.name == 'Gi1/0/1')
+        assert seat.oper == 'up' and seat.speed == 1e9 and seat.in_bps is not None
+        assert state.state.device('fw-01').gateways and not state.state.device('fw-03').seen   # fw-03 is down
+        seen = {(s['device'], s['port']) for s in clients.sightings(state.state)}
+        assert ('sw-a-01', 'Gi1/0/1') in seen and not any(p == 'Te1/0/1' for _d, p in seen)   # never the uplink
+        from floorbit import endpoints
+        found = endpoints.history().search('192.0.2.1')
+        assert any(r['device'] == 'sw-a-01' and r['port'] == 'Gi1/0/1' for r in found)
+    finally:
+        state.state.reset()
+        storage.reset()
+        endpoints.reset()

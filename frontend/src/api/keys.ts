@@ -6,6 +6,8 @@ export const qk = {
   checkinInfo: ['checkin', 'info'] as const,
   dashboard: ['dashboard'] as const,
   dashboardLayouts: ['dashboard', 'layouts'] as const,
+  boards: ['dashboards'] as const,
+  board: (id: string) => ['dashboards', id] as const,
   widget: (url: string) => ['widget', url] as const,
   plugins: ['plugins'] as const,
   inventory: (hidden: boolean) => ['inventory', { hidden }] as const,

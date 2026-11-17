@@ -16,7 +16,8 @@
   "pages": {
     "floorPlan": "Floor plan",
     "seats": "Seats",
-    "dashboard": "Dashboard",
+    "dashboards": "Dashboards",
+    "dashboard": "Tile dashboard",
     "problems": "Problems",
     "incidents": "Incidents",
     "jobs": "My jobs",

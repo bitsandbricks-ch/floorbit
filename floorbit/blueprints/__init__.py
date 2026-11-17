@@ -15,6 +15,7 @@ from . import (
                configs,
                credentials,
                crew,
+               dashboards,
                demo,
                dispatch,
                dns,
@@ -92,4 +93,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        credentials.bp, wifi.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
        runbooks.bp, stats_wall.bp, schedule.bp, brackets.bp, plan.bp, metrics.bp, notice.bp, options.bp,
-       lancache.bp, marketplace.bp]
+       lancache.bp, marketplace.bp, dashboards.bp]
