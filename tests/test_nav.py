@@ -61,3 +61,38 @@ def test_favourites_and_folding_are_kept_with_the_account(app_module):
 def test_only_a_signed_in_account_keeps_sidebar_settings(anon_client):
     assert anon_client.get("/api/auth/me/nav").status_code == 400
     assert anon_client.put("/api/auth/me/nav", json={"favourites": ["problems"]}).status_code == 401
+
+
+SHELL = {
+    "pinned": ["floorPlan"], "tabs": ["floorPlan"], "sections": [],
+    "icons": {"page": {"*": "<svg></svg>"}, "tab": {"*": "<svg></svg>"}, "section": {}, "search": "<svg></svg>",
+              "chevron": "<svg></svg>", "collapse": "<svg></svg>", "expand": "<svg></svg>", "menu": "<svg></svg>",
+              "dots": "<svg></svg>"},
+    "texts": {"en": {"nav": {"label": "Main", "home": "Floor plan", "goTo": "Go to…", "account": "Account",
+                             "collapse": "Collapse", "expand": "Expand", "menu": "Menu", "quick": "Main pages",
+                             "sections": {"more": "More"}},
+                     "pages": {}, "signedInAs": "Signed in as {{username}}"}},
+}
+
+
+def test_the_first_paint_has_the_admins_own_sections(app_module, monkeypatch):
+    import copy
+
+    from floorbit import nav
+    shell = copy.deepcopy(SHELL)
+    monkeypatch.setattr(nav, "_shell", lambda: shell)
+    custom = [{"id": "hall", "name": "<i>Hall</i>", "icon": "star", "links": [
+        {"kind": "url", "href": "/stats", "label": "Stats", "external": False},
+        {"kind": "url", "href": "https://example.com", "label": "Out", "external": True}]}]
+    boot = {"pages": [{"href": "/plan", "id": "floorPlan", "label": "Floor plan"}], "custom": custom}
+    with app_module.app.test_request_context("/stats"):
+        # A build from before these sections has no icons for them: they wait for the script.
+        assert "Hall" not in str(nav.markup(boot))
+        shell["icons"]["custom"] = {"star": "<svg class=star></svg>", "folder": "<svg></svg>"}
+        shell["icons"]["link"] = {"dashboard": "<svg></svg>", "url": "<svg></svg>", "external": "<svg></svg>"}
+        html = str(nav.markup(boot))
+    assert "&lt;i&gt;Hall&lt;/i&gt;" in html and "<i>Hall</i>" not in html
+    # The page on screen is in it, so it is open with that row lit.
+    assert 'aria-expanded="true"><svg class=star></svg>' in html
+    assert '<a href="/stats" class="fb-nav-row" aria-current="page">' in html
+    assert 'href="https://example.com" class="fb-nav-row" target="_blank" rel="noopener noreferrer"' in html

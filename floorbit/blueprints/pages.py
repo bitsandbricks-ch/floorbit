@@ -3,7 +3,7 @@ from urllib.parse import quote, urlencode
 
 from flask import Blueprint, current_app, jsonify, redirect, request
 
-from .. import endpoints, nav, page_index, seat_view, spa
+from .. import endpoints, kiosk_texts, nav, nav_sections, page_index, seat_view, spa
 
 bp = Blueprint('pages', __name__)
 
@@ -60,7 +60,9 @@ def page_list():
     ctx = {}
     # The same context the floor plan's top bar is drawn with: features, permissions, set-up flags.
     current_app.update_template_context(ctx)
-    return jsonify({'pages': page_index.for_context(ctx)})
+    pages = page_index.for_context(ctx)
+    # The sections admins made (floorbit/nav_sections.py), with only the links this account may open.
+    return jsonify({'pages': pages, 'custom': nav_sections.for_pages(pages)})
 
 
 @bp.route('/api/pages/find')

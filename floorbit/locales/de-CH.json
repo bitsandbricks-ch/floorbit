@@ -1095,5 +1095,16 @@
  "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
  "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}.",
  "{} is a number from {} to {}": "{} ist eine Zahl von {} bis {}",
- "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans"
+ "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans",
+ "A link goes to a path on this server (/plan) or a web address (https://example.com).": "Ein Link führt zu einem Pfad auf diesem Server (/plan) oder zu einer Webadresse (https://example.com).",
+ "Each link is a JSON object.": "Jeder Link ist ein JSON-Objekt.",
+ "A link goes to a dashboard, a page or an address.": "Ein Link führt zu einem Dashboard, einer Seite oder einer Adresse.",
+ "Pick the dashboard the link opens.": "Wähle das Dashboard, das der Link öffnet.",
+ "Pick the page the link opens.": "Wähle die Seite, die der Link öffnet.",
+ "A link to an address needs a name.": "Ein Link zu einer Adresse braucht einen Namen.",
+ "Send {\"sections\": [...]}.": "Sende {\"sections\": [...]}.",
+ "The sidebar has room for {} sections of your own.": "Die Seitenleiste hat Platz für {} eigene Bereiche.",
+ "Each section is a JSON object.": "Jeder Bereich ist ein JSON-Objekt.",
+ "Every section needs a name.": "Jeder Bereich braucht einen Namen.",
+ "A section holds up to {} links.": "Ein Bereich hat höchstens {} Links."
 }
