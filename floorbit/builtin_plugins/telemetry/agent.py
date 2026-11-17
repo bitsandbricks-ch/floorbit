@@ -78,7 +78,7 @@ class AgentPlugin(Base):
         return os.environ.get(CONF_ENV) or os.path.join(self.ctx.state_dir or '.', 'telegraf.conf')
 
     def output_url(self):
-        return os.environ.get(OUTPUT_ENV) or f'http://floorbit-agent:{os.environ.get(PORT_ENV) or PORT}/write'
+        return os.environ.get(OUTPUT_ENV) or f'http://agent:{os.environ.get(PORT_ENV) or PORT}/write'
 
     def write_conf(self):
         """telegraf.conf for the sidecar, written only when it changed (Telegraf reloads on change)."""

@@ -387,7 +387,7 @@ def test_the_agent_part_collects_in_the_hall(tmp_path, monkeypatch):
     try:
         conf = (tmp_path / "telegraf.conf").read_text()
         token = (tmp_path / "ingest-token").read_text()
-        assert token in conf and "udp://192.0.2.21:161" in conf and "floorbit-agent:8186/write" in conf
+        assert token in conf and "udp://192.0.2.21:161" in conf and "http://agent:8186/write" in conf
         assert ctx.handler("POST", "/write", {"Authorization": "Token nope"}, b"x a=1")[0] == 401
         line = (b'fb_if,agent_host=192.0.2.21,ifIndex=1,ifName=Gi1/0/1 '
                 b'ifHCInOctets=1000i,ifHCOutOctets=1000i,ifOperStatus=1i')
