@@ -47,9 +47,6 @@ export function summaryText(d: HandoverData, note: string, t: T, length: (s: num
     lines.push('', `${t('handover.mutedTitle')}:`, ...d.mutes.map((m) => `- ${m.name}, ${t('handover.mutedUntil', { until: when(m.until), who: m.by ?? '?' })}`
       + (m.reason ? ` (${m.reason})` : '')))
   }
-  if (d.gear?.length) {
-    lines.push('', `${t('handover.gearTitle', { count: d.counts.gear_out ?? 0 })}:`, ...d.gear.map((g) => `- ${g.to}: ${g.names.join(', ')}`))
-  }
   if (d.coming_up?.length) {
     lines.push('', `${t('handover.comingUp')}:`, ...d.coming_up.map((i) => `- ${when(i.start)} ${i.title}${i.where ? ` (${i.where})` : ''}`))
   }

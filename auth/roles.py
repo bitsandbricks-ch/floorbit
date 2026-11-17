@@ -256,13 +256,6 @@ RULES = (
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch/auto', WRITE, 'incidents.assign'),   # automatic dispatch on or off (issue #358)
     ('/api/dispatch', READ, 'incidents.assign'),
-    # Teardown: the export carries a backup, so it is an admin's, like Settings > Backup.
-    ('/api/teardown/export.zip', READ, 'settings.manage'),
-    ('/api/teardown', None, 'floorplan.edit'),
-    ('/teardown', READ, 'floorplan.edit'),
-    # Gear loans name people and are the crew's (floorbit/gear.py).
-    ('/api/gear', None, 'incidents.work'),
-    ('/gear', READ, 'incidents.work'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
     ('/api/cables/clients', None, 'seats.view'),

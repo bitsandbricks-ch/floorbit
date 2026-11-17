@@ -2,8 +2,8 @@
 
 Closing an event keeps it as its own record: its report (without nicks or IPs), its floor plan as a
 backup, and the key figures the events page compares side by side. Then the next event starts from
-the last one: the floor plan, settings and teardown steps stay, while the report's history,
-incidents, handovers, pre-flight results and the gear log begin again.
+the last one: the floor plan and settings stay, while the report's history,
+incidents, handovers and pre-flight results begin again.
 
 Each archived event is a file in ``events/`` next to data.json, so data.json doesn't grow with every
 year and one event can be copied or deleted on its own.
@@ -134,12 +134,4 @@ def reset_for_next(data):
     """Clear what belongs to the closed event, keep what the next one starts from. Saves data.json."""
     for key in RESET_KEYS:
         data.pop(key, None)
-    loans = data.get('loans') if isinstance(data.get('loans'), dict) else {}
-    # Gear that is still out stays out: it's physically somewhere. Only the log starts again.
-    data['loans'] = {'out': dict(loans.get('out') or {}), 'log': []}
-    teardown = data.get('teardown') if isinstance(data.get('teardown'), dict) else {}
-    # The lead's own teardown steps are a checklist for every event: kept, unticked.
-    data['teardown'] = {'items': [{**i, 'done_at': None, 'done_by': None}
-                                  for i in teardown.get('items') or [] if isinstance(i, dict)],
-                        'switches': {}, 'export': None}
     store.save_data(data)

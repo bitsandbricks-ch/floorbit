@@ -379,19 +379,6 @@ Source: [`floorbit/blueprints/games.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/games` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `games` |
 
-## floorbit.blueprints.gear
-
-Gear loans (issue #36). Rules in floorbit/gear.py.
-
-Source: [`floorbit/blueprints/gear.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/gear.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/gear` | `incidents.work` | `gear` |
-| POST | `/api/gear/<device_id>/in` | `incidents.work` | `gear` |
-| POST | `/api/gear/<device_id>/out` | `incidents.work` | `gear` |
-| GET | `/api/gear/labels.pdf` | `incidents.work` | `gear` |
-
 ## floorbit.blueprints.halls
 
 Halls (or floors), each with its own floor plan (issue #20). Rules live in floorbit/halls.py.
@@ -891,21 +878,6 @@ Source: [`floorbit/blueprints/switches.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/switches/<switch_id>` | `floorplan.edit` |  |
 | PUT | `/api/switches/<switch_id>` | `floorplan.edit` |  |
 | POST | `/api/switches/sync` | `floorplan.edit` |  |
-
-## floorbit.blueprints.teardown
-
-Teardown checklist (issue #37). Rules in floorbit/teardown.py.
-
-Source: [`floorbit/blueprints/teardown.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/teardown.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/teardown` | `floorplan.edit` | `teardown` |
-| GET | `/api/teardown/export.zip` | `settings.manage` | `teardown` |
-| POST | `/api/teardown/items` | `floorplan.edit` | `teardown` |
-| DELETE | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
-| PATCH | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
-| PUT | `/api/teardown/switches/<device_id>` | `floorplan.edit` | `teardown` |
 
 ## floorbit.blueprints.telemetry
 

@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconArrowsExchange, IconBook, IconBox, IconDownload, IconFilter, IconHandGrab, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconArrowsExchange, IconBook, IconDownload, IconFilter, IconHandGrab, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -26,7 +26,6 @@ export default function Incidents() {
   const { t } = useTranslation()
   const dispatchOn = useFeature('dispatch')
   const handoverOn = useFeature('handover')
-  const gearOn = useFeature('gear')
   const helpdeskOn = useFeature('helpdesk')
   const runbooksOn = useFeature('runbooks')
   const client = useQueryClient()
@@ -131,11 +130,6 @@ export default function Incidents() {
             {runbooksOn && (
               <Button variant="default" component="a" href="/runbooks" leftSection={<IconBook size={16} />}>
                 {t('incidents.runbooks')}
-              </Button>
-            )}
-            {gearOn && (
-              <Button variant="default" component="a" href="/gear" leftSection={<IconBox size={16} />}>
-                {t('incidents.gear')}
               </Button>
             )}
             {board.data?.can_assign_any && helpdeskOn && (

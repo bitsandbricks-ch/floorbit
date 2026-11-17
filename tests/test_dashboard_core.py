@@ -57,7 +57,7 @@ def test_no_plugin_may_take_the_id():
 
 def test_switch_and_seat_tiles(client):
     ids = [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"] if t["plugin"] == "floorbit"]
-    assert ids == ["problems", "incidents", "switches", "seats", "gear"]
+    assert ids == ["problems", "incidents", "switches", "seats"]
     assert dashboard_core.switches_widget("en", {"online": 40, "offline": 2, "unknown": 1}) == {
         "type": "stat", "value": 40, "unit": "of 43 up", "tone": "err", "sub": "2 offline · 1 not known",
         "link": "/problems"}
@@ -68,24 +68,3 @@ def test_switch_and_seat_tiles(client):
     assert dashboard_core.seats_widget("en", 87, 120)["value"] == 87
     for tile in ("switches", "seats"):
         assert client.get(f"/api/dashboard/floorbit/{tile}").get_json()["type"] == "stat"
-
-
-def test_the_gear_tile_counts_what_is_out_and_who_has_most(app_module, client):
-    # Issue #326: the crew sees at a glance what is still out, and whom to chase first.
-    empty = client.get("/api/dashboard/floorbit/gear").get_json()
-    assert empty["value"] == 0 and empty["tone"] == "ok" and empty["link"] == "/gear"
-    ids = [client.post("/api/inventory", json={"name": n, "role": "switch"}).get_json()["id"]
-           for n in ("sw-spare-01", "sw-spare-02", "ap-spare-01")]
-    client.post(f"/api/gear/{ids[0]}/out", json={"to": "player 12"})
-    client.post(f"/api/gear/{ids[1]}/out", json={"to": "player 12"})
-    client.post(f"/api/gear/{ids[2]}/out", json={"to": "Crew"})
-    body = client.get("/api/dashboard/floorbit/gear").get_json()
-    assert (body["value"], body["tone"]) == (2 + 1, "warn") and body["unit"].startswith("of ")
-    assert body["sub"] == "Most with player 12 (2)" and body["link"] == "/gear?holder=player%2012"
-
-    viewer = _login(app_module, "vic", "viewer")
-    assert "gear" not in [t["id"] for t in viewer.get("/api/dashboard").get_json()["tiles"]]
-    assert viewer.get("/api/dashboard/floorbit/gear").status_code == 404
-    client.put("/api/settings/features", json={"gear": False})
-    assert "gear" not in [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"]]
-    assert client.get("/api/dashboard/floorbit/gear").status_code == 404

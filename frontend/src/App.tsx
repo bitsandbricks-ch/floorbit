@@ -38,7 +38,6 @@ const Jobs = lazy(() => import('@/pages/Jobs'))
 const Tournament = lazy(() => import('@/pages/Tournament'))
 const Handover = lazy(() => import('@/pages/Handover'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
-const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
 const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
@@ -51,7 +50,6 @@ const Runbooks = lazy(() => import('@/pages/Runbooks'))
 const Schedule = lazy(() => import('@/pages/Schedule'))
 const Brackets = lazy(() => import('@/pages/Brackets'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
-const Teardown = lazy(() => import('@/pages/Teardown'))
 const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Checkins = lazy(() => import('@/pages/Checkins'))
 const Events = lazy(() => import('@/pages/Events'))
@@ -111,7 +109,6 @@ export default function App() {
             <Route path="/tournament" element={<Tournament />} />
             <Route path="/handover" element={<Handover />} />
             <Route path="/preflight" element={<Preflight />} />
-            <Route path="/gear" element={<Gear />} />
             <Route path="/cables" element={<Cables />} />
             <Route path="/cables/walk" element={<WalkRow />} />
             <Route path="/wifi" element={<Wifi />} />
@@ -121,7 +118,6 @@ export default function App() {
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/tournament/brackets" element={<Brackets />} />
             <Route path="/plan" element={<FloorPlan />} />
-            <Route path="/teardown" element={<Teardown />} />
             <Route path="/checkins" element={<Checkins />} />
             <Route path="/speedtests" element={<Speedtests />} />
             <Route path="/events" element={<Events />} />
