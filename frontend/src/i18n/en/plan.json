@@ -516,11 +516,15 @@
       "edit": "Change cable",
       "addBend": "Drag or click to add a bend",
       "bend": "Drag to move, double-click to remove",
-      "corners": "Corners",
-      "square": "Square",
-      "round": "Round",
+      "square": "Angled",
+      "round": "Rounded",
       "bendHelp": "Drag a bend to move it, drag a dot in the middle of a stretch to add one, double-click a bend to remove it. Alt places it off the grid.",
-      "auto": "Back to the automatic route"
+      "auto": "Back to the automatic route",
+      "ends": "Ends",
+      "port": "Port",
+      "pickPort": "Pick the port on the new switch",
+      "look": "Drawn",
+      "straight": "Straight"
     },
     "arrange": {
       "title": "Arrange",
@@ -636,6 +640,8 @@
     "uplinksSlow_one": "{{count}} slower than it should be",
     "uplinksSlow_other": "{{count}} slower than they should be",
     "legend": "What the cables show",
+    "bundle_one": "{{count}} cable on this run",
+    "bundle_other": "{{count}} cables on this run",
     "cables_one": "{{count}} seat cable",
     "cables_other": "{{count}} seat cables",
     "media": { "copper": "Copper", "fiber": "Fiber", "dac": "DAC" },
@@ -643,6 +649,9 @@
     "learnedCount_one": "{{count}} read from the ports, not typed in",
     "learnedCount_other": "{{count}} read from the ports, not typed in",
     "learned": "read from the port, not typed in",
+    "portUp": "Port up",
+    "portDown": "Port down",
+    "portUnknown": "Port not read",
     "panel": "Patch panel {{name}}: {{used}} of {{ports}} ports in use"
   }
 }

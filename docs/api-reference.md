@@ -68,6 +68,21 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents` | `settings.manage` |  |
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
+| POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
+
+## floorbit.blueprints.agent_plugins
+
+Agent plugins (floorbit/agent_plugins.py, docs/agent-plugins.md), for the agent with its key:
+
+Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_plugins.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/agent-plugins/<agent_id>/<plugin_id>/unblock` | `plugins.run` |  |
+| GET | `/api/agent/v1/bundles/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/agent/v1/plugins` | anyone |  |
+| GET | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
+| POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 
 ## floorbit.blueprints.api_tokens
 
@@ -277,6 +292,16 @@ Source: [`floorbit/blueprints/dns.py`](https://github.com/bitsandbricks-ch/floor
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/dns` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dns` |
+
+## floorbit.blueprints.endpoints
+
+IP and MAC history (docs/endpoints.md): where each machine was seen. ``seats.view`` (auth/roles.py).
+
+Source: [`floorbit/blueprints/endpoints.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/endpoints.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/endpoints` | `seats.view` |  |
 
 ## floorbit.blueprints.features
 
@@ -504,6 +529,16 @@ Source: [`floorbit/blueprints/inventory_types.py`](https://github.com/bitsandbri
 | DELETE | `/api/inventory/types/<type_id>` | `settings.manage` |  |
 | PATCH | `/api/inventory/types/<type_id>` | `settings.manage` |  |
 
+## floorbit.blueprints.lancache
+
+The LAN cache view and widgets (docs/lancache.md):
+
+Source: [`floorbit/blueprints/lancache.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/lancache.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/lancache` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.layout_templates
 
 The floor plan template library (issue #48). Rules live in floorbit/layout_templates.py.
@@ -533,6 +568,19 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/logs` | `seats.view` | `syslog` |
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
+
+## floorbit.blueprints.marketplace
+
+The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: that is the operator's, where the server runs.
+
+Source: [`floorbit/blueprints/marketplace.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/marketplace.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/marketplace` | `settings.manage` |  |
+| DELETE | `/api/settings/marketplace/<plugin_id>` | `settings.manage` |  |
+| POST | `/api/settings/marketplace/<plugin_id>` | `settings.manage` |  |
+| POST | `/api/settings/marketplace/<plugin_id>/rollback` | `settings.manage` |  |
 
 ## floorbit.blueprints.metrics
 
@@ -650,25 +698,6 @@ Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-c
 | POST | `/api/plan-marks` | `floorplan.edit` |  |
 | DELETE | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 | PUT | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
-
-## floorbit.blueprints.planner
-
-Build planner (issue #34). Rules in floorbit/planner.py.
-
-Source: [`floorbit/blueprints/planner.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/planner.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/planner` | `floorplan.edit` | `planner` |
-| POST | `/api/planner/apply` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/config/<name>` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/configs.zip` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/labels.pdf` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/plan.csv` | `floorplan.edit` | `planner` |
-| PUT | `/api/planner/settings` | `floorplan.edit` | `planner` |
-| DELETE | `/api/planner/templates/<template_id>` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/templates/<template_id>` | `floorplan.edit` | `planner` |
-| PUT | `/api/planner/templates/<template_id>` | `floorplan.edit` | `planner` |
 
 ## floorbit.blueprints.plugins
 
@@ -860,6 +889,7 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
+| POST | `/api/services/sites/common` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.setup
 
@@ -942,6 +972,27 @@ Source: [`floorbit/blueprints/teardown.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
 | PATCH | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
 | PUT | `/api/teardown/switches/<device_id>` | `floorplan.edit` | `teardown` |
+
+## floorbit.blueprints.telemetry
+
+Device telemetry (docs/telemetry.md). Rules in floorbit/telemetry/.
+
+Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/telemetry.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/telemetry` | `settings.manage` |  |
+| POST | `/api/settings/telemetry/targets` | `settings.manage` |  |
+| DELETE | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
+| PUT | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/targets/<target_id>/device-config` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/telegraf.conf` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/token` | `settings.manage` |  |
+| POST | `/api/settings/telemetry/token` | `settings.manage` |  |
+| POST | `/api/telemetry/api/v2/write` | anyone |  |
+| GET | `/api/telemetry/series` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/telemetry/status` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/telemetry/write` | anyone |  |
 
 ## floorbit.blueprints.terminal
 

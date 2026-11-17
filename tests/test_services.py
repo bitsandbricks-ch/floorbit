@@ -77,12 +77,47 @@ def test_what_is_kept_is_checked(client, net):
     assert client.delete(f"/api/services/uplinks/{item['id']}").status_code == 404
 
 
+def test_internet_sites_are_reached_and_summed_up_in_one_tile(client, net):
+    """Sites the players need (game stores, voice chat): one being gone is not the whole internet."""
+    _mon, answers = net
+    assert client.post("/api/services/sites", json={"name": "", "host": "x.example.com"}).status_code == 400
+    assert client.post("/api/services/sites", json={"name": "X", "host": "not a host"}).status_code == 400
+    bad_port = {"name": "X", "host": "x.example.com", "port": 22}
+    assert client.post("/api/services/sites", json=bad_port).status_code == 400
+    added = client.post("/api/services/sites/common").get_json()
+    assert added["added"] == len(services.COMMON_SITES)
+    assert client.post("/api/services/sites/common").get_json()["added"] == 0          # never twice
+    slow = {"auth.riotgames.com": 180.0}
+    gone = {"battle.net"}
+    answers["tcp_probe"] = lambda host, p, count: {
+        "sent": count, "lost": count if host in gone else 0, "avg_ms": None if host in gone else slow.get(host, 9.5)}
+    services.poller.poll_once()
+    sites = {s["name"]: s for s in client.get("/api/services").get_json()["sites"]}
+    assert (sites["Google"]["status"], sites["Google"]["latency_ms"], sites["Google"]["port"]) == ("up", 9.5, 443)
+    assert sites["Riot Games"]["status"] == "warn"
+    assert sites["Battle.net"]["status"] == "down" and "does not answer" in sites["Battle.net"]["error"]
+    tile = next(t for t in services.health_checks() if t["id"] == "sites")
+    assert tile["kind"] == "web" and tile["status"] == "warn" and tile["summary"] == "Not reachable: Battle.net"
+    assert tile["metrics"][0]["value"] == len(services.COMMON_SITES) - 1
+    gone.clear()
+    slow.clear()
+    services.poller.poll_once()
+    tile = next(t for t in services.health_checks() if t["id"] == "sites")
+    n = len(services.COMMON_SITES)
+    assert tile["status"] == "up" and tile["summary"] == f"{n} of {n} reachable"
+    site = sites["Google"]
+    changed = client.put(f"/api/services/sites/{site['id']}", json={"port": 80}).get_json()
+    assert changed["port"] == 80 and changed["host"] == "www.google.com"
+    assert client.delete(f"/api/services/sites/{site['id']}").status_code == 200
+
+
 def test_viewers_see_services_but_do_not_change_them(app_module):
     from tests.test_rbac import sign_in_as
     viewer = sign_in_as(app_module, "vi10", "viewer")
     assert viewer.get("/api/services").status_code == 200
     assert viewer.post("/api/services/uplinks", json={}).status_code == 403
     assert viewer.post("/api/services/check").status_code == 403
+    assert viewer.post("/api/services/sites/common").status_code == 403
 
 
 def test_the_dns_probe_reads_the_answer(monkeypatch):

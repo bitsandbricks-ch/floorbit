@@ -1,8 +1,8 @@
-import { Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Text, TextInput, Tooltip, UnstyledButton } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconChevronDown, IconChevronUp, IconHelp, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { notifications } from '@mantine/notifications'
 import { useSearchParams } from 'react-router-dom'
@@ -11,8 +11,8 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatDetails, SeatViewData, SwitchDetails, WifiData } from '@/api/types'
+import { Attribution } from '@/components/Attribution'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
@@ -346,39 +346,56 @@ export default function FloorPlan() {
     electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
   }
   return (
-    <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere}>
-      <PageHead title={t('plan.title')} />
-      {q.isPending && <LoadingState />}
-      <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
+    <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere} full>
+      {q.isPending && <div className="fb-ws-pad"><LoadingState /></div>}
+      {q.error && <div className="fb-ws-pad"><ErrorBanner error={q.error} onRetry={() => void q.refetch()} /></div>}
       {data && (
-        <>
-          <Group justify="space-between" mb="sm" gap="sm" wrap="wrap">
-            <Group gap="lg" wrap="wrap">
-              <Modes mode={mode} hall={data.hall} params={params} checkin={data.checkin} canEdit={canEdit}
-                onMode={(m) => setParams(switchMode(params, m, layers), { replace: true })} />
-              {summary}
-            </Group>
-            <Group gap="xs" wrap="wrap">
-              {data.halls.length > 1 && (
-                <Select aria-label={t('plan.hall')} w={180} comboboxProps={{ width: 'max-content', position: 'bottom-start' }}
-                  allowDeselect={false} value={data.hall}
-                  data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
-                  renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
-                  onChange={(v) => { if (v) toHall(v) }} />
-              )}
+        <div className="fb-ws">
+          {/* One slim bar like a map editor's: where you are, what you see, and the tools. */}
+          <div className="fb-ws-bar">
+            {data.halls.length > 1 && (
+              <Select aria-label={t('plan.hall')} w={170} size="xs" comboboxProps={{ width: 'max-content', position: 'bottom-start' }}
+                allowDeselect={false} value={data.hall}
+                data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
+                renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
+                onChange={(v) => { if (v) toHall(v) }} />
+            )}
+            <Modes mode={mode} hall={data.hall} params={params} checkin={data.checkin} canEdit={canEdit}
+              onMode={(m) => setParams(switchMode(params, m, layers), { replace: true })} />
+            <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>
+            {editing && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
+            {!editing && <>
+              {/* The filters say how many seats each holds (issue #190), so the row doubles as the summary. */}
+              <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
+                data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
+                  value: f,
+                  label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
+                }))} /></div>
+              <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
+                aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
+            </>}
+            {!list && <LayersPanel state={layers} onChange={setLayers} available={available} />}
+            <div className="fb-ws-bar-end">
               {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
-              <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
-                href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
+              {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
+              <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />
               <form onSubmit={go} role="search">
-                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 270 : 220} value={search}
+                <TextInput ref={findBox} size="xs" aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 250 : 210} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
                   onChange={(e) => setSearch(e.currentTarget.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
-            </Group>
-          </Group>
+              <Tooltip label={t('plan.print.print')}>
+                <ActionIcon variant="default" size="md" component="a" aria-label={t('plan.print.print')}
+                  href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}><IconPrinter size={16} aria-hidden="true" /></ActionIcon>
+              </Tooltip>
+              <Tooltip label={t('plan.shortcuts.show')}>
+                <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
+              </Tooltip>
+            </div>
+          </div>
           {searched && players.hits.length > 1 && (
-            <Group gap={6} mb="sm" justify="flex-end" role="list" aria-label={t('plan.players')}>
+            <Group gap={6} className="fb-ws-strip" justify="flex-end" role="list" aria-label={t('plan.players')}>
               {players.hits.map((h) => (
                 <div key={h.seat} role="listitem">
                   <Button size="compact-sm" variant="default" onClick={() => jump(h.seat, h.hall)}>
@@ -388,38 +405,30 @@ export default function FloorPlan() {
               ))}
             </Group>
           )}
-          {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
-          <Group mb="sm" gap="lg" wrap="wrap">
-            {!editing && <>
-            <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
-              data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
-                value: f,
-                // Each filter says how many seats it holds (issue #190), so the row doubles as a summary.
-                label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
-              }))} /></div>
-            <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
-              aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
-            </>}
-            {!list && <LayersPanel state={layers} onChange={setLayers} available={available} />}
-          </Group>
-          {!data.drawing && (
-            <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?mode=edit&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
-          )}
-          {editing && data.drawing && view && (
-            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts} />
-          )}
-          {!editing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
-            {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
-            {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
-          </div>}
-          {!list && !editing && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
-          {!list && !editing && mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />}
-          {!list && !editing && (
-            <Text size="sm" c="dimmed" mt="xs">
-              {t('plan.help')}
-              {keyboard && <>{' '}<Anchor component="button" type="button" size="sm" onClick={showShortcuts}>{t('plan.shortcuts.show')}</Anchor> <Kbd size="xs">?</Kbd></>}
-            </Text>
-          )}
+          {!data.monitoring && <Alert color="warn" radius={0} py={6} className="fb-ws-strip">{t('plan.noMonitoring')}</Alert>}
+          <div className="fb-ws-body">
+            {!data.drawing && (
+              <div className="fb-ws-pad"><Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?mode=edit&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper></div>
+            )}
+            {editing && data.drawing && view && (
+              <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts} />
+            )}
+            {!editing && data.drawing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
+              <div className="fb-ws-canvas">
+                {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
+                {list ? <Attribution compact /> : (
+                  <div className="fb-ws-corner">
+                    <PlanKey>
+                      <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />
+                      {mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />}
+                    </PlanKey>
+                    <Attribution compact />
+                  </div>
+                )}
+              </div>
+              {panel && !phone && <aside className="fb-ws-panel">{inspector}</aside>}
+            </div>}
+          </div>
           <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} />
           {phone && (
             <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
@@ -427,9 +436,26 @@ export default function FloorPlan() {
               {inspector}
             </Drawer>
           )}
-        </>
+        </div>
       )}
     </Layout>
+  )
+}
+
+/** The legend floats over the plan's bottom-left corner, like a map's key, and folds away. */
+function PlanKey({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  const phone = useMediaQuery('(max-width: 48em)')
+  const [open, setOpen] = useState<boolean | null>(null)
+  const shown = open ?? !phone
+  return (
+    <div className={shown ? 'fb-plan-key open' : 'fb-plan-key'} role="region" aria-label={t('plan.legend')}>
+      <UnstyledButton className="fb-plan-key-head" aria-expanded={shown} onClick={() => setOpen(!shown)}>
+        {shown ? <IconChevronDown size={14} aria-hidden="true" /> : <IconChevronUp size={14} aria-hidden="true" />}
+        {t('plan.legend')}
+      </UnstyledButton>
+      {shown && <div className="fb-plan-key-body">{children}</div>}
+    </div>
   )
 }
 

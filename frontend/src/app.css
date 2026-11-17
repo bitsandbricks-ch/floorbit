@@ -452,8 +452,11 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .fwr { fill: none; stroke-width: 3; }
 .fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
 .fb-plan .fwr.fw-down { stroke: var(--color-down); }
-.fb-plan .num { fill: var(--color-fg); font: 700 11px var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
+.fb-plan .num { fill: var(--color-fg); font: 700 var(--seat-num, 11px) var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
+/* Zoomed out (pages/plan/labels.ts): only the row ends keep a number, larger than the seat, with a halo
+   so it reads over the neighbouring seats in every state. */
+.fb-plan .num.end, .fb-plan .cell[data-state="online"] .num.end { font-size: var(--seat-end, 11px); fill: var(--color-fg); stroke: var(--color-surface); stroke-width: .3em; stroke-linejoin: round; }
 .fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
 .fb-plan .sw-focus { fill: none; stroke: var(--color-trace); stroke-width: 3; }
 .fb-plan .sw-trace { stroke: var(--color-trace); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
@@ -478,7 +481,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-marks .label { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
 .fb-marks .icon rect { fill: var(--color-raised); stroke: var(--color-line, var(--color-muted)); stroke-width: 1.5; }
 .fb-marks .icon svg { color: var(--color-fg); }
-.fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; }
+.fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; font-size: var(--row-lbl, 19px); text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; stroke-linejoin: round; }
 .fb-plan .sw .body { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .fb-plan .sw-online .body, .fb-plan .sw-offline .body, .fb-plan .sw-warning .body { stroke-dasharray: none; }
 .fb-plan .sw-online .body { fill: var(--color-bit); }
@@ -501,7 +504,20 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .seatcable { stroke: var(--mantine-color-blue-6); stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; }
 .fb-plan .seatcable.m-fiber { stroke: var(--mantine-color-cyan-6); }
 .fb-plan .seatcable.m-dac { stroke: var(--mantine-color-violet-6); }
-.fb-plan .seatcable.learned { stroke-dasharray: 4 3; opacity: 0.35; }
+.fb-plan .seatcable.learned { opacity: 0.3; }
+/* The seat's port on its cable: dashed when down, dotted when not read (NetworkLayer.portLook). */
+.fb-plan .seatcable.down { stroke-dasharray: 6 4; }
+.fb-plan .seatcable.unread { stroke-dasharray: 1 4; }
+/* Runs shared by several cables: one soft band under them and a count (pages/plan/cableRoute.ts). */
+.fb-plan .cable-bundle { stroke: color-mix(in srgb, var(--mantine-color-blue-6) 22%, transparent); stroke-linecap: round; }
+.fb-plan .cable-count circle { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fb-plan .cable-count text { fill: var(--color-fg); font-weight: 700; text-anchor: middle; pointer-events: none; }
+/* Where a cable plugs into its seat, drawn over the seats. */
+.fb-plan .plug { fill: var(--mantine-color-blue-6); stroke: var(--color-surface); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.fb-plan .plug.m-fiber { fill: var(--mantine-color-cyan-6); }
+.fb-plan .plug.m-dac { fill: var(--mantine-color-violet-6); }
+.fb-plan .plug.learned { opacity: 0.6; }
+.fb-plan .plug.down, .fb-plan .plug.unread { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; }
 .fb-plan .ppanel > rect:first-of-type { fill: var(--mantine-color-dark-6); stroke: var(--color-ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .fb-plan .ppanel .pp-port { fill: color-mix(in srgb, #fff 30%, transparent); }
 .fb-plan .ppanel .pp-port.lit { fill: var(--color-bit); }
@@ -694,3 +710,86 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
 }
 .fb-tree-row:hover { background: var(--mantine-color-default-hover); }
+/* The floor plan as a full-screen workspace (Layout full), like a map editor: one slim bar on top,
+   the plan from edge to edge below it, panels docked to the sides. Nothing on the page scrolls;
+   the plan pans and zooms, the panels scroll on their own. */
+.fb-shell-main:has(> .fb-main-full) { height: 100vh; height: 100dvh; overflow: hidden; }
+.fb-shell-main:has(> .fb-main-full) > .fb-attribution { display: none; }
+@media (max-width: 767.98px) {
+  .fb-shell-main:has(> .fb-main-full) { height: calc(100dvh - var(--fb-tabbar-h) - env(safe-area-inset-bottom)); }
+}
+.fb-main.fb-main-full { max-width: none; padding: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fb-ws { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fb-ws-pad { padding: 16px; }
+.fb-ws-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  padding: 8px 12px; min-height: 52px; box-sizing: border-box;
+  background: var(--color-surface); border-bottom: 1px solid var(--color-line);
+}
+.fb-ws-bar > .fb-filter-scroll { min-width: 0; flex: 0 1 auto; }
+/* Wide screens keep it to one row: the filter chips scroll sideways rather than push the tools down. */
+@media (min-width: 1100px) {
+  .fb-ws-bar { flex-wrap: nowrap; }
+  .fb-ws-bar > *:not(.fb-filter-scroll) { flex-shrink: 0; }
+  .fb-ws-bar-end { flex-wrap: nowrap; }
+}
+.fb-ws-bar .fb-filter-scroll .mantine-SegmentedControl-root { width: max-content; flex-wrap: nowrap; }
+@media (max-width: 1499.98px) { .fb-ws-read { display: none; } }
+.fb-ws-bar-end { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.fb-ws-online { white-space: nowrap; }
+.fb-ws-read { white-space: nowrap; }
+.fb-ws-strip { padding: 6px 12px; border-bottom: 1px solid var(--color-line); }
+.fb-ws-body { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
+.fb-ws-body > * { flex: 1; min-height: 0; }
+.fb-ws-body > .fb-ws-pad { flex: 0 0 auto; }
+
+/* Live and Network: the plan, and the open seat, block or switch docked on the right. */
+.fb-main-full .fb-plan-layout { height: 100%; gap: 0; grid-template-rows: minmax(0, 1fr); }
+.fb-main-full .fb-plan-layout.with-inspector { grid-template-columns: minmax(0, 1fr) 360px; align-items: stretch; }
+.fb-ws-canvas { position: relative; min-width: 0; min-height: 0; height: 100%; }
+.fb-plan-layout.is-list .fb-ws-canvas { overflow: auto; padding: 12px; box-sizing: border-box; }
+.fb-ws-panel { min-height: 0; overflow-y: auto; padding: 16px; background: var(--color-surface); border-left: 1px solid var(--color-line); }
+.fb-main-full .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; }
+
+/* The legend floats over the plan's bottom-left corner and folds away; the attribution sits under it. */
+.fb-ws-corner { position: absolute; left: 12px; bottom: 10px; z-index: 20; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: min(560px, calc(100% - 120px)); pointer-events: none; }
+.fb-ws-corner > * { pointer-events: auto; }
+.fb-ws-corner .fb-attribution--compact { padding: 0; }
+.fb-plan-key {
+  max-width: 100%;
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent); border: 1px solid var(--color-line);
+  border-radius: 10px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); font-size: 13px;
+}
+.fb-plan-key-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-weight: 600; font-size: 12px; color: var(--color-muted); width: 100%; }
+.fb-plan-key-body { padding: 0 10px 10px; max-height: 40vh; overflow-y: auto; }
+.fb-plan-key .fb-plan-legend { margin: 0; gap: 4px 14px; font-size: 12px; }
+.fb-plan-key .fb-plan-legend + .fb-plan-legend { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-line); }
+
+/* Edit: the tool rail docked on the plan's left edge, the edit panel on the right, full height. */
+.fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) 340px; }
+.fb-main-full .fb-edit-stage { height: 100%; gap: 0; align-items: stretch; min-height: 0; }
+.fb-main-full .fb-plan-editor .fb-plan-wrap { min-height: 0; }
+.fb-main-full .fb-edit-rail { position: static; border: 0; border-right: 1px solid var(--color-line); border-radius: 0; padding: 8px 6px; overflow-y: auto; }
+.fb-main-full .fb-edit-panel {
+  position: static; max-height: none; height: 100%; overflow-y: auto; box-sizing: border-box;
+  border: 0; border-left: 1px solid var(--color-line); border-radius: 0;
+}
+@media (max-width: 1279.98px) {
+  .fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) 300px; }
+  .fb-main-full .fb-plan-layout.with-inspector { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+/* Too narrow for a side panel: the panel goes under the plan and the plan keeps most of the height. */
+@media (max-width: 1099.98px) {
+  .fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 40%); }
+  .fb-main-full .fb-plan-editor .fb-edit-panel { height: auto; border-left: 0; border-top: 1px solid var(--color-line); }
+}
+@media (max-width: 767.98px) {
+  .fb-ws-bar { padding: 6px 8px; gap: 6px 8px; }
+  .fb-ws-bar-end { margin-left: 0; width: 100%; }
+  .fb-ws-bar-end form { flex: 1; }
+  .fb-ws-bar-end form .mantine-TextInput-root { width: 100% !important; }
+  .fb-ws-read { display: none; }
+  .fb-ws-corner { max-width: calc(100% - 24px); }
+  /* No room in the corner next to the zoom buttons: phones show it under the shortcuts instead. */
+  .fb-ws-corner .fb-attribution { display: none; }
+}

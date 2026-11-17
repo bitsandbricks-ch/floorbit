@@ -1,6 +1,6 @@
 {
   "title": "Services",
-  "intro": "The internet lines, the DNS resolvers and the LAN cache: whether they answer, how full the lines are, and how fast.",
+  "intro": "The internet lines, the DNS resolvers, the sites players need and the LAN cache: whether they answer, how full the lines are, and how fast.",
   "uplinks": "Internet lines",
   "resolvers": "DNS resolvers",
   "lanCache": "LAN cache",
@@ -50,5 +50,13 @@
   "address": "Address",
   "lookup": "Name to look up",
   "lookupHelp": "A name that must always resolve.",
-  "checkNow": "Check now"
+  "checkNow": "Check now",
+  "sites": "Internet sites",
+  "addSite": "Add site",
+  "editSite": "Change site",
+  "addCommon": "Add the usual sites",
+  "noSites": "No sites yet. Add the ones players need, like game stores and voice chat, to see when one of them is gone rather than the whole internet.",
+  "sitePlaceholder": "Steam",
+  "host": "Host",
+  "hostHelp": "Floorbit connects to it a few times for the time it takes and the loss."
 }

@@ -1,6 +1,6 @@
 {
   "title": "Dienste",
-  "intro": "Die Internetleitungen, die DNS-Resolver und der LAN-Cache: ob sie antworten, wie voll die Leitungen sind und wie schnell.",
+  "intro": "Die Internetleitungen, die DNS-Resolver, die Websites, die Spieler brauchen, und der LAN-Cache: ob sie antworten, wie voll die Leitungen sind und wie schnell.",
   "uplinks": "Internetleitungen",
   "resolvers": "DNS-Resolver",
   "lanCache": "LAN-Cache",
@@ -50,5 +50,13 @@
   "address": "Adresse",
   "lookup": "Name zum Nachschlagen",
   "lookupHelp": "Ein Name, der sich immer auflösen muss.",
-  "checkNow": "Jetzt prüfen"
+  "checkNow": "Jetzt prüfen",
+  "sites": "Websites im Internet",
+  "addSite": "Website hinzufügen",
+  "editSite": "Website ändern",
+  "addCommon": "Die üblichen hinzufügen",
+  "noSites": "Noch keine Websites. Füge die hinzu, die Spieler brauchen, wie Game-Stores und Voice-Chat, um zu sehen, wenn eine davon weg ist und nicht das ganze Internet.",
+  "sitePlaceholder": "Steam",
+  "host": "Host",
+  "hostHelp": "Floorbit verbindet sich ein paarmal damit, für die Zeit und den Verlust."
 }

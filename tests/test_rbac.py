@@ -136,7 +136,9 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/inventory/types",         # the fields every entry of a type has
                         "/api/discord/interactions",   # signed by Discord, acts with the linked account
                         "/api/agents",                 # enrolling a local agent hands out a key to the event's data
-                        "/api/agent/v1/")              # the local agent, with its own key (blueprints/agent.py)
+                        "/api/agent/v1/",              # the local agent, with its own key (blueprints/agent.py)
+                        "/api/telemetry/write",        # Telegraf, with the telemetry token (blueprints/telemetry.py)
+                        "/api/telemetry/api/v2/write")
     loose = []
     for rule in app_module.app.url_map.iter_rules():
         writes = (rule.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}

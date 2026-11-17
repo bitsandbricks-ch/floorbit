@@ -4,16 +4,21 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent, AgentReport, AgentStats, Hall } from '@/api/types'
+import type { Agent, AgentGroup, AgentPluginHealth, AgentReport, AgentStats, Hall, HostedState } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
+import { AgentActions, PluginsOff, Updates } from './agents/AgentTools'
+import { GroupsCard, HostedCard } from './agents/Availability'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
-type Answer = { agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number }
-type Made = Agent & { key: string }
+type Answer = {
+  agents: Agent[]; connected: boolean; max: number; server_version?: string; protocol?: number
+  groups?: AgentGroup[]; hosted?: HostedState
+}
+type Made = { name: string; key: string; rotated?: boolean }
 
 
 function Copy({ value }: { value: string }) {
@@ -80,7 +85,61 @@ function Report({ report, lang }: { report?: AgentReport | null; lang: string })
   )
 }
 
-/** Local agents for a hosted Floorbit (issue #2): enrol one, see whether it is connected, revoke it. */
+const PLUGIN_COLOR: Record<AgentPluginHealth['status'], string> = { ok: 'up', warning: 'warn', error: 'down', off: 'gray' }
+const SHOWN_METRICS = 4
+
+/** Each agent plugin the agent runs (docs/agent-plugins.md): its state, a few numbers, its last error. */
+function PluginHealth({ agentId, plugins, lang }: { agentId: string; plugins?: Record<string, AgentPluginHealth>; lang: string }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const unblock = useMutation({
+    mutationFn: (b: { plugin: string; device: string; credential: string }) =>
+      post(`/api/agent-plugins/${encodeURIComponent(agentId)}/${encodeURIComponent(b.plugin)}/unblock`, { device: b.device, credential: b.credential }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: qk.agents }),
+  })
+  const ids = Object.keys(plugins ?? {}).sort()
+  if (!plugins || !ids.length) return null
+  return (
+    <Stack gap={2} mt={4} aria-label={t('agents.plugins')}>
+      {ids.map((id) => {
+        const p = plugins[id]
+        const last = p.errors[p.errors.length - 1]
+        const numbers = Object.entries(p.metrics).slice(0, SHOWN_METRICS)
+        return (
+          <Stack key={id} gap={2}>
+          <Group gap={6} wrap="nowrap" align="flex-start">
+            <Badge variant="light" color={PLUGIN_COLOR[p.status] ?? 'gray'} tt="none" style={{ flexShrink: 0 }}>
+              {id}
+            </Badge>
+            <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
+              {[
+                p.running ? t(`agents.pluginStatus.${p.status}`) : t('agents.pluginNotRunning'),
+                p.message,
+                ...numbers.map(([k, v]) => `${k.replace(/_/g, ' ')} ${v.toLocaleString(lang)}`),
+              ].filter(Boolean).join(' · ')}
+              {last && <>{' · '}<Text span size="xs" c="down">{t('agents.pluginLastError', { when: last.at ? ago(last.at, lang) : '?', error: last.error })}</Text></>}
+            </Text>
+          </Group>
+          {(p.auth_blocked ?? []).map((b) => (
+            <Group key={`${b.device}|${b.credential}|${b.rev}`} gap={6} wrap="wrap" pl="md" role="alert">
+              <Text size="xs" c="down" style={{ overflowWrap: 'anywhere' }}>
+                {t('agents.authBlocked', { device: b.device, credential: b.credential, when: b.since ? ago(b.since, lang) : '?', message: b.message })}
+              </Text>
+              <Button size="compact-xs" variant="default" disabled={unblock.isPending}
+                onClick={() => unblock.mutate({ plugin: id, device: b.device, credential: b.credential })}>
+                {t('agents.authClear')}
+              </Button>
+            </Group>
+          ))}
+          </Stack>
+        )
+      })}
+    </Stack>
+  )
+}
+
+/** Local agents for a hosted Floorbit (issue #2): enrol, rename, a new key, revoke; their health, plugin
+ *  versions and failover per hall; and this Floorbit's own instances, database and Redis. */
 export default function Agents() {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
@@ -116,9 +175,9 @@ export default function Agents() {
       <Stack gap="md">
         <ErrorBanner error={error} />
         {made && (
-          <Alert color="up" role="status" withCloseButton onClose={() => setMade(null)} title={t('agents.madeTitle', { name: made.name })}>
+          <Alert color="up" role="status" withCloseButton onClose={() => setMade(null)} title={t(made.rotated ? 'agents.rotatedTitle' : 'agents.madeTitle', { name: made.name })}>
             <Stack gap="xs">
-              <Text size="sm">{t('agents.madeHelp')}</Text>
+              <Text size="sm">{t(made.rotated ? 'agents.rotatedHelp' : 'agents.madeHelp')}</Text>
               <Group gap="xs" wrap="nowrap">
                 <Code style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{made.key}</Code>
                 <Copy value={made.key} />
@@ -131,6 +190,8 @@ export default function Agents() {
         )}
         {query.isPending ? <LoadingState /> : d && (
           <>
+            <HostedCard hosted={d.hosted} />
+            <GroupsCard groups={d.groups} />
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('agents.agents')}</Title>
               {d.agents.length === 0 ? <Text size="sm" c="dimmed">{t('agents.none')}</Text> : (
@@ -154,15 +215,24 @@ export default function Agents() {
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
                         <Report report={a.report} lang={i18n.language} />
+                        <PluginHealth agentId={a.id} plugins={a.report?.plugins} lang={i18n.language} />
+                        <Updates updates={a.report?.updates} />
+                        {a.old_works_until && (
+                          <Text size="xs" c="warn">{t('agents.oldKeyWorks', { when: date(a.old_works_until) })}</Text>
+                        )}
                         {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.protocol ?? '' })}</Text>}
                         {hallOptions.length > 1 && (
                           <MultiSelect size="xs" mt={6} maw={420} label={t('agents.halls')} placeholder={a.halls?.length ? undefined : t('agents.allHalls')}
                             data={hallOptions} value={a.halls ?? []} clearable
                             onChange={(ids) => setHalls.mutate({ id: a.id, ids })} />
                         )}
+                        <PluginsOff agent={a} />
                       </Stack>
-                      <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.revoke')}
-                        question={t('agents.revokeQuestion', { name: a.name })} onConfirm={() => revoke.mutate(a.id)} />
+                      <Stack gap={4} align="flex-end">
+                        <AgentActions agent={a} onKey={(m) => setMade({ ...m, rotated: true })} />
+                        <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.revoke')}
+                          question={t('agents.revokeQuestion', { name: a.name })} onConfirm={() => revoke.mutate(a.id)} />
+                      </Stack>
                     </Group>
                   ))}
                   <Text size="xs" c="dimmed">{t('agents.inUse')}</Text>
