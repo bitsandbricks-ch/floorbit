@@ -164,6 +164,9 @@ def _via_agent():
 
 def _ask(method, *args):
     """Run a query here, or on the local agent when one is enrolled (it is on the event network)."""
+    demo = probes.stood_in(method, args)
+    if demo is not None:
+        return demo
     if not _via_agent():
         # The host is the second argument of a query (after the protocol), the first of RCON.
         at = 1 if method == 'game_query' else 0

@@ -145,8 +145,13 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 - **Far** (a seat under 12 px): each block's name with its online and total seats and its
   problems.
 - **Middle:** seat states and their marks, and next to each block's name how many of its seats have
-  problems ("C ! 7").
-- **Near** (a seat 30 px or more): seat numbers and switch names too.
+  problems ("C ! 7"). Seat numbers stay as long as they can be read: from about 18 px a seat, every
+  seat keeps its number, written smaller to fit; below that, only the first and last seat of each row
+  keep theirs, so you can count from the end of the row. Row letters grow to stay readable.
+- **Near** (a seat 30 px or more): seat numbers at full size and switch names too.
+
+The status colours and shapes are the same at every level, so a 600-seat hall zoomed all the way
+out on a big screen still shows where the trouble is.
 
 Zoomed in so that part of the hall is off screen, a small overview of the hall shows in the bottom
 left corner: the seat blocks (red where a block has many problems) and a frame for the part on

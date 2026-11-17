@@ -225,6 +225,38 @@ def _amps(raw):
     return None
 
 
+# What local agents read from meters in the hall for a power plugin (Shelly, Home Assistant):
+# {plugin id: {meter: (reading, at)}}. The plugin's power_readings() hands them to the poll above.
+AGENT_READING_AGE = 300       # seconds; older than this and the meter counts as unread
+_from_agents = {}
+_from_agents_lock = threading.Lock()
+
+
+def keep_agent_readings(plugin_id, readings, now=None):
+    """Keep the newest readings an agent sent: ``[{"meter", "watts" | "amps"}]``. Returns how many."""
+    now = time.time() if now is None else now
+    kept = {}
+    for item in (readings if isinstance(readings, list) else [])[:MAX_CIRCUITS]:
+        if not isinstance(item, dict):
+            continue
+        meter = _text(item.get('meter'), 60)
+        if meter and METER_RE.match(meter) and _amps(item) is not None:
+            kept[meter] = ({k: item[k] for k in ('amps', 'watts') if k in item}, now)
+    with _from_agents_lock:
+        _from_agents.setdefault(plugin_id, {}).update(kept)
+    return len(kept)
+
+
+def agent_readings(plugin_id, now=None):
+    """The readings an agent sent for this plugin lately, as power_readings() returns them."""
+    now = time.time() if now is None else now
+    with _from_agents_lock:
+        mine = _from_agents.get(plugin_id) or {}
+        for meter in [m for m, (_r, at) in mine.items() if now - at > AGENT_READING_AGE]:
+            del mine[meter]
+        return [{'meter': meter, **reading} for meter, (reading, _at) in sorted(mine.items())]
+
+
 def set_reading(circuit_id, body, user):
     amps = _amps(body)
     if amps is None:

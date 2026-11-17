@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { DnsResolver, IspUplink, LanCacheState, ServiceStatus, Services as ServicesData } from '@/api/types'
+import type { DnsResolver, InternetSite, IspUplink, LanCacheState, ServiceStatus, Services as ServicesData } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -18,10 +18,11 @@ import { EntitySelect } from '@/components/EntitySelect'
 
 const TONE: Record<ServiceStatus, string> = { up: 'up', warn: 'warn', down: 'down', unknown: 'gray' }
 
-type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null } | null
+type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
+  | { kind: 'sites'; item: InternetSite | null } | null
 
-/** The internet lines, the DNS resolvers and the LAN cache (issue #471): are they up, how full,
- *  how fast. */
+/** The internet lines, the DNS resolvers, the sites players need and the LAN cache (issue #471):
+ *  are they up, how full, how fast. */
 export default function Services() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
@@ -33,7 +34,12 @@ export default function Services() {
     mutationFn: () => post<ServicesData>('/api/services/check', {}),
     onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
   })
-  const any = !!data && data.uplinks.length + data.resolvers.length > 0
+  const common = useMutation({
+    mutationFn: () => post<ServicesData>('/api/services/sites/common', {}),
+    onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
+  })
+  const sites = data?.sites ?? []
+  const any = !!data && data.uplinks.length + data.resolvers.length + sites.length > 0
   return (
     <Layout title={t('services.title')}>
       <PageHead title={t('services.title')} desc={t('services.intro')}
@@ -54,6 +60,16 @@ export default function Services() {
                 <ResolverCard key={r.id} resolver={r} onEdit={canEdit ? () => setEditing({ kind: 'resolvers', item: r }) : undefined} />
               ))}
             </Section>
+            <Section title={t('services.sites')} add={canEdit ? () => setEditing({ kind: 'sites', item: null }) : undefined}
+              addLabel={t('services.addSite')} empty={sites.length === 0 ? t('services.noSites') : null}
+              extra={canEdit && sites.length === 0 && (
+                <Button size="compact-md" variant="default" loading={common.isPending} onClick={() => common.mutate()}>{t('services.addCommon')}</Button>
+              )}>
+              {sites.map((s) => (
+                <SiteCard key={s.id} site={s} onEdit={canEdit ? () => setEditing({ kind: 'sites', item: s }) : undefined} />
+              ))}
+            </Section>
+            {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
             <Section title={t('services.lanCache')} empty={data.lan_cache ? null : t('services.noLanCache')}>
               {data.lan_cache && <LanCacheCard cache={data.lan_cache} />}
             </Section>
@@ -63,18 +79,22 @@ export default function Services() {
       </Stack>
       {editing?.kind === 'uplinks' && data && <UplinkModal uplink={editing.item} ports={data.probe_ports} devices={data.devices} onClose={() => setEditing(null)} />}
       {editing?.kind === 'resolvers' && <ResolverModal resolver={editing.item} onClose={() => setEditing(null)} />}
+      {editing?.kind === 'sites' && data && <SiteModal site={editing.item} ports={data.probe_ports} onClose={() => setEditing(null)} />}
     </Layout>
   )
 }
 
-function Section({ title, add, addLabel, empty, children }: {
-  title: string; add?: () => void; addLabel?: string; empty: string | null; children: React.ReactNode
+function Section({ title, add, addLabel, empty, extra, children }: {
+  title: string; add?: () => void; addLabel?: string; empty: string | null; extra?: React.ReactNode; children: React.ReactNode
 }) {
   return (
     <Stack gap="sm">
       <Group justify="space-between">
         <Title order={2} size="h3">{title}</Title>
-        {add && <Button size="compact-md" variant="default" onClick={add}>{addLabel}</Button>}
+        <Group gap="xs">
+          {extra}
+          {add && <Button size="compact-md" variant="default" onClick={add}>{addLabel}</Button>}
+        </Group>
       </Group>
       {empty ? <Paper withBorder radius="lg" p="md"><Text c="dimmed">{empty}</Text></Paper>
         : <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">{children}</SimpleGrid>}
@@ -152,6 +172,23 @@ function ResolverCard({ resolver: r, onEdit }: { resolver: DnsResolver; onEdit?:
   )
 }
 
+function SiteCard({ site: s, onEdit }: { site: InternetSite; onEdit?: () => void }) {
+  const { t } = useTranslation()
+  const points = latencyPoints(s.history)
+  const reached = s.status === 'up' || s.status === 'warn'
+  return (
+    <Card name={s.name} status={s.status} sub={s.port === 443 ? s.host : `${s.host}:${s.port}`} onEdit={onEdit}>
+      {reached ? (
+        <Group gap="xs" align="baseline">
+          <Text fw={700} fz={28} lh={1}>{s.latency_ms} ms</Text>
+          {!!s.loss && <Text size="sm" c="warn">{t('services.loss', { pct: Math.round(s.loss * 100) })}</Text>}
+        </Group>
+      ) : <Text size="sm" c={s.status === 'down' ? 'down' : 'dimmed'}>{s.error || t('services.notChecked')}</Text>}
+      {points.length > 1 && <div style={{ height: 30 }}><Sparkline points={points} min={0} /></div>}
+    </Card>
+  )
+}
+
 function LanCacheCard({ cache: c }: { cache: LanCacheState }) {
   const { t } = useTranslation()
   return (
@@ -172,7 +209,7 @@ function LanCacheCard({ cache: c }: { cache: LanCacheState }) {
   )
 }
 
-function useSave(kind: 'uplinks' | 'resolvers', id: string | undefined, onClose: () => void) {
+function useSave(kind: 'uplinks' | 'resolvers' | 'sites', id: string | undefined, onClose: () => void) {
   const qc = useQueryClient()
   const done = () => { void qc.invalidateQueries({ queryKey: qk.services }); onClose() }
   const save = useMutation({
@@ -247,6 +284,31 @@ function ResolverModal({ resolver, onClose }: { resolver: DnsResolver | null; on
         {error && <Alert color="down" role="alert">{error.message}</Alert>}
         <ModalFoot id={resolver?.id} pending={save.isPending} disabled={!form.name.trim() || !form.address.trim() || !form.lookup.trim()}
           onSave={() => save.mutate(form)} onRemove={() => remove.mutate()} question={t('services.removeQuestion', { name: resolver?.name ?? '' })} />
+      </Stack>
+    </Modal>
+  )
+}
+
+function SiteModal({ site, ports, onClose }: { site: InternetSite | null; ports: number[]; onClose: () => void }) {
+  const { t } = useTranslation()
+  const [form, setForm] = useState({ name: site?.name ?? '', host: site?.host ?? '', port: String(site?.port ?? 443) })
+  const set = (patch: Partial<typeof form>) => setForm({ ...form, ...patch })
+  const { save, remove } = useSave('sites', site?.id, onClose)
+  const error = save.error ?? remove.error
+  return (
+    <Modal opened onClose={onClose} title={site ? t('services.editSite') : t('services.addSite')}>
+      <Stack gap="sm">
+        <TextInput label={t('services.name')} placeholder={t('services.sitePlaceholder')} value={form.name} onChange={(e) => set({ name: e.currentTarget.value })} />
+        <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
+          <TextInput label={t('services.host')} description={t('services.hostHelp')} placeholder="www.example.com" value={form.host}
+            onChange={(e) => set({ host: e.currentTarget.value })} />
+          <Select label={t('services.probePort')} data={ports.map(String)} value={form.port} allowDeselect={false}
+            onChange={(v) => set({ port: v ?? '443' })} />
+        </SimpleGrid>
+        {error && <Alert color="down" role="alert">{error.message}</Alert>}
+        <ModalFoot id={site?.id} pending={save.isPending} disabled={!form.name.trim() || !form.host.trim()}
+          onSave={() => save.mutate({ ...form, port: Number(form.port) })} onRemove={() => remove.mutate()}
+          question={t('services.removeQuestion', { name: site?.name ?? '' })} />
       </Stack>
     </Modal>
   )
