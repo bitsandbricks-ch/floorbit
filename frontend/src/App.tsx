@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from '@/components/Layout'
 import { PageError } from '@/components/PageError'
+import { readServerPage } from '@/lib/serverPage'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -72,10 +73,17 @@ const PublicBracket = lazy(() => import('@/pages/public/PublicBracket'))
 const PublicHall = lazy(() => import('@/pages/public/PublicHall'))
 const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
 const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
+const Forbidden = lazy(() => import('@/pages/Forbidden'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
+
+// Read once: the server's answer for the page that was loaded, not for later client-side moves.
+const serverPage = readServerPage()
 
 export default function App() {
   const { pathname } = useLocation()
+  if (serverPage?.kind === 'forbidden') {
+    return <PageError resetKey={pathname}><Suspense fallback={null}><Forbidden page={serverPage} /></Suspense></PageError>
+  }
   return (
     // Outside the shell too (sign-in, check-in): an error there shows a way out, not a blank window.
     <PageError resetKey={pathname}>

@@ -54,7 +54,10 @@ def _collect(manifest, entry):
     }
 
 
-def render(title):
-    """The React page for this request; 503 with build instructions when there is no build."""
+def render(title, page=None):
+    """The React page for this request; 503 with build instructions when there is no build.
+
+    ``page`` is for answers the app draws instead of the route's own page, such as "not allowed":
+    a dict with ``kind`` that frontend/src/lib/serverPage.ts reads."""
     built = assets()
-    return render_template('spa.html', title=title, assets=built), (200 if built else 503)
+    return render_template('spa.html', title=title, assets=built, page=page), (200 if built else 503)
