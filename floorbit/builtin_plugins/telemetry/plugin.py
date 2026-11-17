@@ -51,6 +51,21 @@ class Plugin(Base):
         rows = [r for r in (rows or [])[:50_000] if isinstance(r, dict)]
         return {'taken': endpoints.history().record(rows)}
 
+    # the dashboard -----------------------------------------------------------------------------
+    def widget_devices(self):
+        """Which devices report: up when heard within the last minutes."""
+        from floorbit import agent_link, sources
+        # On a hosted Floorbit the picture lives on the agent, asked through its link.
+        found = sources.monitoring().devices() if agent_link.active() else self.devices()
+        if not found:
+            return {'type': 'status', 'items': [], 'sub': 'No devices set up yet.', 'link': '/settings/telemetry'}
+        items = [{'label': d.get('display') or d.get('hostname'), 'state': 'up' if d.get('status') else 'down',
+                  'detail': d.get('driver') or ''} for d in found]
+        up = sum(i['state'] == 'up' for i in items)
+        return {'type': 'status', 'items': items, 'link': '/settings/telemetry',
+                'sub': f'{up} of {len(items)} up' if up == len(items)
+                else f'{up} of {len(items)} up: {len(items) - up} down'}
+
     # the monitoring interface -----------------------------------------------------------------
     def devices(self):
         with state._lock:

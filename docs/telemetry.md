@@ -142,3 +142,7 @@ Plugins can teach the collector new devices:
 `GET /api/telemetry/status`: where it collects, devices, points received and not understood,
 storage mode and errors, and the last error per device. Settings > Telemetry shows the same, and
 each device's last report.
+
+The **Telemetry devices** widget (a dashboard tile, from the plugin) lists each device as up when
+it reported in the last minutes, with a link to Settings > Telemetry. On a hosted Floorbit it asks
+the local agent.

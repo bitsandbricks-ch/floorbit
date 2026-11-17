@@ -117,6 +117,16 @@ def test_ports_rates_and_state_from_snmp(plugin):
     assert [d["hostname"] for d in plugin.devices()] == ["sw-a-01"]
 
 
+def test_the_devices_widget_for_dashboards(plugin, client):
+    import time
+    assert client.get("/api/plugins/telemetry/widgets/devices").get_json()["sub"] == "No devices set up yet."
+    now = time.time()
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    w = client.get("/api/plugins/telemetry/widgets/devices").get_json()
+    assert w["type"] == "status" and w["link"] == "/settings/telemetry"
+    assert [(i["label"], i["state"]) for i in w["items"]] == [("sw-a-01", "up")] and w["sub"] == "1 of 1 up"
+
+
 def test_a_counter_that_went_backwards_gives_no_rate(plugin):
     import time
     now = time.time()
