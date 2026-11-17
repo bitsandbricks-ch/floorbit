@@ -312,3 +312,10 @@ def test_game_servers_and_vms_say_which_host_they_run_on(client):
     runs = detail(client, host)["runs_here"]
     assert [(x["kind"], x["name"]) for x in runs] == [("device", "vm-games"), ("game-server", "CS")]
     assert [x["name"] for x in detail(client, vm)["runs_here"]] == ["CS"]
+
+
+def test_device_options_list_each_name_once(client):
+    add(client, name="fw-01", role="firewall")
+    add(client, name="FW-01", role="firewall")
+    names = [o["value"] for o in client.get("/api/options/devices").get_json()["options"]]
+    assert [n.lower() for n in names].count("fw-01") == 1

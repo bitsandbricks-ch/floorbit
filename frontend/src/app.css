@@ -647,7 +647,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }
 
 /* Side panels, sections and fields (components/ui.tsx): one way to show an item's details. */
-.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
+/* Mantine puts the class on the drawer's inner wrapper too; only the panel itself is a column. */
+.mantine-Drawer-content.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
 .fb-sidepanel-head {
   display: flex; align-items: center; gap: 12px; padding: 16px 20px; flex-shrink: 0;
   border-bottom: 1px solid var(--color-line);

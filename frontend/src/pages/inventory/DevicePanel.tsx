@@ -12,7 +12,7 @@ import { dateTime } from '@/lib/time'
 import { DeviceIcon } from './icons'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, roleIcon, speedLabel } from './model'
-import { useDeviceDetail } from './scope'
+import { useCustomIcons, useDeviceDetail } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 
 
@@ -51,6 +51,7 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
 
   const icon = dev ? dev.resolved.look.icon.value || roleIcon(dev.role) : 'other'
   const color = dev?.resolved.look.color.value ?? ''
+  const uploaded = useCustomIcons(icon.startsWith('custom-')).data?.icons.find((i) => i.id === icon)
   return (
     <SidePanel
       width={640}
@@ -129,7 +130,7 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
               <PanelSection label={t('inventory.look.title')}>
                 <Group gap="sm">
                   <DeviceIcon icon={icon} color={color} />
-                  <Text size="sm">{t(`inventory.icon.${icon}`, { defaultValue: icon })}{color && ` · ${color}`}</Text>
+                  <Text size="sm">{uploaded?.name ?? t(`inventory.icon.${icon}`, { defaultValue: icon })}{color && ` · ${color}`}</Text>
                   <FromLabel from={dev.resolved.look.icon.from} />
                 </Group>
               </PanelSection>
