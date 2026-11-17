@@ -54,6 +54,8 @@ def test_rows_stay_open_while_seen_and_split_on_a_move(db):
     again = endpoints.History(db)
     again.record([seen], NOW + 120 + endpoints.GAP + 120)
     assert len(again.search("192.0.2.40")) == 3
+    again.record([{**seen, "mac": "020000000099", "ip": "192.0.2.4"}], NOW + 3000)
+    assert again.search("192.0.2.4")[0]["ip"] == "192.0.2.4"       # exact first, before .40
 
 
 def test_old_rows_are_pruned(db, monkeypatch):

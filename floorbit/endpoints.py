@@ -186,6 +186,8 @@ class History:
         rows = self._select(' OR '.join(clauses), args, limit)
         if rows is None:
             rows = self._memory(lambda r: (as_ip and r['ip'].startswith(q)) or (as_mac and digits in r['mac']), limit)
+        # The exact IP or MAC first, then the newest: "192.0.2.2" before 192.0.2.254.
+        rows.sort(key=lambda r: (r['ip'] != q and r['mac'] != digits, -r['last_seen']))
         return [_public(r) for r in rows]
 
     def at_port(self, device, port, limit=LIMIT):
