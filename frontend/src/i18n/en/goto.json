@@ -53,6 +53,7 @@
     "settings": "Settings",
     "plugins": "Plugins",
     "features": "Features",
+    "sidebarSections": "Sidebar sections",
     "apiTokens": "API tokens",
     "agents": "Local agents",
     "webhooks": "Webhooks",

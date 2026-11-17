@@ -11,6 +11,7 @@ import { PAGE_URL, type Pane } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
+import { publicUrl, useScreen } from './screen'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -27,7 +28,23 @@ function Framed({ title, hide, className = '', children }: { title?: string; hid
   )
 }
 
+/** A tile on a public dashboard read signed out: from the dashboard's own feed. */
+function PublicTilePane({ pane, id }: { pane: Extract<Pane, { kind: 'tile' }>; id: string }) {
+  const { tiles } = useScreen()
+  const [plugin, , name] = pane.tile.split('/')
+  const tile: WidgetTile = {
+    plugin, plugin_name: 'Floorbit', id: name, label: tiles[pane.tile] ?? name, size: 'small', refresh: 15,
+    url: publicUrl(id, `/tiles/${encodeURIComponent(name)}`),
+  }
+  return <Framed title={pane.title} hide={pane.hide_title}><WidgetCard tile={tile} /></Framed>
+}
+
 function TilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
+  const { publicId } = useScreen()
+  return publicId ? <PublicTilePane pane={pane} id={publicId} /> : <SignedInTilePane pane={pane} />
+}
+
+function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   const { t } = useTranslation()
   const { data, isPending } = useDashboard()
   const tile = data?.tiles.find((x) => tileKey(x) === pane.tile)
@@ -97,6 +114,7 @@ export function PaneView({ pane, cycle }: { pane: Pane; cycle?: number }) {
     case 'page': return <PagePane pane={pane} />
     case 'view': return <ViewPane pane={pane} />
     case 'text': return <TextPane pane={pane} />
+    case 'private': return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.private')}</Note></Stack></Framed>
     default: return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.empty')}</Note></Stack></Framed>
   }
 }

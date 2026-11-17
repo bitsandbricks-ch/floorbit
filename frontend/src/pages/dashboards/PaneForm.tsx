@@ -11,7 +11,7 @@ import { VIEWS } from '@/widgets/views'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, PAGES, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
+import { type Area, MARKS_MODES, type MarksMode, PAGES, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
@@ -135,6 +135,13 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
         <SegmentedControl fullWidth size="xs" value={pane.labels} aria-label={t('dashboards.form.labels')}
           data={(['auto', 'all', 'none'] as const).map((l) => ({ value: l, label: t(`dashboards.labels.${l}`) }))}
           onChange={(v) => onChange({ ...pane, labels: v as typeof pane.labels })} />
+      </div>
+      <div>
+        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.marks')}</Text>
+        <SegmentedControl fullWidth size="xs" value={pane.marks ?? 'all'} aria-label={t('dashboards.form.marks')}
+          data={MARKS_MODES.map((m) => ({ value: m, label: t(`dashboards.marks.${m}`) }))}
+          onChange={(v) => onChange({ ...pane, marks: v as MarksMode })} />
+        <Text size="xs" c="dimmed" mt={4}>{t('dashboards.form.marksHint')}</Text>
       </div>
     </>
   )

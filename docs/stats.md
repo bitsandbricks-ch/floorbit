@@ -65,7 +65,7 @@ far" outage count. The same comparison is on the [report](report.md).
 ## On a big screen
 
 **Big screen** (`/stats?screen=1`) drops the header, makes the numbers readable from across the
-hall and shows the last hour. Like `/kiosk` and the [health wall](health.md), it gets the kiosk
+hall and shows the last hour. Like the Kiosk dashboard and the [health wall](health.md), it gets the kiosk
 theme unless the screen picks another one with `?theme=` ([themes.md](themes.md)). It refreshes on
 its own after every read.
 

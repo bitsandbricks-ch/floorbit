@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
+import type { CustomSection } from '@/nav/sections'
 import type {
   PageLink,
   Place,
@@ -48,8 +49,18 @@ export function useFeaturesOff(): string[] {
 
 /** The pages this account may open, for "Go to" (issue #250); empty until the server answers. */
 export function usePageList(): PageLink[] {
-  const pages = useQuery({ queryKey: qk.pages, queryFn: () => get<{ pages: PageLink[] }>('/api/pages'), staleTime: 60_000, retry: false })
-  return pages.data?.pages ?? []
+  return usePagesQuery().data?.pages ?? []
+}
+
+/** The sidebar sections admins made, as this account sees them; null until the server answers. */
+export function useCustomSections(): CustomSection[] | null {
+  return usePagesQuery().data?.custom ?? null
+}
+
+function usePagesQuery() {
+  return useQuery({
+    queryKey: qk.pages, queryFn: () => get<{ pages: PageLink[]; custom?: CustomSection[] }>('/api/pages'), staleTime: 60_000, retry: false,
+  })
 }
 
 /** Seats and switches whose number or name matches, for "Go to" (issue #252); needs two characters. */
