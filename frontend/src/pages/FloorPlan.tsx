@@ -327,7 +327,7 @@ export default function FloorPlan() {
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
                 href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
               <form onSubmit={go} role="search">
-                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
+                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 270 : 220} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
                   onChange={(e) => setSearch(e.currentTarget.value)} />
               </form>
