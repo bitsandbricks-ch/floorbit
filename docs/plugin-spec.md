@@ -56,7 +56,7 @@ If a plugin needs a package, it goes into Floorbit's requirements through a pull
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
 | Settings of type `string`, `text`, `url`, `secret`, `bool`, `int`, `select`, `list` | Ships | Keys: lowercase, digits, `_`, up to 40. `int` has `min`/`max`; `select` needs `options`. Each gets a fixed env name, `FLOORBIT_PLUGIN_<ID>_<KEY>`; a plugin can't read any other variable. |
-| Secrets | Ships | Write-only on the page and in the API (reported as set or not set), never in the audit log, sent to an agent over its link only and kept in its memory. **Next:** sealed at rest with the [vault](credentials.md) like switch logins. |
+| Secrets | Ships | Write-only on the page and in the API (reported as set or not set), never in the audit log, sent to an agent over its link only and kept in its memory. Sealed at rest with the [vault](credentials.md#secret-settings) like switch logins. |
 | Device credentials | Ships | A plugin doesn't store logins itself. With `agent.targets.credentials: [ssh, snmp_v2c, snmp_v3, api, http]` it gets the inventory devices it is turned on for, with the credential of a kind it can use, decrypted for that call. |
 | Where it is on | Ships | On or off for the whole Floorbit; an agent part can be limited to inventory groups, tags or devices (`agent.targets`). |
 

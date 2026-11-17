@@ -25,6 +25,7 @@
   "invalid": "Not a valid value",
   "secretSet": "•••••••• (set, type to replace)",
   "secretUnset": "Not set",
+  "secretUnreadable": "Saved, but it doesn't open with the current secret key. Enter it again.",
   "derived": "Derived",
   "chooseImage": "Choose image…",
   "removeImage": "Remove",
