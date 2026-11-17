@@ -24,9 +24,9 @@ def test_a_role_only_sees_its_pages(app_module):
     viewer = sign_in_as(app_module, "vi1", "viewer")
     got = hrefs(viewer)
     assert "/problems" in got
-    assert not {"/settings", "/settings/users", "/jobs", "/terminal", "/planner"} & set(got)
+    assert not {"/settings", "/settings/users", "/jobs", "/terminal", "/timeline"} & set(got)
     admin = sign_in_as(app_module, "ad1", "admin")
-    assert {"/settings", "/settings/users", "/planner"} <= set(hrefs(admin))
+    assert {"/settings", "/settings/users", "/timeline"} <= set(hrefs(admin))
 
 
 def test_the_server_pages_have_go_to(client):

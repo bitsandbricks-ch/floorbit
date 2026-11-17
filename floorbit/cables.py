@@ -295,7 +295,7 @@ def labels_pdf(cables, base_url):
 
 
 def csv_text(cables):
-    from .planner import _csv
+    from .csvcell import cell as _csv
     lines = [','.join((*FIELDS, 'source'))]
     for c in cables:
         lines.append(','.join(_csv(c.get(f) if c.get(f) is not None else '') for f in (*FIELDS, 'source')))

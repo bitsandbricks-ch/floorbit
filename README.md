@@ -69,8 +69,6 @@ each seat is plugged into.
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
   working on, quiet hours, one Discord message for a big outage, and the ports that need a look
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).
-- **Build planner:** before the event, switches, ports and VLANs per seat block, switch configs
-  from templates per model, and cable labels to print. See [docs/planner.md](docs/planner.md).
 - **Pre-flight check:** before doors open, every switch reachable, every uplink up, DHCP and DNS
   answering, as a go or no-go board to print and sign. See [docs/preflight.md](docs/preflight.md).
 - **Gear loans:** who has which switch or access point right now, with QR labels to check gear
