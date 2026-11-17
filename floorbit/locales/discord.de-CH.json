@@ -163,6 +163,8 @@
  "That switch is not on the floor plan any more.": "Dieser Switch ist nicht mehr auf dem Hallenplan.",
  "That service is not on the health wall any more.": "Dieser Dienst ist nicht mehr auf der Health-Wall.",
  "/seat needs a Floorbit account that works incidents.": "/seat braucht ein Floorbit-Konto, das Störungen bearbeitet.",
- "What is wrong": "Was ist los",
- "What is wrong, in a few words": "Was ist los, in ein paar Worten"
+ "What is wrong": "Was ist kaputt",
+ "What is wrong, in a few words": "Was ist los, in ein paar Worten",
+ "Report a problem at seat {}": "Problem an Platz {} melden",
+ "e.g. No link at all": "z. B. gar kein Link"
 }

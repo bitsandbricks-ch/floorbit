@@ -138,7 +138,7 @@ REPORT_INPUT = 'problem'
 def report_modal(seat):
     """The form "Report a problem" opens: one line, like /incident report's problem."""
     from integrations.crew import custom_id
-    return {'custom_id': custom_id('report', seat), 'title': f'Report a problem at seat {seat}'[:45],
+    return {'custom_id': custom_id('report', seat), 'title': f'Report a problem at seat {seat}',
             'components': [{'type': 1, 'components': [
                 {'type': 4, 'custom_id': REPORT_INPUT, 'style': 1, 'label': 'What is wrong',
                  'placeholder': 'e.g. No link at all', 'required': True, 'max_length': 120}]}]}
