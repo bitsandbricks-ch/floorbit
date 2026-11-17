@@ -7,6 +7,7 @@ export const EDIT_SHORTCUTS: [string, KeyRow[]][] = [
   ['tools', TOOLS.map((id) => [[[TOOL_KEYS[id].toUpperCase()]], `tool.${id}`] as KeyRow)],
   ['select', [
     [[['Shift', 'Click']], 'addSelect'],
+    [[['Tab'], ['Shift', 'Tab']], 'cycle'],
     [[['Ctrl', 'A']], 'all'],
     [[['Esc']], 'deselect'],
   ]],

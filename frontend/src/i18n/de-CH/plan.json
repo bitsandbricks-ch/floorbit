@@ -206,7 +206,8 @@
       "group": "Auswahl gruppieren",
       "ungroup": "Auswahl aus ihrer Gruppe nehmen",
       "stack": "Nach vorne, nach hinten",
-      "delete": "Löschen, oder Switches vom Plan nehmen"
+      "delete": "Löschen, oder Switches vom Plan nehmen",
+      "cycle": "Mit einer Auswahl: das nächste oder vorherige Element, von oben nach unten"
     },
     "allKeys": "Alle Tasten"
   },

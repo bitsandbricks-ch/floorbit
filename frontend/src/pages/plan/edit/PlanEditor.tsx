@@ -1,4 +1,4 @@
-import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
@@ -19,6 +19,7 @@ import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
+import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
 import { MarkHandles } from './MarkHandles'
@@ -565,6 +566,12 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     if (e.key === 'Escape' && tool !== 'select') { take(); setTool('select'); return }
     if (!selected.length) return
     if (e.key === 'Escape') { take(); setSelection([]); return }
+    // Tab steps through the plan's items while something is selected; Esc lets Tab leave the plan again.
+    if (e.key === 'Tab' && !mod && !e.altKey) {
+      const next = nextItem(data, selected[selected.length - 1], e.shiftKey)
+      if (next) { take(); pick([next]); follow(next) }
+      return
+    }
     if (e.key === 'Delete' || e.key === 'Backspace') { take(); void remove(selected); return }
     const dirs: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
     const dir = dirs[e.key]
@@ -599,6 +606,15 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
   }
   const pick = (next: ItemRef[]) => setSelection(withGroups(data, next, groups))
+  /** Moves the view so ``ref`` is on screen (keyboard users can't see what they picked otherwise). */
+  const follow = (ref: ItemRef) => {
+    const c = outlineOf(data, ref)?.centre
+    if (!c) return
+    const m = Math.min(view.w, view.h) * 0.1
+    if (c.x < view.x + m || c.x > view.x + view.w - m || c.y < view.y + m || c.y > view.y + view.h - m) {
+      setView({ ...view, x: c.x - view.w / 2, y: c.y - view.h / 2 })
+    }
+  }
   const grouped = groupsOf(groups, selected).length > 0 || selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
   const movable = selected.filter((r) => r.kind !== 'cable')
   // Inventory switches only leave the plan (they stay in the inventory): say so on the button.
@@ -694,6 +710,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
       {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
         onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
+      <VisuallyHidden role="status" aria-live="polite">
+        {one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : ''}
+      </VisuallyHidden>
       <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
         <Stack gap="sm">
           <Group justify="space-between" wrap="nowrap">

@@ -206,7 +206,8 @@
       "group": "Group the selection",
       "ungroup": "Take the selection out of its group",
       "stack": "Bring to front, send to back",
-      "delete": "Delete, or take switches off the plan"
+      "delete": "Delete, or take switches off the plan",
+      "cycle": "With something selected: the next or previous item, top to bottom"
     },
     "allKeys": "All keys"
   },
