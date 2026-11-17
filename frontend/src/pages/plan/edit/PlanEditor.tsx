@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import {
   IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconRotateClockwise, IconStack2, IconTrash, IconUnlink, IconZoomIn,
+  IconLink, IconRotateClockwise, IconSelectAll, IconStack2, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -34,6 +34,7 @@ import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs
 import { ToolRail } from './ToolRail'
 import { quarterTurns } from './turn'
 import { frameOf } from './frame'
+import { similar } from './similar'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
@@ -580,6 +581,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const take = () => { e.preventDefault(); e.stopPropagation() }
     if (mod && k === 'z') { take(); void step(e.shiftKey ? 'redo' : 'undo'); return }
     if (mod && k === 'y') { take(); void step('redo'); return }
+    if (mod && k === 'a' && e.shiftKey) { take(); if (selected.length) setSelection(similar(data, present, selected)); return }
     if (mod && k === 'a') { take(); setSelection(present); return }
     if (mod && k === 'g') { take(); void regroup(selected, !e.shiftKey); return }
     if (mod && k === 'v') { take(); void paste(); return }
@@ -728,6 +730,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
                 <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
                 <Menu.Item leftSection={<IconZoomIn size={14} />} rightSection={<Kbd size="xs">F</Kbd>} onClick={() => frame(selected)}>{t('plan.edit.menu.frame')}</Menu.Item>
+                <Menu.Item leftSection={<IconSelectAll size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ A</Kbd>} onClick={() => setSelection(similar(data, present, selected))}>{t('plan.edit.menu.similar')}</Menu.Item>
                 {canTurn && (
                   <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={<Kbd size="xs">R</Kbd>} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
                 )}

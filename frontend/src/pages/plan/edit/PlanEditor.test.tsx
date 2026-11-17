@@ -126,3 +126,14 @@ describe('Plan editor keys', () => {
     expect(e.api.calls.filter((c) => c.method !== 'GET')).toHaveLength(0)
   })
 })
+
+describe('Plan editor: select all like this', () => {
+  it('picks every block with Ctrl+Shift+A, so one arrow press moves them all', async () => {
+    const e = editor()
+    e.select('A')
+    e.key('A', { ctrlKey: true, shiftKey: true })
+    e.key('ArrowUp')
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
+    expect(e.sent('PUT').map((c) => c.path).sort()).toEqual(['/api/seat-blocks/A', '/api/seat-blocks/B'])
+  })
+})

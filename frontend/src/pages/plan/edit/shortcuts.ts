@@ -9,6 +9,7 @@ export const EDIT_SHORTCUTS: [string, KeyRow[]][] = [
     [[['Shift', 'Click']], 'addSelect'],
     [[['Tab'], ['Shift', 'Tab']], 'cycle'],
     [[['Ctrl', 'A']], 'all'],
+    [[['Ctrl', 'Shift', 'A']], 'similar'],
     [[['Esc']], 'deselect'],
   ]],
   ['move', [
