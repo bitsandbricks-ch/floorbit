@@ -130,7 +130,9 @@ export interface OverlayContext {
 }
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents, cables, overlay }: {
+  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus }: {
+  /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. */
+  focus?: { switch: string; seats: ReadonlySet<string> }
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
@@ -346,7 +348,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em" fontSize={drawing.cell * 0.6}
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
-              <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected}
+              <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected} only={focus?.seats}
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
@@ -374,6 +376,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
         {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (
           <g key={w.id} className={`sw sw-${w.status}${onSwitch ? ' link' : ''}`} onClick={onSwitch ? () => onSwitch(w.name) : undefined} transform={`translate(${w.x} ${w.y})`}>
+            {focus?.switch === w.name ? <circle className="sw-focus" r={21} /> : null}
             {incidents?.switches[w.id] ? <circle className="sw-inc" r={17} /> : null}
             <SwitchGlyph status={w.status} />
             <title>{`${w.name}: ${w.status}`}</title>
@@ -412,9 +415,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 }
 
 /** One block's seats, in the block's coordinates. Memoised: panning and zooming don't draw them again. */
-const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, cursor, traffic, firewalls, checkin, incidents, level, ids, onEnter, onLeave, onClick, describe }: {
+const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, checkin, incidents, level, ids, onEnter, onLeave, onClick, describe }: {
   cells: { seat: string; x: number; y: number }[]; rotation: number; seats: SeatViewData['seats']; cell: number
-  filter: Filter; selected: string | null; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
+  filter: Filter; selected: string | null; only?: ReadonlySet<string>; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
   checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; ids: string
   onEnter: (seat: string, clientX: number, clientY: number) => void; onLeave: () => void; onClick: (seat: string) => void
   describe: (seat: PlanSeat) => string
@@ -424,7 +427,7 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
       {cells.map((c) => {
         const seat = seats[c.seat] ?? { state: 'unknown' as const }
         const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
-        const cls = ['cell', matches(seat, filter) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
+        const cls = ['cell', matches(seat, filter) && (!only || only.has(c.seat)) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
           cursor === c.seat ? 'kb' : ''].join(' ').trim()
         return (
           <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}

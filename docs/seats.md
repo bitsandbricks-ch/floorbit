@@ -249,6 +249,8 @@ sits where.
 Click a switch's marker, or a switch's name in the block panel, to see that switch: its status and
 since when, and the seats it serves port by port with their states (click one to open it). Before
 walking to a switch, you see which players it takes down. `/plan?switch=sw-c-02` opens it.
+While the panel is open, the plan dims every seat the switch doesn't serve and puts a ring around
+the switch, so its seats stand out even across several blocks.
 
 ## In the floor plan editor
 

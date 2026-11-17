@@ -10,7 +10,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatViewData, SwitchDetails, WifiData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
@@ -47,6 +47,13 @@ export default function FloorPlan() {
   const selected = params.get('seat')
   const blockSel = selected ? null : params.get('block')
   const switchSel = selected || blockSel ? null : params.get('switch')
+  // An open switch panel lights up that switch's seats on the plan (same query as the panel's).
+  const switchQ = useQuery({
+    queryKey: qk.planSwitch(switchSel ?? ''), enabled: !!switchSel,
+    queryFn: () => get<SwitchDetails>(`/api/plan/switches/${encodeURIComponent(switchSel ?? '')}`),
+  })
+  const switchFocus = useMemo(() => (switchSel && switchQ.data ? { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) } : undefined),
+    [switchSel, switchQ.data])
   const screen = params.get('screen') === '1'
   // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
   const print = !screen && params.get('print') === '1'
@@ -237,7 +244,7 @@ export default function FloorPlan() {
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
-      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables}
+      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables} focus={switchFocus}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />

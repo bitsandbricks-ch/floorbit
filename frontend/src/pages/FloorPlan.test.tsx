@@ -634,6 +634,19 @@ describe('Seats page', () => {
     expect(y + h / 2).toBeCloseTo(420)
   })
 
+  it('lights up the seats of the switch whose panel is open', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 640, y: 420 }] }
+    const sw = { name: 'sw-d-01', status: 'online', since: null, model: null, online: 1,
+      seats: [{ seat: 'D-1', port: 'Gi1/0/1', state: 'online', problems: 0 }, { seat: 'D-2', port: 'Gi1/0/2', state: 'offline', problems: 1 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': withSwitch, 'GET /api/plan/switches/sw-d-01': sw }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?hall=main&switch=sw-d-01')
+    await waitFor(() => expect(container.querySelector('[data-seat="D-3"]')).toHaveClass('dim'))
+    expect(container.querySelector('[data-seat="D-1"]')).not.toHaveClass('dim')
+    expect(container.querySelector('[data-seat="D-2"]')).not.toHaveClass('dim')
+    expect(container.querySelector('[data-seat="D-4"]')).toHaveClass('dim')
+    expect(container.querySelector('.sw-focus')).not.toBeNull()
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }
