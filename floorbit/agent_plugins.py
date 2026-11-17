@@ -1,7 +1,8 @@
 """The hosted side of agent plugins (floorbit/plugins/agent.py, docs/agent-plugins.md).
 
 * ``config()``: which plugins each agent runs and their settings, pulled by the agent
-  (``GET /api/agent/v1/plugins``) every minute and when told to (``plugins_reload``).
+  (``GET /api/agent/v1/plugins``) every minute and when told to (``plugins_reload``). ``local``
+  also names the plugins without an agent part the agent turns on in its own copy of Floorbit.
 * ``take()``: what an agent part sent (``POST /api/agent/v1/plugins/<id>/<kind>``), checked and
   handed to the hosted part's ``agent_<kind>(agent, payload)``.
 * ``ask()``: a call or an action for the agent part, over the tunnel (method ``plugin``).
@@ -21,6 +22,10 @@ ACTION_TIMEOUT = 120
 PLUGIN_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
 NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
 MAX_PLUGINS_REPORTED = 40
+# Plugins without an agent part that the agent runs in its own copy of Floorbit when they are on
+# here: it answers the hosted side's monitoring, inventory, health, DNS, Wi-Fi and port calls.
+LOCAL_AREAS = ('monitoring', 'inventory', 'health', 'dns', 'wifi', 'ports')
+NEVER_LOCAL = ('demo',)
 
 
 def _registry():
@@ -65,8 +70,31 @@ def config(registry=None):
             'calls': list(block.get('calls') or []),
             'actions': list(block.get('actions') or []),
         }
-    raw = json.dumps(plugins, sort_keys=True, default=str).encode()
-    return {'plugins': plugins, 'etag': hashlib.sha256(raw).hexdigest()[:32]}
+    local = local_config(registry)
+    raw = json.dumps([plugins, local], sort_keys=True, default=str).encode()
+    return {'plugins': plugins, 'local': local, 'etag': hashlib.sha256(raw).hexdigest()[:32]}
+
+
+def local_config(registry=None):
+    """``{id: {"settings": {full settings key: value}}}`` for the built-in plugins without an agent
+    part that are on here and answer for the hall (LOCAL_AREAS). Empty values are left out, so the
+    agent's own environment still fills them."""
+    registry = registry or _registry()
+    if registry is None:
+        return {}
+    out = {}
+    for spec in sorted(registry.specs.values(), key=lambda s: s.id):
+        if (spec.agent or spec.error or spec.trust != 'builtin' or spec.id in NEVER_LOCAL
+                or not set(spec.manifest.get('uses') or ()) & set(LOCAL_AREAS) or not registry.enabled(spec)):
+            continue
+        keys = registry._core_fields(spec) + [f"plugin.{spec.id}.{f['key']}" for f in spec.items('settings')]
+        values = {}
+        for key in keys:
+            value = registry.settings_store.get(key)
+            if value not in (None, '', [], {}):
+                values[key] = value
+        out[spec.id] = {'settings': values}
+    return out
 
 
 def _scope():
