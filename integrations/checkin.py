@@ -156,6 +156,28 @@ def ip_allowed(ip):
 # No 0/O, 1/I/L, 5/S, 8/B: read off a printed card and typed, they get mixed up.
 PIN_ALPHABET = '2346789ACDEFGHJKMNPQRTUVWXYZ'
 PIN_LENGTH = 5   # 17 million PINs: a guess hits one of 4000 seats about once in 4000 tries
+# ...so a script would find a seat in seconds. Wrong PINs are counted per PC; past the limit it
+# waits out the window. A typo or two is fine, guessing isn't.
+WRONG_PIN_WINDOW = 600
+_wrong_pins = {}          # ip -> [times of wrong PINs]
+
+
+def _wrong_pin_wait(ip, now):
+    """Seconds this PC must wait before it may try a PIN again, 0 when it may."""
+    limit = config.get_int('CHECKIN_PIN_TRIES', 10, minimum=1)
+    recent = [t for t in _wrong_pins.get(ip, []) if now - t < WRONG_PIN_WINDOW]
+    if recent:
+        _wrong_pins[ip] = recent
+    else:
+        _wrong_pins.pop(ip, None)
+    return int(recent[-limit] + WRONG_PIN_WINDOW - now) + 1 if len(recent) >= limit else 0
+
+
+def _wrong_pin(ip, now):
+    if len(_wrong_pins) > 10000:   # a flood of addresses must not grow this forever
+        for key in [k for k, v in _wrong_pins.items() if now - v[-1] >= WRONG_PIN_WINDOW]:
+            del _wrong_pins[key]
+    _wrong_pins.setdefault(ip, []).append(now)
 
 
 def _beside_checkins(name):
@@ -424,9 +446,19 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     seats = known_seats(load_data)
     username = (username or '').strip()
     pin_ok = False
+    # First, so that from outside the event network a PIN can't even be tested.
+    if not ip_allowed(ip):
+        raise CheckinError('Check in from your seat PC on the event network.', 403)
     mine = find_by_ip(ip)
     if pin:
-        seat = seat_for_pin(pin)
+        with _lock:
+            wait = _wrong_pin_wait(ip, time.time())
+            if wait:
+                minutes = (wait + 59) // 60
+                raise CheckinError(f'Too many wrong PINs. Try again in {minutes} min or ask the crew.', 429)
+            seat = seat_for_pin(pin)
+            if seat is None:
+                _wrong_pin(ip, time.time())
         if seat is None:
             raise CheckinError('That PIN is not on any seat card. Check the card at your seat.', 403)
         held = load_all().get(seat)
@@ -448,8 +480,6 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
             raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
     if not USER_RE.match(username):
         raise CheckinError('Enter a username (up to 48 characters).')
-    if not ip_allowed(ip):
-        raise CheckinError('Check in from your seat PC on the event network.', 403)
     if not pin and config.get_bool('CHECKIN_VALIDATE_SEATS', True) and seats and seat not in seats:
         raise CheckinError(f'Seat {seat} is not on the floor plan.')
     if not pin_ok and config.get_bool('CHECKIN_REQUIRE_PIN', False) and (mine or {}).get('seat') != seat:

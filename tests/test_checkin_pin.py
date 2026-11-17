@@ -314,3 +314,38 @@ def test_the_seat_hint_never_waits_for_librenms(hall, monkeypatch):
     assert info()["suggested_seat"] is None and asked == []
     checkin.verify_pending()
     assert asked == ["192.0.2.21"] and info()["suggested_seat"] == "A-1"
+
+
+def test_guessing_pins_locks_that_pc_out_for_a_while(hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_PIN_TRIES", "3")
+    good = pins(hall)["A-1"]
+    for _ in range(3):
+        assert check_in(hall, "192.0.2.21", verify=False, pin="ZZZZZ", username="pixel").status_code == 403
+    # Even the right PIN waits now: otherwise the limit would only slow a script down.
+    r = check_in(hall, "192.0.2.21", verify=False, pin=good, username="pixel")
+    assert r.status_code == 429 and "10 min" in r.get_json()["error"]
+    # Another PC is not held up by this one.
+    assert check_in(hall, "192.0.2.22", verify=False, pin=pins(hall)["A-2"], username="nova").status_code == 200
+    # Ten minutes later.
+    guesses = checkin._wrong_pins["192.0.2.21"]
+    checkin._wrong_pins["192.0.2.21"] = [t - checkin.WRONG_PIN_WINDOW for t in guesses]
+    assert check_in(hall, "192.0.2.21", verify=False, pin=good, username="pixel").status_code == 200
+
+
+def test_the_lockout_speaks_german_too(hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_PIN_TRIES", "1")
+    check_in(hall, "192.0.2.21", verify=False, pin="ZZZZZ", username="pixel")
+    r = hall.post("/api/checkin", json={"pin": "ZZZZZ", "username": "pixel"},
+                  environ_base={"REMOTE_ADDR": "192.0.2.21"}, headers={"Accept-Language": "de-CH"})
+    assert r.status_code == 429 and "Zu viele falsche PINs" in r.get_json()["error"]
+
+
+def test_outside_the_event_network_a_pin_is_not_even_looked_at(hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_ALLOWED_NETWORKS", "192.0.2.0/24")
+    good = pins(hall)["A-1"]
+    wrong = check_in(hall, "198.51.100.7", verify=False, pin="ZZZZZ", username="pixel")
+    right = check_in(hall, "198.51.100.7", verify=False, pin=good, username="pixel")
+    # Same answer either way, so the PIN can't be tested from outside.
+    assert wrong.status_code == right.status_code == 403
+    assert wrong.get_json()["error"] == right.get_json()["error"]
+    assert checkin._wrong_pins == {}
