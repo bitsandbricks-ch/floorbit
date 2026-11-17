@@ -92,6 +92,13 @@ OPTIONAL_METHODS = {
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
 # ``enable_env`` names a variable that forces it on (FLOORBIT_DEMO for the demo data).
 BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
+# Every key plugin.yaml may have (docs/plugin-spec.md). An unknown key is refused, so a typo or a
+# feature this Floorbit doesn't have fails at load, not quietly at run time.
+MANIFEST_KEYS = frozenset({
+    'id', 'name', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', *BUILTIN_ONLY})
+# Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
+MANIFEST_NEXT = ('icon', 'panels', 'layers', 'pages', 'schema')
 TRUE_WORDS = ('1', 'true', 'yes', 'on')
 # Manifest setting types and the settings page type each becomes.
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
@@ -187,6 +194,12 @@ def validate(m):
         return 'id: 2 to 40 lowercase letters, digits and dashes, starting with a letter'
     if m['id'] == 'floorbit':
         return 'id: "floorbit" is taken by Floorbit\'s own dashboard tiles'
+    extra = sorted(str(k) for k in m if k not in MANIFEST_KEYS)
+    if extra:
+        later = [k for k in extra if k in MANIFEST_NEXT]
+        if later:
+            return f"{', '.join(later)}: not supported by this Floorbit yet (docs/plugin-spec.md)"
+        return f"unknown key(s) {', '.join(extra)} (docs/plugin-spec.md lists what plugin.yaml may have)"
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"

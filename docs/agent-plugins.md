@@ -209,6 +209,7 @@ after they change.
 | Health | the agent's report every half minute, under `plugins`; plugin versions under `updates` |
 | Bundles | listed under `bundles` in the settings, fetched from `GET /api/agent/v1/bundles/<file>` |
 
-All of it goes over the agent's TLS connection with its key ([agent.md](agent.md)). Only plugins
-that ship with Floorbit run on an agent: the ones in its image, or newer versions of them signed by
-Floorbit's release.
+All of it goes over the agent's TLS connection with its key ([agent.md](agent.md)). Only official
+plugins run on an agent: the ones in its image, newer versions of them signed by Floorbit's
+release, and official [Marketplace](marketplace.md) plugins. Community plugins stay on the hosted
+side ([What a plugin can ship](plugin-spec.md)).
