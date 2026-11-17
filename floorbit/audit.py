@@ -116,6 +116,17 @@ def path():
     return store.tenant_file(configured) if configured else store.tenant_path('audit.jsonl')
 
 
+def _event():
+    """The event an entry happened in, once the tenant has more than one (docs/tenancy.md)."""
+    from . import tenancy
+    try:
+        if len(tenancy.events()) < 2:
+            return None
+        return tenancy.current()['id']
+    except Exception:   # noqa: BLE001  the log line matters more than this detail
+        return None
+
+
 def record(area, action, user=None, target=None, fields=None, ok=True):
     entry = {
         'time': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
@@ -129,6 +140,9 @@ def record(area, action, user=None, target=None, fields=None, ok=True):
         entry['fields'] = sorted(str(f) for f in fields)[:40]   # names only, never values
     if not ok:
         entry['ok'] = False
+    event = _event()
+    if event:
+        entry['event'] = event
     line = json.dumps(entry, separators=(',', ':'))
     with _lock:
         try:

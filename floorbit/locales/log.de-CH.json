@@ -251,7 +251,10 @@
   "// Power alert incidents (floorbit/power.py), inside 'Incident opened: {}'": "",
   "Circuit {} at {} % of {} A": "Stromkreis {} bei {} % von {} A",
   "Breaker tripped: {}": "Sicherung ausgelöst: {}",
-  "Saved port areas": "Port-Bereiche gespeichert",
   "Removed port area": "Port-Bereich entfernt",
-  "Removed port areas": "Port-Bereiche entfernt"
+  "Removed port areas": "Port-Bereiche entfernt",
+  "Added an event": "Event hinzugefügt",
+  "Made an event live": "Event live geschaltet",
+  "Changed an event": "Event geändert",
+  "Copied an event's plan": "Plan eines Events kopiert"
 }
