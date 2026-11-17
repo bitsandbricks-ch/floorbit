@@ -115,8 +115,18 @@ const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 10
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
 const ALL_DEFAULT: LayerState = { on: new Set(DEFAULT_LAYERS), fade: {} }
 
+/** What an overlay drawn over the plan (the editor's selection and handles) needs to know. */
+export interface OverlayContext {
+  /** Screen point to plan point. */
+  toPlan: (clientX: number, clientY: number) => { x: number; y: number }
+  /** Screen pixels per drawing unit. */
+  scale: number
+  /** What the screen shows, in drawing units (wider than ``view`` when the screen's shape differs). */
+  shown: View
+}
+
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents }: {
+  layers = ALL_DEFAULT, wifi, incidents, overlay }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
@@ -132,6 +142,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   wifi?: WifiData
   /** The crew layer: open incidents per seat and switch. */
   incidents?: IncidentMarkers
+  /** Drawn over everything and given the pointer first (the editor, pages/plan/edit/). */
+  overlay?: (ctx: OverlayContext) => React.ReactNode
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -354,6 +366,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
           </g>
         ))}</g>}
+        {/* toPlan reads the svg's box, but overlays call it only from pointer events, never while drawing. */}
+        {/* eslint-disable-next-line react-hooks/refs */}
+        {overlay?.({ toPlan, scale: s, shown: px.w && px.h ? { x: view.x + view.w / 2 - px.w / s / 2, y: view.y + view.h / 2 - px.h / s / 2, w: px.w / s, h: px.h / s } : view })}
         {ring && (
           // Drawn last so the neighbouring seats don't cover it.
           <rect className="kb-ring" x={ring.at.x - drawing.cell / 2 - 1} y={ring.at.y - drawing.cell / 2 - 1}

@@ -1,15 +1,16 @@
 import { type LayerId, type LayerState, writeLayers } from './layers'
 
 /** The plan workspace's modes: one canvas, different layers and tools. Live, Check-in and Network
- *  are layer presets of the same view; Kiosk is the same view without chrome; Edit is the editor
- *  (still the older page until it moves into React). The mode lives in the address (``?mode=``). */
-export const MODES = ['live', 'checkin', 'network'] as const
+ *  are layer presets of the same view; Kiosk is the same view without chrome; Edit adds the editor's
+ *  selection and tools (pages/plan/edit/), crew with floorplan.edit only. The mode lives in the address (``?mode=``). */
+export const MODES = ['live', 'checkin', 'network', 'edit'] as const
 export type Mode = (typeof MODES)[number]
 
 export const MODE_LAYERS: Record<Mode, LayerId[]> = {
   live: ['grid', 'marks', 'network', 'status', 'crew', 'checkin'],
   checkin: ['grid', 'marks', 'checkin'],
   network: ['grid', 'marks', 'network', 'status', 'firewalls', 'wifi'],
+  edit: ['grid', 'marks', 'network', 'electrical', 'safety', 'services'],
 }
 
 export const readMode = (params: URLSearchParams): Mode => {
@@ -22,13 +23,13 @@ export function switchMode(params: URLSearchParams, mode: Mode, state: LayerStat
   const next = writeLayers(params, { on: new Set(MODE_LAYERS[mode]), fade: state.fade })
   if (mode === 'live') next.delete('mode')
   else next.set('mode', mode)
+  // Edit has its own selection; the seat, block and switch panels belong to the other modes.
+  if (mode === 'edit') for (const k of ['seat', 'block', 'switch', 'view']) next.delete(k)
   if (mode === 'checkin') next.set('show', 'checked_in')
   else if (next.get('show') === 'checked_in') next.delete('show')
   return next
 }
 
-/** The editor's address for a hall. The editor reads ``?hall=`` (static/js/editor/halls.js). */
-export const editorHref = (hall: string) => `/${hall ? `?hall=${encodeURIComponent(hall)}` : ''}`
 export const kioskHref = (hall: string, params: URLSearchParams) => {
   const next = new URLSearchParams()
   next.set('screen', '1')

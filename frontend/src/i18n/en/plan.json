@@ -239,5 +239,46 @@
     "kiosk": "Kiosk",
     "kioskHint": "The same plan full screen, for a big screen",
     "edit": "Edit"
+  },
+  "edit": {
+    "title": "Edit",
+    "failed": "Not saved",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "undo": "Undo",
+    "redo": "Redo",
+    "undoWhat": "Undo: {{what}}",
+    "redoWhat": "Redo: {{what}}",
+    "undone": "Undone: {{what}}",
+    "redone": "Redone: {{what}}",
+    "step": {
+      "move_one": "move",
+      "move_other": "move {{count}} items",
+      "delete_one": "delete",
+      "delete_other": "delete {{count}} items",
+      "change": "change"
+    },
+    "delete_one": "Delete",
+    "delete_other": "Delete {{count}}",
+    "help": "Click to select, Shift-click or drag a box for more. Drag to move on the grid. Changes are saved at once.",
+    "keys": {
+      "delete": "delete",
+      "nudge": "move",
+      "free": "off the grid",
+      "pan": "+ drag to pan"
+    },
+    "classic": "Tools not here yet (new blocks, labels, cables, power): classic editor",
+    "kind": {
+      "block": "Seat block {{name}}",
+      "switch": "Switch {{name}}",
+      "text": "Label",
+      "icon": "Icon",
+      "wall": "Wall",
+      "zone": "Zone"
+    },
+    "name": "Name",
+    "rotation": "Rotation",
+    "text": "Text",
+    "label": "Label"
   }
 }

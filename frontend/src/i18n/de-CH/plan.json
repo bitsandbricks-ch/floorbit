@@ -239,5 +239,46 @@
     "kiosk": "Kiosk",
     "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm",
     "edit": "Bearbeiten"
+  },
+  "edit": {
+    "title": "Bearbeiten",
+    "failed": "Nicht gespeichert",
+    "selected_one": "{{count}} ausgewählt",
+    "selected_other": "{{count}} ausgewählt",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "undoWhat": "Rückgängig: {{what}}",
+    "redoWhat": "Wiederholen: {{what}}",
+    "undone": "Rückgängig gemacht: {{what}}",
+    "redone": "Wiederholt: {{what}}",
+    "step": {
+      "move_one": "verschieben",
+      "move_other": "{{count}} Elemente verschieben",
+      "delete_one": "löschen",
+      "delete_other": "{{count}} Elemente löschen",
+      "change": "ändern"
+    },
+    "delete_one": "Löschen",
+    "delete_other": "{{count}} löschen",
+    "help": "Klicken zum Auswählen, Shift-Klick oder ein Rahmen für mehr. Ziehen verschiebt auf dem Raster. Änderungen werden sofort gespeichert.",
+    "keys": {
+      "delete": "löschen",
+      "nudge": "verschieben",
+      "free": "ohne Raster",
+      "pan": "+ ziehen zum Verschieben der Ansicht"
+    },
+    "classic": "Werkzeuge, die noch fehlen (neue Blöcke, Beschriftungen, Kabel, Strom): klassischer Editor",
+    "kind": {
+      "block": "Sitzblock {{name}}",
+      "switch": "Switch {{name}}",
+      "text": "Beschriftung",
+      "icon": "Symbol",
+      "wall": "Wand",
+      "zone": "Zone"
+    },
+    "name": "Name",
+    "rotation": "Drehung",
+    "text": "Text",
+    "label": "Beschriftung"
   }
 }
