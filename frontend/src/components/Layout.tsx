@@ -31,6 +31,11 @@ export function PageSkeleton() {
  *  page's code, never takes the sidebar away (it used to come and go with every page). */
 export function AppShell({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
+  const params = new URLSearchParams(useLocation().search)
+  // A wall screen or a print sheet is the page alone: no sidebar, banners or footer on the TV or the paper.
+  if (params.get('screen') === '1' || params.get('print') === '1') {
+    return <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+  }
   return (
     <div className="fb-shell">
       <div className="fb-nav-slot" data-state={readRail() ? 'rail' : 'full'}>
