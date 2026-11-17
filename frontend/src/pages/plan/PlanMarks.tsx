@@ -30,7 +30,7 @@ function Mark({ m, icons }: { m: PlanMark; icons: Record<string, string[]> }) {
   switch (m.kind) {
     case 'zone':
       return (
-        <g className={`zone zone-${m.color ?? 'muted'}`}>
+        <g className={`zone zone-${m.color ?? 'muted'}`} transform={m.rotation ? `rotate(${m.rotation} ${m.x + (m.w ?? 0) / 2} ${m.y + (m.h ?? 0) / 2})` : undefined}>
           <rect x={m.x} y={m.y} width={m.w} height={m.h} rx={10} />
           {m.label && <text x={m.x + 14} y={m.y + 30} fontSize={24}>{m.label}</text>}
         </g>

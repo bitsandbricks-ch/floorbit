@@ -406,6 +406,8 @@
     "label": "Label",
     "tools": "Tools",
     "quick": "Selection",
+    "rotateHandle": "Drag to turn; Shift keeps 15° steps",
+    "rotationDegrees": "Angle in degrees",
     "wall": {
       "help": "Drag the corner squares to move the ends, the dots in the middle of a stretch to bend the wall, double-click a bend to take it out. Ends snap onto other walls; Shift keeps 15° steps, Alt leaves the grid.",
       "straighten_one": "Straighten (remove {{count}} bend)",

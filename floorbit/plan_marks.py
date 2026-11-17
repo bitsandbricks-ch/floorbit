@@ -3,14 +3,15 @@ lines, zones, and icons for exits, toilets, the bar and the like.
 
 Each mark is in one hall (``hall_id``) at ``x``/``y`` in percent of the plan, like a seat block:
 
-- ``text``: ``text``, ``size`` (s, m, l), ``rotation`` (0, 90, 180, 270), ``scale``;
+- ``text``: ``text``, ``size`` (s, m, l), ``rotation`` (whole degrees, 0 to 359), ``scale``;
 - ``icon``: ``icon`` (one of :data:`ICONS`), ``size``, ``rotation``, ``scale``;
 
 ``scale`` (optional, :data:`SCALE` range) stretches a label or icon beyond its size step: the editor
 sets it when someone drags the corner handle. Missing means 1.
 - ``wall``: a line from ``x``/``y`` to ``x2``/``y2``, ``style`` solid or dashed (a wall, a fence, a door gap),
   with optional ``points``: the bends between the ends, ``[[x, y], …]`` (up to :data:`BENDS_MAX`);
-- ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label`` and ``color``.
+- ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label``, ``color``
+  and ``rotation`` (turned round its middle; missing is 0).
 
 Every mark is on a ``layer`` of the floor plan (:data:`LAYERS`, ``overview`` unless set), so the Seats view
 can show the escape routes or the server racks on their own and hide them otherwise.
@@ -27,7 +28,6 @@ from .plan_icons import ICONS
 KEY = 'plan_marks'
 KINDS = ('text', 'icon', 'wall', 'zone')
 SIZES = ('s', 'm', 'l')
-ROTATIONS = (0, 90, 180, 270)
 STYLES = ('solid', 'dashed')
 BENDS_MAX = 50
 COLORS = ('muted', 'bit', 'trace', 'warn', 'down')
@@ -89,13 +89,11 @@ def clean(body, old=None):
         text = str(m.get('text') or '').strip()
         if not text or len(text) > TEXT_MAX:
             raise MarkError(f'A label has 1 to {TEXT_MAX} characters')
-        out.update(text=text, size=_pick(m.get('size'), SIZES, 'm', 'size'),
-                   rotation=_pick(_int(m.get('rotation')), ROTATIONS, 0, 'rotation'))
+        out.update(text=text, size=_pick(m.get('size'), SIZES, 'm', 'size'), rotation=_int(m.get('rotation')) or 0)
         _scale(out, m.get('scale'))
     elif kind == 'icon':
         out.update(icon=_pick(m.get('icon'), tuple(ICONS), None, 'icon') or _missing('icon'),
-                   size=_pick(m.get('size'), SIZES, 'm', 'size'),
-                   rotation=_pick(_int(m.get('rotation')), ROTATIONS, 0, 'rotation'))
+                   size=_pick(m.get('size'), SIZES, 'm', 'size'), rotation=_int(m.get('rotation')) or 0)
         _scale(out, m.get('scale'))
     elif kind == 'wall':
         out.update(x2=_pct(m.get('x2'), 'x2'), y2=_pct(m.get('y2'), 'y2'),
@@ -113,6 +111,9 @@ def clean(body, old=None):
         if len(label) > LABEL_MAX:
             raise MarkError(f'A zone label has at most {LABEL_MAX} characters')
         out.update(w=w, h=h, label=label, color=_pick(m.get('color'), COLORS, 'muted', 'color'))
+        # Kept only when turned, so zones drawn before rotation existed stay as they were.
+        if _int(m.get('rotation')):
+            out['rotation'] = _int(m.get('rotation'))
     return out
 
 
@@ -147,10 +148,11 @@ def _scale(out, value):
 
 
 def _int(value):
+    # Any whole angle (the editor's rotate handle turns freely); 360 and -90 are 0 and 270.
     try:
-        return int(value) % 360 if value not in (None, '') else None
-    except (TypeError, ValueError):
-        raise MarkError('rotation is 0, 90, 180 or 270') from None
+        return round(float(value)) % 360 if value not in (None, '') else None
+    except (TypeError, ValueError, OverflowError):
+        raise MarkError('rotation is a whole number of degrees') from None
 
 
 def _missing(what):
