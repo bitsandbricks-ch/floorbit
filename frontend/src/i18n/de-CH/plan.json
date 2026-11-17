@@ -230,12 +230,13 @@
     "close": "Platz schliessen",
     "block": "Block des Platzes unter dem Cursor öffnen",
     "presets": "Ebenen: Übersicht, Netzwerk, Strom, Betrieb",
+    "tools": "Ein Werkzeug zum Bearbeiten nehmen, wie in der Leiste links (jedes zeigt seine Taste)",
     "list": "Zwischen Plan und Liste wechseln",
     "pan": "Plan verschieben",
     "zoom": "Hinein-, herauszoomen oder ganze Halle zeigen",
     "find": "Platz suchen",
     "help": "Diese Liste zeigen",
-    "editTitle": "Tasten im Bearbeiten-Modus",
+    "editTitle": "Tasten beim Bearbeiten",
     "editIntro": "Zuerst auf den Plan klicken, damit die Tasten beim Editor ankommen. Auf dem Mac geht Cmd, wo Ctrl steht.",
     "edit": {
       "tools": "Werkzeuge",
@@ -319,13 +320,8 @@
     "hint": "Sicherheit und Dienste sind Markierungen, die du im Editor auf ihrer Ebene zeichnest."
   },
   "modes": {
-    "label": "Modus",
-    "live": "Live",
-    "checkin": "Check-in",
-    "network": "Netzwerk",
     "kiosk": "Kiosk",
-    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm",
-    "edit": "Bearbeiten"
+    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm"
   },
   "edit": {
     "title": "Bearbeiten",
@@ -431,6 +427,8 @@
       "bend": "Knick: ziehen verschiebt, Doppelklick entfernt ihn"
     },
     "tool": {
+      "view": "Ansehen",
+      "viewHint": "Ansehen: der Live-Plan, ein Klick auf einen Platz zeigt seine Details",
       "select": "Auswählen",
       "hand": "Hand",
       "measure": "Messen",

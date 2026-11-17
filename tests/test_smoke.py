@@ -85,4 +85,4 @@ def test_settings_reject_unknown_keys(client):
 def test_the_old_editor_address_opens_the_floor_plan(client):
     """``/`` is the React floor plan now; old links keep what they pointed at, in Edit mode."""
     assert client.get("/").headers["Location"] == "/plan"
-    assert client.get("/?seat=A-1&hall=main").headers["Location"] == "/plan?seat=A-1&hall=main&mode=edit"
+    assert client.get("/?seat=A-1&hall=main").headers["Location"] == "/plan?seat=A-1&hall=main&edit=1"

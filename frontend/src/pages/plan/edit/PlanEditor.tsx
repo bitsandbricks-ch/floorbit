@@ -7,7 +7,7 @@ import {
   IconHistoryToggle, IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Attribution } from '@/components/Attribution'
 import { del, get, patch, post, put } from '@/api/client'
@@ -18,7 +18,7 @@ import { cablePath, useCablePlan } from '../cablePlan'
 import { followPlan } from '../cableRoute'
 
 import type { LayerState } from '../layers'
-import type { View } from '../model'
+import type { Filter, View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
@@ -79,12 +79,19 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts, startTool = 'select', onDone = () => {}, filter = 'all', live }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
-  /** Shows another hall, still in Edit mode. */
+  /** Shows another hall, still editing. */
   onHall: (id: string) => void
   /** Opens the list of keys ("?" does too). */
   onShortcuts: () => void
+  /** The tool picked on the live plan's rail, which opened the editor. */
+  startTool?: Tool
+  /** View on the rail: back to the live plan. */
+  onDone?: () => void
+  /** The live plan's filter and layers keep showing while the plan is changed. */
+  filter?: Filter
+  live?: Pick<ComponentProps<typeof SeatMap>, 'traffic' | 'firewalls' | 'wifi' | 'incidents'>
 }) {
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
@@ -101,7 +108,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [bgDraft, setBgDraft] = useState<{ frame: Box; data: SeatViewData; done?: boolean } | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
-  const [tool, setTool] = useState<Tool>('select')
+  const [tool, setTool] = useState<Tool>(startTool)
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
   const [placing, setPlacing] = useState<{ kind: 'block' | 'switch' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
@@ -787,8 +794,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   return (
     <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
       <div className="fb-edit-stage">
-      <ToolRail tool={tool} onTool={setTool} />
-      <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power}
+      <ToolRail tool={tool} onTool={setTool} onView={onDone} />
+      <SeatMap data={shown} view={view} setView={setView} filter={filter} selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power} {...live}
         overlay={(ctx) => (<>
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool} snapping={snapping}
             lines={followPlan(cables, shown).map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}

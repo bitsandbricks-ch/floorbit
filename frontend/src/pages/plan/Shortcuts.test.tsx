@@ -13,13 +13,18 @@ describe('Keyboard shortcuts', () => {
     expect(tools.map(([[k]]) => k[0])).toEqual(keys.map((k) => k.toUpperCase()))
   })
 
-  it('shows the Edit mode keys while editing, the seat keys otherwise', () => {
+  it('shows the editing keys while editing, the seat keys otherwise', () => {
     const { unmount } = renderWithApp(<Shortcuts opened onClose={() => {}} editing />)
-    expect(screen.getByText('Edit mode keys')).toBeInTheDocument()
+    expect(screen.getByText('Editing keys')).toBeInTheDocument()
     expect(screen.getByText('Group the selection')).toBeInTheDocument()
     expect(screen.getByText('Distribution board')).toBeInTheDocument()
     unmount()
-    renderWithApp(<Shortcuts opened onClose={() => {}} />)
+    const viewer = renderWithApp(<Shortcuts opened onClose={() => {}} />)
     expect(screen.getByText('Go from seat to seat')).toBeInTheDocument()
+    expect(screen.queryByText(/Take up an editing tool/)).toBeNull()
+    viewer.unmount()
+    // Crew who may edit learn that a tool's key takes the editor up from the live plan.
+    renderWithApp(<Shortcuts opened onClose={() => {}} canEdit />)
+    expect(screen.getByText(/Take up an editing tool/)).toBeInTheDocument()
   })
 })

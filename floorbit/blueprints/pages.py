@@ -16,20 +16,20 @@ def nav_context():
 
 @bp.route('/')
 def index():
-    """The floor plan is the React workspace now (``/plan``); its Edit mode does what this page's
+    """The floor plan is the React workspace now (``/plan``); its editor does what this page's
     editor did. Old links (``/?hall=``, ``/?seat=``, ``/?switch=`` from Problems and incidents) open
-    there, in Edit mode for an account that may edit, since they meant "show it in the editor"."""
+    there, editing for an account that may edit, since they meant "show it in the editor"."""
     from auth import current_user, roles
     args = request.args.to_dict()
     user = current_user()
     if args and user and roles.can(user, 'floorplan.edit'):
-        args.setdefault('mode', 'edit')
+        args.setdefault('edit', '1')
     return redirect('/plan' + (f'?{urlencode(args)}' if args else ''))
 
 
 @bp.route('/editor/classic')
 def classic_editor():
-    """The older editor, kept for a while as a fallback; nothing links to it but Edit mode's panel."""
+    """The older editor, kept for a while as a fallback; nothing links to it but the editor's panel."""
     return render_template('index.html')
 
 

@@ -1,32 +1,36 @@
 import { type LayerId, type LayerState, writeLayers } from './layers'
 
-/** The plan workspace's modes: one canvas, different layers and tools. Live, Check-in and Network
- *  are layer presets of the same view; Kiosk is the same view without chrome; Edit adds the editor's
- *  selection and tools (pages/plan/edit/), crew with floorplan.edit only. The mode lives in the address (``?mode=``). */
-export const MODES = ['live', 'checkin', 'network', 'edit'] as const
-export type Mode = (typeof MODES)[number]
-
-export const MODE_LAYERS: Record<Mode, LayerId[]> = {
-  live: ['grid', 'marks', 'network', 'status', 'crew', 'checkin'],
+/** The plan is one map editor: live status is always drawn, the layers say what else shows, and crew
+ *  with floorplan.edit pick a tool from the rail to change the plan (``?edit=1``). There used to be
+ *  modes (``?mode=live|checkin|network|edit``); old links and bookmarks still open the same view. */
+const OLD_MODES: Record<string, LayerId[]> = {
   checkin: ['grid', 'marks', 'checkin'],
   network: ['grid', 'marks', 'network', 'status', 'firewalls', 'wifi'],
-  edit: ['grid', 'marks', 'network', 'electrical', 'safety', 'services'],
 }
 
-export const readMode = (params: URLSearchParams): Mode => {
-  const m = params.get('mode')
-  return (MODES as readonly string[]).includes(m ?? '') ? (m as Mode) : 'live'
+export const isEditing = (params: URLSearchParams) => params.get('edit') === '1'
+
+/** ``params`` without the old ``mode``, carried over to what it showed; null when there is none. */
+export function fromOldMode(params: URLSearchParams, state: LayerState): URLSearchParams | null {
+  const mode = params.get('mode')
+  if (mode === null) return null
+  let next = new URLSearchParams(params)
+  next.delete('mode')
+  if (mode === 'edit') next.set('edit', '1')
+  const layers = OLD_MODES[mode]
+  if (layers && !params.has('layers')) next = writeLayers(next, { on: new Set(layers), fade: state.fade })
+  if (mode === 'checkin' && !params.has('show')) next.set('show', 'checked_in')
+  return next
 }
 
-/** ``params`` switched to ``mode``: its layers, and the filter that fits it. */
-export function switchMode(params: URLSearchParams, mode: Mode, state: LayerState): URLSearchParams {
-  const next = writeLayers(params, { on: new Set(MODE_LAYERS[mode]), fade: state.fade })
-  if (mode === 'live') next.delete('mode')
-  else next.set('mode', mode)
-  // Edit has its own selection; the seat, block and switch panels belong to the other modes.
-  if (mode === 'edit') for (const k of ['seat', 'block', 'switch', 'view']) next.delete(k)
-  if (mode === 'checkin') next.set('show', 'checked_in')
-  else if (next.get('show') === 'checked_in') next.delete('show')
+/** ``params`` with the editor's tools in hand or put down. Editing has its own selection, so the
+ *  seat, block and switch panels close; the list has nothing to edit, so it goes back to the map. */
+export function setEditing(params: URLSearchParams, on: boolean): URLSearchParams {
+  const next = new URLSearchParams(params)
+  if (on) {
+    next.set('edit', '1')
+    for (const k of ['seat', 'block', 'switch', 'view']) next.delete(k)
+  } else next.delete('edit')
   return next
 }
 
