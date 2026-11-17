@@ -1077,5 +1077,13 @@
  "{} {}: not a version Floorbit can install": "{} {}: keine Version, die Floorbit installieren kann",
  "{} {}: the download does not match the index": "{} {}: der Download passt nicht zum Index",
  "{}: signed with a key this source may not use": "{}: mit einem Schlüssel signiert, den diese Quelle nicht verwenden darf",
- "{}: the index points outside HTTPS": "{}: der Index zeigt auf eine Adresse ohne HTTPS"
+ "{}: the index points outside HTTPS": "{}: der Index zeigt auf eine Adresse ohne HTTPS",
+ "Corners are square or round.": "Ecken sind eckig oder rund.",
+ "This event isn't live: switch to the live event to change the network.": "Dieses Event ist nicht live: Wechsle zum Live-Event, um am Netzwerk etwas zu ändern.",
+ "This tenant has too many events.": "Dieser Mandant hat zu viele Events.",
+ "The status must be planning, live or closed.": "Der Status muss planning, live oder closed sein.",
+ "Make another event live first: one event is always live.": "Schalte zuerst ein anderes Event live: Ein Event ist immer live.",
+ "Pick two different events.": "Wähle zwei verschiedene Events.",
+ "Copy with replace or merge.": "Kopiere mit «Ersetzen» oder «Zusammenführen».",
+ "Pick what to copy: {}.": "Wähle, was kopiert wird: {}."
 }

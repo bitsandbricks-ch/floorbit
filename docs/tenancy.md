@@ -39,8 +39,50 @@ live and kept in the tenant's folder.
   agent and live monitoring serve it. With none or several, the first live one (or the first event)
   wins.
 
-Creating events, switching between them and making one live come in the next steps; until then
-`tenant.json` is only read.
+Data in `data.json` that belongs to the tenant (accounts, settings, agents, dashboards, runbooks;
+`store.TENANT_KEYS`) stays in the tenant's `data.json`. A later event's `data.json` holds only the
+event's parts, and Floorbit reads and saves the two together.
+
+## Which event a page shows
+
+Every request works on the event in the `floorbit_event` cookie, else the live one. Add
+`?event=<id>` to any page to pick one; it is remembered in the cookie. Kiosk screens and public
+pages use the query. Answers carry the event in the `X-Floorbit-Event` header.
+
+Changing the network (port actions, switch commands, the terminal, RCON) only works from the live
+event: these always reach the live event's network, so from another event they answer
+"This event isn't live".
+
+## The API
+
+| Call | Who | What |
+| --- | --- | --- |
+| `GET /api/tenant/events` | Everyone who sees the floor plan | The events, the live one and the current one |
+| `PUT /api/tenant/current` `{"event": "<id>"}` | Everyone who sees the floor plan | Work on that event (`null`: follow the live one) |
+| `POST /api/tenant/events` `{"name", "copy_from"?}` | Admins | A new event in planning, empty or with a copy of another event's plan |
+| `PATCH /api/tenant/events/<id>` `{"name"?, "status"?}` | Admins | Rename, make live (the live one goes back to planning) or close |
+| `POST /api/tenant/events/<id>/copy` `{"to", "parts"?, "mode"?, "preview"?}` | Admins | Copy parts of this event's plan into another event |
+
+## Copying an event
+
+A copy takes the parts you pick (all by default):
+
+| Part | What it copies |
+| --- | --- |
+| `halls` | Halls and their background pictures |
+| `seats` | Seat blocks and seats |
+| `inventory` | Switches and devices, plan groups, plan marks, port areas, links |
+| `cables` | Cables, cable routes, patch panels |
+| `power` | Power boards and circuits |
+| `services` | Firewalls, services, game servers |
+| `schedule` | Schedule, tournament, brackets |
+
+Check-ins, incidents, handover, logs and history are never copied. Tenant-wide parts are shared by
+every event anyway.
+
+Into an existing event, `mode` is `merge` (the default: things with the same id are replaced by the
+copy, the target's others stay) or `replace` (the part becomes the source's). `"preview": true`
+answers what would change per part (`added`, `changed`, `removed`) without saving.
 
 ## For developers
 

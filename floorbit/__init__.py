@@ -67,6 +67,9 @@ def create_app(start_background=True):
     # refused request never touches Redis.
     from auth import init_auth
     init_auth(app, store.tenant_file)
+    # Which event the request works on, before anything reads one (docs/tenancy.md).
+    from .blueprints import tenant_events
+    tenant_events.init_app(app)
     from . import i18n
     i18n.init_app(app)
 
