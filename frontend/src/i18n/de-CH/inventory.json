@@ -106,7 +106,7 @@
     "empty": "Noch keine Icons hochgeladen.",
     "name": "Name",
     "remove": "Entfernen",
-    "removeQ": "Icon {{name}} entfernen? Geräte, Gruppen und Tags damit zeigen wieder ihr Standard-Icon."
+    "removeQ": "Icon {{name}} entfernen? Geräte, Gruppen und Tags damit zeigen wieder ihr Standard-Icon, Icons auf dem Plan das Info-Icon."
   },
   "look": {
     "builtIn": "Eingebaut",

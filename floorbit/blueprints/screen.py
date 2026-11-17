@@ -16,7 +16,7 @@ from flask import Blueprint, abort, current_app, render_template, request, url_f
 
 from integrations import checkin, config, seat_sources
 
-from .. import halls, plan_marks, seat_gaps, seat_layout, stacking
+from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, stacking
 from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
 from ..store import load_data
 
@@ -128,10 +128,10 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                        'free': bool(block.get('seat_at'))})
     if not shapes:
         return None, None
-    marks, icons = _marks(data, hall_id, xs, ys, public)
+    marks, icons, custom = _marks(data, hall_id, xs, ys, public)
     box = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
     return {'shapes': shapes, 'box': ' '.join(f'{v:.0f}' for v in box), 'cell': CELL,
-            'marks': marks, 'icons': icons}, found
+            'marks': marks, 'icons': icons, 'custom_icons': custom}, found
 
 
 def _marks(data, hall_id, xs, ys, public=False):
@@ -160,7 +160,8 @@ def _marks(data, hall_id, xs, ys, public=False):
             xs += [d['x'] - CELL * 2, d['x'] + CELL * 2]
             ys += [d['y'] - CELL * 2, d['y'] + CELL * 2]
         out.append(d)
-    return out, {k: plan_marks.ICONS[k] for k in sorted(used) if k in plan_marks.ICONS}
+    return (out, {k: plan_marks.ICONS[k] for k in sorted(used) if k in plan_marks.ICONS},
+            icon_library.data_uris(data, used))
 
 
 def _by_nick(query):

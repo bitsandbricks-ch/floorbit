@@ -1,6 +1,9 @@
 {#- Walls, zones, labels and icons under the seats (floorbit/plan_marks.py); needs `drawing`. -#}
 {%- set sizes = {'s': 20, 'm': 28, 'l': 44} %}{% set isizes = {'s': 26, 'm': 36, 'l': 52} %}
 <g class="marks" aria-hidden="true">
+  {#- Uploaded icons are images: an alpha mask paints them in the icon colour (currentColor). -#}
+  {%- if drawing.custom_icons %}<defs>
+    {%- for id, uri in drawing.custom_icons.items() %}<mask id="fbi-{{ id }}" maskContentUnits="objectBoundingBox" style="mask-type: alpha"><image href="{{ uri }}" width="1" height="1" /></mask>{% endfor %}</defs>{% endif %}
   {%- for m in drawing.marks or [] if m.kind == 'zone' %}
   <g class="zone zone-{{ m.color }}"><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ m.w }}" height="{{ m.h }}" rx="10" />
     {%- if m.label %}<text x="{{ m.x + 14 }}" y="{{ m.y + 30 }}" font-size="24">{{ m.label }}</text>{% endif %}</g>
@@ -11,9 +14,10 @@
   {%- for m in drawing.marks or [] if m.kind == 'text' %}
   <text class="label" x="{{ m.x }}" y="{{ m.y }}" dy="0.35em" font-size="{{ sizes[m.size] }}"{% if m.rotation %} transform="rotate({{ m.rotation }} {{ m.x }} {{ m.y }})"{% endif %}>{{ m.text }}</text>
   {%- endfor %}
-  {%- for m in drawing.marks or [] if m.kind == 'icon' and drawing.icons[m.icon] %}{% set s = isizes[m.size] %}
+  {%- for m in drawing.marks or [] if m.kind == 'icon' and (drawing.icons[m.icon] or (drawing.custom_icons or {})[m.icon]) %}{% set s = isizes[m.size] %}
   <g class="icon" transform="translate({{ m.x - s / 2 }} {{ m.y - s / 2 }})"><rect width="{{ s }}" height="{{ s }}" rx="{{ s / 4 }}" />
     <svg x="{{ s * 0.15 }}" y="{{ s * 0.15 }}" width="{{ s * 0.7 }}" height="{{ s * 0.7 }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g{% if m.rotation %} transform="rotate({{ m.rotation }} 12 12)"{% endif %}>
-      {%- for d in drawing.icons[m.icon] %}<path d="{{ d }}" />{% endfor %}</g></svg></g>
+      {%- if drawing.icons[m.icon] %}{% for d in drawing.icons[m.icon] %}<path d="{{ d }}" />{% endfor %}
+      {%- else %}<path d="M0 0H24V24H0Z" fill="currentColor" stroke="none" mask="url(#fbi-{{ m.icon }})" />{% endif %}</g></svg></g>
   {%- endfor %}
 </g>

@@ -145,3 +145,29 @@ def test_marks_take_their_own_colour_and_give_it_back(client):
     assert 'tint' not in client.put(f"/api/plan-marks/{wall['id']}", json={'tint': None}).get_json()
     for bad in ('green', '#3fb95', 'rgb(1,2,3)', 7):
         assert client.put(f"/api/plan-marks/{wall['id']}", json={'tint': bad}).status_code == 400, bad
+
+
+def test_an_uploaded_icon_goes_on_the_plan_and_falls_back_when_removed(client, anon_client):
+    """Icons from the shared library (floorbit/icon_library.py) work as plan icons. The drawing
+    carries them as data URIs, so the kiosk and attendee pages need no second request."""
+    from floorbit.blueprints.screen import plan
+    from tests.test_icon_library import GOOD
+    icon = client.post("/api/icons", json={"name": "Rack", "svg": GOOD}).get_json()
+    client.post("/api/seat-blocks", json={"name": "A", "cols": 2, "rows": 1, "x": 50, "y": 50})
+    mark = client.post("/api/plan-marks", json={"kind": "icon", "x": 20, "y": 20, "icon": icon["id"]})
+    assert mark.status_code == 201 and mark.get_json()["icon"] == icon["id"]
+    bad = {"kind": "icon", "x": 20, "y": 20, "icon": "custom-nope"}
+    assert client.post("/api/plan-marks", json=bad).status_code == 400
+
+    listed = client.get("/api/plan-marks").get_json()
+    assert list(listed["custom_icons"]) == [icon["id"]]
+    assert listed["custom_icons"][icon["id"]].startswith("data:image/svg+xml;base64,")
+    drawing, _ = plan(load_data(), public=True)
+    assert list(drawing["custom_icons"]) == [icon["id"]]
+    client.put("/api/settings", json={"public.attendee_view": True})
+    page = anon_client.get("/hall").get_data(as_text=True)
+    assert f'mask="url(#fbi-{icon["id"]})"' in page and f'<mask id="fbi-{icon["id"]}"' in page
+
+    assert client.delete(f"/api/icons/{icon['id']}").get_json()["was_used"] == 1
+    assert client.get("/api/plan-marks").get_json()["marks"][0]["icon"] == "info"
+    assert client.get("/api/plan-marks").get_json()["custom_icons"] == {}

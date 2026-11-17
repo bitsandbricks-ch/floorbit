@@ -62,6 +62,7 @@
   let heat       = {};               // seat number → traffic in bit/s (?view=heat)
   let marks      = [];
   let markIcons  = {};
+  let customIcons = {};   // uploaded icons the marks use: {id: data URI}
 
   const $ = (id) => document.getElementById(id);
   const mapEl    = $('k-map');
@@ -134,7 +135,11 @@
         svg.push(`<g class="mark-wall${m.style === 'dashed' ? ' dashed' : ''}"><line x1="${+m.x}" y1="${+m.y}" x2="${+m.x2}" y2="${+m.y2}" vector-effect="non-scaling-stroke"/></g>`);
       } else if (m.kind === 'text' || m.kind === 'icon') {
         const turn = (m.rotation ? ` rotate(${+m.rotation}deg)` : '') + (m.scale ? ` scale(${+m.scale})` : '');
+        // An uploaded icon is an image, painted in the text colour through a CSS mask.
+        const upload = m.kind === 'icon' && !markIcons[m.icon] && customIcons[m.icon];
+        if (m.kind === 'icon' && !markIcons[m.icon] && !upload) continue;
         const inner = m.kind === 'text' ? escHtml(m.text)
+          : upload ? `<span style="display:block;width:70%;height:70%;background:currentColor;mask:url('${escHtml(upload)}') center/contain no-repeat;-webkit-mask:url('${escHtml(upload)}') center/contain no-repeat"></span>`
           : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${
             (markIcons[m.icon] || []).map(d => `<path d="${escHtml(d)}"/>`).join('')}</svg>`;
         html.push(`<div class="mark-${m.kind} size-${escHtml(m.size || 'm')}" style="left:${+m.x}%;top:${+m.y}%;transform:translate(-50%,-50%)${turn}">${inner}</div>`);
@@ -452,6 +457,7 @@
     if (OPT.marks) {
       const body = await getJSON(`/api/plan-marks${hall ? `?hall=${encodeURIComponent(hall.id)}` : ''}`).catch(() => ({}));
       markIcons = body.icons || {};
+      customIcons = body.custom_icons || {};
       marks = (body.marks || []).filter(m => MARK_LAYERS.includes(m.layer || 'overview'));
     }
     const here = (item) => !hall || item.hall_id === hall.id;
