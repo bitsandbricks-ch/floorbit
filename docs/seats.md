@@ -170,7 +170,9 @@ one click during an outage. Floorbit's first port read after a start doesn't cou
 
 ## Finding a seat or a player
 
-The search box takes a seat number (`d6`, `D 6` and `D-06` all find D-6). Accounts with `seats.view`
+The search box takes a seat number (`d6`, `D 6` and `D-06` all find D-6). It also takes the name
+of a seat block or a switch in this hall (`C`, `sw-c-01`, or the start of a switch name when only
+one switch has it): the plan moves there and opens the block's or the switch's panel. Accounts with `seats.view`
 can also type a nick, an IP or a MAC: one match opens that seat, switching hall if needed, and
 several show a short list to pick from. It is the same search as the seat mapping's
 ([Finding a player](seat-mapping.md#finding-a-player)). Everyone else searches by seat number only, and the plan

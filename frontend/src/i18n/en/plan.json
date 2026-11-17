@@ -9,7 +9,7 @@
   "elsewhere_other": "{{count}} seats with problems in other halls",
   "hall": "Hall",
   "find": "Find a seat",
-  "findHint": "Seat, e.g. D-6",
+  "findHint": "Seat, block or switch",
   "notFound": "No such seat here",
   "show": "Show",
   "filter": {
@@ -162,7 +162,7 @@
     "hAgo_one": "{{count}} h ago",
     "hAgo_other": "{{count}} h ago"
   },
-  "findPlayerHint": "Seat or nick, e.g. D-6",
+  "findPlayerHint": "Seat, nick, block or switch",
   "players": "Players found",
   "notFoundPlayer": "No seat or player found",
   "screen": {

@@ -9,7 +9,7 @@
   "elsewhere_other": "{{count}} Plätze mit Problemen in anderen Hallen",
   "hall": "Halle",
   "find": "Platz suchen",
-  "findHint": "Platz, z. B. D-6",
+  "findHint": "Platz, Block oder Switch",
   "notFound": "Diesen Platz gibt es hier nicht",
   "show": "Zeigen",
   "filter": {
@@ -162,7 +162,7 @@
     "hAgo_one": "vor {{count}} Std.",
     "hAgo_other": "vor {{count}} Std."
   },
-  "findPlayerHint": "Platz oder Nick, z. B. D-6",
+  "findPlayerHint": "Platz, Nick, Block oder Switch",
   "players": "Gefundene Spieler",
   "notFoundPlayer": "Kein Platz und kein Spieler gefunden",
   "screen": {

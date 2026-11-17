@@ -27,6 +27,7 @@ import { StaleNotice } from './plan/StaleNotice'
 import { ScreenBar } from './plan/ScreenBar'
 import { useIdle } from './plan/idle'
 import { useReloadOnUpdate } from './plan/update'
+import { findPlace } from './plan/find'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
@@ -191,6 +192,14 @@ export default function FloorPlan() {
     if (!data?.drawing || !view) return
     const seat = findSeat(search, data.seats)
     if (seat) return jump(seat)
+    // A block or switch name opens its panel and moves the plan to it.
+    const place = findPlace(search, data)
+    if (place) {
+      setPlayers(null)
+      set(place.kind, place.name)
+      setView(around(place.at, Math.max(parseBox(data.drawing.box).w / 2, 480), view))
+      return
+    }
     if (!canPeople || search.trim().length < 2) return
     const q = search.trim()
     const found = await get<{ results: PlayerHit[] }>(`/api/plan/find?q=${encodeURIComponent(q)}`).catch(() => ({ results: [] }))
@@ -198,7 +207,7 @@ export default function FloorPlan() {
     setPlayers({ query: q, hits: found.results })
   }
   const searched = players && players.query === search.trim()
-  const notFound = search.trim() !== '' && data && !findSeat(search, data.seats)
+  const notFound = search.trim() !== '' && data && !findSeat(search, data.seats) && !findPlace(search, data)
     ? (canPeople ? !!searched && players.hits.length === 0 : true) : false
   const total = data ? Object.keys(data.seats).length : 0
   const counts = Object.fromEntries(FILTERS.map((f) => [f, data ? Object.values(data.seats).filter((x) => matches(x, f)).length : 0])) as Record<Filter, number>
@@ -318,7 +327,7 @@ export default function FloorPlan() {
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
                 href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
               <form onSubmit={go} role="search">
-                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
+                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 270 : 220} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
                   onChange={(e) => setSearch(e.currentTarget.value)} />
               </form>
