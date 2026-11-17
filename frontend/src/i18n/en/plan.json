@@ -285,7 +285,10 @@
       "feed": "feed from {{name}}",
       "bend": "bend cable",
       "corners": "cable corners",
-      "autoRoute": "automatic cable route"
+      "autoRoute": "automatic cable route",
+      "addSwitch": "add switch {{name}}",
+      "placeSwitch_one": "place switch",
+      "placeSwitch_other": "place {{count}} switches"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -323,7 +326,8 @@
       "zone": "Zone",
       "panel": "Patch panel",
       "cable": "Cable",
-      "board": "Distribution board"
+      "board": "Distribution board",
+      "switch": "Switch"
     },
     "hint": {
       "block": "Click where the new seat block goes.",
@@ -333,7 +337,8 @@
       "zone": "Drag a box for the zone.",
       "panel": "Click where the patch panel goes.",
       "cable": "Click a seat, switch or patch panel: the cable form opens with it filled in. Ports list only the free ones.",
-      "board": "Click where the distribution board goes. Select it with seat blocks or switches to feed them from one of its circuits."
+      "board": "Click where the distribution board goes. Select it with seat blocks or switches to feed them from one of its circuits.",
+      "switch": "Click where the switch goes: pick switches from the inventory (several at once land in a small grid) or make one by hand. Del takes a switch off the plan; an inventory switch stays in the inventory."
     },
     "block": {
       "title": "New seat block",
@@ -485,6 +490,21 @@
       "size_col": "Width (seats)",
       "size_row": "Height (seats)",
       "remove": "Remove this gap"
+    },
+    "switch": {
+      "title": "Switches on the plan",
+      "inventory_one": "From the inventory ({{count}})",
+      "inventory_other": "From the inventory ({{count}})",
+      "new": "New switch",
+      "filter": "Filter by name",
+      "inventoryList": "Switches not on a plan yet",
+      "noneMatch": "No switch left to place matches the filter.",
+      "noneLeft": "Every switch in the inventory is on a plan. Make one by hand, or sync the inventory under Network.",
+      "name": "Name",
+      "newHelp": "A switch made by hand, for one the inventory doesn't know. Monitoring finds it by this name.",
+      "place_one": "Place switch",
+      "place_other": "Place {{count}} switches",
+      "add": "Add switch"
     }
   },
   "net": {

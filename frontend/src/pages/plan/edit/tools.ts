@@ -1,13 +1,13 @@
 /** The Edit mode's tools. Each keeps going after placing something (sticky, like the older editor);
  *  Esc or V goes back to Select. */
-export const TOOLS = ['select', 'block', 'text', 'icon', 'wall', 'zone', 'panel', 'cable', 'board'] as const
+export const TOOLS = ['select', 'block', 'switch', 'text', 'icon', 'wall', 'zone', 'panel', 'cable', 'board'] as const
 export type Tool = (typeof TOOLS)[number]
 
-export const TOOL_KEYS: Record<Tool, string> = { select: 'v', block: 'b', text: 't', icon: 'i', wall: 'w', zone: 'z', panel: 'p', cable: 'c', board: 'e' }
+export const TOOL_KEYS: Record<Tool, string> = { select: 'v', block: 'b', switch: 's', text: 't', icon: 'i', wall: 'w', zone: 'z', panel: 'p', cable: 'c', board: 'e' }
 
 /** How a tool takes the pointer: a click places, a drag draws a line or a box. */
 export const TOOL_GESTURE: Record<Tool, 'select' | 'click' | 'line' | 'box'> = {
-  select: 'select', block: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box', panel: 'click', cable: 'click', board: 'click',
+  select: 'select', block: 'click', switch: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box', panel: 'click', cable: 'click', board: 'click',
 }
 
 /** Row letters like the server's (floorbit/seat_names.py): 0 -> A, 25 -> Z, 26 -> AA. */
@@ -62,4 +62,12 @@ export function nextName(name: string, used: string[]): string {
   const width = m ? m[2].length : 1
   while (taken.has(`${stem}${String(n).padStart(width, '0')}`.toLowerCase())) n++
   return `${stem}${String(n).padStart(width, '0')}`.slice(0, 40)
+}
+
+/** The next free SW-NN name for a switch made by hand. */
+export function nextSwitchName(names: string[], made: number) {
+  let n = made + 1
+  const used = new Set(names.map((x) => x.toLowerCase()))
+  while (used.has(`sw-${String(n).padStart(2, '0')}`)) n++
+  return `SW-${String(n).padStart(2, '0')}`
 }
