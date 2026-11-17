@@ -6,6 +6,8 @@ from integrations import seat_sources
 
 
 class Source:
+    name, label = "nms", "Monitoring"
+
     def __init__(self):
         self.up = {}
         self.broken = False
@@ -222,3 +224,20 @@ def test_only_planners_import(app_module, client, net):
     from tests.test_rbac import sign_in_as
     viewer = sign_in_as(app_module, "vi1", "viewer")
     assert viewer.post("/api/firewalls/ranges/import").status_code == 403
+
+
+def test_with_the_status_monitor_polling_the_page_never_asks_the_source_itself(client, net):
+    from integrations.monitor import StatusMonitor
+    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    monitor = StatusMonitor(lambda: [])
+    monitor.poll_once()                                # answered: fw-01 and fw-02 up
+    asked = []
+    net.devices = lambda: asked.append(1) or []        # a hanging source would make the page wait
+    assert client.get("/api/firewalls").get_json()["ranges"][0]["state"] == "primary"
+    assert asked == []
+
+    firewalls.health.reset()
+    net.devices = lambda: (_ for _ in ()).throw(OSError("unreachable"))
+    with pytest.raises(OSError):
+        monitor.poll_once()                            # its last poll failed: unknown, like before
+    assert client.get("/api/firewalls").get_json()["ranges"][0]["state"] == "unknown"

@@ -147,3 +147,28 @@ def test_switch_details_from_the_device_and_its_ports(librenms):
     assert got["total_traffic_bps"] == 40_000
     assert client.fetch_librenms_details("sw-a10")["status"] == "offline"
     assert client.fetch_librenms_details("sw-b1") == {"status": "unknown", "hostname": "sw-b1"}
+
+
+def test_a_librenms_that_does_not_answer_is_not_asked_again_for_a_while(librenms, monkeypatch):
+    from floorbit.builtin_plugins.librenms import breaker
+    clock = [1000.0]
+    monkeypatch.setattr(breaker.time, "monotonic", lambda: clock[0])
+    librenms.down = True
+    assert client.resolve_ip_to_switch_port(IP) is None
+    asked = len(librenms.asked)
+    librenms.down = False
+    assert client.resolve_ip_to_switch_port("192.0.2.11") is None     # not asked: it failed a moment ago
+    assert client.fetch_librenms_details("sw-a1")["status"] == "unknown"
+    assert len(librenms.asked) == asked
+    clock[0] += breaker.BREAK_FOR + 1
+    assert client.resolve_ip_to_switch_port(IP)["port"] == "Gi1/0/7"   # and asked again after the break
+
+
+def test_another_librenms_is_asked_even_while_the_old_one_is_away(librenms, monkeypatch):
+    from floorbit.builtin_plugins.librenms import breaker
+    librenms.down = True
+    client.fetch_librenms_mac_table("sw-a1")
+    librenms.down = False
+    monkeypatch.setattr(rt, "librenms_url", "https://other.example.net")
+    with pytest.raises(AssertionError):   # it really asks (the fake only knows its own URL)
+        breaker.get("https://other.example.net/api/v0/devices", headers={"X-Auth-Token": "x"})

@@ -13,11 +13,16 @@ a row before it counts, so a single missed SNMP poll does not page anyone.
 """
 import threading
 import time
+from typing import ClassVar
 
 from . import config, events
 
 
 class StatusMonitor:
+    # The device list of the last poll that answered, and when it was asked: other pages (firewalls)
+    # read it instead of asking a monitoring source that may be hanging. None until a poll ran.
+    latest: ClassVar[dict] = {'polled': None, 'at': None, 'devices': None}
+
     def __init__(self, list_switches):
         self._list_switches = list_switches
         self._lock = threading.Lock()
@@ -102,7 +107,9 @@ class StatusMonitor:
         source = self.source()
         try:
             devices = self.fetch_devices()
+            StatusMonitor.latest.update(polled=time.time(), at=time.time(), devices=devices)
         except Exception as exc:
+            StatusMonitor.latest['polled'] = time.time()
             # One message per outage, and no "switch down" flood: nothing is compared while it's down.
             if sources.mark_failed(source.name, exc):
                 data = {'source': source.label, 'error': str(exc)[:300], 'since': sources.health()['offline_since']}
