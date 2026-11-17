@@ -91,8 +91,10 @@ def test_a_bad_list_of_switches_is_refused(client, cached, body):
     assert "arp:core" in cached.keys("*")
 
 
-def test_a_body_that_is_not_an_object_clears_everything_like_an_empty_one(client, cached):
-    assert client.post("/api/cache/invalid", json=["x"]).status_code == 200
+def test_a_body_that_is_not_an_object_is_refused_and_clears_nothing(client, cached):
+    # A garbled body must not be read as "clear everything" (floorbit/json_body.py).
+    assert client.post("/api/cache/invalid", json=["x"]).status_code == 400
+    assert "arp:core" in cached.keys("*")
 
 
 def test_without_redis_the_cache_api_says_so(client, monkeypatch):

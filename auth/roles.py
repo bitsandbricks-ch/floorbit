@@ -106,7 +106,8 @@ def label(role):
 
 # checks ---------------------------------------------------------------------------------------
 def validate(role):
-    role = ALIASES.get((role or '').strip().lower(), (role or '').strip().lower())
+    role = role.strip().lower() if isinstance(role, str) else ''
+    role = ALIASES.get(role, role)
     if role not in all_roles():
         raise RoleError(f"Role must be one of: {', '.join(all_roles())}.")
     return role
