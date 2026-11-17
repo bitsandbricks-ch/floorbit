@@ -147,7 +147,7 @@ def test_favourites_and_folding_are_kept_with_the_account(app_module, shell):
     saved = crew.put("/api/auth/me/nav", json={"favourites": ["problems", "problems", "../x", 7, "settings"],
                                                "accordion": False, "colour": "red"})
     assert saved.get_json() == {"favourites": ["problems", "settings"], "accordion": False}
-    assert boot(crew.get("/").get_data(as_text=True))["prefs"] == {"favourites": ["problems", "settings"],
+    assert boot(crew.get("/editor/classic").get_data(as_text=True))["prefs"] == {"favourites": ["problems", "settings"],
                                                                      "accordion": False}
     other = sign_in_as(app_module, "fav2", "viewer")
     assert other.get("/api/auth/me/nav").get_json()["favourites"] == []
@@ -162,11 +162,11 @@ def test_the_first_paint_lists_the_favourites_first(app_module, shell, monkeypat
     monkeypatch.setitem(shell["icons"], "starFilled", "<svg class=filled></svg>")
     crew = sign_in_as(app_module, "fav3", "admin")
     crew.put("/api/auth/me/nav", json={"favourites": ["problems"]})
-    html = crew.get("/").get_data(as_text=True)
+    html = crew.get("/editor/classic").get_data(as_text=True)
     side = html[html.index('<nav class="fb-nav"'):html.index('<nav class="fb-tabbar"')]
     favs = side[side.index('class="fb-nav-favs"'):side.index('</ul>')]
     assert 'href="/problems"' in favs and 'aria-label="Remove Problems from favourites"' in favs
-    assert side.index('class="fb-nav-favs"') < side.index('<a href="/" class="fb-nav-row"')
+    assert side.index('class="fb-nav-favs"') < side.index('<a href="/plan" class="fb-nav-row"')
     assert 'aria-label="Add Floor plan to favourites"' in side
 
 

@@ -224,7 +224,7 @@ def port_areas_batch():
         made = port_areas.replace_switch(str(body['switch']).strip(), areas, by=_who())
     except port_areas.AreaError as exc:
         return jsonify({'error': str(exc)}), exc.status
-    audit.record('cables', 'port areas', g.get('audit_user'),
+    audit.record('cables', 'Saved port areas', g.get('audit_user'),
                  f"{made[0]['switch']}: {', '.join(a['label'] for a in made)}")
     return jsonify({'areas': made})
 
