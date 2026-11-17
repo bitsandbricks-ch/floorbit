@@ -220,14 +220,31 @@ def hall_for(seat=None, switch=None, data=None):
     return None
 
 
-def view(hall_id=None, now=None, seat=None, switch=None):
+# What a seat on a public screen says (a public dashboard, docs/dashboards.md): online or not, taken,
+# checked in and its traffic. Not its problems, notes or tournament match: those are the crew's.
+PUBLIC_SEAT = ('state', 'taken', 'checked_in', 'bps')
+
+
+def public_view(hall_id=None, now=None):
+    """:func:`view` for a screen nobody signed in to: public marks only, switches by name and status,
+    no patch panels, power boards or seat problems."""
+    out = view(hall_id, now=now, public=True)
+    out['seats'] = {s: {k: v for k, v in row.items() if k in PUBLIC_SEAT} for s, row in out['seats'].items()}
+    out['switches'] = [{k: w[k] for k in ('id', 'name', 'status', 'x', 'y')} for w in out['switches']]
+    out['blocks'] = [{**b, 'problems': 0} for b in out['blocks']]
+    out['halls'] = [{**h, 'problems': 0} for h in out['halls']]
+    out.update(panels=[], boards=[])
+    return out
+
+
+def view(hall_id=None, now=None, seat=None, switch=None, public=False):
     now = time.time() if now is None else now
     data = load_data()
     all_halls = halls.halls(data)
     if not hall_id and (seat or switch):
         hall_id = hall_for(seat, switch, data)
     hall = halls.find(data, hall_id or '') or all_halls[0]
-    drawing, _ = plan(data, hall_id=hall['id'])
+    drawing, _ = plan(data, hall_id=hall['id'], public=public)
     online, last = _fresh_online(now)
     ports = _port_of_seat()
     problems = _problems()

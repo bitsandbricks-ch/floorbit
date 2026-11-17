@@ -1,72 +1,49 @@
-# Kiosk view
+# Kiosk and big screens
 
-`/kiosk` is a read-only floor plan for a big screen at the event. It shows the
-map scaled to fit the screen, switch status, which seats are taken, and a
-"Down" list of switches that are offline and for how long. It never writes to
-the server and has no editing controls.
+The big screen in the hall is the ready-made **Kiosk** [dashboard](dashboards.md): the floor plan
+fitted to the screen with switch status and which seats are online, and beside it how many switches
+are up, how many seats are online, and which switches are down and for how long. Open
+`/dashboards/kiosk`, or the old address `/kiosk`, which goes there.
 
-## On a phone and in German
-
-The kiosk speaks the browser's language: English, Swiss German or German, the same choice the
-crew pages make (the language picked in Floorbit, else the browser's). On a phone the top bar
-wraps into two rows (title and clock, then the counts), the "Down" list moves under the map, and
-the legend wraps.
+The Kiosk dashboard is [public](dashboards.md#public-dashboards): it opens without signing in, and
+then shows only what anyone may see. Nicks, IPs and MACs never reach the screen, and the plan draws
+the public marks only (Overview and Safety, like the attendee pages), since a big screen is often in
+a public place. Change it in **Dashboards** like any other dashboard, for example to add a text with
+the Wi-Fi name, or make your own.
 
 ## Options
 
-Add them to the URL, for example `/kiosk?title=LAN%20Party&refresh=10`.
+| Address | What it shows |
+|---------|---------------|
+| `/kiosk` | The Kiosk dashboard (`/dashboards/kiosk`). |
+| `/kiosk?hall=<id>` | The same, on another hall than the first ([halls.md](halls.md)). |
+| `/kiosk?theme=<preset>` | The same, in another theme preset, remembered by the browser ([themes.md](themes.md)). The default is `kiosk`. |
+| `/kiosk?view=heat` | The floor plan full screen with each seat coloured by its traffic right now (`/plan?screen=1&layers=marks,status`). Needs an account. |
 
-| Option    | Default      | What it does |
-|-----------|--------------|--------------|
-| `title`   | event name, else `Floor plan` | Heading in the top bar. The event name is set under Settings > Appearance. |
-| `theme`   | `kiosk`      | Theme preset for this screen, remembered by the browser ([themes.md](themes.md)). |
-| `hall`    | the first hall | Which hall to show, by its id ([halls.md](halls.md)). |
-| `refresh` | `15`         | Seconds between status polls when live updates are off (5 to 300). |
-| `labels`  | `1`          | `0` hides switch names on the map. |
-| `view`    |              | `heat` colours each seat by its traffic right now (green a little, red a lot), from the [stats](stats.md) reads. Seat numbers and numbers only. |
-| `grid`    | `1`          | `0` hides the grid (the editor's grid, following the fit). |
-| `marks`   | `1`          | `0` hides the labels, walls, zones and icons. The kiosk shows the Overview and Safety marks only, like the attendee pages, since a big screen is often in a public place. |
-| `reload`  | `360`        | Reload the whole page every N minutes to pick up a new deployment (`0` = never). It only reloads when the server answers. |
-
-## How it stays up to date
-
-- **With live updates** (`/api/events` from the integrations MR): switch status
-  changes, seat check-ins and layout edits arrive as pushes. The page still
-  polls once a minute as a safety net. The top right shows "Live".
-- **Without live updates**: it polls switch status every `refresh` seconds
-  (from `/api/status/snapshot` when the status monitor runs, otherwise one
-  `/api/switches/<id>/status` call per switch, like the editor does). The top
-  right shows "Every 15s".
-- The layout and seat occupancy reload every minute either way.
-- If no update has succeeded for 90 seconds (or four poll intervals, whichever
-  is longer), a red banner says the data may be out of date.
-
-Seats count as taken when a seat source (the seat mapping, `seats.json`,
-check-ins) has a nick or IP for them. The kiosk asks `/api/seats/occupancy`,
-which only lists the taken seats: nicks and IPs never reach the screen.
+The old page's other options (`title`, `refresh`, `labels`, `grid`, `marks`, `reload`) are gone:
+the title is the event name, switch status comes with the live updates, and the dashboard reloads
+itself after a Floorbit update. Set a plan pane's **Plan marks** to **None** for no marks.
 
 ## On the screen
 
-- Double-click or press `F` to toggle full screen. Chromium in kiosk mode
-  (`chromium --kiosk http://host:5000/kiosk`) needs neither.
-- The mouse pointer hides after 3 seconds.
-- The page asks the browser to keep the screen awake (Screen Wake Lock), where
-  the browser allows it.
+- Chromium in kiosk mode (`chromium --kiosk https://floor.example.com/kiosk`) shows it full screen.
+- The mouse pointer hides after 3 seconds, and a clock sits in the corner.
+- Someone at the screen can drag and zoom the plan; it goes back after a minute.
 
 ## Other big screens
 
-The [health wall](health.md) (`/health?screen=1`) and the [stats dashboard](stats.md)
-(`/stats?screen=1`) have big-screen versions too, with the same kiosk theme and no personal data.
+The [health wall](health.md) (`/health?screen=1`), the [stats dashboard](stats.md)
+(`/stats?screen=1`) and the floor plan (`/plan?screen=1`) have big-screen versions too, with the same
+kiosk theme and no personal data. They need an account: sign the screen in with a `kiosk` account.
 
 ## Rotating views with a seat finder
 
 `/screen` shows one view at a time and moves on every `every` seconds, with a QR code in the
-corner that opens the seat finder on a phone. Sign the screen in with a `kiosk` account, like
-`/kiosk`.
+corner that opens the seat finder on a phone. Sign the screen in with a `kiosk` account.
 
 | Option  | Default            | What it does |
 |---------|--------------------|--------------|
-| `views` | `floor,heat,stats` | Which views, in order: `floor` (`/kiosk`), `heat` (`/kiosk?view=heat`), `stats` (`/stats?screen=1`), `health` (`/health?screen=1`). |
+| `views` | `floor,heat,stats` | Which views, in order: `floor` (the Kiosk dashboard), `heat` (the plan with seat traffic, `/plan?screen=1&layers=marks,status`), `stats` (`/stats?screen=1`), `health` (`/health?screen=1`). |
 | `every` | `30`               | Seconds per view (10 to 600). |
 | `qr`    | `1`                | `0` hides the QR code. |
 | `theme` |                    | Theme preset for every view ([themes.md](themes.md)). |

@@ -16,25 +16,39 @@ TEXTS = {
            'seats': 'Seats online', 'seats_unit': 'of {n}', 'seats_sub': 'From the last port read',
            'unknown': 'Not known right now: no recent port read',
            'problems_sub': '{warn} to look at · {attention} port trouble · {muted} muted',
-           'incidents_sub': '{waiting} waiting 10+ min · {worked} being worked'},
+           'incidents_sub': '{waiting} waiting 10+ min · {worked} being worked',
+           'down_switches': 'Switches down', 'all_up': 'All switches up', 'no_status': 'No switch status yet',
+           'just_now': 'just now', 'mins': '{n} min', 'hours': '{h} h {m} min', 'more': '+ {n} more'},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
            'switches': 'Switches', 'switches_unit': 'von {n} online',
            'switches_sub': '{offline} offline · {unknown} unbekannt',
            'seats': 'Plätze online', 'seats_unit': 'von {n}', 'seats_sub': 'Aus der letzten Port-Abfrage',
            'unknown': 'Gerade nicht bekannt: keine aktuelle Port-Abfrage',
            'problems_sub': '{warn} zum Anschauen · {attention} Port-Probleme · {muted} stumm',
-           'incidents_sub': '{waiting} warten seit 10+ Min. · {worked} in Arbeit'},
+           'incidents_sub': '{waiting} warten seit 10+ Min. · {worked} in Arbeit',
+           'down_switches': 'Switches ausgefallen', 'all_up': 'Alle Switches online',
+           'no_status': 'Noch kein Switch-Status', 'just_now': 'gerade eben', 'mins': '{n} Min.',
+           'hours': '{h} Std. {m} Min.', 'more': '+ {n} weitere'},
 }
-TILES = ('problems', 'incidents', 'switches', 'seats')   # #304 added switches and seats
+# One line per tile: its id, the text key of its label, its size and how often it reloads (seconds).
+# blueprints/plugins.py core_widget() has the matching builder. The Widgets gallery lists them all.
+TILES = {
+    'problems': {'label': 'problems', 'size': 'small', 'refresh': 30},
+    'incidents': {'label': 'incidents', 'size': 'small', 'refresh': 30},
+    'switches': {'label': 'switches', 'size': 'small', 'refresh': 30},    # #304
+    'seats': {'label': 'seats', 'size': 'small', 'refresh': 30},          # #304
+    'down': {'label': 'down_switches', 'size': 'small', 'refresh': 15},  # the old /kiosk's "Down" list
+}
+MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
 
 def tiles(lang, may_see_board):
     """The tile list entries, next to the plugins' in ``GET /api/dashboard``."""
     text = TEXTS.get(lang, TEXTS['en'])
     hidden = set() if may_see_board else {'incidents'}
-    return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[tile], 'size': 'small',
-             'refresh': 30, 'url': f'/api/dashboard/floorbit/{tile}'}
-            for tile in TILES if tile not in hidden]
+    return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[spec['label']], 'size': spec['size'],
+             'refresh': spec['refresh'], 'url': f'/api/dashboard/floorbit/{tile}'}
+            for tile, spec in TILES.items() if tile not in hidden]
 
 
 def switches_widget(lang, counts):
@@ -45,6 +59,33 @@ def switches_widget(lang, counts):
             'tone': 'err' if counts.get('offline') else 'ok' if total and counts.get('online') == total else '',
             'sub': text['switches_sub'].format(offline=counts.get('offline', 0), unknown=counts.get('unknown', 0)),
             'link': '/problems'}
+
+
+def _down_for(text, seconds):
+    mins = int(max(0, seconds) // 60)
+    if mins < 1:
+        return text['just_now']
+    if mins < 60:
+        return text['mins'].format(n=mins)
+    return text['hours'].format(h=mins // 60, m=mins % 60)
+
+
+def down_widget(lang, statuses, now=None):
+    """The switches down right now, longest down first, with how long. ``statuses`` is the status
+    monitor's (integrations/monitor.py): id -> name, status and since when."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = time.time() if now is None else now
+    if not statuses:
+        return {'type': 'status', 'items': [{'label': text['no_status'], 'state': 'unknown'}]}
+    down = sorted((s for s in statuses.values() if s.get('status') == 'offline'),
+                  key=lambda s: (s.get('since') or now, str(s.get('name') or '')))
+    if not down:
+        return {'type': 'status', 'items': [{'label': text['all_up'], 'state': 'up'}]}
+    items = [{'label': str(s.get('name') or s.get('id')), 'value': _down_for(text, now - (s.get('since') or now)),
+              'tone': 'err'} for s in down[:MAX_DOWN]]
+    if len(down) > MAX_DOWN:
+        items.append({'label': text['more'].format(n=len(down) - MAX_DOWN), 'value': ''})
+    return {'type': 'list', 'items': items}
 
 
 def seats_widget(lang, online, total):

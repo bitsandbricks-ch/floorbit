@@ -24,7 +24,7 @@ def test_default_theme_and_kiosk_preset(client):
     tag = html_tag(client.get("/editor/classic"))
     assert 'data-preset="floorbit"' in tag and "data-theme-lock" not in tag
     # The big screen gets the kiosk preset, dark only, unless told otherwise.
-    tag = html_tag(client.get("/kiosk"))
+    tag = html_tag(client.get("/dashboards/kiosk"))
     assert 'data-preset="kiosk"' in tag and 'data-theme-lock="dark"' in tag
 
 
@@ -33,7 +33,7 @@ def test_theme_query_is_remembered_per_browser(client):
     assert 'data-preset="ops"' in html_tag(resp)
     assert "floorbit_theme=ops" in resp.headers["Set-Cookie"]
     assert 'data-preset="ops"' in html_tag(client.get("/settings"))   # cookie, no query
-    assert 'data-preset="ops"' in html_tag(client.get("/kiosk"))
+    assert 'data-preset="ops"' in html_tag(client.get("/dashboards/kiosk"))
 
     resp = client.get("/editor/classic?theme=default")
     assert 'data-preset="floorbit"' in html_tag(resp)
@@ -55,7 +55,7 @@ def test_custom_theme_derives_missing_colours(client):
     assert "--theme-on-accent:#0b0b0f" in tag   # ink reads better than white on this pink
     assert "Example LAN" in page
     # The site preset applies to the kiosk too, so an event can brand the big screen.
-    assert 'data-preset="custom"' in html_tag(client.get("/kiosk"))
+    assert 'data-preset="custom"' in html_tag(client.get("/dashboards/kiosk"))
 
 
 def test_light_custom_background_locks_light():
@@ -92,7 +92,7 @@ def test_event_logo_is_served_safely(client, anon_client):
 def test_every_page_loads_the_theme(client, anon_client, tmp_path, monkeypatch):
     from tests.test_spa import _manifest
     _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})   # the React pages are built
-    pages = [(client, p) for p in ("/editor/classic", "/kiosk", "/settings", "/settings/users")]
+    pages = [(client, p) for p in ("/editor/classic", "/dashboards/kiosk", "/settings", "/settings/users")]
     pages.append((anon_client, "/login"))   # check-in is off unless configured
     for c, path in pages:
         resp = c.get(path)

@@ -204,7 +204,7 @@ on. **Open these layers on the Seats view** opens this hall there with the same 
 
 ## Big screens and attendee pages
 
-- `/kiosk?hall=<id>` shows another hall than the first; `/screen?hall=<id>` passes it on to its
+- `/kiosk?hall=<id>` (or `/dashboards/<id>?hall=<id>`) shows another hall than the first; `/screen?hall=<id>` passes it on to its
   floor plan views. With more than one hall, the kiosk heading names the hall.
 - The seat finder (`/find`) draws the hall the seat is in and names it.
 - The attendee view (`/hall`) has a tab per hall.

@@ -19,7 +19,7 @@ different features touch different files.
 
    | Module | Routes |
    | --- | --- |
-   | `pages.py` | `/`, `/kiosk` |
+   | `pages.py` | `/`, `/kiosk` (goes to the Kiosk dashboard) |
    | `config.py` | `/api/config` |
    | `switches.py` | `/api/switches...`: the floor plan's view of the inventory (list, sync, add, move, rename, remove) |
    | `inventory.py` | `/inventory`, `/api/inventory...` (see [inventory.md](inventory.md)) |
