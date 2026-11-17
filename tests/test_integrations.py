@@ -310,12 +310,27 @@ def test_checkin_admin_token(app, checkin_env, monkeypatch):
 
 def test_trust_proxy(app, checkin_env, monkeypatch):
     c = app.test_client()
-    hdr = {'X-Forwarded-For': '10.0.3.3, 172.16.0.1'}
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr,
-               environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
+    proxy = {'REMOTE_ADDR': '172.16.0.1'}
+    # The proxy appends the address it saw; anything to its left came from the client.
+    hdr = {'X-Forwarded-For': '10.0.3.3'}
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr, environ_base=proxy).get_json()
     assert r['ip'] == '172.16.0.1'
     monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr,
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr, environ_base=proxy).get_json()
+    assert r['ip'] == '10.0.3.3'
+
+
+def test_a_forged_forwarded_address_is_ignored(app, checkin_env, monkeypatch):
+    monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
+    c = app.test_client()
+    forged = {'X-Forwarded-For': '10.0.9.9, 10.0.3.3'}   # the client sent 10.0.9.9 itself
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=forged,
+               environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
+    assert r['ip'] == '10.0.3.3'
+    # Two proxies of ours (a CDN, then the ingress): the client is second from the right.
+    monkeypatch.setenv('CHECKIN_PROXY_HOPS', '2')
+    chain = {'X-Forwarded-For': '10.0.9.9, 10.0.3.3, 198.51.100.4'}
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=chain,
                environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
     assert r['ip'] == '10.0.3.3'
 

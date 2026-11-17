@@ -139,6 +139,20 @@ def test_repeated_failures_lock_the_username_for_a_while(anon_client, user):
     assert "Too many failed attempts" in login_error(anon_client)
 
 
+def test_a_guesser_behind_a_trusted_proxy_locks_only_themself(anon_client, app_module, user, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    guesser = {"environ_overrides": {"HTTP_X_FORWARDED_FOR": "192.0.2.66"}}
+    for _ in range(5):
+        assert anon_client.post("/login", data={"username": TEST_USER, "password": "wrong-password"},
+                                **guesser).status_code == 401
+    assert anon_client.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD},
+                            **guesser).status_code == 429
+    crew = app_module.app.test_client()
+    resp = crew.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD},
+                     environ_overrides={"HTTP_X_FORWARDED_FOR": "192.0.2.7"})
+    assert resp.status_code == 302
+
+
 def test_password_change_signs_out_existing_sessions(client, auth):
     assert client.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
     auth.users.set_password(TEST_USER, "a-brand-new-password")

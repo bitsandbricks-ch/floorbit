@@ -139,7 +139,9 @@ points back into this site.
 
 - Passwords: at least 8 characters, scrypt hashed. Unknown usernames take as long to reject as
   wrong passwords.
-- Five failed attempts for one username from one address lock that pair for five minutes.
+- Five failed attempts for one username from one address lock that pair for five minutes. Behind a
+  reverse proxy, turn on `CHECKIN_TRUST_PROXY` so the address is the client's, not the proxy's
+  (otherwise one guesser locks the name for everyone).
 - The session cookie is `HttpOnly` and `SameSite=Lax`. Changes sent with an `Origin` header from
   another site are refused (403).
 - A password change bumps the account's `session_version`, which signs out its other sessions.

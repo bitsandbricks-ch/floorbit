@@ -20,7 +20,7 @@ import segno
 from flask import Blueprint, Response, abort, current_app, jsonify, render_template, request, url_for
 
 from auth import roles, teams
-from integrations import events
+from integrations import checkin, events
 
 from .. import audit, dispatch, incidents, runbooks, seat_notes, spa
 from ..store import load_data
@@ -361,7 +361,8 @@ def _texts():
 
 def _rate_limited(key=None):
     """Too many reports from this client (an IP, or ``discord:<user id>`` for the bot, issue #424)."""
-    ip = key or request.remote_addr or '?'
+    # Behind a trusted proxy every attendee shares the proxy's address: count the real client instead.
+    ip = key or checkin.client_ip() or '?'
     now = time.time()
     with _reports_lock:
         recent = [t for t in _reports.get(ip, []) if now - t < RATE_WINDOW]

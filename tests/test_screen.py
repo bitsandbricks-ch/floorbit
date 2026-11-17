@@ -48,6 +48,14 @@ def test_lookups_are_rate_limited(anon_client, hall):
     assert codes[-1] == 429 and set(codes[:-1]) == {200}
 
 
+def test_lookups_count_each_client_behind_a_trusted_proxy(anon_client, hall, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    busy = {"X-Forwarded-For": "192.0.2.20"}
+    codes = [anon_client.get("/find?q=D-6", headers=busy).status_code for _ in range(screen.RATE_LIMIT + 1)]
+    assert codes[-1] == 429
+    assert anon_client.get("/find?q=D-6", headers={"X-Forwarded-For": "192.0.2.21"}).status_code == 200
+
+
 def test_german_for_german_browsers(anon_client, hall):
     page = anon_client.get("/find?q=D-6", headers={"Accept-Language": "de-CH,de;q=0.9"}).get_data(as_text=True)
     assert "Platz D-6" in page and 'lang="de"' in page

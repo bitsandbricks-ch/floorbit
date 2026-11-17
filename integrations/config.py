@@ -218,7 +218,12 @@ SCHEMA = [
      'help': 'Comma-separated CIDRs players check in from, e.g. 10.0.0.0/16. Empty allows any.'},
     {'key': 'CHECKIN_TRUST_PROXY', 'group': 'checkin', 'type': 'bool', 'default': False,
      'label': 'Behind a reverse proxy',
-     'help': 'Use X-Forwarded-For as the client IP. Only turn on if a proxy you control sets it.'},
+     'help': 'Use X-Forwarded-For as the client IP (check-in, per-client limits). '
+             'Only turn on if a proxy you control sets it.'},
+    {'key': 'CHECKIN_PROXY_HOPS', 'group': 'checkin', 'type': 'int', 'default': 1,
+     'label': 'Proxies in front',
+     'help': 'How many proxies you control add to X-Forwarded-For (e.g. 2 for a CDN in front of the '
+             'ingress). Only used behind a reverse proxy.'},
     {'key': 'CHECKIN_VALIDATE_SEATS', 'group': 'checkin', 'type': 'bool', 'default': True,
      'label': 'Only accept seats on the plan', 'help': 'Reject seat numbers that are not in any seat block.'},
     {'key': 'CAPTIVE_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': False,
