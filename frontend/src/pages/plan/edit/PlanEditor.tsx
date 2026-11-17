@@ -26,6 +26,8 @@ import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
 import { LockBadges } from './LockBadges'
+import { Rulers } from './Rulers'
+import { useSnapPrefs } from './snap'
 import { MarkHandles } from './MarkHandles'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
@@ -113,6 +115,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     await qc.invalidateQueries({ queryKey: qk.planGroups(data.hall) })
   }, [data.hall, qc])
   // Locked items (floorbit/plan_locks.py) stay where they are: moves, turns, handles and deletes skip them.
+  const snapping = useSnapPrefs()
   const locksQ = useQuery({ queryKey: qk.planLocks(data.hall), queryFn: () => get<{ locks: ItemRef[] }>(`/api/plan-locks?hall=${encodeURIComponent(data.hall)}`) })
   const lockedKeys = useMemo(() => new Set((locksQ.data?.locks ?? []).map(refKey)), [locksQ.data])
   const isLocked = useCallback((r: ItemRef) => lockedKeys.has(refKey(r)), [lockedKeys])
@@ -703,8 +706,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   /** Where a drag puts the selection: on another item's edge or middle when one is within six
    *  pixels (the guide shows), otherwise on the grid; Alt places freely. */
   const dragTo = (raw: Point, snap: boolean, lead: ItemRef, px: number): { d: Point; guides: Guide[] } => {
-    const grid = snappedDelta(data, lead, raw, snap)
-    if (!snap) return { d: grid, guides: [] }
+    const grid = snappedDelta(data, lead, raw, snap && snapping.grid)
+    if (!snap || !snapping.items) return { d: grid, guides: [] }
     const g = snapToGuides(data, selected, raw, 6 * px, present.filter((r) => r.kind !== 'cable'))
     const on = (axis: 'x' | 'y') => g.guides.some((x) => x.axis === axis)
     return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
@@ -758,7 +761,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <ToolRail tool={tool} onTool={setTool} />
       <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power}
         overlay={(ctx) => (<>
-          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool}
+          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool} snapping={snapping}
             lines={followPlan(cables, shown).map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
@@ -770,11 +773,12 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
+          {snapping.rulers && <Rulers ctx={ctx} cell={data.drawing?.cell ?? 32} />}
           {lockedSel.length > 0 && tool === 'select' && <LockBadges ctx={ctx} boxes={lockedSel.map((r) => outlineOf(shown, r)).filter((o) => !!o)} />}
           {oneMark && markBox && tool === 'select' && !drag && !isLocked(one!) && (
             <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}
               corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
-              anchors={oneMark.kind === 'wall' ? wallCorners(data, oneMark.id) : undefined}
+              anchors={oneMark.kind === 'wall' && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid}
               onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
           )}
           {one && turnable && tool === 'select' && !drag && (
