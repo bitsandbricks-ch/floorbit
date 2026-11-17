@@ -1,9 +1,10 @@
-import { Alert, Anchor, Button, Drawer, Group, Kbd, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { notifications } from '@mantine/notifications'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -20,6 +21,7 @@ import { LayersPanel } from './plan/LayersPanel'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
+import { download, fileName, inlineImages, standaloneSvg, svgToPng } from './plan/exportImage'
 import { Shortcuts } from './plan/Shortcuts'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
@@ -244,6 +246,7 @@ export default function FloorPlan() {
           </div>
           <Group gap="xs" className="fb-no-print">
             <Button variant="default" component="a" href={`/plan${data ? `?hall=${encodeURIComponent(data.hall)}` : ''}`}>{t('plan.print.back')}</Button>
+            <SaveImage hall={hallName ?? ''} />
             <Button leftSection={<IconPrinter size={16} />} onClick={() => window.print()}>{t('plan.print.print')}</Button>
           </Group>
         </Group>
@@ -387,4 +390,37 @@ function PrintTheme() {
     return () => { if (before === undefined) delete root.dataset.theme; else root.dataset.theme = before }
   }, [])
   return null
+}
+
+/** Save the print sheet's plan as a picture, for a chat or a briefing slide: PNG (twice the screen's
+ *  width, so it stays sharp when zoomed) or SVG (sharp at any size). */
+function SaveImage({ hall }: { hall: string }) {
+  const { t } = useTranslation()
+  const [busy, setBusy] = useState(false)
+  const save = async (as: 'png' | 'svg') => {
+    const svg = document.querySelector<SVGSVGElement>('.fb-plan-print svg[role="application"]')
+    if (!svg) return
+    setBusy(true)
+    try {
+      const out = standaloneSvg(svg, Math.max(1600, svg.clientWidth * 2))
+      const text = await inlineImages(out.text)
+      const blob = as === 'svg' ? new Blob([text], { type: 'image/svg+xml' }) : await svgToPng(text, out.width, out.height)
+      download(blob, fileName(hall, as))
+    } catch {
+      notifications.show({ color: 'down', message: t('plan.print.imageFailed') })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Menu position="bottom-end" withinPortal>
+      <Menu.Target>
+        <Button variant="default" leftSection={<IconPhoto size={16} />} loading={busy}>{t('plan.print.image')}</Button>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item onClick={() => void save('png')}>{t('plan.print.png')}</Menu.Item>
+        <Menu.Item onClick={() => void save('svg')}>{t('plan.print.svg')}</Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  )
 }
