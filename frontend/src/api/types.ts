@@ -1444,7 +1444,7 @@ export interface FirewallCard {
   serving: string[]; planned: string[]; backup_for: string[]; seats: number
 }
 export interface FirewallList {
-  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean; can_import?: boolean
+  firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean; monitoring?: boolean; can_import?: boolean
   counts: { firewalls: number; down: number; failover: number; without: number }
 }
 

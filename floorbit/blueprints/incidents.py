@@ -44,8 +44,17 @@ def current_user():
     return signed_in()
 
 
+def _stand_in():
+    # Sign-in switched off: everyone may do everything, as elsewhere. The board still needs a name
+    # to file, take and sign jobs with, so it is one shared crew account.
+    from auth.users import public
+    return public({'username': 'crew', 'display_name': 'Crew', 'role': 'admin'})
+
+
 def _board_user():
     user = current_user()
+    if not user and not current_app.extensions['auth'].enabled:
+        return _stand_in()
     if not user:
         abort(401)
     if not incidents.can_see_board(user):

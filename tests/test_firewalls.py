@@ -11,9 +11,10 @@ class Source:
     def __init__(self):
         self.up = {}
         self.broken = False
+        self.on = True
 
     def enabled(self):
-        return True
+        return self.on
 
     def devices(self):
         if self.broken:
@@ -85,6 +86,18 @@ def test_an_unreadable_source_is_unknown_not_down(client, net):
     body = client.get("/api/firewalls").get_json()
     assert body["unread"] is True
     assert (body["ranges"][0]["now"], body["ranges"][0]["state"]) == ("fw-01", "unknown")
+
+
+def test_without_a_monitoring_source_it_is_setup_not_trouble(client, net):
+    # A fresh install showed "can't be read right now", as if something had broken.
+    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    net.on = False
+    body = client.get("/api/firewalls").get_json()
+    assert body["monitoring"] is False and body["unread"] is False
+    assert (body["ranges"][0]["now"], body["ranges"][0]["state"]) == ("fw-01", "unknown")
+    net.on = True
+    firewalls.health.reset()
+    assert client.get("/api/firewalls").get_json()["monitoring"] is True
 
 
 def test_the_seat_panel_says_which_firewall_and_never_the_ip(client, net):
