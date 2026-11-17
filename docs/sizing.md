@@ -37,5 +37,44 @@ Postgres wasn't measured. The script takes `--database files` or `sqlite`.
 - **Bulk reads only.** ARP is read once per seat network (a /24), and MAC tables once per switch.
   There is never one LibreNMS call per client.
 
+## Doors-open
+
+What happens when the doors open, measured with `scripts/load_checkin.py`: a real Floorbit under
+gunicorn, set up like the Docker image (1 worker, 64 threads), and a real agent answering the
+Captive Portal API, both on one machine. LibreNMS is a fake that takes 50 ms per port lookup.
+
+```sh
+python scripts/load_checkin.py --agent-src ../floorbit-agent
+```
+
+1000 players check in within two minutes, most of them early. Each loads the check-in page and its
+info, then checks in from its own IP. Meanwhile 4000 devices ask the agent's captive portal every 30
+seconds. Once the port lookups have caught up, Floorbit is stopped and the devices go on asking for
+another minute. This ran in a 4-CPU container with Python 3.13 (load generator included):
+
+| What | Requests | Failed | p50 | p99 | Target (p99) |
+| --- | --- | --- | --- | --- | --- |
+| Captive portal (agent), Floorbit up | 16544 | 0 | 1.1 ms | 3.1 ms | < 20 ms |
+| Captive portal (agent), Floorbit stopped | 7756 | 0 | 1.1 ms | 2.8 ms | < 20 ms |
+| Check-in page and its info | 2000 | 0 | 4.5 ms | 30.7 ms | < 100 ms |
+| Check-in submit | 1000 | 0 | 14.4 ms | 47.5 ms | < 100 ms |
+
+![Check-ins and port lookups a second, and the check-ins waiting for their port lookup](img/load-checkin-burst.svg)
+
+![Response time, p99 per 10 seconds](img/load-checkin-latency.svg)
+
+- **Check-in never waits for LibreNMS.** The submit answers at once with `pending`; the port lookup
+  runs in the background, oldest first, at most **Port lookups per second** (`CHECKIN_VERIFY_RATE`,
+  10). Above that the queue grows (143 at its peak here) and drains at that rate; it was empty
+  again before the last players arrived. Every check-in got its lookup, 1000 in all, and not one more.
+- **The page's seat hint doesn't either.** It shows what is already known; a miss joins the same
+  queue when there is room.
+- **The captive portal is the agent's job.** It answers from the list it last fetched, so it stays
+  at a few milliseconds whatever Floorbit is doing, and with Floorbit stopped it went on answering:
+  checked-in PCs "done", everyone else "sign in", with no wrong answer in a sample of 200.
+- **Raise the rate** if your LibreNMS keeps up and you want ports learned faster, lower it if
+  LibreNMS slows down at doors-open. Lookups run one at a time, so a lookup slower than
+  1 ÷ rate seconds sets the pace instead.
+
 Run the script again after changing check-in or the seat mapping, and update this page when the
 numbers move.

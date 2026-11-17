@@ -113,6 +113,10 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     from floorbit import port_clients  # its last MAC table read feeds the seat mapping
     if port_clients._finder is not None:
         port_clients._finder.reset()
+    from integrations import checkin  # the port lookup budget is per process
+    checkin._bucket.update(tokens=None, at=None)
+    checkin._warm.clear()
+    checkin._port_cache.clear()
 
 
 @pytest.fixture
@@ -152,6 +156,10 @@ def app_module(tmp_path, monkeypatch):
     monkeypatch.setattr(auth, "enabled", True)
     monkeypatch.setattr(auth, "public_read", True)
     monkeypatch.setattr(auth, "_failures", {})
+    # Lines a local agent relayed in an earlier test would show as relayed in the next one.
+    receiver = app.app.extensions.get("floorbit_syslog")
+    if receiver is not None:
+        monkeypatch.setattr(receiver, "relayed", {})
     app.app.config["TESTING"] = True
     return app
 

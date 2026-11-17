@@ -221,6 +221,15 @@ SCHEMA = [
      'help': 'Use X-Forwarded-For as the client IP. Only turn on if a proxy you control sets it.'},
     {'key': 'CHECKIN_VALIDATE_SEATS', 'group': 'checkin', 'type': 'bool', 'default': True,
      'label': 'Only accept seats on the plan', 'help': 'Reject seat numbers that are not in any seat block.'},
+    {'key': 'CAPTIVE_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': False,
+     'label': 'Captive portal (DHCP option 114)',
+     'help': 'Tell the local agent which machines checked in, so phones and laptops that did not see a quiet '
+             '"sign in to network" note that opens the check-in page. Needs the check-in page, an agent with '
+             'FLOORBIT_AGENT_CAPTIVE and option 114 in the event DHCP. Nothing is ever blocked.'},
+    {'key': 'CHECKIN_VERIFY_RATE', 'group': 'checkin', 'type': 'int', 'default': 10,
+     'label': 'Port lookups per second',
+     'help': 'How many check-ins a second the background looks up in the monitoring source. A burst of '
+             'check-ins waits its turn instead of flooding LibreNMS.'},
     {'key': 'CHECKIN_REFRESH_INTERVAL', 'group': 'checkin', 'type': 'int', 'default': 300,
      'label': 'Lease refresh (seconds)',
      'help': 'How often to re-check each MAC in LibreNMS and follow DHCP IP changes.'},

@@ -123,6 +123,13 @@ port. That is only a hint: what proves a wired PC at the seat is the switches. O
 exactly one access port, with no more than 4 MACs on it (so not an AP, a desk switch or an uplink),
 counts as `verified`. Not found within 15 minutes: `unverified`.
 
+The lookups run in the background, oldest check-in first, at most **Port lookups per second**
+(`CHECKIN_VERIFY_RATE`, 10) with up to ten seconds' worth saved up. At doors-open a thousand
+check-ins don't become a thousand LibreNMS lookups at once: they wait their turn and the queue
+drains at that rate (measured in [sizing](sizing.md#doors-open)). The check-in page's "you are at
+seat …" hint never waits for LibreNMS either: it shows what is already known, and a miss is looked
+up in the same background queue, so a reload shows it.
+
 Finding the switch port of the PC takes two steps, because ARP only lives on the core switches: the
 request's IP gives the MAC from the core's ARP table, and that MAC is looked up in the MAC tables
 (FDB) of every switch. Every switch between the core and the seat learns the MAC too, on its uplink,

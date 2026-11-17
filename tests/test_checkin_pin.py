@@ -8,6 +8,8 @@ from floorbit.attention import AttentionWatch
 from floorbit.builtin_plugins.librenms import client as librenms
 from integrations import checkin, events
 
+PORT_OF = checkin.port_of   # the real one, before the fixture fakes it
+
 
 def edge(switch, port, edge=True):
     return {"switch": switch, "port": port, "mac": None, "edge": edge}
@@ -273,3 +275,42 @@ def test_seat_inspector_says_where_the_port_lookup_stands(hall):
     assert hall.get("/api/plan/seats/A-2").get_json()["checkin_wired"] == "verified"
     assert hall.get("/api/plan/seats/A-3").get_json()["checkin_wired"] == "pending"   # an AP port is no seat's port
     assert "checkin_wired" not in hall.get("/api/plan/seats/A-1").get_json()
+
+
+def test_a_burst_at_doors_open_is_looked_up_at_the_set_rate_and_drains(hall, monkeypatch):
+    # 2 lookups a second, saved up for one round (20): 30 check-ins take two rounds, oldest first.
+    monkeypatch.setenv("CHECKIN_VERIFY_RATE", "2")
+    monkeypatch.setattr(checkin, "_bucket", {"tokens": None, "at": None})
+    hall.post("/api/seat-blocks", json={"name": "B", "x": 10, "y": 60, "cols": 30, "rows": 1})
+    asked = []
+    monkeypatch.setattr(checkin, "port_of", lambda ip: asked.append(ip) or edge("sw-b-01", ip))
+    seats = pins(hall)
+    for i in range(30):
+        check_in(hall, f"198.51.100.{i + 1}", verify=False, pin=seats[f"B-{i + 1}"], username=f"n{i}")
+    assert checkin.queue_depth() == 30
+    assert len(checkin.verify_pending(now=1000)) == 20
+    assert asked[0] == "198.51.100.1" and checkin.queue_depth() == 10
+    assert len(checkin.verify_pending(now=1001)) == 2 and len(asked) == 22   # 1 s later: 2 more
+    checkin.verify_pending(now=1010)
+    assert checkin.queue_depth() == 0 and len(set(asked)) == 30
+
+
+def test_the_seat_hint_never_waits_for_librenms(hall, monkeypatch):
+    # At doors-open every page load would be a LibreNMS lookup: the hint comes from the cache, and
+    # a miss is looked up in the background, so the next load shows it.
+    hall.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1"})
+    asked = []
+
+    class Monitor:
+        def enabled(self):
+            return True
+
+        def resolve_ip(self, ip):
+            asked.append(ip)
+            return {"device_name": "sw-a-01", "port": "Gi1/0/1", "macs_on_port": 1}
+    monkeypatch.setattr(checkin, "_monitoring", Monitor)
+    monkeypatch.setattr(checkin, "port_of", PORT_OF)
+    info = lambda: hall.get("/api/checkin/info", environ_base={"REMOTE_ADDR": "192.0.2.21"}).get_json()  # noqa: E731
+    assert info()["suggested_seat"] is None and asked == []
+    checkin.verify_pending()
+    assert asked == ["192.0.2.21"] and info()["suggested_seat"] == "A-1"

@@ -17,6 +17,9 @@ def test_the_agent_learns_which_ips_are_done(client, app_module, monkeypatch, tm
     assert off.status_code == 409 and "Check-in" in off.get_json()["error"]
 
     monkeypatch.setenv("CHECKIN_ENABLED", "true")
+    off = agent.get("/api/agent/v1/captive", headers=h)      # off by default, even with check-in on
+    assert off.status_code == 409 and "captive portal" in off.get_json()["error"]
+    monkeypatch.setenv("CAPTIVE_ENABLED", "true")
     checkin.check_in("A-1", "player1", "192.0.2.10", lambda: {}, mac="02:00:00:00:00:01")
     finder = app_module.app.extensions["floorbit_port_clients"]
     asked = []
