@@ -173,7 +173,9 @@ export default function FloorPlan() {
   const presetKeys = PRESET_KEYS.map((p, i): [string, () => void] => [String(i + 1), () => {
     if (mode !== 'edit' && !list) setLayers(applyPreset(layers, p))
   }])
-  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ...presetKeys])
+  // L flips between the map and the list, like the Map/List switch.
+  const toggleList = () => { if (mode !== 'edit' && !screen) set('view', list ? null : 'list') }
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], ...presetKeys])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)

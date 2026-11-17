@@ -684,6 +684,17 @@ describe('Seats page', () => {
     await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
   })
 
+  it('switches between the map and the list with L', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan?hall=main&view=list': data }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main')
+    await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.keyDown(document.body, { key: 'l' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent('view=list'))
+    fireEvent.keyDown(document.body, { key: 'l' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+  })
+
   it('switches the layer preset with 1 to 4, but not while typing', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }
