@@ -2,7 +2,7 @@ import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, Segme
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
   IconLink, IconRotateClockwise, IconStack2, IconTrash, IconUnlink,
 } from '@tabler/icons-react'
@@ -553,6 +553,16 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     if (made.length) { setTool('select'); setSelection(made) }
   }
 
+  /** A click in the history list: back to before a done step, or forward through an undone one. */
+  const jump = useCallback(async (way: 'undo' | 'redo', count: number) => {
+    try {
+      const done = await history.jump(way, count)
+      if (done) notifications.show({ message: t(`plan.edit.${way}ne`, { what: done.label }), autoClose: 1500 })
+    } catch (err) {
+      fail(err)
+    }
+  }, [history, t, fail])
+
   const step = useCallback(async (way: 'undo' | 'redo') => {
     try {
       const done = await history[way]()
@@ -749,6 +759,23 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               <Tooltip label={history.nextRedo ? t('plan.edit.redoWhat', { what: history.nextRedo }) : t('plan.edit.redo')}>
                 <ActionIcon variant="default" aria-label={t('plan.edit.redo')} disabled={!history.canRedo} onClick={() => void step('redo')}><IconArrowForwardUp size={16} /></ActionIcon>
               </Tooltip>
+              <Menu position="bottom-end" withinPortal shadow="md" width={260}>
+                <Menu.Target>
+                  <Tooltip label={t('plan.edit.history.title')}>
+                    <ActionIcon variant="default" aria-label={t('plan.edit.history.title')} disabled={!history.canUndo && !history.canRedo}><IconHistory size={16} /></ActionIcon>
+                  </Tooltip>
+                </Menu.Target>
+                <Menu.Dropdown mah={360} style={{ overflowY: 'auto' }}>
+                  <Text size="xs" c="dimmed" px="sm" py={6}>{t('plan.edit.history.help')}</Text>
+                  {history.future.map((label, i) => (
+                    <Menu.Item key={`f${i}`} c="dimmed" onClick={() => void jump('redo', history.future.length - i)}>{upFirst(label)}</Menu.Item>
+                  ))}
+                  {history.past.map((label, i) => (
+                    <Menu.Item key={`p${i}`} fw={i === 0 ? 600 : undefined} rightSection={i === 0 ? <Text size="xs" c="dimmed">{t('plan.edit.history.latest')}</Text> : undefined}
+                      onClick={() => void jump('undo', i + 1)}>{upFirst(label)}</Menu.Item>
+                  ))}
+                </Menu.Dropdown>
+              </Menu>
             </Group>
           </Group>
           {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} />}
@@ -932,3 +959,6 @@ function Arrange({ count, grouped, canGroup, onAlign, onDistribute, onGroup }: {
     </div>
   )
 }
+
+// Step names read inside sentences ("Undo: move"); the history list shows them on their own.
+const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
