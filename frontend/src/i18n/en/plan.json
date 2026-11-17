@@ -385,7 +385,11 @@
         "m": "Medium",
         "l": "Large"
       },
-      "place": "Place"
+      "place": "Place",
+      "scaled": "Stretched to {{pct}} %. Pick a size to undo the stretch.",
+      "scaleHelp": "Drag the corner handle on the plan for any size in between.",
+      "handleSize": "Drag to resize (Alt: no snapping)",
+      "handleEnd": "Drag to move this end (Alt: no snapping)"
     },
     "copied_one": "Copied",
     "copied_other": "{{count}} items copied",

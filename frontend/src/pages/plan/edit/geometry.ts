@@ -1,4 +1,5 @@
 import type { PlanMark, PlanShape, SeatViewData } from '@/api/types'
+import { markPx } from '../markSize'
 
 /** What the editor can select on the plan. Ids are the server's: seat block, plan mark, switch,
  *  patch panel (its name) and cable (crew and imported cables; ones only the port watch read have none). */
@@ -97,7 +98,6 @@ export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<st
 
 /** The outline the editor draws around a selected item, in drawing units (unrotated box and its rotation). */
 export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotation: number; centre: Point } | null {
-  const cell = data.drawing?.cell ?? 32
   if (ref.kind === 'block') {
     const s = data.drawing?.shapes.find((b) => b.id === ref.id)
     if (!s) return null
@@ -125,8 +125,9 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
     const box = { x: Math.min(m.x, x2) - 6, y: Math.min(m.y, y2) - 6, w: Math.abs(x2 - m.x) + 12, h: Math.abs(y2 - m.y) + 12 }
     return { box, rotation: 0, centre: { x: (m.x + x2) / 2, y: (m.y + y2) / 2 } }
   }
-  const r = m.kind === 'icon' ? cell * ({ s: 0.5, m: 0.75, l: 1.1 }[m.size ?? 'm']) : cell * 0.6
-  const wide = m.kind === 'text' ? Math.max(r * 2, (m.text ?? '').length * cell * 0.36) : r * 2
+  const px = markPx(m)
+  const r = m.kind === 'icon' ? px / 2 + 4 : px * 0.6
+  const wide = m.kind === 'text' ? Math.max(r * 2, (m.text ?? '').length * px * 0.55 + 8) : r * 2
   return { box: { x: m.x - wide / 2, y: m.y - r, w: wide, h: r * 2 }, rotation: m.rotation ?? 0, centre: { x: m.x, y: m.y } }
 }
 

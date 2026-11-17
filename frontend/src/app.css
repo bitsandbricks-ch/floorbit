@@ -406,6 +406,9 @@ body {
 .fb-edit-bend { fill: var(--color-bit); stroke: var(--color-surface); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: move; }
 .fb-edit-bend-add { fill: var(--color-surface); stroke: var(--color-bit); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: copy; opacity: .85; }
 .fb-edit-bend-add:hover { fill: var(--color-bit); }
+.fb-edit-handle { fill: var(--color-surface); stroke: var(--color-bit); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fb-edit-handle:hover { fill: var(--color-bit); }
+.fb-edit-handle-label { fill: var(--color-bit); font-weight: 600; pointer-events: none; }
 .fb-edit.tooling .fb-edit-bg { cursor: crosshair; }
 .fb-edit-draft line, .fb-edit-draft rect { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 2; }
 .fb-edit-draft circle { fill: var(--color-bit); }

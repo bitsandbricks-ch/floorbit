@@ -1,9 +1,6 @@
 import type { PlanDrawing, PlanMark } from '@/api/types'
 import { type LayerId, type LayerState, LAYERS, MARK_LAYER, opacity } from './layers'
-
-// Sizes in drawing units (the plan is 1600 wide, a seat 32).
-const TEXT = { s: 20, m: 28, l: 44 }
-const ICON = { s: 26, m: 36, l: 52 }
+import { markPx } from './markSize'
 
 const layerOf = (m: PlanMark): LayerId => MARK_LAYER[m.layer ?? 'overview'] ?? 'marks'
 
@@ -42,10 +39,10 @@ function Mark({ m, icons }: { m: PlanMark; icons: Record<string, string[]> }) {
       return <line className={`wall${m.style === 'dashed' ? ' dashed' : ''}`} x1={m.x} y1={m.y} x2={m.x2} y2={m.y2} />
     case 'text':
       return (
-        <text className="label" x={m.x} y={m.y} dy="0.35em" fontSize={TEXT[m.size ?? 'm']} transform={turn(m.x, m.y)}>{m.text}</text>
+        <text className="label" x={m.x} y={m.y} dy="0.35em" fontSize={markPx(m)} transform={turn(m.x, m.y)}>{m.text}</text>
       )
     case 'icon': {
-      const s = ICON[m.size ?? 'm']
+      const s = markPx(m)
       const paths = icons[m.icon ?? '']
       if (!paths) return null
       return (

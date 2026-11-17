@@ -28,9 +28,22 @@ def test_marks_are_added_changed_and_removed(client):
     {"kind": "wall", "x": 1, "y": 1, "x2": 1, "y2": 1},
     {"kind": "zone", "x": 1, "y": 1, "w": 0, "h": 5},
     {"kind": "text", "x": 1, "y": 1, "text": "Tilted", "rotation": 45},
+    {"kind": "icon", "x": 1, "y": 1, "icon": "wc", "scale": 20},
+    {"kind": "icon", "x": 1, "y": 1, "icon": "wc", "scale": "big"},
 ])
 def test_bad_marks_are_refused(client, bad):
     assert client.post("/api/plan-marks", json=bad).status_code == 400
+
+
+def test_labels_and_icons_keep_a_scale(client):
+    icon = client.post("/api/plan-marks", json={"kind": "icon", "x": 5, "y": 5, "icon": "wc"}).get_json()
+    assert "scale" not in icon
+    grown = client.put(f"/api/plan-marks/{icon['id']}", json={"scale": 1.666}).get_json()
+    assert grown["scale"] == 1.67
+    moved = client.put(f"/api/plan-marks/{icon['id']}", json={"x": 9}).get_json()
+    assert moved["scale"] == 1.67
+    back = client.put(f"/api/plan-marks/{icon['id']}", json={"scale": 1}).get_json()
+    assert "scale" not in back
 
 
 def test_only_editors_draw(app_module, client):
