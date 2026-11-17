@@ -7,6 +7,9 @@ from conftest import stored
 from floorbit import dns
 from floorbit.plugins import PluginError
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 HOUR = 1_794_650_400   # on the hour
 
 

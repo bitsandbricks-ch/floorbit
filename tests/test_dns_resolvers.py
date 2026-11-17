@@ -2,6 +2,9 @@
 import pytest
 import requests
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 T0 = 1_794_650_400
 
 

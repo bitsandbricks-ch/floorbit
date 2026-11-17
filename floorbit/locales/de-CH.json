@@ -1110,5 +1110,7 @@
  "No local agent that reaches {} is connected.": "Kein lokaler Agent, der {} erreicht, ist verbunden.",
  "The connection to the switch was lost ({}).": "Die Verbindung zum Switch ist abgebrochen ({}).",
  "The local agent answered the switch call wrongly.": "Der lokale Agent hat auf den Switch-Aufruf falsch geantwortet.",
- "The local agent answered the terminal call wrongly.": "Der lokale Agent hat auf den Terminal-Aufruf falsch geantwortet."
+ "The local agent answered the terminal call wrongly.": "Der lokale Agent hat auf den Terminal-Aufruf falsch geantwortet.",
+ "{} runs on the local agent: Floorbit reaches the event network only through it.": "{} läuft auf dem lokalen Agenten: Floorbit erreicht das Event-Netz nur über ihn.",
+ "Syslog comes in through the local agent (FLOORBIT_AGENT_SYSLOG_PORT on the agent); this server does not listen itself.": "Syslog kommt über den lokalen Agenten (FLOORBIT_AGENT_SYSLOG_PORT auf dem Agenten); dieser Server hört nicht selbst zu."
 }

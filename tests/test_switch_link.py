@@ -27,7 +27,8 @@ def fresh():
 
 
 class FakeAgent:
-    """Takes calls like the agent and answers switch calls with the SSH plugin, as switches.py does."""
+    """Takes calls like the agent and answers switch calls with the SSH plugin, as switches.py does.
+    It runs in this process, so its tests ask for ``lan_here`` (the agent may reach the switches)."""
 
     def __init__(self, app_module, registry, key):
         self.registry, self.key, self.seen = registry, key, []
@@ -92,7 +93,7 @@ class FakeAgent:
         raise RuntimeError(f"{method}: not in this test")
 
 
-def test_a_bounce_runs_on_the_agent_and_the_host_key_is_pinned_here(app_module, client, ssh, registry):  # noqa: F811  # ssh: the fixture from tests/test_ports.py
+def test_a_bounce_runs_on_the_agent_and_the_host_key_is_pinned_here(lan_here, app_module, client, ssh, registry):  # noqa: F811  # ssh: the fixture from tests/test_ports.py
     key = enrol(client)["key"]
     with FakeAgent(app_module, registry, key) as agent:
         resp = bounce(client, username="kim", password=FakeSwitch.password)
@@ -127,7 +128,7 @@ def test_without_a_connected_agent_nothing_is_opened_from_here(app_module, clien
     assert opened == []
 
 
-def test_switch_commands_go_through_the_agent(app_module, client, ssh, registry):  # noqa: F811  # ssh: the fixture from tests/test_ports.py
+def test_switch_commands_go_through_the_agent(lan_here, app_module, client, ssh, registry):  # noqa: F811  # ssh: the fixture from tests/test_ports.py
     key = enrol(client)["key"]
     with FakeAgent(app_module, registry, key) as agent:
         resp = client.post("/api/commands/run", json={"switches": ["sw-a-01"], "template": "version",
@@ -137,7 +138,7 @@ def test_switch_commands_go_through_the_agent(app_module, client, ssh, registry)
         assert calls and calls[0][1] == "send_commands"
 
 
-def test_the_terminal_is_held_open_by_the_agent(app_module, client, ssh, registry, monkeypatch):  # noqa: F811  # ssh: the fixture from tests/test_ports.py
+def test_the_terminal_is_held_open_by_the_agent(lan_here, app_module, client, ssh, registry, monkeypatch):  # noqa: F811  # ssh: the fixture from tests/test_ports.py
     from tests.test_ports import FakeShell
     # What paramiko's channel has beyond the fake one of tests/test_ports.py.
     monkeypatch.setattr(FakeShell, "closed", False, raising=False)

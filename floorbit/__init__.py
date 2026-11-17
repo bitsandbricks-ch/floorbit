@@ -60,6 +60,14 @@ def create_app(start_background=True):
         print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
               "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
 
+    # Self-hosted: the agent next to this server gets its key from a shared file (docs/install.md).
+    from . import agent_link
+    try:
+        if agent_link.bootstrap_local():
+            print(f"[agent] The local agent's key is in {agent_link._local_key_file()}", flush=True)
+    except Exception as exc:  # noqa: BLE001  # the database may be away: the next start tries again
+        print(f"[agent] Could not enrol the local agent: {exc}", flush=True)
+
     # Without the database: a clear 503 instead of a 500, in the reader's language (docs/database.md).
     from .blueprints.health import database_unavailable
     app.register_error_handler(database.DatabaseUnavailable, database_unavailable)

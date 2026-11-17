@@ -39,7 +39,7 @@ def test_clean_ap_keeps_counts_only():
     assert wifi.clean_ap({'name': 'a', 'status': 'offline'})['status'] == 'down'
 
 
-def test_no_wifi_plugin(client):
+def test_no_wifi_plugin(lan_here, client):
     body = client.get('/api/wifi').get_json()
     assert body['aps'] == [] and body['sources'] == [] and body['clients'] == 0
 

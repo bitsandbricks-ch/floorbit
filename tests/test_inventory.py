@@ -6,6 +6,9 @@ from conftest import TEST_PASSWORD
 from floorbit import inventory
 from floorbit.inventory import InventoryError
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 # ── Rules (no Flask) ────────────────────────────────────────────────────────────────────
 
 

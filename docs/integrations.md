@@ -34,6 +34,7 @@ whoever runs the server sets them and an admin of the app must not be able to ch
 | `FLOORBIT_SECRET_KEY_FILE`, `FLOORBIT_SECRET_OLD_KEY_FILES` | the key stored logins and passwords are encrypted with ([credentials.md](credentials.md)) |
 | `TZ`, `FLOORBIT_PORT`, `FLOORBIT_VERSION` | the container itself |
 | `OUTBOUND_BLOCK_NETS`, `PROBE_NETS` | where a hosted server may send requests: the host's choice, not the event's |
+| `LAN_ACCESS` | `agent` (default): the event network only through the local agent ([agent.md](agent.md)); `direct` is for development |
 | `SYSLOG_ENABLED`, `SYSLOG_PORT`, `SYSLOG_TCP`, `SYSLOG_BIND`, `FLOWS_*` | listeners that open a port when the server starts |
 | `LANCACHE_LOG`, `LANCACHE_CACHE_DIR`, `MONITORING_CACHE_FILE`, `AUDIT_FILE` and the other state paths | paths inside the container |
 | `FLOORBIT_DEMO`, `SCREENSHOT_*` | demo and screenshot runs |
