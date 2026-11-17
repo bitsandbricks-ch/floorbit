@@ -21,8 +21,9 @@ SNAPSHOT_TTL = 300   # a summary older than this means the collector stopped
 
 
 def flows_dir():
-    return config.get('FLOWS_DIR') or os.path.join(os.path.dirname(os.path.abspath(
-        os.environ.get('FLOORBIT_DATA_FILE') or 'data.json')), 'flows')
+    from .. import store
+    configured = config.get('FLOWS_DIR')
+    return store.event_file(configured) if configured else store.event_path('flows')
 
 
 class RawStore:

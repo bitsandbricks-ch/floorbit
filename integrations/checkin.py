@@ -50,7 +50,8 @@ USER_RE = re.compile(r'^[^\x00-\x1f<>]{1,48}$')
 
 
 def _path():
-    return config.get('CHECKIN_FILE', 'checkins.json')
+    from floorbit import store
+    return store.event_file(config.get('CHECKIN_FILE', 'checkins.json'))
 
 
 def load_all():
@@ -201,7 +202,11 @@ def _beside_checkins(name):
 
 
 def _pins_path():
-    return config.get('CHECKIN_PINS_FILE', '') or _beside_checkins('checkin_pins.json')
+    configured = config.get('CHECKIN_PINS_FILE', '')
+    if configured:
+        from floorbit import store
+        return store.event_file(configured)
+    return _beside_checkins('checkin_pins.json')
 
 
 def load_pins():
@@ -348,7 +353,11 @@ def planned_seat(port, load_data):
 # MAC tables), and that pair is kept here. The IP was only the way there: once the port is known,
 # the seat shows whatever IP and MAC the port has now.
 def _ports_path():
-    return config.get('CHECKIN_PORTS_FILE', '') or _beside_checkins('seat_ports.json')
+    configured = config.get('CHECKIN_PORTS_FILE', '')
+    if configured:
+        from floorbit import store
+        return store.event_file(configured)
+    return _beside_checkins('seat_ports.json')
 
 
 def learned_ports():

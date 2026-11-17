@@ -27,8 +27,8 @@ _state = {'last': None, 'compacted': 0.0}
 
 
 def path():
-    return os.environ.get('RECORDING_FILE') or os.path.join(
-        os.path.dirname(os.path.abspath(store.DATA_FILE)), 'recording.jsonl')
+    configured = os.environ.get('RECORDING_FILE')
+    return store.event_file(configured) if configured else store.event_path('recording.jsonl')
 
 
 def _blocks(data):

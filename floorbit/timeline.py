@@ -27,8 +27,8 @@ _lock = threading.Lock()
 
 
 def path():
-    return os.environ.get('TIMELINE_FILE') or os.path.join(
-        os.path.dirname(os.path.abspath(store.DATA_FILE)), 'timeline.jsonl')
+    configured = os.environ.get('TIMELINE_FILE')
+    return store.event_file(configured) if configured else store.event_path('timeline.jsonl')
 
 
 def write(kind, title, target='', t=None, **extra):

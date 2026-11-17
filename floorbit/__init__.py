@@ -66,11 +66,11 @@ def create_app(start_background=True):
     # Sign-in first, so its check runs before the other before_request hooks and a
     # refused request never touches Redis.
     from auth import init_auth
-    init_auth(app, store.DATA_FILE)
+    init_auth(app, store.tenant_file)
     from . import i18n
     i18n.init_app(app)
 
-    settings_store = SettingsStore(store.DATA_FILE)
+    settings_store = SettingsStore(store.tenant_file)
     runtime.apply(settings_store)
     app.extensions['floorbit_settings'] = settings_store
 

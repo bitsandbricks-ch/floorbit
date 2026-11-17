@@ -407,8 +407,8 @@ class Registry:
     # never races a request writing data.json.
     def path(self):
         from .. import store
-        return os.environ.get('PLUGINS_FILE') or os.path.join(
-            os.path.dirname(os.path.abspath(store.DATA_FILE)), 'plugins.json')
+        configured = os.environ.get('PLUGINS_FILE')
+        return store.tenant_file(configured) if configured else store.tenant_path('plugins.json')
 
     def _all(self, path=None, strict=False):
         """Every plugin's saved state. While the database is away with no copy read yet, none

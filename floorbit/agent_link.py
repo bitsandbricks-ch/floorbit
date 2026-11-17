@@ -93,7 +93,8 @@ def active():
     """Is an agent enrolled? Every monitoring call asks, so the answer is kept until data.json changes."""
     global _active
     from . import store
-    stamp = (store.DATA_FILE, store.stamp(store.DATA_FILE))
+    path = store.event_file()
+    stamp = (path, store.stamp(path))
     if stamp[1] is None:
         return False
     if _active is None or _active[0] != stamp:
@@ -114,7 +115,8 @@ def _routing():
     kept until data.json changes: it's asked on every monitoring call."""
     global _routes
     from . import halls, inventory, store
-    stamp = (store.DATA_FILE, store.stamp(store.DATA_FILE))
+    path = store.event_file()
+    stamp = (path, store.stamp(path))
     if stamp[1] is None:
         return {}, [], {}
     if _routes is None or _routes[0] != stamp:

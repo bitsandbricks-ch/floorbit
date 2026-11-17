@@ -53,9 +53,10 @@ def enabled():
 
 def path():
     explicit = config.get('CHECKIN_HISTORY_FILE', '')
+    from floorbit import store
     if explicit:
-        return explicit
-    base = config.get('CHECKIN_FILE', 'checkins.json')
+        return store.event_file(explicit)
+    base = store.event_file(config.get('CHECKIN_FILE', 'checkins.json'))
     return os.path.splitext(base)[0] + '-history.jsonl'
 
 

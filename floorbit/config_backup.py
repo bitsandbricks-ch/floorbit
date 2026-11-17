@@ -57,7 +57,7 @@ NIGHTLY_HOUR = 4
 
 
 def folder():
-    return os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), FOLDER)
+    return store.event_path(FOLDER)
 
 
 def scrub(text):
