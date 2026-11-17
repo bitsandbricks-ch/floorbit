@@ -1,8 +1,8 @@
-# Seats view
+# Floor plan
 
-**Seats** (`/plan`, the **Seats** button in the floor plan editor) shows every seat of a hall with
-one state, drawn the same way everywhere. It is for reading the hall during the event; seat blocks
-are still placed and changed in the floor plan editor (`/`).
+The **Floor plan** (`/plan`) shows every seat of a hall with one state, drawn the same way
+everywhere, and its Edit mode is where the plan is built. `/` opens it too; old links with
+`?hall=`, `?seat=` or `?switch=` open it in Edit mode for crew who may edit.
 
 ## Modes
 
@@ -16,7 +16,10 @@ The top of the page switches between modes of the same plan, kept in the address
 | **Edit** | The editor, for crew who may edit the plan (`floorplan.edit`): see below. |
 
 **Kiosk** opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
-you were looking at. The older floor plan editor (`/`) has the same switch in its top bar.
+you were looking at.
+
+The older editor stays at `/editor/classic` for a while as a fallback, linked from the bottom of
+Edit mode's panel. Everything it did is in Edit mode.
 
 ### Edit mode
 

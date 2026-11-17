@@ -2,7 +2,7 @@
 
 
 def test_editor_has_the_tool_rail_and_the_panel(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/editor/classic").get_data(as_text=True)
     assert 'id="tool-rail"' in page and 'id="edit-panel"' in page
     for panel in ("search", "layers", "switches"):
         assert f'class="tool-btn rail-panel-btn" type="button" data-panel="{panel}"' in page

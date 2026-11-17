@@ -1,13 +1,12 @@
 # Halls and floor plan import
 
 An event can have more than one hall or floor. Each has its own floor plan: a background image,
-switches and seat blocks. The editor shows one hall at a time.
+switches and seat blocks. The floor plan shows one hall at a time.
 
 ## Halls
 
 The hall picker above the plan switches between halls (the address gets `?hall=<id>`; Edit mode
-stays in Edit mode). In Edit mode, **Halls** in the panel on the right opens the Halls dialog (the
-classic editor has the same dialog next to its hall picker):
+stays in Edit mode). In Edit mode, **Halls** in the panel on the right opens the Halls dialog:
 
 - **Add hall**, rename one by editing its name.
 - **Delete** a hall once it is empty: move or delete its switches and seat blocks first. The last

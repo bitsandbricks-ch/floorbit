@@ -92,7 +92,7 @@ nav:
       - Syslog: syslog.md
       - The right-click menu: context-menu.md
       - Kiosk view: kiosk.md
-      - Seats view: seats.md
+      - Floor plan: seats.md
       - Prometheus metrics: metrics.md
       - Browser notifications: notifications.md
       - Phones and tablets: mobile.md

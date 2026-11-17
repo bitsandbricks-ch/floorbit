@@ -78,13 +78,13 @@ def test_a_missing_checkin_is_not_a_problem(client, app_module, hall, monkeypatc
 
 
 def test_editor_has_the_seat_states_layer(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/editor/classic").get_data(as_text=True)
     assert 'id="btn-seat-states"' in page and "/static/js/editor/seat-states.js" in page
     assert page.index("editor/seat-states.js") < page.index("editor/main.js")
 
 
 def test_notifications_script_is_on_the_editor(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/editor/classic").get_data(as_text=True)
     assert "/static/js/notify.js" in page
 
 

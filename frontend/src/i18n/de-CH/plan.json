@@ -1,5 +1,5 @@
 {
-  "title": "Plätze",
+  "title": "Hallenplan",
   "editor": "Hallenplan-Editor",
   "online": "online",
   "withProblems": "mit Problemen",
@@ -300,7 +300,7 @@
       "pan": "+ ziehen zum Verschieben der Ansicht",
       "more": "Ctrl C/X/V kopieren, ausschneiden, einfügen · Ctrl D duplizieren · Ctrl G gruppieren · Rechtsklick für mehr"
     },
-    "classic": "Klassischer Editor",
+    "classic": "Klassischer Editor (Ausweichlösung)",
     "kind": {
       "block": "Sitzblock {{name}}",
       "switch": "Switch {{name}}",
