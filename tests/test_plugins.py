@@ -332,9 +332,35 @@ def test_http_check(client, monkeypatch):
     turn_on(client, "http-check")
     resp = client.post("/api/plugins/http-check/actions/check", json={})
     assert resp.get_json()["message"] == "1 of 2 up: down.example.com down"
+    german = client.post("/api/plugins/http-check/actions/check", json={}, headers={"Accept-Language": "de-CH"})
+    assert german.get_json()["message"] == "1 von 2 erreichbar: down.example.com ausgefallen"
     assert calls[0] == ("https://cache.example.com/health", 5, False, True)
     w = client.get("/api/plugins/http-check/widgets/services").get_json()
     assert [(i["label"], i["state"]) for i in w["items"]] == [("Cache", "up"), ("down.example.com", "down")]
 
     client.put("/api/settings", json={"plugin.http-check.targets": ["file:///etc/passwd"]})
     assert "is not an http" in client.post("/api/plugins/http-check/actions/check", json={}).get_json()["error"]
+
+
+def test_a_plugin_widget_reads_german_where_floorbit_knows_the_text():
+    # Same catalog as the Health page: the HTTP check's "GET … failed" reads German on the dashboard too.
+    from floorbit.blueprints.plugins import german_widget
+    body = {"type": "status", "label": "Checks", "sub": "", "items": [
+        {"label": "Website", "state": "down", "detail": "GET http://192.0.2.10/ failed: ConnectionError"}]}
+    de = german_widget(body, "de-CH")
+    assert de["items"][0]["detail"] == "GET http://192.0.2.10/ fehlgeschlagen: ConnectionError"
+    assert de["items"][0]["label"] == "Website"          # names stay
+    assert german_widget(body, "en") is body
+    assert german_widget({"type": "table", "columns": [{"key": "a", "label": "Name"}], "rows": []},
+                         "de-CH")["columns"][0]["key"] == "a"
+
+
+def test_the_http_check_tiles_read_german(client):
+    de = {"Accept-Language": "de-CH"}
+    turn_on(client, "http-check")
+    tiles = {t["id"]: t for t in client.get("/api/dashboard", headers=de).get_json()["tiles"] if t.get("plugin")}
+    assert tiles["services"]["label"] == "Webdienste" and tiles["services"]["plugin_name"] == "HTTP-Check"
+    assert tiles["check"]["label"] == "Jetzt prüfen"
+    assert client.get("/api/dashboard").get_json()["tiles"][-1]["plugin_name"] == "HTTP check"
+    w = client.get("/api/plugins/http-check/widgets/services", headers=de).get_json()
+    assert w["sub"] == "Noch keine Dienste eingerichtet."

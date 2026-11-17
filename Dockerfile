@@ -13,9 +13,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
+# tzdata: TZ (.env) sets the event's time zone for quiet hours, the forecast and the status page; newer
+# slim images don't promise the zone files, and without them TZ silently stays UTC.
 RUN apt-get update && apt-get install -y \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && test -e /usr/share/zoneinfo/Europe/Zurich
 
 # Copy requirements file
 COPY requirements.txt .
