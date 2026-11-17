@@ -791,6 +791,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-side-body { flex: 1; min-height: 0; }
 .fb-side-row { display: block; width: 100%; padding: 6px 8px; border-radius: 6px; }
 .fb-side-row:hover { background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
-.fb-side-legend { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--color-line); }
+.fb-layer-legend { grid-column: 1 / -1; padding: 2px 0 6px 50px; }
+.fb-layer-legend .fb-plan-legend { margin: 0; gap: 4px 12px; font-size: 12px; }
+.fb-layer-legend.seats { padding: 0 0 4px; }
+.fb-layer-legend .heat { flex-wrap: nowrap; white-space: nowrap; }
+.fb-layer-legend .heat i { width: 72px; }
 .fb-side-foot { padding: 8px 12px; border-top: 1px solid var(--color-line); }
 .fb-side-foot .fb-attribution--compact { padding: 0; }

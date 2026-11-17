@@ -285,6 +285,8 @@
     "button": "Layers",
     "title": "Layers",
     "presets": "Presets",
+    "legendOf": "Legend: {{layer}}",
+    "seatStates": "Seats",
     "preset": {
       "overview": "Overview",
       "network": "Network",

@@ -5,19 +5,19 @@ import { useTranslation } from 'react-i18next'
 import type { SeatViewData } from '@/api/types'
 import { Attribution } from '@/components/Attribution'
 import { type LayerId, type LayerState } from './layers'
-import { LayersBody } from './LayersPanel'
+import { LayersBody, type LayerLegends } from './LayersPanel'
 import { seatOrder } from './model'
 import type { SideTab } from './side'
 
 
 /** The plan's docked right panel, like a map editor's: Layers, Problems and Items while nothing is
  *  open; the open seat, block or switch (``inspector``) takes its place and closing it comes back. */
-export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspector, onSeat, onBlock, onSwitch, legend }: {
+export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspector, onSeat, onBlock, onSwitch, legends }: {
   data: SeatViewData; tab: SideTab; onTab: (t: SideTab) => void
   layers: LayerState; onLayers: (next: LayerState) => void; available: Record<LayerId, boolean>
   inspector: ReactNode; onSeat: (s: string) => void; onBlock: (b: string) => void; onSwitch: (w: string) => void
-  /** What the layers that are on show, under the layer switches. */
-  legend?: ReactNode
+  /** What each layer that is on draws, under its switch. */
+  legends?: LayerLegends
 }) {
   const { t } = useTranslation()
   if (inspector) return <aside className="fb-ws-panel" aria-label={t('plan.side.label')}>{inspector}</aside>
@@ -37,8 +37,7 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
         </Tabs.List>
         <ScrollArea className="fb-side-body" type="auto">
           <Tabs.Panel value="layers" p="md">
-            <LayersBody state={layers} onChange={onLayers} available={available} />
-            {legend && <div className="fb-side-legend">{legend}</div>}
+            <LayersBody state={layers} onChange={onLayers} available={available} legends={legends} />
           </Tabs.Panel>
           <Tabs.Panel value="problems" p="md">
             <Stack gap="md">
