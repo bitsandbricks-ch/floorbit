@@ -16,6 +16,7 @@ Admins (`settings.manage`) press **Add game server** and give:
 | Host, query port | Where Floorbit asks it, for example `192.0.2.50` and `27015`. |
 | Ask with | **Steam server query (A2S)** for Counter-Strike, Team Fortress, Rust, ARK, Valheim and most other Steam games; **Minecraft status** for Minecraft (Java); **Only check the port** for anything else. |
 | RCON port, RCON password | Optional. Without them the server is watched, but has no console. |
+| Runs on | Optional: the server or VM in the [inventory](inventory.md) it runs on. The device page then lists it under **Runs here**, so a host that goes down shows which game servers go with it. |
 
 Floorbit asks every server each `GAME_INTERVAL` seconds (default 30, at least 10). The query is the
 one a server browser sends: it changes nothing on the server.

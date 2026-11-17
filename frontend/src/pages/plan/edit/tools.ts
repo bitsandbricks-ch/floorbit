@@ -1,13 +1,14 @@
 /** The Edit mode's tools. Each keeps going after placing something (sticky, like the older editor);
- *  Esc or V goes back to Select. Hand only moves the view, like Space + drag. */
-export const TOOLS = ['select', 'hand', 'block', 'switch', 'text', 'icon', 'wall', 'zone', 'panel', 'cable', 'board'] as const
+ *  Esc or V goes back to Select. Hand only moves the view, like Space + drag;
+ *  Measure draws a line that only shows its length and angle. */
+export const TOOLS = ['select', 'hand', 'measure', 'block', 'switch', 'text', 'icon', 'wall', 'zone', 'panel', 'cable', 'board'] as const
 export type Tool = (typeof TOOLS)[number]
 
-export const TOOL_KEYS: Record<Tool, string> = { select: 'v', hand: 'h', block: 'b', switch: 's', text: 't', icon: 'i', wall: 'w', zone: 'z', panel: 'p', cable: 'c', board: 'e' }
+export const TOOL_KEYS: Record<Tool, string> = { select: 'v', hand: 'h', measure: 'm', block: 'b', switch: 's', text: 't', icon: 'i', wall: 'w', zone: 'z', panel: 'p', cable: 'c', board: 'e' }
 
 /** How a tool takes the pointer: a click places, a drag draws a line or a box, or pans the view. */
-export const TOOL_GESTURE: Record<Tool, 'select' | 'pan' | 'click' | 'line' | 'box'> = {
-  select: 'select', hand: 'pan', block: 'click', switch: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box', panel: 'click', cable: 'click', board: 'click',
+export const TOOL_GESTURE: Record<Tool, 'select' | 'pan' | 'click' | 'line' | 'box' | 'measure'> = {
+  select: 'select', hand: 'pan', measure: 'measure', block: 'click', switch: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box', panel: 'click', cable: 'click', board: 'click',
 }
 
 /** Row letters like the server's (floorbit/seat_names.py): 0 -> A, 25 -> Z, 26 -> AA. */

@@ -425,6 +425,7 @@
     "tool": {
       "select": "Select",
       "hand": "Hand",
+      "measure": "Measure",
       "block": "Seat block",
       "text": "Label",
       "icon": "Icon",
@@ -437,6 +438,7 @@
     },
     "hint": {
       "hand": "Drag to move the view. Space + drag or the middle mouse button do the same with any tool.",
+      "measure": "Drag to measure a distance in seats and its angle; Shift keeps 15° steps. Nothing is saved.",
       "block": "Click where the new seat block goes.",
       "text": "Click where the label goes.",
       "icon": "Click where the icon goes.",
@@ -679,7 +681,19 @@
     "mixed": "mixed",
     "sharedFields": "All selected",
     "lockedN_one": "{{count}} locked item stays where it is (Ctrl+Shift+L unlocks)",
-    "lockedN_other": "{{count}} locked items stay where they are (Ctrl+Shift+L unlocks)"
+    "lockedN_other": "{{count}} locked items stay where they are (Ctrl+Shift+L unlocks)",
+    "snap": {
+      "label": "Snapping and rulers",
+      "showGrid": "Show the grid",
+      "grid": "Snap to the grid (Alt leaves it while dragging)",
+      "items": "Snap to other items and walls",
+      "rulers": "Rulers"
+    },
+    "tint": {
+      "label": "Own colour",
+      "theme": "Theme colour (follows light and dark)",
+      "reset": "Back to the theme colour"
+    }
   },
   "net": {
     "uplinks_one": "{{count}} link between switches",
