@@ -772,6 +772,8 @@
  "Only seat blocks with the same columns can be merged one above the other": "Nur Sitzblöcke mit den gleichen Spalten lassen sich übereinander zusammenführen",
  "The database isn't answering right now. Floorbit keeps trying; until it's back, pages show what was last read and changes can't be saved.": "Die Datenbank antwortet gerade nicht. Floorbit versucht es weiter; bis sie zurück ist, zeigen die Seiten den zuletzt gelesenen Stand und Änderungen können nicht gespeichert werden.",
  "Database unavailable": "Datenbank nicht erreichbar",
+ "Floorbit's disk is full, so this change was not saved. What was saved before is safe. Free some space on the server (or give the volume more), then try again.": "Floorbits Speicher ist voll, darum wurde diese Änderung nicht gespeichert. Was vorher gespeichert wurde, ist sicher. Mach auf dem Server Platz (oder gib dem Volume mehr), dann versuch es nochmals.",
+ "Floorbit's state folder is read-only, so this change was not saved. Mount it writable (docs/install.md), then try again.": "Floorbits Ordner für den Zustand ist schreibgeschützt, darum wurde diese Änderung nicht gespeichert. Häng ihn beschreibbar ein (docs/install.md), dann versuch es nochmals.",
  "Trying again by itself…": "Versucht es von selbst wieder …",
  "z is a whole number": "z ist eine ganze Zahl",
  "z is a whole number from -1000000 to 1000000": "z ist eine ganze Zahl von -1000000 bis 1000000",

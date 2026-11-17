@@ -201,10 +201,15 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         if denied:
             return denied
         body = request.get_json(silent=True) or request.form
+
+        def text(key):   # the attendee's page sends strings; anything else counts as left out
+            value = body.get(key)
+            return value if isinstance(value, str) else None
+
         try:
-            row = checkin.check_in(body.get('seat'), body.get('username'), checkin.client_ip(),
-                                   load_data, user_agent=request.headers.get('User-Agent'), pin=body.get('pin'),
-                                   device=body.get('device'))
+            row = checkin.check_in(text('seat'), text('username'), checkin.client_ip(),
+                                   load_data, user_agent=request.headers.get('User-Agent'), pin=text('pin'),
+                                   device=text('device'))
         except checkin.CheckinError as exc:
             return jsonify({'ok': False, 'error': str(exc)}), exc.status
         return jsonify({'ok': True, 'seat': row['seat'], 'username': row['username'],
