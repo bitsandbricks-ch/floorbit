@@ -2,7 +2,7 @@
 
 - ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``,
   ``&hall=<id>`` for the floor plan views of another hall than the first),
-  with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like ``/kiosk``.
+  with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like the Kiosk dashboard.
 - ``GET /find``: for players' phones, no account: type a seat number, see where it is in the hall.
   Finding by nick is off unless ``SEAT_FINDER_NICKS`` is on, and then only an exact nick finds a
   seat. ``SEAT_FINDER=false`` turns the page off.
@@ -22,7 +22,9 @@ from ..store import load_data
 
 bp = Blueprint('screen', __name__)
 
-VIEWS = {'floor': '/kiosk', 'heat': '/kiosk?view=heat', 'stats': '/stats?screen=1', 'health': '/health?screen=1'}
+# floor and heat show a hall: ?hall= picks which.
+VIEWS = {'floor': '/dashboards/kiosk', 'heat': '/plan?screen=1&layers=marks%2Cstatus',
+         'stats': '/stats?screen=1', 'health': '/health?screen=1'}
 DEFAULT_VIEWS = ('floor', 'heat', 'stats')
 # Block positions are percentages of the floor plan; the find page draws them on a canvas this big,
 # with seats a bit larger than the editor's so they are easy to tap and see on a phone.
@@ -233,7 +235,7 @@ def screen_page():
     urls = []
     for v in views:
         url = VIEWS[v]
-        if hall and url.startswith('/kiosk'):
+        if hall and v in ('floor', 'heat'):
             url += ('&' if '?' in url else '?') + 'hall=' + hall
         if theme:
             url += ('&' if '?' in url else '?') + 'theme=' + theme

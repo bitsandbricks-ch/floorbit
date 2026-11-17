@@ -37,9 +37,10 @@ __all__ = ['Auth', 'AuthError', 'Identity', 'current_user', 'init_auth', 'login_
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 DEFAULT_PUBLIC_PATHS = '/checkin,/api/checkin,/kiosk'
-# What AUTH_PUBLIC_READ opens to someone not signed in: what the kiosk view and the big screens
-# draw (static/js/kiosk.js), and nothing else. Anything more (inventory with management IPs,
-# incidents, the firewall per seat, reports) needs an account. A path covers what is below it.
+# What AUTH_PUBLIC_READ opens to someone not signed in: what the old /kiosk page drew (now the Kiosk
+# dashboard, which reads its own public feed, blueprints/dashboards.py) and the live updates, and nothing
+# else. Anything more (inventory with management IPs, incidents, the firewall per seat, reports) needs an
+# account. A path covers what is below it.
 PUBLIC_READ_PATHS = ('/api/auth/me', '/api/plugins/menu',   # answer for "nobody" themselves
                      '/api/config', '/api/version', '/api/features', '/api/halls', '/api/plan-marks',
                      '/api/seat-blocks', '/api/seats/occupancy', '/api/stats/seats', '/api/status/snapshot',

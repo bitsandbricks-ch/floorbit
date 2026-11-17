@@ -15,6 +15,12 @@ export type Area =
 
 export type PlanFilter = 'all' | 'problems' | 'offline' | 'recent' | 'note' | 'checked_in'
 
+/** Plan marks a plan pane draws: all its layers show, only the public ones (Overview, Safety, as on
+ *  the attendee pages) for a screen people walk past, or none. */
+export type MarksMode = 'all' | 'public' | 'none'
+export const MARKS_MODES: MarksMode[] = ['all', 'public', 'none']
+export const PUBLIC_MARK_LAYERS = ['overview', 'safety']
+
 export type TextSize = 's' | 'm' | 'l' | 'xl'
 export const TEXT_SIZES: TextSize[] = ['s', 'm', 'l', 'xl']
 export const TEXT_MAX = 2000
@@ -23,16 +29,18 @@ export const TEXT_MAX = 2000
 type Head = { title?: string; hide_title?: boolean }
 
 export type Pane = Head & (
-  | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode }
+  | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode }
   | { kind: 'tile'; tile: string }
   | { kind: 'dashboard'; layout: string }
   | { kind: 'page'; page: PageId }
   | { kind: 'view'; view: string }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
   | { kind: 'empty' }
+  /** Only on a public dashboard read signed out: a pane that needs an account (floorbit/dashboards.py). */
+  | { kind: 'private' }
 )
 
-export type PaneKind = Pane['kind']
+export type PaneKind = Exclude<Pane['kind'], 'private'>
 export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'dashboard', 'page', 'text', 'empty']
 export const PAGES = ['health', 'stats', 'wall', 'status'] as const
 export type PageId = (typeof PAGES)[number]
@@ -53,6 +61,8 @@ export interface Board {
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
   builtin?: boolean
+  /** Opens without signing in, showing only what anyone may see. */
+  public?: boolean
 }
 
 /** Panes on a whole dashboard, all panels and their splits together. */
@@ -63,7 +73,7 @@ export const MAX_DEPTH = 4
 export type Path = number[]
 
 export const planPane = (over: Partial<Extract<Pane, { kind: 'plan' }>> = {}): Pane =>
-  ({ kind: 'plan', hall: '', area: { kind: 'hall' }, preset: 'overview', show: 'all', labels: 'auto', ...over })
+  ({ kind: 'plan', hall: '', area: { kind: 'hall' }, preset: 'overview', show: 'all', labels: 'auto', marks: 'all', ...over })
 
 /** Mike's example: the whole hall on the left, a zoomed area top right, the network bottom right. */
 export function starter(): Node {

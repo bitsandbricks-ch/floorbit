@@ -45,14 +45,14 @@ use can't be removed, and no change may leave nobody with `accounts.manage`.
 | Request | Signed out | Needs |
 | --- | --- | --- |
 | `/` (floor plan editor) | redirected to `/login` | `floorplan.view`; editing tools need `floorplan.edit` |
-| What the kiosk view draws: `GET /api/config`, `/api/switches`, `/api/halls`, `/api/plan-marks`, `/api/seat-blocks`, `/api/seats`, `/api/seats/occupancy`, `/api/stats/seats`, `/api/status/snapshot`, live events | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
+| What the old kiosk page drew: `GET /api/config`, `/api/switches`, `/api/halls`, `/api/plan-marks`, `/api/seat-blocks`, `/api/seats`, `/api/seats/occupancy`, `/api/stats/seats`, `/api/status/snapshot`, live events | yes, while `AUTH_PUBLIC_READ` is on | `floorplan.view` |
 | Every other `GET /api/...` (inventory, incidents, firewalls, reports, replay, DNS, ...) | 401 / login | `floorplan.view` (a kiosk account is enough) |
 | `/api/seats/info`, `/api/seat-map`, `/api/checkins`, `/seat-mapping` (nicks, IPs, MACs) | 401 / login | `seats.view` (changes: `seats.edit`) |
 | Floor plan, seat block and inventory changes | 401 | `floorplan.edit` |
 | `/settings/audit`, `/api/settings/audit` | 401 / login | `audit.read` |
 | `/settings/users`, `/settings/teams`, `/api/users`, `/api/roles`, `/api/teams` | 401 / login | `accounts.manage` |
 | `/settings`, `/api/settings`, `/api/integrations...`, `/api/demo` | 401 / login | `settings.manage` |
-| `/login`, `/api/auth/login-options`, `/api/auth/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, kiosk view) | yes | nothing |
+| `/login`, `/api/auth/login-options`, `/api/auth/login`, static files, `AUTH_PUBLIC_PATHS` (check-in page, `/kiosk`, which goes to the Kiosk dashboard), public dashboards and their `/api/dashboards/<id>/public` feed | yes | nothing |
 
 A refused request answers `403` with `permission_needed`. Plugin actions and widgets name the
 permission they need in their manifest (`permission:`; the older `role:` still works and maps to
@@ -73,9 +73,9 @@ at most 5 levels deep.
 
 Accounts from before roles existed have no role stored and count as admin, so nobody is locked out.
 The old `editor` role is now **Lead** (stored values are read as `lead`), which now also reads the
-audit log. Viewers lost access to `/api/seats/info`; the kiosk view uses `/api/seats/occupancy`.
+audit log. Viewers lost access to `/api/seats/info`; screens use `/api/seats/occupancy`.
 
-What the kiosk view draws stays open by default, so a kiosk screen or the check-in page can load the
+What the old kiosk page drew stays open by default, so a screen or the check-in page can load the
 floor plan without an account. Nothing else is: switch management IPs, incidents, the firewall per
 seat and reports need an account, and the other big screens (`/stats?screen=1`, `/health?screen=1`,
 `/screen`) are signed in with a `kiosk` account anyway. Live events reach signed-out readers and
@@ -119,7 +119,7 @@ password reset signs that account out everywhere.
 | `AUTH_ENABLED` | `true` | `false` turns sign-in off (everyone can edit, like before). |
 | `SECRET_KEY` | generated | Signs the session cookie. Unset, a random key is generated once and kept in `data.json`. |
 | `AUTH_ADMIN_USER`, `AUTH_ADMIN_PASSWORD` | empty | First account, created only when there are no accounts. |
-| `AUTH_PUBLIC_READ` | `true` | What the kiosk view reads (above) works without signing in. |
+| `AUTH_PUBLIC_READ` | `true` | What the old kiosk page read (above) works without signing in. Public dashboards work either way. |
 | `AUTH_PUBLIC_PATHS` | `/checkin,/api/checkin,/kiosk` | Paths open to everyone, comma separated. |
 | `AUTH_SESSION_HOURS` | `12` | How long a sign-in lasts (at least 0.1, six minutes). |
 | `AUTH_COOKIE_SECURE` | `false` | `true` when the app is only reached over HTTPS. |

@@ -129,6 +129,20 @@ def _devices(data):
     return sorted(out, key=lambda o: (o['group'], _natural(o['label'])))
 
 
+def _dashboards(data):
+    from .. import dashboards
+    return sorted(({'value': b['id'], 'label': b.get('name') or b['id']} for b in dashboards.all_layouts(data)),
+                  key=lambda o: _natural(o['label']))
+
+
+def _pages(_data):
+    """The pages this account may open, for links to them (the sidebar's own sections)."""
+    from .. import page_index
+    ctx = {}
+    current_app.update_template_context(ctx)
+    return [{'value': p['id'], 'label': p['label'], 'hint': p['href']} for p in page_index.for_context(ctx)]
+
+
 KINDS = {
     'devices': ('floorplan.view', _devices),
     'switches': ('floorplan.view', _switches),
@@ -138,6 +152,8 @@ KINDS = {
     'halls': ('floorplan.view', _halls),
     'firewalls': ('floorplan.view', _firewalls),
     'agents': ('settings.manage', _agents),
+    'dashboards': ('floorplan.view', _dashboards),
+    'pages': ('floorplan.view', _pages),
     'users': ('incidents.assign', _users),
     'teams': ('incidents.assign', _teams),
 }

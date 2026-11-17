@@ -12,8 +12,9 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
 
 - ``plan``: a hall (``hall``, empty for the first one), the part of it to show (``area``: the whole
   hall, a seat block by name, a zone mark by id, or a box in drawing units), a layer ``preset``
-  (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``) and how seats are numbered
-  (``labels``, frontend/src/pages/plan/labels.ts);
+  (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``), how seats are numbered
+  (``labels``, frontend/src/pages/plan/labels.ts) and which plan marks it draws (``marks``: ``all``
+  the preset shows, ``public`` only the Overview and Safety ones, like the attendee pages, or ``none``);
 - ``tile``: one dashboard plugin tile (``<plugin>/w/<id>``, floorbit/dashboard_layouts.py);
 - ``dashboard``: a saved dashboard layout, by id;
 - ``page``: one of the other big-screen pages (:data:`PAGES`);
@@ -23,6 +24,10 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
 - ``empty``: nothing yet.
 
 Every pane may have a ``title``; ``hide_title`` leaves its head off for a cleaner wall.
+
+A ``public`` dashboard opens without signing in, for a screen in the hall or the event website. It
+then shows only what is safe for anyone (:func:`public_board`): plan panes with the public marks,
+Floorbit's switch, seat and down-switch tiles, and texts. Other panes say they need an account.
 
 Kept in data.json under ``dashboards``. Panes that name something gone (a hall, a tile, a
 dashboard layout) show a note on the screen instead of failing: the screen keeps running.
@@ -51,12 +56,16 @@ AREAS = ('hall', 'block', 'zone', 'box')
 PRESETS = ('overview', 'network', 'electrical', 'ops')
 FILTERS = ('all', 'problems', 'offline', 'recent', 'note', 'checked_in')
 LABELS = ('auto', 'all', 'none')
+# Plan marks on a screen: "public" for one people walk past (plan_marks.PUBLIC_LAYERS only).
+MARKS = ('all', 'public', 'none')
 # The big-screen pages a pane can hold (each one's ``?screen=1`` version).
 PAGES = {'health': '/health?screen=1', 'stats': '/stats?screen=1', 'wall': '/wall?screen=1', 'status': '/status'}
 TITLE_MAX = 40
 TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
 TEXT_ALIGN = ('start', 'center')
+# The tiles a public dashboard may show: counts and switch names, nothing about people or the crew.
+PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down')
 _lock = threading.Lock()
 
 
@@ -68,16 +77,19 @@ class LayoutError(ValueError):
 
 def _plan(**over):
     return {'pane': {'kind': 'plan', 'hall': '', 'area': {'kind': 'hall'}, 'preset': 'overview', 'show': 'all',
-                     'labels': 'auto', **over}}
+                     'labels': 'auto', 'marks': 'all', **over}}
 
 
 # Ready-made dashboards, listed until someone saves their own under the same id (deleting that brings
-# the ready-made one back). The kiosk: the plan on a big screen, with what's down beside it.
+# the ready-made one back). The kiosk (what /kiosk used to be): the plan on a big screen, often in a
+# public place, so only the public marks; the switches on the plan (network layer), how many switches
+# and seats are up, and which switches are down.
 BUILTIN = {
-    'kiosk': {'name': 'Kiosk', 'fit': True, 'sections': [{'panels': [
-        {'x': 0, 'y': 0, 'w': 18, 'h': 12, 'node': _plan()},
-        {'x': 18, 'y': 0, 'w': 6, 'h': 5, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/switches'}}},
-        {'x': 18, 'y': 5, 'w': 6, 'h': 7, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/problems'}}},
+    'kiosk': {'name': 'Kiosk', 'fit': True, 'public': True, 'sections': [{'panels': [
+        {'x': 0, 'y': 0, 'w': 18, 'h': 12, 'node': _plan(preset='network', marks='public')},
+        {'x': 18, 'y': 0, 'w': 6, 'h': 3, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/switches'}}},
+        {'x': 18, 'y': 3, 'w': 6, 'h': 3, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/seats'}}},
+        {'x': 18, 'y': 6, 'w': 6, 'h': 6, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/down'}}},
     ]}]},
 }
 
@@ -159,13 +171,17 @@ def _pane(raw):
         preset = raw.get('preset') or 'overview'
         show = raw.get('show') or 'all'
         labels = raw.get('labels') or 'auto'
+        marks = raw.get('marks') or 'all'
         if preset not in PRESETS:
             raise LayoutError(f'A layer preset is one of: {", ".join(PRESETS)}.')
         if show not in FILTERS:
             raise LayoutError(f'Show is one of: {", ".join(FILTERS)}.')
         if labels not in LABELS:
             raise LayoutError(f'Seat numbers are one of: {", ".join(LABELS)}.')
-        pane.update(hall=hall, area=_area(raw.get('area') or {'kind': 'hall'}), preset=preset, show=show, labels=labels)
+        if marks not in MARKS:
+            raise LayoutError(f'Plan marks are one of: {", ".join(MARKS)}.')
+        pane.update(hall=hall, area=_area(raw.get('area') or {'kind': 'hall'}), preset=preset, show=show, labels=labels,
+                    marks=marks)
     elif kind == 'tile':
         tile = str(raw.get('tile') or '')
         if not TILE_RE.match(tile):
@@ -284,7 +300,8 @@ def clean(body):
         sections = _sections(body.get('sections'), count)
     else:   # one split tree, as saved before the grid
         sections = [{'panels': [_whole(_node(body.get('root'), 0, count))]}]
-    out = {'name': name, 'sections': sections, 'fit': bool(body.get('fit', 'sections' not in body))}
+    out = {'name': name, 'sections': sections, 'fit': bool(body.get('fit', 'sections' not in body)),
+           'public': bool(body.get('public'))}
     # Rotate through the halls on every plan pane that shows a whole hall, like /plan?cycle=.
     if body.get('cycle'):
         out['cycle'] = int(_number(body.get('cycle'), 10, 600, 'Each hall stays 10 to 600 seconds.'))
@@ -322,3 +339,40 @@ def delete(layout_id):
             raise LayoutError('No such dashboard.', 404)
         data[KEY] = kept
         save_data(data)
+
+
+def _public_node(node):
+    if 'pane' not in node:
+        return {**node, 'children': [_public_node(c) for c in node['children']]}
+    pane = node['pane']
+    kind = pane['kind']
+    head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
+    if kind == 'plan':
+        return {'pane': {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}}
+    if kind in ('text', 'empty') or (kind == 'tile' and pane['tile'] in PUBLIC_TILES):
+        return {'pane': pane}
+    return {'pane': {'kind': 'private', **head}}
+
+
+def public_board(layout):
+    """A public dashboard as a screen nobody signed in to gets it: crew panes become ``private``
+    (the screen says they need an account), plan panes draw the public marks only."""
+    sections = [{**sec, 'panels': [{**p, 'node': _public_node(p['node'])} for p in sec['panels']]}
+                for sec in layout['sections']]
+    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle') if k in layout}
+    return {**head, 'public': True, 'sections': sections}
+
+
+def _panes(node):
+    if 'pane' in node:
+        yield node['pane']
+    else:
+        for child in node['children']:
+            yield from _panes(child)
+
+
+def public_panes(layout):
+    """Every pane of a public dashboard, as :func:`public_board` hands them out."""
+    for sec in public_board(layout)['sections']:
+        for panel in sec['panels']:
+            yield from _panes(panel['node'])
