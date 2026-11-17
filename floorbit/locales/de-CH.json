@@ -872,5 +872,7 @@
  "the heartbeat answered HTTP {}, not 204": "der Heartbeat hat mit HTTP {} geantwortet, nicht mit 204",
  "{} is read-only for the agent: mount it writable to clear the cache.": "{} ist für den Agent schreibgeschützt: hänge ihn beschreibbar ein, um den Cache zu leeren.",
  "The database does not answer right now.": "Die Datenbank antwortet gerade nicht.",
- "cannot listen for syslog on UDP {}: {}": "kann nicht auf UDP {} auf Syslog hören: {}"
+ "cannot listen for syslog on UDP {}: {}": "kann nicht auf UDP {} auf Syslog hören: {}",
+ "cannot listen for flows on UDP {}: {}": "kann nicht auf UDP {} auf Flows hören: {}",
+ "agent.fetches does not list {}": "agent.fetches führt {} nicht auf"
 }

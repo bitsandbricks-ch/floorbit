@@ -79,6 +79,7 @@ Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbrick
 | --- | --- | --- | --- |
 | POST | `/api/agent-plugins/<agent_id>/<plugin_id>/unblock` | `plugins.run` |  |
 | GET | `/api/agent/v1/plugins` | anyone |  |
+| GET | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 | POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 
 ## floorbit.blueprints.api_tokens

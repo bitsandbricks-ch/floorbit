@@ -90,8 +90,9 @@ def test_bad_agent_blocks_are_refused(change, error):
 def test_a_good_agent_block_gets_defaults():
     m = manifest(agent={"sends": {"stats": None}})
     assert validate(m) == ""
-    assert m["agent"] == {"module": "agent.py", "sends": {"stats": {"privacy": "aggregate"}},
-                          "calls": [], "actions": [], "targets": False}
+    assert m["agent"] == {"module": "agent.py", "sends": {"stats": {"privacy": "aggregate", "latest": False}},
+                          "calls": [], "actions": [], "fetches": [], "targets": False}
+    assert validate(manifest(agent={"sends": {"stats": {"latest": "yes"}}})).endswith("latest is true or false")
 
 
 def test_the_agent_module_must_exist(tmp_path, app_module):
@@ -365,3 +366,35 @@ def test_plugins_that_answer_for_the_hall_go_to_the_agent_with_their_settings(cl
     before = agent_plugins.config()["etag"]
     values["librenms.url"] = "https://other.example.com"
     assert agent_plugins.config()["etag"] != before
+
+
+def test_what_the_agent_may_fetch_must_be_listed_and_answered(tmp_path):
+    folder = write_plugin(tmp_path, "hallthing", YAML, PY + "\n    def agent_get_seats(self, agent): pass\n")
+    (folder / "agent.py").write_text(AGENT_PY)
+    assert "agent.fetches has no seats" in _load(folder, "development", "1.0").error
+    listed = YAML.replace("agent:\n", "agent:\n  fetches: [seats]\n", 1)
+    folder = write_plugin(tmp_path / "b", "hallthing", listed, PY)
+    (folder / "agent.py").write_text(AGENT_PY)
+    assert "has no agent_get_seats" in _load(folder, "development", "1.0").error
+
+
+def test_the_agent_fetches_from_the_hosted_part(client, anon_client):
+    key = enrol(client)["key"]
+    client.put("/api/settings/plugins/netflow-relay", json={"enabled": True})
+    client.put("/api/settings/features", json={"traffic": True})
+    try:
+        res = anon_client.get("/api/agent/v1/plugins/netflow-relay/seats", headers=head(key))
+        assert res.status_code == 200 and set(res.get_json()["data"]) == {"seat_of", "area_of"}
+        assert res.headers["Cache-Control"] == "no-store"
+        assert anon_client.get("/api/agent/v1/plugins/netflow-relay/other", headers=head(key)).status_code == 422
+        assert anon_client.get("/api/agent/v1/plugins/netflow-relay/seats").status_code == 401
+        cfg = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["plugins"]["netflow-relay"]
+        assert cfg["fetches"] == ["seats"] and cfg["sends"]["summary"] == {"privacy": "device", "latest": True}
+        sent = anon_client.post("/api/agent/v1/plugins/netflow-relay/summary", headers=head(key),
+                                json={"payload": {"updated": 1, "flows": 12}})
+        assert sent.status_code == 200, sent.data
+        client.put("/api/settings/features", json={"traffic": False})
+        assert anon_client.get("/api/agent/v1/plugins/netflow-relay/seats", headers=head(key)).status_code == 409
+    finally:
+        client.put("/api/settings/features", json={"traffic": True})
+        client.put("/api/settings/plugins/netflow-relay", json={"enabled": False})

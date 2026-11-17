@@ -87,6 +87,9 @@ def check_agent_block(m):
         how = sends[kind] = how if isinstance(how, dict) else {}
         if how.setdefault('privacy', 'aggregate') not in PRIVACY:
             return f"agent.sends.{kind}: privacy must be {' or '.join(PRIVACY)}"
+        # latest: only the newest one matters (a summary): the agent keeps one, not a backlog.
+        if not isinstance(how.setdefault('latest', False), bool):
+            return f'agent.sends.{kind}: latest is true or false'
     targets = block.setdefault('targets', False)
     if targets is True:
         targets = block['targets'] = {'credentials': None}
@@ -96,7 +99,7 @@ def check_agent_block(m):
             return f"agent.targets.credentials: some of {', '.join(CREDENTIAL_KINDS)}"
     elif targets is not False:
         return 'agent.targets: true, or {credentials: [ssh, ...]}, when the plugin works on inventory devices'
-    for key in ('calls', 'actions'):
+    for key in ('calls', 'actions', 'fetches'):
         names = block.setdefault(key, [])
         if not isinstance(names, list) or any(not isinstance(n, str) or not KIND_RE.match(n) for n in names):
             return f'agent.{key}: a list of names'
@@ -341,9 +344,15 @@ class MemoryContext:
         self.auth = AuthBlocks()
         self._threads = []
         self._closers = []
+        self.fetched = {}          # kind -> what the hosted part's agent_get_<kind> would answer
 
     def log(self, message):
         self.lines.append(str(message))
+
+    def fetch(self, kind):
+        if kind not in (self.spec_block.get('fetches') or []):
+            raise PluginError(f'agent.fetches does not list {kind}')
+        return self.fetched.get(kind)
 
     def on_stop(self, fn):
         self._closers.append(fn)

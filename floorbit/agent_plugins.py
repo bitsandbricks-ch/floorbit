@@ -66,7 +66,9 @@ def config(registry=None):
         plugins[spec.id] = {
             'version': str(spec.manifest.get('version', '')),
             'settings': settings,
-            'sends': {k: {'privacy': v.get('privacy', 'aggregate')} for k, v in (block.get('sends') or {}).items()},
+            'sends': {k: {'privacy': v.get('privacy', 'aggregate'), **({'latest': True} if v.get('latest') else {})}
+                      for k, v in (block.get('sends') or {}).items()},
+            'fetches': list(block.get('fetches') or []),
             'calls': list(block.get('calls') or []),
             'actions': list(block.get('actions') or []),
         }
@@ -96,6 +98,26 @@ def local_config(registry=None):
                 values[key] = value
         out[spec.id] = {'settings': values}
     return out
+
+
+def give(agent, plugin_id, kind):
+    """What the agent part asks for (``GET /api/agent/v1/plugins/<id>/<kind>``): the hosted part's
+    ``agent_get_<kind>(agent)``. Refused like ``take``."""
+    registry = _registry()
+    if not PLUGIN_ID_RE.match(str(plugin_id)) or not NAME_RE.match(str(kind)):
+        raise Refused('bad plugin or kind', 404)
+    spec = registry.specs.get(plugin_id) if registry else None
+    if spec is None or not spec.agent or spec.error:
+        raise Refused(f'No agent plugin {plugin_id} here.', 404)
+    if not registry.enabled(spec):
+        raise Refused(f'{spec.name} is turned off on this Floorbit.', 409)
+    if kind not in (spec.agent.get('fetches') or []):
+        raise Refused('bad plugin or kind', 422)
+    from .plugins.base import PluginError
+    try:
+        return registry.call(spec, f'agent_get_{kind}', {'id': agent['id'], 'name': agent['name']})
+    except PluginError as exc:
+        raise Refused(str(exc), 409) from exc
 
 
 def _scope():
@@ -147,7 +169,8 @@ def take(agent, plugin_id, kind, payload, registry=None):
     try:
         answer = registry.call(spec, f'agent_{kind}', {'id': agent.get('id'), 'name': agent.get('name')}, payload)
     except PluginError as exc:
-        raise Refused(str(exc), 500) from None
+        # 409, not 500: the agent sends a 5xx again and again; this is the hosted part saying no.
+        raise Refused(str(exc), 409) from None
     return answer if isinstance(answer, dict) else {'ok': True}
 
 
