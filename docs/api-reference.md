@@ -268,6 +268,9 @@ Source: [`floorbit/blueprints/dashboards.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
 | GET | `/api/dashboards/<layout_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PUT | `/api/dashboards/<layout_id>` | `floorplan.edit` |  |
+| GET | `/api/dashboards/<layout_id>/public` | anyone |  |
+| GET | `/api/dashboards/<layout_id>/public/plan` | anyone |  |
+| GET | `/api/dashboards/<layout_id>/public/tiles/<tile>` | anyone |  |
 
 ## floorbit.blueprints.demo
 
@@ -646,7 +649,7 @@ Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/f
 
 ## floorbit.blueprints.pages
 
-The HTML pages of the editor and the kiosk view, and the list of pages for "Go to".
+The HTML pages of the editor, old links that moved, and the list of pages for "Go to".
 
 Source: [`floorbit/blueprints/pages.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/pages.py)
 

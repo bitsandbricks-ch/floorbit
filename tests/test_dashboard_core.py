@@ -15,7 +15,7 @@ def _login(app_module, name, role):
 def test_the_tiles_come_first_and_work_like_plugin_widgets(client):
     tiles = client.get("/api/dashboard").get_json()["tiles"]
     core = [t for t in tiles if t["plugin"] == "floorbit"]
-    assert [t["id"] for t in core][:2] == ["problems", "incidents"] and tiles[:5] == core
+    assert [t["id"] for t in core][:2] == ["problems", "incidents"] and tiles[:len(core)] == core
     assert core[0]["url"] == "/api/dashboard/floorbit/problems" and core[0]["plugin_name"] == "Floorbit"
     body = client.get(core[0]["url"]).get_json()
     assert body["type"] == "stat" and body["link"] == "/problems" and body["unit"] == "down"
@@ -46,7 +46,7 @@ def test_texts_follow_the_browser_language(client):
 def test_only_people_who_see_the_board_get_the_incident_tile(app_module, client):
     viewer = _login(app_module, "vic", "viewer")
     tiles = viewer.get("/api/dashboard").get_json()["tiles"]
-    assert [t["id"] for t in tiles if t["plugin"] == "floorbit"] == ["problems", "switches", "seats"]
+    assert [t["id"] for t in tiles if t["plugin"] == "floorbit"] == ["problems", "switches", "seats", "down"]
     assert viewer.get("/api/dashboard/floorbit/incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/problems").status_code == 200
 
@@ -57,7 +57,7 @@ def test_no_plugin_may_take_the_id():
 
 def test_switch_and_seat_tiles(client):
     ids = [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"] if t["plugin"] == "floorbit"]
-    assert ids == ["problems", "incidents", "switches", "seats"]
+    assert ids == ["problems", "incidents", "switches", "seats", "down"]
     assert dashboard_core.switches_widget("en", {"online": 40, "offline": 2, "unknown": 1}) == {
         "type": "stat", "value": 40, "unit": "of 43 up", "tone": "err", "sub": "2 offline · 1 not known",
         "link": "/problems"}
@@ -68,3 +68,27 @@ def test_switch_and_seat_tiles(client):
     assert dashboard_core.seats_widget("en", 87, 120)["value"] == 87
     for tile in ("switches", "seats"):
         assert client.get(f"/api/dashboard/floorbit/{tile}").get_json()["type"] == "stat"
+
+
+def test_down_switches_tile_lists_what_is_down_and_for_how_long(client):
+    now = 10_000
+    statuses = {
+        "a": {"id": "a", "name": "sw-a-01", "status": "offline", "since": now - 2 * 3600 - 5 * 60},
+        "b": {"id": "b", "name": "sw-b-01", "status": "offline", "since": now - 7 * 60},
+        "c": {"id": "c", "name": "sw-c-01", "status": "online", "since": now - 60},
+        "d": {"id": "d", "name": "sw-d-01", "status": "offline", "since": now - 10},
+    }
+    body = dashboard_core.down_widget("en", statuses, now=now)
+    assert body == {"type": "list", "items": [
+        {"label": "sw-a-01", "value": "2 h 5 min", "tone": "err"},
+        {"label": "sw-b-01", "value": "7 min", "tone": "err"},
+        {"label": "sw-d-01", "value": "just now", "tone": "err"}]}
+    assert dashboard_core.down_widget("de", statuses, now=now)["items"][1]["value"] == "7 Min."
+    up = dashboard_core.down_widget("en", {"c": statuses["c"]}, now=now)
+    assert up["items"] == [{"label": "All switches up", "state": "up"}]
+    assert dashboard_core.down_widget("de", {}, now=now)["items"][0]["state"] == "unknown"
+    many = {str(n): {"id": str(n), "name": f"sw-{n:02d}", "status": "offline", "since": now - n} for n in range(25)}
+    items = dashboard_core.down_widget("en", many, now=now)["items"]
+    assert len(items) == dashboard_core.MAX_DOWN + 1 and items[-1]["label"] == "+ 5 more"
+    body = client.get("/api/dashboard/floorbit/down").get_json()
+    assert body["type"] == "status" and body["refresh"] == 15   # no monitor in the tests: no status yet

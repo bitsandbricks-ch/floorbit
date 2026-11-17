@@ -10,7 +10,8 @@ import { PRESETS, type LayerState } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
 import { useCablePlan } from '../plan/cablePlan'
-import { areaView, seatsIn, type Pane } from './model'
+import { areaView, PUBLIC_MARK_LAYERS, seatsIn, type Pane } from './model'
+import { publicUrl, useScreen } from './screen'
 
 type PlanPaneDef = Extract<Pane, { kind: 'plan' }>
 
@@ -28,26 +29,48 @@ function useHall(pane: PlanPaneDef, cycle: number | undefined, halls: { id: stri
 
 /** One floor plan pane of a dashboard: a hall, the part of it to show, a layer preset. Read only;
  *  someone at the screen can still drag and zoom, and it goes back to its area after a minute. */
-export function PlanPane({ pane, cycle }: { pane: PlanPaneDef; cycle?: number }) {
+export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: number }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
+  const screen = useScreen()
+  const open = screen.publicId   // a public dashboard nobody signed in to: its own feed, no crew layers
+  // The screen's ?hall= stands in for "the first hall" (old /kiosk?hall= and /screen links).
+  const pane = !given.hall && screen.hall ? { ...given, hall: screen.hall } : given
   const hallList = useQuery({
     queryKey: qk.options('halls', ''), queryFn: () => get<{ options: { value: string }[] }>('/api/options/halls'),
-    enabled: !!cycle && !pane.hall, staleTime: 60_000,
+    enabled: !!cycle && !pane.hall && !open, staleTime: 60_000,
   }).data?.options.map((o) => ({ id: o.value }))
-  const hall = useHall(pane, cycle, hallList)
+  const publicHalls = useQuery({
+    queryKey: [...qk.plan(''), 'public', open], queryFn: () => get<SeatViewData>(publicUrl(open!, '/plan')),
+    enabled: !!cycle && !pane.hall && !!open, staleTime: 60_000,
+  }).data?.halls
+  const hall = useHall(pane, cycle, open ? publicHalls : hallList)
+  const at = hall ? `?hall=${encodeURIComponent(hall)}` : ''
   const q = useQuery({
-    queryKey: qk.plan(hall),
-    queryFn: () => get<SeatViewData>(`/api/plan${hall ? `?hall=${encodeURIComponent(hall)}` : ''}`),
+    queryKey: open ? [...qk.plan(hall), 'public', open] : qk.plan(hall),
+    queryFn: () => get<SeatViewData>(open ? publicUrl(open, `/plan${at}`) : `/api/plan${at}`),
     refetchInterval: 30_000,
   })
-  const data = q.data
+  const marks = pane.marks ?? 'all'
+  const data = useMemo(() => {
+    const d = q.data
+    if (!d?.drawing || marks === 'all') return d
+    const kept = marks === 'none' ? [] : (d.drawing.marks ?? []).filter((m) => PUBLIC_MARK_LAYERS.includes(m.layer ?? 'overview'))
+    return { ...d, drawing: { ...d.drawing, marks: kept } }
+  }, [q.data, marks])
   const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: qk.planAll }) }, [qc])
   useLiveEvent('stats.changed', refresh)
   useLiveEvent('attention.changed', refresh)
   useLiveEvent('plan.changed', refresh)
 
-  const layers: LayerState = useMemo(() => ({ on: new Set(PRESETS[pane.preset]), fade: {} }), [pane.preset])
+  const layers: LayerState = useMemo(() => {
+    const on = new Set<string>(PRESETS[pane.preset])
+    // Safety marks are public (exits, first aid): a public pane draws them whatever the preset.
+    if (marks === 'public') on.add('safety')
+    // Signed out there is no feed for power, firewalls, Wi-Fi, incidents or cables.
+    if (open) for (const l of ['electrical', 'firewalls', 'wifi', 'crew']) on.delete(l)
+    return { on: on as LayerState['on'], fade: {} }
+  }, [pane.preset, marks, open])
   const on = (id: string) => layers.on.has(id as never)
   // Cached answers from another pane come back even while a query is off: gate them on the layer too.
   const powerQ = useQuery({
@@ -71,8 +94,8 @@ export function PlanPane({ pane, cycle }: { pane: PlanPaneDef; cycle?: number })
     refetchInterval: 30_000, enabled: on('crew'), retry: false,
   })
   const incidents = on('crew') ? incidentQ.data : undefined
-  const cablePlan = useCablePlan(data?.hall, pane.preset === 'network')
-  const cables = pane.preset === 'network' ? cablePlan : undefined
+  const cablePlan = useCablePlan(data?.hall, pane.preset === 'network' && !open)
+  const cables = pane.preset === 'network' && !open ? cablePlan : undefined
 
   const drawing = data?.drawing
   const home = useMemo(() => (drawing ? areaView(pane.area, drawing) : null), [drawing, pane.area])

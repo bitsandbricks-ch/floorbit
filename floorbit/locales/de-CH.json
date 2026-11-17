@@ -902,6 +902,7 @@
  "Pick the seat block to show.": "Wähle den Platzblock, der gezeigt werden soll.",
  "Pick the zone to show.": "Wähle die Zone, die gezeigt werden soll.",
  "Seat numbers are one of: {}.": "Platznummern sind eine von: {}.",
+ "Plan marks are one of: {}.": "Plan-Markierungen sind eine von: {}.",
  "Show is one of: {}.": "Anzeigen ist eines von: {}.",
  "Splits go at most {} deep.": "Teilungen gehen höchstens {} Ebenen tief.",
  "The part of the plan to show is not on the plan.": "Der gezeigte Ausschnitt liegt nicht auf dem Plan.",

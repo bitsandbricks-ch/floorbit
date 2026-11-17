@@ -6,9 +6,9 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 
 | Pane | What it shows |
 | --- | --- |
-| **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter and how seats are numbered. |
+| **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget (a chart, a map, a table) from the widget list (`frontend/src/widgets/views.ts`). |
-| **Tile** | One dashboard tile: Floorbit's own (problems, incidents, switches, seats) or a plugin's. |
+| **Tile** | One dashboard tile: Floorbit's own (problems, incidents, switches, seats, switches down) or a plugin's. |
 | **Tiles** | A saved tile layout from the [tile dashboard](dashboard.md). |
 | **Page** | Service health, stats, the public stats wall or the status page. |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
@@ -40,14 +40,39 @@ layer at the bottom right.
   goes with it).
 - **Zone** lists the zones of the hall that have a label: draw one around the VIP area with the
   editor's Zone tool first. **My view** shows a small plan: move and zoom it, then **Use this view**.
+- **Plan marks** on a plan pane: **All** draws the marks of its layers, **Public** only the Overview
+  and Safety marks (as the [attendee pages](kiosk.md#attendee-view) do), for a screen people walk
+  past, and **None** none.
+- **Public** lets the dashboard open without signing in (below).
 - **Rotate halls every** makes plan panes without a fixed hall that show a whole hall go through all
   halls in turn.
 
 ## Kiosk
 
-**Kiosk** is a ready-made dashboard: the first hall's plan with the switches and current problems
-beside it. Change it like any other; saving keeps your version under the same name, and deleting
-your version brings the ready-made one back. The older `/kiosk` page stays for now.
+**Kiosk** is a ready-made dashboard for the big screen in the hall, and what `/kiosk` opens: the
+first hall's plan with the public marks only, and beside it how many switches are up, how many
+seats are online, and which switches are down and for how long. It is public. Change it like any
+other; saving keeps your version under the same name, and deleting your version brings the
+ready-made one back. See [kiosk.md](kiosk.md).
+
+## Public dashboards
+
+A dashboard with **Public** on opens without signing in, for a screen in the hall or a link on the
+event website. Signed out, it shows only what anyone may see:
+
+- **Plan** panes: seats online or offline, taken or checked in and their traffic, switches by name
+  and status, and the public marks only (a pane set to **All** draws the public ones). No nicks,
+  IPs, MACs, notes, seat problems, power boards or patch panels, and no power, firewall, Wi-Fi or
+  crew layer.
+- **Tiles**: Floorbit's switches, seats online and switches down tiles.
+- **Text** and empty panes.
+
+Any other pane (other tiles, widgets, tile layouts, pages) says it needs an account. Someone signed
+in sees the whole dashboard as usual. For a screen that should show more, sign it in with a `kiosk`
+account or a custom role ([auth.md](auth.md)).
+
+A signed-out screen reads `GET /api/dashboards/<id>/public` and, below it, `/plan?hall=` and
+`/tiles/<tile>`; they answer only for a public dashboard and only for what it shows.
 
 ## On the screen
 
@@ -59,6 +84,11 @@ area after a minute. On a phone the panes are stacked.
 Seat numbers follow the zoom ([zoom levels](seats.md#zoom-levels)); set a plan pane's
 **Seat numbers** to **Always** or **Never** to override that.
 
+`?hall=<id>` on the screen's address shows that hall on the plan panes without a hall of their own,
+for example `/dashboards/kiosk?hall=hall-2`. `?theme=<preset>` picks the look, as on every page
+([themes.md](themes.md)); the Kiosk dashboard uses the `kiosk` preset unless the site theme says
+otherwise.
+
 ## For developers
 
 Data: `floorbit/dashboards.py` (data.json key `dashboards`), API `GET/PUT/DELETE /api/dashboards/<id>`.
@@ -67,4 +97,7 @@ A dashboard is `sections` (each with an optional `title`, `folded` and its `pane
 as one split tree (`root`) are read as one panel filling the screen. How panels make room is in
 `frontend/src/pages/dashboards/grid.ts`.
 A rich widget is a React component registered with one line in `frontend/src/widgets/views.ts`; it
-gets `expanded` and has no page or route of its own.
+gets `expanded` and has no page or route of its own. Floorbit's own tiles are one line in
+`TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`
+(`floorbit/blueprints/plugins.py`). What a public dashboard may show is `PUBLIC_TILES` and
+`public_board()` in `floorbit/dashboards.py`.

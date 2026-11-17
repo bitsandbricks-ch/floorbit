@@ -8,8 +8,7 @@ A block keeps two lists, each entry ``{"after": n, "size": s}``:
 - ``row_gaps``: an empty lane ``s`` seats high after row ``n`` (counted from the top).
 
 Gaps only move seats apart: seat names and numbers carry on across them. The editor has the same
-rules in frontend/src/pages/plan/edit/gaps.ts, the kiosk in static/js/kiosk.js. Seats placed freely:
-seat_layout.py.
+rules in frontend/src/pages/plan/edit/gaps.ts. Seats placed freely: seat_layout.py.
 """
 
 MAX_GAPS = 50      # per direction, far more than any row needs

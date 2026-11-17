@@ -69,7 +69,8 @@ def test_german_for_german_browsers(anon_client, hall):
 
 def test_screen_rotates_the_chosen_views_with_a_qr_code(client, hall):
     page = client.get("/screen?views=stats,heat,nonsense&every=5&theme=ops").get_data(as_text=True)
-    assert 'data-src="/stats?screen=1&amp;theme=ops"' in page and 'data-src="/kiosk?view=heat&amp;theme=ops"' in page
+    assert 'data-src="/stats?screen=1&amp;theme=ops"' in page
+    assert 'data-src="/plan?screen=1&amp;layers=marks%2Cstatus&amp;theme=ops"' in page
     assert "nonsense" not in page and "SCREEN_EVERY = 10" in page   # at least 10 seconds
     assert 'class="qr"' in page and "data:image/svg+xml" in page and "/find" in page
 
@@ -77,7 +78,7 @@ def test_screen_rotates_the_chosen_views_with_a_qr_code(client, hall):
 def test_screen_without_qr_and_theme_injection(client, hall):
     page = client.get("/screen", query_string={"qr": "0", "theme": '"><script>'}).get_data(as_text=True)
     assert 'class="qr"' not in page and '"><script>' not in page and "?theme=" not in page
-    assert 'data-src="/kiosk"' in page   # the default views
+    assert 'data-src="/dashboards/kiosk"' in page   # the default views
 
 
 def test_screen_needs_floor_plan_access(anon_client, app_module, monkeypatch):

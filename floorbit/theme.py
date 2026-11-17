@@ -116,12 +116,12 @@ def init_theme(app, store):
 
     @app.context_processor
     def theme_context():
-        # The health wall and the stats screen are big screens too, opened with ?screen=1: they get
-        # the kiosk preset unless the theme says otherwise. Without it they are crew pages and look
-        # like the rest (the health page was always dark, even inside the app).
+        # The Kiosk dashboard is the big screen. The health wall, the stats screen and the plan are big
+        # screens too when opened with ?screen=1: they get the kiosk preset unless the theme says
+        # otherwise. Without it they are crew pages and look like the rest.
         path = request.path.rstrip('/')
         screen = request.args.get('screen') == '1'
-        big = path in ('/kiosk', '/screen') or (path in ('/health', '/stats') and screen)
+        big = path in ('/screen', '/dashboards/kiosk') or (path in ('/health', '/stats', '/plan') and screen)
         page = 'kiosk' if big else None
         theme = resolve(store, page=page, override=_request_override())
         theme['html_attrs'] = html_attrs(theme)
