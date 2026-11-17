@@ -26,6 +26,7 @@ import { Shortcuts } from './plan/Shortcuts'
 import { StaleNotice } from './plan/StaleNotice'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
+import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
 import { LoadingState, ErrorBanner } from '@/components/ui'
@@ -350,6 +351,7 @@ export default function FloorPlan() {
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>}
           {!list && !editing && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
+          {!list && !editing && mode === 'network' && cablePlan?.cables && <CableLegend cables={cablePlan.cables} />}
           {!list && !editing && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}

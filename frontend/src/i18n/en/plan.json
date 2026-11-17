@@ -607,6 +607,13 @@
     "unplace_other": "Take {{count}} off the plan"
   },
   "net": {
+    "legend": "What the cables show",
+    "cables_one": "{{count}} seat cable",
+    "cables_other": "{{count}} seat cables",
+    "media": { "copper": "Copper", "fiber": "Fiber", "dac": "DAC" },
+    "speed": "{{gbps}} Gbit/s",
+    "learnedCount_one": "{{count}} read from the ports, not typed in",
+    "learnedCount_other": "{{count}} read from the ports, not typed in",
     "learned": "read from the port, not typed in",
     "panel": "Patch panel {{name}}: {{used}} of {{ports}} ports in use"
   }

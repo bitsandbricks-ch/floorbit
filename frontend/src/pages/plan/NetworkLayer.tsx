@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { PlanCable, PlanPanel } from '@/api/types'
 import { cablePath } from './cablePlan'
+import { cableSummary } from './cableLegend'
 
 const SPEED_W: Record<number, number> = { 1: 1.6, 10: 2.4, 25: 2.8, 40: 3.2, 100: 3.6 }
 
@@ -33,5 +34,25 @@ export function PanelGlyphs({ panels, near }: { panels: PlanPanel[]; near: boole
         </g>
       ))}
     </g>
+  )
+}
+
+const MEDIA_COLOR: Record<string, string> = { copper: 'var(--mantine-color-blue-6)', fiber: 'var(--mantine-color-cyan-6)', dac: 'var(--mantine-color-violet-6)' }
+const line = (stroke: string, width: number, dash?: string) => (
+  <svg width={28} height={10} aria-hidden="true"><line x1={2} y1={5} x2={26} y2={5} stroke={stroke} strokeWidth={width} strokeLinecap="round" strokeDasharray={dash} /></svg>
+)
+
+/** What the seat cables' colours, widths and dashes mean, for the cables on this plan only. */
+export function CableLegend({ cables }: { cables: PlanCable[] }) {
+  const { t } = useTranslation()
+  const s = cableSummary(cables)
+  if (!s.total) return null
+  return (
+    <ul className="fb-plan-legend fb-cable-legend" aria-label={t('plan.net.legend')}>
+      <li><b>{t('plan.net.cables', { count: s.total })}</b></li>
+      {s.media.map((m) => <li key={m}>{line(MEDIA_COLOR[m], 3)}{t(`plan.net.media.${m}`)}</li>)}
+      {s.speeds.length > 1 && s.speeds.map((v) => <li key={v}>{line('var(--color-muted)', SPEED_W[v] ?? 1.6)}{t('plan.net.speed', { gbps: v })}</li>)}
+      {s.learned > 0 && <li>{line('var(--color-muted)', 2, '4 3')}{t('plan.net.learnedCount', { count: s.learned })}</li>}
+    </ul>
   )
 }
