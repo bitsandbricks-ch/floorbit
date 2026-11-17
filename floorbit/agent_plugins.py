@@ -73,8 +73,55 @@ def config(registry=None):
             'actions': list(block.get('actions') or []),
         }
     local = local_config(registry)
-    raw = json.dumps([plugins, local], sort_keys=True, default=str).encode()
-    return {'plugins': plugins, 'local': local, 'etag': hashlib.sha256(raw).hexdigest()[:32]}
+    offered = bundles_offer(set(plugins) | set(local))
+    raw = json.dumps([plugins, local, offered], sort_keys=True, default=str).encode()
+    return {'plugins': plugins, 'local': local, 'bundles': offered,
+            'etag': hashlib.sha256(raw).hexdigest()[:32]}
+
+
+# Signed plugin bundles (floorbit/plugins/bundles.py): the release workflow signs them and puts them
+# with their index.json in the image (or FLOORBIT_AGENT_BUNDLES). This side only hands them on; it
+# holds no key and can't make one an agent would take.
+BUNDLE_NAME_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}-\d+(\.\d+){0,2}\.tar\.gz$')
+
+
+def bundles_dir():
+    import os
+    from pathlib import Path
+    return Path(os.environ.get('FLOORBIT_AGENT_BUNDLES')
+                or Path(__file__).resolve().parent.parent / 'agent-bundles')
+
+
+def bundles_index():
+    """``{id: {version, file, sha256, agent_api}}`` from the bundles' index.json; {} without one."""
+    path = bundles_dir() / 'index.json'
+    try:
+        doc = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for pid, entry in (doc.get('plugins') or {}).items() if isinstance(doc, dict) else ():
+        if (isinstance(entry, dict) and PLUGIN_ID_RE.match(str(pid))
+                and BUNDLE_NAME_RE.match(str(entry.get('file', '')))):
+            out[pid] = {'version': str(entry.get('version', '')), 'file': entry['file'],
+                        'sha256': str(entry.get('sha256', '')), 'agent_api': int(entry.get('agent_api') or 1)}
+    return out
+
+
+def bundles_offer(plugin_ids):
+    """The bundles of the plugins the agents run, for ``config()``."""
+    index = bundles_index()
+    return {pid: index[pid] for pid in sorted(plugin_ids) if pid in index}
+
+
+def bundle_file(name):
+    """The path of a bundle listed in the index, or None."""
+    if not BUNDLE_NAME_RE.match(str(name)):
+        return None
+    if name not in {e['file'] for e in bundles_index().values()}:
+        return None
+    path = bundles_dir() / name
+    return path if path.is_file() else None
 
 
 def local_config(registry=None):
@@ -242,6 +289,88 @@ def clean_health(raw):
                        for e in errors[-10:] if isinstance(e, dict)],
         }
     return out
+
+
+UPDATE_EVENTS = ('installed', 'kept', 'rolled back', 'refused', 'waiting', 'dropped')
+VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}$')
+
+
+def _ver(v):
+    v = str(v or '')
+    return v if VERSION_RE.match(v) else ''
+
+
+def clean_updates(raw):
+    """The agent's plugin updates (floorbit_agent/bundles.py) from its report: its policy, the
+    version each plugin runs, what waits, and the last rollouts. Not trusted: known shapes only."""
+    if not isinstance(raw, dict):
+        return None
+    plugins = {}
+    for pid, p in list((raw.get('plugins') or {}).items())[:MAX_PLUGINS_REPORTED] \
+            if isinstance(raw.get('plugins'), dict) else ():
+        if not PLUGIN_ID_RE.match(str(pid)) or not isinstance(p, dict):
+            continue
+        pending = p.get('pending') if isinstance(p.get('pending'), dict) else None
+        plugins[pid] = {
+            'version': _ver(p.get('version')),
+            'source': 'bundle' if p.get('source') == 'bundle' else 'image',
+            'pending': {'version': _ver(pending.get('version')), 'why': str(pending.get('why') or '')[:300]}
+            if pending else None,
+            'probation': bool(p.get('probation')),
+            'rolled_back': [_ver(v) for v in (p.get('rolled_back') or [])[:10] if _ver(v)]
+            if isinstance(p.get('rolled_back'), list) else [],
+        }
+    events = []
+    for e in (raw.get('events') or [])[-20:] if isinstance(raw.get('events'), list) else ():
+        if (isinstance(e, dict) and e.get('event') in UPDATE_EVENTS and PLUGIN_ID_RE.match(str(e.get('plugin')))
+                and _number(e.get('at'))):
+            events.append({'at': e['at'], 'plugin': e['plugin'], 'event': e['event'],
+                           'version': _ver(e.get('version')), 'detail': str(e.get('detail') or '')[:300]})
+    return {'policy': raw.get('policy') if raw.get('policy') in ('auto', 'approve', 'off') else 'auto',
+            'image': _ver(raw.get('image')), 'signed': bool(raw.get('keys')),
+            'plugins': plugins, 'events': events}
+
+
+def clean_vrrp(raw):
+    """``{"primary", "holds"}``: whether the agent is its hall's primary, and the VIPs it holds."""
+    if not isinstance(raw, dict):
+        return None
+    holds = raw.get('holds') if isinstance(raw.get('holds'), list) else []
+    return {'primary': bool(raw.get('primary')),
+            'holds': [str(v)[:50] for v in holds[:16] if isinstance(v, str)]}
+
+
+def note_updates(agent_id, before, after, now=None):
+    """Audit-log each plugin rollout an agent reported for the first time."""
+    import time
+
+    from . import agent_link, audit
+    events = ((after or {}).get('updates') or {}).get('events') or []
+    if not events:
+        return
+    # A report repeats the last rollouts: only the ones newer than the report before count. After
+    # a restart here there is no report before, so only the last minute and a half's.
+    since = (before or {}).get('at') or ((time.time() if now is None else now) - 90)
+    seen = {(e['at'], e['plugin'], e['event'], e['version'])
+            for e in ((before or {}).get('updates') or {}).get('events') or []}
+    fresh = [e for e in events if (e['at'], e['plugin'], e['event'], e['version']) not in seen and e['at'] >= since]
+    if not fresh:
+        return
+    names = {a['id']: a['name'] for a in agent_link.load_data().get(agent_link.KEY) or []}
+    who = names.get(agent_id, agent_id)
+    for e in fresh:
+        pid, ver, why = e['plugin'], e['version'], e['detail'][:160] or '-'
+        if e['event'] == 'installed':
+            audit.record('agents', f'{who}: updated plugin {pid} to {ver}', user='agent', target=pid)
+        elif e['event'] == 'kept':
+            audit.record('agents', f'{who}: kept plugin {pid} {ver}', user='agent', target=pid)
+        elif e['event'] == 'rolled back':
+            audit.record('agents', f'{who}: rolled back plugin {pid} {ver} ({why})', user='agent', target=pid,
+                         ok=False)
+        elif e['event'] in ('refused', 'dropped'):
+            audit.record('agents', f'{who}: refused plugin {pid} {ver} ({why})', user='agent', target=pid,
+                         ok=False)
+        # 'waiting' is shown on the Local agents page; nothing changed.
 
 
 def note_blocks(agent_id, before, after):

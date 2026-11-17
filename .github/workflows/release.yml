@@ -16,9 +16,57 @@ permissions:
   contents: read
 
 jobs:
+  # Signs the built-in plugins for the local agents (docs/agent-plugins.md, "Updates"). The key is
+  # an environment secret of plugin-signing, so only this job sees it: anything it signs runs on
+  # every agent that pins its public key. It runs nothing but this repository's own script and
+  # its Python requirements. Without the secret (not set up yet) the release has no bundles and
+  # agents keep the plugins their image came with.
+  sign-agent-plugins:
+    if: ${{ !github.event.repository.is_template }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: plugin-signing
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Sign
+        env:
+          SIGNING_KEY: ${{ secrets.FLOORBIT_PLUGIN_SIGNING_KEY }}
+        run: |
+          mkdir -p agent-bundles
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::warning::no FLOORBIT_PLUGIN_SIGNING_KEY in the plugin-signing environment: no agent plugin bundles"
+            exit 0
+          fi
+          key="$RUNNER_TEMP/key.pem"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s\n' "$SIGNING_KEY" > "$key")
+          python scripts/agent_bundles.py build --key "$key" --out agent-bundles
+          python scripts/agent_bundles.py verify agent-bundles
+      - name: Pack
+        run: |
+          version=$(cat VERSION)
+          if [ -f agent-bundles/index.json ]; then
+            tar -czf "agent-plugins-$version.tar.gz" -C agent-bundles --exclude .gitkeep .
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: agent-plugins
+          path: agent-plugins-*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 1
+
   release:
     # Never release the template itself, only repos made from it.
     if: ${{ !github.event.repository.is_template }}
+    needs: sign-agent-plugins
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -28,6 +76,11 @@ jobs:
       - name: The tag matches the version file
         id: version
         run: python3 .github/scripts/release_version.py "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true      # none when the signing key isn't set up yet
+        with:
+          name: agent-plugins
+          path: dist
       - name: Notes from the changelog
         env:
           VERSION: ${{ steps.version.outputs.version }}

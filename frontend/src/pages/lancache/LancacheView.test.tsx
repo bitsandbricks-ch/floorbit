@@ -2,7 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LancacheOverview } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Lancache from './Lancache'
+import LancacheView from './LancacheView'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -29,7 +29,7 @@ const data: LancacheOverview = {
   min_clients: 5, window_hours: 24,
 }
 
-describe('Lancache', () => {
+describe('LancacheView', () => {
   it('shows what the cache saved, the machine and what the hall downloads, and clears it after asking', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': admin,
@@ -37,7 +37,7 @@ describe('Lancache', () => {
       'POST /api/plugins/lancache/actions/clear_cache': { ok: true, message: 'Clearing the cache. It fills again as players download.', data: {} },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Lancache />)
+    renderWithApp(<LancacheView expanded />)
     expect(await screen.findByText('75 %')).toBeInTheDocument()
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText('answers (cache-01, 3 ms)')).toBeInTheDocument()
@@ -59,8 +59,16 @@ describe('Lancache', () => {
       'GET /api/auth/me': admin,
       'GET /api/lancache?hours=24': { ...data, plugin_on: false, agents: [], downloads: [], suspects: [], dns_services: [] },
     }).fn)
-    renderWithApp(<Lancache />)
+    renderWithApp(<LancacheView expanded={false} />)
     expect(await screen.findByText(/The LAN cache plugin is off/)).toBeInTheDocument()
     expect(screen.getByText(/No agent has reported/)).toBeInTheDocument()
+  })
+
+  it('keeps clearing for the expanded view', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/lancache?hours=24': data }).fn)
+    renderWithApp(<LancacheView expanded={false} />)
+    expect(await screen.findByText('75 %')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear the cache' })).not.toBeInTheDocument()
+    expect(screen.queryByText('depot 228988')).not.toBeInTheDocument()
   })
 })

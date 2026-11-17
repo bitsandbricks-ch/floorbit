@@ -5,7 +5,7 @@ The **LAN cache** plugin watches a [lancache.net](https://lancache.net) cache fr
 
 - four dashboard widgets: this hour's hit ratio, what the cache served per hour, the cache
   machine (cache, lancache-dns, disk) and popular downloads;
-- the full **LAN cache** view, opened from those widgets (`/lancache`): the same numbers over a
+- the **LAN cache** view, for a dashboard pane or a widget opened up: the same numbers over a
   chosen range, files the cache isn't keeping, lancache-dns lookups, and clearing the cache;
 - the cache numbers on **Games**, the stats wall and the health wall (docs/games.md);
 - **DNS analytics** (docs/dns.md), from lancache-dns's query log;

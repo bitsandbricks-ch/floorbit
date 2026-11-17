@@ -27,6 +27,27 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # A release image carries its signed agent plugins (release.yml signs them), so the hosted
+      # Floorbit can hand them to the agents. Waits for the release, which this tag starts too.
+      - name: Signed agent plugins
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for i in $(seq 1 40); do
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              if gh release download "$TAG" --pattern 'agent-plugins-*.tar.gz' --dir "$RUNNER_TEMP/ap" 2>/dev/null; then
+                tar -xzf "$RUNNER_TEMP"/ap/agent-plugins-*.tar.gz -C agent-bundles
+                ls agent-bundles
+              else
+                echo "::warning::$TAG has no signed agent plugins"
+              fi
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::the release $TAG did not appear within 10 minutes" && exit 1
       - name: Build
         env:
           REPO: ${{ github.repository }}

@@ -28,6 +28,48 @@ agent's monitoring source). It keeps those settings in memory only, so tokens ne
 (`LIBRENMS_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`, ...) still wins over them. A plugin named in
 `FLOORBIT_AGENT_PLUGINS` stays on whatever the hosted side says.
 
+### Updates
+
+A new Floorbit release brings new versions of its plugins to the agents too, without a new agent
+image. The release workflow signs every built-in plugin with a key that only its signing job sees,
+and the hosted Floorbit's image carries the signed bundles. The hosted side offers each agent the
+bundles of the plugins it runs, and the agent installs one only when:
+
+- it verifies against a public key built into the agent's image (`floorbit/keys/agent-plugins/`).
+  The hosted Floorbit holds no key, so a stolen hosted login can't make a bundle an agent takes;
+- it is newer than what the agent runs: never a downgrade, not even when the hosted side goes back
+  to an older release;
+- it needs nothing the agent's image lacks (`agent_api`), and it wasn't rolled back on this agent.
+
+The hall decides how, in `agent.env`:
+
+```sh
+FLOORBIT_AGENT_PLUGIN_UPDATES=auto       # the default: install at once
+FLOORBIT_AGENT_PLUGIN_UPDATES=approve    # wait: docker compose exec agent python -m floorbit_agent plugins approve lancache
+FLOORBIT_AGENT_PLUGIN_UPDATES=off        # keep the plugins the image came with
+```
+
+`python -m floorbit_agent plugins` lists what runs and what waits. A plugin that doesn't start on
+its new version, or reports an error in its first five minutes, goes back to the version it ran
+before, and that version is never tried on this agent again. Every install, rollback and refusal
+is in the audit log, and the Local agents page shows the version each agent runs.
+
+A bundle holds the plugin's own files only. A plugin that needs a newer agent core (a higher
+`AGENT_API` in `floorbit/plugins/agent.py`) waits, shown as "needs a newer agent image", until the
+agent's image is updated.
+
+For the maintainer: `python scripts/agent_bundles.py keygen` makes the key pair. The public key goes
+into `floorbit/keys/agent-plugins/` (and from there into the next agent image), the private key into
+the `FLOORBIT_PLUGIN_SIGNING_KEY` secret of the `plugin-signing` environment. Until both are there,
+releases have no bundles and agents keep their image's plugins.
+
+### Two agents in one hall
+
+With VRRP (docs/vrrp.md in floorbit-agent), `self.ctx.primary()` says whether this agent holds the
+first VIP. Only the primary should poll devices and log in to them, so no device is asked twice and
+no login is tried twice; a standby keeps its listeners up and takes over when it becomes primary.
+Without VRRP every agent is its own primary.
+
 ### Actions need the hall's yes
 
 Some plugins can change things in the hall (the LAN cache plugin can clear the cache). The hosted
@@ -124,6 +166,7 @@ class AgentPlugin(Base):
 | `log(message)` | the agent's log, prefixed with the plugin's id |
 | `thread(fn)`, `stopping` | background work that ends when the plugin stops |
 | `listen_udp(port, handler)`, `listen_http(port, handler, tls=False)` | listeners that close when the plugin stops; with `tls=True` HTTPS when the hall set `FLOORBIT_AGENT_TLS_CERT` and `FLOORBIT_AGENT_TLS_KEY` (`ctx.tls` says which) |
+| `primary()` | True unless VRRP runs and another agent in the hall holds the first VIP (see Two agents in one hall). Cheap: ask it every few seconds |
 | `fetch(kind)` | what the hosted part's `agent_get_<kind>(agent)` answers, for a kind under `fetches:`. `HostedSaidNo` when it answered no (turned off there), another `PluginError` while it is away (keep what you had) |
 | `on_stop(fn)` | runs when the plugin stops |
 | `state_dir` | a folder of its own in the agent's state volume |
@@ -163,7 +206,9 @@ after they change.
 | Settings | `GET /api/agent/v1/plugins`, pulled every minute with an ETag, and when a `plugins_reload` call says they changed |
 | Sends | `POST /api/agent/v1/plugins/<id>/<kind>` `{"payload"}`, gzipped |
 | Calls and actions | the agent link, method `plugin` `[id, "call" \| "action", name, args]` |
-| Health | the agent's report every half minute, under `plugins` |
+| Health | the agent's report every half minute, under `plugins`; plugin versions under `updates` |
+| Bundles | listed under `bundles` in the settings, fetched from `GET /api/agent/v1/bundles/<file>` |
 
 All of it goes over the agent's TLS connection with its key ([agent.md](agent.md)). Only plugins
-that ship with Floorbit run on an agent; nothing is downloaded to it.
+that ship with Floorbit run on an agent: the ones in its image, or newer versions of them signed by
+Floorbit's release.
