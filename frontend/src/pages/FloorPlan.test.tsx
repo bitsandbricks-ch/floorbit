@@ -658,6 +658,19 @@ describe('Seats page', () => {
     expect(container.querySelector('.cell.dim')).toBeNull()
   })
 
+  it('closes the open panel with Esc, and Esc in the search box only clears it', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data, 'GET /api/plan/seats/D-2': details }).fn)
+    function Where() { return <output aria-label="address">{useLocation().search}</output> }
+    renderWithApp(<><FloorPlan /><Where /></>, '/plan?hall=main&seat=D-2')
+    const find = await screen.findByRole('textbox', { name: 'Find a seat' })
+    fireEvent.change(find, { target: { value: 'z9' } })
+    fireEvent.keyDown(find, { key: 'Escape' })
+    expect(find).toHaveValue('')
+    expect(screen.getByLabelText('address')).toHaveTextContent('seat=D-2')
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^\?hall=main$/))
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }

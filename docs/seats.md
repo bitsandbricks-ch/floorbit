@@ -149,7 +149,7 @@ Tab to the plan, then:
 | --- | --- |
 | Arrow keys | Move a dashed cursor to the next seat in that direction, in rotated blocks too. The first press starts on the open seat or the one in the middle of the view. The view follows the cursor. |
 | Enter or Space | Open the seat under the cursor in the inspector. |
-| Escape | Close the inspector. |
+| Escape | Close the open seat, block or switch panel (from anywhere on the page; in the search box, Esc clears it). |
 | B | Open the block of the seat under the cursor. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |

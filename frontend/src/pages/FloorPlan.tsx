@@ -154,7 +154,14 @@ export default function FloorPlan() {
   // "?" lists the shortcuts, as on GitHub and Gmail (issue #224). Usually typed with Shift.
   const [shortcuts, setShortcuts] = useState(false)
   const showShortcuts = () => setShortcuts(true)
-  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts]])
+  // Esc closes the open seat, block or switch panel (Edit mode has its own Esc; dialogs close themselves).
+  const closePanel = () => {
+    if (mode === 'edit' || document.querySelector('[role="dialog"]') || !PANELS.some((k) => params.get(k))) return
+    const next = new URLSearchParams(params)
+    PANELS.forEach((k) => next.delete(k))
+    setParams(next, { replace: true })
+  }
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel]])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
@@ -345,7 +352,8 @@ export default function FloorPlan() {
               <form onSubmit={go} role="search">
                 <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 270 : 220} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
-                  onChange={(e) => setSearch(e.currentTarget.value)} />
+                  onChange={(e) => setSearch(e.currentTarget.value)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
             </Group>
           </Group>
