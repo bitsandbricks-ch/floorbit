@@ -601,6 +601,19 @@ class Tunnel:
             return any(c.agent == agent and c.taken_at is not None and not c.done.is_set()
                        and now - c.taken_at > older_than for c in self._calls.values())
 
+    def seen_on_link(self, agent, now=None):
+        """seen() from a WebSocket link, only while it is open: the link's loop may still be in its
+        last turn when the reader found it closed, and must not bring the agent back."""
+        now = time.time() if now is None else now
+        with self._cond:
+            if not self._links.get(agent):
+                return False
+            self.last_seen = self._seen[agent] = now
+        from . import cluster
+        if cluster.current is not None:
+            cluster.current.agent_seen(agent, now)
+        return True
+
     def linked(self, agent):
         with self._cond:
             self._links[agent] = self._links.get(agent, 0) + 1

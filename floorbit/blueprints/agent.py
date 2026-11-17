@@ -364,7 +364,7 @@ def link(ws):
                 if raw is None:
                     break
                 heard[0] = time.monotonic()
-                agent_link.tunnel.seen(agent=agent['id'])
+                agent_link.tunnel.seen_on_link(agent['id'])
                 try:
                     message = json.loads(raw)
                 except (TypeError, ValueError):
@@ -403,7 +403,7 @@ def link(ws):
                 ws.send(json.dumps({'type': 'ping'}))
                 probed = quiet_since = now
             if now - heard[0] < LINK_IDLE:
-                agent_link.tunnel.seen(agent=agent['id'])
+                agent_link.tunnel.seen_on_link(agent['id'])
             calls = agent_link.tunnel.take(1 if probed is not None else LINK_TAKE, agent=agent['id'])
             if calls and gone.is_set():
                 agent_link.tunnel.give_back(calls)
