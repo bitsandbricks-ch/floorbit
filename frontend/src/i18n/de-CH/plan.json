@@ -505,6 +505,32 @@
       "place_one": "Switch platzieren",
       "place_other": "{{count}} Switches platzieren",
       "add": "Switch hinzufügen"
+    },
+    "halls": {
+      "button": "Hallen",
+      "title": "Hallen",
+      "name": "Name",
+      "shown": "Angezeigt",
+      "open": "Öffnen",
+      "counts": "{{switches}} Switches, {{blocks}} Sitzblöcke",
+      "hasBackground": "Hintergrundbild",
+      "background": "Hintergrundbild…",
+      "replaceBackground": "Hintergrund ersetzen…",
+      "removeBackground": "Hintergrund entfernen",
+      "backgroundSet": "Hintergrund gesetzt",
+      "csv": "Sitzblöcke importieren (CSV)…",
+      "imported_one": "{{count}} Sitzblock importiert",
+      "imported_other": "{{count}} Sitzblöcke importiert",
+      "notImported": "Nichts wurde importiert",
+      "line": "Zeile {{line}}",
+      "delete": "Löschen",
+      "deleteText": "{{name}} löschen? Nur eine leere Halle lässt sich löschen: verschiebe oder lösche zuerst ihre Switches und Sitzblöcke.",
+      "new": "Neue Halle",
+      "newHint": "z. B. Halle 2",
+      "add": "Halle hinzufügen",
+      "added": "{{name}} hinzugefügt",
+      "csvHelp": "Eine CSV hat eine Kopfzeile und einen Block pro Zeile: name, x, y, cols, rows (rotation, naming und der Rest sind optional; siehe die Doku zu Hallen).",
+      "templates": "Vorlagen"
     }
   },
   "net": {

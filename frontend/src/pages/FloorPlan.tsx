@@ -154,6 +154,14 @@ export default function FloorPlan() {
   const canEdit = useCan('floorplan.edit')
   const editing = mode === 'edit' && canEdit
   const [players, setPlayers] = useState<{ query: string; hits: PlayerHit[] } | null>(null)
+  // Another hall in the same mode (Edit stays Edit) and with the same filter.
+  const toHall = (id: string) => {
+    const next = new URLSearchParams()
+    next.set('hall', id)
+    if (params.get('mode')) next.set('mode', params.get('mode')!)
+    if (filter !== 'all') next.set('show', filter)
+    setParams(next)
+  }
   const jump = (seat: string, hall?: string) => {
     setPlayers(null)
     if (hall && data && hall !== data.hall) {
@@ -287,7 +295,7 @@ export default function FloorPlan() {
                   allowDeselect={false} value={data.hall}
                   data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
                   renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
-                  onChange={(v) => { const next = new URLSearchParams(); if (v) next.set('hall', v); if (filter !== 'all') next.set('show', filter); setParams(next) }} />
+                  onChange={(v) => { if (v) toHall(v) }} />
               )}
               {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
@@ -328,7 +336,7 @@ export default function FloorPlan() {
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href="/" mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
           {editing && data.drawing && view && (
-            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} />
+            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} />
           )}
           {!editing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
