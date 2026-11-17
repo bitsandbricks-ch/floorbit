@@ -15,6 +15,10 @@ export class ApiError extends Error {
   }
 }
 
+/** Pages a signed-out visitor stays on. /setup makes the first account: before, the sidebar's own
+ *  reads answered 401 there and sent the visitor to sign in, with no account to sign in with. */
+const SIGNED_OUT_PAGES = new Set(['/login', '/setup'])
+
 export function loginUrl(): string {
   const next = window.location.pathname + window.location.search
   return `/login?next=${encodeURIComponent(next)}`
@@ -31,7 +35,7 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
-  if (res.status === 401 && window.location.pathname !== '/login') {
+  if (res.status === 401 && !SIGNED_OUT_PAGES.has(window.location.pathname)) {
     // Signed out in another tab, or the session expired. On the sign-in page it's a wrong password.
     window.location.assign(loginUrl())
   }
