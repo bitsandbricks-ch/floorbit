@@ -109,6 +109,8 @@ What it keeps and for how long: [flows.md](flows.md).
 
 Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): `data.json` (floor plan,
 accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Redis holds only a cache.
+Each `.json` file has a `.json.next` twin: the last complete write. If a write is cut short (a full disk, a
+killed pod), Floorbit starts from the twin and says so in its log, and the next save mends the file.
 
 - **In the app:** **Settings > Backup and restore** downloads the floor plan and settings as one file, without
   accounts or tokens, and restores it on any Floorbit ([backup.md](backup.md)).
