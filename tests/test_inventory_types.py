@@ -59,6 +59,10 @@ def test_stored_entries_check_their_fields(client):
     assert tall.status_code == 400
     assert client.post("/api/inventory/entries/rack", json={"name": "r1"}).status_code == 409
     assert client.delete(f"/api/inventory/entries/rack/{rack['id']}").status_code == 200
+    # The device lists the optics in its ports.
+    core = next(d for d in client.get("/api/inventory").get_json()["devices"] if d["name"] == "core-01")
+    linked = client.get(f"/api/inventory/{core['id']}").get_json()["connected"]["entries"]
+    assert linked == [{"id": sfp["id"], "type": "transceiver", "name": "SFP 1", "port": "Te1/0/1"}]
 
 
 def test_admins_add_types_and_fields_that_devices_and_entries_use(client):

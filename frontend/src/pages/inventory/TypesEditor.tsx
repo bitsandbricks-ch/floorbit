@@ -16,11 +16,13 @@ import { LookFields, PropertiesEditor } from './ScopeEditors'
 const KINDS = ['text', 'number', 'choice', 'bool', 'link'] as const
 
 /** Admins set up what each type of entry has: its fields, and what all its entries inherit. */
-export function TypesEditor({ opened, overview, onClose }: { opened: boolean; overview: InventoryOverview; onClose: () => void }) {
+export function TypesEditor({ opened, overview, start = 'device', onClose }: {
+  opened: boolean; overview: InventoryOverview; start?: string; onClose: () => void
+}) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const { data } = useInventoryTypes()
-  const [selected, setSelected] = useState('device')
+  const [selected, setSelected] = useState(start)
   const [newName, setNewName] = useState('')
   const types = data?.types ?? []
   const type = types.find((x) => x.id === selected) ?? types[0]
@@ -35,7 +37,7 @@ export function TypesEditor({ opened, overview, onClose }: { opened: boolean; ov
         <Grid.Col span={{ base: 12, sm: 4 }}>
           <Stack gap={2}>
             {types.map((x) => (
-              <NavLink key={x.id} active={x.id === type?.id} label={typeName(t, x)} onClick={() => setSelected(x.id)}
+              <NavLink key={x.id} active={x.id === type?.id} variant="light" label={typeName(t, x)} onClick={() => setSelected(x.id)}
                 leftSection={<DeviceIcon icon={x.icon || x.default_icon} color={x.color} size={22} />}
                 rightSection={<Badge size="xs" variant="light">{x.count}</Badge>} />
             ))}

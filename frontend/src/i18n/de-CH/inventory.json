@@ -115,7 +115,7 @@
     "icon": "Symbol",
     "color": "Farbe",
     "pickColor": "Farbe vom Bildschirm wählen",
-    "inherits": "Von der Gruppe: {{value}}",
+    "inherits": "Geerbt: {{value}}",
     "roleIcon": "Symbol der Rolle",
     "noColor": "Keine Farbe (erben)"
   },

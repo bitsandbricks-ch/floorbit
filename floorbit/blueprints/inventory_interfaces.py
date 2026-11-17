@@ -57,7 +57,9 @@ def connected(data, dev):
               'capacity_mbps': u.get('capacity_mbps')}
              for u in services._stored(data)['uplinks'] if str(u.get('device') or '').lower() == name]
     wired.sort(key=lambda c: options._natural(c['port']))
-    return {'cables': wired, 'circuits': fed, 'uplinks': lines}
+    from .. import inventory_types
+    return {'cables': wired, 'circuits': fed, 'uplinks': lines,
+            'entries': inventory_types.linked_to(data, dev['name'])}
 
 
 def runs_here(data, dev):

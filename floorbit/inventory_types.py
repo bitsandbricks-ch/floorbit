@@ -626,3 +626,23 @@ def sync_entries(data, plugin_id, feed, skipped=0):
         if feed.get('power-board') or feed.get('circuit'):
             _sync_power(data, plugin_id, feed.get('power-board') or [], feed.get('circuit') or [], report)
         return report
+
+
+def linked_to(data, device_name):
+    """Entries whose device link fields name this device (the optics in its ports, ...)."""
+    name = str(device_name or '').lower()
+    if not name:
+        return []
+    links = {t['id']: [f['key'] for f in t['fields'] if f['kind'] == 'link' and f.get('link') in ('', 'device')]
+             for t in types(data)}
+    out = []
+    for e in listing(data):
+        keys = [k for k in links.get(e['type'], []) if str((e.get('fields') or {}).get(k) or '').lower() == name]
+        if keys:
+            out.append({'id': e['id'], 'type': e['type'], 'name': e['name'],
+                        'port': str((e.get('fields') or {}).get('port') or '')})
+    return sorted(out, key=lambda e: (e['type'], options_sort(e['port'] or e['name'])))
+
+
+def options_sort(text):
+    return [int(p) if p.isdigit() else p.lower() for p in re.split(r'(\d+)', str(text or ''))]

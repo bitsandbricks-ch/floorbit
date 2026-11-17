@@ -11,7 +11,7 @@ import { Field, LoadingState, PanelSection, SidePanel } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { DeviceIcon } from './icons'
 import { InterfacesPanel } from './InterfacesPanel'
-import { credentialBody, roleIcon, speedLabel } from './model'
+import { credentialBody, roleIcon, speedLabel, typeName } from './model'
 import { useCustomIcons, useDeviceDetail, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 
@@ -51,7 +51,8 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
 
   const icon = dev ? dev.resolved.look.icon.value || roleIcon(dev.role) : 'other'
   const color = dev?.resolved.look.color.value ?? ''
-  const deviceFields = useInventoryTypes().data?.types.find((x) => x.id === 'device')?.fields ?? []
+  const types = useInventoryTypes().data?.types ?? []
+  const deviceFields = types.find((x) => x.id === 'device')?.fields ?? []
   const uploaded = useCustomIcons(icon.startsWith('custom-')).data?.icons.find((i) => i.id === icon)
   return (
     <SidePanel
@@ -146,7 +147,8 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
                   </SimpleGrid>
                 </PanelSection>
               )}
-              {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length > 0) && (
+              {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length
+                + (dev.connected.entries?.length ?? 0) > 0) && (
                 <PanelSection label={t('inventory.connected.title')}>
                   <Stack gap={6}>
                     {dev.connected.uplinks.map((u) => (
@@ -155,6 +157,14 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
                     {dev.connected.circuits.map((c) => (
                       <Text key={c.id} size="sm">{t('inventory.connected.circuit', { name: c.name, board: c.board || '–' })}{c.phase && ` · ${c.phase}`}{c.rating_a ? ` · ${c.rating_a} A` : ''}</Text>
                     ))}
+                    {dev.connected.entries?.map((e) => {
+                      const type = types.find((x) => x.id === e.type)
+                      return (
+                        <Text key={`${e.type}:${e.id}`} size="sm">
+                          {type ? typeName(t, type) : e.type}: {e.name}{e.port && ` · ${e.port}`}
+                        </Text>
+                      )
+                    })}
                     {dev.connected.cables.length > 0 && (
                       <Text size="sm">
                         {t('inventory.connected.cables', { count: dev.connected.cables.length })}{' '}

@@ -115,7 +115,7 @@
     "icon": "Icon",
     "color": "Colour",
     "pickColor": "Pick a colour from the screen",
-    "inherits": "From the group: {{value}}",
+    "inherits": "Inherited: {{value}}",
     "roleIcon": "The role's icon",
     "noColor": "No colour (inherit)"
   },

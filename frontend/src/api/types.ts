@@ -274,6 +274,8 @@ export interface DeviceDetail extends Device {
     cables: { id: string; label: string; port: string; panel: string; panel_port: string; seat: string; type: string; speed: number | null }[]
     circuits: { id: string; name: string; board: string; phase: string; rating_a: number | null }[]
     uplinks: { id: string; name: string; port: string; capacity_mbps: number | null }[]
+    /** Entries whose device field names it: the optics in its ports, ... */
+    entries?: { id: string; type: string; name: string; port: string }[]
   }
   resolved: {
     properties: Record<string, { value: string; from: Origin }>

@@ -390,7 +390,7 @@ export default function Inventory() {
       {entryOpen && currentType && overview && (
         <EntryPanel key={`${typeTab}-${entryOpen}`} type={currentType} id={entryOpen} overview={overview} canEdit={canEdit} onClose={() => setEntryOpen(null)} />
       )}
-      {typesOpen && overview && <TypesEditor opened={typesOpen} overview={overview} onClose={typesEditor.close} />}
+      {typesOpen && overview && <TypesEditor opened={typesOpen} overview={overview} start={typeTab} onClose={typesEditor.close} />}
       </>
     </Layout>
   )
