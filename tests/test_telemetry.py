@@ -482,9 +482,7 @@ def test_a_standby_agent_listens_but_never_polls(tmp_path, monkeypatch):
     target = {"id": "a1", "name": "sw-a-01", "address": "192.0.2.21", "kind": "switch", "platform": "ios",
               "drivers": ["snmp", "traps"], "snmp_version": "2c", "community": "example", "tables": True}
     ctx = AgentCtx("telemetry", {"targets": [target]}, {"sends": {"series": {"privacy": "device"}}},
-                   state_dir=str(tmp_path))
-    primary = [False]
-    ctx.primary = lambda: primary[0]
+                   state_dir=str(tmp_path), primary=False)
     plugin = agent.AgentPlugin(ctx)
     plugin.start()
     try:
@@ -494,7 +492,7 @@ def test_a_standby_agent_listens_but_never_polls(tmp_path, monkeypatch):
         plugin.report(time.time())
         assert "standby" in ctx.health_.report()["message"]
         # The VIP moves here: polling goes into Telegraf's config at once.
-        primary[0] = True
+        ctx.is_primary = True
         assert plugin.follow_role() is True and state.state.collecting is True
         assert "udp://192.0.2.21:161" in (tmp_path / "telegraf.conf").read_text()
         assert plugin.follow_role() is False
