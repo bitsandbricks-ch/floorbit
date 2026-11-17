@@ -72,6 +72,45 @@ COMMANDS = [
          {'type': STRING, 'name': 'area', 'description': 'Where, e.g. Hall B (optional)', 'max_length': 80}]},
 ]
 
+# German descriptions for the slash commands, sent with them as Discord's description_localizations:
+# a German Discord client shows these in the command list.
+DESCRIPTIONS_DE = {
+    'How the network is doing: the state, the areas down, the latest crew update.':
+        'Wie es dem Netzwerk geht: der Zustand, die Bereiche, die down sind, die letzte Crew-Meldung.',
+    'One seat: online or not, its switch port and open incidents.':
+        'Ein Platz: online oder nicht, sein Switch-Port und offene Störungen.',
+    'One switch: up or down, and which of its seats are offline.':
+        'Ein Switch: up oder down, und welche seiner Plätze offline sind.',
+    'Seat number, e.g. A-12': 'Platznummer, z. B. A-12',
+    'Switch name, e.g. sw-a-01': 'Switch-Name, z. B. sw-a-01',
+    'The incident board from Discord.': 'Die Störungen aus Discord.',
+    'File an incident for a seat.': 'Eine Störung für einen Platz erfassen.',
+    'What is wrong, in a few words': 'Was nicht geht, in ein paar Worten',
+    'Take an open incident.': 'Eine offene Störung übernehmen.',
+    'Start typing a seat or a few words': 'Platz oder ein paar Wörter tippen',
+    'Mark an incident fixed.': 'Eine Störung als behoben markieren.',
+    'What you did (optional)': 'Was du gemacht hast (optional)',
+    'Your seat number, e.g. A-12': 'Deine Platznummer, z. B. A-12',
+    'What is wrong': 'Was nicht geht',
+    'The incidents you have, oldest first.': 'Deine Störungen, die älteste zuerst.',
+    'Post an update for attendees on the public network status page.':
+        'Eine Meldung für die Teilnehmenden auf der öffentlichen Netzwerkstatus-Seite.',
+    'What attendees should know': 'Was die Teilnehmenden wissen sollen',
+    'Where, e.g. Hall B (optional)': 'Wo, z. B. Halle B (optional)',
+}
+
+
+def _with_german(items):
+    for item in items:
+        german = DESCRIPTIONS_DE.get(item.get('description'))
+        if german:
+            item.setdefault('description_localizations', {'de': german})
+        _with_german(item.get('options') or [])
+    return items
+
+
+_with_german(COMMANDS)
+
 STATE_TEXT = {'operational': 'All systems running', 'degraded': 'Part of the network is down',
               'outage': 'Network outage', 'maintenance': 'Maintenance',
               'unknown': 'Status not available right now'}

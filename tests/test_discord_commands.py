@@ -318,3 +318,16 @@ def test_attendee_report_off_with_the_helpdesk_and_seats_suggested_to_anyone(bri
     assert resp["data"]["choices"][0]["value"] == "B-1"
     assert client.put("/api/settings/features", json={"helpdesk": False}).status_code == 200
     assert "off at this event" in _ask(anon_client, key, _report("B-1", "power"))
+
+
+def test_every_slash_command_text_has_german():
+    # Discord shows description_localizations to German clients in the command list (max 100 characters).
+    def walk(items):
+        for item in items:
+            if "description" in item:
+                german = item.get("description_localizations", {}).get("de")
+                assert german and len(german) <= 100 and german != item["description"], item["description"]
+            yield from [item, *walk(item.get("options") or [])]
+    found = list(walk(discord_commands.COMMANDS))
+    seat = next(c for c in found if c.get("name") == "seat" and c.get("type") == 1)
+    assert seat["description_localizations"]["de"].startswith("Ein Platz:")
