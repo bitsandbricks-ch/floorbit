@@ -273,6 +273,20 @@ def test_rows_from_another_version_are_skipped():
     assert not bus.lists
 
 
+def test_a_hosted_tenant_s_bus_keeps_to_its_keys(monkeypatch):
+    import redis
+    shared = {"now": 0.0, "keys": {}, "lists": {}, "hashes": {}, "ttl": {}}
+    monkeypatch.setattr(redis, "Redis", lambda **kw: FakeRedisClient(shared))
+    a = cluster.RedisBus(prefix="club-a:", host="redis.example.com", port=6379)
+    b = cluster.RedisBus(prefix="club-b:", host="redis.example.com", port=6379)
+    assert a.lease("lead", "pod-a", 20_000) == "pod-a"
+    assert b.lease("lead", "pod-b", 20_000) == "pod-b"      # each tenant has its own leader
+    a.push("calls", "one")
+    assert b.pop("calls", 1) is None and a.pop("calls", 1) == "one"
+    a.hset("agents", "a1", "x")
+    assert b.hgetall("agents") == {} and set(shared["hashes"]) == {"club-a:agents"}
+
+
 def test_pods_say_who_leads_for_the_agents_page():
     bus = MemoryBus()
     a = cluster.Cluster(bus, pod="pod-a", log=lambda *_: None)

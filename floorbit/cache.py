@@ -21,6 +21,58 @@ REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 redis_client = None
 
 
+class Prefixed:
+    """A Redis client whose keys start with the hosted tenant's name, so tenants can share one
+    Redis (docs/tenancy.md). Only the commands Floorbit uses on it; add one here before using it."""
+
+    def __init__(self, client, prefix):
+        self.client, self.prefix = client, prefix
+
+    def _k(self, key):
+        return self.prefix + key
+
+    def ping(self):
+        return self.client.ping()
+
+    def get(self, key):
+        return self.client.get(self._k(key))
+
+    def set(self, key, value, **kw):
+        return self.client.set(self._k(key), value, **kw)
+
+    def setex(self, key, ttl, value):
+        return self.client.setex(self._k(key), ttl, value)
+
+    def delete(self, *keys):
+        return self.client.delete(*(self._k(k) for k in keys))
+
+    def exists(self, *keys):
+        return self.client.exists(*(self._k(k) for k in keys))
+
+    def expire(self, key, ttl):
+        return self.client.expire(self._k(key), ttl)
+
+    def dbsize(self):
+        # Only this tenant's keys: the others aren't its business.
+        return sum(1 for _ in self.client.scan_iter(match=self._k('*')))
+
+    def scan_iter(self, match='*', **kw):
+        cut = len(self.prefix)
+        for key in self.client.scan_iter(match=self._k(match), **kw):
+            yield key[cut:]
+
+
+def redis_prefix():
+    from .store import hosted_tenant
+    hosted = hosted_tenant()
+    return f'{hosted}:' if hosted else ''
+
+
+def _scoped(client):
+    prefix = redis_prefix()
+    return Prefixed(client, prefix) if prefix else client
+
+
 RETRY_EVERY = 15     # seconds between tries while Redis is away
 PING_EVERY = 5       # seconds between checks of a working connection
 _next_try = 0.0
@@ -67,7 +119,7 @@ def connect(now=None):
         print(f"Redis at {REDIS_HOST}:{REDIS_PORT} is not reachable ({e}); caching is off, trying again in "
               f"{RETRY_EVERY} s.")
         return
-    redis_client, _checked_at = client, now
+    redis_client, _checked_at = _scoped(client), now
     print(f"Connected to Redis at {REDIS_HOST}:{REDIS_PORT}")
 
 

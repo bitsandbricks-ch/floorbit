@@ -91,6 +91,11 @@ def plugins_page():
     return spa.render('Plugins')
 
 
+@bp.route('/settings/plugins/<plugin_id>')
+def plugin_page(plugin_id):
+    return spa.render('Plugins')
+
+
 @bp.route('/api/settings/plugins', methods=['GET'])
 def list_plugins():
     return jsonify({'plugins': _registry().as_list()})

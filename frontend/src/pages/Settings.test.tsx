@@ -1,10 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { Route, Routes } from 'react-router-dom'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { contrast } from '@/colorContrast'
 import Settings, { type SettingsAnswer } from './Settings'
 
 afterEach(() => vi.unstubAllGlobals())
+
+const page = (route = '/settings') =>
+  renderWithApp(<Routes><Route path="/settings/:section?" element={<Settings />} /></Routes>, route)
 
 const admin = { enabled: true, user: { username: 'ada', display_name: 'Ada', role: 'admin', permissions: ['floorplan.view', 'settings.manage'] } }
 const answer: SettingsAnswer = {
@@ -32,12 +36,17 @@ describe('Settings', () => {
       'POST /api/settings/test/netbox': { ok: true, message: 'Connected, 12 switches' },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Settings />)
+    page()
     expect(await screen.findByText('Not configured, no live status')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Download backup' })).toHaveAttribute('href', '/api/settings/backup')
+    // One section at a time: the fields are on their section's page.
+    expect(screen.queryByLabelText('ARP table TTL')).toBeNull()
 
-    fireEvent.change(screen.getByLabelText('ARP table TTL'), { target: { value: '600' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getAllByRole('link', { name: 'Caching' })[0])
+    fireEvent.change(await screen.findByLabelText('ARP table TTL'), { target: { value: '600' } })
+    // Unsaved changes stay while moving to another section.
+    fireEvent.click(screen.getAllByRole('link', { name: 'NetBox' })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }))
     expect(await screen.findByText('2 unsaved changes')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
@@ -52,10 +61,22 @@ describe('Settings', () => {
 
   it('does not save a value the server would refuse', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
-    renderWithApp(<Settings />)
+    page('/settings/netbox')
     fireEvent.change(await screen.findByLabelText('URL'), { target: { value: 'netbox.example.com' } })
     expect(await screen.findByText('Not a valid value')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+  })
+
+  it('finds a field by its words or env var, and opens an old #sec- link on its section', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
+    page('/settings#sec-netbox')
+    expect(await screen.findByLabelText('URL')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search settings'), { target: { value: 'cache_ttl' } })
+    expect(await screen.findByLabelText('ARP table TTL')).toBeInTheDocument()
+    expect(screen.queryByLabelText('URL')).toBeNull()
+    expect(screen.getByText('1 setting matches')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search settings'), { target: { value: 'nothing like this' } })
+    expect(await screen.findByText('No setting matches.')).toBeInTheDocument()
   })
 
   it('works out the contrast like the server', () => {
@@ -79,7 +100,8 @@ describe('Settings in German', () => {
       values: { 'plugin.zabbix.group': { source: 'default', value: '' } },
     }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': german }).fn)
-    renderWithApp(<Settings />)
+    page()
+    fireEvent.change(await screen.findByLabelText('Einstellungen durchsuchen'), { target: { value: 'gruppe' } })
     expect(await screen.findByLabelText('Host-Gruppe')).toBeInTheDocument()
     expect(screen.getByText('Nur Hosts in dieser Gruppe werden gelesen.')).toBeInTheDocument()
     expect(screen.getByText(/Zustand, Verkehr und Fehler der Ports aus Zabbix/)).toBeInTheDocument()

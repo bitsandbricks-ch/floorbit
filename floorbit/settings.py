@@ -505,6 +505,13 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
 
         return spa.render('Settings')
 
+    @bp.route('/settings/<section>')
+    def settings_section_page(section):
+        # One section of the same page; the other /settings/... pages have their own routes, which win.
+        from floorbit import spa
+
+        return spa.render('Settings')
+
     @bp.route('/api/settings', methods=['GET'])
     def get_settings():
         store.reload_if_changed()

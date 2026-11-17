@@ -41,6 +41,7 @@ def create_app(start_background=True):
     load_dotenv()
     if os.environ.get('FLOORBIT_DATA_FILE'):   # may come from .env, read just now
         store.DATA_FILE = os.environ['FLOORBIT_DATA_FILE']
+    store.hosted_tenant()   # a wrong FLOORBIT_TENANT stops the start, before anything is read
     from . import outbound
     outbound.install()   # before anything can make a request (issue #505)
     app = Flask(__name__, root_path=str(ROOT))
@@ -67,6 +68,11 @@ def create_app(start_background=True):
     # refused request never touches Redis.
     from auth import init_auth
     init_auth(app, store.tenant_file)
+    # Which event the request works on, before anything reads one (docs/tenancy.md).
+    from .blueprints import tenant_events
+    tenant_events.init_app(app)
+    from . import hosting
+    hosting.register_cli(app)
     from . import i18n
     i18n.init_app(app)
 

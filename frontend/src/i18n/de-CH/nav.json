@@ -24,5 +24,6 @@
   "favAdd": "{{page}} zu den Favoriten",
   "favRemove": "{{page}} aus den Favoriten entfernen",
   "accordion": "Andere Bereiche zuklappen, wenn einer aufgeht",
-  "skip": "Zum Inhalt springen"
+  "skip": "Zum Inhalt springen",
+  "otherTenants": "Deine anderen Vereine"
 }
