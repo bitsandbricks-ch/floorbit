@@ -6,7 +6,13 @@ everywhere, and its Edit mode is where the plan is built. `/` opens it too; old 
 
 ## Modes
 
-The top of the page switches between modes of the same plan, kept in the address (`?mode=`):
+The plan fills the whole page next to the sidebar, like a map editor. One slim bar on top holds the
+hall, the mode, the online count, the filters (each with its count), Map/List, **Layers**, the find
+box, **Print** and **?** (help and keys). The plan takes everything below it; an open seat, block or
+switch docks on the right. The legend floats over the plan's bottom-left corner: click **Legend** to
+fold it away.
+
+The bar switches between modes of the same plan, kept in the address (`?mode=`):
 
 | Mode | What it shows |
 | --- | --- |
@@ -15,7 +21,7 @@ The top of the page switches between modes of the same plan, kept in the address
 | **Network** | Switches and uplinks, traffic, firewalls and Wi-Fi. |
 | **Edit** | The editor, for crew who may edit the plan (`floorplan.edit`): see below. |
 
-**Kiosk** opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
+The TV button (**Kiosk**) opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
 you were looking at.
 
 The older editor stays at `/editor/classic` for a while as a fallback, linked from the bottom of
@@ -86,7 +92,7 @@ seat 1 is on the right, and its gaps: room in every row after a column, or a lan
 Seat numbers carry on across a gap.
 
 Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
-the switches, not recorded yet. In Network mode a legend under the plan explains the colours (copper,
+the switches, not recorded yet. In Network mode the legend explains the colours (copper,
 fiber, DAC), widths (speed) and dashes for the cables on that plan, and counts the links between switches
 and how many are down or slow. A link that is down gets a red ✕ in its middle, the same size at every zoom. Click one to select it, Del removes it, **Change cable** opens its
 form. A selected cable shows its bends: drag one to move it, drag the dot in the middle of a
@@ -157,7 +163,7 @@ Tab to the plan, then:
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
-| **?** | Anywhere on the page: list these shortcuts. On a computer with a mouse, **Keyboard shortcuts** under the plan opens the same list. |
+| **?** | Anywhere on the page: list these shortcuts. The **?** button at the end of the top bar opens the same list. |
 
 A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the
 plan's description, one line per block ("Block D: 21 of 24 seats online, 1 problem."). The page is

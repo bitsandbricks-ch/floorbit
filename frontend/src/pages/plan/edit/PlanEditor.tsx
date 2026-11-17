@@ -9,6 +9,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Attribution } from '@/components/Attribution'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Cable, Circuit, PlanCable, PlanGroup, PlanMark, PowerMarkers, SeatViewData } from '@/api/types'
@@ -832,6 +833,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
             <Anchor size="sm" href={`/editor/classic?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
           </Group>
+          <Attribution compact />
         </Stack>
       </Paper>
     </div>
