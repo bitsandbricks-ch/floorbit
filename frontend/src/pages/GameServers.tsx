@@ -11,6 +11,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { GameServer, GameServerList, RconAnswer } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { Sparkline } from '@/widgets/Sparkline'
@@ -115,7 +116,7 @@ function ServerCard({ server: s, canSetUp, canRcon, onEdit, onConsole }: {
   )
 }
 
-interface Form { name: string; game: string; host: string; port: number | string; query: string; rcon_port: number | string; rcon_password: string; clear_rcon: boolean }
+interface Form { name: string; game: string; host: string; port: number | string; query: string; rcon_port: number | string; rcon_password: string; clear_rcon: boolean; runs_on: string }
 
 function ServerModal({ server, onClose }: { server: GameServer | null; onClose: () => void }) {
   const { t } = useTranslation()
@@ -123,6 +124,7 @@ function ServerModal({ server, onClose }: { server: GameServer | null; onClose: 
   const [form, setForm] = useState<Form>({
     name: server?.name ?? '', game: server?.game ?? '', host: server?.host ?? '', port: server?.port ?? 27015,
     query: server?.query ?? 'a2s', rcon_port: server?.rcon_port ?? '', rcon_password: '', clear_rcon: false,
+    runs_on: server?.runs_on ?? '',
   })
   const done = () => { void qc.invalidateQueries({ queryKey: qk.gameServers }); onClose() }
   const save = useMutation({
@@ -150,6 +152,8 @@ function ServerModal({ server, onClose }: { server: GameServer | null; onClose: 
           <NumberInput label={t('gameServers.rconPort')} min={1} max={65535} value={form.rcon_port}
             onChange={(v) => set({ rcon_port: v })} />
         </SimpleGrid>
+        <EntitySelect kind="devices" label={t('gameServers.runsOn')} description={t('gameServers.runsOnHint')}
+          value={form.runs_on} onChange={(v) => set({ runs_on: v })} />
         <PasswordInput label={t('gameServers.rconPassword')} autoComplete="new-password" value={form.rcon_password}
           description={server?.rcon ? t('gameServers.rconKept') : t('gameServers.rconHint')}
           disabled={form.clear_rcon} onChange={(e) => set({ rcon_password: e.currentTarget.value })} />

@@ -1,6 +1,6 @@
-import { Alert, Anchor, Badge, Button, Group, Paper, Select, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Anchor, Badge, Box, Button, Group, Paper, Select, Switch, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
+import { IconAlertTriangle, IconCategory, IconIcons, IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,7 +12,16 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { DeviceForm } from './inventory/DeviceForm'
-import { matches, type Draft } from './inventory/model'
+import { DevicePanel } from './inventory/DevicePanel'
+import { GroupPanel, type ScopeTarget } from './inventory/GroupPanel'
+import { GroupTree, type GroupFilter } from './inventory/GroupTree'
+import { EntriesView } from './inventory/EntriesView'
+import { EntryPanel } from './inventory/EntryPanel'
+import { IconLibrary } from './inventory/IconLibrary'
+import { TypesEditor } from './inventory/TypesEditor'
+import { DeviceIcon } from './inventory/icons'
+import { effectiveLook, matches, roleIcon, typeName, type Draft } from './inventory/model'
+import { groupAndBelow, useInventoryGroups, useInventoryTypes } from './inventory/scope'
 import { LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 
@@ -40,11 +49,24 @@ export default function Inventory() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const canEdit = useCan('floorplan.edit')
+  const canManage = useCan('settings.manage')
+  const [libraryOpen, library] = useDisclosure(false)
+  const [typesOpen, typesEditor] = useDisclosure(false)
+  const [typeTab, setTypeTab] = useState('device')
+  const [entryOpen, setEntryOpen] = useState<string | null>(null)
+  const types = useInventoryTypes().data?.types ?? []
+  const currentType = types.find((x) => x.id === typeTab)
   const [showHidden, setShowHidden] = useState(false)
   // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [role, setRole] = useState<string | null>(null)
   const [editing, setEditing] = useState<Device | null>(null)
+  const [opened, setOpened] = useState<string | null>(null)
+  const [scope, setScope] = useState<ScopeTarget | null>(null)
+  const [group, setGroup] = useState<GroupFilter>(null)
+  const [tagFilter, setTagFilter] = useState<string[]>([])
+  const groupsQuery = useInventoryGroups()
+  const overview = groupsQuery.data
   const [formOpen, form] = useDisclosure(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -58,7 +80,7 @@ export default function Inventory() {
   const refresh = () => client.invalidateQueries({ queryKey: qk.inventoryAll })
 
   const save = useMutation({
-    mutationFn: (changes: Partial<Draft> & { unlock?: InventoryField[]; hidden?: boolean }) =>
+    mutationFn: (changes: Partial<Draft> & { unlock?: InventoryField[]; hidden?: boolean; [k: string]: unknown }) =>
       editing ? patch<Device>(`/api/inventory/${encodeURIComponent(editing.id)}`, changes) : post<Device>('/api/inventory', changes),
     onSuccess: (device, changes) => {
       void refresh()
@@ -97,7 +119,25 @@ export default function Inventory() {
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
-  const devices = (data?.devices ?? []).filter((d) => matches(d, query, role))
+  const groups = overview?.groups ?? []
+  const inGroup = group && group !== 'none' ? groupAndBelow(groups, group) : null
+  const devices = (data?.devices ?? []).filter((d) => {
+    if (!matches(d, query, role)) return false
+    if (group === 'none' && d.group_id) return false
+    if (inGroup && !(d.group_id && inGroup.has(d.group_id))) return false
+    if (tagFilter.length) {
+      const look = effectiveLook(d, groups)
+      if (!tagFilter.every((tid) => look.tags.has(tid))) return false
+    }
+    return true
+  })
+  const groupName = (id?: string | null) => groups.find((g) => g.id === id)?.name ?? ''
+  const tagOf = (id: string) => overview?.tags.find((x) => x.id === id)
+
+  // A scope panel follows the saved item, so it shows what the server has now.
+  const scopeNow: ScopeTarget | null = !scope || scope.kind === 'defaults' || !scope.item ? scope
+    : scope.kind === 'group' ? { kind: 'group', item: groups.find((g) => g.id === scope.item?.id) ?? scope.item }
+      : { kind: 'tag', item: overview?.tags.find((x) => x.id === scope.item?.id) ?? scope.item }
 
   function openForm(device: Device | null) {
     setEditing(device)
@@ -113,14 +153,24 @@ export default function Inventory() {
         actions={
           canEdit && (
             <>
+              {canManage && (
+                <Button variant="default" leftSection={<IconCategory size={16} />} onClick={typesEditor.open}>
+                  {t('inventory.types.open')}
+                </Button>
+              )}
+              <Button variant="default" leftSection={<IconIcons size={16} />} onClick={library.open}>
+                {t('inventory.library.open')}
+              </Button>
               {!!data?.sources.length && (
                 <Button variant="default" leftSection={<IconRefresh size={16} />} loading={sync.isPending} onClick={() => sync.mutate()}>
                   {t('inventory.sync')}
                 </Button>
               )}
-              <Button leftSection={<IconPlus size={16} />} onClick={() => openForm(null)}>
-                {t('inventory.add')}
-              </Button>
+              {typeTab === 'device' && (
+                <Button leftSection={<IconPlus size={16} />} onClick={() => openForm(null)}>
+                  {t('inventory.add')}
+                </Button>
+              )}
             </>
           )
         }
@@ -139,6 +189,26 @@ export default function Inventory() {
       <Text size="sm" role="status" mb="sm" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
         {sync.isPending ? t('inventory.syncing') : message ? `${message.ok ? '✓' : '✕'} ${message.text}` : ''}
       </Text>
+      <Box className="fb-inventory-layout" style={{ display: 'grid', gap: 'var(--mantine-spacing-md)', alignItems: 'start' }}>
+      {overview && (
+        <GroupTree overview={overview} total={data?.devices.length ?? 0} group={group} tags={tagFilter} canEdit={canEdit}
+          onGroup={setGroup} onTags={setTagFilter} onEdit={setScope} />
+      )}
+      <div style={{ minWidth: 0 }}>
+      {types.length > 1 && (
+        <Tabs value={typeTab} onChange={(v) => { setTypeTab(v ?? 'device'); setEntryOpen(null) }} mb="md">
+          <Tabs.List>
+            {types.map((x) => (
+              <Tabs.Tab key={x.id} value={x.id} rightSection={<Badge size="xs" variant="light">{x.count}</Badge>}>
+                {x.sort === 'device' ? t('inventory.types.devices') : typeName(t, x)}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs>
+      )}
+      {typeTab !== 'device' && currentType && overview ? (
+        <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={setEntryOpen} sourceName={sourceName} />
+      ) : (<>
       <Group gap="sm" mb="md" wrap="wrap" align="flex-end">
         <TextInput
           label={t('inventory.search')}
@@ -174,13 +244,19 @@ export default function Inventory() {
             <Text>{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>
           ) : (
             <Paper withBorder radius="lg">
-              <Table.ScrollContainer minWidth={760}>
+              <Table.ScrollContainer minWidth={880}>
                 <Table highlightOnHover verticalSpacing="xs" fz="sm">
                   <Table.Thead>
                     <Table.Tr>
-                      {(['name', 'role', 'model', 'mgmt_ip', 'hall', 'status'] as const).map((f) => (
+                      <Table.Th w={36} />
+                      {(['name', 'role'] as const).map((f) => (
                         <Table.Th key={f}>{t(`inventory.field.${f}`)}</Table.Th>
                       ))}
+                      <Table.Th>{t('inventory.groups.one')}</Table.Th>
+                      {(['model', 'mgmt_ip', 'status'] as const).map((f) => (
+                        <Table.Th key={f}>{t(`inventory.field.${f}`)}</Table.Th>
+                      ))}
+                      <Table.Th>{t('inventory.tabs.interfaces')}</Table.Th>
                       <Table.Th>{t('inventory.fedBy')}</Table.Th>
                       <Table.Th />
                     </Table.Tr>
@@ -189,15 +265,20 @@ export default function Inventory() {
                     {devices.map((d) => (
                       <Table.Tr key={d.id} style={d.hidden ? { opacity: 0.6 } : undefined}>
                         <Table.Td>
+                          {(() => {
+                            const look = effectiveLook(d, groups)
+                            return <DeviceIcon icon={look.icon || roleIcon(d.role)} color={look.color} size={24} />
+                          })()}
+                        </Table.Td>
+                        <Table.Td>
                           <Group gap={6} wrap="nowrap">
-                            {canEdit ? (
-                              <Anchor component="button" type="button" fw={600} ta="left" onClick={() => openForm(d)}>
-                                {d.name}
-                              </Anchor>
-                            ) : (
-                              <Text fw={600} size="sm">
-                                {d.name}
-                              </Text>
+                            <Anchor component="button" type="button" fw={600} ta="left" onClick={() => setOpened(d.id)}>
+                              {d.name}
+                            </Anchor>
+                            {!!d.blocked && (
+                              <Tooltip label={t('inventory.blocks.title')}>
+                                <IconAlertTriangle size={14} className="fb-tone-err" aria-label={t('inventory.blocks.title')} />
+                              </Tooltip>
                             )}
                             {d.locked.length > 0 && (
                               <Tooltip label={d.locked.map((f) => t(`inventory.field.${f}`)).join(', ')}>
@@ -205,15 +286,21 @@ export default function Inventory() {
                               </Tooltip>
                             )}
                           </Group>
-                          <Text size="xs" c="dimmed">
-                            {d.placed ? t('inventory.placed') : t('inventory.notPlaced')}
-                          </Text>
+                          <Group gap={4}>
+                            <Text size="xs" c="dimmed">
+                              {d.placed ? t('inventory.placed') : t('inventory.notPlaced')}
+                            </Text>
+                            {(d.tags ?? []).map((tid) => tagOf(tid) && (
+                              <Badge key={tid} size="xs" tt="none" variant="light" color={tagOf(tid)?.color || 'gray'}>{tagOf(tid)?.name}</Badge>
+                            ))}
+                          </Group>
                         </Table.Td>
                         <Table.Td>{t(`inventory.role.${d.role}`, { defaultValue: d.role })}</Table.Td>
+                        <Table.Td>{groupName(d.group_id)}</Table.Td>
                         <Table.Td>{d.model}</Table.Td>
                         <Table.Td ff="monospace">{d.mgmt_ip}</Table.Td>
-                        <Table.Td>{d.hall}</Table.Td>
                         <Table.Td>{d.status}</Table.Td>
+                        <Table.Td>{d.interface_count || ''}</Table.Td>
                         <Table.Td>
                           <Group gap={4}>
                             {d.sources.length === 0 && (
@@ -268,11 +355,27 @@ export default function Inventory() {
           )}
         </>
       )}
+      </>)}
+      </div>
+      </Box>
+
+      {opened && overview && (
+        <DevicePanel key={opened} id={opened} overview={overview} sourceName={sourceName} onClose={() => setOpened(null)}
+          onEdit={() => {
+            const d = data?.devices.find((x) => x.id === opened)
+            if (d) openForm(d)
+          }} />
+      )}
+      {scopeNow && overview && (
+        <GroupPanel key={scopeNow.kind === 'defaults' ? 'defaults' : `${scopeNow.kind}-${scopeNow.item?.id ?? 'new'}`} target={scopeNow}
+          overview={overview} onClose={() => setScope(null)} onSaved={setScope} />
+      )}
       {formOpen && data && (
         <DeviceForm
           key={editing?.id ?? 'new'}
           device={editing}
           roles={data.roles}
+          overview={overview}
           sourceName={sourceName}
           opened={formOpen}
           busy={save.isPending}
@@ -282,6 +385,13 @@ export default function Inventory() {
           onUnlock={(f) => save.mutate({ unlock: [f] })}
         />
       )}
+      <>
+        <IconLibrary opened={libraryOpen} canManage={canManage} onClose={library.close} />
+      {entryOpen && currentType && overview && (
+        <EntryPanel key={`${typeTab}-${entryOpen}`} type={currentType} id={entryOpen} overview={overview} canEdit={canEdit} onClose={() => setEntryOpen(null)} />
+      )}
+      {typesOpen && overview && <TypesEditor opened={typesOpen} overview={overview} start={typeTab} onClose={typesEditor.close} />}
+      </>
     </Layout>
   )
 }
