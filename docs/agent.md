@@ -154,6 +154,14 @@ addresses each holds, active/active or active/passive, and what needs a look: **
 (they can't hear each other: check the VLAN or set `FLOORBIT_AGENT_VRRP_PEERS`), **No primary**, or
 **One agent** (no failover).
 
+**Two primaries** (split brain) is settled here as well: when a switch or a cable between the agents
+drops their VRRP, each takes every address and calls itself primary. This Floorbit hears both, so
+it tells all but the one with the smallest id to stand by (with the plugin config they pull, within
+seconds). They keep their addresses and listeners but leave polling and logins to that one, so no
+account is locked by two agents trying it. If this Floorbit can't reach them either, VRRP alone
+decides until it can. Older agents ignore the hint and keep polling (floorbit-agent's
+`docs/vrrp.md`, "Split brain").
+
 ## Running the agent
 
 The agent has its own repository, [bitsandbricks-ch/floorbit-agent](https://github.com/bitsandbricks-ch/floorbit-agent),

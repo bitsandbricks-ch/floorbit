@@ -83,8 +83,15 @@ def config(registry=None, agent_id=None):
         }
     local = {k: v for k, v in local_config(registry).items() if k not in off}
     offered = bundles_offer(set(plugins) | set(local))
-    raw = json.dumps([plugins, local, offered], sort_keys=True, default=str).encode()
-    return {'plugins': plugins, 'local': local, 'bundles': offered,
+    # Split brain (agent_ha.py): tell the agent which other one keeps polling and logging in.
+    ha = {}
+    if agent_id is not None:
+        from .agent_ha import stand_by_for
+        other = stand_by_for(agent_id)
+        if other:
+            ha['stand_by_for'] = other
+    raw = json.dumps([plugins, local, offered, ha], sort_keys=True, default=str).encode()
+    return {'plugins': plugins, 'local': local, 'bundles': offered, 'ha': ha,
             'etag': hashlib.sha256(raw).hexdigest()[:32]}
 
 
