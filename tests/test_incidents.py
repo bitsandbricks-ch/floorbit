@@ -79,6 +79,18 @@ def test_help_page_is_rate_limited_and_takes_only_known_problems(anon_client, ap
     assert anon_client.post(url, data={"problem": "slow"}).status_code == 429
 
 
+def test_rate_limit_counts_each_client_behind_a_trusted_proxy(anon_client, app_module, floor, monkeypatch):
+    monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
+    url = help_url(app_module, "A-2")
+    first = {"X-Forwarded-For": "192.0.2.10"}
+    for _ in range(incidents_bp.RATE_LIMIT):
+        assert anon_client.post(url, data={"problem": "slow"}, headers=first).status_code == 200
+    assert anon_client.post(url, data={"problem": "slow"}, headers=first).status_code == 429
+    # Another attendee behind the same proxy can still ask for help.
+    other = {"X-Forwarded-For": "192.0.2.11"}
+    assert anon_client.post(url, data={"problem": "slow"}, headers=other).status_code == 200
+
+
 def test_report_holds_no_personal_data(client, anon_client, app_module, floor, monkeypatch):
     client.put("/api/seat-map/A-3", json={"ip_address": "192.0.2.33", "nick": "player-three"})
 
