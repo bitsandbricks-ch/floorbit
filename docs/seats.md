@@ -33,6 +33,12 @@ The floor plan editor is moving into this page. Edit mode already does:
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.
 - **Order:** ] brings the selection to the front, [ sends it to the back.
+- **Groups:** Ctrl+G puts the selected seat blocks in a group, Ctrl+Shift+G takes them out. A click
+  on one block of a group picks the whole group; Shift-click takes the group out of the selection.
+- **Arrange:** with several items selected, the panel lines them up (left, centre, right, top,
+  middle, bottom edges) or spreads three or more with the same gap.
+- **Guides:** while dragging, the selection snaps to another item's edge or middle when it comes
+  within a few pixels, and a dashed line shows which; otherwise it lands on the grid (Alt: neither).
 - **Right click** an item (or empty plan) for the same actions in a menu.
 - **Delete** (Del) seat blocks and marks; switches stay (remove them in the editor).
 - **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes.
@@ -54,7 +60,7 @@ Everything lands on the grid unless you hold Alt.
 
 Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
 the switches, not recorded yet. Click one to select it, Del removes it, **Change cable** opens its
-form. Every change is saved at once. Tools not moved yet (power, groups, align, cable bends) are in
+form. Every change is saved at once. Tools not moved yet (power, cable bends) are in
 the classic editor, linked from the panel.
 
 ## What a seat shows

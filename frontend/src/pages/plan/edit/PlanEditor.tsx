@@ -1,6 +1,10 @@
 import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconArrowBackUp, IconArrowForwardUp, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconStack2, IconTrash } from '@tabler/icons-react'
+import {
+  IconArrowBackUp, IconArrowForwardUp, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
+  IconLink, IconStack2, IconTrash, IconUnlink,
+} from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,6 +24,7 @@ import { ToolRail } from './ToolRail'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
+import { type AlignHow, type Guide, alignMoves, distributeMoves, snapToGuides, withGroups } from './arrange'
 
 const PATH: Record<ItemRef['kind'], string> = {
   block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches', panel: '/api/cable-plan/panels', cable: '/api/cables',
@@ -49,7 +54,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
   const [selection, setSelection] = useState<ItemRef[]>([])
   const [drag, setDrag] = useState<{ d: Point } | null>(null)
   // A move the server has saved but the plan hasn't fetched again yet: keep drawing it moved.
-  const [pending, setPending] = useState<{ items: ItemRef[]; d: Point; data: SeatViewData } | null>(null)
+  const [pending, setPending] = useState<{ moves: [ItemRef, Point][]; data: SeatViewData } | null>(null)
+  const [guides, setGuides] = useState<Guide[]>([])
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>('select')
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
@@ -80,7 +86,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
 
   const shown = useMemo(() => {
     let d = data
-    if (pending) d = moved(d, pending.items, pending.d)
+    if (pending) for (const [r, m] of pending.moves) d = moved(d, [r], m)
     if (drag) d = moved(d, selected, drag.d)
     return d
   }, [data, pending, drag, selected])
@@ -91,19 +97,42 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
 
   const send = useCallback(async (ref: ItemRef, body: Record<string, unknown>) => put(`${PATH[ref.kind]}/${encodeURIComponent(idOf(ref))}`, body), [idOf])
 
-  const moveBy = useCallback(async (items: ItemRef[], d: Point) => {
-    if (!items.length || (!d.x && !d.y)) return
-    const there = items.map((r) => [r, movePatch(data, r, d), movePatch(data, r, { x: 0, y: 0 })] as const).filter(([, a, b]) => a && b)
-    setPending({ items, d, data })
+  /** Moves each item by its own amount (drawing units), saved at once, as one step to undo. */
+  const moveEach = useCallback(async (moves: [ItemRef, Point][], label?: string) => {
+    moves = moves.filter(([, d]) => d.x || d.y)
+    if (!moves.length) return
+    const there = moves.map(([r, d]) => [r, movePatch(data, r, d), movePatch(data, r, { x: 0, y: 0 })] as const).filter(([, a, b]) => a && b)
+    setPending({ moves, data })
     try {
       await Promise.all(there.map(([r, a]) => send(r, a!)))
       history.push({
-        label: t('plan.edit.step.move', { count: there.length }),
+        label: label ?? t('plan.edit.step.move', { count: there.length }),
         undo: () => Promise.all(there.map(([r, , b]) => send(r, b!))).then(refresh),
         redo: () => Promise.all(there.map(([r, a]) => send(r, a!))).then(refresh),
       })
     } catch (err) {
       setPending(null)
+      fail(err)
+    }
+    await refresh()
+  }, [data, send, history, t, refresh, fail])
+  const moveBy = useCallback((items: ItemRef[], d: Point) => moveEach(items.map((r) => [r, d] as [ItemRef, Point])), [moveEach])
+
+  /** Puts the selected blocks in one group (``join``) or takes them out of theirs. */
+  const regroup = useCallback(async (items: ItemRef[], join: boolean) => {
+    const blocks = withGroups(data, items).filter((r) => r.kind === 'block')
+    if (join ? blocks.length < 2 : !blocks.length) return
+    const id = `g-${Math.random().toString(36).slice(2, 10)}`
+    const was = blocks.map((r) => [r, data.drawing?.shapes.find((x) => x.id === r.id)?.group ?? null] as const)
+    const set = (to: (r: ItemRef, before: string | null) => string | null) => Promise.all(was.map(([r, b]) => send(r, { group: to(r, b) })))
+    try {
+      await set(() => (join ? id : null))
+      history.push({
+        label: t(join ? 'plan.edit.step.group' : 'plan.edit.step.ungroup'),
+        undo: () => set((_, b) => b).then(refresh),
+        redo: () => set(() => (join ? id : null)).then(refresh),
+      })
+    } catch (err) {
       fail(err)
     }
     await refresh()
@@ -368,6 +397,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
     if (mod && k === 'z') { take(); void step(e.shiftKey ? 'redo' : 'undo'); return }
     if (mod && k === 'y') { take(); void step('redo'); return }
     if (mod && k === 'a') { take(); setSelection(present); return }
+    if (mod && k === 'g') { take(); void regroup(selected, !e.shiftKey); return }
     if (mod && k === 'v') { take(); void paste(); return }
     if (mod && selected.length && k === 'c') { take(); void copy(selected); return }
     if (mod && selected.length && k === 'x') { take(); void copy(selected, true); return }
@@ -398,6 +428,19 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
     return () => window.removeEventListener('blur', off)
   }, [])
 
+  /** Where a drag puts the selection: on another item's edge or middle when one is within six
+   *  pixels (the guide shows), otherwise on the grid; Alt places freely. */
+  const dragTo = (raw: Point, snap: boolean, lead: ItemRef, px: number): { d: Point; guides: Guide[] } => {
+    const grid = snappedDelta(data, lead, raw, snap)
+    if (!snap) return { d: grid, guides: [] }
+    const g = snapToGuides(data, selected, raw, 6 * px, present.filter((r) => r.kind !== 'cable'))
+    const on = (axis: 'x' | 'y') => g.guides.some((x) => x.axis === axis)
+    return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
+  }
+  const pick = (next: ItemRef[]) => setSelection(withGroups(data, next))
+  const grouped = selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
+  const movable = selected.filter((r) => r.kind !== 'cable')
+
   const one = selected.length === 1 ? selected[0] : null
   return (
     <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
@@ -405,7 +448,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
       <ToolRail tool={tool} onTool={setTool} />
       <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables}
         overlay={(ctx) => (
-          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={setSelection} space={space} tool={tool}
+          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r])} space={space} tool={tool}
             lines={cables.map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
               if (tool === 'block' || tool === 'text' || tool === 'icon' || tool === 'panel') setPlacing({ kind: tool, at })
@@ -414,8 +457,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
             onLine={drawWall} onBox={(b) => void drawZone(b)}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
-            onDrag={(raw, snap, lead) => setDrag({ d: snappedDelta(data, lead, raw, snap) })}
-            onDrop={(raw, snap, lead) => { setDrag(null); void moveBy(selected, snappedDelta(data, lead, raw, snap)) }} />
+            guides={guides}
+            onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
+            onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
         )} />
       </div>
       {menu && (
@@ -434,6 +478,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
               onClick={() => void paste(menu.at ?? undefined)}>{t('plan.edit.menu.paste')}</Menu.Item>
             {menu.item && (
               <>
+                {(selected.filter((r) => r.kind === 'block').length > 1 || grouped) && <Menu.Divider />}
+                {selected.filter((r) => r.kind === 'block').length > 1 && (
+                  <Menu.Item leftSection={<IconLink size={14} />} rightSection={<Kbd size="xs">Ctrl G</Kbd>} onClick={() => void regroup(selected, true)}>{t('plan.edit.menu.group')}</Menu.Item>
+                )}
+                {grouped && (
+                  <Menu.Item leftSection={<IconUnlink size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ G</Kbd>} onClick={() => void regroup(selected, false)}>{t('plan.edit.menu.ungroup')}</Menu.Item>
+                )}
                 <Menu.Divider />
                 <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
                 <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
@@ -472,6 +523,12 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }
           )}
           {one?.kind === 'cable' && cables.find((c) => c.ref.cable === one.id) && (
             <CableFields cable={cables.find((c) => c.ref.cable === one.id)!} onEdit={() => void editCable(one.id)} />
+          )}
+          {movable.length > 1 && (
+            <Arrange count={movable.length} grouped={grouped} canGroup={selected.filter((r) => r.kind === 'block').length > 1}
+              onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
+              onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
+              onGroup={(join) => void regroup(selected, join)} />
           )}
           {selected.length > 0 && selected.some((r) => r.kind !== 'switch') && (
             <Button variant="light" color="down" leftSection={<IconTrash size={16} />} onClick={() => void remove(selected)}>
@@ -601,5 +658,39 @@ function BlockSize({ data, item, onChange }: {
       <NumberInput label={t('plan.edit.block.rows')} min={1} max={50} value={rows ?? block.rows} onChange={(v) => setRows(Number(v) || null)}
         onBlur={() => save('rows', rows)} onKeyDown={(e) => { if (e.key === 'Enter') save('rows', rows) }} />
     </SimpleGrid>
+  )
+}
+
+const ALIGN: [AlignHow, typeof IconLayoutAlignLeft][] = [
+  ['left', IconLayoutAlignLeft], ['hcenter', IconLayoutAlignCenter], ['right', IconLayoutAlignRight],
+  ['top', IconLayoutAlignTop], ['vcenter', IconLayoutAlignMiddle], ['bottom', IconLayoutAlignBottom],
+]
+
+/** Several items selected: line them up, spread them evenly, group or ungroup the blocks. */
+function Arrange({ count, grouped, canGroup, onAlign, onDistribute, onGroup }: {
+  count: number; grouped: boolean; canGroup: boolean
+  onAlign: (how: AlignHow) => void; onDistribute: (axis: 'x' | 'y') => void; onGroup: (join: boolean) => void
+}) {
+  const { t } = useTranslation()
+  const icon = (label: string, Icon: typeof IconLink, onClick: () => void, disabled = false) => (
+    <Tooltip key={label} label={label}>
+      <ActionIcon variant="default" size="lg" aria-label={label} disabled={disabled} onClick={onClick}><Icon size={18} /></ActionIcon>
+    </Tooltip>
+  )
+  return (
+    <div>
+      <Text size="sm" fw={500} mb={4}>{t('plan.edit.arrange.title')}</Text>
+      <Group gap={4}>
+        {ALIGN.map(([how, Icon]) => icon(t(`plan.edit.arrange.${how}`), Icon, () => onAlign(how)))}
+        {icon(t('plan.edit.arrange.spreadX'), IconLayoutDistributeHorizontal, () => onDistribute('x'), count < 3)}
+        {icon(t('plan.edit.arrange.spreadY'), IconLayoutDistributeVertical, () => onDistribute('y'), count < 3)}
+      </Group>
+      {(canGroup || grouped) && (
+        <Group gap="xs" mt="xs">
+          {canGroup && <Button size="xs" variant="default" leftSection={<IconLink size={14} />} onClick={() => onGroup(true)}>{t('plan.edit.menu.group')}</Button>}
+          {grouped && <Button size="xs" variant="default" leftSection={<IconUnlink size={14} />} onClick={() => onGroup(false)}>{t('plan.edit.menu.ungroup')}</Button>}
+        </Group>
+      )}
+    </div>
   )
 }

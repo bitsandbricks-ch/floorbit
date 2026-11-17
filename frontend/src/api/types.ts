@@ -623,6 +623,8 @@ export interface PlanCell {
 export interface PlanShape {
   /** The seat block's id, for the editor; missing on older answers. */
   id?: string
+  /** Blocks with the same group are selected, moved and copied together in the editor. */
+  group?: string | null
   cx: number
   cy: number
   rotation: number

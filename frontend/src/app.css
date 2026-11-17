@@ -401,6 +401,7 @@ body {
 .fb-edit.tooling .fb-edit-hit, .fb-edit.tooling .fb-edit-hit-line, .fb-edit.panning .fb-edit-hit-line { pointer-events: none; }
 .fb-edit-hit-line { stroke: transparent; pointer-events: stroke; cursor: pointer; stroke-linecap: round; }
 .fb-edit-hit-line:hover { stroke: color-mix(in srgb, var(--color-bit) 25%, transparent); }
+.fb-edit-guide { stroke: var(--color-trace, #22d3ee); stroke-width: 1; stroke-dasharray: 4 3; pointer-events: none; }
 .fb-edit-sel-line { stroke: var(--color-bit); stroke-width: 3; stroke-dasharray: 6 4; pointer-events: none; }
 .fb-edit.tooling .fb-edit-bg { cursor: crosshair; }
 .fb-edit-draft line, .fb-edit-draft rect { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 2; }

@@ -275,7 +275,11 @@
       "addPanel": "add patch panel {{name}}",
       "addCable": "add cable",
       "changeCable": "change cable",
-      "deleteCable": "delete cable"
+      "deleteCable": "delete cable",
+      "group": "group",
+      "ungroup": "ungroup",
+      "align": "align",
+      "distribute": "spread evenly"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -285,9 +289,9 @@
       "nudge": "move",
       "free": "off the grid",
       "pan": "+ drag to pan",
-      "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · right-click for more"
+      "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · Ctrl G group · right-click for more"
     },
-    "classic": "Tools not here yet (power, groups, align, cable bends): classic editor",
+    "classic": "Tools not here yet (power, cable bends): classic editor",
     "kind": {
       "block": "Seat block {{name}}",
       "switch": "Switch {{name}}",
@@ -380,7 +384,9 @@
       "paste": "Paste here",
       "front": "Bring to front",
       "back": "Send to back",
-      "delete": "Delete"
+      "delete": "Delete",
+      "group": "Group",
+      "ungroup": "Ungroup"
     },
     "layer": "Layer",
     "layers": {
@@ -421,6 +427,17 @@
       "seat": "Seat",
       "imported": "Imported: change it in the source and import again.",
       "edit": "Change cable"
+    },
+    "arrange": {
+      "title": "Arrange",
+      "left": "Align left edges",
+      "hcenter": "Align centres",
+      "right": "Align right edges",
+      "top": "Align top edges",
+      "vcenter": "Align middles",
+      "bottom": "Align bottom edges",
+      "spreadX": "Same gap left to right",
+      "spreadY": "Same gap top to bottom"
     }
   },
   "net": {

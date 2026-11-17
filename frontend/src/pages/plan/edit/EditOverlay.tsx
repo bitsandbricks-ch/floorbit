@@ -2,19 +2,20 @@ import { useRef, useState } from 'react'
 import type { SeatViewData } from '@/api/types'
 import type { OverlayContext } from '../SeatMap'
 import { type Box, type ItemRef, type Point, allItems, boxFrom, fromPct, inside, outlineOf, refKey, sameRef, snapPct, toPct } from './geometry'
+import type { Guide } from './arrange'
 import { TOOL_GESTURE, type Tool } from './tools'
 
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [] }: {
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r] }: {
   ctx: OverlayContext
   data: SeatViewData
   selection: ItemRef[]
   onSelect: (items: ItemRef[]) => void
   /** While dragging: the move so far, in drawing units, and whether to snap to the grid. */
-  onDrag: (d: Point, snap: boolean, lead: ItemRef) => void
-  onDrop: (d: Point, snap: boolean, lead: ItemRef) => void
+  onDrag: (d: Point, snap: boolean, lead: ItemRef, px: number) => void
+  onDrop: (d: Point, snap: boolean, lead: ItemRef, px: number) => void
   /** Space is held: let the plan pan. */
   space: boolean
   tool?: Tool
@@ -30,6 +31,10 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   onMenu?: (item: ItemRef | null, clientX: number, clientY: number) => void
   /** Items drawn as a path (cables): hit along the line, under the other items. */
   lines?: { ref: ItemRef; d: string }[]
+  /** Alignment lines to show while dragging (an edge or middle meets another item's). */
+  guides?: Guide[]
+  /** The items that go with one (its group): Shift-click takes them out together. */
+  together?: (ref: ItemRef) => ItemRef[]
 }) {
   const gesture = TOOL_GESTURE[tool]
   const [draft, setDraft] = useState<{ a: Point; b: Point } | null>(null)
@@ -64,7 +69,10 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     const additive = e.shiftKey || e.metaKey || e.ctrlKey
     if (ref) {
       const picked = selection.some((r) => sameRef(r, ref))
-      if (additive) onSelect(picked ? selection.filter((r) => !sameRef(r, ref)) : [...selection, ref])
+      if (additive) {
+        const drop = together(ref)
+        onSelect(picked ? selection.filter((r) => !drop.some((x) => sameRef(x, r))) : [...selection, ref])
+      }
       else if (!picked) onSelect([ref])
     }
     drag.current = { start: ctx.toPlan(e.clientX, e.clientY), lead: ref, moved: false, additive, id: e.pointerId }
@@ -92,7 +100,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     d.moved = true
     if (d.lead) {
       // An item picked with Shift that is no longer selected doesn't move anything.
-      if (selection.some((r) => sameRef(r, d.lead!))) onDrag(delta, !e.altKey, d.lead)
+      if (selection.some((r) => sameRef(r, d.lead!))) onDrag(delta, !e.altKey, d.lead, px)
     } else setMarquee(boxFrom(d.start, at))
   }
   const end = (e: React.PointerEvent) => {
@@ -111,7 +119,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     drag.current = null
     const at = ctx.toPlan(e.clientX, e.clientY)
     if (d.lead) {
-      if (d.moved && selection.some((r) => sameRef(r, d.lead!))) onDrop({ x: at.x - d.start.x, y: at.y - d.start.y }, !e.altKey, d.lead)
+      if (d.moved && selection.some((r) => sameRef(r, d.lead!))) onDrop({ x: at.x - d.start.x, y: at.y - d.start.y }, !e.altKey, d.lead, px)
       else if (!d.moved && !d.additive) onSelect([d.lead])
       return
     }
@@ -156,6 +164,9 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
             rx={4 * px} transform={rotation ? `rotate(${rotation} ${centre.x} ${centre.y})` : undefined} vectorEffect="non-scaling-stroke" />
         )
       })}
+      {guides.map((g, i) => (g.axis === 'x'
+        ? <line key={i} className="fb-edit-guide" x1={g.at} x2={g.at} y1={shown.y} y2={shown.y + shown.h} vectorEffect="non-scaling-stroke" />
+        : <line key={i} className="fb-edit-guide" y1={g.at} y2={g.at} x1={shown.x} x2={shown.x + shown.w} vectorEffect="non-scaling-stroke" />))}
       {draft && <Draft draft={draft} gesture={gesture} px={px} cell={data.drawing?.cell ?? 32} />}
       {marquee && <rect className="fb-edit-marquee" x={marquee.x} y={marquee.y} width={marquee.w} height={marquee.h} vectorEffect="non-scaling-stroke" />}
     </g>
