@@ -53,6 +53,7 @@
     "settings": "Einstellungen",
     "plugins": "Plugins",
     "features": "Funktionen",
+    "sidebarSections": "Bereiche in der Seitenleiste",
     "apiTokens": "API-Tokens",
     "agents": "Lokale Agents",
     "webhooks": "Webhooks",

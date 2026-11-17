@@ -8,7 +8,7 @@ import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n/lang'
 import { fetchOtherTenants, readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
 import './nav.css'
-import { activeHref, group, pageIcon, sectionIcon, type NavPage, type SectionId } from './sections'
+import { activeHref, customIcon, group, linkIcon, pageIcon, sectionIcon, type CustomLink, type NavPage } from './sections'
 
 export interface LinkProps {
   href: string
@@ -65,7 +65,7 @@ export function Sidebar(props: SidebarProps) {
   const sheet = sheetAt === props.path
   const setSheet = (open: boolean) => setSheetAt(open ? props.path : null)
   const { pinned } = group(props.boot.pages)
-  const lit = activeHref(props.boot.pages, props.path)
+  const lit = activeHref([...props.boot.pages, ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
 
   useEffect(() => {
     if (!sheet) return
@@ -152,19 +152,18 @@ function Panel(props: PanelProps) {
   const { pinned, sections } = group(boot.pages)
   const byId = new Map(boot.pages.map((p) => [p.id, p]))
   const favourites = prefs.favourites.map((id) => byId.get(id)).filter((p): p is NavPage => !!p)
-  const litSection = sections.find((s) => s.pages.some((p) => p.href === lit))?.id
   const [open, setOpen] = useState<string[]>(readOpen)
   // Folding the others: the one section opened by hand on this page (id null: closed by hand),
   // else the one with the page on screen.
-  const [only, setOnly] = useState<{ id: SectionId | null; path: string } | null>(null)
+  const [only, setOnly] = useState<{ id: string | null; path: string } | null>(null)
   // Like the sheet: tied to the page and the fold it opened on, so either change closes it.
-  const [flyoutAt, setFlyout] = useState<{ id: SectionId; top: number; path: string; rail: boolean } | null>(null)
+  const [flyoutAt, setFlyout] = useState<{ id: string; top: number; path: string; rail: boolean } | null>(null)
   const flyout = flyoutAt && flyoutAt.path === props.path && flyoutAt.rail === rail ? flyoutAt : null
 
   const picked = only && only.path === props.path ? only : null   // a new page starts from its own section
-  const isOpen = (id: SectionId) =>
+  const isOpen = (id: string) =>
     prefs.accordion ? (picked ? picked.id === id : id === litSection) : open.includes(id) || id === litSection
-  const toggle = (id: SectionId) => {
+  const toggle = (id: string) => {
     if (prefs.accordion) return setOnly({ id: isOpen(id) ? null : id, path: props.path })
     const next = isOpen(id) ? open.filter((x) => x !== id) : [...open, id]
     setOpen(next)
@@ -226,7 +225,39 @@ function Panel(props: PanelProps) {
     )
   }
 
-  const flown = flyout && sections.find((s) => s.id === flyout.id)
+  // An admin's own section: an address on another site opens in a new tab, past the app's router.
+  const customRow = (x: CustomLink) => {
+    const Icon = linkIcon(x)
+    const label = x.kind === 'page' && x.page && !x.own ? t(`goto.pages.${x.page}`, { defaultValue: x.label }) : x.label
+    const children = (
+      <>
+        <Icon size={18} className="fb-nav-icon" aria-hidden="true" />
+        <span className="fb-nav-text">{label}</span>
+      </>
+    )
+    const common = { className: 'fb-nav-row', title: rail ? label : undefined, 'aria-current': lit === x.href ? 'page' as const : undefined }
+    return (
+      <li key={`${x.kind}:${x.href}`} className="fb-nav-item">
+        {x.external
+          ? <a href={x.href} target="_blank" rel="noopener noreferrer" {...common}>{children}</a>
+          : props.renderLink({ href: x.href, ...common, children })}
+      </li>
+    )
+  }
+
+  // The admins' own sections first (ids "c:<id>", so they never meet a built-in one), then Floorbit's.
+  const groups = [
+    ...(boot.custom ?? []).map((c) => ({
+      id: `c:${c.id}`, label: c.name, icon: customIcon(c.icon), custom: true, hrefs: c.links.map((x) => x.href),
+      rows: () => c.links.map(customRow),
+    })),
+    ...sections.map((s) => ({
+      id: s.id as string, label: t(`nav.sections.${s.id}`), icon: sectionIcon(s.id), custom: false, hrefs: s.pages.map((p) => p.href),
+      rows: (star: boolean) => s.pages.map((p) => row(p, star)),
+    })),
+  ]
+  const litSection = groups.find((s) => s.hrefs.some((h) => h === lit))?.id
+  const flown = flyout && groups.find((s) => s.id === flyout.id)
   return (
     <>
       <div className="fb-nav-top">
@@ -250,12 +281,12 @@ function Panel(props: PanelProps) {
           </div>
         )}
         <ul className="fb-nav-list">{pinned.map((p) => row(p))}</ul>
-        {sections.map((s) => {
-          const Icon = sectionIcon(s.id)
-          const label = t(`nav.sections.${s.id}`)
+        {groups.map((s) => {
+          const Icon = s.icon
+          const label = s.label
           const expanded = rail ? flyout?.id === s.id : isOpen(s.id)
           return (
-            <div key={s.id} className="fb-nav-section" data-lit={s.id === litSection || undefined}>
+            <div key={s.id} className={s.custom ? 'fb-nav-section fb-nav-custom' : 'fb-nav-section'} data-lit={s.id === litSection || undefined}>
               <button
                 type="button" className="fb-nav-row fb-nav-section-head" aria-expanded={expanded}
                 title={rail ? label : undefined}
@@ -269,17 +300,17 @@ function Panel(props: PanelProps) {
                 <span className="fb-nav-text">{label}</span>
                 <IconChevronDown size={14} className="fb-nav-chevron" aria-hidden="true" />
               </button>
-              {!rail && expanded && <ul className="fb-nav-list fb-nav-sub">{s.pages.map((p) => row(p))}</ul>}
+              {!rail && expanded && <ul className="fb-nav-list fb-nav-sub">{s.rows(!rail)}</ul>}
             </div>
           )
         })}
       </div>
 
       {rail && flown && (
-        <div className="fb-nav-flyout" style={{ top: Math.min(flyout.top, window.innerHeight - 48 - flown.pages.length * 36) }}>
-          <div className="fb-nav-flyout-title">{t(`nav.sections.${flown.id}`)}</div>
+        <div className="fb-nav-flyout" style={{ top: Math.min(flyout.top, window.innerHeight - 48 - flown.hrefs.length * 36) }}>
+          <div className="fb-nav-flyout-title">{flown.label}</div>
           {/* Same rows as the open sidebar, so labels show even while it's folded. */}
-          <PanelRows rows={flown.pages.map((p) => row(p, true))} />
+          <PanelRows rows={flown.rows(true)} />
         </div>
       )}
 

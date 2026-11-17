@@ -3,12 +3,12 @@
 // Sidebar.tsx from it, and the script takes over that markup when it runs. So the sidebar is
 // there in the first paint, before the floor plan, and never pops in after it.
 import {
-  IconChevronDown, IconDots, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMenu2, IconSearch, IconStar, IconStarFilled,
+  IconChevronDown, IconExternalLink, IconLayoutDashboard, IconLink, IconDots, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMenu2, IconSearch, IconStar, IconStarFilled,
 } from '@tabler/icons-react'
 import { readFileSync } from 'fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { PINNED, SECTIONS, pageIcon, sectionIcon } from '../src/nav/sections'
+import { CUSTOM_ICONS, PINNED, SECTIONS, pageIcon, sectionIcon } from '../src/nav/sections'
 import type { Icon } from '@tabler/icons-react'
 
 const svg = (icon: Icon, size: number, className?: string) =>
@@ -34,6 +34,12 @@ export function navShell(i18nDir: string) {
       page: Object.fromEntries([...ids, '*'].map((id) => [id, svg(pageIcon(id), 18, 'fb-nav-icon')])),
       tab: Object.fromEntries([...ids, '*'].map((id) => [id, svg(pageIcon(id), 22)])),
       section: Object.fromEntries([...SECTIONS.map((s) => s.id), 'more' as const].map((id) => [id, svg(sectionIcon(id), 18, 'fb-nav-icon')])),
+      // The admins' own sections (floorbit/nav_sections.py) and their dashboard and address rows.
+      custom: Object.fromEntries(Object.entries(CUSTOM_ICONS).map(([id, icon]) => [id, svg(icon, 18, 'fb-nav-icon')])),
+      link: {
+        dashboard: svg(IconLayoutDashboard, 18, 'fb-nav-icon'), url: svg(IconLink, 18, 'fb-nav-icon'),
+        external: svg(IconExternalLink, 18, 'fb-nav-icon'),
+      },
       search: svg(IconSearch, 18, 'fb-nav-icon'),
       chevron: svg(IconChevronDown, 14, 'fb-nav-chevron'),
       collapse: svg(IconLayoutSidebarLeftCollapse, 18),

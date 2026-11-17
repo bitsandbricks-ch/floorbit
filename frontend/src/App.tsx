@@ -62,6 +62,7 @@ const Checkin = lazy(() => import('@/pages/Checkin'))
 const Agents = lazy(() => import('@/pages/Agents'))
 const Webhooks = lazy(() => import('@/pages/Webhooks'))
 const Features = lazy(() => import('@/pages/Features'))
+const SidebarSections = lazy(() => import('@/pages/SidebarSections'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
@@ -125,6 +126,7 @@ export default function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/features" element={<Features />} />
+            <Route path="/settings/sidebar" element={<SidebarSections />} />
             <Route path="/settings/api" element={<ApiTokens />} />
             <Route path="/settings/audit" element={<Audit />} />
             <Route path="/settings/users" element={<Users />} />
