@@ -1,8 +1,9 @@
 # Services
 
-Network › Services (`/services`, issue #471): the internet lines, the DNS resolvers and the LAN
-cache, with whether they answer, how full the lines are and how fast. Lines and resolvers also show
-on the service health wall (`/health`) and so in its alerts.
+Network › Services (`/services`, issue #471): the internet lines, the DNS resolvers, the internet sites
+players need and the LAN cache, with whether they answer, how full the lines are and how fast. Lines
+and resolvers also show on the service health wall (`/health`) and so in its alerts; the sites show
+there as one tile.
 
 ## Internet lines
 
@@ -27,6 +28,17 @@ A line is **down** when its port is down or every probe got lost, **look** (ambe
 An address and a name that must always resolve (like `example.com`). Floorbit sends one A query per
 check and keeps the time and the answer code. A resolver is **down** when it doesn't answer, or
 answers anything but addresses; **look** from 200 ms.
+
+## Internet sites
+
+Sites the players need, like search, game stores and voice chat: a name, a host and a port (53, 80,
+443 or 853). Floorbit connects to each three times per check and keeps the average time and how
+many got no answer. When players say "the internet is down", this shows whether it is the lines or
+one site. A site is **down** when no connect gets through; **look** from 150 ms or 20 % lost.
+
+**Add the usual sites** (shown while the list is empty) adds Google, Cloudflare, YouTube, Twitch,
+Discord, Steam, Epic Games, Riot Games and Battle.net; change or remove any of them like your own.
+On the health wall they are one tile: how many answer, which ones don't, and the median time.
 
 ## LAN cache
 
@@ -53,4 +65,4 @@ networks (for example `192.0.2.0/24,198.51.100.0/24`) and it reaches only those:
 Floorbit so that nobody can point a probe at the hosting network. Host names are resolved first and
 the address is checked, so a name can't get around the list.
 
-Adding and changing lines and resolvers needs `floorplan.edit`; each change is in the audit log.
+Adding and changing lines, resolvers and sites needs `floorplan.edit`; each change is in the audit log.

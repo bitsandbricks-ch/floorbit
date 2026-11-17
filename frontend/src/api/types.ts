@@ -86,7 +86,7 @@ export interface PluginInfo {
   name: string
   version: string
   description: string
-  trust: 'builtin' | 'development' | string
+  trust: 'builtin' | 'development' | 'official' | 'community' | string
   author: string
   homepage: string
   uses: { id: string; label: string }[]
@@ -959,6 +959,31 @@ export interface LancacheData {
   last_read: number | null
   error: string | null
 }
+/** One agent's view of the LAN cache machine (the lancache agent plugin's status). */
+export interface LancacheAgent {
+  id: string
+  name: string | null
+  updated: number | null
+  stale: boolean
+  disk: { used?: number; total?: number; free?: number; error?: string } | null
+  heartbeat: { ok: boolean; ms?: number; processed_by?: string; error?: string } | null
+  dns_check: { ok: boolean; error?: string } | null
+  clearing: { running: boolean; started: number; finished?: number; removed: number; errors: number } | null
+  health: AgentPluginHealth | null
+}
+export interface LancacheDownload extends CacheRow { item: string; clients: number; hit_ratio: number | null }
+export interface LancacheOverview extends LancacheData {
+  plugin_on: boolean
+  agents: LancacheAgent[]
+  downloads: LancacheDownload[]
+  other_downloads: { hit_bytes: number; miss_bytes: number; requests: number; items: number }
+  suspects: { cache: string; item: string; files: number; misses: number }[]
+  dns_services: { cache: string; lookups: number }[]
+  clients: { t: number; clients: number }[]
+  min_clients: number
+  window_hours: number
+  saved_bytes: number
+}
 export interface LauncherRow {
   id: string
   name: string
@@ -1350,7 +1375,10 @@ export interface PlanCable {
   key: string; kind: 'lan' | 'uplink' | 'power'; layer: string; points: [number, number][]; manual: boolean
   /** The crew has drawn this cable (bends or corners) rather than leaving it automatic. */
   drawn?: boolean
-  corners: 'square' | 'round'; via: string | null; label: string; media?: string; speed?: number | null
+  /** straight: one line end to end (``bends`` kept for when it is angled again). */
+  corners: 'square' | 'round' | 'straight'; via: string | null; label: string; media?: string; speed?: number | null
+  /** The bends the crew placed (null: automatic route). */
+  bends?: [number, number][] | null
   ref: { cable?: string | null; source?: string; switch?: string; port?: string; seat?: string; link?: string; circuit?: string }
 }
 export interface CablePlan { cables: PlanCable[]; panels: { name: string; x: number | null; y: number | null; ports: number }[]; auto: boolean }
@@ -1441,7 +1469,7 @@ export interface FirewallList {
   counts: { firewalls: number; down: number; failover: number; without: number }
 }
 
-/** GET /api/services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. */
+/** GET /api/services (issue #471): ISP uplinks, DNS resolvers, internet sites and the LAN cache. */
 export type ServiceStatus = 'up' | 'warn' | 'down' | 'unknown'
 interface ServiceState { status: ServiceStatus; since: number | null; checked_at: number | null; history: [number, number | null][]; error: string }
 export interface IspUplink extends ServiceState {
@@ -1452,12 +1480,15 @@ export interface IspUplink extends ServiceState {
 export interface DnsResolver extends ServiceState {
   id: string; name: string; address: string; lookup: string; latency_ms?: number | null; rcode?: string | null; answers?: number | null
 }
+export interface InternetSite extends ServiceState {
+  id: string; name: string; host: string; port: number; latency_ms?: number | null; loss?: number | null
+}
 export interface LanCacheState {
   status: ServiceStatus; hit_ratio: number | null; served_bytes: number; bps: number
   disk: { used: number; total: number; ratio: number } | null; error: string; demo: boolean
 }
 export interface Services {
-  uplinks: IspUplink[]; resolvers: DnsResolver[]; lan_cache: LanCacheState | null
+  uplinks: IspUplink[]; resolvers: DnsResolver[]; sites: InternetSite[]; lan_cache: LanCacheState | null
   interval: number; last_poll: number | null; via_agent: boolean; probe_ports: number[]; devices: string[]
 }
 
@@ -1520,8 +1551,9 @@ export interface PageLink {
 
 /** A seat or switch for "Go to", from GET /api/pages/find (issue #252). */
 export interface Place {
-  /** player: a nick, IP or MAC and its seat, only for seats.view (issue #292). */
-  kind: 'seat' | 'switch' | 'player'
+  /** player: a nick, IP or MAC and its seat, only for seats.view (issue #292); endpoint: where an
+   *  IP or MAC was seen, from the history (also seats.view). */
+  kind: 'seat' | 'switch' | 'player' | 'endpoint'
   name: string
   href: string
 }
@@ -1542,6 +1574,44 @@ export interface Agent {
   relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
   /** The agent's own numbers, sent every half minute (null: none lately, or an older agent). */
   report?: AgentReport | null
+  /** Plugins that are on here but this agent leaves off (another agent runs them). */
+  plugins_off?: string[]
+  /** When its key was made, and until when the key before still works (after "New key"). */
+  renewed_at?: number
+  old_works_until?: number | null
+}
+
+/** An agent's plugin updates (docs/agent-plugins.md, "Updates"). */
+export interface AgentUpdates {
+  policy: 'auto' | 'approve' | 'off'
+  image: string
+  /** Whether the agent's image pins a signing key at all. */
+  signed: boolean
+  plugins: Record<string, {
+    version: string; source: 'image' | 'bundle'; probation: boolean; rolled_back: string[]
+    pending: { version: string; why: string } | null
+  }>
+  events: { at: number; plugin: string; event: 'installed' | 'kept' | 'rolled back' | 'refused' | 'waiting' | 'dropped'; version: string; detail: string }[]
+}
+
+/** Agents that serve the same halls, and how their failover stands (floorbit/agent_ha.py). */
+export interface AgentGroup {
+  id: string
+  halls: string[]
+  label: string
+  state: 'down' | 'split' | 'no_vrrp' | 'no_primary' | 'degraded' | 'single' | 'ok'
+  mode: 'active-active' | 'active-passive' | null
+  primary: string | null
+  agents: { id: string; name: string; connected: boolean; role: 'primary' | 'standby' | 'active' | 'offline'; holds: string[] }[]
+  vips: string[]
+}
+
+/** This Floorbit's own availability (floorbit/cluster.py). */
+export interface HostedState {
+  mode: 'single' | 'redis'
+  pods: { pod: string; at: number; leader: boolean; me: boolean }[]
+  database: { kind: string; ok: boolean; since?: number | null }
+  redis: { ok: boolean }
 }
 
 export interface AgentReport {
@@ -1559,6 +1629,21 @@ export interface AgentReport {
   /** Captive portal answers: the note shown, or not (checked in). */
   captive_shown?: number
   captive_done?: number
+  /** Agent plugins (docs/agent-plugins.md): how each one that should run is doing. */
+  plugins?: Record<string, AgentPluginHealth>
+  updates?: AgentUpdates
+  /** With VRRP: whether it is its hall's primary, and the addresses it holds. */
+  vrrp?: { primary: boolean; holds: string[] }
+}
+
+export interface AgentPluginHealth {
+  status: 'ok' | 'warning' | 'error' | 'off'
+  message: string
+  running: boolean
+  metrics: Record<string, number>
+  errors: { at: number | null; error: string }[]
+  /** Logins the plugin stopped trying until a tech clears them (docs/agent-plugins.md). */
+  auth_blocked?: { device: string; credential: string; rev: string | null; since: number | null; message: string }[]
 }
 
 export interface AgentStats {
@@ -1745,4 +1830,21 @@ export interface CheckinOverview {
   conflicts: CheckinConflict[]
   portal: { fetches: { at: number; agent: string | null; done: number }[]; public_url: string | null }
   verifier: { last_error: string | null }
+}
+
+/** One row of the IP and MAC history (floorbit/endpoints.py): a machine seen on a port. */
+export interface EndpointRow {
+  mac: string
+  ip: string | null
+  device: string
+  port: string | null
+  seat: string | null
+  vlan: number | null
+  first_seen: number
+  last_seen: number
+}
+
+export interface EndpointAnswer {
+  rows: EndpointRow[]
+  status: { store: 'database' | 'memory'; written: number; open: number; keep_days: number; error: string | null }
 }
