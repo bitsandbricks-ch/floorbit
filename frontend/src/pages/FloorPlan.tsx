@@ -17,7 +17,7 @@ import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
 import { type LayerId, type LayerState, PRESET_KEYS, applyPreset, readLayers, writeLayers } from './plan/layers'
-import { LayersPanel } from './plan/LayersPanel'
+import { LayersPanel, type LayerLegends } from './plan/LayersPanel'
 import { SidePanel } from './plan/SidePanel'
 import { SIDE_TABS, type SideTab } from './plan/side'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
@@ -350,6 +350,17 @@ export default function FloorPlan() {
   const panel = !!inspector
   // The side panel shows its tabs (and their attribution foot) only while nothing is open in it.
   const tabsShown = side.open && !phone && !panel
+  // Each layer's key sits under its switch in Layers; the floating key repeats them while Layers isn't in view.
+  const legendOf = (layer: string) => t('plan.layers.legendOf', { layer })
+  const legends: LayerLegends = data ? {
+    seats: <Legend checkin={false} label={legendOf(t('plan.layers.seatStates'))} />,
+    electrical: power && <Legend checkin={false} seats={false} power label={legendOf(t('plan.layers.item.electrical'))} />,
+    firewalls: firewalls && <Legend checkin={false} seats={false} firewalls label={legendOf(t('plan.layers.item.firewalls'))} />,
+    status: traffic && <Legend checkin={false} seats={false} traffic label={legendOf(t('plan.layers.item.status'))} />,
+    checkin: data.checkin && <Legend checkin seats={false} samples={['checkedIn']} label={legendOf(t('plan.layers.item.checkin'))} />,
+    network: mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />,
+  } : {}
+  const keyShown = !(tabsShown && side.tab === 'layers')
   const available: Record<LayerId, boolean> = {
     grid: true, marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, checkin: !!data?.checkin,
     electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
@@ -383,7 +394,7 @@ export default function FloorPlan() {
               <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
                 aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             </>}
-            {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} />}
+            {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} />}
             <div className="fb-ws-bar-end">
               {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
@@ -436,17 +447,17 @@ export default function FloorPlan() {
                 {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
                 {list ? !tabsShown && <Attribution compact /> : (
                   <div className="fb-ws-corner">
-                    <PlanKey>
+                    {keyShown && <PlanKey>
                       <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />
-                      {mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />}
-                    </PlanKey>
+                      {legends.network}
+                    </PlanKey>}
                     {!tabsShown && <Attribution compact />}
                   </div>
                 )}
               </div>
               {(panel || side.open) && !phone && (
                 <SidePanel data={data} tab={side.tab} onTab={(tab) => setSide({ tab })} layers={layers} onLayers={setLayers} available={available}
-                  inspector={inspector} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)} />
+                  inspector={inspector} legends={legends} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)} />
               )}
             </div>}
           </div>

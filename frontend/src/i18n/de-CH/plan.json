@@ -285,6 +285,8 @@
     "button": "Ebenen",
     "title": "Ebenen",
     "presets": "Vorlagen",
+    "legendOf": "Legende: {{layer}}",
+    "seatStates": "Plätze",
     "preset": {
       "overview": "Übersicht",
       "network": "Netzwerk",

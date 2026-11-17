@@ -29,6 +29,9 @@ const details: SeatDetails = {
 }
 const me = { enabled: true, user: { username: 'tia', display_name: 'Tia', role: 'tech', permissions: ['floorplan.view'] } }
 
+/** Everything the plan's legends say: the floating key and each layer's key in the side panel. */
+const legendText = () => screen.getAllByRole('list', { name: /^Legend/ }).map((l) => l.textContent).join(' ')
+
 describe('seat map model', () => {
   it('picks the level of detail from the size of a seat on screen', () => {
     const view = parseBox('0 0 1000 500')
@@ -157,7 +160,7 @@ describe('traffic overlay', () => {
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('heat'))
     expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveStyle({ fill: heatColor(heatLevel(6_000_000)) })
     expect(container.querySelector('[data-seat="D-2"] .slash')).not.toBeNull()
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('100 kbit/s')
+    expect(legendText()).toContain('100 kbit/s')
   })
 })
 
@@ -166,7 +169,7 @@ describe('Seats page', () => {
     const api = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details })
     vi.stubGlobal('fetch', api.fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    expect(await screen.findByRole('list', { name: 'Legend' })).toBeInTheDocument()
+    expect(await screen.findByRole('list', { name: 'Legend: Seats' })).toBeInTheDocument()
     const seat = (s: string) => container.querySelector(`[data-seat="${s}"]`)!
     expect(seat('D-1').querySelector('.s-online')).not.toBeNull()
     expect(seat('D-1').querySelector('.chk')).not.toBeNull()
@@ -175,7 +178,7 @@ describe('Seats page', () => {
     expect(seat('D-3').querySelector('.s-unknown')).not.toBeNull()
     expect(seat('D-4').querySelector('.match')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'D-2: Offline · 1 problem' })).toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Checked in')
+    expect(legendText()).toContain('Checked in')
     expect(document.title).toBe('(1) Floor plan · Floorbit')   // D-2 has a problem: shows in a background tab
 
     fireEvent.click(seat('D-2'))
@@ -190,7 +193,7 @@ describe('Seats page', () => {
     const again = { ...details, fixed_before: { count: 2, last: { title: 'Cable loose', fixed_at: 1_799_990_000 } } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': again }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    await screen.findByRole('list', { name: 'Legend' })
+    await screen.findByRole('list', { name: 'Legend: Seats' })
     fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
     expect(await screen.findByText(/^Fixed here 2 times before, last: Cable loose \(/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=seat%3AD-2')
@@ -201,7 +204,7 @@ describe('Seats page', () => {
     const moved = { ...details, firewall: { intended: 'fw-03', now: 'fw-04', state: 'failover', range: 'Seats C' } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': moved }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    await screen.findByRole('list', { name: 'Legend' })
+    await screen.findByRole('list', { name: 'Legend: Seats' })
     fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
     expect(await screen.findByText('fw-04 (failed over from fw-03)')).toBeInTheDocument()
   })
@@ -341,7 +344,7 @@ describe('Seats page', () => {
     const { container } = renderWithApp(<FloorPlan />, '/plan')
     expect(await screen.findByRole('button', { name: 'D-3: Offline · changed 4 min ago' })).toBeInTheDocument()
     expect(container.querySelectorAll('.cell .recent')).toHaveLength(1)
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Link changed in the last 15 minutes')
+    expect(legendText()).toContain('Link changed in the last 15 minutes')
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Changed lately'))
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
     expect(container.querySelector('[data-seat="D-3"]')).not.toHaveClass('dim')
@@ -690,7 +693,11 @@ describe('Seats page', () => {
     renderWithApp(<FloorPlan />, '/plan?hall=main')
     await screen.findByRole('application', { name: 'Seat map' })
     expect(screen.getByRole('main')).toHaveClass('fb-main-full')
-    const key = screen.getByRole('region', { name: 'Legend' })
+    // Each layer's key sits under its switch in Layers; the floating key shows while Layers isn't in view.
+    expect(screen.getByRole('list', { name: 'Legend: Seats' })).toHaveTextContent('Online: port up')
+    expect(screen.queryByRole('region', { name: 'Legend' })).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'Items' }))
+    const key = await screen.findByRole('region', { name: 'Legend' })
     const fold = within(key).getByRole('button', { name: 'Legend' })
     expect(fold).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(fold)

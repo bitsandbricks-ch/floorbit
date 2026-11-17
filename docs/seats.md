@@ -14,8 +14,11 @@ that are down, seats with problems, seats offline) and **Items** (every block an
 to open it. An open seat, block or switch takes the panel's place, and closing it (or **Esc**) brings
 the tabs back. The panel button in the top bar, or **]**, hides the panel for more plan; the panel
 remembers whether it was open and which tab. On a phone the open item shows below the plan instead,
-and Layers stays in the top bar. The legend floats over the plan's bottom-left corner: click **Legend** to
-fold it away.
+and Layers stays in the top bar. Each layer's key sits under its switch in **Layers**: what the
+seats' shapes mean under the seats line, the power colours under Electrical, the traffic scale under
+Status, the cable colours and dashes under Network (in Network mode), and so on. While Layers isn't in
+view (another tab, an open item, the panel hidden), the same key floats over the plan's bottom-left
+corner: click **Legend** to fold it away.
 
 The bar switches between modes of the same plan, kept in the address (`?mode=`):
 
