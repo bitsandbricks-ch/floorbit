@@ -165,7 +165,7 @@ def test_the_layer_can_be_switched_off(client, floor, monkeypatch):
 
 def test_demo_meters_feed_the_circuits(client, watch):
     client.put("/api/settings/plugins/demo", json={"enabled": True})
-    assert client.post("/api/demo/layout").get_json()["blocks"] == 4
+    assert client.post("/api/demo/layout").get_json()["blocks"] == 5
     body = client.post("/api/power/check").get_json()
     assert body["plugins"] == 1 and len(body["boards"]) == 2 and len(body["circuits"]) == 9
     by_name = {c["name"]: c for c in body["circuits"]}

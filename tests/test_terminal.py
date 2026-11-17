@@ -66,7 +66,7 @@ def test_demo_session_records_every_typed_line(app_module, client, switch):
     for piece in ("show verx", "\x7f", "sion", "\r"):
         assert client.post(f"/api/terminal/{sid}/input", json={"data": piece}).status_code == 200
     out, after, _ = read_until(client, sid, "Version", after)
-    assert "Example Switch Software" in out
+    assert "Cisco IOS Software" in out
     # Someone else can't read or type into it.
     other = sign_in(app_module, "boss", "lead")
     assert other.get(f"/api/terminal/{sid}/output?wait=0").status_code == 404
