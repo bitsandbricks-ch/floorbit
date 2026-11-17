@@ -92,7 +92,7 @@ def test_the_summary_says_what_is_muted_and_the_crew_notice(client, app_module, 
     monkeypatch.setattr(notifier, "enabled", lambda: True)
     monkeypatch.setattr(notifier, "post", sent.append)
     client.post("/api/handover", json={"note": "", "discord": True})
-    assert "🔕 **2** muted: DNS (until " in sent[0]["embeds"][0]["description"]
+    assert "🔕 **2** muted: DNS (<t:" in sent[0]["embeds"][0]["description"]
 
     alerting.unmute("s1")
     alerting.unmute(alerting.service_key("demo:dns"))

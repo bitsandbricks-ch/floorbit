@@ -193,7 +193,9 @@ def discord_message(record, summary_, public_url='', username='Floorbit'):
     muted = summary_.get('mutes') or []
     if muted:
         lines.append(f"🔕 **{len(muted)}** muted: " + ', '.join(
-            f"{m['name']} (until {datetime.fromtimestamp(m['until']).astimezone():%H:%M})" for m in muted[:5])
+            # Discord renders <t:…:R> in each reader's language and time zone ("in 2 hours", "in 2 Stunden");
+            # the server's clock is often UTC in a container.
+            f"{m['name']} (<t:{int(m['until'])}:R>)" for m in muted[:5])
             + (', ...' if len(muted) > 5 else ''))
     top = summary_['incidents']['open'][:5]
     if top:

@@ -809,5 +809,14 @@
  "{} is not on the plan.": "{} ist nicht im Plan.",
  "{} are not on the plan.": "{} sind nicht im Plan.",
  "Give a first seat for at least one batch.": "Gib für mindestens eine Gruppe einen ersten Platz an.",
- "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche."
+ "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche.",
+ "Web services": "Webdienste",
+ "Check now": "Jetzt prüfen",
+ "HTTP check": "HTTP-Check",
+ "SSH port actions": "SSH-Port-Aktionen",
+ "Demo data": "Demodaten",
+ "{} of {} up": "{} von {} erreichbar",
+ "{} of {} up: {} down": "{} von {} erreichbar: {} ausgefallen",
+ "No services configured yet.": "Noch keine Dienste eingerichtet.",
+ "Done": "Erledigt"
 }
