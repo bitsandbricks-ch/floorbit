@@ -279,7 +279,10 @@
       "group": "gruppieren",
       "ungroup": "Gruppe auflösen",
       "align": "ausrichten",
-      "distribute": "gleichmässig verteilen"
+      "distribute": "gleichmässig verteilen",
+      "addBoard": "Stromverteiler {{name}} hinzufügen",
+      "addCircuit": "Stromkreis {{name}} hinzufügen",
+      "feed": "über {{name}} speisen"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -291,7 +294,7 @@
       "pan": "+ ziehen zum Verschieben der Ansicht",
       "more": "Ctrl C/X/V kopieren, ausschneiden, einfügen · Ctrl D duplizieren · Ctrl G gruppieren · Rechtsklick für mehr"
     },
-    "classic": "Werkzeuge, die noch fehlen (Strom, Kabelknicke): klassischer Editor",
+    "classic": "Werkzeuge, die noch fehlen (Kabelknicke): klassischer Editor",
     "kind": {
       "block": "Sitzblock {{name}}",
       "switch": "Switch {{name}}",
@@ -300,7 +303,8 @@
       "wall": "Wand",
       "zone": "Zone",
       "panel": "Patchpanel {{name}}",
-      "cable": "Kabel"
+      "cable": "Kabel",
+      "board": "Stromverteiler {{name}}"
     },
     "name": "Name",
     "rotation": "Drehung",
@@ -315,7 +319,8 @@
       "wall": "Wand",
       "zone": "Zone",
       "panel": "Patchpanel",
-      "cable": "Kabel"
+      "cable": "Kabel",
+      "board": "Stromverteiler"
     },
     "hint": {
       "block": "Klicke, wo der neue Sitzblock hinkommt.",
@@ -324,7 +329,8 @@
       "wall": "Ziehe von einem Ende der Wand zum anderen. Shift hält 15°-Schritte, Alt löst vom Raster.",
       "zone": "Ziehe einen Rahmen für die Zone.",
       "panel": "Klicke, wo das Patchpanel hinkommt.",
-      "cable": "Klicke auf einen Platz, Switch oder ein Patchpanel: Das Kabelformular öffnet sich damit ausgefüllt. Es zeigt nur freie Ports."
+      "cable": "Klicke auf einen Platz, Switch oder ein Patchpanel: Das Kabelformular öffnet sich damit ausgefüllt. Es zeigt nur freie Ports.",
+      "board": "Klicke, wo der Stromverteiler hinkommt. Wähle ihn mit Sitzblöcken oder Switches aus, um sie über einen seiner Stromkreise zu speisen."
     },
     "block": {
       "title": "Neuer Sitzblock",
@@ -438,6 +444,25 @@
       "bottom": "Untere Kanten ausrichten",
       "spreadX": "Gleicher Abstand von links nach rechts",
       "spreadY": "Gleicher Abstand von oben nach unten"
+    },
+    "board": {
+      "title": "Neuer Stromverteiler",
+      "name": "Name",
+      "location": "Ort",
+      "locationHint": "z. B. Wand links der Bühne",
+      "help": "Füge danach seine Stromkreise hinzu und speise Sitzblöcke und Switches darüber. Sicherungen, Phasen und Zähler sind auf der Seite Elektrik.",
+      "place": "Stromverteiler platzieren",
+      "circuits_one": "{{count}} Stromkreis",
+      "circuits_other": "{{count}} Stromkreise",
+      "feedsNothing": "speist noch nichts",
+      "newCircuit": "Neuer Stromkreis",
+      "circuitHint": "z. B. C1",
+      "add": "Hinzufügen",
+      "feed_one": "Ausgewähltes Element speisen über",
+      "feed_other": "Die {{count}} ausgewählten Elemente speisen über",
+      "feedGo": "Speisen",
+      "feedHint": "Sitzblöcke oder Switches mit Shift-Klick dazunehmen, um sie über diesen Stromverteiler zu speisen.",
+      "more": "Sicherungen, Phasen und Messwerte auf der Seite Elektrik"
     }
   },
   "net": {

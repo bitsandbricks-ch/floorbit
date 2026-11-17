@@ -163,6 +163,16 @@ def _panels(data, hall_id):
             for p in cable_plan.panels(data, hall_id) if p.get('x') is not None and p.get('y') is not None]
 
 
+def _boards(data):
+    """Power distribution boards placed on the plan, in drawing units (none with power off)."""
+    from . import power
+    if not power.enabled():
+        return []
+    boards, _ = power._stored(data)
+    return [{'id': b['id'], 'name': b['name'], 'x': float(b['x']) / 100 * PLAN_W, 'y': float(b['y']) / 100 * PLAN_H}
+            for b in boards if b.get('x') is not None and b.get('y') is not None]
+
+
 def _state(seat, online, ports):
     if online is None:
         return 'unknown'
@@ -261,6 +271,7 @@ def view(hall_id=None, now=None, seat=None, switch=None):
         'switches': plan_switches,
         'links': links.on_plan(data, plan_switches),
         'panels': _panels(data, hall['id']),
+        'boards': _boards(data),
         'seats': seats,
         'blocks': blocks,
         'monitoring': online is not None,

@@ -279,7 +279,10 @@
       "group": "group",
       "ungroup": "ungroup",
       "align": "align",
-      "distribute": "spread evenly"
+      "distribute": "spread evenly",
+      "addBoard": "add board {{name}}",
+      "addCircuit": "add circuit {{name}}",
+      "feed": "feed from {{name}}"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -291,7 +294,7 @@
       "pan": "+ drag to pan",
       "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · Ctrl G group · right-click for more"
     },
-    "classic": "Tools not here yet (power, cable bends): classic editor",
+    "classic": "Tools not here yet (cable bends): classic editor",
     "kind": {
       "block": "Seat block {{name}}",
       "switch": "Switch {{name}}",
@@ -300,7 +303,8 @@
       "wall": "Wall",
       "zone": "Zone",
       "panel": "Patch panel {{name}}",
-      "cable": "Cable"
+      "cable": "Cable",
+      "board": "Board {{name}}"
     },
     "name": "Name",
     "rotation": "Rotation",
@@ -315,7 +319,8 @@
       "wall": "Wall",
       "zone": "Zone",
       "panel": "Patch panel",
-      "cable": "Cable"
+      "cable": "Cable",
+      "board": "Distribution board"
     },
     "hint": {
       "block": "Click where the new seat block goes.",
@@ -324,7 +329,8 @@
       "wall": "Drag from one end of the wall to the other. Shift keeps 15° steps, Alt leaves the grid.",
       "zone": "Drag a box for the zone.",
       "panel": "Click where the patch panel goes.",
-      "cable": "Click a seat, switch or patch panel: the cable form opens with it filled in. Ports list only the free ones."
+      "cable": "Click a seat, switch or patch panel: the cable form opens with it filled in. Ports list only the free ones.",
+      "board": "Click where the distribution board goes. Select it with seat blocks or switches to feed them from one of its circuits."
     },
     "block": {
       "title": "New seat block",
@@ -438,6 +444,25 @@
       "bottom": "Align bottom edges",
       "spreadX": "Same gap left to right",
       "spreadY": "Same gap top to bottom"
+    },
+    "board": {
+      "title": "New distribution board",
+      "name": "Name",
+      "location": "Location",
+      "locationHint": "e.g. stage left wall",
+      "help": "Add its circuits next, then feed seat blocks and switches from them. Ratings, phases and meters are on the Electrics page.",
+      "place": "Place board",
+      "circuits_one": "{{count}} circuit",
+      "circuits_other": "{{count}} circuits",
+      "feedsNothing": "feeds nothing yet",
+      "newCircuit": "New circuit",
+      "circuitHint": "e.g. C1",
+      "add": "Add",
+      "feed_one": "Feed the selected item from",
+      "feed_other": "Feed the {{count}} selected items from",
+      "feedGo": "Feed",
+      "feedHint": "Shift-click seat blocks or switches to feed them from this board.",
+      "more": "Ratings, phases and readings on the Electrics page"
     }
   },
   "net": {

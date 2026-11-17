@@ -178,3 +178,11 @@ def test_discord_power_message():
     assert embed["title"] == "⚡ Breaker tripped: A row 2"
     assert {"name": "Feeds", "value": "12 seats and sw-a-01", "inline": False} in embed["fields"]
     assert DiscordNotifier().build_power_message({"state": "warn"}) is None
+
+
+def test_placed_boards_are_on_the_plan(client, floor):
+    """The React editor selects and moves boards: /api/plan lists the placed ones in drawing units."""
+    client.post("/api/power/boards", json={"name": "DB-9", "x": 50, "y": 10})
+    client.post("/api/power/boards", json={"name": "DB-nowhere"})
+    names = {b["name"]: b for b in client.get("/api/plan").get_json()["boards"]}
+    assert "DB-nowhere" not in names and names["DB-9"]["x"] == 800
