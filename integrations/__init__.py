@@ -33,7 +33,7 @@ import hmac
 import threading
 import time
 
-from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request, stream_with_context
+from flask import Blueprint, Response, current_app, jsonify, redirect, request, stream_with_context
 
 from . import checkin, config, events, history, seat_sources, settings_bridge
 from .crew import CrewBridge
@@ -290,7 +290,8 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
 
     @bp.route('/checkins/history')
     def history_page():
-        return render_template('checkin_history.html')
+        # The history is a tab of the crew's Check-ins page now; old links and bookmarks land there.
+        return redirect('/checkins?tab=history')
 
     @bp.route('/api/checkins/history')
     def history_list():

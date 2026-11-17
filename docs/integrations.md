@@ -194,7 +194,7 @@ traffic is never held back.
 
 Every change to the check-in table is appended to a JSON Lines log: `checkin`, `moved`
 (the same machine checked in at another seat, `to_seat`), `removed`, `ip_changed` (DHCP,
-`previous_ip`) and `mac_found`. `/checkins/history` shows it two ways:
+`previous_ip`) and `mac_found`. The **History** tab of the crew Check-in page (`/checkins?tab=history`; `/checkins/history` still leads there) shows it two ways:
 
 - **Who sat where**: one row per person per seat, from check-in until someone else took the
   seat, they moved, or an admin removed them, with every IP seen in between.

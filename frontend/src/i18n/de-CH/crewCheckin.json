@@ -1,7 +1,51 @@
 {
   "title": "Check-in",
   "seats": "Plätze",
-  "history": "Verlauf",
+  "history": {
+    "sessions": "Wer wo sass",
+    "events": "Alle Ereignisse",
+    "export": "CSV exportieren",
+    "seat": "Platz",
+    "user": "Benutzername",
+    "contains": "enthält…",
+    "from": "Von",
+    "to": "Bis",
+    "any": "Alle",
+    "event": {
+      "label": "Ereignis",
+      "checkin": "Check-in",
+      "moved": "Platz gewechselt",
+      "removed": "Entfernt",
+      "ip_changed": "IP geändert",
+      "mac_found": "MAC gefunden"
+    },
+    "clear": "Filter zurücksetzen",
+    "off": "Der Verlauf ist in den Einstellungen ausgeschaltet; neue Check-ins werden nicht aufgezeichnet.",
+    "count": {
+      "sessions_one": "{{count}} Sitzung",
+      "sessions_other": "{{count}} Sitzungen",
+      "events_one": "{{count}} Ereignis",
+      "events_other": "{{count}} Ereignisse"
+    },
+    "showing": "{{shown}} von {{total}} angezeigt. Für alle: CSV exportieren.",
+    "none": "Keine Check-ins passen zu diesen Filtern.",
+    "here": "Noch da",
+    "col": {
+      "seat": "Platz",
+      "user": "Benutzername",
+      "mac": "MAC",
+      "ips": "IPs",
+      "in": "Eingecheckt",
+      "left": "Gegangen",
+      "duration": "Dauer",
+      "time": "Zeit",
+      "event": "Ereignis",
+      "ip": "IP",
+      "details": "Details"
+    },
+    "toSeat": "nach {{seat}}",
+    "wasIp": "vorher {{ip}}"
+  },
   "intro": "Wer an welchem Platz eingecheckt hat und ob im Hintergrund der Switch-Port gefunden wurde. Ein PIN-Check-in von einem PC am eigenen Port bringt Floorbit den Port des Platzes bei.",
   "verifierError": "Die Port-Suche ist zuletzt fehlgeschlagen: {{error}}. Sie versucht es von selbst wieder.",
   "count": {
@@ -19,7 +63,8 @@
   "tab": {
     "checkins": "Check-ins ({{count}})",
     "review": "Prüfen ({{count}})",
-    "portal": "Captive Portal"
+    "portal": "Captive Portal",
+    "history": "Verlauf"
   },
   "search": "Platz, Nick, IP, MAC oder Port",
   "state": {
