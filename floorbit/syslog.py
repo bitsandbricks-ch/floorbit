@@ -295,14 +295,15 @@ class SyslogReceiver:
             self.alerts.observe(line, now)
         return line
 
-    def relay(self, agent_name, lines, now=None, dropped=0):
+    def relay(self, agent_name, lines, now=None, dropped=0, offset=0.0):
         """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at", "id"}]``.
 
         The original sender is checked against the allow-list as if it had sent here, and a line
         keeps the time the agent got it. An agent that couldn't reach us keeps lines on disk and
         sends them later (#465): they are placed at their own time, back to the retention limit.
         ``id`` is the same on every agent that heard the line: a second copy within DUPLICATE_WINDOW
-        of the first (two agents, or a batch sent again) is dropped. Returns how many were kept."""
+        of the first (two agents, or a batch sent again) is dropped. ``offset``: what the agent's
+        clock is behind ours (agent_clock.offset), added to its times. Returns how many were kept."""
         now = time.time() if now is None else now
         if not lines:
             return 0     # the agent's check: nothing to count
@@ -315,7 +316,7 @@ class SyslogReceiver:
             except ValueError:
                 continue
             try:
-                at = min(now, float(item.get('at') or now))
+                at = min(now, float(item.get('at') or now) + offset)
             except (TypeError, ValueError):
                 at = now
             if at < now - settings()['retention_hours'] * 3600:

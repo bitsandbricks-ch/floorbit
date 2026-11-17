@@ -962,3 +962,24 @@ def test_another_protocol_gets_one_clear_answer(client, app_module, monkeypatch)
     monkeypatch.setattr(agent_link, "PROTOCOLS", (2,))
     with pytest.raises(agent_mod.Refused, match="Update the agent"):
         make(app_module, key).run()
+
+
+def test_a_skewed_agent_clock_is_corrected_from_its_header(client, app_module, monkeypatch):
+    from floorbit import agent_clock
+    receiver = _syslog_receiver(app_module, monkeypatch)
+    key = enrol(client)["key"]
+    now = time.time()
+    day = 86400   # a box without a battery clock, a day behind: every line used to be past retention
+    lines = [{"raw": "<14>%LINK-3-UPDOWN: Interface Gi1/0/3, changed state to down", "from": "192.0.2.9",
+              "at": now - day}]
+    post = app_module.app.test_client().post
+    res = post("/api/agent/v1/syslog", json={"lines": lines}, headers={"Floorbit-Agent-Key": key})
+    assert res.get_json()["taken"] == 0
+    res = post("/api/agent/v1/syslog", json={"lines": lines},
+               headers={"Floorbit-Agent-Key": key, agent_clock.HEADER: f"{now - day:.3f}"})
+    assert res.get_json()["taken"] == 1
+    assert abs(receiver.lines[-1]["ts"] - now) < 5
+    for odd in ("soon", "nan", "inf", ""):      # nonsense is ignored, not trusted
+        res = post("/api/agent/v1/syslog", json={"lines": lines},
+                   headers={"Floorbit-Agent-Key": key, agent_clock.HEADER: odd})
+        assert res.get_json()["taken"] == 0

@@ -34,7 +34,7 @@ from simple_websocket import ConnectionClosed
 
 from integrations import events
 
-from .. import agent_link, audit, features, spa
+from .. import agent_clock, agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 sock = Sock()
@@ -236,7 +236,8 @@ def syslog():
     body = _agent_body()
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
-    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
+    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped,
+                          offset=agent_clock.offset(agent))
     if lines:
         agent_link.tunnel.relayed(agent['id'], 'syslog', taken)
     return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})

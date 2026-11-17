@@ -374,6 +374,13 @@ Each line carries an ID made of its sender and text, the same on every agent tha
 copy within ten seconds of the first (two agents, or a batch sent again after a crash) is dropped
 and counted as `duplicates` in the syslog status.
 
+The agent's clock doesn't need to be right. Every request says the agent's time
+(`Floorbit-Agent-Clock`), and Floorbit adds the difference to its own clock to the times the agent
+sends, once it is more than 5 seconds. A box without NTP or a battery clock would otherwise make
+every line look late, so no log alert fires, or past retention, so every line is dropped. From one
+minute off, the Floorbit log says so once per agent. Older agents don't send the header, and their
+times are taken as they are.
+
 ## Traffic (NetFlow) through the agent
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs

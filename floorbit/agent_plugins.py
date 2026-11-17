@@ -303,6 +303,11 @@ def _reload_loop():
                     return
                 _reload_wanted.clear()
             reload_agents_now()
+    except Exception as exc:  # noqa: BLE001  # a background nudge: the agents still pull within a minute
+        with _reload_lock:
+            _reload_running = False
+        with contextlib.suppress(Exception):    # the interpreter may be shutting down
+            print(f'[agent] telling the agents to reload failed: {exc}', flush=True)
     except BaseException:
         with _reload_lock:
             _reload_running = False
