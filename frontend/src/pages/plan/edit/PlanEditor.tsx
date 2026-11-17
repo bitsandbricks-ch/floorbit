@@ -563,6 +563,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       const picked = TOOLS.find((id) => TOOL_KEYS[id] === k)
       if (picked) { take(); setTool(picked); return }
     }
+    // Esc in the middle of a drag drops nothing: the items go back where they were.
+    if (e.key === 'Escape' && drag) { take(); setDrag(null); setGuides([]); setSelection([]); return }
     if (e.key === 'Escape' && tool !== 'select') { take(); setTool('select'); return }
     if (!selected.length) return
     if (e.key === 'Escape') { take(); setSelection([]); return }
