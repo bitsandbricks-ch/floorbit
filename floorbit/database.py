@@ -372,6 +372,33 @@ class Sql:
         rows = self.run('SELECT line FROM floorbit_log WHERE log_key = ? ORDER BY id', (key,), fetch=True)
         return [r[0] for r in rows]
 
+    def run_many(self, sql, rows, chunk=5000):
+        """One statement for many rows, ``chunk`` rows per transaction. Telemetry wrote a 1,000-switch
+        hall's minute (400,000 rows) a statement and a commit at a time and fell behind; this is one
+        round trip per chunk."""
+        sql = sql.replace('?', self.mark) if self.mark != '?' else sql
+        rows = list(rows)
+        try:
+            with self.connection() as c:
+                cur = c.cursor()
+                for start in range(0, len(rows), chunk):
+                    cur.execute('BEGIN IMMEDIATE' if self.kind == 'sqlite' else 'BEGIN')
+                    try:
+                        cur.executemany(sql, rows[start:start + chunk])
+                        cur.execute('COMMIT')
+                    except Exception:
+                        cur.execute('ROLLBACK')
+                        raise
+        except DatabaseError:
+            raise
+        except Exception as exc:
+            if _unreachable(exc):
+                raise self._mark_down(exc) from exc
+            raise DatabaseError(f'{self.describe()}: {exc}') from exc
+        if self.down:
+            self._mark_up()
+        return len(rows)
+
     def log_size(self, key):
         rows = self.run('SELECT COALESCE(SUM(LENGTH(line)), 0) FROM floorbit_log WHERE log_key = ?', (key,), fetch=True)
         return int(rows[0][0] or 0)
