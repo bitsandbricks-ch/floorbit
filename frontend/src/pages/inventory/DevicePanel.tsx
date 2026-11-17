@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, SimpleGrid, Stack, Tabs, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, SimpleGrid, Stack, Tabs, Text } from '@mantine/core'
 import { IconAlertTriangle, IconPencil } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -12,7 +12,7 @@ import { dateTime } from '@/lib/time'
 import { DeviceIcon } from './icons'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, roleIcon, speedLabel } from './model'
-import { useCustomIcons, useDeviceDetail } from './scope'
+import { useCustomIcons, useDeviceDetail, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 
 
@@ -51,6 +51,7 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
 
   const icon = dev ? dev.resolved.look.icon.value || roleIcon(dev.role) : 'other'
   const color = dev?.resolved.look.color.value ?? ''
+  const deviceFields = useInventoryTypes().data?.types.find((x) => x.id === 'device')?.fields ?? []
   const uploaded = useCustomIcons(icon.startsWith('custom-')).data?.icons.find((i) => i.id === icon)
   return (
     <SidePanel
@@ -134,6 +135,40 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
                   <FromLabel from={dev.resolved.look.icon.from} />
                 </Group>
               </PanelSection>
+              {deviceFields.length > 0 && (
+                <PanelSection label={t('inventory.types.fields')}>
+                  <SimpleGrid cols={2} spacing="sm">
+                    {deviceFields.map((f) => (
+                      <Field key={f.key} label={t(`inventory.types.fieldLabel.${f.key}`, { defaultValue: f.label })}>
+                        {(() => { const v = dev.fields?.[f.key] || f.default; return f.kind === 'bool' && v ? t(`inventory.types.${v}`) : v || '–' })()}
+                      </Field>
+                    ))}
+                  </SimpleGrid>
+                </PanelSection>
+              )}
+              {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length > 0) && (
+                <PanelSection label={t('inventory.connected.title')}>
+                  <Stack gap={6}>
+                    {dev.connected.uplinks.map((u) => (
+                      <Text key={u.id} size="sm">{t('inventory.connected.uplink', { name: u.name, port: u.port })}</Text>
+                    ))}
+                    {dev.connected.circuits.map((c) => (
+                      <Text key={c.id} size="sm">{t('inventory.connected.circuit', { name: c.name, board: c.board || '–' })}{c.phase && ` · ${c.phase}`}{c.rating_a ? ` · ${c.rating_a} A` : ''}</Text>
+                    ))}
+                    {dev.connected.cables.length > 0 && (
+                      <Text size="sm">
+                        {t('inventory.connected.cables', { count: dev.connected.cables.length })}{' '}
+                        <Anchor href={`/cables?q=${encodeURIComponent(dev.name)}`} size="sm">{t('inventory.connected.showCables')}</Anchor>
+                      </Text>
+                    )}
+                    {dev.connected.cables.slice(0, 8).map((c) => (
+                      <Text key={c.id} size="xs" c="dimmed" ff="var(--font-mono)">
+                        {[c.port, c.panel && `${c.panel} ${c.panel_port}`.trim(), c.seat].filter(Boolean).join(' → ')}{c.label && `  (${c.label})`}
+                      </Text>
+                    ))}
+                  </Stack>
+                </PanelSection>
+              )}
               {!!dev.runs_here?.length && (
                 <PanelSection label={t('inventory.runsHere.title')}>
                   <Text size="xs" c="dimmed" mb={4}>{t('inventory.runsHere.hint')}</Text>

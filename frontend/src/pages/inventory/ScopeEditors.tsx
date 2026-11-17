@@ -14,7 +14,10 @@ export function FromLabel({ from }: { from: Origin | null | undefined }) {
   if (from.type === 'device') return <Text span size="xs" c="dimmed">{t('inventory.scope.fromDevice')}</Text>
   return (
     <Text span size="xs" c="dimmed">
-      {t(`inventory.scope.from.${from.type}`, { name: from.type === 'defaults' ? t('inventory.groups.all') : from.name })}
+      {t(`inventory.scope.from.${from.type}`, {
+        name: from.type === 'defaults' ? t('inventory.groups.all')
+          : from.type === 'type' ? t(`inventory.types.name.${from.id}`, { defaultValue: from.name }) : from.name,
+      })}
     </Text>
   )
 }

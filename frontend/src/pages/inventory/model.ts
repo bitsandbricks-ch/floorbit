@@ -1,4 +1,4 @@
-import { INVENTORY_FIELDS, type Device, type InventoryField, type InventoryGroup } from '@/api/types'
+import { INVENTORY_FIELDS, type Device, type InventoryField, type InventoryGroup, type InventoryType } from '@/api/types'
 
 export type Draft = Record<InventoryField, string>
 
@@ -34,7 +34,7 @@ export function matches(device: Device, query: string, role: string | null) {
 
 /** The icon, colour and tags a device shows: its own, else the nearest group's (tags: all of them).
  *  Tags' own icons and colours are left to the device page, which has the full lookup. */
-export function effectiveLook(device: Device, groups: InventoryGroup[]) {
+export function effectiveLook(device: Pick<Device, 'icon' | 'color' | 'tags' | 'group_id'>, groups: InventoryGroup[]) {
   const byId = new Map(groups.map((g) => [g.id, g]))
   let icon = device.icon ?? ''
   let color = device.color ?? ''
@@ -69,4 +69,9 @@ export function credentialBody(ownerType: string, ownerId: string, d: { kind: st
     ...(d.secret ? { secret: d.secret } : {}),
     ...(d.kind === 'snmp_v3' ? { auth_protocol: d.auth_protocol, priv_protocol: d.priv_protocol, ...(d.priv_secret ? { priv_secret: d.priv_secret } : {}) } : {}),
   }
+}
+
+/** A type's name: built-in ones in the page's language, custom ones as the admin wrote them. */
+export function typeName(t: (k: string, o?: Record<string, unknown>) => string, type: InventoryType) {
+  return type.builtin ? t(`inventory.types.name.${type.id}`, { defaultValue: type.name }) : type.name
 }

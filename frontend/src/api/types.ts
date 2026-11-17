@@ -128,6 +128,8 @@ export interface Device extends Record<InventoryField, string> {
   tags?: string[]
   properties?: Record<string, string>
   features?: Record<string, boolean>
+  /** Values of the fields the Device type has (inventory types). */
+  fields?: Record<string, string>
   interface_count?: number
   blocked?: number
 }
@@ -167,6 +169,28 @@ export interface FeatureInfo {
 /** An SVG from the shared icon library (floorbit/icon_library.py); `id` starts with `custom-`. */
 export interface CustomIcon { id: string; name: string; url: string; by: string; at: number | null }
 
+/** A field an admin set up on an inventory type (floorbit/inventory_types.py). */
+export interface FieldDef {
+  key: string; label: string; kind: 'text' | 'number' | 'choice' | 'bool' | 'link'
+  choices: string[]; default: string; link: string
+}
+export interface InventoryType {
+  id: string; name: string; sort: 'device' | 'linked' | 'stored'; builtin: boolean
+  icon: string; default_icon: string; color: string
+  /** Built-in fields first, then the ones set up here (`own_fields`). */
+  fields: FieldDef[]; own_fields: FieldDef[]
+  properties: Record<string, string>; features: Record<string, boolean>; count: number
+}
+export interface InventoryEntry {
+  id: string; type: string; name: string; summary: string; detail: string; link: string
+  group_id: string | null; tags: string[]; properties: Record<string, string>
+  icon: string; color: string; notes: string; fields: Record<string, string>
+}
+export interface EntryDetail extends InventoryEntry {
+  resolved: Omit<DeviceDetail['resolved'], 'credentials' | 'features'>
+  field_values: (FieldDef & { value: string; is_default: boolean })[]
+}
+
 export interface InventoryOverview {
   groups: InventoryGroup[]
   tags: InventoryTag[]
@@ -205,7 +229,7 @@ export interface DeviceInterface {
 }
 
 export interface Origin {
-  type: 'device' | 'tag' | 'group' | 'defaults' | 'switch-logins'
+  type: 'device' | 'tag' | 'group' | 'type' | 'defaults' | 'switch-logins'
   id: string
   name: string
 }
@@ -243,6 +267,12 @@ export interface DeviceDetail extends Device {
   blocks: LoginBlock[]
   /** What goes down with this device: VMs on it, and game servers on it or on those VMs. */
   runs_here?: { kind: 'device' | 'game-server'; id: string; name: string; role?: string; via?: string }[]
+  /** What is wired to it: cables on its ports, circuits that feed it, internet lines on it. */
+  connected?: {
+    cables: { id: string; label: string; port: string; panel: string; panel_port: string; seat: string; type: string; speed: number | null }[]
+    circuits: { id: string; name: string; board: string; phase: string; rating_a: number | null }[]
+    uplinks: { id: string; name: string; port: string; capacity_mbps: number | null }[]
+  }
   resolved: {
     properties: Record<string, { value: string; from: Origin }>
     features: Record<string, { on: boolean; from: Origin | null }>

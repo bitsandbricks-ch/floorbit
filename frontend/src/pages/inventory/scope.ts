@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { CredentialInfo, CustomIcon, DeviceDetail, InventoryGroup, InventoryOverview } from '@/api/types'
+import type { CredentialInfo, CustomIcon, EntryDetail, InventoryEntry, InventoryType, DeviceDetail, InventoryGroup, InventoryOverview } from '@/api/types'
 
 export function useInventoryGroups() {
   return useQuery({ queryKey: qk.inventoryGroups, queryFn: () => get<InventoryOverview>('/api/inventory/groups') })
@@ -11,6 +11,29 @@ export function useInventoryGroups() {
 export function useCustomIcons(enabled = true) {
   return useQuery({
     queryKey: qk.customIcons, queryFn: () => get<{ icons: CustomIcon[]; max_kb: number }>('/api/icons'), staleTime: 60_000, enabled,
+  })
+}
+
+export function useInventoryTypes() {
+  return useQuery({
+    queryKey: qk.inventoryTypes,
+    queryFn: () => get<{ types: InventoryType[]; field_kinds: string[] }>('/api/inventory/types'),
+  })
+}
+
+export function useEntries(type: string, enabled = true) {
+  return useQuery({
+    queryKey: qk.inventoryEntries(type),
+    queryFn: () => get<{ entries: InventoryEntry[] }>(`/api/inventory/entries?type=${encodeURIComponent(type)}`),
+    enabled: enabled && !!type,
+  })
+}
+
+export function useEntryDetail(type: string, id: string | null) {
+  return useQuery({
+    queryKey: qk.inventoryEntry(type, id ?? ''),
+    queryFn: () => get<EntryDetail>(`/api/inventory/entries/${encodeURIComponent(type)}/${encodeURIComponent(id ?? '')}`),
+    enabled: !!id,
   })
 }
 

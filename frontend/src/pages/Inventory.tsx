@@ -1,6 +1,6 @@
-import { Alert, Anchor, Badge, Box, Button, Group, Paper, Select, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Anchor, Badge, Box, Button, Group, Paper, Select, Switch, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconAlertTriangle, IconIcons, IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
+import { IconAlertTriangle, IconCategory, IconIcons, IconLock, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,10 +15,13 @@ import { DeviceForm } from './inventory/DeviceForm'
 import { DevicePanel } from './inventory/DevicePanel'
 import { GroupPanel, type ScopeTarget } from './inventory/GroupPanel'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
+import { EntriesView } from './inventory/EntriesView'
+import { EntryPanel } from './inventory/EntryPanel'
 import { IconLibrary } from './inventory/IconLibrary'
+import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
-import { effectiveLook, matches, roleIcon, type Draft } from './inventory/model'
-import { groupAndBelow, useInventoryGroups } from './inventory/scope'
+import { effectiveLook, matches, roleIcon, typeName, type Draft } from './inventory/model'
+import { groupAndBelow, useInventoryGroups, useInventoryTypes } from './inventory/scope'
 import { LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 
@@ -48,6 +51,11 @@ export default function Inventory() {
   const canEdit = useCan('floorplan.edit')
   const canManage = useCan('settings.manage')
   const [libraryOpen, library] = useDisclosure(false)
+  const [typesOpen, typesEditor] = useDisclosure(false)
+  const [typeTab, setTypeTab] = useState('device')
+  const [entryOpen, setEntryOpen] = useState<string | null>(null)
+  const types = useInventoryTypes().data?.types ?? []
+  const currentType = types.find((x) => x.id === typeTab)
   const [showHidden, setShowHidden] = useState(false)
   // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
@@ -145,17 +153,24 @@ export default function Inventory() {
         actions={
           canEdit && (
             <>
+              {canManage && (
+                <Button variant="default" leftSection={<IconCategory size={16} />} onClick={typesEditor.open}>
+                  {t('inventory.types.open')}
+                </Button>
+              )}
               <Button variant="default" leftSection={<IconIcons size={16} />} onClick={library.open}>
                 {t('inventory.library.open')}
               </Button>
-              {!!data?.sources.length && (
+              {typeTab === 'device' && !!data?.sources.length && (
                 <Button variant="default" leftSection={<IconRefresh size={16} />} loading={sync.isPending} onClick={() => sync.mutate()}>
                   {t('inventory.sync')}
                 </Button>
               )}
-              <Button leftSection={<IconPlus size={16} />} onClick={() => openForm(null)}>
-                {t('inventory.add')}
-              </Button>
+              {typeTab === 'device' && (
+                <Button leftSection={<IconPlus size={16} />} onClick={() => openForm(null)}>
+                  {t('inventory.add')}
+                </Button>
+              )}
             </>
           )
         }
@@ -180,6 +195,20 @@ export default function Inventory() {
           onGroup={setGroup} onTags={setTagFilter} onEdit={setScope} />
       )}
       <div style={{ minWidth: 0 }}>
+      {types.length > 1 && (
+        <Tabs value={typeTab} onChange={(v) => { setTypeTab(v ?? 'device'); setEntryOpen(null) }} mb="md">
+          <Tabs.List>
+            {types.map((x) => (
+              <Tabs.Tab key={x.id} value={x.id} rightSection={<Badge size="xs" variant="light">{x.count}</Badge>}>
+                {x.sort === 'device' ? t('inventory.types.devices') : typeName(t, x)}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs>
+      )}
+      {typeTab !== 'device' && currentType && overview ? (
+        <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={setEntryOpen} />
+      ) : (<>
       <Group gap="sm" mb="md" wrap="wrap" align="flex-end">
         <TextInput
           label={t('inventory.search')}
@@ -326,8 +355,10 @@ export default function Inventory() {
           )}
         </>
       )}
+      </>)}
       </div>
       </Box>
+
       {opened && overview && (
         <DevicePanel key={opened} id={opened} overview={overview} sourceName={sourceName} onClose={() => setOpened(null)}
           onEdit={() => {
@@ -354,7 +385,13 @@ export default function Inventory() {
           onUnlock={(f) => save.mutate({ unlock: [f] })}
         />
       )}
-      <IconLibrary opened={libraryOpen} canManage={canManage} onClose={library.close} />
+      <>
+        <IconLibrary opened={libraryOpen} canManage={canManage} onClose={library.close} />
+      {entryOpen && currentType && overview && (
+        <EntryPanel key={`${typeTab}-${entryOpen}`} type={currentType} id={entryOpen} overview={overview} canEdit={canEdit} onClose={() => setEntryOpen(null)} />
+      )}
+      {typesOpen && overview && <TypesEditor opened={typesOpen} overview={overview} onClose={typesEditor.close} />}
+      </>
     </Layout>
   )
 }

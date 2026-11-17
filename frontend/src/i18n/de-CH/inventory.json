@@ -88,6 +88,13 @@
     "cloud": "Cloud",
     "cpu": "Chip",
     "antenna": "Antenne",
+    "cable": "Kabel",
+    "circuit": "Stromkreis",
+    "power-board": "Verteiler",
+    "patch-panel": "Patchpanel",
+    "rack": "Rack",
+    "transceiver": "Transceiver",
+    "vlan": "VLAN",
     "other": "Gerät"
   },
   "library": {
@@ -116,11 +123,95 @@
     "default": "Standard",
     "fromDevice": "hier gesetzt",
     "from": {
+      "type": "vom Typ {{name}}",
       "tag": "vom Tag {{name}}",
       "group": "von der Gruppe {{name}}",
       "defaults": "von {{name}}",
       "switch-logins": "aus den Switch-Logins ({{name}})"
     }
+  },
+  "types": {
+    "open": "Typen",
+    "title": "Inventartypen",
+    "intro": "Jeder Eintrag im Inventar hat einen Typ. Gib einem Typ eigene Felder (Text, Zahl, Auswahl, Ja/Nein oder ein Link zu einem anderen Eintrag) und Einstellungen, die alle seine Einträge erben.",
+    "devices": "Geräte",
+    "name": {
+      "device": "Gerät",
+      "cable": "Kabel",
+      "circuit": "Stromkreis",
+      "power-board": "Verteiler",
+      "patch-panel": "Patchpanel",
+      "rack": "Rack oder Standort",
+      "transceiver": "Transceiver",
+      "vlan": "VLAN oder IP-Bereich",
+      "item": "Gegenstand"
+    },
+    "fieldLabel": {
+      "height_u": "Höhe (HE)",
+      "hall": "Halle oder Standort",
+      "device": "Gerät",
+      "port": "Port",
+      "form": "Bauform",
+      "media": "Medium",
+      "speed": "Geschwindigkeit",
+      "serial": "Seriennummer",
+      "vlan_id": "VLAN-ID",
+      "prefix": "Präfix",
+      "gateway": "Gateway",
+      "purpose": "Zweck"
+    },
+    "yes": "Ja",
+    "no": "Nein",
+    "new": "Neuer Typ",
+    "newPlaceholder": "Neuer Typ, z. B. Bildschirm",
+    "basics": "Typ",
+    "fields": "Felder",
+    "builtIn": "eingebaut",
+    "fieldName": "Feld",
+    "kind": "Art",
+    "kinds": {
+      "text": "Text",
+      "number": "Zahl",
+      "choice": "Auswahl",
+      "bool": "Ja / Nein",
+      "link": "Link"
+    },
+    "choices": "Auswahlen (Komma)",
+    "linkTo": "Verweist auf",
+    "default": "Standard",
+    "addField": "Feld hinzufügen",
+    "remove": "Typ entfernen",
+    "removeQ": "Den Typ {{name}} entfernen?",
+    "inherit": "Jeder Eintrag dieses Typs bekommt"
+  },
+  "entries": {
+    "what": "Was",
+    "open": "Auf seiner Seite öffnen",
+    "openOn": {
+      "cable": "In Kabel öffnen",
+      "circuit": "In Strom öffnen",
+      "power-board": "In Strom öffnen",
+      "patch-panel": "In Kabel öffnen"
+    },
+    "details": "Details",
+    "add": "{{type}} hinzufügen",
+    "linkedHint": {
+      "cable": "Kabel werden auf der Seite Kabel erfasst und geändert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
+      "circuit": "Stromkreise werden auf der Seite Strom erfasst und geändert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
+      "power-board": "Verteiler werden auf der Seite Strom erfasst und geändert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
+      "patch-panel": "Patchpanels werden im Hallenplan platziert; hier bekommen sie Gruppen, Tags, Felder und Notizen."
+    },
+    "count_one": "{{count}} Eintrag",
+    "count_other": "{{count}} Einträge",
+    "empty": "Noch nichts hier."
+  },
+  "connected": {
+    "title": "Verbunden",
+    "uplink": "Internetleitung {{name}} an {{port}}",
+    "circuit": "Gespeist von Stromkreis {{name}} ({{board}})",
+    "cables_one": "{{count}} Kabel an seinen Ports.",
+    "cables_other": "{{count}} Kabel an seinen Ports.",
+    "showCables": "Anzeigen"
   },
   "groups": {
     "title": "Gruppen",

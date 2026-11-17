@@ -1,7 +1,8 @@
 import { ThemeIcon } from '@mantine/core'
 import {
   IconAccessPoint, IconAntenna, IconArrowsLeftRight, IconBatteryCharging, IconCamera, IconCloud, IconCpu, IconDatabase,
-  IconDeviceDesktop, IconDeviceMobile, IconDevices, IconFlame, IconPlug, IconPrinter, IconRouter, IconServer, IconServer2,
+  IconBoxMultiple, IconBuildingWarehouse, IconCircuitSwitchClosed, IconCube, IconDeviceDesktop, IconDeviceMobile, IconDevices,
+  IconFlame, IconLayoutRows, IconNetwork, IconPlug, IconPlugConnected, IconPrinter, IconRouter, IconServer, IconServer2,
   type Icon,
 } from '@tabler/icons-react'
 import { useCustomIcons } from './scope'
@@ -24,6 +25,13 @@ export const DEVICE_ICONS: Record<string, Icon> = {
   cloud: IconCloud,
   cpu: IconCpu,
   antenna: IconAntenna,
+  cable: IconPlugConnected,
+  circuit: IconCircuitSwitchClosed,
+  'power-board': IconBoxMultiple,
+  'patch-panel': IconLayoutRows,
+  rack: IconBuildingWarehouse,
+  transceiver: IconCube,
+  vlan: IconNetwork,
   other: IconDevices,
 }
 

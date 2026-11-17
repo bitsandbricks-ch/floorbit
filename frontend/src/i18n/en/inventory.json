@@ -88,6 +88,13 @@
     "cloud": "Cloud",
     "cpu": "Chip",
     "antenna": "Antenna",
+    "cable": "Cable",
+    "circuit": "Circuit",
+    "power-board": "Power board",
+    "patch-panel": "Patch panel",
+    "rack": "Rack",
+    "transceiver": "Transceiver",
+    "vlan": "VLAN",
     "other": "Device"
   },
   "library": {
@@ -116,11 +123,95 @@
     "default": "default",
     "fromDevice": "set here",
     "from": {
+      "type": "from type {{name}}",
       "tag": "from tag {{name}}",
       "group": "from group {{name}}",
       "defaults": "from {{name}}",
       "switch-logins": "from switch logins ({{name}})"
     }
+  },
+  "types": {
+    "open": "Types",
+    "title": "Inventory types",
+    "intro": "Every entry in the inventory has a type. Give a type its own fields (text, number, choice, yes/no or a link to another entry) and settings all its entries inherit.",
+    "devices": "Devices",
+    "name": {
+      "device": "Device",
+      "cable": "Cable",
+      "circuit": "Circuit",
+      "power-board": "Power board",
+      "patch-panel": "Patch panel",
+      "rack": "Rack or location",
+      "transceiver": "Transceiver",
+      "vlan": "VLAN or IP range",
+      "item": "Item"
+    },
+    "fieldLabel": {
+      "height_u": "Height (U)",
+      "hall": "Hall or site",
+      "device": "Device",
+      "port": "Port",
+      "form": "Form factor",
+      "media": "Media",
+      "speed": "Speed",
+      "serial": "Serial",
+      "vlan_id": "VLAN ID",
+      "prefix": "Prefix",
+      "gateway": "Gateway",
+      "purpose": "Purpose"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "new": "New type",
+    "newPlaceholder": "New type, like Screen",
+    "basics": "Type",
+    "fields": "Fields",
+    "builtIn": "built in",
+    "fieldName": "Field",
+    "kind": "Kind",
+    "kinds": {
+      "text": "Text",
+      "number": "Number",
+      "choice": "Choice",
+      "bool": "Yes / no",
+      "link": "Link"
+    },
+    "choices": "Choices (comma)",
+    "linkTo": "Links to",
+    "default": "Default",
+    "addField": "Add field",
+    "remove": "Remove type",
+    "removeQ": "Remove the type {{name}}?",
+    "inherit": "Every entry of this type gets"
+  },
+  "entries": {
+    "what": "What",
+    "open": "Open on its page",
+    "openOn": {
+      "cable": "Open in cables",
+      "circuit": "Open in power",
+      "power-board": "Open in power",
+      "patch-panel": "Open in cables"
+    },
+    "details": "Details",
+    "add": "Add {{type}}",
+    "linkedHint": {
+      "cable": "Cables are added and changed on the Cables page; here they get groups, tags, fields and notes.",
+      "circuit": "Circuits are added and changed on the Power page; here they get groups, tags, fields and notes.",
+      "power-board": "Power boards are added and changed on the Power page; here they get groups, tags, fields and notes.",
+      "patch-panel": "Patch panels are placed on the floor plan; here they get groups, tags, fields and notes."
+    },
+    "count_one": "{{count}} entry",
+    "count_other": "{{count}} entries",
+    "empty": "Nothing here yet."
+  },
+  "connected": {
+    "title": "Connected",
+    "uplink": "Internet line {{name}} on {{port}}",
+    "circuit": "Fed by circuit {{name}} ({{board}})",
+    "cables_one": "{{count}} cable on its ports.",
+    "cables_other": "{{count}} cables on its ports.",
+    "showCables": "Show them"
   },
   "groups": {
     "title": "Groups",

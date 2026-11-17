@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { INVENTORY_FIELDS, SPEC_FIELDS, type Device, type InventoryField, type InventoryOverview } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
+import { FieldInputs } from './FieldInputs'
 import { draftOf, fedValue, SPEC_ROLES, type Draft } from './model'
-import { groupTree } from './scope'
+import { groupTree, useInventoryTypes } from './scope'
 import { LookFields, TagPicker } from './ScopeEditors'
 
 /** Set by hand only, never fed: where the device sorts in and how it looks. */
@@ -14,10 +15,11 @@ interface Placement {
   tags: string[]
   icon: string
   color: string
+  fields: Record<string, string>
 }
 
 function placementOf(device: Device | null): Placement {
-  return { group_id: device?.group_id ?? null, tags: device?.tags ?? [], icon: device?.icon ?? '', color: device?.color ?? '' }
+  return { group_id: device?.group_id ?? null, tags: device?.tags ?? [], icon: device?.icon ?? '', color: device?.color ?? '', fields: device?.fields ?? {} }
 }
 
 export function DeviceForm({
@@ -48,6 +50,7 @@ export function DeviceForm({
   const original = draftOf(device)
   const [place, setPlace] = useState<Placement>(() => placementOf(device))
   const placeBefore = placementOf(device)
+  const deviceFields = useInventoryTypes().data?.types.find((x) => x.id === 'device')?.fields ?? []
   const [specsOpen, setSpecsOpen] = useState(() => SPEC_FIELDS.some((f) => !!device?.[f]))
   const showSpecs = specsOpen || SPEC_ROLES.includes(draft.role)
   const set = (f: InventoryField) => (value: string) => setDraft((d) => ({ ...d, [f]: value }))
@@ -164,6 +167,7 @@ export function DeviceForm({
                 searchable
               />
               <TagPicker tags={overview.tags} value={place.tags} onChange={(tags) => setPlace((p) => ({ ...p, tags }))} />
+              <FieldInputs fields={deviceFields} values={place.fields} onChange={(fields) => setPlace((p) => ({ ...p, fields }))} />
               <LookFields icon={place.icon} color={place.color} icons={overview.icons}
                 onIcon={(icon) => setPlace((p) => ({ ...p, icon }))} onColor={(color) => setPlace((p) => ({ ...p, color }))} />
             </>

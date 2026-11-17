@@ -157,6 +157,31 @@ describe('Inventory page', () => {
     expect(await within(dialog).findByRole('img', { name: 'server rack' })).toBeInTheDocument()
   })
 
+  it('lists entries of other types and saves their fields', async () => {
+    const rackType = { id: 'rack', name: 'Rack or location', sort: 'stored', builtin: true, icon: '', default_icon: 'rack', color: '',
+      fields: [{ key: 'height_u', label: 'Height (U)', kind: 'number', choices: [], default: '42', link: '' }], own_fields: [], properties: {}, features: {}, count: 1 }
+    const deviceType = { ...rackType, id: 'device', name: 'Device', sort: 'device', fields: [], count: 2 }
+    const rack = { id: 'r1', type: 'rack', name: 'R1', summary: '', detail: '', link: '', group_id: null, tags: [], properties: {}, icon: '', color: '', notes: '', fields: {} }
+    const api = fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/types': { types: [deviceType, rackType], field_kinds: [] },
+      'GET /api/inventory/entries?type=rack': { entries: [rack] },
+      'GET /api/inventory/entries/rack/r1': { ...rack, resolved: { properties: {}, tags: [], look: { icon: { value: '', from: null }, color: { value: '', from: null } }, group_path: [] },
+        field_values: [{ ...rackType.fields[0], value: '42', is_default: true }] },
+      'PATCH /api/inventory/entries/rack/r1': { ...rack, fields: { height_u: '47' } },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Inventory />)
+    fireEvent.click(await screen.findByRole('tab', { name: /Rack or location/ }))
+    expect(await screen.findByText('42')).toBeInTheDocument()     // the default shows in the list
+    fireEvent.click(screen.getByRole('button', { name: 'R1' }))
+    const height = await screen.findByLabelText('Height (U)')
+    expect(height).toHaveAttribute('placeholder', '42')
+    fireEvent.change(height, { target: { value: '47' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0])
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fields: { height_u: '47' } }))
+  })
+
   it('shows viewers the list without edit buttons', async () => {
     vi.stubGlobal(
       'fetch',
