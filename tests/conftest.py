@@ -5,6 +5,7 @@ Nothing here talks to NetBox, LibreNMS or a real Redis.
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,12 @@ _HERE = Path(__file__).resolve().parent.parent
 _AGENT_SRC = Path(os.environ.get("FLOORBIT_AGENT_SRC") or _HERE.parent / "floorbit-agent")
 if (_AGENT_SRC / "floorbit_agent" / "__init__.py").is_file():
     sys.path.insert(1, str(_AGENT_SRC.resolve()))
+
+# The collector's background thread can outlive the test that started it (and its monkeypatch), and
+# then writes Telegraf's config into the checkout: give the whole run a folder of its own too.
+_TELEGRAF_DIR = tempfile.mkdtemp(prefix="floorbit-telegraf-")
+os.environ.setdefault("FLOORBIT_TELEGRAF_CONF", os.path.join(_TELEGRAF_DIR, "telegraf.conf"))
+
 
 def login_page(client):
     """What the sign-in page (React, issue #46) shows: its options and the last error, once."""
