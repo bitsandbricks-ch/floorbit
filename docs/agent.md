@@ -26,17 +26,11 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
 | Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
 | The Traffic page (NetFlow and IPFIX), when the agent collects flows (`FLOORBIT_AGENT_FLOWS_PORT`) | traffic |
+| Port actions (SSH ports), switch commands, config backups and the switch terminal | switch SSH |
 
 Pages that only use Floorbit's own data work anyway: seats, incidents, schedule, electrics
 readings typed in, tournaments, the speed test (it measures the path to the hosted server, not
 inside the hall), and so on.
-
-**Not through the agent yet.** These need the hosted Floorbit itself to reach the event network,
-so on a hosted Floorbit they only work when that service is reachable from it:
-
-| Feature | Why |
-| --- | --- |
-| Port actions (SSH ports), switch commands and terminal | they connect to the switch directly |
 
 [Issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2) tracks the rest.
 
@@ -230,6 +224,28 @@ sync. A plugin that fails on the agent fails on its own; the others still sync. 
 the sync says so and nothing changes. A sync waits up to 25 seconds for the agent.
 
 A plugin the agent feeds is not asked on the hosted Floorbit itself, which can't reach it anyway.
+
+## Switch logins through the agent
+
+[Port actions](ports.md), [switch commands](commands.md), [config backups](configs.md) and the
+[terminal](terminal.md) open their SSH connection on the agent, in the hall. The agent turns on the
+same **SSH port actions** plugin with the hosted settings; nothing to set on the agent.
+
+- **What stays on the hosted side:** who may do it, the cooldowns and failed-login pauses, the audit
+  log, the stored logins and the pinned host keys. A stored login is opened for the one call and
+  sent with it over the agent's link (TLS); the agent drops it when the connection is done and never
+  writes it down. A typed login goes the same way.
+- **Host keys** stay pinned on the hosted side and go along with each call, so two agents in one
+  hall, or an agent that was replaced, check a switch against the same key. **Forget pinned host
+  keys** works as before.
+- **Which agent:** the one serving the switch's hall ([several agents](#several-agents)); with two
+  in one hall, always the same one of them, so a terminal stays with the agent that opened it.
+- **What the agent will reach:** only private addresses, or the networks in
+  `FLOORBIT_AGENT_SWITCH_NETS` (comma separated) on the agent. A hosted Floorbit that was taken
+  over can't send the agent to log in anywhere else.
+- **Terminals** live on the agent (at most 10). The browser reads them through the hosted side as
+  before; a terminal nobody reads for 90 seconds is closed on the agent. If the agent goes away,
+  the terminal says the connection was lost.
 
 ## Cables through the agent
 
