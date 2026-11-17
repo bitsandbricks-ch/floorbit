@@ -229,3 +229,13 @@
 .fb-nav-group-label { padding: 4px 10px; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 650; color: var(--color-muted); }
 .fb-nav-flyout-list .fb-nav-fav { display: none; }
 @media (hover: none) { .fb-nav-fav { opacity: 1; background: transparent; } }
+
+/* Skip link: off screen until a keyboard user tabs onto it. */
+.fb-skip {
+  position: fixed; left: 0.75rem; top: 0.75rem; z-index: 1000;
+  transform: translateY(-200%);
+  padding: 0.5rem 0.875rem; border-radius: var(--radius-bit);
+  background: var(--color-bit); color: var(--color-on-bit); font-weight: 600; text-decoration: none;
+}
+.fb-skip:focus-visible { transform: none; }
+main[tabindex="-1"]:focus, main[tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }

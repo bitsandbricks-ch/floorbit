@@ -60,8 +60,8 @@ export default function Topology() {
           <Alert color={problems.some((l) => l.issue === 'down') ? 'down' : 'warn'} title={t('topology.problems', { count: problems.length })}>
             <Stack gap={2}>
               {problems.map((l) => (
-                <Text key={l.id} size="sm" component="button" onClick={() => setPicked({ kind: 'link', id: l.id })}
-                  style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted' }}>
+                <Text key={l.id} size="sm" component="button" type="button" className="fb-text-button"
+                  onClick={() => setPicked({ kind: 'link', id: l.id })}>
                   {l.issue
                     ? t(`topology.issue.${l.issue}`, { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, planned: `${l.speed}G`, actual: gbit(l.speed_bps) })
                     : t('topology.issue.miswired', { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, ...seenAt(l) })}

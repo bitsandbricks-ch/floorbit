@@ -23,5 +23,6 @@
   "favourites": "Favoriten",
   "favAdd": "{{page}} zu den Favoriten",
   "favRemove": "{{page}} aus den Favoriten entfernen",
-  "accordion": "Andere Bereiche zuklappen, wenn einer aufgeht"
+  "accordion": "Andere Bereiche zuklappen, wenn einer aufgeht",
+  "skip": "Zum Inhalt springen"
 }
