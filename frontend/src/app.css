@@ -404,6 +404,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-edit-lock circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 1.5; }
 .fb-edit-lock rect { fill: var(--color-bit); }
 .fb-edit-lock path { fill: none; stroke: var(--color-bit); stroke-width: 1.6; stroke-linecap: round; }
+.fb-edit-rulers rect { fill: color-mix(in srgb, var(--color-surface) 92%, transparent); }
+.fb-edit-rulers rect.corner { fill: var(--color-surface); }
+.fb-edit-rulers line { stroke: var(--color-muted); stroke-width: 1; }
+.fb-edit-rulers text { fill: var(--color-muted); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
 .fb-edit-measure { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; pointer-events: none; }
 .fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
 .fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }

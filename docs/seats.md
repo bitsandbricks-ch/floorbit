@@ -69,6 +69,11 @@ The floor plan editor is moving into this page. Edit mode already does:
   turns them back (also "Turn 90°" in the right-click menu). One undo puts them all back. To turn one
   item to any angle, drag the round handle above it (Shift keeps 15° steps), or type the angle next
   to the quarter steps in the panel.
+- **Snapping and rulers:** the top bar's toggles in Edit mode show or hide the grid, turn snapping to
+  the grid and to other items (edges, middles, wall corners) on or off, and show rulers along the
+  plan's edges, numbered in seats. This browser remembers them. Alt still leaves the grid for one drag.
+- **Measure:** the Measure tool (M) draws a line that only shows its length in seats and its angle
+  (Shift keeps 15° steps). It snaps like a wall, stays until the next one, and saves nothing.
 - **Lock:** Ctrl+Shift+L (or **Lock in place** in the right-click menu and the selection buttons)
   locks the selected items: they keep their place and angle, show a small padlock and no handles, and
   Delete leaves them alone, until the same key unlocks them. Locks are saved with the hall, for

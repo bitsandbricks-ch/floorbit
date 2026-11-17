@@ -34,6 +34,7 @@ import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
+import { SnapToggles } from './plan/edit/SnapToggles'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
 import { revealActive } from './plan/reveal'
 import { LoadingState, ErrorBanner } from '@/components/ui'
@@ -395,6 +396,7 @@ export default function FloorPlan() {
                 aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             </>}
             {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} />}
+            {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
               {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
