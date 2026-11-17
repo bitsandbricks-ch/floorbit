@@ -50,8 +50,8 @@ history (see [Storage](#storage)).
     - Hosted with a local agent: the Telemetry plugin's agent part is the collector. Run Telegraf
       next to the agent (`docker compose --profile telemetry up -d` in the agent's folder); the
       agent writes its config into the shared state volume and takes its line protocol on port
-      8186. Set `FLOORBIT_AGENT_PLUGINS=telemetry` on the agent so monitoring calls are answered
-      from what the devices sent. The Local agents page shows how the collector is doing (points,
+      8186. Monitoring calls through the agent are answered from what the devices sent (leave
+      LibreNMS unset on the agent). The Local agents page shows how the collector is doing (points,
       devices heard, errors, whether Telegraf is quiet).
     - Your own Telegraf: **Download telegraf.conf** and point its HTTP output at Floorbit.
 

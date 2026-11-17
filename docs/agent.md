@@ -231,10 +231,15 @@ menu only shows when the hosted Floorbit has a Wi-Fi plugin of its own; open the
 ## Syslog through the agent
 
 Syslog is UDP, unencrypted and unauthenticated: the switches shouldn't send it across the internet
-to a hosted Floorbit. Let the agent take it instead. Set `FLOORBIT_AGENT_SYSLOG_PORT=5514`, publish
-the port (in `docker-compose.agent.yml`, uncomment the `ports` lines, which map the host's
-udp/514 to it) and point the switches, firewalls and DHCP servers at the agent's machine, as
-[Syslog](syslog.md) describes for a Floorbit of your own.
+to a hosted Floorbit. Let the agent take it instead: turn on the **Syslog from the hall** plugin
+under Settings > Plugins and set its UDP port (such as `5514`); every agent picks it up within a
+minute (docs/agent-plugins.md). Publish the port (in `docker-compose.agent.yml`, uncomment the
+`ports` lines, which map the host's udp/514 to it) and point the switches, firewalls and DHCP
+servers at the agent's machine, as [Syslog](syslog.md) describes for a Floorbit of your own.
+
+`FLOORBIT_AGENT_SYSLOG_PORT=5514` on the agent still works the old way, without the plugin. Use one
+or the other: both on the same port can't listen. With the plugin, lines wait in the plugin's disk
+spool (256 MB and 24 hours) and its numbers show on Local agents.
 
 The agent sends the lines on over its HTTPS connection every two seconds, each with the address
 it came from and when it arrived. The hosted Floorbit treats them as if they had come straight to it:

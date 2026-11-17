@@ -80,6 +80,10 @@
       "title": "Plugin: LAN-Cache",
       "desc": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle."
     },
+    "plugin-syslog-relay": {
+      "title": "Plugin: Syslog aus der Halle",
+      "desc": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten."
+    },
     "plugin-telemetry": {
       "title": "Plugin: Geräte-Telemetrie",
       "desc": "Liest Switches und Firewalls direkt über Telegraf (SNMP, Traps, gNMI, Cisco MDT) und die Geräte-APIs und antwortet wie ein Monitoring-Werkzeug. Die Geräte richtest du unter Einstellungen, Telemetrie ein."
@@ -535,6 +539,14 @@
     "plugin_lancache_interval": {
       "label": "Sekunden zwischen zwei Lesevorgängen"
     },
+    "plugin_syslog-relay_port": {
+      "label": "UDP-Port auf dem Agenten",
+      "help": "Wohin die Switches und Firewalls Syslog schicken, auf der Agent-Maschine (üblich ist 514; der Agent braucht das Recht dazu). 0: aus."
+    },
+    "plugin_syslog-relay_bind": {
+      "label": "Adresse zum Hören",
+      "help": "Die Adresse des Agenten, auf der er hört. Leer: alle."
+    },
     "plugin_telemetry_uplink_macs": {
       "label": "MAC-Grenze für Uplinks",
       "help": "Ein Port, der mehr MAC-Adressen sieht als diese Zahl, gilt als Uplink und wird übersprungen, wenn Floorbit sucht, wo ein Platz eingesteckt ist."
@@ -548,6 +560,7 @@
     "librenms": "Live-Status der Switches, Port-Details und Verkehr, und an welchem Switch-Port eine IP oder MAC hängt (ARP- und MAC-Tabellen). Speist den Hallenplan, die Platz-Heatmap, die Statusüberwachung und die Check-in-Seite.",
     "netbox": "Übernimmt die Geräte mit den eingestellten Rollen aus NetBox ins Inventar (Name, Rolle, Modell, Seriennummer, Management-IP, Standort und Status). Felder, die in Floorbit von Hand geändert wurden, bleiben, wie sie sind.",
     "demo": "Eine erfundene Halle: Switches, Platzblöcke, Spieler auf Dokumentations-IPs, Ports, die aus- und angehen, und Verkehr, der sich bewegt. Nichts davon ist echt: Beispielnamen, 192.0.2.0/24 und 198.51.100.0/24. Solange es an ist, ersetzt es die Live-Überwachungsquelle und füllt die Health-Wall.",
-    "lancache": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle."
+    "lancache": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle.",
+    "syslog-relay": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten."
   }
 }

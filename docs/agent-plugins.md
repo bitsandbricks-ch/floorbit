@@ -23,7 +23,8 @@ numbers and its last errors. The same numbers are on the agent's `/metrics`
 LibreNMS, NetBox, Pi-hole, AdGuard Home, the health checks and the other built-in plugins that
 answer for the hall (monitoring, inventory, health, DNS, Wi-Fi, ports) also follow the hosted
 Floorbit: what is on there is turned on in the agent, with the settings saved there. The agent
-keeps those settings in memory only, so tokens never land on its disk, and its own environment
+does the same for a plugin with an agent part that also answers for the hall (telemetry is the
+agent's monitoring source). It keeps those settings in memory only, so tokens never land on its disk, and its own environment
 (`LIBRENMS_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`, ...) still wins over them. A plugin named in
 `FLOORBIT_AGENT_PLUGINS` stays on whatever the hosted side says.
 
