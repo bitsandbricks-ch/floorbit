@@ -48,20 +48,21 @@ def test_demo_aps_on_the_plan(demo):
     demo.post('/api/demo/layout')
     body = demo.get('/api/wifi').get_json()
     names = [a['name'] for a in body['aps']]
-    assert 'ap-stage' in names and len(names) == 9
-    assert all(a['on_plan'] and a['px'] is not None for a in body['aps'])
+    assert 'ap-stage' in names and len(names) == 10
+    here = [a for a in body['aps'] if a['name'] != 'ap-10']      # ap-10 is in the side hall
+    assert all(a['on_plan'] and a['px'] is not None for a in here)
     assert 'ap-stage' in body['busy']
     assert body['overlaps'] == [{'band': '5', 'channel': 44, 'aps': ['ap-02', 'ap-03']}]
     assert body['clients'] == sum(a['clients'] for a in body['aps'])
     assert set(body['bands']) == {'2.4', '5'} and body['drawing']['shapes']
     x, y, w, h = (float(v) for v in body['drawing']['box'].split())
-    assert all(x <= a['px'] <= x + w and y <= a['py'] <= y + h for a in body['aps'])
+    assert all(x <= a['px'] <= x + w and y <= a['py'] <= y + h for a in here)
     assert demo.get('/api/wifi?hall=nope').status_code == 404
 
 
 def test_unplaced_aps_are_listed_not_drawn(demo):
     body = demo.get('/api/wifi').get_json()
-    assert len(body['aps']) == 9 and not any(a['on_plan'] for a in body['aps'])
+    assert len(body['aps']) == 10 and not any(a['on_plan'] for a in body['aps'])
     assert body['overlaps'] == []
 
 

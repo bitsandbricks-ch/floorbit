@@ -1,6 +1,6 @@
 {
   "title": "Plugins",
-  "intro": "Plugins bringen Aktionen, Dashboard-Kacheln und Datenquellen. Jedes zeigt, worauf es zugreifen darf. NetBox und LibreNMS sind von Anfang an eingeschaltet, die anderen zuerst ausgeschaltet. Vorerst lassen sich nur Plugins einschalten, die mit Floorbit kommen.",
+  "intro": "Plugins bringen Aktionen, Dashboard-Kacheln und Datenquellen. Jedes zeigt, worauf es zugreifen darf. NetBox und LibreNMS sind von Anfang an eingeschaltet, die anderen zuerst aus. Weitere kommen aus dem signierten Marketplace unten.",
   "none": "Es sind keine Plugins installiert.",
   "on": "Ein",
   "off": "Aus",
@@ -15,6 +15,9 @@
   "uses": "Worauf dieses Plugin zugreifen darf",
   "trust": {
     "builtin": "Kommt mit Floorbit",
-    "development": "Entwicklungsstand"
-  }
+    "development": "Entwicklungsstand",
+    "official": "Offiziell",
+    "community": "Community"
+  },
+  "installedTitle": "Installiert"
 }

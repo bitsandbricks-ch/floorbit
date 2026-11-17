@@ -30,6 +30,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app.py VERSION ./
 COPY floorbit/ ./floorbit/
+# Signed agent plugin bundles (docs/agent-plugins.md, "Updates"); empty outside a release image.
+COPY agent-bundles/ ./agent-bundles/
 COPY auth/ ./auth/
 # COPY data.json .
 COPY static/ ./static/

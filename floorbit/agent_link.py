@@ -36,6 +36,7 @@ MAX_AGENTS = 10
 NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}$')
 KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})$')
 CONNECTED_FOR = 60       # an agent that asked for work this recently counts as connected
+ROTATE_GRACE = 24 * 3600  # after a new key, the old one still works this long, or until the new one is used
 CALL_TIMEOUT = 8         # seconds a page waits for the agent's answer
 MAX_WAIT = 25            # longest long poll, under the usual 30 s proxy timeouts
 MAX_PENDING = 200        # calls queued for the agent; more fail at once
@@ -47,7 +48,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
            'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
-           'dns_probe', 'tcp_probe')
+           'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -70,7 +71,9 @@ def _public(a, now):
     seen = a.get('last_seen')
     return {'id': a['id'], 'name': a['name'], 'created_at': a['created_at'], 'created_by': a.get('created_by'),
             'last_seen': seen, 'version': a.get('version'), 'address': a.get('address'), 'protocol': a.get('protocol'),
-            'connected': bool(seen and now - seen < CONNECTED_FOR), 'halls': list(a.get('halls') or [])}
+            'connected': bool(seen and now - seen < CONNECTED_FOR), 'halls': list(a.get('halls') or []),
+            'plugins_off': list(a.get('plugins_off') or []), 'renewed_at': a.get('renewed_at') or a['created_at'],
+            'old_works_until': a['prev_until'] if a.get('prev_hash') and (a.get('prev_until') or 0) > now else None}
 
 
 def outdated(agent_protocol, server_protocol=None):
@@ -160,12 +163,21 @@ def ask(method, args=()):
     list, an IP, ARP) goes to every connected agent, and their answers are put together."""
     scoped, everyone, by_name = _routing()
     if not scoped:
-        return tunnel.call(method, args)
+        # Two agents for the same halls (VIPs shared with VRRP, the agent's docs/vrrp.md): only the
+        # primary one collects telemetry, so ask both and keep the answer that has something.
+        if len(tunnel.connected_agents() & set(everyone)) < 2:
+            return tunnel.call(method, args)
+        return _ask_all(method, args, everyone)
     if method in HOST_METHODS and args:
         hall = _hall_of(by_name, args[0])
         if hall is None:        # a switch Floorbit doesn't know: whoever answers
             return tunnel.call(method, args)
         return tunnel.call(method, args, targets={a for a in everyone if a not in scoped or hall in scoped[a]})
+    return _ask_all(method, args, everyone)
+
+
+def _ask_all(method, args, everyone):
+    """Every connected agent, the answers put together."""
     agents = sorted(tunnel.connected_agents() & set(everyone))
     if not agents:
         raise AgentUnavailable('No local agent is connected.')
@@ -188,7 +200,14 @@ def ask(method, args=()):
                     merged.append(d)
         return merged
     if method == 'arp':
-        return [row for result in results for row in result or []]
+        merged, seen = [], set()
+        for row in (row for result in results for row in result or []):
+            key = (row.get('ipv4_address'), row.get('mac_address'), row.get('hostname')) \
+                if isinstance(row, dict) else id(row)
+            if key not in seen:
+                seen.add(key)
+                merged.append(row)
+        return merged
     if method == 'configured':
         return any(results)
     return next((r for r in results if r), None)     # resolve_ip: the agent that knows it
@@ -230,6 +249,60 @@ def revoke(agent_id):
     return found['name']
 
 
+def _change(agent_id, fn):
+    """Apply ``fn(record)`` to one agent under the lock; returns the record. 404 for no such agent."""
+    with _lock:
+        data = load_data()
+        found = next((a for a in data.get(KEY) or [] if a['id'] == agent_id), None)
+        if not found:
+            err = AgentError('No such agent.')
+            err.status = 404
+            raise err
+        fn(found)
+        save_data(data)
+    _forget_cache()
+    return found
+
+
+def rotate(agent_id, now=None):
+    """A new key for an agent. The old one keeps working until the agent first uses the new one,
+    at most ROTATE_GRACE, so the hall can swap it without the agent going dark. Returns (name, key)."""
+    now = time.time() if now is None else now
+    secret = secrets.token_urlsafe(32)
+
+    def swap(a):
+        a.update(prev_hash=a['hash'], prev_until=now + ROTATE_GRACE, hash=_hash(secret), renewed_at=now)
+    found = _change(agent_id, swap)
+    return found['name'], f'{PREFIX}{agent_id}_{secret}'
+
+
+def rename(agent_id, name):
+    name = str(name or '').strip()
+    if not NAME_RE.match(name):
+        raise AgentError('Give the agent a name of up to 60 characters, such as the event or the site.')
+    old = {}
+
+    def set_name(a):
+        old['name'] = a['name']
+        a['name'] = name
+    _change(agent_id, set_name)
+    return old['name'], name
+
+
+def set_plugins_off(agent_id, plugin_ids):
+    """The plugins this agent doesn't run though they are on here (another agent runs them)."""
+    if not isinstance(plugin_ids, list) or not all(isinstance(p, str) for p in plugin_ids):
+        raise AgentError('plugins_off must be a list of plugin ids.')
+    wanted = sorted({p for p in plugin_ids if re.match(r'^[a-z][a-z0-9-]{0,39}$', p)})
+    found = _change(agent_id, lambda a: a.__setitem__('plugins_off', wanted))
+    return found['name'], wanted
+
+
+def plugins_off(agent_id):
+    found = next((a for a in load_data().get(KEY) or [] if a['id'] == agent_id), None)
+    return set((found or {}).get('plugins_off') or [])
+
+
 def set_halls(agent_id, hall_ids):
     """The halls an agent answers for; empty means every hall. Returns the cleaned list."""
     from . import halls
@@ -264,7 +337,20 @@ def check(key, version=None, address=None, now=None, protocol=None):
     agent_id, secret = m.groups()
     data = load_data()
     found = next((a for a in data.get(KEY) or [] if a['id'] == agent_id), None)
-    if not found or not hmac.compare_digest(found['hash'], _hash(secret)):
+    if not found:
+        return None
+    if hmac.compare_digest(found['hash'], _hash(secret)):
+        if found.get('prev_hash'):
+            # The new key is in use: the old one stops working now.
+            with _lock:
+                data = load_data()
+                for a in data.get(KEY) or []:
+                    if a['id'] == agent_id:
+                        a.pop('prev_hash', None)
+                        a.pop('prev_until', None)
+                save_data(data)
+    elif not (found.get('prev_hash') and (found.get('prev_until') or 0) > now
+              and hmac.compare_digest(found['prev_hash'], _hash(secret))):
         return None
     tunnel.seen(now, agent_id)
     try:
@@ -481,9 +567,25 @@ class Tunnel:
             return
         clean = {k: raw[k] for k in REPORT_KEYS
                  if isinstance(raw.get(k), (int, float)) and not isinstance(raw.get(k), bool) and raw[k] >= 0}
+        from .agent_plugins import clean_health
+        plugins = clean_health(raw.get('plugins'))
+        if plugins:
+            clean['plugins'] = plugins
+        from .agent_plugins import clean_updates, clean_vrrp
+        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp)):
+            value = cleaner(raw.get(key))
+            if value is not None:
+                clean[key] = value
         clean['at'] = time.time() if now is None else now
         with self._cond:
+            before = self._reports.get(agent)
             self._reports[agent] = clean
+        if plugins:
+            from .agent_plugins import note_blocks
+            note_blocks(agent, before, clean)
+        if clean.get('updates'):
+            from .agent_plugins import note_updates
+            note_updates(agent, before, clean, now=clean['at'])
 
     def reported(self, agent, now=None):
         """What the agent last reported, or None when it never did or it's older than REPORT_FRESH."""

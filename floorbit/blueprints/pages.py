@@ -3,7 +3,7 @@ from urllib.parse import quote, urlencode
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 
-from .. import kiosk_texts, nav, page_index, seat_view, spa
+from .. import endpoints, kiosk_texts, nav, page_index, seat_view, spa
 
 bp = Blueprint('pages', __name__)
 
@@ -69,7 +69,28 @@ def find_place():
         found += [{'kind': 'player', 'name': f"{r['nick'] if r['matched'] == 'nick' else q.strip()} · {r['seat']}",
                    'href': f"/plan?seat={quote(r['seat'])}"}
                   for r in seat_view.find_player(q)['results'] if r['matched'] != 'seat'][:5]
+        # An IP or MAC (or its start): where it was seen, from the history (floorbit/endpoints.py).
+        if endpoints.looks_like_address(q):
+            found += _endpoint_places(q)
     return jsonify({'places': found})
+
+
+def _endpoint_places(q):
+    from ..database import DatabaseError
+    try:
+        rows = endpoints.history().search(q, limit=20)
+    except DatabaseError:
+        return []
+    out, seen = [], set()
+    for r in rows:
+        key = (r['mac'], r['ip'])
+        if key in seen:
+            continue
+        seen.add(key)
+        where = r['seat'] or ' '.join(x for x in (r['device'], r['port']) if x)
+        out.append({'kind': 'endpoint', 'name': f"{r['ip'] or r['mac']} · {where}",
+                    'href': f"/endpoints?q={quote(r['ip'] or r['mac'])}"})
+    return out[:5]
 
 
 def _can(permission):
