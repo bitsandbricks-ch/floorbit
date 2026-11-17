@@ -115,10 +115,8 @@ def update_plugin(plugin_id):
     spec = _registry().specs[plugin_id]
     if spec.agent:
         # The agents pull it within a minute anyway; this only saves the wait.
-        import threading
-
         from .. import agent_plugins
-        threading.Thread(target=agent_plugins.reload_agents, daemon=True, name='agent-plugins-reload').start()
+        agent_plugins.reload_agents()
     return jsonify({'plugins': _registry().as_list(), 'name': spec.name})
 
 
