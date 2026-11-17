@@ -280,9 +280,6 @@ RULES = (
     ('/network-status', READ, 'incidents.work'),
     # Pre-flight checks ask the monitoring source and the health plugins now (floorbit/preflight.py).
     ('/api/preflight/run', WRITE, 'incidents.work'),
-    # Build planner: the configs are the network's design (floorbit/planner.py).
-    ('/api/planner', None, 'floorplan.edit'),
-    ('/planner', READ, 'floorplan.edit'),
     # Past events: closing one clears the running event's history, and a backup is an admin's.
     ('/api/past-events/backup', READ, 'settings.manage'),
     ('/api/past-events', WRITE, 'settings.manage'),

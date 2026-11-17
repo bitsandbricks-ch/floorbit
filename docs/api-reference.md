@@ -572,25 +572,6 @@ Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 | PUT | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 
-## floorbit.blueprints.planner
-
-Build planner (issue #34). Rules in floorbit/planner.py.
-
-Source: [`floorbit/blueprints/planner.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/planner.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/planner` | `floorplan.edit` | `planner` |
-| POST | `/api/planner/apply` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/config/<name>` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/configs.zip` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/labels.pdf` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/plan.csv` | `floorplan.edit` | `planner` |
-| PUT | `/api/planner/settings` | `floorplan.edit` | `planner` |
-| DELETE | `/api/planner/templates/<template_id>` | `floorplan.edit` | `planner` |
-| GET | `/api/planner/templates/<template_id>` | `floorplan.edit` | `planner` |
-| PUT | `/api/planner/templates/<template_id>` | `floorplan.edit` | `planner` |
-
 ## floorbit.blueprints.plugins
 
 Plugins: Settings > Plugins for admins, the dashboard, and the API plugins add.

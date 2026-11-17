@@ -47,7 +47,6 @@ PAGES = (
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/gear', 'gear', 'Gear', lambda c, can: c['feature_on']('gear') and can('incidents.work')),
-    ('/planner', 'planner', 'Build planner', lambda c, can: c['feature_on']('planner') and can('floorplan.edit')),
     ('/preflight', 'preflight', 'Pre-flight check', lambda c, can: c['feature_on']('preflight')),
     ('/teardown', 'teardown', 'Teardown', lambda c, can: c['feature_on']('teardown') and can('floorplan.edit')),
     ('/tournament', 'tournament', 'Tournament seats', lambda c, can: c['feature_on']('tournament')),
