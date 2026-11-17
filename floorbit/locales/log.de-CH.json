@@ -251,7 +251,19 @@
   "// Power alert incidents (floorbit/power.py), inside 'Incident opened: {}'": "",
   "Circuit {} at {} % of {} A": "Stromkreis {} bei {} % von {} A",
   "Breaker tripped: {}": "Sicherung ausgelöst: {}",
-  "Saved port areas": "Port-Bereiche gespeichert",
   "Removed port area": "Port-Bereich entfernt",
-  "Removed port areas": "Port-Bereiche entfernt"
+  "Removed port areas": "Port-Bereiche entfernt",
+  "Cleared the failed login of {} to {} ({})": "Fehlgeschlagene Anmeldung von {} bei {} ({}) zurückgesetzt",
+  "{}: {} stopped logging in to {} with {} ({})": "{}: {} meldet sich nicht mehr bei {} mit {} an ({})",
+  "{}: updated plugin {} to {}": "{}: Plugin {} auf {} aktualisiert",
+  "{}: kept plugin {} {}": "{}: Plugin {} {} behalten",
+  "{}: rolled back plugin {} {} ({})": "{}: Plugin {} {} zurückgenommen ({})",
+  "{}: refused plugin {} {} ({})": "{}: Plugin {} {} abgelehnt ({})",
+  "Made a new key for a local agent": "Neuen Schlüssel für einen lokalen Agent erstellt",
+  "Renamed a local agent: {}": "Lokalen Agent umbenannt: {}",
+  "Set the plugins a local agent leaves off: {}": "Plugins gesetzt, die ein lokaler Agent auslässt: {}",
+  "Installed plugin {} {}": "Plugin {} {} installiert",
+  "Removed plugin {} {}": "Plugin {} {} entfernt",
+  "Rolled back plugin {} from {} to {}": "Plugin {} von {} auf {} zurückgesetzt",
+  "Updated plugin {} from {} to {}": "Plugin {} von {} auf {} aktualisiert"
 }

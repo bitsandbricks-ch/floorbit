@@ -68,6 +68,21 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents` | `settings.manage` |  |
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
+| POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
+
+## floorbit.blueprints.agent_plugins
+
+Agent plugins (floorbit/agent_plugins.py, docs/agent-plugins.md), for the agent with its key:
+
+Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_plugins.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/agent-plugins/<agent_id>/<plugin_id>/unblock` | `plugins.run` |  |
+| GET | `/api/agent/v1/bundles/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/agent/v1/plugins` | anyone |  |
+| GET | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
+| POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 
 ## floorbit.blueprints.api_tokens
 
@@ -425,6 +440,16 @@ Source: [`floorbit/blueprints/inventory.py`](https://github.com/bitsandbricks-ch
 | GET | `/api/inventory/log` | `floorplan.edit` |  |
 | POST | `/api/inventory/sync` | `floorplan.edit` |  |
 
+## floorbit.blueprints.lancache
+
+The LAN cache view and widgets (docs/lancache.md):
+
+Source: [`floorbit/blueprints/lancache.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/lancache.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/lancache` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.layout_templates
 
 The floor plan template library (issue #48). Rules live in floorbit/layout_templates.py.
@@ -454,6 +479,19 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | GET | `/api/logs` | `seats.view` | `syslog` |
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
+
+## floorbit.blueprints.marketplace
+
+The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: that is the operator's, where the server runs.
+
+Source: [`floorbit/blueprints/marketplace.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/marketplace.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/marketplace` | `settings.manage` |  |
+| DELETE | `/api/settings/marketplace/<plugin_id>` | `settings.manage` |  |
+| POST | `/api/settings/marketplace/<plugin_id>` | `settings.manage` |  |
+| POST | `/api/settings/marketplace/<plugin_id>/rollback` | `settings.manage` |  |
 
 ## floorbit.blueprints.metrics
 

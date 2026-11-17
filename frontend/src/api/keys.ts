@@ -77,6 +77,8 @@ export const qk = {
   flows: ['flows'] as const,
   dns: (hours: number) => ['dns', hours] as const,
   games: (hours: number) => ['games', hours] as const,
+  lancacheAll: ['lancache'] as const,
+  lancache: (hours: number) => ['lancache', hours] as const,
   logs: (filters: string) => ['logs', filters] as const,
   commands: ['commands'] as const,
   terminal: ['terminal'] as const,
