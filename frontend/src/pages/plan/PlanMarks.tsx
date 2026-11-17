@@ -30,13 +30,15 @@ function Mark({ m, icons }: { m: PlanMark; icons: Record<string, string[]> }) {
   switch (m.kind) {
     case 'zone':
       return (
-        <g className={`zone zone-${m.color ?? 'muted'}`}>
+        <g className={`zone zone-${m.color ?? 'muted'}`} transform={m.rotation ? `rotate(${m.rotation} ${m.x + (m.w ?? 0) / 2} ${m.y + (m.h ?? 0) / 2})` : undefined}>
           <rect x={m.x} y={m.y} width={m.w} height={m.h} rx={10} />
           {m.label && <text x={m.x + 14} y={m.y + 30} fontSize={24}>{m.label}</text>}
         </g>
       )
     case 'wall':
-      return <line className={`wall${m.style === 'dashed' ? ' dashed' : ''}`} x1={m.x} y1={m.y} x2={m.x2} y2={m.y2} />
+      return m.points?.length
+        ? <polyline className={`wall${m.style === 'dashed' ? ' dashed' : ''}`} points={[[m.x, m.y], ...m.points, [m.x2, m.y2]].join(' ')} />
+        : <line className={`wall${m.style === 'dashed' ? ' dashed' : ''}`} x1={m.x} y1={m.y} x2={m.x2} y2={m.y2} />
     case 'text':
       return (
         <text className="label" x={m.x} y={m.y} dy="0.35em" fontSize={markPx(m)} transform={turn(m.x, m.y)}>{m.text}</text>

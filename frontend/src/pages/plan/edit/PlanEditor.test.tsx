@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { notifications } from '@mantine/notifications'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatViewData } from '@/api/types'
@@ -79,6 +79,44 @@ describe('Plan editor keys', () => {
     e.key('R', { shiftKey: true })
     await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
     expect(e.sent('PUT')[1].body).toEqual({ rotation: 270 })
+  })
+
+  it('shows what the right-click menu does as buttons once something is selected', async () => {
+    const e = editor()
+    expect(screen.queryByRole('toolbar', { name: 'Selection' })).toBeNull()
+    e.select('B')
+    const bar = await screen.findByRole('toolbar', { name: 'Selection' })
+    expect(bar).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Turn 90°' }))
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    expect(e.sent('PUT')[0]).toMatchObject({ path: '/api/seat-blocks/B', body: { rotation: 90 } })
+  })
+
+  it('turns a block to any angle with the rotate handle, in 15° steps with Shift', async () => {
+    const e = editor()
+    e.select('B')
+    const handle = await waitFor(() => { const h = e.container.querySelector('[data-handle="rotate"]'); if (!h) throw new Error('no handle'); return h })
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 2, clientX: 800, clientY: 400 })
+    fireEvent.pointerMove(handle, { pointerId: 2, clientX: 900, clientY: 410, shiftKey: true })
+    fireEvent.pointerUp(handle, { pointerId: 2, clientX: 900, clientY: 410, shiftKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    const put = e.sent('PUT')[0] as { path: string; body: { rotation: number } }
+    expect(put.path).toBe('/api/seat-blocks/B')
+    expect(put.body.rotation % 15).toBe(0)
+    expect(put.body.rotation).not.toBe(0)
+    e.key('z', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
+    expect(e.sent('PUT')[1].body).toEqual({ rotation: 0 })
+  })
+
+  it('takes the Hand tool with H: a click on a block no longer selects it', async () => {
+    const e = editor()
+    e.key('h')
+    expect(await screen.findByRole('button', { name: 'Hand', pressed: true })).toBeInTheDocument()
+    e.select('A')
+    expect(screen.queryByRole('toolbar', { name: 'Selection' })).toBeNull()
+    e.key('Escape')
+    expect(await screen.findByRole('button', { name: 'Select', pressed: true })).toBeInTheDocument()
   })
 
   it('deletes with Delete and brings the block back with Ctrl+Z', async () => {
@@ -179,5 +217,48 @@ describe('Plan editor: copies and failures', () => {
     e.key('z', { ctrlKey: true })
     await new Promise((r) => setTimeout(r, 20))
     expect(e.sent('PUT')).toHaveLength(1)
+  })
+})
+
+describe('Plan editor: locks and shared fields', () => {
+  it('leaves a locked block where it is, and unlocks it with Ctrl+Shift+L', async () => {
+    const e = editor({
+      'GET /api/plan-locks?hall=main': { hall_id: 'main', locks: [{ kind: 'block', id: 'A' }] },
+      'PUT /api/plan-locks': { locks: [] },
+    })
+    // The locks load after the plan: wait for them before trying to move.
+    await waitFor(() => expect(e.api.calls.some((c) => c.path === '/api/plan-locks?hall=main')).toBe(true))
+    e.select('A')
+    await screen.findByText(/1 locked item stays/)
+    e.key('ArrowRight')
+    e.key('Delete')
+    e.key('r')
+    expect(e.container.querySelector('[data-handle="rotate"]')).toBeNull()
+    expect(e.container.querySelector('.fb-edit-lock')).not.toBeNull()
+    e.key('l', { ctrlKey: true, shiftKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    expect(e.sent('PUT')[0]).toMatchObject({ path: '/api/plan-locks', body: { hall_id: 'main', items: [{ kind: 'block', id: 'A' }], locked: false } })
+    expect(e.sent('DELETE')).toHaveLength(0)
+  })
+
+  it('locks from the selection buttons', async () => {
+    const e = editor({ 'GET /api/plan-locks?hall=main': { hall_id: 'main', locks: [] }, 'PUT /api/plan-locks': { locks: [] } })
+    e.select('B')
+    fireEvent.click(await screen.findByRole('button', { name: 'Lock in place' }))
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(1))
+    expect(e.sent('PUT')[0].body).toEqual({ hall_id: 'main', items: [{ kind: 'block', id: 'B' }], locked: true })
+  })
+
+  it('turns two selected blocks at once from the shared fields, as one step to undo', async () => {
+    const e = editor()
+    e.select('A')
+    e.select('B', true)
+    const group = await screen.findByRole('group', { name: 'All selected' })
+    fireEvent.click(within(group).getByText('90°'))
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
+    expect(e.sent('PUT').map((c) => c.body)).toEqual([{ rotation: 90 }, { rotation: 90 }])
+    e.key('z', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('PUT')).toHaveLength(4))
+    expect(e.sent('PUT').slice(2).map((c) => c.body)).toEqual([{ rotation: 0 }, { rotation: 0 }])
   })
 })

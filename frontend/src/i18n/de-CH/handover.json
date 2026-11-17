@@ -45,8 +45,6 @@
   "mutedUntil": "stumm bis {{until}} von {{who}}",
   "waiting_one": "{{count}} wartet seit 10+ Min.",
   "waiting_other": "{{count}} warten seit 10+ Min.",
-  "gearTitle_one": "Material noch draussen ({{count}} Stück)",
-  "gearTitle_other": "Material noch draussen ({{count}} Stück)",
   "halfWithin": "die Hälfte innert {{d}}",
   "fixedBy": "Von: {{list}}",
   "nobodyNamed": "niemand genannt",

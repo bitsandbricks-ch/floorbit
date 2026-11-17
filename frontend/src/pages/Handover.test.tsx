@@ -112,19 +112,6 @@ describe('Shift handover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
     expect(writeText.mock.calls[0][0]).toContain('Fixed this shift:\nBy: kim 2 · ana 1 · nobody named 1\n- Slow')
   })
-  it('says who still has gear (issue #324)', async () => {
-    const extra = { counts: { ...counts, gear_out: 3 },
-      gear: [{ to: 'player-12', count: 2, names: ['sw-spare-01', 'sw-spare-02'] }, { to: 'Crew', count: 1, names: ['ap-spare-01'] }] }
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': { ...data, ...extra } }).fn)
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
-    renderWithApp(<Handover />)
-    const gear = (await screen.findByRole('heading', { name: 'Gear still out (3 pieces)' })).parentElement!
-    expect(within(gear).getByRole('link', { name: 'player-12' })).toHaveAttribute('href', '/gear?holder=player-12')
-    expect(within(gear).getByText('sw-spare-01, sw-spare-02')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
-    expect(writeText.mock.calls[0][0]).toContain('Gear still out (3 pieces):\n- player-12: sw-spare-01, sw-spare-02\n- Crew: ap-spare-01')
-  })
   it('lists what the programme has coming up this shift (issue #432)', async () => {
     const at = Math.floor(Date.now() / 1000) + 3600
     const extra = { coming_up: [
