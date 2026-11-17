@@ -12,7 +12,7 @@ import time
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from .. import spa, timeline
+from .. import i18n, spa, timeline
 
 bp = Blueprint('timeline', __name__)
 PAGE = 300
@@ -41,7 +41,9 @@ def timeline_page():
 @bp.route('/api/timeline', methods=['GET'])
 def entries():
     whole = request.args.get('format') == 'json'
-    rows, total, counts = timeline.build(**_query(), limit=timeline.MAX_ROWS if whole else PAGE)
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    rows, total, counts = timeline.build(**_query(), limit=timeline.MAX_ROWS if whole else PAGE, lang=lang)
+    rows = [{**r, **{k: i18n.log_text(r[k], lang) for k in ('title', 'target') if k in r}} for r in rows]
     body = {'entries': rows, 'total': total, 'counts': counts, 'kinds': list(timeline.KINDS),
             'more': total > len(rows)}
     if whole:
