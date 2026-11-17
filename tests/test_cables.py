@@ -1,8 +1,13 @@
 """Cables and patching (issue #97): switch port -> patch panel -> seat, labels, NetBox import."""
+import pytest
+
 from floorbit import cables
 from floorbit.builtin_plugins.netbox.plugin import cable as nb_cable
 from tests.test_inventory import FakeHttp, FakeResponse, netbox_plugin
 from tests.test_rbac import sign_in_as
+
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
 
 ONE = {"switch": "sw-a-01", "port": "Gi1/0/3", "panel": "PP-A", "panel_port": "3", "seat": "a-3",
        "color": "blue", "length_m": "2.5"}

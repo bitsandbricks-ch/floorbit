@@ -163,7 +163,7 @@ class HealthWall:
         found += services.health_checks()         # the same, floorbit/services.py
         found += firewalls.health_checks()        # from the monitoring source's device list
         for spec in self.registry.feeders('health'):
-            if spec.id in answered:    # the agent checks it from the event network; this side can't
+            if spec.id in answered or not agent_link.may_call_here(spec):   # the agent checks it from the LAN
                 continue
             try:
                 found += clean(spec, self.registry.call(spec, 'health_checks'))

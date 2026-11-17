@@ -12,6 +12,9 @@ from conftest import stored
 from floorbit import agent_link, game_query, game_servers, store
 from tests.test_ports import audit_lines
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 @pytest.fixture(autouse=True)
 def secret_key(tmp_path, monkeypatch):

@@ -48,7 +48,7 @@ def test_health_area_is_a_plugin_area(registry):
     assert "health" in registry.specs["demo"].uses and "health" in registry.specs["http-check"].uses
 
 
-def test_wall_is_empty_without_health_plugins(client, wall):
+def test_wall_is_empty_without_health_plugins(lan_here, client, wall):
     body = client.get("/api/health").get_json()
     assert body["checks"] == [] and body["plugins"] == 0
 
@@ -157,7 +157,7 @@ def test_kiosk_sees_the_wall_page(app_module, wall):
     assert b'data-preset="kiosk"' not in kiosk.get("/health").data
 
 
-def test_http_check_feeds_the_wall(client, wall, monkeypatch):
+def test_http_check_feeds_the_wall(lan_here, client, wall, monkeypatch):
     import requests
 
     class Resp:

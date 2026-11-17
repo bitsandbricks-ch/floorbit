@@ -33,6 +33,9 @@ Floorbit doesn't talk to switches itself: a plugin with `uses: [ports]` does, on
   configuration.
 - **Demo data** pretends: the port shows as down for 10 seconds.
 
+With a [local agent](agent.md#switch-logins-through-the-agent) enrolled, the SSH connection is
+opened by the agent in the hall; everything else on this page stays the same.
+
 A plugin defines `port_login()` (true when it needs the tech's login), `bounce_port(target)` and
 `set_port(target)`, where `target` is `{switch, host, port, model, login}` (plus `enabled` for
 `set_port`) and `login` is `{username, password}` or None.

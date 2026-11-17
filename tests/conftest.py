@@ -232,3 +232,11 @@ def built(tmp_path, monkeypatch):
     """The React app counts as built, so its pages answer 200 (without a build they answer 503)."""
     from tests.test_spa import _manifest
     _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})
+
+
+@pytest.fixture
+def lan_here(monkeypatch):
+    """Run the LAN plugins in this process, as the local agent does in the hall: for tests of the
+    plugins themselves (LibreNMS, NetBox, SSH, ...). The Floorbit server never does that by default
+    (floorbit/agent_link.py, agent_only)."""
+    monkeypatch.setenv("LAN_ACCESS", "direct")

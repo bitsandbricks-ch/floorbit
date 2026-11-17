@@ -101,8 +101,8 @@
   --shadow: 0 8px 28px rgb(0 0 0 / 0.55);
   --focus-ring: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-bit);
 
-  /* Controls, shared by the React pages (frontend/src/ui.css) and the editor (static/css/ui.css):
-   * one look for inputs, dropdowns, menus and tabs everywhere. */
+  /* Controls on the React pages (frontend/src/ui.css): one look for inputs, dropdowns, menus
+   * and tabs everywhere. */
   --ui-font: var(--fs-md);
   --ui-radius: var(--radius-bit);
   --ui-control-h: 2.25rem;

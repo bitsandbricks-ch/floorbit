@@ -37,7 +37,7 @@ def run_sync():
     reports = _sync_from_agent() if agent_link.active() else []
     fed = {r.get('base') or r['plugin'] for r in reports if not r.get('error')}
     for spec in _feeders():
-        if spec.id in fed:
+        if spec.id in fed or not agent_link.may_call_here(spec):
             continue
         try:
             items, skipped = inventory.clean_feed(registry.call(spec, 'inventory'))

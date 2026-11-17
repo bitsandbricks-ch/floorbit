@@ -2,7 +2,13 @@
 
 [`deploy/kubernetes/floorbit.yaml`](https://github.com/bitsandbricks-ch/floorbit/blob/master/deploy/kubernetes/floorbit.yaml)
 runs Floorbit with Redis on any Kubernetes cluster, k3s included. It has one Floorbit pod with a
-persistent volume, a Redis pod, two Services and an Ingress for k3s's Traefik.
+persistent volume, a Redis pod, three Services and an Ingress for k3s's Traefik.
+
+The Floorbit pod has two containers: Floorbit and its [local agent](agent.md). Floorbit reaches the
+event network (switches, LibreNMS, NetBox, game servers) only through the agent, the same way as a
+hosted Floorbit does. Floorbit writes the agent's key into a memory volume only the two share and
+enrols it as "Local agent" at each start, so there is no key to copy. The cluster has to reach the
+event network for this; otherwise run the agent in the hall instead and remove the `agent` container.
 
 ## Keep the volume
 
@@ -87,7 +93,7 @@ Sign-in cookies work on every pod as long as they all have the same `SECRET_KEY`
 
 ## Syslog and NetFlow
 
-Both take UDP from the event network. On a hosted cluster, let the
-[local agent](agent.md) take them on the event network instead. On a cluster at the event, add a
-`LoadBalancer` or `NodePort` Service for UDP 5514 (syslog) and 2055 (flows), as in
-`docker-compose.yml`.
+Both take UDP from the event network, and the agent container takes them. The `floorbit-agent`
+Service (type `LoadBalancer`; k3s's ServiceLB opens it on the nodes) publishes udp/514 (syslog) and
+udp/2055 (flows): point the devices at a node's address. On a hosted cluster, the agent in the hall
+takes them instead.

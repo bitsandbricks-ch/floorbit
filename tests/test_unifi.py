@@ -4,6 +4,9 @@ import requests
 
 from floorbit import sources
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 class Answer:
     def __init__(self, body=None, status=200, headers=None):

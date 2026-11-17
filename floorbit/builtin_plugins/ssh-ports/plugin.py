@@ -183,7 +183,13 @@ class Plugin(Base):
         if not login.get('username') or not login.get('password'):
             raise PluginError('This needs your switch login.')
         host = target['host']
-        pinned = dict(self.ctx.state.get('hosts') or {})
+        # From the local agent, the hosted Floorbit keeps the pinned keys and sends this host's
+        # along (floorbit/switch_link.py); a key seen for the first time goes back in the answer.
+        hosted_pins = 'pinned' in target
+        if hosted_pins:
+            pinned = {host: target['pinned']} if target['pinned'] else {}
+        else:
+            pinned = dict(self.ctx.state.get('hosts') or {})
         policy = PinnedKeys(pinned, self.settings.get('trust_new_hosts', True))
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(policy)
@@ -206,7 +212,9 @@ class Plugin(Base):
             raise PluginError(f'Could not reach {target["switch"]} over SSH ({type(exc).__name__}).') from None
         finally:
             login.clear()
-        if policy.new:
+        if policy.new and hosted_pins:
+            target['pinned_new'] = policy.new
+        elif policy.new:
             pinned[host] = policy.new
             self.ctx.set_state('hosts', pinned)
             self.log(f'pinned the host key of {target["switch"]}: {policy.new}')

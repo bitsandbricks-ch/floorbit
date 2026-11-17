@@ -3,6 +3,7 @@ import { IconPlugConnected } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { ApiError, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
@@ -146,7 +147,8 @@ export default function WalkRow() {
   return (
     <Layout title={t('walk.title')} back={{ href: '/cables', label: t('cables.title') }}>
       {/* On a phone in the row, the seat comes first: the intro only before the walk. */}
-      <PageHead title={t('walk.title')} desc={walking ? undefined : t('walk.intro')} />
+      <PageHead title={t('walk.title')} desc={walking ? undefined : t('walk.intro')}
+        actions={walking ? undefined : <Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
       {walking && seats.length ? <Walk setup={setup} seats={seats} onStop={() => setWalking(false)} /> : (
         <Paper withBorder radius="lg" p="lg">
           <Stack gap="sm">

@@ -111,7 +111,12 @@ def test_unanswered_calls_time_out():
     assert agent_link.tunnel.answer("999", True, []) is False
 
 
-def test_without_an_agent_the_plugins_answer(client):
+def test_the_agent_is_the_way_to_the_lan_even_before_one_is_enrolled(client):
+    assert sources.monitoring().name == "agent"
+    assert sources.monitoring().device_details("sw-a-01")["status"] == "unknown"   # nobody connected
+
+
+def test_with_direct_access_the_plugins_answer(client, lan_here):
     assert sources.monitoring().name != "agent"
 
 
