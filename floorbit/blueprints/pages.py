@@ -3,7 +3,7 @@ from urllib.parse import quote, urlencode
 
 from flask import Blueprint, current_app, jsonify, redirect, request
 
-from .. import endpoints, kiosk_texts, nav, nav_sections, page_index, seat_view, spa
+from .. import endpoints, nav, nav_sections, page_index, seat_view, spa
 
 bp = Blueprint('pages', __name__)
 
