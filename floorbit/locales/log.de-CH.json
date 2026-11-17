@@ -229,5 +229,22 @@
   "mac-flap": "MAC-Flapping",
   "loop": "Schleife",
   "storm": "Broadcast-Sturm",
-  "other": "Weiteres"
+  "other": "Weiteres",
+  "// Traffic anomalies (floorbit/flows/aggregate.py and blueprints/flows.py), kept in the flow summary in English": "",
+  "P2P or torrent traffic from seat {}": "P2P- oder Torrent-Verkehr von Platz {}",
+  "{} peers in one minute": "{} Peers in einer Minute",
+  "Packet burst from seat {}": "Paketspitze von Platz {}",
+  "{} packets per second": "{} Pakete pro Sekunde",
+  "DDoS-like burst towards seat {}": "DDoS-artige Spitze zu Platz {}",
+  "DDoS-like burst towards {}": "DDoS-artige Spitze zu {}",
+  "{} packets per second from {} seats": "{} Pakete pro Sekunde von {} Plätzen",
+  "Seat {} answers DHCP": "Platz {} antwortet auf DHCP",
+  "a DHCP server that is not ours": "ein DHCP-Server, der nicht unserer ist",
+  "Seat {} answers DNS to other seats": "Platz {} beantwortet DNS für andere Plätze",
+  "a DNS server at a seat": "ein DNS-Server an einem Platz",
+  "P2P or torrent traffic": "P2P- oder Torrent-Verkehr",
+  "Packet burst": "Paketspitze",
+  "DHCP server at a seat": "DHCP-Server an einem Platz",
+  "DNS server at a seat": "DNS-Server an einem Platz",
+  "Anomaly": "Auffälligkeit"
 }

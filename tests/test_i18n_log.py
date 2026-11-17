@@ -123,3 +123,17 @@ def test_log_alerts_and_security_kinds_inside_the_titles():
     for kind in security.KINDS:
         assert i18n._log_german(kind) is not None
     assert i18n.log_text('Security: rogue-dhcp (seat A-7)', 'de-CH') == 'Sicherheit: Fremder DHCP (Platz A-7)'
+
+
+def test_traffic_anomalies_have_german():
+    import re
+
+    from floorbit.blueprints.flows import ANOMALY_KINDS
+    with open(os.path.join(ROOT, 'floorbit', 'flows', 'aggregate.py'), encoding='utf-8') as f:
+        tree = ast.parse(f.read())
+    texts = [t for node in ast.walk(tree) if isinstance(node, ast.Call) and ast.unparse(node.func) == 'found.append'
+             for elt in node.args[0].elts[2:] for t in _texts(elt)]
+    assert len(texts) >= 10
+    for text in [*texts, *ANOMALY_KINDS.values(), 'Anomaly']:
+        sample = re.sub(r'\{\}', '7', text)
+        assert i18n._log_german(sample) is not None, f'{text!r} needs a German text'
