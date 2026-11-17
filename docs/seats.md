@@ -8,8 +8,13 @@ everywhere, and its Edit mode is where the plan is built. `/` opens it too; old 
 
 The plan fills the whole page next to the sidebar, like a map editor. One slim bar on top holds the
 hall, the mode, the online count, the filters (each with its count), Map/List, **Layers**, the find
-box, **Print** and **?** (help and keys). The plan takes everything below it; an open seat, block or
-switch docks on the right. The legend floats over the plan's bottom-left corner: click **Legend** to
+box, **Print** and **?** (help and keys). The plan takes everything below it, with a panel docked on
+the right, as in a map editor. Its tabs are **Layers** (the layer switches), **Problems** (switches
+that are down, seats with problems, seats offline) and **Items** (every block and switch); click a row
+to open it. An open seat, block or switch takes the panel's place, and closing it (or **Esc**) brings
+the tabs back. The panel button in the top bar, or **]**, hides the panel for more plan; the panel
+remembers whether it was open and which tab. On a phone the open item shows below the plan instead,
+and Layers stays in the top bar. The legend floats over the plan's bottom-left corner: click **Legend** to
 fold it away.
 
 The bar switches between modes of the same plan, kept in the address (`?mode=`):
@@ -168,6 +173,7 @@ Tab to the plan, then:
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
+| **]** | Hide or show the panel on the right. Not in Edit mode. |
 | **?** | Anywhere on the page: list these shortcuts. The **?** button at the end of the top bar opens the same list. |
 
 A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the

@@ -786,3 +786,14 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   /* No room in the corner next to the zoom buttons: phones show it under the shortcuts instead. */
   .fb-ws-corner .fb-attribution { display: none; }
 }
+
+/* The docked right panel in Live and Network (pages/plan/SidePanel.tsx): tabs on top, a scrolling
+   body, the attribution at the foot. */
+.fb-ws-panel.tabs { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.fb-side-tabs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fb-side-body { flex: 1; min-height: 0; }
+.fb-side-row { display: block; width: 100%; padding: 6px 8px; border-radius: 6px; }
+.fb-side-row:hover { background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+.fb-side-legend { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--color-line); }
+.fb-side-foot { padding: 8px 12px; border-top: 1px solid var(--color-line); }
+.fb-side-foot .fb-attribution--compact { padding: 0; }

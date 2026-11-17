@@ -31,6 +31,26 @@
   "zoomOut": "Herauszoomen",
   "fit": "Ganze Halle zeigen",
   "minimap": "Übersicht über die Halle: klicken oder ziehen, um dorthin zu gehen",
+  "side": {
+    "label": "Plan-Seitenleiste",
+    "layers": "Ebenen",
+    "problems": "Probleme",
+    "items": "Elemente",
+    "hide": "Seitenleiste ausblenden",
+    "show": "Seitenleiste einblenden",
+    "allGood": "Nichts zu tun: kein Platz mit Problem, keiner offline, alle Switches aktiv.",
+    "switchesDown_one": "{{count}} Switch offline",
+    "switchesDown_other": "{{count}} Switches offline",
+    "withProblems_one": "{{count}} Platz mit Problem",
+    "withProblems_other": "{{count}} Plätze mit Problemen",
+    "offline_one": "{{count}} Platz offline",
+    "offline_other": "{{count}} Plätze offline",
+    "blocks_one": "{{count}} Sitzblock",
+    "blocks_other": "{{count}} Sitzblöcke",
+    "block": "Block {{name}}",
+    "switches_one": "{{count}} Switch",
+    "switches_other": "{{count}} Switches"
+  },
   "state": {
     "online": "Online",
     "offline": "Offline",
@@ -194,6 +214,7 @@
     "imageFailed": "Das Bild konnte nicht erstellt werden. Versuch es als SVG oder druck als PDF."
   },
   "shortcuts": {
+    "side": "Seitenleiste ein- oder ausblenden",
     "title": "Tastaturkürzel",
     "show": "Tastaturkürzel",
     "intro": "Zuerst mit Tab zum Plan. /, ?, Esc, L und 1 bis 4 gehen überall auf der Seite.",
