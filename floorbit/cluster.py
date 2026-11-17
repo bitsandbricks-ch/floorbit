@@ -28,6 +28,7 @@ import uuid
 CHANNEL = 'floorbit:events'
 LEADER_KEY = 'floorbit:leader'
 AGENTS_KEY = 'floorbit:agents'           # hash: agent id -> {"pod", "at"}
+PODS_KEY = 'floorbit:pods'               # hash: pod -> {"at", "leader"}, for the Local agents page
 CALLS_KEY = 'floorbit:calls:'            # + pod: calls for the agents connected there
 REPLY_KEY = 'floorbit:reply:'            # + call id
 LEASE_MS = 20_000                        # the leader renews every RENEW s; a dead one is replaced after this
@@ -119,7 +120,29 @@ class Cluster:
         was, self._leading = self._leading, holder == self.pod
         if was != self._leading:
             self.log(f'[cluster] {self.pod} {"is now" if self._leading else "is no longer"} the leader')
+        with contextlib.suppress(Exception):
+            self.bus.hset(PODS_KEY, self.pod, json.dumps({'at': time.time(), 'leader': self._leading}))
         return self._leading
+
+    def pods(self, now=None):
+        """``[{"pod", "at", "leader", "me"}]``: the pods that renewed lately, this one first."""
+        now = time.time() if now is None else now
+        try:
+            rows = self.bus.hgetall(PODS_KEY)
+        except Exception:  # noqa: BLE001
+            rows = {}
+        out = []
+        for pod, raw in rows.items():
+            try:
+                row = json.loads(raw)
+                at = float(row.get('at') or 0)
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if now - at < LEASE_MS / 1000 * 3:
+                out.append({'pod': pod, 'at': at, 'leader': bool(row.get('leader')), 'me': pod == self.pod})
+        if not any(p['me'] for p in out):
+            out.append({'pod': self.pod, 'at': now, 'leader': self._leading, 'me': True})
+        return sorted(out, key=lambda p: (not p['me'], p['pod']))
 
     def leading(self):
         return self._leading
@@ -233,6 +256,26 @@ class Cluster:
 
 
 current = None
+
+
+def status(now=None):
+    """This Floorbit's own availability for the Local agents page: one pod or several, which leads,
+    and whether Redis and the database answer."""
+    from . import cache, database
+    db = database.status()
+    out = {'mode': 'single' if current is None else 'redis',
+           'database': {'kind': db.get('kind'), 'ok': bool(db.get('ok')), 'since': db.get('since')}}
+    try:
+        client = cache.get_redis_client()
+        out['redis'] = {'ok': client is not None}
+    except Exception:  # noqa: BLE001
+        out['redis'] = {'ok': False}
+    if current is None:
+        at = time.time() if now is None else now
+        out['pods'] = [{'pod': socket.gethostname(), 'at': at, 'leader': True, 'me': True}]
+    else:
+        out['pods'] = current.pods(now)
+    return out
 
 
 def leading():
