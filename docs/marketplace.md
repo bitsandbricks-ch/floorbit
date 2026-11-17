@@ -66,3 +66,17 @@ or removed.
 The agents follow on their own: an official plugin installed here is offered to every agent that
 runs it, and the agent's own update policy (`FLOORBIT_AGENT_PLUGIN_UPDATES`) decides when it
 installs it ([Updates](agent-plugins.md#updates)).
+
+## Tools
+
+`scripts/marketplace.py` is what the plugin repositories and floorbit-plugins run:
+
+```
+python scripts/marketplace.py sign <plugin folder> --key plugin-key.pem --version 1.2.0 --out dist
+python scripts/marketplace.py build-index plugins.yaml site --key index-key.pem
+python scripts/marketplace.py check https://bitsandbricks-ch.github.io/floorbit-plugins/index.json
+```
+
+Each refuses a key that isn't the one built into Floorbit for its purpose, and a key pinned for
+both. Make a key pair with `openssl genpkey -algorithm ed25519 -out key.pem` and
+`openssl pkey -in key.pem -pubout -out key.pub`.
