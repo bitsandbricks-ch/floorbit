@@ -85,5 +85,20 @@
   "clientsPatch": "Patch to a seat",
   "clientsInfra": "Infrastructure",
   "clientsInfraNote": "Infrastructure",
-  "anyPort": "Also list ports that have a cable"
+  "anyPort": "Also list ports that have a cable",
+  "areasTitle": "Rough port areas",
+  "areasIntro": "Which seats a batch of ports goes to, before each seat's port is known. Used to say where a port probably is, and to catch check-ins far from their seat.",
+  "areasAdd": "Add port areas",
+  "areasEmpty": "No port areas yet. A 40-port switch in batches of 10 is four lines.",
+  "areaRange": "{{first}}-{{last}} → {{label}}",
+  "areaRemove": "Remove",
+  "areaRemoveOne": "Remove the area {{label}}",
+  "areasHow": "Ports in batches, and the first seat of each batch. The batch goes to as many seats from there as it has ports. Leave a batch empty for uplinks or access points. Saving replaces this switch's areas.",
+  "areasSize": "Ports per batch",
+  "areasFirstPort": "First port number",
+  "areasBatches": "Batches",
+  "areasSkip": "Empty: not to seats",
+  "areasBatch": "Ports {{first}}-{{last}}: first seat",
+  "areasSave": "Save areas",
+  "areaHint": "Area {{label}}"
 }

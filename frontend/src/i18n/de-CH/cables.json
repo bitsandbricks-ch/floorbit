@@ -85,5 +85,20 @@
   "clientsPatch": "Auf einen Platz patchen",
   "clientsInfra": "Infrastruktur",
   "clientsInfraNote": "Infrastruktur",
-  "anyPort": "Auch Ports mit Kabel anzeigen"
+  "anyPort": "Auch Ports mit Kabel anzeigen",
+  "areasTitle": "Ungefähre Port-Bereiche",
+  "areasIntro": "Zu welchen Plätzen eine Gruppe von Ports geht, bevor der Port jedes Platzes bekannt ist. Damit sagt Floorbit, wo ein Port wahrscheinlich ist, und merkt Check-ins weit weg von ihrem Platz.",
+  "areasAdd": "Port-Bereiche erfassen",
+  "areasEmpty": "Noch keine Port-Bereiche. Ein 40-Port-Switch in Zehnergruppen sind vier Zeilen.",
+  "areaRange": "{{first}}-{{last}} → {{label}}",
+  "areaRemove": "Entfernen",
+  "areaRemoveOne": "Bereich {{label}} entfernen",
+  "areasHow": "Ports in Gruppen, und der erste Platz jeder Gruppe. Die Gruppe geht ab dort an so viele Plätze, wie sie Ports hat. Lass eine Gruppe leer für Uplinks oder Access Points. Speichern ersetzt die Bereiche dieses Switches.",
+  "areasSize": "Ports pro Gruppe",
+  "areasFirstPort": "Erste Port-Nummer",
+  "areasBatches": "Gruppen",
+  "areasSkip": "Leer: nicht zu Plätzen",
+  "areasBatch": "Ports {{first}}-{{last}}: erster Platz",
+  "areasSave": "Bereiche speichern",
+  "areaHint": "Bereich {{label}}"
 }

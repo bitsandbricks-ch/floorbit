@@ -362,6 +362,15 @@ def port_conflicts(data):
         if plan and plan not in seats:
             out.append({'kind': 'plan', 'seat': seats[0], 'other': [plan], 'switch': row['switch'],
                         'port': row['port']})
+    # A learned port outside the rough area the crew gave for it (floorbit/port_areas.py): a wrong
+    # PIN or a card on the wrong seat. Only when no exact plan says anything about that port.
+    from floorbit import port_areas
+    areas = port_areas.all_areas(data)
+    for seat, row in sorted(learned_ports().items()):
+        area = port_areas.area_for(row['switch'], row['port'], areas)
+        if area and seat not in area['seats'] and _port_key(row) not in planned:
+            out.append({'kind': 'area', 'seat': seat, 'other': [area['label']], 'switch': row['switch'],
+                        'port': row['port']})
     learned = learned_ports()
     for seat, row in sorted(load_all().items()):
         port = learned.get(seat) or row.get('port_seen')
@@ -389,12 +398,8 @@ def suggest_seat(ip, load_data, app=None):
 
 def known_seats(load_data):
     """Seat numbers from the floor plan's seat blocks, as the frontend numbers them."""
-    seats = set()
-    for block in load_data().get('seat_blocks', []):
-        prefix = f"{block['name'].upper()}-" if block.get('name') else ''
-        total = int(block.get('cols', 1)) * int(block.get('rows', 1))
-        seats.update(f'{prefix}{i}' for i in range(1, total + 1))
-    return seats
+    from floorbit import incidents
+    return incidents.seat_numbers(load_data())
 
 
 # ── core ───────────────────────────────────────────────────────────────────────
@@ -568,13 +573,18 @@ def overview(load_data):
     learned = learned_ports()
     pins = load_pins()
     used = {r['seat'] for r in rows if r.get('pin_ok')}
-    conflicts = port_conflicts(load_data())
+    data = load_data()
+    conflicts = port_conflicts(data)
     counts = {state: sum(1 for r in rows if r.get('wired', 'pending') == state) for state in WIRED_STATES}
     counts.update(checked_in=len(rows), conflicts=len(conflicts), learned=len(learned),
                   unused_pins=len([s for s in pins if s not in used]), pins=len(pins))
+    from floorbit import port_areas
+    areas = port_areas.all_areas(data)
     out = []
     for r in rows:
-        out.append({'seat': r['seat'], 'username': r.get('username'), 'ip': r.get('ip'), 'mac': r.get('mac'),
+        seen = r.get('port_seen')
+        out.append({'area': port_areas.hint(seen['switch'], seen['port'], areas) if seen else None,
+                    'seat': r['seat'], 'username': r.get('username'), 'ip': r.get('ip'), 'mac': r.get('mac'),
                     'device': r.get('device') or 'unknown', 'wired': r.get('wired') or 'pending',
                     'port': r.get('port_seen'), 'learned': learned.get(r['seat']), 'pin': bool(r.get('pin_ok')),
                     'checked_in_at': r.get('checked_in_at'), 'verified_at': r.get('verified_at')})

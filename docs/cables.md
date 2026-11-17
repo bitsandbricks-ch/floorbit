@@ -91,6 +91,28 @@ seconds: Floorbit reads the switch's link-up lines (Cisco `changed state to up`,
 Juniper `LINK_UP`, Aruba `is now on-line`). Without it, the page compares LibreNMS' port list with
 the ports that were up when the walk began, which only changes when LibreNMS polls the switch.
 
+## Rough port areas
+
+Often nobody knows each seat's port before the event, but the crew knows the layout in batches: a
+40-port access switch serves its row, ports 1-10 to A-1..A-10, 11-20 to A-11..A-20, and so on.
+**Cables › Rough port areas** takes exactly that: a switch, ports per batch (10), the first port
+number, and the first seat of each batch. Each batch goes to as many seats from there as it has
+ports; leave a batch empty for uplinks or access points. Saving replaces that switch's areas.
+
+An area never says which port a seat is on: a cable, or a port learned from a seat check-in, always
+wins. What an area does:
+
+- **Walking the row** says when the port that came up lies in another seat range than the seat you
+  stand at.
+- **Machines on the seat ports** shows the area next to each unexplained client, so you know which
+  part of the row to walk to.
+- **Seat check-in** puts a learned port outside its area on the review list (kind `area`, also on
+  Problems): usually a wrong PIN or a seat card on the wrong desk.
+- The crew's **Check-in** page shows the area of each found port.
+
+A port's number is the last number in its name (`Gi1/0/14` is 14). Areas live in `data.json` with
+the plan, so a backup carries them.
+
 ## Labels
 
 **Print labels** makes an A4 PDF of 3 × 8 labels, two per cable: the switch end first, then the far

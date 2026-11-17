@@ -16,6 +16,7 @@ import { PageHead } from '@/components/PageHead'
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
+import { PortAreas } from '@/components/PortAreas'
 import { PortClients } from '@/components/PortClients'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
@@ -82,6 +83,8 @@ export default function Cables() {
           </Alert>
         )}
         <PatchCheck />
+        <PortAreas canEdit={canEdit}
+          switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...(d?.cables ?? []).map((c) => c.switch)])].sort()} />
         {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => setAdding({ switch: c.switch, port: c.port, seat: c.ip_seat })} />}
         {query.isPending ? <LoadingState /> : d && (
           <>

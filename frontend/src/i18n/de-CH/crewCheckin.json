@@ -58,12 +58,14 @@
   "conflict": {
     "shared": "Plätze {{seat}} und {{other}} haben am selben Port eingecheckt",
     "plan": "Platz {{seat}} hat am Port eingecheckt, den der Patchplan {{other}} gibt",
-    "taken": "Platz {{seat}} wurde von einem anderen Nick übernommen"
+    "taken": "Platz {{seat}} wurde von einem anderen Nick übernommen",
+    "area": "Platz {{seat}} hat an einem Port eingecheckt, der für die Plätze {{other}} gedacht ist"
   },
   "conflictHelp": {
     "shared": "Meist ein kleiner Switch unter dem Tisch oder eine falsche PIN. Hingehen, dann den Port des falschen Platzes vergessen.",
     "plan": "Entweder der Patchplan oder der Check-in stimmt nicht. Kabel prüfen, dann den Plan korrigieren oder den Port vergessen.",
-    "taken": "Jemand hat nach einem anderen Nick mit der Karte dieses Platzes eingecheckt. Am Platz nachfragen, ob das stimmt."
+    "taken": "Jemand hat nach einem anderen Nick mit der Karte dieses Platzes eingecheckt. Am Platz nachfragen, ob das stimmt.",
+    "area": "Eine falsche PIN oder eine Karte am falschen Platz. Hingehen, dann den Port vergessen, wenn er falsch ist, oder den Bereich korrigieren."
   },
   "forget": "Port von {{seat}} vergessen",
   "portalIntro": "Handys und Laptops fragen den lokalen Agent, ob sie noch einchecken müssen (DHCP-Option 114). Der Agent holt die Liste der eingecheckten Geräte hier ab; jeder Abruf steht unten. Gesperrt wird nie etwas, und es bleibt aus, solange ihr die DHCP-Option nicht setzt.",

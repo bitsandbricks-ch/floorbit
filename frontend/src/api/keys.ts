@@ -63,6 +63,8 @@ export const qk = {
   blockPlan: (form: object) => ['block-plan', form] as const,
   options: (kind: string, scope: string) => ['options', kind, scope] as const,
   optionsAll: ['options'] as const,
+  portAreas: ['port-areas'] as const,
+  portAreasPreview: (form: object) => ['port-areas', 'preview', form] as const,
   health: ['health'] as const,
   security: ['security'] as const,
   power: ['power'] as const,

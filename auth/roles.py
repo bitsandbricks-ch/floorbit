@@ -260,6 +260,9 @@ RULES = (
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     ('/api/cable-plan', WRITE, 'floorplan.edit'),
+    # Which seats a range of ports roughly goes to: part of the patch plan (floorbit/port_areas.py).
+    ('/api/port-areas/lookup', None, 'seats.view'),
+    ('/api/port-areas', WRITE, 'floorplan.edit'),
     # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
     # Runbooks: the crew reads them, leads write them (floorbit/runbooks.py).

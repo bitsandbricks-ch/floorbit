@@ -69,7 +69,8 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
                     <Table.Tr key={`${r.switch}-${r.port}-${r.mac}`}>
                       <Table.Td ff="monospace">{where(r)}</Table.Td>
                       <Table.Td ff="monospace">{who(r)}</Table.Td>
-                      <Table.Td>{r.ip_seat ? t('cables.clientsIpOf', { seat: r.ip_seat }) : ''}</Table.Td>
+                      <Table.Td>{r.ip_seat ? t('cables.clientsIpOf', { seat: r.ip_seat }) : ''}
+                        {r.area && <Text size="xs" c="dimmed">{t('cables.areaHint', { label: r.area.label })}</Text>}</Table.Td>
                       {canEdit && (
                         <Table.Td>
                           <Group gap={6} justify="flex-end" wrap="nowrap">

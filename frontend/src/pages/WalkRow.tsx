@@ -85,6 +85,10 @@ function Walk({ setup, seats, onStop }: { setup: Setup; seats: string[]; onStop:
               <Text fw={600}>{t('walk.cameUp', { port: `${switchName} ${fresh.port}` })}</Text>
               {fresh.how === 'poll' && <Badge variant="light" color="info" tt="none">{t('walk.byPoll')}</Badge>}
             </Group>
+            {/* The rough area the crew gave for this port: a port far from the seat is likely someone else's. */}
+            {fresh.area && !fresh.area.seats.includes(seat) && (
+              <Alert color="warn">{t('walk.outsideArea', { label: fresh.area.label, seat })}</Alert>
+            )}
             {clash ? (
               <>
                 <Alert color="warn">{t('walk.clash', { port: clash.port, other: clash.other, seat })}</Alert>

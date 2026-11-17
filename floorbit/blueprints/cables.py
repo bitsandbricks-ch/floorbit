@@ -23,7 +23,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import agent_link, audit, cables, patch_check, port_clients, spa, syslog, walk
+from .. import agent_link, audit, cables, patch_check, port_areas, port_clients, spa, syslog, walk
 
 bp = Blueprint('cables', __name__)
 
@@ -151,7 +151,9 @@ def walk_ups():
         since = time.time()
     listening = syslog.settings()['enabled'] or agent_link.active()
     receiver = current_app.extensions.get('floorbit_syslog') if listening else None
-    return jsonify({'ups': walk.walks.ups(switch, since, receiver), 'syslog': receiver is not None, 'since': since})
+    areas = port_areas.all_areas()
+    ups = [{**u, 'area': port_areas.hint(switch, u['port'], areas)} for u in walk.walks.ups(switch, since, receiver)]
+    return jsonify({'ups': ups, 'syslog': receiver is not None, 'since': since})
 
 
 @bp.route('/api/cables/assign', methods=['POST'])
@@ -199,3 +201,56 @@ def labels():
 def csv_export():
     headers = {'Content-Disposition': 'attachment; filename="cables.csv"', 'Cache-Control': 'no-store'}
     return Response(cables.csv_text(_picked()), mimetype='text/csv', headers=headers)
+
+
+# ── Rough port areas (floorbit/port_areas.py) ─────────────────────────────────
+@bp.route('/api/port-areas', methods=['GET'])
+def list_port_areas():
+    return jsonify({'areas': sorted(port_areas.all_areas(), key=lambda a: (a['switch'].lower(), a['first']))})
+
+
+@bp.route('/api/port-areas/batch', methods=['POST'])
+def port_areas_batch():
+    """``{"switch", "size": 10, "first_port": 1, "count", "starts": ["A-1", "A-11", "", ...],
+    "dry_run"}``: one area per batch of ports, in place of what the switch had."""
+    from .. import incidents
+    body = request.get_json(silent=True) or {}
+    try:
+        areas = port_areas.quick_entry(body.get('switch'), body.get('starts'), body.get('size', 10),
+                                       body.get('first_port', 1), body.get('count'),
+                                       known=incidents.seat_numbers())
+        if body.get('dry_run'):
+            return jsonify({'areas': areas})
+        made = port_areas.replace_switch(str(body['switch']).strip(), areas, by=_who())
+    except port_areas.AreaError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('cables', 'port areas', g.get('audit_user'),
+                 f"{made[0]['switch']}: {', '.join(a['label'] for a in made)}")
+    return jsonify({'areas': made})
+
+
+@bp.route('/api/port-areas/<area_id>', methods=['DELETE'])
+def delete_port_area(area_id):
+    if not port_areas.delete(area_id=area_id):
+        return jsonify({'error': 'No such port area.'}), 404
+    return jsonify({'ok': True})
+
+
+@bp.route('/api/port-areas', methods=['DELETE'])
+def delete_switch_port_areas():
+    switch = (request.args.get('switch') or '').strip()
+    if not switch:
+        return jsonify({'error': 'Name the switch.'}), 400
+    return jsonify({'deleted': port_areas.delete(switch=switch)})
+
+
+@bp.route('/api/port-areas/lookup', methods=['GET'])
+def port_area_lookup():
+    """The likely area of a port (``switch`` + ``port``), or of the port an ``ip`` is on."""
+    switch, port = request.args.get('switch'), request.args.get('port')
+    ip = (request.args.get('ip') or '').strip()
+    if ip and not (switch and port):
+        from integrations import checkin
+        found = checkin.port_of(ip) or {}
+        switch, port = found.get('switch'), found.get('port')
+    return jsonify({'switch': switch, 'port': port, 'area': port_areas.hint(switch, port)})

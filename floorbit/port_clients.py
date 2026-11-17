@@ -137,6 +137,10 @@ def without_cabled(state, data=None):
     cabled = {(c['switch'].lower(), canonical_port(c['port'])) for c in cables_mod.all_cables(data)}
     rows = state['unplanned']['rows']
     left = [r for r in rows if (r['switch'].lower(), canonical_port(r['port'])) not in cabled]
+    # The rough area the crew gave for that port narrows where to walk (floorbit/port_areas.py).
+    from . import port_areas
+    areas = port_areas.all_areas(data)
+    left = [{**r, 'area': port_areas.hint(r['switch'], r['port'], areas)} for r in left]
     return {**state, 'unplanned': {'count': state['unplanned']['count'] - (len(rows) - len(left)), 'rows': left}}
 
 

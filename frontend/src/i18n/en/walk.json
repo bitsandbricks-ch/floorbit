@@ -24,5 +24,6 @@
   "bySyslog": "Watching the switch's syslog: a port shows up here within seconds.",
   "noSyslog": "Syslog is off, so Floorbit sees a port only when LibreNMS polls the switch, which can take minutes. With the syslog receiver on (SYSLOG_ENABLED) it takes seconds.",
   "finished": "Done: {{count}} of {{seats}} seats found",
-  "again": "Walk another row"
+  "again": "Walk another row",
+  "outsideArea": "This port is in the area for {{label}}, not {{seat}}. Check you are at the right seat before you take it."
 }
