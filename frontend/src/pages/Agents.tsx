@@ -84,8 +84,14 @@ const PLUGIN_COLOR: Record<AgentPluginHealth['status'], string> = { ok: 'up', wa
 const SHOWN_METRICS = 4
 
 /** Each agent plugin the agent runs (docs/agent-plugins.md): its state, a few numbers, its last error. */
-function PluginHealth({ plugins, lang }: { plugins?: Record<string, AgentPluginHealth>; lang: string }) {
+function PluginHealth({ agentId, plugins, lang }: { agentId: string; plugins?: Record<string, AgentPluginHealth>; lang: string }) {
   const { t } = useTranslation()
+  const qc = useQueryClient()
+  const unblock = useMutation({
+    mutationFn: (b: { plugin: string; device: string; credential: string }) =>
+      post(`/api/agent-plugins/${encodeURIComponent(agentId)}/${encodeURIComponent(b.plugin)}/unblock`, { device: b.device, credential: b.credential }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: qk.agents }),
+  })
   const ids = Object.keys(plugins ?? {}).sort()
   if (!plugins || !ids.length) return null
   return (
@@ -95,7 +101,8 @@ function PluginHealth({ plugins, lang }: { plugins?: Record<string, AgentPluginH
         const last = p.errors[p.errors.length - 1]
         const numbers = Object.entries(p.metrics).slice(0, SHOWN_METRICS)
         return (
-          <Group key={id} gap={6} wrap="nowrap" align="flex-start">
+          <Stack key={id} gap={2}>
+          <Group gap={6} wrap="nowrap" align="flex-start">
             <Badge variant="light" color={PLUGIN_COLOR[p.status] ?? 'gray'} tt="none" style={{ flexShrink: 0 }}>
               {id}
             </Badge>
@@ -108,6 +115,18 @@ function PluginHealth({ plugins, lang }: { plugins?: Record<string, AgentPluginH
               {last && <>{' · '}<Text span size="xs" c="down">{t('agents.pluginLastError', { when: last.at ? ago(last.at, lang) : '?', error: last.error })}</Text></>}
             </Text>
           </Group>
+          {(p.auth_blocked ?? []).map((b) => (
+            <Group key={`${b.device}|${b.credential}|${b.rev}`} gap={6} wrap="wrap" pl="md" role="alert">
+              <Text size="xs" c="down" style={{ overflowWrap: 'anywhere' }}>
+                {t('agents.authBlocked', { device: b.device, credential: b.credential, when: b.since ? ago(b.since, lang) : '?', message: b.message })}
+              </Text>
+              <Button size="compact-xs" variant="default" disabled={unblock.isPending}
+                onClick={() => unblock.mutate({ plugin: id, device: b.device, credential: b.credential })}>
+                {t('agents.authClear')}
+              </Button>
+            </Group>
+          ))}
+          </Stack>
         )
       })}
     </Stack>
@@ -188,7 +207,7 @@ export default function Agents() {
                         </Text>
                         <Stats stats={a.stats} lang={i18n.language} />
                         <Report report={a.report} lang={i18n.language} />
-                        <PluginHealth plugins={a.report?.plugins} lang={i18n.language} />
+                        <PluginHealth agentId={a.id} plugins={a.report?.plugins} lang={i18n.language} />
                         {a.outdated && <Text size="xs" c="warn">{t('agents.outdatedHelp', { v: d.protocol ?? '' })}</Text>}
                         {hallOptions.length > 1 && (
                           <MultiSelect size="xs" mt={6} maw={420} label={t('agents.halls')} placeholder={a.halls?.length ? undefined : t('agents.allHalls')}

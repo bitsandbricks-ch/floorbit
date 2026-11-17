@@ -32,6 +32,20 @@ FLOORBIT_AGENT_ALLOW_ACTIONS=lancache.clear_cache    # or lancache.*, or * for e
 Without it the hosted side gets "This agent does not allow ...". That way a stolen hosted login
 can read what the agent reports but can't change anything in the hall.
 
+### Failed logins
+
+When a device refuses a plugin's login, the agent stops trying that device with that credential:
+no account lockouts, no alarms on the AAA or TACACS server. The Local agents page shows it in red
+with **Clear, try again** (needs the *run plugins* permission), the audit log has it, and the
+device's own page shows it. Editing the credential counts as clearing it. Nothing is tried again on
+its own, not even after the agent restarts.
+
+### Which devices
+
+A plugin that works on the inventory's devices (`agent: {targets: {credentials: [ssh]}}`) gets the
+devices it is turned on for (on the device, a tag or a group) that have a credential of a kind it
+can use. A device without credentials, or with the plugin off, is never asked.
+
 ### Privacy
 
 A plugin says, for everything it sends, whether it is **aggregate** (hall-wide numbers) or
@@ -97,6 +111,7 @@ class AgentPlugin(Base):
 | `thread(fn)`, `stopping` | background work that ends when the plugin stops |
 | `listen_udp(port, handler)`, `listen_http(port, handler)` | listeners that close when the plugin stops |
 | `state_dir` | a folder of its own in the agent's state volume |
+| `may_login(device, credential, rev)`, `auth_failed(device, credential, rev, message)` | ask before each login; say when it was refused (see Failed logins) |
 
 When its settings change the agent stops and starts the plugin again, unless `configure(settings)`
 returns `True` (it took them as they are). `floorbit.plugins.agent.MemoryContext` is a context that

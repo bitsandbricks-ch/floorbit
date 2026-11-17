@@ -59,5 +59,7 @@
     "error": "fehlerhaft",
     "off": "untätig"
   },
-  "pluginLastError": "letzter Fehler {{when}}: {{error}}"
+  "pluginLastError": "letzter Fehler {{when}}: {{error}}",
+  "authBlocked": "Anmeldung an {{device}} mit {{credential}} fehlgeschlagen {{when}} ({{message}}). Wird erst nach dem Freigeben wieder versucht.",
+  "authClear": "Freigeben, neu versuchen"
 }

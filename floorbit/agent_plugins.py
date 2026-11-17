@@ -53,6 +53,10 @@ def config(registry=None):
             except PluginError as exc:
                 registry.log(spec.id, f'agent_settings: {exc}')
                 continue
+        if block.get('targets'):
+            # The devices this plugin may work on: enabled for them (device, group, tag) and with
+            # credentials, as the inventory resolves it (inventory_scope, docs/agent-plugins.md).
+            settings = {**settings, 'targets': plugin_targets(spec.id, block['targets'].get('credentials'))}
         plugins[spec.id] = {
             'version': str(spec.manifest.get('version', '')),
             'settings': settings,
@@ -62,6 +66,27 @@ def config(registry=None):
         }
     raw = json.dumps(plugins, sort_keys=True, default=str).encode()
     return {'plugins': plugins, 'etag': hashlib.sha256(raw).hexdigest()[:32]}
+
+
+def _scope():
+    try:
+        from . import inventory_scope
+    except ImportError:
+        return None
+    return inventory_scope
+
+
+def plugin_targets(plugin_id, kinds=None):
+    """The inventory's devices for a plugin (on for them after groups and tags, a credential that
+    resolves and isn't blocked), or [] while the inventory can't say."""
+    scope = _scope()
+    if scope is None:
+        return []
+    try:
+        return list(scope.plugin_targets(plugin_id, kinds) or [])
+    except Exception as exc:  # noqa: BLE001  # no targets is safe: the plugin logs in nowhere
+        print(f'[agent-plugins] targets of {plugin_id}: {exc}')
+        return []
 
 
 class Refused(ValueError):
@@ -148,7 +173,14 @@ def clean_health(raw):
             continue
         metrics = h.get('metrics') if isinstance(h.get('metrics'), dict) else {}
         errors = h.get('errors') if isinstance(h.get('errors'), list) else []
+        blocks = h.get('auth_blocked') if isinstance(h.get('auth_blocked'), list) else []
         out[pid] = {
+            'auth_blocked': [{'device': str(b.get('device') or '')[:120],
+                              'credential': str(b.get('credential') or '')[:120],
+                              'rev': None if b.get('rev') is None else str(b['rev'])[:40],
+                              'since': b['since'] if _number(b.get('since')) else None,
+                              'message': str(b.get('message') or '')[:300]}
+                             for b in blocks[:50] if isinstance(b, dict) and b.get('device')],
             'status': h.get('status') if h.get('status') in STATUSES else 'error',
             'message': str(h.get('message') or '')[:300],
             'running': bool(h.get('running')),
@@ -157,6 +189,62 @@ def clean_health(raw):
                        for e in errors[-10:] if isinstance(e, dict)],
         }
     return out
+
+
+def note_blocks(agent_id, before, after):
+    """Audit-log the logins an agent newly stopped trying (from its report)."""
+    from . import agent_link, audit
+    def keys(report):
+        return {(pid, b['device'], b['credential'], b['rev']): b
+                for pid, h in ((report or {}).get('plugins') or {}).items() for b in h.get('auth_blocked') or []}
+    old, new = keys(before), keys(after)
+    if not set(new) - set(old):
+        return
+    names = {a['id']: a['name'] for a in agent_link.load_data().get(agent_link.KEY) or []}
+    for (pid, device, credential, _rev), b in new.items():
+        if (pid, device, credential, _rev) in old:
+            continue
+        audit.record('agents', f'{names.get(agent_id, agent_id)}: {pid} stopped logging in to {device} '
+                     f'with {credential} ({b["message"][:120]})', user='agent', target=device, ok=False)
+        # The block lives on the device too, so every agent and the hosted SSH path leave it alone.
+        scope = _scope()
+        if scope is not None and hasattr(scope, 'auth_failed'):
+            try:
+                scope.auth_failed(device, credential, _rev, pid, b['message'], agent=agent_id)
+            except Exception as exc:  # noqa: BLE001
+                print(f'[agent-plugins] could not keep the block on {device}: {exc}')
+
+
+def auth_blocks(device=None):
+    """``[{agent, agent_name, plugin, device, credential, rev, since, message}]``: logins the agents
+    stopped trying, for the Local agents page and the device's own page."""
+    from . import agent_link
+    out = []
+    for a in agent_link.all_agents():
+        for pid, h in ((a.get('report') or {}).get('plugins') or {}).items():
+            for b in h.get('auth_blocked') or []:
+                if device is None or b['device'] == str(device):
+                    out.append({'agent': a['id'], 'agent_name': a['name'], 'plugin': pid, **b})
+    return out
+
+
+def unblock(agent_id, plugin_id, device, credential, user=None):
+    """A tech cleared it: the agent may try that login again. Returns how many blocks went."""
+    from . import agent_link, audit
+    from .plugins.base import PluginError
+    scope = _scope()
+    if scope is not None and hasattr(scope, 'clear_block'):
+        scope.clear_block(device, credential, user=user)
+    try:
+        ask = [plugin_id, 'unblock', '', {'device': device, 'credential': credential}]
+        result = agent_link.tunnel.call('plugin', ask, CALL_TIMEOUT, {agent_id})
+    except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+        if scope is None:
+            raise PluginError(str(exc)) from None
+        result = {}        # cleared on the device; the agent drops its copy with the next settings
+    audit.record('agents', f'Cleared the failed login of {plugin_id} to {device} ({credential})', user=user,
+                 target=device)
+    return (result or {}).get('cleared', 0)
 
 
 def health_of(plugin_id):

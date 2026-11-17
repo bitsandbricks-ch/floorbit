@@ -848,5 +848,6 @@
  "bad plugin or kind": "Ungültiges Plugin oder ungültige Art",
  "health status must be one of {}": "Der Zustand muss eines davon sein: {}",
  "{} has no agent {} {}": "{} hat auf dem Agent kein {} {}",
- "{} is turned off on this Floorbit.": "{} ist in diesem Floorbit ausgeschaltet."
+ "{} is turned off on this Floorbit.": "{} ist in diesem Floorbit ausgeschaltet.",
+ "Send the device and the credential.": "Schick das Gerät und die Zugangsdaten."
 }

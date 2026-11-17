@@ -487,7 +487,11 @@ class Tunnel:
             clean['plugins'] = plugins
         clean['at'] = time.time() if now is None else now
         with self._cond:
+            before = self._reports.get(agent)
             self._reports[agent] = clean
+        if plugins:
+            from .agent_plugins import note_blocks
+            note_blocks(agent, before, clean)
 
     def reported(self, agent, now=None):
         """What the agent last reported, or None when it never did or it's older than REPORT_FRESH."""

@@ -91,7 +91,7 @@ def test_a_good_agent_block_gets_defaults():
     m = manifest(agent={"sends": {"stats": None}})
     assert validate(m) == ""
     assert m["agent"] == {"module": "agent.py", "sends": {"stats": {"privacy": "aggregate"}},
-                          "calls": [], "actions": []}
+                          "calls": [], "actions": [], "targets": False}
 
 
 def test_the_agent_module_must_exist(tmp_path, app_module):
@@ -266,3 +266,72 @@ def test_the_hosted_part_can_say_what_the_agent_gets(client, anon_client, hallth
         assert cfg["settings"]["targets"] == ["sw-a-01"] and cfg["settings"]["path"] == "/logs/access.log"
     finally:
         del hallthing.module.Plugin.agent_settings
+
+
+def blocked_report(rev="3"):
+    return {"up_seconds": 5, "plugins": {"hallthing": {
+        "status": "warning", "running": True, "metrics": {}, "errors": [],
+        "auth_blocked": [{"device": "sw-a-01", "credential": "ssh-ops", "rev": rev, "since": 1.0,
+                          "message": "Authentication failed"}, "junk"]}}}
+
+
+def test_failed_logins_are_audited_once_and_listed(client, anon_client, monkeypatch):
+    from floorbit import agent_plugins, audit
+    made = enrol(client)
+    kept = []
+    fake_scope = type("Scope", (), {"auth_failed": staticmethod(lambda *a, **k: kept.append((a, k)))})
+    monkeypatch.setattr(agent_plugins, "_scope", lambda: fake_scope)
+    anon_client.get("/api/agent/v1/hello", headers=head(made["key"]))
+    for _ in range(2):
+        anon_client.post("/api/agent/v1/report", json={"report": blocked_report()}, headers=head(made["key"]))
+    entries = [e for e in audit.read(50)[0] if "stopped logging in to sw-a-01" in e.get("action", "")]
+    assert len(entries) == 1 and entries[0]["ok"] is False
+    assert kept == [(("sw-a-01", "ssh-ops", "3", "hallthing", "Authentication failed"), {"agent": made["id"]})]
+    blocks = agent_plugins.auth_blocks("sw-a-01")
+    assert blocks[0]["plugin"] == "hallthing" and blocks[0]["agent_name"] == "Demo LAN 2026"
+    assert agent_plugins.auth_blocks("sw-b-01") == []
+
+
+def test_clearing_a_block_needs_plugins_run_and_reaches_the_agent(client, app_module, monkeypatch):
+    from floorbit import agent_plugins
+    from tests.test_rbac import sign_in_as
+    made = enrol(client)
+    cleared = []
+    fake_scope = type("Scope", (), {"clear_block": staticmethod(lambda d, c, user=None: cleared.append((d, c, user)))})
+    monkeypatch.setattr(agent_plugins, "_scope", lambda: fake_scope)
+    viewer = sign_in_as(app_module, "vi1", "viewer")
+    url = f"/api/agent-plugins/{made['id']}/hallthing/unblock"
+    assert viewer.post(url, json={"device": "sw-a-01", "credential": "ssh-ops"}).status_code == 403
+    assert client.post(url, json={"credential": "ssh-ops"}).status_code == 400
+    stop, seen = threading.Event(), []
+    t = threading.Thread(target=fake_agent, args=(app_module.app.test_client(), made["key"], stop, seen), daemon=True)
+    t.start()
+    try:
+        res = client.post(url, json={"device": "sw-a-01", "credential": "ssh-ops"})
+        assert res.status_code == 200, res.data
+        assert ("plugin", ["hallthing", "unblock", "", {"device": "sw-a-01", "credential": "ssh-ops"}]) in seen
+        assert cleared and cleared[0][:2] == ("sw-a-01", "ssh-ops")
+    finally:
+        stop.set()
+        t.join(timeout=5)
+
+
+def test_targets_come_from_the_inventory(client, anon_client, hallthing, monkeypatch):
+    from floorbit import agent_plugins
+    key = enrol(client)["key"]
+    client.put("/api/settings/plugins/hallthing", json={"enabled": True})
+    asked = []
+
+    def targets(plugin_id, kinds=None):
+        asked.append((plugin_id, kinds))
+        return [{"id": "d1", "name": "sw-a-01", "credential": {"id": "c1", "rev": 2, "kind": "ssh"}}]
+    monkeypatch.setattr(agent_plugins, "_scope", lambda: type("S", (), {"plugin_targets": staticmethod(targets)}))
+    hallthing.manifest["agent"]["targets"] = {"credentials": ["ssh"]}
+    try:
+        cfg = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["plugins"]["hallthing"]
+    finally:
+        hallthing.manifest["agent"]["targets"] = False
+    assert cfg["settings"]["targets"][0]["name"] == "sw-a-01" and asked == [("hallthing", ["ssh"])]
+    assert validate(manifest(agent={"targets": {"credentials": ["telnet"]}})).startswith("agent.targets")
+    m = manifest(agent={"targets": True})
+    assert validate(m) == "" and m["agent"]["targets"] == {"credentials": None}
