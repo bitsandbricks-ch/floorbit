@@ -171,8 +171,9 @@ grey when the type is not known) and a thicker line a faster cable.
   or make a new one ([power.md](power.md)).
 - **Routing by hand**: click a cable to select it, then click it again and drag to add a bend; drag a
   bend to move it (it snaps to the grid, unless snapping is off); double-click a bend to remove it.
-  A cable with bends of its own keeps them when the seat behind its port changes. Right-click a cable
-  for round or square corners, **Back to the automatic route**, or to delete it (an imported cable is
+  A cable with bends of its own keeps them when the seat behind its port changes. The side panel of a
+  selected cable changes its **ends** (switch and port, seat) and how it is **drawn**: straight (end to
+  end; its bends are kept for later), angled or rounded. Right-click a cable for round or square corners, **Back to the automatic route**, or to delete it (an imported cable is
   changed in NetBox; one from a port description goes away with the description). Everything can be
   undone with Ctrl+Z.
 
@@ -206,7 +207,7 @@ under **cables**, with the cable's label and route.
 - `GET /api/cable-plan?hall=`: the cables to draw in a hall: `{"cables": [{"key", "kind": "lan" | "uplink" | "power",
   "layer", "points": [[x, y], ...], "manual", "drawn", "corners", "media", "speed", "via", "label", "ref"}],
   "panels", "panel_names", "auto"}`, positions in % of the plan.
-- `PUT /api/cable-plan/routes`: `{"routes": {"<key>": {"points": [[x, y], ...] | null, "corners": "square" | "round"} | null}}`:
+- `PUT /api/cable-plan/routes`: `{"routes": {"<key>": {"points": [[x, y], ...] | null, "corners": "square" | "round" | "straight"} | null}}`:
   the bends between the ends; `points: null` draws the cable on the automatic route (shown with automatic cabling
   off too), `null` forgets the drawing.
 - `PUT /api/cable-plan/panels/<name>` `{"x", "y", "hall_id"}`, `DELETE /api/cable-plan/panels/<name>`.

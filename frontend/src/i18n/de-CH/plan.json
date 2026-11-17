@@ -516,11 +516,15 @@
       "edit": "Kabel ändern",
       "addBend": "Ziehen oder klicken, um einen Knick hinzuzufügen",
       "bend": "Ziehen zum Verschieben, Doppelklick zum Entfernen",
-      "corners": "Ecken",
       "square": "Eckig",
-      "round": "Rund",
+      "round": "Gerundet",
       "bendHelp": "Einen Knick ziehen, um ihn zu verschieben; einen Punkt in der Mitte eines Abschnitts ziehen, um einen hinzuzufügen; Doppelklick auf einen Knick entfernt ihn. Alt setzt ihn neben das Raster.",
-      "auto": "Zurück zur automatischen Führung"
+      "auto": "Zurück zur automatischen Führung",
+      "ends": "Enden",
+      "port": "Port",
+      "pickPort": "Port am neuen Switch wählen",
+      "look": "Gezeichnet",
+      "straight": "Gerade"
     },
     "arrange": {
       "title": "Anordnen",
@@ -645,6 +649,9 @@
     "learnedCount_one": "{{count}} von den Ports gelesen, nicht erfasst",
     "learnedCount_other": "{{count}} von den Ports gelesen, nicht erfasst",
     "learned": "vom Port gelesen, nicht erfasst",
+    "portUp": "Port aktiv",
+    "portDown": "Port aus",
+    "portUnknown": "Port nicht abgefragt",
     "panel": "Patchpanel {{name}}: {{used}} von {{ports}} Ports belegt"
   }
 }

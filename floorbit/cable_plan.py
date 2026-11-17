@@ -33,7 +33,7 @@ from .store import load_data, save_data
 
 KEY = 'cable_routes'
 PANELS_KEY = 'patch_panels'
-CORNERS = ('square', 'round')
+CORNERS = ('square', 'round', 'straight')   # straight: one line from end to end, bends ignored
 MAX_POINTS = 50
 MAX_ROUTES = 20000
 MAX_PANELS = 500
@@ -194,9 +194,12 @@ def _drawn(key, kind, a, b, via, auto_points, routes, **extra):
     manual = bool(entry and entry.get('points'))
     bends = [tuple(p) for p in entry['points']] if manual else auto_points
     corners = (entry or {}).get('corners') or 'square'
-    path = _tidy([a, *bends, b])
+    # Straight keeps the bends stored (switching back brings them back) but draws end to end.
+    path = _tidy([a, b] if corners == 'straight' else [a, *bends, b])
     return {'key': key, 'kind': kind, 'layer': 'electrical' if kind == 'power' else 'network',
             'points': [list(p) for p in path], 'manual': manual, 'drawn': entry is not None,
+            # The bends the crew placed, also while drawn straight (they come back with angled or rounded).
+            'bends': [list(p) for p in bends] if manual else None,
             'corners': corners, 'via': via, **extra}
 
 
@@ -304,7 +307,7 @@ def _clean_points(raw):
 
 
 def set_routes(changes, by=None):
-    """``{key: {"points": [...] | null, "corners": "square" | "round"} | null}``: null forgets the
+    """``{key: {"points": [...] | null, "corners": "square" | "round" | "straight"} | null}``: null forgets the
     cable's drawing (back to automatic, and not drawn when automatic cabling is off)."""
     if not isinstance(changes, dict) or not changes:
         raise RouteError('Say which cables to change.')
@@ -321,7 +324,7 @@ def set_routes(changes, by=None):
             raise RouteError('That is not a cable on the plan.')
         corners = value.get('corners') or 'square'
         if corners not in CORNERS:
-            raise RouteError('Corners are square or round.')
+            raise RouteError('A cable is drawn straight, angled or rounded.')
         cleaned[key] = {'points': _clean_points(value.get('points')), 'corners': corners}
     with _lock():
         data = load_data()

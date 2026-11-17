@@ -157,3 +157,20 @@ def test_a_cable_from_above_reaches_the_far_row_round_the_block(client):
     assert near["points"] == [[36, 20], [36, 35.2], [31, 35.2], [31, 38.4]]
     # A-14 is in the far row: round the block's left end and in from below, not across A-2.
     assert far["points"] == [[36, 20], [36, 35.2], [27, 35.2], [27, 44.8], [31, 44.8], [31, 41.6]]
+
+
+def test_a_straight_cable_runs_end_to_end_and_keeps_its_bends(client):
+    _floor(client)
+    client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-14"})
+    key = "lan:sw-a-01|gi1/0/1"
+    bends = [[20, 30], [20, 41.6]]
+    straight = {"routes": {key: {"points": bends, "corners": "straight"}}}
+    assert client.put("/api/cable-plan/routes", json=straight).status_code == 200
+    (cable,) = _drawn(client, "lan")
+    assert cable["points"] == [[10, 20], [31, 41.6]] and cable["corners"] == "straight"
+    assert cable["bends"] == bends
+    # Angled again: the bends it had come back.
+    client.put("/api/cable-plan/routes", json={"routes": {key: {"points": bends, "corners": "square"}}})
+    (cable,) = _drawn(client, "lan")
+    assert cable["points"] == [[10, 20], [20, 30], [20, 41.6], [31, 41.6]]
+    assert client.put("/api/cable-plan/routes", json={"routes": {key: {"corners": "wavy"}}}).status_code == 400

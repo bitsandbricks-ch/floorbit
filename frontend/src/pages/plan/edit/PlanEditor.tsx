@@ -16,6 +16,7 @@ import type { Cable, Circuit, PlanCable, PlanGroup, PlanMark, PowerMarkers, Seat
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { cablePath, useCablePlan } from '../cablePlan'
 import { followPlan } from '../cableRoute'
+
 import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
@@ -30,7 +31,7 @@ import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
 import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, outlineOf, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
-import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
+import { type CableEnds, type CableLook, CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { ToolRail } from './ToolRail'
@@ -41,6 +42,9 @@ import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 import { type AlignHow, type Guide, alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
+
+/** The bends a cable has of its own, also while it is drawn straight. */
+const bendsOf = (c: PlanCable): [number, number][] => c.bends ?? c.points.slice(1, -1)
 
 const PATH: Record<ItemRef['kind'], string> = {
   block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches', panel: '/api/cable-plan/panels', cable: '/api/cables',
@@ -530,10 +534,21 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     }
     await refresh()
   }, [history, idOf, refresh, t])
+  /** A cable moved to another switch port or seat from the side panel, as a step to undo. */
+  const changeEnds = async (id: string, change: CableEnds) => {
+    try {
+      const before = (await get<{ cables: Cable[] }>('/api/cables')).cables.find((c) => c.id === id)
+      if (!before) return
+      const saved = await patch<Cable>(`/api/cables/${encodeURIComponent(id)}`, change)
+      await cableDone({ saved, before })
+    } catch (err) {
+      fail(err)
+    }
+  }
 
   /** A cable's drawing: its bends (null: the automatic route) and corners, with undo. */
-  const setRoute = useCallback(async (cable: PlanCable, after: { points: [number, number][] | null; corners: 'square' | 'round' }, label: string) => {
-    const before = cable.manual ? { points: cable.points.slice(1, -1), corners: cable.corners }
+  const setRoute = useCallback(async (cable: PlanCable, after: { points: [number, number][] | null; corners: CableLook }, label: string) => {
+    const before = cable.manual ? { points: bendsOf(cable), corners: cable.corners }
       : cable.drawn ? { points: null, corners: cable.corners } : null
     const to = (value: typeof after | null) => put('/api/cable-plan/routes', { routes: { [cable.key]: value } })
     try {
@@ -701,7 +716,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           )}
           {oneCable && tool === 'select' && (
             <BendHandles key={JSON.stringify(oneCable.points)} ctx={ctx} route={routeOf(oneCable)} cell={data.drawing?.cell ?? 32} path={pathOf}
-              onChange={(r) => void setRoute(oneCable, { points: bendsPct(r, data.size), corners: oneCable.corners }, t('plan.edit.step.bend'))} />
+              onChange={(r) => void setRoute(oneCable, { points: bendsPct(r, data.size), corners: oneCable.corners === 'straight' ? 'square' : oneCable.corners }, t('plan.edit.step.bend'))} />
           )}
         </>)} />
       </div>
@@ -797,8 +812,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           )}
           {one && oneCable && (
             <CableFields cable={oneCable} onEdit={() => void editCable(one.id)}
-              onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? oneCable.points.slice(1, -1) : null, corners }, t('plan.edit.step.corners'))}
-              onReset={() => void setRoute(oneCable, { points: null, corners: oneCable.corners }, t('plan.edit.step.autoRoute'))} />
+              onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? bendsOf(oneCable) : null, corners }, t('plan.edit.step.corners'))}
+              onReset={() => void setRoute(oneCable, { points: null, corners: 'square' }, t('plan.edit.step.autoRoute'))}
+              onEnds={(change) => void changeEnds(one.id, change)} />
           )}
           {boardSel && (
             <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}

@@ -345,7 +345,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}</g>}
-        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} /></g>}
+        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} seats={data.seats} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
         {drawing.shapes.map((b, bi) => {
           const sum = data.blocks.find((x) => x.name === b.name)
@@ -382,7 +382,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}
-        {network && placed && level !== 'far' && <g opacity={opacity(layers, 'network')}><CablePlugs cables={placed} size={data.size} cell={drawing.cell} /></g>}
+        {network && placed && level !== 'far' && <g opacity={opacity(layers, 'network')}><CablePlugs cables={placed} size={data.size} cell={drawing.cell} seats={data.seats} /></g>}
         {network && trace && <line className="sw-trace" x1={trace.from.x} y1={trace.from.y} x2={trace.to.x} y2={trace.to.y} vectorEffect="non-scaling-stroke" />}
         {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
         {network && <g opacity={opacity(layers, 'network')}>{data.switches.map((w) => (

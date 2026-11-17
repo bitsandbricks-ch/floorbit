@@ -1399,7 +1399,10 @@ export interface PlanCable {
   key: string; kind: 'lan' | 'uplink' | 'power'; layer: string; points: [number, number][]; manual: boolean
   /** The crew has drawn this cable (bends or corners) rather than leaving it automatic. */
   drawn?: boolean
-  corners: 'square' | 'round'; via: string | null; label: string; media?: string; speed?: number | null
+  /** straight: one line end to end (``bends`` kept for when it is angled again). */
+  corners: 'square' | 'round' | 'straight'; via: string | null; label: string; media?: string; speed?: number | null
+  /** The bends the crew placed (null: automatic route). */
+  bends?: [number, number][] | null
   ref: { cable?: string | null; source?: string; switch?: string; port?: string; seat?: string; link?: string; circuit?: string }
 }
 export interface CablePlan { cables: PlanCable[]; panels: { name: string; x: number | null; y: number | null; ports: number }[]; auto: boolean }
