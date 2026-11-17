@@ -27,6 +27,9 @@ The floor plan editor is moving into this page. Edit mode already does:
 
 - **Select:** click an item (seat block, switch, label, icon, wall, zone); Shift-click adds or
   removes; dragging on empty plan selects everything inside the box; Ctrl+A selects all.
+  Ctrl+Shift+A (or **Select all like this** in the right-click menu) selects everything like the
+  selection: all seat blocks, all switches, or with a wall selected all walls (text, icons and
+  zones the same way).
 - **Move:** drag, or the arrow keys (Shift for five steps). Items land on the editor's 0.5 % grid;
   hold Alt while dragging to place freely. Space + drag (or the middle mouse button) moves the view.
 - **Change:** in the panel on the right: a block's name, rotation, seats per row and rows; a label's
@@ -39,9 +42,15 @@ The floor plan editor is moving into this page. Edit mode already does:
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.
 - **Order:** ] brings the selection to the front, [ sends it to the back.
+- **Turn:** R turns the selected seat blocks, labels and icons a quarter turn each, Shift+R turns
+  them back (also "Turn 90°" in the right-click menu). One undo puts them all back.
+- **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
+  or double-click an item in the items list); 0 shows the whole hall again.
 - **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,
   switches, patch panels, boards; cables follow their ends), Ctrl+Shift+G takes them out. A click on
   one item of a group picks the whole group; Shift-click takes the group out of the selection.
+- **Keyboard only:** with an item selected, Tab and Shift+Tab step to the next and previous item (top to bottom, left to right), and the view follows; Esc lets Tab leave the plan. Screen readers hear what is selected. The items list in the panel works with the keyboard too.
+- **Keys:** press ? (or "All keys" in the panel) for every Edit mode key, by tool, selection, moving and changing.
 - **Items list:** the panel on the right lists everything on the hall's plan, the groups first. Click
   an item or a group to select it (Shift adds), search by name, double-click a group to rename it, or
   take it apart with its unlink button. Groups travel in backups; layout templates leave them out.
@@ -51,7 +60,8 @@ The floor plan editor is moving into this page. Edit mode already does:
   within a few pixels, and a dashed line shows which; otherwise it lands on the grid (Alt: neither).
 - **Right click** an item (or empty plan) for the same actions in a menu.
 - **Delete** (Del) seat blocks and marks; switches stay (remove them in the editor).
-- **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes.
+- **Undo and redo:** Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, also for deletes. The clock button next to them
+  lists the last steps: click one to go back to before it, or a grey (undone) one to redo up to it.
 
 The tools down the left (each stays on after placing something; Esc or V goes back to Select):
 
@@ -76,7 +86,9 @@ seat 1 is on the right, and its gaps: room in every row after a column, or a lan
 Seat numbers carry on across a gap.
 
 Seat cables are drawn on the Network layer in Edit and Network mode; dashed ones are only read from
-the switches, not recorded yet. Click one to select it, Del removes it, **Change cable** opens its
+the switches, not recorded yet. In Network mode a legend under the plan explains the colours (copper,
+fiber, DAC), widths (speed) and dashes for the cables on that plan, and counts the links between switches
+and how many are down or slow. A link that is down gets a red ✕ in its middle, the same size at every zoom. Click one to select it, Del removes it, **Change cable** opens its
 form. A selected cable shows its bends: drag one to move it, drag the dot in the middle of a
 stretch to add one, double-click a bend to remove it (Alt places it off the grid). The panel sets
 square or round corners and puts a drawn cable back on its automatic route. Every change is
@@ -107,12 +119,21 @@ when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-
 
 - **Far** (a seat under 12 px): each block's name with its online and total seats and its
   problems.
-- **Middle:** seat states and their marks.
+- **Middle:** seat states and their marks, and next to each block's name how many of its seats have
+  problems ("C ! 7").
 - **Near** (a seat 30 px or more): seat numbers and switch names too.
+
+Zoomed in so that part of the hall is off screen, a small overview of the hall shows in the bottom
+left corner: the seat blocks (red where a block has many problems) and a frame for the part on
+screen. Click or drag on it to move there. It shows in Edit mode too.
+
+A block where a quarter of its seats or more have problems (two at least) gets a red outline at
+every zoom level. That many at once usually has one cause, such as the block's switch or its power.
 
 **Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
 match seats, seats with a note or checked-in seats. Each choice shows how many seats it matches in
-this hall, so "Offline 0" answers the question without a click. The choice is kept in the address
+this hall, so "Offline 0" answers the question without a click. The **with problems** count above
+the plan is a shortcut: click it to show only those seats, and again to show all. The choice is kept in the address
 (`/plan?show=offline`), so a reload or a link sent to another tech keeps it, and switching halls does too. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 With more than one hall, the hall picker shows each hall's seats online and seats with problems,
@@ -129,8 +150,10 @@ Tab to the plan, then:
 | --- | --- |
 | Arrow keys | Move a dashed cursor to the next seat in that direction, in rotated blocks too. The first press starts on the open seat or the one in the middle of the view. The view follows the cursor. |
 | Enter or Space | Open the seat under the cursor in the inspector. |
-| Escape | Close the inspector. |
+| Escape | Close the open seat, block or switch panel (from anywhere on the page; in the search box, Esc clears it). |
 | B | Open the block of the seat under the cursor. |
+| **1** to **4** | Anywhere on the page: switch the layers to a preset, Overview, Network, Electrical or Ops, as in the **Layers** panel. Not in Edit mode or the list. |
+| L | Anywhere on the page: switch between the map and the list, like the **Map**/**List** switch. Not in Edit mode. |
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
@@ -157,7 +180,9 @@ one click during an outage. Floorbit's first port read after a start doesn't cou
 
 ## Finding a seat or a player
 
-The search box takes a seat number (`d6`, `D 6` and `D-06` all find D-6). Accounts with `seats.view`
+The search box takes a seat number (`d6`, `D 6` and `D-06` all find D-6). It also takes the name
+of a seat block or a switch in this hall (`C`, `sw-c-01`, or the start of a switch name when only
+one switch has it): the plan moves there and opens the block's or the switch's panel. Accounts with `seats.view`
 can also type a nick, an IP or a MAC: one match opens that seat, switching hall if needed, and
 several show a short list to pick from. It is the same search as the seat mapping's
 ([Finding a player](seat-mapping.md#finding-a-player)). Everyone else searches by seat number only, and the plan
@@ -179,6 +204,8 @@ now, check-in, match zone, open incidents and needs-attention items, how often a
 fixed at the seat before (with the latest one), and links to the seat in the editor and to its
 incidents (the board filtered to the seat, `/incidents?q=seat:D-6`). A seat that keeps breaking usually has a cable or port
 to swap. On a phone it opens from the bottom.
+While a seat is open, its switch gets a ring on the plan and a dashed line leads from the seat to it
+(with the network layer on and the switch placed in this hall), so you know where to walk.
 
 **Copy link** puts the page's address with this seat open on the clipboard (hall, filter and view
 included), to paste into the crew chat. It holds the seat number only, nothing about the player.
@@ -219,7 +246,8 @@ Click a block's name (or its totals when zoomed out), click **Block** in the sea
 **B** on a seat to open the block instead of a seat: online, offline and unknown seats with a bar,
 check-ins, traffic in total, the switches that serve the block with how many of their seats are
 online, and the seats with problems (click one to open it). When half a block goes dark, it shows
-at a glance whether it is one switch. `/plan?block=D` opens it. It shows states only, never who
+at a glance whether it is one switch. While it is open, the plan dims the other blocks' seats.
+`/plan?block=D` opens it. It shows states only, never who
 sits where.
 
 ## The switch panel
@@ -227,6 +255,8 @@ sits where.
 Click a switch's marker, or a switch's name in the block panel, to see that switch: its status and
 since when, and the seats it serves port by port with their states (click one to open it). Before
 walking to a switch, you see which players it takes down. `/plan?switch=sw-c-02` opens it.
+While the panel is open, the plan dims every seat the switch doesn't serve and puts a ring around
+the switch, so its seats stand out even across several blocks.
 
 ## In the floor plan editor
 
@@ -242,10 +272,25 @@ carries over (`&show=offline` prints only the offline seats). Use the browser's 
 paper size; landscape is the default. The sheet has no names, IPs or notes, so it can lie on a
 table at the info desk.
 
+**Save as image** on the same sheet downloads the plan as a picture, for a chat or a briefing
+slide: PNG (twice the screen's width) or SVG (sharp at any size). It shows what the sheet shows,
+light on white, with the hall's background picture if it has one.
+
 ## Big screens
 
 `/plan?screen=1` is the plan without the header, for a kiosk or the ops room, with the legend and
 the totals. It reloads every 30 seconds and with each port read.
+When Floorbit stops answering (the network or the server is down), a red "Not updated since …"
+badge appears next to the totals, on the big screen and in Live mode, so nobody takes old seat
+states for live ones. It goes away by itself with the next answer.
+In the top right corner the big screen shows the time, the blocks with problems (most first, up to
+six, e.g. "D: 2 seats"), and how many seats have problems in the other halls, so the crew sees where
+to go from across the room. While it rotates through the halls, the other halls come up anyway, so
+that last line is left out.
+After three seconds without use, the mouse pointer and the zoom buttons hide, so they don't sit
+on top of the plan; moving the mouse brings them back.
+The big screen asks every five minutes which version of Floorbit runs, and loads the page again
+after an update, so a screen left on for the whole event doesn't keep running the old version.
 
 With more than one hall, add `cycle` to rotate through them: `/plan?screen=1&cycle=30` shows each
 hall for 30 seconds (10 at least), with its name on top and a bar that fills until the next one. A

@@ -1,30 +1,39 @@
-import { Alert, Anchor, Button, Drawer, Group, Kbd, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { notifications } from '@mantine/notifications'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatDetails, SeatViewData, SwitchDetails, WifiData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
-import { type LayerId, type LayerState, readLayers, writeLayers } from './plan/layers'
+import { type LayerId, type LayerState, PRESET_KEYS, applyPreset, readLayers, writeLayers } from './plan/layers'
 import { LayersPanel } from './plan/LayersPanel'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
+import { download, fileName, inlineImages, standaloneSvg, svgToPng } from './plan/exportImage'
 import { Shortcuts } from './plan/Shortcuts'
+import { StaleNotice } from './plan/StaleNotice'
+import { ScreenBar } from './plan/ScreenBar'
+import { useIdle } from './plan/idle'
+import { useReloadOnUpdate } from './plan/update'
+import { findPlace } from './plan/find'
 import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
+import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
+import { revealActive } from './plan/reveal'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
 const PANELS = ['seat', 'block', 'switch']
@@ -39,6 +48,17 @@ export default function FloorPlan() {
   const selected = params.get('seat')
   const blockSel = selected ? null : params.get('block')
   const switchSel = selected || blockSel ? null : params.get('switch')
+  // An open switch panel lights up that switch's seats on the plan (same query as the panel's).
+  const switchQ = useQuery({
+    queryKey: qk.planSwitch(switchSel ?? ''), enabled: !!switchSel,
+    queryFn: () => get<SwitchDetails>(`/api/plan/switches/${encodeURIComponent(switchSel ?? '')}`),
+  })
+  // An open seat rings its switch and draws the way there (same query as the inspector's).
+  const seatQ = useQuery({
+    queryKey: qk.planSeat(selected ?? ''), enabled: !!selected,
+    queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(selected ?? '')}`),
+  })
+  const seatSwitch = selected ? seatQ.data?.switch : null
   const screen = params.get('screen') === '1'
   // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
   const print = !screen && params.get('print') === '1'
@@ -118,9 +138,21 @@ export default function FloorPlan() {
       ...d.switches.filter((w) => fed.has(w.id))]
     return { ...d, drawing: { ...d.drawing, box: widen(d.drawing.box, at) } }
   }, [q.data, power, mode])
+  const planFocus = useMemo(() => {
+    if (switchSel && switchQ.data) return { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) }
+    if (selected && seatSwitch) return { switch: seatSwitch, seat: selected }
+    // An open block panel keeps that block bright.
+    const block = blockSel ? data?.drawing?.shapes.find((b) => b.name === blockSel) : undefined
+    if (block) return { seats: new Set(block.cells.map((c) => c.seat).filter((x): x is string => !!x)) }
+    return undefined
+  }, [switchSel, switchQ.data, selected, seatSwitch, blockSel, data])
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
+  const filterRow = useRef<HTMLDivElement | null>(null)
+  useEffect(() => revealActive(filterRow.current), [filter])
+  // Also when the row first appears (data loaded), with the filter from the link already chosen.
+  const mountFilterRow = useCallback((el: HTMLDivElement | null) => { filterRow.current = el; revealActive(el) }, [])
   const [search, setSearch] = useState('')
   // "/" jumps to the Find box, as on most sites with a search (issue #194). Mantine skips it while typing elsewhere.
   const findBox = useRef<HTMLInputElement>(null)
@@ -130,7 +162,22 @@ export default function FloorPlan() {
   // "?" lists the shortcuts, as on GitHub and Gmail (issue #224). Usually typed with Shift.
   const [shortcuts, setShortcuts] = useState(false)
   const showShortcuts = () => setShortcuts(true)
-  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts]])
+  // Esc closes the open seat, block or switch panel (Edit mode has its own Esc; dialogs close themselves).
+  // Page keys stay out of the way while a dialog (the shortcut list, a form) is open.
+  const dialogOpen = () => !!document.querySelector('[role="dialog"]')
+  const closePanel = () => {
+    if (mode === 'edit' || dialogOpen() || !PANELS.some((k) => params.get(k))) return
+    const next = new URLSearchParams(params)
+    PANELS.forEach((k) => next.delete(k))
+    setParams(next, { replace: true })
+  }
+  // 1 to 4 switch the layer preset, so the crew at a big screen can flip views without the mouse.
+  const presetKeys = PRESET_KEYS.map((p, i): [string, () => void] => [String(i + 1), () => {
+    if (mode !== 'edit' && !list && !dialogOpen()) setLayers(applyPreset(layers, p))
+  }])
+  // L flips between the map and the list, like the Map/List switch.
+  const toggleList = () => { if (mode !== 'edit' && !screen && !dialogOpen()) set('view', list ? null : 'list') }
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], ...presetKeys])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
@@ -184,6 +231,14 @@ export default function FloorPlan() {
     if (!data?.drawing || !view) return
     const seat = findSeat(search, data.seats)
     if (seat) return jump(seat)
+    // A block or switch name opens its panel and moves the plan to it.
+    const place = findPlace(search, data)
+    if (place) {
+      setPlayers(null)
+      set(place.kind, place.name)
+      setView(around(place.at, Math.max(parseBox(data.drawing.box).w / 2, 480), view))
+      return
+    }
     if (!canPeople || search.trim().length < 2) return
     const q = search.trim()
     const found = await get<{ results: PlayerHit[] }>(`/api/plan/find?q=${encodeURIComponent(q)}`).catch(() => ({ results: [] }))
@@ -191,7 +246,7 @@ export default function FloorPlan() {
     setPlayers({ query: q, hits: found.results })
   }
   const searched = players && players.query === search.trim()
-  const notFound = search.trim() !== '' && data && !findSeat(search, data.seats)
+  const notFound = search.trim() !== '' && data && !findSeat(search, data.seats) && !findPlace(search, data)
     ? (canPeople ? !!searched && players.hits.length === 0 : true) : false
   const total = data ? Object.keys(data.seats).length : 0
   const counts = Object.fromEntries(FILTERS.map((f) => [f, data ? Object.values(data.seats).filter((x) => matches(x, f)).length : 0])) as Record<Filter, number>
@@ -214,11 +269,14 @@ export default function FloorPlan() {
     }, dwell)
     return () => window.clearTimeout(timer)
   }, [dwell, current, halls, params, setParams])
-  const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+  // A wall screen hides the cursor and the zoom buttons while nobody uses it.
+  const idle = useIdle(3000, screen)
+  useReloadOnUpdate(screen)
+  const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', hour12: false })
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
-      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables}
+      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables} focus={planFocus}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
@@ -226,8 +284,13 @@ export default function FloorPlan() {
   const summary = data && (
     <Group gap="lg" className="fb-plan-summary" wrap="wrap">
       <Text><b>{online}</b> / {total} {t('plan.online')}</Text>
-      <Text c={problems ? 'down' : 'dimmed'}><b>{problems}</b> {t('plan.withProblems')}</Text>
+      {problems > 0 && !screen && !editing
+        // The count doubles as the Problems filter: one click shows only those seats, a second shows all again.
+        ? <Anchor component="button" type="button" c="down" aria-pressed={filter === 'problems'} className="fb-plan-problems"
+            onClick={() => set('show', filter === 'problems' ? null : 'problems')}><b>{problems}</b> {t('plan.withProblems')}</Anchor>
+        : <Text c={problems ? 'down' : 'dimmed'}><b>{problems}</b> {t('plan.withProblems')}</Text>}
       {data.last_read && <Text c="dimmed" size="sm">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
+      {!print && <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />}
     </Group>
   )
 
@@ -244,6 +307,7 @@ export default function FloorPlan() {
           </div>
           <Group gap="xs" className="fb-no-print">
             <Button variant="default" component="a" href={`/plan${data ? `?hall=${encodeURIComponent(data.hall)}` : ''}`}>{t('plan.print.back')}</Button>
+            <SaveImage hall={hallName ?? ''} />
             <Button leftSection={<IconPrinter size={16} />} onClick={() => window.print()}>{t('plan.print.print')}</Button>
           </Group>
         </Group>
@@ -257,11 +321,14 @@ export default function FloorPlan() {
 
   if (screen) {
     return (
-      <main className="fb-plan-screen">
-        <div>
-          {rotating && <Text className="fb-plan-hall" fw={800}>{halls?.find((h) => h.id === current)?.name}</Text>}
-          {summary}
-          {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
+      <main className={idle ? 'fb-plan-screen idle' : 'fb-plan-screen'}>
+        <div className="fb-plan-screen-head">
+          <div>
+            {rotating && <Text className="fb-plan-hall" fw={800}>{halls?.find((h) => h.id === current)?.name}</Text>}
+            {summary}
+            {rotating && <div key={current} className="fb-plan-cycle" role="presentation" style={{ animationDuration: `${dwell}ms` }} />}
+          </div>
+          {data && <ScreenBar blocks={data.blocks} elsewhere={rotating ? 0 : elsewhere} />}
         </div>
         {map}
         {data && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} />}
@@ -303,9 +370,10 @@ export default function FloorPlan() {
               <Button variant="default" leftSection={<IconPrinter size={14} />} component="a"
                 href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}>{t('plan.print.print')}</Button>
               <form onSubmit={go} role="search">
-                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 200 : 160} value={search}
+                <TextInput ref={findBox} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 270 : 220} value={search}
                   leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
-                  onChange={(e) => setSearch(e.currentTarget.value)} />
+                  onChange={(e) => setSearch(e.currentTarget.value)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
             </Group>
           </Group>
@@ -323,12 +391,12 @@ export default function FloorPlan() {
           {!data.monitoring && <Alert color="warn" mb="sm">{t('plan.noMonitoring')}</Alert>}
           <Group mb="sm" gap="lg" wrap="wrap">
             {!editing && <>
-            <SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
+            <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
               data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                 value: f,
                 // Each filter says how many seats it holds (issue #190), so the row doubles as a summary.
                 label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
-              }))} />
+              }))} /></div>
             <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             </>}
@@ -338,20 +406,21 @@ export default function FloorPlan() {
             <Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?mode=edit&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper>
           )}
           {editing && data.drawing && view && (
-            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} />
+            <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts} />
           )}
           {!editing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}`}>
             {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
             {panel && !phone && <Paper withBorder radius="lg" p="md">{inspector}</Paper>}
           </div>}
           {!list && !editing && <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />}
+          {!list && !editing && mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />}
           {!list && !editing && (
             <Text size="sm" c="dimmed" mt="xs">
               {t('plan.help')}
               {keyboard && <>{' '}<Anchor component="button" type="button" size="sm" onClick={showShortcuts}>{t('plan.shortcuts.show')}</Anchor> <Kbd size="xs">?</Kbd></>}
             </Text>
           )}
-          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} />
+          <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} />
           {phone && (
             <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
               title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>
@@ -387,4 +456,37 @@ function PrintTheme() {
     return () => { if (before === undefined) delete root.dataset.theme; else root.dataset.theme = before }
   }, [])
   return null
+}
+
+/** Save the print sheet's plan as a picture, for a chat or a briefing slide: PNG (twice the screen's
+ *  width, so it stays sharp when zoomed) or SVG (sharp at any size). */
+function SaveImage({ hall }: { hall: string }) {
+  const { t } = useTranslation()
+  const [busy, setBusy] = useState(false)
+  const save = async (as: 'png' | 'svg') => {
+    const svg = document.querySelector<SVGSVGElement>('.fb-plan-print svg[role="application"]')
+    if (!svg) return
+    setBusy(true)
+    try {
+      const out = standaloneSvg(svg, Math.max(1600, svg.clientWidth * 2))
+      const text = await inlineImages(out.text)
+      const blob = as === 'svg' ? new Blob([text], { type: 'image/svg+xml' }) : await svgToPng(text, out.width, out.height)
+      download(blob, fileName(hall, as))
+    } catch {
+      notifications.show({ color: 'down', message: t('plan.print.imageFailed') })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Menu position="bottom-end" withinPortal>
+      <Menu.Target>
+        <Button variant="default" leftSection={<IconPhoto size={16} />} loading={busy}>{t('plan.print.image')}</Button>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item onClick={() => void save('png')}>{t('plan.print.png')}</Menu.Item>
+        <Menu.Item onClick={() => void save('svg')}>{t('plan.print.svg')}</Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  )
 }

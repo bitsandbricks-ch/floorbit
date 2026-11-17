@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { SeatViewData } from '@/api/types'
 import type { OverlayContext } from '../SeatMap'
 import { type Box, type ItemRef, type Point, allItems, boxFrom, fromPct, inside, outlineOf, refKey, sameRef, snapPct, toPct } from './geometry'
@@ -130,6 +130,14 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     else onSelect(got)
   }
 
+  // The hit areas don't change with zoom: steady handlers keep them from drawing again on every pan.
+  const live = useRef({ begin, menu, move, end })
+  useEffect(() => { live.current = { begin, menu, move, end } })
+  const on = useMemo<HitHandlers>(() => ({
+    begin: (e, r) => live.current.begin(e, r), menu: (e, r) => live.current.menu(e, r),
+    move: (e) => live.current.move(e), end: (e) => live.current.end(e),
+  }), [])
+
   const shown = ctx.shown
   return (
     <g className={`fb-edit${space ? ' panning' : ''}${gesture !== 'select' ? ' tooling' : ''}`}>
@@ -144,17 +152,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       {lines.filter((l) => selection.some((r) => sameRef(r, l.ref))).map(({ ref, d }) => (
         <path key={`sel-${refKey(ref)}`} className="fb-edit-sel-line" d={d} fill="none" vectorEffect="non-scaling-stroke" />
       ))}
-      {allItems(data).map((r) => {
-        const o = outlineOf(data, r)
-        if (!o) return null
-        const { box, rotation, centre } = o
-        return (
-          <rect key={refKey(r)} className={`fb-edit-hit k-${r.kind}`} data-item={refKey(r)} x={box.x} y={box.y} width={box.w} height={box.h}
-            transform={rotation ? `rotate(${rotation} ${centre.x} ${centre.y})` : undefined} onPointerDown={(e) => begin(e, r)}
-            onContextMenu={(e) => menu(e, r)}
-            onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
-        )
-      })}
+      <Hits data={data} on={on} />
       {selection.map((r) => {
         const o = outlineOf(data, r)
         if (!o) return null
@@ -197,3 +195,29 @@ function Draft({ draft, gesture, px, cell }: { draft: { a: Point; b: Point }; ge
     </g>
   )
 }
+
+interface HitHandlers {
+  begin: (e: React.PointerEvent, ref: ItemRef) => void
+  menu: (e: React.MouseEvent, ref: ItemRef) => void
+  move: (e: React.PointerEvent) => void
+  end: (e: React.PointerEvent) => void
+}
+
+/** One hit area per item (switches on top, then blocks, then labels, walls and zones). */
+const Hits = memo(function Hits({ data, on }: { data: SeatViewData; on: HitHandlers }) {
+  return (
+    <>
+      {allItems(data).map((r) => {
+        const o = outlineOf(data, r)
+        if (!o) return null
+        const { box, rotation, centre } = o
+        return (
+          <rect key={refKey(r)} className={`fb-edit-hit k-${r.kind}`} data-item={refKey(r)} x={box.x} y={box.y} width={box.w} height={box.h}
+            transform={rotation ? `rotate(${rotation} ${centre.x} ${centre.y})` : undefined} onPointerDown={(e) => on.begin(e, r)}
+            onContextMenu={(e) => on.menu(e, r)}
+            onPointerMove={on.move} onPointerUp={on.end} onPointerCancel={on.end} />
+        )
+      })}
+    </>
+  )
+})

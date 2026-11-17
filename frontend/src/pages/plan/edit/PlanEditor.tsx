@@ -1,10 +1,10 @@
-import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconLink, IconStack2, IconTrash, IconUnlink,
+  IconLink, IconRotateClockwise, IconSelectAll, IconStack2, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,6 +19,7 @@ import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
+import { nextItem } from './cycle'
 import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
 import { MarkHandles } from './MarkHandles'
@@ -31,6 +32,9 @@ import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { ToolRail } from './ToolRail'
+import { quarterTurns } from './turn'
+import { frameOf } from './frame'
+import { similar } from './similar'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
@@ -58,10 +62,12 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
   /** Shows another hall, still in Edit mode. */
   onHall: (id: string) => void
+  /** Opens the list of keys ("?" does too). */
+  onShortcuts: () => void
 }) {
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
@@ -334,6 +340,23 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     await refresh()
   }, [snapshot, present, send, history, t, refresh, fail])
 
+  /** R turns the selected blocks, labels and icons a quarter turn each, in place (Shift+R back). */
+  const rotate = useCallback(async (items: ItemRef[], back: boolean) => {
+    const turns = quarterTurns(data, items, back)
+    if (!turns.length) return
+    try {
+      await Promise.all(turns.map(([r, , a]) => send(r, a)))
+      history.push({
+        label: t('plan.edit.step.rotate', { count: turns.length }),
+        undo: () => Promise.all(turns.map(([r, b]) => send(r, b))).then(refresh),
+        redo: () => Promise.all(turns.map(([r, , a]) => send(r, a))).then(refresh),
+      })
+    } catch (err) {
+      fail(err)
+    }
+    await refresh()
+  }, [data, send, history, t, refresh, fail])
+
   const change = useCallback(async (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => {
     try {
       await send(ref, after)
@@ -532,6 +555,16 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     if (made.length) { setTool('select'); setSelection(made) }
   }
 
+  /** A click in the history list: back to before a done step, or forward through an undone one. */
+  const jump = useCallback(async (way: 'undo' | 'redo', count: number) => {
+    try {
+      const done = await history.jump(way, count)
+      if (done) notifications.show({ message: t(`plan.edit.${way}ne`, { what: done.label }), autoClose: 1500 })
+    } catch (err) {
+      fail(err)
+    }
+  }, [history, t, fail])
+
   const step = useCallback(async (way: 'undo' | 'redo') => {
     try {
       const done = await history[way]()
@@ -548,6 +581,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const take = () => { e.preventDefault(); e.stopPropagation() }
     if (mod && k === 'z') { take(); void step(e.shiftKey ? 'redo' : 'undo'); return }
     if (mod && k === 'y') { take(); void step('redo'); return }
+    if (mod && k === 'a' && e.shiftKey) { take(); if (selected.length) setSelection(similar(data, present, selected)); return }
     if (mod && k === 'a') { take(); setSelection(present); return }
     if (mod && k === 'g') { take(); void regroup(selected, !e.shiftKey); return }
     if (mod && k === 'v') { take(); void paste(); return }
@@ -560,10 +594,20 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       const picked = TOOLS.find((id) => TOOL_KEYS[id] === k)
       if (picked) { take(); setTool(picked); return }
     }
+    // Esc in the middle of a drag drops nothing: the items go back where they were.
+    if (e.key === 'Escape' && drag) { take(); setDrag(null); setGuides([]); setSelection([]); return }
     if (e.key === 'Escape' && tool !== 'select') { take(); setTool('select'); return }
     if (!selected.length) return
     if (e.key === 'Escape') { take(); setSelection([]); return }
+    // Tab steps through the plan's items while something is selected; Esc lets Tab leave the plan again.
+    if (e.key === 'Tab' && !mod && !e.altKey) {
+      const next = nextItem(data, selected[selected.length - 1], e.shiftKey)
+      if (next) { take(); pick([next]); follow(next) }
+      return
+    }
     if (e.key === 'Delete' || e.key === 'Backspace') { take(); void remove(selected); return }
+    if (k === 'r' && !mod && !e.altKey) { take(); void rotate(selected, e.shiftKey); return }
+    if (k === 'f' && !mod && !e.altKey) { take(); frame(selected); return }
     const dirs: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
     const dir = dirs[e.key]
     if (dir) {
@@ -597,11 +641,23 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
   }
   const pick = (next: ItemRef[]) => setSelection(withGroups(data, next, groups))
+  /** Moves the view so ``ref`` is on screen (keyboard users can't see what they picked otherwise). */
+  /** F: the view closes in on the selection. */
+  const frame = (refs: ItemRef[]) => { const v = frameOf(data, refs, view); if (v) setView(v) }
+  const follow = (ref: ItemRef) => {
+    const c = outlineOf(data, ref)?.centre
+    if (!c) return
+    const m = Math.min(view.w, view.h) * 0.1
+    if (c.x < view.x + m || c.x > view.x + view.w - m || c.y < view.y + m || c.y > view.y + view.h - m) {
+      setView({ ...view, x: c.x - view.w / 2, y: c.y - view.h / 2 })
+    }
+  }
   const grouped = groupsOf(groups, selected).length > 0 || selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
   const movable = selected.filter((r) => r.kind !== 'cable')
   // Inventory switches only leave the plan (they stay in the inventory): say so on the button.
   const onlyUnplace = selected.length > 0 && selected.every((r) => r.kind === 'switch' && !data.switches.find((w) => w.id === r.id)?.manual)
   // Group again only when that changes something: not one whole group already.
+  const canTurn = quarterTurns(data, selected).length > 0
   const canGroup = movable.length > 1 && !(groupsOf(groups, movable).length === 1 && groupsOf(groups, movable)[0].members.every((m) => movable.some((r) => sameRef(r, m))))
 
   const one = selected.length === 1 ? selected[0] : null
@@ -673,6 +729,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 <Menu.Divider />
                 <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
                 <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
+                <Menu.Item leftSection={<IconZoomIn size={14} />} rightSection={<Kbd size="xs">F</Kbd>} onClick={() => frame(selected)}>{t('plan.edit.menu.frame')}</Menu.Item>
+                <Menu.Item leftSection={<IconSelectAll size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ A</Kbd>} onClick={() => setSelection(similar(data, present, selected))}>{t('plan.edit.menu.similar')}</Menu.Item>
+                {canTurn && (
+                  <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={<Kbd size="xs">R</Kbd>} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
+                )}
                 {selected.length > 0 && (
                   <>
                     <Menu.Divider />
@@ -692,6 +753,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
       {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
         onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
+      <VisuallyHidden role="status" aria-live="polite">
+        {one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : ''}
+      </VisuallyHidden>
       <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
         <Stack gap="sm">
           <Group justify="space-between" wrap="nowrap">
@@ -703,6 +767,23 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               <Tooltip label={history.nextRedo ? t('plan.edit.redoWhat', { what: history.nextRedo }) : t('plan.edit.redo')}>
                 <ActionIcon variant="default" aria-label={t('plan.edit.redo')} disabled={!history.canRedo} onClick={() => void step('redo')}><IconArrowForwardUp size={16} /></ActionIcon>
               </Tooltip>
+              <Menu position="bottom-end" withinPortal shadow="md" width={260}>
+                <Menu.Target>
+                  <Tooltip label={t('plan.edit.history.title')}>
+                    <ActionIcon variant="default" aria-label={t('plan.edit.history.title')} disabled={!history.canUndo && !history.canRedo}><IconHistory size={16} /></ActionIcon>
+                  </Tooltip>
+                </Menu.Target>
+                <Menu.Dropdown mah={360} style={{ overflowY: 'auto' }}>
+                  <Text size="xs" c="dimmed" px="sm" py={6}>{t('plan.edit.history.help')}</Text>
+                  {history.future.map((label, i) => (
+                    <Menu.Item key={`f${i}`} c="dimmed" onClick={() => void jump('redo', history.future.length - i)}>{upFirst(label)}</Menu.Item>
+                  ))}
+                  {history.past.map((label, i) => (
+                    <Menu.Item key={`p${i}`} fw={i === 0 ? 600 : undefined} rightSection={i === 0 ? <Text size="xs" c="dimmed">{t('plan.edit.history.latest')}</Text> : undefined}
+                      onClick={() => void jump('undo', i + 1)}>{upFirst(label)}</Menu.Item>
+                  ))}
+                </Menu.Dropdown>
+              </Menu>
             </Group>
           </Group>
           {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} />}
@@ -739,11 +820,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           <ItemList data={data} groups={groups} selected={selected}
             onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
             onRename={(g, name) => void renameGroup(g, name)}
-            onUngroup={(g) => void regroup(g.members, false)} />
+            onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
           <Text size="xs" c="dimmed">
             <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
           </Text>
-          <Text size="xs" c="dimmed">{t('plan.edit.keys.more')}</Text>
+          <Text size="xs" c="dimmed">
+            {t('plan.edit.keys.more')}{' · '}
+            <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
+          </Text>
           <Group gap="xs">
             <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
             <Anchor size="sm" href={`/editor/classic?hall=${encodeURIComponent(data.hall)}`}>{t('plan.edit.classic')}</Anchor>
@@ -883,3 +967,6 @@ function Arrange({ count, grouped, canGroup, onAlign, onDistribute, onGroup }: {
     </div>
   )
 }
+
+// Step names read inside sentences ("Undo: move"); the history list shows them on their own.
+const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

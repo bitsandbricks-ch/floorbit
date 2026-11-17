@@ -266,3 +266,32 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   display: inline-block; width: calc(var(--u) * 8); height: calc(var(--u) * 0.6); border-radius: 99px;
   background: linear-gradient(90deg, hsl(130 75% 45%), hsl(65 75% 45%), hsl(0 75% 45%));
 }
+
+/* ── Phones ─────────────────────────────────────────────────────────────── */
+/* Attendees open the public /kiosk link on a phone: the header wraps into a title-and-clock row and
+   a row of tiles, the down list goes under the map, and the legend wraps instead of squeezing. */
+@media (hover: none) { .k-legend-hint { display: none; } }
+@media (max-width: 40em) {
+  .k-header { flex-wrap: wrap; gap: 8px 12px; padding: 8px 12px; }
+  .k-brand { order: 0; }
+  .k-meta { order: 1; flex: 0 0 auto; }
+  .k-clock { font-size: 20px; }
+  .k-sync { font-size: 11px; }
+  .k-title { font-size: 18px; }
+  .k-logo { --fb-brand-h: 26px; }
+  .k-stats { order: 2; flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+  .k-stat { flex: 1 1 auto; justify-content: center; padding: 4px 8px; gap: 5px; border-radius: 8px; }
+  .k-stat-glyph { font-size: 13px; }
+  .k-stat-val { font-size: 17px; white-space: nowrap; }
+  .k-stat-label { font-size: 12px; white-space: nowrap; }
+  .k-stale { padding: 6px 12px; font-size: 13px; }
+  .k-body { flex-direction: column; }
+  .k-alerts { width: auto; max-height: 30vh; padding: 8px 12px; border-left: 0; border-top: 2px solid var(--danger); }
+  .k-alerts-title { font-size: 15px; margin-bottom: 6px; }
+  .k-alert { padding: 4px 8px; }
+  .k-alert-name, .k-alert-since { font-size: 13px; }
+  .k-legend { flex-wrap: wrap; gap: 6px 12px; padding: 8px 12px; font-size: 12px; }
+  .k-legend-sep, .k-legend-hint { display: none; }
+  .k-swatch { width: 10px; height: 10px; }
+  .fb-pill--legend { margin-left: auto; }
+}
