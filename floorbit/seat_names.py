@@ -10,7 +10,8 @@ Two ways, picked per block with ``naming``:
 
 The rotation turns the numbering with the block, so seat 1 and row A are where a reader starts:
 left and top as seen on the plan. ``reverse_numbers`` runs the numbers the other way.
-The editor has the same rules in static/js/editor/sidebar.js (``blockSeatNumbers``).
+The floor plan pages draw the seats the server lays out (blueprints/screen.py ``plan``), so no other copy
+of these rules exists.
 """
 import re
 

@@ -203,6 +203,12 @@
     "since": "Nicht aktualisiert seit {{time}}",
     "help": "Floorbit hat eine Weile nicht geantwortet, die Platzzustände hier sind vielleicht alt. Es versucht es weiter; prüf das Netz oder den Server."
   },
+  "export": {
+    "title": "Exportieren",
+    "view": "Diese Ansicht, wie am Bildschirm",
+    "hall": "Die ganze Halle, in Druckfarben",
+    "sheet": "Druckblatt: drucken, PDF oder Bild"
+  },
   "print": {
     "title": "Plätze: {{hall}}",
     "only": "Nur: {{filter}}",
@@ -224,12 +230,13 @@
     "close": "Platz schliessen",
     "block": "Block des Platzes unter dem Cursor öffnen",
     "presets": "Ebenen: Übersicht, Netzwerk, Strom, Betrieb",
+    "tools": "Ein Werkzeug zum Bearbeiten nehmen, wie in der Leiste links (jedes zeigt seine Taste)",
     "list": "Zwischen Plan und Liste wechseln",
     "pan": "Plan verschieben",
     "zoom": "Hinein-, herauszoomen oder ganze Halle zeigen",
     "find": "Platz suchen",
     "help": "Diese Liste zeigen",
-    "editTitle": "Tasten im Bearbeiten-Modus",
+    "editTitle": "Tasten beim Bearbeiten",
     "editIntro": "Zuerst auf den Plan klicken, damit die Tasten beim Editor ankommen. Auf dem Mac geht Cmd, wo Ctrl steht.",
     "edit": {
       "tools": "Werkzeuge",
@@ -313,13 +320,8 @@
     "hint": "Sicherheit und Dienste sind Markierungen, die du im Editor auf ihrer Ebene zeichnest."
   },
   "modes": {
-    "label": "Modus",
-    "live": "Live",
-    "checkin": "Check-in",
-    "network": "Netzwerk",
     "kiosk": "Kiosk",
-    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm",
-    "edit": "Bearbeiten"
+    "kioskHint": "Derselbe Plan im Vollbild, für einen grossen Bildschirm"
   },
   "edit": {
     "title": "Bearbeiten",
@@ -383,7 +385,9 @@
       "unlock_one": "entsperren",
       "unlock_other": "{{count}} Elemente entsperren",
       "changeAll_one": "{{count}} Element ändern",
-      "changeAll_other": "{{count}} Elemente ändern"
+      "changeAll_other": "{{count}} Elemente ändern",
+      "background": "Hintergrund verschieben",
+      "scale": "Massstab setzen"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -395,7 +399,6 @@
       "pan": "+ ziehen zum Verschieben der Ansicht",
       "more": "Ctrl C/X/V kopieren, ausschneiden, einfügen · Ctrl D duplizieren · Ctrl G gruppieren · Rechtsklick für mehr"
     },
-    "classic": "Klassischer Editor (Ausweichlösung)",
     "kind": {
       "block": "Sitzblock {{name}}",
       "switch": "Switch {{name}}",
@@ -423,6 +426,8 @@
       "bend": "Knick: ziehen verschiebt, Doppelklick entfernt ihn"
     },
     "tool": {
+      "view": "Ansehen",
+      "viewHint": "Ansehen: der Live-Plan, ein Klick auf einen Platz zeigt seine Details",
       "select": "Auswählen",
       "hand": "Hand",
       "measure": "Messen",
@@ -602,6 +607,15 @@
       "feedHint": "Sitzblöcke oder Switches mit Shift-Klick dazunehmen, um sie über diesen Stromverteiler zu speisen.",
       "more": "Sicherungen, Phasen und Messwerte auf der Seite Elektrik"
     },
+    "seats": {
+      "arrange": "Plätze frei stellen",
+      "done": "Plätze fertig gestellt",
+      "rows": "Zurück zu Reihen",
+      "intro": "Die Plätze stehen in Reihen. Stell sie frei auf, für ein U um einen Tisch oder jede andere Form; die Namen bleiben bei den Plätzen.",
+      "hint": "Zieh einen Platz, um ihn zu verschieben. Plätze rasten in halben Platzschritten ein; mit Alt frei. Jede Verschiebung ist ein Schritt zum Rückgängigmachen.",
+      "free": "Diese Plätze sind frei gestellt. «Zurück zu Reihen» stellt sie wieder in Reihen.",
+      "handle": "Platz {{seat}}: zum Verschieben ziehen"
+    },
     "gaps": {
       "col": "Lücken in den Reihen",
       "row": "Gassen zwischen Reihen",
@@ -639,7 +653,7 @@
       "open": "Öffnen",
       "counts": "{{switches}} Switches, {{blocks}} Sitzblöcke",
       "hasBackground": "Hintergrundbild",
-      "background": "Hintergrundbild…",
+      "background": "Hintergrundbild oder PDF…",
       "replaceBackground": "Hintergrund ersetzen…",
       "removeBackground": "Hintergrund entfernen",
       "backgroundSet": "Hintergrund gesetzt",
@@ -688,6 +702,43 @@
       "grid": "Am Raster einrasten (Alt beim Ziehen hebt es auf)",
       "items": "An anderen Elementen und Wänden einrasten",
       "rulers": "Lineale"
+    },
+    "background": {
+      "title": "Hintergrund",
+      "opacity": "Deckkraft",
+      "place": "Verschieben und skalieren",
+      "donePlacing": "Fertig",
+      "fit": "Ganzen Plan füllen",
+      "scaleKnown": "Ein Platz ist {{m}} m. Mit Messen (M) eine Linie ziehen, um es zu ändern.",
+      "scaleHelp": "Noch kein Massstab: mit Messen (M) eine bekannte Strecke auf der Zeichnung messen.",
+      "dragHelp": "Ziehen verschiebt den Hintergrund, die Ecke skaliert ihn"
+    },
+    "calibrate": {
+      "title": "Massstab",
+      "measured": "Diese Linie ist {{seats}} Plätze lang.",
+      "metres": "Ihre echte Länge",
+      "setScale": "Massstab aus dieser Linie setzen",
+      "fit": "Hintergrund an die Plätze anpassen",
+      "help": "Eine Linie über etwas ziehen, dessen Länge du kennst, dann die echte Länge eingeben.",
+      "helpBackground": "Über der Zeichnung: «Massstab setzen», wenn die Plätze schon zur Zeichnung passen; «Hintergrund anpassen» skaliert die Zeichnung, bis die Linie beim aktuellen Massstab ihre echte Länge hat."
+    },
+    "versions": {
+      "button": "Versionen",
+      "title": "Versionen von {{hall}}",
+      "name": "Name",
+      "save": "Diese Version speichern",
+      "keep": "Den Plan vor dem Wiederherstellen speichern",
+      "none": "Noch keine gespeicherten Versionen einer einzelnen Halle.",
+      "list": "Gespeicherte Versionen",
+      "meta": "{{when}} · {{blocks}} Sitzblöcke · {{switches}} Switches",
+      "restore": "Wiederherstellen",
+      "confirm": "Plan dieser Halle ersetzen",
+      "cancel": "Abbrechen",
+      "saved": "«{{name}}» gespeichert",
+      "restored": "«{{name}}» wiederhergestellt",
+      "before": "Vor dem Wiederherstellen von «{{name}}» ({{when}})",
+      "help": "Versionen liegen in der Vorlagenbibliothek, je die letzten 10 Speicherungen.",
+      "library": "Vorlagenbibliothek"
     },
     "tint": {
       "label": "Eigene Farbe",

@@ -291,6 +291,10 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
         'drawing': drawing,
         'size': {'w': PLAN_W, 'h': PLAN_H, 'cell': CELL},
         'background': f"/api/halls/{hall['id']}/background?v={bg['version']}" if bg else None,
+        # Where the background sits, in drawing units, and how see-through it is (floorbit/halls.py).
+        'background_frame': _bg_frame(hall) if bg else None,
+        'background_opacity': bg.get('opacity', 1) if bg else None,
+        'seat_m': hall.get('seat_m'),
         'switches': plan_switches,
         'links': links.on_plan(data, plan_switches),
         'panels': _panels(data, hall['id']),
@@ -449,3 +453,9 @@ def find_player(query):
     return {'query': found['query'], 'results': [
         {'seat': r['seat'], 'nick': r.get('username') or '', 'matched': r['matched'], 'hall': hall_of[r['seat']]}
         for r in found['results'] if r.get('seat') in hall_of]}
+
+
+def _bg_frame(hall):
+    f = halls.frame_of(hall)
+    sx, sy = PLAN_W / 100, PLAN_H / 100
+    return {'x': f['x'] * sx, 'y': f['y'] * sy, 'w': f['w'] * sx, 'h': f['h'] * sy}

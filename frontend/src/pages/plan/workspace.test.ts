@@ -1,32 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import { readLayers } from './layers'
-import { kioskHref, readMode, switchMode } from './workspace'
+import { fromOldMode, isEditing, kioskHref, setEditing } from './workspace'
 
-describe('plan workspace modes', () => {
-  it('reads the mode from the address, live by default', () => {
-    expect(readMode(new URLSearchParams(''))).toBe('live')
-    expect(readMode(new URLSearchParams('mode=network'))).toBe('network')
-    expect(readMode(new URLSearchParams('mode=nope'))).toBe('live')
-  })
-
-  it('switches layers and the filter with the mode', () => {
-    const start = new URLSearchParams('hall=main')
-    const checkin = switchMode(start, 'checkin', readLayers(start))
-    expect(checkin.get('mode')).toBe('checkin')
+describe('plan workspace', () => {
+  it('opens old mode links on what they showed', () => {
+    const read = (s: string) => fromOldMode(new URLSearchParams(s), readLayers(new URLSearchParams(s)))
+    expect(read('hall=main')).toBeNull()
+    const checkin = read('hall=main&mode=checkin')!
+    expect(checkin.has('mode')).toBe(false)
     expect(checkin.get('show')).toBe('checked_in')
     expect(checkin.get('layers')).toBe('grid,marks,checkin')
-    const live = switchMode(checkin, 'live', readLayers(checkin))
-    expect(live.has('mode')).toBe(false)
-    expect(live.has('show')).toBe(false)
-    expect(live.get('hall')).toBe('main')
+    expect(read('mode=network&layers=grid')!.get('layers')).toBe('grid')
+    expect(isEditing(read('mode=edit&hall=main')!)).toBe(true)
+    expect(read('mode=live')!.toString()).toBe('')
   })
 
-  it('drops the live panels when switching to edit', () => {
-    const start = new URLSearchParams('hall=main&seat=A-1&view=list')
-    const edit = switchMode(start, 'edit', readLayers(start))
-    expect(edit.get('mode')).toBe('edit')
+  it('takes up the tools and puts them down again', () => {
+    const edit = setEditing(new URLSearchParams('hall=main&seat=A-1&view=list&show=problems'), true)
+    expect(isEditing(edit)).toBe(true)
     expect(edit.has('seat')).toBe(false)
     expect(edit.has('view')).toBe(false)
+    expect(edit.get('show')).toBe('problems')
+    expect(isEditing(setEditing(edit, false))).toBe(false)
   })
 
   it('opens the kiosk on the same hall and layers', () => {

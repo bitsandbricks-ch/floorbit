@@ -203,6 +203,12 @@
     "since": "Not updated since {{time}}",
     "help": "Floorbit hasn't answered for a while, so seat states here may be old. It keeps trying; check the network or the server."
   },
+  "export": {
+    "title": "Export",
+    "view": "This view, as on screen",
+    "hall": "The whole hall, in print colours",
+    "sheet": "Print sheet: print, PDF or picture"
+  },
   "print": {
     "title": "Seats: {{hall}}",
     "only": "Only: {{filter}}",
@@ -224,12 +230,13 @@
     "close": "Close the seat",
     "block": "Open the block of the seat under the cursor",
     "presets": "Layers: Overview, Network, Electrical, Ops",
+    "tools": "Take up an editing tool, as on the rail on the left (each tool shows its key)",
     "list": "Switch between map and list",
     "pan": "Move the map",
     "zoom": "Zoom in, out, or show the whole hall",
     "find": "Find a seat",
     "help": "Show this list",
-    "editTitle": "Edit mode keys",
+    "editTitle": "Editing keys",
     "editIntro": "Click the plan first, so the keys go to the editor. On a Mac, Cmd works where Ctrl is shown.",
     "edit": {
       "tools": "Tools",
@@ -313,13 +320,8 @@
     "hint": "Safety and services are marks you draw in the editor on their layer."
   },
   "modes": {
-    "label": "Mode",
-    "live": "Live",
-    "checkin": "Check-in",
-    "network": "Network",
     "kiosk": "Kiosk",
-    "kioskHint": "The same plan full screen, for a big screen",
-    "edit": "Edit"
+    "kioskHint": "The same plan full screen, for a big screen"
   },
   "edit": {
     "title": "Edit",
@@ -383,7 +385,9 @@
       "unlock_one": "unlock",
       "unlock_other": "unlock {{count}} items",
       "changeAll_one": "change {{count}} item",
-      "changeAll_other": "change {{count}} items"
+      "changeAll_other": "change {{count}} items",
+      "background": "move the background",
+      "scale": "set the scale"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -395,7 +399,6 @@
       "pan": "+ drag to pan",
       "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · Ctrl G group · right-click for more"
     },
-    "classic": "Classic editor (fallback)",
     "kind": {
       "block": "Seat block {{name}}",
       "switch": "Switch {{name}}",
@@ -423,6 +426,8 @@
       "bend": "Bend: drag to move, double-click to take it out"
     },
     "tool": {
+      "view": "View",
+      "viewHint": "View: the live plan, click a seat for its details",
       "select": "Select",
       "hand": "Hand",
       "measure": "Measure",
@@ -602,6 +607,15 @@
       "feedHint": "Shift-click seat blocks or switches to feed them from this board.",
       "more": "Ratings, phases and readings on the Electrics page"
     },
+    "seats": {
+      "arrange": "Place seats freely",
+      "done": "Done placing seats",
+      "rows": "Back to rows",
+      "intro": "Seats stand in rows. Place them freely for a U round a table or any other shape; names stay with the seats.",
+      "hint": "Drag a seat to move it. Seats land on half-seat steps; Alt places freely. Each move is one undo step.",
+      "free": "These seats are placed freely. Back to rows lines them up again.",
+      "handle": "Seat {{seat}}: drag to move"
+    },
     "gaps": {
       "col": "Gaps in the rows",
       "row": "Lanes between rows",
@@ -639,7 +653,7 @@
       "open": "Open",
       "counts": "{{switches}} switches, {{blocks}} seat blocks",
       "hasBackground": "background image",
-      "background": "Background image…",
+      "background": "Background image or PDF…",
       "replaceBackground": "Replace background…",
       "removeBackground": "Remove background",
       "backgroundSet": "Background set",
@@ -688,6 +702,43 @@
       "grid": "Snap to the grid (Alt leaves it while dragging)",
       "items": "Snap to other items and walls",
       "rulers": "Rulers"
+    },
+    "background": {
+      "title": "Background",
+      "opacity": "See-through",
+      "place": "Move and resize",
+      "donePlacing": "Done",
+      "fit": "Fill the plan",
+      "scaleKnown": "One seat is {{m}} m. Measure (M) a line to change it.",
+      "scaleHelp": "No scale yet: measure (M) a known distance on the drawing to set one.",
+      "dragHelp": "Drag to move the background, the corner to scale it"
+    },
+    "calibrate": {
+      "title": "Scale",
+      "measured": "This line is {{seats}} seats long.",
+      "metres": "Its real length",
+      "setScale": "Set the scale from this line",
+      "fit": "Fit the background to the seats",
+      "help": "Draw a line over something whose length you know, then give its real length.",
+      "helpBackground": "Over the drawing: \"Set the scale\" when the seats already match it; \"Fit the background\" scales the drawing so the line has its real length at the current scale."
+    },
+    "versions": {
+      "button": "Versions",
+      "title": "Versions of {{hall}}",
+      "name": "Name",
+      "save": "Save this version",
+      "keep": "Save the plan as it is before restoring another",
+      "none": "No saved versions of a single hall yet.",
+      "list": "Saved versions",
+      "meta": "{{when}} · {{blocks}} seat blocks · {{switches}} switches",
+      "restore": "Restore",
+      "confirm": "Replace this hall's plan",
+      "cancel": "Cancel",
+      "saved": "Saved “{{name}}”",
+      "restored": "Restored “{{name}}”",
+      "before": "Before restoring “{{name}}” ({{when}})",
+      "help": "Versions are kept in the template library, the last 10 saves of each.",
+      "library": "Template library"
     },
     "tint": {
       "label": "Own colour",

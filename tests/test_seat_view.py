@@ -77,17 +77,6 @@ def test_a_missing_checkin_is_not_a_problem(client, app_module, hall, monkeypatc
     assert len(client.get("/api/plan/seats/D-6").get_json()["attention"]) == 2
 
 
-def test_editor_has_the_seat_states_layer(client):
-    page = client.get("/editor/classic").get_data(as_text=True)
-    assert 'id="btn-seat-states"' in page and "/static/js/editor/seat-states.js" in page
-    assert page.index("editor/seat-states.js") < page.index("editor/main.js")
-
-
-def test_notifications_script_is_on_the_editor(client):
-    page = client.get("/editor/classic").get_data(as_text=True)
-    assert "/static/js/notify.js" in page
-
-
 def test_inspector_link_history(client, app_module):
     """Issue #167: the seat's link over the last hours, from the changes the replay keeps."""
     stats = app_module.app.extensions["floorbit_stats"]

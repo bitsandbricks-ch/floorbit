@@ -770,6 +770,11 @@ export interface Hall {
   id: string
   name: string
   background: string | null
+  /** Where the background sits (drawing units on the plan, % on a hall) and how see-through it is. */
+  background_frame?: { x: number; y: number; w: number; h: number } | null
+  background_opacity?: number | null
+  /** Metres per seat (one grid cell), from calibrating; null when not known. */
+  seat_m?: number | null
   switches: number
   seat_blocks: number
 }
@@ -805,6 +810,8 @@ export interface PlanCell {
   seat: string
   hit: boolean
   on: boolean | null
+  /** Row and column (from 0) in the block, for the editor's seat handles; missing on older answers. */
+  rc?: [number, number]
 }
 
 export interface PlanShape {
@@ -821,6 +828,8 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
+  free?: boolean
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
@@ -1573,6 +1582,11 @@ export interface SeatViewData {
   drawing: PlanDrawing | null
   size: { w: number; h: number; cell: number }
   background: string | null
+  /** Where the background sits (drawing units on the plan, % on a hall) and how see-through it is. */
+  background_frame?: { x: number; y: number; w: number; h: number } | null
+  background_opacity?: number | null
+  /** Metres per seat (one grid cell), from calibrating; null when not known. */
+  seat_m?: number | null
   switches: PlanSwitch[]
   /** Links between switches placed on this plan (issue #468); older servers send none. */
   links?: PlanLink[]

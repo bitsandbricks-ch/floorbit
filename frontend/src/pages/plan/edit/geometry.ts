@@ -16,7 +16,7 @@ export interface Box { x: number; y: number; w: number; h: number }
 export const toPct = (size: { w: number; h: number }, p: Point): Point => ({ x: (p.x / size.w) * 100, y: (p.y / size.h) * 100 })
 export const fromPct = (size: { w: number; h: number }, p: Point): Point => ({ x: (p.x / 100) * size.w, y: (p.y / 100) * size.h })
 
-/** The editor's grid step in % (static/js/editor: 0.5 %), so both editors put things on the same lines. */
+/** The editor's grid step in % (0.5 %), the same as plans drawn with the older editor. */
 export const SNAP_PCT = 0.5
 export const snapPct = (v: number, step = SNAP_PCT) => Math.round(v / step) * step
 const round2 = (v: number) => Math.round(v * 100) / 100

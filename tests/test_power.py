@@ -160,7 +160,7 @@ def test_the_layer_can_be_switched_off(client, floor, monkeypatch):
     assert client.get("/api/power/markers").get_json() == {"enabled": False, "seats": {}, "switches": {},
                                                            "boards": [], "circuits": [], "counts": {}}
     assert client.post("/api/power/boards", json={"name": "DB-2"}).status_code == 409
-    assert b'href="/power"' not in client.get("/editor/classic").data
+    assert "/power" not in {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
 
 
 def test_demo_meters_feed_the_circuits(client, watch):

@@ -21,7 +21,7 @@ def html_tag(resp):
 
 
 def test_default_theme_and_kiosk_preset(client):
-    tag = html_tag(client.get("/editor/classic"))
+    tag = html_tag(client.get("/plan"))
     assert 'data-preset="floorbit"' in tag and "data-theme-lock" not in tag
     # The big screen gets the kiosk preset, dark only, unless told otherwise.
     tag = html_tag(client.get("/dashboards/kiosk"))
@@ -29,16 +29,16 @@ def test_default_theme_and_kiosk_preset(client):
 
 
 def test_theme_query_is_remembered_per_browser(client):
-    resp = client.get("/editor/classic?theme=ops")
+    resp = client.get("/plan?theme=ops")
     assert 'data-preset="ops"' in html_tag(resp)
     assert "floorbit_theme=ops" in resp.headers["Set-Cookie"]
     assert 'data-preset="ops"' in html_tag(client.get("/settings"))   # cookie, no query
     assert 'data-preset="ops"' in html_tag(client.get("/dashboards/kiosk"))
 
-    resp = client.get("/editor/classic?theme=default")
+    resp = client.get("/plan?theme=default")
     assert 'data-preset="floorbit"' in html_tag(resp)
     assert 'data-preset="floorbit"' in html_tag(client.get("/settings"))
-    assert 'data-preset="floorbit"' in html_tag(client.get("/editor/classic?theme=nonsense"))
+    assert 'data-preset="floorbit"' in html_tag(client.get("/plan?theme=nonsense"))
 
 
 def test_custom_theme_derives_missing_colours(client):
@@ -47,8 +47,8 @@ def test_custom_theme_derives_missing_colours(client):
         "theme.name": "Example LAN",
     })
     assert resp.status_code == 200, resp.data
-    page = client.get("/editor/classic").get_data(as_text=True)
-    tag = html_tag(client.get("/editor/classic"))
+    page = client.get("/plan").get_data(as_text=True)
+    tag = html_tag(client.get("/plan"))
     assert 'data-preset="custom"' in tag and 'data-theme-lock="dark"' in tag
     assert "--theme-accent:#ff3b6b" in tag and "--theme-bg:#0a0a12" in tag
     assert "--theme-surface:#" in tag and "--theme-fg:#f4f4f5" in tag
@@ -80,7 +80,7 @@ def test_event_logo_is_served_safely(client, anon_client):
     assert client.put("/api/settings", json={"theme.logo": SVG_URL}).status_code == 200
 
     # The sidebar shows it: its data is on every crew page, the floor plan and the React pages.
-    for path in ("/editor/classic", "/settings"):
+    for path in ("/plan", "/settings"):
         assert '"logo": "/brand/logo?v=' in client.get(path).get_data(as_text=True), path
     resp = anon_client.get("/brand/logo")   # public, so the sign-in page and kiosk can show it
     assert resp.status_code == 200 and resp.data == SVG
@@ -92,7 +92,7 @@ def test_event_logo_is_served_safely(client, anon_client):
 def test_every_page_loads_the_theme(client, anon_client, tmp_path, monkeypatch):
     from tests.test_spa import _manifest
     _manifest(tmp_path, monkeypatch, {"index.html": {"file": "assets/index.js"}})   # the React pages are built
-    pages = [(client, p) for p in ("/editor/classic", "/dashboards/kiosk", "/settings", "/settings/users")]
+    pages = [(client, p) for p in ("/plan", "/dashboards/kiosk", "/settings", "/settings/users")]
     pages.append((anon_client, "/login"))   # check-in is off unless configured
     for c, path in pages:
         resp = c.get(path)

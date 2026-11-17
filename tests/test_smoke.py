@@ -1,10 +1,11 @@
 """Smoke tests: the pages render and the floor plan API keeps what it is given."""
 
 
-def test_index_renders(client):
-    resp = client.get("/editor/classic")
-    assert resp.status_code == 200
-    assert b"<html" in resp.data.lower()
+def test_the_classic_editor_opens_the_plans_editor(client):
+    # Retired (Mike: not kept in sync); old bookmarks land in the plan's editor on the same hall.
+    resp = client.get("/editor/classic?hall=main")
+    assert resp.status_code == 302 and resp.headers["Location"] == "/plan?edit=1&hall=main"
+    assert client.get("/editor/classic").headers["Location"] == "/plan?edit=1"
 
 
 def test_kiosk_opens_the_kiosk_dashboard(client):
@@ -79,4 +80,4 @@ def test_settings_reject_unknown_keys(client):
 def test_the_old_editor_address_opens_the_floor_plan(client):
     """``/`` is the React floor plan now; old links keep what they pointed at, in Edit mode."""
     assert client.get("/").headers["Location"] == "/plan"
-    assert client.get("/?seat=A-1&hall=main").headers["Location"] == "/plan?seat=A-1&hall=main&mode=edit"
+    assert client.get("/?seat=A-1&hall=main").headers["Location"] == "/plan?seat=A-1&hall=main&edit=1"

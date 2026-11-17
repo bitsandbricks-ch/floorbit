@@ -19,9 +19,12 @@ const ROWS: KeyRow[] = [
   [[['?']], 'help'],
 ]
 
-/** The plan's keyboard shortcuts in one list, opened with "?" (issue #224); in Edit mode, the
+// Crew who may change the plan take a tool up with its key (B stays the seat's block here).
+const TOOL_ROW: KeyRow[] = [[[['V'], ['W'], ['Z'], ['S']], 'tools']]
+
+/** The plan's keyboard shortcuts in one list, opened with "?" (issue #224); while editing, the
  *  editor's keys by section. */
-export function Shortcuts({ opened, onClose, editing = false }: { opened: boolean; onClose: () => void; editing?: boolean }) {
+export function Shortcuts({ opened, onClose, editing = false, canEdit = false }: { opened: boolean; onClose: () => void; editing?: boolean; canEdit?: boolean }) {
   const { t } = useTranslation()
   return (
     <Modal opened={opened} onClose={onClose} title={t(editing ? 'plan.shortcuts.editTitle' : 'plan.shortcuts.title')} size="lg">
@@ -35,7 +38,7 @@ export function Shortcuts({ opened, onClose, editing = false }: { opened: boolea
             <Keys rows={rows.map(([k, what]) => [k, what.startsWith('tool.') ? t(`plan.edit.${what}`) : t(`plan.shortcuts.edit.${what}`)])} />
           </div>
         ))
-        : <Keys rows={ROWS.map(([k, what]) => [k, t(`plan.shortcuts.${what}`)])} />}
+        : <Keys rows={[...ROWS, ...(canEdit ? TOOL_ROW : [])].map(([k, what]) => [k, t(`plan.shortcuts.${what}`)])} />}
       <Attribution compact />
     </Modal>
   )

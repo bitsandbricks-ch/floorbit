@@ -25,7 +25,7 @@ class Plugin(Base):
         """What the agent part gets: the devices from Settings > Telemetry, secrets opened, sent
         over the agent's link only. The plugin's own settings (uplink limit, ignored ports) too."""
         from floorbit.telemetry import targets
-        return {**settings, 'targets': [targets.opened(t) for t in targets.raw_targets()]}
+        return {**settings, 'targets': targets.all_opened()}
 
     def agent_series(self, agent, payload):
         """The agent's per-port and per-device numbers, for the history here."""

@@ -18,7 +18,7 @@ users: [README.md](README.md).
 | `auth/` | Sign-in: accounts in `data.json`, the request guard, login providers. See `docs/auth.md`. |
 | `frontend/` | The React app (React, TypeScript, Mantine, TanStack Query, Vite), set up like Hubra's. Pages move into it one at a time; Flask serves it through `templates/spa.html` (`floorbit/spa.py`). See `frontend/README.md`. |
 | `templates/` | Jinja pages (the ones not moved to React yet). |
-| `static/js/`, `static/css/` | The older pages' scripts and styles (plain JavaScript and CSS, no build step). The editor is split by feature in `static/js/editor/` (load order in its README). |
+| `static/js/`, `static/css/` | The older pages' scripts and styles (plain JavaScript and CSS, no build step), such as the kiosk. |
 | `changelog.d/` | Changelog fragments, one per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests against the Flask test client, with a fake Redis. |
@@ -71,7 +71,7 @@ users: [README.md](README.md).
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
   `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
-  feature is a new file in `static/js/editor/`. A new error message from the server gets its German text
+  feature is a new file in `frontend/src/pages/plan/edit/`. A new error message from the server gets its German text
   in `floorbit/locales/de-CH.json` (`tests/test_i18n_server.py` checks). NetBox and LibreNMS calls live in their
   plugins; the core asks the inventory and `floorbit.sources.monitoring()`, never the API itself. Nothing names one particular event:
   event names, branding and hosts are settings.

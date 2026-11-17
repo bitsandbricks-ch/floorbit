@@ -58,6 +58,31 @@ history (see [Storage](#storage)).
 4. **Settings > Plugins**: turn on **Telemetry**. If LibreNMS is set up too, LibreNMS still wins
    (plugins are tried in id order); clear LibreNMS's URL to switch.
 
+## Devices from the inventory
+
+Devices already in the inventory don't need setting up twice. Turn the **Telemetry** feature on
+for a device, a tag, a group or a type, and store its logins there: SNMP v3 (or v2c) for polling
+and traps, and an API login for NX-API (NX-OS), RESTCONF (IOS-XE) or the OPNsense API. Floorbit
+then collects from it like from a device on Settings > Telemetry, which lists these under "From
+the inventory".
+
+What it does follows the platform and the logins it finds: SNMP polling and traps with an SNMP
+login, plus the platform's API with an API login. Properties on the device (or inherited) can say
+more:
+
+| Property | What |
+| --- | --- |
+| `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (overrides the guess) |
+| `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
+| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` |
+| `telemetry_port`, `telemetry_url` | the API's port, or its full `https://` address |
+| `telemetry_mdt_node` | the node name a device sends model-driven telemetry as |
+| `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
+
+A login the device refuses is blocked on the inventory device, like any stored login: it isn't
+tried again until a tech clears it or the password changes. A device set up on Settings >
+Telemetry by the same name wins over the inventory's.
+
 ## Two agents (VRRP)
 
 With two or more local agents sharing virtual IPs (the agent's `docs/vrrp.md`, active/passive or

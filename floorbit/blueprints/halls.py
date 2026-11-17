@@ -2,7 +2,9 @@
 
 - ``GET /api/halls``: the halls in order, with their background's URL and how much is in each.
 - ``POST /api/halls``, ``PUT``/``DELETE /api/halls/<id>``: add, rename, delete (only an empty hall).
-- ``GET``/``PUT``/``DELETE /api/halls/<id>/background``: the floor plan image under the hall.
+- ``GET``/``PUT``/``DELETE /api/halls/<id>/background``: the floor plan image under the hall;
+  ``PATCH`` moves, scales or fades it (``frame``, ``opacity``).
+- ``PUT /api/halls/<id>/scale``: how many metres one seat is (``seat_m``), from calibrating.
 - ``POST /api/halls/<id>/seat-blocks.csv``: add seat blocks from a CSV file, all or nothing.
 """
 from flask import Blueprint, Response, jsonify, request
@@ -128,6 +130,33 @@ def delete_background(hall_id):
         halls.remove_background(hall)
         save_data(data)
     return jsonify(halls.public(data, hall))
+
+
+def _change_hall(hall_id, change):
+    with data_lock:
+        data = load_data()
+        halls.ensure(data)
+        hall = halls.find(data, hall_id)
+        if hall is None:
+            return jsonify({'error': 'No such hall'}), 404
+        try:
+            change(hall)
+        except halls.HallError as exc:
+            return jsonify({'error': str(exc)}), 400
+        save_data(data)
+    return jsonify(halls.public(data, hall))
+
+
+@bp.route('/api/halls/<hall_id>/background', methods=['PATCH'])
+def place_background(hall_id):
+    body = request.get_json(silent=True)
+    return _change_hall(hall_id, lambda hall: halls.place_background(hall, body))
+
+
+@bp.route('/api/halls/<hall_id>/scale', methods=['PUT'])
+def set_scale(hall_id):
+    body = request.get_json(silent=True) or {}
+    return _change_hall(hall_id, lambda hall: halls.set_scale(hall, body.get('seat_m')))
 
 
 @bp.route('/api/halls/<hall_id>/seat-blocks.csv', methods=['POST'])

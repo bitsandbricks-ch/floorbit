@@ -10,12 +10,14 @@ import { measure, snapCorner, withRoute } from './reshape'
  *  middle of a stretch to add a bend there, double-click a bend to take it out. Each stretch shows
  *  its length (in seats) and angle. Corners snap onto other walls' ends and bends so walls meet,
  *  keep 15° steps with Shift, and leave the grid with Alt. */
-export function WallHandles({ ctx, mark, size, cell, anchors, snapGrid = true, onDraft, onDone }: {
+export function WallHandles({ ctx, mark, size, cell, anchors, snapGrid = true, seatM, onDraft, onDone }: {
   ctx: OverlayContext; mark: PlanMark; size: { w: number; h: number }; cell: number
   /** Other walls' ends and bends, in drawing units. */
   anchors: Point[]
   /** Off: corners land where they are dropped, as with Alt. */
   snapGrid?: boolean
+  /** Metres per seat, to show lengths in metres too. */
+  seatM?: number | null
   onDraft: (m: PlanMark | null) => void
   onDone: (m: PlanMark) => void
 }) {
@@ -64,7 +66,7 @@ export function WallHandles({ ctx, mark, size, cell, anchors, snapGrid = true, o
         const a = route[i]
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
         return (
-          <text key={`m${i}`} className="fb-edit-measure" x={mid.x + 8 * px} y={mid.y - 8 * px} fontSize={12 * px}>{measure(a, b, cell)}</text>
+          <text key={`m${i}`} className="fb-edit-measure" x={mid.x + 8 * px} y={mid.y - 8 * px} fontSize={12 * px}>{measure(a, b, cell, seatM)}</text>
         )
       })}
       {midpoints(route).map((m, i) => (

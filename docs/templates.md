@@ -7,7 +7,8 @@ to start from later: the layout of last year's event, or one another LAN shared.
 
 The floor plan as it was saved, of every hall or of one:
 
-- the halls with their names and background images ([halls.md](halls.md));
+- the halls with their names and background images, where each image sits and the hall's scale
+  ([halls.md](halls.md));
 - where the switches are (name, role, model, position, hall);
 - the seat blocks.
 
@@ -22,6 +23,12 @@ down to them; the page says which fields it took out.
   and each can be downloaded or started from.
 - **Rename**, **Duplicate** (the newest version) and **Delete**.
 - **Download** gives a `.json` file to keep or share; **Import file** adds one to the library.
+
+**Versions** in the floor plan editor's panel is a shortcut for one hall: **Save this version** keeps
+the hall as it is now under a name (the hall and the time if none is given), and **Restore** puts a
+saved one back into the hall, first saving the plan as it was ("Before restoring …") unless that box
+is unticked. The undo history starts over after a restore. Versions are templates of one hall, so
+they show here too.
 
 Templates are files in `layout-templates/` next to `data.json` (with Compose, in the state volume).
 They are not in [backups](backup.md); download the ones to keep.

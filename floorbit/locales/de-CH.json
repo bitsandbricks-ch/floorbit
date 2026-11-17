@@ -755,6 +755,9 @@
  "{} is missing": "{} fehlt",
  "{} is one of: {}": "{} ist eines von: {}",
  "A block has at most {} gaps in each direction": "Ein Block hat höchstens {} Lücken in jede Richtung",
+ "Seat places are {\"row,column\": [x, y]}": "Platzpositionen sind {\"Reihe,Spalte\": [x, y]}",
+ "A seat is at most {} seats from its block": "Ein Platz ist höchstens {} Plätze von seinem Block entfernt",
+ "Seat blocks with seats placed freely cannot be merged": "Sitzblöcke mit frei gestellten Plätzen lassen sich nicht zusammenführen",
  "Each gap has \"after\" (a column or row number) and \"size\" (in seats)": "Jede Lücke hat \"after\" (eine Spalten- oder Reihennummer) und \"size\" (in Plätzen)",
  "A gap is {} to {} seats wide": "Eine Lücke ist {} bis {} Plätze breit",
  "A group id is at most 64 characters": "Eine Gruppen-ID hat höchstens 64 Zeichen",
@@ -1090,5 +1093,7 @@
  "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {}).",
  "A tenant name is lower-case letters, digits and -, at most 40.": "Ein Tenant-Name besteht aus Kleinbuchstaben, Ziffern und -, höchstens 40.",
  "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
- "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}."
+ "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}.",
+ "{} is a number from {} to {}": "{} ist eine Zahl von {} bis {}",
+ "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans"
 }
