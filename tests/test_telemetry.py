@@ -158,11 +158,17 @@ def test_a_link_down_trap_changes_the_port_at_once(plugin):
     state.state.apply_text('snmp_trap,source=192.0.2.21,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
                            '.1.3.6.1.2.1.2.2.1.1.10101=10101i', now + 1)
     assert plugin.port_stats("sw-a-01", "Gi1/0/1")["state"] == "down"
+    # Traps carry no token: one from an address nobody set up adds nothing.
+    state.state.apply_text('snmp_trap,source=198.51.100.66,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
+                           '.1.3.6.1.2.1.2.2.1.1.1=1i', now + 2)
+    state.state.apply_text('fb_mdt_if,mdt_source=rogue,name=Eth1/1 state/oper-status="UP"', now + 2)
+    assert set(state.state.devices) == {"sw-a-01"}
 
 
 def test_gnmi_and_mdt_interface_fields_by_meaning(plugin):
     import time
     now = time.time()
+    state.state.know([{"name": "core-01", "address": "192.0.2.1", "mdt_node": "core-01", "drivers": ["gnmi", "mdt"]}])
     for at, octets in ((now - 10, 0), (now, 1_250_000)):
         state.state.apply_text(
             f'fb_gnmi_if,device=core-01,driver=gnmi,name=Ethernet1/1 oper_status="UP",admin_status="UP",'
@@ -260,6 +266,18 @@ def test_opnsense_gateways(monkeypatch):
     state.state.apply(pollers.opnsense(t, now=5), 5)
     dev = state.state.device("fw-01")
     assert dev.gateways["WAN"]["delay_ms"] == 3.2 and dev.kind == "firewall" and "192.0.2.1" in dev.arp
+
+
+def test_mdt_over_tls_when_a_certificate_is_set(monkeypatch):
+    import tomllib
+    t = {"name": "dist-02", "address": "192.0.2.22", "drivers": ["mdt"], "platform": "iosxe"}
+    assert "tls_cert" not in telegraf.render([t], "http://x/write", "tok")
+    monkeypatch.setenv("FLOORBIT_TELEGRAF_MDT_CERT", "/certs/mdt.pem")
+    monkeypatch.setenv("FLOORBIT_TELEGRAF_MDT_KEY", "/certs/mdt.key")
+    monkeypatch.setenv("FLOORBIT_TELEGRAF_MDT_CA", "/certs/ca.pem")
+    mdt = tomllib.loads(telegraf.render([t], "http://x/write", "tok"))["inputs"]["cisco_telemetry_mdt"][0]
+    assert mdt["tls_cert"] == "/certs/mdt.pem" and mdt["tls_allowed_cacerts"] == ["/certs/ca.pem"]
+    assert "grpc-tls" in telegraf.device_config(t, "192.0.2.9")
 
 
 def test_a_refused_login_is_named(monkeypatch):

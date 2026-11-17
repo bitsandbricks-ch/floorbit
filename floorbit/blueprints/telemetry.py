@@ -1,7 +1,8 @@
 """Device telemetry (docs/telemetry.md). Rules in floorbit/telemetry/.
 
 For senders, with the ingest token (``Authorization: Token <token>``, the InfluxDB v2 way, or the
-token as the password of Basic auth or ``?p=``, the InfluxDB v1 way), no account:
+token as the password of Basic auth, the InfluxDB v1 way), no account. Never in the URL, where
+proxies log it:
 
 - ``POST /api/telemetry/write`` and ``POST /api/telemetry/api/v2/write``: line protocol from
   Telegraf (the sidecar, or a firewall's own Telegraf pointed at ``/api/telemetry`` as its
@@ -49,7 +50,7 @@ def _given_token():
             return base64.b64decode(rest.strip()).decode('utf-8', 'replace').partition(':')[2]
         except ValueError:
             return None
-    return request.args.get('p') or request.headers.get('Floorbit-Telemetry-Token')
+    return request.headers.get('Floorbit-Telemetry-Token')
 
 
 def _body_text():

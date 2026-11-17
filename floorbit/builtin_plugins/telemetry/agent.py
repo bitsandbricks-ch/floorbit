@@ -13,7 +13,6 @@ import os
 import secrets
 import threading
 import time
-from urllib.parse import parse_qs, urlsplit
 
 from floorbit.plugins.agent import AgentPlugin as Base
 from floorbit.telemetry import lineproto, pollers, telegraf
@@ -133,7 +132,6 @@ class AgentPlugin(Base):
         elif scheme.lower() == 'basic':
             with contextlib.suppress(ValueError):
                 given.add(base64.b64decode(value).decode().partition(':')[2])
-        given.update(parse_qs(urlsplit(path).query).get('p') or [])
         return any(secrets.compare_digest(g, self.token) for g in given if g)
 
     def take(self, text, now=None):

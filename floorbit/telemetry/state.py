@@ -231,15 +231,19 @@ class State:
         return None
 
     def _device_for(self, tags):
-        name = tags.get('device') or tags.get('host') or tags.get('mdt_source')
+        name = tags.get('device') or tags.get('host')
         if not name:
-            # Traps and MDT dial-out only say where they came from: the device with that address
-            # (or MDT node name), if one is known.
-            sender = tags.get('source') or tags.get('agent_host')
+            # Traps and MDT dial-out carry no token and only say where they came from: taken only
+            # from a device set up with that address or MDT node name, so a spoofed sender can't
+            # add devices.
+            sender = tags.get('mdt_source') or tags.get('source') or tags.get('agent_host')
             if not sender:
                 return None
-            known = next((d for d in self.devices.values() if sender in (d.address, d.mdt_node)), None)
-            name = known.name if known else sender
+            known = next((d for d in self.devices.values()
+                          if sender in (d.name, d.address, d.mdt_node) and (d.address or d.mdt_node)), None)
+            if known is None:
+                return None
+            name = known.name
         dev = self.devices.get(name)
         if dev is None:
             dev = self.devices[name] = Device(name)

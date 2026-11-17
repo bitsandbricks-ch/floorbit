@@ -8,10 +8,14 @@ the image needs no MIB files.
 Measurement names here are what state.py reads; change them together.
 """
 import json
+import os
 
 SNMP_PORT = 161
 TRAP_PORT = 1162          # in the container; publish 162/udp to it
 MDT_PORT = 57000
+MDT_CERT_ENV = 'FLOORBIT_TELEGRAF_MDT_CERT'     # paths as Telegraf sees them
+MDT_KEY_ENV = 'FLOORBIT_TELEGRAF_MDT_KEY'
+MDT_CA_ENV = 'FLOORBIT_TELEGRAF_MDT_CA'        # only devices with a certificate from this CA
 GNMI_PORT = {'nxos': 50051, 'iosxe': 9339}
 
 # IF-MIB and friends, as (field name, OID, is_tag, conversion).
@@ -189,7 +193,16 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
         lines += ['  [inputs.snmp_trap.tags]', '    driver = "traps"', '']
     if mdt and listen_mdt:
         lines += ['[[inputs.cisco_telemetry_mdt]]', '  transport = "grpc"', f'  service_address = {q(f":{MDT_PORT}")}',
-                  '  source_field_name = "mdt_source"', '  [inputs.cisco_telemetry_mdt.aliases]',
+                  '  source_field_name = "mdt_source"']
+        cert, key = os.environ.get(MDT_CERT_ENV), os.environ.get(MDT_KEY_ENV)
+        if cert and key:
+            # Plain gRPC lets anyone on the management network send counters: with a certificate
+            # Telegraf takes MDT over TLS only (the devices dial out with "protocol grpc-tls").
+            lines += [f'  tls_cert = {q(cert)}', f'  tls_key = {q(key)}']
+            ca = os.environ.get(MDT_CA_ENV)
+            if ca:
+                lines.append(f'  tls_allowed_cacerts = [{q(ca)}]')
+        lines += ['  [inputs.cisco_telemetry_mdt.aliases]',
                   '    fb_mdt_if = "openconfig-interfaces:interfaces/interface/state"',
                   '    fb_mdt_ietf_if = "ietf-interfaces:interfaces-state/interface/statistics"',
                   '    fb_mdt_iosxe_if = "Cisco-IOS-XE-interfaces-oper:interfaces/interface"',
@@ -211,9 +224,12 @@ def device_config(t, collector):
             out.append('snmp-server enable traps snmp linkdown linkup\n'
                        f'snmp-server host {collector} version 2c <community>')
     if 'mdt' in t['drivers']:
+        tls = bool(os.environ.get(MDT_CERT_ENV) and os.environ.get(MDT_KEY_ENV))
         if t.get('platform') == 'nxos':
             out.append('feature telemetry\ntelemetry\n  destination-group 1\n'
                        f'    ip address {collector} port {MDT_PORT} protocol gRPC encoding GPB\n'
+                       + ('    certificate <collector-ca.pem> <collector name>\n' if tls else '')
+                       +
                        '  sensor-group 1\n    data-source YANG\n'
                        '    path openconfig-interfaces:interfaces/interface/state\n'
                        '  subscription 1\n    dst-grp 1\n    snsr-grp 1 sample-interval 10000')
@@ -221,7 +237,8 @@ def device_config(t, collector):
             out.append('telemetry ietf subscription 101\n encoding encode-kvgpb\n'
                        ' filter xpath /interfaces-ios-xe-oper:interfaces/interface\n stream yang-push\n'
                        ' update-policy periodic 1000\n'
-                       f' receiver ip address {collector} {MDT_PORT} protocol grpc-tcp')
+                       f' receiver ip address {collector} {MDT_PORT} protocol '
+                       + ('grpc-tls profile <trustpoint>' if tls else 'grpc-tcp'))
     if 'gnmi' in t['drivers']:
         if t.get('platform') == 'nxos':
             out.append('feature grpc\ngrpc port 50051\ngrpc certificate <trustpoint>\nfeature openconfig')

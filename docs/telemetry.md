@@ -108,6 +108,19 @@ They are opened only to write Telegraf's config (a file only Floorbit's user can
 to an enrolled agent over its TLS link, as the Telemetry plugin's settings. Use read-only
 accounts on the devices.
 
+## Security
+
+- **SNMP:** v2c sends the community in clear text and its traps can be faked; use SNMPv3 with
+  authPriv (SHA/AES, the default for v3) wherever the devices allow it.
+- **Traps and Cisco MDT** carry no token, so Floorbit only takes them from a device set up here
+  with that address (or MDT node name). Anything else is counted as unknown and dropped.
+- **Cisco MDT over TLS:** plain gRPC lets anyone on the management network send counters. Give
+  Telegraf a certificate (`FLOORBIT_TELEGRAF_MDT_CERT`, `FLOORBIT_TELEGRAF_MDT_KEY`, paths as
+  Telegraf sees them, and `FLOORBIT_TELEGRAF_MDT_CA` to take only devices with a certificate from
+  your CA) and it takes MDT over TLS only; **Device setup** then shows `grpc-tls`.
+- **The ingest token** goes in the `Authorization` header (InfluxDB v2 `Token`, or the v1
+  password), never in the URL, where proxies log it.
+
 When a device refuses a login (NX-API, RESTCONF, the OPNsense API key), the collector stops trying
 that device with it: no account lockouts, no alarms on the AAA server. Change the login on
 Settings > Telemetry and it is tried again; on a local agent, **Clear, try again** on the Local
