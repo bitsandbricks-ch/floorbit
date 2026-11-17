@@ -1,6 +1,6 @@
 import { ActionIcon, Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Text, TextInput, Tooltip, UnstyledButton } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconChevronDown, IconChevronUp, IconHelp, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconChevronDown, IconChevronUp, IconHelp, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +18,8 @@ import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
 import { type LayerId, type LayerState, PRESET_KEYS, applyPreset, readLayers, writeLayers } from './plan/layers'
 import { LayersPanel } from './plan/LayersPanel'
+import { SidePanel } from './plan/SidePanel'
+import { SIDE_TABS, type SideTab } from './plan/side'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
 import { SeatList } from './plan/SeatList'
 import { SeatMap } from './plan/SeatMap'
@@ -162,6 +164,9 @@ export default function FloorPlan() {
   // Swiss and German keyboards type "/" with Shift (Shift+7), and Mantine matches Shift exactly (issue #222).
   // "?" lists the shortcuts, as on GitHub and Gmail (issue #224). Usually typed with Shift.
   const [shortcuts, setShortcuts] = useState(false)
+  // The docked right panel (Live and Network): open or folded away, and which tab; kept per browser.
+  const [side, setSideState] = useState(() => readSide())
+  const setSide = (next: Partial<typeof side>) => setSideState((was) => { const v = { ...was, ...next }; saveSide(v); return v })
   const showShortcuts = () => setShortcuts(true)
   // Esc closes the open seat, block or switch panel (Edit mode has its own Esc; dialogs close themselves).
   // Page keys stay out of the way while a dialog (the shortcut list, a form) is open.
@@ -178,7 +183,9 @@ export default function FloorPlan() {
   }])
   // L flips between the map and the list, like the Map/List switch.
   const toggleList = () => { if (mode !== 'edit' && !screen && !dialogOpen()) set('view', list ? null : 'list') }
-  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], ...presetKeys])
+  // ] folds the side panel away for the whole width of the plan, as in most map and design editors.
+  const toggleSide = () => { if (mode !== 'edit' && !dialogOpen()) setSide({ open: !side.open }) }
+  useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], [']', toggleSide], ...presetKeys])
   const box = data?.drawing?.box
   // A new hall (or a changed drawing) starts fitted, or on the seat in the link it was opened with.
   const [linked] = useState(selected)
@@ -341,6 +348,8 @@ export default function FloorPlan() {
     : blockSel ? <BlockPanel key={blockSel} name={blockSel} onSeat={(s) => set('seat', s)} onSwitch={(w) => set('switch', w)} onClose={() => set('block', null)} />
     : switchSel ? <SwitchPanel key={switchSel} name={switchSel} onSeat={(s) => set('seat', s)} onClose={() => set('switch', null)} /> : null
   const panel = !!inspector
+  // The side panel shows its tabs (and their attribution foot) only while nothing is open in it.
+  const tabsShown = side.open && !phone && !panel
   const available: Record<LayerId, boolean> = {
     grid: true, marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, checkin: !!data?.checkin,
     electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
@@ -374,7 +383,7 @@ export default function FloorPlan() {
               <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
                 aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />
             </>}
-            {!list && <LayersPanel state={layers} onChange={setLayers} available={available} />}
+            {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} />}
             <div className="fb-ws-bar-end">
               {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
@@ -392,6 +401,14 @@ export default function FloorPlan() {
               <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
               </Tooltip>
+              {!editing && !phone && (
+                <Tooltip label={<>{t(side.open ? 'plan.side.hide' : 'plan.side.show')} <Kbd size="xs">]</Kbd></>}>
+                  <ActionIcon variant={side.open ? 'light' : 'default'} size="md" aria-label={t(side.open ? 'plan.side.hide' : 'plan.side.show')}
+                    aria-pressed={side.open} aria-keyshortcuts="]" onClick={() => setSide({ open: !side.open })}>
+                    <IconLayoutSidebarRight size={16} aria-hidden="true" />
+                  </ActionIcon>
+                </Tooltip>
+              )}
             </div>
           </div>
           {searched && players.hits.length > 1 && (
@@ -413,20 +430,24 @@ export default function FloorPlan() {
             {editing && data.drawing && view && (
               <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts} />
             )}
-            {!editing && data.drawing && <div className={`fb-plan-layout${panel && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
+            {/* The side panel's tabs carry the attribution in their foot; one is enough. */}
+            {!editing && data.drawing && <div className={`fb-plan-layout${(panel || side.open) && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
               <div className="fb-ws-canvas">
                 {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
-                {list ? <Attribution compact /> : (
+                {list ? !tabsShown && <Attribution compact /> : (
                   <div className="fb-ws-corner">
                     <PlanKey>
                       <Legend checkin={data.checkin && layers.on.has('checkin')} traffic={traffic} power={!!power} firewalls={!!firewalls} />
                       {mode === 'network' && <CableLegend cables={cablePlan?.cables ?? []} links={data.links} />}
                     </PlanKey>
-                    <Attribution compact />
+                    {!tabsShown && <Attribution compact />}
                   </div>
                 )}
               </div>
-              {panel && !phone && <aside className="fb-ws-panel">{inspector}</aside>}
+              {(panel || side.open) && !phone && (
+                <SidePanel data={data} tab={side.tab} onTab={(tab) => setSide({ tab })} layers={layers} onLayers={setLayers} available={available}
+                  inspector={inspector} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)} />
+              )}
             </div>}
           </div>
           <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} />
@@ -440,6 +461,19 @@ export default function FloorPlan() {
       )}
     </Layout>
   )
+}
+
+const SIDE_KEY = 'floorbit-plan-side'
+function readSide(): { open: boolean; tab: SideTab } {
+  try {
+    const v = JSON.parse(localStorage.getItem(SIDE_KEY) ?? '{}') as { open?: boolean; tab?: SideTab }
+    return { open: v.open ?? true, tab: v.tab && SIDE_TABS.includes(v.tab) ? v.tab : 'layers' }
+  } catch {
+    return { open: true, tab: 'layers' }
+  }
+}
+function saveSide(v: { open: boolean; tab: SideTab }) {
+  try { localStorage.setItem(SIDE_KEY, JSON.stringify(v)) } catch { /* private window: just not kept */ }
 }
 
 /** The legend floats over the plan's bottom-left corner, like a map's key, and folds away. */

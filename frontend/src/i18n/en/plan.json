@@ -31,6 +31,27 @@
   "zoomOut": "Zoom out",
   "fit": "Show the whole hall",
   "minimap": "Overview of the hall: click or drag to move there",
+  "side": {
+    "label": "Plan panel",
+    "layers": "Layers",
+    "problems": "Problems",
+    "items": "Items",
+    "hide": "Hide the panel",
+    "show": "Show the panel",
+    "allGood": "Nothing to look at: no seat with a problem, none offline, every switch up.",
+    "switchesDown_one": "{{count}} switch not up",
+    "switchesDown_other": "{{count}} switches not up",
+    "withProblems_one": "{{count}} seat with a problem",
+    "withProblems_other": "{{count}} seats with problems",
+    "offline_one": "{{count}} seat offline",
+    "offline_other": "{{count}} seats offline",
+    "blocks_one": "{{count}} seat block",
+    "blocks_other": "{{count}} seat blocks",
+    "block": "Block {{name}}",
+    "switches_one": "{{count}} switch",
+    "switches_other": "{{count}} switches",
+    "sw": { "up": "Up", "down": "Down", "unknown": "Unknown" }
+  },
   "state": {
     "online": "Online",
     "offline": "Offline",
@@ -194,6 +215,7 @@
     "imageFailed": "The picture could not be made. Try SVG, or print to PDF."
   },
   "shortcuts": {
+    "side": "Fold the side panel away or back",
     "title": "Keyboard shortcuts",
     "show": "Keyboard shortcuts",
     "intro": "Tab to the plan first. /, ?, Esc, L and 1 to 4 work anywhere on the page.",
