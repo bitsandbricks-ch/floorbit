@@ -138,6 +138,8 @@ def app_module(tmp_path, monkeypatch):
     data_file = str(tmp_path / "data.json")
     # The demo seeds check-ins: keep them (and the learned ports and history beside them) out of the checkout.
     monkeypatch.setenv("CHECKIN_FILE", str(tmp_path / "checkins.json"))
+    # Telegraf's config is written where the state lives (the checkout, in tests): keep it out.
+    monkeypatch.setenv("FLOORBIT_TELEGRAF_CONF", str(tmp_path / "telegraf" / "telegraf.conf"))
     monkeypatch.setattr(store, "DATA_FILE", data_file)
     # An installed Floorbit: the first-run setup (tests/test_setup.py) is over.
     store.write_json(data_file, {"setup": {"done": True, "steps": {}}})

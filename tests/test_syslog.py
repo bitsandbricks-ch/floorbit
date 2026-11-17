@@ -37,6 +37,22 @@ def test_parse_rfc3164_cisco_and_rfc5424():
     assert len(syslog.parse("<13>" + "x" * 5000, now=NOW)["message"]) <= syslog.MAX_LINE
 
 
+def test_parse_cisco_counter_hostname_and_stamp():
+    # IOS with its message counter, with and without "logging origin-id hostname"; NX-OS with the year first.
+    ios = syslog.parse("<187>113: Nov 17 13:38:14.000 UTC: %LINK-3-UPDOWN: Interface GigabitEthernet1/0/18, "
+                       "changed state to down", now=NOW)
+    assert ios["host"] is None and ios["program"] == "%LINK-3-UPDOWN" and ios["severity"] == "err"
+    assert ios["message"] == "Interface GigabitEthernet1/0/18, changed state to down"
+    named = syslog.parse("<189>10: dist-01: *Nov 17 13:38:03.998 UTC: %SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU "
+                         "on port Gi3/7", now=NOW)
+    assert named["host"] == "dist-01" and named["program"] == "%SPANTREE-2-BLOCK_BPDUGUARD"
+    assert named["message"] == "Received BPDU on port Gi3/7"
+    nxos = syslog.parse("<189>: 2026 Nov 17 13:38:14 UTC: %ETHPORT-5-SPEED: Interface Ethernet1/11, operational "
+                        "speed changed to 10 Gbps", now=NOW)
+    assert nxos["host"] is None and nxos["program"] == "%ETHPORT-5-SPEED"
+    assert nxos["message"].startswith("Interface Ethernet1/11")
+
+
 def test_ports_long_and_short_are_the_same():
     assert syslog.canonical_port("GigabitEthernet1/0/4") == syslog.canonical_port("Gi1/0/4") == "gi1/0/4"
     assert syslog.ports_in("flapping between port Gi1/0/6 and port Gi1/0/7") == ["gi1/0/6", "gi1/0/7"]

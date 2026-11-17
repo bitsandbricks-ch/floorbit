@@ -1,0 +1,108 @@
+{
+  "title": "Dashboards",
+  "intro": "Bildschirme in Bereiche geteilt: der Hallenplan auf einen Ausschnitt gezoomt mit den Ebenen deiner Wahl, Dashboard-Kacheln und die anderen Grossbildschirm-Seiten. Öffne eines im Vollbild auf einem TV.",
+  "new": "Neues Dashboard",
+  "open": "Im Vollbild öffnen",
+  "editOne": "Bearbeiten",
+  "empty": "Noch keine Dashboards.",
+  "panes_one": "{{count}} Bereich",
+  "panes_other": "{{count}} Bereiche",
+  "updated": "geändert {{when}}",
+  "tiles": "Suchst du die Plugin-Kacheln?",
+  "tilesLink": "Kachel-Dashboard",
+  "name": "Name",
+  "namePlaceholder": "Haupthalle Wand",
+  "cycle": "Hallen wechseln alle (Sekunden)",
+  "cycleHint": "Planbereiche mit ganzer Halle und ohne feste Halle",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "delete": "Löschen",
+  "clock": "Uhrzeit",
+  "canvasHint": "Klick auf einen Bereich, um ihn einzurichten. Teile ihn nach rechts oder unten, zieh die Ränder für die Grösse. Höchstens {{max}} Bereiche.",
+  "edit": {
+    "pick": "Diesen Bereich einrichten",
+    "settings": "Einstellungen",
+    "splitRight": "Nach rechts teilen",
+    "splitDown": "Nach unten teilen",
+    "remove": "Bereich entfernen"
+  },
+  "kind": {
+    "plan": "Plan",
+    "view": "Widget",
+    "tile": "Kachel",
+    "dashboard": "Kacheln",
+    "page": "Seite",
+    "empty": "Leer",
+    "text": "Text"
+  },
+  "area": {
+    "hall": "Ganze Halle",
+    "block": "Platzblock",
+    "zone": "Zone",
+    "box": "Meine Ansicht",
+    "blockName": "Block {{name}}"
+  },
+  "labels": {
+    "auto": "Nach Zoom",
+    "all": "Immer",
+    "none": "Nie"
+  },
+  "page": {
+    "health": "Dienst-Status",
+    "stats": "Statistik",
+    "wall": "Öffentliche Statistik-Wand",
+    "status": "Statusseite"
+  },
+  "form": {
+    "label": "Bereich-Einstellungen",
+    "pickOne": "Wähle links einen Bereich, um ihn einzurichten.",
+    "kind": "Zeigt",
+    "title": "Titel",
+    "titleHint": "Optional; Planbereiche nennen Halle und Ausschnitt selbst.",
+    "hall": "Halle",
+    "hallHint": "Leer: die erste Halle (oder alle abwechselnd)",
+    "area": "Teil der Halle",
+    "preset": "Ebenen",
+    "show": "Plätze",
+    "labels": "Platznummern",
+    "noBlocks": "Diese Halle hat keine Platzblöcke.",
+    "noZones": "Diese Halle hat noch keine Zonen. Zeichne eine auf dem Plan (Werkzeug Zone) und gib ihr eine Beschriftung, zum Beispiel VIP.",
+    "unnamedZone": "Zone ohne Beschriftung",
+    "boxHint": "Verschiebe und zoome den Plan auf den Teil, den dieser Bereich zeigen soll, und übernimm ihn.",
+    "useView": "Diese Ansicht übernehmen",
+    "tile": "Kachel",
+    "noTiles": "Keine Kacheln. Schalte unter Einstellungen > Plugins ein Plugin mit Kacheln ein.",
+    "dashboard": "Kachel-Layout",
+    "noDashboards": "Noch keine Kachel-Layouts gespeichert.",
+    "page": "Seite",
+    "view": "Widget",
+    "noViews": "Noch keine Widgets.",
+    "hideTitle": "Titel ausblenden",
+    "text": "Text",
+    "textHint": "Markdown: # Titel, - Liste, **fett**, [Link](https://example.com).",
+    "size": "Textgrösse",
+    "align": "Ausrichtung"
+  },
+  "pane": {
+    "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
+    "noPlan": "Diese Halle hat noch keinen Plan.",
+    "areaGone": "Den Teil der Halle, den dieser Bereich zeigt, gibt es nicht mehr. Bearbeite das Dashboard und wähle einen anderen.",
+    "problems_one": "{{count}} mit Problemen",
+    "problems_other": "{{count}} mit Problemen",
+    "tileGone": "Diese Kachel gibt es nicht mehr (Plugin aus oder entfernt).",
+    "dashboardGone": "Dieses Kachel-Layout gibt es nicht mehr.",
+    "empty": "Leerer Bereich",
+    "viewGone": "Dieses Widget gibt es nicht mehr.",
+    "noText": "Schreib etwas in die Einstellungen des Bereichs."
+  },
+  "textSize": {
+    "s": "S",
+    "m": "M",
+    "l": "L",
+    "xl": "XL"
+  },
+  "align": {
+    "start": "Links",
+    "center": "Zentriert"
+  }
+}

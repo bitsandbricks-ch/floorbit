@@ -397,6 +397,14 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-edit-bg { fill: transparent; cursor: default; }
 .fb-edit-hit { fill: transparent; cursor: move; }
 .fb-edit-hit:hover { fill: color-mix(in srgb, var(--color-bit) 8%, transparent); }
+.fb-edit-hit-wall { fill: none; stroke: transparent; pointer-events: stroke; stroke-linecap: round; stroke-linejoin: round; }
+.fb-edit-hit-wall:hover { fill: none; stroke: color-mix(in srgb, var(--color-bit) 20%, transparent); }
+.fb-edit-rotate line { stroke: var(--color-bit); stroke-width: 1.5; pointer-events: none; }
+.fb-edit-rotate circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-edit-lock circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 1.5; }
+.fb-edit-lock rect { fill: var(--color-bit); }
+.fb-edit-lock path { fill: none; stroke: var(--color-bit); stroke-width: 1.6; stroke-linecap: round; }
+.fb-edit-measure { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; pointer-events: none; }
 .fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
 .fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .fb-edit-marquee { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1; pointer-events: none; }
@@ -469,7 +477,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .blk.alarm { stroke: var(--color-down); stroke-width: 2px; fill: color-mix(in srgb, var(--color-down) 10%, transparent); }
 .fb-plan .sum text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; }
 .fb-plan .sum .sub { font-weight: 600; }
-.fb-marks .wall { stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; opacity: .8; }
+.fb-marks .wall { fill: none; stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 .fb-marks .wall.dashed { stroke-dasharray: 22 14; }
 .fb-marks .zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 55%, transparent); stroke-width: 2; }
 .fb-marks .zone text { fill: var(--zone); font-family: var(--font-sans); font-weight: 700; }
@@ -786,3 +794,18 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   /* No room in the corner next to the zoom buttons: phones show it under the shortcuts instead. */
   .fb-ws-corner .fb-attribution { display: none; }
 }
+
+/* The docked right panel in Live and Network (pages/plan/SidePanel.tsx): tabs on top, a scrolling
+   body, the attribution at the foot. */
+.fb-ws-panel.tabs { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.fb-side-tabs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fb-side-body { flex: 1; min-height: 0; }
+.fb-side-row { display: block; width: 100%; padding: 6px 8px; border-radius: 6px; }
+.fb-side-row:hover { background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+.fb-layer-legend { grid-column: 1 / -1; padding: 2px 0 6px 50px; }
+.fb-layer-legend .fb-plan-legend { margin: 0; gap: 4px 12px; font-size: 12px; }
+.fb-layer-legend.seats { padding: 0 0 4px; }
+.fb-layer-legend .heat { flex-wrap: nowrap; white-space: nowrap; }
+.fb-layer-legend .heat i { width: 72px; }
+.fb-side-foot { padding: 8px 12px; border-top: 1px solid var(--color-line); }
+.fb-side-foot .fb-attribution--compact { padding: 0; }

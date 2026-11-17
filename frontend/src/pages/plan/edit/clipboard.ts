@@ -26,8 +26,11 @@ const round2 = (v: number) => Math.round(v * 100) / 100
 export const rawAnchor = (r: Raw): Point => ({ x: num(r.body.x), y: num(r.body.y) })
 
 function shifted(r: Raw, d: Point): Raw {
-  const b = { ...r.body, x: round2(num(r.body.x) + d.x), y: round2(num(r.body.y) + d.y) }
-  if (r.kind === 'mark' && r.body.kind === 'wall') Object.assign(b, { x2: round2(num(r.body.x2) + d.x), y2: round2(num(r.body.y2) + d.y) })
+  const b: Record<string, unknown> = { ...r.body, x: round2(num(r.body.x) + d.x), y: round2(num(r.body.y) + d.y) }
+  if (r.kind === 'mark' && r.body.kind === 'wall') {
+    Object.assign(b, { x2: round2(num(r.body.x2) + d.x), y2: round2(num(r.body.y2) + d.y) })
+    if (Array.isArray(r.body.points)) b.points = (r.body.points as [number, number][]).map(([x, y]) => [round2(x + d.x), round2(y + d.y)])
+  }
   return { ...r, body: b }
 }
 

@@ -17,4 +17,10 @@ describe('Markdown', () => {
     expect(container.querySelector('b')).toBeNull()
     expect(screen.getByText('<b>raw</b>')).toBeInTheDocument()
   })
+
+  it('joins lines into a paragraph, or keeps each line with breaks', () => {
+    expect(show('one\ntwo').container.querySelectorAll('p')).toHaveLength(1)
+    const { container } = render(<MantineProvider><Markdown source={'one\ntwo'} breaks /></MantineProvider>)
+    expect(container.querySelectorAll('p')).toHaveLength(2)
+  })
 })
