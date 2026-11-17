@@ -796,7 +796,7 @@ export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
   counts: HandoverCounts
 }
-export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number; median_fix_s?: number | null }
+export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; median_fix_s?: number | null }
 export interface HandoverData {
   since: number; now: number; previous: HandoverRecord | null
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
@@ -807,8 +807,6 @@ export interface HandoverData {
   /** What is muted right now, and the crew notice that is up (issue #258). */
   mutes?: { kind: 'switch' | 'health'; name: string; until: number; by: string | null; reason: string }[]
   notice?: CrewNotice | null
-  /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
-  gear?: { to: string; count: number; names: string[] }[]
   coming_up?: { id: string; title: string; kind: string; start: number; end: number | null; where: string | null }[]
   counts: HandoverCounts
   history: HandoverRecord[]
@@ -825,16 +823,6 @@ export interface PreflightBoard {
   counts: Record<PreflightStatus, number>
   ready: boolean; complete: boolean
 }
-
-/** Gear loans (issue #36). */
-export interface GearLoan {
-  to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string
-  /** Due back (issue #426), and whether that is past. */
-  until?: number | null; overdue?: boolean
-}
-export interface GearItem { id: string; name: string; role: string; model: string; serial: string; origin: string; placed: boolean; loan: GearLoan | null }
-export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
-export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
 
 /** GET /api/events (issue #38): the running event and the archived ones, for comparing. */
 export interface EventFigures {

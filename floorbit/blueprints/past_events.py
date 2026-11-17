@@ -99,7 +99,7 @@ def close_event():
     if next_name:
         current_app.extensions['floorbit_settings'].update({'theme.name': next_name})
     audit.record('report', 'Closed the event and started the next', user=g.get('audit_user'), target=saved['name'])
-    for kind in ('stats.changed', 'incident.changed', 'handover.changed', 'preflight.changed', 'gear.changed',
+    for kind in ('stats.changed', 'incident.changed', 'handover.changed', 'preflight.changed',
                  'events.changed'):
         events.publish(kind, {})
     return jsonify({'archived': saved, 'started': time.time()})

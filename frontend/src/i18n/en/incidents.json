@@ -87,7 +87,6 @@
   "crewFree": "free",
   "match": "Match seat · {{zone}}",
   "handover": "Shift handover",
-  "gear": "Gear",
   "runbook": "Runbook: {{title}}",
   "runbooks": "Runbooks",
   "takeNext": "Take the next one",

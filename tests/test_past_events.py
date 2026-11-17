@@ -7,8 +7,6 @@ from tests.test_rbac import sign_in_as
 def test_closing_an_event_archives_it_and_starts_the_next(client):
     client.put("/api/settings", json={"theme.name": "Example LAN 2026"})
     sw = client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 5}).get_json()
-    spare = client.post("/api/inventory", json={"name": "sw-spare-01", "role": "switch"}).get_json()
-    client.post(f"/api/gear/{spare['id']}/out", json={"to": "tech-ana"})
     client.post("/api/incidents", json={"title": "No link", "switch_id": sw["id"]})
     client.put("/api/notice", json={"text": "Doors open at 18:00"})
 
@@ -29,11 +27,9 @@ def test_closing_an_event_archives_it_and_starts_the_next(client):
     assert body["current"]["figures"]["incidents"] == 0
     assert [e["id"] for e in body["archived"]] == [saved["id"]]
 
-    # The floor plan and the gear still out carry over.
+    # The floor plan carries over.
     assert client.get("/api/incidents").get_json()["incidents"] == []
     assert client.get("/api/notice").get_json()["notice"] is None
-    assert any((i["loan"] or {}).get("to") == "tech-ana" for i in client.get("/api/gear").get_json()["items"])
-    assert client.get("/api/gear").get_json()["log"] == []
 
     pdf = client.get(f"/api/past-events/{saved['id']}/report.pdf")
     assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")

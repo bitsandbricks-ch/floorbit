@@ -341,19 +341,6 @@ Source: [`floorbit/blueprints/games.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/games` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `games` |
 
-## floorbit.blueprints.gear
-
-Gear loans (issue #36). Rules in floorbit/gear.py.
-
-Source: [`floorbit/blueprints/gear.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/gear.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/gear` | `incidents.work` | `gear` |
-| POST | `/api/gear/<device_id>/in` | `incidents.work` | `gear` |
-| POST | `/api/gear/<device_id>/out` | `incidents.work` | `gear` |
-| GET | `/api/gear/labels.pdf` | `incidents.work` | `gear` |
-
 ## floorbit.blueprints.halls
 
 Halls (or floors), each with its own floor plan (issue #20). Rules live in floorbit/halls.py.

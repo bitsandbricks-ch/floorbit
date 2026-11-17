@@ -23,7 +23,6 @@ shift handover. **Past events** needs the **event report**. The page says why su
 | `helpdesk` | `/help`, `/api/helpdesk`, `/incidents/qr` |
 | `dispatch` | `/jobs`, `/api/jobs`, `/api/dispatch` |
 | `handover` | `/handover`, `/api/handover` |
-| `gear` | `/gear`, `/api/gear` |
 | `health` | `/health`, `/api/health` (not `/healthz`) |
 | `dashboard` | `/dashboard`, `/api/dashboard` |
 | `traffic` | `/traffic`, `/api/flows`, the NetFlow collector |

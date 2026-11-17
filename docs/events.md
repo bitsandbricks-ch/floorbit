@@ -15,9 +15,9 @@ Closing:
    `/report`, without nicks or IPs), its floor plan as a backup (like Settings > Backup, no secrets or
    accounts) and the key figures.
 2. **Starts the next one from it.** These stay: the floor plan and inventory, the settings, and
-   accounts and teams. Gear that is still checked out stays out, because it is still somewhere.
+   accounts and teams.
 3. **Begins these again:** the report's history and the bandwidth peak (like *Start a new event* on the
-   report), incidents, shift handovers, pre-flight results and the gear log.
+   report), incidents, shift handovers and pre-flight results.
 
 The file is written first. If that fails, nothing is cleared. Closing goes to the audit log.
 

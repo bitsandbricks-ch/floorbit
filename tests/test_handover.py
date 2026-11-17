@@ -116,30 +116,6 @@ def test_the_summary_counts_incidents_waiting_with_nobody_on_them(client, app_mo
     assert "**2** incidents open (2 new" in handover.discord_message(record, body)["embeds"][0]["description"]
 
 
-def test_the_summary_says_who_still_has_gear(client, app_module, monkeypatch):
-    # Gear lent out by one shift is chased by the next (issue #324).
-    ids = [client.post("/api/inventory", json={"name": n, "role": "switch"}).get_json()["id"]
-           for n in ("sw-spare-01", "sw-spare-02", "ap-spare-01")]
-    client.post(f"/api/gear/{ids[0]}/out", json={"to": "player-12"})
-    client.post(f"/api/gear/{ids[1]}/out", json={"to": "player-12"})
-    client.post(f"/api/gear/{ids[2]}/out", json={"to": "Crew"})
-    body = client.get("/api/handover").get_json()
-    assert body["gear"] == [{"to": "player-12", "count": 2, "names": ["sw-spare-01", "sw-spare-02"]},
-                            {"to": "Crew", "count": 1, "names": ["ap-spare-01"]}]
-    assert body["counts"]["gear_out"] == 3
-
-    notifier = app_module.app.extensions["floorbit_discord"]
-    sent = []
-    monkeypatch.setattr(notifier, "enabled", lambda: True)
-    monkeypatch.setattr(notifier, "post", sent.append)
-    client.post("/api/handover", json={"note": "", "discord": True})
-    assert "🎒 **3** pieces of gear out: player-12 (2), Crew (1)" in sent[0]["embeds"][0]["description"]
-
-    client.put("/api/settings/features", json={"gear": False})
-    body = client.get("/api/handover").get_json()
-    assert body["gear"] == [] and body["counts"]["gear_out"] == 0
-
-
 def test_the_summary_says_how_fast_the_shift_fixed_things(client, app_module, monkeypatch):
     # Issue #334: the middle fix time of this shift, on the page and in the Discord post.
     from floorbit import handover
