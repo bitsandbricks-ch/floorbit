@@ -836,18 +836,6 @@ export interface GearItem { id: string; name: string; role: string; model: strin
 export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
 export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
 
-/** Teardown checklist (issue #37). */
-export interface TeardownStep { id: string; text: string; added_by: string | null; added_at: number; done_by: string | null; done_at: number | null }
-export interface Teardown {
-  done: boolean; left: number; total: number
-  parts: {
-    gear: { done: boolean; left: number; out: { id: string; name: string; to: string; at: number }[] }
-    configs: { done: boolean; left: number; switches: { id: string; name: string; archived: { by: string | null; at: number } | null }[] }
-    export: { done: boolean; left: number; last: { by: string | null; at: number } | null }
-    custom: { done: boolean; left: number; items: TeardownStep[] }
-  }
-}
-
 /** GET /api/events (issue #38): the running event and the archived ones, for comparing. */
 export interface EventFigures {
   seats: number

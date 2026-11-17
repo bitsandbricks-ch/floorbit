@@ -52,7 +52,6 @@ FEATURES = (
     {'id': 'report', 'paths': ('/report', '/api/report', '/api/report.pdf'), 'needs': ()},
     {'id': 'past_events', 'paths': ('/events', '/api/past-events'), 'needs': ('report',)},
     {'id': 'preflight', 'paths': ('/preflight', '/api/preflight', '/api/preflight.pdf'), 'needs': ()},
-    {'id': 'teardown', 'paths': ('/teardown', '/api/teardown'), 'needs': ()},
     {'id': 'status_page', 'paths': ('/status', '/status.json', '/network-status', '/api/status-page'),
      'needs': ()},
     {'id': 'public_hall', 'paths': ('/hall', '/api/public'), 'needs': ()},

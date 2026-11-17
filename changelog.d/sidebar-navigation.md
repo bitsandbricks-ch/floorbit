@@ -2,7 +2,7 @@
 
 - One navigation on every crew page: a compact sidebar replaces the crowded top bar of the floor
   plan and the back links of the other pages. Everyday pages sit at the top (Problems shows how
-  many switches are down), the rest are folded into Helpdesk, Network, Build and teardown, Event
+  many switches are down), the rest are folded into Helpdesk, Network, Build, Event
   and Settings, and the sidebar folds down to icons.
 - Pages open inside the app: between the React pages only the page changes, the sidebar stays.
 - Phones get a bar at the bottom (Floor plan, Seats, Problems, Incidents, Menu) and a search button

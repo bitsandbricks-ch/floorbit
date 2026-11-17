@@ -32,7 +32,6 @@ export const qk = {
   statusPage: ['status-page'] as const,
   runbooks: ['runbooks'] as const,
   schedule: ['schedule'] as const,
-  teardown: ['teardown'] as const,
   events: ['events'] as const,
   features: ['features'] as const,
   pages: ['pages'] as const,

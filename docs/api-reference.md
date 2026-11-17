@@ -830,21 +830,6 @@ Source: [`floorbit/blueprints/switches.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/switches/<switch_id>` | `floorplan.edit` |  |
 | POST | `/api/switches/sync` | `floorplan.edit` |  |
 
-## floorbit.blueprints.teardown
-
-Teardown checklist (issue #37). Rules in floorbit/teardown.py.
-
-Source: [`floorbit/blueprints/teardown.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/teardown.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/teardown` | `floorplan.edit` | `teardown` |
-| GET | `/api/teardown/export.zip` | `settings.manage` | `teardown` |
-| POST | `/api/teardown/items` | `floorplan.edit` | `teardown` |
-| DELETE | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
-| PATCH | `/api/teardown/items/<item_id>` | `floorplan.edit` | `teardown` |
-| PUT | `/api/teardown/switches/<device_id>` | `floorplan.edit` | `teardown` |
-
 ## floorbit.blueprints.terminal
 
 The browser terminal for one switch (issue #95). The rules live in floorbit/terminal.py.

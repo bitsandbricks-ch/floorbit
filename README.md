@@ -76,8 +76,6 @@ each seat is plugged into.
 - **Cables and patching:** which switch port goes to which patch panel port and seat, with labels
   for both ends (a QR code opens the cable). Cables in NetBox come in with an import. See
   [docs/cables.md](docs/cables.md).
-- **Teardown checklist:** after the event, gear back, configs archived and the event's data exported
-  in one zip, plus the team's own steps. See [docs/teardown.md](docs/teardown.md).
 - **Feature switches:** turn off what your event doesn't use. Its menus, pages, API and background
   checks go away until you turn it back on. See [docs/features.md](docs/features.md).
 - **Past events:** close an event to keep it with its report and floor plan, start the next one from

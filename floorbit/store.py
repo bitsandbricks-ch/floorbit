@@ -253,7 +253,7 @@ def load_data():
 
 
 # Features Mike dropped (2026-11-17): their data goes with the next write instead of lingering.
-RETIRED_KEYS = ('planner',)
+RETIRED_KEYS = ('planner', 'teardown')
 
 
 def save_data(data):
