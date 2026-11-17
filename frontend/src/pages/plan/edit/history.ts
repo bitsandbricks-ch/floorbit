@@ -52,9 +52,13 @@ export function useHistory() {
     return last
   }, [run])
 
+  /** Forgets every step: after something the steps can't undo across (a restored version). */
+  const clear = useCallback(() => write({ past: [], future: [] }), [write])
+
   return {
     push,
     jump,
+    clear,
     undo: useCallback(() => run('undo'), [run]),
     redo: useCallback(() => run('redo'), [run]),
     canUndo: stacks.past.length > 0,

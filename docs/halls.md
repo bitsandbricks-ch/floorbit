@@ -46,7 +46,7 @@ line over something whose length you know, give its real length, and:
 - **Fit the background to the seats** once there is a scale: the drawing is scaled round the line's
   start so the line gets its real length.
 
-A template carries the image but not where it sits or the scale.
+Templates and plan versions carry the image, where it sits and the scale.
 
 An uploaded SVG is served so it can't run script when opened on its own.
 

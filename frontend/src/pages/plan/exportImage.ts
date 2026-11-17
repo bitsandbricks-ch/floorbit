@@ -18,7 +18,8 @@ export function standaloneSvg(svg: SVGSVGElement, width: number): { text: string
   from.forEach((el, i) => {
     const out = to[i] as SVGElement
     const cs = getComputedStyle(el)
-    if (cs.display === 'none' || el.classList.contains('fb-edit-handles')) { drop.push(out); return }
+    // Editor-only drawing (handles, selection, rulers, padlocks) stays out of the picture.
+    if (cs.display === 'none' || [...el.classList].some((c) => c.startsWith('fb-edit')) || el.hasAttribute('data-handle')) { drop.push(out); return }
     const style = PROPS.map((p) => [p, cs.getPropertyValue(p)] as const).filter(([, v]) => v).map(([p, v]) => `${p}:${v}`).join(';')
     if (style) out.setAttribute('style', style)
     out.removeAttribute('class')
@@ -50,8 +51,8 @@ export async function inlineImages(svgText: string): Promise<string> {
   return new XMLSerializer().serializeToString(doc)
 }
 
-/** The SVG drawn onto a white canvas, as a PNG. */
-export async function svgToPng(svgText: string, width: number, height: number): Promise<Blob> {
+/** The SVG drawn onto a canvas of ``page`` colour (white for the print sheet), as a PNG. */
+export async function svgToPng(svgText: string, width: number, height: number, page = '#fff'): Promise<Blob> {
   const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }))
   try {
     const img = new Image()
@@ -59,7 +60,7 @@ export async function svgToPng(svgText: string, width: number, height: number): 
     const canvas = document.createElement('canvas')
     canvas.width = width; canvas.height = height
     const g = canvas.getContext('2d')!
-    g.fillStyle = '#fff'; g.fillRect(0, 0, width, height)
+    g.fillStyle = page; g.fillRect(0, 0, width, height)
     g.drawImage(img, 0, 0, width, height)
     return await new Promise<Blob>((ok, no) => canvas.toBlob((b) => (b ? ok(b) : no(new Error('png'))), 'image/png'))
   } finally {

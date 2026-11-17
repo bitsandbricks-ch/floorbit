@@ -8,7 +8,7 @@ everywhere, and its Edit mode is where the plan is built. `/` opens it too; old 
 
 The plan fills the whole page next to the sidebar, like a map editor. One slim bar on top holds the
 hall, the mode, the online count, the filters (each with its count), Map/List, **Layers**, the find
-box, **Print** and **?** (help and keys). The plan takes everything below it, with a panel docked on
+box, **Export** and **?** (help and keys). The plan takes everything below it, with a panel docked on
 the right, as in a map editor. Its tabs are **Layers** (the layer switches), **Problems** (switches
 that are down, seats with problems, seats offline) and **Items** (every block and switch); click a row
 to open it. An open seat, block or switch takes the panel's place, and closing it (or **Esc**) brings
@@ -310,9 +310,13 @@ The editor draws seats with the same shapes through the **Seat states** layer (o
 under Layers), with a short legend and a link to the Seats view. The traffic heatmap takes over
 the seat colours while it is on.
 
-## Printing
+## Exporting and printing
 
-**Print** opens `/plan?print=1`: the whole hall fitted to the page with every seat numbered, the
+**Export** in the top bar saves the view on screen as a PNG (twice the screen's width) or an SVG,
+in the theme it is shown in, with the layers that are on and without the editor's handles, rulers or
+selection. **Print sheet** opens the sheet below for the whole hall.
+
+The print sheet, `/plan?print=1`, is the whole hall fitted to the page with every seat numbered, the
 legend, the hall's name and the port read's time, light on white whatever the theme. The filter
 carries over (`&show=offline` prints only the offline seats). Use the browser's print dialog for
 paper size; landscape is the default. The sheet has no names, IPs or notes, so it can lie on a

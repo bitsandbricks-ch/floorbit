@@ -126,3 +126,16 @@ def test_audit_log_names_the_template_actions(client, plan):
     client.post(f"/api/templates/{t['id']}/apply", json={})
     actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
     assert "Saved floor plan as template" in actions and "Started from template" in actions
+
+
+def test_a_version_puts_back_where_the_background_sat_and_the_scale(client, plan):
+    # Mike: named plan versions with restore, from the editor.
+    client.patch("/api/halls/main/background", json={"frame": {"x": 10, "y": 0, "w": 80, "h": 50}, "opacity": 0.3})
+    client.put("/api/halls/main/scale", json={"seat_m": 0.9})
+    t = _save(client, hall="main")
+    client.patch("/api/halls/main/background", json={"frame": None, "opacity": None})
+    client.put("/api/halls/main/scale", json={"seat_m": None})
+    assert client.post(f"/api/templates/{t['id']}/apply", json={"hall": "main"}).status_code == 200
+    (hall,) = client.get("/api/halls").get_json()["halls"]
+    assert hall["background_frame"] == {"x": 10, "y": 0, "w": 80, "h": 50}
+    assert hall["background_opacity"] == 0.3 and hall["seat_m"] == 0.9

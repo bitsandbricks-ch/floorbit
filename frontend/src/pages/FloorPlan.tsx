@@ -34,6 +34,7 @@ import { Modes } from './plan/Modes'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
+import { ExportMenu } from './plan/ExportMenu'
 import { SnapToggles } from './plan/edit/SnapToggles'
 import { MODE_LAYERS, readMode, switchMode } from './plan/workspace'
 import { revealActive } from './plan/reveal'
@@ -407,10 +408,7 @@ export default function FloorPlan() {
                   onChange={(e) => setSearch(e.currentTarget.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
-              <Tooltip label={t('plan.print.print')}>
-                <ActionIcon variant="default" size="md" component="a" aria-label={t('plan.print.print')}
-                  href={`/plan?print=1&hall=${encodeURIComponent(data.hall)}${filter !== 'all' ? `&show=${filter}` : ''}`}><IconPrinter size={16} aria-hidden="true" /></ActionIcon>
-              </Tooltip>
+              <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />
               <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
               </Tooltip>
