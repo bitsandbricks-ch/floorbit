@@ -36,6 +36,7 @@ out, `notice` lets a lead put up a [crew notice](crew-notice.md) and `shortcuts`
 ## Build on it
 
 - [Plugins](plugins.md): monitoring sources, health checks, actions and dashboard tiles.
+- [Marketplace](marketplace.md): signed plugins to install, update and roll back.
 - [The API](api.md): tokens, versions and webhooks, and the [API reference](api-reference.md),
   written from the code.
 

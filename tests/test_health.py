@@ -55,6 +55,7 @@ def test_wall_is_empty_without_health_plugins(client, wall):
 
 def test_demo_fills_every_kind(client, wall):
     client.put("/api/settings/plugins/demo", json={"enabled": True})
+    client.post("/api/demo/layout")     # the resolvers, internet lines and game servers
     body = client.get("/api/health").get_json()
     kinds = {c["kind"] for c in body["checks"]}
     assert {"dhcp", "dns", "cache", "game", "uplink"} <= kinds

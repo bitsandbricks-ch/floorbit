@@ -21,10 +21,11 @@ Where plugins come from:
 | Trust | Where | Notes |
 | --- | --- | --- |
 | Ships with Floorbit | `floorbit/builtin_plugins/` | Reviewed with Floorbit itself. |
+| Official | the [Marketplace](marketplace.md), signed with the key built into the image | Reviewed and released from the `floorbit-plugin-*` repositories. |
+| Community | a Marketplace source the server's operator added, signed with a key the operator trusts | Runs inside Floorbit like the others: trust its author as you trust Floorbit. |
 | Development checkout | the folder in `FLOORBIT_DEV_PLUGINS` | For writing plugins. **Never set it in production**: the code runs inside Floorbit. |
 
-Installing other plugins (signed releases that run in a locked-down process of their own, like
-labdex's community plugins) comes in a later step. Until then, no outside code runs.
+Nothing unsigned is ever installed. See [Marketplace](marketplace.md).
 
 Which plugins are on, and each plugin's small private state, live in `plugins.json` next to
 `data.json`, or wherever `PLUGINS_FILE` points (Compose: the `state` volume).

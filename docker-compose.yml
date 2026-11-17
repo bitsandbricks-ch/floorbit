@@ -55,6 +55,58 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Optional: Telegraf collects device telemetry (SNMP, traps, gNMI, Cisco MDT) for Floorbit
+  # (docs/telemetry.md). Floorbit writes its config from Settings > Telemetry; Telegraf reloads it.
+  #   docker compose --profile telemetry up -d
+  # With a local agent (hosted Floorbit), Telegraf runs next to the agent instead.
+  telegraf:
+    image: telegraf:1.40.3
+    profiles: ["telemetry"]
+    # The same user as Floorbit, so it can read the config Floorbit wrote (mode 600, secrets in it).
+    user: "10001"
+    entrypoint: ["sh", "-c", "until [ -f /app/state/telegraf/telegraf.conf ]; do sleep 5; done; exec telegraf --config /app/state/telegraf/telegraf.conf --watch-config notify"]
+    ports:
+      - "${TRAP_PUBLISH_PORT:-162}:1162/udp"   # SNMP traps
+      - "${MDT_PUBLISH_PORT:-57000}:57000"     # Cisco model-driven telemetry, dial-out
+    volumes:
+      - floorbit_state:/app/state:ro
+    depends_on:
+      - floorbit
+    restart: unless-stopped
+
+  # Optional: keep telemetry history in VictoriaMetrics instead of Floorbit's own database
+  # (docs/telemetry.md, "Storage"). Set FLOORBIT_VICTORIAMETRICS_URL=http://victoriametrics:8428.
+  #   docker compose --profile metrics up -d
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.156.0
+    profiles: ["metrics"]
+    # dedup: a batch sent twice (two agents, a replay after a failover) is kept once.
+    command: ["-storageDataPath=/storage", "-retentionPeriod=${TELEMETRY_RETENTION:-30d}", "-dedup.minScrapeInterval=30s"]
+    volumes:
+      - victoriametrics_data:/storage
+    restart: unless-stopped
+
+  # Optional: log events in VictoriaLogs. Set FLOORBIT_VICTORIALOGS_URL=http://victorialogs:9428.
+  #   docker compose --profile logs up -d
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.54.0
+    profiles: ["logs"]
+    command: ["-storageDataPath=/storage", "-retentionPeriod=${LOG_RETENTION:-7d}"]
+    volumes:
+      - victorialogs_data:/storage
+    restart: unless-stopped
+
+  # Optional: Grafana to dig into the history (VictoriaMetrics speaks the Prometheus API).
+  #   docker compose --profile grafana up -d     (http://localhost:3000)
+  grafana:
+    image: grafana/grafana:13.1.0
+    profiles: ["grafana"]
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
   # The cache for LibreNMS answers, and the hand-over from the flow collector. Only Floorbit talks
   # to it, so no port is published.
   redis:
@@ -72,3 +124,6 @@ services:
 volumes:
   floorbit_state:
   redis_data:
+  victoriametrics_data:
+  victorialogs_data:
+  grafana_data:

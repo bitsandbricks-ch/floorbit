@@ -16,6 +16,7 @@ import { blockAlarm, blockTop } from './blockTop'
 import { Minimap } from './Minimap'
 import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
+import { type LabelMode, type SeatLabels, labelPlan, labelStyle, rowEnds } from './labels'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
@@ -131,7 +132,7 @@ export interface OverlayContext {
 }
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus }: {
+  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto' }: {
   /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. An
    *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. An
    *  open block: only ``seats``. */
@@ -155,6 +156,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   cables?: PlanCable[]
   /** Drawn over everything and given the pointer first (the editor, pages/plan/edit/). */
   overlay?: (ctx: OverlayContext) => React.ReactNode
+  /** Seat numbers: follow the zoom (./labels.ts), or always / never, for a big screen. */
+  labels?: LabelMode
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -165,6 +168,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const fit = useMemo(() => parseBox(drawing.box), [drawing.box])
   const level: Density = forced ?? density(drawing.cell, view, px)
   const s = scale(view, px) || 1
+  // Paper ('near' forced) numbers every seat at the classic size; screens follow the zoom.
+  const named = forced === 'near' ? labelPlan(drawing.cell, 2, labelMode) : labelPlan(drawing.cell, scale(view, px) || 0.75, labelMode)
+  const seatLabels: SeatLabels = level === 'far' && labelMode !== 'all' ? 'none' : named.seats
   const [hover, setHover] = useState<{ seat: string; x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<string | null>(null)
   const pointers = useRef(new Map<number, { x: number; y: number }>())
@@ -314,7 +320,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const cursorSeat = cursor ? data.seats[cursor] ?? { state: 'unknown' as const } : null
   return (
     <div ref={wrap} className={`fb-plan-wrap d-${level}`}>
-      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} style={layerStyle(layers)} tabIndex={0} role="application"
+      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} style={{ ...layerStyle(layers), ...labelStyle(named) }} tabIndex={0} role="application"
         aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} aria-describedby={`${ids}-keys ${ids}-blocks`}
         aria-activedescendant={cursor ? `${ids}-${cursor}` : undefined} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
@@ -355,13 +361,13 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
               <rect className={blockAlarm(sum) ? 'blk alarm' : 'blk'} x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
-              {level !== 'far' && b.rows?.map((r, ri) => (
-                <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em" fontSize={drawing.cell * 0.6}
+              {level !== 'far' && named.rows && b.rows?.map((r, ri) => (
+                <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em"
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
               <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected} only={focus?.seats}
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls}
-                checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
+                checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
             {b.name && level !== 'far' && (
               <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>
@@ -428,13 +434,14 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 }
 
 /** One block's seats, in the block's coordinates. Memoised: panning and zooming don't draw them again. */
-const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, checkin, incidents, level, ids, onEnter, onLeave, onClick, describe }: {
+const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, checkin, incidents, level, labels, ids, onEnter, onLeave, onClick, describe }: {
   cells: { seat: string; x: number; y: number }[]; rotation: number; seats: SeatViewData['seats']; cell: number
   filter: Filter; selected: string | null; only?: ReadonlySet<string>; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
-  checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; ids: string
+  checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; labels: SeatLabels; ids: string
   onEnter: (seat: string, clientX: number, clientY: number) => void; onLeave: () => void; onClick: (seat: string) => void
   describe: (seat: PlanSeat) => string
 }) {
+  const ends = useMemo(() => (labels === 'ends' ? rowEnds(cells) : null), [labels, cells])
   return (
     <>
       {cells.map((c) => {
@@ -451,8 +458,8 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             <rect className="hit" width={cell} height={cell} />
             <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
               checkin={checkin} incidents={incidents?.[c.seat]} />
-            {level === 'near' && (
-              <text className="num" x={cell / 2} y={cell / 2} dy="0.35em"
+            {(labels === 'all' || ends?.has(c.seat)) && (
+              <text className={labels === 'ends' ? 'num end' : 'num'} x={cell / 2} y={cell / 2} dy="0.35em"
                 transform={rotation ? `rotate(${-rotation} ${cell / 2} ${cell / 2})` : undefined}>
                 {c.seat.split('-').pop()}
               </text>

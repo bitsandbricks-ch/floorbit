@@ -64,6 +64,24 @@ A circuit with that meter id takes the reading. It is asked every `POWER_INTERVA
 a plugin that fails keeps its last readings, which age on the page. The **Demo data** plugin has
 meters for every demo row: B row 2 runs warm and C row 2 goes red two minutes in seven.
 
+### Shelly and Home Assistant
+
+Two built-in plugins read meters on the event network through the [local agent](agent.md), so they
+work with a hosted Floorbit too. Turn them on under **Settings > Plugins**; the agent picks them up
+within a minute and sends the newest readings only.
+
+- **Shelly meters**: one line per meter, `meter id = address [channel]`, e.g. `db1-1 = 192.0.2.50`
+  or `db1-2 = 192.0.2.51 em:0`. Later generations are asked `/rpc/Shelly.GetStatus`, the first
+  generation `/status`. Without a channel, all of a Shelly's channels are added up. A password is
+  optional, the same for all of them.
+- **Home Assistant meters**: the URL, a long-lived access token (read access is enough) and one line
+  per meter, `meter id = sensor.entity_id`. The sensor's unit decides: `W`, `kW` or `A`.
+
+A Shelly that refuses the password, or a Home Assistant that refuses the token, is reported once on
+**Local agents** and audit-logged, and not asked again until a tech clears it there or the password
+or token is changed in the plugin's settings. A meter the agent hasn't read for five minutes counts
+as unread.
+
 TODO: ask Mike which PDUs or meters are used at the event, and whether any report load, so a
 built-in plugin can read them.
 

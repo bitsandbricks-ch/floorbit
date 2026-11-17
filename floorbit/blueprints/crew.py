@@ -166,5 +166,5 @@ def _mute(user, switch_id):
     entry = alerting.mute(key, name, crew.MUTE_MINUTES, user['username'], 'Muted from Discord')
     audit.record('alerts', label, user=user['username'], target=name)
     events.publish('alerts.changed', {})
-    until = time.strftime('%H:%M', time.localtime(entry['until']))
+    until = f"<t:{int(entry['until'])}:t>"   # Discord shows it in the reader's time zone, not the server's
     return _say(f"Muted {name} until {until}. Unmute or add time on the Problems page.")
