@@ -2,6 +2,8 @@
 # ghcr.io/<owner>/<repo> (tags: latest on master, the version on a tag, and the short sha).
 # master builds also get master-<YYYYMMDDHHMMSS>-<short sha> (commit time, UTC): a tag that
 # sorts by time, so a deployment (Flux image automation on Oak) can follow the newest one.
+# A master image is pushed only once CI has passed on the same commit: deployments follow latest,
+# and a master that cannot start (2026-11-17, #704 + #705) must not reach them.
 name: Image
 
 on:
@@ -21,9 +23,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     permissions:
       contents: read
+      actions: read
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,6 +64,23 @@ jobs:
           if [ "$GITHUB_REF_TYPE" = tag ]; then tags+=(-t "$image:${GITHUB_REF_NAME#v}"); fi
           docker build --label "org.opencontainers.image.source=https://github.com/$REPO" "${tags[@]}" .
           echo "IMAGE=$image" >> "$GITHUB_ENV"
+      - name: Wait for CI on this commit
+        if: github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for _ in $(seq 1 90); do
+            result=$(gh api "repos/$REPO/actions/runs?head_sha=$GITHUB_SHA&event=push" \
+              --jq '[.workflow_runs[] | select(.name == "CI")][0] | "\(.status) \(.conclusion)"')
+            echo "CI: $result"
+            case "$result" in
+              "completed success") exit 0 ;;
+              completed*) echo "::error::CI did not pass on $GITHUB_SHA, so the image is not pushed" && exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "::error::CI did not finish within 45 minutes" && exit 1
       - if: github.event_name != 'pull_request'
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
