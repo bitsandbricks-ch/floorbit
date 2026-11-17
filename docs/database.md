@@ -64,6 +64,14 @@ the flow collector) take turns. The same steps run on SQLite and Postgres.
 At start Floorbit waits up to 10 seconds (`FLOORBIT_DATABASE_WAIT`) for the database, for a
 database container that comes up a little after it.
 
+## Two saves at once
+
+Requests and background tasks each load a whole document, change their part and save it. A save
+keeps the top-level parts it didn't change as they are now, so a task saving a copy it loaded a
+moment ago doesn't undo what someone else saved in between. Two saves that change the same part
+still keep the last one. Within one Floorbit process this holds for every save; between several
+replicas a save that lands in the same instant can still lose the other.
+
 ## When the database is away
 
 Floorbit keeps running without its database, whether it went away while running or wasn't there at

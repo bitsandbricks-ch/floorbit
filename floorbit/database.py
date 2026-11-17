@@ -274,17 +274,22 @@ class Sql:
     # ── documents ──
 
     def get(self, key):
+        text = self.get_text(key)
+        return text if text is _MISSING else json.loads(text)
+
+    def get_text(self, key):
+        """The document as stored (JSON text), or _MISSING."""
         try:
             rows = self.run('SELECT body, updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         except DatabaseUnavailable:
             if key in self._docs:
-                return json.loads(self._docs[key][0])
+                return self._docs[key][0]
             raise
         if not rows:
             self._docs.pop(key, None)
             return _MISSING
         self._docs[key] = (rows[0][0], rows[0][1])
-        return json.loads(rows[0][0])
+        return rows[0][0]
 
     def updated_at(self, key):
         try:
