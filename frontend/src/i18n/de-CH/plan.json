@@ -271,7 +271,11 @@
       "duplicate_one": "duplizieren",
       "duplicate_other": "{{count}} Elemente duplizieren",
       "front": "in den Vordergrund",
-      "back": "in den Hintergrund"
+      "back": "in den Hintergrund",
+      "addPanel": "Patchpanel {{name}} hinzufügen",
+      "addCable": "Kabel hinzufügen",
+      "changeCable": "Kabel ändern",
+      "deleteCable": "Kabel löschen"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -283,14 +287,16 @@
       "pan": "+ ziehen zum Verschieben der Ansicht",
       "more": "Ctrl C/X/V kopieren, ausschneiden, einfügen · Ctrl D duplizieren · Rechtsklick für mehr"
     },
-    "classic": "Werkzeuge, die noch fehlen (Kabel, Strom, Gruppen, Ausrichten): klassischer Editor",
+    "classic": "Werkzeuge, die noch fehlen (Strom, Gruppen, Ausrichten, Kabelknicke): klassischer Editor",
     "kind": {
       "block": "Sitzblock {{name}}",
       "switch": "Switch {{name}}",
       "text": "Beschriftung",
       "icon": "Symbol",
       "wall": "Wand",
-      "zone": "Zone"
+      "zone": "Zone",
+      "panel": "Patchpanel {{name}}",
+      "cable": "Kabel"
     },
     "name": "Name",
     "rotation": "Drehung",
@@ -303,14 +309,18 @@
       "text": "Beschriftung",
       "icon": "Symbol",
       "wall": "Wand",
-      "zone": "Zone"
+      "zone": "Zone",
+      "panel": "Patchpanel",
+      "cable": "Kabel"
     },
     "hint": {
       "block": "Klicke, wo der neue Sitzblock hinkommt.",
       "text": "Klicke, wo die Beschriftung hinkommt.",
       "icon": "Klicke, wo das Symbol hinkommt.",
       "wall": "Ziehe von einem Ende der Wand zum anderen. Shift hält 15°-Schritte, Alt löst vom Raster.",
-      "zone": "Ziehe einen Rahmen für die Zone."
+      "zone": "Ziehe einen Rahmen für die Zone.",
+      "panel": "Klicke, wo das Patchpanel hinkommt.",
+      "cable": "Klicke auf einen Platz, Switch oder ein Patchpanel: Das Kabelformular öffnet sich damit ausgefüllt. Es zeigt nur freie Ports."
     },
     "block": {
       "title": "Neuer Sitzblock",
@@ -392,6 +402,29 @@
     "styles": {
       "solid": "Durchgezogen",
       "dashed": "Gestrichelt"
+    },
+    "panel": {
+      "title": "Neues Patchpanel",
+      "name": "Name",
+      "taken": "Es gibt schon ein Patchpanel mit diesem Namen.",
+      "ports": "Ports",
+      "help": "Kabel über dieses Panel wählen einen seiner Ports; jeder Port nimmt ein Kabel.",
+      "place": "Platzieren",
+      "usage": "{{used}} von {{ports}} Ports belegt",
+      "full": "Voll",
+      "portList": "Ports",
+      "free": "Frei"
+    },
+    "cable": {
+      "switch": "Switch",
+      "panel": "Patchpanel",
+      "seat": "Platz",
+      "imported": "Importiert: In der Quelle ändern und neu importieren.",
+      "edit": "Kabel ändern"
     }
+  },
+  "net": {
+    "learned": "vom Port gelesen, nicht erfasst",
+    "panel": "Patchpanel {{name}}: {{used}} von {{ports}} Ports belegt"
   }
 }

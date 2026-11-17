@@ -7,7 +7,7 @@ import { TOOL_GESTURE, type Tool } from './tools'
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu }: {
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onBox, onPointer, onMenu, lines = [] }: {
   ctx: OverlayContext
   data: SeatViewData
   selection: ItemRef[]
@@ -18,8 +18,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   /** Space is held: let the plan pan. */
   space: boolean
   tool?: Tool
-  /** A placing tool was clicked here (snapped unless Alt). */
-  onPlace?: (at: Point) => void
+  /** A placing tool was clicked here (snapped unless Alt), and exactly where (to find what is there). */
+  onPlace?: (at: Point, raw: Point) => void
   /** A line was drawn (the wall tool). */
   onLine?: (a: Point, b: Point) => void
   /** A box was drawn (the zone tool). */
@@ -28,6 +28,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   onPointer?: (at: Point) => void
   /** Right click on an item (null: on empty plan), at a screen point. */
   onMenu?: (item: ItemRef | null, clientX: number, clientY: number) => void
+  /** Items drawn as a path (cables): hit along the line, under the other items. */
+  lines?: { ref: ItemRef; d: string }[]
 }) {
   const gesture = TOOL_GESTURE[tool]
   const [draft, setDraft] = useState<{ a: Point; b: Point } | null>(null)
@@ -53,8 +55,9 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     e.stopPropagation()
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
     if (gesture !== 'select') {
-      const at = snap(ctx.toPlan(e.clientX, e.clientY), e.altKey)
-      if (gesture === 'click') onPlace?.(at)
+      const raw = ctx.toPlan(e.clientX, e.clientY)
+      const at = snap(raw, e.altKey)
+      if (gesture === 'click') onPlace?.(at, raw)
       else setDraft({ a: at, b: at })
       return
     }
@@ -125,6 +128,14 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       <rect className="fb-edit-bg" x={shown.x} y={shown.y} width={shown.w} height={shown.h} onPointerDown={(e) => begin(e, null)}
         onContextMenu={(e) => menu(e, null)}
         onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
+      {lines.map(({ ref, d }) => (
+        <path key={refKey(ref)} className="fb-edit-hit-line" data-item={refKey(ref)} d={d} strokeWidth={10 * px} fill="none"
+          onPointerDown={(e) => begin(e, ref)} onContextMenu={(e) => menu(e, ref)}
+          onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
+      ))}
+      {lines.filter((l) => selection.some((r) => sameRef(r, l.ref))).map(({ ref, d }) => (
+        <path key={`sel-${refKey(ref)}`} className="fb-edit-sel-line" d={d} fill="none" vectorEffect="non-scaling-stroke" />
+      ))}
       {allItems(data).map((r) => {
         const o = outlineOf(data, r)
         if (!o) return null

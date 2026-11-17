@@ -1,0 +1,13 @@
+{
+  "noPortList": "Die Monitoring-Quelle kennt keine Ports für diesen Switch: Port eintippen.",
+  "pickSwitchFirst": "Zuerst den Switch wählen",
+  "nothingFound": "Nichts gefunden",
+  "usedBy": "belegt von {{who}}",
+  "group": {
+    "switches": "Switches",
+    "infrastructure": "Infrastruktur",
+    "other": "Andere"
+  },
+  "noPanelPorts": "Für dieses Patchpanel ist keine Portzahl hinterlegt: Port eintippen oder das Panel auf dem Plan platzieren.",
+  "pickPanelFirst": "Zuerst das Patchpanel wählen"
+}

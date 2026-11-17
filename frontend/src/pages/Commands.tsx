@@ -6,6 +6,7 @@ import { IconFileDiff, IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { EntitySelect } from '@/components/EntitySelect'
 import { useSearchParams } from 'react-router-dom'
 import { ApiError, del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -114,8 +115,8 @@ export default function Commands() {
                     data={[...new Set([...info.switches, ...switches])]} maxValues={info.max_switches}
                     placeholder={switches.length ? undefined : t('commands.pickSwitches')} />
                   {tpl?.needs_port && (
-                    <TextInput label={t('commands.port')} placeholder="Gi1/0/3" value={port} maxLength={48}
-                      onChange={(e) => setPort(e.currentTarget.value)} />
+                    <EntitySelect kind="ports" switchName={switches[0]} showUsed label={t('commands.port')} value={port}
+                      onChange={setPort} />
                   )}
                 </SimpleGrid>
                 {tpl && (

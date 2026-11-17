@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BlockPlan, CableList } from '@/api/types'
+import { OPTIONS, pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import WalkRow from './WalkRow'
 
@@ -14,7 +15,7 @@ describe('WalkRow', () => {
   it('names the port that came up and puts the seat on it, asking before a swap', async () => {
     let assigns = 0
     const api = fakeFetch({
-      'GET /api/auth/me': lead, 'GET /api/cables': cables, 'GET /api/switches': [{ id: 's1', name: 'sw-a-01' }],
+      ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': cables,
       'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 2, rows: 1, hall_id: 'h' }],
       'POST /api/cables/block': order,
       'GET /api/cables/walk?switch=sw-a-01': { ups: [], syslog: true, since: 500 },
@@ -28,7 +29,7 @@ describe('WalkRow', () => {
     renderWithApp(<WalkRow />)
     fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
     fireEvent.click(await screen.findByRole('option', { name: 'A (2)', hidden: true }))
-    fireEvent.change(screen.getByRole('combobox', { name: 'Switch' }), { target: { value: 'sw-a-01' } })
+    await pick('Switch', 'sw-a-01')
     fireEvent.click(await screen.findByRole('button', { name: 'Start with 2 seats' }))
 
     expect(await screen.findByRole('heading', { name: 'A-1' })).toBeInTheDocument()

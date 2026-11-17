@@ -4,8 +4,11 @@
   whether automatic cabling is on.
 - ``PUT /api/cable-plan/routes``: ``{"routes": {key: {"points", "corners"} | null}}``: bends the
   crew placed, round or square corners; null goes back to the automatic route.
-- ``PUT /api/cable-plan/panels/<name>``: ``{"x", "y", "hall_id"}`` puts a patch panel on the plan;
-  ``DELETE`` takes it off.
+- ``POST /api/cable-plan/panels``: ``{"name", "x", "y", "hall_id", "ports"}`` adds a patch panel
+  (409 when the name is taken).
+- ``PUT /api/cable-plan/panels/<name>``: ``{"x", "y", "hall_id", "ports"}`` puts a patch panel on the
+  plan or changes it; ``DELETE`` takes it off.
+- ``GET /api/cable-plan/panels/<name>/ports``: its ports, with the seat or cable on each.
 
 Reading needs ``floorplan.view``, changing ``floorplan.edit`` (auth/roles.py).
 """
@@ -45,6 +48,25 @@ def change_routes():
         return _error(exc)
     events.publish('cables.changed', {})
     return jsonify({'routes': saved})
+
+
+@bp.route('/api/cable-plan/panels', methods=['POST'])
+def add_panel():
+    body = request.get_json(silent=True) or {}
+    try:
+        panel = cable_plan.place_panel(body.get('name'), body, create=True)
+    except (cable_plan.RouteError, halls.HallError) as exc:
+        return _error(exc)
+    events.publish('cables.changed', {})
+    return jsonify(panel), 201
+
+
+@bp.route('/api/cable-plan/panels/<path:name>/ports', methods=['GET'])
+def panel_ports(name):
+    data = load_data()
+    if cable_plan.find_panel(data, name) is None:
+        return jsonify({'error': 'No such patch panel on the plan'}), 404
+    return jsonify({'ports': cable_plan.panel_ports(data, name)})
 
 
 @bp.route('/api/cable-plan/panels/<path:name>', methods=['PUT'])

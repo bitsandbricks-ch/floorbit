@@ -84,5 +84,6 @@
   "clientsIpOf": "IP of {{seat}}",
   "clientsPatch": "Patch to a seat",
   "clientsInfra": "Infrastructure",
-  "clientsInfraNote": "Infrastructure"
+  "clientsInfraNote": "Infrastructure",
+  "anyPort": "Also list ports that have a cable"
 }

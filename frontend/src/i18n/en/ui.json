@@ -1,0 +1,13 @@
+{
+  "noPortList": "The monitoring source lists no ports for this switch: type the port.",
+  "pickSwitchFirst": "Pick the switch first",
+  "nothingFound": "Nothing matches",
+  "usedBy": "used by {{who}}",
+  "group": {
+    "switches": "Switches",
+    "infrastructure": "Infrastructure",
+    "other": "Other"
+  },
+  "noPanelPorts": "This patch panel has no port count yet: type the port, or place the panel on the plan.",
+  "pickPanelFirst": "Pick the patch panel first"
+}

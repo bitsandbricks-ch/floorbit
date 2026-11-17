@@ -1,13 +1,13 @@
 /** The Edit mode's tools. Each keeps going after placing something (sticky, like the older editor);
  *  Esc or V goes back to Select. */
-export const TOOLS = ['select', 'block', 'text', 'icon', 'wall', 'zone'] as const
+export const TOOLS = ['select', 'block', 'text', 'icon', 'wall', 'zone', 'panel', 'cable'] as const
 export type Tool = (typeof TOOLS)[number]
 
-export const TOOL_KEYS: Record<Tool, string> = { select: 'v', block: 'b', text: 't', icon: 'i', wall: 'w', zone: 'z' }
+export const TOOL_KEYS: Record<Tool, string> = { select: 'v', block: 'b', text: 't', icon: 'i', wall: 'w', zone: 'z', panel: 'p', cable: 'c' }
 
 /** How a tool takes the pointer: a click places, a drag draws a line or a box. */
 export const TOOL_GESTURE: Record<Tool, 'select' | 'click' | 'line' | 'box'> = {
-  select: 'select', block: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box',
+  select: 'select', block: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box', panel: 'click', cable: 'click',
 }
 
 /** Row letters like the server's (floorbit/seat_names.py): 0 -> A, 25 -> Z, 26 -> AA. */
@@ -50,4 +50,16 @@ export function blockStep(v: { cols: number; rows: number; naming: string; row_l
   let h = v.rows * 3.2 + 1.6 + (v.name ? 2.2 : 0)
   if ([90, 270].includes(((v.rotation % 360) + 360) % 360)) [w, h] = [h * (1000 / 1600), w * (1600 / 1000)]
   return direction === 'right' ? { dx: w + gap, dy: 0 } : { dx: 0, dy: h + gap }
+}
+
+/** The next free name like ``name``: its trailing number counted up past every name in use
+ *  (PP-1 -> PP-2), or `` 2`` added. Case doesn't count, as on the server. */
+export function nextName(name: string, used: string[]): string {
+  const taken = new Set(used.map((u) => u.toLowerCase()))
+  const m = /^(.*?)(\d+)$/.exec(name)
+  const stem = m ? m[1] : `${name} `
+  let n = m ? Number(m[2]) + 1 : 2
+  const width = m ? m[2].length : 1
+  while (taken.has(`${stem}${String(n).padStart(width, '0')}`.toLowerCase())) n++
+  return `${stem}${String(n).padStart(width, '0')}`.slice(0, 40)
 }

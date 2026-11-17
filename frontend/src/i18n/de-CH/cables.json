@@ -84,5 +84,6 @@
   "clientsIpOf": "IP von {{seat}}",
   "clientsPatch": "Auf einen Platz patchen",
   "clientsInfra": "Infrastruktur",
-  "clientsInfraNote": "Infrastruktur"
+  "clientsInfraNote": "Infrastruktur",
+  "anyPort": "Auch Ports mit Kabel anzeigen"
 }

@@ -18,6 +18,10 @@ Automatic cabling (Settings > Cabling, ``CABLE_AUTO``, on by default) draws ever
 port is known: from the cables typed in or imported, and from the port descriptions the port watch
 read. Venues that patch through panels can turn it off and draw the cables they want; a cable that
 names a patch panel placed on the plan runs through the panel.
+
+Patch panels are kept under ``patch_panels``: ``{"name", "x", "y", "hall_id", "ports"}``. ``ports``
+is how many the panel has (1 to 96, 24 unless said); a cable's panel port is then one of 1 to that,
+and one cable per panel port (floorbit/cables.py checks).
 """
 import math
 import re
@@ -33,6 +37,8 @@ CORNERS = ('square', 'round')
 MAX_POINTS = 50
 MAX_ROUTES = 20000
 MAX_PANELS = 500
+PANEL_PORTS = 24                        # a new panel's ports unless said
+MAX_PANEL_PORTS = 96
 PITCH_X, PITCH_Y = 2.0, 3.2           # one seat in % of the plan (16:10, 50 seats across)
 TRUNK = 1.0                            # how far beside a block its cables run, in seats
 KEY_RE = re.compile(r'^(lan|link|power):[^\s]{1,200}$')
@@ -266,7 +272,8 @@ def plan(data=None, hall_id=None, live=None, auto=None):
                               _elbow(start, sw[0]), routes, label=c.get('name') or '',
                               ref={'circuit': c['id'], 'switch': sw_id}, media='power', speed=None))
     return {'cables': out, 'auto': auto,
-            'panels': [{'name': p['name'], 'x': p.get('x'), 'y': p.get('y')} for p in panels(data, hall_id)]}
+            'panels': [{'name': p['name'], 'x': p.get('x'), 'y': p.get('y'), 'ports': p.get('ports') or PANEL_PORTS}
+                       for p in panels(data, hall_id)]}
 
 
 # ── Changing the drawing ───────────────────────────────────────────────────────
@@ -322,28 +329,76 @@ def set_routes(changes, by=None):
     return {k: routes.get(k) for k in cleaned}
 
 
-def place_panel(name, body):
+def _panel_ports(value):
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        n = 0
+    if not 1 <= n <= MAX_PANEL_PORTS:
+        raise RouteError(f'A patch panel has 1 to {MAX_PANEL_PORTS} ports.')
+    return n
+
+
+def find_panel(data, name):
+    name = str(name or '').strip().lower()
+    rows = [p for p in data.get(PANELS_KEY) or [] if isinstance(p, dict)]
+    return next((p for p in rows if str(p.get('name', '')).lower() == name), None)
+
+
+def place_panel(name, body, create=False):
+    """Put a patch panel on the plan or change it: ``x``, ``y``, ``hall_id`` and ``ports``. A panel
+    already there keeps what the body leaves out; ``create`` refuses one that exists (409)."""
     name = ' '.join(str(name or '').split())
     if not PANEL_RE.match(name):
         raise RouteError('A patch panel name is up to 40 letters, digits, spaces, . _ / # or -.')
-    try:
-        x, y = round(float(body.get('x')), 2), round(float(body.get('y')), 2)
-    except (TypeError, ValueError):
-        raise RouteError('A patch panel position is a point on the plan in percent.') from None
     with _lock():
         data = load_data()
-        hall = halls.check_id(data, body.get('hall_id'))
         rows = [p for p in data.get(PANELS_KEY) or [] if isinstance(p, dict)]
         panel = next((p for p in rows if str(p.get('name', '')).lower() == name.lower()), None)
+        if panel is not None and create:
+            raise RouteError(f'There is a patch panel called {panel["name"]} already.', 409)
+        has_xy = body.get('x') is not None or body.get('y') is not None
+        if panel is None or panel.get('x') is None or has_xy:
+            try:
+                x, y = round(float(body.get('x')), 2), round(float(body.get('y')), 2)
+            except (TypeError, ValueError):
+                raise RouteError('A patch panel position is a point on the plan in percent.') from None
+        else:
+            x, y = panel['x'], panel['y']
+        hall = halls.check_id(data, body['hall_id']) if body.get('hall_id') else (
+            panel.get('hall_id') if panel and panel.get('hall_id') else halls.check_id(data, None))
+        ports = _panel_ports(body['ports']) if body.get('ports') is not None else (
+            (panel or {}).get('ports') or PANEL_PORTS)
+        if panel is not None and body.get('ports') is not None:
+            from .cables import all_cables
+            mine = [c for c in all_cables(data) if str(c.get('panel') or '').lower() == name.lower()]
+            top = max((int(c['panel_port']) for c in mine if str(c.get('panel_port') or '').isdigit()), default=0)
+            if top > ports:
+                raise RouteError(f'Port {top} of {panel["name"]} has a cable: the panel needs at least {top} ports.',
+                                 409)
         if panel is None:
             if len(rows) >= MAX_PANELS:
                 raise RouteError(f'Floorbit keeps at most {MAX_PANELS} patch panels on the plan.')
             panel = {'name': name}
             rows.append(panel)
-        panel.update(x=x, y=y, hall_id=hall)
+        panel.update(x=x, y=y, hall_id=hall, ports=ports)
         data[PANELS_KEY] = rows
         save_data(data)
-    return dict(panel)
+    return {**panel, 'id': panel['name']}
+
+
+def panel_ports(data, name):
+    """The ports of one patch panel (1 to its count), with the seat or cable on each one."""
+    from .cables import all_cables
+    panel = find_panel(data, name)
+    held = {}
+    for c in all_cables(data):
+        if str(c.get('panel') or '').lower() == str(name).strip().lower() and c.get('panel_port'):
+            held[str(c['panel_port'])] = c.get('seat') or c.get('label')
+    count = int((panel or {}).get('ports') or 0)
+    names = [str(n) for n in range(1, count + 1)]
+    names += sorted((p for p in held if p not in names), key=lambda p: (len(p), p))
+    return [{'value': n, 'label': n, 'used': held.get(n)} for n in names]
 
 
 def remove_panel(name):

@@ -4,21 +4,26 @@ import { IconArrowBackUp, IconArrowForwardUp, IconClipboard, IconCopy, IconCut, 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, get, post, put } from '@/api/client'
+import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { SeatViewData } from '@/api/types'
+import type { Cable, SeatViewData } from '@/api/types'
+import { CableModal, type CableDraft } from '@/components/CableModal'
+import { cablePath, useCablePlan } from '../cablePlan'
 import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { SeatMap } from '../SeatMap'
 import { EditOverlay } from './EditOverlay'
-import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, refKey, sameRef, snappedDelta, toPct } from './geometry'
+import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved, nearest, refKey, sameRef, seatAt, snappedDelta, toPct } from './geometry'
+import { CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { ToolRail } from './ToolRail'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 
-const PATH: Record<ItemRef['kind'], string> = { block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches' }
+const PATH: Record<ItemRef['kind'], string> = {
+  block: '/api/seat-blocks', mark: '/api/plan-marks', switch: '/api/switches', panel: '/api/cable-plan/panels', cable: '/api/cables',
+}
 interface Saved { ref: ItemRef; raw: Raw }
 const CLIP_KEY = 'floorbit-plan-clipboard'
 // Copied items live here and in the browser's storage, so they paste into another hall or tab too.
@@ -37,7 +42,7 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
 }) {
   const { t } = useTranslation()
@@ -48,10 +53,18 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>('select')
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
-  const [placing, setPlacing] = useState<{ kind: 'block' | 'text' | 'icon'; at: Point } | null>(null)
+  const [placing, setPlacing] = useState<{ kind: 'block' | 'text' | 'icon' | 'panel'; at: Point } | null>(null)
+  // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
+  const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
   const qc = useQueryClient()
+  // Cables and patch-panel use follow every change: ask for them again with the plan.
+  const refresh = useCallback(() => Promise.all([
+    refreshPlan(), qc.invalidateQueries({ queryKey: qk.cablePlan(data.hall) }), qc.invalidateQueries({ queryKey: qk.optionsAll }),
+  ]), [refreshPlan, qc, data.hall])
+  const cablePlan = useCablePlan(data.hall, true)
+  const cables = useMemo(() => (cablePlan?.cables ?? []).filter((c) => c.kind === 'lan' && c.ref.cable), [cablePlan])
   // A deleted item comes back with a new id; steps recorded before still name the old one.
   const alias = useRef(new Map<string, string>())
   const idOf = useCallback((ref: ItemRef) => {
@@ -62,7 +75,7 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
 
   if (pending && pending.data !== data) setPending(null)
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
-  const present = useMemo(() => allItems(data), [data])
+  const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
 
   const shown = useMemo(() => {
@@ -100,12 +113,17 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
   const snapshot = useCallback(async (items: ItemRef[]): Promise<Saved[]> => {
     const want = items.filter((r) => r.kind !== 'switch')
     const hall = encodeURIComponent(data.hall)
-    const [blocks, marks] = await Promise.all([
-      want.some((r) => r.kind === 'block') ? get<Record<string, unknown>[]>(`/api/seat-blocks?hall=${hall}`) : Promise.resolve([]),
-      want.some((r) => r.kind === 'mark') ? get<{ marks: Record<string, unknown>[] }>(`/api/plan-marks?hall=${hall}`).then((m) => m.marks) : Promise.resolve([]),
+    const some = (k: ItemRef['kind']) => want.some((r) => r.kind === k)
+    const none = Promise.resolve([] as Record<string, unknown>[])
+    const [blocks, marks, panels, cableRows] = await Promise.all([
+      some('block') ? get<Record<string, unknown>[]>(`/api/seat-blocks?hall=${hall}`) : none,
+      some('mark') ? get<{ marks: Record<string, unknown>[] }>(`/api/plan-marks?hall=${hall}`).then((m) => m.marks) : none,
+      some('panel') ? get<{ panels: Record<string, unknown>[] }>(`/api/cable-plan?hall=${hall}`).then((m) => m.panels.map((p) => ({ ...p, id: p.name }))) : none,
+      some('cable') ? get<{ cables: Record<string, unknown>[] }>('/api/cables').then((m) => m.cables) : none,
     ])
+    const rows = { block: blocks, mark: marks, panel: panels, cable: cableRows, switch: [] }
     return want.map((r): Saved | null => {
-      const raw = (r.kind === 'block' ? blocks : marks).find((x) => x.id === idOf(r))
+      const raw = rows[r.kind].find((x) => String(x.id).toLowerCase() === idOf(r).toLowerCase())
       return raw ? { ref: r, raw: rawOf(r.kind, raw) } : null
     }).filter((x): x is Saved => !!x)
   }, [data.hall, idOf])
@@ -161,10 +179,12 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
   }, [data.hall, history, idOf, refresh, fail, qc])
 
   const blocksInUse = useCallback(() => get<{ naming?: string; row_start?: string; rows?: number; name?: string }[]>('/api/seat-blocks'), [])
+  const panelsInUse = useCallback(() => get<{ options: { value: string }[] }>('/api/options/panels').then((o) => o.options.map((x) => x.value)), [])
 
   const copy = useCallback(async (items: ItemRef[], cut = false) => {
     try {
-      const saved = await snapshot(items)
+      // A switch port has one cable: cables aren't copied (cut still removes them).
+      const saved = (await snapshot(items)).filter((s) => s.ref.kind !== 'cable')
       if (!saved.length) return
       writeClip(saved.map((s) => s.raw))
       notifications.show({ message: t(cut ? 'plan.edit.cut' : 'plan.edit.copied', { count: saved.length }), autoClose: 1500 })
@@ -181,23 +201,25 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     if (!clip?.length) return
     const to = at ?? pointer.current
     const d = to ? deltaTo(clip, to) : { x: 2, y: 3.2 }
-    await addRaws(copies(clip, d, await blocksInUse()), t('plan.edit.step.paste', { count: clip.length }))
-  }, [addRaws, blocksInUse, t])
+    await addRaws(copies(clip, d, await blocksInUse(), await panelsInUse()), t('plan.edit.step.paste', { count: clip.length }))
+  }, [addRaws, blocksInUse, panelsInUse, t])
 
   const duplicate = useCallback(async (items: ItemRef[]) => {
     try {
       const saved = await snapshot(items)
       // One seat further right and down, so the copy shows next to the original.
-      await addRaws(copies(saved.map((s) => s.raw), { x: 2, y: 3.2 }, await blocksInUse()), t('plan.edit.step.duplicate', { count: saved.length }))
+      const raws = copies(saved.map((s) => s.raw), { x: 2, y: 3.2 }, await blocksInUse(), await panelsInUse())
+      await addRaws(raws, t('plan.edit.step.duplicate', { count: raws.length }))
     } catch (err) {
       fail(err)
     }
-  }, [snapshot, addRaws, blocksInUse, t, fail])
+  }, [snapshot, addRaws, blocksInUse, panelsInUse, t, fail])
 
   /** Bring to front (``up``) or send to back: the items' z goes past every other item's. */
   const restack = useCallback(async (items: ItemRef[], up: boolean) => {
     try {
-      const all = await snapshot(present)
+      // Only blocks and marks stack; switches and patch panels are always on top.
+      const all = await snapshot(present.filter((r) => r.kind === 'block' || r.kind === 'mark'))
       const mine = all.filter((s) => items.some((r) => sameRef(r, s.ref)))
       if (!mine.length) return
       const zs = all.filter((s) => !mine.includes(s)).map((s) => Number(s.raw.body.z) || 0)
@@ -271,6 +293,52 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     if (made.length) setPlacing(null)
   }, [placing, pct, create, t])
 
+  const placePanel = useCallback(async (body: { name: string; ports: number }) => {
+    if (!placing) return false
+    const made = await create('panel', PATH.panel, { ...body, ...pct(placing.at) }, t('plan.edit.step.addPanel', { name: body.name }))
+    if (made.length) setPlacing(null)
+    return made.length > 0
+  }, [placing, pct, create, t])
+
+  /** The Cable tool: the form, filled with the seat, switch or patch panel that was clicked. */
+  const startCable = (raw: Point) => {
+    const sw = nearest(data.switches, raw, 24), panel = nearest(data.panels ?? [], raw, 24)
+    const seat = seatAt(data, raw) ?? ''
+    // A seat the port watch already found on a switch port: start from that port, to keep it as a cable.
+    const learned = seat ? cablePlan?.cables.find((c) => c.kind === 'lan' && !c.ref.cable && c.ref.seat === seat) : undefined
+    setCableForm({ cable: null, initial: { seat, switch: sw?.name ?? learned?.ref.switch ?? '', port: sw ? '' : learned?.ref.port ?? '', panel: panel?.name ?? '' } })
+  }
+  const editCable = async (id: string) => {
+    try {
+      const cable = (await get<{ cables: Cable[] }>('/api/cables')).cables.find((c) => c.id === id)
+      if (cable) setCableForm({ cable })
+    } catch (err) {
+      fail(err)
+    }
+  }
+  /** What the cable form did, as a step to undo. */
+  const cableDone = useCallback(async ({ saved, removed, before }: { saved?: Cable; removed?: Cable; before?: Cable | null }) => {
+    setCableForm(null)
+    const body = (c: Cable) => rawOf('cable', c as unknown as Record<string, unknown>).body
+    const ref = (c: Cable): ItemRef => ({ kind: 'cable', id: c.id })
+    const again = async (c: Cable) => {
+      const made = await post<Cable>(PATH.cable, body(c))
+      alias.current.set(`cable:${idOf(ref(c))}`, made.id)
+    }
+    const gone = (c: Cable) => del(`${PATH.cable}/${encodeURIComponent(idOf(ref(c)))}`)
+    if (removed) {
+      setSelection([])
+      history.push({ label: t('plan.edit.step.deleteCable'), undo: () => again(removed).then(refresh), redo: () => gone(removed).then(refresh) })
+    } else if (saved && before) {
+      const to = (c: Cable) => patch(`${PATH.cable}/${encodeURIComponent(idOf(ref(saved)))}`, body(c))
+      history.push({ label: t('plan.edit.step.changeCable'), undo: () => to(before).then(refresh), redo: () => to(saved).then(refresh) })
+    } else if (saved) {
+      history.push({ label: t('plan.edit.step.addCable'), undo: () => gone(saved).then(refresh), redo: () => again(saved).then(refresh) })
+      setSelection([ref(saved)])
+    }
+    await refresh()
+  }, [history, idOf, refresh, t])
+
   const drawWall = (a: Point, b: Point) => {
     const p = pct(a), q = pct(b)
     void create('mark', '/api/plan-marks', { kind: 'wall', x: p.x, y: p.y, x2: q.x, y2: q.y }, t('plan.edit.step.add.wall'))
@@ -335,10 +403,14 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
     <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
       <div className="fb-edit-stage">
       <ToolRail tool={tool} onTool={setTool} />
-      <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}}
+      <SeatMap data={shown} view={view} setView={setView} filter="all" selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables}
         overlay={(ctx) => (
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={setSelection} space={space} tool={tool}
-            onPlace={(at) => { if (tool === 'block' || tool === 'text' || tool === 'icon') setPlacing({ kind: tool, at }) }}
+            lines={cables.map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
+            onPlace={(at, raw) => {
+              if (tool === 'block' || tool === 'text' || tool === 'icon' || tool === 'panel') setPlacing({ kind: tool, at })
+              else if (tool === 'cable') startCable(raw)
+            }}
             onLine={drawWall} onBox={(b) => void drawZone(b)}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
@@ -377,7 +449,10 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
         </Menu>
       )}
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
-      <PlaceMarkDialog kind={placing && placing.kind !== 'block' ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
+      <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
+      <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
+      {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
+        onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
       <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
         <Stack gap="sm">
           <Group justify="space-between" wrap="nowrap">
@@ -392,6 +467,12 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
             </Group>
           </Group>
           {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} />}
+          {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
+            <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
+          )}
+          {one?.kind === 'cable' && cables.find((c) => c.ref.cable === one.id) && (
+            <CableFields cable={cables.find((c) => c.ref.cable === one.id)!} onEdit={() => void editCable(one.id)} />
+          )}
           {selected.length > 0 && selected.some((r) => r.kind !== 'switch') && (
             <Button variant="light" color="down" leftSection={<IconTrash size={16} />} onClick={() => void remove(selected)}>
               {t('plan.edit.delete', { count: selected.filter((r) => r.kind !== 'switch').length })}
@@ -414,6 +495,8 @@ export function PlanEditor({ data, view, setView, layers, refresh }: {
 function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: SeatViewData, ref: ItemRef) {
   if (ref.kind === 'block') return t('plan.edit.kind.block', { name: data.drawing?.shapes.find((s) => s.id === ref.id)?.name || '—' })
   if (ref.kind === 'switch') return t('plan.edit.kind.switch', { name: data.switches.find((w) => w.id === ref.id)?.name ?? '' })
+  if (ref.kind === 'panel') return t('plan.edit.kind.panel', { name: ref.id })
+  if (ref.kind === 'cable') return t('plan.edit.kind.cable')
   const m = data.drawing?.marks?.find((x) => x.id === ref.id)
   return t(`plan.edit.kind.${m?.kind ?? 'text'}`)
 }

@@ -1,6 +1,7 @@
 import { Button, Group, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { EntitySelect } from '@/components/EntitySelect'
 import type { SeatRow } from '@/api/types'
 
 type Field = 'ip' | 'mac' | 'nick' | 'note'
@@ -55,7 +56,8 @@ export function SeatForm({
         }}
       >
         <Stack gap="sm">
-          {!row && <TextInput label={t('seatmap.seat')} value={draft.seat} onChange={set('seat')} required maxLength={16} placeholder="A-12" />}
+          {!row && <EntitySelect kind="seats" label={t('seatmap.seat')} value={draft.seat} required
+            onChange={(v) => setDraft((d) => ({ ...d, seat: v }))} />}
           <TextInput label={t('seatmap.ip')} value={draft.ip} onChange={set('ip')} description={fallback('ip')} styles={mono} placeholder="192.0.2.10" maxLength={45} />
           <TextInput label={t('seatmap.mac')} value={draft.mac} onChange={set('mac')} description={fallback('mac')} styles={mono} placeholder="aa:bb:cc:dd:ee:ff" maxLength={20} />
           <TextInput label={t('seatmap.nick')} value={draft.nick} onChange={set('nick')} description={fallback('nick')} maxLength={64} />

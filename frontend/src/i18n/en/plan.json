@@ -271,7 +271,11 @@
       "duplicate_one": "duplicate",
       "duplicate_other": "duplicate {{count}} items",
       "front": "bring to front",
-      "back": "send to back"
+      "back": "send to back",
+      "addPanel": "add patch panel {{name}}",
+      "addCable": "add cable",
+      "changeCable": "change cable",
+      "deleteCable": "delete cable"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -283,14 +287,16 @@
       "pan": "+ drag to pan",
       "more": "Ctrl C/X/V copy, cut, paste · Ctrl D duplicate · right-click for more"
     },
-    "classic": "Tools not here yet (cables, power, groups, align): classic editor",
+    "classic": "Tools not here yet (power, groups, align, cable bends): classic editor",
     "kind": {
       "block": "Seat block {{name}}",
       "switch": "Switch {{name}}",
       "text": "Label",
       "icon": "Icon",
       "wall": "Wall",
-      "zone": "Zone"
+      "zone": "Zone",
+      "panel": "Patch panel {{name}}",
+      "cable": "Cable"
     },
     "name": "Name",
     "rotation": "Rotation",
@@ -303,14 +309,18 @@
       "text": "Label",
       "icon": "Icon",
       "wall": "Wall",
-      "zone": "Zone"
+      "zone": "Zone",
+      "panel": "Patch panel",
+      "cable": "Cable"
     },
     "hint": {
       "block": "Click where the new seat block goes.",
       "text": "Click where the label goes.",
       "icon": "Click where the icon goes.",
       "wall": "Drag from one end of the wall to the other. Shift keeps 15° steps, Alt leaves the grid.",
-      "zone": "Drag a box for the zone."
+      "zone": "Drag a box for the zone.",
+      "panel": "Click where the patch panel goes.",
+      "cable": "Click a seat, switch or patch panel: the cable form opens with it filled in. Ports list only the free ones."
     },
     "block": {
       "title": "New seat block",
@@ -392,6 +402,29 @@
     "styles": {
       "solid": "Solid",
       "dashed": "Dashed"
+    },
+    "panel": {
+      "title": "New patch panel",
+      "name": "Name",
+      "taken": "There is a patch panel with that name already.",
+      "ports": "Ports",
+      "help": "Cables through this panel pick one of its ports; each port takes one cable.",
+      "place": "Place",
+      "usage": "{{used}} of {{ports}} ports in use",
+      "full": "Full",
+      "portList": "Ports",
+      "free": "Free"
+    },
+    "cable": {
+      "switch": "Switch",
+      "panel": "Patch panel",
+      "seat": "Seat",
+      "imported": "Imported: change it in the source and import again.",
+      "edit": "Change cable"
     }
+  },
+  "net": {
+    "learned": "read from the port, not typed in",
+    "panel": "Patch panel {{name}}: {{used}} of {{ports}} ports in use"
   }
 }

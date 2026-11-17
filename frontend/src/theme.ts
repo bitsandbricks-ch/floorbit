@@ -2,8 +2,15 @@
 // variables, so presets, light/dark and an admin's custom theme apply to React pages without
 // a rebuild. Built after Hubra's (by Mike) packages/ui/src/theme.ts.
 import {
+  Autocomplete,
+  Combobox,
   createTheme,
+  Menu,
+  MultiSelect,
+  Popover,
+  Select,
   TableScrollContainer,
+  Tooltip,
   defaultVariantColorsResolver,
   type CSSVariablesResolver,
   type MantineColorsTuple,
@@ -39,6 +46,8 @@ export const variantColorResolver: VariantColorsResolver = (input) => {
   return result
 }
 
+const POP = { offset: 6, shadow: 'none', transitionProps: { transition: 'pop-top-left' as const, duration: 120 } }
+
 export const theme = createTheme({
   primaryColor: 'bit',
   primaryShade: 6,
@@ -57,6 +66,15 @@ export const theme = createTheme({
   },
   radius: { md: 'var(--radius-bit)', lg: 'var(--radius-card)' },
   components: {
+    // Dropdowns open like an app's menu: a quick pop from where they were opened, a check on the
+    // chosen option, never the browser's own list. Their look is in ui.css.
+    Select: Select.extend({ defaultProps: { checkIconPosition: 'right', maxDropdownHeight: 320, comboboxProps: POP } }),
+    MultiSelect: MultiSelect.extend({ defaultProps: { checkIconPosition: 'right', maxDropdownHeight: 320, comboboxProps: POP } }),
+    Autocomplete: Autocomplete.extend({ defaultProps: { maxDropdownHeight: 320, comboboxProps: POP } }),
+    Combobox: Combobox.extend({ defaultProps: POP }),
+    Menu: Menu.extend({ defaultProps: { ...POP, position: 'bottom-end' } }),
+    Popover: Popover.extend({ defaultProps: POP }),
+    Tooltip: Tooltip.extend({ defaultProps: { openDelay: 250, transitionProps: { transition: 'fade', duration: 100 } } }),
     // A wide table scrolls sideways on a phone; without focus a keyboard can't scroll it (issue #286).
     TableScrollContainer: TableScrollContainer.extend({
       defaultProps: { scrollAreaProps: { viewportProps: { tabIndex: 0 } } },

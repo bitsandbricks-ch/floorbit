@@ -24,6 +24,15 @@ describe('editor clipboard', () => {
     expect(copies([named], { x: 0, y: 0 }, [{ naming: 'block', name: 'G' }])[0].body.name).toBe('H')
   })
 
+  it('names copied patch panels after the ones in use and leaves cables', () => {
+    const panel = rawOf('panel', { id: 'PP-1', name: 'PP-1', x: 5, y: 5, ports: 24, hall_id: 'main' })
+    const cable = rawOf('cable', { id: 'c1', switch: 'sw-a-01', port: 'Gi1/0/1', seat: 'A-1', source: 'floorbit' })
+    expect(cable.body).toEqual({ switch: 'sw-a-01', port: 'Gi1/0/1', seat: 'A-1' })
+    const out = copies([panel, panel, cable], { x: 1, y: 0 }, [], ['PP-1', 'pp-2'])
+    expect(out.map((r) => r.body.name)).toEqual(['PP-3', 'PP-4'])
+    expect(out[0].body).toMatchObject({ x: 6, ports: 24 })
+  })
+
   it('pastes the first item at the pointer', () => {
     expect(deltaTo([block, wall], { x: 50, y: 50 })).toEqual({ x: 20, y: 10 })
   })

@@ -764,5 +764,12 @@
  "A patch panel position is a point on the plan in percent.": "Die Position eines Patchpanels ist ein Punkt auf dem Plan in Prozent.",
  "Floorbit keeps at most {} patch panels on the plan.": "Floorbit speichert höchstens {} Patchpanels auf dem Plan.",
  "No such patch panel on the plan": "Kein solches Patchpanel auf dem Plan",
- "That seat has no learned port": "Für diesen Platz ist kein Port gelernt"
+ "That seat has no learned port": "Für diesen Platz ist kein Port gelernt",
+ "Not allowed.": "Nicht erlaubt.",
+ "Unknown list.": "Unbekannte Liste.",
+ "A patch panel has 1 to {} ports.": "Ein Patchpanel hat 1 bis {} Ports.",
+ "There is a patch panel called {} already.": "Es gibt schon ein Patchpanel namens {}.",
+ "Port {} of {} has a cable: the panel needs at least {} ports.": "Port {} von {} hat ein Kabel: Das Panel braucht mindestens {} Ports.",
+ "{} has ports 1 to {}.": "{} hat die Ports 1 bis {}.",
+ "{} port {} already has a cable.": "{} Port {} hat schon ein Kabel."
 }

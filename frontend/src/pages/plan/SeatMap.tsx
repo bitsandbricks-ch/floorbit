@@ -3,12 +3,13 @@ import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { FirewallSeats, IncidentMarkers, PlanSeat, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlanCable, PlanSeat, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import {
   type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
   parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
 import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
+import { CableLines, PanelGlyphs } from './NetworkLayer'
 import { PowerLayer } from './PowerLayer'
 import { WifiLayer } from './WifiLayer'
 
@@ -126,7 +127,7 @@ export interface OverlayContext {
 }
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents, overlay }: {
+  layers = ALL_DEFAULT, wifi, incidents, cables, overlay }: {
   data: SeatViewData; selected: string | null; onSelect: (seat: string) => void; onClear?: () => void
   onBlock?: (block: string) => void; onSwitch?: (name: string) => void; filter: Filter
   view: View; setView: (v: View) => void; traffic?: boolean
@@ -142,6 +143,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   wifi?: WifiData
   /** The crew layer: open incidents per seat and switch. */
   incidents?: IncidentMarkers
+  /** Seat cables on the Network layer (Network and Edit modes; GET /api/cable-plan). */
+  cables?: PlanCable[]
   /** Drawn over everything and given the pointer first (the editor, pages/plan/edit/). */
   overlay?: (ctx: OverlayContext) => React.ReactNode
 }) {
@@ -306,6 +309,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </line>
           )
         })}</g>}
+        {network && cables && <g opacity={opacity(layers, 'network')}><CableLines cables={cables} size={data.size} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
         {drawing.shapes.map((b, bi) => (
           <g key={bi}>
@@ -366,6 +370,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             {level === 'near' && <text y={22} fontSize={11}>{w.name}</text>}
           </g>
         ))}</g>}
+        {network && data.panels?.length ? <g opacity={opacity(layers, 'network')}><PanelGlyphs panels={data.panels} near={level === 'near'} /></g> : null}
         {/* toPlan reads the svg's box, but overlays call it only from pointer events, never while drawing. */}
         {/* eslint-disable-next-line react-hooks/refs */}
         {overlay?.({ toPlan, scale: s, shown: px.w && px.h ? { x: view.x + view.w / 2 - px.w / s / 2, y: view.y + view.h / 2 - px.h / s / 2, w: px.w / s, h: px.h / s } : view })}

@@ -1,7 +1,8 @@
 import type { PlanMark, PlanShape, SeatViewData } from '@/api/types'
 
-/** What the editor can select on the plan. Ids are the server's: seat block, plan mark, switch. */
-export type ItemKind = 'block' | 'mark' | 'switch'
+/** What the editor can select on the plan. Ids are the server's: seat block, plan mark, switch,
+ *  patch panel (its name) and cable (crew and imported cables; ones only the port watch read have none). */
+export type ItemKind = 'block' | 'mark' | 'switch' | 'panel' | 'cable'
 export interface ItemRef { kind: ItemKind; id: string }
 export const refKey = (r: ItemRef) => `${r.kind}:${r.id}`
 export const sameRef = (a: ItemRef, b: ItemRef) => a.kind === b.kind && a.id === b.id
@@ -29,6 +30,11 @@ export function anchorOf(data: SeatViewData, ref: ItemRef): Point | null {
     const m = data.drawing?.marks?.find((x) => x.id === ref.id)
     return m ? { x: m.x, y: m.y } : null
   }
+  if (ref.kind === 'panel') {
+    const p = data.panels?.find((x) => x.name === ref.id)
+    return p ? { x: p.x, y: p.y } : null
+  }
+  if (ref.kind === 'cable') return null
   const w = data.switches.find((x) => x.id === ref.id)
   return w ? { x: w.x, y: w.y } : null
 }
@@ -57,7 +63,8 @@ export function moved(data: SeatViewData, items: ItemRef[], d: Point): SeatViewD
   const shapes: PlanShape[] = data.drawing.shapes.map((s) => (has('block', s.id) ? { ...s, cx: s.cx + d.x, cy: s.cy + d.y } : s))
   const marks = data.drawing.marks?.map((m) => (has('mark', m.id) ? shiftMark(m, d) : m))
   const switches = data.switches.map((w) => (has('switch', w.id) ? shift(w, d) : w))
-  return { ...data, drawing: { ...data.drawing, shapes, marks }, switches }
+  const panels = data.panels?.map((p) => (has('panel', p.name) ? shift(p, d) : p))
+  return { ...data, drawing: { ...data.drawing, shapes, marks }, switches, panels }
 }
 
 /** The server update that puts one item where ``moved`` drew it, in % of the plan; the inverse is
@@ -78,8 +85,9 @@ export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<st
     }
     return a
   }
-  const w = data.switches.find((x) => x.id === ref.id)
-  return w ? pct({ x: w.x + d.x, y: w.y + d.y }) : null
+  if (ref.kind === 'cable') return null
+  const at = anchorOf(data, ref)
+  return at ? pct({ x: at.x + d.x, y: at.y + d.y }) : null
 }
 
 /** The outline the editor draws around a selected item, in drawing units (unrotated box and its rotation). */
@@ -95,6 +103,11 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
     const w = data.switches.find((x) => x.id === ref.id)
     return w ? { box: { x: w.x - 12, y: w.y - 12, w: 24, h: 24 }, rotation: 0, centre: w } : null
   }
+  if (ref.kind === 'panel') {
+    const p = data.panels?.find((x) => x.name === ref.id)
+    return p ? { box: { x: p.x - 20, y: p.y - 9, w: 40, h: 18 }, rotation: 0, centre: { x: p.x, y: p.y } } : null
+  }
+  if (ref.kind === 'cable') return null
   const m = data.drawing?.marks?.find((x) => x.id === ref.id)
   if (!m) return null
   if (m.kind === 'zone') return { box: { x: m.x, y: m.y, w: m.w ?? 0, h: m.h ?? 0 }, rotation: 0, centre: { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 } }
@@ -112,8 +125,9 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
 export function allItems(data: SeatViewData): ItemRef[] {
   const marks = (data.drawing?.marks ?? []).filter((m) => m.id).map((m) => ({ kind: 'mark' as const, id: m.id! }))
   const blocks = (data.drawing?.shapes ?? []).filter((s) => s.id).map((s) => ({ kind: 'block' as const, id: s.id! }))
+  const panels = (data.panels ?? []).map((p) => ({ kind: 'panel' as const, id: p.name }))
   const switches = data.switches.map((w) => ({ kind: 'switch' as const, id: w.id }))
-  return [...marks, ...blocks, ...switches]
+  return [...marks, ...blocks, ...panels, ...switches]
 }
 
 /** The items whose outline lies inside ``box`` (a drag on empty plan selects them). */
@@ -126,3 +140,27 @@ export function inside(data: SeatViewData, box: Box): ItemRef[] {
 }
 
 export const boxFrom = (a: Point, b: Point): Box => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) })
+
+/** The seat under ``p`` (drawing units), if any: each cell is ``cell`` square at its block-local
+ *  corner, turned with the block. */
+export function seatAt(data: SeatViewData, p: Point): string | null {
+  const cell = data.drawing?.cell ?? 32
+  for (const b of data.drawing?.shapes ?? []) {
+    const r = (-b.rotation * Math.PI) / 180
+    const dx = p.x - b.cx, dy = p.y - b.cy
+    const lx = dx * Math.cos(r) - dy * Math.sin(r), ly = dx * Math.sin(r) + dy * Math.cos(r)
+    const hit = b.cells.find((c) => lx >= c.x && lx < c.x + cell && ly >= c.y && ly < c.y + cell)
+    if (hit) return hit.seat
+  }
+  return null
+}
+
+/** The switch or patch panel nearest to ``p`` within ``reach`` drawing units. */
+export function nearest<T extends Point>(items: T[], p: Point, reach: number): T | null {
+  let best: T | null = null, dist = reach
+  for (const it of items) {
+    const d = Math.hypot(it.x - p.x, it.y - p.y)
+    if (d <= dist) { best = it; dist = d }
+  }
+  return best
+}
