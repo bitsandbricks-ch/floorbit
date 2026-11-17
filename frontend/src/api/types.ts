@@ -815,26 +815,6 @@ export interface HandoverData {
   discord: boolean
 }
 
-/** Build planner (issue #34). */
-export interface PlannerSettings {
-  model: string; access_ports: number; uplink_ports: number; spare: number
-  vlan_mode: 'block' | 'hall' | 'one'; vlan_base: number; name: string
-  mgmt_net: string; mgmt_first: number; mgmt_gateway: string; mgmt_vlan: number
-}
-export interface PlannerModel { id: string; label: string; access: string; uplink: string; builtin: boolean; text?: string }
-export interface PlannedPort { n: number; name: string; seat: string; vlan: number }
-export interface PlannedSwitch {
-  name: string; block: string; hall_id: string; hall: string; vlan: number; mgmt_ip: string | null; exists: boolean
-  ports: PlannedPort[]; spare: { n: number; name: string }[]; uplinks: { n: number; name: string }[]
-}
-export interface BuildPlan {
-  settings: PlannerSettings; model: Omit<PlannerModel, 'builtin' | 'text'>
-  blocks: { name: string; hall: string; seats: number; vlan: number; switches: string[] }[]
-  switches: PlannedSwitch[]; vlans: { id: number; name: string }[]; problems: string[]
-  totals: { seats: number; switches: number; new: number; vlans: number; uplinks: number }
-}
-export interface PlannerData { plan: BuildPlan; models: PlannerModel[] }
-
 /** Pre-flight check board (issue #35). */
 export type PreflightStatus = 'pass' | 'warn' | 'fail' | 'skip'
 export type PreflightGroupId = 'switches' | 'uplinks' | 'services'
@@ -1419,7 +1399,10 @@ export interface PlanCable {
   key: string; kind: 'lan' | 'uplink' | 'power'; layer: string; points: [number, number][]; manual: boolean
   /** The crew has drawn this cable (bends or corners) rather than leaving it automatic. */
   drawn?: boolean
-  corners: 'square' | 'round'; via: string | null; label: string; media?: string; speed?: number | null
+  /** straight: one line end to end (``bends`` kept for when it is angled again). */
+  corners: 'square' | 'round' | 'straight'; via: string | null; label: string; media?: string; speed?: number | null
+  /** The bends the crew placed (null: automatic route). */
+  bends?: [number, number][] | null
   ref: { cable?: string | null; source?: string; switch?: string; port?: string; seat?: string; link?: string; circuit?: string }
 }
 export interface CablePlan { cables: PlanCable[]; panels: { name: string; x: number | null; y: number | null; ports: number }[]; auto: boolean }
