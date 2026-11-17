@@ -398,12 +398,8 @@ def suggest_seat(ip, load_data, app=None):
 
 def known_seats(load_data):
     """Seat numbers from the floor plan's seat blocks, as the frontend numbers them."""
-    seats = set()
-    for block in load_data().get('seat_blocks', []):
-        prefix = f"{block['name'].upper()}-" if block.get('name') else ''
-        total = int(block.get('cols', 1)) * int(block.get('rows', 1))
-        seats.update(f'{prefix}{i}' for i in range(1, total + 1))
-    return seats
+    from floorbit import incidents
+    return incidents.seat_numbers(load_data())
 
 
 # ── core ───────────────────────────────────────────────────────────────────────
