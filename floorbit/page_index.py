@@ -46,7 +46,6 @@ PAGES = (
     ('/checkins', 'checkins', 'Check-in', lambda c, can: can('seats.view') and _checkin_on()),
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
-    ('/gear', 'gear', 'Gear', lambda c, can: c['feature_on']('gear') and can('incidents.work')),
     ('/preflight', 'preflight', 'Pre-flight check', lambda c, can: c['feature_on']('preflight')),
     ('/tournament', 'tournament', 'Tournament seats', lambda c, can: c['feature_on']('tournament')),
     ('/tournament/brackets', 'brackets', 'Brackets', lambda c, can: c['feature_on']('tournament')),

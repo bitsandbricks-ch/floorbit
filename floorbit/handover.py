@@ -29,7 +29,7 @@ FIRST_SHIFT_HOURS = 8          # with no handover yet, look back this far
 MAX_CHANGES = 100
 MAX_COMING_UP = 12
 # Audit areas a shift wants to know about. Incidents have their own section; sign-ins are noise.
-CHANGE_AREAS = ('ports', 'settings', 'floor plan', 'power', 'plugins', 'accounts', 'security', 'check-in', 'gear')
+CHANGE_AREAS = ('ports', 'settings', 'floor plan', 'power', 'plugins', 'accounts', 'security', 'check-in')
 
 _lock = threading.Lock()
 
@@ -119,18 +119,6 @@ def _mutes(now):
             for key, m in sorted(alerting.mutes(now).items(), key=lambda kv: kv[1]['until'])]
 
 
-def _gear_out(data):
-    """Who still holds gear, most pieces first (issue #324): a loan outlives the shift that made it."""
-    from . import features, gear
-    if 'gear' in features.off(data):
-        return []
-    held = {}
-    for r in gear.outstanding(data):
-        held.setdefault(r['loan']['to'], []).append(r['name'])
-    return [{'to': to, 'count': len(names), 'names': sorted(names)}
-            for to, names in sorted(held.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))]
-
-
 def _coming_up(data, now):
     """Programme items that start within the next shift (issue #432), earliest first."""
     from . import schedule
@@ -157,7 +145,6 @@ def summary(switch_events, problems_now, since=None, now=None):
     notes = [{'seat': seat, **n} for seat, n in seat_notes.all_notes(data).items() if (n.get('at') or 0) >= since]
     notes.sort(key=lambda n: -(n.get('at') or 0))
     mutes = _mutes(now)
-    gear_out = _gear_out(data)
     # How fast this shift fixed things (issue #334): the middle value, so one long job doesn't skew it.
     took = sorted(i['fixed_at'] - i['created_at'] for i in fixed if i['fixed_at'] and i['created_at'])
     return {
@@ -168,15 +155,13 @@ def summary(switch_events, problems_now, since=None, now=None):
         'changes': changes,
         'seat_notes': notes,
         'mutes': mutes,
-        'gear': gear_out,
         'coming_up': _coming_up(data, now),
         'notice': notice.current(data, now),
         'counts': {'open': len(still_open), 'waiting': sum(1 for i in items if incidents.is_waiting(i, now)),
                    'opened': opened, 'fixed': len(fixed),
                    'median_fix_s': round(took[len(took) // 2]) if took else None, 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
-                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes),
-                   'gear_out': sum(g['count'] for g in gear_out)},
+                   'problems': problems_now.get('down', 0) + problems_now.get('warn', 0), 'muted': len(mutes)},
     }
 
 
@@ -208,12 +193,10 @@ def discord_message(record, summary_, public_url='', username='Floorbit'):
     muted = summary_.get('mutes') or []
     if muted:
         lines.append(f"🔕 **{len(muted)}** muted: " + ', '.join(
-            f"{m['name']} (until {datetime.fromtimestamp(m['until']).astimezone():%H:%M})" for m in muted[:5])
+            # Discord renders <t:…:R> in each reader's language and time zone ("in 2 hours", "in 2 Stunden");
+            # the server's clock is often UTC in a container.
+            f"{m['name']} (<t:{int(m['until'])}:R>)" for m in muted[:5])
             + (', ...' if len(muted) > 5 else ''))
-    gear_out = summary_.get('gear') or []
-    if gear_out:
-        lines.append(f"🎒 **{sum(g['count'] for g in gear_out)}** pieces of gear out: " + ', '.join(
-            f"{g['to']} ({g['count']})" for g in gear_out[:5]) + (', ...' if len(gear_out) > 5 else ''))
     top = summary_['incidents']['open'][:5]
     if top:
         lines.append('')

@@ -36,7 +36,6 @@ const Jobs = lazy(() => import('@/pages/Jobs'))
 const Tournament = lazy(() => import('@/pages/Tournament'))
 const Handover = lazy(() => import('@/pages/Handover'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
-const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
 const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
@@ -103,7 +102,6 @@ export default function App() {
             <Route path="/tournament" element={<Tournament />} />
             <Route path="/handover" element={<Handover />} />
             <Route path="/preflight" element={<Preflight />} />
-            <Route path="/gear" element={<Gear />} />
             <Route path="/cables" element={<Cables />} />
             <Route path="/cables/walk" element={<WalkRow />} />
             <Route path="/wifi" element={<Wifi />} />

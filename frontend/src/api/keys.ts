@@ -21,7 +21,6 @@ export const qk = {
   brackets: ['tournament', 'brackets'] as const,
   crew: ['crew'] as const,
   handover: ['handover'] as const,
-  gear: ['gear'] as const,
   cables: ['cables'] as const,
   wifi: (hall: string) => ['wifi', hall] as const,
   checkinOverview: ['checkins', 'overview'] as const,

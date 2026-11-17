@@ -28,7 +28,7 @@
   "delete": "Delete",
   "deleteQuestion": "Delete {{name}} with its report and floor plan? This can't be undone.",
   "closeTitle": "Close this event and start the next",
-  "closeHelp": "The event is kept with its report and floor plan. The next one starts from it: the floor plan and settings stay; the report's history, incidents, handovers, pre-flight results and the gear log start again. Gear still out stays out.",
+  "closeHelp": "The event is kept with its report and floor plan. The next one starts from it: the floor plan and settings stay; the report's history, incidents, handovers and pre-flight results start again.",
   "nextName": "Name of the next event",
   "nextNameHelp": "Optional. Becomes the event name in the theme settings.",
   "typeToConfirm": "Type \"{{word}}\" to confirm",

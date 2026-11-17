@@ -80,8 +80,6 @@ ACTIONS = {
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
     ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
     ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
-    ('POST', '/api/gear/<device_id>/out'): ('gear', 'Checked out gear'),
-    ('POST', '/api/gear/<device_id>/in'): ('gear', 'Checked in gear'),
     ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
     ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
     ('PUT', '/api/notice'): ('incidents', 'Put up a crew notice'),
