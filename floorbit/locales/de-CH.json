@@ -362,6 +362,7 @@
  "The length is 0.1 to 500 metres.": "Die Länge ist 0,1 bis 500 Meter.",
  "The length is a number of metres.": "Die Länge ist eine Zahl in Metern.",
  "The local agent did not answer {} within {} s.": "Der lokale Agent hat {} nicht innert {} s beantwortet.",
+ "The local agent went away before it answered {}; it may have run. Look before trying again.": "Der lokale Agent war weg, bevor er {} beantwortet hat; es ist vielleicht trotzdem gelaufen. Erst nachsehen, dann nochmals versuchen.",
  "The local agent has too much to do.": "Der lokale Agent hat zu viel zu tun.",
  "The local agent is not connected.": "Der lokale Agent ist nicht verbunden.",
  "The management network must look like 10.10.0.0/24.": "Das Management-Netz muss wie 10.10.0.0/24 aussehen.",

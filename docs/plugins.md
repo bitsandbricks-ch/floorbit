@@ -260,7 +260,7 @@ class Plugin(Base):
     def endpoint_data(self, args):
         return {'count': self.ctx.state.get('count', 0)}
 
-    def test(self):                                     # optional: the Test button
+    def test(self):                                     # optional: the Test button (on the agent for LAN plugins)
         return 'Connected'
 ```
 

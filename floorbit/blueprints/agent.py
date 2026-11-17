@@ -44,6 +44,10 @@ LINK_PATH = '/api/agent/v2/link'
 LINK_TAKE = 5            # seconds the link waits for calls before it looks at the connection again
 LINK_PING = 20           # a message at least this often, so proxies keep the connection open
 LINK_IDLE = 60           # an agent silent for this long is gone: close, it reconnects
+# A frozen agent or a cut line sends no close: when the agent sits on a call this long without a
+# word, ask it (a ping it echoes); no word back within LINK_PROBE_WAIT and the link is dead.
+LINK_PROBE = 3
+LINK_PROBE_WAIT = 5
 
 
 @bp.record_once
@@ -340,6 +344,18 @@ def link(ws):
     ``{"type": "ping"}`` both ways keeps it alive. Syslog and flows stay on their HTTPS posts."""
     agent = g.link_agent
     gone = threading.Event()
+    released = []
+    heard = [time.monotonic()]       # when the agent last said anything
+    release_lock = threading.Lock()
+
+    def release():
+        # Whichever side sees the link end first: the reader at once, the sender within LINK_TAKE.
+        with release_lock:
+            if released:
+                return
+            released.append(True)
+        if agent_link.tunnel.unlinked(agent['id']):
+            events.publish('agents.changed', {})
 
     def read():
         try:
@@ -347,6 +363,7 @@ def link(ws):
                 raw = ws.receive(timeout=LINK_IDLE)
                 if raw is None:
                     break
+                heard[0] = time.monotonic()
                 agent_link.tunnel.seen(agent=agent['id'])
                 try:
                     message = json.loads(raw)
@@ -360,19 +377,34 @@ def link(ws):
             pass
         finally:
             gone.set()
+            release()
 
+    agent_link.tunnel.linked(agent['id'])
     threading.Thread(target=read, name='agent-link-read', daemon=True).start()
     events.publish('agents.changed', {})
     ws.send(json.dumps({'type': 'hello', 'name': agent['name'], 'protocol': agent_link.PROTOCOL}))
     quiet_since = time.monotonic()
+    probed = None
     try:
         while not gone.is_set():
             if not agent_link.enrolled(agent['id']):
                 # Revoked while connected: the key is no good any more, so neither is this link.
                 ws.close(reason=1008, message='The agent key was revoked.')
                 break
-            agent_link.tunnel.seen(agent=agent['id'])
-            calls = agent_link.tunnel.take(LINK_TAKE, agent=agent['id'])
+            now = time.monotonic()
+            if probed is not None and heard[0] >= probed:
+                probed = None
+            if probed is not None and now - probed > LINK_PROBE_WAIT:
+                release()                # pages stop waiting now, whatever the close below does
+                ws.close(reason=1001, message='The agent stopped answering.')
+                break
+            if (probed is None and now - heard[0] > LINK_PROBE
+                    and agent_link.tunnel.waiting_on(agent['id'], LINK_PROBE, now)):
+                ws.send(json.dumps({'type': 'ping'}))
+                probed = quiet_since = now
+            if now - heard[0] < LINK_IDLE:
+                agent_link.tunnel.seen(agent=agent['id'])
+            calls = agent_link.tunnel.take(1 if probed is not None else LINK_TAKE, agent=agent['id'])
             if calls and gone.is_set():
                 agent_link.tunnel.give_back(calls)
                 break
@@ -388,6 +420,7 @@ def link(ws):
                 quiet_since = time.monotonic()
     finally:
         gone.set()
+        release()
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).

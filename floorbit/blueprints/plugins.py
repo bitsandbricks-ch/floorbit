@@ -127,9 +127,14 @@ def test_plugin(plugin_id):
     spec = _registry().active(plugin_id)
     if spec is None:
         return _error('Turn the plugin on first', 404)
+    from .. import agent_link
     try:
-        message = _registry().call(spec, 'test')
-    except PluginError as exc:
+        if _registry().reaches_lan(spec) and not agent_link.may_call_here(spec):
+            # It runs on the agent, so that is where its test has to run: this server can't reach it.
+            message = agent_link.tunnel.call('plugin_test', [spec.id], timeout=20)
+        else:
+            message = _registry().call(spec, 'test')
+    except (PluginError, agent_link.AgentError, agent_link.AgentUnavailable) as exc:
         return jsonify({'ok': False, 'message': str(exc)})
     return jsonify({'ok': True, 'message': str(message or 'OK')[:500]})
 

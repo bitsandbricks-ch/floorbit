@@ -547,6 +547,11 @@ class Registry:
         spec = self.specs.get(plugin_id)
         return spec if spec and self.enabled(spec) else None
 
+    def reaches_lan(self, spec):
+        """Does the plugin talk to the event network (has any of LAN_METHODS)?"""
+        cls = spec.plugin_class()
+        return cls is not None and any(callable(getattr(cls, m, None)) for m in LAN_METHODS)
+
     def call(self, spec, method, *args):
         """Run one plugin method. PluginError messages are shown; anything else is logged."""
         cls = spec.plugin_class()
