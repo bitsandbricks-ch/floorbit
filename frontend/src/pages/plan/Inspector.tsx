@@ -154,13 +154,18 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
   { key: 'note', seat: { state: 'online', note: true } },
 ]
 
-/** The same shapes as on the plan, so the legend can't drift from it. */
-export function Legend({ checkin, traffic = false, power = false, firewalls = false }: {
-  checkin: boolean; traffic?: boolean; power?: boolean; firewalls?: boolean
+/** The same shapes as on the plan, so the legend can't drift from it. ``seats: false`` leaves the
+ *  seat states out (for one layer's legend); ``samples`` picks seat states by key. */
+export function Legend({ checkin, traffic = false, power = false, firewalls = false, seats = true, samples, label }: {
+  checkin: boolean; traffic?: boolean; power?: boolean; firewalls?: boolean; seats?: boolean; samples?: string[]
+  /** The list's name when there are several, such as one per layer. */
+  label?: string
 }) {
   const { t } = useTranslation()
+  const shown = SAMPLES.filter((x) => (samples ? samples.includes(x.key) : seats && (checkin || x.key !== 'checkedIn')))
+  if (!shown.length && !traffic && !power && !firewalls) return null
   return (
-    <ul className="fb-plan-legend" aria-label={t('plan.legend')}>
+    <ul className="fb-plan-legend" aria-label={label ?? t('plan.legend')}>
       {power && (['ok', 'warn', 'crit', 'tripped'] as const).map((s) => (
         <li key={s}>
           <svg width={22} height={10} aria-hidden="true" className="fb-plan"><line className={`pcable pw-${s}`} x1={1} y1={5} x2={21} y2={5} /></svg>
@@ -180,7 +185,7 @@ export function Legend({ checkin, traffic = false, power = false, firewalls = fa
           {t('plan.trafficScale')} <span>{rate(HEAT_MIN)}</span><i style={{ background: HEAT_GRADIENT }} aria-hidden="true" /><span>{rate(HEAT_MAX)}</span>
         </li>
       )}
-      {SAMPLES.filter((x) => checkin || x.key !== 'checkedIn').map((x) => (
+      {shown.map((x) => (
         <li key={x.key}>
           <svg viewBox="-4 -4 40 40" width={22} height={22} aria-hidden="true" className="fb-plan"><SeatGlyph seat={x.seat} size={32} detail /></svg>
           {t(`plan.legendItem.${x.key}`)}

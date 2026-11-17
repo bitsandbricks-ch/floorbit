@@ -31,6 +31,26 @@
   "zoomOut": "Zoom out",
   "fit": "Show the whole hall",
   "minimap": "Overview of the hall: click or drag to move there",
+  "side": {
+    "label": "Plan panel",
+    "layers": "Layers",
+    "problems": "Problems",
+    "items": "Items",
+    "hide": "Hide the panel",
+    "show": "Show the panel",
+    "allGood": "Nothing to look at: no seat with a problem, none offline, every switch up.",
+    "switchesDown_one": "{{count}} switch offline",
+    "switchesDown_other": "{{count}} switches offline",
+    "withProblems_one": "{{count}} seat with a problem",
+    "withProblems_other": "{{count}} seats with problems",
+    "offline_one": "{{count}} seat offline",
+    "offline_other": "{{count}} seats offline",
+    "blocks_one": "{{count}} seat block",
+    "blocks_other": "{{count}} seat blocks",
+    "block": "Block {{name}}",
+    "switches_one": "{{count}} switch",
+    "switches_other": "{{count}} switches"
+  },
   "state": {
     "online": "Online",
     "offline": "Offline",
@@ -194,6 +214,7 @@
     "imageFailed": "The picture could not be made. Try SVG, or print to PDF."
   },
   "shortcuts": {
+    "side": "Fold the side panel away or back",
     "title": "Keyboard shortcuts",
     "show": "Keyboard shortcuts",
     "intro": "Tab to the plan first. /, ?, Esc, L and 1 to 4 work anywhere on the page.",
@@ -233,6 +254,7 @@
       "ungroup": "Take the selection out of its group",
       "stack": "Bring to front, send to back",
       "rotate": "Turn a quarter turn, or back",
+      "lock": "Lock the selection in place, or unlock it",
       "delete": "Delete, or take switches off the plan",
       "cycle": "With something selected: the next or previous item, top to bottom"
     },
@@ -264,6 +286,8 @@
     "button": "Layers",
     "title": "Layers",
     "presets": "Presets",
+    "legendOf": "Legend: {{layer}}",
+    "seatStates": "Seats",
     "preset": {
       "overview": "Overview",
       "network": "Network",
@@ -353,7 +377,13 @@
       "addSwitch": "add switch {{name}}",
       "placeSwitch_one": "place switch",
       "placeSwitch_other": "place {{count}} switches",
-      "renameGroup": "Rename group"
+      "renameGroup": "Rename group",
+      "lock_one": "lock",
+      "lock_other": "lock {{count}} items",
+      "unlock_one": "unlock",
+      "unlock_other": "unlock {{count}} items",
+      "changeAll_one": "change {{count}} item",
+      "changeAll_other": "change {{count}} items"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -382,8 +412,19 @@
     "text": "Text",
     "label": "Label",
     "tools": "Tools",
+    "quick": "Selection",
+    "rotateHandle": "Drag to turn; Shift keeps 15° steps",
+    "rotationDegrees": "Angle in degrees",
+    "wall": {
+      "help": "Drag the corner squares to move the ends, the dots in the middle of a stretch to bend the wall, double-click a bend to take it out. Ends snap onto other walls; Shift keeps 15° steps, Alt leaves the grid.",
+      "straighten_one": "Straighten (remove {{count}} bend)",
+      "straighten_other": "Straighten (remove {{count}} bends)",
+      "addBend": "Drag to bend the wall here",
+      "bend": "Bend: drag to move, double-click to take it out"
+    },
     "tool": {
       "select": "Select",
+      "hand": "Hand",
       "block": "Seat block",
       "text": "Label",
       "icon": "Icon",
@@ -395,6 +436,7 @@
       "switch": "Switch"
     },
     "hint": {
+      "hand": "Drag to move the view. Space + drag or the middle mouse button do the same with any tool.",
       "block": "Click where the new seat block goes.",
       "text": "Click where the label goes.",
       "icon": "Click where the icon goes.",
@@ -473,7 +515,9 @@
       "delete": "Delete",
       "group": "Group",
       "ungroup": "Ungroup",
-      "unplace": "Take off the plan"
+      "unplace": "Take off the plan",
+      "lock": "Lock in place",
+      "unlock": "Unlock"
     },
     "layer": "Layer",
     "layers": {
@@ -630,7 +674,12 @@
     },
     "smallScreen": "On a phone, tap to select and drag to move; the panel is under the plan. Drawing and arranging work best with a mouse on a larger screen.",
     "unplace_one": "Take off the plan",
-    "unplace_other": "Take {{count}} off the plan"
+    "unplace_other": "Take {{count}} off the plan",
+    "locked": "Locked: it stays where it is until you unlock it (Ctrl+Shift+L)",
+    "mixed": "mixed",
+    "sharedFields": "All selected",
+    "lockedN_one": "{{count}} locked item stays where it is (Ctrl+Shift+L unlocks)",
+    "lockedN_other": "{{count}} locked items stay where they are (Ctrl+Shift+L unlocks)"
   },
   "net": {
     "uplinks_one": "{{count}} link between switches",

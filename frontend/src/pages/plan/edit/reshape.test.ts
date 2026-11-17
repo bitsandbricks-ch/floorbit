@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanMark } from '@/api/types'
-import { handlesOf, reshape, shapeBody } from './reshape'
+import { wallRoute } from './geometry'
+import { handlesOf, measure, reshape, shapeBody, snapCorner, withRoute } from './reshape'
 
 const size = { w: 1600, h: 1000 }
 
@@ -43,5 +44,48 @@ describe('reshape', () => {
     const [[, p]] = handlesOf(m, { x: 10, y: 5 })
     expect(p.x).toBeCloseTo(-5)
     expect(p.y).toBeCloseTo(10)
+  })
+})
+
+describe('turned zones', () => {
+  it('puts the corner handles on the turned corners and keeps the opposite corner still', () => {
+    const z: PlanMark = { id: 'z', kind: 'zone', x: 0, y: 0, w: 100, h: 50, rotation: 90 }
+    const corners = Object.fromEntries(handlesOf(z, { x: 0, y: 0 }).map(([h, p]) => [h, { x: Math.round(p.x), y: Math.round(p.y) }]))
+    // Turned a quarter round its middle (50, 25): the top left corner swings to the top right.
+    expect(corners.nw).toEqual({ x: 75, y: -25 })
+    const out = reshape(z, 'se', { x: 15, y: 105 }, corners.se, size, false)
+    const after = Object.fromEntries(handlesOf(out, { x: 0, y: 0 }).map(([h, p]) => [h, { x: Math.round(p.x), y: Math.round(p.y) }]))
+    expect(after.nw).toEqual(corners.nw)
+    expect(after.se).toEqual({ x: 15, y: 105 })
+  })
+})
+
+describe('walls with bends', () => {
+  const wall: PlanMark = { id: 'w', kind: 'wall', x: 0, y: 0, x2: 160, y2: 100, points: [[160, 0]] }
+
+  it('keeps the bends between the ends, and sends them in %', () => {
+    expect(wallRoute(wall)).toEqual([{ x: 0, y: 0 }, { x: 160, y: 0 }, { x: 160, y: 100 }])
+    const bent = withRoute(wall, [{ x: 0, y: 0 }, { x: 80, y: 0 }, { x: 80, y: 100 }, { x: 160, y: 100 }])
+    expect(bent.points).toEqual([[80, 0], [80, 100]])
+    expect(shapeBody(bent, size)).toEqual({ x: 0, y: 0, x2: 10, y2: 10, points: [[5, 0], [5, 10]] })
+    // Straight again: no bends left, and the server is told so.
+    const straight = withRoute(wall, [{ x: 0, y: 0 }, { x: 160, y: 100 }])
+    expect(straight.points).toBeUndefined()
+    expect(shapeBody(straight, size).points).toEqual([])
+  })
+
+  it('snaps a corner onto another wall when near, else 15° steps with Shift, else the grid', () => {
+    const anchors = [{ x: 100, y: 100 }]
+    expect(snapCorner({ x: 104, y: 97 }, { anchors, reach: 8, size })).toEqual({ x: 100, y: 100 })
+    expect(snapCorner({ x: 130, y: 97 }, { anchors, reach: 8, size })).toEqual({ x: 128, y: 95 })   // the 0.5 % grid
+    const tilted = snapCorner({ x: 100, y: 3 }, { from: { x: 0, y: 0 }, angle: true, size })
+    expect(tilted.y).toBeCloseTo(0)
+    expect(snapCorner({ x: 13, y: 7 }, { free: true, size })).toEqual({ x: 13, y: 7 })
+  })
+
+  it('reads a stretch in seats and degrees, counter-clockwise from east', () => {
+    expect(measure({ x: 0, y: 0 }, { x: 64, y: 0 }, 32)).toBe('2 · 0°')
+    expect(measure({ x: 0, y: 0 }, { x: 0, y: -48 }, 32)).toBe('1.5 · 90°')
+    expect(measure({ x: 0, y: 0 }, { x: -32, y: 0 }, 32)).toBe('1 · 180°')
   })
 })
