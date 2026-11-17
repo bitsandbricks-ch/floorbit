@@ -163,6 +163,30 @@ class DnsStats:
             del self.hours[h]
         self._save()
 
+    def merge_hours(self, hours, now=None):
+        """Hours a local agent counted in the hall (the LAN cache plugin reading lancache-dns): the
+        same shape as a closed hour, with the five-client rule already applied there. They are whole
+        hours so far and replace what came for them before."""
+        now = time.time() if now is None else now
+        floor = settings()['min_clients']
+        with self._lock:
+            for key, h in (hours or {}).items():
+                try:
+                    hour = int(key)
+                    clean = {'lookups': int(h['lookups']), 'blocked': int(h.get('blocked') or 0),
+                             'sites': {site(s) or '': [int(v[0]), int(v[1]), int(v[2])]
+                                       for s, v in (h.get('sites') or {}).items() if int(v[2]) >= floor}}
+                except (KeyError, TypeError, ValueError, IndexError, AttributeError):
+                    continue
+                clean['sites'].pop('', None)
+                if hour <= now + 3600:
+                    self.hours[hour] = clean
+            keep = settings()['retention_hours'] * 3600
+            for h in [h for h in self.hours if h < now - keep]:
+                del self.hours[h]
+            self.last_poll = now
+        self._save()
+
     def _client(self, client):
         return hmac.new(self._key, str(client).encode(), hashlib.sha256).digest()[:12]
 

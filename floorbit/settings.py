@@ -275,6 +275,9 @@ class SettingsStore:
         self.environ = os.environ if environ is None else environ
         self._lock = threading.Lock()
         self._overrides = {}
+        # On a local agent: what the hosted Floorbit set (floorbit_agent/plugin_host.py). Kept in
+        # memory only, so its secrets never land on the agent's disk; the agent's env still wins.
+        self._remote = {}
         self._mtime = None
         self.reload()
 
@@ -335,7 +338,13 @@ class SettingsStore:
             return 'saved'
         if field.get('env') and self.environ.get(field['env'], '') != '':
             return 'env'
+        if key in self._remote:
+            return 'hosted'
         return 'default'
+
+    def set_remote(self, values):
+        """Replace the hosted Floorbit's values (agent only). Unknown keys are ignored."""
+        self._remote = {k: v for k, v in (values or {}).items() if k in FIELDS_BY_KEY}
 
     def get(self, key):
         return self._value(self._overrides, key)
@@ -348,6 +357,8 @@ class SettingsStore:
                 return _coerce(field, overrides[key])
             if field.get('env') and self.environ.get(field['env'], '') != '':
                 return _coerce(field, self.environ[field['env']])
+            if key in self._remote:
+                return _coerce(field, self._remote[key])
         except SettingsError:
             pass   # a bad env/stored value falls back to the default
         default = field['default']

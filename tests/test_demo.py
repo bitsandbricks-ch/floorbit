@@ -37,16 +37,17 @@ def test_demo_replaces_the_live_source(demo, monkeypatch):
 
 def test_lay_out_the_hall_once_on_an_empty_plan(demo):
     first = demo.post('/api/demo/layout').get_json()
-    assert first == {'placed': 24, 'blocks': 4}   # 15 switches and 9 access points
+    assert first == {'placed': 26, 'blocks': 5}   # 16 switches and 10 access points
     switches = demo.get('/api/switches').get_json()
-    # The four firewalls stand behind the core, not on the floor.
-    placed = [s for s in switches if not s['name'].startswith('fw-')]
-    assert len(placed) == 24 and all(s['x'] is not None for s in placed)
-    assert len(demo.get('/api/firewalls').get_json()['ranges']) == 4
+    # The ten firewalls and the LAN cache stand in the rack behind the core, not on the floor.
+    placed = [s for s in switches if not s['name'].startswith(('fw-', 'lancache'))]
+    assert len(placed) == 26 and all(s['x'] is not None for s in placed)
+    assert len(demo.get('/api/firewalls').get_json()['ranges']) == 10
     lines = demo.get('/api/services').get_json()['uplinks']
     assert [(u['name'], u['device'], u['port'], u['probe_host']) for u in lines] == [
-        ('ISP A', 'core-01', 'Te1/0/47', ''), ('ISP B', 'core-01', 'Te1/0/48', '')]     # no probes sent out
-    assert [b['name'] for b in demo.get('/api/seat-blocks').get_json()] == ['A', 'B', 'C', 'D']
+        ('ISP A', 'core-01', 'Ethernet1/47', '203.0.113.1'), ('ISP B', 'core-01', 'Ethernet1/48', '203.0.113.2')]
+    assert [b['name'] for b in demo.get('/api/seat-blocks').get_json()] == ['A', 'B', 'C', 'D', 'E']
+    assert [h['name'] for h in demo.get('/api/halls').get_json()['halls']] == ['Main hall', 'Side hall']
     # Never moves anything that is already on the plan.
     assert demo.post('/api/demo/layout').get_json()['skipped'] == 'the floor plan is not empty'
 
@@ -89,9 +90,134 @@ def test_every_page_says_demo_data_while_it_is_on(client, anon_client):
 
 
 def test_demo_devices_do_not_sit_on_each_other():
-    """Every demo device gets its own spot on the plan, so no two names print over each other."""
+    """Every demo device gets its own spot on its hall's plan, so no two names print over each other."""
     from floorbit.builtin_plugins.demo.plugin import LAYOUT
-    spots = list(LAYOUT['devices'].items())
-    for i, (a, (ax, ay)) in enumerate(spots):
-        for b, (bx, by) in spots[i + 1:]:
-            assert abs(ax - bx) >= 5 or abs(ay - by) >= 5, (a, b)
+    for devices in [LAYOUT['devices'], *(h['devices'] for h in LAYOUT['halls'])]:
+        spots = list(devices.items())
+        for i, (a, (ax, ay)) in enumerate(spots):
+            for b, (bx, by) in spots[i + 1:]:
+                assert abs(ax - bx) >= 5 or abs(ay - by) >= 5, (a, b)
+
+
+def test_switches_list_every_port_of_their_model(demo):
+    """A real hardware mix: Nexus core, Catalyst 4500-X distribution, 2960-X access, with all their ports."""
+    from floorbit import inventory
+    from floorbit.store import load_data
+    demo.post('/api/demo/layout')
+    models = {d['name']: d['model'] for d in inventory.devices(load_data())}
+    assert 'Nexus' in models['core-01'] and '4500-X' in models['dist-01'] and '2960-X' in models['sw-a-01']
+    source = sources.monitoring()
+    access = source.device_ports('sw-a-01')
+    assert [p['name'] for p in access][:2] == ['Gi1/0/1', 'Gi1/0/2'] and len(access) == 50
+    uplink = next(p for p in access if p['name'] == 'Te1/0/1')
+    assert uplink['state'] == 'up' and uplink['speed_bps'] == 10e9 and 'dist-01' in uplink['description']
+    assert next(p for p in access if p['name'] == 'Gi1/0/30')['state'] == 'down'     # nothing plugged in
+    assert len(source.device_ports('core-01')) == 54 and len(source.device_ports('dist-02')) == 16
+    assert source.device_ports('fw-01') == []
+
+
+def test_the_plan_has_typed_uplinks_a_patch_panel_bends_areas_marks_and_groups(demo):
+    demo.post('/api/demo/layout')
+    links = demo.get('/api/links').get_json()['links']
+    assert {(link['type'], link['speed']) for link in links} == {('fiber-sm', 10), ('fiber-mm', 10), ('dac', 10)}
+    slow = next(p for p in sources.monitoring().device_ports('sw-c-02') if p['name'] == 'Te1/0/1')
+    assert slow['speed_bps'] == 1e9                                   # planned 10G, came up at 1G
+    plan = demo.get('/api/cable-plan').get_json()
+    assert plan['panels'] == [{'name': 'PP-A', 'x': 10, 'y': 34, 'ports': 24}]
+    lan = [c for c in plan['cables'] if c['kind'] == 'lan']
+    assert sum(c['via'] == 'PP-A' for c in lan) == 24                    # block A runs through its panel
+    assert sum(c['manual'] for c in lan) == 2                             # two routed by hand
+    assert {c['media'] for c in plan['cables']} >= {'copper', 'fiber', 'power'}
+    cables = demo.get('/api/cables').get_json()['cables']
+    assert len(cables) == 96 and not any(c['seat'].startswith('E-') for c in cables)
+    areas = demo.get('/api/port-areas').get_json()['areas']
+    assert [(a['switch'], a['label']) for a in areas] == [('sw-e-01', 'E-1..E-8'), ('sw-e-01', 'E-9..E-16')]
+    marks = demo.get('/api/plan-marks').get_json()['marks']
+    assert {m['layer'] for m in marks} >= {'overview', 'safety', 'network', 'electrical'}
+    groups = demo.get('/api/plan-groups').get_json()['groups']
+    assert [g['name'] for g in groups] == ['Block A', 'Block B', 'Block C', 'Block D']
+    assert {'kind': 'panel', 'id': 'PP-A'} in groups[0]['members']
+
+
+def test_the_side_hall_seats_have_no_patched_port(demo):
+    """Nobody wrote the side hall's patching down: until check-ins teach its ports, a seat has only its IP."""
+    seats = {r['seat']: r for r in demo.get('/api/seat-map').get_json()['seats']}
+    assert not seats['E-2'].get('switch') and seats['E-2'].get('ip')
+    assert seats['A-2']['switch'] == 'sw-a-01' and seats['A-2']['port'] == 'Gi1/0/2'
+
+
+def test_the_demo_servers_answer_for_themselves(demo, monkeypatch):
+    """DNS, internet lines and game servers are answered by the demo: nothing is sent out."""
+    from floorbit import game_query, probes
+    for name in ('dns', 'tcp'):
+        monkeypatch.setattr(probes, name, lambda *a, **k: pytest.fail('the demo sent a probe out'))
+    for name in ('query', 'rcon'):
+        monkeypatch.setattr(game_query, name, lambda *a, **k: pytest.fail('the demo asked a game server'))
+    demo.post('/api/demo/layout')
+    from floorbit import game_servers, services
+    services.poller.poll_once()
+    body = demo.get('/api/services').get_json()
+    assert [(r['name'], r['address'], r['status']) for r in body['resolvers']] == [
+        ('LAN cache DNS', '198.51.100.53', 'up'), ('Provider DNS', '203.0.113.53', 'up')]
+    assert len(body['sites']) == 9 and all(s['latency_ms'] for s in body['sites'])   # answered by the demo too
+    assert all(u['latency_ms'] is not None and u['status'] in ('up', 'warn') for u in body['uplinks'])
+    game_servers.poller.poll_once()
+    servers = demo.get('/api/game-servers').get_json()['servers']
+    assert [s['name'] for s in servers] == ['CS2 #1', 'CS2 #2', 'Minecraft', 'Trackmania']
+    assert [s['rcon'] for s in servers] == [True, True, True, False]
+    cs = servers[0]
+    assert cs['status'] == 'up' and cs['info']['map'] == 'de_mirage' and 0 < cs['info']['players'] <= 10
+    answer = demo.post(f"/api/game-servers/rcon/{cs['id']}", json={'command': 'status'}).get_json()
+    assert 'de_mirage' in answer['answer'] and 'player-' in answer['answer']
+    asked = demo.post(f"/api/game-servers/rcon/{cs['id']}", json={'command': 'changelevel de_nuke'})
+    assert asked.status_code == 409                                 # still asks to confirm
+    mc = servers[2]
+    listed = demo.post(f"/api/game-servers/rcon/{mc['id']}", json={'command': 'list'}).get_json()['answer']
+    assert listed.startswith('There are ') and 'max of 40' in listed
+
+
+def test_the_stand_in_lets_other_hosts_through_and_stops_with_the_demo(demo, registry):
+    from floorbit import probes
+    demo.post('/api/demo/layout')
+    assert probes.stood_in('dns_probe', ('198.51.100.53', 'example.com'))['rcode'] == 'NOERROR'
+    assert probes.stood_in('dns_probe', ('192.0.2.200', 'example.com')) is None     # not a demo server
+    demo.put('/api/settings/plugins/demo', json={'enabled': False})
+    assert probes.stood_in('dns_probe', ('198.51.100.53', 'example.com')) is None
+
+
+def test_the_event_so_far_fills_the_crew_pages(demo, app_module):
+    """Incidents, check-ins, status page, runbook, dashboards and schedule, so no crew page starts empty."""
+    demo.post('/api/demo/layout')
+    board = demo.get('/api/incidents').get_json()['incidents']
+    assert len(board) == 6 and {i['status'] for i in board} == {'open', 'assigned', 'fixed'}
+    assert any(i.get('switch_name') == 'sw-c-02' for i in board)
+    users = app_module.app.extensions['auth'].users
+    assert all(users.get(name) is not None for name in ('alex', 'sam', 'robin'))
+    checkins = demo.get('/api/checkins').get_json()
+    rows = checkins['checkins'] if isinstance(checkins, dict) else checkins
+    assert len(rows) > 50 and all(r['username'].startswith('player-') for r in rows)
+    seats = {r['seat']: r for r in demo.get('/api/seat-map').get_json()['seats']}
+    assert seats['E-2']['switch'] == 'sw-e-01'      # the side hall learned its ports from check-ins
+    assert not seats['E-7'].get('switch')
+    history = demo.get('/api/checkins/history').get_json()
+    assert history['total'] > 50 and 'moved' in repr(history['rows'])
+    assert 'Spare switch' in [r['title'] for r in demo.get('/api/runbooks').get_json()['runbooks']]
+    layouts = demo.get('/api/dashboard/layouts').get_json()
+    assert {'noc-wall', 'ops-desk'} <= {lay['id'] for lay in (layouts.get('layouts') or layouts)}
+    items = demo.get('/api/schedule').get_json()['items']
+    assert len(items) == 8 and items[-1]['title'] == 'Doors close'
+    # A second layout run never adds them twice.
+    demo.post('/api/demo/layout')
+    assert len(demo.get('/api/incidents').get_json()['incidents']) == 6
+
+
+def test_the_demo_speaks_swiss_german_when_asked(monkeypatch):
+    from floorbit.builtin_plugins.demo import texts
+    monkeypatch.setenv('FLOORBIT_DEMO_LANGUAGE', 'de-CH')
+    assert texts.text()['main_hall'] == 'Haupthalle'
+    monkeypatch.delenv('FLOORBIT_DEMO_LANGUAGE')
+    assert texts.text()['main_hall'] == 'Main hall'
+    english, german = texts.TEXTS['en'], texts.TEXTS['de']
+    assert english.keys() == german.keys() and 'ß' not in repr(german)
+    for key in ('incidents', 'schedule', 'status_updates', 'layouts'):
+        assert len(english[key]) == len(german[key]), key

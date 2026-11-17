@@ -29,6 +29,7 @@ describe('Plugins page', () => {
   it('lists plugins and turns one on', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': { enabled: true, user: { username: 'admin', display_name: 'Admin', role: 'admin' } },
+      'GET /api/settings/marketplace': { sources: [], plugins: [] },
       'GET /api/settings/plugins': { plugins: [plugin] },
       'PUT /api/settings/plugins/http-check': { plugins: [{ ...plugin, enabled: true }], name: 'HTTP check' },
     })
@@ -52,6 +53,7 @@ describe('Plugins page', () => {
       'fetch',
       fakeFetch({
         'GET /api/auth/me': { enabled: false, user: null },
+        'GET /api/settings/marketplace': { sources: [], plugins: [] },
         'GET /api/settings/plugins': { plugins: [{ ...plugin, error: 'plugin.py: syntax error' }] },
       }).fn,
     )
@@ -63,6 +65,7 @@ describe('Plugins page', () => {
   it('asks before a dangerous action', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': { enabled: false, user: null },
+      'GET /api/settings/marketplace': { sources: [], plugins: [] },
       'GET /api/settings/plugins': {
         plugins: [{ ...plugin, enabled: true, actions: [{ id: 'reset', label: 'Reset', role: 'admin', danger: true }] }],
       },

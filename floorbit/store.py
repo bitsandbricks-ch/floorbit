@@ -336,5 +336,11 @@ def load_data():
     }
 
 
+# Features Mike dropped (2026-11-17): their data goes with the next write instead of lingering.
+RETIRED_KEYS = ('planner',)
+
+
 def save_data(data):
+    for key in RETIRED_KEYS:
+        data.pop(key, None)
     write_json(event_file(), data)
