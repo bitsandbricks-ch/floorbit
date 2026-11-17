@@ -64,3 +64,14 @@ def test_deleting_areas(row):
     assert row.delete(f"/api/port-areas/{made[0]['id']}").status_code == 200
     assert row.delete(f"/api/port-areas/{made[0]['id']}").status_code == 404
     assert row.delete("/api/port-areas?switch=SW-A-01").get_json() == {"deleted": 1}
+
+
+def test_saving_and_deleting_areas_is_audited(row):
+    from floorbit import audit
+    made = batch(row, starts=["A-1", "A-11"]).get_json()["areas"]
+    row.delete(f"/api/port-areas/{made[0]['id']}")
+    row.delete("/api/port-areas?switch=sw-a-01")
+    row.delete("/api/port-areas?switch=sw-a-01")  # nothing left: no entry
+    rows = audit.read(limit=3)[0]
+    assert [r["action"] for r in rows] == ["Removed port areas", "Removed port area", "Saved port areas"]
+    assert rows[1]["target"] == "sw-a-01: A-1..A-10"

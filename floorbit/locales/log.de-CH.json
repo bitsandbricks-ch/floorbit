@@ -250,5 +250,8 @@
   "Anomaly": "Auffälligkeit",
   "// Power alert incidents (floorbit/power.py), inside 'Incident opened: {}'": "",
   "Circuit {} at {} % of {} A": "Stromkreis {} bei {} % von {} A",
-  "Breaker tripped: {}": "Sicherung ausgelöst: {}"
+  "Breaker tripped: {}": "Sicherung ausgelöst: {}",
+  "Saved port areas": "Port-Bereiche gespeichert",
+  "Removed port area": "Port-Bereich entfernt",
+  "Removed port areas": "Port-Bereiche entfernt"
 }

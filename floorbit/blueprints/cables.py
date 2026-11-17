@@ -231,8 +231,10 @@ def port_areas_batch():
 
 @bp.route('/api/port-areas/<area_id>', methods=['DELETE'])
 def delete_port_area(area_id):
-    if not port_areas.delete(area_id=area_id):
+    area = next((a for a in port_areas.all_areas() if a['id'] == area_id), None)
+    if not area or not port_areas.delete(area_id=area_id):
         return jsonify({'error': 'No such port area.'}), 404
+    audit.record('cables', 'Removed port area', g.get('audit_user'), f"{area['switch']}: {area['label']}")
     return jsonify({'ok': True})
 
 
@@ -241,7 +243,10 @@ def delete_switch_port_areas():
     switch = (request.args.get('switch') or '').strip()
     if not switch:
         return jsonify({'error': 'Name the switch.'}), 400
-    return jsonify({'deleted': port_areas.delete(switch=switch)})
+    deleted = port_areas.delete(switch=switch)
+    if deleted:
+        audit.record('cables', 'Removed port areas', g.get('audit_user'), switch)
+    return jsonify({'deleted': deleted})
 
 
 @bp.route('/api/port-areas/lookup', methods=['GET'])
