@@ -329,9 +329,15 @@ def test_targets_come_from_the_inventory(client, anon_client, hallthing, monkeyp
     hallthing.manifest["agent"]["targets"] = {"credentials": ["ssh"]}
     try:
         cfg = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["plugins"]["hallthing"]
+        # A hosted agent_settings hook sees them first and can add devices of its own.
+        hallthing.module.Plugin.agent_settings = lambda self, s: {**s, "targets": [*s["targets"], {"name": "fw-01"}]}
+        client.put("/api/settings/plugins/hallthing", json={"enabled": True, "settings": {"path": "/x"}})
+        merged = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["plugins"]["hallthing"]
     finally:
         hallthing.manifest["agent"]["targets"] = False
-    assert cfg["settings"]["targets"][0]["name"] == "sw-a-01" and asked == [("hallthing", ["ssh"])]
+        del hallthing.module.Plugin.agent_settings
+    assert cfg["settings"]["targets"][0]["name"] == "sw-a-01" and asked[0] == ("hallthing", ["ssh"])
+    assert [t["name"] for t in merged["settings"]["targets"]] == ["sw-a-01", "fw-01"]
     assert validate(manifest(agent={"targets": {"credentials": ["telnet"]}})).startswith("agent.targets")
     m = manifest(agent={"targets": True})
     assert validate(m) == "" and m["agent"]["targets"] == {"credentials": None}
