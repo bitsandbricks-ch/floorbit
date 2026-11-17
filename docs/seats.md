@@ -41,6 +41,8 @@ The floor plan editor is moving into this page. Edit mode already does:
 - **Order:** ] brings the selection to the front, [ sends it to the back.
 - **Turn:** R turns the selected seat blocks, labels and icons a quarter turn each, Shift+R turns
   them back (also "Turn 90°" in the right-click menu). One undo puts them all back.
+- **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
+  or double-click an item in the items list); 0 shows the whole hall again.
 - **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,
   switches, patch panels, boards; cables follow their ends), Ctrl+Shift+G takes them out. A click on
   one item of a group picks the whole group; Shift-click takes the group out of the selection.

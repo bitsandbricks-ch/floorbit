@@ -16,6 +16,7 @@ export const EDIT_SHORTCUTS: [string, KeyRow[]][] = [
     [[['Shift', '←↑→↓']], 'nudgeMore'],
     [[['Alt', 'Drag']], 'free'],
     [[['Space', 'Drag']], 'pan'],
+    [[['F']], 'frame'],
   ]],
   ['change', [
     [[['Ctrl', 'Z']], 'undo'],
