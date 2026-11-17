@@ -49,11 +49,57 @@ def _doc(found, path, text):
     return doc
 
 
+_GONE = object()     # a key or an item that isn't there, in _merge3
+WRITE_TRIES = 8      # a save that keeps meeting another pod's write merges again this often
+
+
+def _by_id(value):
+    """``{id: item}`` for a list of objects that each carry a distinct ``id``, else None."""
+    if not isinstance(value, list):
+        return None
+    out = {}
+    for item in value:
+        key = item.get('id') if isinstance(item, dict) else None
+        if not isinstance(key, (str, int)) or isinstance(key, bool) or key in out:
+            return None
+        out[key] = item
+    return out
+
+
+def _merge3(base, current, mine):
+    """``mine`` laid over ``current``, both changed from ``base``. Objects merge key by key and lists of
+    objects with ids item by item, so two people adding a team or a seat block at the same moment both
+    keep theirs. Where both changed the same value, ``mine`` (the later save) wins, as before."""
+    if mine == base:
+        return current
+    if current in (base, mine):
+        return mine
+    if base is _GONE and type(current) is type(mine) and isinstance(mine, (dict, list)):
+        base = type(mine)()     # both added it (the first team, the first seat block): keep both
+    if isinstance(base, dict) and isinstance(current, dict) and isinstance(mine, dict):
+        out = {}
+        for key in [*current, *(k for k in mine if k not in current)]:
+            value = _merge3(base.get(key, _GONE), current.get(key, _GONE), mine.get(key, _GONE))
+            if value is not _GONE:
+                out[key] = value
+        return out
+    b, c, m = _by_id(base), _by_id(current), _by_id(mine)
+    if b is not None and c is not None and m is not None:
+        out = []
+        for key in [*c, *(k for k in m if k not in c)]:
+            value = _merge3(b.get(key, _GONE), c.get(key, _GONE), m.get(key, _GONE))
+            if value is not _GONE:
+                out.append(value)
+        return out
+    return mine
+
+
 def _merge(data, base_text, current_text):
-    """What to write: ``data`` with the top-level parts nobody here changed taken from the current
-    document. Background tasks and requests each load the whole document, change their own part
-    and save it whole: without this, one saving a copy it loaded a moment earlier puts back
-    everything another changed meanwhile (an incident marked fixed came back open)."""
+    """What to write: ``data`` with what others saved since the caller loaded it kept. Background tasks,
+    requests and other pods each load the whole document, change their part and save it whole:
+    without this, one saving a copy it loaded a moment earlier puts back everything another changed
+    meanwhile (an incident marked fixed came back open; with two pods, a third of the teams and seat
+    blocks added at the same moment were lost)."""
     if current_text is None or current_text == base_text:
         return data     # nobody wrote in between: the usual case, no parsing
     try:
@@ -62,14 +108,7 @@ def _merge(data, base_text, current_text):
         return data
     if not isinstance(base, dict) or not isinstance(current, dict):
         return data
-    out = dict(current)
-    for key in set(base) | set(data):
-        if key in data:
-            if key not in base or data[key] != base[key]:
-                out[key] = data[key]            # the caller changed it: theirs wins, as before
-        else:
-            out.pop(key, None)                  # the caller removed it
-    return out
+    return _merge3(base, current, json.loads(json.dumps(data)))
 
 
 def read_json(path, default=None):
@@ -163,13 +202,21 @@ def write_json(path, data):
     with _lock:
         if db.kind != 'files':
             key = database.key_for(path, db.root)
-            if base_text is not None:
-                current = db.get_text(key)
-                out = _merge(data, base_text, None if current is database._MISSING else current)
-            else:
+            if base_text is None:
                 out = data
-            text = json.dumps(out)
-            db.put(key, text)
+                text = json.dumps(out)
+                db.put(key, text)
+            else:
+                # Other pods write the same document: merge with what is there now and store it only
+                # if nobody wrote in between, else merge again (compare and swap on updated_at).
+                for _ in range(WRITE_TRIES):
+                    current, version = db.get_versioned(key)
+                    out = _merge(data, base_text, None if current is database._MISSING else current)
+                    text = json.dumps(out)
+                    if db.put_if(key, text, version):
+                        break
+                else:
+                    raise database.DatabaseError(f'{key}: other writers kept saving it; not saved')
         else:
             out = _merge(data, base_text, _current_text(path)) if base_text is not None else data
             text = json.dumps(out, indent=2)

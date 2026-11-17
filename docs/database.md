@@ -67,10 +67,13 @@ database container that comes up a little after it.
 ## Two saves at once
 
 Requests and background tasks each load a whole document, change their part and save it. A save
-keeps the top-level parts it didn't change as they are now, so a task saving a copy it loaded a
-moment ago doesn't undo what someone else saved in between. Two saves that change the same part
-still keep the last one. Within one Floorbit process this holds for every save; between several
-replicas a save that lands in the same instant can still lose the other.
+keeps what others saved since it was loaded: objects merge key by key, and lists of objects with an
+`id` (teams, seat blocks, incidents) item by item, so two crew members adding a team at the same
+moment both keep theirs. Two saves that change the same value keep the last one.
+
+With several replicas on one database, a save is written only if the row is still the version it
+merged with; otherwise it merges again with the newer one (up to 8 times, then the save is refused
+with an error instead of being lost). Plain files have no such check: run one replica on files.
 
 ## When the database is away
 

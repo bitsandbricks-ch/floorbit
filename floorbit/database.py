@@ -344,6 +344,35 @@ class Sql:
             if key.startswith(prefix) and key not in known:
                 known.append(key)
 
+    def get_versioned(self, key):
+        """``(text or _MISSING, updated_at)``, read together, for ``put_if``."""
+        rows = self.run('SELECT body, updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
+        if not rows:
+            self._docs.pop(key, None)
+            return _MISSING, None
+        self._docs[key] = (rows[0][0], rows[0][1])
+        return rows[0][0], rows[0][1]
+
+    def put_if(self, key, body, expected):
+        """``put`` only if the document is still at ``expected`` (its updated_at, None: not there).
+        False when another process wrote it meanwhile: the caller merges again (store.write_json)."""
+        with self._lock:
+            now = self._last_put = max(time.time(), getattr(self, '_last_put', 0) + 1e-6)
+        if expected is None:
+            rows = self.run('INSERT INTO floorbit_documents (doc_key, body, updated_at) VALUES (?, ?, ?) '
+                            'ON CONFLICT (doc_key) DO NOTHING RETURNING doc_key', (key, body, now), fetch=True)
+        else:
+            rows = self.run('UPDATE floorbit_documents SET body = ?, updated_at = ? '
+                            'WHERE doc_key = ? AND updated_at = ? RETURNING doc_key',
+                            (body, now, key, expected), fetch=True)
+        if not rows:
+            return False
+        self._docs[key] = (body, now)
+        for prefix, known in self._keys.items():
+            if key.startswith(prefix) and key not in known:
+                known.append(key)
+        return True
+
     def delete(self, key):
         found = self.run('SELECT 1 FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         self.run('DELETE FROM floorbit_documents WHERE doc_key = ?', (key,))
