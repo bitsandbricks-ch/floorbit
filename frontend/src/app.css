@@ -447,6 +447,7 @@ body {
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
 .fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
 .fb-plan .sw-focus { fill: none; stroke: var(--color-trace); stroke-width: 3; }
+.fb-plan .sw-trace { stroke: var(--color-trace); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .fb-plan .kb-ring { fill: none; stroke: var(--color-bit); stroke-width: 3; stroke-dasharray: 6 3; pointer-events: none; }
 .fb-plan .cell.dim { opacity: .18; }
 .fb-plan .cell:hover .seat { stroke: var(--color-bit); stroke-width: 3; }

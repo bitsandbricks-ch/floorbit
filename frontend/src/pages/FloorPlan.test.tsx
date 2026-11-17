@@ -647,6 +647,17 @@ describe('Seats page', () => {
     expect(container.querySelector('.sw-focus')).not.toBeNull()
   })
 
+  it('rings an open seat\'s switch and draws the way there, dimming nothing', async () => {
+    const withSwitch = { ...data, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 640, y: 420 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': withSwitch, 'GET /api/plan/seats/D-2': details }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?hall=main&seat=D-2')
+    await waitFor(() => expect(container.querySelector('.sw-trace')).not.toBeNull())
+    const line = container.querySelector('.sw-trace')!
+    expect([line.getAttribute('x2'), line.getAttribute('y2')]).toEqual(['640', '420'])
+    expect(container.querySelector('.sw-focus')).not.toBeNull()
+    expect(container.querySelector('.cell.dim')).toBeNull()
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }

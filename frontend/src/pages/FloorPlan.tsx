@@ -10,7 +10,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatViewData, SwitchDetails, WifiData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatDetails, SeatViewData, SwitchDetails, WifiData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BlockPanel } from './plan/BlockPanel'
@@ -52,8 +52,17 @@ export default function FloorPlan() {
     queryKey: qk.planSwitch(switchSel ?? ''), enabled: !!switchSel,
     queryFn: () => get<SwitchDetails>(`/api/plan/switches/${encodeURIComponent(switchSel ?? '')}`),
   })
-  const switchFocus = useMemo(() => (switchSel && switchQ.data ? { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) } : undefined),
-    [switchSel, switchQ.data])
+  // An open seat rings its switch and draws the way there (same query as the inspector's).
+  const seatQ = useQuery({
+    queryKey: qk.planSeat(selected ?? ''), enabled: !!selected,
+    queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(selected ?? '')}`),
+  })
+  const seatSwitch = selected ? seatQ.data?.switch : null
+  const switchFocus = useMemo(() => {
+    if (switchSel && switchQ.data) return { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) }
+    if (selected && seatSwitch) return { switch: seatSwitch, seat: selected }
+    return undefined
+  }, [switchSel, switchQ.data, selected, seatSwitch])
   const screen = params.get('screen') === '1'
   // A sheet to print (issue #188): the whole hall, every seat numbered, light on white.
   const print = !screen && params.get('print') === '1'
