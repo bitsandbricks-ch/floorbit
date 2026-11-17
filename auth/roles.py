@@ -221,6 +221,7 @@ RULES = (
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/plan-marks', WRITE, 'floorplan.edit'),
     ('/api/plan-groups', WRITE, 'floorplan.edit'),
+    ('/api/plan-locks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),
     ('/api/tournament', WRITE, 'floorplan.edit'),

@@ -69,6 +69,13 @@ The floor plan editor is moving into this page. Edit mode already does:
   turns them back (also "Turn 90°" in the right-click menu). One undo puts them all back. To turn one
   item to any angle, drag the round handle above it (Shift keeps 15° steps), or type the angle next
   to the quarter steps in the panel.
+- **Lock:** Ctrl+Shift+L (or **Lock in place** in the right-click menu and the selection buttons)
+  locks the selected items: they keep their place and angle, show a small padlock and no handles, and
+  Delete leaves them alone, until the same key unlocks them. Locks are saved with the hall, for
+  everyone.
+- **Change several at once:** with two or more items selected, **All selected** in the panel shows
+  the fields they share (layer, wall style, zone colour, label and icon size, angle). Picking a value
+  sets it on all of them; "mixed" means they differ. One undo puts them all back.
 - **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
   or double-click an item in the items list); 0 shows the whole hall again.
 - **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,

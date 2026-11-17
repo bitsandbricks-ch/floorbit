@@ -28,6 +28,7 @@ export const EDIT_SHORTCUTS: [string, KeyRow[]][] = [
     [[['Ctrl', 'Shift', 'G']], 'ungroup'],
     [[['Ctrl', ']'], ['Ctrl', '[']], 'stack'],
     [[['R'], ['Shift', 'R']], 'rotate'],
+    [[['Ctrl', 'Shift', 'L']], 'lock'],
     [[['Del'], ['Backspace']], 'delete'],
   ]],
   ['help', [[[['?']], 'help']]],

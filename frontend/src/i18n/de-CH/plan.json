@@ -254,6 +254,7 @@
       "ungroup": "Auswahl aus ihrer Gruppe nehmen",
       "stack": "Nach vorne, nach hinten",
       "rotate": "Eine Vierteldrehung, oder zurück",
+      "lock": "Auswahl sperren oder entsperren",
       "delete": "Löschen, oder Switches vom Plan nehmen",
       "cycle": "Mit einer Auswahl: das nächste oder vorherige Element, von oben nach unten"
     },
@@ -376,7 +377,13 @@
       "addSwitch": "Switch {{name}} hinzufügen",
       "placeSwitch_one": "Switch platzieren",
       "placeSwitch_other": "{{count}} Switches platzieren",
-      "renameGroup": "Gruppe umbenennen"
+      "renameGroup": "Gruppe umbenennen",
+      "lock_one": "sperren",
+      "lock_other": "{{count}} Elemente sperren",
+      "unlock_one": "entsperren",
+      "unlock_other": "{{count}} Elemente entsperren",
+      "changeAll_one": "{{count}} Element ändern",
+      "changeAll_other": "{{count}} Elemente ändern"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -508,7 +515,9 @@
       "delete": "Löschen",
       "group": "Gruppieren",
       "ungroup": "Gruppe auflösen",
-      "unplace": "Vom Plan nehmen"
+      "unplace": "Vom Plan nehmen",
+      "lock": "Sperren",
+      "unlock": "Entsperren"
     },
     "layer": "Ebene",
     "layers": {
@@ -665,7 +674,12 @@
     },
     "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel ist unter dem Plan. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm.",
     "unplace_one": "Vom Plan nehmen",
-    "unplace_other": "{{count}} vom Plan nehmen"
+    "unplace_other": "{{count}} vom Plan nehmen",
+    "locked": "Gesperrt: bleibt, wo es ist, bis du es entsperrst (Ctrl+Shift+L)",
+    "mixed": "gemischt",
+    "sharedFields": "Alle ausgewählten",
+    "lockedN_one": "{{count}} gesperrtes Element bleibt, wo es ist (Ctrl+Shift+L entsperrt)",
+    "lockedN_other": "{{count}} gesperrte Elemente bleiben, wo sie sind (Ctrl+Shift+L entsperrt)"
   },
   "net": {
     "uplinks_one": "{{count}} Verbindung zwischen Switches",

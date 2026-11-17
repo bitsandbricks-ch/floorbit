@@ -559,6 +559,17 @@ Source: [`floorbit/blueprints/plan_groups.py`](https://github.com/bitsandbricks-
 | DELETE | `/api/plan-groups/<group_id>` | `floorplan.edit` |  |
 | PUT | `/api/plan-groups/<group_id>` | `floorplan.edit` |  |
 
+## floorbit.blueprints.plan_locks
+
+Locked items on the floor plan (floorbit/plan_locks.py).
+
+Source: [`floorbit/blueprints/plan_locks.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_locks.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-locks` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/plan-locks` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.plan_marks
 
 Text, walls, zones and icons on the floor plan (floorbit/plan_marks.py).

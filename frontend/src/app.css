@@ -401,6 +401,9 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-edit-hit-wall:hover { fill: none; stroke: color-mix(in srgb, var(--color-bit) 20%, transparent); }
 .fb-edit-rotate line { stroke: var(--color-bit); stroke-width: 1.5; pointer-events: none; }
 .fb-edit-rotate circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-edit-lock circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 1.5; }
+.fb-edit-lock rect { fill: var(--color-bit); }
+.fb-edit-lock path { fill: none; stroke: var(--color-bit); stroke-width: 1.6; stroke-linecap: round; }
 .fb-edit-measure { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; pointer-events: none; }
 .fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
 .fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
