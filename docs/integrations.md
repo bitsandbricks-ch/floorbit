@@ -151,7 +151,7 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 |---|---|---|
 | `CHECKIN_ENABLED` | `false` | |
 | `CHECKIN_ALLOWED_NETWORKS` | | CIDRs, e.g. `10.0.0.0/16`. Rejects check-ins from elsewhere (VPN, NAT, guest Wi-Fi) |
-| `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, seat finder, sign-in lockout); only behind a proxy you control |
+| `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, seat finder, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
