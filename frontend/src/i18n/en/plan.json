@@ -254,6 +254,7 @@
       "ungroup": "Take the selection out of its group",
       "stack": "Bring to front, send to back",
       "rotate": "Turn a quarter turn, or back",
+      "lock": "Lock the selection in place, or unlock it",
       "delete": "Delete, or take switches off the plan",
       "cycle": "With something selected: the next or previous item, top to bottom"
     },
@@ -376,7 +377,13 @@
       "addSwitch": "add switch {{name}}",
       "placeSwitch_one": "place switch",
       "placeSwitch_other": "place {{count}} switches",
-      "renameGroup": "Rename group"
+      "renameGroup": "Rename group",
+      "lock_one": "lock",
+      "lock_other": "lock {{count}} items",
+      "unlock_one": "unlock",
+      "unlock_other": "unlock {{count}} items",
+      "changeAll_one": "change {{count}} item",
+      "changeAll_other": "change {{count}} items"
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
@@ -508,7 +515,9 @@
       "delete": "Delete",
       "group": "Group",
       "ungroup": "Ungroup",
-      "unplace": "Take off the plan"
+      "unplace": "Take off the plan",
+      "lock": "Lock in place",
+      "unlock": "Unlock"
     },
     "layer": "Layer",
     "layers": {
@@ -665,7 +674,12 @@
     },
     "smallScreen": "On a phone, tap to select and drag to move; the panel is under the plan. Drawing and arranging work best with a mouse on a larger screen.",
     "unplace_one": "Take off the plan",
-    "unplace_other": "Take {{count}} off the plan"
+    "unplace_other": "Take {{count}} off the plan",
+    "locked": "Locked: it stays where it is until you unlock it (Ctrl+Shift+L)",
+    "mixed": "mixed",
+    "sharedFields": "All selected",
+    "lockedN_one": "{{count}} locked item stays where it is (Ctrl+Shift+L unlocks)",
+    "lockedN_other": "{{count}} locked items stay where they are (Ctrl+Shift+L unlocks)"
   },
   "net": {
     "uplinks_one": "{{count}} link between switches",
