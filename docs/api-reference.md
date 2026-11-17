@@ -78,6 +78,7 @@ Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbrick
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | POST | `/api/agent-plugins/<agent_id>/<plugin_id>/unblock` | `plugins.run` |  |
+| GET | `/api/agent/v1/bundles/<name>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/agent/v1/plugins` | anyone |  |
 | GET | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 | POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
@@ -450,7 +451,7 @@ Source: [`floorbit/blueprints/inventory.py`](https://github.com/bitsandbricks-ch
 
 ## floorbit.blueprints.lancache
 
-The LAN cache page (docs/lancache.md):
+The LAN cache view and widgets (docs/lancache.md):
 
 Source: [`floorbit/blueprints/lancache.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/lancache.py)
 

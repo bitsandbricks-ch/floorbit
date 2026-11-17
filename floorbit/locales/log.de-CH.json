@@ -261,5 +261,9 @@
   "Removed port area": "Port-Bereich entfernt",
   "Removed port areas": "Port-Bereiche entfernt",
   "Cleared the failed login of {} to {} ({})": "Fehlgeschlagene Anmeldung von {} bei {} ({}) zurückgesetzt",
-  "{}: {} stopped logging in to {} with {} ({})": "{}: {} meldet sich nicht mehr bei {} mit {} an ({})"
+  "{}: {} stopped logging in to {} with {} ({})": "{}: {} meldet sich nicht mehr bei {} mit {} an ({})",
+  "{}: updated plugin {} to {}": "{}: Plugin {} auf {} aktualisiert",
+  "{}: kept plugin {} {}": "{}: Plugin {} {} behalten",
+  "{}: rolled back plugin {} {} ({})": "{}: Plugin {} {} zurückgenommen ({})",
+  "{}: refused plugin {} {} ({})": "{}: Plugin {} {} abgelehnt ({})"
 }

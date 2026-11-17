@@ -54,14 +54,14 @@ class Plugin(Base):
         ratio = snap.get('hit_ratio')
         return {'type': 'stat', 'value': '-' if ratio is None else round(ratio * 100), 'unit': '%',
                 'tone': 'warn' if ratio is not None and ratio < 0.5 else '',
-                'sub': 'From the cache this hour', 'link': '/lancache'}
+                'sub': 'From the cache this hour'}
 
     def widget_served(self):
         snap = _stats().snapshot(hours=24)
         points = [round((h['hit_bytes'] + h['miss_bytes']) / 1024 ** 3, 1) for h in snap.get('hours') or []]
         saved = round(snap.get('hit_bytes', 0) / 1024 ** 3, 1)
         return {'type': 'sparkline', 'points': points, 'value': points[-1] if points else 0, 'unit': 'GB',
-                'min': 0, 'sub': f'{saved} GB from the cache in 24 hours', 'link': '/lancache'}
+                'min': 0, 'sub': f'{saved} GB from the cache in 24 hours'}
 
     def widget_machine(self):
         page = overview(_stats(), None, hours=1)
@@ -76,13 +76,13 @@ class Plugin(Base):
                 used = round(disk['used'] * 100 / disk['total'])
                 items.append({'label': f"{a['name']}: disk", 'state': 'warn' if used >= 90 else 'up',
                               'detail': f'{used} % full'})
-        return {'type': 'status', 'items': items, 'link': '/lancache',
+        return {'type': 'status', 'items': items,
                 'sub': '' if items else 'No agent has reported on the cache yet.'}
 
     def widget_downloads(self):
         page = overview(_stats(), None, hours=24)
         items = [{'label': d['item'], 'value': f"{d['clients']} players", 'tone': ''} for d in page['downloads'][:8]]
-        return {'type': 'list', 'items': items, 'link': '/lancache',
+        return {'type': 'list', 'items': items,
                 'sub': '' if items else 'Nothing downloaded by enough players yet.'}
 
 

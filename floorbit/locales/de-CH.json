@@ -892,5 +892,20 @@
  "{} % full": "{} % voll",
  "No agent has reported on the cache yet.": "Noch kein Agent hat über den Cache berichtet.",
  "{} players": "{} Spieler",
- "Nothing downloaded by enough players yet.": "Noch nichts, das genug Spieler heruntergeladen haben."
+ "Nothing downloaded by enough players yet.": "Noch nichts, das genug Spieler heruntergeladen haben.",
+  "No such bundle here.": "Dieses Paket gibt es hier nicht.",
+  "bad signature": "ungültige Signatur",
+  "bundle too large": "Paket zu gross",
+  "not an Ed25519 private key": "kein privater Ed25519-Schlüssel",
+  "not an Ed25519 public key": "kein öffentlicher Ed25519-Schlüssel",
+  "not signed": "nicht signiert",
+  "refused entry in the bundle: {}": "abgelehnter Eintrag im Paket: {}",
+  "signed as version {}, not {}": "als Version {} signiert, nicht {}",
+  "signed for {}, not {}": "für {} signiert, nicht {}",
+  "signed with key {}, which this agent does not trust": "mit Schlüssel {} signiert, dem dieser Agent nicht vertraut",
+  "symlinks are not allowed in a bundle ({})": "symbolische Links sind in einem Paket nicht erlaubt ({})",
+  "the files differ from what was signed": "die Dateien weichen vom Signierten ab",
+  "too many files in the bundle": "zu viele Dateien im Paket",
+  "unreadable bundle: {}": "unlesbares Paket: {}",
+  "unreadable signature: {}": "unlesbare Signatur: {}"
 }

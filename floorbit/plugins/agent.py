@@ -54,7 +54,12 @@ from collections import deque
 
 from .base import PluginError
 
-__all__ = ['PRIVACY', 'AgentPlugin', 'MemoryContext', 'check_agent_block', 'personal_data']
+__all__ = ['AGENT_API', 'PRIVACY', 'AgentPlugin', 'MemoryContext', 'check_agent_block', 'personal_data']
+
+# What an agent part may use of AgentContext and floorbit_agent. A signed bundle records the one it
+# was built for, and an agent with an older one keeps what it has (floorbit/plugins/bundles.py).
+# Raise it when a plugin starts to need something older agents don't have.
+AGENT_API = 1
 
 PRIVACY = ('aggregate', 'device')
 CREDENTIAL_KINDS = ('ssh', 'snmp_v2c', 'snmp_v3', 'api', 'http')
@@ -337,8 +342,9 @@ class MemoryContext:
     """An agent context that keeps everything in memory: for plugin tests, and the reference for
     what the real one (floorbit_agent/plugin_host.py) offers."""
 
-    def __init__(self, plugin_id='test', settings=None, spec_block=None, state_dir=None):
+    def __init__(self, plugin_id='test', settings=None, spec_block=None, state_dir=None, primary=True):
         self.id = plugin_id
+        self.is_primary = primary  # flip it to test a standby agent
         self.settings = dict(settings or {})
         self.spec_block = spec_block or {'sends': {}}
         self.state_dir = state_dir
@@ -353,6 +359,10 @@ class MemoryContext:
 
     def log(self, message):
         self.lines.append(str(message))
+
+    def primary(self):
+        """True unless another agent in the hall is the primary (VRRP): only it polls and logs in."""
+        return bool(self.is_primary)
 
     def fetch(self, kind):
         if kind not in (self.spec_block.get('fetches') or []):

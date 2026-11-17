@@ -1,4 +1,4 @@
-"""The LAN cache page (docs/lancache.md):
+"""The LAN cache view and widgets (docs/lancache.md):
 
 - ``GET /lancache``: the page (React).
 - ``GET /api/lancache?hours=24``: what the cache served per service and hour, the downloads enough

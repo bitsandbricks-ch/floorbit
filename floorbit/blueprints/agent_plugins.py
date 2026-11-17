@@ -16,8 +16,10 @@ For the agent:
   plugin's privacy rule (an address in an aggregate kind).
 - ``GET /api/agent/v1/plugins/<id>/<kind>``: ``{"data": ...}``, what the agent part asks the
   hosted part for (``agent_get_<kind>``, listed under ``agent.fetches``), such as the seats' addresses.
+- ``GET /api/agent/v1/bundles/<file>``: a signed plugin bundle named under ``bundles`` in the
+  plugins' config. The agent checks its signature itself (floorbit/plugins/bundles.py).
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
 from .. import agent_plugins
 from .agent import _agent, _agent_body, _refused
@@ -86,3 +88,14 @@ def unblock(agent_id, plugin_id):
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
 for _view in (plugins_config, plugin_sent, plugin_fetch):
     _view._auth_public = True
+
+
+@bp.route('/api/agent/v1/bundles/<name>', methods=['GET'])
+def bundle(name):
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    path = agent_plugins.bundle_file(name)
+    if path is None:
+        return jsonify({'error': 'No such bundle here.'}), 404
+    return send_file(path, mimetype='application/gzip', max_age=0)

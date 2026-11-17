@@ -7,12 +7,11 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { ActionResult, LancacheAgent, LancacheOverview } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { ErrorBanner } from '@/components/ui'
 import { ago, dayClock } from '@/lib/time'
-import { bytes } from './traffic/format'
+import type { ViewProps } from '@/widgets/views'
+import { bytes } from '../traffic/format'
 
 const W = 1000
 const H = 140
@@ -109,7 +108,7 @@ function Machine({ agent }: { agent: LancacheAgent }) {
   )
 }
 
-function Machines({ data }: { data: LancacheOverview }) {
+function Machines({ data, expanded }: { data: LancacheOverview; expanded: boolean }) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const canClear = useCan('settings.manage')
@@ -126,7 +125,7 @@ function Machines({ data }: { data: LancacheOverview }) {
     <section className="fb-stats-panel wide" aria-labelledby="lc-machine">
       <Group justify="space-between" mb={6}>
         <h2 id="lc-machine">{t('lancache.machine')}</h2>
-        {canClear && data.agents.length > 0 && (
+        {expanded && canClear && data.agents.length > 0 && (
           <ConfirmButton size="xs" variant="light" danger label={t('lancache.clear')} question={t('lancache.clearQuestion')}
             loading={clear.isPending} onConfirm={() => clear.mutate()} />
         )}
@@ -242,8 +241,8 @@ function Lookups({ data }: { data: LancacheOverview }) {
 }
 
 /** The LAN cache as a view (a dashboard pane, or a widget's expanded size): what it saved, the
- *  cache machine and, expanded, what the hall downloads. Hall-wide only. */
-export function LancacheView({ expanded = true }: { expanded?: boolean }) {
+ *  cache machine and, expanded, what the hall downloads and clearing it. Hall-wide only. */
+export default function LancacheView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const [hours, setHours] = useState(24)
   const query = useQuery({
@@ -278,7 +277,7 @@ export function LancacheView({ expanded = true }: { expanded?: boolean }) {
             <StatCard label={t('lancache.clients')} value={String(peak)} sub={t('lancache.clientsSub')} />
           </SimpleGrid>
           <div className="fb-stats">
-            <Machines data={data} />
+            <Machines data={data} expanded={expanded} />
             {expanded && (
               <>
                 <Chart data={data} />
@@ -292,16 +291,5 @@ export function LancacheView({ expanded = true }: { expanded?: boolean }) {
         </>
       )}
     </>
-  )
-}
-
-/** Until dashboards have views: the expanded view on a page of its own, where the widgets link. */
-export default function Lancache() {
-  const { t } = useTranslation()
-  return (
-    <Layout title={t('lancache.title')}>
-      <PageHead title={t('lancache.title')} desc={t('lancache.intro')} />
-      <LancacheView expanded />
-    </Layout>
   )
 }
