@@ -42,7 +42,10 @@ class AgentPlugin(Base):
         self.token = self._token()
         self.targets = []
         self.configure(self.settings)
-        self.port = self.ctx.listen_http(int(os.environ.get(PORT_ENV) or PORT), self.handle)
+        # HTTPS when the hall gave the agent a certificate (FLOORBIT_AGENT_TLS_CERT/KEY): a firewall's
+        # own Telegraf sends here across the event network.
+        self.port = self.ctx.listen_http(int(os.environ.get(PORT_ENV) or PORT), self.handle, tls=True)
+        self.write_conf()
         self.ctx.thread(self.loop, name='telemetry-poll')
         self.ctx.health('ok', 'waiting for devices')
 
@@ -77,12 +80,15 @@ class AgentPlugin(Base):
         return os.environ.get(CONF_ENV) or os.path.join(self.ctx.state_dir or '.', 'telegraf.conf')
 
     def output_url(self):
-        return os.environ.get(OUTPUT_ENV) or f'http://agent:{os.environ.get(PORT_ENV) or PORT}/write'
+        scheme = 'https' if getattr(self.ctx, 'tls', False) else 'http'
+        return os.environ.get(OUTPUT_ENV) or f'{scheme}://agent:{os.environ.get(PORT_ENV) or PORT}/write'
 
     def write_conf(self):
         """telegraf.conf for the sidecar, written only when it changed (Telegraf reloads on change)."""
         with self.lock:
-            text = telegraf.render(list(self.targets), self.output_url(), self.token)
+            # The sidecar reaches the agent by its compose name, which the hall's certificate doesn't name.
+            text = telegraf.render(list(self.targets), self.output_url(), self.token,
+                                   output_insecure=self.output_url().startswith('https://agent:'))
         path = self.conf_path()
         try:
             with open(path, encoding='utf-8') as f:

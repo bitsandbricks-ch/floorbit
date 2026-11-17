@@ -64,8 +64,9 @@ Neither does model-driven streaming. What comes closest:
 
 - **Their own Telegraf** every 10 s: in the firewall's Telegraf settings, add an InfluxDB output
   to `https://<floorbit>/api/telemetry` with the token from Settings > Telemetry: as the token for
-  InfluxDB v2, or as the password for v1. With a local agent, point it at `http://<agent>:8186`
-  instead, with the agent's own token (the `ingest-token` file in the agent's
+  InfluxDB v2, or as the password for v1. With a local agent, point it at `https://<agent>:8186`
+  instead (plain `http://` when the agent has no certificate: set `FLOORBIT_AGENT_TLS_CERT` and
+  `FLOORBIT_AGENT_TLS_KEY` on the agent), with the agent's own token (the `ingest-token` file in the agent's
   `plugins/telemetry` state folder). CPU, memory, interfaces and
   `pf` states arrive with the firewall in the `host` tag; name the device the same on the
   Telemetry page.

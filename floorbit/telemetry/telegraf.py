@@ -163,14 +163,16 @@ def gnmi(t, interval='10s'):
     return lines
 
 
-def render(targets, output_url, token, interval='30s', tables_interval='60s', listen_traps=True, listen_mdt=True):
+def render(targets, output_url, token, interval='30s', tables_interval='60s', listen_traps=True, listen_mdt=True,
+           output_insecure=False):
     """The whole telegraf.conf. ``targets`` with secrets opened (targets.opened)."""
     lines = ['# Made by Floorbit from Settings > Telemetry (docs/telemetry.md). Changes here are',
              '# overwritten: change the devices there instead.', '',
              '[agent]', f'  interval = {q(interval)}', '  round_interval = true', '  flush_interval = "5s"',
              '  metric_buffer_limit = 100000', '  omit_hostname = true', '',
              '[[outputs.http]]', f'  url = {q(output_url)}', '  method = "POST"', '  data_format = "influx"',
-             '  content_encoding = "gzip"', '  timeout = "10s"', '  [outputs.http.headers]',
+             '  content_encoding = "gzip"', '  timeout = "10s"',
+             *(['  insecure_skip_verify = true'] if output_insecure else []), '  [outputs.http.headers]',
              f'    Authorization = {q("Token " + token)}', '']
     traps = [t for t in targets if 'traps' in t['drivers']]
     mdt = [t for t in targets if 'mdt' in t['drivers']]

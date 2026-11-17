@@ -401,7 +401,9 @@ def test_the_agent_gets_the_devices_and_sends_series(client, anon_client):
 
 
 class AgentCtx(MemoryContext):
-    def listen_http(self, port, handler, host="0.0.0.0"):
+    tls = False
+
+    def listen_http(self, port, handler, host="0.0.0.0", tls=False):
         self.handler = handler
         return port
 
