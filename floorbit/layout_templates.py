@@ -17,7 +17,7 @@ import re
 import time
 import uuid
 
-from . import halls, inventory, plan_marks, store
+from . import halls, inventory, plan_marks, seat_gaps, seat_layout, store
 
 FORMAT = 'floorbit-template'
 FORMAT_VERSION = 1
@@ -25,7 +25,8 @@ MAX_VERSIONS = 10
 MAX_TEMPLATES = 200
 NAME_MAX, DESCRIPTION_MAX = 80, 500
 BLOCK_KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-              'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'hall_id')
+              'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'seat_at',
+              'hall_id')
 SWITCH_KEYS = ('name', 'role', 'model', 'x', 'y', 'hall_id')
 _ID = re.compile(r'[a-f0-9]{12}')
 
@@ -92,6 +93,18 @@ def _num(value, lo, hi, what, cast=float):
     return value
 
 
+def _places(b, what):
+    """A block's gaps and freely placed seats (floorbit/seat_gaps.py, seat_layout.py), checked."""
+    cols, rows = int(b.get('cols', 1)), int(b.get('rows', 1))
+    try:
+        out = {'col_gaps': seat_gaps.clean(b.get('col_gaps'), cols),
+               'row_gaps': seat_gaps.clean(b.get('row_gaps'), rows),
+               'seat_at': seat_layout.clean(b.get('seat_at'), cols, rows)}
+    except (seat_gaps.GapError, seat_layout.LayoutError) as exc:
+        raise TemplateError(f'{what}: {exc}') from None
+    return out
+
+
 def clean_layout(layout):
     """A layout from a file, cut down to the template fields and checked. Returns (layout, dropped),
     ``dropped`` the names of the fields that were taken out."""
@@ -142,6 +155,7 @@ def clean_layout(layout):
             'rotation': _num(b.get('rotation', 0) or 0, -360, 360, f'{what} rotation', int),
             'reverse_numbers': bool(b.get('reverse_numbers')),
             **_naming(b, what),
+            **_places(b, what),
             'hall_id': b.get('hall_id') if b.get('hall_id') in ids else out_halls[0]['id'],
         })
 

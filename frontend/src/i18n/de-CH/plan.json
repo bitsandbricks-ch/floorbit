@@ -608,6 +608,15 @@
       "feedHint": "Sitzblöcke oder Switches mit Shift-Klick dazunehmen, um sie über diesen Stromverteiler zu speisen.",
       "more": "Sicherungen, Phasen und Messwerte auf der Seite Elektrik"
     },
+    "seats": {
+      "arrange": "Plätze frei stellen",
+      "done": "Plätze fertig gestellt",
+      "rows": "Zurück zu Reihen",
+      "intro": "Die Plätze stehen in Reihen. Stell sie frei auf, für ein U um einen Tisch oder jede andere Form; die Namen bleiben bei den Plätzen.",
+      "hint": "Zieh einen Platz, um ihn zu verschieben. Plätze rasten in halben Platzschritten ein; mit Alt frei. Jede Verschiebung ist ein Schritt zum Rückgängigmachen.",
+      "free": "Diese Plätze sind frei gestellt. «Zurück zu Reihen» stellt sie wieder in Reihen.",
+      "handle": "Platz {{seat}}: zum Verschieben ziehen"
+    },
     "gaps": {
       "col": "Lücken in den Reihen",
       "row": "Gassen zwischen Reihen",

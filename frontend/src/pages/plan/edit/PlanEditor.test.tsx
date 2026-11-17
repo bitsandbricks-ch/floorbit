@@ -304,4 +304,31 @@ describe('Plan editor: background and scale', () => {
     expect(e.sent('PUT')[1].body).toEqual({ seat_m: null })
     box.mockRestore()
   })
+
+  it('places one seat of a block freely, keeping the others where they are, as a step to undo', async () => {
+    const box = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 1600, height: 1000, x: 0, y: 0, right: 1600, bottom: 1000, toJSON: () => ({}) } as DOMRect)
+    const cells = [0, 1, 2, 3].map((c) => ({ x: c * 32 - 64, y: -16, seat: `ADM-${c + 1}`, hit: false, on: null, rc: [0, c] }))
+    const admins = { ...data, drawing: { ...data.drawing!, shapes: [{ ...shape('A', 400), name: 'ADM', cells }] } } as unknown as SeatViewData
+    const api = fakeFetch({
+      'GET /api/plan-groups?hall=main': { groups: [] }, 'GET /api/cable-plan?hall=main': { cables: [], panels: [] },
+      'GET /api/seat-blocks?hall=main': [{ ...blockRow('A', 25), name: 'ADM', seat_at: null }], 'PUT /api/seat-blocks/A': { ok: true },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    const r = renderWithApp(<PlanEditor data={admins} view={{ x: 0, y: 0, w: 1600, h: 1000 }} setView={vi.fn()} layers={layers}
+      refresh={() => Promise.resolve()} onHall={() => {}} onShortcuts={() => {}} />)
+    fireEvent.pointerDown(r.container.querySelector('[data-item="block:A"]')!, { button: 0, pointerId: 1, clientX: 0, clientY: 0 })
+    fireEvent.click(await screen.findByRole('button', { name: 'Place seats freely' }))
+    // Seat 4 two seats down: the box grows a seat below the row, so the block's middle moves a seat down.
+    const seat = await screen.findByRole('button', { name: 'Seat ADM-4: drag to move' })
+    fireEvent.pointerDown(seat, { button: 0, pointerId: 2, clientX: 448, clientY: 500 })
+    fireEvent.pointerMove(seat, { pointerId: 2, clientX: 448, clientY: 564 })
+    fireEvent.pointerUp(seat, { pointerId: 2, clientX: 448, clientY: 564 })
+    const put = () => api.calls.filter((c) => c.method === 'PUT')
+    await waitFor(() => expect(put()).toHaveLength(1))
+    expect(put()[0].body).toEqual({ seat_at: { '0,0': [0, 0], '0,1': [1, 0], '0,2': [2, 0], '0,3': [3, 2] }, x: 25, y: 53.2 })
+    fireEvent.keyDown(r.container.querySelector('.fb-plan-editor')!, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(put()).toHaveLength(2))
+    expect(put()[1].body).toEqual({ seat_at: null, x: 25, y: 50 })
+    box.mockRestore()
+  })
 })

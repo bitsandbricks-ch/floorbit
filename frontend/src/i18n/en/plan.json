@@ -608,6 +608,15 @@
       "feedHint": "Shift-click seat blocks or switches to feed them from this board.",
       "more": "Ratings, phases and readings on the Electrics page"
     },
+    "seats": {
+      "arrange": "Place seats freely",
+      "done": "Done placing seats",
+      "rows": "Back to rows",
+      "intro": "Seats stand in rows. Place them freely for a U round a table or any other shape; names stay with the seats.",
+      "hint": "Drag a seat to move it. Seats land on half-seat steps; Alt places freely. Each move is one undo step.",
+      "free": "These seats are placed freely. Back to rows lines them up again.",
+      "handle": "Seat {{seat}}: drag to move"
+    },
     "gaps": {
       "col": "Gaps in the rows",
       "row": "Lanes between rows",
