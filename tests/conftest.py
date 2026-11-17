@@ -129,7 +129,7 @@ def app_module(tmp_path, monkeypatch):
 
     import redis
 
-    # Without this, every request retries a real Redis five times with a 2 s sleep.
+    # No test talks to a real Redis.
     monkeypatch.setattr(redis, "Redis", FakeRedis)
 
     import app
@@ -145,6 +145,7 @@ def app_module(tmp_path, monkeypatch):
     settings.reload()
     runtime.apply(settings)
     monkeypatch.setattr(cache, "redis_client", None)
+    monkeypatch.setattr(cache, "_next_try", 0.0)   # a Redis away in one test is not away in the next
     from floorbit import recording
     # The whole-event recording remembers its last frame: start each test without one.
     monkeypatch.setattr(recording, "_state", {"last": None, "compacted": 0.0})
