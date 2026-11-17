@@ -29,6 +29,8 @@ export default function Cables() {
   const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.cables })
+  const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches'),
+    enabled: canEdit })
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
   // A new cable, maybe started from a machine on an unexplained port (its switch and port filled in).
