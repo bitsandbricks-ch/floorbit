@@ -133,3 +133,15 @@ def test_marks_and_zones_turn_to_any_angle(client):
     turned = client.put(f"/api/plan-marks/{zone['id']}", json={'rotation': 30}).get_json()
     assert turned['rotation'] == 30
     assert 'rotation' not in client.put(f"/api/plan-marks/{zone['id']}", json={'rotation': 360}).get_json()
+
+
+def test_marks_take_their_own_colour_and_give_it_back(client):
+    # Mike: custom area, wall and icon colours.
+    wall = client.post('/api/plan-marks', json={'kind': 'wall', 'x': 1, 'y': 1, 'x2': 9, 'y2': 1,
+                                                'tint': '#3FB950'}).get_json()
+    assert wall['tint'] == '#3fb950'
+    same = client.put(f"/api/plan-marks/{wall['id']}", json={'style': 'dashed'}).get_json()
+    assert same['tint'] == '#3fb950'
+    assert 'tint' not in client.put(f"/api/plan-marks/{wall['id']}", json={'tint': None}).get_json()
+    for bad in ('green', '#3fb95', 'rgb(1,2,3)', 7):
+        assert client.put(f"/api/plan-marks/{wall['id']}", json={'tint': bad}).status_code == 400, bad

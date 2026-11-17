@@ -262,3 +262,23 @@ describe('Plan editor: locks and shared fields', () => {
     expect(e.sent('PUT').slice(2).map((c) => c.body)).toEqual([{ rotation: 0 }, { rotation: 0 }])
   })
 })
+
+describe('Plan editor: own colours', () => {
+  it('gives a wall its own colour and takes it back to the theme colour', async () => {
+    const wall = { id: 'w', kind: 'wall', x: 100, y: 100, x2: 400, y2: 100, tint: '#e03131' }
+    const withWall = { ...data, drawing: { ...data.drawing!, marks: [wall] } } as unknown as SeatViewData
+    const api = fakeFetch({
+      'GET /api/plan-groups?hall=main': { groups: [] },
+      'GET /api/power/markers': { enabled: false, boards: [], feeds: [] },
+      'GET /api/cable-plan?hall=main': { cables: [], panels: [] },
+      'PUT /api/plan-marks/w': { ok: true },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    const r = renderWithApp(<PlanEditor data={withWall} view={{ x: 0, y: 0, w: 1600, h: 1000 }} setView={vi.fn()} layers={layers}
+      refresh={() => Promise.resolve()} onHall={() => {}} onShortcuts={() => {}} />)
+    fireEvent.pointerDown(r.container.querySelector('[data-item="mark:w"]')!, { button: 0, pointerId: 1, clientX: 0, clientY: 0 })
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to the theme colour' }))
+    await waitFor(() => expect(api.calls.filter((c) => c.method === 'PUT')).toHaveLength(1))
+    expect(api.calls.find((c) => c.method === 'PUT')).toMatchObject({ path: '/api/plan-marks/w', body: { tint: null } })
+  })
+})

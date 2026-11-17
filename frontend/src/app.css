@@ -487,8 +487,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-marks .zone-warn { --zone: var(--color-warn); }
 .fb-marks .zone-down { --zone: var(--color-down); }
 .fb-marks .label { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
-.fb-marks .icon rect { fill: var(--color-raised); stroke: var(--color-line, var(--color-muted)); stroke-width: 1.5; }
-.fb-marks .icon svg { color: var(--color-fg); }
+.fb-marks .icon rect { fill: var(--color-raised); stroke: var(--tint, var(--color-line, var(--color-muted))); stroke-width: 1.5; }
+.fb-marks .icon svg { color: var(--tint, var(--color-fg)); }
 .fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; font-size: var(--row-lbl, 19px); text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; stroke-linejoin: round; }
 .fb-plan .sw .body { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .fb-plan .sw-online .body, .fb-plan .sw-offline .body, .fb-plan .sw-warning .body { stroke-dasharray: none; }

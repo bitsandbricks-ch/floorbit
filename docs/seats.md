@@ -73,8 +73,11 @@ The floor plan editor is moving into this page. Edit mode already does:
   locks the selected items: they keep their place and angle, show a small padlock and no handles, and
   Delete leaves them alone, until the same key unlocks them. Locks are saved with the hall, for
   everyone.
+- **Own colours:** a selected wall, zone, label or icon has **Own colour** in the panel: pick a
+  swatch or type a colour (#e03131). Without one it keeps the theme's colour, which follows light and
+  dark; **Back to the theme colour** clears it. A zone's own colour wins over its colour swatch.
 - **Change several at once:** with two or more items selected, **All selected** in the panel shows
-  the fields they share (layer, wall style, zone colour, label and icon size, angle). Picking a value
+  the fields they share (layer, wall style, zone colour, own colour, label and icon size, angle). Picking a value
   sets it on all of them; "mixed" means they differ. One undo puts them all back.
 - **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
   or double-click an item in the items list); 0 shows the whole hall again.
