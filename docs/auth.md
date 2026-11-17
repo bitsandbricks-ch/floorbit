@@ -86,7 +86,8 @@ A path in `AUTH_PUBLIC_PATHS` covers itself and everything below it (`/kiosk` co
 not `/kioskadmin`). A single view can also be opened from code with `@public_endpoint` (from `auth`).
 
 Signed-out API calls answer `401 {"error": "Sign in required", "login_url": "/login"}`;
-`static/js/auth.js` sends the browser to the sign-in page when that happens and back afterwards.
+The React app (`frontend/src/api/client.ts`) sends the browser to the sign-in page when that
+happens and back afterwards.
 
 ## Accounts
 

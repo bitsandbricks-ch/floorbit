@@ -1,6 +1,5 @@
 /* One look for Mantine's controls on every React page, from the shared --ui-* tokens
- * (static/css/brand/tokens.css). The editor's vanilla controls (static/css/ui.css) read the same
- * tokens, so a dropdown on the floor plan and one on a page look alike. Pages never restyle these. */
+ * (static/css/brand/tokens.css). Pages never restyle these. */
 
 /* ── Inputs ─────────────────────────────────────────────────────────────── */
 .mantine-Input-input {
