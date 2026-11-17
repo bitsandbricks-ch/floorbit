@@ -120,6 +120,7 @@ def delete(data, hall_id):
     # Labels and walls are drawing, not content worth a refusal; they go with the hall.
     data['plan_marks'] = [m for m in data.get('plan_marks') or [] if m.get('hall_id') != hall_id]
     data['plan_groups'] = [g for g in data.get('plan_groups') or [] if g.get('hall_id') != hall_id]
+    data['plan_locks'] = [x for x in data.get('plan_locks') or [] if x.get('hall_id') != hall_id]
 
 
 def public(data, hall):
@@ -132,7 +133,7 @@ def public(data, hall):
 # ── Background images ─────────────────────────────────────────────────────────────────────
 
 def _folder():
-    return os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'halls')
+    return store.event_path('halls')
 
 
 def _path(hall):

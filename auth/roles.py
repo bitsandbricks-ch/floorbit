@@ -223,10 +223,21 @@ RULES = (
     ('/api/seat-blocks', WRITE, 'floorplan.edit'),
     ('/api/plan-marks', WRITE, 'floorplan.edit'),
     ('/api/plan-groups', WRITE, 'floorplan.edit'),
+    ('/api/plan-locks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),
     ('/api/tournament', WRITE, 'floorplan.edit'),
     ('/api/inventory/log', READ, 'floorplan.edit'),
+    # Stored credentials on devices, groups and tags: set by admins, like switch logins (floorbit/inventory_scope.py).
+    # The shared icon library: admins upload SVGs, everyone who sees the plan sees them.
+    ('/api/icons', WRITE, 'settings.manage'),
+    ('/api/icons', READ, 'floorplan.view'),
+    # What fields each type of inventory entry has: admins, like the settings.
+    ('/api/inventory/types', WRITE, 'settings.manage'),
+    ('/api/inventory/credentials', WRITE, 'settings.manage'),
+    ('/api/inventory/credentials', READ, 'floorplan.edit'),
+    # A device blocked after a failed login: any tech clears it once the login is fixed.
+    ('/api/inventory/blocks', None, 'ports.act'),
     ('/api/inventory', WRITE, 'floorplan.edit'),
     ('/api/seat-map', READ, 'seats.view'),
     ('/api/seat-map.csv', READ, 'seats.view'),
@@ -256,13 +267,6 @@ RULES = (
     ('/api/jobs', WRITE, 'floorplan.view'),
     ('/api/dispatch/auto', WRITE, 'incidents.assign'),   # automatic dispatch on or off (issue #358)
     ('/api/dispatch', READ, 'incidents.assign'),
-    # Teardown: the export carries a backup, so it is an admin's, like Settings > Backup.
-    ('/api/teardown/export.zip', READ, 'settings.manage'),
-    ('/api/teardown', None, 'floorplan.edit'),
-    ('/teardown', READ, 'floorplan.edit'),
-    # Gear loans name people and are the crew's (floorbit/gear.py).
-    ('/api/gear', None, 'incidents.work'),
-    ('/gear', READ, 'incidents.work'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
     ('/api/cables/clients', None, 'seats.view'),
@@ -273,6 +277,8 @@ RULES = (
     ('/api/port-areas', WRITE, 'floorplan.edit'),
     # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
+    # Dashboards (floorbit/dashboards.py): arranged by the floor crew, like the older tile layouts.
+    ('/api/dashboards', WRITE, 'floorplan.edit'),
     # Runbooks: the crew reads them, leads write them (floorbit/runbooks.py).
     ('/api/runbooks', READ, 'incidents.work'),
     ('/api/runbooks', WRITE, 'incidents.assign'),

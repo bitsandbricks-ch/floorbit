@@ -105,8 +105,10 @@ export interface LogLine {
   line: string
 }
 
-export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes'] as const
+export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes',
+  'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 export type InventoryField = (typeof INVENTORY_FIELDS)[number]
+export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 
 export interface Device extends Record<InventoryField, string> {
   id: string
@@ -120,6 +122,169 @@ export interface Device extends Record<InventoryField, string> {
   locked: InventoryField[]
   gone: string[]
   fed: Record<string, Partial<Record<InventoryField, string>>>
+  icon?: string
+  color?: string
+  group_id?: string | null
+  tags?: string[]
+  properties?: Record<string, string>
+  features?: Record<string, boolean>
+  /** Values of the fields the Device type has (inventory types). */
+  fields?: Record<string, string>
+  interface_count?: number
+  blocked?: number
+}
+
+/** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
+export interface ScopeHolder {
+  id: string
+  name: string
+  icon: string
+  color: string
+  properties: Record<string, string>
+  features: Record<string, boolean>
+}
+
+export interface InventoryGroup extends ScopeHolder {
+  parent_id: string | null
+  tags: string[]
+  notes: string
+  devices: number
+  credentials: string[]
+}
+
+export interface InventoryTag extends ScopeHolder {
+  description: string
+  used: number
+  credentials: string[]
+}
+
+export interface FeatureInfo {
+  id: string
+  core: boolean
+  name: string
+  default: boolean
+  agent?: boolean
+}
+
+/** An SVG from the shared icon library (floorbit/icon_library.py); `id` starts with `custom-`. */
+export interface CustomIcon { id: string; name: string; url: string; by: string; at: number | null }
+
+/** A field an admin set up on an inventory type (floorbit/inventory_types.py). */
+export interface FieldDef {
+  key: string; label: string; kind: 'text' | 'number' | 'choice' | 'bool' | 'link'
+  choices: string[]; default: string; link: string
+}
+export interface InventoryType {
+  id: string; name: string; sort: 'device' | 'linked' | 'stored'; builtin: boolean
+  icon: string; default_icon: string; color: string
+  /** Built-in fields first, then the ones set up here (`own_fields`). */
+  fields: FieldDef[]; own_fields: FieldDef[]
+  properties: Record<string, string>; features: Record<string, boolean>; count: number
+}
+export interface InventoryEntry {
+  id: string; type: string; name: string; summary: string; detail: string; link: string
+  group_id: string | null; tags: string[]; properties: Record<string, string>
+  icon: string; color: string; notes: string; fields: Record<string, string>
+  /** Stored entries a plugin feeds (NetBox): which, and which no longer send it. */
+  sources?: string[]; gone?: string[]; locked?: string[]
+}
+export interface EntryDetail extends InventoryEntry {
+  resolved: Omit<DeviceDetail['resolved'], 'credentials' | 'features'>
+  field_values: (FieldDef & { value: string; is_default: boolean })[]
+}
+
+export interface InventoryOverview {
+  groups: InventoryGroup[]
+  tags: InventoryTag[]
+  defaults: { properties: Record<string, string>; features: Record<string, boolean>; credentials: string[] }
+  features: FeatureInfo[]
+  icons: string[]
+  custom_icons?: CustomIcon[]
+  credential_kinds: string[]
+  auth_protocols: string[]
+  priv_protocols: string[]
+  ungrouped: number
+}
+
+export const INTERFACE_FIELDS = ['type', 'speed_mbps', 'mac', 'ips', 'vlan', 'mode', 'description', 'enabled', 'mgmt', 'lag'] as const
+export type InterfaceField = (typeof INTERFACE_FIELDS)[number]
+
+export interface DeviceInterface {
+  id: string
+  name: string
+  type: string
+  speed_mbps: number | null
+  mac: string
+  ips: string[]
+  vlan: number | null
+  mode: string
+  description: string
+  enabled: boolean
+  mgmt: boolean
+  lag: string
+  origin: string
+  hidden: boolean
+  sources: string[]
+  locked: InterfaceField[]
+  gone: string[]
+  fed: Record<string, Partial<Record<InterfaceField, unknown>>>
+}
+
+export interface Origin {
+  type: 'device' | 'tag' | 'group' | 'type' | 'defaults' | 'switch-logins'
+  id: string
+  name: string
+}
+
+export interface CredentialInfo {
+  id: string
+  kind: string
+  owner_type: string
+  owner_id: string
+  owner_name?: string
+  username: string
+  auth_protocol: string
+  priv_protocol: string
+  rev: string
+  set_at: number | null
+  set_by: string | null
+  secrets: string[]
+}
+
+export interface LoginBlock {
+  credential_id: string
+  rev: string
+  kind: string
+  plugin: string
+  message: string
+  agent: string | null
+  at: number
+  device_id: string
+  device: string
+}
+
+export interface DeviceDetail extends Device {
+  interfaces: DeviceInterface[]
+  own_credentials: CredentialInfo[]
+  blocks: LoginBlock[]
+  /** What goes down with this device: VMs on it, and game servers on it or on those VMs. */
+  runs_here?: { kind: 'device' | 'game-server'; id: string; name: string; role?: string; via?: string }[]
+  /** What is wired to it: cables on its ports, circuits that feed it, internet lines on it. */
+  connected?: {
+    cables: { id: string; label: string; port: string; panel: string; panel_port: string; seat: string; type: string; speed: number | null }[]
+    circuits: { id: string; name: string; board: string; phase: string; rating_a: number | null }[]
+    uplinks: { id: string; name: string; port: string; capacity_mbps: number | null }[]
+    /** Entries whose device field names it: the optics in its ports, ... */
+    entries?: { id: string; type: string; name: string; port: string }[]
+  }
+  resolved: {
+    properties: Record<string, { value: string; from: Origin }>
+    features: Record<string, { on: boolean; from: Origin | null }>
+    tags: { id: string; name: string; color: string; icon: string; own: boolean }[]
+    look: { icon: { value: string; from: Origin | null }; color: { value: string; from: Origin | null } }
+    credentials: Record<string, CredentialInfo & { from: Origin; blocked: boolean }>
+    group_path: { id: string; name: string }[]
+  }
 }
 
 export interface SyncReport {
@@ -682,6 +847,8 @@ export interface PlanMark {
   rotation?: number
   x2?: number
   y2?: number
+  /** A wall's bends between its ends, [x, y] each (drawing units in the plan, % from /api/plan-marks). */
+  points?: [number, number][]
   style?: 'solid' | 'dashed'
   w?: number
   h?: number
@@ -689,6 +856,8 @@ export interface PlanMark {
   color?: 'muted' | 'bit' | 'trace' | 'warn' | 'down'
   /** The floor plan layer it's on (floorbit/plan_marks.py LAYERS); overview when missing. */
   layer?: 'overview' | 'safety' | 'network' | 'electrical' | 'services'
+  /** The crew's own colour, ``#rrggbb``; missing is the theme's. */
+  tint?: string
 }
 
 export interface PlanDrawing {
@@ -796,7 +965,7 @@ export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
   counts: HandoverCounts
 }
-export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; gear_out?: number; median_fix_s?: number | null }
+export interface HandoverCounts { open: number; waiting?: number; opened: number; fixed: number; outages: number; still_down: number; changes: number; problems: number; muted?: number; median_fix_s?: number | null }
 export interface HandoverData {
   since: number; now: number; previous: HandoverRecord | null
   incidents: { open: HandoverIncident[]; opened: number; fixed: HandoverIncident[] }
@@ -807,8 +976,6 @@ export interface HandoverData {
   /** What is muted right now, and the crew notice that is up (issue #258). */
   mutes?: { kind: 'switch' | 'health'; name: string; until: number; by: string | null; reason: string }[]
   notice?: CrewNotice | null
-  /** Who still holds gear, most pieces first (issue #324); empty when the gear page is off. */
-  gear?: { to: string; count: number; names: string[] }[]
   coming_up?: { id: string; title: string; kind: string; start: number; end: number | null; where: string | null }[]
   counts: HandoverCounts
   history: HandoverRecord[]
@@ -824,28 +991,6 @@ export interface PreflightBoard {
   groups: Record<PreflightGroupId, PreflightGroup | null>
   counts: Record<PreflightStatus, number>
   ready: boolean; complete: boolean
-}
-
-/** Gear loans (issue #36). */
-export interface GearLoan {
-  to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string
-  /** Due back (issue #426), and whether that is past. */
-  until?: number | null; overdue?: boolean
-}
-export interface GearItem { id: string; name: string; role: string; model: string; serial: string; origin: string; placed: boolean; loan: GearLoan | null }
-export interface GearLogEntry { device_id: string; name: string; action: 'out' | 'in'; to: string; kind: 'person' | 'area'; by: string | null; at: number; note: string; out_for?: number }
-export interface GearData { items: GearItem[]; log: GearLogEntry[]; people: { username: string; display_name: string }[] }
-
-/** Teardown checklist (issue #37). */
-export interface TeardownStep { id: string; text: string; added_by: string | null; added_at: number; done_by: string | null; done_at: number | null }
-export interface Teardown {
-  done: boolean; left: number; total: number
-  parts: {
-    gear: { done: boolean; left: number; out: { id: string; name: string; to: string; at: number }[] }
-    configs: { done: boolean; left: number; switches: { id: string; name: string; archived: { by: string | null; at: number } | null }[] }
-    export: { done: boolean; left: number; last: { by: string | null; at: number } | null }
-    custom: { done: boolean; left: number; items: TeardownStep[] }
-  }
 }
 
 /** GET /api/events (issue #38): the running event and the archived ones, for comparing. */
@@ -1689,6 +1834,8 @@ export interface GameServerInfo {
 export interface GameServer {
   id: string; name: string; game: string; host: string; port: number; query: 'a2s' | 'minecraft' | 'tcp'
   rcon_port: number | null; rcon: boolean
+  /** The inventory server or VM it runs on, or ''. */
+  runs_on?: string
   status: 'up' | 'down' | 'unknown'; info: GameServerInfo | null; error: string
   checked_at: number | null; since: number | null
   /** [when, players] oldest first; players is null while it was down. */

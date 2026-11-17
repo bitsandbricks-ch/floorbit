@@ -159,7 +159,7 @@ def counts(layout):
 # ── The library ──────────────────────────────────────────────────────────────────────────
 
 def folder():
-    return os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'layout-templates')
+    return store.tenant_path('layout-templates')
 
 
 def _path(template_id):

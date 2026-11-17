@@ -28,6 +28,14 @@ describe('Edit overlay', () => {
     expect(onSelect).toHaveBeenCalledWith([A])
   })
 
+  it('leaves the pointer to the plan with the Hand tool, so a drag moves the view', () => {
+    const { onSelect, hit, view } = overlay({ tool: 'hand' })
+    expect(view.container.querySelector('.fb-edit')).toHaveClass('panning')
+    fireEvent.pointerDown(hit('A'), { button: 0, pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerUp(hit('A'), { button: 0, pointerId: 1, clientX: 140, clientY: 100 })
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
   it('adds with Shift, and takes a whole group out again', () => {
     const together = (r: ItemRef) => (r.id === 'B' ? [A, B] : [r])
     const added = overlay({ selection: [A] })
@@ -45,5 +53,28 @@ describe('Edit overlay', () => {
     fireEvent.pointerMove(hit('A'), { pointerId: 1, clientX: 140, clientY: 130 })
     fireEvent.pointerUp(hit('A'), { pointerId: 1, clientX: 140, clientY: 130 })
     expect(onDrop).toHaveBeenCalledWith({ x: 40, y: 30 }, true, A, 1)
+  })
+
+  it('places on the grid, or where clicked with snapping to the grid off', () => {
+    const onPlace = vi.fn()
+    const on = overlay({ tool: 'text', onPlace })
+    const bg = () => on.view.container.querySelector('.fb-edit-bg')!
+    fireEvent.pointerDown(bg(), { button: 0, pointerId: 1, clientX: 803, clientY: 502 })
+    expect(onPlace.mock.calls[0][0]).toEqual({ x: 800, y: 500 })
+    on.view.unmount()
+    const off = overlay({ tool: 'text', onPlace, snapping: { grid: false, items: true } })
+    fireEvent.pointerDown(off.view.container.querySelector('.fb-edit-bg')!, { button: 0, pointerId: 1, clientX: 803, clientY: 502 })
+    expect(onPlace.mock.calls[1][0]).toEqual({ x: 803, y: 502 })
+  })
+
+  it('measures with the Measure tool and keeps the line until the next one, saving nothing', () => {
+    const onLine = vi.fn()
+    const { view } = overlay({ tool: 'measure', onLine })
+    const bg = view.container.querySelector('.fb-edit-bg')!
+    fireEvent.pointerDown(bg, { button: 0, pointerId: 1, clientX: 0, clientY: 0 })
+    fireEvent.pointerMove(bg, { pointerId: 1, clientX: 128, clientY: 0 })
+    fireEvent.pointerUp(bg, { pointerId: 1, clientX: 128, clientY: 0 })
+    expect(onLine).not.toHaveBeenCalled()
+    expect(view.container.querySelector('.fb-edit-draft text')).toHaveTextContent('4 · 0°')
   })
 })

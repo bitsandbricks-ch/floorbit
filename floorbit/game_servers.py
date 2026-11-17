@@ -66,6 +66,19 @@ def _port(value, message, required=True):
     return port
 
 
+def _runs_on(body, old):
+    """The inventory device (VM or server) the game server runs on, or ''. Optional; it lets the
+    device page say which game servers a host takes down with it."""
+    wanted = str(body.get('runs_on', old.get('runs_on')) or '').strip()
+    if not wanted:
+        return ''
+    from . import inventory
+    names = {d['name'].lower(): d['name'] for d in inventory.devices(load_data(), include_hidden=True)}
+    if wanted.lower() not in names:
+        raise GameServerError('Pick the server or VM it runs on from the inventory.')
+    return names[wanted.lower()]
+
+
 def _clean(body, old=None):
     old = old or {}
     name = ' '.join(str(body.get('name', old.get('name')) or '').split())
@@ -78,7 +91,7 @@ def _clean(body, old=None):
     if query not in game_query.PROTOCOLS:
         raise GameServerError('The query is a2s, minecraft or tcp.')
     game = ' '.join(str(body.get('game', old.get('game')) or '').split())[:40]
-    return {'name': name, 'game': game, 'host': host, 'query': query,
+    return {'name': name, 'game': game, 'host': host, 'query': query, 'runs_on': _runs_on(body, old),
             'port': _port(body.get('port', old.get('port')), 'The port is a number from 1 to 65535.'),
             'rcon_port': _port(body.get('rcon_port', old.get('rcon_port')),
                                'The RCON port is a number from 1 to 65535.', required=False)}
@@ -87,6 +100,7 @@ def _clean(body, old=None):
 def public(server):
     """A server as the API shows it: never the RCON password, only whether one is set."""
     return {k: server.get(k) for k in ('id', 'name', 'game', 'host', 'port', 'query', 'rcon_port')} | {
+        'runs_on': server.get('runs_on') or '',
         'rcon': bool(server.get('rcon_port') and server.get('rcon_password'))}
 
 

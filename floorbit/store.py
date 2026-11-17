@@ -17,10 +17,12 @@ Many parts of Floorbit (requests, background monitors) load the whole document, 
 part and save it whole. ``write_json`` keeps the top-level parts a saver did not change as they are
 now, so one saving a copy it loaded a moment ago doesn't undo what another saved in between.
 """
+import contextvars
 import json
 import os
 import threading
 import time
+from contextlib import contextmanager
 
 # Compose keeps it in the state folder with everything else (docs/install.md).
 DATA_FILE = os.environ.get('FLOORBIT_DATA_FILE') or 'data.json'
@@ -169,6 +171,8 @@ def write_json(path, data):
         else:
             out = _merge(data, base_text, _current_text(path)) if base_text is not None else data
             text = json.dumps(out, indent=2)
+            # An event's or tenant's folder exists once something is saved in it.
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
             with open(path + NEXT, 'w') as f:
                 f.write(text)
                 f.flush()
@@ -239,12 +243,92 @@ def unwritable(path=None):
     return found
 
 
+# ── Tenants and events (issue #466, docs/tenancy.md) ──
+#
+# Documents belong to a tenant (accounts, settings, plugins, agents) or to one of its events (the
+# floor plan, incidents, check-ins, logs). Both are folders under the state folder, named relative
+# to it; '' is the state folder itself, where a self-hosted install, its one tenant and its first
+# event have always kept everything. So nothing moves until a second event or tenant exists.
+#
+# The event folder is None unless a request or a ``using`` block picks one: then it is the
+# tenant's live event (``floorbit.tenancy``), which is what background workers follow.
+_tenant_dir = contextvars.ContextVar('floorbit_tenant_dir', default='')
+_event_dir = contextvars.ContextVar('floorbit_event_dir', default=None)
+live_event_dir = None    # set by floorbit.tenancy: () -> the live event's folder
+
+
+def state_folder():
+    return os.path.dirname(os.path.abspath(DATA_FILE))
+
+
+def tenant_dir():
+    return _tenant_dir.get()
+
+
+def event_dir():
+    """The current event's folder, relative to the tenant's."""
+    chosen = _event_dir.get()
+    if chosen is None:
+        if live_event_dir is None:
+            from . import tenancy  # noqa: F401  (sets live_event_dir; late: it imports store)
+        chosen = live_event_dir()
+    return chosen
+
+
+def _join(*parts):
+    return os.path.join(state_folder(), *(p for p in parts if p))
+
+
+def tenant_path(*names):
+    """A tenant document or folder: accounts, settings, plugins, archived events, templates."""
+    return _join(tenant_dir(), *names)
+
+
+def event_path(*names):
+    """A document or folder of the current event: the floor plan, logs, check-ins, figures."""
+    return _join(tenant_dir(), event_dir(), *names)
+
+
+def _scoped(configured, folder):
+    # A path someone configured (CHECKIN_FILE, data.json itself) stays exactly as it is where it
+    # always was; elsewhere the same name goes into the tenant's or event's folder.
+    if not folder:
+        return configured
+    return _join(folder, os.path.basename(configured))
+
+
+def tenant_file(configured=None):
+    """data.json of the tenant, or another configured file put in the tenant's folder."""
+    return _scoped(configured or DATA_FILE, tenant_dir())
+
+
+def event_file(configured=None):
+    """data.json of the current event, or another configured file put in the event's folder."""
+    return _scoped(configured or DATA_FILE, os.path.join(tenant_dir(), event_dir()).strip(os.sep))
+
+
+@contextmanager
+def using(tenant=None, event=None):
+    """Read and write the documents of this tenant folder and event folder in this block."""
+    tokens = []
+    if tenant is not None:
+        tokens.append((_tenant_dir, _tenant_dir.set(tenant)))
+    if event is not None:
+        tokens.append((_event_dir, _event_dir.set(event)))
+    try:
+        yield
+    finally:
+        for var, token in reversed(tokens):
+            var.reset(token)
+
+
 def load_data():
-    found = read_json(DATA_FILE)
+    path = event_file()
+    found = read_json(path)
     if isinstance(found, dict):
         return found
     if found is not None:
-        _not_an_object(DATA_FILE, found)
+        _not_an_object(path, found)
     return {
         'inventory':      [],   # every device, made by hand or fed by plugins (inventory.py)
         'seats':          [],   # individual seats
@@ -253,10 +337,10 @@ def load_data():
 
 
 # Features Mike dropped (2026-11-17): their data goes with the next write instead of lingering.
-RETIRED_KEYS = ('planner',)
+RETIRED_KEYS = ('planner', 'teardown', 'loans')
 
 
 def save_data(data):
     for key in RETIRED_KEYS:
         data.pop(key, None)
-    write_json(DATA_FILE, data)
+    write_json(event_file(), data)

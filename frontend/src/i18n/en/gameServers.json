@@ -40,5 +40,7 @@
   "confirmTitle": "Send this command?",
   "confirmText": "{{command}} can stop the server, change the map or throw players out.",
   "sendAnyway": "Send it",
-  "audited": "Every command is in the audit log with your name."
+  "audited": "Every command is in the audit log with your name.",
+  "runsOn": "Runs on",
+  "runsOnHint": "The server or VM in the inventory it runs on, so a host that goes down shows its game servers."
 }

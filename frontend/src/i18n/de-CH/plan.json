@@ -31,6 +31,26 @@
   "zoomOut": "Herauszoomen",
   "fit": "Ganze Halle zeigen",
   "minimap": "Übersicht über die Halle: klicken oder ziehen, um dorthin zu gehen",
+  "side": {
+    "label": "Plan-Seitenleiste",
+    "layers": "Ebenen",
+    "problems": "Probleme",
+    "items": "Elemente",
+    "hide": "Seitenleiste ausblenden",
+    "show": "Seitenleiste einblenden",
+    "allGood": "Nichts zu tun: kein Platz mit Problem, keiner offline, alle Switches aktiv.",
+    "switchesDown_one": "{{count}} Switch offline",
+    "switchesDown_other": "{{count}} Switches offline",
+    "withProblems_one": "{{count}} Platz mit Problem",
+    "withProblems_other": "{{count}} Plätze mit Problemen",
+    "offline_one": "{{count}} Platz offline",
+    "offline_other": "{{count}} Plätze offline",
+    "blocks_one": "{{count}} Sitzblock",
+    "blocks_other": "{{count}} Sitzblöcke",
+    "block": "Block {{name}}",
+    "switches_one": "{{count}} Switch",
+    "switches_other": "{{count}} Switches"
+  },
   "state": {
     "online": "Online",
     "offline": "Offline",
@@ -194,6 +214,7 @@
     "imageFailed": "Das Bild konnte nicht erstellt werden. Versuch es als SVG oder druck als PDF."
   },
   "shortcuts": {
+    "side": "Seitenleiste ein- oder ausblenden",
     "title": "Tastaturkürzel",
     "show": "Tastaturkürzel",
     "intro": "Zuerst mit Tab zum Plan. /, ?, Esc, L und 1 bis 4 gehen überall auf der Seite.",
@@ -233,6 +254,7 @@
       "ungroup": "Auswahl aus ihrer Gruppe nehmen",
       "stack": "Nach vorne, nach hinten",
       "rotate": "Eine Vierteldrehung, oder zurück",
+      "lock": "Auswahl sperren oder entsperren",
       "delete": "Löschen, oder Switches vom Plan nehmen",
       "cycle": "Mit einer Auswahl: das nächste oder vorherige Element, von oben nach unten"
     },
@@ -264,6 +286,8 @@
     "button": "Ebenen",
     "title": "Ebenen",
     "presets": "Vorlagen",
+    "legendOf": "Legende: {{layer}}",
+    "seatStates": "Plätze",
     "preset": {
       "overview": "Übersicht",
       "network": "Netzwerk",
@@ -353,7 +377,13 @@
       "addSwitch": "Switch {{name}} hinzufügen",
       "placeSwitch_one": "Switch platzieren",
       "placeSwitch_other": "{{count}} Switches platzieren",
-      "renameGroup": "Gruppe umbenennen"
+      "renameGroup": "Gruppe umbenennen",
+      "lock_one": "sperren",
+      "lock_other": "{{count}} Elemente sperren",
+      "unlock_one": "entsperren",
+      "unlock_other": "{{count}} Elemente entsperren",
+      "changeAll_one": "{{count}} Element ändern",
+      "changeAll_other": "{{count}} Elemente ändern"
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
@@ -382,8 +412,20 @@
     "text": "Text",
     "label": "Beschriftung",
     "tools": "Werkzeuge",
+    "quick": "Auswahl",
+    "rotateHandle": "Ziehen dreht; Shift hält 15°-Schritte",
+    "rotationDegrees": "Winkel in Grad",
+    "wall": {
+      "help": "Die Quadrate an den Enden verschieben die Enden, die Punkte in der Mitte einer Strecke knicken die Wand, ein Doppelklick auf einen Knick nimmt ihn weg. Enden rasten an anderen Wänden ein; Shift hält 15°-Schritte, Alt löst vom Raster.",
+      "straighten_one": "Begradigen ({{count}} Knick entfernen)",
+      "straighten_other": "Begradigen ({{count}} Knicke entfernen)",
+      "addBend": "Ziehen knickt die Wand hier",
+      "bend": "Knick: ziehen verschiebt, Doppelklick entfernt ihn"
+    },
     "tool": {
       "select": "Auswählen",
+      "hand": "Hand",
+      "measure": "Messen",
       "block": "Sitzblock",
       "text": "Beschriftung",
       "icon": "Symbol",
@@ -395,6 +437,8 @@
       "switch": "Switch"
     },
     "hint": {
+      "hand": "Ziehen verschiebt die Ansicht. Leertaste + Ziehen oder die mittlere Maustaste tun das mit jedem Werkzeug.",
+      "measure": "Ziehen misst eine Strecke in Plätzen und ihren Winkel; Shift hält 15°-Schritte. Gespeichert wird nichts.",
       "block": "Klicke, wo der neue Sitzblock hinkommt.",
       "text": "Klicke, wo die Beschriftung hinkommt.",
       "icon": "Klicke, wo das Symbol hinkommt.",
@@ -473,7 +517,9 @@
       "delete": "Löschen",
       "group": "Gruppieren",
       "ungroup": "Gruppe auflösen",
-      "unplace": "Vom Plan nehmen"
+      "unplace": "Vom Plan nehmen",
+      "lock": "Sperren",
+      "unlock": "Entsperren"
     },
     "layer": "Ebene",
     "layers": {
@@ -630,7 +676,24 @@
     },
     "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel ist unter dem Plan. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm.",
     "unplace_one": "Vom Plan nehmen",
-    "unplace_other": "{{count}} vom Plan nehmen"
+    "unplace_other": "{{count}} vom Plan nehmen",
+    "locked": "Gesperrt: bleibt, wo es ist, bis du es entsperrst (Ctrl+Shift+L)",
+    "mixed": "gemischt",
+    "sharedFields": "Alle ausgewählten",
+    "lockedN_one": "{{count}} gesperrtes Element bleibt, wo es ist (Ctrl+Shift+L entsperrt)",
+    "lockedN_other": "{{count}} gesperrte Elemente bleiben, wo sie sind (Ctrl+Shift+L entsperrt)",
+    "snap": {
+      "label": "Einrasten und Lineale",
+      "showGrid": "Raster zeigen",
+      "grid": "Am Raster einrasten (Alt beim Ziehen hebt es auf)",
+      "items": "An anderen Elementen und Wänden einrasten",
+      "rulers": "Lineale"
+    },
+    "tint": {
+      "label": "Eigene Farbe",
+      "theme": "Farbe des Themes (folgt hell und dunkel)",
+      "reset": "Zurück zur Farbe des Themes"
+    }
   },
   "net": {
     "uplinks_one": "{{count}} Verbindung zwischen Switches",

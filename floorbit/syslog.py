@@ -43,6 +43,12 @@ RFC5424 = re.compile(r'^<(\d{1,3})>1 (\S+) (\S+) (\S+) (\S+) (\S+) (?:-|(?:\[.*?
 RFC3164 = re.compile(r'^<(\d{1,3})>(?:([A-Z][a-z]{2} [ \d]\d \d\d:\d\d:\d\d) )?'
                      r'(?:(\S+) )?([^:\[\s]{1,48})(?:\[\d+\])?: ?(.*)$',
                      re.S)
+# Cisco IOS and NX-OS: an optional message counter ("113: ", or ": " from NX-OS), the hostname with
+# "logging origin-id hostname", the device's own stamp, then %FACILITY-SEVERITY-MNEMONIC. Read as RFC 3164
+# the counter would be the program and the hostname lost.
+CISCO = re.compile(r'^<(\d{1,3})>(?:\d*: )?(?:([A-Za-z0-9][\w.-]{0,79}): )?'
+                   r'(?:[*.]?(?:\d{4} )?[A-Z][a-z]{2} +\d{1,2}(?: \d{4})? \d\d:\d\d:\d\d(?:\.\d+)?(?: [A-Z]{2,5})?: )?'
+                   r'(%[A-Z0-9_]+-\d-[A-Z0-9_]+): ?(.*)$', re.S)
 PRI_ONLY = re.compile(r'^<(\d{1,3})>(.*)$', re.S)
 # Interface names as switches write them, long and short.
 PORT_PREFIXES = {
@@ -105,6 +111,8 @@ def parse(raw, now=None):
             ts = datetime.fromisoformat(stamp.replace('Z', '+00:00')).timestamp()
         except ValueError:
             ts = now
+    elif m := CISCO.match(text):
+        pri, host, program, message = int(m[1]), m[2], m[3], m[4]
     else:
         m = RFC3164.match(text)
         if m:
@@ -147,7 +155,7 @@ class SyslogReceiver:
 
     # ── storage: one JSON line per log line, a file per hour ────────────────────────────
     def folder(self):
-        return self.path or os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'syslog')
+        return self.path or store.event_path('syslog')
 
     def _load(self):
         folder = self.folder()

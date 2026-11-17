@@ -27,7 +27,6 @@ Nothing personal goes out: no IPs, MACs or nicks. An attendee's seat report show
 """
 import hashlib
 import json
-import os
 import queue
 import threading
 import time
@@ -73,10 +72,10 @@ def _public_url():
 
 def _state_file():
     configured = config.get('DISCORD_CREW_FILE', '') or ''
-    if configured:
-        return configured
     from floorbit import store
-    return os.path.join(os.path.dirname(os.path.abspath(store.DATA_FILE)), 'crew-discord.json')
+    if configured:
+        return store.tenant_file(configured)
+    return store.tenant_path('crew-discord.json')
 
 
 def custom_id(action, incident_id):

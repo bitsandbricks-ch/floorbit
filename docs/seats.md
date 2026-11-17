@@ -8,9 +8,17 @@ everywhere, and its Edit mode is where the plan is built. `/` opens it too; old 
 
 The plan fills the whole page next to the sidebar, like a map editor. One slim bar on top holds the
 hall, the mode, the online count, the filters (each with its count), Map/List, **Layers**, the find
-box, **Print** and **?** (help and keys). The plan takes everything below it; an open seat, block or
-switch docks on the right. The legend floats over the plan's bottom-left corner: click **Legend** to
-fold it away.
+box, **Print** and **?** (help and keys). The plan takes everything below it, with a panel docked on
+the right, as in a map editor. Its tabs are **Layers** (the layer switches), **Problems** (switches
+that are down, seats with problems, seats offline) and **Items** (every block and switch); click a row
+to open it. An open seat, block or switch takes the panel's place, and closing it (or **Esc**) brings
+the tabs back. The panel button in the top bar, or **]**, hides the panel for more plan; the panel
+remembers whether it was open and which tab. On a phone the open item shows below the plan instead,
+and Layers stays in the top bar. Each layer's key sits under its switch in **Layers**: what the
+seats' shapes mean under the seats line, the power colours under Electrical, the traffic scale under
+Status, the cable colours and dashes under Network (in Network mode), and so on. While Layers isn't in
+view (another tab, an open item, the panel hidden), the same key floats over the plan's bottom-left
+corner: click **Legend** to fold it away.
 
 The bar switches between modes of the same plan, kept in the address (`?mode=`):
 
@@ -37,19 +45,45 @@ The floor plan editor is moving into this page. Edit mode already does:
   selection: all seat blocks, all switches, or with a wall selected all walls (text, icons and
   zones the same way).
 - **Move:** drag, or the arrow keys (Shift for five steps). Items land on the editor's 0.5 % grid;
-  hold Alt while dragging to place freely. Space + drag (or the middle mouse button) moves the view.
+  hold Alt while dragging to place freely.
+- **Move the view:** the **Hand** tool (H, under Select) drags the view; Space + drag or the middle
+  mouse button do the same with any tool. Esc or V goes back to Select.
 - **Change:** in the panel on the right: a block's name, rotation, seats per row and rows; a label's
   text, size and rotation; an icon's size and rotation; a zone's label and colour; a wall's style;
   which layer a mark is on.
 - **Resize:** select one label, icon, zone or wall and drag its handles: a label's or icon's corner
   makes it any size (shown in %, picking Small, Medium or Large again undoes the stretch), a zone's
   corners resize the box, a wall's ends move. Handles snap to the grid unless you hold Alt.
+- **Walls:** while drawing a wall and while one is selected, each stretch shows its length (in seats,
+  one grid cell each) and its angle. Drag the dot in the middle of a stretch to bend the wall there,
+  drag a bend to move it, double-click a bend to take it out; **Straighten** in the panel removes them
+  all. Ends and bends snap onto other walls' ends and bends, so walls meet; Shift keeps 15° steps from
+  the neighbouring corner, Alt leaves the grid.
 - **Copy and paste:** Ctrl+C, Ctrl+X and Ctrl+V. Paste puts the copy where the pointer is; Ctrl+D
   duplicates one seat further on. Copied seat blocks get the next free row letter (or block name),
   so no seat exists twice. The clipboard survives a reload.
-- **Order:** ] brings the selection to the front, [ sends it to the back.
-- **Turn:** R turns the selected seat blocks, labels and icons a quarter turn each, Shift+R turns
-  them back (also "Turn 90°" in the right-click menu). One undo puts them all back.
+- **Order:** Ctrl+] brings the selection to the front, Ctrl+[ sends it to the back.
+- **Selection buttons:** with something selected, the panel on the right has buttons for what the
+  right-click menu does: duplicate, turn, bring to front, send to back and zoom to the selection.
+- **Turn:** R turns the selected seat blocks, labels, icons and zones a quarter turn each, Shift+R
+  turns them back (also "Turn 90°" in the right-click menu). One undo puts them all back. To turn one
+  item to any angle, drag the round handle above it (Shift keeps 15° steps), or type the angle next
+  to the quarter steps in the panel.
+- **Snapping and rulers:** the top bar's toggles in Edit mode show or hide the grid, turn snapping to
+  the grid and to other items (edges, middles, wall corners) on or off, and show rulers along the
+  plan's edges, numbered in seats. This browser remembers them. Alt still leaves the grid for one drag.
+- **Measure:** the Measure tool (M) draws a line that only shows its length in seats and its angle
+  (Shift keeps 15° steps). It snaps like a wall, stays until the next one, and saves nothing.
+- **Lock:** Ctrl+Shift+L (or **Lock in place** in the right-click menu and the selection buttons)
+  locks the selected items: they keep their place and angle, show a small padlock and no handles, and
+  Delete leaves them alone, until the same key unlocks them. Locks are saved with the hall, for
+  everyone.
+- **Own colours:** a selected wall, zone, label or icon has **Own colour** in the panel: pick a
+  swatch or type a colour (#e03131). Without one it keeps the theme's colour, which follows light and
+  dark; **Back to the theme colour** clears it. A zone's own colour wins over its colour swatch.
+- **Change several at once:** with two or more items selected, **All selected** in the panel shows
+  the fields they share (layer, wall style, zone colour, own colour, label and icon size, angle). Picking a value
+  sets it on all of them; "mixed" means they differ. One undo puts them all back.
 - **Zoom to the selection:** F brings the view in on what is selected (also in the right-click menu,
   or double-click an item in the items list); 0 shows the whole hall again.
 - **Groups:** Ctrl+G puts the selected items in a group (seat blocks, labels, icons, walls, zones,
@@ -168,6 +202,7 @@ Tab to the plan, then:
 | Shift + arrow keys | Move the map. |
 | **+**, **-**, **0** | Zoom in, out, or show the whole hall. |
 | **/** | Anywhere on the page: put the cursor in **Find**, with the last search selected. Works where **/** needs Shift, such as Shift+7 on Swiss and German keyboards. The box shows a **/** hint on computers with a mouse. |
+| **]** | Hide or show the panel on the right. Not in Edit mode. |
 | **?** | Anywhere on the page: list these shortcuts. The **?** button at the end of the top bar opens the same list. |
 
 A screen reader reads each seat as the cursor reaches it ("D-2: Offline · 1 problem") and, with the

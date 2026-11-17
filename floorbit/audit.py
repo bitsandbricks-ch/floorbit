@@ -80,12 +80,6 @@ ACTIONS = {
     ('PUT', '/api/settings/plugins/<plugin_id>'): ('plugins', 'Changed plugin'),
     ('PUT', '/api/settings/oidc/<provider_id>'): ('settings', 'Saved sign-in provider'),
     ('POST', '/api/incidents'): ('incidents', 'Filed incident'),
-    ('POST', '/api/gear/<device_id>/out'): ('gear', 'Checked out gear'),
-    ('POST', '/api/gear/<device_id>/in'): ('gear', 'Checked in gear'),
-    ('PUT', '/api/teardown/switches/<device_id>'): ('floor plan', 'Ticked a switch config as archived'),
-    ('POST', '/api/teardown/items'): ('floor plan', 'Added a teardown step'),
-    ('PATCH', '/api/teardown/items/<item_id>'): ('floor plan', 'Ticked a teardown step'),
-    ('DELETE', '/api/teardown/items/<item_id>'): ('floor plan', 'Removed a teardown step'),
     ('POST', '/api/preflight/run'): ('floor plan', 'Ran the pre-flight check'),
     ('POST', '/api/handover'): ('incidents', 'Handed over the shift'),
     ('PUT', '/api/notice'): ('incidents', 'Put up a crew notice'),
@@ -108,8 +102,8 @@ listeners = []
 
 def path():
     # Compose bind-mounts only data.json itself, so it points AUDIT_FILE into the state volume.
-    return os.environ.get('AUDIT_FILE') or os.path.join(
-        os.path.dirname(os.path.abspath(store.DATA_FILE)), 'audit.jsonl')
+    configured = os.environ.get('AUDIT_FILE')
+    return store.tenant_file(configured) if configured else store.tenant_path('audit.jsonl')
 
 
 def record(area, action, user=None, target=None, fields=None, ok=True):

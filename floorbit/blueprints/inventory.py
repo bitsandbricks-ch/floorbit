@@ -10,7 +10,7 @@ import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_link, inventory, spa
+from .. import agent_link, inventory, inventory_scope, inventory_types, spa
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -56,8 +56,29 @@ def run_sync():
             save_data(data)
         registry.log(spec.id, 'inventory sync: {added} added, {updated} updated, {joined} joined, '
                               '{gone} gone, {locked} locked fields kept'.format(**report))
+        report['entries'] = _sync_entries(registry, spec)
         reports.append(report)
     return reports
+
+
+def _sync_entries(registry, spec):
+    """Racks, VLANs, transceivers, power panels, ... from a plugin that has ``entries()``
+    (floorbit/inventory_types.py). Its own report, or None when the plugin has none."""
+    cls = spec.plugin_class()
+    if cls is None or not hasattr(cls, 'entries'):
+        return None
+    try:
+        feed, skipped = inventory_types.clean_feed(registry.call(spec, 'entries'))
+    except (PluginError, inventory_scope.ScopeError) as exc:
+        registry.log(spec.id, f'entries sync failed: {exc}')
+        return {'error': str(exc)[:300]}
+    with data_lock:
+        data = load_data()
+        report = inventory_types.sync_entries(data, spec.id, feed, skipped)
+        save_data(data)
+    registry.log(spec.id, 'entries sync: {added} added, {updated} updated, {joined} joined, '
+                          '{gone} gone'.format(**report))
+    return report
 
 
 def _record(report):

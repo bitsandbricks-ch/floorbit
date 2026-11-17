@@ -283,7 +283,7 @@ def dashboard():
     tiles = [{**t, 'label': i18n.translate(t['label'], lang), 'plugin_name': i18n.translate(t['plugin_name'], lang)}
              for t in tiles]
     # Floorbit's own tiles first: they work with no plugin set up (issue #302).
-    return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user), _may_see_gear(user)) + tiles})
+    return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user)) + tiles})
 
 
 def _lang():
@@ -293,16 +293,6 @@ def _lang():
 def _may_see_board(user):
     from .. import incidents
     return not current_app.extensions['auth'].enabled or incidents.can_see_board(user)
-
-
-def _may_see_gear(user):
-    # Same rule as the gear page: crew only, and only while the page is on.
-    from auth import roles
-
-    from .. import features
-    if 'gear' in features.off():
-        return False
-    return not current_app.extensions['auth'].enabled or bool(user and roles.can(user, 'incidents.work'))
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
@@ -329,8 +319,6 @@ def core_widget(tile):
         seats = set(incidents.seat_numbers(load_data()))
         return jsonify(check_widget(core.seats_widget(_lang(), None if online is None else len(online & seats),
                                                       len(seats)), item))
-    if tile == 'gear' and _may_see_gear(user):
-        return jsonify(check_widget(core.gear_widget(_lang()), item))
     return _error('No such widget', 404)
 
 

@@ -29,6 +29,9 @@ const details: SeatDetails = {
 }
 const me = { enabled: true, user: { username: 'tia', display_name: 'Tia', role: 'tech', permissions: ['floorplan.view'] } }
 
+/** Everything the plan's legends say: the floating key and each layer's key in the side panel. */
+const legendText = () => screen.getAllByRole('list', { name: /^Legend/ }).map((l) => l.textContent).join(' ')
+
 describe('seat map model', () => {
   it('picks the level of detail from the size of a seat on screen', () => {
     const view = parseBox('0 0 1000 500')
@@ -115,7 +118,7 @@ describe('traffic overlay', () => {
     }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': withSwitch, 'GET /api/power/markers': markers }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
     fireEvent.click(await screen.findByRole('switch', { name: 'Electrical: boards and power cables' }))
     await waitFor(() => expect(container.querySelectorAll('.power-layer line.pcable')).toHaveLength(2))     // to the seats and to the switch
     expect(container.querySelector('.power-layer line.pcable')).toHaveClass('pw-tripped')
@@ -129,7 +132,7 @@ describe('traffic overlay', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/firewalls/seats': seats }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
     expect(container.querySelector('.cell .fwr')).toBeNull()
-    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
     fireEvent.click(await screen.findByRole('switch', { name: 'Firewall per seat' }))
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .fwr')).toHaveClass('fw-failover'))
     expect(container.querySelector('[data-seat="D-2"] .fwr')).toHaveClass('fw-down')
@@ -141,7 +144,7 @@ describe('traffic overlay', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<FloorPlan />, '/plan')
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/firewalls/seats')).toBe(true))
-    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
     await screen.findByRole('switch', { name: 'Status: traffic per seat' })
     // Listed, so the layer is known, but off until ranges are planned.
     await waitFor(() => expect(screen.getByRole('switch', { name: /^Firewall per seat/, hidden: true })).toBeDisabled())
@@ -150,14 +153,14 @@ describe('traffic overlay', () => {
   it('fills online seats by traffic and keeps the other shapes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    fireEvent.click(await screen.findByRole('button', { name: /Layers/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
     const toggle = await screen.findByRole('switch', { name: 'Status: traffic per seat' })
     expect(container.querySelector('.seat.heat')).toBeNull()
     fireEvent.click(toggle)
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('heat'))
     expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveStyle({ fill: heatColor(heatLevel(6_000_000)) })
     expect(container.querySelector('[data-seat="D-2"] .slash')).not.toBeNull()
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('100 kbit/s')
+    expect(legendText()).toContain('100 kbit/s')
   })
 })
 
@@ -166,7 +169,7 @@ describe('Seats page', () => {
     const api = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': details })
     vi.stubGlobal('fetch', api.fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    expect(await screen.findByRole('list', { name: 'Legend' })).toBeInTheDocument()
+    expect(await screen.findByRole('list', { name: 'Legend: Seats' })).toBeInTheDocument()
     const seat = (s: string) => container.querySelector(`[data-seat="${s}"]`)!
     expect(seat('D-1').querySelector('.s-online')).not.toBeNull()
     expect(seat('D-1').querySelector('.chk')).not.toBeNull()
@@ -175,7 +178,7 @@ describe('Seats page', () => {
     expect(seat('D-3').querySelector('.s-unknown')).not.toBeNull()
     expect(seat('D-4').querySelector('.match')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'D-2: Offline · 1 problem' })).toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Checked in')
+    expect(legendText()).toContain('Checked in')
     expect(document.title).toBe('(1) Floor plan · Floorbit')   // D-2 has a problem: shows in a background tab
 
     fireEvent.click(seat('D-2'))
@@ -190,7 +193,7 @@ describe('Seats page', () => {
     const again = { ...details, fixed_before: { count: 2, last: { title: 'Cable loose', fixed_at: 1_799_990_000 } } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': again }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    await screen.findByRole('list', { name: 'Legend' })
+    await screen.findByRole('list', { name: 'Legend: Seats' })
     fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
     expect(await screen.findByText(/^Fixed here 2 times before, last: Cable loose \(/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Incidents' })).toHaveAttribute('href', '/incidents?q=seat%3AD-2')
@@ -201,7 +204,7 @@ describe('Seats page', () => {
     const moved = { ...details, firewall: { intended: 'fw-03', now: 'fw-04', state: 'failover', range: 'Seats C' } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-2': moved }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    await screen.findByRole('list', { name: 'Legend' })
+    await screen.findByRole('list', { name: 'Legend: Seats' })
     fireEvent.click(container.querySelector('[data-seat="D-2"]')!)
     expect(await screen.findByText('fw-04 (failed over from fw-03)')).toBeInTheDocument()
   })
@@ -219,7 +222,7 @@ describe('Seats page', () => {
   it('dims seats a filter leaves out and finds a seat', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/seats/D-4': { ...details, seat: 'D-4' } }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    fireEvent.click(await screen.findByText('Problems'))
+    fireEvent.click(within(await screen.findByRole('radiogroup', { name: 'Show' })).getByText('Problems'))
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
     expect(container.querySelector('[data-seat="D-2"]')).not.toHaveClass('dim')
     const find = screen.getByRole('textbox', { name: 'Find a seat' })
@@ -341,7 +344,7 @@ describe('Seats page', () => {
     const { container } = renderWithApp(<FloorPlan />, '/plan')
     expect(await screen.findByRole('button', { name: 'D-3: Offline · changed 4 min ago' })).toBeInTheDocument()
     expect(container.querySelectorAll('.cell .recent')).toHaveLength(1)
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Link changed in the last 15 minutes')
+    expect(legendText()).toContain('Link changed in the last 15 minutes')
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Show' })).getByText('Changed lately'))
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"]')).toHaveClass('dim'))
     expect(container.querySelector('[data-seat="D-3"]')).not.toHaveClass('dim')
@@ -690,7 +693,11 @@ describe('Seats page', () => {
     renderWithApp(<FloorPlan />, '/plan?hall=main')
     await screen.findByRole('application', { name: 'Seat map' })
     expect(screen.getByRole('main')).toHaveClass('fb-main-full')
-    const key = screen.getByRole('region', { name: 'Legend' })
+    // Each layer's key sits under its switch in Layers; the floating key shows while Layers isn't in view.
+    expect(screen.getByRole('list', { name: 'Legend: Seats' })).toHaveTextContent('Online: port up')
+    expect(screen.queryByRole('region', { name: 'Legend' })).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'Items' }))
+    const key = await screen.findByRole('region', { name: 'Legend' })
     const fold = within(key).getByRole('button', { name: 'Legend' })
     expect(fold).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(fold)
@@ -699,6 +706,29 @@ describe('Seats page', () => {
     // The how-to moved from under the map into the shortcuts dialog.
     fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }))
     expect(await screen.findByText(/^Drag to move, scroll or pinch to zoom/)).toBeInTheDocument()
+  })
+
+  it('docks a panel on the right with layers, problems and items, folds it with ], and opens what is clicked there', async () => {
+    const switches = [{ id: 's1', name: 'sw-d-01', status: 'online', x: 600, y: 300 }, { id: 's2', name: 'sw-d-02', status: 'offline', x: 700, y: 300 }]
+    const two = { ...data, switches }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': two, 'GET /api/plan?hall=main&block=D': two }).fn)
+    try { localStorage.removeItem('floorbit-plan-side') } catch { /* fine */ }
+    renderWithApp(<FloorPlan />, '/plan?hall=main')
+    const panel = await screen.findByRole('complementary', { name: 'Plan panel' })
+    expect(within(panel).getByRole('tab', { name: /Layers/ })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(within(panel).getByRole('tab', { name: /Problems/ }))
+    expect(await within(panel).findByText('1 seat with a problem')).toBeInTheDocument()
+    // Only the switch that is offline counts as a problem.
+    expect(within(panel).getByRole('button', { name: /sw-d-02/ })).toHaveTextContent('Offline')
+    expect(within(panel).queryByRole('button', { name: /sw-d-01/ })).toBeNull()
+    fireEvent.click(within(panel).getByRole('tab', { name: /Items/ }))
+    fireEvent.click(await within(panel).findByRole('button', { name: /Block D/ }))
+    expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Items/ })).toHaveAttribute('aria-selected', 'true'))
+    fireEvent.keyDown(document.body, { key: ']' })
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Plan panel' })).toBeNull())
+    expect(screen.getByRole('button', { name: /Layers/ })).toBeInTheDocument()   // back in the top bar
   })
 
   it('switches between the map and the list with L', async () => {

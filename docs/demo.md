@@ -66,6 +66,16 @@ The demo answers the DNS lookups, latency probes (also to the internet sites), g
 itself, so it sends nothing out. Try `status` on a Counter-Strike server or `list` on Minecraft in the
 RCON console.
 
+## Telemetry
+
+The demo's switches and firewalls are in **Settings > Telemetry** the way you would set them up:
+the core over SNMP, traps and gNMI, the Catalysts over SNMP and traps with their seat VLAN, the
+firewalls with their own Telegraf. Every 30 seconds the demo hands the collector what Telegraf would
+send for them: ports with traffic counters, the access switches' MAC tables, the core's ARP table,
+LLDP neighbours, and the firewalls' CPU, memory, states and gateway. So the telemetry status, the
+stored series and the endpoint search fill up like at an event. Nothing polls a device and no
+Telegraf runs; the demo plugin stays the monitoring source.
+
 ## The event so far
 
 The layout also leaves behind what a day of the event would, so no crew page starts empty. Each part is

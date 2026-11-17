@@ -14,17 +14,16 @@ Closing:
 1. **Keeps the event** as a file in `events/` next to `data.json`: its report (the same one as
    `/report`, without nicks or IPs), its floor plan as a backup (like Settings > Backup, no secrets or
    accounts) and the key figures.
-2. **Starts the next one from it.** These stay: the floor plan and inventory, the settings, the build
-   plan, accounts and teams, and the teardown steps the team added (unticked again). Gear that is still
-   checked out stays out, because it is still somewhere.
+2. **Starts the next one from it.** These stay: the floor plan and inventory, the settings, and
+   accounts and teams.
 3. **Begins these again:** the report's history and the bandwidth peak (like *Start a new event* on the
-   report), incidents, shift handovers, pre-flight results, the teardown's switch and export ticks, and
-   the gear log.
+   report), incidents, shift handovers and pre-flight results.
 
 The file is written first. If that fails, nothing is cleared. Closing goes to the audit log.
 
-Download the teardown export (`/teardown`) before closing if you want the incidents and handovers as
-files: the archived record keeps the report, which counts them, but not the incident board itself.
+Download the incident board as a spreadsheet (**Download as CSV** on the Incidents page) before closing
+if you want it as a file: the archived record keeps the report, which counts the incidents, but not
+the board itself.
 
 ## Comparing
 

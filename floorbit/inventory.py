@@ -18,16 +18,31 @@ Stored in data.json under ``inventory``; data from before (``switches``, ``cache
 from __future__ import annotations
 
 import ipaddress
+import re
 import threading
 import time
 import uuid
 
-FIELDS = ('name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes')
-ROLES = ('switch', 'router', 'firewall', 'access-point', 'server', 'other')
+from . import icon_library
+
+# Fields a plugin may feed (and a hand edit then locks). The second row are the specs of servers,
+# VMs and firewalls: what runs on it, how big it is, and for a VM the device it runs on.
+FIELDS = ('name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes',
+          'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host')
+SPECS = ('platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host')
+NUMBERS = ('cores', 'memory_mb', 'disk_gb')
+ROLES = ('switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other')
 STATUSES = ('active', 'planned', 'staged', 'offline', 'failed', 'decommissioning', 'inventory', '')
 LIMITS = {'name': 80, 'role': 40, 'model': 80, 'serial': 80, 'mgmt_ip': 45, 'hall': 80, 'status': 40,
-          'notes': 1000}
+          'notes': 1000, 'platform': 60, 'os': 80, 'cpu': 80, 'cores': 6, 'memory_mb': 9, 'disk_gb': 9,
+          'host': 80}
+# The icons a device or group can show (frontend/src/pages/inventory/icons.tsx draws them).
+ICONS = ('switch', 'router', 'firewall', 'server', 'vm', 'access-point', 'pdu', 'ups', 'storage', 'camera',
+         'printer', 'screen', 'phone', 'cloud', 'cpu', 'antenna', 'cable', 'circuit', 'power-board', 'patch-panel',
+         'rack', 'transceiver', 'vlan', 'other')
+COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
 LOG_KEEP = 50
+MAX_TAGS = 20
 MAX_FEED = 5000
 
 _lock = threading.RLock()
@@ -44,7 +59,10 @@ def now():
 def _blank(**kw):
     dev = {'id': str(uuid.uuid4()), **dict.fromkeys(FIELDS, ''), 'role': 'switch',
            'x': None, 'y': None, 'origin': 'manual', 'refs': {}, 'fed': {}, 'locked': [],
-           'gone': [], 'hidden': False, 'updated_at': now()}
+           'gone': [], 'hidden': False, 'updated_at': now(),
+           # Set by hand only, never fed (floorbit/inventory_scope.py has the rules):
+           'icon': '', 'color': '', 'group_id': None, 'tags': [], 'properties': {}, 'features': {}, 'fields': {},
+           'interfaces': [], 'blocks': []}
     dev.update(kw)
     return dev
 
@@ -98,6 +116,19 @@ def normalize(raw):
     dev['hidden'] = bool(raw.get('hidden'))
     dev['hall_id'] = str(raw['hall_id'])[:40] if raw.get('hall_id') else None
     dev['updated_at'] = str(raw.get('updated_at') or now())[:40]
+    for key in ('icon', 'color'):
+        try:
+            dev[key] = clean_look(key, raw.get(key))
+        except InventoryError:
+            dev[key] = ''
+    dev['group_id'] = str(raw['group_id'])[:40] if raw.get('group_id') else None
+    dev['tags'] = [str(t)[:40] for t in raw.get('tags') or [] if t][:MAX_TAGS]
+    for key in ('properties', 'features', 'fields'):
+        dev[key] = raw[key] if isinstance(raw.get(key), dict) else {}
+    from . import inventory_interfaces
+    dev['interfaces'] = [inventory_interfaces.normalize(i) for i in raw.get('interfaces') or []
+                         if isinstance(i, dict) and i.get('name')][:inventory_interfaces.MAX_PER_DEVICE]
+    dev['blocks'] = [b for b in raw.get('blocks') or [] if isinstance(b, dict) and b.get('credential_id')][:20]
     return dev
 
 
@@ -119,6 +150,15 @@ def public(dev):
     out['locked'] = sorted(dev.get('locked') or [])
     out['gone'] = sorted(dev.get('gone') or [])
     out['fed'] = dev.get('fed') or {}
+    for key in ('icon', 'color'):
+        out[key] = dev.get(key) or ''
+    out['group_id'] = dev.get('group_id')
+    out['tags'] = list(dev.get('tags') or [])
+    out['properties'] = dict(dev.get('properties') or {})
+    out['features'] = dict(dev.get('features') or {})
+    out['fields'] = dict(dev.get('fields') or {})
+    out['interface_count'] = len(dev.get('interfaces') or [])
+    out['blocked'] = len(dev.get('blocks') or [])
     return out
 
 
@@ -154,7 +194,28 @@ def clean_field(field, value):
             raise InventoryError(f'{value} is not an IP address') from None
     if field == 'status':
         value = value.lower()
+    if field in NUMBERS and value:
+        if not value.isdigit():
+            raise InventoryError(f'{field} is a whole number')
+        value = str(int(value))
     return value
+
+
+def clean_look(key, value):
+    """A device's or group's icon (one of ICONS or an uploaded one) or colour (#rrggbb); '' for the default."""
+    value = '' if value is None else str(value).strip()
+    if not value:
+        return ''
+    if key == 'icon':
+        # Uploaded icons (floorbit/icon_library.py) by id; one removed later falls back to the role's.
+        if icon_library.ID_RE.match(value):
+            return value
+        if value not in ICONS:
+            raise InventoryError(f"icon must be one of {', '.join(ICONS)}")
+        return value
+    if not COLOR_RE.match(value):
+        raise InventoryError('A colour is written #rrggbb')
+    return value.lower()
 
 
 def clean_feed(items):
@@ -179,6 +240,10 @@ def clean_feed(items):
             continue
         seen.add(ref)
         item['ref'] = ref
+        if isinstance(raw.get('interfaces'), list):
+            # Only a plugin that knows interfaces sends the key; without it they're left alone.
+            from . import inventory_interfaces
+            item['interfaces'] = inventory_interfaces.clean_feed(raw['interfaces'])
         out.append(item)
     return out, skipped + max(0, len(items) - MAX_FEED)
 
@@ -202,6 +267,8 @@ def create(data, body):
         dev = _blank(**fields, x=x, y=y)
         if body.get('hall_id'):
             dev['hall_id'] = str(body['hall_id'])[:40]
+        from . import inventory_scope
+        inventory_scope.apply_device(data, dev, body)
         data['inventory'].append(dev)
         return dev
 
@@ -252,6 +319,8 @@ def update(data, device_id, body):
             if hidden != bool(dev.get('hidden')):
                 dev['hidden'] = hidden
                 changed.append('hidden')
+        from . import inventory_scope
+        changed += inventory_scope.apply_device(data, dev, body)
         if changed:
             dev['updated_at'] = now()
         return dev, changed
@@ -301,7 +370,7 @@ def sync(data, plugin_id, items, skipped=0):
         for item in items:
             ref = item['ref']
             sent.add(ref)
-            values = {f: v for f, v in item.items() if f != 'ref'}
+            values = {f: v for f, v in item.items() if f not in ('ref', 'interfaces')}
             dev = by_ref.get(ref)
             kind = 'existing'
             if dev is None:
@@ -328,6 +397,11 @@ def sync(data, plugin_id, items, skipped=0):
                 elif dev.get(f) != v:
                     dev[f] = v
                     changed = True
+            if 'interfaces' in item:
+                from . import inventory_interfaces
+                counts = inventory_interfaces.merge_feed(dev, plugin_id, item['interfaces'])
+                report['interfaces'] = report.get('interfaces', 0) + counts['added'] + counts['updated']
+                changed = changed or bool(counts['added'] or counts['updated'])
             if changed:
                 dev['updated_at'] = now()
             if kind != 'existing':

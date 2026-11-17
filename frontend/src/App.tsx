@@ -5,6 +5,8 @@ import { PageError } from '@/components/PageError'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const Dashboards = lazy(() => import('@/pages/Dashboards'))
+const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
 const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
@@ -37,7 +39,6 @@ const Jobs = lazy(() => import('@/pages/Jobs'))
 const Tournament = lazy(() => import('@/pages/Tournament'))
 const Handover = lazy(() => import('@/pages/Handover'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
-const Gear = lazy(() => import('@/pages/Gear'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
 const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
@@ -50,7 +51,6 @@ const Runbooks = lazy(() => import('@/pages/Runbooks'))
 const Schedule = lazy(() => import('@/pages/Schedule'))
 const Brackets = lazy(() => import('@/pages/Brackets'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
-const Teardown = lazy(() => import('@/pages/Teardown'))
 const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Checkins = lazy(() => import('@/pages/Checkins'))
 const Events = lazy(() => import('@/pages/Events'))
@@ -74,8 +74,11 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/checkin" element={<Checkin />} />
+          {/* A dashboard on a big screen: the page alone, no sidebar. */}
+          <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboards" element={<Dashboards />} />
             <Route path="/settings/plugins" element={<Plugins />} />
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />
             <Route path="/inventory" element={<Inventory />} />
@@ -108,7 +111,6 @@ export default function App() {
             <Route path="/tournament" element={<Tournament />} />
             <Route path="/handover" element={<Handover />} />
             <Route path="/preflight" element={<Preflight />} />
-            <Route path="/gear" element={<Gear />} />
             <Route path="/cables" element={<Cables />} />
             <Route path="/cables/walk" element={<WalkRow />} />
             <Route path="/wifi" element={<Wifi />} />
@@ -118,7 +120,6 @@ export default function App() {
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/tournament/brackets" element={<Brackets />} />
             <Route path="/plan" element={<FloorPlan />} />
-            <Route path="/teardown" element={<Teardown />} />
             <Route path="/checkins" element={<Checkins />} />
             <Route path="/speedtests" element={<Speedtests />} />
             <Route path="/events" element={<Events />} />

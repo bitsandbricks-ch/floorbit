@@ -17,6 +17,10 @@ def librenms(registry, monkeypatch):
     from floorbit import runtime
     from floorbit.builtin_plugins.librenms import client as nms
     monkeypatch.setattr(runtime.rt, 'librenms_enabled', True)
+    # On a database backend any write bumps the data document's stamp, and the next request then
+    # re-applies the settings onto ``rt``; set up through the env, LibreNMS stays on across that.
+    monkeypatch.setenv('LIBRENMS_URL', 'https://librenms.example.com')
+    monkeypatch.setenv('LIBRENMS_TOKEN', 'example-token')
     fake = {'devices': [{'display': 'sw-a-01', 'hostname': 'sw-a-01.example.com', 'status': 1}],
             'arp': [{'ipv4_address': '192.0.2.11', 'mac_address': '02-00-00-00-00-11'}]}
     monkeypatch.setattr(nms, 'list_devices', lambda: fake['devices'])

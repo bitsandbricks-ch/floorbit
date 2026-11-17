@@ -52,8 +52,17 @@ class UserStore:
     KEY = 'auth_users'
 
     def __init__(self, path):
-        self.path = path
+        # A path, or a function giving it: the tenant's data.json (floorbit.store.tenant_file).
+        self._path = path
         self._lock = threading.Lock()
+
+    @property
+    def path(self):
+        return self._path() if callable(self._path) else self._path
+
+    @path.setter
+    def path(self, value):
+        self._path = value
 
     # file IO -------------------------------------------------------------
     def _read(self):
