@@ -6,6 +6,7 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { PortClient, PortClients as Clients } from '@/api/types'
+import { clock } from '@/lib/time'
 
 const SHOWN = 25
 
@@ -27,7 +28,7 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
   const c = query.data
   if (!c) return null
   if (!c.as_of && !c.reading && !c.error) return null
-  const time = c.as_of ? new Date(c.as_of * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+  const time = c.as_of ? clock(c.as_of) : ''
   const where = (r: PortClient) => `${r.switch} ${r.port}`
   const who = (r: PortClient) => [r.mac, r.ip].filter(Boolean).join(' · ')
   return (

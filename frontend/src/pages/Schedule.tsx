@@ -15,6 +15,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { fromInput, toInput } from './schedule/time'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { clock, dateOnly } from '@/lib/time'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
 
@@ -98,8 +99,7 @@ export default function Schedule() {
     onSuccess: refresh,
   })
   const d = query.data
-  const day = (ts: number) => new Date(ts * 1000).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
-  const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+  const day = (ts: number) => dateOnly(ts, i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
   const days: [string, ScheduleItem[]][] = []
   for (const item of d?.items ?? []) {
     const key = day(item.start)

@@ -12,6 +12,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { dateOnly } from '@/lib/time'
 
 type Answer = { tokens: ApiToken[]; max_days: number }
 type Made = { token: ApiToken; secret: string }
@@ -61,7 +62,7 @@ export default function ApiTokens() {
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.apiTokens })
   const [made, setMade] = useState<Made | null>(null)
   const revoke = useMutation({ mutationFn: (id: string) => del(`/api/settings/api-tokens/${id}`), onSuccess: refresh })
-  const date = (ts: number | null) => (ts ? new Date(ts * 1000).toLocaleDateString(i18n.language) : '')
+  const date = (ts: number | null) => (ts ? dateOnly(ts, i18n.language) : '')
   const d = query.data
   const error = query.error ?? revoke.error
 

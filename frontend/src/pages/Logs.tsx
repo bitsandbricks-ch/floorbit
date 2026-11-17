@@ -12,6 +12,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { onPlan } from './plan/links'
 import { ErrorBanner } from '@/components/ui'
+import { clockSeconds, formatWhen } from '@/lib/time'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/syslog.md'
 const SEVERITIES: LogSeverity[] = ['emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug']
@@ -73,7 +74,7 @@ function StatusLine({ status }: { status: LogStatus }) {
 
 function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
-  const time = new Date(line.ts * 1000).toLocaleString(i18n.language, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const time = formatWhen(line.ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }, i18n.language)
   return (
     <Table.Tr>
       <Table.Td style={{ whiteSpace: 'nowrap' }}><Text size="xs" ff="monospace">{time}</Text></Table.Td>
@@ -103,7 +104,7 @@ function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => v
 /** Phones: one card-like block per line, the message on its own row at full width. */
 function Compact({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
-  const time = new Date(line.ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const time = clockSeconds(line.ts, i18n.language)
   return (
     <li className="fb-log-line">
       <Group gap={6} wrap="wrap">

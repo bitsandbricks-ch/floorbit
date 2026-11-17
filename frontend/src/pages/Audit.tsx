@@ -10,6 +10,7 @@ import type { AuditEntry, AuditPage } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
+import { dateTime } from '@/lib/time'
 
 const PAGE = 100
 const FILTERS = ['area', 'user', 'q'] as const
@@ -53,7 +54,7 @@ export default function Audit() {
   const areas = query.data?.pages[0]?.areas ?? []
   const when = (iso: string) => {
     const d = new Date(iso)
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(i18n.language, { dateStyle: 'short', timeStyle: 'medium' })
+    return Number.isNaN(d.getTime()) ? iso : dateTime(d, i18n.language, true)
   }
 
   return (

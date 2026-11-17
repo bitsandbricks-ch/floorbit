@@ -14,6 +14,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PlannedMaintenance } from './status/PlannedMaintenance'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { clock } from '@/lib/time'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
 const COLOR: Record<StatusState, string> = {
@@ -73,7 +74,7 @@ export default function NetworkStatus() {
     return { key: `${kind}-${a.hall}-${a.block}`, where, color, label: t(`status.suggest${kind}`, { where }),
       text: t(`status.suggest${kind}Text`, { where }) }
   }) : []
-  const when = (at: number) => new Date(at * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+  const when = (at: number) => clock(at, i18n.language)
   const error = postUpdate.error || remove.error || override.error
 
   return (

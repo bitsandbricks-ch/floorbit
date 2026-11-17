@@ -12,6 +12,7 @@ import type { TimelineData, TimelineEntry, TimelineKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { clockSeconds, dateOnly } from '@/lib/time'
 
 const KINDS: TimelineKind[] = ['change', 'outage', 'incident', 'alert', 'deploy', 'sign-in']
 const RANGES = ['6', '24', '0'] as const
@@ -21,7 +22,7 @@ const KIND_COLOR: Record<TimelineKind, string> = {
 const SEVERITY_COLOR = { up: 'var(--color-up)', down: 'var(--color-down)', warn: 'var(--color-warn)', info: 'var(--color-muted)' }
 
 function dayOf(t: number, lang: string) {
-  return new Date(t * 1000).toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long' })
+  return dateOnly(t, lang, { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
@@ -29,7 +30,7 @@ function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
   return (
     <Group gap="sm" wrap="nowrap" align="flex-start" py={6} className="fb-timeline-row" data-kind={e.kind}>
       <Text size="sm" c="dimmed" ff="monospace" style={{ whiteSpace: 'nowrap' }}>
-        {new Date(e.t * 1000).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        {clockSeconds(e.t, lang)}
       </Text>
       <span className="fb-timeline-dot" style={{ background: e.severity ? SEVERITY_COLOR[e.severity] : 'var(--color-line)' }} />
       <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" w={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>

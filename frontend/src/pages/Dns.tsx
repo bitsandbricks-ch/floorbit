@@ -9,6 +9,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner } from '@/components/ui'
 import { StatCard } from '@/components/StatCard'
+import { clock, dayClock } from '@/lib/time'
 
 const W = 1000
 const H = 140
@@ -21,7 +22,7 @@ function Chart({ hours, label }: { hours: DnsData['hours']; label: string }) {
   const { t, i18n } = useTranslation()
   const top = Math.max(1, ...hours.map((h) => h.lookups))
   const w = W / Math.max(1, hours.length)
-  const stamp = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
     <section className="fb-stats-panel wide" aria-labelledby="dns-hours">
       <Group justify="space-between" mb={6}>
@@ -109,7 +110,7 @@ function Board({ data }: { data: DnsData }) {
         <Sites id="dns-blocked" title={t('dns.blockedSites')} sites={data.blocked_sites} empty={t('dns.noneBlocked')}
           value={(s) => num(s.blocked)} />
         <Sites id="dns-new" title={t('dns.new')} sites={data.new} empty={t('dns.noneNew')}
-          value={(s) => new Date((s.first_seen ?? 0) * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })} />
+          value={(s) => clock(s.first_seen ?? 0, i18n.language)} />
       </div>
     </>
   )

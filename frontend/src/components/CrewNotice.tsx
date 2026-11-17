@@ -7,6 +7,7 @@ import { del, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useNotice } from '@/api/queries'
 import type { CrewNotice } from '@/api/types'
+import { clock } from '@/lib/time'
 
 const HIDDEN_KEY = 'floorbit-notice-hidden'
 const MAX = 280
@@ -20,7 +21,7 @@ function hiddenAt(): number | null {
 }
 
 function time(ts: number, lang: string) {
-  return new Date(ts * 1000).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })
+  return clock(ts, lang)
 }
 
 /** The banner under the page header. Each person can hide it; a new notice shows again. */
