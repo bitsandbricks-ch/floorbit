@@ -858,5 +858,17 @@
  "{} of {} up": "{} von {} erreichbar",
  "{} of {} up: {} down": "{} von {} erreichbar: {} ausgefallen",
  "No services configured yet.": "Noch keine Dienste eingerichtet.",
- "Done": "Erledigt"
+ "Done": "Erledigt",
+ "Set the cache folder (as the agent sees it) first.": "Gib zuerst den Cache-Ordner an (so, wie der Agent ihn sieht).",
+ "The LAN cache counter is not running.": "Der LAN-Cache-Zähler läuft nicht.",
+ "can't read the {} {}": "kann {} {} nicht lesen",
+ "can't read {}: {}": "kann {} nicht lesen: {}",
+ "something answered, but not a LAN cache (no X-LanCache-Processed-By)": "etwas hat geantwortet, aber kein LAN-Cache (kein X-LanCache-Processed-By)",
+ "stats must be an object": "stats muss ein Objekt sein",
+ "the DNS server did not answer: {}": "der DNS-Server hat nicht geantwortet: {}",
+ "the DNS server has no answer for {}": "der DNS-Server hat keine Antwort für {}",
+ "the DNS server sends {} somewhere else than the cache": "der DNS-Server schickt {} woanders hin als zum Cache",
+ "the cache did not answer: {}": "der Cache hat nicht geantwortet: {}",
+ "the heartbeat answered HTTP {}, not 204": "der Heartbeat hat mit HTTP {} geantwortet, nicht mit 204",
+ "{} is read-only for the agent: mount it writable to clear the cache.": "{} ist für den Agent schreibgeschützt: hänge ihn beschreibbar ein, um den Cache zu leeren."
 }

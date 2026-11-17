@@ -1,7 +1,7 @@
 import {
   IconActivityHeartbeat, IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBackpack, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
-  IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutDashboard, IconLayoutGrid,
+  IconDatabase, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutDashboard, IconLayoutGrid,
   IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLock, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport, IconRuler2,
   IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTournament, IconTrophy, IconTruck, IconUserCheck, IconUsers, IconUsersGroup, IconWall, IconWebhook, IconWifi, IconWorldWww,
@@ -22,7 +22,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'checkins', 'speedtests', 'networkStatus'] },
   {
     id: 'network', icon: IconNetwork,
-    pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
+    pages: ['health', 'topology', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'lancache', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'gear', 'planner', 'preflight', 'teardown', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
@@ -33,7 +33,7 @@ const ICONS: Record<string, Icon> = {
   floorPlan: IconLayoutGrid, seats: IconArmchair, dashboard: IconLayoutDashboard, problems: IconAlertTriangle,
   incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange, runbooks: IconBook,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
-  dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
+  dns: IconWorldWww, games: IconDeviceGamepad2, lancache: IconDatabase, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug,
   gear: IconBackpack, planner: IconRuler2, preflight: IconChecklist, teardown: IconTruck, templates: IconTemplate,
   tournament: IconTrophy, brackets: IconTournament, schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,

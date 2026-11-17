@@ -76,6 +76,10 @@
       "title": "Plugin: Zabbix",
       "desc": "Live switch status and port state, traffic and errors from Zabbix (hosts with the standard SNMP network interface items). Feeds the floor plan, the status monitor and the seat inspector. Zabbix keeps no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS, UniFi, MikroTik or a seat source."
     },
+    "plugin-lancache": {
+      "title": "Plugin: LAN cache",
+      "desc": "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only."
+    },
     "plugin-telemetry": {
       "title": "Plugin: Device telemetry",
       "desc": "Reads switches and firewalls directly through Telegraf (SNMP, traps, gNMI, Cisco MDT) and the device APIs, and answers like a monitoring tool. Set the devices up under Settings, Telemetry."
@@ -505,18 +509,45 @@
     "plugin_zabbix_verify_ssl": {
       "label": "Verify TLS certificates"
     },
+    "plugin_lancache_access_log": {
+      "label": "Access log",
+      "help": "The cache's access.log as the agent sees it (mount the cache's logs folder read-only into the agent)."
+    },
+    "plugin_lancache_dns_log": {
+      "label": "DNS query log",
+      "help": "lancache-dns's query log (bind with querylog on), as the agent sees it. Empty: no DNS numbers."
+    },
+    "plugin_lancache_cache_dir": {
+      "label": "Cache folder",
+      "help": "The folder with nginx's hash folders (00 to ff), as the agent sees it: for the disk use, and for clearing the cache (then mounted writable)."
+    },
+    "plugin_lancache_cache_host": {
+      "label": "Cache address",
+      "help": "Name or address of the cache on the event network, for the heartbeat check."
+    },
+    "plugin_lancache_dns_server": {
+      "label": "lancache-dns address",
+      "help": "Checks that it sends the cached services to the cache. Needs the cache address."
+    },
+    "plugin_lancache_min_clients": {
+      "label": "Players before a download or site is named"
+    },
+    "plugin_lancache_interval": {
+      "label": "Seconds between reads"
+    },
     "plugin_telemetry_uplink_macs": {
       "label": "Uplink MAC limit",
       "help": "A port that sees more MAC addresses than this counts as an uplink and is skipped when Floorbit looks for where a seat is plugged in."
     },
     "plugin_telemetry_exclude": {
-      "label": "Skip devices",
-      "help": "Devices that Floorbit should not show from telemetry, by name."
+      "label": "Ports to ignore",
+      "help": "Parts of port names that are never a seat's port (trunks, port channels, SVIs), separated by commas."
     }
   },
   "plugins": {
     "librenms": "Live switch status, port details and traffic, and which switch port an IP or MAC is on (ARP and MAC tables). Feeds the floor plan, the seat heatmap, the status monitor and the check-in page.",
     "netbox": "Adds the devices with the configured roles from NetBox to the inventory (name, role, model, serial, management IP, site and status). Fields changed by hand in Floorbit stay as they are.",
-    "demo": "A made-up hall: switches, seat blocks, players on documentation IPs, ports going up and down and traffic that moves. Nothing real: example names, 192.0.2.0/24 and 198.51.100.0/24. While it's on it replaces the live monitoring source and fills the health wall."
+    "demo": "A made-up hall: switches, seat blocks, players on documentation IPs, ports going up and down and traffic that moves. Nothing real: example names, 192.0.2.0/24 and 198.51.100.0/24. While it's on it replaces the live monitoring source and fills the health wall.",
+    "lancache": "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only."
   }
 }

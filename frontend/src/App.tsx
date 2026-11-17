@@ -21,6 +21,7 @@ const Stats = lazy(() => import('@/pages/Stats'))
 const Traffic = lazy(() => import('@/pages/Traffic'))
 const Dns = lazy(() => import('@/pages/Dns'))
 const Games = lazy(() => import('@/pages/Games'))
+const Lancache = lazy(() => import('@/pages/Lancache'))
 const GameServers = lazy(() => import('@/pages/GameServers'))
 const Topology = lazy(() => import('@/pages/Topology'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
@@ -91,6 +92,7 @@ export default function App() {
             <Route path="/traffic" element={<Traffic />} />
             <Route path="/dns" element={<Dns />} />
             <Route path="/games" element={<Games />} />
+            <Route path="/lancache" element={<Lancache />} />
             <Route path="/game-servers" element={<GameServers />} />
             <Route path="/topology" element={<Topology />} />
             <Route path="/firewalls" element={<Firewalls />} />
