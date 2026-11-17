@@ -14,10 +14,11 @@ import { PageHead } from '@/components/PageHead'
 import { DeviceForm } from './inventory/DeviceForm'
 import { matches, type Draft } from './inventory/model'
 import { LoadingState } from '@/components/ui'
+import { dateTime } from '@/lib/time'
 
 function when(iso: string, lang: string) {
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
+  return Number.isNaN(d.getTime()) ? iso : dateTime(d, lang)
 }
 
 function SourceLine({ source }: { source: InventorySource }) {

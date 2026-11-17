@@ -1,4 +1,5 @@
 import type { EventFrame, ReplayIncident, SeatChange } from '@/api/types'
+import { dayClock } from '@/lib/time'
 
 /** The seats that were on at time t: the starting state, then every change up to t. */
 export function seatsAt(base: string[], changes: SeatChange[], t: number): Set<string> {
@@ -41,7 +42,7 @@ export function chartPath(data: { samples: { t: number; down: number; up: number
 export const SPEEDS = [60, 300, 900, 3600] as const
 
 export function when(ts: number): string {
-  return new Date(ts * 1000).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  return dayClock(ts)
 }
 
 export type HeatMetric = 'online' | 'traffic' | 'incidents'

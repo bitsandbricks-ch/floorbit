@@ -10,6 +10,7 @@ import { PageHead } from '@/components/PageHead'
 import { bytes } from './traffic/format'
 import { ErrorBanner } from '@/components/ui'
 import { StatCard } from '@/components/StatCard'
+import { dayClock } from '@/lib/time'
 
 const W = 1000
 const H = 140
@@ -25,7 +26,7 @@ function CacheChart({ cache }: { cache: LancacheData }) {
   const hours = cache.hours
   const top = Math.max(1, ...hours.map((h) => h.hit_bytes + h.miss_bytes))
   const w = W / Math.max(1, hours.length)
-  const stamp = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
     <section className="fb-stats-panel wide" aria-labelledby="games-cache">
       <Group justify="space-between" mb={6}>

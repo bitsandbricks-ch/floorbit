@@ -7,6 +7,7 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CheckinInfo } from '@/api/types'
 import { PublicPage } from '@/components/PublicPage'
+import { formatWhen } from '@/lib/time'
 
 type Wired = 'pending' | 'verified' | 'not_wired' | 'unverified'
 type Done = { seat: string; username: string; wired?: Wired | null }
@@ -31,7 +32,7 @@ function cleanPin(pin: string) {
 }
 
 function opensAt(ts: number, lang: string) {
-  return new Date(ts * 1000).toLocaleString(lang, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+  return formatWhen(ts, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }, lang)
 }
 
 /** Seat check-in for attendees (issue #46): where they sit, so the crew finds them fast. On a PC

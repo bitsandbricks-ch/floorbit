@@ -11,9 +11,10 @@ import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { clock } from '@/lib/time'
 
 function since(ts: number) {
-  return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return clock(ts)
 }
 
 function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (kind: 'take' | 'done' | 'give-back', note: string) => void }) {

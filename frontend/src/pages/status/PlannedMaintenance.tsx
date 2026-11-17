@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { del, post } from '@/api/client'
 import type { StatusPlanned } from '@/api/types'
 import { fromLocal } from './time'
+import { dayClock } from '@/lib/time'
 
 /** Maintenance announced ahead on the public status page (issue #422). */
 export function PlannedMaintenance({ planned, running, canSet, onChange }: {
@@ -21,8 +22,7 @@ export function PlannedMaintenance({ planned, running, canSet, onChange }: {
     onSuccess: () => { setStart(''); setEnd(''); setText(''); setArea(''); onChange() },
   })
   const cancel = useMutation({ mutationFn: (id: string) => del(`/api/status-page/maintenance/${id}`), onSuccess: onChange })
-  const when = (at: number) => new Date(at * 1000).toLocaleString(i18n.language,
-    { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  const when = (at: number) => dayClock(at, i18n.language)
   const error = add.error || cancel.error
   return (
     <Paper withBorder radius="lg" p="md" data-testid="planned">

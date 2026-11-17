@@ -10,6 +10,7 @@ import { useFeature } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { dateTime } from '@/lib/time'
 
 type FieldType = 'url' | 'text' | 'secret' | 'list' | 'bool' | 'int' | 'choice' | 'color' | 'image'
 type Field = {
@@ -137,7 +138,7 @@ function BackupPanel() {
     const created = pending.backup.created ? new Date(pending.backup.created) : null
     return t('settings.backup.summary', {
       name: pending.name,
-      made: created && !Number.isNaN(created.getTime()) ? t('settings.backup.made', { when: created.toLocaleString() }) : '',
+      made: created && !Number.isNaN(created.getTime()) ? t('settings.backup.made', { when: dateTime(created) }) : '',
       switches: t('settings.backup.switches', { count: (l.switches?.length ?? 0) + Object.keys(l.positions ?? {}).length }),
       blocks: t('settings.backup.blocks', { count: l.seat_blocks?.length ?? 0 }),
       settings: t('settings.backup.settings', { count: Object.keys(pending.backup.settings ?? {}).length }),

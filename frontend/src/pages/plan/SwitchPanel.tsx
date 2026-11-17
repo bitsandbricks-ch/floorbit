@@ -6,15 +6,15 @@ import { qk } from '@/api/keys'
 import type { SwitchDetails } from '@/api/types'
 import { SeatGlyph } from './SeatMap'
 import { ErrorBanner } from '@/components/ui'
+import { dayClock } from '@/lib/time'
 
 const TONE: Record<string, string> = { online: 'up', offline: 'down' }
 
 /** One switch and the seats it serves (issue #176): before walking to it, which players it takes down. */
 export function SwitchPanel({ name, onSeat, onClose }: { name: string; onSeat: (seat: string) => void; onClose: () => void }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const q = useQuery({ queryKey: qk.planSwitch(name), queryFn: () => get<SwitchDetails>(`/api/plan/switches/${encodeURIComponent(name)}`) })
   const w = q.data
-  const clock = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
   return (
     <Stack gap="sm" className="fb-inspector" aria-live="polite">
       <Group justify="space-between" wrap="nowrap">
@@ -27,7 +27,7 @@ export function SwitchPanel({ name, onSeat, onClose }: { name: string; onSeat: (
         <>
           <Group gap="xs">
             <Badge color={TONE[w.status] ?? 'gray'} variant={w.status === 'online' ? 'filled' : 'outline'}>{t(`plan.state.${w.status}`, { defaultValue: w.status })}</Badge>
-            {w.since && <Text size="sm" c="dimmed">{t('plan.since', { time: clock(w.since) })}</Text>}
+            {w.since && <Text size="sm" c="dimmed">{t('plan.since', { time: dayClock(w.since) })}</Text>}
             {w.model && <Text size="sm" c="dimmed">{w.model}</Text>}
           </Group>
           <Text>{t('plan.blockPanel.carries', { online: w.online, count: w.seats.length })}</Text>

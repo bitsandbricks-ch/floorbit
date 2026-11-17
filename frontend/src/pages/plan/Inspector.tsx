@@ -14,20 +14,20 @@ import { WatchSeat } from './WatchSeat'
 import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
 import { ErrorBanner } from '@/components/ui'
+import { clock, dayClock } from '@/lib/time'
 
 const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown: 'gray' }
 
 /** Everything about one seat in one place: state, port, check-in, match, incidents and, with
  *  seats.view, who sits there. */
 export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: () => void; onBlock?: (block: string) => void }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const here = useLocation()
   const canQr = useCan('incidents.assign')
   const q = useQuery({ queryKey: qk.planSeat(seat), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seat)}`) })
   const d = q.data
   // Like the plan: a missing check-in is listed but not counted as a problem.
   const problems = d ? d.incidents.length + d.attention.filter((a) => a.kind !== 'checkin').length : 0
-  const clock = (ts: number) => new Date(ts * 1000).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
   const row = (label: string, value: React.ReactNode) => (
     <Table.Tr key={label}><Table.Th scope="row" fw={500} c="dimmed" w="40%">{label}</Table.Th><Table.Td>{value}</Table.Td></Table.Tr>
   )
@@ -85,13 +85,13 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
             <Stack gap={4}>
               <Title order={3} size="h5">{t('plan.problems')}</Title>
               {d.incidents.map((i) => (
-                <Text key={i.id} size="sm">{i.title} <Text span c="dimmed" size="xs">({t(`plan.incidentStatus.${i.status}`, { defaultValue: i.status })}, {clock(i.created_at)})</Text></Text>
+                <Text key={i.id} size="sm">{i.title} <Text span c="dimmed" size="xs">({t(`plan.incidentStatus.${i.status}`, { defaultValue: i.status })}, {dayClock(i.created_at)})</Text></Text>
               ))}
-              {d.attention.map((a, n) => <Text key={n} size="sm">{a.title} <Text span c="dimmed" size="xs">({t('plan.since', { time: clock(a.since) })})</Text></Text>)}
+              {d.attention.map((a, n) => <Text key={n} size="sm">{a.title} <Text span c="dimmed" size="xs">({t('plan.since', { time: dayClock(a.since) })})</Text></Text>)}
               {d.fixed_before?.last && (
                 <Text size="sm" c="dimmed">
                   {t('plan.fixedBefore', { count: d.fixed_before.count, title: d.fixed_before.last.title,
-                    time: d.fixed_before.last.fixed_at ? clock(d.fixed_before.last.fixed_at) : '?' })}
+                    time: d.fixed_before.last.fixed_at ? dayClock(d.fixed_before.last.fixed_at) : '?' })}
                 </Text>
               )}
             </Stack>
@@ -113,16 +113,15 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
 /** The seat's link over the last hours (issue #167). Offline is a thin red bar under the line and
  *  online a full green one, so the two differ by shape too; not known yet is left empty. */
 function LinkHistory({ history }: { history: NonNullable<SeatDetails['history']> }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const spans = linkSpans(history)
   const span = Math.max(1, history.to - history.from)
   const x = (ts: number) => ((ts - history.from) / span) * 1000
-  const time = (ts: number) => new Date(ts * 1000).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
   const last = spans[spans.length - 1]
   const hours = Math.round(span / 3600)
   const changes = history.changes.filter(([ts]) => ts > history.from).length
   const since = last && last.on !== null && last.from > history.from
-    ? t(last.on ? 'plan.history.onlineSince' : 'plan.history.offlineSince', { time: time(last.from) })
+    ? t(last.on ? 'plan.history.onlineSince' : 'plan.history.offlineSince', { time: clock(last.from) })
     : last && last.on !== null ? t(last.on ? 'plan.history.onlineAll' : 'plan.history.offlineAll', { count: hours }) : null
   return (
     <Stack gap={4}>

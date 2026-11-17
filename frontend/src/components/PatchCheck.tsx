@@ -5,6 +5,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { PatchCheck as Check, PatchRow } from '@/api/types'
+import { clock } from '@/lib/time'
 
 function Rows({ rows, count, line }: { rows: PatchRow[]; count: number; line: (r: PatchRow) => string }) {
   const { t } = useTranslation()
@@ -33,7 +34,7 @@ export function PatchCheck() {
         <Group justify="space-between" align="baseline">
           <Title order={3} size="h4">{t('cables.checkTitle')}</Title>
           {c.last_poll && <Text size="xs" c="dimmed">
-            {t('cables.checkRead', { time: new Date(c.last_poll * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
+            {t('cables.checkRead', { time: clock(c.last_poll) })}
           </Text>}
         </Group>
         {c.blocks.map((b) => (
