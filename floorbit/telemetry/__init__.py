@@ -85,6 +85,7 @@ class Runner:
         self._stop = threading.Event()
         self.poll_errors = {}
         self.last_poll = None
+        self.blocks = None
 
     def once(self, now=None):
         now = time.time() if now is None else now
@@ -97,7 +98,7 @@ class Runner:
             state_mod.state.know(raw)
             if collector_here():
                 with_secrets = [targets.opened(t) for t in raw if set(t['drivers']) & set(pollers.POLLERS)]
-                found, self.poll_errors = pollers.poll_all(with_secrets, now, log=self.log)
+                found, self.poll_errors = pollers.poll_all(with_secrets, now, log=self.log, blocks=self._blocks())
                 state_mod.state.apply(found, now)
                 storage_mod.storage().forward_raw(found)
                 self.last_poll = now
@@ -107,6 +108,20 @@ class Runner:
                     self.log(f'[telemetry] cannot write {conf_path()}: {exc}')
         if collector_here() and state_mod.state.devices:
             storage_mod.storage().sample(storage_mod.snapshot(now=now), now)
+
+    def _blocks(self):
+        """Refused logins, kept next to the state so a restart doesn't try them again either."""
+        if self.blocks is None:
+            from ..database import state_root
+            from ..plugins.agent import AuthBlocks
+
+            class Blocks(AuthBlocks):
+                def auth_failed(blocks, device, credential, rev=None, message=''):
+                    if blocks.failed(device, credential, rev, message):
+                        self.log(f'[telemetry] {message}: not trying {device} again until its login is changed')
+
+            self.blocks = Blocks(os.path.join(state_root(), 'telemetry-logins.json'))
+        return self.blocks
 
     def loop(self):
         while not self._stop.wait(POLL_EVERY if self.last_poll else 5):

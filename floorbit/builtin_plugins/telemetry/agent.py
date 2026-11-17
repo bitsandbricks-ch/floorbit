@@ -168,7 +168,7 @@ class AgentPlugin(Base):
             wanted = [t for t in self.targets if set(t.get('drivers') or []) & set(pollers.POLLERS)]
         if not wanted:
             return
-        found, errors = pollers.poll_all(wanted, now, log=self.ctx.log)
+        found, errors = pollers.poll_all(wanted, now, log=self.ctx.log, blocks=self.ctx)
         for name, err in errors.items():
             if self.poll_errors.get(name) != err:
                 self.ctx.error(err)

@@ -19,6 +19,11 @@ class PollError(RuntimeError):
     pass
 
 
+class LoginRefused(PollError):
+    """The device said no to the login: not tried again until someone fixes it, so a wrong password
+    never locks the account out or fills the AAA server with alarms."""
+
+
 def _session(t, user=None, password=None):
     s = requests.Session()
     # Devices sit on the event network: never send their logins through a proxy from the environment.
@@ -67,7 +72,7 @@ def nxapi(t, now=None):
     except requests.RequestException as exc:
         raise PollError(f'NX-API on {t["name"]}: {type(exc).__name__}') from None
     if resp.status_code == 401:
-        raise PollError(f'NX-API on {t["name"]} refused the login.')
+        raise LoginRefused(f'NX-API on {t["name"]} refused the login.')
     if not resp.ok:
         raise PollError(f'NX-API on {t["name"]} answered {resp.status_code}.')
     try:
@@ -132,7 +137,7 @@ def restconf(t, now=None):
         except requests.RequestException as exc:
             raise PollError(f'RESTCONF on {t["name"]}: {type(exc).__name__}') from None
         if resp.status_code == 401:
-            raise PollError(f'RESTCONF on {t["name"]} refused the login.')
+            raise LoginRefused(f'RESTCONF on {t["name"]} refused the login.')
         if resp.status_code == 404:
             return {}
         if not resp.ok:
@@ -180,7 +185,7 @@ def opnsense(t, now=None):
         except requests.RequestException as exc:
             raise PollError(f'OPNsense API on {t["name"]}: {type(exc).__name__}') from None
         if resp.status_code in (401, 403):
-            raise PollError(f'OPNsense on {t["name"]} refused the API key.')
+            raise LoginRefused(f'OPNsense on {t["name"]} refused the API key.')
         if not resp.ok:
             return None
         try:
@@ -232,16 +237,39 @@ def register(driver, poller):
         targets.DRIVERS = (*targets.DRIVERS, driver)
 
 
-def poll_all(targets, now=None, log=print):
-    """Every API driver of every target, once. (points, {target name: error})."""
+def login_rev(t):
+    """Changes when the device's login does (an edited password), so a stopped login is tried again
+    with the new one and never with the old."""
+    import hashlib
+
+    from .targets import SECRETS
+    raw = '|'.join(str(t.get(k) or '') for k in ('username', 'address', *SECRETS))
+    return hashlib.sha256(raw.encode()).hexdigest()[:12]
+
+
+def poll_all(targets, now=None, log=print, blocks=None):
+    """Every API driver of every target, once. (points, {target name: error}).
+
+    ``blocks``: something with ``may_login(device, credential, rev)`` and
+    ``auth_failed(device, credential, rev, message)`` (the agent's context, or AuthBlocks): a login
+    the device refused is not tried again until it is cleared or the login changes."""
     points, errors = [], {}
     for t in targets:
+        rev = login_rev(t)
         for driver in t.get('drivers') or []:
             poller = POLLERS.get(driver)
             if poller is None:
                 continue
+            if blocks is not None and not blocks.may_login(t['name'], driver, rev):
+                errors[t['name']] = f'{driver}: login refused before, not tried again until cleared'
+                continue
             try:
                 points += poller(t, now)
+            except LoginRefused as exc:
+                errors[t['name']] = str(exc)
+                if blocks is not None:
+                    blocks.auth_failed(t['name'], driver, rev, str(exc))
+                log(f'[telemetry] {exc}')
             except PollError as exc:
                 errors[t['name']] = str(exc)
                 log(f'[telemetry] {exc}')

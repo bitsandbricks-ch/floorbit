@@ -108,6 +108,11 @@ They are opened only to write Telegraf's config (a file only Floorbit's user can
 to an enrolled agent over its TLS link, as the Telemetry plugin's settings. Use read-only
 accounts on the devices.
 
+When a device refuses a login (NX-API, RESTCONF, the OPNsense API key), the collector stops trying
+that device with it: no account lockouts, no alarms on the AAA server. Change the login on
+Settings > Telemetry and it is tried again; on a local agent, **Clear, try again** on the Local
+agents page does it too. Not even a restart tries the old login again.
+
 ## Extending it
 
 Plugins can teach the collector new devices:

@@ -269,6 +269,23 @@ def test_a_refused_login_is_named(monkeypatch):
     assert points == [] and "refused the login" in errors["core-01"]
 
 
+def test_a_refused_login_is_not_tried_again_until_it_changes(monkeypatch):
+    tries = []
+
+    def refuse(*a, **k):
+        tries.append(1)
+        return FakeResp({}, 401)
+    monkeypatch.setattr(pollers.requests.Session, "post", refuse)
+    ctx = MemoryContext("telemetry")
+    t = {"name": "core-01", "address": "192.0.2.1", "drivers": ["nxapi"], "username": "ro", "password": "old"}
+    for _ in range(3):
+        _, errors = pollers.poll_all([t], log=lambda *_: None, blocks=ctx)
+    assert len(tries) == 1 and "not tried again" in errors["core-01"]
+    assert ctx.auth.list()[0]["device"] == "core-01" and ctx.health_.report()["errors"]
+    pollers.poll_all([{**t, "password": "new"}], log=lambda *_: None, blocks=ctx)    # edited: tried
+    assert len(tries) == 2
+
+
 # ── storage ────────────────────────────────────────────────────────────────────────────────────
 
 def test_lite_rollups_in_sqlite_without_mac_tables(tmp_path):
