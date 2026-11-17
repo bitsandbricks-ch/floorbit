@@ -62,3 +62,26 @@ describe('Settings', () => {
     expect(contrast('#ffffff', '#000000')).toBeCloseTo(21, 0)
   })
 })
+
+describe('Settings in German', () => {
+  afterEach(async () => {
+    const { default: i18n } = await import('@/i18n')
+    await i18n.changeLanguage('en')
+  })
+
+  it('shows the integration and plugin settings in German too', async () => {
+    const { default: i18n } = await import('@/i18n')
+    await i18n.changeLanguage('de-CH')
+    const german: SettingsAnswer = {
+      ...answer,
+      sections: [{ id: 'plugin-zabbix', title: 'Plugin: Zabbix', description: 'Live switch status from Zabbix.' }],
+      fields: [{ key: 'plugin.zabbix.group', section: 'plugin-zabbix', label: 'Host group', type: 'text', env: null, help: 'Only hosts in this group are read.' }],
+      values: { 'plugin.zabbix.group': { source: 'default', value: '' } },
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': german }).fn)
+    renderWithApp(<Settings />)
+    expect(await screen.findByLabelText('Host-Gruppe')).toBeInTheDocument()
+    expect(screen.getByText('Nur Hosts in dieser Gruppe werden gelesen.')).toBeInTheDocument()
+    expect(screen.getByText(/Zustand, Verkehr und Fehler der Ports aus Zabbix/)).toBeInTheDocument()
+  })
+})

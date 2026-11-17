@@ -32,6 +32,8 @@ const TESTABLE = new Set(['netbox', 'librenms'])
 const HEX = /^#[0-9a-f]{6}$/i
 // i18next splits keys on dots; the setting keys have them.
 const k = (key: string) => key.replace(/\./g, '_')
+// The settings that integrations and the built-in plugins add have their texts in integrationSettings.json.
+const keys = (path: string) => [`settings.${path}`, `integrationSettings.${path}`]
 
 /** Is a typed value one the server takes? Bad ones stay unsaved and mark the field. */
 function invalid(f: Field, v: unknown): boolean {
@@ -175,9 +177,9 @@ function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
   const dirty = change !== undefined
   const resetting = change === null
   const value = dirty && !resetting ? change : info.value
-  const label = t(`settings.fields.${k(field.key)}.label`, { defaultValue: field.label })
-  const help = field.help ? t(`settings.fields.${k(field.key)}.help`, { defaultValue: field.help }) : undefined
-  const placeholder = field.placeholder ? t(`settings.fields.${k(field.key)}.placeholder`, { defaultValue: field.placeholder }) : undefined
+  const label = t(keys(`fields.${k(field.key)}.label`), { defaultValue: field.label })
+  const help = field.help ? t(keys(`fields.${k(field.key)}.help`), { defaultValue: field.help }) : undefined
+  const placeholder = field.placeholder ? t(keys(`fields.${k(field.key)}.placeholder`), { defaultValue: field.placeholder }) : undefined
   const error = dirty && !resetting && invalid(field, change) ? t('settings.invalid') : undefined
   const common = { label, description: help, disabled: resetting, error }
   const wide = { maw: 560 }   // long enough for a URL, short enough to read
@@ -337,8 +339,8 @@ export default function Settings() {
             {d.sections.map((s) => {
               const fields = d.fields.filter((f) => f.section === s.id)
               return (
-                <Panel key={s.id} id={`sec-${s.id}`} title={t(`settings.sections.${s.id}.title`, { defaultValue: s.title })}
-                  desc={t(`settings.sections.${s.id}.desc`, { defaultValue: s.description })}
+                <Panel key={s.id} id={`sec-${s.id}`} title={t(keys(`sections.${s.id}.title`), { defaultValue: s.title })}
+                  desc={t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
                   actions={TESTABLE.has(s.id) && (
                     <Button variant="default" size="xs" onClick={() => void test.run(s.id)}>{t('settings.test')}</Button>
                   )}>
