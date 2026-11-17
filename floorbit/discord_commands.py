@@ -15,6 +15,8 @@ import time
 
 from flask import current_app
 
+from .seat_names import match_typed
+
 GUILD_ONLY = [0]   # Discord's interaction context for a server, not a DM
 
 SUB = 1           # Discord's option type for a subcommand
@@ -164,7 +166,11 @@ def handle(body):
             return NOT_LINKED
         if not _crew(user):
             return f'/{name} needs a Floorbit account that works incidents.'
-        return _seat(_option(body, 'seat')) if name == 'seat' else _switch(_option(body, 'name'))
+        if name == 'seat':
+            from . import incidents
+            typed = _option(body, 'seat')
+            return _seat(match_typed(typed, incidents.seat_numbers()) or typed)
+        return _switch(_option(body, 'name'))
     if name == 'statusupdate':
         return _statusupdate(linked_user(body), _options(body)[0])
     if name in ('incident', 'jobs'):
@@ -330,9 +336,10 @@ def _attendee_report(body):
     if not features.on('helpdesk'):
         return OFF[lang]
     given, _sub = _options(body)
-    seat, problem = given.get('seat', '').upper(), given.get('problem')
-    if seat not in incidents.seat_numbers() or problem not in incidents.PROBLEMS:
-        return NO_SEAT[lang].format(seat=seat or '?')
+    typed, problem = given.get('seat', ''), given.get('problem')
+    seat = match_typed(typed, incidents.seat_numbers())
+    if not seat or problem not in incidents.PROBLEMS:
+        return NO_SEAT[lang].format(seat=typed.strip().upper() or '?')
     since = seat_view.outage_since(seat)
     if since and problem in ('no-internet', 'slow'):
         # Already known: the crew needs no extra report for every seat on a dead switch.
