@@ -70,7 +70,23 @@ def _merge(data, base_text, current_text):
 
 def read_json(path, default=None):
     """The document's JSON, or ``default`` when it doesn't exist. From the database when
-    FLOORBIT_DATABASE_URL names one (floorbit/database.py), else from the file."""
+    FLOORBIT_DATABASE_URL names one (floorbit/database.py), else from the file. A caller whose
+    default is an object (``{}``) always gets an object back."""
+    found = _read_json(path, default)
+    if isinstance(default, dict) and not isinstance(found, dict):
+        _not_an_object(path, found)
+        return default
+    return found
+
+
+def _not_an_object(path, found):
+    if path not in _warned:
+        _warned.add(path)
+        print(f'[store] {path} holds {type(found).__name__}, not an object (edited by hand?); '
+              'starting from empty until the next save')
+
+
+def _read_json(path, default):
     from . import database
     db = database.backend()
     if db.kind != 'files':
@@ -225,8 +241,10 @@ def unwritable(path=None):
 
 def load_data():
     found = read_json(DATA_FILE)
-    if found is not None:
+    if isinstance(found, dict):
         return found
+    if found is not None:
+        _not_an_object(DATA_FILE, found)
     return {
         'inventory':      [],   # every device, made by hand or fed by plugins (inventory.py)
         'seats':          [],   # individual seats

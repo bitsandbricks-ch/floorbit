@@ -187,3 +187,21 @@ def test_a_new_document_is_written_as_given(tmp_path):
     store.write_json(path, {"a": 1})
     store.write_json(path, {"b": 2})              # not read from the store: replaces it whole, as before
     assert store.read_json(path) == {"b": 2}
+
+
+def test_a_document_that_is_not_an_object_counts_as_empty(tmp_path, monkeypatch):
+    # data.json edited by hand into a list: Floorbit started into a crash on every request.
+    path = str(tmp_path / "data.json")
+    store.write_json(path, [1, 2])
+    assert store.read_json(path, {}) == {}
+    assert store.read_json(path) == [1, 2]          # a caller that takes anything still gets it
+    monkeypatch.setattr(store, "DATA_FILE", path)
+    assert store.load_data()["seat_blocks"] == []
+
+
+def test_the_app_starts_on_a_data_file_that_is_a_list(app_module):
+    store.write_json(store.DATA_FILE, ["not", "an", "object"])
+    app_module.app.extensions["floorbit_settings"].reload()
+    client = app_module.app.test_client()
+    assert client.get("/api/version").status_code < 500
+    assert client.get("/api/seat-blocks").status_code < 500
