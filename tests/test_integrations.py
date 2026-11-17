@@ -230,6 +230,24 @@ def test_discord_test_endpoint_needs_webhook(app):
     assert r.status_code == 400
 
 
+def test_a_failed_discord_send_never_shows_the_webhook_token(app, monkeypatch):
+    import requests
+
+    from integrations import discord as discord_mod
+    url = 'https://discord.example.com/api/webhooks/123456/s3cret-webhook-token'
+    monkeypatch.setenv('DISCORD_WEBHOOK_URL', url)
+
+    def refused(target, **kwargs):   # what requests says: the URL, token and all
+        raise requests.ConnectionError(f"Max retries exceeded with url: {target.split('.com')[1]} (refused)")
+    monkeypatch.setattr(discord_mod.requests, 'post', refused)
+    r = app.test_client().post('/api/integrations/discord/test')
+    assert r.status_code == 502
+    error = r.get_json()['error']
+    assert 's3cret-webhook-token' not in error and '/api/webhooks/123456/' in error
+    # The background sender logs what went wrong: the token stays out of the log too.
+    assert discord_mod.hide_webhook(f"failed: {url}") == "failed: https://discord.example.com/api/webhooks/123456/…"
+
+
 # ── check-in ─────────────────────────────────────────────────────────────────────────
 @pytest.fixture
 def checkin_env(tmp_path, monkeypatch):
