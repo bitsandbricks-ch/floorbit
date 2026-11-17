@@ -1,7 +1,7 @@
 /*
- * Bridge from Floorbit's current variable names (static/css/style.css) to the
- * brand tokens, so pages can switch over before every rule is renamed.
- * Load after tokens.css and themes.css; delete once style.css uses --color-* directly.
+ * Bridge from Floorbit's older variable names (--bg-primary and the like, still read by the
+ * kiosk and other Flask pages) to the brand tokens.
+ * Load after tokens.css and themes.css; delete once those pages use --color-* directly.
  */
 :root, :root[data-theme], :root[data-preset] {
   --bg-primary: var(--color-ink);

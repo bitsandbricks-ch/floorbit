@@ -86,7 +86,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
   background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
   background-size: 24px 24px;
 }
-/* The editor's grid (style.css .canvas-grid); kiosk.js sets the step and offset from the fit. */
+/* The plan's grid; kiosk.js sets the step and offset from the fit. */
 .k-grid {
   position: absolute; inset: 0; pointer-events: none; background-color: var(--bg-primary);
   --grid-major-color: color-mix(in srgb, var(--text-muted) 26%, transparent);
@@ -104,7 +104,7 @@ body.cursor-hidden, body.cursor-hidden * { cursor: none !important; }
 .k-grid[hidden] { display: none; }
 .k-plan { position: absolute; left: 0; top: 0; width: 1000px; height: 625px; transform-origin: 0 0; }   /* the editor's plan size */
 
-/* Labels, walls, zones and icons, drawn like the editor draws them (style.css). */
+/* Labels, walls, zones and icons, drawn like the floor plan draws them (frontend/src/app.css). */
 .k-marks-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .mark-wall line { stroke: var(--text-primary); stroke-width: 4px; stroke-linecap: round; opacity: .8; }
 .mark-wall.dashed line { stroke-dasharray: 10 7; }

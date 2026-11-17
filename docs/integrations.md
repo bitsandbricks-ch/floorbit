@@ -40,7 +40,9 @@ whoever runs the server sets them and an admin of the app must not be able to ch
 
 ## Live push updates
 
-Browsers subscribe to `GET /api/events` (Server-Sent Events). `static/js/live.js` handles it:
+Browsers subscribe to `GET /api/events` (Server-Sent Events). The React app handles it
+(`frontend/src/api/live.ts`); the kiosk (`static/js/kiosk.js`) and notifications (`static/js/notify.js`)
+listen on their own:
 
 | Event | When | Frontend effect |
 |---|---|---|
@@ -51,10 +53,6 @@ Browsers subscribe to `GET /api/events` (Server-Sent Events). `static/js/live.js
 | `checkin`, `checkin.removed`, `checkin.refreshed` | seat check-ins change | none (re-dispatched only) |
 | `attention.changed` | the needs-attention list changed | the Problems page reloads |
 | `stats.changed` | a new read of all ports, or the peak was reset | the Stats page reloads |
-
-Every event is also dispatched on `window` as `lal:live` with `{type, data}` in `detail`, so
-the reworked frontend can listen without depending on `live.js`. While connected,
-`<html data-live="on">` is set (`off` otherwise) for a "live" indicator.
 
 | Variable | Default | |
 |---|---|---|
