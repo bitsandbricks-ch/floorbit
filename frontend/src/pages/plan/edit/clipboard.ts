@@ -4,7 +4,7 @@ import { nextFreeRow, nextName } from './tools'
 /** An item as the server keeps it (positions in % of the plan), ready to be posted again. */
 export interface Raw { kind: ItemRef['kind']; body: Record<string, unknown> }
 
-// What a block needs to come back as it was (static/js/editor/data.js BLOCK_FIELDS).
+// What a block needs to come back as it was.
 export const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y', 'rotation',
   'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group', 'z']
 // What a cable needs to be made again (floorbit/cables.py FIELDS).

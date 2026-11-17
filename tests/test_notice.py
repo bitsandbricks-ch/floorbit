@@ -37,8 +37,3 @@ def test_everyone_reads_leads_write(app_module, client):
     assert tech.delete("/api/notice").status_code == 403
     lead = sign_in_as(app_module, "le1", "lead")
     assert lead.put("/api/notice", json={"text": "Lead here"}).get_json()["notice"]["by"]
-
-
-def test_the_floor_plan_has_a_place_for_it(client):
-    page = client.get("/editor/classic").get_data(as_text=True)
-    assert 'id="crew-notice"' in page and "/static/js/editor/notice.js" in page

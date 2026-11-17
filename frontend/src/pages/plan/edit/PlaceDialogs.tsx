@@ -8,7 +8,7 @@ import { blockStep, nextFreeRow } from './tools'
 
 interface Defaults { naming?: string; row_labels?: string; reverse_numbers?: boolean; block_gap?: number }
 
-/** The values of a new seat block, as POST /api/seat-blocks takes them (static/js/editor/modals.js). */
+/** The values of a new seat block, as POST /api/seat-blocks takes them. */
 export interface NewBlock {
   naming: string; row_start: string; row_labels: string; name: string; cols: number; rows: number
   numbering_pattern: 'blockname_number'; reverse_numbers: boolean; rotation: number

@@ -91,7 +91,7 @@ def test_check_in_and_kiosk_paths_are_open(app_module, auth):
 
 def test_auth_can_be_switched_off(anon_client, auth, monkeypatch):
     monkeypatch.setattr(auth, "enabled", False)
-    assert anon_client.get("/editor/classic").status_code == 200
+    assert anon_client.get("/plan").status_code == 200
     assert anon_client.post("/api/switches", json={"name": "sw", "x": 1, "y": 1}).status_code == 201
 
 
@@ -102,7 +102,7 @@ def test_sign_in_and_out(anon_client, user):
     assert resp.status_code == 302
     assert resp.headers["Location"] == "/settings"
 
-    page = anon_client.get("/editor/classic")
+    page = anon_client.get("/plan")
     assert page.status_code == 200
     # The sidebar's account menu: name and "Sign out" (templates/_nav.html).
     assert b'"name": "Test Person"' in page.data and b'"signOut": true' in page.data
@@ -302,7 +302,7 @@ def signed_in_as(app_module, auth):
 
 def test_viewer_can_look_but_not_change(signed_in_as):
     viewer = signed_in_as("viewer")
-    assert viewer.get("/editor/classic").status_code == 200
+    assert viewer.get("/plan").status_code == 200
     resp = viewer.post("/api/switches", json={"name": "sw", "x": 1, "y": 1})
     assert resp.status_code == 403
     assert resp.get_json()["permission_needed"] == "floorplan.edit"

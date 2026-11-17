@@ -37,8 +37,7 @@ whether the tools are in hand (`?edit=1`).
 The TV button (**Kiosk**) opens the same plan full screen for a big screen (`?screen=1`), with the hall and layers
 you were looking at.
 
-The older editor stays at `/editor/classic` for a while as a fallback, linked from the bottom of the
-editor's panel. Everything it did is in the new editor.
+The older editor is retired: `/editor/classic` opens this editor on the same hall.
 
 ### Editing
 

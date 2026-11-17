@@ -1,10 +1,11 @@
 """Smoke tests: the pages render and the floor plan API keeps what it is given."""
 
 
-def test_index_renders(client):
-    resp = client.get("/editor/classic")
-    assert resp.status_code == 200
-    assert b"<html" in resp.data.lower()
+def test_the_classic_editor_opens_the_plans_editor(client):
+    # Retired (Mike: not kept in sync); old bookmarks land in the plan's editor on the same hall.
+    resp = client.get("/editor/classic?hall=main")
+    assert resp.status_code == 302 and resp.headers["Location"] == "/plan?edit=1&hall=main"
+    assert client.get("/editor/classic").headers["Location"] == "/plan?edit=1"
 
 
 def test_kiosk_renders(client):

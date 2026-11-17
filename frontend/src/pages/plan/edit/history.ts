@@ -10,7 +10,7 @@ export interface Step {
 interface Stacks { past: Step[]; future: Step[] }
 const LIMIT = 100
 
-/** Undo and redo for the editor, like the older editor's (static/js/editor/core.js pushHistory).
+/** Undo and redo for the editor.
  *  A step that fails to undo or redo stays where it was, so a retry can try again. */
 export function useHistory() {
   const [stacks, setStacks] = useState<Stacks>({ past: [], future: [] })

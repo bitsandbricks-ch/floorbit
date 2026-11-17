@@ -231,7 +231,7 @@ The documentation site: `pip install -r requirements-docs.txt`, then `mkdocs ser
 | `integrations/` | Live updates, switch monitor, Discord alerts, seat sources, check-in. |
 | `auth/` | Sign-in: accounts, sessions, the login page and the login providers (password, Discord). |
 | `frontend/` | The React app (TypeScript, Mantine). The dashboard and Settings > Plugins are in it so far; the other pages follow. See [frontend/README.md](frontend/README.md). |
-| `templates/`, `static/` | The other pages (plain JavaScript and CSS, no build step); the editor is in `static/js/editor/`. |
+| `templates/`, `static/` | The other pages (plain JavaScript and CSS, no build step); the floor plan editor is in `frontend/src/pages/plan/edit/`. |
 | `changelog.d/` | One changelog fragment per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests. |
