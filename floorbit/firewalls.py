@@ -357,7 +357,16 @@ def overview(now=None):
             'counts': {'firewalls': len(cards), 'down': sum(c['status'] == 'offline' for c in cards),
                        'failover': sum(r['state'] == 'failover' for r in ranges),
                        'without': sum(r['state'] == 'down' for r in ranges)},
-            'unread': health.devices(now) is None, 'can_import': can_import()}
+            'monitoring': _monitored(),
+            'unread': _monitored() and health.devices(now) is None, 'can_import': can_import()}
+
+
+def _monitored():
+    # Without a monitoring source the ranges can only show their plan: that is setup, not trouble.
+    try:
+        return bool(sources.monitoring().enabled())
+    except Exception:  # noqa: BLE001 - a source that can't even say is "set up but unreadable"
+        return True
 
 
 def seat_routes(now=None):

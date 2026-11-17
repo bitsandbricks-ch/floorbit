@@ -57,5 +57,6 @@
   "importDone_other": "{{count}} ranges imported from NetBox.",
   "importHelp": "Reads the NetBox prefixes that have the custom field floorbit_firewalls (their firewalls, in order). Each import replaces the last; ranges planned here stay.",
   "fromPlugin": "From {{plugin}}",
-  "fromPluginHelp": "Change it in {{plugin}} and import again."
+  "fromPluginHelp": "Change it in {{plugin}} and import again.",
+  "noMonitoring": "No monitoring source is set up, so the ranges show their planned firewall. An admin adds LibreNMS (or another monitoring plugin) under Settings."
 }

@@ -57,5 +57,6 @@
   "importDone_other": "{{count}} Bereiche aus NetBox importiert.",
   "importHelp": "Liest die NetBox-Prefixe mit dem Custom Field floorbit_firewalls (ihre Firewalls, in Reihenfolge). Jeder Import ersetzt den letzten; hier geplante Bereiche bleiben.",
   "fromPlugin": "Aus {{plugin}}",
-  "fromPluginHelp": "In {{plugin}} ändern und neu importieren."
+  "fromPluginHelp": "In {{plugin}} ändern und neu importieren.",
+  "noMonitoring": "Es ist keine Monitoring-Quelle eingerichtet, darum zeigen die Bereiche ihre geplante Firewall. Ein Admin fügt LibreNMS (oder ein anderes Monitoring-Plugin) unter Einstellungen hinzu."
 }
