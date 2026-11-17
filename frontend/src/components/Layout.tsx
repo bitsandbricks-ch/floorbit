@@ -10,6 +10,7 @@ import { AppNav } from './AppNav'
 import { Attribution } from './Attribution'
 import { CrewNoticeBanner } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
+import { EventBanner } from './EventBanner'
 import { PageError } from './PageError'
 import { rememberPage } from './pages'
 
@@ -54,6 +55,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </button>
         </header>
         <DatabaseBanner />
+        <EventBanner />
         <CrewNoticeBanner />
         <PageError resetKey={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>

@@ -3,6 +3,23 @@
 Issue #38. Every event is kept as its own record, and the events page (`/events`, linked from the
 report) compares them side by side.
 
+## Planning the next event
+
+The **Events** box at the top of the page lists the events of this install: one is **Live**, the
+others are in **Planning** or **Closed** (see [Tenants and events](tenancy.md)).
+
+- **Open** works on that event in this browser. Every crew page then shows a banner with the event's
+  name and **Back to the live event**. Port actions, switch commands and the terminal only work from
+  the live event.
+- **New event** (admins) starts one in planning, with an empty floor plan or a copy of another
+  event's.
+- **Copy event** (admins) copies parts of one event's floor plan into a new or an existing event:
+  halls, seats, inventory, cables, power, services, schedule. Into an existing event, **Preview**
+  first shows what changes, then **Copy** merges or replaces. Check-ins, incidents, handover, logs
+  and history are never copied.
+- **Make live** switches monitoring, the agent and the network actions to that event; the live one
+  goes back to planning.
+
 ## Closing an event
 
 When the event is over, an admin (**Change settings**) closes it at the bottom of the events page. To
