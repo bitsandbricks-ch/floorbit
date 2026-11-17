@@ -1,4 +1,5 @@
-import { fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { notifications } from '@mantine/notifications'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatViewData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -6,7 +7,8 @@ import type { LayerState } from '../layers'
 import type { View } from '../model'
 import { PlanEditor } from './PlanEditor'
 
-afterEach(() => vi.unstubAllGlobals())
+// Notifications live in one store for the whole file: earlier steps' toasts would queue later ones.
+afterEach(() => { vi.unstubAllGlobals(); notifications.clean() })
 
 // Two seat blocks, A at a quarter of the plan's width, B at half: 1600 × 1000 drawing units.
 const shape = (id: string, cx: number) => ({ id, group: null, cx, cy: 500, rotation: 0, w: 128, h: 32, name: id, cells: [] })
@@ -135,5 +137,47 @@ describe('Plan editor: select all like this', () => {
     e.key('ArrowUp')
     await waitFor(() => expect(e.sent('PUT')).toHaveLength(2))
     expect(e.sent('PUT').map((c) => c.path).sort()).toEqual(['/api/seat-blocks/A', '/api/seat-blocks/B'])
+  })
+})
+
+describe('Plan editor: copies and failures', () => {
+  const rows = { 'GET /api/seat-blocks?hall=main': [blockRow('A', 25), blockRow('B', 50)], 'GET /api/seat-blocks': [blockRow('A', 25), blockRow('B', 50)],
+    'GET /api/options/panels': { options: [] }, 'POST /api/seat-blocks': { id: 'C1' }, 'DELETE /api/seat-blocks/C1': { ok: true } }
+
+  it('duplicates with Ctrl+D under a new name, and Ctrl+Z deletes the copy again', async () => {
+    const e = editor(rows)
+    e.select('A')
+    e.key('d', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('POST')).toHaveLength(1))
+    const body = e.sent('POST')[0].body as { name: string; x: number; hall_id: string }
+    expect(body.hall_id).toBe('main')
+    expect(body.name).not.toBe('A')
+    expect(body.name).not.toBe('B')
+    expect(body.x).toBeGreaterThan(25)
+    e.key('z', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('DELETE')).toHaveLength(1))
+    expect(e.sent('DELETE')[0].path).toBe('/api/seat-blocks/C1')
+  })
+
+  it('copies with Ctrl+C and pastes a copy with Ctrl+V', async () => {
+    localStorage.removeItem('floorbit-plan-clipboard')
+    const e = editor(rows)
+    e.select('B')
+    e.key('c', { ctrlKey: true })
+    await waitFor(() => expect(localStorage.getItem('floorbit-plan-clipboard')).toContain('"B"'))
+    e.key('v', { ctrlKey: true })
+    await waitFor(() => expect(e.sent('POST')).toHaveLength(1))
+    expect((e.sent('POST')[0].body as { name: string }).name).not.toBe('B')
+  })
+
+  it('says so when the server refuses a change, and keeps nothing to undo', async () => {
+    const e = editor({ 'PUT /api/seat-blocks/A': () => ({ status: 409, body: { error: 'Seats overlap block B' } }) })
+    e.select('A')
+    e.key('ArrowRight')
+    expect(await screen.findByText('Seats overlap block B')).toBeInTheDocument()
+    expect(screen.getByText('Not saved')).toBeInTheDocument()
+    e.key('z', { ctrlKey: true })
+    await new Promise((r) => setTimeout(r, 20))
+    expect(e.sent('PUT')).toHaveLength(1)
   })
 })
