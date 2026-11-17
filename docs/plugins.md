@@ -7,10 +7,12 @@ the dashboard (widgets), read-only JSON (endpoints) and code that runs when some
 
 ## Turning plugins on
 
-Settings > Plugins lists every plugin, what it may touch, and whether it is on. Plugins start
+Settings > Plugins lists every plugin with its version and whether it is on. Plugins start
 **off**, except the few that ship with Floorbit and replace what used to be built in (NetBox); those
-start on and do nothing until they're configured. Turning one on or off is in the audit log. A plugin's settings are on the settings page,
-in a section called *Plugin: <name>*. Secrets are write-only there, as everywhere.
+start on and do nothing until they're configured. Turning one on or off is in the audit log. Each
+plugin has its own page, `/settings/plugins/<id>`, with what it may touch, its test, actions, log
+and settings. Secrets are write-only there, as everywhere. The Settings search finds plugin settings
+too and links to the plugin's page.
 
 The **Dashboard** (in the sidebar, `/dashboard`) shows the tiles of the plugins that are
 on, for anyone signed in whose role is allowed to see them. Layouts save which tiles a screen shows

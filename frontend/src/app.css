@@ -686,3 +686,9 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-text-button:focus-visible { box-shadow: none; outline: 2px solid var(--color-bit); outline-offset: 2px; }
 /* Mantine clips the alert's message box, which would cut the ring off. */
 .mantine-Alert-message:has(.fb-text-button) { overflow: visible; }
+
+/* Settings (Settings.tsx): the section list stays in view while a long section scrolls. */
+.fb-plain-list { list-style: none; margin: 0; padding: 0; }
+@media (min-width: 62em) {
+  .fb-settings-nav { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+}

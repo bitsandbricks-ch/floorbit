@@ -16,5 +16,16 @@
   "trust": {
     "builtin": "Kommt mit Floorbit",
     "development": "Entwicklungsstand"
-  }
+  },
+  "open": "Öffnen",
+  "agent": "Läuft auf dem Agent",
+  "search": "Plugins durchsuchen",
+  "show": "Anzeigen",
+  "shown": {
+    "all": "Alle",
+    "on": "Ein",
+    "off": "Aus"
+  },
+  "noMatch": "Kein Plugin passt.",
+  "notFound": "Es gibt kein Plugin «{{id}}»."
 }

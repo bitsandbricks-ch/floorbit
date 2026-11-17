@@ -6,6 +6,7 @@ import { PageError } from '@/components/PageError'
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
+const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Teams = lazy(() => import('@/pages/Teams'))
@@ -75,6 +76,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/settings/plugins" element={<Plugins />} />
+            <Route path="/settings/plugins/:id" element={<PluginSettings />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/settings/teams" element={<Teams />} />
@@ -120,7 +122,7 @@ export default function App() {
             <Route path="/checkins" element={<Checkins />} />
             <Route path="/speedtests" element={<Speedtests />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/features" element={<Features />} />
             <Route path="/settings/api" element={<ApiTokens />} />
             <Route path="/settings/audit" element={<Audit />} />

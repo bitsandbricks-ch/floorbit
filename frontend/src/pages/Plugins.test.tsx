@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PluginInfo } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -36,15 +36,27 @@ describe('Plugins page', () => {
     renderWithApp(<Plugins />)
 
     expect(await screen.findByRole('heading', { name: 'HTTP check' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'HTTP check' })).toHaveAttribute('href', '/settings/plugins/http-check')
+    expect(within(screen.getByRole('list')).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/plugins/http-check')
     expect(screen.getByText('Ships with Floorbit')).toBeInTheDocument()
-    // Off: no test or action buttons yet.
-    expect(screen.queryByRole('button', { name: 'Test' })).toBeNull()
 
     fireEvent.click(screen.getByRole('switch'))
     expect(await screen.findByText('✓ HTTP check is on.')).toBeInTheDocument()
     expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ enabled: true })
-    expect(screen.getByRole('button', { name: 'Test' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Check now' })).toBeInTheDocument()
+  })
+
+  it('filters a long list', async () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({ ...plugin, id: `p${i}`, name: `Plugin ${i}`, enabled: i < 3 }))
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false, user: null },
+      'GET /api/settings/plugins': { plugins: [...many, { ...plugin, name: 'Shelly meters', id: 'shelly' }] },
+    }).fn)
+    renderWithApp(<Plugins />)
+    fireEvent.change(await screen.findByLabelText('Search plugins'), { target: { value: 'shelly' } })
+    expect(within(screen.getByRole('list')).getAllByRole('heading').map((h) => h.textContent)).toEqual(['Shelly meters'])
+    fireEvent.change(screen.getByLabelText('Search plugins'), { target: { value: '' } })
+    fireEvent.click(within(screen.getByRole('radiogroup')).getByText('On'))
+    await waitFor(() => expect(within(screen.getByRole('list')).getAllByRole('heading')).toHaveLength(3))
   })
 
   it('shows a plugin that failed to load and keeps its switch off', async () => {
@@ -58,21 +70,5 @@ describe('Plugins page', () => {
     renderWithApp(<Plugins />)
     expect(await screen.findByRole('alert')).toHaveTextContent('plugin.py: syntax error')
     expect(screen.getByRole('switch')).toBeDisabled()
-  })
-
-  it('asks before a dangerous action', async () => {
-    const api = fakeFetch({
-      'GET /api/auth/me': { enabled: false, user: null },
-      'GET /api/settings/plugins': {
-        plugins: [{ ...plugin, enabled: true, actions: [{ id: 'reset', label: 'Reset', role: 'admin', danger: true }] }],
-      },
-      'POST /api/plugins/http-check/actions/reset': { ok: true, message: 'Reset done', data: {} },
-    })
-    vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Plugins />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }))
-    expect(api.calls.some((c) => c.method === 'POST')).toBe(false)
-    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
-    await waitFor(() => expect(screen.getByText('✓ Reset done')).toBeInTheDocument())
   })
 })

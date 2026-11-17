@@ -16,5 +16,16 @@
   "trust": {
     "builtin": "Ships with Floorbit",
     "development": "Development checkout"
-  }
+  },
+  "open": "Open",
+  "agent": "Runs on the agent",
+  "search": "Search plugins",
+  "show": "Show",
+  "shown": {
+    "all": "All",
+    "on": "On",
+    "off": "Off"
+  },
+  "noMatch": "No plugin matches.",
+  "notFound": "There is no plugin \"{{id}}\"."
 }
