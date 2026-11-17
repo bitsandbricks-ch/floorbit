@@ -23,18 +23,12 @@ class Source:
 
 
 @pytest.fixture
-def net(app_module, client, monkeypatch):
+def net(client, monkeypatch):
     src = Source()
     monkeypatch.setattr(sources, "monitoring", lambda: src)
     monkeypatch.setattr(seat_sources, "load", lambda *a, **k: {
         "A-1": {"ip_address": "192.0.2.10"}, "A-2": {"ip_address": "192.0.2.40"}, "A-3": {"ip_address": "192.0.2.41"},
         "B-1": {"ip_address": "198.51.100.7"}, "B-2": {"ip_address": "not an ip"}})
-    # The app's own status monitor polls in the background every minute: a poll landing mid-test
-    # would hand the firewall page its list (or "unknown") instead of this source's.
-    from integrations.monitor import StatusMonitor
-    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
-    monkeypatch.setattr(monitor, "poll_once", lambda: None)
-    StatusMonitor.latest.update(polled=None, at=None, devices=None)
     firewalls.health.reset()
     for name, role in (("fw-01", "firewall"), ("fw-02", "firewall"), ("fw-03", "firewall"), ("sw-a-01", "switch")):
         assert client.post("/api/inventory", json={"name": name, "role": role}).status_code in (200, 201)
