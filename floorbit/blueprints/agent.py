@@ -280,6 +280,19 @@ def captive():
     return jsonify(captive_mod.answer(current_app, agent=name))
 
 
+@bp.route('/api/agent/v1/seat-walk', methods=['POST'])
+def seat_walk_hello():
+    """The agent saw the crew's laptop with a walk-through code: ``{"token", "ip"}`` (seat_walk.py)."""
+    agent = _agent()
+    if agent is None:
+        return _refused()
+    from .. import seat_walk
+    body = _agent_body()
+    if not seat_walk.agent_said_hello(body.get('token'), body.get('ip'), agent.get('name')):
+        return jsonify({'error': 'That walk-through code is unknown, used or too old.'}), 404
+    return jsonify({'ok': True})
+
+
 @bp.route('/api/agent/v1/report', methods=['POST'])
 def report():
     """The agent's own numbers, from an agent on the long poll (on the link they come as a
@@ -391,7 +404,7 @@ def link(ws):
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers, syslog, flow_seats, captive, flows, link, report):
+for _view in (hello, calls, answers, syslog, flow_seats, captive, seat_walk_hello, flows, link, report):
     _view._auth_public = True
 # After _auth_public is set: the route's wrapper copies the attribute.
 sock.route(LINK_PATH, bp=bp)(link)

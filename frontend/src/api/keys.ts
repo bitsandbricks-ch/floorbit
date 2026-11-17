@@ -69,6 +69,8 @@ export const qk = {
   portClients: ['port-clients'] as const,
   walk: (switchName: string, since: number) => ['walk', switchName, since] as const,
   walkOrder: (form: object) => ['walk-order', form] as const,
+  seatWalkAll: ['seat-walk'] as const,
+  seatWalk: (block: string, order: string) => ['seat-walk', block, order] as const,
   blockPlan: (form: object) => ['block-plan', form] as const,
   options: (kind: string, scope: string) => ['options', kind, scope] as const,
   optionsAll: ['options'] as const,

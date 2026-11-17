@@ -625,6 +625,10 @@ class Tunnel:
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value
+        # Where laptops on the event network reach the agent (the seat walk-through, seat_walk.py).
+        lan_url = raw.get('lan_url')
+        if isinstance(lan_url, str) and re.match(r'^https?://[A-Za-z0-9.:\[\]-]{1,120}(/[^\s]{0,60})?$', lan_url):
+            clean['lan_url'] = lan_url
         clean['at'] = time.time() if now is None else now
         with self._cond:
             before = self._reports.get(agent)

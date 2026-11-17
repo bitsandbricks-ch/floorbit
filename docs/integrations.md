@@ -177,6 +177,7 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, seat finder, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
+| `SEAT_WALK_AGENT_URL` | | where laptops in the hall reach the local agent's captive port, for the [seat walk-through](seat-walk.md); empty takes what the agent reports (`FLOORBIT_AGENT_LAN_URL`) |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
 | `CHECKIN_VERIFY_RATE` | `10` | port lookups a second for new check-ins; a burst waits its turn ([sizing](sizing.md#doors-open)) |
 | `CAPTIVE_ENABLED` | `false` | answer the agents' captive portal (DHCP option 114), see below |
