@@ -12,6 +12,8 @@ import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
 import { CableLines, PanelGlyphs } from './NetworkLayer'
 import { PowerLayer } from './PowerLayer'
 import { blockAlarm, blockTop } from './blockTop'
+import { Minimap } from './Minimap'
+import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
@@ -404,6 +406,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         <Tooltip label={t('plan.zoomOut')}><ActionIcon variant="default" aria-label={t('plan.zoomOut')} onClick={() => setView(zoom(view, 1 / 1.4, centre(), fit))}><IconMinus size={16} /></ActionIcon></Tooltip>
         <Tooltip label={t('plan.fit')}><ActionIcon variant="default" aria-label={t('plan.fit')} onClick={() => setView(fit)}><IconFocus2 size={16} /></ActionIcon></Tooltip>
       </Group>
+      {showMinimap(view, fit) && <Minimap drawing={drawing} blocks={data.blocks} view={view} fit={fit} setView={setView} />}
     </div>
   )
 }

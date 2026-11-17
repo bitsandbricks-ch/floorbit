@@ -616,6 +616,24 @@ describe('Seats page', () => {
     expect(screen.getByLabelText('address')).not.toHaveTextContent('block=')
   })
 
+  it('shows an overview of the hall once zoomed in, and a click on it moves the plan there', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan')
+    const map = await screen.findByRole('application', { name: 'Seat map' })
+    expect(screen.queryByRole('img', { name: /Overview of the hall/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    const mini = await screen.findByRole('img', { name: /Overview of the hall/ })
+    expect(container.querySelectorAll('.fb-minimap .blk')).toHaveLength(1)
+    mini.getBoundingClientRect = () => ({ left: 0, top: 0, width: 192, height: 128, right: 192, bottom: 128, x: 0, y: 0, toJSON: () => ({}) })
+    const before = map.getAttribute('viewBox')
+    fireEvent.pointerDown(mini, { pointerId: 1, clientX: 0, clientY: 0 })
+    expect(map.getAttribute('viewBox')).not.toBe(before)
+    const [x, y, w, h] = map.getAttribute('viewBox')!.split(' ').map(Number)
+    expect(x + w / 2).toBeCloseTo(544)   // the drawing box's left edge
+    expect(y + h / 2).toBeCloseTo(420)
+  })
+
   it('keeps the filter in the address', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan?hall=main': data }).fn)
     function Where() { return <output aria-label="address">{useLocation().search}</output> }
