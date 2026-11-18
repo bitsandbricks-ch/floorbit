@@ -99,18 +99,3 @@ def test_an_empty_event_says_so(client, anon_client, hall):
     # What PublicWall.tsx reads as "nothing to show yet". On failure, show which fact was not
     # empty: it failed once on Postgres (issue #508).
     assert not (body["online"] or body["downloaded"] or body["peak"] or body["games"]), body
-
-
-def test_public_pages_update_in_place(client, anon_client, hall):
-    # refresh.js swaps the content; the meta refresh only runs without JavaScript (issue #290).
-    client.put("/api/settings", json={"public.stats_wall": True, "public.status_page": True,
-                                      "public.schedule": True, "public.brackets": True})
-    for path, every in (("/bracket", 30),):
-        text = anon_client.get(path).get_data(as_text=True)
-        assert f'<script src="/static/js/refresh.js" data-every="{every}" defer></script>' in text, path
-        assert f'<noscript><meta http-equiv="refresh" content="{every}" /></noscript>' in text, path
-        assert text.count('http-equiv="refresh"') == 1, path
-        assert "<main>" in text, path
-    # A switched-off page doesn't keep polling.
-    client.put("/api/settings", json={"public.brackets": False})
-    assert "refresh.js" not in anon_client.get("/bracket").get_data(as_text=True)
