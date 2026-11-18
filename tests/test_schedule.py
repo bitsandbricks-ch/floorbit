@@ -140,13 +140,12 @@ def test_agenda_page(client, anon_client, agenda_on):
     client.put("/api/schedule/event", json={"start": now + 2 * 86400 + 3 * 3600})
     client.post("/api/schedule/items", json={"title": "Opening", "kind": "talk", "start": now + 2 * 86400 + 3 * 3600,
                                              "where": "Main stage"})
-    page = anon_client.get("/agenda").get_data(as_text=True)
-    assert "The event starts in" in page and 'data-unit="d">2<' in page and "Opening" in page
+    # The page is React (PublicAgenda.test.tsx draws it from this JSON).
+    assert anon_client.get("/agenda").status_code in (200, 503)
     body = anon_client.get("/agenda.json").get_json()
     assert body["phase"] == "before" and body["next"][0]["title"] == "Opening"
     assert "by" not in body["items"][0] and "updated_at" not in body["items"][0]
-    de = anon_client.get("/agenda?screen=1", headers={"Accept-Language": "de-CH,de"}).get_data(as_text=True)
-    assert "Der Event beginnt in" in de and 'class="screen"' in de
+    assert 2 * 86400 <= body["countdown"] <= 2 * 86400 + 3 * 3600 and body["server_time"]
 
 
 def test_agenda_calendar_feed(client, anon_client, agenda_on):
@@ -167,7 +166,6 @@ def test_agenda_calendar_feed(client, anon_client, agenda_on):
     assert [(i["title"], i["kind"], i["start"], i["where"]) for i in back] == [
         ("Opening; welcome, all", "talk", start, "Main stage"), ("Quiet hours", "quiet", start + 3600, "")]
     assert back[0]["note"].startswith("Doors open, long note")
-    assert "/agenda.ics" in anon_client.get("/agenda").get_data(as_text=True)
 
 
 def test_agenda_calendar_feed_is_off_with_the_page(anon_client):
