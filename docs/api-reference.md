@@ -852,6 +852,19 @@ Source: [`floorbit/blueprints/runbooks.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/runbooks/<book_id>` | `incidents.assign` | `runbooks` |
 | POST | `/api/runbooks/<book_id>/move` | `incidents.assign` | `runbooks` |
 
+## floorbit.blueprints.s3_backup
+
+Backups in an S3 bucket (Settings > Backup and restore). See floorbit/s3_backup.py, docs/backup.md.
+
+Source: [`floorbit/blueprints/s3_backup.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/s3_backup.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/backup/s3` | `settings.manage` |  |
+| POST | `/api/settings/backup/s3` | `settings.manage` |  |
+| GET | `/api/settings/backup/s3/download` | `settings.manage` |  |
+| POST | `/api/settings/backup/s3/restore` | `settings.manage` |  |
+
 ## floorbit.blueprints.schedule
 
 Event schedule and countdown (issue #106). The rules live in floorbit/schedule.py; see docs/schedule.md.
