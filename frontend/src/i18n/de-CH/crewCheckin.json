@@ -118,5 +118,11 @@
   "portalEmpty": "Noch kein Agent hat gefragt",
   "portalEmptyDesc": "Zeigt die DHCP-Option 114 auf einen lokalen Agent, erscheinen seine Abrufe hier.",
   "portalLast": "Letzter Abruf {{when}}, {{count}} Geräte eingecheckt.",
-  "footer": "So funktioniert die Zuordnung Platz zu Port:"
+  "footer": "So funktioniert die Zuordnung Platz zu Port:",
+  "off": {
+    "title": "Check-in ist aus",
+    "desc": "Schalte den Platz-Check-in in den Einstellungen ein, um zu sehen, wer an welchem Platz eingecheckt hat. Die Check-ins früherer Events stehen unten.",
+    "askAdmin": "Ein Admin kann den Platz-Check-in in den Einstellungen einschalten. Die Check-ins früherer Events stehen unten.",
+    "turnOn": "Check-in-Einstellungen"
+  }
 }
