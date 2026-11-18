@@ -79,6 +79,14 @@ def test_unplanned_and_moved_clients(hall, client):
     assert client.get("/api/cables/clients").get_json()["unplanned"] == {"count": 0, "rows": []}
 
 
+def test_a_dhcp_lease_fills_in_what_arp_has_not_seen_yet(hall, client):
+    from floorbit.dhcp_leases import leases
+    hall["fdb"].tables["sw-a-01"] = [{"port": "Gi1/0/2", "mac": mac(3)}]
+    leases.observe(f"DHCPACK on 192.0.2.13 to {mac(3)} via eth1")       # A-3's machine, before any ARP poll
+    [moved] = read(hall, client)["moved"]["rows"]
+    assert (moved["seat"], moved["ip"], moved["ip_seat"]) == ("A-2", "192.0.2.13", "A-3")
+
+
 def test_a_switch_that_does_not_answer_is_named(hall, client):
     hall["fdb"].broken.add("sw-a-01")
     body = read(hall, client)

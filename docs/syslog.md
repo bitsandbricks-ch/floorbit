@@ -120,7 +120,8 @@ Floorbit sent. The line above the syslog shows how many lines went out, or why t
 Point the DHCP server's syslog at Floorbit too (or at the local agent, which relays it) and its
 lease lines become an IP to MAC source. ARP from the monitoring source only knows a new laptop after
 the next poll; the lease line comes the moment the address is handed out. Check-in, the seat walk and
-the IP and MAC search ask the leases first and ARP after. Read from:
+the IP and MAC search ask the leases first and ARP after; the clients on seat ports (unplanned,
+moved, the Captive Portal answer) take a lease's IP where ARP has none yet. Read from:
 
 | Server | Lines |
 | --- | --- |
