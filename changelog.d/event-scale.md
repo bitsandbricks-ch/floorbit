@@ -34,3 +34,5 @@
   only the newest syslog lines it keeps in memory, not every stored line.
 - The syslog folder keeps to `SYSLOG_MAX_MB` also when lines come only through the local agent (it
   grew to 2 GB in a test night), and is written a file per minute so a busy hall can keep to it.
+- Raw flow records keep to `FLOWS_RAW_MAX_MB` (10 GB) on the local agent's disk, oldest hours
+  first: a busy hall's week was over 50 GB.

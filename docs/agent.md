@@ -379,7 +379,8 @@ the other. With the plugin, only the newest summary waits while the hosted side 
   hall, area and service totals, services only once enough seats used them (`FLOWS_MIN_SEATS`), and
   per seat the volume and category mix. The page says "collected by the local agent …".
 - The **flow records**, with addresses and ports, stay on the agent, in its state volume, for
-  `FLOWS_RETENTION_DAYS` (7). `FLOWS_KEEP_RAW=false` on the agent keeps none.
+  `FLOWS_RETENTION_DAYS` (7) and at most `FLOWS_RAW_MAX_MB` (10 GB, the oldest hours go first).
+  `FLOWS_KEEP_RAW=false` on the agent keeps none.
 - To count per seat the agent needs the seats' addresses. It asks the hosted Floorbit for them
   every minute (`GET /api/agent/v1/seats`), so they reach the event network's own machine, and
   nowhere else.

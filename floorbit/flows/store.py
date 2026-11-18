@@ -1,12 +1,14 @@
 """Where flow data is kept, and for how long (``FLOWS_DIR``, by default ``state/flows``).
 
 - ``raw/YYYY-MM-DD-HH.jsonl.gz``: the flow records as received, one file per hour, deleted after
-  ``FLOWS_RETENTION_DAYS`` (7). For looking into an incident after the fact.
+  ``FLOWS_RETENTION_DAYS`` (7), or the oldest first past ``FLOWS_RAW_MAX_MB`` (10,240). For
+  looking into an incident after the fact.
 - ``hourly.jsonl``: one line per hour with the hall, area and service totals (services only when
   enough seats used them, see aggregate.py). No seats, no addresses: kept until deleted by hand.
 - Redis ``floorbit:flows``: the collector's latest summary, which the app shows.
 """
 import calendar
+import contextlib
 import gzip
 import json
 import os
@@ -60,6 +62,22 @@ class RawStore:
             if started + 3600 < now - keep:
                 os.remove(os.path.join(self.raw, name))
                 removed += 1
+        # And a size cap: at 20,000 flows a second a week is over 50 GB, on the agent's small disk
+        # in the hall that also holds the syslog backlog. The hour being written always stays.
+        cap = config.get_int('FLOWS_RAW_MAX_MB', 10_240, minimum=1) * 1024 * 1024
+        names = sorted(n for n in os.listdir(self.raw) if n.endswith('.jsonl.gz'))
+        sizes = {}
+        for name in names:
+            with contextlib.suppress(OSError):
+                sizes[name] = os.path.getsize(os.path.join(self.raw, name))
+        total = sum(sizes.values())
+        for name in names[:-1]:
+            if total <= cap:
+                break
+            with contextlib.suppress(OSError):
+                os.remove(os.path.join(self.raw, name))
+                removed += 1
+            total -= sizes.get(name, 0)
         return removed
 
     def usage(self):
