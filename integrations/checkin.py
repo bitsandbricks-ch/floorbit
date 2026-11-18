@@ -569,6 +569,14 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     now = time.time()
     with _lock:
         rows = load_all()
+        held = rows.get(seat)
+        # Again under the lock: PCs typing the same card at the same moment all passed the check
+        # above, and the last one took the seat from the others.
+        if held and held.get('pin_ok') and held.get('ip') != ip:
+            if pin:
+                raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
+            raise CheckinError(f'Seat {seat} was already checked in with its seat card. '
+                               'Ask the crew if this is your seat.', 409)
         # One machine holds one seat: drop other seats with this IP or MAC
         moved_from = [s for s, r in rows.items()
                       if s != seat and (r.get('ip') == ip or (mac and r.get('mac') == mac))]

@@ -1,0 +1,9 @@
+{
+  "A-1": {
+    "switch": "sw-a-01",
+    "port": "Gi1/0/1",
+    "learned_at": 1794968162.8979175,
+    "username": "pixel",
+    "source": "checkin"
+  }
+}
