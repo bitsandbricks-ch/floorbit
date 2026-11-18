@@ -61,7 +61,7 @@ def test_the_hosted_part_takes_the_lines(client, anon_client, app_module):
     receiver = app_module.app.extensions["floorbit_syslog"]
     seen = []
     real = receiver.relay
-    receiver.relay = lambda name, lines, dropped=0: seen.append((name, lines, dropped)) or len(lines)
+    receiver.relay = lambda name, lines, dropped=0, offset=0.0: seen.append((name, lines, dropped)) or len(lines)
     try:
         line = {"raw": "<189>sw-a-01: hello", "from": "192.0.2.10", "at": time.time(), "id": "abc"}
         res = anon_client.post("/api/agent/v1/plugins/syslog-relay/lines", headers=head(key),

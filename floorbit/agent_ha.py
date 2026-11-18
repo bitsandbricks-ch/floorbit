@@ -6,8 +6,14 @@ and logs in to them (``ctx.primary()``); the others listen and take over when it
 addresses on one agent is active/passive; spreading them (FLOORBIT_AGENT_VRRP_PREFER) is
 active/active: both receive syslog, NetFlow and traps, and both answer the hosted side's calls.
 
-This module only reads what the agents report and says how each group stands, for the Local agents
-page, and lets the Traffic intake keep the primary's summary (``standby_with_primary``).
+This module reads what the agents report and says how each group stands, for the Local agents page,
+and lets the Traffic intake keep the primary's summary (``standby_with_primary``).
+
+Split brain: when the agents of a group can't hear each other's VRRP (a switch drops it, a cable
+between them), each takes every address and calls itself primary, so both poll the devices and both
+try the logins, which is what locks accounts. The hosted side hears both, so it settles it: the
+agent with the smallest id stays primary and the others are told to stand by (``stand_by_for``, sent
+with the plugin config they pull). Without the hosted side (uplink down too) VRRP alone decides.
 """
 from __future__ import annotations
 
@@ -69,6 +75,26 @@ def groups(agents, hall_names=None):
             'vips': sorted({v for h in holders.values() for v in h}),
         })
     return out
+
+
+def _claims_primary(agent):
+    return bool(agent.get('connected') and (_vrrp(agent) or {}).get('primary'))
+
+
+def stand_by_for(agent_id, agents=None, now=None):
+    """The agent that ``agent_id`` should leave polling and logins to while its group is split (both
+    claim primary), or None. The smallest id wins: every pod and every pull agree without asking."""
+    if agents is None:
+        from . import agent_link
+        agents = agent_link.all_agents(now=now)
+    me = next((a for a in agents if a['id'] == agent_id), None)
+    if me is None or not _claims_primary(me):
+        return None
+    mine = sorted(me.get('halls') or ())
+    rivals = [a['id'] for a in agents
+              if a['id'] != agent_id and _claims_primary(a) and sorted(a.get('halls') or ()) == mine]
+    winner = min([agent_id, *rivals])
+    return winner if winner != agent_id else None
 
 
 def standby_with_primary(agent_id, now):

@@ -17,6 +17,7 @@
   "notFound": "This page doesn't exist.",
   "backToPlan": "Back to the floor plan",
   "error": "Something went wrong: {{message}}",
+  "offline": "Floorbit can't be reached: the connection to the server is down. Check the network and try again.",
   "coffee": "Buy me a coffee",
   "poweredBy": "Powered by",
   "inventory": "Inventory",

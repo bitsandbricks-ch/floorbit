@@ -494,7 +494,8 @@ class SettingsStore:
 
 def _test_http(url, headers, verify, ok_message):
     try:
-        resp = requests.get(url, headers=headers, timeout=8, verify=verify)
+        # The token must reach only the URL it is saved with: no redirect is followed.
+        resp = requests.get(url, headers=headers, timeout=8, verify=verify, allow_redirects=False)
     except requests.exceptions.SSLError as exc:
         return {'ok': False, 'message': (
             f'TLS error: {exc.__class__.__name__}. '
@@ -502,6 +503,9 @@ def _test_http(url, headers, verify, ok_message):
         )}
     except requests.RequestException as exc:
         return {'ok': False, 'message': f'Could not connect: {exc.__class__.__name__}'}
+    if resp.is_redirect:
+        where = resp.headers.get('Location', '')
+        return {'ok': False, 'message': f'The server redirects to {where}. Put that address in the URL.'}
     if resp.status_code in (401, 403):
         return {'ok': False, 'message': f'Connected, but the token was rejected (HTTP {resp.status_code}).'}
     if not resp.ok:

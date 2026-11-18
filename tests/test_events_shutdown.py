@@ -62,3 +62,16 @@ def test_sigterm_default_is_left_alone():
         assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
     finally:
         signal.signal(signal.SIGTERM, old)
+
+
+def test_a_browser_that_fell_behind_is_told_to_fetch_again(monkeypatch):
+    # Its queue overflowed, so it lost events: the next thing it reads is a resync.
+    monkeypatch.setattr(events, "CLIENT_QUEUE_SIZE", 2)
+    gen = events.stream()
+    assert next(gen).startswith("retry")
+    assert "event: hello" in next(gen)
+    for n in range(4):
+        events.deliver_local({"id": n + 1, "type": "plan.changed", "ts": 0, "origin": None, "data": {}})
+    assert "event: resync" in next(gen)
+    assert "event: plan.changed" in next(gen)
+    gen.close()

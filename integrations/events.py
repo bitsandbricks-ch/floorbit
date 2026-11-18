@@ -13,6 +13,7 @@ since every pod runs those loops and the alert should go out once.
 import contextlib
 import itertools
 import json
+import os
 import queue
 import signal
 import threading
@@ -29,6 +30,8 @@ CLIENT_QUEUE_SIZE = 200
 KEEPALIVE_SECONDS = 15
 _CLOSE = object()          # put in a client queue: end that stream
 _closing = threading.Event()
+# The server's threads per process, which gunicorn.conf.py writes down after each fork.
+THREADS_ENV = 'FLOORBIT_SERVER_THREADS'
 
 
 def subscribe(event_type, callback, leader_only=False):
@@ -79,9 +82,20 @@ def deliver_local(event):
     with _lock:
         clients = list(_clients)
     for q in clients:
-        # a stuck browser loses events; it resyncs on reconnect
-        with contextlib.suppress(queue.Full):
+        try:
             q.put_nowait(event)
+        except queue.Full:
+            q.missed = True     # a stuck browser: told to fetch everything again once it reads on
+
+
+def resync_all():
+    """Tell every browser here to fetch everything again: events may have been missed (another
+    pod's changes while Redis was away)."""
+    deliver_local(_resync_event())
+
+
+def _resync_event():
+    return {'id': 0, 'type': 'resync', 'ts': time.time(), 'origin': None, 'data': {}}
 
 
 def close_all():
@@ -125,8 +139,39 @@ def client_count():
         return len(_clients)
 
 
+def stream_limit():
+    """How many live streams this process takes, or None when the server doesn't say (``flask run``,
+    tests). Each open stream holds one of the server's threads until the tab closes: 64 open tabs
+    used to take all 64 and no page loaded any more, so a quarter (at least 8) stays for requests."""
+    try:
+        threads = int(os.environ.get(THREADS_ENV) or 0)
+    except ValueError:
+        return None
+    if threads <= 8:
+        return None
+    return threads - max(8, threads // 4)
+
+
+def admit(crew):
+    """Whether one more stream fits. Readers who aren't signed in (attendees on the status page)
+    get at most half, so a hall full of phones can't keep the crew's pages from updating."""
+    limit = stream_limit()
+    if limit is None:
+        return True
+    with _lock:
+        total = len(_clients)
+        public = sum(1 for q in _clients if not getattr(q, 'crew', True))
+    return total < limit and (crew or public < limit // 2)
+
+
 def _format(event):
-    return f"id: {event['id']}\nevent: {event['type']}\ndata: {json.dumps(event, default=str)}\n\n"
+    try:
+        data = json.dumps(event, default=str, allow_nan=False)
+    except ValueError:
+        # A bare NaN (a device's odd reading) made the page's JSON.parse throw on this event.
+        from floorbit.json_body import finite
+        data = json.dumps(finite(event), default=str)
+    return f"id: {event['id']}\nevent: {event['type']}\ndata: {data}\n\n"
 
 
 # Who did what: nicks and account names, and the IP and MAC a check-in came from. Only readers who may
@@ -143,9 +188,11 @@ def scrub(value):
     return value
 
 
-def stream(hello=None, private=True):
-    """Generator for a Flask streaming response. ``private=False`` drops PERSONAL fields."""
+def stream(hello=None, private=True, crew=True):
+    """Generator for a Flask streaming response. ``private=False`` drops PERSONAL fields; ``crew``
+    says whether the reader is signed in (``admit``)."""
     q = queue.Queue(maxsize=CLIENT_QUEUE_SIZE)
+    q.crew = crew
     with _lock:
         _clients.add(q)
     try:
@@ -160,6 +207,9 @@ def stream(hello=None, private=True):
                 continue
             if event is _CLOSE:
                 return
+            if getattr(q, 'missed', False):
+                q.missed = False
+                yield _format(_resync_event())
             yield _format(event if private else {**event, 'data': scrub(event.get('data'))})
     finally:
         with _lock:

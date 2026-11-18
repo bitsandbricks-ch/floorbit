@@ -62,13 +62,15 @@ export function BackupPanel() {
   const [pending, setPending] = useState<{ name: string; backup: Backup } | null>(null)
   const [result, setResult] = useState<TestResult | null>(null)
   const restore = useMutation({
-    mutationFn: (b: Backup) => post<{ skipped_settings?: string[] }>('/api/settings/backup', b),
+    mutationFn: (b: Backup) => post<{ skipped_settings?: string[]; kept?: string[] }>('/api/settings/backup', b),
     onSuccess: (r) => {
       setPending(null)
       const skipped = r.skipped_settings?.length ? ' ' + t('settings.backup.skipped', { count: r.skipped_settings.length }) : ''
-      setResult({ ok: true, message: t('settings.backup.restored') + skipped })
+      // A backup from before cabling and power were in it leaves them as they are: say so.
+      const kept = r.kept?.length ? ' ' + t('settings.backup.kept') : ''
+      setResult({ ok: true, message: t('settings.backup.restored') + skipped + kept })
       // Settings and the theme come from the server with the page, so load it again.
-      setTimeout(() => window.location.reload(), 1200)
+      setTimeout(() => window.location.reload(), kept ? 6000 : 1200)
     },
     onError: (e) => setResult({ ok: false, message: (e as Error).message }),
   })

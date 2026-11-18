@@ -32,6 +32,11 @@ class ParseError(ValueError):
     pass
 
 
+# Anyone on the network can send to the collector's port, with any source address and template
+# ids: without a cap, made-up templates would fill memory.
+MAX_TEMPLATES = 4096
+
+
 class Templates:
     """Templates per exporter, observation domain and template id."""
 
@@ -40,6 +45,9 @@ class Templates:
         self.missing = 0
 
     def add(self, key, fields):
+        self.known.pop(key, None)
+        while len(self.known) >= MAX_TEMPLATES:
+            self.known.pop(next(iter(self.known)))      # the oldest: real exporters resend theirs
         self.known[key] = fields
 
     def get(self, key):
@@ -60,6 +68,13 @@ def _addr(raw):
 
 def parse(data, exporter='', templates=None):
     """Flow records in one UDP payload. Raises ParseError for something that isn't flow data."""
+    try:
+        return _parse(data, exporter, templates)
+    except (struct.error, IndexError) as exc:     # a field or template that runs past the end
+        raise ParseError(f'cut short: {exc}') from None
+
+
+def _parse(data, exporter, templates):
     if len(data) < 4:
         raise ParseError('too short')
     version = struct.unpack_from('!H', data)[0]
@@ -131,6 +146,8 @@ def _records(data, start, end, fields, header):
     offset = start
     fixed = all(length != 0xFFFF for _f, length in fields)
     size = sum(length for _f, length in fields) if fixed else None
+    if size == 0:
+        return out          # a template of empty fields: no record ever moves on (it looped forever)
     while offset < end and (size is None or offset + size <= end):
         values = {}
         for field_id, length in fields:

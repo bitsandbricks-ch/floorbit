@@ -115,6 +115,41 @@ def test_the_page_shows_groups_and_this_floorbit(client, anon_client):
     assert "ok" in hosted["database"] and "ok" in hosted["redis"]
 
 
+def test_a_split_group_keeps_one_primary_the_smallest_id():
+    both = [agent("b2", vrrp={"primary": True}), agent("a1", vrrp={"primary": True}),
+            agent("c3", halls=["side"], vrrp={"primary": True})]       # another hall: not a rival
+    assert agent_ha.stand_by_for("a1", both) is None
+    assert agent_ha.stand_by_for("b2", both) == "a1"
+    assert agent_ha.stand_by_for("c3", both) is None
+    healed = [agent("a1", vrrp={"primary": True}), agent("b2", vrrp={"primary": False})]
+    assert agent_ha.stand_by_for("b2", healed) is None
+    gone = [agent("a1", connected=False, vrrp={"primary": True}), agent("b2", vrrp={"primary": True})]
+    assert agent_ha.stand_by_for("b2", gone) is None      # the winner must be there to poll
+    assert agent_ha.stand_by_for("a1", [agent("a1")]) is None   # no VRRP: nothing to settle
+
+
+def test_the_split_reaches_the_agents_with_their_plugin_config(client, anon_client, monkeypatch):
+    from floorbit import agent_plugins
+    reloads = []
+    monkeypatch.setattr(agent_plugins, "reload_agents", lambda: reloads.append(1))
+    first, second = enrol(client, "Agent one"), enrol(client, "Agent two")
+    low, high = sorted([first, second], key=lambda a: a["id"])
+    for made in (first, second):
+        anon_client.get("/api/agent/v1/hello", headers=head(made["key"]))
+        agent_link.tunnel.seen(agent=made["id"])
+    report(anon_client, low["key"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]})
+    report(anon_client, high["key"], vrrp={"primary": False, "holds": ["192.0.2.11/24"]})
+    cfg = anon_client.get("/api/agent/v1/plugins", headers=head(high["key"])).get_json()
+    assert cfg["ha"] == {}
+    reloads.clear()
+    report(anon_client, high["key"], vrrp={"primary": True, "holds": ["192.0.2.10/24", "192.0.2.11/24"]})
+    assert reloads, "a new primary must reach the agents now"
+    split = anon_client.get("/api/agent/v1/plugins", headers=head(high["key"]))
+    assert split.get_json()["ha"] == {"stand_by_for": low["id"]}
+    assert split.get_json()["etag"] != cfg["etag"]
+    assert anon_client.get("/api/agent/v1/plugins", headers=head(low["key"])).get_json()["ha"] == {}
+
+
 def test_a_plugin_action_goes_to_one_agent_per_hall(monkeypatch):
     agents = [agent("a", halls=["h1"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]}),
               agent("b", halls=["h1"], vrrp={"primary": False, "holds": []}),

@@ -131,6 +131,16 @@ def test_next_never_leaves_the_site(anon_client, user):
         assert resp.headers["Location"] == "/"
 
 
+def test_a_next_with_a_line_break_goes_home_instead_of_a_500(anon_client, user):
+    for target in ("/a\nb", "/a\r\nSet-Cookie: x=1", "/plan\x7f", "/plan?" + "x" * 5000):
+        anon_client.post("/logout")
+        assert sign_in(anon_client, next=target).headers["Location"] == "/"
+        # Signed in already: /login sends on at once, which raised building the header.
+        resp = anon_client.get("/login", query_string={"next": target})
+        assert resp.status_code == 302 and resp.headers["Location"] == "/"
+    assert anon_client.get("/login", query_string={"next": "/plan?hall=main"}).headers["Location"] == "/plan?hall=main"
+
+
 def test_repeated_failures_lock_the_username_for_a_while(anon_client, user):
     for _ in range(5):
         assert sign_in(anon_client, password="wrong-password").status_code == 401
@@ -163,8 +173,25 @@ def test_failed_sign_ins_dont_pile_up_forever(app_module, monkeypatch):
         for key in guard._failures:            # all of them long ago
             guard._failures[key] = [t - auth_pkg.FAILURE_WINDOW for t in guard._failures[key]]
         guard.record_failure("x" * 5000)
-        [(_, name)] = guard._failures
-        assert name == "x" * 200
+        # The new name, plus this address's own count across names (MAX_ADDRESS_FAILURES).
+        assert {name for _, name in guard._failures} == {"x" * 200, None}
+
+
+def test_one_address_trying_many_names_is_slowed_down_too(anon_client, app_module, user, monkeypatch):
+    # Each made-up name had its own five tries, so one machine could keep the password hashing busy:
+    # 48 threads of it took the crew's pages from 6 ms to 600 ms.
+    import auth as auth_pkg
+    monkeypatch.setattr(auth_pkg, "MAX_ADDRESS_FAILURES", 8)
+    guesser = {"environ_base": {"REMOTE_ADDR": "192.0.2.66"}}
+    for n in range(8):
+        assert anon_client.post("/login", data={"username": f"made-up-{n}", "password": "x"},
+                                **guesser).status_code == 401
+    assert anon_client.post("/login", data={"username": "another-one", "password": "x"},
+                            **guesser).status_code == 429
+    crew = app_module.app.test_client()
+    resp = crew.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD},
+                     environ_base={"REMOTE_ADDR": "192.0.2.7"})
+    assert resp.status_code == 302
 
 
 def test_password_change_signs_out_existing_sessions(client, auth):
@@ -443,3 +470,18 @@ def test_the_check_in_page_and_the_landing_link_follow_check_in(anon_client, mon
     page = anon_client.get("/checkin")
     assert page.status_code == 200 and b"Seat check-in" in page.data
     assert login_page(anon_client)["checkin_url"] == "/checkin"
+
+
+def test_a_huge_body_without_signing_in_is_refused_before_it_is_parsed(anon_client, client):
+    # A 30 MB JSON array took a worker from 90 to 600 MB with four requests at once.
+    big = {"username": "pixel", "seat": "A-1", "pad": [0] * 600_000}      # about 1.8 MB
+    r = anon_client.post("/api/checkin", json=big, headers={"Origin": "http://localhost"})
+    assert r.status_code == 413 and r.get_json()["code"] == "too_large"
+    r = anon_client.post("/api/checkin", json=big, headers={"Origin": "http://localhost", "Accept-Language": "de"})
+    assert r.get_json()["error"] == "Das sind zu viele Daten für eine Anfrage."
+    small = anon_client.post("/api/checkin", json={"username": "pixel", "seat": "A-1"},
+                             headers={"Origin": "http://localhost"})
+    assert small.status_code != 413
+    # The crew, signed in, and the agents (their key is checked first) keep the usual limit.
+    assert client.post("/api/checkin", json=big).status_code != 413
+    assert anon_client.post("/api/agent/v1/syslog", json=big).status_code == 401

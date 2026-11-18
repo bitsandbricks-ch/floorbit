@@ -23,7 +23,7 @@ The command that goes to the switch is shown before it runs. Templates come in t
 
 | Kind | Who | What it may be |
 | --- | --- | --- |
-| Show | Accounts with `ports.act` (admin, lead, tech) | Every command starts with `show`, `display`, `ping`, `traceroute` or `get`: it only reads. |
+| Show | Accounts with `ports.act` (admin, lead, tech) | Every command starts with `show`, `display`, `ping`, `traceroute` or `get`, with no pipe that writes a file (`| redirect`, `| tee`, ...) and no `;` (NX-OS runs each part as its own command): it only reads. |
 | Change | Accounts with `commands.change` (admin, lead) | Anything. The page and the API ask a second time before it runs. |
 
 Built in, with the right words for each switch software:

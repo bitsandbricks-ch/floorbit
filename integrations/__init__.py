@@ -97,7 +97,14 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         user = current_user()
         guard = current_app.extensions.get('auth')
         private = not (guard and guard.enabled) or bool(user and roles.can(user, 'seats.view'))
-        resp = Response(stream_with_context(events.stream(hello, private=private)), mimetype='text/event-stream')
+        crew = user is not None or not (guard and guard.enabled)
+        if not events.admit(crew):
+            # The page still works, it just doesn't update by itself until a stream is free again.
+            full = jsonify({'error': 'Too many open pages are getting live updates right now. This one '
+                                     'will update again in a moment.', 'code': 'live_full'})
+            return full, 503, {'Retry-After': '30'}
+        resp = Response(stream_with_context(events.stream(hello, private=private, crew=crew)),
+                        mimetype='text/event-stream')
         resp.headers['Cache-Control'] = 'no-cache'
         resp.headers['X-Accel-Buffering'] = 'no'   # nginx: don't buffer the stream
         return resp

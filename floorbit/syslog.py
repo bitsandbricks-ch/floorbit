@@ -141,7 +141,7 @@ class SyslogReceiver:
         self._buckets = {}      # sender (or (sender, 'late')) -> [tokens, last]
         self._seen_ids = OrderedDict()   # a relayed line's id -> its time, to drop copies
         self._servers = []
-        self._allow_cache = (0, [], {})
+        self._allow_cache = (None, [], {})
         self.port_seats = lambda: {}
         self._seats_seen, self._seats_index = None, {}
         self.alerts = log_alerts.LogAlerts()
@@ -224,7 +224,7 @@ class SyslogReceiver:
     def _allowed(self):
         """(networks, {address: switch name}), worked out at most every 30 seconds."""
         at, nets, switches = self._allow_cache
-        if time.time() - at < 30:
+        if at is not None and time.monotonic() - at < 30:   # monotonic: a clock set back must not freeze it
             return nets, switches
         nets = []
         for entry in settings()['allow']:
@@ -239,7 +239,7 @@ class SyslogReceiver:
                     switches[str(dev['mgmt_ip']).split('/')[0]] = dev['name']
         except Exception as exc:  # noqa: BLE001  # a broken data file must not stop the receiver
             print(f'[syslog] could not read the inventory: {exc}')
-        self._allow_cache = (time.time(), nets, switches)
+        self._allow_cache = (time.monotonic(), nets, switches)
         return nets, switches
 
     def sender_ok(self, address):
@@ -295,14 +295,15 @@ class SyslogReceiver:
             self.alerts.observe(line, now)
         return line
 
-    def relay(self, agent_name, lines, now=None, dropped=0):
+    def relay(self, agent_name, lines, now=None, dropped=0, offset=0.0):
         """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at", "id"}]``.
 
         The original sender is checked against the allow-list as if it had sent here, and a line
         keeps the time the agent got it. An agent that couldn't reach us keeps lines on disk and
         sends them later (#465): they are placed at their own time, back to the retention limit.
         ``id`` is the same on every agent that heard the line: a second copy within DUPLICATE_WINDOW
-        of the first (two agents, or a batch sent again) is dropped. Returns how many were kept."""
+        of the first (two agents, or a batch sent again) is dropped. ``offset``: what the agent's
+        clock is behind ours (agent_clock.offset), added to its times. Returns how many were kept."""
         now = time.time() if now is None else now
         if not lines:
             return 0     # the agent's check: nothing to count
@@ -315,7 +316,7 @@ class SyslogReceiver:
             except ValueError:
                 continue
             try:
-                at = min(now, float(item.get('at') or now))
+                at = min(now, float(item.get('at') or now) + offset)
             except (TypeError, ValueError):
                 at = now
             if at < now - settings()['retention_hours'] * 3600:

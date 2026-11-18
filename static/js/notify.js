@@ -152,6 +152,11 @@
       me = null;
     }
     source = new EventSource('/api/events');
+    const mine = source;
+    // Refused (too many pages open, a 503): the browser won't ask again, so start over later.
+    source.addEventListener('error', () => {
+      if (mine.readyState === 2 && source === mine) setTimeout(() => { if (source === mine) start(); }, 20000 + Math.random() * 20000);
+    });
     listen('incident.changed', onIncident);
     listen('incident.dispatched', onDispatched);
     listen('switch.status', onSwitch);

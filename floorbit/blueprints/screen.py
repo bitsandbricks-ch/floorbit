@@ -42,10 +42,10 @@ def _rate_limited():
     ip = checkin.client_ip() or '?'   # per attendee behind a trusted proxy, not per proxy
     now = time.time()
     with _lookups_lock:
-        recent = [t for t in _lookups.get(ip, []) if now - t < RATE_WINDOW]
+        recent = [t for t in _lookups.get(ip, []) if 0 <= now - t < RATE_WINDOW]
         _lookups[ip] = [*recent, now]
         if len(_lookups) > 10000:
-            for key in [k for k, v in _lookups.items() if not v or now - v[-1] > RATE_WINDOW]:
+            for key in [k for k, v in _lookups.items() if not v or not 0 <= now - v[-1] <= RATE_WINDOW]:
                 _lookups.pop(key, None)
         return len(recent) >= RATE_LIMIT
 

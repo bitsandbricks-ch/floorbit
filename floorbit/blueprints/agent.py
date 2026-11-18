@@ -35,7 +35,7 @@ from simple_websocket import ConnectionClosed
 
 from integrations import events
 
-from .. import agent_link, audit, features, spa
+from .. import agent_clock, agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 sock = Sock()
@@ -241,7 +241,8 @@ def syslog():
     body = _agent_body()
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
-    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
+    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped,
+                          offset=agent_clock.offset(agent))
     if lines:
         agent_link.tunnel.relayed(agent['id'], 'syslog', taken)
     return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})
@@ -251,11 +252,13 @@ def syslog():
 FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
              'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
              'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
-             'templates_missing': None, 'errors': None}
+             'templates_missing': None, 'errors': None, 'refused': None}
+
 
 # What each row of a list needs before a page reads it (the rest is checked by type in _flow_value).
 _NUM = (int, float)
-FLOW_ROWS = {'services': {'name': str, 'bytes': _NUM, 'seats': _NUM}, 'anomalies': {'title': str, 'detail': str},
+FLOW_ROWS = {'services': {'name': str, 'bytes': _NUM, 'seats': _NUM},
+             'anomalies': {'id': str, 'kind': str, 'first_seen': _NUM, 'last_seen': _NUM, 'title': str, 'detail': str},
              'areas': {'area': str, 'bytes': _NUM}, 'seats': {'seat': str, 'bytes': _NUM}, 'series': {'t': _NUM},
              'exporters': {'address': str}}
 FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}

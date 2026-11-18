@@ -58,7 +58,7 @@
   },
   "backup": {
     "title": "Backup and restore",
-    "desc": "The floor plan (switches, positions, seat blocks) and the saved settings, including the theme. API tokens, webhook URLs, accounts and check-ins are never in a backup, and a restore leaves them as they are.",
+    "desc": "The floor plan (switches, positions, seat blocks, cables, patch panels, uplinks, port areas and power) and the saved settings, including the theme. API tokens, webhook URLs, accounts and check-ins are never in a backup, and a restore leaves them as they are.",
     "download": "Download backup",
     "restore": "Restore from file…",
     "go": "Replace floor plan and settings",
@@ -74,7 +74,8 @@
     "settings_other": "{{count}} saved settings",
     "restored": "Restored. Reloading…",
     "skipped_one": "Skipped {{count}} setting this version doesn't know.",
-    "skipped_other": "Skipped {{count}} settings this version doesn't know."
+    "skipped_other": "Skipped {{count}} settings this version doesn't know.",
+    "kept": "This backup is from an older version and has no cables, patch panels, uplinks, port areas or power: those were left as they are."
   },
   "sections": {
     "netbox": {

@@ -85,6 +85,9 @@ it's the default. Several pods behind one Service work when all of these are tru
 With `FLOORBIT_CLUSTER` set the pods share three things through Valkey:
 
 - **Live updates.** A change made on one pod shows up in the browsers connected to the others.
+  While Redis is away, other pods' changes don't reach these browsers; when it is back, each pod
+  tells its open pages to fetch everything again. A page whose own stream dropped (Wi-Fi, a
+  restart) does the same when it reconnects.
 - **Agent calls.** A [local agent](agent.md) holds its link to one pod. The other pods send its
   calls there and get the answers back, so it doesn't matter which pod a browser reaches. Calls
   and answers cross Redis sealed with the vault key every pod shares (a switch call carries its

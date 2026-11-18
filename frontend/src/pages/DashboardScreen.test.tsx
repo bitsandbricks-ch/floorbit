@@ -46,4 +46,18 @@ describe('Dashboard screen', () => {
     expect(await screen.findByText('Crew wall')).toBeInTheDocument()
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/dashboards/kiosk')).toBe(true))
   })
+
+  it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: false, board, tiles: {}, app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    const { client } = show()
+    expect(await screen.findByText('Welcome')).toBeInTheDocument()
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    await client.refetchQueries()
+    expect(await screen.findByText('No connection to the server: showing what was last read.')).toBeInTheDocument()
+    expect(screen.getByText('Welcome')).toBeInTheDocument()
+    expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument()
+  })
 })
