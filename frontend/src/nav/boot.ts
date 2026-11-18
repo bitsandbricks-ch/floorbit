@@ -11,7 +11,7 @@ export interface NavBoot {
   user: { name: string; username: string; platform?: boolean } | null
   /** Sign-in is on: offer "Sign out". */
   signOut: boolean
-  /** The platform has more than one tenant: the club switcher asks for the person's other ones. */
+  /** The platform has more than one tenant: the tenant switcher asks for the person's other ones. */
   tenants?: boolean
   /** The signed-in account's sidebar settings; null without sign-in (the browser keeps them). */
   prefs: NavPrefs | null

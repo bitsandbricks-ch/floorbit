@@ -33,7 +33,7 @@ describe('Tenants', () => {
     expect(screen.queryByRole('button', { name: 'Suspend' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Take back' }))
     fireEvent.change(screen.getByLabelText(/^Short name/), { target: { value: 'Club-C' } })
-    fireEvent.change(screen.getByLabelText(/^Club name/), { target: { value: 'Club C' } })
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Club C' } })
     fireEvent.change(screen.getByLabelText(/^First admin/), { target: { value: 'boss' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add tenant' }))
     const made = await screen.findByRole('status')

@@ -12,7 +12,7 @@ documents where every install always kept them.
 
 | Level | What it is | Where its documents live |
 | --- | --- | --- |
-| Tenant | A club or organisation | `default`: the state folder (`/app/state` in Docker). Others: `tenants/<id>/` |
+| Tenant | An organisation on the platform | `default`: the state folder (`/app/state` in Docker). Others: `tenants/<id>/` |
 | Event | One LAN party the tenant runs | The first event: the state folder too. Later events: `event-data/<id>/` |
 
 **Tenant documents:** accounts, roles, teams, API tokens, sign-in providers, settings and the look,
@@ -92,14 +92,14 @@ answers what would change per part (`added`, `changed`, `removed`) without savin
 
 Each Floorbit process serves one tenant: the one named by `FLOORBIT_TENANT` (lower-case letters,
 digits and `-`, at most 40), else `default`. A self-hosted install doesn't set it. On a hosted
-platform each tenant (club) runs its own process from the same image; the processes share one
+platform each tenant runs its own process from the same image; the processes share one
 database (`FLOORBIT_DATABASE_URL`, Postgres) and one Redis, and keep apart by name:
 
-| What | `default` (self-hosted) | `FLOORBIT_TENANT=club-a` |
+| What | `default` (self-hosted) | `FLOORBIT_TENANT=tenant-a` |
 | --- | --- | --- |
-| Tenant documents | `data.json`, `tenant.json`, ... | `tenants/club-a/data.json`, `tenants/club-a/tenant.json`, ... |
-| Event documents | `event-data/<id>/...` | `tenants/club-a/event-data/<id>/...` |
-| Redis keys and channels | `default:arp:...`, `default:floorbit:stats` | `club-a:arp:...`, `club-a:floorbit:stats` |
+| Tenant documents | `data.json`, `tenant.json`, ... | `tenants/tenant-a/data.json`, `tenants/tenant-a/tenant.json`, ... |
+| Event documents | `event-data/<id>/...` | `tenants/tenant-a/event-data/<id>/...` |
+| Redis keys and channels | `default:arp:...`, `default:floorbit:stats` | `tenant-a:arp:...`, `tenant-a:floorbit:stats` |
 
 The default tenant's folder is the state folder itself, so the other tenants' folders sit inside
 it. Its code never reaches into them: document listings read one folder level, and every document
@@ -107,12 +107,12 @@ it opens has its own name. Redis only holds a cache, so the prefix the default t
 upgrade costs a cache that fills again within a minute.
 
 **How a request finds its tenant:** by the process it reaches. The platform's ingress sends each
-tenant's host name (`club-a.floor.example.com`) to that tenant's processes, so a request never
+tenant's host name (`tenant-a.floor.example.com`) to that tenant's processes, so a request never
 names a tenant itself and can't ask for another one.
 
 Everything a tenant sets up is its own: accounts and roles, settings and the look (name, logo,
 colours, Discord), the public status page, the check-in portal, plugins and local agents. Each
-tenant reaches its Floorbit under its own host name (`club-a.floor.example.com`, set by the
+tenant reaches its Floorbit under its own host name (`tenant-a.floor.example.com`, set by the
 platform's ingress), and its agent connects there. The flow collector of a tenant needs the same
 `FLOORBIT_TENANT`.
 
@@ -122,15 +122,15 @@ A wrong `FLOORBIT_TENANT` stops Floorbit at start.
 
 There is no sign-up. The platform's admins are the admins of the default tenant: they find
 **Settings > Tenants** (`/settings/tenants`) in the sidebar, and no other tenant has that page.
-There they add a tenant (short name, club name, address and optionally a first admin, whose
+There they add a tenant (short name, name, address and optionally a first admin, whose
 password is shown once), rename it, and **suspend** it. A suspended tenant's processes answer 503
-"This club is suspended" to everything within 10 seconds, its login page and its agents included;
+"This tenant is suspended" to everything within 10 seconds, its login page and its agents included;
 only `/healthz` stays open so Kubernetes doesn't restart it. Its data stays, and **Take back**
 lets it in again. The default tenant can't be suspended. The same works from the command line in
 any tenant's container (they all share the storage):
 
 ```
-flask --app app tenants add club-b --name "Club B" --url https://club-b.floor.example.com --admin boss
+flask --app app tenants add tenant-b --name "Tenant B" --url https://tenant-b.floor.example.com --admin boss
 flask --app app tenants list
 ```
 
@@ -143,14 +143,14 @@ tenant's settings, so the platform page doesn't touch them.
 
 ### People in several tenants
 
-A person has one account in each tenant, with that tenant's role, so a lead in one club can be a
+A person has one account in each tenant, with that tenant's role, so a lead in one tenant can be a
 viewer in another. Two accounts are the same person when they are linked to the same outside login:
 the same Discord account, or the same subject at the same OIDC issuer. Usernames and passwords never
 link accounts.
 
-### Switching clubs
+### Switching tenants
 
-When someone can reach another tenant, a club switcher shows at the bottom of the sidebar, above
+When someone can reach another tenant, a tenant switcher shows at the bottom of the sidebar, above
 the account menu. Nobody on a platform with one tenant (every self-hosted install) ever sees it.
 It lists:
 
@@ -158,7 +158,7 @@ It lists:
 - for admins of the default tenant (the platform admins), every other active tenant, where they
   arrive as `platform:<their name>`, an admin who has no account there. Each request checks that they
   are still an admin of the default tenant, and a visit ends after 8 hours. The tenant's audit log
-  shows "Came in from another club" with that name, so its own admins see the visit.
+  shows "Came in from another tenant" with that name, so its own admins see the visit.
 
 Only tenants with an address (Settings > Tenants) show up: that is where the browser goes.
 
@@ -194,7 +194,7 @@ Tenants on one platform share the database, Redis and often the S3 bucket and `S
 | --- | --- |
 | Documents | Every path comes from `store.tenant_path`/`event_path`, so from the tenant's folder; a configured file (`MONITORING_CACHE_FILE`, `AUDIT_FILE`, ...) goes into it too |
 | Sign-in | The session cookie names the tenant that signed it in; another tenant drops it, even with the same `SECRET_KEY` and username |
-| Switching clubs | A hand-off ticket is written into one tenant's folder, works once and only there, and a platform visit is re-checked against the default tenant on every request |
+| Switching tenants | A hand-off ticket is written into one tenant's folder, works once and only there, and a platform visit is re-checked against the default tenant on every request |
 | API tokens, agent keys | Kept in the tenant's accounts and agent list, so another tenant doesn't know them |
 | Redis keys and live updates | Prefixed with the tenant's name; the live-update channel too |
 | S3 backups | Each tenant lists, prunes and restores only its own folder |

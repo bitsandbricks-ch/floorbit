@@ -26,8 +26,8 @@
   "favRemove": "{{page}} aus den Favoriten entfernen",
   "accordion": "Andere Bereiche zuklappen, wenn einer aufgeht",
   "skip": "Zum Inhalt springen",
-  "switchClub": "Verein wechseln",
-  "thisClub": "Dieser Verein",
+  "switchTenant": "Mandant wechseln",
+  "thisTenant": "Dieser Mandant",
   "asPlatform": "als Plattform-Admin",
   "switching": "Wechsle…",
   "platformVisit": "Zu Besuch als Plattform-Admin"

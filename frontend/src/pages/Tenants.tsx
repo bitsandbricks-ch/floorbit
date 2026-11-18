@@ -34,7 +34,7 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
             onChange={(e) => setId(e.currentTarget.value.toLowerCase())} />
           <TextInput label={t('tenants.name')} description={t('tenants.nameHelp')} value={name} maxLength={80}
             onChange={(e) => setName(e.currentTarget.value)} />
-          <TextInput label={t('tenants.url')} description={t('tenants.urlHelp')} value={url} placeholder="https://club.example.com"
+          <TextInput label={t('tenants.url')} description={t('tenants.urlHelp')} value={url} placeholder="https://tenant.example.com"
             onChange={(e) => setUrl(e.currentTarget.value)} />
           <TextInput label={t('tenants.admin')} description={t('tenants.adminHelp')} value={admin} maxLength={40}
             onChange={(e) => setAdmin(e.currentTarget.value)} />
@@ -85,7 +85,7 @@ function Row({ tenant, here, onChanged }: { tenant: Tenant; here: string; onChan
   )
 }
 
-/** The platform's tenants: one per club, each with its own accounts, data, look and agents. */
+/** The platform's tenants: one per club or organisation, each with its own accounts, data, look and agents. */
 export default function Tenants() {
   const { t } = useTranslation()
   const qc = useQueryClient()

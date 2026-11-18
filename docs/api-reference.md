@@ -1054,7 +1054,7 @@ Source: [`floorbit/blueprints/tenant_events.py`](https://github.com/bitsandbrick
 
 ## floorbit.blueprints.tenant_switch
 
-The club switcher: moving to another tenant of the platform (floorbit/tenant_switch.py).
+The tenant switcher: moving to another tenant of the platform (floorbit/tenant_switch.py).
 
 Source: [`floorbit/blueprints/tenant_switch.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/tenant_switch.py)
 

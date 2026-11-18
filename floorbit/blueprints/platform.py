@@ -20,7 +20,7 @@ from .. import audit, hosting, i18n, spa, store
 
 bp = Blueprint('platform', __name__)
 
-SUSPENDED = 'This club is suspended on this Floorbit platform. Ask the platform admin.'
+SUSPENDED = 'This tenant is suspended on this Floorbit platform. Ask the platform admin.'
 # Kubernetes keeps asking whether the process lives: a suspended tenant's still does, and a failing
 # probe would only restart it over and over.
 OPEN_WHILE_SUSPENDED = ('/healthz', '/static/')
