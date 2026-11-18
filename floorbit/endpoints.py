@@ -39,6 +39,12 @@ def mac_text(digits):
     return ':'.join(digits[i:i + 2] for i in range(0, 12, 2)) if digits else ''
 
 
+def _text(value, size):
+    """A column's text: Postgres refuses a NUL byte, and one bad row would fail its whole batch
+    again on every report while it stays open."""
+    return str(value or '').replace('\x00', '')[:size]
+
+
 def _port_key(port):
     from .syslog import canonical_port
     return canonical_port(port) if port else ''
@@ -96,9 +102,9 @@ class History:
                 mac = mac_hex(s.get('mac'))
                 if not mac:
                     continue
-                ip = str(s.get('ip') or '')[:45]
-                device = str(s.get('device') or '')[:120]
-                port = str(s.get('port') or '')[:120]
+                ip = _text(s.get('ip'), 45)
+                device = _text(s.get('device'), 120)
+                port = _text(s.get('port'), 120)
                 if not device:
                     continue
                 key = (mac, ip, device, _port_key(port))

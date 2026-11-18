@@ -584,3 +584,10 @@ def test_a_refused_inventory_login_blocks_the_stored_credential():
     finally:
         pollers.POLLERS["nxapi"] = old
     assert seen == [("may", "dev-1", "cred-1", "r1"), ("failed", "dev-1", "cred-1", "r1")]
+
+
+def test_a_series_name_the_table_cannot_hold_is_left_out_alone():
+    """A NUL byte or an over-long name stopped the whole sample at that row on Postgres."""
+    s = storage.Storage()
+    s.sample({"sw1|Gi1/0/1|up": 1, "sw\x001||up": 1, "x" * 400 + "||up": 1}, now=3600)
+    assert set(s.memory) == {"sw1|Gi1/0/1|up"}

@@ -28,6 +28,7 @@ from . import state as state_mod
 SAMPLE = 30
 FINE, COARSE = 60, 900
 FINE_HOURS = 6
+SERIES_MAX = 300                 # floorbit_telemetry.series is VARCHAR(300)
 TIMEOUT = 5
 PORT_METRICS = ('in_bps', 'out_bps', 'errors', 'up')
 DEVICE_METRICS = ('up', 'cpu', 'mem', 'states')
@@ -133,7 +134,10 @@ class Storage:
         rows = []
         for step in (FINE, COARSE):
             bucket = int(now // step * step)
-            rows += [(k, step, bucket, float(v)) for k, v in values.items()]
+            # A name the table can't hold (a NUL byte, longer than its column) would stop the
+            # whole sample at that row: leave just that series out.
+            rows += [(k, step, bucket, float(v)) for k, v in values.items()
+                     if len(k) <= SERIES_MAX and '\x00' not in k]
         if self.db is not None:
             from ..database import DatabaseError
             try:
