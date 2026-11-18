@@ -12,11 +12,11 @@ import time
 from threading import Lock
 
 import segno
-from flask import Blueprint, abort, current_app, render_template, request, url_for
+from flask import Blueprint, abort, current_app, jsonify, render_template, request, url_for
 
 from integrations import checkin, config, seat_sources
 
-from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, stacking
+from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, spa, stacking
 from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
 from ..store import load_data
 
@@ -32,31 +32,9 @@ PLAN_W, PLAN_H, CELL = 1600, 1000, 32
 RATE_LIMIT, RATE_WINDOW = 30, 60       # lookups per address and minute
 _lookups, _lookups_lock = {}, Lock()
 
-TEXTS = {
-    'en': {'title': 'Find your seat', 'intro': 'Type the seat number from your ticket, for example D-17.',
-           'intro_nick': 'Type your seat number (for example D-17) or your nick.', 'label': 'Seat',
-           'label_nick': 'Seat or nick', 'go': 'Find', 'found': 'Seat {seat}',
-           'where': 'Block {block}, row {row} of {rows}, seat {col} from the left as seen on the plan.',
-           'none': 'No seat "{query}" on the floor plan. Check the number on your ticket, or ask at the info desk.',
-           'busy': 'Too many searches from here. Please wait a minute.', 'off': 'The seat finder is switched off.',
-           'map': 'Hall plan with seat {seat} marked'},
-    'de': {'title': 'Finde deinen Platz', 'intro': 'Gib die Platznummer von deinem Ticket ein, zum Beispiel D-17.',
-           'intro_nick': 'Gib deine Platznummer (zum Beispiel D-17) oder deinen Nick ein.', 'label': 'Platz',
-           'label_nick': 'Platz oder Nick', 'go': 'Finden', 'found': 'Platz {seat}',
-           'where': 'Block {block}, Reihe {row} von {rows}, Platz {col} von links, wie auf dem Plan.',
-           'none': 'Kein Platz "{query}" auf dem Hallenplan. Prüfe die Nummer auf deinem Ticket oder frag am Infodesk.',
-           'busy': 'Zu viele Suchen von hier. Warte bitte eine Minute.', 'off': 'Die Platzsuche ist ausgeschaltet.',
-           'map': 'Hallenplan mit markiertem Platz {seat}'},
-}
-
 
 def finder_on():
     return config.get_bool('SEAT_FINDER', True)
-
-
-def _texts():
-    lang = request.accept_languages.best_match(['en', 'de'], default='en')
-    return lang, TEXTS[lang]
 
 
 def _rate_limited():
@@ -187,15 +165,25 @@ def _locate(data, seat):
 
 @bp.route('/find')
 def find_page():
-    lang, text = _texts()
+    """The page is React (frontend/src/pages/public/PublicFind.tsx), asking /api/seat-finder; 404
+    while the seat finder is switched off."""
+    html, status = spa.render('Find your seat')
+    return html, status if finder_on() else 404
+
+
+@bp.route('/api/seat-finder')
+def find_seat():
+    """``?q=D-17`` (or a nick, with ``SEAT_FINDER_NICKS``): the seat, where it is and its hall's
+    drawing. Without ``q``: whether nicks are found too. 404 ``none`` for nothing found, 429 when
+    one address asks too often, 404 ``off`` while the finder is switched off."""
     if not finder_on():
-        return render_template('find.html', lang=lang, t=text, state='off'), 404
+        return jsonify({'error': 'The seat finder is switched off.', 'code': 'off'}), 404
     nicks = config.get_bool('SEAT_FINDER_NICKS', False)
     query = (request.args.get('q') or '').strip()[:60]
     if not query:
-        return render_template('find.html', lang=lang, t=text, state='ask', nicks=nicks, query='')
+        return jsonify({'nicks': nicks})
     if _rate_limited():
-        return render_template('find.html', lang=lang, t=text, state='busy', nicks=nicks, query=query), 429
+        return jsonify({'error': 'Too many searches from here. Please wait a minute.', 'code': 'busy'}), 429
     data = load_data()
     drawing, found = None, None
     for form in typed_forms(query):     # "a3" and "A 3" find A-3
@@ -207,12 +195,12 @@ def find_page():
         if by_nick:
             drawing, found = _locate(data, by_nick)
     if not found:
-        return render_template('find.html', lang=lang, t=text, state='none', nicks=nicks, query=query), 404
-    return render_template('find.html', lang=lang, t=text, state='found', nicks=nicks, query=query,
-                           found=found, drawing=drawing)
+        return jsonify({'error': 'No such seat on the floor plan.', 'code': 'none', 'nicks': nicks}), 404
+    return jsonify({'nicks': nicks, 'found': found, 'drawing': drawing})
 
 
-find_page._auth_public = True   # what auth.public_endpoint sets: players' phones have no account
+for _view in (find_page, find_seat):
+    _view._auth_public = True   # what auth.public_endpoint sets: players' phones have no account
 
 
 def _find_url():

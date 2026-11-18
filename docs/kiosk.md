@@ -77,7 +77,8 @@ away. Switch it on under **Settings > Attendee pages** (or `ATTENDEE_VIEW=true`)
 
 - The status comes from the same port reads as the stats page (every `ATTENTION_INTERVAL`, 120 s),
   so no extra requests go to the switches.
-- The page reloads the status every minute from `GET /api/public/seats`
+- The page reloads the hall and its status every minute from `GET /api/public/hall` (`?hall=<id>`).
+  For the event website, `GET /api/public/seats` gives the status alone
   (`{"seats": {"D-6": true, ...}, "online": 1, "total": 8, "updated": <unix time>}`).
 - After three missed reads the page says the status isn't available instead of showing old dots, and
   the API answers `null` for every seat.
