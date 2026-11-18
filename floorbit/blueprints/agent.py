@@ -161,8 +161,9 @@ def _same_protocol():
 
 def _agent(reachable=True):
     """``reachable``: this request shows calls can reach the agent (its link, or the long poll).
-    Its syslog, flows and reports don't: a stopping agent posts its backlog after its link closed,
-    and counting that kept it "connected" for a minute while calls to it waited and failed."""
+    Its answers, syslog, flows and reports don't: a stopping agent posts its last answers and its
+    backlog after its link closed, and counting that kept it "connected" for a minute while calls
+    to it waited and failed. A long-polling agent shows it by asking for calls."""
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
                             request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip(),
                             reachable=reachable)
@@ -219,7 +220,7 @@ def calls():
 
 @bp.route('/api/agent/v1/answers', methods=['POST'])
 def answers():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     body = _agent_body()

@@ -440,6 +440,8 @@ def test_a_killed_agent_shows_as_gone_at_once_not_a_minute_later(client):
     anon = client.application.test_client()
     for path, body in (("/api/agent/v1/syslog", {"lines": []}), ("/api/agent/v1/report", {"report": {}})):
         assert anon.post(path, json=body, headers={"Floorbit-Agent-Key": a["key"]}).status_code < 400
+    anon.get("/api/agent/v1/plugins", headers={"Floorbit-Agent-Key": a["key"]})      # and its plugins'
+    anon.post("/api/agent/v1/answers", json={"answers": []}, headers={"Floorbit-Agent-Key": a["key"]})
     assert not client.get("/api/agents").get_json()["agents"][0]["connected"]
     assert a["id"] not in agent_link.tunnel.connected_agents()
 
