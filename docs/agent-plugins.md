@@ -216,5 +216,4 @@ after they change.
 
 All of it goes over the agent's TLS connection with its key ([agent.md](agent.md)). Only official
 plugins run on an agent: the ones in its image, newer versions of them signed by Floorbit's
-release, and official [Marketplace](marketplace.md) plugins. Community plugins stay on the hosted
-side ([What a plugin can ship](plugin-spec.md)).
+release, and [Marketplace](marketplace.md) plugins ([What a plugin can ship](plugin-spec.md)).

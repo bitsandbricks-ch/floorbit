@@ -73,7 +73,7 @@ function describe(plugin: PluginInfo, t: ReturnType<typeof useTranslation>['t'])
 
 function Badges({ plugin }: { plugin: PluginInfo }) {
   const { t } = useTranslation()
-  const trust = ['builtin', 'development', 'official', 'community'].includes(plugin.trust) ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
+  const trust = ['builtin', 'development', 'official'].includes(plugin.trust) ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
   return (
     <>
       {plugin.version && <Text size="sm" c="dimmed" ff="monospace">v{plugin.version}</Text>}

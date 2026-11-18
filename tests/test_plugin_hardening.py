@@ -174,7 +174,7 @@ def test_a_huge_index_is_refused_before_it_is_in_memory(monkeypatch, answer):
     monkeypatch.setattr(requests, "get", lambda *a, **k: answer)
     marketplace._cache.clear()
     with pytest.raises(marketplace.MarketError, match="too large"):
-        marketplace.fetch_index({"url": "https://example.com/huge.json", "official": True}, force=True)
+        marketplace.fetch_index({"url": "https://example.com/huge.json"}, force=True)
 
 
 def test_sync_says_how_many_it_could_not_load(registry, monkeypatch):
@@ -301,7 +301,7 @@ def source(monkeypatch):
     marketplace._stale.pop(url, None)
     new, pub = _signed_index("2026-11-17T22:00:00Z")
     monkeypatch.setattr(bundles, "pinned_keys", lambda *a: pub)
-    return {"url": url, "official": True}, answers, new, pub
+    return {"url": url}, answers, new, pub
 
 
 def test_while_the_index_is_away_its_last_good_copy_is_used(source):

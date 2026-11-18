@@ -1,10 +1,9 @@
 {
   "title": "Marketplace",
-  "intro": "Signed plugins from the official Marketplace, and from sources the server's operator added. Installed plugins start switched off; turn them on under Installed. Floorbit checks every download's signature, and the local agents get the official ones on their own.",
+  "intro": "Signed plugins from the official Marketplace. Installed plugins start switched off; turn them on under Installed. Floorbit checks every download's signature, and the local agents get them on their own.",
   "refresh": "Look again",
   "empty": "The Marketplace lists no plugins yet.",
   "officialSource": "Official Marketplace",
-  "sources": "Sources: {{list}}",
   "runs": "Runs {{v}}",
   "updateTo": "{{v}} available",
   "install": "Install {{v}}",
@@ -23,7 +22,7 @@
   "removed": "{{name}} is removed.",
   "builtin": "This one ships with this Floorbit: nothing to install.",
   "withdrawn": "Version {{v}} was withdrawn: {{why}}. Update or go back to another version.",
-  "unlisted": "No source lists this plugin any more. It keeps running; you can remove it.",
+  "unlisted": "The Marketplace no longer lists this plugin. It keeps running; you can remove it.",
   "touches": "What it may touch",
   "touch": {
     "areas": "Areas",

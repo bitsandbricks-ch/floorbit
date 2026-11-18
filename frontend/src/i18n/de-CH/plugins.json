@@ -16,8 +16,7 @@
   "trust": {
     "builtin": "Kommt mit Floorbit",
     "development": "Entwicklungsstand",
-    "official": "Offiziell",
-    "community": "Community"
+    "official": "Offiziell"
   },
   "open": "Öffnen",
   "agent": "Läuft auf dem Agent",

@@ -36,7 +36,6 @@ export type MarketPlugin = {
   description: string
   author: string
   homepage: string
-  trust: 'official' | 'community'
   source: string
   builtin: boolean
   installed: string | null
@@ -51,11 +50,10 @@ export type MarketPlugin = {
   touches?: MarketTouches | null
 }
 
-export type MarketSource = { url: string; official: boolean; name: string; generated: string; error: string }
-export type MarketCatalog = { sources: MarketSource[]; plugins: MarketPlugin[] }
+export type MarketSource = { url: string; name: string; generated: string; error: string }
+export type MarketCatalog = { source: MarketSource; plugins: MarketPlugin[] }
 
 const KEY = ['marketplace'] as const
-const TRUST_COLOR = { official: 'bit', community: 'warn' } as const
 
 /** "What it may touch", before it is installed (docs/plugin-spec.md, "Permissions it asks for"). */
 export function Touches({ touches }: { touches: MarketTouches }) {
@@ -140,9 +138,6 @@ function Entry({ plugin }: { plugin: MarketPlugin }) {
           <Title order={3} fz="lg" id={`mk-${plugin.id}`}>
             {plugin.name}
           </Title>
-          <Badge variant="light" color={TRUST_COLOR[plugin.trust]} tt="none">
-            {t(`plugins.trust.${plugin.trust}`)}
-          </Badge>
           {plugin.installed ? (
             <Badge variant="outline" color="gray" tt="none">
               {t('marketplace.runs', { v: plugin.installed })}
@@ -256,19 +251,12 @@ export default function Marketplace() {
           {t('common.error', { message: error.message })}
         </Alert>
       )}
-      {data?.sources
-        .filter((s) => s.error)
-        .map((s) => (
-          <Alert key={s.url} color="warn" role="alert" title={s.official ? t('marketplace.officialSource') : s.url}>
-            {s.error}
-          </Alert>
-        ))}
-      {data && (data.plugins.length ? data.plugins.map((p) => <Entry key={p.id} plugin={p} />) : <Text>{t('marketplace.empty')}</Text>)}
-      {data && data.sources.length > 1 && (
-        <Text size="xs" c="dimmed">
-          {t('marketplace.sources', { list: data.sources.map((s) => s.name || s.url).join(', ') })}
-        </Text>
+      {data?.source.error && (
+        <Alert color="warn" role="alert" title={t('marketplace.officialSource')}>
+          {data.source.error}
+        </Alert>
       )}
+      {data && (data.plugins.length ? data.plugins.map((p) => <Entry key={p.id} plugin={p} />) : <Text>{t('marketplace.empty')}</Text>)}
     </Stack>
   )
 }

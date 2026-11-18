@@ -16,8 +16,7 @@
   "trust": {
     "builtin": "Ships with Floorbit",
     "development": "Development checkout",
-    "official": "Official",
-    "community": "Community"
+    "official": "Official"
   },
   "open": "Open",
   "agent": "Runs on the agent",
