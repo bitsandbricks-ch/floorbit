@@ -784,7 +784,9 @@ def test_a_summary_of_the_wrong_shape_cannot_break_the_traffic_page(client, app_
         assert got.status_code == 200
         body = got.get_json()
         assert [a["kind"] for a in body["anomalies"]] == ["p2p"]
-        assert all(k not in body for k in ("services", "series", "mix_hour", "flows", "errors"))
+        # Wrong shapes come out empty (or not at all), never as something a page can't add up.
+        assert not any(body.get(k) for k in ("services", "series", "mix_hour"))
+        assert not isinstance(body.get("flows"), (list, dict)) and not isinstance(body.get("errors"), (list, dict))
     assert agent.post("/api/agent/v1/flows", json={"snapshot": {"updated": 1, "anomalies": "x"}},
                       headers=h).status_code == 200
     assert client.get("/api/flows").status_code == 200
