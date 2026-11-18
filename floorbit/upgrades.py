@@ -175,7 +175,15 @@ def _switch_logins(data):
         creds.append(cred)
 
 
-STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins)
+def _no_brackets(data):
+    """Tournament brackets were removed (an operations tool doesn't run the tournament): their
+    data and their public page's switch go."""
+    data.pop('brackets', None)
+    if isinstance(data.get('app_settings'), dict):
+        data['app_settings'].pop('public.brackets', None)
+
+
+STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets)
 CURRENT = len(STEPS)
 
 

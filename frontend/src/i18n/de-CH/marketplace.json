@@ -66,7 +66,6 @@
     "dns": "DNS-Abfragen (nur hallenweite Zahlen)",
     "wifi": "WLAN-Access-Points",
     "logs": "behält und durchsucht das Syslog",
-    "brackets": "Turnierbäume",
     "context_menu": "Einträge im Rechtsklick-Menü des Hallenplans",
     "agent": "läuft teilweise auf dem lokalen Agent",
     "panels": "Felder in den Seitenleisten von Plätzen, Switches und Geräten",

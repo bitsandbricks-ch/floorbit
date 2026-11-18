@@ -51,7 +51,6 @@ const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
 const Runbooks = lazy(() => import('@/pages/Runbooks'))
 const Schedule = lazy(() => import('@/pages/Schedule'))
-const Brackets = lazy(() => import('@/pages/Brackets'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
 const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Checkins = lazy(() => import('@/pages/Checkins'))
@@ -70,7 +69,6 @@ const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const PublicWall = lazy(() => import('@/pages/public/PublicWall'))
 const PublicAgenda = lazy(() => import('@/pages/public/PublicAgenda'))
-const PublicBracket = lazy(() => import('@/pages/public/PublicBracket'))
 const PublicHall = lazy(() => import('@/pages/public/PublicHall'))
 const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
 const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
@@ -107,7 +105,6 @@ export default function App() {
           <Route path="/status" element={<PublicStatus />} />
           <Route path="/wall" element={<PublicWall />} />
           <Route path="/agenda" element={<PublicAgenda />} />
-          <Route path="/bracket" element={<PublicBracket />} />
           <Route path="/hall" element={<PublicHall />} />
           <Route path="/find" element={<PublicFind />} />
           <Route path="/help/:seat" element={<SeatHelp />} />
@@ -158,7 +155,6 @@ export default function App() {
             <Route path="/network-status" element={<NetworkStatus />} />
             <Route path="/runbooks" element={<Runbooks />} />
             <Route path="/schedule" element={<Schedule />} />
-            <Route path="/tournament/brackets" element={<Brackets />} />
             <Route path="/plan" element={<FloorPlan />} />
             <Route path="/checkins" element={<Checkins />} />
             <Route path="/speedtests" element={<Speedtests />} />

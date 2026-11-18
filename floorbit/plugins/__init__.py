@@ -66,7 +66,6 @@ AREAS = {
     'dns': 'lookups from the event\'s DNS resolver, for hall-wide DNS analytics (never per seat)',
     'wifi': 'access point load and client counts per radio, for the Wi-Fi view (never client names or MACs)',
     'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
-    'brackets': 'tournament brackets from a tournament tool, shown read-only on the bracket view',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
     'panels':    'a box in the side panel of a seat, a switch or an inventory device',
     'layers':    'a layer on the floor plan that colours the seats (one plugin layer at a time)',
@@ -101,7 +100,6 @@ AREA_METHODS = {
     'dns': ('dns_queries',),
     'logs': ('push_logs', 'query_logs'),
     'wifi': ('wifi_aps',),
-    'brackets': ('brackets',),
 }
 # The methods that talk to the event network. On the Floorbit server they run only through the local
 # agent (floorbit/agent_link.py, lan_here): ``call`` refuses them here, so no feature can reach the

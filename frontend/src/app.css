@@ -368,26 +368,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-heatmap.incidents rect { fill: var(--color-down); }
 .fb-heatmap .label { fill: var(--color-muted); font: 600 12px var(--font-sans); text-anchor: end; }
 .fb-heatmap rect.cursor { fill: none; stroke: var(--color-fg); stroke-width: 2; pointer-events: none; }
-.fb-bracket-scroll { overflow-x: auto; padding-bottom: 6px; }
-.fb-bracket-scroll:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; }
-.fb-bracket { display: grid; gap: 24px; min-width: min-content; }
-.fb-bracket-round { display: flex; flex-direction: column; }
-.fb-bracket-matches { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
-.fb-bracket-match { position: relative; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; }
-.fb-bracket-match.live { border-color: var(--color-warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warn) 35%, transparent); }
-.fb-bracket-open { all: unset; display: block; width: 100%; cursor: pointer; }
-.fb-bracket-open:hover { background: var(--color-raised); }
-.fb-bracket-open:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }
-.fb-bracket-team { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; font-size: 14px; }
-.fb-bracket-team + .fb-bracket-team { border-top: 1px solid var(--color-line); }
-.fb-bracket-team b { font-variant-numeric: tabular-nums; }
-.fb-bracket-team.won { font-weight: 700; background: color-mix(in srgb, var(--color-up) 14%, transparent); }
-.fb-bracket-team.lost { color: var(--color-muted); }
-.fb-bracket-team.tbd span { color: var(--color-muted); font-style: italic; padding-right: 3px; }
-.fb-bracket-match.live { padding-top: 14px; }
-.fb-bracket-live { position: absolute; top: 0; left: 10px; font-size: 10px; font-weight: 800; padding: 0 6px; border-radius: 0 0 6px 6px; background: color-mix(in srgb, var(--color-warn) 24%, var(--color-surface)); color: var(--color-fg); border: 1px solid var(--color-warn); border-top: 0; }
-.fb-bracket-meta { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 6px; font-size: 12px; color: var(--color-muted); border-top: 1px dashed var(--color-line); }
-.fb-bracket-champion { text-align: center; font-weight: 800; font-size: 18px; padding: 14px; border: 2px solid var(--color-up); border-radius: 12px; background: var(--color-surface); }
 
 /* Tables that scroll sideways on a phone take keyboard focus (theme.ts, issue #286). */
 .mantine-TableScrollContainer-scrollContainer .mantine-ScrollArea-viewport:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }
@@ -680,8 +660,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 }
 .fb-public-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
 /* Pages that read top to bottom (status, schedule) start at the top and are wider; boards wider still. */
-.fb-public--page, .fb-public--board, .fb-public--wide { justify-content: flex-start; }
-.fb-public--wide .fb-public-col { max-width: 1400px; }
+.fb-public--page, .fb-public--board { justify-content: flex-start; }
 .fb-public--page .fb-public-col { max-width: 760px; }
 .fb-public--board .fb-public-col { max-width: 1100px; }
 /* The public status page (pages/public/PublicStatus.tsx): one colour per state, as a dot and as
@@ -775,43 +754,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-agenda--screen .fb-agenda-programme { max-height: 62vh; overflow: hidden; }
 .fb-agenda--screen .fb-agenda-programme li.fb-agenda-day { font-size: 1.3vw; }
 .fb-agenda--screen .fb-agenda-programme .fb-agenda-item b { font-size: 1.7vw; }
-/* Public tournament brackets (pages/public/PublicBracket.tsx): rounds side by side, scrolling sideways on phones. */
-.fb-pbr-page { display: grid; gap: 16px; min-width: 0; }
-.fb-pbr-scroll { overflow-x: auto; padding-bottom: 6px; }
-.fb-pbr { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 28px; min-width: min-content; }
-.fb-pbr-round { display: flex; flex-direction: column; }
-.fb-pbr-round h2 {
-  margin: 0 0 8px; font-size: 13px; color: var(--color-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
-}
-.fb-pbr-matches { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
-.fb-pbr-match {
-  background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; position: relative;
-}
-.fb-pbr-live { border-color: var(--color-warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warn) 35%, transparent); padding-top: 16px; }
-.fb-pbr-team { display: flex; justify-content: space-between; gap: 10px; padding: 7px 12px; }
-.fb-pbr-team + .fb-pbr-team { border-top: 1px solid var(--color-line); }
-.fb-pbr-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 3px; }
-.fb-pbr-score { font-weight: 800; font-variant-numeric: tabular-nums; }
-.fb-pbr-team.won { font-weight: 800; background: color-mix(in srgb, var(--color-up) 14%, transparent); }
-.fb-pbr-team.lost { color: var(--color-muted); }
-.fb-pbr-team.tbd .fb-pbr-name { color: var(--color-muted); font-style: italic; }
-.fb-pbr-tag {
-  position: absolute; top: -1px; left: 12px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 0 0 6px 6px;
-  background: var(--color-warn); color: var(--color-ink);
-}
-.fb-pbr-station { font-size: 12px; color: var(--color-muted); padding: 0 12px 6px; }
-.fb-pbr-champion {
-  align-self: center; text-align: center; background: var(--color-surface); border: 2px solid var(--color-up); border-radius: 14px; padding: 18px;
-}
-.fb-pbr-champion b { display: block; font-size: clamp(20px, 2.4vw, 34px); }
-.fb-pbr-page--screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; align-content: start; }
-.fb-pbr-page--screen .fb-wall-title { font-size: 2.6vw; }
-.fb-pbr-page--screen .fb-pbr-scroll { height: 78vh; overflow: hidden; }
-.fb-pbr-page--screen .fb-pbr { height: 100%; }
-.fb-pbr-page--screen .fb-pbr-team { font-size: 1.25vw; padding: .5vw .8vw; }
-.fb-pbr-page--screen .fb-pbr-round h2 { font-size: .9vw; }
-.fb-pbr-page--screen .fb-pbr-station { font-size: .9vw; padding: 0 .8vw .4vw; }
-.fb-pbr-page--screen .fb-wall-note { font-size: 1vw !important; }
 /* The hall drawn for the public pages (components/HallSketch.tsx): attendee view and seat finder. */
 .fb-hall-sketch { display: block; width: 100%; height: auto; max-height: 75vh; background: var(--color-raised); border-radius: 10px; }
 .fb-hall-sketch .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }

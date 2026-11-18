@@ -102,7 +102,6 @@ doesn't fit. Hand edits in Floorbit always win over what a plugin sends.
 | `dns` | resolver lookups, kept only as hall-wide counts ([DNS](dns.md)) | agent |
 | `wifi` | access points and radio counts, no client names or MACs ([Wi-Fi](wifi.md)) | agent |
 | `logs` | keep the syslog longer and search it ([syslog](syslog.md)) | server |
-| `brackets` | tournament brackets ([tournament](tournament.md)) | server |
 
 The method names and shapes are in [Plugins](plugins.md#areas-uses).
 

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiError, get } from '@/api/client'
 import { qk } from '@/api/keys'
 
-/** What a public page (status, stats wall, schedule, brackets, hall) reads: its JSON, fetched again
+/** What a public page (status, stats wall, schedule, hall) reads: its JSON, fetched again
  *  every ``every`` seconds. When the server or network is gone for a while the page keeps the last
  *  good data and says how old it is (``stale``), so a big screen never shows a browser error.
  *  ``off`` is the server's 404: an admin switched the page off. */

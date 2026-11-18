@@ -79,7 +79,7 @@ A copy takes the parts you pick (all by default):
 | `cables` | Cables, cable routes, patch panels |
 | `power` | Power boards and circuits |
 | `services` | Firewalls, services, game servers |
-| `schedule` | Schedule, tournament, brackets |
+| `schedule` | Schedule, tournament |
 
 Check-ins, incidents, handover, logs and history are never copied. Tenant-wide parts are shared by
 every event anyway.
