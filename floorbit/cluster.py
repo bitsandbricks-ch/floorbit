@@ -287,13 +287,14 @@ def leading():
 
 
 def init(log=print):
-    """Join the cluster when FLOORBIT_CLUSTER=redis. Returns the Cluster or None."""
+    """Join the cluster when FLOORBIT_CLUSTER=redis (or valkey). Returns the Cluster or None."""
     global current
     mode = (os.environ.get('FLOORBIT_CLUSTER') or '').strip().lower()
     if mode in ('', 'off', 'none'):
         return None
-    if mode != 'redis':
-        raise ValueError(f'FLOORBIT_CLUSTER must be "redis" or empty, not "{mode}".')
+    # Valkey speaks the Redis protocol, so both names mean the same shared cache.
+    if mode not in ('redis', 'valkey'):
+        raise ValueError(f'FLOORBIT_CLUSTER must be "redis", "valkey" or empty, not "{mode}".')
     from integrations import events
 
     from . import agent_link, cache

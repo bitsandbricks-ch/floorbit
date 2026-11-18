@@ -2,7 +2,7 @@
 
 On Kubernetes or k3s, see [kubernetes.md](kubernetes.md) instead.
 
-Floorbit, its local agent and Redis in three containers, on any machine with Docker. It works
+Floorbit, its local agent and Valkey (the cache) in three containers, on any machine with Docker. It works
 without NetBox or LibreNMS: you place switches by hand and connect those later.
 
 Floorbit itself never talks to the event network: the switches, LibreNMS, NetBox, game servers and
@@ -118,7 +118,7 @@ firewalls and the router at this host.
 ## Backups
 
 Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): `data.json` (floor plan,
-accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Redis holds only a cache.
+accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Valkey holds only a cache.
 Each `.json` file has a `.json.next` twin: the last complete write. If a write is cut short (a full disk, a
 killed pod), Floorbit starts from the twin and says so in its log, and the next save mends the file.
 
@@ -150,6 +150,10 @@ docker compose up -d
 
 `FLOORBIT_VERSION` in `.env` pins a release (`1.4.0`) instead of `latest` (the newest `master` that passed CI: the image is pushed only once CI is green on that commit).
 Read the [changelog](../CHANGELOG.md) before a big jump. Your data stays in the volume.
+
+The cache moved from Redis to Valkey, so the service is called `valkey` now. Run
+`docker compose up -d --remove-orphans` once to stop the old `redis` container, and
+`docker volume rm <project>_redis_data` if you like: it held only a cache, which Valkey fills again.
 
 ### From an older compose file
 
