@@ -107,6 +107,7 @@
  "{} ports or seats already have a cable.": "{} Ports oder Plätze haben schon ein Kabel.",
  "LibreNMS did not list the ports of {}": "LibreNMS hat die Ports von {} nicht aufgelistet",
  "LibreNMS does not know {}": "LibreNMS kennt {} nicht",
+ "LibreNMS redirects to {}: put that address in Settings > LibreNMS.": "LibreNMS leitet weiter nach {}: Trag diese Adresse unter Einstellungen > LibreNMS ein.",
  "No monitoring source is set up": "Es ist keine Monitoring-Quelle eingerichtet",
  "{} has no MAC tables": "{} hat keine MAC-Tabellen",
  "{} is not answering": "{} antwortet nicht",
