@@ -1,8 +1,8 @@
 """Traffic insights from NetFlow and IPFIX (issue #25). See docs/flows.md.
 
-The collector (``python -m floorbit.flows``, its own optional container) listens for flow packets,
-keeps aggregates only (``aggregate.py``) and publishes a summary to Redis, where the app's
-``/api/flows`` reads it. Installs without NetFlow don't run it and see an empty page.
+The collector runs on the local agent: it reads the flow packets, keeps aggregates only
+(``aggregate.py``) and sends a summary to Floorbit, which keeps it in the database for the app's
+``/api/flows``. Installs without NetFlow see an empty page.
 """
 from integrations import seat_sources
 

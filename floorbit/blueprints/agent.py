@@ -409,7 +409,7 @@ def take_flow_summary(agent, snap):
     clean['updated'] = time.time()
     clean['agent'] = agent['name']
     from ..flows import store
-    store.publish(clean, keep_locally=True)
+    store.publish(clean)
     agent_link.tunnel.relayed(agent['id'], 'flows', 1)
     return True
 

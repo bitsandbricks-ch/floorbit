@@ -99,7 +99,7 @@ database (`FLOORBIT_DATABASE_URL`, Postgres) and one Redis, and keep apart by na
 | --- | --- | --- |
 | Tenant documents | `data.json`, `tenant.json`, ... | `tenants/tenant-a/data.json`, `tenants/tenant-a/tenant.json`, ... |
 | Event documents | `event-data/<id>/...` | `tenants/tenant-a/event-data/<id>/...` |
-| Redis keys and channels | `default:arp:...`, `default:floorbit:stats` | `tenant-a:arp:...`, `tenant-a:floorbit:stats` |
+| Redis keys and channels | `default:arp:...`, `default:floorbit:events` | `tenant-a:arp:...`, `tenant-a:floorbit:events` |
 
 The default tenant's folder is the state folder itself, so the other tenants' folders sit inside
 it. Its code never reaches into them: document listings read one folder level, and every document

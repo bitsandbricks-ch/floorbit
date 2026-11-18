@@ -10,11 +10,12 @@ the placed, online switches each ``ATTENTION_INTERVAL``, and hands them here. Fr
   (``STATS_UPLINK_PATTERN``) or names another switch;
 - **top talkers:** the ports with the most traffic right now, by seat where the port has one.
 
-One sample per read is kept for 24 hours, plus the event's peak, in Redis (``floorbit:stats``) so
-a restart doesn't lose them; without Redis they live in memory only. Samples hold numbers, seats
-and ports, never who sits there: nicks are added at request time for ``seats.view`` only.
+One sample per read is kept for 24 hours, plus the event's peak, in memory and in the event's
+``stats.json`` document in Floorbit's database (saved at most once a minute, and right away when
+someone resets the peak or starts a new event), so a restart doesn't lose them. Samples hold
+numbers, seats and ports, never who sits there: nicks are added at request time for
+``seats.view`` only.
 """
-import json
 import re
 import threading
 import time
@@ -22,11 +23,12 @@ from collections import deque
 
 from integrations import config
 
-from . import cache
+from . import database, store
 
 DAY = 24 * 3600
 HOUR = 3600
-REDIS_KEY = 'floorbit:stats'
+FILE = 'stats.json'
+SAVE_EVERY = 60   # seconds: a read every half minute need not rewrite the whole day each time
 TOP = 10
 MAX_SEAT_EVENTS = 100_000   # a flapping port must not grow the saved stats without end
 # For the post-event report (issue #22), kept for the whole event, not just the last day.
@@ -73,23 +75,26 @@ class Stats:
         self.problem_ports = {}  # 'switch_id|port' -> {'switch', 'port', 'seat', 'count', 'kinds', 'last'}
         self.event_start = None
         self.last = None
-        self._loaded = False
+        self._loaded = False   # False while the database was away at start (docs/database.md)
+        self._saved_at = 0.0
+        self._path = None
 
     # ── storage ───────────────────────────────────────────────────────────────
     def _load(self):
+        """Read what was kept before. While the database is away this stays undone and nothing is
+        saved: a day that started from nothing would overwrite the stored one once it is back."""
         if self._loaded:
             return
-        self._loaded = True
-        client = cache.get_redis_client()
-        if not client:
-            return
+        self._path = self._path or store.event_path(FILE)
         try:
-            raw = client.get(REDIS_KEY)
-            saved = json.loads(raw) if raw else None
-        except Exception as exc:  # noqa: BLE001  # a broken cache never stops the stats
-            print(f'[stats] could not read the saved stats: {exc}')
+            saved = store.read_json(self._path, {})
+        except database.DatabaseUnavailable:
             return
-        if isinstance(saved, dict):
+        except (OSError, ValueError, database.DatabaseError) as exc:
+            print(f'[stats] could not read the saved stats: {exc}')
+            saved = None
+        self._loaded = True
+        if isinstance(saved, dict) and saved:
             self.samples = deque(s for s in saved.get('samples') or [] if isinstance(s, dict) and 't' in s)
             self.peak = saved.get('peak')
             self.seat_events = deque(e for e in saved.get('seat_events') or [] if isinstance(e, list) and len(e) == 3)
@@ -107,18 +112,21 @@ class Stats:
                 if isinstance(problems, dict) else {}
             self.event_start = saved.get('event_start')
 
-    def _save(self):
-        client = cache.get_redis_client()
-        if not client:
+    def _save(self, now=None, force=False):
+        if not self._loaded or self._path is None:
             return
+        now = time.time() if now is None else now
+        if not force and 0 <= now - self._saved_at < SAVE_EVERY:
+            return
+        self._saved_at = now
         try:
-            client.set(REDIS_KEY, json.dumps({
+            store.write_json(self._path, {
                 'samples': list(self.samples), 'peak': self.peak, 'seat_events': list(self.seat_events),
                 'seat_base': self.seat_base, 'online_now': sorted(self._online) if self._online is not None else None,
                 'hours': self.hours, 'switch_events': list(self.switch_events), 'problem_ports': self.problem_ports,
                 'event_start': self.event_start,
-            }))
-        except Exception as exc:  # noqa: BLE001
+            })
+        except (OSError, database.DatabaseError) as exc:
             print(f'[stats] could not save the stats: {exc}')
 
     # ── recording ─────────────────────────────────────────────────────────────
@@ -174,7 +182,7 @@ class Stats:
             self._seat_changes(set(seat_bps), now)
             self._hour(sample)
             self.last = now
-            self._save()
+            self._save(now)
         return sample
 
     def _seat_changes(self, online, now):
@@ -243,7 +251,7 @@ class Stats:
             if len(self.problem_ports) > MAX_PROBLEM_PORTS:
                 keep = sorted(self.problem_ports.items(), key=lambda kv: (-kv[1]['count'], -kv[1]['last']))
                 self.problem_ports = dict(keep[:MAX_PROBLEM_PORTS])
-            self._save()
+            self._save(now)
 
     def event(self):
         """What the post-event report needs, kept since the last new event."""
@@ -264,7 +272,7 @@ class Stats:
             self.switch_events = deque()
             last = self.samples[-1] if self.samples else None
             self.peak = {'bps': last['down'] + last['up'], 'at': last['t']} if last else None
-            self._save()
+            self._save(now, force=True)
 
     def backfill_event(self, switch_events, problems):
         """The demo hall's made-up outages and problem ports, only while there are none yet."""
@@ -274,7 +282,7 @@ class Stats:
                 return
             self.switch_events.extend(switch_events)
             self.problem_ports = dict(problems)
-            self._save()
+            self._save(force=True)
 
     def backfill_seats(self, events, base_t):
         """Older seat changes (the demo hall's made-up day), only while there are none yet."""
@@ -285,7 +293,7 @@ class Stats:
             self.seat_events.extend(events)
             self.seat_base = {'t': base_t, 'online': []}
             self._online = _replay(self.seat_base, self.seat_events)
-            self._save()
+            self._save(force=True)
 
     def timeline(self):
         """What the replay needs: the samples, the event's peak, and the seats' changes."""
@@ -306,7 +314,7 @@ class Stats:
                 self._hour(sample)
             busiest = max(samples, key=lambda s: s['down'] + s['up'])
             self.peak = {'bps': busiest['down'] + busiest['up'], 'at': busiest['t']}
-            self._save()
+            self._save(force=True)
 
     def seat_history(self, seat, since):
         """One seat's link since ``since`` (issue #167): whether it was online then (None while
@@ -365,7 +373,7 @@ class Stats:
             self._load()
             last = self.samples[-1] if self.samples else None
             self.peak = {'bps': last['down'] + last['up'], 'at': last['t']} if last else None
-            self._save()
+            self._save(force=True)
 
     # ── reading ───────────────────────────────────────────────────────────────
     def snapshot(self, now=None):
