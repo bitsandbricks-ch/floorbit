@@ -18,5 +18,14 @@
   "noPanelPorts": "Für dieses Patchpanel ist keine Portzahl hinterlegt: Port eintippen oder das Panel auf dem Plan platzieren.",
   "pickPanelFirst": "Zuerst das Patchpanel wählen",
   "pickBlock": "Sitzblock wählen",
-  "pickFromList": "Aus der Liste wählen"
+  "pickFromList": "Aus der Liste wählen",
+  "validity": {
+    "required": "Bitte fülle dieses Feld aus.",
+    "email": "Gib eine E-Mail-Adresse ein, z. B. name@example.com.",
+    "url": "Gib eine vollständige Adresse ein, beginnend mit https://.",
+    "tooShort_one": "Verwende mindestens {{count}} Zeichen.",
+    "tooShort_other": "Verwende mindestens {{count}} Zeichen.",
+    "min": "Gib {{min}} oder mehr ein.",
+    "max": "Gib {{max}} oder weniger ein."
+  }
 }
