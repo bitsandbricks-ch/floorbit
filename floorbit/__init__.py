@@ -22,7 +22,6 @@ from flask import Flask
 
 from . import cache, runtime, store
 from .audit import init_audit
-from .blueprints import ALL as BLUEPRINTS
 from .plugins import init_plugins
 from .settings import SettingsStore, create_settings_blueprint
 from .theme import init_theme
@@ -112,6 +111,9 @@ def create_app(start_background=True):
     from .app_log import init_app_log
     init_app_log(app, start_background=start_background)
 
+    # Imported here, not at the top: blueprints import auth, and auth imports floorbit.env, so a
+    # top-level import made `import auth` (or any test importing it first) fail half-initialised.
+    from .blueprints import ALL as BLUEPRINTS
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
 
