@@ -30,6 +30,7 @@ ENV = 'FLOORBIT_DATABASE_URL'
 POOL_ENV = 'FLOORBIT_DATABASE_POOL'
 POOL_DEFAULT = 5
 POOL_WAIT = 30.0
+STAMP_RECHECK = 1.0      # seconds: how stale a document's update time may be when another pod changed it
 
 # Plain SQL both databases take, or {kind: SQL} where they differ. Add a step at the end; never
 # change one that has shipped.
@@ -150,6 +151,7 @@ class Sql:
 
     def __init__(self, url, root):
         self.url, self.root = url, root
+        self._stamps = {}        # key -> (when asked, updated_at)
         # A small shared pool instead of a connection per thread: Floorbit runs a few dozen
         # threads (gunicorn's request threads, one per live-update tab, and every background
         # watcher), and a connection each used up the slots of a shared Postgres.
@@ -320,12 +322,23 @@ class Sql:
         return rows[0][0]
 
     def updated_at(self, key):
+        # Caches ask this on every call (who is signed in, which agent, which plugins): at a
+        # 1,000-switch event that was a query per request and most of the pool's time. Asked once
+        # a second; this process's own writes show at once (put and delete set it).
+        now = time.monotonic()
+        hit = self._stamps.get(key)
+        if hit is not None and now - hit[0] < STAMP_RECHECK:
+            return hit[1]
         try:
             rows = self.run('SELECT updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         except DatabaseUnavailable:
             # The copy's time: caches that compare it see no change, which is true for what they can read.
             return self._docs[key][1] if key in self._docs else None
-        return rows[0][0] if rows else None
+        found = rows[0][0] if rows else None
+        if len(self._stamps) > 4096:
+            self._stamps.clear()
+        self._stamps[key] = (now, found)
+        return found
 
     def put(self, key, body):
         # Strictly increasing in this process, so two writes in one clock tick still read as a change.
@@ -340,6 +353,7 @@ class Sql:
                      'ON CONFLICT (doc_key) DO UPDATE SET body = EXCLUDED.body, updated_at = EXCLUDED.updated_at',
                      (key, body, now))
         self._docs[key] = (body, now)
+        self._stamps[key] = (time.monotonic(), now)
         for prefix, known in self._keys.items():
             if key.startswith(prefix) and key not in known:
                 known.append(key)
@@ -348,6 +362,7 @@ class Sql:
         found = self.run('SELECT 1 FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         self.run('DELETE FROM floorbit_documents WHERE doc_key = ?', (key,))
         self._docs.pop(key, None)
+        self._stamps.pop(key, None)
         self._keys.clear()
         return bool(found)
 

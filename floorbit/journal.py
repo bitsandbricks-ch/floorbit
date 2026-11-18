@@ -65,6 +65,23 @@ def append(path, line):
         f.write(line + '\n')
 
 
+def append_many(path, rows):
+    """Add several lines at once: one transaction on a database, one write to a file."""
+    rows = list(rows)
+    if not rows:
+        return
+    db = _db()
+    if db is not None:
+        key = _key(db, path)
+        db.run_many('INSERT INTO floorbit_log (log_key, line) VALUES (?, ?)', [(key, line) for line in rows])
+        known = _sizes.get(key)
+        if known is not None:
+            known[0] += sum(len(line) for line in rows)
+        return
+    with open(path, 'a', encoding='utf-8') as f:
+        f.write(''.join(line + '\n' for line in rows))
+
+
 def lines(path):
     """Every line, oldest first, without newlines. [] when there is no log yet."""
     db = _db()
