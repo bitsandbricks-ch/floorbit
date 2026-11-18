@@ -164,10 +164,7 @@ def test_an_uploaded_icon_goes_on_the_plan_and_falls_back_when_removed(client, a
     assert listed["custom_icons"][icon["id"]].startswith("data:image/svg+xml;base64,")
     drawing, _ = plan(load_data(), public=True)
     assert list(drawing["custom_icons"]) == [icon["id"]]
-    client.put("/api/settings", json={"public.attendee_view": True})
-    # The hall page is React: PlanMarks draws the icon from the drawing's custom_icons.
-    hall = anon_client.get("/api/public/hall").get_json()["drawing"]
-    assert list(hall["custom_icons"]) == [icon["id"]] and any(m.get("icon") == icon["id"] for m in hall["marks"])
+    assert any(m.get("icon") == icon["id"] for m in drawing["marks"])
 
     assert client.delete(f"/api/icons/{icon['id']}").get_json()["was_used"] == 1
     assert client.get("/api/plan-marks").get_json()["marks"][0]["icon"] == "info"

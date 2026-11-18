@@ -213,8 +213,7 @@ bookmark or a big screen (`&screen=1`) shows the same. Old links with `?traffic=
 
 Safety and services are marks: in the editor, pick the **Layer** of a label, wall, zone or icon. New
 extinguisher, escape route and assembly point icons land on Safety, a server on Services, a router or access
-point on Network, a power or socket icon on Electrical. The attendee view (`/hall`) shows the Overview
-and Safety marks only.
+point on Network, a power or socket icon on Electrical.
 
 In the editor, the **Layers** panel on the right (<kbd>L</kbd>) has the same five mark layers (Overview, Safety, Network,
 Electrical, Services). Switching one off hides its marks while you edit, so a busy plan can be worked on one
@@ -225,7 +224,6 @@ on. **Open these layers on the Seats view** opens this hall there with the same 
 
 - `/kiosk?hall=<id>` (or `/dashboards/<id>?hall=<id>`) shows another hall than the first; `/screen?hall=<id>` passes it on to its
   floor plan views. With more than one hall, the kiosk heading names the hall.
-- The attendee view (`/hall`) has a tab per hall.
 
 ## API
 

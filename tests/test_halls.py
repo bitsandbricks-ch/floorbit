@@ -127,17 +127,6 @@ def test_backup_with_a_bad_hall_is_refused(client):
     assert client.post("/api/settings/backup", json=backup).status_code == 400
 
 
-def test_attendee_view_per_hall(client, anon_client, two_halls):
-    h2 = two_halls["hall2"]["id"]
-    client.put("/api/settings", json={"public.attendee_view": True})
-    client.post("/api/seat-blocks", json={"name": "B", "x": 50, "y": 50, "cols": 3, "rows": 1, "hall_id": h2})
-    body = anon_client.get(f"/api/public/hall?hall={h2}").get_json()
-    assert body["hall"] == h2 and "Hall 2" in [h["name"] for h in body["halls"]]
-    assert [c["seat"] for b in body["drawing"]["shapes"] for c in b["cells"]] == ["B-1", "B-2", "B-3"]
-    assert anon_client.get(f"/api/public/seats?hall={h2}").get_json()["total"] == 3
-    assert anon_client.get("/api/public/seats").get_json()["total"] == 5
-
-
 def test_screen_passes_the_hall_on(client, two_halls):
     h2 = two_halls["hall2"]["id"]
     views = client.get(f"/api/screen?views=floor,stats&hall={h2}").get_json()["views"]

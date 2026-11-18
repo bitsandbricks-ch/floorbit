@@ -54,18 +54,6 @@ on; the arrow keys do the same. `GET /api/screen` with the same options answers 
 
 ## Attendee view
 
-`/hall` shows the hall plan with every seat green when it is online (its switch port is up) and grey
-when it is not, plus "312 of 400 seats online". It needs no account, so it can go on the event website
-or a screen at the entrance, and it works on phones in English and German.
-
-It shows seat numbers and online or offline, nothing else: no nicks, addresses, MACs, switches or ports.
-It is **off by default**, because it also shows when a seat is empty, for example while its player is
-away. Switch it on under **Settings > Attendee pages** (or `ATTENDEE_VIEW=true`).
-
-- The status comes from the same port reads as the stats page (every `ATTENTION_INTERVAL`, 120 s),
-  so no extra requests go to the switches.
-- The page reloads the hall and its status every minute from `GET /api/public/hall` (`?hall=<id>`).
-  For the event website, `GET /api/public/seats` gives the status alone
-  (`{"seats": {"D-6": true, ...}, "online": 1, "total": 8, "updated": <unix time>}`).
-- After three missed reads the page says the status isn't available instead of showing old dots, and
-  the API answers `null` for every seat.
+The attendee view (`/hall`, a public hall plan with every seat online or offline) is gone: it showed
+when a seat's player was away. `/hall` now leads to the [network status page](status-page.md), which
+tells attendees what they need during an outage: which halls, blocks and rows are hit.

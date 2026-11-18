@@ -88,7 +88,7 @@ only added while its page has nothing yet:
 - **Check-ins:** most players checked in with their seat card's PIN over the last day. In the side hall
   the check-ins taught Floorbit most seats' ports (two are still unknown), and one PIN card was swapped,
   so the review tab has a port clash to look at. Two players moved seats during the night.
-- **Status page:** two updates and a planned maintenance, with the public status page turned on.
+- **Status page:** two updates, with the public status page turned on.
 - **Dashboards:** a "NOC wall" and an "Ops desk" layout.
 - **Schedule:** the event from yesterday to tonight, with talks, meals, a tournament and quiet hours,
   shown on the public schedule.

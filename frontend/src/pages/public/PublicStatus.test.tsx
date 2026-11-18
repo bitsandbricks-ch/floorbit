@@ -9,17 +9,17 @@ afterEach(() => { vi.unstubAllGlobals(); void i18n.changeLanguage('en') })
 const now = Date.now() / 1000
 const status = (over: Partial<PublicStatusData> = {}): PublicStatusData => ({
   state: 'operational', since: null, checked_at: now, areas: [], recovered: [], recovered_at: null,
-  planned: [], maintenance_now: null, updates: [], ...over,
+  updates: [], ...over,
 })
 
 describe('PublicStatus', () => {
-  it('says all is well, with the crew updates and the feed link', async () => {
+  it('says all is well, with the crew updates', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /status.json': status({
       updates: [{ at: now - 60, text: 'Hall B is back.', state: 'operational', area: 'Hall B' }] }) }).fn)
     renderWithApp(<PublicStatus />, '/status')
     expect(await screen.findByText('All systems running')).toBeInTheDocument()
     expect(screen.getByText('Hall B is back.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /feed reader/ })).toHaveAttribute('href', '/status.atom')
+    expect(screen.queryByRole('link', { name: /feed reader/ })).toBeNull()
   })
 
   it('names the blocks and rows an outage hits, and what came back', async () => {
@@ -34,13 +34,11 @@ describe('PublicStatus', () => {
     expect(screen.getByText('Seat block C')).toBeInTheDocument()
   })
 
-  it('shows maintenance that runs now with its text, and times in 24 hours', async () => {
-    const m = { id: 'm1', start: now - 60, end: now + 3600, text: 'Switch swap in hall B', area: 'Hall B' }
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /status.json': status({ state: 'maintenance', maintenance_now: m, planned: [m] }) }).fn)
+  it('shows maintenance set by the crew, and times in 24 hours', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /status.json': status({ state: 'maintenance', since: now - 600 }) }).fn)
     const { container } = renderWithApp(<PublicStatus />, '/status')
     expect(await screen.findByText('Maintenance')).toBeInTheDocument()
-    expect(container.querySelector('#status-maintenance-now')).toHaveTextContent('Switch swap in hall B')
-    expect(screen.getByText('Planned maintenance')).toBeInTheDocument()
+    expect(screen.queryByText('Planned maintenance')).toBeNull()
     expect(container.textContent).not.toMatch(/\b(AM|PM)\b/)
   })
 

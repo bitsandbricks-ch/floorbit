@@ -13,7 +13,6 @@ import { useCan } from '@/api/queries'
 import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { PlannedMaintenance } from './status/PlannedMaintenance'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 
@@ -139,10 +138,9 @@ export default function NetworkStatus() {
                     {d.crew_recovered.map((a) => <AreaLine key={`back-${a.hall}-${a.block}`} a={a} />)}
                   </Stack>
                 )}
-                <Text size="xs" c="dimmed" mt="sm">{d.switch_names ? t('status.namesShown') : t('status.namesHidden')}</Text>
+                <Text size="xs" c="dimmed" mt="sm">{t('status.namesHidden')}</Text>
               </Paper>
             </SimpleGrid>
-            <PlannedMaintenance planned={d.planned ?? []} running={d.maintenance_now?.id ?? null} canSet={canSet} onChange={refresh} />
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h5" mb="xs">{t('status.updates')}</Title>
               {canSet && (

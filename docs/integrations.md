@@ -116,9 +116,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENTION_FLAPS` | `3` | link changes within ten minutes that count as flapping |
 | `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
 | `CABLE_AUTO` | `true` | draw a cable to every seat whose switch port is known ([cables.md](cables.md#cables-drawn-on-the-floor-plan)); also under Settings > Cabling |
-| `ATTENDEE_VIEW` | `false` | the public attendee view `/hall`, seats online or offline ([kiosk.md](kiosk.md#attendee-view)); also under Settings > Attendee pages |
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
-| `STATUS_SWITCH_NAMES` | `false` | name the switches that are down on `/status` |
 | `METRICS_ENABLED` | `false` | Prometheus metrics at `/api/metrics` ([metrics.md](metrics.md)); also under Settings > Prometheus metrics |
 | `SCHEDULE_PAGE` | `false` | the public schedule and countdown `/agenda` ([schedule.md](schedule.md)); also under Settings > Attendee pages |
 | `SPEEDTEST`, `SPEEDTEST_MAX_RUNNING`, `SPEEDTEST_TEST_MB`, `SPEEDTEST_SEAT_MINUTES`, `SPEEDTEST_MAX_MBPS` | on, 3, 250, 10, 1000 | the speed test on the seat help page and its limits ([speedtest.md](speedtest.md#limits)); also under Settings > Speed tests |

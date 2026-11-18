@@ -60,6 +60,16 @@ def test_dashboards_saved_as_one_tree_become_a_grid():
     assert old['sections'][0]['panels'][0]['node'] == {'pane': {'kind': 'empty'}}
 
 
+def test_the_status_page_and_hall_view_extras_are_dropped():
+    data = {'status_page': {'updates': [{'id': 'u'}], 'planned': [{'id': 'm'}]},
+            'app_settings': {'public.attendee_view': True, 'public.status_switch_names': True,
+                             'public.status_page': True},
+            'features': {'public_hall': False, 'replay': False}}
+    upgrades.apply(data)
+    assert data['status_page'] == {'updates': [{'id': 'u'}]}
+    assert data['app_settings'] == {'public.status_page': True} and data['features'] == {'replay': False}
+
+
 def test_steps_are_safe_to_run_twice():
     data = {'auth_users': {'ed': {'username': 'ed', 'role': 'editor'}},
             'seat_blocks': [{'id': 'a', 'group': 'g'}, {'id': 'b', 'group': 'g'}]}

@@ -198,8 +198,23 @@ def _no_seat_finder(data):
             data['app_settings'].pop(key, None)
 
 
+def _small_status_page(data):
+    """The status page lost planned maintenance and the switch-names option, and the attendee view
+    (``/hall``) went: drop what they kept."""
+    page = data.get('status_page')
+    if isinstance(page, dict):
+        page.pop('planned', None)
+    settings = data.get('app_settings')
+    if isinstance(settings, dict):
+        for key in ('public.attendee_view', 'public.status_switch_names'):
+            settings.pop(key, None)
+    features = data.get('features')
+    if isinstance(features, dict):
+        features.pop('public_hall', None)
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
-         _no_runbooks, _no_seat_finder)
+         _no_runbooks, _no_seat_finder, _small_status_page)
 CURRENT = len(STEPS)
 
 
