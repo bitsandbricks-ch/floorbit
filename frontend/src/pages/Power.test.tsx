@@ -60,6 +60,22 @@ describe('Electrics', () => {
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path.endsWith('/trip'))?.body).toEqual({ tripped: true }))
   })
 
+  it('asks in its own dialog before it removes a circuit', async () => {
+    const fake = fakeFetch({
+      'GET /api/auth/me': me, 'GET /api/power': overview({ can_edit: true }), 'GET /api/switches': [],
+      'DELETE /api/power/circuits/c1': { ok: true },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Power />)
+    const row = (await screen.findByText('A row 2')).closest('tr') as HTMLElement
+    fireEvent.click(within(row).getByRole('button', { name: 'Remove' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Remove A row 2?')).toBeInTheDocument()
+    expect(fake.calls.some((c) => c.method === 'DELETE')).toBe(false)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, go ahead' }))
+    await vi.waitFor(() => expect(fake.calls.some((c) => c.method === 'DELETE' && c.path === '/api/power/circuits/c1')).toBe(true))
+  })
+
   it('says so when the layer is off', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/power': overview({ enabled: false }), 'GET /api/switches': [] }).fn)
     renderWithApp(<Power />)
