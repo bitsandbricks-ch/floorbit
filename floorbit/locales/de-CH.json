@@ -589,6 +589,7 @@
  "A place is {\"x\": number, \"y\": number}.": "Ein Platz ist {\"x\": Zahl, \"y\": Zahl}.",
  "Send the places as {\"positions\": {switch: {\"x\", \"y\"}}}.": "Schicke die Plätze als {\"positions\": {Switch: {\"x\", \"y\"}}}.",
  "Floorbit keeps at most {} places.": "Floorbit speichert höchstens {} Plätze.",
+ "The places could not be saved.": "Die Plätze konnten nicht gespeichert werden.",
  "Floorbit keeps at most {} links.": "Floorbit speichert höchstens {} Links.",
  "Name the port at both ends, like Te1/1/1.": "Gib den Port an beiden Enden an, zum Beispiel Te1/1/1.",
  "No such link.": "Diesen Link gibt es nicht.",

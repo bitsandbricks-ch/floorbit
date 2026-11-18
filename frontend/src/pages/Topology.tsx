@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Badge, Box, Button, Drawer, Group, Menu, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title,
+  ActionIcon, Alert, Autocomplete, Badge, Box, Button, Drawer, Group, Menu, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { LinkSuggestion, SwitchLink, Topology as TopologyData, TopologyNode, TopologyUplink } from '@/api/types'
+import type { LinkSuggestion, SwitchLink, SwitchPort, Topology as TopologyData, TopologyNode, TopologyUplink } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -419,9 +419,9 @@ function LinkModal({ draft, data, onClose }: { draft: Draft; data: TopologyData;
       <Stack gap="sm">
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
           <Select label={t('topology.from')} data={switches} searchable value={form.a || null} onChange={(v) => set({ a: v ?? '' })} />
-          <TextInput label={t('topology.fromPort')} placeholder="Te1/1/1" value={form.a_port} onChange={(e) => set({ a_port: e.currentTarget.value })} />
+          <PortInput label={t('topology.fromPort')} placeholder="Te1/1/1" switchName={form.a} value={form.a_port} onChange={(v) => set({ a_port: v })} />
           <Select label={t('topology.to')} data={switches} searchable value={form.b || null} onChange={(v) => set({ b: v ?? '' })} />
-          <TextInput label={t('topology.toPort')} placeholder="Te1/0/1" value={form.b_port} onChange={(e) => set({ b_port: e.currentTarget.value })} />
+          <PortInput label={t('topology.toPort')} placeholder="Te1/0/1" switchName={form.b} value={form.b_port} onChange={(v) => set({ b_port: v })} />
           <Select label={t('topology.type')} clearable value={form.type || null} onChange={(v) => set({ type: v ?? '' })}
             data={data.types.map((v) => ({ value: v, label: t(`topology.types.${v}`) }))} />
           <Select label={t('topology.speed')} clearable value={form.speed || null} onChange={(v) => set({ speed: v ?? '' })}
@@ -435,6 +435,43 @@ function LinkModal({ draft, data, onClose }: { draft: Draft; data: TopologyData;
         </Group>
       </Stack>
     </Modal>
+  )
+}
+
+/** A port field that offers the switch's ports as the monitoring source reads them: free ones first,
+ *  each with its state, and the ones a link already uses with where that link goes. Typing any name
+ *  still works, for a switch that can't be read. */
+function PortInput({ label, placeholder, switchName, value, onChange }: {
+  label: string; placeholder: string; switchName: string; value: string; onChange: (v: string) => void
+}) {
+  const { t } = useTranslation()
+  const q = useQuery({
+    queryKey: [...qk.topology, 'ports', switchName],
+    queryFn: () => get<{ ports: SwitchPort[] }>(`/api/links/ports?switch=${encodeURIComponent(switchName)}`),
+    enabled: !!switchName, staleTime: 30_000,
+  })
+  const ports = q.data?.ports ?? []
+  const byName = new Map(ports.map((p) => [p.name, p]))
+  const free = ports.filter((p) => !p.used_by).map((p) => p.name)
+  const used = ports.filter((p) => p.used_by).map((p) => p.name)
+  const data = [
+    ...(free.length ? [{ group: t('topology.portsFree'), items: free }] : []),
+    ...(used.length ? [{ group: t('topology.portsUsed'), items: used }] : []),
+  ]
+  return (
+    <Autocomplete label={label} placeholder={placeholder} value={value} onChange={onChange} data={data} limit={200}
+      maxDropdownHeight={280} description={switchName && q.isSuccess && !ports.length ? t('topology.portsUnread') : undefined}
+      renderOption={({ option }) => {
+        const p = byName.get(option.value)
+        return (
+          <Group gap={6} wrap="nowrap" justify="space-between" style={{ width: '100%' }}>
+            <Text size="sm" ff="monospace">{option.value}</Text>
+            <Text size="xs" c="dimmed">
+              {p?.used_by ? t('topology.portUsedBy', { other: p.used_by }) : [t(`topology.state.${p?.state === 'up' || p?.state === 'down' ? p.state : 'unknown'}`), gbit(p?.speed_bps ?? null)].filter(Boolean).join(' · ')}
+            </Text>
+          </Group>
+        )
+      }} />
   )
 }
 

@@ -3,6 +3,8 @@
 - ``GET /topology``: the page.
 - ``GET /api/links``: the switches, every link with its live state, and LLDP neighbours no link explains.
 - ``POST /api/links``, ``PUT /api/links/<id>``, ``DELETE /api/links/<id>``: ``floorplan.edit``.
+- ``GET /api/links/ports?switch=<name>``: that switch's ports and which link uses each, for the port picker
+  (``floorplan.edit``).
 - ``PUT /api/links/layout`` ``{positions, replace}``, ``DELETE /api/links/layout``: where the boxes sit on
   the diagram, shared by everyone (``floorplan.edit``).
 """
@@ -11,6 +13,7 @@ from flask import Blueprint, g, jsonify, request
 from .. import audit, links, spa
 
 bp = Blueprint('topology', __name__)
+LAYOUT_ERROR = 'The places could not be saved.'
 
 
 @bp.route('/topology')
@@ -28,8 +31,15 @@ def save_layout():
     try:
         places = links.save_layout(request.get_json(silent=True) or {})
     except links.LinkError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        # A fixed text: the page only ever sends places it drew, so the detail helps nobody.
+        return jsonify({'error': LAYOUT_ERROR}), exc.status
     return jsonify({'layout': places})
+
+
+@bp.route('/api/links/ports', methods=['GET'])
+def switch_ports():
+    """``?switch=<name>``: the switch's ports for the link form's port picker (``floorplan.edit``)."""
+    return jsonify({'ports': links.ports_of(request.args.get('switch', ''))})
 
 
 @bp.route('/api/links/layout', methods=['DELETE'])
