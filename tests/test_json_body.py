@@ -49,3 +49,27 @@ def test_an_account_field_of_the_wrong_type_is_a_400(client, field, value):
 @pytest.mark.parametrize("value", [{"a": 1}, [1], 5])
 def test_an_api_token_role_of_the_wrong_type_is_a_400(client, value):
     assert client.post("/api/settings/api-tokens", json={"name": "Bot", "role": value}).status_code == 400
+
+
+def test_a_body_nested_too_deep_gets_400_not_500(client, anon_client):
+    # A megabyte of "[" made the parser itself run out of stack (RecursionError: a 500, a traceback
+    # in the log per request), signed in or not.
+    for c in (client, anon_client):
+        r = c.post("/api/seat-blocks", data="[" * 200000 + "]" * 200000, content_type="application/json")
+        assert r.status_code in (400, 401, 403)
+    r = client.post("/api/teams", data='{"a":' * 50000 + "1" + "}" * 50000, content_type="application/json")
+    assert r.status_code == 400 and r.get_json()["error"] == "The JSON is nested too deeply."
+    # Deep enough to parse but past the limit: saved, it could break every later save of the document.
+    deep = {"name": "Network"}
+    for _ in range(100):
+        deep = {"x": deep}
+    assert client.post("/api/teams", json={"name": "Desk", "extra": deep}).status_code == 400
+    r = client.post("/api/teams", json={"name": "Desk", "extra": deep}, headers={"Accept-Language": "de-CH"})
+    assert r.get_json()["error"] == "Das JSON ist zu tief verschachtelt."
+
+
+def test_ordinary_nesting_still_gets_through(client):
+    from floorbit.json_body import too_deep
+    nested = {"a": [{"b": [{"c": 1}]}]}
+    assert not too_deep(nested) and not too_deep(None) and not too_deep("x")
+    assert client.post("/api/teams", json={"name": "Network", "extra": nested}).status_code == 201
