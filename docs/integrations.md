@@ -58,6 +58,11 @@ listen on their own:
 | Variable | Default | |
 |---|---|---|
 | `LIVE_UPDATES_ENABLED` | `true` | |
+| `LIVE_MAX_STREAMS` | gunicorn's threads less 16 (48 when unknown) | open streams at once; streams without a sign-in get half |
+
+Each open stream holds one of gunicorn's threads while the tab is open. Past `LIVE_MAX_STREAMS`, a
+browser is asked to try again in 20 to 40 seconds (its pages still load and refresh, without live
+updates until then), so 16 threads stay free for page loads and the agent.
 
 The event bus is in-process. That matches how the app runs (`python app.py`, threaded). If it
 ever runs as several worker processes, `events.publish` is the one place to add Redis pub/sub.

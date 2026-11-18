@@ -181,8 +181,9 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ## Good to know
 
 - One process serves everything: the status monitor and the watchers live in it, so don't scale
-  the `floorbit` service. Each open browser tab holds one of 64 threads for live updates; for more
-  screens, add `GUNICORN_CMD_ARGS=--threads 200` to `.env`.
+  the `floorbit` service. Each open browser tab holds one of 64 threads for live updates (at most 48
+  at once, 16 stay free for everything else); for more screens, add `GUNICORN_CMD_ARGS=--threads 200`
+  to `.env`.
 - `docker compose logs -f floorbit` shows what it is doing; `/healthz` answers when it is up.
 - Set `TZ` in `.env` to the event's time zone (for example `TZ=Europe/Zurich`). Without it the
   container runs on UTC, and what the server works out by the clock itself is an hour or two

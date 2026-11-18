@@ -225,6 +225,43 @@ def test_the_stream_drops_who_and_where_for_readers_without_seats_view(app):
     assert 'player-one' not in msg and '192.0.2.7' not in msg and 'aa:bb:cc' not in msg
 
 
+def test_open_streams_are_capped_so_the_app_keeps_threads(app, monkeypatch):
+    monkeypatch.setenv('LIVE_MAX_STREAMS', '4')
+    open_ = []
+    for _ in range(2):   # anonymous ones get half the slots
+        gen = events.stream({}, private=False, anonymous=True)
+        next(gen)
+        open_.append(gen)
+    turned_away = list(events.stream({}, private=False, anonymous=True))
+    assert turned_away[0].startswith('retry: ') and int(turned_away[0].split()[1]) >= 20000
+    assert all('hello' not in part for part in turned_away)
+    for _ in range(2):   # signed-in ones get the rest
+        gen = events.stream({})
+        next(gen)
+        open_.append(gen)
+    assert 'busy' in ''.join(events.stream({}))
+    assert events.client_count() == 4
+    for gen in open_:
+        gen.close()
+    assert events.client_count() == 0
+    again = events.stream({}, anonymous=True)
+    assert next(again).startswith('retry: 5000')
+    again.close()
+
+
+def test_the_stream_cap_follows_gunicorn_threads(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['gunicorn', '--workers', '1', '--threads', '64', 'app:app'])
+    monkeypatch.delenv('GUNICORN_CMD_ARGS', raising=False)
+    assert events.max_streams() == 48
+    monkeypatch.setenv('GUNICORN_CMD_ARGS', '--threads=200')
+    assert events.max_streams() == 184
+    monkeypatch.setattr(sys, 'argv', ['gunicorn', '--threads', '8'])
+    monkeypatch.delenv('GUNICORN_CMD_ARGS')
+    assert events.max_streams() == 4
+    monkeypatch.setenv('LIVE_MAX_STREAMS', '10')
+    assert events.max_streams() == 10
+
+
 def test_discord_test_endpoint_needs_webhook(app):
     r = app.test_client().post('/api/integrations/discord/test')
     assert r.status_code == 400

@@ -13,7 +13,11 @@ since every pod runs those loops and the alert should go out once.
 import contextlib
 import itertools
 import json
+import os
 import queue
+import random
+import shlex
+import sys
 import threading
 import time
 
@@ -26,6 +30,38 @@ _ids = itertools.count(1)
 
 CLIENT_QUEUE_SIZE = 200
 KEEPALIVE_SECONDS = 15
+# Each open stream holds one of gunicorn's threads for as long as the tab is open. Without a cap,
+# 64 tabs (or one script opening 64 streams, the endpoint needs no sign-in) took every thread, and
+# the whole app, the agent's posts included, stopped answering. These are kept for everything else.
+RESERVED_THREADS = 16
+DEFAULT_STREAMS = 48       # when the thread count isn't known (the dev server)
+BUSY_RETRY = (20, 40)      # seconds a turned-away browser waits before it tries again
+_anonymous = [0]
+
+
+def _server_threads():
+    """gunicorn's --threads, from its command line or GUNICORN_CMD_ARGS; None when unknown."""
+    args = list(sys.argv[1:])
+    with contextlib.suppress(ValueError):
+        args += shlex.split(os.environ.get('GUNICORN_CMD_ARGS', ''))
+    found = None
+    for i, arg in enumerate(args):
+        value = None
+        if arg == '--threads' and i + 1 < len(args):
+            value = args[i + 1]
+        elif arg.startswith('--threads='):
+            value = arg.split('=', 1)[1]
+        if value is not None:
+            with contextlib.suppress(ValueError):
+                found = int(value)   # the last one wins, as in gunicorn
+    return found
+
+
+def max_streams():
+    """Open streams allowed at once (LIVE_MAX_STREAMS, else the threads less RESERVED_THREADS)."""
+    threads = _server_threads()
+    default = max(4, threads - RESERVED_THREADS) if threads else DEFAULT_STREAMS
+    return config.get_int('LIVE_MAX_STREAMS', default, minimum=1)
 
 
 def subscribe(event_type, callback, leader_only=False):
@@ -104,11 +140,28 @@ def scrub(value):
     return value
 
 
-def stream(hello=None, private=True):
-    """Generator for a Flask streaming response. ``private=False`` drops PERSONAL fields."""
+def _busy():
+    # A 200 that ends at once with a long retry: a browser reconnects by itself later, while an
+    # error status would make it give up on live updates until the page is reloaded.
+    yield f'retry: {random.randint(*BUSY_RETRY) * 1000}\n\n'
+    yield ': busy, too many open live-update streams\n\n'
+
+
+def stream(hello=None, private=True, anonymous=False):
+    """Generator for a Flask streaming response. ``private=False`` drops PERSONAL fields.
+    ``anonymous`` streams (no sign-in) get at most half the slots, so the crew still gets theirs."""
     q = queue.Queue(maxsize=CLIENT_QUEUE_SIZE)
+    # The slot is taken here, once the response is being sent, so a stream that never starts
+    # can't keep one.
+    cap = max_streams()
     with _lock:
-        _clients.add(q)
+        full = len(_clients) >= cap or (anonymous and _anonymous[0] >= max(1, cap // 2))
+        if not full:
+            _clients.add(q)
+            _anonymous[0] += anonymous
+    if full:
+        yield from _busy()
+        return
     try:
         yield 'retry: 5000\n\n'
         yield _format({'id': 0, 'type': 'hello', 'ts': time.time(), 'origin': None,
@@ -123,3 +176,4 @@ def stream(hello=None, private=True):
     finally:
         with _lock:
             _clients.discard(q)
+            _anonymous[0] -= anonymous
