@@ -21,8 +21,9 @@ from .store import load_data, save_data
 
 KEY = 'credentials'
 MAX = 100
-SCOPE_RE = re.compile(r'^[A-Za-z0-9*?][A-Za-z0-9*?._-]{0,79}$')
-USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}$')
+# \Z, not $: $ also matches before a final newline, and the username goes to a switch.
+SCOPE_RE = re.compile(r'^[A-Za-z0-9*?][A-Za-z0-9*?._-]{0,79}\Z')
+USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 DEFAULT = '*'
 _lock = threading.Lock()
 

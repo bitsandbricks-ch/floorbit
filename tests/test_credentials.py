@@ -82,6 +82,8 @@ def test_set_list_replace_and_remove_never_show_the_password(client):
     assert "hunter22" not in json.dumps(listed) and "hunter22" not in stored(store.DATA_FILE)
     url = "/api/settings/credentials/ssh"
     assert client.put(url, json={"scope": "a b", "username": "u", "password": "p"}).status_code == 400
+    # $ let a final newline through to the switch login; \Z doesn't.
+    assert client.put(url, json={"scope": "*", "username": "ops\n", "password": "p"}).status_code == 400
     assert client.put(url, json={"scope": "*", "username": "u", "password": ""}).status_code == 400
     assert client.delete(f"/api/settings/credentials/{listed[0]['id']}").get_json() == {"ok": True}
     assert client.get("/api/settings/credentials").get_json()["credentials"] == []

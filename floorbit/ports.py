@@ -20,8 +20,9 @@ from .plugins import PluginError
 from .store import load_data
 
 # Interface names as switches print them: Gi1/0/3, ethernet1/1/12, 1/1/5, xe-0/0/1.0, A12, Port-channel1.
-PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}$')
-USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}$')
+# \Z, not $: $ also matches before a final newline, and these values go to a switch.
+PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}\Z')
+USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 COOLDOWN = 30            # seconds before the same port can be bounced again
 LOGIN_FAILURES = 5       # failed switch logins per account ...
 LOGIN_WINDOW = 900       # ... in this many seconds, then a pause

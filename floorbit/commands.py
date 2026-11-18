@@ -24,6 +24,8 @@ READ_WORDS = ('show', 'display', 'ping', 'traceroute', 'get')
 ID_RE = re.compile(r'^[a-z][a-z0-9_-]{1,31}$')
 # Output pipes that write a file on the switch (IOS redirect/append/tee, Junos save): not reading.
 WRITE_PIPE = re.compile(r'\|\s*(redirect|append|tee|save)\b', re.IGNORECASE)
+# NX-OS runs "show clock ; reload" as two commands: a show template keeps to one per line.
+CHAINED = re.compile(r';')
 MAX_SWITCHES = 20
 MAX_COMMANDS = 10
 MAX_OUTPUT = 64 * 1024       # characters kept per switch
@@ -89,10 +91,11 @@ def check_template(body):
     if not commands or len(commands) > MAX_COMMANDS:
         raise CommandError(f'A template has 1 to {MAX_COMMANDS} commands.')
     if kind == 'show':
-        bad = [c for c in commands if c.split()[0].lower() not in READ_WORDS or WRITE_PIPE.search(c)]
+        bad = [c for c in commands
+               if c.split()[0].lower() not in READ_WORDS or WRITE_PIPE.search(c) or CHAINED.search(c)]
         if bad:
-            raise CommandError(f'"{bad[0]}" doesn\'t only read (it must start with {", ".join(READ_WORDS)} and not '
-                               'write its output to a file): make it a change template.')
+            raise CommandError(f'"{bad[0]}" doesn\'t only read (it must start with {", ".join(READ_WORDS)}, not '
+                               'write its output to a file and not chain commands with ;): make it a change template.')
     return {'id': tid, 'kind': kind, 'label': label, 'commands': commands}
 
 
