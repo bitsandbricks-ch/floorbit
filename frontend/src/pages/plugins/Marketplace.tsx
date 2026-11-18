@@ -18,6 +18,16 @@ export type MarketVersion = {
   why: string
 }
 
+/** What a version may touch, from its manifest (floorbit/plugins/__init__.py, ``touches``). */
+export type MarketTouches = {
+  uses: string[]
+  permissions: string[]
+  secrets: number
+  sends: Record<string, 'aggregate' | 'device'>
+  hall_actions: string[]
+  credentials: string[]
+}
+
 export type MarketPlugin = {
   id: string
   name: string
@@ -36,6 +46,7 @@ export type MarketPlugin = {
   best: string | null
   versions: MarketVersion[]
   listed: boolean
+  touches?: MarketTouches | null
 }
 
 export type MarketSource = { url: string; official: boolean; name: string; generated: string; error: string }
@@ -43,6 +54,39 @@ export type MarketCatalog = { sources: MarketSource[]; plugins: MarketPlugin[] }
 
 const KEY = ['marketplace'] as const
 const TRUST_COLOR = { official: 'bit', community: 'warn' } as const
+
+/** "What it may touch", before it is installed (docs/plugin-spec.md, "Permissions it asks for"). */
+export function Touches({ touches }: { touches: MarketTouches }) {
+  const { t } = useTranslation()
+  const sends = Object.entries(touches.sends)
+  const rows: [string, string][] = [
+    ['areas', touches.uses.map((u) => t(`marketplace.area.${u}`, { defaultValue: u })).join(', ')],
+    ['permissions', touches.permissions.map((p) => t(`teams.permission.${p.replace('.', '_')}`, { defaultValue: p })).join('; ')],
+    ['sends', sends.map(([kind, how]) => t(`marketplace.privacy.${how}`, { kind })).join(', ')],
+    ['hallActions', touches.hall_actions.join(', ')],
+    ['credentials', touches.credentials.map((c) => t(`marketplace.credential.${c}`, { defaultValue: c })).join(', ')],
+    ['secrets', touches.secrets ? t('marketplace.secretCount', { count: touches.secrets }) : ''],
+  ]
+  return (
+    <Paper withBorder radius="md" p="xs" bg="var(--mantine-color-body)" component="dl" aria-label={t('marketplace.touches')} m={0}>
+      <Text size="xs" fw={600} mb={4}>
+        {t('marketplace.touches')}
+      </Text>
+      {rows
+        .filter(([, value]) => value)
+        .map(([key, value]) => (
+          <Group key={key} gap={6} wrap="nowrap" align="flex-start">
+            <Text component="dt" size="xs" c="dimmed" w={200} style={{ flexShrink: 0 }}>
+              {t(`marketplace.touch.${key}`)}
+            </Text>
+            <Text component="dd" size="xs" m={0}>
+              {value}
+            </Text>
+          </Group>
+        ))}
+    </Paper>
+  )
+}
 
 function Entry({ plugin }: { plugin: MarketPlugin }) {
   const { t } = useTranslation()
@@ -120,6 +164,7 @@ function Entry({ plugin }: { plugin: MarketPlugin }) {
           </Text>
         )}
         {plugin.builtin && <Text size="sm">{t('marketplace.builtin')}</Text>}
+        {!plugin.builtin && plugin.touches && <Touches touches={plugin.touches} />}
         {plugin.withdrawn && (
           <Alert color="down" role="alert">
             {t('marketplace.withdrawn', { v: plugin.installed, why: plugin.withdrawn })}

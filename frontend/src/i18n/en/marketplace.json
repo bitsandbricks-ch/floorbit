@@ -23,5 +23,50 @@
   "removed": "{{name}} is removed.",
   "builtin": "This one ships with this Floorbit: nothing to install.",
   "withdrawn": "Version {{v}} was withdrawn: {{why}}. Update or go back to another version.",
-  "unlisted": "No source lists this plugin any more. It keeps running; you can remove it."
+  "unlisted": "No source lists this plugin any more. It keeps running; you can remove it.",
+  "touches": "What it may touch",
+  "touch": {
+    "areas": "Areas",
+    "permissions": "Needs",
+    "sends": "Sends from the hall",
+    "hallActions": "Can change in the hall",
+    "credentials": "Logs in to devices with",
+    "secrets": "Secrets"
+  },
+  "privacy": {
+    "aggregate": "{{kind}} (hall-wide numbers)",
+    "device": "{{kind}} (about the event's devices)"
+  },
+  "credential": {
+    "ssh": "SSH",
+    "snmp_v2c": "SNMP v2c",
+    "snmp_v3": "SNMP v3",
+    "api": "API tokens",
+    "http": "web logins",
+    "any": "any credential"
+  },
+  "secretCount_one": "{{count}} secret setting (write-only)",
+  "secretCount_other": "{{count}} secret settings (write-only)",
+  "area": {
+    "settings": "its own settings",
+    "actions": "buttons that run its code",
+    "widgets": "dashboard tiles",
+    "endpoints": "read-only data for other tools",
+    "hooks": "runs when something changes",
+    "http": "outgoing web requests",
+    "storage": "a small private store",
+    "inventory": "adds devices to the inventory",
+    "mapping": "feeds the seat mapping",
+    "monitoring": "live switch status",
+    "health": "checks on the health wall",
+    "ports": "acts on switch ports",
+    "security": "security findings",
+    "power": "power readings",
+    "dns": "DNS lookups (hall-wide counts)",
+    "wifi": "Wi-Fi access points",
+    "logs": "keeps and searches the syslog",
+    "brackets": "tournament brackets",
+    "context_menu": "right-click entries on the floor plan",
+    "agent": "runs a part on the local agent"
+  }
 }

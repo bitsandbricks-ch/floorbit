@@ -23,5 +23,50 @@
   "removed": "{{name}} ist entfernt.",
   "builtin": "Dieses ist in diesem Floorbit eingebaut: nichts zu installieren.",
   "withdrawn": "Version {{v}} wurde zurückgezogen: {{why}}. Aktualisiere oder geh auf eine andere Version zurück.",
-  "unlisted": "Keine Quelle listet dieses Plugin mehr. Es läuft weiter; du kannst es entfernen."
+  "unlisted": "Keine Quelle listet dieses Plugin mehr. Es läuft weiter; du kannst es entfernen.",
+  "touches": "Was es darf",
+  "touch": {
+    "areas": "Bereiche",
+    "permissions": "Braucht",
+    "sends": "Sendet aus der Halle",
+    "hallActions": "Kann in der Halle ändern",
+    "credentials": "Meldet sich bei Geräten an mit",
+    "secrets": "Geheimnisse"
+  },
+  "privacy": {
+    "aggregate": "{{kind}} (hallenweite Zahlen)",
+    "device": "{{kind}} (über die Geräte des Events)"
+  },
+  "credential": {
+    "ssh": "SSH",
+    "snmp_v2c": "SNMP v2c",
+    "snmp_v3": "SNMP v3",
+    "api": "API-Tokens",
+    "http": "Web-Logins",
+    "any": "jedem Zugang"
+  },
+  "secretCount_one": "{{count}} geheime Einstellung (nur schreibbar)",
+  "secretCount_other": "{{count}} geheime Einstellungen (nur schreibbar)",
+  "area": {
+    "settings": "eigene Einstellungen",
+    "actions": "Knöpfe, die seinen Code ausführen",
+    "widgets": "Dashboard-Kacheln",
+    "endpoints": "lesbare Daten für andere Tools",
+    "hooks": "läuft, wenn sich etwas ändert",
+    "http": "ausgehende Web-Anfragen",
+    "storage": "einen kleinen eigenen Speicher",
+    "inventory": "fügt Geräte zum Inventar hinzu",
+    "mapping": "speist die Platzzuordnung",
+    "monitoring": "Live-Status der Switches",
+    "health": "Prüfungen auf der Health-Wand",
+    "ports": "schaltet Switch-Ports",
+    "security": "Sicherheitsbefunde",
+    "power": "Strommesswerte",
+    "dns": "DNS-Abfragen (nur hallenweite Zahlen)",
+    "wifi": "WLAN-Access-Points",
+    "logs": "behält und durchsucht das Syslog",
+    "brackets": "Turnierbäume",
+    "context_menu": "Einträge im Rechtsklick-Menü des Hallenplans",
+    "agent": "läuft teilweise auf dem lokalen Agent"
+  }
 }

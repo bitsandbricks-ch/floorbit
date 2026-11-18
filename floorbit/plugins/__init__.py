@@ -69,6 +69,8 @@ AREAS = {
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
     'agent': 'runs a part of it on the local agent, in the hall (agent.py; docs/agent-plugins.md)',
 }
+# Device credential kinds an agent part may ask for (floorbit/plugins/agent.py, CREDENTIAL_KINDS).
+CREDENTIAL_KINDS_ALL = ('ssh', 'snmp_v2c', 'snmp_v3', 'api', 'http')
 # What a context_menu entry can be on, and the action parameter that carries the target.
 MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
@@ -134,6 +136,10 @@ MANIFEST_MAX_BYTES = 256 * 1024
 # plugin.py runs when it is loaded; one that doesn't finish (a loop at import, a network call)
 # is given up on so Floorbit still starts.
 IMPORT_TIMEOUT = 15
+# A plugin's own German (locales/de-CH.json): {"English text": "German text"}.
+LOCALE_FILE = ('locales', 'de-CH.json')
+LOCALE_MAX_BYTES = 256 * 1024
+LOCALE_MAX_TEXTS = 2000
 # Tests set this to run hooks in the caller's thread, so no hook outlives its test.
 HOOKS_INLINE = False
 # plugins.json is read for every "is it on?": keep what was read this long (writes refresh it).
@@ -148,6 +154,7 @@ class Spec:
     manifest: dict = field(default_factory=dict)
     module: object = None
     error: str = ''
+    german: tuple = None     # its locales/de-CH.json, compiled (floorbit.i18n.compile_texts)
 
     @property
     def name(self):
@@ -286,6 +293,42 @@ def validate(m):
     return ''
 
 
+def touches(m):
+    """What a plugin may touch, from its (validated) manifest: what the Marketplace shows before it
+    is installed (docs/plugin-spec.md, "Permissions it asks for")."""
+    agent = m.get('agent') if 'agent' in (m.get('uses') or []) and isinstance(m.get('agent'), dict) else {}
+    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints')
+                   for i in m.get(kind) or [] if isinstance(i, dict) and i.get('permission')}
+    targets = agent.get('targets') if isinstance(agent.get('targets'), dict) else None
+    return {
+        'uses': [u for u in m.get('uses') or [] if u in AREAS],
+        'permissions': sorted(permissions),
+        'secrets': sum(1 for f in m.get('settings') or [] if isinstance(f, dict) and f.get('type') == 'secret'),
+        'sends': {str(k): (v or {}).get('privacy', 'aggregate') for k, v in (agent.get('sends') or {}).items()},
+        'hall_actions': list(agent.get('actions') or []),
+        'credentials': (list(targets.get('credentials') or ['any']) if targets else []),
+    }
+
+
+def clean_touches(raw):
+    """``touches`` as an index lists it, cut to what Floorbit shows; None when there is none."""
+    if not isinstance(raw, dict):
+        return None
+    names = re.compile(r'^[a-z][a-z0-9_.]{0,59}$')
+
+    def listed(key, allowed=None):
+        items = raw.get(key) if isinstance(raw.get(key), list) else []
+        return [str(i) for i in items[:40] if names.match(str(i)) and (allowed is None or i in allowed)]
+    from auth.roles import PERMISSIONS
+    sends = raw.get('sends') if isinstance(raw.get('sends'), dict) else {}
+    return {'uses': listed('uses', AREAS), 'permissions': listed('permissions', PERMISSIONS),
+            'secrets': max(0, min(int(raw.get('secrets') or 0), 99)) if str(raw.get('secrets') or 0).isdigit() else 0,
+            'sends': {str(k): v for k, v in list(sends.items())[:40]
+                      if names.match(str(k)) and v in ('aggregate', 'device')},
+            'hall_actions': listed('hall_actions'),
+            'credentials': listed('credentials', (*CREDENTIAL_KINDS_ALL, 'any'))}
+
+
 def _check_menu(m):
     """context_menu entries: an action of the plugin, on seats and/or switches, which takes the target."""
     entries = m.get('context_menu') or []
@@ -350,6 +393,32 @@ def _check_methods(spec):
     return ''
 
 
+def _load_german(spec, path):
+    """Read and check the plugin's locales/de-CH.json into spec.german. An error message or ''."""
+    import json
+
+    from .. import i18n
+    f = path.joinpath(*LOCALE_FILE)
+    if not f.is_file():
+        return ''
+    where = '/'.join(LOCALE_FILE)
+    try:
+        if f.stat().st_size > LOCALE_MAX_BYTES:
+            return f'{where} is larger than {LOCALE_MAX_BYTES // 1024} KB'
+        texts = json.loads(f.read_text(encoding='utf-8'))
+    except (OSError, ValueError) as exc:
+        return f'{where}: {exc}'
+    if (not isinstance(texts, dict) or len(texts) > LOCALE_MAX_TEXTS
+            or not all(isinstance(k, str) and isinstance(v, str) and len(k) <= 2000 and len(v) <= 2000
+                       for k, v in texts.items())):
+        return f'{where}: an object of up to {LOCALE_MAX_TEXTS} "English": "German" texts'
+    for english, german in texts.items():
+        if english.count('{}') != len(re.findall(r'\{\d*\}', german)):
+            return f'{where}: {english!r} and its German have a different number of {{}}'
+    spec.german = i18n.compile_texts(texts)
+    return ''
+
+
 def _load(path, trust, current_version):
     import importlib.util
     import sys
@@ -379,6 +448,9 @@ def _load(path, trust, current_version):
     ok, why = compatible(spec.manifest.get('floorbit'), current_version)
     if not ok:
         spec.error = why
+        return spec
+    spec.error = _load_german(spec, path)
+    if spec.error:
         return spec
     py = path / 'plugin.py'
     if py.is_file():
@@ -620,6 +692,40 @@ class Registry:
     def log(self, plugin_id, line):
         self.logs.add(plugin_id, line)
 
+    def text(self, spec, text, lang):
+        """One of the plugin's texts in ``lang``: from its own locales/de-CH.json, else from
+        Floorbit's catalog (shared words: "Up", "Down"), else as it is."""
+        from .. import i18n
+        if not isinstance(text, str) or not lang or lang == 'en':
+            return text
+        if spec is not None and spec.german:
+            german = i18n.translate_in(text, lang, spec.german, fallback=False)
+            if german is not None:
+                return german
+        return i18n.translate(text, lang)
+
+    def settings_texts(self, sections, fields, accept_language):
+        """The settings page's sections and fields with the plugins' labels, help and placeholders
+        in the request's language (copies; Floorbit's own ones are left to the page)."""
+        from .. import i18n
+        lang = i18n.language(accept_language)
+        if lang == 'en':
+            return sections, fields
+
+        def spec_of(section_id):
+            return self.specs.get(section_id[7:]) if str(section_id).startswith('plugin-') else None
+        out_sections = [({**s, 'title': f"Plugin: {self.text(spec_of(s['id']), spec_of(s['id']).name, lang)}",
+                          'description': self.text(spec_of(s['id']), s.get('description'), lang)}
+                         if spec_of(s['id']) else s) for s in sections]
+        out_fields = []
+        for f in fields:
+            spec = spec_of(f.get('section', ''))
+            if spec is not None:
+                f = {**f, **{k: self.text(spec, f[k], lang) for k in ('label', 'help', 'placeholder')
+                             if isinstance(f.get(k), str)}}
+            out_fields.append(f)
+        return out_sections, out_fields
+
     def require(self, spec, area):
         if area not in spec.uses:
             raise PluginError(f'{spec.name} uses {area} without listing it under uses: in plugin.yaml')
@@ -788,23 +894,27 @@ class Registry:
         except Exception as exc:  # noqa: BLE001  # a worker must outlive any hook
             self.log(spec.id, f'hook {event} -> {action} failed: {type(exc).__name__}')
 
-    def as_list(self):
+    def as_list(self, lang='en'):
         out = []
         for spec in self.specs.values():
+            def t(text, spec=spec):
+                return self.text(spec, text, lang)
             out.append({
-                'id': spec.id, 'name': spec.name, 'version': str(spec.manifest.get('version', '')),
-                'description': spec.manifest.get('description', ''), 'trust': spec.trust,
+                'id': spec.id, 'name': t(spec.name), 'version': str(spec.manifest.get('version', '')),
+                'description': t(spec.manifest.get('description', '')), 'trust': spec.trust,
                 'author': spec.manifest.get('author', ''), 'homepage': spec.manifest.get('homepage', ''),
                 'uses': [{'id': u, 'label': AREAS.get(u, u)} for u in spec.uses if u in AREAS],
                 'enabled': self.enabled(spec), 'error': spec.error,
                 'settings_section': (spec.manifest.get('core_settings') or
                                      (f'plugin-{spec.id}' if spec.items('settings') and not spec.error else None)),
                 'default_enabled': bool(spec.manifest.get('default_enabled')),
-                'actions': [{k: a.get(k) for k in ('id', 'label', 'role', 'permission', 'danger', 'help')}
+                'actions': [{**{k: a.get(k) for k in ('id', 'role', 'permission', 'danger')},
+                             'label': t(a.get('label')), 'help': t(a.get('help'))}
                             for a in spec.items('actions')],
-                'widgets': [{k: w.get(k) for k in ('id', 'label', 'size', 'refresh', 'role', 'permission')}
+                'widgets': [{**{k: w.get(k) for k in ('id', 'size', 'refresh', 'role', 'permission')},
+                             'label': t(w.get('label'))}
                             for w in spec.items('widgets')],
-                'endpoints': [{'id': e['id'], 'label': e.get('label'),
+                'endpoints': [{'id': e['id'], 'label': t(e.get('label')),
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}
                               for e in spec.items('endpoints')],
                 'hooks': [{'events': h['events'], 'action': h['action']} for h in spec.items('hooks')],

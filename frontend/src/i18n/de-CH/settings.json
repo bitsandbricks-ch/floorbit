@@ -25,6 +25,7 @@
   "invalid": "Kein gültiger Wert",
   "secretSet": "•••••••• (gesetzt, tippen zum Ersetzen)",
   "secretUnset": "Nicht gesetzt",
+  "secretUnreadable": "Gespeichert, lässt sich aber mit dem aktuellen Geheimschlüssel nicht öffnen. Gib es neu ein.",
   "derived": "Abgeleitet",
   "chooseImage": "Bild wählen…",
   "removeImage": "Entfernen",

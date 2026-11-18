@@ -57,6 +57,12 @@ def catalog(files=('de-CH.json',)):
     for name in files:
         with open(os.path.join(HERE, name), encoding='utf-8') as f:
             texts.update(json.load(f))
+    return compile_texts(texts)
+
+
+def compile_texts(texts):
+    """(exact, patterns) for ``{"English": "German"}``, as ``catalog`` builds them: also used for a
+    plugin's own ``locales/de-CH.json`` (floorbit/plugins/__init__.py)."""
     exact, patterns = {}, []
     for english, german in texts.items():
         if english.startswith('//'):
@@ -88,7 +94,15 @@ def translate(text, lang, files=('de-CH.json',)):
     """``text`` in ``lang`` ('de-CH', 'de', or anything else for English as it is)."""
     if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
         return text
-    exact, patterns = catalog(files)
+    return translate_in(text, lang, catalog(files))
+
+
+def translate_in(text, lang, compiled, fallback=True):
+    """``text`` in ``lang`` from one compiled catalog. ``fallback``: English when it has no German;
+    else None, so the caller can try another catalog."""
+    if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
+        return text
+    exact, patterns = compiled
     german = exact.get(text)
     if german is None:
         for pattern, target in patterns:
@@ -97,7 +111,7 @@ def translate(text, lang, files=('de-CH.json',)):
                 german = _fill(target, m.groups())
                 break
     if german is None:
-        return text
+        return text if fallback else None
     return german if lang.lower() in ('de-ch', 'de-li') else to_germany(german)
 
 
