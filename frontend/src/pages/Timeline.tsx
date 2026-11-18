@@ -34,7 +34,7 @@ function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
         {clockSeconds(e.t, lang)}
       </Text>
       <span className="fb-timeline-dot" style={{ background: e.severity ? SEVERITY_COLOR[e.severity] : 'var(--color-line)' }} />
-      <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" w={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>
+      <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" miw={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>
       <div style={{ minWidth: 0 }}>
         <Text size="sm" fw={500} style={{ overflowWrap: 'anywhere' }}>
           {e.title}{e.fields?.length ? ` (${fieldsText(t, e.area, e.fields)})` : ''}

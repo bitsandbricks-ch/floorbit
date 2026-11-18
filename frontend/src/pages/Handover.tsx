@@ -26,12 +26,13 @@ function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
   const where = i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
     : i.where.kind === 'circuit' ? t('incidents.circuit', { name: i.where.name }) : t('incidents.switch', { name: i.where.name })
   return (
-    <Group justify="space-between" wrap="nowrap" align="flex-start">
-      <Stack gap={2} style={{ minWidth: 0 }}>
+    // On a phone the badges move under the title instead of squeezing it and themselves.
+    <Group justify="space-between" align="flex-start" gap="xs">
+      <Stack gap={2} style={{ minWidth: 0, flex: '1 1 12em' }}>
         <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{incidentTitle(i.title, t)}</Text>
         <Text size="sm" c="dimmed">{where}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
       </Stack>
-      <Group gap={4} wrap="nowrap">
+      <Group gap={4}>
         {i.match && <Badge variant="light" color="warn" tt="none">{i.match}</Badge>}
         {isWaiting(i, now) && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
         <Badge variant="light" color={i.status === 'open' ? 'down' : i.status === 'fixed' ? 'up' : 'trace'} tt="none">

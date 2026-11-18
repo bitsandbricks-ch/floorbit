@@ -86,6 +86,10 @@
 .mantine-ActionIcon-root:focus-visible,
 .mantine-Anchor-root:focus-visible { box-shadow: var(--ui-focus); outline: none; }
 .mantine-Badge-root { font-size: var(--fs-sm); letter-spacing: 0.02em; }
+/* A badge that gets squeezed ("Wartet seit 4 Std. 6 Min." next to a title on a phone) breaks
+   between its words instead of being cut to "Wartet sei…". */
+.mantine-Badge-root { height: auto; min-height: var(--badge-height); max-width: 100%; }
+.mantine-Badge-label { white-space: normal; line-height: 1.2; padding-block: 2px; min-width: min-content; }
 .mantine-Tooltip-tooltip { font-size: var(--fs-sm); background: var(--color-fg); color: var(--color-ink); border-radius: var(--ui-option-radius); padding: 5px 8px; }
 .mantine-Modal-content, .mantine-Drawer-content { background: var(--color-surface); border: var(--ui-pop-border); }
 .mantine-Modal-content { border-radius: var(--radius-card); box-shadow: var(--ui-pop-shadow); }
