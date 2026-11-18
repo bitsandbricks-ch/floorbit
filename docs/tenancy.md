@@ -1,14 +1,18 @@
 # Tenants and events
 
-Floorbit is getting ready to run several events, and on a hosted platform several organisations
-(issue #466). This page says how state is split up. Today it changes nothing for an install: there
-is one tenant with one live event, and every document is where it always was.
+Floorbit runs several events, and on a hosted platform several organisations (issue #466). This
+page says how state is split up.
+
+Every Floorbit is a platform with at least one tenant, `default`. A self-hosted install is simply a
+platform nobody added a second tenant to: it runs the same code as a hosted one, and nothing about
+tenants shows until there are two. On the upgrade nothing moves: the default tenant keeps its
+documents where every install always kept them.
 
 ## The model
 
 | Level | What it is | Where its documents live |
 | --- | --- | --- |
-| Tenant | A club or organisation | The state folder (`/app/state` in Docker) |
+| Tenant | A club or organisation | `default`: the state folder (`/app/state` in Docker). Others: `tenants/<id>/` |
 | Event | One LAN party the tenant runs | The first event: the state folder too. Later events: `event-data/<id>/` |
 
 **Tenant documents:** accounts, roles, teams, API tokens, sign-in providers, settings and the look,
@@ -84,17 +88,27 @@ Into an existing event, `mode` is `merge` (the default: things with the same id 
 copy, the target's others stay) or `replace` (the part becomes the source's). `"preview": true`
 answers what would change per part (`added`, `changed`, `removed`) without saving.
 
-## Hosted: one tenant per process
+## One tenant per process
 
-On a hosted platform each tenant (club) runs its own Floorbit process: the same image with
-`FLOORBIT_TENANT=<name>` (lower-case letters, digits and `-`, at most 40). The processes share one
+Each Floorbit process serves one tenant: the one named by `FLOORBIT_TENANT` (lower-case letters,
+digits and `-`, at most 40), else `default`. A self-hosted install doesn't set it. On a hosted
+platform each tenant (club) runs its own process from the same image; the processes share one
 database (`FLOORBIT_DATABASE_URL`, Postgres) and one Redis, and keep apart by name:
 
-| What | Self-hosted | `FLOORBIT_TENANT=club-a` |
+| What | `default` (self-hosted) | `FLOORBIT_TENANT=club-a` |
 | --- | --- | --- |
 | Tenant documents | `data.json`, `tenant.json`, ... | `tenants/club-a/data.json`, `tenants/club-a/tenant.json`, ... |
 | Event documents | `event-data/<id>/...` | `tenants/club-a/event-data/<id>/...` |
-| Redis keys and channels | as they are (`arp:...`, `floorbit:stats`) | `club-a:arp:...`, `club-a:floorbit:stats` |
+| Redis keys and channels | `default:arp:...`, `default:floorbit:stats` | `club-a:arp:...`, `club-a:floorbit:stats` |
+
+The default tenant's folder is the state folder itself, so the other tenants' folders sit inside
+it. Its code never reaches into them: document listings read one folder level, and every document
+it opens has its own name. Redis only holds a cache, so the prefix the default tenant got on the
+upgrade costs a cache that fills again within a minute.
+
+**How a request finds its tenant:** by the process it reaches. The platform's ingress sends each
+tenant's host name (`club-a.floor.example.com`) to that tenant's processes, so a request never
+names a tenant itself and can't ask for another one.
 
 Everything a tenant sets up is its own: accounts and roles, settings and the look (name, logo,
 colours, Discord), the public status page, the check-in portal, plugins and local agents. Each
@@ -102,8 +116,7 @@ tenant reaches its Floorbit under its own host name (`club-a.floor.example.com`,
 platform's ingress), and its agent connects there. The flow collector of a tenant needs the same
 `FLOORBIT_TENANT`.
 
-A wrong `FLOORBIT_TENANT` stops Floorbit at start. Without it, nothing changes: a self-hosted
-install is its own single tenant.
+A wrong `FLOORBIT_TENANT` stops Floorbit at start.
 
 ### Adding a tenant
 
@@ -115,7 +128,8 @@ flask --app app tenants add club-b --name "Club B" --url https://club-b.floor.ex
 flask --app app tenants list
 ```
 
-The list of tenants is `platform.json`, beside `tenants/`. `--admin` adds the tenant's first admin
+The list of tenants is `platform.json`, beside `tenants/`. Floorbit writes it with the default
+tenant on its first start; the default tenant is on the list even before that. `--admin` adds the tenant's first admin
 account (the password is asked for); without it the new tenant opens on its first-run setup.
 
 ### People in several tenants
@@ -124,7 +138,8 @@ A person has one account in each tenant, with that tenant's role, so a lead in o
 viewer in another. Two accounts are the same person when they are linked to the same outside login:
 the same Discord account, or the same subject at the same OIDC issuer. Usernames and passwords never
 link accounts. Such a person finds their other tenants in the account menu (bottom of the sidebar,
-"Your other clubs"), which opens the other tenant's address; signing in there uses the same login.
+"Your other clubs", shown once the platform has more than one tenant), which opens the other
+tenant's address; signing in there uses the same login.
 `GET /api/tenant/mine` answers the same list.
 
 ## For developers

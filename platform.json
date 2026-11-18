@@ -1,0 +1,9 @@
+{
+  "tenants": [
+    {
+      "id": "default",
+      "name": "",
+      "url": ""
+    }
+  ]
+}

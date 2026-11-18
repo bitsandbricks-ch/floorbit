@@ -172,4 +172,4 @@ def mine():
     auth = current_app.extensions.get('auth')
     user = current_user()
     record = auth.users.get(user['username']) if auth and auth.enabled and user and not user.get('api_token') else None
-    return jsonify({'here': store.hosted_tenant(), 'tenants': hosting.memberships(record)})
+    return jsonify({'here': store.current_tenant(), 'tenants': hosting.memberships(record)})

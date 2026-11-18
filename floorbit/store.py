@@ -381,7 +381,7 @@ def unwritable(path=None):
 #
 # The event folder is None unless a request or a ``using`` block picks one: then it is the
 # tenant's live event (``floorbit.tenancy``), which is what background workers follow.
-_tenant_dir = contextvars.ContextVar('floorbit_tenant_dir', default='')
+_tenant_dir = contextvars.ContextVar('floorbit_tenant_dir', default=None)
 _event_dir = contextvars.ContextVar('floorbit_event_dir', default=None)
 live_event_dir = None    # set by floorbit.tenancy: () -> the live event's folder
 
@@ -390,30 +390,38 @@ def state_folder():
     return os.path.dirname(os.path.abspath(DATA_FILE))
 
 
-# Hosted Floorbit runs one process per tenant (docs/tenancy.md): FLOORBIT_TENANT names it, and its
-# documents live in tenants/<name>/ of a state folder or database the tenants share.
+# Every install serves exactly one tenant per process (docs/tenancy.md): FLOORBIT_TENANT names it,
+# and without it the process serves the tenant called ``default``. A self-hosted install is the
+# default tenant of its own platform, so it runs the same code as a hosted one.
 TENANT_ENV = 'FLOORBIT_TENANT'
+DEFAULT_TENANT = 'default'
 TENANTS_FOLDER = 'tenants'
 _TENANT_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}$')
 
 
-def hosted_tenant():
-    """The tenant this process serves on a hosted platform, or None on a self-hosted install."""
-    name = (os.environ.get(TENANT_ENV) or '').strip()
-    if not name:
-        return None
+def current_tenant():
+    """The tenant this process serves: FLOORBIT_TENANT, else ``default``."""
+    name = (os.environ.get(TENANT_ENV) or '').strip() or DEFAULT_TENANT
     if not _TENANT_RE.match(name):
         # It becomes a folder and a key prefix: nothing else gets through.
         raise ValueError(f'{TENANT_ENV} must be lower-case letters, digits and -, at most 40 (got {name!r}).')
     return name
 
 
+def tenant_folder(tenant_id):
+    """Where a tenant's documents live, relative to the state folder. The default tenant keeps the
+    state folder itself, where every install kept everything before tenants existed: moving them
+    would break the compose files that bind-mount data.json alone, and nothing gains from it.
+    The others live in tenants/<id>/, which the default tenant's own listings never reach into
+    (they read one folder level, and backups take named documents)."""
+    return '' if tenant_id == DEFAULT_TENANT else f'{TENANTS_FOLDER}/{tenant_id}'
+
+
 def tenant_dir():
     chosen = _tenant_dir.get()
-    if chosen:
+    if chosen is not None:
         return chosen
-    hosted = hosted_tenant()
-    return f'{TENANTS_FOLDER}/{hosted}' if hosted else ''
+    return tenant_folder(current_tenant())
 
 
 def event_dir():
