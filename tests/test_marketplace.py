@@ -1,4 +1,4 @@
-"""The plugin Marketplace (floorbit/marketplace.py): signed index and bundles, trust levels, install,
+"""The plugin Marketplace (floorbit/marketplace.py): signed index and bundles, official keys only, install,
 update, rollback, withdrawn versions, removal, other instances catching up, and the agents' share."""
 import base64
 import json
@@ -52,8 +52,6 @@ def market(tmp_path, monkeypatch, app_module):
     monkeypatch.setattr(bundles, "INDEX_KEYS_DIR", tmp_path / "keys" / "index")
     monkeypatch.setenv("FLOORBIT_MARKETPLACE_URL", URL)
     monkeypatch.setenv("FLOORBIT_PLUGIN_DIR", str(tmp_path / "installed"))
-    monkeypatch.delenv("FLOORBIT_MARKETPLACE_SOURCES", raising=False)
-    monkeypatch.delenv("FLOORBIT_COMMUNITY_KEYS", raising=False)
     marketplace._cache.clear()
     files, entries = {}, {}
 
@@ -101,17 +99,16 @@ def market(tmp_path, monkeypatch, app_module):
     registry = app_module.app.extensions["floorbit_plugins"]
     yield type("Market", (), {"publish": staticmethod(publish), "files": files, "sign_all": staticmethod(sign_all),
                               "registry": registry, "tmp": tmp_path, "index_pem": index_pem})
-    for pid in [s.id for s in registry.specs.values() if s.trust in marketplace.TRUST_RANK]:
+    for pid in [s.id for s in registry.specs.values() if s.trust not in ("builtin", "development")]:
         registry.drop(pid)
 
 
 def test_install_update_rollback_and_remove(client, market):
     market.publish("hallthing", "1.0.0")
     page = client.get("/api/settings/marketplace").get_json()
-    assert page["sources"] == [{"url": URL, "official": True, "name": "Example market", "generated": "2026-11-17",
-                                "error": ""}]
+    assert page["source"] == {"url": URL, "name": "Example market", "generated": "2026-11-17", "error": ""}
     entry = page["plugins"][0]
-    assert (entry["id"], entry["installed"], entry["best"], entry["trust"]) == ("hallthing", None, "1.0.0", "official")
+    assert (entry["id"], entry["installed"], entry["best"]) == ("hallthing", None, "1.0.0")
 
     res = client.post("/api/settings/marketplace/hallthing", json={})
     assert res.status_code == 200, res.get_json()
@@ -169,7 +166,7 @@ def test_nothing_unsigned_or_tampered_gets_in(client, market):
 
     market.sign_all(pem=stranger)                                  # an index signed by someone else
     page = client.get("/api/settings/marketplace").get_json()
-    assert "does not trust" in page["sources"][0]["error"] and page["plugins"] == []
+    assert "does not trust" in page["source"]["error"] and page["plugins"] == []
 
 
 def test_builtin_plugins_are_not_replaced(client, market):
@@ -235,29 +232,38 @@ def test_no_rollback_to_a_version_that_cant_read_the_data(client, market):
     assert market.registry.specs["hallthing"].path.name == "1.1.0"
 
 
-def test_community_sources_need_the_operators_key(client, market, monkeypatch):
+def test_only_the_official_index_and_keys_count(client, market, monkeypatch):
+    """Other sources and community keys were dropped: the settings that named them do nothing now."""
     other = "https://community.example.org/index.json"
     pem, pub = bundles.keygen()
-    monkeypatch.setenv("FLOORBIT_MARKETPLACE_SOURCES", other)
-    market.publish("partything", "0.1.0", pem=pem, base=other, index=other)
-    signed = bundles.sign_index({"name": "Community", "generated": "x",
-                                 "plugins": [json.loads(market.files[other])["plugins"][0]]}, pem)
-    market.files[other] = json.dumps(signed).encode()
-    marketplace._cache.clear()
-    page = client.get("/api/settings/marketplace").get_json()
-    assert "does not trust" in page["sources"][1]["error"]          # no key in FLOORBIT_COMMUNITY_KEYS yet
-
     keys = market.tmp / "community"
     keys.mkdir()
     (keys / "friend.pub").write_text(pub)
+    monkeypatch.setenv("FLOORBIT_MARKETPLACE_SOURCES", other)
     monkeypatch.setenv("FLOORBIT_COMMUNITY_KEYS", str(keys))
-    marketplace._cache.clear()
+    market.publish("partything", "0.1.0", pem=pem, base=other, index=other)
     page = client.get("/api/settings/marketplace").get_json()
-    entry = next(p for p in page["plugins"] if p["id"] == "partything")
-    assert entry["trust"] == "community"
-    assert client.post("/api/settings/marketplace/partything", json={}).get_json()["trust"] == "community"
-    assert market.registry.specs["partything"].trust == "community"
-    assert "partything" not in marketplace.agent_bundles()           # the agents trust only official plugins
+    assert page["source"]["url"] == URL and page["plugins"] == []
+    assert client.post("/api/settings/marketplace/partything", json={}).status_code == 400
+
+
+def test_a_plugin_from_a_community_source_stops_loading_and_can_be_removed(client, market):
+    """What an older Floorbit installed with a community key: no longer trusted, still removable."""
+    pem, _ = bundles.keygen()
+    market.publish("partything", "0.1.0", pem=pem)
+    folder = market.tmp / "installed" / "partything" / "0.1.0"
+    folder.parent.mkdir(parents=True)
+    import shutil
+    shutil.copytree(market.tmp / "src" / "partything-0.1.0", folder)
+    marketplace._save({"partything": {"version": "0.1.0", "previous": None, "trust": "community",
+                                      "source": "https://community.example.org/index.json", "at": 1, "by": "admin"}})
+    assert marketplace.sync(market.registry) == 1
+    assert "partything" not in market.registry.specs or market.registry.specs["partything"].error
+    assert "partything" not in marketplace.agent_bundles()
+    entry = next(p for p in client.get("/api/settings/marketplace").get_json()["plugins"] if p["id"] == "partything")
+    assert entry["installed"] == "0.1.0" and entry["error"]
+    assert client.delete("/api/settings/marketplace/partything").status_code in (200, 204)
+    assert "partything" not in marketplace.installed()
 
 
 def test_another_instance_catches_up(client, market):

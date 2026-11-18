@@ -31,41 +31,39 @@ and pages ask for, what its agent part sends and how private that is, the action
 the hall, and the device logins and secrets it uses. The Marketplace card shows that list before
 you install. The build refuses a release whose `plugin.yaml` Floorbit would refuse.
 
-## What is trusted, and who decides
+## What is trusted
 
-| Trust | Signed with | Set by |
-| --- | --- | --- |
-| Official | the plugin key in `floorbit/keys/plugins/`, the index key in `floorbit/keys/index/` | built into the image |
-| Community | a key in the folder `FLOORBIT_COMMUNITY_KEYS` names | the server's operator |
+Only the official Marketplace, and only what is signed with the keys built into the image: the
+plugin key in `floorbit/keys/plugins/` and the index key in `floorbit/keys/index/`. There are no
+other sources or keys to add.
 
 - Floorbit checks the index's signature, each download's checksum against the index, and the
-  bundle's signature against the keys above, at install and again every time it loads the plugin.
+  bundle's signature against those keys, at install and again every time it loads the plugin.
   A bundle that doesn't verify is refused, and a plugin whose files changed on disk doesn't load.
-- A community source can only offer plugins signed with a community key, never pass one off as
-  official.
-- Admins install and remove; they can't add a key or a source. Keys and sources are environment
-  variables, set where the server runs. So a stolen admin login can't make Floorbit, or an agent in
-  the hall, run code nobody signed.
-- The local agents take only official plugins: they trust the plugin key built into their own
-  image. Community plugins run on the hosted side only.
+- Admins install, update, roll back and remove; they can't add a key or a source. So a stolen
+  admin login can't make Floorbit, or an agent in the hall, run code nobody signed.
+- The local agents trust the same plugin key, built into their own image, so every plugin
+  installed here can run its agent part in the hall.
+
+Floorbit used to take more sources and keys (`FLOORBIT_MARKETPLACE_SOURCES`,
+`FLOORBIT_COMMUNITY_KEYS`). Both are ignored now. A plugin installed from such a source no longer
+loads; Settings > Plugins says so, and an admin can remove it.
 
 ## Settings (environment only)
 
 | Variable | Default | What |
 | --- | --- | --- |
 | `FLOORBIT_MARKETPLACE_URL` | `https://bitsandbricks-ch.github.io/floorbit-plugins/index.json` | The official index. Its signature must verify with `floorbit/keys/index/`, wherever it is served from. |
-| `FLOORBIT_MARKETPLACE_SOURCES` | (none) | More indexes, comma-separated, `https://` only. Each is signed with a community key. |
-| `FLOORBIT_COMMUNITY_KEYS` | (none) | A folder of `*.pub` files (Ed25519, PEM or bare base64) trusted for community indexes and plugins. |
 | `FLOORBIT_PLUGIN_DIR` | `plugins/` next to the data | Where installed plugins are unpacked, as `<id>/<version>/`, with their bundles in `.archives/`. |
 
 Which version of each plugin runs is kept in `marketplace.json` with the rest of the data (or in
 the database). With several instances, each one checks it every minute and downloads what it lacks,
 so a pod that starts on an empty disk ends up with the same plugins. When a download fails (the
 index or GitHub is away), it tries again after a minute, then less often, up to every half hour,
-until it has them. Indexes and bundles are read with a size cap, so a source can't fill the
+until it has them. The index and bundles are read with a size cap, so they can't fill the
 server's memory.
 
-While a source is away, its last good index is used for up to a day, and the page says which copy
+While the index is away, its last good copy is used for up to a day, and the page says which copy
 it shows. An index older than one this server already read is refused even when its signature is
 fine: someone serving an old copy can't hide that a version was withdrawn since.
 
@@ -76,7 +74,7 @@ manifest error), the old one keeps running and the page says why. *Back to* swap
 rollback can be undone the same way. Settings and state stay when a plugin is updated, rolled back
 or removed.
 
-The agents follow on their own: an official plugin installed here is offered to every agent that
+The agents follow on their own: a plugin installed here is offered to every agent that
 runs it, and the agent's own update policy (`FLOORBIT_AGENT_PLUGIN_UPDATES`) decides when it
 installs it ([Updates](agent-plugins.md#updates)).
 

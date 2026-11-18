@@ -553,7 +553,7 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 
 ## floorbit.blueprints.marketplace
 
-The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: that is the operator's, where the server runs.
+The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: only the official index and keys count.
 
 Source: [`floorbit/blueprints/marketplace.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/marketplace.py)
 

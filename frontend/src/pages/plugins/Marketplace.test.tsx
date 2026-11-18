@@ -9,13 +9,13 @@ const v = (version: string, extra: Partial<MarketPlugin['versions'][number]> = {
 
 const fresh: MarketPlugin = {
   id: 'hallthing', name: 'Hall thing', description: 'Shows the hall.', author: 'BitsAndBricks', homepage: '',
-  trust: 'official', source: 'https://plugins.example.com/index.json', builtin: false, installed: null, previous: null,
+  source: 'https://plugins.example.com/index.json', builtin: false, installed: null, previous: null,
   error: '', enabled: false, withdrawn: '', update: null, best: '1.1.0', listed: true,
   versions: [v('2.0.0', { compatible: false, floorbit: '>=9' }), v('1.1.0', { changes: 'Faster.' }), v('1.0.0', { withdrawn: 'broken' })],
 }
 
 const catalog = (plugins: MarketPlugin[], error = ''): MarketCatalog => ({
-  sources: [{ url: 'https://plugins.example.com/index.json', official: true, name: 'Floorbit Marketplace', generated: '', error }],
+  source: { url: 'https://plugins.example.com/index.json', name: 'Floorbit Marketplace', generated: '', error },
   plugins,
 })
 
@@ -31,7 +31,6 @@ describe('Marketplace', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Marketplace />)
     const card = await screen.findByRole('region', { name: 'Hall thing' })
-    expect(within(card).getByText('Official')).toBeInTheDocument()
     expect(within(card).getByText('Faster.')).toBeInTheDocument()
     fireEvent.click(within(card).getByRole('button', { name: 'Install 1.1.0' }))
     await waitFor(() => expect(within(card).getByRole('status')).toHaveTextContent('Hall thing 1.1.0 is installed'))

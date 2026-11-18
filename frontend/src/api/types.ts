@@ -130,7 +130,7 @@ export interface PluginInfo {
   icon?: string
   version: string
   description: string
-  trust: 'builtin' | 'development' | 'official' | 'community' | string
+  trust: 'builtin' | 'development' | 'official' | string
   author: string
   homepage: string
   uses: { id: string; label: string }[]

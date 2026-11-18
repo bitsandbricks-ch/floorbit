@@ -1,6 +1,6 @@
 """The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the
 ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the
-audit log. Nothing here can trust a key or add a source: that is the operator's, where the server runs.
+audit log. Nothing here can trust a key or add a source: only the official index and keys count.
 """
 from flask import Blueprint, current_app, g, jsonify, request
 

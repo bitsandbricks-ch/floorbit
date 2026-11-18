@@ -19,11 +19,11 @@ plugin can't depend on them by accident.
    manifest entry or a method for an area that isn't listed. Settings > Plugins and the
    Marketplace show the list.
 3. **Signed or not at all.** Outside a development checkout, a plugin is a bundle signed with a key
-   built into the image (official) or one the server's operator trusts (community). Its files are
+   built into the image. Its files are
    checked against the signature at install and again every time it loads.
 4. **The event network only through the agent.** Methods that talk to the hall's devices run on the
-   [local agent](agent.md), never on the Floorbit server. Only official plugins run on agents, so a
-   community plugin can't reach the event network.
+   [local agent](agent.md), never on the Floorbit server. Agents run only plugins signed with the
+   keys built into their own image.
 5. **Privacy is checked, not trusted.** What the agent part sends is marked aggregate or device,
    and aggregate data holding an IP, a network or a MAC address is refused on the agent and again on
    the server.
