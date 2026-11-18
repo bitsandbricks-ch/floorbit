@@ -229,10 +229,6 @@
       "label": "Statistik-Wand",
       "help": "/wall zeigt Fun Facts zum Event für einen grossen Bildschirm (/wall?screen=1) und Handys: geladene Daten, Bandbreiten-Spitze, Top-Spiele, Sitze online. Nur für die ganze Halle und pro Sitzblock. Standardmässig aus."
     },
-    "public_brackets": {
-      "label": "Turnier-Brackets",
-      "help": "/bracket zeigt die Turnier-Brackets mit Teams und Resultaten für grosse Bildschirme (/bracket?screen=1) und Handys. Nie Sitze. Standardmässig aus."
-    },
     "metrics_enabled": {
       "label": "Prometheus-Metriken",
       "help": "/api/metrics anbieten. Standardmässig aus."

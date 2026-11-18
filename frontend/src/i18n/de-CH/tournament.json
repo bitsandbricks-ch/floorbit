@@ -30,6 +30,5 @@
   "switch": "Switch",
   "ports": "Ports der Match-Plätze",
   "uplinks": "Uplinks",
-  "qosMissing": "Auf keinem Port gefunden: {{seats}}",
-  "brackets": "Turnierbäume"
+  "qosMissing": "Auf keinem Port gefunden: {{seats}}"
 }

@@ -36,9 +36,8 @@ The page updates every minute and shows times in the reader's own time zone.
 
 ## Staying current
 
-The status page, the [stats wall](stats-wall.md), the public [schedule](schedule.md) and the
-[bracket](tournament.md) update themselves in place: every minute (the bracket every 30 seconds)
-the page fetches its own address again and swaps in the new content, so a big screen doesn't
+The status page, the [stats wall](stats-wall.md) and the public [schedule](schedule.md) update
+themselves in place: every minute the page fetches its own address again and swaps in the new content, so a big screen doesn't
 flash white. A hidden browser tab waits and updates as soon as it is shown.
 
 If the server or the network is gone for a moment, the page keeps showing the last good data with

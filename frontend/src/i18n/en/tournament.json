@@ -30,6 +30,5 @@
   "switch": "Switch",
   "ports": "Match seat ports",
   "uplinks": "Uplinks",
-  "qosMissing": "Not found on any port: {{seats}}",
-  "brackets": "Brackets"
+  "qosMissing": "Not found on any port: {{seats}}"
 }
