@@ -16,7 +16,7 @@ export type { SettingsAnswer }
 const OVERVIEW = 'overview'
 // Which group each section is listed under. A section not named here (a new one) goes under Other.
 const GROUPS: [string, string[]][] = [
-  ['event', [OVERVIEW, 'appearance', 'display', 'floorplan', 'cabling', 'public', 'general', 'backup']],
+  ['event', [OVERVIEW, 'appearance', 'display', 'floorplan', 'cabling', 'public', 'speedtest', 'general', 'backup']],
   ['sources', ['netbox', 'librenms', 'seats', 'checkin', 'cache']],
   ['monitoring', ['monitor', 'live', 'attention', 'health', 'power', 'insights', 'syslog', 'metrics']],
   ['alerts', ['discord', 'crew']],

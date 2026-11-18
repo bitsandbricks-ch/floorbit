@@ -295,14 +295,6 @@ class Stats:
             self._online = _replay(self.seat_base, self.seat_events)
             self._save(force=True)
 
-    def timeline(self):
-        """What the replay needs: the samples, the event's peak, and the seats' changes."""
-        with self._lock:
-            self._load()
-            return {'samples': [{k: s[k] for k in ('t', 'down', 'up', 'online')} for s in self.samples],
-                    'peak': self.peak, 'seat_base': dict(self.seat_base), 'seat_events': list(self.seat_events),
-                    'last_poll': self.last}
-
     def backfill(self, samples):
         """Older samples (the demo hall's made-up day), only while there are none yet."""
         with self._lock:

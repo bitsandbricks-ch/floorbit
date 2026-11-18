@@ -16,8 +16,7 @@
   "trust": {
     "builtin": "Kommt mit Floorbit",
     "development": "Entwicklungsstand",
-    "official": "Offiziell",
-    "community": "Community"
+    "official": "Offiziell"
   },
   "open": "Öffnen",
   "agent": "Läuft auf dem Agent",
@@ -39,6 +38,7 @@
   "pageEmpty": "Auf dieser Seite ist nichts für dein Konto.",
   "names": {
     "captive-note": "Check-in-Hinweis auf Handys",
+    "front-door": "Eingang für Teilnehmende",
     "demo": "Demodaten",
     "home-assistant": "Home-Assistant-Messgeräte",
     "http-check": "HTTP-Prüfung",

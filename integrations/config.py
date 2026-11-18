@@ -230,8 +230,8 @@ SCHEMA = [
     {'key': 'CAPTIVE_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': False,
      'label': 'Captive portal (DHCP option 114)',
      'help': 'Tell the local agent which machines checked in, so phones and laptops that did not see a quiet '
-             '"sign in to network" note that opens the check-in page. Needs the check-in page, an agent with '
-             'FLOORBIT_AGENT_CAPTIVE and option 114 in the event DHCP. Nothing is ever blocked.'},
+             '"sign in to network" note that opens the check-in page. Needs the check-in page, the plugin '
+             '"Check-in note on phones" and option 114 in the event DHCP. Nothing is ever blocked.'},
     {'key': 'SEAT_WALK_AGENT_URL', 'group': 'checkin', 'type': 'string', 'default': '',
      'label': 'Local agent address for the seat walk-through',
      'help': 'Where laptops in the hall reach the local agent\'s captive port, e.g. http://192.0.2.10:8908. '

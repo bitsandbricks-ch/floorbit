@@ -13,7 +13,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.mocked(runSpeedtest).mockReset(); vo
 const page = <Routes><Route path="/help/:seat" element={<SeatHelp />} /></Routes>
 const API = '/api/helpdesk/seats/A-1?k=abc'
 const calm: SeatHelpState = { seat: 'A-1', problems: ['no-internet', 'slow', 'power', 'other'], outage: null, status_url: null,
-  back_up: null, report: null, ahead: 0 }
+  back_up: null, report: null, ahead: 0, speedtest: { test_mb: 120 } }
 
 describe('SeatHelp', () => {
   it('reports a problem with one tap', async () => {
@@ -56,10 +56,17 @@ describe('SeatHelp', () => {
     renderWithApp(page, '/help/A-1?k=abc')
     fireEvent.click(await screen.findByRole('button', { name: 'Start the test' }))
     expect(await screen.findByText('Saved for seat A-1. The team sees it with your report.')).toBeInTheDocument()
-    expect(runSpeedtest).toHaveBeenCalledWith('A-1', 'abc', expect.any(Function))
+    expect(runSpeedtest).toHaveBeenCalledWith('A-1', 'abc', expect.any(Function), 120)
     expect(screen.getByText('512')).toBeInTheDocument()
     expect(screen.getByText('88.3')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Test again' })).toBeInTheDocument()
+  })
+
+  it('has no speed test while an admin switched it off', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ [`GET ${API}`]: { ...calm, speedtest: null } }).fn)
+    renderWithApp(page, '/help/A-1?k=abc')
+    expect(await screen.findByRole('button', { name: 'Slow or dropping connection' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Test your connection' })).toBeNull()
   })
 
   it('speaks German', async () => {

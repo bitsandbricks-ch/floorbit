@@ -6,9 +6,12 @@ speed test. The browser measures; the server only sends and swallows bytes, then
 per seat: speeds and latency and when, never the IP, browser or anything personal. A result is put
 on the seat's open helpdesk incident, and a report filed soon after a test carries it too.
 
-Every stream holds one of the server's threads, which the live updates need too, so only
-``MAX_RUNNING`` run at once and each client IP gets a byte budget.
+Every stream holds one of the server's threads, which the live updates need too, and a test
+moves a lot of bytes, so the limits under Settings > Speed tests (``limits()``) cap it: how many
+streams run at once, how much one test may move, how often a seat may test, and how fast one stream
+goes. Each client IP also gets a byte budget.
 """
+import math
 import os
 import threading
 import time
@@ -18,11 +21,13 @@ from .store import load_data, save_data
 KEY = 'speedtests'
 CHUNK = 64 * 1024
 PAYLOAD = os.urandom(1024 * 1024)   # random: nothing on the way can compress it
-MAX_DOWN = 200 * 1024 * 1024        # one download request
-MAX_UP = 24 * 1024 * 1024           # one upload request (under MAX_CONTENT_LENGTH)
-BUDGET = 2 * 1024 * 1024 * 1024     # bytes per client IP per window: about two tests
+MB = 1024 * 1024
+MAX_DOWN = 200 * MB                 # one download request
+MAX_UP = 24 * MB                    # one upload request (under MAX_CONTENT_LENGTH)
 WINDOW = 600
-MAX_RUNNING = 6
+# Settings > Speed tests, when there is no app to ask (tests, scripts).
+DEFAULTS = {'on': True, 'max_running': 3, 'seat_minutes': 10, 'test_mb': 250, 'max_mbps': 1000}
+SLACK = 1.1                         # a test's last request may go a little over its size
 KEEP = 5                            # results per seat
 FRESH = 30 * 60                     # a test this recent goes with a new report
 LIMITS = {'down_mbps': 100000, 'up_mbps': 100000, 'ping_ms': 10000, 'jitter_ms': 10000}
@@ -30,6 +35,7 @@ LIMITS = {'down_mbps': 100000, 'up_mbps': 100000, 'ping_ms': 10000, 'jitter_ms':
 _lock = threading.Lock()
 _running = [0]
 _spent = {}
+_seat_spent = {}
 _saved = {}
 
 
@@ -39,21 +45,72 @@ class SpeedtestError(ValueError):
         self.status = status
 
 
-def take(ip, size):
-    """Book ``size`` bytes for one stream. Raises SpeedtestError when busy or over the budget."""
+def limits():
+    """Settings > Speed tests: ``on``, ``max_running`` streams at once, ``test_mb`` one test may
+    move, one test per seat every ``seat_minutes`` (0: no limit), ``max_mbps`` per stream (0: no cap)."""
+    try:
+        from flask import current_app
+        settings = current_app.extensions['floorbit_settings']
+        numbers = ('max_running', 'seat_minutes', 'test_mb', 'max_mbps')
+        out = {k: int(settings.get(f'speedtest.{k}')) for k in numbers}
+        return {'on': bool(settings.get('speedtest.enabled')), **out}
+    except (RuntimeError, KeyError, TypeError, ValueError):
+        return dict(DEFAULTS)
+
+
+def _budget(lim):
+    return int(lim['test_mb'] * MB * SLACK)
+
+
+def take(ip, seat, size, lim=None):
+    """Book ``size`` bytes for one stream of ``seat``'s test. Raises SpeedtestError when busy, when
+    the seat was tested lately, or when the client is over its budget."""
+    lim = lim or limits()
     now = time.time()
+    seat_window = lim['seat_minutes'] * 60
     with _lock:
+        if _running[0] >= lim['max_running']:
+            raise SpeedtestError('Other seats are testing right now. Try again in a minute.', 503)
+        if seat_window:
+            moved = [(t, n) for t, n in _seat_spent.get(seat, []) if 0 <= now - t < seat_window]
+            _seat_spent[seat] = moved
+            if sum(n for _t, n in moved) + size > _budget(lim):
+                wait = max(1, math.ceil((moved[0][0] + seat_window - now) / 60)) if moved else lim['seat_minutes']
+                raise SpeedtestError(f'This seat was tested a moment ago. Try again in {wait} minutes.', 429)
         used = [(t, n) for t, n in _spent.get(ip, []) if 0 <= now - t < WINDOW]
-        if sum(n for _t, n in used) + size > BUDGET:
+        if sum(n for _t, n in used) + size > 4 * _budget(lim):   # a few seats from one laptop, no more
             _spent[ip] = used
             raise SpeedtestError('Too many tests from here. Wait a few minutes.', 429)
-        if _running[0] >= MAX_RUNNING:
-            raise SpeedtestError('Other seats are testing right now. Try again in a minute.', 503)
         _running[0] += 1
         _spent[ip] = [*used, (now, size)]
-        if len(_spent) > 10000:   # forget idle clients so the dict can't grow without bound
-            for key in [k for k, v in _spent.items() if not v or not 0 <= now - v[-1][0] <= WINDOW]:
-                _spent.pop(key, None)
+        if seat_window:
+            _seat_spent[seat] = [*_seat_spent.get(seat, []), (now, size)]
+        for book, keep in ((_spent, WINDOW), (_seat_spent, max(seat_window, 1))):
+            if len(book) > 10000:   # forget idle clients and seats so the dicts can't grow without bound
+                for key in [k for k, v in book.items() if not v or not 0 <= now - v[-1][0] <= keep]:
+                    book.pop(key, None)
+
+
+def request_cap(lim, most):
+    """The largest one request may be: ``most``, and at most half of what a test may move."""
+    return max(1, min(most, lim['test_mb'] * MB // 2))
+
+
+class _Pace:
+    """Holds a stream to ``mbps`` (0: as fast as it goes) by sleeping between chunks."""
+
+    def __init__(self, mbps):
+        self.rate = mbps * 1e6 / 8 if mbps else 0
+        self.start = time.monotonic()
+        self.sent = 0
+
+    def __call__(self, n):
+        if not self.rate:
+            return
+        self.sent += n
+        ahead = self.sent / self.rate - (time.monotonic() - self.start)
+        if ahead > 0.005:
+            time.sleep(ahead)
 
 
 def allow_result(ip, limit=10):
@@ -80,6 +137,7 @@ def reset():
     with _lock:
         _running[0] = 0
         _spent.clear()
+        _seat_spent.clear()
         _saved.clear()
 
 
@@ -88,11 +146,13 @@ class Download:
     unread. A plain generator would not: closing one that never started skips its ``finally``,
     and a HEAD request (or a client gone before the first chunk) never starts it."""
 
-    def __init__(self, size):
+    def __init__(self, size, mbps=0):
         self.size = size
+        self.mbps = mbps
         self._freed = False
 
     def __iter__(self):
+        pace = _Pace(self.mbps)
         try:
             left = self.size
             while left > 0:
@@ -101,6 +161,7 @@ class Download:
                         break
                     piece = PAYLOAD[start:start + min(CHUNK, left)]
                     left -= len(piece)
+                    pace(len(piece))
                     yield piece
         finally:
             self.close()
@@ -111,19 +172,21 @@ class Download:
             release()
 
 
-def download(size):
-    return Download(size)
+def download(size, mbps=0):
+    return Download(size, mbps)
 
 
-def swallow(stream, limit=MAX_UP):
-    """Read an upload and drop it. Returns the bytes read."""
+def swallow(stream, limit=MAX_UP, mbps=0):
+    """Read an upload and drop it, at most ``mbps`` fast (TCP slows the sender down). Returns the bytes read."""
     total = 0
+    pace = _Pace(mbps)
     try:
         while total < limit:
             piece = stream.read(min(CHUNK, limit - total))
             if not piece:
                 break
             total += len(piece)
+            pace(len(piece))
     finally:
         release()
     return total

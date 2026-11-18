@@ -15,7 +15,11 @@ class AgentPlugin(Base):
             return
         from floorbit_agent import captive  # this part only ever runs in the agent
         proxies = [p for p in str(self.settings.get('proxies') or '').split(',') if p.strip()]
-        self.api = captive.Captive(self._ask, self.settings.get('portal_url') or '', proxies, log=self.ctx.log)
+        # The crew's seat walk-through (docs/seat-walk.md) says hello through the same API.
+        agent = getattr(self.ctx, 'host', None) and self.ctx.host.agent
+        self.api = captive.Captive(self._ask, self.settings.get('portal_url') or '', proxies, log=self.ctx.log,
+                                   say_hello=agent.seat_walk_hello if agent else None,
+                                   floorbit_url=agent.url if agent else '')
         try:
             self.server = captive.serve(self.api, address, log=self.ctx.log)
         except (ValueError, OSError, OverflowError) as exc:

@@ -1,10 +1,9 @@
 {
   "title": "Marketplace",
-  "intro": "Signierte Plugins aus dem offiziellen Marketplace und aus Quellen, die der Betreiber des Servers hinzugefügt hat. Installierte Plugins sind zuerst ausgeschaltet; schalte sie unter Installiert ein. Floorbit prüft die Signatur jedes Downloads, und die lokalen Agents bekommen die offiziellen von selbst.",
+  "intro": "Signierte Plugins aus dem offiziellen Marketplace. Installierte Plugins sind zuerst ausgeschaltet; schalte sie unter Installiert ein. Floorbit prüft die Signatur jedes Downloads, und die lokalen Agents bekommen sie von selbst.",
   "refresh": "Neu nachsehen",
   "empty": "Der Marketplace listet noch keine Plugins.",
   "officialSource": "Offizieller Marketplace",
-  "sources": "Quellen: {{list}}",
   "runs": "Läuft mit {{v}}",
   "updateTo": "{{v}} verfügbar",
   "install": "{{v}} installieren",
@@ -23,7 +22,7 @@
   "removed": "{{name}} ist entfernt.",
   "builtin": "Dieses ist in diesem Floorbit eingebaut: nichts zu installieren.",
   "withdrawn": "Version {{v}} wurde zurückgezogen: {{why}}. Aktualisiere oder geh auf eine andere Version zurück.",
-  "unlisted": "Keine Quelle listet dieses Plugin mehr. Es läuft weiter; du kannst es entfernen.",
+  "unlisted": "Der Marketplace listet dieses Plugin nicht mehr. Es läuft weiter; du kannst es entfernen.",
   "touches": "Was es darf",
   "touch": {
     "areas": "Bereiche",

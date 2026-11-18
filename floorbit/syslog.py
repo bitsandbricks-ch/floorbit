@@ -560,9 +560,9 @@ class SyslogReceiver:
             return
         from . import agent_link
         if not agent_link.lan_here():
-            # The switches send to the local agent, which relays (FLOORBIT_AGENT_SYSLOG_PORT): this
+            # The switches send to the local agent, which relays (the syslog-relay plugin): this
             # server never listens on the event network itself.
-            self.error = ('Syslog comes in through the local agent (FLOORBIT_AGENT_SYSLOG_PORT on the agent); '
+            self.error = ('Syslog comes in through the local agent (the plugin "Syslog from the hall"); '
                           'this server does not listen itself.')
             print(f'[syslog] {self.error}')
             return

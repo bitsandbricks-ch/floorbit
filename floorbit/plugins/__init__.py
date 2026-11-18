@@ -13,14 +13,12 @@ trust          where                                           runs
 builtin        ``floorbit/builtin_plugins/`` (ships with it)   inside Floorbit
 official       the Marketplace, signed with a key built into    inside Floorbit
                this image (``floorbit/keys/plugins/``)
-community      a Marketplace source the operator added, signed  inside Floorbit
-               with a key in ``FLOORBIT_COMMUNITY_KEYS``
 development    ``FLOORBIT_DEV_PLUGINS`` (a folder of           inside Floorbit; never set
                checkouts, for writing plugins)                 it in production
 =============  ==============================================  =========================
 
-Nothing unsigned is ever installed: an admin picks from signed indexes, and only the server's
-operator can trust a key (floorbit/marketplace.py, docs/marketplace.md). Every plugin starts
+Nothing unsigned is ever installed: an admin picks from the official signed index, and only keys
+built into this image are trusted (floorbit/marketplace.py, docs/marketplace.md). Every plugin starts
 switched off; an admin turns it on under Settings > Plugins. See docs/plugins.md.
 """
 from __future__ import annotations

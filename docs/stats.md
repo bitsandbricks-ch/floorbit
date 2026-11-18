@@ -31,7 +31,7 @@ every `ATTENTION_INTERVAL` seconds (120); each read becomes one sample here.
   TODO: ask Mike whether uplinks should come from the inventory (NetBox cables) instead.
 
 Samples are kept for 24 hours, together with the event's peak and the moments each seat went online
-or offline (for the [replay](replay.md)), in the event's `stats.json` document in Floorbit's
+or offline (for the link history on the [seats](seats.md) page), in the event's `stats.json` document in Floorbit's
 database, saved at most once a minute (and right away on **Reset peak** or a new event), so a
 restart doesn't lose them. For the
 [event report](report.md), each read is also folded into one row per hour, kept for 21 days.

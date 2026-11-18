@@ -1,9 +1,11 @@
 import {
-  Alert, Badge, Box, Button, Drawer, Group, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title,
+  ActionIcon, Alert, Badge, Box, Button, Drawer, Group, Menu, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
+import { IconDownload, IconFocusCentered, IconLine, IconPhoto, IconVectorBezier2, IconZoomIn, IconZoomOut } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -12,7 +14,9 @@ import type { LinkSuggestion, SwitchLink, Topology as TopologyData, TopologyNode
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { NODE_H, NODE_W, gbit, layout, placeUplinks } from './topology/layout'
+import { download, standaloneSvg, svgToPng } from './plan/exportImage'
+import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
+import { NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks } from './topology/layout'
 
 const COLOR: Record<string, string> = {
   cat5e: 'var(--mantine-color-blue-6)', cat6: 'var(--mantine-color-blue-6)', cat6a: 'var(--mantine-color-blue-6)',
@@ -28,27 +32,123 @@ const UPLINK_COLOR = { up: 'var(--mantine-color-green-6)', warn: 'var(--mantine-
 type Draft = Partial<SwitchLink> & { id?: string }
 
 /** The network's links between switches (issue #468): type and speed, down or slower than planned,
- *  and what LLDP sees that no link explains yet. */
+ *  and what LLDP sees that no link explains yet. The diagram pans and zooms, the crew drags its boxes
+ *  where they belong (kept for everyone), draws a link by picking two boxes, and it saves as PNG or SVG. */
 export default function Topology() {
   const { t } = useTranslation()
+  const qc = useQueryClient()
   const canEdit = useCan('floorplan.edit')
   const phone = useMediaQuery('(max-width: 48em)')
   const q = useQuery({ queryKey: qk.topology, queryFn: () => get<TopologyData>('/api/links'), refetchInterval: 30_000 })
   const [picked, setPicked] = useState<Picked>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [wire, setWire] = useState<{ a?: string } | null>(null)
+  const [cam, setCam] = useState<ViewBox | null>(null) // null: the whole picture
+  const [drag, setDrag] = useState<{ key: string; x: number; y: number } | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const gesture = useRef<{ kind: 'pan' | 'node'; key?: string; sx: number; sy: number; ox: number; oy: number; cam: ViewBox; moved: boolean } | null>(null)
+  const moved = useRef(false) // the last press dragged something: its click isn't a pick
   const data = q.data
-  const placed = useMemo(() => (data ? layout(data.nodes, data.links) : null), [data])
+  const auto = useMemo(() => (data ? layout(data.nodes, data.links) : null), [data])
+  const placed = useMemo(() => (auto ? arranged(auto, data?.layout) : null), [auto, data?.layout])
   const lines = useMemo(() => (placed && data ? placeUplinks(placed, data.uplinks ?? []) : null), [placed, data])
+  // where a box is drawn: being dragged, or where the layout puts it
+  const spot = useCallback((p: Placed) => (drag && drag.key === p.node.name.toLowerCase() ? { x: drag.x, y: drag.y } : { x: p.x, y: p.y }), [drag])
+  const base = useMemo<ViewBox | null>(() => {
+    if (!placed || !lines) return null
+    const boxes = [...placed.placed.values()].map((p) => ({ ...spot(p), w: NODE_W, h: NODE_H })).map((b) => ({ ...b, x: b.x + lines.dx, y: b.y + lines.dy }))
+    return bounds([...boxes, ...lines.boxes.map((b) => ({ x: b.x, y: b.y, w: NODE_W, h: NODE_H }))])
+  }, [placed, lines, spot])
+  const view = cam ?? base
   const uplink = picked?.kind === 'uplink' ? data?.uplinks.find((u) => u.id === picked.id) : undefined
   const link = picked?.kind === 'link' ? data?.links.find((l) => l.id === picked.id) : undefined
   const node = picked?.kind === 'node' ? data?.nodes.find((n) => n.name === picked.name) : undefined
   const problems = data?.links.filter((l) => l.issue || l.lldp?.state === 'other') ?? []
+  const arrangedByCrew = !!data?.layout && Object.keys(data.layout).length > 0
+
+  const saveLayout = useMutation({
+    mutationFn: (positions: Record<string, { x: number; y: number }>) => put<{ layout: Record<string, { x: number; y: number }> }>('/api/links/layout', { positions }),
+    onSuccess: (r) => qc.setQueryData<TopologyData>(qk.topology, (old) => (old ? { ...old, layout: r.layout } : old)),
+    onSettled: () => setDrag(null),
+  })
+  const resetLayout = useMutation({
+    mutationFn: () => del('/api/links/layout'),
+    onSuccess: () => { qc.setQueryData<TopologyData>(qk.topology, (old) => (old ? { ...old, layout: {} } : old)); setCam(null) },
+  })
+
+  // The wheel zooms around the pointer; React's onWheel is passive, so it can't keep the page from scrolling.
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg || !view || !base) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const at = toDiagram(view, svg.getBoundingClientRect(), e.clientX, e.clientY)
+      setCam(zoomAt(view, base, Math.exp(-e.deltaY * 0.0015), at))
+    }
+    svg.addEventListener('wheel', onWheel, { passive: false })
+    return () => svg.removeEventListener('wheel', onWheel)
+  }, [view, base])
+  useEffect(() => {
+    if (!wire) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setWire(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [wire])
+
+  const zoomBy = (factor: number) => { if (view && base) setCam(zoomAt(view, base, factor, { x: view.x + view.w / 2, y: view.y + view.h / 2 })) }
+  const pickNode = (name: string) => {
+    if (!wire) { setPicked({ kind: 'node', name }); return }
+    if (!wire.a) { setWire({ a: name }); return }
+    if (wire.a !== name) { setDraft({ a: wire.a, b: name }); setWire(null) }
+  }
+  const down = (e: React.PointerEvent<SVGSVGElement>, key?: string) => {
+    if (!view || e.button !== 0) return
+    const p = key ? placed?.placed.get(key) : undefined
+    moved.current = false
+    gesture.current = { kind: key ? 'node' : 'pan', key, sx: e.clientX, sy: e.clientY, ox: p?.x ?? 0, oy: p?.y ?? 0, cam: view, moved: false }
+  }
+  const move = (e: React.PointerEvent<SVGSVGElement>) => {
+    const g = gesture.current, svg = svgRef.current
+    if (!g || !svg) return
+    const rect = svg.getBoundingClientRect()
+    const dx = ((e.clientX - g.sx) / (rect.width || 1)) * g.cam.w, dy = ((e.clientY - g.sy) / (rect.height || 1)) * g.cam.h
+    if (!g.moved && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < 4) return
+    if (!g.moved) { g.moved = true; svg.setPointerCapture?.(e.pointerId) }
+    if (g.kind === 'pan') setCam({ ...g.cam, x: g.cam.x - dx, y: g.cam.y - dy })
+    else if (g.key) setDrag({ key: g.key, x: g.ox + dx, y: g.oy + dy })
+  }
+  const up = () => {
+    const g = gesture.current
+    gesture.current = null
+    moved.current = !!g?.moved
+    if (!g?.moved || g.kind !== 'node' || !drag || !placed) return
+    // Every box's place goes with it, so the picture stays as it is when one box is moved.
+    const positions = Object.fromEntries([...placed.placed].map(([k, p]) => [k, k === drag.key ? { x: drag.x, y: drag.y } : { x: p.x, y: p.y }]))
+    saveLayout.mutate(positions)
+  }
+  const clickedAfterMove = () => moved.current
+
+  const exportAs = async (as: 'png' | 'svg') => {
+    const svg = svgRef.current
+    if (!svg || !base) return
+    const shown = svg.getAttribute('viewBox')
+    svg.setAttribute('viewBox', `${base.x} ${base.y} ${base.w} ${base.h}`) // the whole picture, not just the zoomed part
+    try {
+      const out = standaloneSvg(svg, Math.max(1600, base.w * 2))
+      const page = getComputedStyle(document.body).backgroundColor || '#fff'
+      download(as === 'svg' ? new Blob([out.text], { type: 'image/svg+xml' }) : await svgToPng(out.text, out.width, out.height, page), `topology.${as}`)
+    } catch {
+      notifications.show({ color: 'down', message: t('topology.exportFailed') })
+    } finally {
+      if (shown) svg.setAttribute('viewBox', shown)
+    }
+  }
 
   const panel = uplink ? <UplinkPanel uplink={uplink} />
     : link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
     : node ? <NodePanel name={node.name} role={node.role} status={node.status} links={data!.links.filter((l) => l.a === node.name || l.b === node.name)}
       onPick={(id) => setPicked({ kind: 'link', id })} />
-      : <Text c="dimmed" size="sm">{t('topology.pickHint')}</Text>
+      : <Text c="dimmed" size="sm">{t(canEdit ? 'topology.pickHintEdit' : 'topology.pickHint')}</Text>
 
   return (
     <Layout title={t('topology.title')}>
@@ -73,19 +173,49 @@ export default function Topology() {
         {data && data.links.length === 0 && (
           <Paper withBorder radius="lg" p="md"><Text c="dimmed">{t(canEdit ? 'topology.emptyEdit' : 'topology.empty')}</Text></Paper>
         )}
-        {data && placed && lines && data.links.length > 0 && (
+        {data && placed && lines && view && base && data.links.length > 0 && (
           <Box style={{ display: 'grid', gap: 16, gridTemplateColumns: phone ? '1fr' : 'minmax(0, 1fr) 300px' }}>
-            {/* Wider than a phone: focusable so a keyboard can scroll it too. */}
-            <Paper withBorder radius="lg" p="sm" style={{ overflowX: 'auto' }} tabIndex={0}>
-              <svg role="img" aria-label={t('topology.diagram', { count: data.links.length })}
-                viewBox={`-10 -10 ${lines.width + 20} ${lines.height + 20}`}
-                style={{ display: 'block', width: '100%', minWidth: phone ? Math.min(lines.width, 720) : undefined, height: 'auto' }}>
+            <Paper withBorder radius="lg" p="sm" style={{ position: 'relative', overflow: 'hidden' }}>
+              <Group gap={6} mb={6} wrap="wrap">
+                <ActionIcon.Group>
+                  <ActionIcon variant="default" aria-label={t('topology.zoomIn')} title={t('topology.zoomIn')} onClick={() => zoomBy(1.4)}><IconZoomIn size={16} aria-hidden="true" /></ActionIcon>
+                  <ActionIcon variant="default" aria-label={t('topology.zoomOut')} title={t('topology.zoomOut')} onClick={() => zoomBy(1 / 1.4)}><IconZoomOut size={16} aria-hidden="true" /></ActionIcon>
+                  <ActionIcon variant="default" aria-label={t('topology.fit')} title={t('topology.fit')} onClick={() => setCam(null)}><IconFocusCentered size={16} aria-hidden="true" /></ActionIcon>
+                </ActionIcon.Group>
+                {canEdit && (
+                  <Button size="compact-sm" variant={wire ? 'filled' : 'default'} leftSection={<IconLine size={14} aria-hidden="true" />}
+                    onClick={() => setWire(wire ? null : {})} aria-pressed={!!wire}>{t(wire ? 'topology.drawCancel' : 'topology.draw')}</Button>
+                )}
+                <Box style={{ flex: 1 }} />
+                {canEdit && arrangedByCrew && (
+                  <ConfirmButton size="compact-sm" variant="subtle" label={t('topology.arrange')} question={t('topology.arrangeQuestion')}
+                    onConfirm={() => resetLayout.mutate()} />
+                )}
+                <Menu position="bottom-end" withinPortal>
+                  <Menu.Target>
+                    <Button size="compact-sm" variant="default" leftSection={<IconDownload size={14} aria-hidden="true" />}>{t('topology.export')}</Button>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item leftSection={<IconPhoto size={14} />} onClick={() => void exportAs('png')}>{t('topology.exportPng')}</Menu.Item>
+                    <Menu.Item leftSection={<IconVectorBezier2 size={14} />} onClick={() => void exportAs('svg')}>{t('topology.exportSvg')}</Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
+              {wire && (
+                <Text size="sm" mb={6} role="status">{wire.a ? t('topology.drawSecond', { a: wire.a }) : t('topology.drawFirst')}</Text>
+              )}
+              {saveLayout.error && <Alert color="down" role="alert" mb={6}>{saveLayout.error.message}</Alert>}
+              <svg ref={svgRef} role="img" aria-label={t('topology.diagram', { count: data.links.length })}
+                viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="fb-topology"
+                onPointerDown={(e) => down(e)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { gesture.current = null; setDrag(null) }}
+                style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '75vh', touchAction: 'none', cursor: wire ? 'crosshair' : 'grab', userSelect: 'none' }}>
                 {lines.boxes.map(({ uplink: u, x, y, to }) => {
                   const chosen = picked?.kind === 'uplink' && picked.id === u.id
+                  const toAt = spot(to)
                   return (
-                    <g key={u.id} className="fb-uplink" data-status={u.status} onClick={() => setPicked({ kind: 'uplink', id: u.id })} style={{ cursor: 'pointer' }}>
+                    <g key={u.id} className="fb-uplink" data-status={u.status} onClick={() => { if (!clickedAfterMove()) setPicked({ kind: 'uplink', id: u.id }) }} style={{ cursor: 'pointer' }}>
                       <title>{`${u.name}: ${u.device} ${u.port} · ${t(`topology.uplinkStatus.${u.status}`)}`}</title>
-                      <line x1={x + NODE_W / 2} y1={y + NODE_H} x2={to.x + lines.dx + NODE_W / 2} y2={to.y + lines.dy}
+                      <line x1={x + NODE_W / 2} y1={y + NODE_H} x2={toAt.x + lines.dx + NODE_W / 2} y2={toAt.y + lines.dy}
                         stroke={UPLINK_COLOR[u.status]} strokeWidth={3} strokeDasharray={u.status === 'down' ? '6 4' : undefined} strokeLinecap="round" />
                       {/* A cloud-ish pill, so the internet doesn't read as one more switch. */}
                       <rect x={x} y={y} width={NODE_W} height={NODE_H} rx={NODE_H / 2} fill="var(--mantine-color-body)"
@@ -99,16 +229,18 @@ export default function Topology() {
                 })}
                 <g transform={`translate(${lines.dx} ${lines.dy})`}>
                 {data.links.map((l) => {
-                  const a = placed.placed.get(l.a.toLowerCase()), b = placed.placed.get(l.b.toLowerCase())
-                  if (!a || !b) return null
+                  const pa = placed.placed.get(l.a.toLowerCase()), pb = placed.placed.get(l.b.toLowerCase())
+                  if (!pa || !pb) return null
+                  const a = spot(pa), b = spot(pb)
+                  // Out of the bottom of the upper box into the top of the lower one; side by side, middle to middle.
                   const [top, bottom] = a.y <= b.y ? [a, b] : [b, a]
-                  const same = top.y === bottom.y
-                  const x1 = top.x + NODE_W / 2, y1 = same ? top.y + NODE_H / 2 : top.y + NODE_H
-                  const x2 = bottom.x + NODE_W / 2, y2 = same ? bottom.y + NODE_H / 2 : bottom.y
+                  const level = Math.abs(top.y - bottom.y) < NODE_H
+                  const x1 = top.x + NODE_W / 2, y1 = level ? top.y + NODE_H / 2 : top.y + NODE_H
+                  const x2 = bottom.x + NODE_W / 2, y2 = level ? bottom.y + NODE_H / 2 : bottom.y
                   const color = l.issue === 'down' ? 'var(--mantine-color-red-6)' : l.issue === 'slow' ? 'var(--mantine-color-orange-6)' : COLOR[l.type]
                   const chosen = picked?.kind === 'link' && picked.id === l.id
                   return (
-                    <g key={l.id} onClick={() => setPicked({ kind: 'link', id: l.id })} style={{ cursor: 'pointer' }}>
+                    <g key={l.id} onClick={() => { if (!clickedAfterMove() && !wire) setPicked({ kind: 'link', id: l.id }) }} style={{ cursor: 'pointer' }}>
                       <title>{`${l.a} ${l.a_port} – ${l.b} ${l.b_port}${l.speed ? ` · ${l.speed}G` : ''}`}</title>
                       <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={14} />
                       <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={(WIDTH[l.speed ?? 0] ?? 1.5) + (chosen ? 2 : 0)}
@@ -116,11 +248,14 @@ export default function Topology() {
                     </g>
                   )
                 })}
-                {[...placed.placed.values()].map((p) => {
-                  const chosen = picked?.kind === 'node' && picked.name === p.node.name
+                {[...placed.placed.entries()].map(([key, p]) => {
+                  const chosen = (picked?.kind === 'node' && picked.name === p.node.name) || wire?.a === p.node.name
+                  const at = spot(p)
                   return (
-                    <g key={p.node.id} transform={`translate(${p.x} ${p.y})`} onClick={() => setPicked({ kind: 'node', name: p.node.name })}
-                      style={{ cursor: 'pointer' }}>
+                    <g key={p.node.id} transform={`translate(${at.x} ${at.y})`} data-node={p.node.name}
+                      onPointerDown={(e) => { e.stopPropagation(); if (canEdit && !wire) down(e as unknown as React.PointerEvent<SVGSVGElement>, key); else { gesture.current = null; moved.current = false } }}
+                      onClick={() => { if (!clickedAfterMove()) pickNode(p.node.name) }}
+                      style={{ cursor: wire ? 'crosshair' : canEdit ? 'move' : 'pointer' }}>
                       <title>{`${p.node.name}: ${t(`topology.status.${p.node.status}`)}`}</title>
                       {/* A box that is down: red, dashed and struck through, so it doesn't rely on colour. */}
                       <rect width={NODE_W} height={NODE_H} rx={8} fill={p.node.status === 'offline' ? 'var(--mantine-color-red-light)' : 'var(--mantine-color-body)'}
@@ -138,6 +273,7 @@ export default function Topology() {
                 </g>
               </svg>
               <Legend />
+              <Text size="xs" c="dimmed" mt={4}>{t(canEdit ? 'topology.howEdit' : 'topology.how')}</Text>
             </Paper>
             {phone
               ? <Drawer opened={!!picked} onClose={() => setPicked(null)} position="bottom" size="55%"

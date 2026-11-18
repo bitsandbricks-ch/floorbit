@@ -130,7 +130,7 @@ export interface PluginInfo {
   icon?: string
   version: string
   description: string
-  trust: 'builtin' | 'development' | 'official' | 'community' | string
+  trust: 'builtin' | 'development' | 'official' | string
   author: string
   homepage: string
   uses: { id: string; label: string }[]
@@ -921,34 +921,6 @@ export interface PlanDrawing {
   icons?: Record<string, string[]>
   /** Uploaded icons the marks use, by id, as ``data:`` URIs (floorbit/icon_library.py). */
   custom_icons?: Record<string, string>
-}
-
-/** [time, seat, 1 online / 0 offline] */
-export type SeatChange = [number, string, 0 | 1]
-
-export interface ReplayIncident {
-  id: string
-  title: string
-  seat: string | null
-  switch: string | null
-  start: number
-  end: number | null
-}
-
-export interface ReplayData {
-  halls: { id: string; name: string }[]
-  hall: string
-  drawing: PlanDrawing | null
-  start: number | null
-  end: number | null
-  interval: number
-  samples: { t: number; down: number; up: number; online: number }[]
-  peak: { bps: number; at: number } | null
-  seat_base: { t: number | null; online: string[] }
-  seat_events: SeatChange[]
-  checkins: SeatChange[]
-  incidents: ReplayIncident[]
-  last_poll: number | null
 }
 
 /** GET /api/report: the post-event report (issue #22). Nicks and IPs only when an admin asked. */
@@ -1891,6 +1863,8 @@ export interface TopologyUplink {
 export interface Topology {
   nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
   counts: { links: number; down: number; slow: number; miswired?: number }; types: LinkType[]; speeds: number[]
+  /** Where the crew dragged the boxes, by switch name in lower case; missing or empty: the automatic layout. */
+  layout?: Record<string, { x: number; y: number }>
 }
 /** One kept switch config (floorbit/config_backup.py, issue #96). */
 export interface ConfigCopy {

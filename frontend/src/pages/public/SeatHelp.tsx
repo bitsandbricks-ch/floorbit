@@ -16,6 +16,8 @@ export interface SeatHelpState {
   back_up: number | null
   report: 'open' | 'sent' | 'taken' | 'fixed' | 'ok' | null
   ahead: number
+  /** What one speed test may move; null while speed tests are off. */
+  speedtest: { test_mb: number } | null
 }
 type Done = 'thanks' | 'again' | 'ok'
 
@@ -83,7 +85,7 @@ export default function SeatHelp() {
               )}
             </>
           )}
-          {s && done !== 'ok' && <SpeedTest seat={s.seat} k={k} />}
+          {s?.speedtest && done !== 'ok' && <SpeedTest seat={s.seat} k={k} testMb={s.speedtest.test_mb} />}
         </Stack>
       </Paper>
     </PublicPage>
@@ -93,7 +95,7 @@ export default function SeatHelp() {
 const UNITS: Record<Figure, string> = { down: 'Mbit/s', up: 'Mbit/s', ping: 'ms' }
 const fmt = (n: number, lang: string) => new Intl.NumberFormat(lang, { maximumFractionDigits: n >= 100 ? 0 : 1, minimumFractionDigits: n >= 100 ? 0 : 1 }).format(n)
 
-function SpeedTest({ seat, k }: { seat: string; k: string }) {
+function SpeedTest({ seat, k, testMb }: { seat: string; k: string; testMb: number }) {
   const { t, i18n } = useTranslation()
   const [figures, setFigures] = useState<Partial<Record<Figure, number>> | null>(null)
   const [state, setState] = useState<'idle' | 'running' | 'saved' | 'failed'>('idle')
@@ -102,7 +104,7 @@ function SpeedTest({ seat, k }: { seat: string; k: string }) {
     setFigures({})
     setState('running')
     try {
-      await runSpeedtest(seat, k, (what, value) => setFigures((f) => ({ ...f, [what]: value })))
+      await runSpeedtest(seat, k, (what, value) => setFigures((f) => ({ ...f, [what]: value })), testMb)
       setState('saved')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))

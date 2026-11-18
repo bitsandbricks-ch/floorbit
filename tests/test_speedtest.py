@@ -35,12 +35,17 @@ def test_streams_need_the_signed_link(anon_client, app_module, floor):
     assert ping.status_code == 200 and "no-store" in ping.headers["Cache-Control"]
 
 
+def limit(monkeypatch, **changes):
+    monkeypatch.setattr(speedtest, "limits", lambda: {**speedtest.DEFAULTS, **changes})
+
+
 def test_download_and_upload(anon_client, app_module, floor):
     down = anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=300000"))
     assert down.status_code == 200 and len(down.data) == 300000
     assert down.headers["Content-Length"] == "300000"
-    capped = anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=99999999999"), buffered=False)
-    assert int(capped.headers["Content-Length"]) == speedtest.MAX_DOWN
+    capped = anon_client.get(speed_url(app_module, "A-2", "down", "&bytes=99999999999"), buffered=False)
+    # At most half of what a test may move (250 MB by default) and no more than one request's top.
+    assert int(capped.headers["Content-Length"]) == min(speedtest.MAX_DOWN, 125 * speedtest.MB)
     capped.close()
     assert anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=lots")).status_code == 400
     up = anon_client.post(speed_url(app_module, "A-1", "up"), data=b"x" * 200000,
@@ -50,13 +55,57 @@ def test_download_and_upload(anon_client, app_module, floor):
 
 
 def test_busy_and_budget(anon_client, app_module, floor, monkeypatch):
-    monkeypatch.setattr(speedtest, "MAX_RUNNING", 0)
+    limit(monkeypatch, max_running=0)
     r = anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=1000"))
     assert r.status_code == 503 and "Other seats" in r.get_json()["error"]
-    monkeypatch.setattr(speedtest, "MAX_RUNNING", 6)
-    monkeypatch.setattr(speedtest, "BUDGET", 5000)
-    assert anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=4000")).status_code == 200
-    assert anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=4000")).status_code == 429
+    # One client IP may move a few tests' worth in ten minutes, over all seats.
+    limit(monkeypatch, test_mb=20, seat_minutes=0)
+    big = 10 * speedtest.MB
+    for _ in range(8):
+        assert anon_client.get(speed_url(app_module, "A-1", "down", f"&bytes={big}")).status_code == 200
+    r = anon_client.get(speed_url(app_module, "A-1", "down", f"&bytes={big}"))
+    assert r.status_code == 429 and "from here" in r.get_json()["error"]
+
+
+def test_one_test_per_seat_in_a_while(anon_client, app_module, floor, monkeypatch):
+    limit(monkeypatch, test_mb=20, seat_minutes=10)
+    big = 10 * speedtest.MB
+    assert anon_client.get(speed_url(app_module, "A-1", "down", f"&bytes={big}")).status_code == 200
+    assert anon_client.get(speed_url(app_module, "A-1", "down", f"&bytes={big}")).status_code == 200
+    again = anon_client.get(speed_url(app_module, "A-1", "down", f"&bytes={big}"))
+    assert again.status_code == 429 and again.get_json()["error"] == \
+        "This seat was tested a moment ago. Try again in 10 minutes."
+    assert anon_client.get(speed_url(app_module, "A-2", "down", f"&bytes={big}")).status_code == 200
+    # 0 minutes: no limit per seat.
+    limit(monkeypatch, test_mb=20, seat_minutes=0)
+    assert anon_client.get(speed_url(app_module, "A-1", "down", f"&bytes={big}")).status_code == 200
+
+
+def test_speed_tests_can_be_switched_off(anon_client, client, app_module, floor):
+    assert anon_client.get(api_url(app_module, "A-1")).get_json()["speedtest"] == {"test_mb": 250}
+    client.put("/api/settings", json={"speedtest.enabled": False})
+    assert anon_client.get(speed_url(app_module, "A-1", "ping")).status_code == 404
+    assert anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=1000")).status_code == 404
+    assert anon_client.get(api_url(app_module, "A-1")).get_json()["speedtest"] is None
+
+
+def test_the_limits_are_settings(client, app_module, floor):
+    client.put("/api/settings", json={"speedtest.max_running": 2, "speedtest.test_mb": 100,
+                                      "speedtest.seat_minutes": 0, "speedtest.max_mbps": 300})
+    with app_module.app.app_context():
+        assert speedtest.limits() == {"on": True, "max_running": 2, "test_mb": 100, "seat_minutes": 0, "max_mbps": 300}
+
+
+def test_a_stream_is_held_to_the_speed_cap(monkeypatch):
+    slept = []
+    monkeypatch.setattr(speedtest.time, "sleep", slept.append)
+    stream = speedtest.download(4 * speedtest.MB, mbps=8)   # 1 MB/s
+    with speedtest._lock:
+        speedtest._running[0] += 1
+    assert sum(len(piece) for piece in stream) == 4 * speedtest.MB
+    assert 3.5 < max(slept) < 4.5 and speedtest._running[0] == 0   # mocked sleep: the last wait is the total
+    slept.clear()
+    assert sum(len(piece) for piece in speedtest.download(speedtest.MB)) == speedtest.MB and not slept
 
 
 def test_result_goes_with_the_report(anon_client, client, app_module, floor):
@@ -87,10 +136,11 @@ def test_result_is_checked_and_limited(anon_client, app_module, floor):
 
 def test_budget_is_per_client_behind_a_trusted_proxy(anon_client, app_module, floor, monkeypatch):
     monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
-    monkeypatch.setattr(speedtest, "BUDGET", 5000)
-    url = speed_url(app_module, "A-1", "down", "&bytes=4000")
+    limit(monkeypatch, test_mb=20, seat_minutes=0)
+    url = speed_url(app_module, "A-1", "down", f"&bytes={10 * speedtest.MB}")
     first, other = {"X-Forwarded-For": "192.0.2.30"}, {"X-Forwarded-For": "192.0.2.31"}
-    assert anon_client.get(url, headers=first).status_code == 200
+    for _ in range(8):
+        assert anon_client.get(url, headers=first).status_code == 200
     assert anon_client.get(url, headers=first).status_code == 429
     assert anon_client.get(url, headers=other).status_code == 200
 
@@ -145,12 +195,12 @@ def test_summary_endpoint(client, floor):
 def test_streams_that_never_start_free_their_slot(anon_client, app_module, floor):
     """A HEAD, or a download closed before its first chunk, must not hold a stream slot for good:
     six of them used to lock the speed test for every seat until a restart."""
-    for _ in range(speedtest.MAX_RUNNING + 2):
+    for _ in range(speedtest.DEFAULTS["max_running"] + 2):
         head = anon_client.head(speed_url(app_module, "A-1", "down", "&bytes=1000"))
         assert head.status_code == 200
         assert head.headers["Content-Length"] == "1000"
     assert speedtest._running[0] == 0
-    for _ in range(speedtest.MAX_RUNNING + 2):
+    for _ in range(speedtest.DEFAULTS["max_running"] + 2):
         unread = anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=1000"), buffered=False)
         assert unread.status_code == 200
         unread.close()

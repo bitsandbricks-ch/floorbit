@@ -46,6 +46,9 @@ SECTIONS = [
     {'id': 'public', 'title': 'Attendee pages',
      'description': 'Pages for attendees, open without an account. They show seat numbers only: '
                     'no nicks, addresses, switches or ports.'},
+    {'id': 'speedtest', 'title': 'Speed tests',
+     'description': 'The speed test on the seat help page. Every test streams from this server, so these '
+                    'limits keep a hall full of tests from taking its threads and its uplink.'},
     {'id': 'metrics', 'title': 'Prometheus metrics',
      'description': 'GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, '
                     'incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an '
@@ -135,6 +138,21 @@ FIELDS = [
          help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
               'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
               'Off by default.'),
+    dict(key='speedtest.enabled', section='speedtest', label='Speed test on the help page', type='bool',
+         env='SPEEDTEST', default=True,
+         help='Off hides the button on the seat help page and refuses every test.'),
+    dict(key='speedtest.max_running', section='speedtest', label='Streams at once', type='int',
+         env='SPEEDTEST_MAX_RUNNING', default=3, min=1, max=20,
+         help='Downloads and uploads running at the same time, over all seats. Each holds a server thread.'),
+    dict(key='speedtest.test_mb', section='speedtest', label='Data per test', type='int', unit='MB',
+         env='SPEEDTEST_TEST_MB', default=250, min=20, max=2000,
+         help='What one test may move, download and upload together. Enough for a gigabit seat.'),
+    dict(key='speedtest.seat_minutes', section='speedtest', label='One test per seat every', type='int',
+         unit='minutes', env='SPEEDTEST_SEAT_MINUTES', default=10, min=0, max=240,
+         help='0 lets a seat test as often as it likes.'),
+    dict(key='speedtest.max_mbps', section='speedtest', label='Speed cap per stream', type='int', unit='Mbit/s',
+         env='SPEEDTEST_MAX_MBPS', default=1000, min=0, max=100000,
+         help='0 for no cap. With the default, a gigabit seat still measures in full.'),
     dict(key='metrics.enabled', section='metrics', label='Prometheus metrics', type='bool',
          env='METRICS_ENABLED', default=False,
          help='Serve /api/metrics. Off by default.'),
@@ -307,8 +325,10 @@ class SettingsStore:
         self._lock = threading.Lock()
         self._overrides = {}
         # On a local agent: what the hosted Floorbit set (floorbit_agent/plugin_host.py). Kept in
-        # memory only, so its secrets never land on the agent's disk; the agent's env still wins.
+        # memory only, so its secrets never land on the agent's disk.
         self._remote = {}
+        # On a local agent: the plugins' settings, which only the hosted Floorbit decides (ignore_env).
+        self._env_off = frozenset()
         self._opened = {}     # (key, sealed text) -> clear: a secret is decrypted once, not on every read
         self._mtime = None
         self.reload()
@@ -386,11 +406,20 @@ class SettingsStore:
         field = FIELDS_BY_KEY[key]
         if key in self._overrides:
             return 'saved'
-        if field.get('env') and self.environ.get(field['env'], '') != '':
+        if self._from_env(field):
             return 'env'
         if key in self._remote:
             return 'hosted'
         return 'default'
+
+    def _from_env(self, field):
+        return bool(field.get('env')) and field['key'] not in self._env_off and \
+            self.environ.get(field['env'], '') != ''
+
+    def ignore_env(self, keys):
+        """Agent only: these settings come from the hosted Floorbit alone, whatever the agent's own
+        environment says (docs/agent.md, "Settings")."""
+        self._env_off = frozenset(keys)
 
     def set_remote(self, values):
         """Replace the hosted Floorbit's values (agent only). Unknown keys are ignored."""
@@ -409,7 +438,7 @@ class SettingsStore:
                     raw = self._open(key, raw)
                 if raw is not None:
                     return _coerce(field, raw)
-            if field.get('env') and self.environ.get(field['env'], '') != '':
+            if self._from_env(field):
                 return _coerce(field, self.environ[field['env']])
             if key in self._remote:
                 return _coerce(field, self._remote[key])

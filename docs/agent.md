@@ -32,8 +32,8 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | The health wall's checks (HTTP check, or any health plugin turned on there) | health |
 | DNS analytics (Pi-hole, AdGuard Home, turned on there) | dns |
 | The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
-| Syslog on the Logs page, when the agent listens for it (`FLOORBIT_AGENT_SYSLOG_PORT`) | syslog |
-| The Traffic page (NetFlow and IPFIX), when the agent collects flows (`FLOORBIT_AGENT_FLOWS_PORT`) | traffic |
+| Syslog on the Logs page, when the agent listens for it (the **Syslog from the hall** plugin) | syslog |
+| The Traffic page (NetFlow and IPFIX), when the agent collects flows (the **Traffic from the hall** plugin) | traffic |
 | Port actions (SSH ports), switch commands, config backups and the switch terminal | switch SSH |
 | Attendee check-in, the seat help page and its speed test, with each PC's own address | front door |
 
@@ -173,7 +173,7 @@ protocol (see [The protocol](#the-protocol)).
 **With Docker Compose** (this repository and the agent's both have a file for it):
 
 ```sh
-cp agent.env.example agent.env     # fill in FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
+cp agent.env.example agent.env     # fill in FLOORBIT_URL and FLOORBIT_AGENT_KEY
 chmod 600 agent.env
 docker compose -f docker-compose.agent.yml up -d
 docker compose -f docker-compose.agent.yml logs -f    # "[agent] connected to … as …"
@@ -185,13 +185,11 @@ docker compose -f docker-compose.agent.yml logs -f    # "[agent] connected to �
 docker run -d --restart on-failure:3 --name floorbit-agent \
   -e FLOORBIT_URL=https://floor.example.com \
   -e FLOORBIT_AGENT_KEY=fba_… \
-  -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \
   ghcr.io/bitsandbricks-ch/floorbit-agent
 ```
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
-monitoring plugin, the inventory and health plugins, and, when their ports are set, whether the
-hosted Floorbit takes syslog and flows), says which works and which doesn't, and exits with 0 when
+monitoring plugin, the inventory and health plugins, and the plugins that run on the agent), says which works and which doesn't, and exits with 0 when
 everything works, 1 when something doesn't:
 
 ```sh
@@ -201,26 +199,46 @@ docker compose -f docker-compose.agent.yml run --rm agent python -m floorbit_age
 ```text
 OK   https://floor.example.com accepts the key: this is "Spring LAN, hall 2" (Floorbit 0.1.0)
 OK   the monitoring plugin answers: 24 devices
-FAIL NetBox: Set the NetBox URL and API token under Settings > NetBox first. (NETBOX_URL and NETBOX_TOKEN are not set)
+FAIL NetBox: Set the NetBox URL and API token under Settings > NetBox first.
 Fix what failed, then run the check again.
 ```
 
-Set up the event's plugins on it the usual way (for LibreNMS `LIBRENMS_URL` and `LIBRENMS_TOKEN`,
-for NetBox `NETBOX_URL` and `NETBOX_TOKEN`), and tell it where the hosted Floorbit is:
+### Settings come from Floorbit
+
+Everything the agent does for the event is a plugin, set up in Floorbit under **Settings >
+Plugins**: LibreNMS and NetBox, health checks, DNS, Wi-Fi, and the parts that listen in the hall
+(**Syslog from the hall**, **Traffic from the hall**, **Check-in note on phones** and **Front door
+for attendees**). Every agent takes them from there within a minute. The agent's own environment no
+longer sets plugins: `LIBRENMS_URL`, `NETBOX_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`,
+`FLOORBIT_AGENT_PLUGINS` and the old `FLOORBIT_AGENT_SYSLOG_PORT`, `_FLOWS_PORT`, `_CAPTIVE` and
+`_FRONT_DOOR` are not read.
+
+**Updating an agent that still has them.** So the event keeps running, the agent sends what its
+environment set for plugins once, over its link, and Floorbit takes it over for each plugin that
+isn't on and has no saved settings there yet, tokens included (sealed like any other plugin token).
+A plugin already set up in Floorbit keeps its settings. The audit log has an entry per plugin taken
+over ("Took over plugin settings from an agent"), and the agent's log says which variables you can now
+remove. Only plugins that work on an agent are taken over this way.
+
+**Self-hosted with the agent next to Floorbit** (the compose file, the Kubernetes pod): the first
+time Floorbit starts with its local agent, it turns on syslog on port 5514, flows on 2055 and the
+front door on `0.0.0.0:8443`, the ports the compose file and the pod publish. A plugin you set up or
+turned off yourself is left alone.
+
+What stays in the agent's environment is the machine itself:
 
 | Setting | What |
 | --- | --- |
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
 | `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
-| `FLOORBIT_AGENT_PLUGINS` | more plugins to turn on there, comma-separated, such as `http-check`. Only LibreNMS and NetBox are on by default. A plugin's settings come from `FLOORBIT_PLUGIN_<ID>_<KEY>`, for example `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=Cache=http://cache.lan.example/health` |
-| `FLOORBIT_AGENT_SYSLOG_PORT` | a UDP port to take syslog on, such as `5514`, sent on to the hosted Logs page. Unset: the agent doesn't listen. `FLOORBIT_AGENT_SYSLOG_BIND` picks the address (all of them by default) |
-| `FLOORBIT_AGENT_FLOWS_PORT` | a UDP port to collect NetFlow and IPFIX on, such as `2055`, for the hosted Traffic page. Unset: no collector. `FLOORBIT_AGENT_FLOWS_BIND` picks the address; the `FLOWS_*` settings of [Traffic](flows.md) apply on the agent |
-| `FLOORBIT_AGENT_CAPTIVE` | `host:port` to answer the Captive Portal API on (RFC 8908), such as `0.0.0.0:8908`, for the [check-in note](integrations.md#the-sign-in-to-network-note-captive-portal-api). Unset: off. `FLOORBIT_AGENT_CAPTIVE_PROXIES` names the reverse proxies whose `X-Forwarded-For` it trusts, and `FLOORBIT_AGENT_CAPTIVE_PORTAL_URL` replaces the check-in page it points at |
+| `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | a certificate on the agent's machine, so the front door and telemetry answer with HTTPS |
+| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES` | what the people at the hall allow (actions, plugin updates): Floorbit can't decide that for them |
+| `FLOORBIT_AGENT_VRRP_*` | two agents in one hall (floorbit-agent's `docs/vrrp.md`): each machine's interface and priority |
 | `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
-The agent only makes outgoing requests; nothing listens on it unless `FLOORBIT_AGENT_SYSLOG_PORT`, `FLOORBIT_AGENT_FLOWS_PORT` or `FLOORBIT_AGENT_CAPTIVE` is set. It runs up to 4 calls side by side,
+The agent only makes outgoing requests; nothing listens on it unless a plugin that listens is on (syslog, flows, the check-in note, the front door). It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each
 try. When the key is refused (wrong or revoked), it stops with exit code 1: enrol it again and
@@ -240,8 +258,8 @@ agent protocol than this Floorbit.
 
 ## The inventory through the agent
 
-Set up the event's inventory plugin on the agent too (for NetBox: `NETBOX_URL` and
-`NETBOX_TOKEN`). An inventory sync on the hosted Floorbit (**Inventory > Sync**, or **Sync
+Turn the event's inventory plugin on under Settings > Plugins (NetBox, with its URL and token);
+the agent runs it too. An inventory sync on the hosted Floorbit (**Inventory > Sync**, or **Sync
 switches** in the editor) then also asks the agent: it runs each inventory plugin that is on there
 and sends back their devices. They are merged under the plugin's own id (`netbox`), the same as a
 local install would, so a hall that moves from a local Floorbit to a hosted one keeps its devices,
@@ -282,18 +300,21 @@ which PC asks, the seat speed test measures the internet line, and all attendees
 sign-in lockout. The agent's **front door** fixes that: it answers on the event network and passes
 each request on to the hosted Floorbit, adding the address it saw and its own key.
 
-Set on the agent:
+Turn on the **Front door for attendees** plugin under Settings > Plugins:
 
-| Variable | Example | What |
+| Setting | Example | What |
 | --- | --- | --- |
-| `FLOORBIT_AGENT_FRONT_DOOR` | `0.0.0.0:8443` | Where it answers (host:port). Off by default. |
-| `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | `/certs/checkin.pem` | Serve HTTPS. Crew sign-in needs it (session cookies only go over HTTPS); check-in works on plain HTTP. |
-| `FLOORBIT_AGENT_FRONT_DOOR_PROXIES` | `10.0.0.5` | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
+| Address on the agent | `0.0.0.0:8443` | Where it answers (host:port). Empty: off. |
+| Reverse proxy addresses | `10.0.0.5` | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
+
+For HTTPS, give the agent's machine a certificate (`FLOORBIT_AGENT_TLS_CERT` and
+`FLOORBIT_AGENT_TLS_KEY` in its environment). Crew sign-in needs it (session cookies only go over
+HTTPS); check-in works on plain HTTP.
 
 Then point the check-in name (`CHECKIN_ADDRESS`, for example `checkin.lan`) at the agent in the
-event DNS: typing it on a PC opens the check-in page, through the agent. The compose file and the
-Kubernetes manifest turn the front door on and open it on port 80 (`CHECKIN_PUBLISH_PORT` in
-compose).
+event DNS: typing it on a PC opens the check-in page, through the agent. Self-hosted, Floorbit turns the
+front door on for its local agent, and the compose file and the Kubernetes manifest open it on port
+80 (`CHECKIN_PUBLISH_PORT` in compose).
 
 **Check-in takes the seat PC's address only from the front door**, hosted or self-hosted alike: a
 request's own address or `X-Forwarded-For` never names it. A check-in from anywhere else keeps the
@@ -320,16 +341,16 @@ isn't asked on the hosted Floorbit too. The cable page lists "Local agent" among
 ## Health checks through the agent
 
 The [health wall](health.md) checks services such as the LAN cache or a game server's web panel,
-which are usually only reachable inside the hall. Turn the health plugins on on the agent
-(`FLOORBIT_AGENT_PLUGINS=http-check` and `FLOORBIT_PLUGIN_HTTP_CHECK_TARGETS=…`) and the hosted
+which are usually only reachable inside the hall. Turn a health plugin on under Settings > Plugins
+(**HTTP check** with its targets) and the agent runs it too: the hosted
 health wall shows their checks, made from the event network, as "HTTP check (local agent)". A
 plugin the agent checks with isn't also asked on the hosted side. While the agent is away, the
 wall shows one grey "Local agent" tile instead of the checks.
 
 ## DNS analytics through the agent
 
-Turn the DNS plugin on on the agent (`FLOORBIT_AGENT_PLUGINS=pihole` with
-`FLOORBIT_PLUGIN_PIHOLE_URL` and so on, or `adguard-home`) and the hosted [DNS page](dns.md) counts
+Turn a DNS plugin on under Settings > Plugins (Pi-hole or AdGuard Home, with its address and
+token) and the agent asks it from inside the hall: the hosted [DNS page](dns.md) counts
 the hall's lookups as with a local resolver. The agent makes them safe to send first: each client's
 address becomes a keyed hash (the key lives only in the agent's memory), and names are cut to the
 site, with local names (a machine's name says whose it is) left out. So neither addresses nor
@@ -337,8 +358,7 @@ machine names leave the event network; the hosted side applies the same 5-client
 
 ## Wi-Fi through the agent
 
-With the UniFi plugin on on the agent (`FLOORBIT_AGENT_PLUGINS=unifi` and its
-`FLOORBIT_PLUGIN_UNIFI_…` settings), the hosted [Wi-Fi page](wifi.md) shows the access points, their
+With the UniFi plugin on under Settings > Plugins, the agent asks the controller and the hosted [Wi-Fi page](wifi.md) shows the access points, their
 channels and client counts, marked "UniFi (local agent)". The agent cleans the controller's answer
 first, so only counts leave the event network, never client names or MACs. The Wi-Fi link in the
 menu only shows when the hosted Floorbit has a Wi-Fi plugin of its own; open the page at `/wifi`.
@@ -352,9 +372,7 @@ minute (docs/agent-plugins.md). Publish the port (in `docker-compose.agent.yml`,
 `ports` lines, which map the host's udp/514 to it) and point the switches, firewalls and DHCP
 servers at the agent's machine, as [Syslog](syslog.md) describes for a Floorbit of your own.
 
-`FLOORBIT_AGENT_SYSLOG_PORT=5514` on the agent still works the old way, without the plugin. Use one
-or the other: both on the same port can't listen. With the plugin, lines wait in the plugin's disk
-spool (256 MB and 24 hours) and its numbers show on Local agents.
+Lines wait in the plugin's disk spool (256 MB and 24 hours) and its numbers show on Local agents.
 
 The agent sends the lines on over its HTTPS connection every two seconds, each with the address
 it came from and when it arrived. The hosted Floorbit treats them as if they had come straight to it:
@@ -366,9 +384,8 @@ it came from and when it arrived. The hosted Floorbit treats them as if they had
   DHCP servers). Lines from anyone else are dropped and counted, as usual.
 - The rate cap, retention and Loki forwarding are the hosted side's.
 
-While the hosted Floorbit can't be reached, the agent keeps the lines on disk (up to 2 GB and 24
-hours, floorbit-agent's README) and sends them when it's back: the live lines first, the backlog
-behind them, oldest first. An agent from before the disk buffer keeps up to 20,000 lines in memory.
+While the hosted Floorbit can't be reached, the agent keeps the lines in the plugin's disk spool
+and sends them when it's back, oldest first.
 Lines it had to drop are counted; the Logs page shows the count next to "Through the local
 agent …".
 
@@ -393,8 +410,7 @@ Flows are too many, and too revealing, to send across the internet one by one. S
 the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
 Settings > Plugins and set its UDP port (such as `2055`), publish the port (the `ports` lines in
 `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
-agent's machine. `FLOORBIT_AGENT_FLOWS_PORT=2055` on the agent still works the old way; use one or
-the other. With the plugin, only the newest summary waits while the hosted side is away.
+agent's machine. Only the newest summary waits while the hosted side is away.
 
 - Every 10 seconds the agent sends the hosted Floorbit **only the summary** the Traffic page shows:
   hall, area and service totals, services only once enough seats used them (`FLOWS_MIN_SEATS`), and

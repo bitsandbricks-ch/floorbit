@@ -92,7 +92,7 @@ describe('Plugins page', () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': { enabled: false, user: null },
       'GET /api/settings/plugins': { plugins: [plugin] },
-      'GET /api/settings/marketplace': { sources: [], plugins: [] },
+      'GET /api/settings/marketplace': { source: { url: '', name: '', generated: '', error: '' }, plugins: [] },
     }).fn)
     renderWithApp(<Plugins />)
     fireEvent.click(await screen.findByRole('tab', { name: 'Marketplace' }))

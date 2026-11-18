@@ -16,8 +16,7 @@
   "trust": {
     "builtin": "Ships with Floorbit",
     "development": "Development checkout",
-    "official": "Official",
-    "community": "Community"
+    "official": "Official"
   },
   "open": "Open",
   "agent": "Runs on the agent",
@@ -39,6 +38,7 @@
   "pageEmpty": "Nothing on this page for your account.",
   "names": {
     "captive-note": "Check-in note on phones",
+    "front-door": "Front door for attendees",
     "demo": "Demo data",
     "home-assistant": "Home Assistant meters",
     "http-check": "HTTP check",

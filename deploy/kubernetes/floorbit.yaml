@@ -83,13 +83,10 @@ spec:
             - {name: FLOORBIT_AGENT_INSECURE, value: "1"}
             - {name: FLOORBIT_AGENT_KEY_FILE, value: /run/floorbit-agent/local-agent.key}
             - {name: FLOORBIT_DATA_FILE, value: /agent-state/agent-data.json}
-            - {name: FLOORBIT_AGENT_SYSLOG_PORT, value: "5514"}
-            - {name: FLOORBIT_AGENT_FLOWS_PORT, value: "2055"}
-            # The attendee front door (docs/agent.md): check-in learns each seat PC's address only here.
-            - {name: FLOORBIT_AGENT_FRONT_DOOR, value: "0.0.0.0:8443"}
             - {name: TZ, value: "UTC"}
-            # LibreNMS, NetBox and the other sources are set in Floorbit (Settings > Plugins); the
-            # agent takes them from there. Env-only ones go here, e.g. LIBRENMS_URL.
+            # LibreNMS, NetBox, syslog, flows and the attendees' front door are plugins set in Floorbit
+            # (Settings > Plugins); the agent takes them from there. Syslog, flows and the front door
+            # are turned on on the ports below the first time Floorbit starts with this agent.
           ports:
             - {name: syslog, containerPort: 5514, protocol: UDP}
             - {name: flows, containerPort: 2055, protocol: UDP}

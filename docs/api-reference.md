@@ -58,6 +58,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agent/v1/answers` | anyone |  |
 | GET | `/api/agent/v1/calls` | anyone |  |
 | GET | `/api/agent/v1/captive` | anyone |  |
+| POST | `/api/agent/v1/env-settings` | anyone |  |
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
 | POST | `/api/agent/v1/report` | anyone |  |
@@ -542,7 +543,7 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 
 ## floorbit.blueprints.marketplace
 
-The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: that is the operator's, where the server runs.
+The plugin Marketplace (floorbit/marketplace.py, docs/marketplace.md): admins only, through the ``/api/settings`` rule of the request guard. Every install, update, rollback and removal is in the audit log. Nothing here can trust a key or add a source: only the official index and keys count.
 
 Source: [`floorbit/blueprints/marketplace.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/marketplace.py)
 
@@ -790,13 +791,12 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 
 ## floorbit.blueprints.replay
 
-Event timeline replay (issue #21): the event on the floor plan, with a time slider. See docs/replay.md.
+Event replay (issues #21, #104): the whole event on the floor plan, with a time slider. See docs/replay.md.
 
 Source: [`floorbit/blueprints/replay.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/replay.py)
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
-| GET | `/api/replay` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 | GET | `/api/replay/event` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 | GET | `/api/replay/event.json` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 
@@ -1073,6 +1073,8 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/links` | `floorplan.edit` |  |
 | DELETE | `/api/links/<link_id>` | `floorplan.edit` |  |
 | PUT | `/api/links/<link_id>` | `floorplan.edit` |  |
+| DELETE | `/api/links/layout` | `floorplan.edit` |  |
+| PUT | `/api/links/layout` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.tournament
 
