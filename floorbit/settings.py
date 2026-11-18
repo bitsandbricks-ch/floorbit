@@ -126,17 +126,10 @@ FIELDS = [
               'member of the server can sign in as a viewer; otherwise members without one of '
               'these roles are refused. The role is set on the first sign-in; change it on the Users page later.'),
 
-    dict(key='public.attendee_view', section='public', label='Attendee view', type='bool',
-         env='ATTENDEE_VIEW', default=False,
-         help='/hall shows the hall plan with every seat online or offline. Off by default because '
-              'it also shows when a seat is empty, for example while its player is away.'),
     dict(key='public.status_page', section='public', label='Network status page', type='bool',
          env='STATUS_PAGE', default=False,
          help='/status tells attendees whether the network is fine, which areas an outage hits, and the '
               "crew's updates. Off by default."),
-    dict(key='public.status_switch_names', section='public', label='Switch names on the status page', type='bool',
-         env='STATUS_SWITCH_NAMES', default=False,
-         help='Name the switches that are down on /status. Off: only halls, blocks and rows.'),
     dict(key='public.stats_wall', section='public', label='Stats wall', type='bool',
          env='STATS_WALL', default=False,
          help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '

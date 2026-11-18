@@ -20,17 +20,12 @@
   "rows": "rows {{rows}}",
   "seats_one": "{{count}} seat",
   "seats_other": "{{count}} seats",
-  "switches": "Switches: {{names}}",
   "block": "Seat block {{name}}",
   "hallWide": "Hall {{name}}",
   "somewhere": "Somewhere in the hall",
-  "planned": "Planned maintenance",
-  "until": "until {{time}}",
-  "now": "Now",
   "recovered": "Back up recently",
   "recoveredAt": "The network here has been back since {{time}}.",
   "updates": "Updates from the crew",
   "none": "No updates yet.",
-  "feed": "Follow the updates in a feed reader (Atom)",
   "updated": "Updated {{time}}. This page updates every minute."
 }

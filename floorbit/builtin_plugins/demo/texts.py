@@ -30,8 +30,6 @@ TEXTS = {
                                             'you may notice a short break.'),
             (600, 'operational', '', 'Doors are open and the network is up. Have fun!'),
         ],
-        'maintenance': (120, 15, 'Core', 'We replace firewall 3. Seats in range 3 may lose the internet for a '
-                                         'minute.'),
         'schedule': [
             # (hour of the day, counted from today's midnight: -8 is 16:00 yesterday; length in hours or None,
             #  kind, title, where)
@@ -69,8 +67,6 @@ TEXTS = {
                                             'kurze Unterbrüche sind möglich.'),
             (600, 'operational', '', 'Die Türen sind offen und das Netz läuft. Viel Spass!'),
         ],
-        'maintenance': (120, 15, 'Core', 'Wir ersetzen Firewall 3. Plätze in Bereich 3 können für eine Minute '
-                                         'kein Internet haben.'),
         'schedule': [
             (-8, None, 'other', 'Türöffnung', 'Eingang'),
             (-6, 1, 'talk', 'Begrüssung und Hausregeln', 'Hauptbühne'),

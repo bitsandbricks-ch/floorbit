@@ -2,8 +2,8 @@
 
 `/status` tells attendees whether the network is fine, which areas an outage hits, and what the crew
 says about it. It needs no account, so it can be linked from the event website, shown on a screen
-or posted in Discord. `/status.json` has the same as JSON, and `/status.atom` has the crew's updates
-as an Atom feed, so attendees can follow them in a feed reader and the event website can show them.
+or posted in Discord. `/status.json` has the same as JSON. `/hall`, where the old attendee view
+was, leads here.
 
 It is **off** until an admin turns on **Network status page** under **Settings > Attendee pages**
 (or `STATUS_PAGE=true`). The feature can also be switched off entirely under Settings > Features.
@@ -19,8 +19,8 @@ It is **off** until an admin turns on **Network status page** under **Settings >
   | Network outage | a router or firewall is down, or half of the placed switches or more |
   | Status not available | the monitoring source isn't answering, or hasn't been asked yet |
 
-  The crew can set the state by hand (for example **Maintenance** before planned work); it stays
-  until they set it back to automatic.
+  The crew can set the state by hand (for example **Maintenance** during planned work, with an
+  update saying what and until when); it stays until they set it back to automatic.
 
 - **Affected areas**: the halls, seat blocks and rows the down switches serve. Floorbit learns which
   seats a switch serves from the port descriptions it reads (the port watch, see [alerts.md](alerts.md)) and
@@ -46,9 +46,8 @@ page, and picks up again by itself. Without JavaScript the page reloads every mi
 
 ## Privacy
 
-The public page and `/status.json` show no switch names, IPs, ports, nicks or who posted what. An
-admin can choose to name the switches that are down with **Switch names on the status page**
-(`STATUS_SWITCH_NAMES=true`); halls, blocks and rows are shown either way.
+The public page and `/status.json` show no switch names, IPs, ports, nicks or who posted what: only
+halls, blocks and rows. The crew's own page names the switches.
 
 ## For the crew
 
@@ -61,15 +60,6 @@ the affected areas with the switch names, and the updates.
   back up. A click fills in a ready text and the area. Edit it, then post. The texts use the names
   attendees see, never switch names.
 - Every change is in the audit log (area *status page*).
-
-### Planned maintenance
-
-Under **Planned maintenance** you announce work ahead: from when until when, what attendees should
-know and, optionally, where. Attendees see it under *Planned maintenance* on `/status` (and in
-`/status.json` as `planned`), with the times in their own time zone. While it runs, the page shows
-**Maintenance** by itself, with your text and when it ends, unless you set a state by hand, which
-always wins. Once it is over it disappears and the automatic state is back. You can cancel it any
-time. Up to 20 at a time, at most two weeks ahead. Like updates, it never says who planned it.
 
 ## Discord
 
@@ -84,12 +74,10 @@ nobody. This is separate from the crew's alert webhook, which says much more.
 | Route | What |
 | --- | --- |
 | `GET /status`, `GET /status.json` | the public page, no account |
-| `GET /status.atom` | the crew's updates as an Atom feed, no account. Its links use the Public URL (Settings > General, `PUBLIC_URL`) when it is set |
+| `GET /hall` | leads to `/status` (where the attendee view was) |
 | `GET /api/status-page` | the crew's view: the public one plus the state set by hand and the switch names |
 | `POST /api/status-page/updates` | `{"text": "...", "area": "Hall B"}` |
 | `DELETE /api/status-page/updates/<id>` | removes an update |
-| `POST /api/status-page/maintenance` | `{"start": <unix time>, "end": <unix time>, "text": "...", "area": "Hall B"}` |
-| `DELETE /api/status-page/maintenance/<id>` | cancels planned maintenance |
 | `PUT /api/status-page/override` | `{"state": "maintenance", "note": "..."}`, or `{"state": null}` for automatic |
 
 The states are `operational`, `degraded`, `outage`, `maintenance` and `unknown`.

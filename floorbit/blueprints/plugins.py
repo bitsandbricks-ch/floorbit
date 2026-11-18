@@ -479,8 +479,8 @@ def _switches_tile(user):
 def _seats_tile(user):
     from .. import incidents
     from ..store import load_data
-    from .attendee import _online
-    online, _last = _online()
+    from .stats_wall import online_seats
+    online, _last = online_seats()
     seats = set(incidents.seat_numbers(load_data()))
     return core.seats_widget(_lang(), None if online is None else len(online & seats), len(seats))
 

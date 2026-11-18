@@ -41,7 +41,7 @@ layer at the bottom right.
 - **Zone** lists the zones of the hall that have a label: draw one around the VIP area with the
   editor's Zone tool first. **My view** shows a small plan: move and zoom it, then **Use this view**.
 - **Plan marks** on a plan pane: **All** draws the marks of its layers, **Public** only the Overview
-  and Safety marks (as the [attendee pages](kiosk.md#attendee-view) do), for a screen people walk
+  and Safety marks (as the attendee pages do), for a screen people walk
   past, and **None** none.
 - **Public** lets the dashboard open without signing in (below).
 - **Rotate halls every** makes plan panes without a fixed hall that show a whole hall go through all

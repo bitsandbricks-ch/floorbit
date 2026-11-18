@@ -1,6 +1,5 @@
 """Public network status page (issue #101): the state, the areas hit, the crew's updates."""
 import time
-import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -65,10 +64,11 @@ def test_switch_without_seats_counts_for_the_nearest_block(anon_client, floor, s
         {"hall": "", "block": "B", "rows": "", "seats": None}]
 
 
-def test_admin_can_show_switch_names(client, anon_client, floor, switched_on):
-    client.put("/api/settings", json={"public.status_switch_names": True})
+def test_the_public_page_never_names_switches(client, anon_client, floor, switched_on):
+    # The option to show them went: the crew's own view (/api/status-page) has them.
+    assert client.put("/api/settings", json={"public.status_switch_names": True}).status_code == 400
     _down(floor, "a")
-    assert anon_client.get("/status.json").get_json()["areas"][0]["switches"] == ["sw-a-01"]
+    assert "switches" not in anon_client.get("/status.json").get_json()["areas"][0]
 
 
 def test_half_down_is_an_outage(anon_client, floor, switched_on):
@@ -159,78 +159,9 @@ def test_crew_view_lists_recently_back_with_switches(client, floor):
     assert crew["crew_recovered"][0]["switches"] == ["sw-a-01"] and "switches" not in crew["recovered"][0]
 
 
-def test_atom_feed_of_updates(client, anon_client, floor, switched_on):
-    client.put("/api/settings", json={"integrations.public_url": "https://status.example.com/"})
-    client.post("/api/status-page/updates", json={"text": "Hall B has no network <for now> & we know.",
-                                                  "area": "Hall B", "state": "maintenance"})
-    client.post("/api/status-page/updates", json={"text": "Hall B is back."})
-    r = anon_client.get("/status.atom")
-    assert r.status_code == 200 and r.mimetype == "application/atom+xml"
-    ns = {"a": "http://www.w3.org/2005/Atom"}
-    feed = ET.fromstring(r.data)
-    entries = feed.findall("a:entry", ns)
-    assert [e.find("a:content", ns).text for e in entries] == [
-        "Hall B is back.", "Hall B has no network <for now> & we know."]
-    assert entries[1].find("a:title", ns).text.startswith("Maintenance · Hall B: ")
-    assert feed.find("a:link[@rel='self']", ns).get("href") == "https://status.example.com/status.atom"
-    # Same rule as /status.json: never who posted.
-    from tests.conftest import TEST_USER
-    assert TEST_USER.encode() not in r.data
-
-
-def test_atom_feed_off_and_empty(client, anon_client, floor):
-    assert anon_client.get("/status.atom").status_code == 404
-    client.put("/api/settings", json={"public.status_page": True})
-    feed = ET.fromstring(anon_client.get("/status.atom").data)
-    assert feed.find("{http://www.w3.org/2005/Atom}updated").text.endswith("Z")
-    assert feed.findall("{http://www.w3.org/2005/Atom}entry") == []
-
-
-# ── Planned maintenance (issue #422) ──────────────────────────────────────────
-def test_planned_maintenance_is_announced_then_runs(client, anon_client, floor, switched_on, monkeypatch):
-    now = time.time()
-    plan = {"start": now + 3600, "end": now + 5400, "text": "Switch swap in hall B", "area": "Hall B"}
-    item = client.post("/api/status-page/maintenance", json=plan).get_json()
-    page = anon_client.get("/status.json").get_json()
-    assert page["state"] == "operational" and page["maintenance_now"] is None
-    assert page["planned"] == [{"id": item["id"], "start": plan["start"], "end": plan["end"],
-                                "text": "Switch swap in hall B", "area": "Hall B"}]   # never who planned it
-
-    # An hour later it runs: the page says Maintenance by itself, with the plan's text.
-    monkeypatch.setattr(time, "time", lambda: now + 3700)
-    page = anon_client.get("/status.json").get_json()
-    assert page["state"] == "maintenance" and page["maintenance_now"]["id"] == item["id"]
-    # A state set by hand still wins.
-    client.put("/api/status-page/override", json={"state": "outage"})
-    assert anon_client.get("/status.json").get_json()["state"] == "outage"
-    client.put("/api/status-page/override", json={"state": None})
-
-    # Once over, it is gone and the automatic state is back.
-    monkeypatch.setattr(time, "time", lambda: now + 5500)
-    page = anon_client.get("/status.json").get_json()
-    assert page["state"] == "operational" and page["planned"] == []
-    actions = {e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]}
-    assert "Planned maintenance" in actions
-
-
-def test_planned_maintenance_checks_and_cancel(client, app_module, floor):
-    now = time.time()
-
-    def plan(**body):
-        return client.post("/api/status-page/maintenance", json={"text": "Work", **body})
-    assert plan(start=now + 60, end=now).status_code == 400            # ends before it starts
-    assert plan(start=now - 7200, end=now - 3600).status_code == 400   # already over
-    assert plan(start=now + 30 * 86400, end=now + 30 * 86400 + 60).status_code == 400   # too far ahead
-    assert plan(start="soon", end=now + 60).status_code == 400
-    assert client.post("/api/status-page/maintenance", json={"start": now, "end": now + 60}).status_code == 400
-    item = plan(start=now + 60, end=now + 120).get_json()
-    assert client.get("/api/status-page").get_json()["planned"][0]["id"] == item["id"]
-    tech = app_module.app.extensions["auth"].users
-    tech.add("tech-ti", "example-pass-1", role="tech")
-    c = app_module.app.test_client()
-    c.post("/login", data={"username": "tech-ti", "password": "example-pass-1"})
-    assert c.post("/api/status-page/maintenance", json={"start": now + 60, "end": now + 120, "text": "x"},
-                  headers={"X-Requested-With": "fetch"}).status_code == 403
-    assert client.delete(f"/api/status-page/maintenance/{item['id']}").status_code == 200
-    assert client.delete(f"/api/status-page/maintenance/{item['id']}").status_code == 404
-    assert client.get("/api/status-page").get_json()["planned"] == []
+def test_the_old_hall_view_leads_to_the_status_page(anon_client, client, floor):
+    r = anon_client.get("/hall")
+    assert r.status_code == 301 and r.headers["Location"].endswith("/status")
+    for gone in ("/status.atom", "/api/public/hall", "/api/public/seats"):
+        assert anon_client.get(gone).status_code in (302, 401, 404), gone   # gone: sign-in or not found
+    assert client.post("/api/status-page/maintenance", json={}).status_code == 404

@@ -352,9 +352,6 @@ def _seed_status(words, now):
     for ago, state, area, message in reversed(words['status_updates']):
         update = status_page.post_update({'text': message, 'state': state, 'area': area}, 'demo')
         _backdate(status_page.KEY, 'updates', update['id'], now - ago * 60)
-    start_in, minutes, area, message = words['maintenance']
-    status_page.plan_maintenance({'start': now + start_in * 60, 'end': now + (start_in + minutes) * 60,
-                                  'text': message, 'area': area}, 'demo', now=now)
 
 
 def _backdate(key, part, item_id, at):

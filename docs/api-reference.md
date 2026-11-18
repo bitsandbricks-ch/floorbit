@@ -98,17 +98,6 @@ Source: [`floorbit/blueprints/api_tokens.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/settings/api-tokens/<token_id>` | `settings.manage` |  |
 | GET | `/api/version` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
-## floorbit.blueprints.attendee
-
-The public attendee view (issue #19). See docs/kiosk.md.
-
-Source: [`floorbit/blueprints/attendee.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/attendee.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/public/hall` | anyone | `public_hall` |
-| GET | `/api/public/seats` | anyone | `public_hall` |
-
 ## floorbit.blueprints.audit
 
 Settings > Audit log: the page, its JSON and a CSV download (admins only, under /settings).
@@ -983,8 +972,6 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/status-page` | `incidents.work` | `status_page` |
-| POST | `/api/status-page/maintenance` | `incidents.assign` | `status_page` |
-| DELETE | `/api/status-page/maintenance/<item_id>` | `incidents.assign` | `status_page` |
 | PUT | `/api/status-page/override` | `incidents.assign` | `status_page` |
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |

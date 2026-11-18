@@ -12,10 +12,22 @@ from flask import Blueprint, current_app, jsonify
 
 from .. import features, games, incidents, spa, stats_wall
 from ..store import load_data
-from .attendee import _online
 from .flows import current as current_flows
 
 bp = Blueprint('stats_wall', __name__)
+
+
+def online_seats(now=None):
+    """The online seats from the latest port read, or None when there is no recent read;
+    and when that read was."""
+    from ..attention import AttentionWatch
+    seats = current_app.extensions['floorbit_stats'].seats()
+    last = seats.get('last_poll')
+    now = time.time() if now is None else now
+    # Three missed reads and the count would lie; better to say we don't know.
+    if not last or now - last > 3 * AttentionWatch.interval():
+        return None, last
+    return set(seats.get('seats') or {}), last
 
 
 def page_on():
@@ -26,7 +38,7 @@ def _facts(now=None):
     now = time.time() if now is None else now
     ext = current_app.extensions
     event = ext['floorbit_stats'].event()
-    online, _last = _online(now)
+    online, _last = online_seats(now)
     data = load_data()
     seats = incidents.seat_numbers(data)
     start = event.get('start')

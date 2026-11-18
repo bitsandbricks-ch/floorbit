@@ -213,17 +213,9 @@
       "label": "Betrachter-Rollen",
       "help": "Rollen-IDs, deren Mitglieder Betrachter werden. Sind alle drei Listen leer, kann sich jedes Mitglied des Servers als Betrachter anmelden; sonst werden Mitglieder ohne eine dieser Rollen abgewiesen. Die Rolle wird bei der ersten Anmeldung gesetzt; ändere sie später auf der Seite Benutzer."
     },
-    "public_attendee_view": {
-      "label": "Ansicht für Teilnehmende",
-      "help": "/hall zeigt den Hallenplan mit jedem Sitz online oder offline. Standardmässig aus, weil es auch zeigt, wann ein Sitz leer ist, etwa wenn sein Spieler weg ist."
-    },
     "public_status_page": {
       "label": "Netzwerk-Statusseite",
       "help": "/status sagt Teilnehmenden, ob das Netz läuft, welche Bereiche ein Ausfall trifft, und zeigt die Meldungen der Crew. Standardmässig aus."
-    },
-    "public_status_switch_names": {
-      "label": "Switch-Namen auf der Statusseite",
-      "help": "Nennt auf /status die Switches, die down sind. Aus: nur Hallen, Blöcke und Reihen."
     },
     "public_stats_wall": {
       "label": "Statistik-Wand",

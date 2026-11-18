@@ -29,8 +29,7 @@ big-screen layout. `/agenda.json` has the same for the event website or a Discor
 `/agenda.ics` is the programme as a calendar feed: attendees subscribe to it on their phone (the
 "Add the programme to your calendar" link under the page), and their calendar app fetches it again
 every hour, so moved talks show up there too. Times are in UTC, so every app shows the reader's own
-zone. Quiet hours come along but don't mark anyone as busy. The
-attendee view (`/hall`) links to it.
+zone. Quiet hours come along but don't mark anyone as busy.
 
 It is off until **Settings > Attendee pages > Schedule and countdown** (or `SCHEDULE_PAGE=true`)
 turns it on. It shows the programme only, never who planned it.

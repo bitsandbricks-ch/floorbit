@@ -213,17 +213,9 @@
       "label": "Viewer roles",
       "help": "Role IDs whose members become viewers. With all three role lists empty, every member of the server can sign in as a viewer; otherwise members without one of these roles are refused. The role is set on the first sign-in; change it on the Users page later."
     },
-    "public_attendee_view": {
-      "label": "Attendee view",
-      "help": "/hall shows the hall plan with every seat online or offline. Off by default because it also shows when a seat is empty, for example while its player is away."
-    },
     "public_status_page": {
       "label": "Network status page",
       "help": "/status tells attendees whether the network is fine, which areas an outage hits, and the crew's updates. Off by default."
-    },
-    "public_status_switch_names": {
-      "label": "Switch names on the status page",
-      "help": "Name the switches that are down on /status. Off: only halls, blocks and rows."
     },
     "public_stats_wall": {
       "label": "Stats wall",

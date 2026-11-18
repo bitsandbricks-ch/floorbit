@@ -52,7 +52,6 @@ FEATURES = (
     {'id': 'preflight', 'paths': ('/preflight', '/api/preflight', '/api/preflight.pdf'), 'needs': ()},
     {'id': 'status_page', 'paths': ('/status', '/status.json', '/network-status', '/api/status-page'),
      'needs': ()},
-    {'id': 'public_hall', 'paths': ('/hall', '/api/public'), 'needs': ()},
     {'id': 'stats_wall', 'paths': ('/wall', '/wall.json'), 'needs': ()},
     {'id': 'schedule', 'paths': ('/schedule', '/api/schedule', '/agenda', '/agenda.json'), 'needs': ()},
 )
