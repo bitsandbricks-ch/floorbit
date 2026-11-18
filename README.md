@@ -149,7 +149,7 @@ each seat is plugged into.
   [docs/audit.md](docs/audit.md).
 - **Plugins and dashboard:** plugins add actions, dashboard tiles, endpoints and hooks, each
   limited to the areas it lists. Floorbit ships an HTTP check. See [docs/plugins.md](docs/plugins.md).
-- **Cache:** LibreNMS answers are cached in Redis (5 minutes by default), so a busy hall doesn't hammer
+- **Cache:** LibreNMS answers are cached in Valkey or Redis (5 minutes by default), so a busy hall doesn't hammer
   the API.
 
 NetBox and LibreNMS are optional: leave their URL or token empty and the app runs as a plain floor
@@ -158,7 +158,7 @@ the URL it was saved with: changing the URL asks for the token again.
 
 ## Run it
 
-With Docker Compose (Floorbit on port 8080, plus Redis):
+With Docker Compose (Floorbit on port 8080, plus Valkey as its cache):
 
 ```sh
 cp .env.example .env                    # optional: NetBox, LibreNMS, ...
@@ -183,7 +183,7 @@ Everything is set through environment variables (`.env` works too). See [`.env.e
 | `NETBOX_VERIFY_SSL` | `true` | `false` accepts a self-signed certificate. |
 | `LIBRENMS_URL`, `LIBRENMS_TOKEN` | empty | LibreNMS API. Both set turns status, ports and seat resolving on. |
 | `LIBRENMS_VERIFY_SSL` | `true` | `false` accepts a self-signed certificate. |
-| `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD` | `localhost`, `6379`, `0`, empty | The cache. Compose points the app at its own `redis` service. |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD` | `localhost`, `6379`, `0`, empty | The cache: Valkey, or Redis, which speaks the same protocol. Compose points the app at its own `valkey` service. |
 | `FLOORBIT_DATA_FILE` | `data.json` | Where the floor plan, accounts and settings are kept; the audit log and plugin state go next to it. The image uses `/app/state/data.json`. |
 | `FLOORBIT_PORT`, `FLOORBIT_VERSION` | `8080`, `latest` | Compose only: the port on this machine and the image tag ([docs/install.md](docs/install.md)). |
 | `CACHE_TTL_ARP`, `CACHE_TTL_MAC` | `300` | Seconds to keep a switch's ARP and MAC tables. |
@@ -208,7 +208,7 @@ Settings > Backup and restore ([docs/backup.md](docs/backup.md)).
 ```sh
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
-docker run -d -p 6379:6379 redis:7-alpine     # or set REDIS_HOST to one you have
+docker run -d -p 6379:6379 valkey/valkey:8.1-alpine  # or set REDIS_HOST to one you have
 python app.py                                  # http://127.0.0.1:5000, reloads on change
 ```
 

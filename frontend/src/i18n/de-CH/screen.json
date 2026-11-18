@@ -1,0 +1,15 @@
+{
+  "find": "Finde deinen Platz",
+  "qrAlt": "QR-Code für {{url}}",
+  "prev": "Vorherige Ansicht",
+  "next": "Nächste Ansicht",
+  "pause": "Pause",
+  "play": "Abspielen",
+  "position": "{{name}} · {{n}} von {{count}}",
+  "views": {
+    "floor": "Hallenplan",
+    "heat": "Verkehr pro Platz",
+    "stats": "Statistik",
+    "health": "Dienste-Status"
+  }
+}
