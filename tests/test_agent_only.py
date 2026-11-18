@@ -72,3 +72,30 @@ def test_the_flows_collector_does_not_listen_on_the_server(monkeypatch):
     with pytest.raises(SystemExit) as stop:
         collector.main()
     assert stop.value.code == 2
+
+
+def test_the_test_button_of_a_lan_plugin_runs_on_the_agent(client, registry, monkeypatch):
+    import threading
+
+    from tests.test_agent import head
+    assert client.put("/api/settings/plugins/librenms", json={"enabled": True}).status_code == 200
+    cls = registry.specs["librenms"].plugin_class()
+    monkeypatch.setattr(cls, "test", lambda self: pytest.fail("tested from the server"))
+    body = client.post("/api/settings/plugins/librenms/test").get_json()
+    assert body["ok"] is False and "agent" in body["message"]
+
+    key = enrol(client)["key"]
+    agent = client.application.test_client()
+
+    def answer():
+        calls = agent.get("/api/agent/v1/calls?wait=5", headers=head(key)).get_json()["calls"]
+        call = calls[0]
+        assert (call["method"], call["args"]) == ("plugin_test", ["librenms"])
+        agent.post("/api/agent/v1/answers", headers=head(key),
+                   json={"answers": [{"id": call["id"], "ok": True, "result": "LibreNMS answers: 3 devices"}]})
+    agent.get("/api/agent/v1/calls?wait=0", headers=head(key))      # connected
+    t = threading.Thread(target=answer)
+    t.start()
+    body = client.post("/api/settings/plugins/librenms/test").get_json()
+    t.join(5)
+    assert body == {"ok": True, "message": "LibreNMS answers: 3 devices"}
