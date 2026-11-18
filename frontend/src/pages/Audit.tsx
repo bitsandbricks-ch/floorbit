@@ -10,6 +10,7 @@ import type { AuditEntry, AuditPage } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
+import { fieldsText } from '@/lib/auditFields'
 import { dateTime } from '@/lib/time'
 
 const PAGE = 100
@@ -93,7 +94,7 @@ export default function Audit() {
                 {e.target && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
                 <Text size="xs" c="dimmed">
                   {when(e.time)} · {e.user || t('audit.nobody')}
-                  {e.fields?.length ? ` · ${e.fields.join(', ')}` : ''}
+                  {e.fields?.length ? ` · ${fieldsText(t, e.area, e.fields)}` : ''}
                 </Text>
               </Stack>
             ))}
@@ -115,14 +116,14 @@ export default function Audit() {
                   <Table.Tr key={`${e.time}-${i}`}>
                     <Table.Td title={e.time} style={{ whiteSpace: 'nowrap' }}>{when(e.time)}</Table.Td>
                     <Table.Td c={e.user ? undefined : 'dimmed'}>{e.user || t('audit.nobody')}</Table.Td>
-                    <Table.Td><Badge variant="light" color="gray">{areaText(e.area)}</Badge></Table.Td>
+                    <Table.Td style={{ whiteSpace: 'nowrap' }}><Badge variant="light" color="gray" tt="none" style={{ flexShrink: 0, minWidth: 'max-content' }}>{areaText(e.area)}</Badge></Table.Td>
                     <Table.Td>
                       <Text size="sm" c={e.ok === false ? 'down' : undefined}>
                         {e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}
                       </Text>
                       {e.target && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
                     </Table.Td>
-                    <Table.Td><Text size="xs" c="dimmed">{(e.fields ?? []).join(', ')}</Text></Table.Td>
+                    <Table.Td><Text size="xs" c="dimmed">{fieldsText(t, e.area, e.fields)}</Text></Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>

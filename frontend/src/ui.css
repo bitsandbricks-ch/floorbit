@@ -88,3 +88,12 @@
 .mantine-Table-th { font-size: var(--ui-font); color: var(--color-muted); font-weight: 600; }
 .mantine-Table-td { font-size: var(--ui-font); }
 .mantine-Checkbox-label, .mantine-Switch-label, .mantine-Radio-label { font-size: var(--ui-font); }
+
+/* Touch screens: links that stand alone in a table cell, a row of items or a list (a switch, a seat,
+   a runbook) get at least 24px to hit (WCAG 2.5.8). Links inside running text keep their size. */
+@media (pointer: coarse) {
+  :is(td, li, .mantine-Group-root, .mantine-Stack-root) > :is(a, button).mantine-Anchor-root,
+  :is(td, li, .mantine-Group-root, .mantine-Stack-root) > a.mantine-Badge-root {
+    min-height: 24px; display: inline-flex; align-items: center;
+  }
+}

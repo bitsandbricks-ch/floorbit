@@ -35,8 +35,10 @@ def test_one_timeline(client, app_module):
 
     body = client.get('/api/timeline').get_json()
     got = {(e['kind'], e['title']) for e in body['entries']}
-    assert {('change', 'Added seat block'), ('change', 'Filed incident'), ('change', 'Changed incident (status)'),
+    assert {('change', 'Added seat block'), ('change', 'Filed incident'), ('change', 'Changed incident'),
             ('sign-in', 'Signed in')} <= got
+    # What a change touched comes as a list, for the page to name in the reader's language.
+    assert ['status'] in [e.get('fields') for e in body['entries'] if e['title'] == 'Changed incident']
     assert ('outage', 'Switch went offline') in got and ('outage', 'Switch back online after 4 min') in got
     assert ('incident', 'Incident opened: Cable cut') in got and ('incident', 'Incident fixed: Cable cut') in got
     assert ('alert', 'Bandwidth forecast: 91% of the line expected') in got

@@ -12,6 +12,7 @@ import type { TimelineData, TimelineEntry, TimelineKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { fieldsText } from '@/lib/auditFields'
 import { clockSeconds, dateOnly } from '@/lib/time'
 
 const KINDS: TimelineKind[] = ['change', 'outage', 'incident', 'alert', 'deploy', 'sign-in']
@@ -35,7 +36,9 @@ function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
       <span className="fb-timeline-dot" style={{ background: e.severity ? SEVERITY_COLOR[e.severity] : 'var(--color-line)' }} />
       <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" w={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>
       <div style={{ minWidth: 0 }}>
-        <Text size="sm" fw={500} style={{ overflowWrap: 'anywhere' }}>{e.title}</Text>
+        <Text size="sm" fw={500} style={{ overflowWrap: 'anywhere' }}>
+          {e.title}{e.fields?.length ? ` (${fieldsText(t, e.area, e.fields)})` : ''}
+        </Text>
         {(e.target || e.who) && (
           <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
             {[e.target, e.who ? t('timeline.by', { who: e.who }) : ''].filter(Boolean).join(' · ')}
