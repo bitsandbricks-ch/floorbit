@@ -131,6 +131,16 @@ def test_next_never_leaves_the_site(anon_client, user):
         assert resp.headers["Location"] == "/"
 
 
+def test_a_next_with_a_line_break_goes_home_instead_of_a_500(anon_client, user):
+    for target in ("/a\nb", "/a\r\nSet-Cookie: x=1", "/plan\x7f"):
+        anon_client.post("/logout")
+        assert sign_in(anon_client, next=target).headers["Location"] == "/"
+        # Signed in already: /login sends on at once, which raised building the header.
+        resp = anon_client.get("/login", query_string={"next": target})
+        assert resp.status_code == 302 and resp.headers["Location"] == "/"
+    assert anon_client.get("/login", query_string={"next": "/plan?hall=main"}).headers["Location"] == "/plan?hall=main"
+
+
 def test_repeated_failures_lock_the_username_for_a_while(anon_client, user):
     for _ in range(5):
         assert sign_in(anon_client, password="wrong-password").status_code == 401
