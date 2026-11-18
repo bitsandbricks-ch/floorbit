@@ -1,4 +1,4 @@
-# Floorbit, its local agent and Redis. Setup guide: docs/install.md.
+# Floorbit, its local agent and Valkey (the Redis-compatible cache). Setup guide: docs/install.md.
 #
 #   cp .env.example .env      # optional: NetBox, LibreNMS, first account, ...
 #   docker compose up -d
@@ -19,7 +19,7 @@ services:
       - path: .env
         required: false
     environment:
-      REDIS_HOST: redis
+      REDIS_HOST: valkey
       # Floorbit writes the agent's key here and enrols it as "Local agent".
       FLOORBIT_LOCAL_AGENT_KEY_FILE: /app/agent-key/local-agent.key
     volumes:
@@ -27,7 +27,7 @@ services:
       - floorbit_state:/app/state
       - agent_key:/app/agent-key
     depends_on:
-      redis:
+      valkey:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -123,13 +123,15 @@ services:
 
   # The cache for LibreNMS answers and live updates. Only Floorbit talks to it, so no port is
   # published.
-  redis:
-    image: redis:7-alpine
+  # Valkey is the open-source fork of Redis and speaks the same protocol, so the REDIS_* settings
+  # and the client stay as they are.
+  valkey:
+    image: valkey/valkey:8.1-alpine
     volumes:
-      - redis_data:/data
+      - valkey_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -139,7 +141,7 @@ volumes:
   floorbit_state:
   agent_state:
   agent_key:
-  redis_data:
+  valkey_data:
   victoriametrics_data:
   victorialogs_data:
   grafana_data:

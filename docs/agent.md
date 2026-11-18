@@ -413,9 +413,15 @@ the full detail for Prometheus.
 
 ## When the agent is away
 
-An agent counts as **connected** while it asked for work in the last 60 seconds. A page that needs
-LibreNMS waits up to 8 seconds for the agent's answer. If the agent is not connected or doesn't
-answer in time, Floorbit answers from the last good data it has, marked as stale with its age, as
+An agent counts as **connected** while it asked for work in the last 60 seconds, and over the
+WebSocket link until the link closes: a stopped or killed agent is gone at once, not a minute later.
+An agent that freezes or loses its line sends no close; when it sits on a call for 3 seconds without
+a word, Floorbit pings it, and with no answer within 5 more seconds it closes the link and counts the
+agent as gone. The calls it held fail with "went away before it answered; it may have run", so a
+port action is looked at before it is tried again. Over the HTTPS long poll, which has no link to
+close, a live agent is always asking for work: a call nobody took for 5 seconds while the agent
+hasn't asked in 10 counts it as gone, and the calls after that fail at once until it asks again. A page that needs LibreNMS waits up to 8 seconds
+for the agent's answer. If the agent is not connected or doesn't answer in time, Floorbit answers from the last good data it has, marked as stale with its age, as
 it does when a local LibreNMS stops answering ([offline mode](offline.md)). Switches it knows
 nothing about show as unknown.
 

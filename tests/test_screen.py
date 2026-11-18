@@ -15,75 +15,87 @@ def hall(client, monkeypatch):
     seat_sources.invalidate()
 
 
+def _find(client, q, **kw):
+    return client.get("/api/seat-finder", query_string={"q": q}, **kw)
+
+
 def test_find_a_seat_by_number_without_an_account(anon_client, hall, app_module, monkeypatch):
     monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
-    page = anon_client.get("/find").get_data(as_text=True)
-    assert "Find your seat" in page and 'name="q"' in page
-    resp = anon_client.get("/find?q=d-6")
-    body = resp.get_data(as_text=True)
-    assert resp.status_code == 200 and "Seat D-6" in body
-    assert "Block D, row 2 of 2, seat 2 from the left" in body
-    assert body.count('class="cell hit"') == 1 and "player-six" not in body
+    assert anon_client.get("/find").status_code in (200, 503)   # React: PublicFind.tsx
+    assert anon_client.get("/api/seat-finder").get_json() == {"nicks": False}
+    resp = _find(anon_client, "d-6")
+    body = resp.get_json()
+    assert resp.status_code == 200 and body["found"] == {"seat": "D-6", "block": "D", "row": 2, "rows": 2, "col": 2,
+                                                         "hall": ""}
+    assert [c["seat"] for b in body["drawing"]["shapes"] for c in b["cells"] if c["hit"]] == ["D-6"]
+    assert "player-six" not in resp.get_data(as_text=True)
 
 
 def test_unknown_seat(anon_client, hall):
-    resp = anon_client.get("/find?q=Z-99")
-    assert resp.status_code == 404 and "No seat" in resp.get_data(as_text=True)
-
+    resp = _find(anon_client, "Z-99")
+    assert resp.status_code == 404 and resp.get_json()["code"] == "none"
 
 
 @pytest.mark.parametrize("typed", ["d6", "D 6", " d-06 ", "d_6"])
 def test_a_seat_is_found_as_people_type_it(anon_client, hall, typed):
-    resp = anon_client.get("/find", query_string={"q": typed})
-    assert resp.status_code == 200 and "Seat D-6" in resp.get_data(as_text=True)
+    resp = _find(anon_client, typed)
+    assert resp.status_code == 200 and resp.get_json()["found"]["seat"] == "D-6"
+
 
 def test_nicks_find_nothing_unless_switched_on(anon_client, hall, monkeypatch):
-    assert anon_client.get("/find?q=player-six").status_code == 404
+    assert _find(anon_client, "player-six").status_code == 404
     monkeypatch.setenv("SEAT_FINDER_NICKS", "true")
-    assert "Seat D-6" in anon_client.get("/find?q=PLAYER-SIX").get_data(as_text=True)
-    assert anon_client.get("/find?q=player").status_code == 404   # only the exact nick
+    assert anon_client.get("/api/seat-finder").get_json() == {"nicks": True}
+    assert _find(anon_client, "PLAYER-SIX").get_json()["found"]["seat"] == "D-6"
+    assert _find(anon_client, "player").status_code == 404   # only the exact nick
 
 
 def test_finder_can_be_switched_off(anon_client, hall, monkeypatch):
     monkeypatch.setenv("SEAT_FINDER", "false")
-    assert anon_client.get("/find?q=D-6").status_code == 404
+    assert anon_client.get("/find").status_code == 404
+    resp = _find(anon_client, "D-6")
+    assert resp.status_code == 404 and resp.get_json()["code"] == "off"
 
 
 def test_lookups_are_rate_limited(anon_client, hall):
-    codes = [anon_client.get("/find?q=D-6").status_code for _ in range(screen.RATE_LIMIT + 1)]
+    codes = [_find(anon_client, "D-6").status_code for _ in range(screen.RATE_LIMIT + 1)]
     assert codes[-1] == 429 and set(codes[:-1]) == {200}
 
 
 def test_lookups_count_each_client_behind_a_trusted_proxy(anon_client, hall, monkeypatch):
     monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
     busy = {"X-Forwarded-For": "192.0.2.20"}
-    codes = [anon_client.get("/find?q=D-6", headers=busy).status_code for _ in range(screen.RATE_LIMIT + 1)]
+    codes = [_find(anon_client, "D-6", headers=busy).status_code for _ in range(screen.RATE_LIMIT + 1)]
     assert codes[-1] == 429
-    assert anon_client.get("/find?q=D-6", headers={"X-Forwarded-For": "192.0.2.21"}).status_code == 200
-
-
-def test_german_for_german_browsers(anon_client, hall):
-    page = anon_client.get("/find?q=D-6", headers={"Accept-Language": "de-CH,de;q=0.9"}).get_data(as_text=True)
-    assert "Platz D-6" in page and 'lang="de"' in page
+    assert _find(anon_client, "D-6", headers={"X-Forwarded-For": "192.0.2.21"}).status_code == 200
 
 
 def test_screen_rotates_the_chosen_views_with_a_qr_code(client, hall):
-    page = client.get("/screen?views=stats,heat,nonsense&every=5&theme=ops").get_data(as_text=True)
-    assert 'data-src="/stats?screen=1&amp;theme=ops"' in page
-    assert 'data-src="/plan?screen=1&amp;layers=marks%2Cstatus&amp;theme=ops"' in page
-    assert "nonsense" not in page and "SCREEN_EVERY = 10" in page   # at least 10 seconds
-    assert 'class="qr"' in page and "data:image/svg+xml" in page and "/find" in page
+    # The page is React (BigScreen.test.tsx rotates through what this answers).
+    assert client.get("/screen").status_code in (200, 503)
+    body = client.get("/api/screen?views=stats,heat,nonsense&every=5&theme=ops&hall=h-2").get_json()
+    assert body["views"] == [{"id": "stats", "url": "/stats?screen=1&theme=ops"},
+                             {"id": "heat", "url": "/plan?screen=1&layers=marks%2Cstatus&hall=h-2&theme=ops"}]
+    assert body["every"] == 10   # at least 10 seconds
+    assert body["qr"]["image"].startswith("data:image/svg+xml") and body["qr"]["url"].endswith("/find")
 
 
 def test_screen_without_qr_and_theme_injection(client, hall):
-    page = client.get("/screen", query_string={"qr": "0", "theme": '"><script>'}).get_data(as_text=True)
-    assert 'class="qr"' not in page and '"><script>' not in page and "?theme=" not in page
-    assert 'data-src="/dashboards/kiosk"' in page   # the default views
+    body = client.get("/api/screen", query_string={"qr": "0", "theme": '"><script>', "every": "x"}).get_json()
+    assert body["qr"] is None and body["every"] == 30
+    assert [v["url"] for v in body["views"]] == ["/dashboards/kiosk", "/plan?screen=1&layers=marks%2Cstatus",
+                                                  "/stats?screen=1"]   # the default views, no theme
+
+
+def test_screen_has_no_qr_code_while_the_finder_is_off(client, hall, monkeypatch):
+    monkeypatch.setenv("SEAT_FINDER", "false")
+    assert client.get("/api/screen").get_json()["qr"] is None
 
 
 def test_screen_needs_floor_plan_access(anon_client, app_module, monkeypatch):
     monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
     assert anon_client.get("/screen").status_code in (302, 401)
+    assert anon_client.get("/api/screen").status_code == 401
 
 
 def test_seat_traffic_for_the_heat_view(client, app_module):
