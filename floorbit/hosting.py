@@ -1,8 +1,10 @@
-"""The hosted platform: which tenants it runs, and who belongs to more than one (issue #466).
+"""The platform: which tenants it runs, and who belongs to more than one (issue #466).
 
-Hosted Floorbit runs one process per tenant (``FLOORBIT_TENANT``, docs/tenancy.md). The platform's
-own list of tenants is ``platform.json``, beside ``tenants/`` in the state folder or database every
-tenant shares. A platform admin adds tenants with ``flask tenants add``; there is no sign-up.
+Every Floorbit is a platform with at least one tenant, ``default``: a self-hosted install is just a
+platform nobody added a second tenant to, so it runs the same code as a hosted one. Each process
+serves one tenant (``FLOORBIT_TENANT``, else ``default``; docs/tenancy.md). The platform's list of
+tenants is ``platform.json``, beside ``tenants/`` in the state folder or database every tenant
+shares. A platform admin adds tenants with ``flask tenants add``; there is no sign-up.
 
 A person keeps one account per tenant, with that tenant's role. Accounts in two tenants are the same
 person when they are linked to the same outside login: the same Discord account, or the same subject
@@ -28,7 +30,11 @@ def path():
 
 
 def _folder(tenant_id):
-    return f'{store.TENANTS_FOLDER}/{tenant_id}'
+    return store.tenant_folder(tenant_id)
+
+
+def _default():
+    return {'id': store.DEFAULT_TENANT, 'name': '', 'url': ''}
 
 
 def _clean_url(url):
@@ -43,16 +49,31 @@ def _clean_url(url):
     return url
 
 
+def _listed():
+    return (store.read_json(path(), {}) or {}).get('tenants') or []
+
+
 def tenants():
-    """The platform's tenants, in the order they were added: ``[{id, name, url}]``."""
+    """The platform's tenants, in the order they were added: ``[{id, name, url}]``. The default
+    tenant is always first, written down or not: platform.json only appears with a second tenant,
+    so an install that never adds one (and every install from before tenants) needs no file at all."""
     out, seen = [], set()
-    for t in (store.read_json(path(), {}) or {}).get('tenants') or []:
+    listed = _listed()
+    if not any(isinstance(t, dict) and t.get('id') == store.DEFAULT_TENANT for t in listed):
+        listed = [_default(), *listed]
+    for t in listed:
         tid = t.get('id') if isinstance(t, dict) else None
         if not isinstance(tid, str) or not store._TENANT_RE.match(tid) or tid in seen:
             continue
         seen.add(tid)
         out.append({'id': tid, 'name': str(t.get('name') or ''), 'url': str(t.get('url') or '')})
     return out
+
+
+def several():
+    """Whether the platform has more than the default tenant: only then is there anything about
+    tenants to show."""
+    return len(tenants()) > 1
 
 
 def add(tenant_id, name='', url=''):
@@ -82,10 +103,10 @@ def _issuer(data, provider):
 
 def memberships(user):
     """The other tenants where this account's person has an account too: ``[{id, name, url, username}]``.
-    ``user`` is the full account record of this tenant. Empty on a self-hosted install."""
-    here = store.hosted_tenant()
+    ``user`` is the full account record of this tenant. Empty while the platform has one tenant."""
+    here = store.current_tenant()
     links = {p: s for p, s in ((user or {}).get('identities') or {}).items() if s}
-    if not here or not links:
+    if not links or not several():
         return []
     mine = store.read_json(store.tenant_file(), {}) or {}
     out = []

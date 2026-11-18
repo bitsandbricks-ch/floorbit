@@ -357,7 +357,7 @@ function Account(props: PanelProps) {
   const user = props.boot.user
   // Asked once, when the menu first opens: it reads every other tenant's accounts.
   const [others, setOthers] = useState<OtherTenant[] | null>(null)
-  const askOthers = !!props.boot.hosted && !!user && open && others === null
+  const askOthers = !!props.boot.tenants && !!user && open && others === null
 
   useEffect(() => {
     if (!askOthers) return

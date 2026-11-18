@@ -213,6 +213,34 @@ def test_a_request_reads_and_writes_the_picked_event(client, two_events):
 
 # ── Hosted: one process per tenant, sharing a state folder or database and Redis ───────────────
 
+def test_without_floorbit_tenant_a_process_serves_the_default_tenant(state, monkeypatch):
+    monkeypatch.delenv(store.TENANT_ENV, raising=False)
+    assert store.current_tenant() == store.DEFAULT_TENANT == "default"
+    # Its documents are where every install always kept them: nothing moves on the upgrade.
+    assert store.tenant_file() == store.DATA_FILE
+    assert store.event_path("halls") == str(state / "halls")
+    monkeypatch.setenv(store.TENANT_ENV, "default")             # naming it changes nothing
+    assert store.tenant_file() == store.DATA_FILE
+
+
+def test_the_default_tenant_never_reaches_into_the_other_tenants(state, monkeypatch):
+    monkeypatch.setenv(store.TENANT_ENV, "club-a")
+    store.save_data({"seat_blocks": [{"id": "A"}]})
+    store.write_json(store.tenant_path("secret.json"), {"x": 1})
+    monkeypatch.delenv(store.TENANT_ENV)
+    tenancy.forget()
+    assert store.load_data()["seat_blocks"] == []
+    assert "secret.json" not in store.list_json(store.tenant_path())
+    assert not (state / "secret.json").exists()
+
+
+def test_another_tenant_reads_the_default_tenant_by_name(state, monkeypatch):
+    from floorbit import hosting
+    store.write_json(store.DATA_FILE, {"app_settings": {"name": "Home"}})
+    monkeypatch.setenv(store.TENANT_ENV, "club-a")
+    assert hosting.tenant_data("default")["app_settings"] == {"name": "Home"}
+    assert hosting.tenant_data("club-a") == {}
+
 def test_a_hosted_tenant_keeps_its_documents_in_its_own_folder(state, monkeypatch):
     monkeypatch.setenv(store.TENANT_ENV, "club-a")
     assert store.tenant_file() == str(state / "tenants" / "club-a" / "data.json")
@@ -263,24 +291,38 @@ def test_hosted_tenants_share_one_redis_apart(monkeypatch):
     assert list(a.scan_iter(match="arp:*")) == ["arp:sw-01"] and list(b.scan_iter(match="arp:*")) == []
     assert a.dbsize() == 1 and b.dbsize() == 0
     monkeypatch.delenv(store.TENANT_ENV)
-    assert cache._scoped(shared) is shared            # self-hosted: the keys as always
+    d = cache._scoped(shared)                         # self-hosted is the default tenant: prefixed too
+    assert d.get("arp:sw-01") is None and d.dbsize() == 0
+    d.setex("arp:sw-01", 60, "[2]")
+    assert sorted(shared.store) == ["club-a:arp:sw-01", "default:arp:sw-01"]
 
 
 # ── The hosted platform: its tenants and people in several of them ─────────────────────────────
 
 def _account(tenant, username, **identities):
     from auth.users import UserStore
-    with store.using(tenant=f"tenants/{tenant}", event=""):
+    with store.using(tenant=store.tenant_folder(tenant), event=""):
         UserStore(store.tenant_file).add(username, identities=identities)
+
+
+def test_every_platform_starts_with_the_default_tenant(state):
+    from floorbit import hosting
+    default = {"id": "default", "name": "", "url": ""}
+    assert hosting.tenants() == [default] and not hosting.several()   # no platform.json needed
+    hosting.add("club-a")
+    assert hosting.several()
+    assert store.read_json(hosting.path(), {})["tenants"][0] == default   # written down with the second
 
 
 def test_a_platform_admin_adds_tenants(state):
     from floorbit import hosting
     hosting.add("club-a", "Club A", "https://a.example.com/")
     hosting.add("club-b")
-    assert hosting.tenants() == [{"id": "club-a", "name": "Club A", "url": "https://a.example.com"},
+    assert hosting.tenants() == [{"id": "default", "name": "", "url": ""},
+                                 {"id": "club-a", "name": "Club A", "url": "https://a.example.com"},
                                  {"id": "club-b", "name": "", "url": ""}]
-    for bad in (("club-a",), ("../x",), ("club-c", "", "http://c.example.com"), ("club-c", "", "javascript:x")):
+    for bad in (("club-a",), ("default",), ("../x",), ("club-c", "", "http://c.example.com"),
+                ("club-c", "", "javascript:x")):
         with pytest.raises(hosting.HostingError):
             hosting.add(*bad)
 
@@ -297,8 +339,13 @@ def test_the_same_outside_login_links_accounts_across_tenants(state, monkeypatch
     assert hosting.memberships(me) == [
         {"id": "club-b", "name": "Club-B", "url": "https://club-b.example.com", "username": "anna-b"}]
     assert hosting.memberships({"identities": {}}) == []  # a password account matches nobody
-    monkeypatch.delenv(store.TENANT_ENV)
-    assert hosting.memberships(me) == []                  # self-hosted: no platform
+    monkeypatch.delenv(store.TENANT_ENV)                  # the default tenant links the same way
+    assert [t["id"] for t in hosting.memberships(me)] == ["club-a", "club-b"]
+    _account("default", "anna", discord="111")
+    monkeypatch.setenv(store.TENANT_ENV, "club-c")
+    assert [t["id"] for t in hosting.memberships({"identities": {"discord": "222"}})] == []
+    monkeypatch.setenv(store.TENANT_ENV, "club-b")
+    assert [t["id"] for t in hosting.memberships(me)] == ["default", "club-a"]
 
 
 def test_an_oidc_login_only_links_at_the_same_issuer(state, monkeypatch):
@@ -321,7 +368,7 @@ def test_tenants_add_on_the_command_line(app_module, monkeypatch):
     out = runner.invoke(args=["tenants", "add", "club-b", "--name", "Club B", "--url", "https://b.example.com",
                               "--admin", "boss", "--password", "long-enough-1"])
     assert out.exit_code == 0, out.output
-    assert hosting.tenants()[0]["id"] == "club-b"
+    assert [t["id"] for t in hosting.tenants()] == ["default", "club-b"]
     users = hosting.tenant_data("club-b")["auth_users"]
     assert users["boss"]["role"] == "admin"
     assert "boss" not in (store.read_json(store.DATA_FILE, {}).get("auth_users") or {})   # not here
@@ -332,4 +379,4 @@ def test_tenants_add_on_the_command_line(app_module, monkeypatch):
 def test_the_account_menu_asks_for_other_tenants(client):
     resp = client.get("/api/tenant/mine")
     assert resp.status_code == 200
-    assert resp.get_json() == {"here": None, "tenants": []}
+    assert resp.get_json() == {"here": "default", "tenants": []}

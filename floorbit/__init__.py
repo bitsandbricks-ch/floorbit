@@ -40,7 +40,7 @@ def create_app(start_background=True):
     load_dotenv()
     if os.environ.get('FLOORBIT_DATA_FILE'):   # may come from .env, read just now
         store.DATA_FILE = os.environ['FLOORBIT_DATA_FILE']
-    store.hosted_tenant()   # a wrong FLOORBIT_TENANT stops the start, before anything is read
+    store.current_tenant()   # a wrong FLOORBIT_TENANT stops the start, before anything is read
     from . import outbound
     outbound.install()   # before anything can make a request (issue #505)
     app = Flask(__name__, root_path=str(ROOT))

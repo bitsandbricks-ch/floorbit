@@ -63,14 +63,14 @@ class Prefixed:
 
 
 def redis_prefix():
-    from .store import hosted_tenant
-    hosted = hosted_tenant()
-    return f'{hosted}:' if hosted else ''
+    # Every tenant's keys and channels start with its name, the default tenant's too, so tenants
+    # sharing one Redis never see each other's. (Redis only holds a cache that fills again.)
+    from .store import current_tenant
+    return f'{current_tenant()}:'
 
 
 def _scoped(client):
-    prefix = redis_prefix()
-    return Prefixed(client, prefix) if prefix else client
+    return Prefixed(client, redis_prefix())
 
 
 RETRY_EVERY = 15     # seconds between tries while Redis is away

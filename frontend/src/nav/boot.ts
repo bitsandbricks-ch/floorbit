@@ -10,8 +10,8 @@ export interface NavBoot {
   user: { name: string; username: string } | null
   /** Sign-in is on: offer "Sign out". */
   signOut: boolean
-  /** A hosted platform: the account menu lists the person's other tenants. */
-  hosted?: boolean
+  /** The platform has more than one tenant: the account menu lists the person's other ones. */
+  tenants?: boolean
   /** The signed-in account's sidebar settings; null without sign-in (the browser keeps them). */
   prefs: NavPrefs | null
 }
@@ -98,7 +98,7 @@ export function saveOpen(ids: string[]) {
   }
 }
 
-/** Another tenant of a hosted platform where the signed-in person has an account too. */
+/** Another tenant of the platform where the signed-in person has an account too. */
 export interface OtherTenant { id: string; name: string; url: string; username: string }
 
 /** The person's other tenants (floorbit/hosting.py); none when that can't be asked. */

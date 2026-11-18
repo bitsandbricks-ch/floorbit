@@ -12,7 +12,7 @@ from flask import current_app, request
 from jinja2 import pass_context
 from markupsafe import Markup, escape
 
-from . import nav_sections, page_index, spa, store
+from . import hosting, nav_sections, page_index, spa
 
 COOKIE = 'floorbit_nav'
 LANG_COOKIE = 'floorbit_lang'
@@ -34,8 +34,8 @@ def boot(ctx):
         'brand': {'logo': theme.get('logo_url') or None, 'name': theme.get('name') or None},
         'user': account,
         'signOut': bool(ctx.get('auth_enabled')),
-        # On a hosted platform the account menu lists the person's other tenants (/api/tenant/mine).
-        'hosted': bool(store.hosted_tenant()),
+        # With more than one tenant the account menu lists the person's other ones (/api/tenant/mine).
+        'tenants': hosting.several(),
         # Saved with the account; None without sign-in, where the browser keeps them instead.
         'prefs': _prefs(user),
     }

@@ -139,19 +139,19 @@ describe('Sidebar', () => {
     expect(screen.getByRole('menuitem', { name: 'Sign out' }).closest('form')).toHaveAttribute('action', '/logout')
   })
 
-  it('lists the other clubs of someone on a hosted platform', async () => {
+  it('lists the other clubs of someone on a platform with several tenants', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       here: 'club-a', tenants: [{ id: 'club-b', name: 'Club B', url: 'https://b.example.com', username: 'kim' }],
     })))
     vi.stubGlobal('fetch', fetchMock)
-    render(<Sidebar boot={{ ...boot, hosted: true }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+    render(<Sidebar boot={{ ...boot, tenants: true }} path="/problems" renderLink={link} onGoTo={() => {}} />)
     fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as kim' }))
     expect(await screen.findByRole('menuitem', { name: 'Club B' })).toHaveAttribute('href', 'https://b.example.com')
     expect(screen.getByText('Your other clubs')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
   })
 
-  it('asks for other clubs only on a hosted platform', () => {
+  it('asks for other clubs only on a platform with several tenants', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     sidebar()

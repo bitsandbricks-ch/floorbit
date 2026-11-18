@@ -42,7 +42,7 @@ def test_redis_coming_back_is_used_and_a_working_one_is_not_pinged_on_every_requ
     monkeypatch.setattr(cache, "redis_client", None)
     monkeypatch.setattr(cache, "_next_try", 0.0)
     cache.connect(200.0)
-    assert isinstance(cache.redis_client, Counted) and len(pings) == 1
+    assert isinstance(cache.redis_client.client, Counted) and len(pings) == 1   # under the tenant's prefix
     cache.connect(201.0)
     assert len(pings) == 1
     cache.connect(200.0 + cache.PING_EVERY)
