@@ -23,7 +23,14 @@ export type When = number | Date
 export function formatWhen(when: When, options: Intl.DateTimeFormatOptions, lang = i18next.language): string {
   const d = when instanceof Date ? when : new Date(when * 1000)
   const hasTime = options.hour !== undefined || options.timeStyle !== undefined
-  return d.toLocaleString(lang || [], hasTime ? { ...options, hourCycle: 'h23' } : options)
+  return d.toLocaleString(dateLocale(lang), hasTime ? { ...options, hourCycle: 'h23' } : options)
+}
+
+/** Plain English would write US dates ("11/18/26"); crews read the day first, so English uses the
+ *  Swiss order ("18.11.2026") with English month and day names. */
+function dateLocale(lang: string | undefined): string | string[] {
+  if (!lang) return []
+  return lang === 'en' ? 'en-CH' : lang
 }
 
 /** "14:05". */

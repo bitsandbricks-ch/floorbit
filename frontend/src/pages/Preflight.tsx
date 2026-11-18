@@ -69,7 +69,7 @@ export default function Preflight() {
                     <Group justify="space-between" mb={4} wrap="nowrap">
                       <Title order={2} size="h4">{t(`preflight.group.${g}`)}</Title>
                       {canRun && (
-                        <Button size="xs" variant="default" loading={busy(g)} onClick={() => run.mutate(g)}>
+                        <Button size="xs" variant="default" loading={busy(g)} onClick={() => run.mutate(g)} style={{ flexShrink: 0 }}>
                           {group ? t('preflight.runAgain') : t('preflight.run')}
                         </Button>
                       )}

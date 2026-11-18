@@ -883,6 +883,9 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
 }
 .fb-tree-row:hover { background: var(--mantine-color-default-hover); }
+/* The brand tint, like the sidebar: Mantine's primary "light" colour is a solid green with this
+   theme, which hid the dark text and the count of the picked group. */
+.fb-tree-row-active, .fb-tree-row-active:hover { background: var(--color-bit-soft); }
 /* The floor plan as a full-screen workspace (Layout full), like a map editor: one slim bar on top,
    the plan from edge to edge below it, panels docked to the sides. Nothing on the page scrolls;
    the plan pans and zooms, the panels scroll on their own. */

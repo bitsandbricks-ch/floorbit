@@ -62,7 +62,8 @@ export default function PublicBracket() {
             </Group>
           </Chip.Group>
         )}
-        <div className="fb-pbr-scroll">
+        {/* Wider than a phone: focusable so a keyboard can scroll it too. */}
+        <div className="fb-pbr-scroll" tabIndex={0}>
           <section className="fb-pbr" aria-label={b.name}>
             {b.rounds.map((r) => (
               <div key={r.n} className="fb-pbr-round">

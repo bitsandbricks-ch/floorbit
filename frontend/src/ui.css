@@ -118,7 +118,8 @@
 }
 .fb-day:hover { background: var(--mantine-color-default-hover); }
 .fb-day[data-today] { font-weight: 700; color: var(--mantine-primary-color-filled); }
-.fb-day[data-picked] { background: var(--mantine-primary-color-filled); color: var(--mantine-primary-color-contrast); }
+/* --mantine-primary-color-contrast is white with autoContrast off: 1.6:1 on Bit Green in the dark theme. */
+.fb-day[data-picked] { background: var(--color-bit); color: var(--color-on-bit); }
 .fb-day:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 1px; }
 
 /* Schedule rows: the time column lines up across days on wide screens and shrinks on a phone. */

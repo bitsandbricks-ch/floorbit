@@ -70,5 +70,26 @@
     "telemetry": "Telemetrie",
     "endpoints": "IP- und MAC-Verlauf"
   },
-  "endpoint": "Gesehen"
+  "endpoint": "Gesehen",
+  "also": {
+    "power": "Strom, Stromverteiler, PDU, Stromkreise, Shelly",
+    "schedule": "Zeitplan, Agenda, Ablauf, Kalender",
+    "security": "DHCP, ARP, Spoofing, MAC-Flapping, Loop, Broadcast-Sturm",
+    "switchLogins": "Passwörter, SSH, Zugangsdaten",
+    "endpoints": "ARP, FDB, Gerät finden, wer hatte diese IP",
+    "seatMapping": "Switch-Port, Port pro Platz",
+    "incidents": "Tickets, Helpdesk, Probleme am Platz",
+    "handover": "Schicht, Nachtschicht, Notizen",
+    "gameServers": "RCON, Server",
+    "health": "Verfügbarkeit, Dienste",
+    "timeline": "Verlauf, was hat sich geändert",
+    "users": "Konten, Leute, Crew",
+    "teams": "Berechtigungen, Rollen",
+    "agents": "Agent, vor Ort",
+    "audit": "wer hat geändert, Verlauf",
+    "preflight": "Checkliste, vor Türöffnung",
+    "checkins": "PIN, Ankunft",
+    "firewalls": "Routing, Uplinks",
+    "networkStatus": "Internet, Provider, Uplinks"
+  }
 }
