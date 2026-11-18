@@ -1,12 +1,11 @@
-import { ActionIcon, Button, Group, Paper, Progress, SegmentedControl, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
-import { IconDownload, IconMovie, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSkipBack } from '@tabler/icons-react'
+import { ActionIcon, Button, Group, Paper, SegmentedControl, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
+import { IconDownload, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSkipBack } from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EventReplayData } from '@/api/types'
 import { bps } from '../stats/format'
 import { heatmap, sampleAt, when, type HeatMetric } from './model'
 import { Chart, Plan } from './Plan'
-import { canRecord, recordVideo } from './video'
 
 const TICK = 200
 const EVENT_SPEEDS = [900, 3600, 14400] as const
@@ -55,8 +54,6 @@ export function EventReplay({ data }: { data: EventReplayData }) {
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState<string>(String(EVENT_SPEEDS[1]))
   const [metric, setMetric] = useState<HeatMetric>('online')
-  const [video, setVideo] = useState<number | null>(null)
-  const [videoError, setVideoError] = useState('')
   const time = at ?? start
 
   useEffect(() => {
@@ -81,27 +78,6 @@ export function EventReplay({ data }: { data: EventReplayData }) {
     (best, f) => (!best || f.down + f.up > best.bps ? { bps: f.down + f.up, at: f.t } : best), null), [frames])
   const seats = data.drawing?.shapes.reduce((n, b) => n + b.cells.length, 0) ?? 0
   const seek = (v: number) => { setAt(v); setPlaying(false) }
-
-  const record = async () => {
-    if (!data.drawing) return
-    setVideoError('')
-    setPlaying(false)
-    setVideo(0)
-    try {
-      const blob = await recordVideo(data.drawing, frames,
-        (f) => `${when(f.t)} · ${t('replay.online')}: ${f.seats.length} · ${bps(f.down + f.up)}`, setVideo)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'event-replay.webm'
-      a.click()
-      window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
-    } catch (e) {
-      setVideoError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setVideo(null)
-    }
-  }
 
   return (
     <Stack gap="md">
@@ -162,14 +138,7 @@ export function EventReplay({ data }: { data: EventReplayData }) {
           <Button component="a" href="/api/replay/event.json" download variant="default" leftSection={<IconDownload size={16} />}>
             {t('replay.event.json')}
           </Button>
-          {canRecord() && data.drawing && (
-            <Button variant="default" leftSection={<IconMovie size={16} />} loading={video !== null} onClick={() => void record()}>
-              {t('replay.event.video')}
-            </Button>
-          )}
         </Group>
-        {video !== null && <Progress mt="sm" value={video * 100} aria-label={t('replay.event.recording')} />}
-        {videoError && <Text size="sm" c="down" mt="xs" role="alert">{videoError}</Text>}
         <Text size="xs" c="dimmed" mt="xs">{t('replay.event.exportHint')}</Text>
       </Paper>
       <Text size="xs" c="dimmed">{t('replay.event.kept')}</Text>
