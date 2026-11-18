@@ -638,7 +638,7 @@ def _syslog_receiver(app_module, monkeypatch):
     monkeypatch.setattr(receiver, "lines", syslog.deque())
     monkeypatch.setattr(receiver, "relayed", {})
     monkeypatch.setattr(receiver, "_buckets", {})
-    receiver._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {})
+    receiver._allow_cache = (time.monotonic() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {})
     return receiver
 
 
@@ -710,7 +710,7 @@ def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
     import ipaddress
     import socket
     receiver = _syslog_receiver(app_module, monkeypatch)
-    receiver._allow_cache = (time.time() + 3600, [ipaddress.ip_network("127.0.0.1/32")], {})
+    receiver._allow_cache = (time.monotonic() + 3600, [ipaddress.ip_network("127.0.0.1/32")], {})
     a = make(app_module, enrol(client)["key"])
     monkeypatch.setenv("FLOORBIT_AGENT_SYSLOG_BIND", "127.0.0.1")
     assert agent_mod.start_syslog(a, "") is None
@@ -767,6 +767,27 @@ def test_flows_need_traffic_on_and_a_snapshot(client, app_module):
     assert agent.get("/api/agent/v1/seats", headers=h).status_code == 409
     assert agent.post("/api/agent/v1/flows", json={"snapshot": {"updated": 1}}, headers=h).status_code == 409
 
+
+
+def test_a_summary_of_the_wrong_shape_cannot_break_the_traffic_page(client, app_module):
+    # Before: anomalies that weren't {"id", "kind", ...} made /api/flows a 500 for everyone.
+    key = enrol(client)["key"]
+    agent = app_module.app.test_client()
+    good = {"id": "p2p:192.0.2.10", "kind": "p2p", "seat": "A-1", "first_seen": 1, "last_seen": 2,
+            "title": "P2P", "detail": "many peers"}
+    snap = {"updated": 1, "anomalies": [5, {"id": 3}, {"kind": "x"}, good], "seats": "s", "services": 5,
+            "series": {"a": 1}, "mix_hour": [1], "flows": "many", "errors": True}
+    h = {"Floorbit-Agent-Key": key}
+    assert agent.post("/api/agent/v1/flows", json={"snapshot": snap}, headers=h).status_code == 200
+    for lang in ("en", "de"):
+        got = client.get("/api/flows", headers={"Accept-Language": lang})
+        assert got.status_code == 200
+        body = got.get_json()
+        assert [a["kind"] for a in body["anomalies"]] == ["p2p"]
+        assert all(k not in body for k in ("services", "series", "mix_hour", "flows", "errors"))
+    assert agent.post("/api/agent/v1/flows", json={"snapshot": {"updated": 1, "anomalies": "x"}},
+                      headers=h).status_code == 200
+    assert client.get("/api/flows").status_code == 200
 
 def test_a_failing_summary_is_logged_once(app_module):
     from floorbit_agent.flows_relay import FlowsRelay

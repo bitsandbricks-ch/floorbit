@@ -75,3 +75,13 @@ def test_only_admins_change_the_library(app_module, client):
     tech = sign_in_as(app_module, 'te7', 'tech')
     assert tech.get('/api/icons').status_code == 200
     assert tech.post('/api/icons', json={'name': 'Rack', 'svg': GOOD}).status_code == 403
+
+
+def test_an_icon_nested_too_deep_is_refused_not_a_500():
+    # <g> in <g> 1,500 times fits in 64 KB and ran the cleaner out of stack.
+    raw = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">' + "<g>" * 1500 + "</g>" * 1500 + "</svg>"
+    with pytest.raises(icon_library.IconError, match="nested too deeply"):
+        icon_library.sanitize(raw)
+    ok = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">' + "<g>" * 10 + '<rect width="1" height="1"/>' \
+        + "</g>" * 10 + "</svg>"
+    assert "<rect" in icon_library.sanitize(ok)

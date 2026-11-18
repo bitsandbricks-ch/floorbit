@@ -281,8 +281,9 @@ def update_seat_block(block_id):
 @_locked
 def delete_seat_block(block_id):
     data = load_data()
-    before = len(data.get('seat_blocks', []))
-    data['seat_blocks'] = [b for b in data['seat_blocks'] if b['id'] != block_id]
+    blocks = data.get('seat_blocks') or []      # a fresh install has none yet
+    data['seat_blocks'] = [b for b in blocks if b.get('id') != block_id]
+    before = len(blocks)
     if len(data['seat_blocks']) == before:
         return jsonify({'error': 'Seat block not found'}), 404
     save_data(data)

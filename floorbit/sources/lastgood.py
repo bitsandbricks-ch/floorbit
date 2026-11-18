@@ -53,7 +53,7 @@ def _load():
 def _write():
     global _last_write
     now = time.time()
-    if now - _last_write < WRITE_EVERY:
+    if 0 <= now - _last_write < WRITE_EVERY:
         return
     _last_write = now
     target = path()

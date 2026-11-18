@@ -25,6 +25,8 @@ def test_data_file_comes_from_the_environment(tmp_path):
 def test_a_missing_seats_file_is_no_error(tmp_path, monkeypatch):
     monkeypatch.setenv("SEAT_SOURCE_JSON_PATH", str(tmp_path / "seats.json"))
     monkeypatch.setenv("SEAT_SOURCES", "json")
+    # Ports learned by an earlier test's check-in thread would count as seats here.
+    monkeypatch.setenv("CHECKIN_FILE", str(tmp_path / "checkins.json"))
     seat_sources.invalidate()
     assert seat_sources.load(max_age=0) == {}
     assert seat_sources.info()["errors"] == {}

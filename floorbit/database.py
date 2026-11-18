@@ -308,7 +308,9 @@ class Sql:
             except DatabaseError:
                 raise
             except Exception as exc:
-                if not _unreachable(exc) and not getattr(c, 'closed', False):
+                # psycopg's ``broken``, not ``closed``: the pool closes every connection a statement
+                # failed on, so a plain mistake (a NUL byte, a duplicate key) looked like an outage.
+                if not _unreachable(exc) and not getattr(c, 'broken', False):
                     raise _failed(self, exc) from exc
                 # A dropped connection (a restart, a failover): the pool threw it away, so the
                 # second try opens a new one. Once.

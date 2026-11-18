@@ -15,7 +15,8 @@ NOW = 1_794_650_400.0   # 2026-11-14 10:00 UTC
 def receiver(tmp_path, monkeypatch):
     monkeypatch.setenv("SYSLOG_ALLOW", "192.0.2.0/24")
     r = syslog.SyslogReceiver(path=str(tmp_path / "syslog"))
-    r._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {"198.51.100.5": "sw-a-01"})
+    r._allow_cache = (time.monotonic() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")],
+                      {"198.51.100.5": "sw-a-01"})
     return r
 
 
@@ -144,7 +145,7 @@ def test_udp_round_trip(tmp_path, monkeypatch, lan_here):
     monkeypatch.setenv("SYSLOG_BIND", "127.0.0.1")
     monkeypatch.setenv("SYSLOG_ALLOW", "127.0.0.1")
     r = syslog.SyslogReceiver(path=str(tmp_path / "syslog"))
-    r._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("127.0.0.1/32")], {})
+    r._allow_cache = (time.monotonic() + 3600, [syslog.ipaddress.ip_network("127.0.0.1/32")], {})
     r.start()
     try:
         assert r.listening and r.listening["port"] == int(os.environ["SYSLOG_PORT"])

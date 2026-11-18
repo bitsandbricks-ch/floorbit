@@ -57,7 +57,7 @@
   },
   "backup": {
     "title": "Sichern und wiederherstellen",
-    "desc": "Der Hallenplan (Switches, Positionen, Sitzblöcke) und die gespeicherten Einstellungen samt Design. API-Tokens, Webhook-URLs, Konten und Check-ins sind nie in einer Sicherung, und eine Wiederherstellung lässt sie, wie sie sind.",
+    "desc": "Der Hallenplan (Switches, Positionen, Sitzblöcke, Kabel, Patchpanels, Uplinks, Portbereiche und Strom) und die gespeicherten Einstellungen samt Design. API-Tokens, Webhook-URLs, Konten und Check-ins sind nie in einer Sicherung, und eine Wiederherstellung lässt sie, wie sie sind.",
     "download": "Sicherung herunterladen",
     "restore": "Aus Datei wiederherstellen…",
     "go": "Hallenplan und Einstellungen ersetzen",
@@ -73,7 +73,8 @@
     "settings_other": "{{count}} gespeicherte Einstellungen",
     "restored": "Wiederhergestellt. Lade neu…",
     "skipped_one": "{{count}} Einstellung übersprungen, die diese Version nicht kennt.",
-    "skipped_other": "{{count}} Einstellungen übersprungen, die diese Version nicht kennt."
+    "skipped_other": "{{count}} Einstellungen übersprungen, die diese Version nicht kennt.",
+    "kept": "Diese Sicherung stammt aus einer älteren Version und hat keine Kabel, Patchpanels, Uplinks, Portbereiche und keinen Strom: diese bleiben, wie sie sind."
   },
   "sections": {
     "netbox": {
