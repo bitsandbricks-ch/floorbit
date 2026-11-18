@@ -21,6 +21,7 @@ import contextvars
 import json
 import os
 import re
+import shutil
 import threading
 import time
 from contextlib import contextmanager
@@ -117,16 +118,41 @@ def read_json(path, default=None):
     default is an object (``{}``) always gets an object back."""
     found = _read_json(path, default)
     if isinstance(default, dict) and not isinstance(found, dict):
-        _not_an_object(path, found)
-        return default
+        last = _last_object(path)
+        _not_an_object(path, found, last is not None)
+        return default if last is None else last
     return found
 
 
-def _not_an_object(path, found):
-    if path not in _warned:
-        _warned.add(path)
-        print(f'[store] {path} holds {type(found).__name__}, not an object (edited by hand?); '
-              'starting from empty until the next save')
+def _last_object(path):
+    """The last complete write beside a file that holds JSON of the wrong shape (a list, a number),
+    so the accounts and the plan in it aren't replaced by an empty document. Files only."""
+    from . import database
+    if database.backend().kind != 'files':
+        return None
+    try:
+        with open(path + NEXT) as f:
+            text = f.read()
+        last = json.loads(text)
+    except (OSError, ValueError):
+        return None
+    return _doc(last, path, text) if isinstance(last, dict) else None
+
+
+def _not_an_object(path, found, recovered):
+    if path in _warned:
+        return
+    _warned.add(path)
+    # The next save writes over it: keep what someone put there, they may want it back.
+    kept = path + '.wrong-shape'
+    try:
+        if os.path.isfile(path) and not os.path.exists(kept):
+            shutil.copyfile(path, kept)
+    except OSError:
+        pass
+    then = f'using the last complete copy, {path}{NEXT}' if recovered else 'starting from empty until the next save'
+    print(f'[store] {path} holds {type(found).__name__}, not an object (edited by hand?); {then}. '
+          f'Its content is kept in {kept}.')
 
 
 def _read_json(path, default):
@@ -422,9 +448,10 @@ def load_data():
     path, tenant_path_ = _files()
     found = read_json(path)
     if not isinstance(found, dict):
+        last = _last_object(path) if found is not None else None
         if found is not None:
-            _not_an_object(path, found)
-        found = _empty()
+            _not_an_object(path, found, last is not None)
+        found = _empty() if last is None else last
     if tenant_path_:
         tenant = read_json(tenant_path_, {})
         for key in TENANT_KEYS:

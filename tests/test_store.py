@@ -99,6 +99,28 @@ def test_when_the_copy_cannot_be_written_the_file_is_left_alone(tmp_path, monkey
 
 
 @pytest.mark.usefixtures("files")
+def test_a_file_of_the_wrong_shape_is_read_from_the_last_complete_copy_and_kept(tmp_path, capsys):
+    """A list where the object belongs (edited by hand) used to read as empty: no accounts, no plan,
+    and the next save wrote over the file."""
+    path = tmp_path / "data.json"
+    store.write_json(str(path), {"seat_blocks": [{"id": "a"}]})
+    path.write_text("[1, 2]")
+    assert store.read_json(str(path), {}) == {"seat_blocks": [{"id": "a"}]}
+    out = capsys.readouterr().out
+    assert "holds list" in out and "last complete copy" in out
+    assert (tmp_path / "data.json.wrong-shape").read_text() == "[1, 2]"
+    store.write_json(str(path), {"seat_blocks": []})
+    assert (tmp_path / "data.json.wrong-shape").read_text() == "[1, 2]"
+
+
+@pytest.mark.usefixtures("files")
+def test_a_file_of_the_wrong_shape_without_a_copy_starts_empty(tmp_path):
+    path = tmp_path / "other.json"
+    path.write_text("42")
+    assert store.read_json(str(path), {"a": 1}) == {"a": 1}
+
+
+@pytest.mark.usefixtures("files")
 def test_a_broken_file_and_copy_still_say_so(tmp_path):
     path = tmp_path / "data.json"
     path.write_text("not json")
