@@ -83,6 +83,7 @@ def _read():
 def _write(data):
     # In place, not via rename: data.json is bind-mounted in docker-compose.
     from floorbit.store import write_json
+    _forget_roles()
     write_json(_path(), data)
 
 
@@ -93,6 +94,24 @@ def _custom(data=None):
 
 def all_roles():
     """{id: {label, description, permissions, builtin}}: built-in first, then custom by label."""
+    from flask import g, has_request_context
+    if not has_request_context():
+        return _all_roles()
+    # Once per request: every permission check asks, and the incident board checks a few per
+    # incident, so reading data.json each time cost a full parse dozens of times per request.
+    found = g.get('_floorbit_roles')
+    if found is None:
+        found = g._floorbit_roles = _all_roles()
+    return {k: {**v, 'permissions': list(v['permissions'])} for k, v in found.items()}
+
+
+def _forget_roles():
+    from flask import g, has_request_context
+    if has_request_context():
+        g.pop('_floorbit_roles', None)
+
+
+def _all_roles():
     out = {k: {**v, 'builtin': True} for k, v in BUILTIN.items()}
     for k, v in sorted(_custom().items(), key=lambda kv: kv[1].get('label', kv[0]).lower()):
         out[k] = {'label': v.get('label') or k, 'description': v.get('description') or '',
