@@ -146,8 +146,7 @@ export default function Handover() {
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('handover.changesTitle')}</Title>
               {d.changes.length === 0 ? <Text size="sm" c="dimmed">{t('handover.noChanges')}</Text> : (
-                <Table.ScrollContainer minWidth={520}>
-                  <Table striped>
+                <Table striped className="fb-table-stack">
                     <Table.Thead>
                       <Table.Tr><Table.Th>{t('handover.when')}</Table.Th><Table.Th>{t('handover.who')}</Table.Th><Table.Th>{t('handover.what')}</Table.Th></Table.Tr>
                     </Table.Thead>
@@ -161,7 +160,6 @@ export default function Handover() {
                       ))}
                     </Table.Tbody>
                   </Table>
-                </Table.ScrollContainer>
               )}
             </Paper>
 

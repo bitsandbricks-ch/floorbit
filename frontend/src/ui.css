@@ -110,3 +110,17 @@
 .fb-day[data-today] { font-weight: 700; color: var(--mantine-primary-color-filled); }
 .fb-day[data-picked] { background: var(--mantine-primary-color-filled); color: var(--mantine-primary-color-contrast); }
 .fb-day:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 1px; }
+
+/* Schedule rows: the time column lines up across days on wide screens and shrinks on a phone. */
+.fb-schedule-time { width: 190px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 48em) { .fb-schedule-time { width: auto; } }
+
+/* A table that turns into one block per row on a phone, instead of scrolling sideways: each cell
+   on its own line, header hidden (the cells say what they are). Put it on tables whose cells
+   read fine without their column heading. */
+@media (max-width: 48em) {
+  .fb-table-stack thead { display: none; }
+  .fb-table-stack tbody tr { display: block; padding: var(--mantine-spacing-xs) 0; }
+  .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; }
+  .fb-table-stack tbody td .mantine-Group-root[style*="flex-end"] { justify-content: flex-start; }
+}

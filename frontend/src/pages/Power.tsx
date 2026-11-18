@@ -82,8 +82,7 @@ function BoardCard({ board, circuits, data, busy, onEditBoard, onRemoveBoard, on
       {!circuits.length ? (
         <Text c="dimmed" size="sm">{t('power.noCircuits')}</Text>
       ) : (
-        <Table.ScrollContainer minWidth={760}>
-          <Table verticalSpacing="xs">
+        <Table verticalSpacing="xs" className="fb-table-stack">
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t('power.circuit')}</Table.Th>
@@ -128,8 +127,7 @@ function BoardCard({ board, circuits, data, busy, onEditBoard, onRemoveBoard, on
                 </Table.Tr>
               ))}
             </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        </Table>
       )}
     </Paper>
   )

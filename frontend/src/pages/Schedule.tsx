@@ -21,6 +21,16 @@ import { clock, dateOnly } from '@/lib/time'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
 
+function KindBadges({ item }: { item: ScheduleItem }) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <Badge variant="light" color={COLORS[item.kind]} tt="none">{t(`schedule.kind.${item.kind}`)}</Badge>
+      {item.source === 'ical' && <Badge variant="outline" color="gray" tt="none">iCal</Badge>}
+    </>
+  )
+}
+
 type Draft = { title: string; kind: ScheduleKind; start: string; end: string; where: string; note: string }
 const blank: Draft = { title: '', kind: 'other', start: '', end: '', where: '', note: '' }
 
@@ -147,21 +157,18 @@ export default function Schedule() {
           ) : days.map(([label, items]) => (
             <Paper key={label} withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{label}</Title>
-              <Table.ScrollContainer minWidth={560}>
-                <Table verticalSpacing="xs">
+              <Table verticalSpacing="xs" className="fb-schedule">
                   <Table.Tbody>
                     {items.map((i) => (
                       <Table.Tr key={i.id}>
-                        <Table.Td w={190} style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{clock(i.start)}{i.end ? `–${clock(i.end)}` : ''}</Table.Td>
+                        <Table.Td className="fb-schedule-time">{clock(i.start)}{i.end ? `–${clock(i.end)}` : ''}</Table.Td>
                         <Table.Td>
-                          <Text fw={600}>{i.title}</Text>
-                          {(i.where || i.note) && <Text size="xs" c="dimmed">{[i.where, i.note].filter(Boolean).join(' · ')}</Text>}
-                        </Table.Td>
-                        <Table.Td w={200}>
-                          <Group gap={4} wrap="nowrap">
-                            <Badge variant="light" color={COLORS[i.kind]} tt="none">{t(`schedule.kind.${i.kind}`)}</Badge>
-                            {i.source === 'ical' && <Badge variant="outline" color="gray" tt="none">iCal</Badge>}
+                          {/* The kind sits next to the title, so a row fits a phone without scrolling sideways. */}
+                          <Group gap={6} wrap="wrap" align="center">
+                            <Text fw={600}>{i.title}</Text>
+                            <KindBadges item={i} />
                           </Group>
+                          {(i.where || i.note) && <Text size="xs" c="dimmed">{[i.where, i.note].filter(Boolean).join(' · ')}</Text>}
                         </Table.Td>
                         {canEdit && (
                           <Table.Td w={80}>
@@ -175,7 +182,6 @@ export default function Schedule() {
                     ))}
                   </Table.Tbody>
                 </Table>
-              </Table.ScrollContainer>
             </Paper>
           ))}
           <Text size="xs" c="dimmed">{t('schedule.importHint')}</Text>
