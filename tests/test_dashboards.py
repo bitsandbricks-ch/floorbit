@@ -233,6 +233,7 @@ def test_a_screen_account_limited_to_some_dashboards(client, kiosk_client):
     assert r.status_code == 302 and r.headers["Location"].endswith("/dashboards/hall-b")
     # The ready-made Kiosk dashboard is public: a screen may still open it.
     assert kiosk_client.get("/dashboards/kiosk").status_code in (200, 503)
+    assert kiosk_client.get("/api/dashboards/kiosk").status_code == 200    # what that page then reads
     # Other accounts aren't touched.
     assert len(client.get("/api/dashboards").get_json()["layouts"]) == 3
     # Unknown ids are refused, in German too; an empty list lifts the limit.

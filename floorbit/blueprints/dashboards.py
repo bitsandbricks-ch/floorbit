@@ -102,7 +102,8 @@ def list_layouts():
 @bp.route('/api/dashboards/<layout_id>', methods=['GET'])
 def get_layout(layout_id):
     layout = dashboards.get(layout_id)
-    if not layout or not dashboards.may_open(current_user(), layout_id):
+    # A limited screen account still opens a public one, as anyone could without signing in.
+    if not layout or not (layout.get('public') or dashboards.may_open(current_user(), layout_id)):
         return _error('No such dashboard.', 404)
     return jsonify(layout)
 
