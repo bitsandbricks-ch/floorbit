@@ -642,6 +642,9 @@ def demo_lines(now):
         out.append(('dist-01', '<189>%SPANTREE-5-TOPOTRAP: Topology Change Trap for vlan 100'))
     if minute % 5 == 0:
         out.append(('dhcp-01', '<30>dhcpd[812]: DHCPACK on 192.0.2.40 to 02:00:00:00:00:1e via eth1'))
+    if minute % 10 == 3:
+        out.append(('dhcp-01', '<28>dhcpd[812]: DHCPDISCOVER from 02:00:00:00:00:51 via eth1: network 192.0.2.0/24: '
+                               'no free leases'))
     out.append(('fw-01', f'<134>filterlog[5512]: 5,,,1000000103,igb1,match,block,in,4,0x0,,64,{minute % 65000},0,'
                          'none,17,udp,76,203.0.113.9,198.51.100.1,123,123,56'))
     return out

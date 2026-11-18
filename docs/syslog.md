@@ -145,6 +145,7 @@ the words other vendors use:
 | Port shut down by the switch (err-disable) | `ERR_DISABLE`, `err-disable` |
 | Port security violation | `PSECURE_VIOLATION`, `PORT_SECURITY` |
 | DHCP snooping dropped packets | `DHCP_SNOOPING` |
+| DHCP server out of addresses | "no free leases" (ISC dhcpd), `ALLOC_ENGINE_V4_ALLOC_FAIL` (Kea), "no address available" (dnsmasq), "pool .. is empty" (MikroTik) |
 | MAC address moving between ports | `MACFLAP`, `MAC_MOVE`, "flapping between port" |
 | Loop detected | `LOOP_DETECT`, `LOOP_BACK_DETECTED`, "loop detected" |
 | Storm control | `STORM_CONTROL` |
