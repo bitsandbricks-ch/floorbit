@@ -131,6 +131,10 @@
   .fb-table-stack tbody tr:has(> td.fb-stack-actions) { position: relative; padding-right: 5em; }
   .fb-table-stack tbody td.fb-stack-actions { position: absolute; top: var(--mantine-spacing-xs); right: 0; }
   .fb-table-stack tbody td.fb-stack-actions .mantine-Group-root { justify-content: flex-end; }
+  /* Striped tables: the row's shade gets a margin, so text doesn't touch its edge. */
+  .fb-table-stack tbody tr[data-striped] { padding-left: var(--mantine-spacing-xs); padding-right: var(--mantine-spacing-xs); }
+  .fb-table-stack tbody tr[data-striped]:has(> td.fb-stack-actions) { padding-right: 5em; }
+  .fb-table-stack tbody tr[data-striped] > td.fb-stack-actions { right: var(--mantine-spacing-xs); }
   /* A cell that needs its heading carries it as data-label, shown to its left. */
   .fb-table-stack tbody td[data-label]:empty { display: none; }
   .fb-table-stack tbody td[data-label] { position: relative; padding-left: 8.5em; }
