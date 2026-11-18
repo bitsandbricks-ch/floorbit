@@ -28,6 +28,7 @@ def test_features_need_the_ones_they_build_on(client):
     assert {"incidents", "helpdesk", "dispatch", "handover"} <= set(client.get("/api/features").get_json()["off"])
     assert client.get("/api/handover").status_code == 404
     assert client.get("/help/A1").status_code == 404     # the helpdesk page is public: still gone
+    assert client.get("/api/helpdesk/seats/A1").status_code == 404
     # The live stream and the past events' neighbours are not caught by a prefix.
     assert features.owner("/api/events") is None and features.owner("/healthz") is None
     assert features.owner("/api/checkins") is None

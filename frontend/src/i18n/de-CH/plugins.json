@@ -30,5 +30,20 @@
   },
   "noMatch": "Kein Plugin passt.",
   "notFound": "Es gibt kein Plugin «{{id}}».",
-  "installedTitle": "Installiert"
+  "installedTitle": "Installiert",
+  "names": {
+    "captive-note": "Check-in-Hinweis auf Handys",
+    "demo": "Demodaten",
+    "home-assistant": "Home-Assistant-Messgeräte",
+    "http-check": "HTTP-Prüfung",
+    "lancache": "LAN-Cache",
+    "netflow-relay": "Verkehr aus der Halle",
+    "shelly": "Shelly-Messgeräte",
+    "ssh-ports": "Port-Aktionen per SSH",
+    "syslog-relay": "Syslog aus der Halle",
+    "telemetry": "Telemetrie",
+    "services": "Dienste",
+    "game-servers": "Gameserver",
+    "firewalls": "Firewalls"
+  }
 }

@@ -1,6 +1,5 @@
 {
   "title": "Check-in",
-  "seats": "Seats",
   "history": {
     "sessions": "Who sat where",
     "events": "All events",
@@ -118,5 +117,11 @@
   "portalEmpty": "No agent has asked yet",
   "portalEmptyDesc": "With DHCP option 114 pointing at a local agent, its fetches show up here.",
   "portalLast": "Last fetch {{when}}, {{count}} clients checked in.",
-  "footer": "How the seat to port mapping works:"
+  "footer": "How the seat to port mapping works:",
+  "off": {
+    "title": "Check-in is off",
+    "desc": "Turn on the seat check-in page under Settings > Sources. Attendees then check in with their seat card's PIN, and this page shows who sits where.",
+    "askAdmin": "An admin turns on the seat check-in page under Settings > Sources. Attendees then check in with their seat card's PIN, and this page shows who sits where.",
+    "open": "Open the settings"
+  }
 }

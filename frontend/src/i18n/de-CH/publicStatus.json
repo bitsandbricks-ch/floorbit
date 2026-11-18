@@ -21,7 +21,7 @@
   "seats_one": "{{count}} Platz",
   "seats_other": "{{count}} Plätze",
   "switches": "Switches: {{names}}",
-  "block": "Platzblock {{name}}",
+  "block": "Sitzblock {{name}}",
   "hallWide": "Halle {{name}}",
   "somewhere": "Irgendwo in der Halle",
   "planned": "Geplante Wartung",

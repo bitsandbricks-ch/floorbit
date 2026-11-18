@@ -8,6 +8,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, usePower } from '@/api/queries'
 import type { Circuit, PowerBoard, PowerOverview, PowerState } from '@/api/types'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BoardDialog, CircuitDialog, ReadingDialog } from './power/Dialogs'
@@ -73,15 +74,15 @@ function BoardCard({ board, circuits, data, busy, onEditBoard, onRemoveBoard, on
         {data.can_edit && (
           <Group gap="xs">
             <Button size="xs" variant="default" onClick={onEditBoard}>{t('power.edit')}</Button>
-            {!circuits.length && <Button size="xs" variant="subtle" color="down" onClick={onRemoveBoard}>{t('power.remove')}</Button>}
+            {!circuits.length && <ConfirmButton size="xs" variant="subtle" danger label={t('power.remove')}
+              question={t('power.removeBoardConfirm', { name: board.name })} onConfirm={onRemoveBoard} />}
           </Group>
         )}
       </Group>
       {!circuits.length ? (
         <Text c="dimmed" size="sm">{t('power.noCircuits')}</Text>
       ) : (
-        <Table.ScrollContainer minWidth={760}>
-          <Table verticalSpacing="xs">
+        <Table verticalSpacing="xs" className="fb-table-stack">
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t('power.circuit')}</Table.Th>
@@ -117,7 +118,8 @@ function BoardCard({ board, circuits, data, busy, onEditBoard, onRemoveBoard, on
                       {data.can_edit && (
                         <>
                           <Button size="xs" variant="subtle" onClick={() => onEdit(c)}>{t('power.edit')}</Button>
-                          <Button size="xs" variant="subtle" color="down" onClick={() => onRemove(c)}>{t('power.remove')}</Button>
+                          <ConfirmButton size="xs" variant="subtle" danger label={t('power.remove')}
+                            question={t('power.removeCircuitConfirm', { name: c.name })} onConfirm={() => onRemove(c)} />
                         </>
                       )}
                     </Group>
@@ -125,8 +127,7 @@ function BoardCard({ board, circuits, data, busy, onEditBoard, onRemoveBoard, on
                 </Table.Tr>
               ))}
             </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        </Table>
       )}
     </Paper>
   )
@@ -222,9 +223,9 @@ export default function Power() {
             <BoardCard key={b.id} board={b} data={data} busy={act.isPending}
               circuits={data.circuits.filter((c) => c.board === b.id)}
               onEditBoard={() => { setDialogError(null); setEditing({ kind: 'board', board: b }) }}
-              onRemoveBoard={() => { if (window.confirm(t('power.removeBoardConfirm', { name: b.name }))) act.mutate({ path: `/api/power/boards/${b.id}`, method: 'del' }) }}
+              onRemoveBoard={() => act.mutate({ path: `/api/power/boards/${b.id}`, method: 'del' })}
               onEdit={(c) => { setDialogError(null); setEditing({ kind: 'circuit', circuit: c }) }}
-              onRemove={(c) => { if (window.confirm(t('power.removeCircuitConfirm', { name: c.name }))) act.mutate({ path: `/api/power/circuits/${c.id}`, method: 'del' }) }}
+              onRemove={(c) => act.mutate({ path: `/api/power/circuits/${c.id}`, method: 'del' })}
               onReading={(c) => { setDialogError(null); setReading(c) }}
               onTrip={(c, tripped) => act.mutate({ path: `/api/power/circuits/${c.id}/trip`, method: 'post', body: { tripped } })} />
           ))}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { germanyBundle, toGermany } from './germany'
-import { bundle, initialLang } from './index'
+import { initialLang, loadBundle } from './index'
 
 function keys(obj: unknown, prefix = ''): string[] {
   if (typeof obj !== 'object' || obj === null) return [prefix]
@@ -8,17 +8,17 @@ function keys(obj: unknown, prefix = ''): string[] {
 }
 
 describe('translations', () => {
-  it('has every English text in German too, and nothing extra', () => {
-    expect(keys(bundle('de-CH')).sort()).toEqual(keys(bundle('en')).sort())
+  it('has every English text in German too, and nothing extra', async () => {
+    expect(keys(await loadBundle('de-CH')).sort()).toEqual(keys(await loadBundle('en')).sort())
   })
 
-  it('writes Swiss German: no ß', () => {
-    expect(JSON.stringify(bundle('de-CH'))).not.toContain('ß')
+  it('writes Swiss German: no ß', async () => {
+    expect(JSON.stringify(await loadBundle('de-CH'))).not.toContain('ß')
   })
 
-  it('writes German German with ß, from the same texts', () => {
-    const de = germanyBundle(bundle('de-CH'))
-    expect(keys(de).sort()).toEqual(keys(bundle('en')).sort())
+  it('writes German German with ß, from the same texts', async () => {
+    const de = germanyBundle(await loadBundle('de-CH'))
+    expect(keys(de).sort()).toEqual(keys(await loadBundle('en')).sort())
     const text = JSON.stringify(de)
     for (const swiss of ['schliessen', 'draussen', 'weiss ', 'Grossbildschirm']) expect(text).not.toContain(swiss)
     expect(toGermany('Fenster schliessen')).toBe('Fenster schließen')

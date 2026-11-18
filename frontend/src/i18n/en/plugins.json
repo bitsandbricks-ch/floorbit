@@ -30,5 +30,20 @@
   },
   "noMatch": "No plugin matches.",
   "notFound": "There is no plugin \"{{id}}\".",
-  "installedTitle": "Installed"
+  "installedTitle": "Installed",
+  "names": {
+    "captive-note": "Check-in note on phones",
+    "demo": "Demo data",
+    "home-assistant": "Home Assistant meters",
+    "http-check": "HTTP check",
+    "lancache": "LAN cache",
+    "netflow-relay": "Traffic from the hall",
+    "shelly": "Shelly meters",
+    "ssh-ports": "SSH port actions",
+    "syslog-relay": "Syslog from the hall",
+    "telemetry": "Telemetry",
+    "services": "Services",
+    "game-servers": "Game servers",
+    "firewalls": "Firewalls"
+  }
 }

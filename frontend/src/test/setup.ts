@@ -32,3 +32,7 @@ if (!('fonts' in document)) {
     value: { addEventListener: () => {}, removeEventListener: () => {}, ready: Promise.resolve() },
   })
 }
+
+// German is fetched on first use in the app; tests that switch to it expect it at once.
+const { loadLang } = await import('@/i18n')
+await loadLang('de-CH')

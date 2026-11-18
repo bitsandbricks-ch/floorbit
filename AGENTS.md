@@ -17,8 +17,8 @@ users: [README.md](README.md).
 | `integrations/` | Live updates, status monitor, Discord, seat sources, check-in. See `docs/integrations.md`. |
 | `auth/` | Sign-in: accounts in `data.json`, the request guard, login providers. See `docs/auth.md`. |
 | `frontend/` | The React app (React, TypeScript, Mantine, TanStack Query, Vite), set up like Hubra's. Pages move into it one at a time; Flask serves it through `templates/spa.html` (`floorbit/spa.py`). See `frontend/README.md`. |
-| `templates/` | Jinja pages (the ones not moved to React yet). |
-| `static/js/`, `static/css/` | The older pages' scripts and styles (plain JavaScript and CSS, no build step), such as the kiosk. |
+| `templates/` | `spa.html` (the React app's page), the sidebar's first paint, and the database-down page. |
+| `static/js/`, `static/css/` | Small shared scripts and styles outside the React build (theme, notifications, attribution). |
 | `changelog.d/` | Changelog fragments, one per pull request. |
 | `seats.json` | Seat number to IP and username. |
 | `tests/` | pytest smoke tests against the Flask test client, with a fake Redis. |

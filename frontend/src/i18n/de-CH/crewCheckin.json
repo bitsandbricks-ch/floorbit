@@ -1,6 +1,5 @@
 {
   "title": "Check-in",
-  "seats": "Plätze",
   "history": {
     "sessions": "Wer wo sass",
     "events": "Alle Ereignisse",
@@ -118,5 +117,11 @@
   "portalEmpty": "Noch kein Agent hat gefragt",
   "portalEmptyDesc": "Zeigt die DHCP-Option 114 auf einen lokalen Agent, erscheinen seine Abrufe hier.",
   "portalLast": "Letzter Abruf {{when}}, {{count}} Geräte eingecheckt.",
-  "footer": "So funktioniert die Zuordnung Platz zu Port:"
+  "footer": "So funktioniert die Zuordnung Platz zu Port:",
+  "off": {
+    "title": "Check-in ist ausgeschaltet",
+    "desc": "Schalte die Check-in-Seite unter Einstellungen > Quellen ein. Die Teilnehmenden checken dann mit der PIN ihrer Platzkarte ein, und diese Seite zeigt, wer wo sitzt.",
+    "askAdmin": "Ein Admin schaltet die Check-in-Seite unter Einstellungen > Quellen ein. Die Teilnehmenden checken dann mit der PIN ihrer Platzkarte ein, und diese Seite zeigt, wer wo sitzt.",
+    "open": "Einstellungen öffnen"
+  }
 }

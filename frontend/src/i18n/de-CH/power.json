@@ -1,6 +1,6 @@
 {
   "title": "Elektrik",
-  "intro": "Stromverteiler, die Stromkreise daran und ihre Last. Ein Stromkreis wird bei {{warn}} % seiner Sicherung gelb und bei {{crit}} % rot: dann bekommt das Elektrik-Team einen Incident, bevor die Sicherung fliegt.",
+  "intro": "Stromverteiler, die Stromkreise daran und ihre Last. Ein Stromkreis wird bei {{warn}} % seiner Sicherung gelb und bei {{crit}} % rot: dann bekommt das Elektrik-Team eine Störung, bevor die Sicherung fliegt.",
   "checkNow": "Zähler abfragen",
   "addBoard": "Verteiler hinzufügen",
   "addCircuit": "Stromkreis hinzufügen",

@@ -6,6 +6,8 @@ import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from '@/components/ConfirmButton'
+import { DateTimeInput } from '@/components/DateTimeInput'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -15,9 +17,20 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { fromInput, toInput } from './schedule/time'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
+
+function KindBadges({ item }: { item: ScheduleItem }) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <Badge variant="light" color={COLORS[item.kind]} tt="none">{t(`schedule.kind.${item.kind}`)}</Badge>
+      {item.source === 'ical' && <Badge variant="outline" color="gray" tt="none">iCal</Badge>}
+    </>
+  )
+}
 
 type Draft = { title: string; kind: ScheduleKind; start: string; end: string; where: string; note: string }
 const blank: Draft = { title: '', kind: 'other', start: '', end: '', where: '', note: '' }
@@ -36,15 +49,15 @@ function ItemForm({ item, kinds, onDone }: { item: ScheduleItem | null; kinds: S
     onSuccess: onDone,
   })
   return (
-    <Paper withBorder radius="lg" p="md">
+    <Paper ref={revealForm} withBorder radius="lg" p="md" className="fb-reveal">
       <Stack gap="sm">
         <Title order={2} size="h4">{item ? t('schedule.editItem') : t('schedule.addItem')}</Title>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <TextInput label={t('schedule.itemTitle')} required maxLength={120} value={d.title} onChange={set('title')} />
           <Select label={t('schedule.kindLabel')} value={d.kind} allowDeselect={false}
             data={kinds.map((k) => ({ value: k, label: t(`schedule.kind.${k}`) }))} onChange={(v) => setD((x) => ({ ...x, kind: (v ?? 'other') as ScheduleKind }))} />
-          <TextInput type="datetime-local" label={t('schedule.start')} required value={d.start} onChange={set('start')} />
-          <TextInput type="datetime-local" label={t('schedule.end')} value={d.end} onChange={set('end')} />
+          <DateTimeInput label={t('schedule.start')} required value={d.start} onChange={(v) => setD((x) => ({ ...x, start: v }))} />
+          <DateTimeInput label={t('schedule.end')} value={d.end} onChange={(v) => setD((x) => ({ ...x, end: v }))} />
           <TextInput label={t('schedule.where')} maxLength={120} value={d.where} onChange={set('where')} />
           <TextInput label={t('schedule.note')} maxLength={500} value={d.note} onChange={set('note')} />
         </SimpleGrid>
@@ -72,8 +85,8 @@ function EventTimes({ data, canEdit }: { data: ScheduleData; canEdit: boolean })
       <Text fw={600} mb={4}>{t('schedule.event')}</Text>
       <Text size="sm" c="dimmed" mb="sm">{t('schedule.eventHelp')}</Text>
       <Group align="flex-end" gap="sm">
-        <TextInput type="datetime-local" label={t('schedule.eventStart')} value={start} disabled={!canEdit} onChange={(e) => setStart(e.currentTarget.value)} />
-        <TextInput type="datetime-local" label={t('schedule.eventEnd')} value={end} disabled={!canEdit} onChange={(e) => setEnd(e.currentTarget.value)} />
+        <DateTimeInput label={t('schedule.eventStart')} value={start} disabled={!canEdit} onChange={setStart} />
+        <DateTimeInput label={t('schedule.eventEnd')} value={end} disabled={!canEdit} onChange={setEnd} />
         {canEdit && <Button variant="default" loading={save.isPending} onClick={() => save.mutate()}>{t('schedule.saveEvent')}</Button>}
       </Group>
       {save.error && <Alert mt="sm" color="down" role="alert">{save.error.message}</Alert>}
@@ -145,27 +158,24 @@ export default function Schedule() {
           ) : days.map(([label, items]) => (
             <Paper key={label} withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{label}</Title>
-              <Table.ScrollContainer minWidth={560}>
-                <Table verticalSpacing="xs">
+              <Table verticalSpacing="xs" className="fb-schedule">
                   <Table.Tbody>
                     {items.map((i) => (
                       <Table.Tr key={i.id}>
-                        <Table.Td w={190} style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{clock(i.start)}{i.end ? `–${clock(i.end)}` : ''}</Table.Td>
+                        <Table.Td className="fb-schedule-time">{clock(i.start)}{i.end && <>–<wbr />{clock(i.end)}</>}</Table.Td>
                         <Table.Td>
-                          <Text fw={600}>{i.title}</Text>
+                          {/* The kind sits next to the title, so a row fits a phone without scrolling sideways. */}
+                          <Group gap={6} wrap="wrap" align="center">
+                            <Text fw={600}>{i.title}</Text>
+                            <KindBadges item={i} />
+                          </Group>
                           {(i.where || i.note) && <Text size="xs" c="dimmed">{[i.where, i.note].filter(Boolean).join(' · ')}</Text>}
                         </Table.Td>
-                        <Table.Td w={200}>
-                          <Group gap={4} wrap="nowrap">
-                            <Badge variant="light" color={COLORS[i.kind]} tt="none">{t(`schedule.kind.${i.kind}`)}</Badge>
-                            {i.source === 'ical' && <Badge variant="outline" color="gray" tt="none">iCal</Badge>}
-                          </Group>
-                        </Table.Td>
                         {canEdit && (
-                          <Table.Td w={80}>
+                          <Table.Td className="fb-schedule-actions">
                             <Group gap={4} wrap="nowrap">
                               <ActionIcon variant="subtle" aria-label={t('schedule.editNamed', { title: i.title })} onClick={() => setEditing(i.id)}><IconPencil size={16} /></ActionIcon>
-                              <ActionIcon variant="subtle" color="down" aria-label={t('schedule.deleteNamed', { title: i.title })} onClick={() => remove.mutate(i.id)}><IconTrash size={16} /></ActionIcon>
+                              <ConfirmIcon label={t('schedule.deleteNamed', { title: i.title })} onConfirm={() => remove.mutate(i.id)}><IconTrash size={16} /></ConfirmIcon>
                             </Group>
                           </Table.Td>
                         )}
@@ -173,7 +183,6 @@ export default function Schedule() {
                     ))}
                   </Table.Tbody>
                 </Table>
-              </Table.ScrollContainer>
             </Paper>
           ))}
           <Text size="xs" c="dimmed">{t('schedule.importHint')}</Text>

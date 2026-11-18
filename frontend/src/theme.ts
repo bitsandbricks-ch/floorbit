@@ -3,11 +3,14 @@
 // a rebuild. Built after Hubra's (by Mike) packages/ui/src/theme.ts.
 import {
   Autocomplete,
+  Checkbox,
+  Chip,
   Combobox,
   createTheme,
   Menu,
   MultiSelect,
   Popover,
+  Radio,
   Select,
   TableScrollContainer,
   Tooltip,
@@ -75,6 +78,23 @@ export const theme = createTheme({
     Menu: Menu.extend({ defaultProps: { ...POP, position: 'bottom-end' } }),
     Popover: Popover.extend({ defaultProps: POP }),
     Tooltip: Tooltip.extend({ defaultProps: { openDelay: 250, transitionProps: { transition: 'fade', duration: 100 } } }),
+    // A checked chip's text is white whatever its colour: on Bit Green in the dark theme that was
+    // 1.6:1. Use the same text colours as filled buttons and badges (variantColorResolver).
+    Chip: Chip.extend({
+      vars: (_theme, props) => {
+        const color = props.color || 'bit'
+        if (props.variant && props.variant !== 'filled') return { root: {} }
+        if (color === 'bit') return { root: { '--chip-color': 'var(--color-on-bit)' } }
+        return { root: TOKENS.includes(color) ? { '--chip-color': 'var(--color-ink)' } : {} }
+      },
+    }),
+    // The tick and the radio dot are white by default: barely visible on Bit Green in the dark theme.
+    Checkbox: Checkbox.extend({
+      vars: (_theme, props) => ({ root: !props.color || props.color === 'bit' ? { '--checkbox-icon-color': 'var(--color-on-bit)' } : {} }),
+    }),
+    Radio: Radio.extend({
+      vars: (_theme, props) => ({ root: !props.color || props.color === 'bit' ? { '--radio-icon-color': 'var(--color-on-bit)' } : {} }),
+    }),
     // A wide table scrolls sideways on a phone; without focus a keyboard can't scroll it (issue #286).
     TableScrollContainer: TableScrollContainer.extend({
       defaultProps: { scrollAreaProps: { viewportProps: { tabIndex: 0 } } },

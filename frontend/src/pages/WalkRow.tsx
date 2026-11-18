@@ -153,7 +153,7 @@ export default function WalkRow() {
         <Paper withBorder radius="lg" p="lg">
           <Stack gap="sm">
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
-              <Select label={t('cables.block')} required searchable value={setup.block || null} onChange={set('block')}
+              <Select label={t('cables.block')} required searchable placeholder={t('ui.pickBlock')} value={setup.block || null} onChange={set('block')}
                 data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.name || '–'} (${b.cols * b.rows})` }))} />
               <EntitySelect kind="switches" label={t('cables.switch')} required value={setup.switch} onChange={set('switch')} />
               <Select label={t('cables.order')} allowDeselect={false} value={setup.order} onChange={set('order')}

@@ -48,4 +48,20 @@ describe('Runbooks', () => {
     expect(screen.getByText('Slow connection, No internet')).toBeInTheDocument()
     expect(screen.getByText('2 incidents of kind “Power” have no runbook.')).toBeInTheDocument()
   })
+
+  it('brings the picked runbook into view, but not on first load (a phone shows it under the list)', async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false },
+      'GET /api/runbooks': { runbooks: books, kinds: ['no-internet', 'slow', 'power', 'switch-down', 'other'] },
+    }).fn)
+    renderWithApp(<Runbooks />, '/runbooks')
+    fireEvent.click(await screen.findByText('Slow connection'))
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'New runbook' }))
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2))
+    expect(document.activeElement).toHaveAccessibleName(/Title/)
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+  })
 })

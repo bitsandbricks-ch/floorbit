@@ -1,9 +1,10 @@
 import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
-import { IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
+import { IconPlugOff, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, get, post } from '@/api/client'
+import { ConfirmIcon } from '@/components/ConfirmButton'
+import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
@@ -19,6 +20,8 @@ import { History } from './checkins/History'
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat-mapping.md'
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }
 
+
+const off = (e: unknown) => e instanceof ApiError && e.data.code === 'checkin_disabled'
 
 const portText = (p: { switch: string; port: string } | null) => (p ? `${p.switch} ${p.port}` : '–')
 
@@ -36,11 +39,14 @@ export default function Checkins() {
   const lang = i18n.language
   const qc = useQueryClient()
   const canEdit = useCan('seats.edit')
+  const canSettings = useCan('settings.manage')
   const [q, setQ] = useState('')
   const [state, setState] = useState<WiredState | null>(null)
   const query = useQuery({
     queryKey: qk.checkinOverview,
     queryFn: () => get<CheckinOverview>('/api/checkins/overview'),
+    // Switched off is an answer, not a failure worth asking again.
+    retry: (n, e) => !off(e) && n < 3,
     // A pending row turns verified within seconds; poll a little while any wait.
     refetchInterval: (qr) => (qr.state.data?.counts.pending ? 5_000 : 30_000),
   })
@@ -59,21 +65,28 @@ export default function Checkins() {
   })
 
   const d = query.data
+  const disabled = off(query.error)
   const rows = (d?.rows ?? []).filter((r) => (!state || r.wired === state) && matches(r, q))
   const pick = (s: WiredState) => () => setState((cur) => (cur === s ? null : s))
   const num = (n: number) => n.toLocaleString(lang)
 
   return (
-    <Layout title={t('crewCheckin.title')} back={{ href: '/seats', label: t('crewCheckin.seats') }}>
+    <Layout title={t('crewCheckin.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')}
         actions={<Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
       <Stack gap="md">
-        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {!disabled && <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />}
         <ErrorBanner error={act.error} />
         {d?.verifier.last_error && (
           <Alert color="warn" role="alert">{t('crewCheckin.verifierError', { error: d.verifier.last_error })}</Alert>
         )}
-        {query.isPending || !d ? <LoadingState /> : (
+        {disabled ? (
+          <Panel>
+            <EmptyState icon={<IconPlugOff size={24} />} title={t('crewCheckin.off.title')}
+              desc={canSettings ? t('crewCheckin.off.desc') : t('crewCheckin.off.askAdmin')}
+              action={canSettings && <Button component={Link} to="/settings/sources" variant="default">{t('crewCheckin.off.open')}</Button>} />
+          </Panel>
+        ) : query.isPending || !d ? <LoadingState /> : (
           <>
             <div className="fb-stat-row">
               <StatCard label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
@@ -109,8 +122,7 @@ export default function Checkins() {
                 {d.rows.length === 0 ? (
                   <EmptyState title={t('crewCheckin.empty')} desc={t('crewCheckin.emptyDesc')} />
                 ) : (
-                  <Table.ScrollContainer minWidth={820}>
-                    <Table striped highlightOnHover>
+                    <Table striped highlightOnHover className="fb-table-stack">
                       <Table.Thead>
                         <Table.Tr>
                           <Table.Th>{t('crewCheckin.col.seat')}</Table.Th>
@@ -126,20 +138,20 @@ export default function Checkins() {
                       <Table.Tbody>
                         {rows.map((r) => (
                           <Table.Tr key={r.seat} data-seat={r.seat}>
-                            <Table.Td><Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor></Table.Td>
-                            <Table.Td>{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</Table.Td>
-                            <Table.Td><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge></Table.Td>
-                            <Table.Td>
+                            <Table.Td className="fb-stack-inline"><Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor></Table.Td>
+                            <Table.Td className="fb-stack-inline">{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</Table.Td>
+                            <Table.Td className="fb-stack-inline"><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge></Table.Td>
+                            <Table.Td data-label={t('crewCheckin.col.port')}>
                               <Text size="sm" ff="monospace">{portText(r.port ?? r.learned)}</Text>
                               {r.learned && <Text size="xs" c="dimmed">{t('crewCheckin.learned')}</Text>}
                               {r.area && <Text size="xs" c="dimmed">{t('cables.areaHint', { label: r.area.label })}</Text>}
                             </Table.Td>
-                            <Table.Td><Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
+                            <Table.Td data-label={t('crewCheckin.col.ip')}><Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
                               {r.mac && <Text size="xs" c="dimmed" ff="monospace">{r.mac}</Text>}</Table.Td>
-                            <Table.Td>{t(`crewCheckin.device.${r.device}`)}</Table.Td>
-                            <Table.Td><Text size="sm">{ago(r.checked_in_at, lang)}</Text></Table.Td>
+                            <Table.Td data-label={t('crewCheckin.col.device')}>{t(`crewCheckin.device.${r.device}`)}</Table.Td>
+                            <Table.Td data-label={t('crewCheckin.col.when')}><Text size="sm">{ago(r.checked_in_at, lang)}</Text></Table.Td>
                             {canEdit && (
-                              <Table.Td>
+                              <Table.Td className="fb-stack-actions">
                                 <Group gap={4} wrap="nowrap" justify="flex-end">
                                   {(r.wired === 'unverified' || r.wired === 'pending') && (
                                     <Tooltip label={t('crewCheckin.retry')}>
@@ -147,10 +159,8 @@ export default function Checkins() {
                                         onClick={() => act.mutate({ kind: 'retry', seat: r.seat })}><IconRefresh size={16} /></ActionIcon>
                                     </Tooltip>
                                   )}
-                                  <Tooltip label={t('crewCheckin.remove')}>
-                                    <ActionIcon variant="subtle" color="down" aria-label={t('crewCheckin.removeFor', { seat: r.seat })}
-                                      onClick={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ActionIcon>
-                                  </Tooltip>
+                                  <ConfirmIcon tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
+                                    onConfirm={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ConfirmIcon>
                                 </Group>
                               </Table.Td>
                             )}
@@ -158,7 +168,6 @@ export default function Checkins() {
                         ))}
                       </Table.Tbody>
                     </Table>
-                  </Table.ScrollContainer>
                 )}
               </Tabs.Panel>
               <Tabs.Panel value="review" pt="md">

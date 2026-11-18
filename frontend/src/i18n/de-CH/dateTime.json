@@ -1,0 +1,12 @@
+{
+  "pick": "Datum und Zeit wählen",
+  "placeholder": "tt.mm.jjjj hh:mm",
+  "invalid": "Dieses Datum versteht das Feld nicht. Beispiel: 14.11.2026 18:00",
+  "prevMonth": "Vorheriger Monat",
+  "nextMonth": "Nächster Monat",
+  "hour": "Stunde",
+  "minute": "Minute",
+  "today": "Heute",
+  "clear": "Leeren",
+  "done": "Fertig"
+}
