@@ -31,6 +31,11 @@ SKIP = {'__pycache__', '.git', '.pytest_cache'}
 MAX_BUNDLE = 8 * 1024 * 1024     # packed; a plugin is a few files of Python and YAML
 MAX_FILES = 200
 ID_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}$')
+# A plugin never brings code for the browser (its screens are data Floorbit draws) or native code
+# (docs/plugin-spec.md, "The files in a bundle"): refused when it is signed and when it is checked.
+REFUSED_SUFFIXES = frozenset({'.js', '.mjs', '.cjs', '.css', '.html', '.htm', '.wasm', '.so', '.pyd', '.dll',
+                              '.dylib', '.whl', '.egg', '.exe'})
+REFUSED_DIRS = frozenset({'static', 'templates'})
 
 
 class BundleError(PluginError):
@@ -107,6 +112,8 @@ def file_hashes(root: Path) -> dict:
             continue
         if p.is_symlink():
             raise BundleError(f'symlinks are not allowed in a bundle ({rel})')
+        if p.is_file() and (rel.suffix.lower() in REFUSED_SUFFIXES or rel.parts[0] in REFUSED_DIRS):
+            raise BundleError(f'a plugin can\'t ship {rel}: no browser or native code (docs/plugin-spec.md)')
         if p.is_file():
             out[rel.as_posix()] = hashlib.sha256(p.read_bytes()).hexdigest()
     return out
