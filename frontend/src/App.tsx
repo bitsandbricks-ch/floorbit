@@ -65,6 +65,7 @@ const Webhooks = lazy(() => import('@/pages/Webhooks'))
 const Features = lazy(() => import('@/pages/Features'))
 const SidebarSections = lazy(() => import('@/pages/SidebarSections'))
 const Settings = lazy(() => import('@/pages/Settings'))
+const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -76,6 +77,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/checkin" element={<Checkin />} />
+          <Route path="/status" element={<PublicStatus />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route element={<AppShell />}>

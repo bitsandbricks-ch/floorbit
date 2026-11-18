@@ -1,4 +1,4 @@
-// The public status page (templates/status.html, docs/status-page.md): shows each time in the
+// Public Jinja pages (stats wall, brackets): shows each time in the
 // reader's own time zone and language. The page swaps in fresh content every minute (refresh.js), which runs this again.
 'use strict';
 
