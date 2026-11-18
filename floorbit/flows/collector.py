@@ -1,7 +1,8 @@
 """The flow collector: NetFlow v5/v9 and IPFIX, counted on the local agent.
 
 The agent's netflow-relay plugin feeds it the packets it receives on the plugin's port, gives it
-the seat addresses and sends the summary it makes every few seconds to Floorbit. The raw flows stay on the agent for ``FLOWS_RETENTION_DAYS``.
+the seat addresses and sends the summary it makes every few seconds to Floorbit. The raw flows stay
+on the agent for ``FLOWS_RETENTION_DAYS``.
 """
 import ipaddress
 import threading

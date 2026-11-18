@@ -233,7 +233,7 @@ What stays in the agent's environment is the machine itself:
 | `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
 | `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | a certificate on the agent's machine, so the front door and telemetry answer with HTTPS |
 | `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES` | what the people at the hall allow (actions, plugin updates): Floorbit can't decide that for them |
-| `FLOORBIT_AGENT_VRRP_*` | [two agents in one hall](vrrp.md): each machine's interface and priority |
+| `FLOORBIT_AGENT_VRRP_*` | two agents in one hall (floorbit-agent's `docs/vrrp.md`): each machine's interface and priority |
 | `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
