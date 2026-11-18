@@ -102,7 +102,8 @@ CHECKIN_TRUST_PROXY=true               # the client's address comes from X-Forwa
 ```
 
 Without `CHECKIN_TRUST_PROXY`, every visitor looks like the proxy: five wrong passwords from anyone
-lock that username for everyone for five minutes, and check-in can't tell seats apart. Floorbit
+lock that username for everyone for five minutes. (Check-in doesn't depend on it: it takes the seat
+PC's address only from the agent's front door, below.) Floorbit
 logs a `[proxy]` hint when it sees this. Turn it on only when nothing but your proxy can reach
 Floorbit's port: bind it to localhost (`FLOORBIT_PORT=127.0.0.1:8080`) or keep it off the
 firewall. Otherwise anyone could send their own `X-Forwarded-For`. With a second proxy in front

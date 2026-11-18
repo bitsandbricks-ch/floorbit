@@ -37,7 +37,7 @@ def clean_env(monkeypatch):
 
 
 @pytest.fixture
-def env(tmp_path, monkeypatch):
+def env(tmp_path, monkeypatch, front_door):
     monkeypatch.setenv('CHECKIN_ENABLED', 'true')
     monkeypatch.setenv('CHECKIN_FILE', str(tmp_path / 'checkins.json'))
     arp = {'10.0.2.144': 'AA-BB-CC-00-11-22', '10.0.2.150': 'aa:bb:cc:00:11:33'}

@@ -192,16 +192,18 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             opens_at = None
         if not config.get_bool('CHECKIN_ENABLED', False):
             return jsonify({'open': False, 'opens_at': opens_at, 'ip': None, 'checkin': None})
-        ip = checkin.client_ip()
+        ip = checkin.attendee_ip()
         row = checkin.find_by_ip(ip)
         # Only the seat this PC is known to be at: its own, or the one its port is patched to.
-        suggested = checkin.suggest_seat(ip, load_data, current_app) if checkin.ip_allowed(ip) else None
+        suggested = checkin.suggest_seat(ip, load_data, current_app) if ip and checkin.ip_allowed(ip) else None
         # A hint for the page; the page also looks at the device itself (OS, touch, screen).
         on_pc = not checkin.looks_mobile(request.headers.get('User-Agent'))
         return jsonify({'open': True, 'opens_at': None, 'ip': ip, 'checkin': (
             {'seat': row['seat'], 'username': row['username'], 'wired': row.get('wired')} if row else None),
             'suggested_seat': suggested, 'pin_required': config.get_bool('CHECKIN_REQUIRE_PIN', False),
-            'address': checkin.short_address() or None, 'on_pc': on_pc})
+            'address': checkin.short_address() or None, 'on_pc': on_pc,
+            # Not through the local agent's front door: the seat is kept, its port isn't learned.
+            'outside': ip is None})
 
     @bp.route('/api/checkin', methods=['POST'])
     def checkin_submit():
@@ -215,9 +217,9 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             return value if isinstance(value, str) else None
 
         try:
-            row = checkin.check_in(text('seat'), text('username'), checkin.client_ip(),
+            row = checkin.check_in(text('seat'), text('username'), checkin.attendee_ip(),
                                    load_data, user_agent=request.headers.get('User-Agent'), pin=text('pin'),
-                                   device=text('device'))
+                                   device=text('device'), client=checkin.client_ip())
         except checkin.CheckinError as exc:
             return jsonify({'ok': False, 'error': str(exc)}), exc.status
         return jsonify({'ok': True, 'seat': row['seat'], 'username': row['username'],
@@ -228,7 +230,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         denied = checkin_disabled()
         if denied:
             return denied
-        ip = checkin.client_ip()
+        ip = checkin.attendee_ip()
         row = checkin.find_by_ip(ip)
         return jsonify({'ip': ip, 'checkin': (
             {'seat': row['seat'], 'username': row['username']} if row else None)})

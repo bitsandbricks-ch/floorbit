@@ -316,7 +316,7 @@
     },
     "integrations_checkin_trust_proxy": {
       "label": "Behind a reverse proxy",
-      "help": "Use X-Forwarded-For as the client IP (check-in, per-client limits). Only turn on if a proxy you control sets it."
+      "help": "Use X-Forwarded-For as the client IP for per-client limits and the sign-in lockout. Check-in takes the PC's address only from the local agent's front door. Only turn on if a proxy you control sets it."
     },
     "integrations_checkin_proxy_hops": {
       "label": "Proxies in front",

@@ -250,7 +250,7 @@ def test_a_failed_discord_send_never_shows_the_webhook_token(app, monkeypatch):
 
 # ── check-in ─────────────────────────────────────────────────────────────────────────
 @pytest.fixture
-def checkin_env(tmp_path, monkeypatch):
+def checkin_env(tmp_path, monkeypatch, front_door):
     monkeypatch.setenv('CHECKIN_ENABLED', 'true')
     monkeypatch.setenv('CHECKIN_FILE', str(tmp_path / 'checkins.json'))
     arp = {'10.0.2.144': 'AA-BB-CC-00-11-22'}
@@ -276,7 +276,8 @@ def test_checkin_records_ip_and_mac(app, checkin_env, monkeypatch):
     c = app.test_client()
     info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
     assert info == {'open': True, 'opens_at': None, 'ip': '10.0.2.144', 'checkin': None,
-                    'suggested_seat': None, 'pin_required': False, 'address': None, 'on_pc': True}
+                    'suggested_seat': None, 'pin_required': False, 'address': None, 'on_pc': True,
+                    'outside': False}
     r = post_checkin(c, 'd-22', 'Reykime', '10.0.2.144').get_json()
     # The MAC is looked up in the background, so the page answers at once.
     assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': False,
@@ -326,42 +327,63 @@ def test_checkin_admin_token(app, checkin_env, monkeypatch):
     assert c.get('/api/checkins', headers={'X-Admin-Token': 's3cret'}).status_code == 200
 
 
-def test_trust_proxy(app, checkin_env, monkeypatch):
-    c = app.test_client()
-    proxy = {'REMOTE_ADDR': '172.16.0.1'}
+def client_ip(app, headers=None, remote='172.16.0.1'):
+    with app.test_request_context('/api/checkin', headers=headers or {}, environ_base={'REMOTE_ADDR': remote}):
+        return checkin.client_ip()
+
+
+def test_trust_proxy_names_the_client_for_limits(app, checkin_env, monkeypatch):
     # The proxy appends the address it saw; anything to its left came from the client.
     hdr = {'X-Forwarded-For': '10.0.3.3'}
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr, environ_base=proxy).get_json()
-    assert r['ip'] == '172.16.0.1'
+    assert client_ip(app, hdr) == '172.16.0.1'
     monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr, environ_base=proxy).get_json()
-    assert r['ip'] == '10.0.3.3'
+    assert client_ip(app, hdr) == '10.0.3.3'
 
 
 def test_a_forged_forwarded_address_is_ignored(app, checkin_env, monkeypatch):
     monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
-    c = app.test_client()
     forged = {'X-Forwarded-For': '10.0.9.9, 10.0.3.3'}   # the client sent 10.0.9.9 itself
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=forged,
-               environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
-    assert r['ip'] == '10.0.3.3'
+    assert client_ip(app, forged) == '10.0.3.3'
     # Two proxies of ours (a CDN, then the ingress): the client is second from the right.
     monkeypatch.setenv('CHECKIN_PROXY_HOPS', '2')
-    chain = {'X-Forwarded-For': '10.0.9.9, 10.0.3.3, 198.51.100.4'}
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=chain,
-               environ_base={'REMOTE_ADDR': '172.16.0.1'}).get_json()
-    assert r['ip'] == '10.0.3.3'
+    assert client_ip(app, {'X-Forwarded-For': '10.0.9.9, 10.0.3.3, 198.51.100.4'}) == '10.0.3.3'
+
+
+def test_check_in_takes_the_pcs_address_only_from_the_front_door(app, checkin_env, monkeypatch):
+    """One way, hosted or not (Mike, 2026-11-17): a request's own address, or what a proxy says,
+    never names the seat PC. From outside the front door the seat and nick still count."""
+    monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
+    c = app.test_client()
+    hdr = {'X-Forwarded-For': '10.0.3.3'}
+    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr)
+    assert r.status_code == 200 and r.get_json()['ip'] is None and r.get_json()['wired'] == 'not_wired'
+    info = c.get('/api/checkin/info', headers=hdr).get_json()
+    assert info['ip'] is None and info['outside'] is True and info['checkin'] is None
+    # Two attendees from outside are not the same PC: the second doesn't move the first.
+    c.post('/api/checkin', json={'seat': 'D-4', 'username': 'b'}, headers=hdr)
+    assert sorted(checkin.load_all()) == ['D-3', 'D-4']
+    checkin.refresh_once()          # nothing to follow without an address
+    assert checkin.load_all()['D-3']['ip'] is None
+    # Through the door: the address the agent saw.
+    r = post_checkin(c, 'D-3', 'a', '10.0.3.3').get_json()
+    assert r['ip'] == '10.0.3.3' and r['wired'] == 'pending'
+    assert c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.3.3'}).get_json()['outside'] is False
+
+
+def test_with_allowed_networks_outside_the_front_door_is_refused(app, checkin_env, monkeypatch):
+    monkeypatch.setenv('CHECKIN_ALLOWED_NETWORKS', '10.0.0.0/16')
+    c = app.test_client()
+    assert c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}).status_code == 403
+    assert post_checkin(c, 'D-3', 'a', '10.0.3.3').status_code == 200
 
 
 def test_a_proxy_that_isnt_trusted_is_pointed_out_once(app, checkin_env, monkeypatch, capsys):
     from integrations import checkin
     monkeypatch.setattr(checkin, '_proxy_hint', {'logged': False})
     monkeypatch.delenv('CHECKIN_TRUST_PROXY', raising=False)
-    c = app.test_client()
-    via_proxy = {'headers': {'X-Forwarded-For': '10.0.3.3'}, 'environ_base': {'REMOTE_ADDR': '172.16.0.1'}}
-    r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, **via_proxy).get_json()
-    assert r['ip'] == '172.16.0.1'   # not trusted: the header is not used
-    c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, **via_proxy)
+    via_proxy = {'X-Forwarded-For': '10.0.3.3'}
+    assert client_ip(app, via_proxy) == '172.16.0.1'   # not trusted: the header is not used
+    client_ip(app, via_proxy)
     out = capsys.readouterr().out
     assert out.count('[proxy] Requests arrive through a proxy at 172.16.0.1') == 1
     assert 'CHECKIN_TRUST_PROXY' in out

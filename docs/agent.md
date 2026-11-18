@@ -9,8 +9,8 @@ The Floorbit server itself never asks LibreNMS, NetBox, a switch, a resolver or 
 listens for syslog: those plugins run on the agent with the settings made here, and the server
 refuses to call their network methods itself. Without a connected agent, pages show their last
 known state, greyed out with "stale since", and say that no agent is connected; nothing breaks.
-`LAN_ACCESS=direct` (environment only) lets the server call the plugins itself again: for
-development and tests, not for an event. The demo data (`FLOORBIT_DEMO`) needs no agent.
+There is no switch to turn this off: development and tests run an agent too. The demo data
+(`FLOORBIT_DEMO`) needs no agent.
 
 The agent runs on the event network and opens the connection itself, out to the hosted Floorbit
 over HTTPS. Nothing on the event network has to be reachable from outside, and no port has to be
@@ -291,7 +291,13 @@ Set on the agent:
 | `FLOORBIT_AGENT_FRONT_DOOR_PROXIES` | `10.0.0.5` | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
 
 Then point the check-in name (`CHECKIN_ADDRESS`, for example `checkin.lan`) at the agent in the
-event DNS: typing it on a PC opens the check-in page, through the agent.
+event DNS: typing it on a PC opens the check-in page, through the agent. The compose file and the
+Kubernetes manifest turn the front door on and open it on port 80 (`CHECKIN_PUBLISH_PORT` in
+compose).
+
+**Check-in takes the seat PC's address only from the front door**, hosted or self-hosted alike: a
+request's own address or `X-Forwarded-For` never names it. A check-in from anywhere else keeps the
+seat and nick without an address or port.
 
 - **The hosted side only believes the agent.** `Floorbit-Client-IP` counts only on a request that
   also carries a valid agent key (`Floorbit-Front-Door`); a revoked key stops counting within 30

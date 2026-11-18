@@ -218,7 +218,8 @@ SCHEMA = [
      'help': 'Comma-separated CIDRs players check in from, e.g. 10.0.0.0/16. Empty allows any.'},
     {'key': 'CHECKIN_TRUST_PROXY', 'group': 'checkin', 'type': 'bool', 'default': False,
      'label': 'Behind a reverse proxy',
-     'help': 'Use X-Forwarded-For as the client IP (check-in, per-client limits). '
+     'help': 'Use X-Forwarded-For as the client IP for per-client limits and the sign-in lockout. '
+             "Check-in takes the PC's address only from the local agent's front door. "
              'Only turn on if a proxy you control sets it.'},
     {'key': 'CHECKIN_PROXY_HOPS', 'group': 'checkin', 'type': 'int', 'default': 1,
      'label': 'Proxies in front',

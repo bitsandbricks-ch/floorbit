@@ -116,7 +116,7 @@ def test_the_agent_is_the_way_to_the_lan_even_before_one_is_enrolled(client):
     assert sources.monitoring().device_details("sw-a-01")["status"] == "unknown"   # nobody connected
 
 
-def test_with_direct_access_the_plugins_answer(client, lan_here):
+def test_in_the_agent_process_the_plugins_answer(client, lan_here):
     assert sources.monitoring().name != "agent"
 
 

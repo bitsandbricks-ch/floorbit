@@ -11,12 +11,12 @@ puts check-ins in front of the static file.
 
 Things that make an IP wrong, and what this does about them:
 
-* NAT / proxies: if the app sits behind a reverse proxy, set
-  ``CHECKIN_TRUST_PROXY=true`` so ``X-Forwarded-For`` is used (the entry the
-  proxy added, ``CHECKIN_PROXY_HOPS`` from the right). If players are
-  behind NAT the IP is the router's and nothing can fix that, so
-  ``CHECKIN_ALLOWED_NETWORKS`` (CIDRs, e.g. ``10.0.0.0/16``) rejects check-ins
-  from outside the player networks instead of storing a useless IP.
+* NAT / proxies: the PC's address comes only from the local agent's front
+  door (``attendee_ip``), which answers on the event network and passes on the
+  address it saw. A request that didn't come through it still checks in the
+  seat and nick, without an address or port. ``CHECKIN_ALLOWED_NETWORKS``
+  (CIDRs, e.g. ``10.0.0.0/16``) rejects check-ins from outside the player
+  networks, and from outside the front door, instead.
 * DHCP leases: the MAC is treated as the stable identity. A background refresh
   (``CHECKIN_REFRESH_INTERVAL``) asks LibreNMS which IP that MAC has now and
   updates the row; ``ip_changed`` records when that happened.
@@ -132,7 +132,17 @@ def _front_door_ip():
 _proxy_hint = {'logged': False}
 
 
+def attendee_ip():
+    """The address that names the attendee's PC for check-in: only the one the local agent's front
+    door saw. One way for hosted and self-hosted alike: the server never takes a request's own
+    address (or X-Forwarded-For) as the seat PC's, because behind NAT or a proxy that is somebody
+    else's. None when the request didn't come through the front door."""
+    return _front_door_ip()
+
+
 def client_ip():
+    """Who is asking, for per-client limits and the sign-in lockout: the front door's address,
+    else the request's (``CHECKIN_TRUST_PROXY``). Never the seat PC's address: see attendee_ip."""
     door = _front_door_ip()
     if door:
         return door
@@ -195,7 +205,17 @@ def device_class(said, user_agent):
 
 
 def ip_allowed(ip):
+    """May a check-in come from ``ip``? With CHECKIN_ALLOWED_NETWORKS set, only from those networks,
+    so a request that didn't come through the front door (no address) is outside too."""
+    if ip is None:
+        return _in_networks('', 'CHECKIN_ALLOWED_NETWORKS') is None
     return _in_networks(ip, 'CHECKIN_ALLOWED_NETWORKS') is not False
+
+
+def _same_pc(row, ip):
+    """Is ``row`` this PC's check-in? Never without an address: two check-ins from outside the
+    front door are not the same machine."""
+    return ip is not None and (row or {}).get('ip') == ip
 
 
 # ── seat PINs ──────────────────────────────────────────────────────────────────
@@ -517,9 +537,12 @@ class CheckinError(ValueError):
         self.status = status
 
 
-def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None, device=None):
+def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None, device=None, client=None):
     """Check in. With ``pin`` the seat comes from the PIN (the card at the seat) and whatever seat
-    was typed is ignored; without it the seat is as typed (the phone page from the QR code)."""
+    was typed is ignored; without it the seat is as typed (the phone page from the QR code).
+
+    ``ip`` is the PC's address from the front door (attendee_ip), or None from outside it: then the
+    seat and nick are kept, but nothing about a port. ``client`` keys the wrong-PIN lockout."""
     seats = known_seats(load_data)
     username = (username or '').strip()
     pin_ok = False
@@ -527,21 +550,22 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     if not ip_allowed(ip):
         raise CheckinError('Check in from your seat PC on the event network.', 403)
     mine = find_by_ip(ip)
+    guard = ip or f'outside:{client or "?"}'     # whose wrong PINs count together
     if pin:
         with _lock:
-            wait = _wrong_pin_wait(ip, time.time())
+            wait = _wrong_pin_wait(guard, time.time())
             if wait:
                 minutes = (wait + 59) // 60
                 raise CheckinError(f'Too many wrong PINs. Try again in {minutes} min or ask the crew.', 429)
             seat = seat_for_pin(pin)
             if seat is None:
-                _wrong_pin(ip, time.time())
+                _wrong_pin(guard, time.time())
         if seat is None:
             raise CheckinError('That PIN is not on any seat card. Check the card at your seat.', 403)
         held = load_all().get(seat)
         # One use: once a PIN checked a seat in, only that PC may use it again (to change the nick).
         # Anyone else asks the crew, who remove the check-in and so open the PIN again.
-        if held and held.get('pin_ok') and held.get('ip') != ip:
+        if held and held.get('pin_ok') and not _same_pc(held, ip):
             raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
         pin_ok = True
     elif not seat and mine:
@@ -555,7 +579,7 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
             # They typed a seat, not a PIN: say what a seat number looks like.
             raise CheckinError('Enter the seat number from your ticket, for example A-12.')
         held = load_all().get(seat)
-        if held and held.get('pin_ok') and held.get('ip') != ip:
+        if held and held.get('pin_ok') and not _same_pc(held, ip):
             # The seat's card already checked it in: a typed number must not take it over.
             raise CheckinError(f'Seat {seat} was already checked in with its seat card. '
                                'Ask the crew if this is your seat.', 409)
@@ -576,24 +600,24 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
         held = rows.get(seat)
         # Again under the lock: PCs typing the same card at the same moment all passed the check
         # above, and the last one took the seat from the others.
-        if held and held.get('pin_ok') and held.get('ip') != ip:
+        if held and held.get('pin_ok') and not _same_pc(held, ip):
             if pin:
                 raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
             raise CheckinError(f'Seat {seat} was already checked in with its seat card. '
                                'Ask the crew if this is your seat.', 409)
         # One machine holds one seat: drop other seats with this IP or MAC
         moved_from = [s for s, r in rows.items()
-                      if s != seat and (r.get('ip') == ip or (mac and r.get('mac') == mac))]
+                      if s != seat and (_same_pc(r, ip) or (mac and r.get('mac') == mac))]
         moved_rows = [rows.pop(s) for s in moved_from]
         prev = rows.get(seat, {})
         # Somebody else's seat, from another machine: kept (people do swap), shown to the crew.
-        taken_over = (prev.get('username') and prev['username'] != username and prev.get('ip') != ip
+        taken_over = (prev.get('username') and prev['username'] != username and not _same_pc(prev, ip)
                       and not (mac and prev.get('mac') == mac))
         row = {
             'seat': seat,
             'username': username,
             'ip': ip,
-            'mac': mac or (prev.get('mac') if prev.get('ip') == ip else None),
+            'mac': mac or (prev.get('mac') if _same_pc(prev, ip) else None),
             'checked_in_at': prev.get('checked_in_at') if prev.get('username') == username else now,
             'last_seen': now,
             'ip_changed': None,
@@ -601,16 +625,17 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
             'pin_ok': pin_ok,
             'device': device,
             # pending: the background looks for the PC's switch port; verified: found on one access
-            # port; not_wired: a phone or tablet; unverified: not found on one access port in time.
+            # port; not_wired: a phone or tablet, or from outside the front door (no address);
+            # unverified: not found on one access port in time.
             # Only verified with a PIN teaches the seat its port.
-            'wired': ('not_wired' if device == 'mobile' else
-                      prev['wired'] if prev.get('ip') == ip and prev.get('wired') == 'verified' else 'pending'),
-            'port_seen': prev.get('port_seen') if prev.get('ip') == ip else None,
+            'wired': ('not_wired' if device == 'mobile' or ip is None else
+                      prev['wired'] if _same_pc(prev, ip) and prev.get('wired') == 'verified' else 'pending'),
+            'port_seen': prev.get('port_seen') if _same_pc(prev, ip) else None,
             'taken_from': ({'username': prev['username'], 'at': now} if taken_over
                            else prev.get('taken_from') if prev.get('username') == username else None),
         }
         if not row['mac']:   # the same machine moving seats keeps the MAC it was known by
-            row['mac'] = next((r['mac'] for r in moved_rows if r.get('ip') == ip and r.get('mac')), None)
+            row['mac'] = next((r['mac'] for r in moved_rows if _same_pc(r, ip) and r.get('mac')), None)
         if row['checked_in_at'] is None:
             row['checked_in_at'] = now
         rows[seat] = row
@@ -798,6 +823,8 @@ def remove(seat):
 
 def find_by_ip(ip, seat=None):
     """This IP's check-in (on ``seat``, when given)."""
+    if not ip:
+        return None
     for row in load_all().values():
         if row.get('ip') == ip and (seat is None or row['seat'] == seat):
             return row
@@ -810,6 +837,8 @@ def refresh_once():
     with _lock:
         rows = load_all()
         for seat, row in rows.items():
+            if not row.get('ip'):
+                continue      # checked in from outside the front door: no PC to follow
             if not row.get('mac'):
                 mac = lookup_mac(row['ip'])
                 if mac:

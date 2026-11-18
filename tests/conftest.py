@@ -249,6 +249,36 @@ def built(tmp_path, monkeypatch):
 @pytest.fixture
 def lan_here(monkeypatch):
     """Run the LAN plugins in this process, as the local agent does in the hall: for tests of the
-    plugins themselves (LibreNMS, NetBox, SSH, ...). The Floorbit server never does that by default
-    (floorbit/agent_link.py, agent_only)."""
-    monkeypatch.setenv("LAN_ACCESS", "direct")
+    plugins themselves (LibreNMS, NetBox, SSH, ...). This process then counts as the agent (it has
+    an agent key); the Floorbit server never reaches the LAN itself (floorbit/agent_link.py, lan_here)."""
+    monkeypatch.setenv("FLOORBIT_AGENT_KEY", "fba_0123abcd_example-key-for-tests-only")
+
+
+FRONT_DOOR_KEY = "fba_0f0f0f0f_example-front-door-key-for-tests"
+
+
+@pytest.fixture
+def front_door(monkeypatch):
+    """Attendees reach Floorbit through the local agent's front door, as in the hall: a request a
+    test makes with ``environ_base={"REMOTE_ADDR": ip}`` arrives with the agent's key and the
+    address the agent saw, which is the only address check-in takes (integrations/checkin.py,
+    attendee_ip). Requests without it come from outside. The key check itself is tested in
+    tests/test_front_door.py; here the agent's key is simply accepted."""
+    from flask.testing import FlaskClient
+
+    from floorbit import agent_link
+    real_door = agent_link.front_door
+    monkeypatch.setattr(agent_link, "front_door",
+                        lambda key, now=None: "front-door" if key == FRONT_DOOR_KEY else real_door(key, now))
+    real_open = FlaskClient.open
+
+    def through_the_door(self, *args, **kwargs):
+        ip = (kwargs.get("environ_base") or {}).get("REMOTE_ADDR")
+        if ip:
+            headers = dict(kwargs.pop("headers", None) or {})
+            headers.setdefault("Floorbit-Front-Door", FRONT_DOOR_KEY)
+            headers.setdefault("Floorbit-Client-IP", ip)
+            kwargs["headers"] = headers
+        return real_open(self, *args, **kwargs)
+    monkeypatch.setattr(FlaskClient, "open", through_the_door)
+    return FRONT_DOOR_KEY

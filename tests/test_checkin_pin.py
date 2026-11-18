@@ -25,7 +25,7 @@ PORTS = {"192.0.2.21": edge("sw-a-01", "Gi1/0/1"),
 
 
 @pytest.fixture
-def hall(client, tmp_path, monkeypatch):
+def hall(client, tmp_path, monkeypatch, front_door):
     monkeypatch.setenv("CHECKIN_ENABLED", "true")
     monkeypatch.setenv("CHECKIN_FILE", str(tmp_path / "checkins.json"))
     monkeypatch.setattr(checkin, "lookup_mac", lambda ip: None)

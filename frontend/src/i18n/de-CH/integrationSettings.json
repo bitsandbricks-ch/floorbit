@@ -316,7 +316,7 @@
     },
     "integrations_checkin_trust_proxy": {
       "label": "Hinter einem Reverse Proxy",
-      "help": "X-Forwarded-For als IP des Clients nehmen (Check-in, Limits pro Client). Nur einschalten, wenn ein Proxy, den du kontrollierst, sie setzt."
+      "help": "X-Forwarded-For als IP des Clients nehmen, für Limits pro Client und die Anmeldesperre. Der Check-in nimmt die Adresse des PCs nur von der Eingangstür des lokalen Agents. Nur einschalten, wenn ein Proxy, den du kontrollierst, sie setzt."
     },
     "integrations_checkin_proxy_hops": {
       "label": "Proxys davor",
