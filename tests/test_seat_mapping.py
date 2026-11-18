@@ -48,6 +48,14 @@ def test_csv_import_checks_every_row_first():
         seatmap.parse_csv('A-1,192.0.2.1\n')
 
 
+
+def test_a_file_csv_cannot_read_is_a_clear_error_not_a_crash():
+    # A note past csv's 128 KB field limit raised csv.Error: a 500 on the import.
+    with pytest.raises(MappingError, match="Line 2 cannot be read as CSV"):
+        seatmap.parse_csv("seat,note\nA-1," + "x" * 200_000 + "\n")
+    with pytest.raises(MappingError, match="twice: seat"):     # else the second seat column won quietly
+        seatmap.parse_csv("seat,ip,seat\nA-1,192.0.2.1,A-2\n")
+
 # ── API ──────────────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture

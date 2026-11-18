@@ -90,6 +90,16 @@ def test_csv_import_is_all_or_nothing(client, two_halls):
     assert client.post("/api/halls/main/seat-blocks.csv", json={"csv": "a,b\n1,2\n"}).status_code == 400
 
 
+def test_a_seat_block_file_csv_cannot_read_is_refused_not_a_crash(client, two_halls):
+    h2 = two_halls["hall2"]["id"]
+    long_field = "name,x,y,cols,rows,rotation\nE,20,30,6,2," + "9" * 200_000 + "\n"
+    resp = client.post(f"/api/halls/{h2}/seat-blocks.csv", json={"csv": long_field})
+    assert resp.status_code == 400
+    assert resp.get_json()["errors"] == [{"line": 2, "error": "Line 2 cannot be read as CSV."}]
+    twice = client.post(f"/api/halls/{h2}/seat-blocks.csv", json={"csv": "name,x,y,cols,rows,x\nE,20,30,6,2,90\n"})
+    assert twice.status_code == 400 and "twice: x" in twice.get_json()["errors"][0]["error"]
+
+
 def test_backup_carries_every_hall(client, two_halls):
     h2 = two_halls["hall2"]["id"]
     client.put(f"/api/halls/{h2}/background", json={"image": PNG})

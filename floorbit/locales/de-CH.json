@@ -1136,5 +1136,7 @@
  "Plan mark \"{}\": {}": "Markierung «{}»: {}",
  "The database is busy with another program right now, so this was not saved. Try again in a moment.": "Die Datenbank ist gerade mit einem anderen Programm beschäftigt, darum wurde das nicht gespeichert. Versuche es gleich nochmals.",
  "Too many open pages are getting live updates right now. This one will update again in a moment.": "Gerade bekommen zu viele offene Seiten Live-Updates. Diese Seite aktualisiert sich gleich wieder.",
+ "Line {} cannot be read as CSV.": "Zeile {} lässt sich nicht als CSV lesen.",
+ "Column(s) in the file twice: {}": "Spalte(n) zweimal in der Datei: {}",
  "cut short: {}": "abgeschnitten: {}"
 }
