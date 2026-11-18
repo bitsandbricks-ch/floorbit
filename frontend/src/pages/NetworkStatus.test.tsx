@@ -37,6 +37,7 @@ describe('NetworkStatus', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Post' }))
     await waitFor(() => expect(sent).toContainEqual({ method: 'POST', path: '/api/status-page/updates', body: { text: 'Fixed.', area: '' } }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove update' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
     await waitFor(() => expect(sent.some((s) => s.method === 'DELETE' && s.path === '/api/status-page/updates/u1')).toBe(true))
   })
 
@@ -71,6 +72,7 @@ describe('NetworkStatus', () => {
       start: new Date('2030-01-02T10:00').getTime() / 1000, end: new Date('2030-01-02T10:30').getTime() / 1000,
       text: 'Core swap', area: '' } }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Cancel this maintenance' })[1])
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
     await waitFor(() => expect(sent.some((s) => s.method === 'DELETE' && s.path === '/api/status-page/maintenance/m2')).toBe(true))
   })
 

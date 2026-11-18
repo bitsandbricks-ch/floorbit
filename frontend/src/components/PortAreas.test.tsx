@@ -39,6 +39,7 @@ describe('PortAreas', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<PortAreas canEdit switches={[]} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Remove the area A-1..A-10' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE')).toBe(true))
   })
 })

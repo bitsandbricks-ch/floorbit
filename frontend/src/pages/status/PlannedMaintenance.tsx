@@ -1,8 +1,9 @@
-import { ActionIcon, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconTrash } from '@tabler/icons-react'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from '@/components/ConfirmButton'
 import { DateTimeInput } from '@/components/DateTimeInput'
 import { del, post } from '@/api/client'
 import type { StatusPlanned } from '@/api/types'
@@ -59,9 +60,9 @@ export function PlannedMaintenance({ planned, running, canSet, onChange }: {
                 <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{m.text}</Text>
               </div>
               {canSet && (
-                <ActionIcon variant="subtle" color="down" aria-label={t('status.plannedCancel')} onClick={() => cancel.mutate(m.id)}>
+                <ConfirmIcon label={t('status.plannedCancel')} onConfirm={() => cancel.mutate(m.id)}>
                   <IconTrash size={16} />
-                </ActionIcon>
+                </ConfirmIcon>
               )}
             </Group>
           ))}

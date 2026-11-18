@@ -1,4 +1,5 @@
 ### Changed
 
-- Electrics: removing a board or a circuit asks in Floorbit's own dialog, in your language, instead
-  of the browser's pop-up.
+- Removing something asks first, in Floorbit's own dialog: boards and circuits on Electrics (which
+  used the browser's pop-up), schedule items, check-ins, command templates, status page updates,
+  planned maintenance and port areas (which were removed on one tap).

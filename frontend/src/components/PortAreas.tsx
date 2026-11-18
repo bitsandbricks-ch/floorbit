@@ -1,9 +1,10 @@
-import { ActionIcon, Alert, Autocomplete, Button, Group, Modal, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput, Title, Tooltip } from '@mantine/core'
+import { Alert, Autocomplete, Button, Group, Modal, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from './ConfirmButton'
 import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PortArea } from '@/api/types'
@@ -43,10 +44,8 @@ export function PortAreas({ canEdit, switches }: { canEdit: boolean; switches: s
                         <Group key={a.id} gap={2} wrap="nowrap" style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 8, padding: '2px 4px 2px 8px' }}>
                           <Text size="sm">{t('cables.areaRange', { first: a.first, last: a.last, label: a.label })}</Text>
                           {canEdit && (
-                            <Tooltip label={t('cables.areaRemove')}>
-                              <ActionIcon size="sm" variant="subtle" color="down" aria-label={t('cables.areaRemoveOne', { label: a.label })}
-                                onClick={() => remove.mutate(a.id)}><IconTrash size={14} /></ActionIcon>
-                            </Tooltip>
+                            <ConfirmIcon size="sm" tooltip={t('cables.areaRemove')} label={t('cables.areaRemoveOne', { label: a.label })}
+                              onConfirm={() => remove.mutate(a.id)}><IconTrash size={14} /></ConfirmIcon>
                           )}
                         </Group>
                       ))}

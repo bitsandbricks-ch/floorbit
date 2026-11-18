@@ -3,6 +3,7 @@ import { IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from '@/components/ConfirmButton'
 import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -147,10 +148,8 @@ export default function Checkins() {
                                         onClick={() => act.mutate({ kind: 'retry', seat: r.seat })}><IconRefresh size={16} /></ActionIcon>
                                     </Tooltip>
                                   )}
-                                  <Tooltip label={t('crewCheckin.remove')}>
-                                    <ActionIcon variant="subtle" color="down" aria-label={t('crewCheckin.removeFor', { seat: r.seat })}
-                                      onClick={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ActionIcon>
-                                  </Tooltip>
+                                  <ConfirmIcon tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
+                                    onConfirm={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ConfirmIcon>
                                 </Group>
                               </Table.Td>
                             )}

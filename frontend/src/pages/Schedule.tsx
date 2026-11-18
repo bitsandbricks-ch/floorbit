@@ -6,6 +6,7 @@ import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from '@/components/ConfirmButton'
 import { DateTimeInput } from '@/components/DateTimeInput'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -166,7 +167,7 @@ export default function Schedule() {
                           <Table.Td w={80}>
                             <Group gap={4} wrap="nowrap">
                               <ActionIcon variant="subtle" aria-label={t('schedule.editNamed', { title: i.title })} onClick={() => setEditing(i.id)}><IconPencil size={16} /></ActionIcon>
-                              <ActionIcon variant="subtle" color="down" aria-label={t('schedule.deleteNamed', { title: i.title })} onClick={() => remove.mutate(i.id)}><IconTrash size={16} /></ActionIcon>
+                              <ConfirmIcon label={t('schedule.deleteNamed', { title: i.title })} onConfirm={() => remove.mutate(i.id)}><IconTrash size={16} /></ConfirmIcon>
                             </Group>
                           </Table.Td>
                         )}

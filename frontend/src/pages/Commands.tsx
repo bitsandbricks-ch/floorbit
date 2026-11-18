@@ -6,6 +6,7 @@ import { IconFileDiff, IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from '@/components/ConfirmButton'
 import { EntitySelect } from '@/components/EntitySelect'
 import { useSearchParams } from 'react-router-dom'
 import { ApiError, del, get, post, put } from '@/api/client'
@@ -162,12 +163,10 @@ export default function Commands() {
                     </Badge>
                     <Text size="xs" c="dimmed" ff="monospace">{x.commands.join(' ; ')}</Text>
                   </Group>
-                  <Tooltip label={t('commands.delete')}>
-                    <ActionIcon variant="subtle" color="down" aria-label={t('commands.deleteNamed', { name: x.label })}
-                      loading={remove.isPending && remove.variables === x.id} onClick={() => remove.mutate(x.id)}>
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  </Tooltip>
+                  <ConfirmIcon tooltip={t('commands.delete')} label={t('commands.deleteNamed', { name: x.label })}
+                    loading={remove.isPending && remove.variables === x.id} onConfirm={() => remove.mutate(x.id)}>
+                    <IconTrash size={16} />
+                  </ConfirmIcon>
                 </Group>
               ))}
             </Stack>
