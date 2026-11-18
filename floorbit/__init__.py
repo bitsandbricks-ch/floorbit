@@ -68,10 +68,11 @@ def create_app(start_background=True):
         print(f"[agent] Could not enrol the local agent: {exc}", flush=True)
 
     # Without the database: a clear 503 instead of a 500, in the reader's language (docs/database.md).
-    from .blueprints.health import database_unavailable, disk_unwritable
+    from .blueprints.health import database_unavailable, disk_unwritable, too_large
     app.register_error_handler(database.DatabaseUnavailable, database_unavailable)
     # A full or read-only disk: a clear 507 instead of a 500 (docs/install.md).
     app.register_error_handler(OSError, disk_unwritable)
+    app.register_error_handler(413, too_large)
 
     # Sign-in first, so its check runs before the other before_request hooks and a
     # refused request never touches Redis.

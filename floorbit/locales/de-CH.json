@@ -191,6 +191,7 @@
  "Cannot open the database {}: {}": "Die Datenbank {} lässt sich nicht öffnen: {}",
  "{}: all {} connections busy for {} s": "{}: alle {} Verbindungen sind seit {} s besetzt",
  "{}: other writers kept saving it; not saved": "{}: andere haben es laufend gespeichert; nicht gespeichert",
+ "That is too much data for one request.": "Das sind zu viele Daten für eine Anfrage.",
  "Cannot read the time \"{}\". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM.": "Die Zeit «{}» ist nicht lesbar. Verwende JJJJ-MM-TT oder JJJJ-MM-TTTHH:MM.",
  "Category \"{}\" is not one of {}.": "Kategorie «{}» ist keine von {}.",
  "Check in from your seat PC on the event network.": "Checke von deinem PC am Platz im Event-Netz ein.",

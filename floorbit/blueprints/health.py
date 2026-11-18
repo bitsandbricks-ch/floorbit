@@ -112,3 +112,13 @@ def health():
 def check_now():
     _wall().poll_once()
     return jsonify(_with_mutes(_wall().snapshot()))
+
+
+TOO_LARGE = 'That is too much data for one request.'
+
+
+def too_large(exc):
+    """413 as JSON on the API, so the pages can show it; elsewhere the plain error page."""
+    if not request.path.startswith('/api/'):
+        return exc
+    return jsonify({'error': TOO_LARGE, 'code': 'too_large'}), 413

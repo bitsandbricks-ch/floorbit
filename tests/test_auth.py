@@ -443,3 +443,18 @@ def test_the_check_in_page_and_the_landing_link_follow_check_in(anon_client, mon
     page = anon_client.get("/checkin")
     assert page.status_code == 200 and b"Seat check-in" in page.data
     assert login_page(anon_client)["checkin_url"] == "/checkin"
+
+
+def test_a_huge_body_without_signing_in_is_refused_before_it_is_parsed(anon_client, client):
+    # A 30 MB JSON array took a worker from 90 to 600 MB with four requests at once.
+    big = {"username": "pixel", "seat": "A-1", "pad": [0] * 600_000}      # about 1.8 MB
+    r = anon_client.post("/api/checkin", json=big, headers={"Origin": "http://localhost"})
+    assert r.status_code == 413 and r.get_json()["code"] == "too_large"
+    r = anon_client.post("/api/checkin", json=big, headers={"Origin": "http://localhost", "Accept-Language": "de"})
+    assert r.get_json()["error"] == "Das sind zu viele Daten für eine Anfrage."
+    small = anon_client.post("/api/checkin", json={"username": "pixel", "seat": "A-1"},
+                             headers={"Origin": "http://localhost"})
+    assert small.status_code != 413
+    # The crew, signed in, and the agents (their key is checked first) keep the usual limit.
+    assert client.post("/api/checkin", json=big).status_code != 413
+    assert anon_client.post("/api/agent/v1/syslog", json=big).status_code == 401

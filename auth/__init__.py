@@ -46,6 +46,9 @@ PUBLIC_READ_PATHS = ('/api/auth/me', '/api/plugins/menu',   # answer for "nobody
                      '/api/seat-blocks', '/api/seats/occupancy', '/api/stats/seats', '/api/status/snapshot',
                      '/api/switches', '/api/events')
 PUBLIC_READ_EXACT = ('/api/seats',)    # not /api/seats/info and the rest below it
+# A body sent without signing in (check-in, help desk, setup): a 30 MB JSON array parses into several
+# hundred MB, so a handful at once could take the pod down. Agents send theirs under /api/agent/.
+PUBLIC_JSON_MAX = 1024 * 1024
 MAX_FAILURES = 5                 # per address and username ...
 FAILURE_WINDOW = 300             # ... within this many seconds
 MAX_FAILURE_KEYS = 10000         # address/username pairs remembered before stale ones are dropped
@@ -267,6 +270,8 @@ class Auth:
         if request.method not in SAFE_METHODS and not _same_origin():
             abort(403, description='Cross-site request refused.')
         if self.is_public():
+            if request.method not in SAFE_METHODS and request.is_json and not current_user():
+                request.max_content_length = PUBLIC_JSON_MAX
             return None
         user = current_user()
         if not user:
