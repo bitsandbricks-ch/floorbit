@@ -64,6 +64,12 @@ def test_seat_block_lifecycle(client):
 
     assert client.delete(f"/api/seat-blocks/{block['id']}").status_code == 200
     assert client.get("/api/seat-blocks").get_json() == []
+    assert client.delete(f"/api/seat-blocks/{block['id']}").status_code == 404
+
+
+def test_deleting_a_seat_block_on_a_fresh_install_is_a_404(client):
+    # A fresh data file has no seat block list at all: the delete was a KeyError, a 500.
+    assert client.delete("/api/seat-blocks/nope").status_code == 404
 
 
 def test_settings_round_trip(client):
