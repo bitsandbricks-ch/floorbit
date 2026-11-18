@@ -77,19 +77,9 @@ def registry(app_module):
     return app_module.app.extensions["floorbit_plugins"]
 
 
-class InlineThread:
-    """Runs hooks in the test's own thread, so no hook outlives its test."""
-
-    def __init__(self, target, args, **kwargs):
-        self.target, self.args = target, args
-
-    def start(self):
-        self.target(*self.args)
-
-
 @pytest.fixture
 def sample(tmp_path, registry, monkeypatch):
-    monkeypatch.setattr("floorbit.plugins.threading.Thread", InlineThread)
+    monkeypatch.setattr("floorbit.plugins.HOOKS_INLINE", True)   # no hook outlives its test
     spec = _load(write_plugin(tmp_path, "sample", GOOD_YAML, GOOD_PY), "development", registry.version)
     assert spec.error == ""
     registry.specs[spec.id] = spec
@@ -293,16 +283,9 @@ def test_widget_shapes():
 def test_hooks_run_on_audited_changes(client, registry, sample, monkeypatch):
     turn_on(client)
     ran = []
-
-    class Inline:   # run the hook in this thread, so the test doesn't race it
-        def __init__(self, target, args, **kwargs):
-            self.target, self.args = target, args
-
-        def start(self):
-            ran.append(self.args[2])
-            self.target(*self.args)
-
-    monkeypatch.setattr("floorbit.plugins.threading.Thread", Inline)
+    run_hook = registry._run_hook
+    monkeypatch.setattr(registry, "_run_hook", lambda spec, action, event, data: (ran.append(event),
+                                                                                   run_hook(spec, action, event, data)))
     client.post("/api/switches", json={"name": "sw-demo-01", "x": 1, "y": 1})
     assert ran == ["change"]
     last = registry.state_of("sample")["last_event"]

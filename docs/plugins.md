@@ -3,7 +3,8 @@
 Plugins add things to Floorbit without changing its core: buttons that run code (actions), tiles on
 the dashboard (widgets), read-only JSON (endpoints) and code that runs when something changes
 (hooks). The design is borrowed from labdex (manifest, `Plugin` class, widgets as data) and Hubra
-(`uses:`: a plugin can touch only the areas it lists).
+(`uses:`: a plugin can touch only the areas it lists). [What a plugin can ship](plugin-spec.md) is
+the contract: every part a plugin may bring, where it runs, and the limits.
 
 ## Turning plugins on
 
@@ -260,7 +261,7 @@ class Plugin(Base):
     def endpoint_data(self, args):
         return {'count': self.ctx.state.get('count', 0)}
 
-    def test(self):                                     # optional: the Test button
+    def test(self):                                     # optional: the Test button (on the agent for LAN plugins)
         return 'Connected'
 ```
 
