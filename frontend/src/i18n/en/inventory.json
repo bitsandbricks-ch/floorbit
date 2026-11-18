@@ -374,5 +374,6 @@
     "decommissioning": "Decommissioning",
     "inventory": "In storage",
     "none": "No status"
-  }
+  },
+  "syncEvery": "Syncs on its own every {{minutes}} minutes."
 }

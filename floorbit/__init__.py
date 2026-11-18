@@ -243,6 +243,9 @@ def create_app(start_background=True):
     init_webhooks(app, start_background=start_background)
     from .config_backup import init_nightly
     init_nightly(app, start_background=start_background)
+    # Inventory syncs on a schedule, off until INVENTORY_SYNC_MINUTES is set (docs/inventory.md).
+    from . import inventory_schedule
+    inventory_schedule.init_app(app, start_background=start_background)
     # Scheduled backups to an S3 bucket, off until one is set (docs/backup.md).
     from . import s3_backup
     s3_backup.init_app(app, start_background=start_background)

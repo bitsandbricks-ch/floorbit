@@ -178,7 +178,14 @@ export default function Inventory() {
       {data && (
         <Paper withBorder radius="lg" p="sm" mb="md">
           {data.sources.length ? (
-            data.sources.map((s) => <SourceLine key={s.id} source={s} />)
+            <>
+              {data.sources.map((s) => <SourceLine key={s.id} source={s} />)}
+              {!!data.every && (
+                <Text size="sm" c="dimmed">
+                  {t('inventory.syncEvery', { minutes: data.every })}
+                </Text>
+              )}
+            </>
           ) : (
             <Text size="sm" c="dimmed">
               {t('inventory.noSources')} <Anchor href="/settings/plugins">{t('common.plugins')}</Anchor>

@@ -358,6 +358,7 @@ export interface InventorySource {
 export interface InventoryList {
   devices: Device[]
   sources: InventorySource[]
+  every?: number
   roles: string[]
   fields: InventoryField[]
 }

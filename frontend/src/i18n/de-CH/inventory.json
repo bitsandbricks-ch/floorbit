@@ -374,5 +374,6 @@
     "decommissioning": "Wird ausgemustert",
     "inventory": "Im Lager",
     "none": "Kein Status"
-  }
+  },
+  "syncEvery": "Synchronisiert von selbst alle {{minutes}} Minuten."
 }
