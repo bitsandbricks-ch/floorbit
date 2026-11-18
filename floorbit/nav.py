@@ -36,7 +36,7 @@ def boot(ctx):
         'brand': {'logo': theme.get('logo_url') or None, 'name': theme.get('name') or None},
         'user': account,
         'signOut': bool(ctx.get('auth_enabled')),
-        # With more than one tenant the club switcher asks for the person's other ones (/api/tenant/mine).
+        # With more than one tenant the tenant switcher asks for the person's other ones (/api/tenant/mine).
         'tenants': hosting.several(),
         # Saved with the account; None without sign-in, where the browser keeps them instead.
         'prefs': _prefs(user),

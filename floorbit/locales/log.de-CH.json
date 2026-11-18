@@ -321,7 +321,7 @@
   "Copied an event's plan": "Plan eines Events kopiert",
   "Walk-through: seat {} found on its port": "Rundgang: Port von Platz {} gefunden",
   "Cleared {} seat ports one day after the event ended": "{} Platz-Ports einen Tag nach dem Anlass gelöscht",
-  "Switched to another club": "Zu einem anderen Club gewechselt",
-  "Came in from another club": "Aus einem anderen Club hereingekommen",
-  "Switch from another club refused": "Wechsel aus einem anderen Club abgelehnt"
+  "Switched to another tenant": "Zu einem anderen Mandanten gewechselt",
+  "Came in from another tenant": "Aus einem anderen Mandanten hereingekommen",
+  "Switch from another tenant refused": "Wechsel aus einem anderen Mandanten abgelehnt"
 }

@@ -189,7 +189,7 @@ def register_cli(app):
 
     @group.command('add')
     @click.argument('tenant_id')
-    @click.option('--name', default='', help='The club or organisation, as people know it.')
+    @click.option('--name', default='', help='The tenant\'s name, as people know it.')
     @click.option('--url', default='', help='Where its Floorbit answers, like https://club.example.com.')
     @click.option('--admin', 'admin', default=None, help='Also add its first admin account.')
     @click.option('--password', default=None, help='The admin\'s password; prompted for when left out.')

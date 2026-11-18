@@ -1,7 +1,7 @@
 {
   "title": "Tenants",
   "settings": "Settings",
-  "intro": "Each club on this Floorbit platform is a tenant, with its own accounts, floor plan, look, plugins and local agents. Nobody in one tenant sees another's data. This install's own tenant is \"default\".",
+  "intro": "Each tenant on this Floorbit platform has its own accounts, floor plan, look, plugins and local agents. Nobody in one tenant sees another's data. This install's own tenant is \"default\".",
   "list_one": "1 tenant",
   "list_other": "{{count}} tenants",
   "here": "This one",
@@ -15,7 +15,7 @@
   "new": "New tenant",
   "id": "Short name",
   "idHelp": "Lower-case letters, digits and -, at most 40. It names the tenant's folder and can't change.",
-  "name": "Club name",
+  "name": "Name",
   "nameHelp": "As people know it.",
   "url": "Address",
   "urlHelp": "Where its Floorbit answers. Your ingress sends this host name to its processes.",

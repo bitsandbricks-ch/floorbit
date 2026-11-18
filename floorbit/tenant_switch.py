@@ -87,7 +87,7 @@ def issue(user, record, tenant_id, now=None):
     now = time.time() if now is None else now
     target = next((t for t in reachable(user, record) if t['id'] == tenant_id), None)
     if not target:
-        raise SwitchError('You have no way into that club.')
+        raise SwitchError('You have no way into that tenant.')
     ticket = secrets.token_urlsafe(32)
     if target['how'] == 'account':
         linked = next(t for t in hosting.memberships(record) if t['id'] == tenant_id)

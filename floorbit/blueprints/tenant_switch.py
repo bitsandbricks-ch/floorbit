@@ -1,4 +1,4 @@
-"""The club switcher: moving to another tenant of the platform (floorbit/tenant_switch.py).
+"""The tenant switcher: moving to another tenant of the platform (floorbit/tenant_switch.py).
 
 - ``GET /api/tenant/mine``: ``{"here", "tenants": [{id, name, url, how}]}``, the other tenants the
   signed-in person can switch to. Empty when self-hosted, or while the platform has one tenant.
@@ -12,7 +12,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 
 from auth import current_user, public_endpoint
 
-from .. import audit, i18n, store, tenant_switch
+from .. import audit, hosting, i18n, store, tenant_switch
 
 bp = Blueprint('tenant_switch', __name__)
 
@@ -31,7 +31,9 @@ def _record(user):
 @bp.route('/api/tenant/mine', methods=['GET'])
 def mine():
     user = current_user()
-    key = (store.current_tenant(), (user or {}).get('username'), (user or {}).get('role'))
+    # A tenant added or suspended here shows at once, not a minute later.
+    key = (store.current_tenant(), (user or {}).get('username'), (user or {}).get('role'),
+           store.generation(hosting.path()))
     hit = _known.get(key)
     now = time.monotonic()
     if hit and now - hit[0] < REMEMBER:
@@ -53,7 +55,7 @@ def switch():
     except tenant_switch.SwitchError as exc:
         lang = i18n.language(request.headers.get('Accept-Language'))
         return jsonify({'error': i18n.translate(str(exc), lang)}), 403
-    audit.record('sign-in', 'Switched to another club', user=g.get('audit_user'), target=body.get('tenant'))
+    audit.record('sign-in', 'Switched to another tenant', user=g.get('audit_user'), target=body.get('tenant'))
     return jsonify({'url': url})
 
 
@@ -80,7 +82,7 @@ def arrive():
             auth.sign_in_visitor(visitor, time.time() + tenant_switch.VISIT_HOURS * 3600)
             who = visitor['username']
     if not who:
-        audit.record('sign-in', 'Switch from another club refused', ok=False)
+        audit.record('sign-in', 'Switch from another tenant refused', ok=False)
         return redirect('/login')
-    audit.record('sign-in', 'Came in from another club', user=who, target=doc.get('from'))
+    audit.record('sign-in', 'Came in from another tenant', user=who, target=doc.get('from'))
     return redirect('/')

@@ -1,4 +1,4 @@
-"""The club switcher: hand-offs between tenants (floorbit/tenant_switch.py, blueprints/tenant_switch.py)."""
+"""The tenant switcher: hand-offs between tenants (floorbit/tenant_switch.py, blueprints/tenant_switch.py)."""
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -38,7 +38,7 @@ def _account(tenant, username, role="viewer", **identities):
         UserStore(store.tenant_file).add(username, "long-enough-pass-1", role=role, identities=identities)
 
 
-def _clubs():
+def _tenants():
     hosting.add("club-b", "Club B", "https://club-b.example.com")
     hosting.add("club-c", "Club C", "https://club-c.example.com")
     hosting.add("club-d", "Club D")                          # no address: nowhere to send anyone
@@ -54,14 +54,14 @@ def test_one_tenant_shows_no_switcher(client):
 
 
 def test_platform_admins_reach_every_active_tenant_with_an_address(client, users):
-    _clubs()
+    _tenants()
     got = client.get("/api/tenant/mine").get_json()
     assert got["tenants"] == [
         {"id": "club-b", "name": "Club B", "url": "https://club-b.example.com", "how": "platform"}]
 
 
 def test_a_platform_admin_visits_a_tenant_without_an_account_there(client, anon_client, users, monkeypatch):
-    _clubs()
+    _tenants()
     resp = client.post("/api/tenant/switch", json={"tenant": "club-b"})
     assert resp.status_code == 200, resp.get_json()
     url = resp.get_json()["url"]
@@ -76,7 +76,7 @@ def test_a_platform_admin_visits_a_tenant_without_an_account_there(client, anon_
     page = anon_client.get("/problems").get_data(as_text=True)
     assert '"platform": true' in page or '"platform":true' in page             # the sidebar says so
     log = anon_client.get("/api/settings/audit").get_json()
-    assert any(e.get("action") == "Came in from another club" and e.get("user") == f"platform:{TEST_USER}"
+    assert any(e.get("action") == "Came in from another tenant" and e.get("user") == f"platform:{TEST_USER}"
                for e in log.get("entries", log if isinstance(log, list) else []))
     # A visitor can't hop on to a third tenant from there.
     assert anon_client.get("/api/tenant/mine").get_json()["tenants"] == []
@@ -88,7 +88,7 @@ def test_a_platform_admin_visits_a_tenant_without_an_account_there(client, anon_
 
 
 def test_a_visit_ends_when_the_platform_admin_loses_the_right(client, anon_client, users, monkeypatch):
-    _clubs()
+    _tenants()
     url = client.post("/api/tenant/switch", json={"tenant": "club-b"}).get_json()["url"]
     _as(monkeypatch, "club-b")
     anon_client.get(f"/switch/arrive?ticket={_ticket(url)}")
@@ -102,7 +102,7 @@ def test_a_visit_ends_when_the_platform_admin_loses_the_right(client, anon_clien
 
 
 def test_old_and_made_up_tickets_get_nobody_in(client, anon_client, users, monkeypatch):
-    _clubs()
+    _tenants()
     url = client.post("/api/tenant/switch", json={"tenant": "club-b"}).get_json()["url"]
     _as(monkeypatch, "club-b")
     import time
@@ -140,9 +140,16 @@ def test_a_linked_account_switches_into_its_account_there(app_module, users, mon
 
 
 def test_api_tokens_never_switch(client, app_module, users):
-    _clubs()
+    _tenants()
     token = client.post("/api/settings/api-tokens", json={"name": "Script", "role": "admin"}).get_json()["secret"]
     script = app_module.app.test_client()
     headers = {"Authorization": f"Bearer {token}"}
     assert script.post("/api/tenant/switch", json={"tenant": "club-b"}, headers=headers).status_code == 403
     assert script.get("/api/tenant/mine", headers=headers).get_json()["tenants"] == []
+
+
+def test_a_suspension_leaves_the_switcher_at_once(client, users):
+    hosting.add("tenant-x", "Tenant X", "https://tenant-x.example.com")
+    assert [t["id"] for t in client.get("/api/tenant/mine").get_json()["tenants"]] == ["tenant-x"]
+    assert client.patch("/api/platform/tenants/tenant-x", json={"status": "suspended"}).status_code == 200
+    assert client.get("/api/tenant/mine").get_json()["tenants"] == []

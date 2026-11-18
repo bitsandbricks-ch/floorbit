@@ -26,8 +26,8 @@
   "favRemove": "Remove {{page}} from favourites",
   "accordion": "Fold other sections when one opens",
   "skip": "Skip to content",
-  "switchClub": "Switch club",
-  "thisClub": "This club",
+  "switchTenant": "Switch tenant",
+  "thisTenant": "This tenant",
   "asPlatform": "as platform admin",
   "switching": "Switching…",
   "platformVisit": "Visiting as platform admin"

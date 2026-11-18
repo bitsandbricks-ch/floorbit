@@ -314,7 +314,7 @@ function Panel(props: PanelProps) {
         </div>
       )}
 
-      <Clubs {...props} />
+      <Tenants {...props} />
       <div className="fb-nav-foot">
         <Account {...props} />
         {props.onToggleRail && (
@@ -366,8 +366,8 @@ function useCloseOutside(open: boolean, setOpen: (o: boolean) => void, box: RefO
   }, [open, setOpen, box])
 }
 
-/** The club switcher: only there when this person can reach another tenant of the platform. */
-function Clubs(props: PanelProps) {
+/** The tenant switcher: only there when this person can reach another tenant of the platform. */
+function Tenants(props: PanelProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [list, setList] = useState<OtherTenant[] | null>(null)
@@ -385,7 +385,7 @@ function Clubs(props: PanelProps) {
   }, [ask])
 
   if (!list?.length) return null
-  const here = props.boot.brand.name || t('nav.thisClub')
+  const here = props.boot.brand.name || t('nav.thisTenant')
   const go = (o: OtherTenant) => {
     setGoing(o.id)
     setError('')
@@ -394,23 +394,23 @@ function Clubs(props: PanelProps) {
       .catch((e: unknown) => { setGoing(null); setError(e instanceof Error ? e.message : String(e)) })
   }
   return (
-    <div className="fb-nav-account fb-nav-clubs" ref={box}>
+    <div className="fb-nav-account fb-nav-tenants" ref={box}>
       <button
-        type="button" className="fb-nav-row fb-nav-club" aria-expanded={open} aria-haspopup="menu"
-        onClick={() => setOpen((o) => !o)} title={props.rail ? t('nav.switchClub') : undefined}
-        aria-label={props.rail ? t('nav.switchClub') : undefined}
+        type="button" className="fb-nav-row fb-nav-tenant" aria-expanded={open} aria-haspopup="menu"
+        onClick={() => setOpen((o) => !o)} title={props.rail ? t('nav.switchTenant') : undefined}
+        aria-label={props.rail ? t('nav.switchTenant') : undefined}
       >
         <IconBuildingCommunity size={18} className="fb-nav-icon" aria-hidden="true" />
         <span className="fb-nav-text">{here}</span>
-        <IconSelector size={14} className="fb-nav-club-mark" aria-hidden="true" />
+        <IconSelector size={14} className="fb-nav-tenant-mark" aria-hidden="true" />
       </button>
       {open && (
         <div className="fb-nav-menu" role="menu" data-sheet={props.sheet || undefined}>
-          <div className="fb-nav-menu-label">{t('nav.switchClub')}</div>
+          <div className="fb-nav-menu-label">{t('nav.switchTenant')}</div>
           {list.map((o) => (
             <button key={o.id} type="button" role="menuitem" className="fb-nav-menu-item" disabled={!!going} onClick={() => go(o)}>
-              <span className="fb-nav-club-name">{o.name || o.id}</span>
-              <span className="fb-nav-club-how">{going === o.id ? t('nav.switching') : o.how === 'platform' ? t('nav.asPlatform') : ''}</span>
+              <span className="fb-nav-tenant-name">{o.name || o.id}</span>
+              <span className="fb-nav-tenant-how">{going === o.id ? t('nav.switching') : o.how === 'platform' ? t('nav.asPlatform') : ''}</span>
             </button>
           ))}
           {error && <div className="fb-nav-menu-label" role="alert">{error}</div>}

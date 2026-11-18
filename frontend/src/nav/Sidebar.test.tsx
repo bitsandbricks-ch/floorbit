@@ -139,7 +139,7 @@ describe('Sidebar', () => {
     expect(screen.getByRole('menuitem', { name: 'Sign out' }).closest('form')).toHaveAttribute('action', '/logout')
   })
 
-  it('switches to another club of someone on a platform with several tenants', async () => {
+  it('switches to another tenant of someone on a platform with several tenants', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({
         here: 'club-a', tenants: [
@@ -152,7 +152,7 @@ describe('Sidebar', () => {
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
     render(<Sidebar boot={{ ...boot, tenants: true }} path="/problems" renderLink={link} onGoTo={() => {}} />)
-    fireEvent.click(await within(main()).findByRole('button', { name: /This club/ }))
+    fireEvent.click(await within(main()).findByRole('button', { name: /This tenant/ }))
     expect(screen.getByRole('menuitem', { name: /Club C.*as platform admin/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('menuitem', { name: /Club B/ }))
     await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('https://b.example.com/switch/arrive?ticket=abc'))
@@ -160,12 +160,12 @@ describe('Sidebar', () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).toEqual({ tenant: 'club-b' })
   })
 
-  it('shows no switcher when there is no other club to go to', async () => {
+  it('shows no switcher when there is no other tenant to go to', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ here: 'club-a', tenants: [] })))
     vi.stubGlobal('fetch', fetchMock)
     render(<Sidebar boot={{ ...boot, tenants: true }} path="/problems" renderLink={link} onGoTo={() => {}} />)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(within(main()).queryByRole('button', { name: /This club/ })).not.toBeInTheDocument()
+    expect(within(main()).queryByRole('button', { name: /This tenant/ })).not.toBeInTheDocument()
   })
 
   it('tells a platform admin visiting that they are one, and offers no switching on', () => {
@@ -178,11 +178,11 @@ describe('Sidebar', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('asks for other clubs only on a platform with several tenants', () => {
+  it('asks for other tenants only on a platform with several tenants', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     sidebar()
-    expect(within(main()).queryByRole('button', { name: /This club/ })).not.toBeInTheDocument()
+    expect(within(main()).queryByRole('button', { name: /This tenant/ })).not.toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
