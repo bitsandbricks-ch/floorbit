@@ -6,6 +6,9 @@ from conftest import TEST_PASSWORD
 from floorbit import seatmap
 from floorbit.seatmap import MappingError
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 def test_values_are_checked_and_normalised():
     assert seatmap.clean_mac('AA-BB-CC-DD-EE-FF') == 'aa:bb:cc:dd:ee:ff'

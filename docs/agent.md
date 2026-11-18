@@ -1,8 +1,16 @@
-# Local agent (hosted Floorbit)
+# Local agent
 
-Floorbit normally runs on the event network, next to LibreNMS and NetBox. A **hosted** Floorbit
-runs somewhere else, such as a server on the internet, and can't reach them: they sit behind the
-event's firewall. The **local agent** closes that gap ([issue #2](https://github.com/bitsandbricks-ch/floorbit/issues/2)).
+**The local agent is the only way Floorbit reaches the event network**, whether Floorbit is hosted on
+the internet or runs on a server in the hall. One path for both: what works self-hosted works hosted,
+and both are tested the same way. A self-hosted install runs the two side by side (the compose file
+starts both, [install.md](install.md)).
+
+The Floorbit server itself never asks LibreNMS, NetBox, a switch, a resolver or a smart PDU, and never
+listens for syslog: those plugins run on the agent with the settings made here, and the server
+refuses to call their network methods itself. Without a connected agent, pages show their last
+known state, greyed out with "stale since", and say that no agent is connected; nothing breaks.
+`LAN_ACCESS=direct` (environment only) lets the server call the plugins itself again: for
+development and tests, not for an event. The demo data (`FLOORBIT_DEMO`) needs no agent.
 
 The agent runs on the event network and opens the connection itself, out to the hosted Floorbit
 over HTTPS. Nothing on the event network has to be reachable from outside, and no port has to be
@@ -53,6 +61,18 @@ A refused request fails like an unreachable server, with "Refused: ..." in the e
 proxy (`HTTPS_PROXY`) the server connects to the proxy, so only the proxy's address is checked: let the
 proxy refuse the hosting network too. The server's own probes, game server queries and RCON follow
 `PROBE_NETS` ([services](services.md#what-the-server-itself-may-reach)).
+
+## The agent next to a self-hosted Floorbit
+
+`docker-compose.yml` and the Kubernetes manifest start the agent next to Floorbit, and it enrols
+itself: with `FLOORBIT_LOCAL_AGENT_KEY_FILE` set, Floorbit writes a key into that file at start
+(mode 600, in a volume only the two containers share) and keeps the agent as **Local agent** (id
+`10ca1000`). The agent reads it from `FLOORBIT_AGENT_KEY_FILE` (it waits up to two minutes for the
+file) and connects to `http://floorbit:5000` inside the Compose network, or `http://localhost:5000`
+in the pod. The file is the truth: a key written there by hand is taken over at the next start.
+**Renew key** on Settings writes the new key to the file as well; the agent takes it at its next
+start, and the old key keeps working until then (at most 24 hours). Revoking it removes it only
+until Floorbit's next start: to run without it, remove the `agent` service.
 
 ## Enrolling an agent
 

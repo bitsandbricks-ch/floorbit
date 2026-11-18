@@ -6,6 +6,10 @@ import pytest
 
 from floorbit import sources, status_page
 
+# The page reads the monitor's state: with the LAN plugins answering here, no agent call that fails
+# in the background (no agent in these tests) can mark the monitoring as down mid-test.
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 @pytest.fixture
 def floor(client, app_module, monkeypatch):
