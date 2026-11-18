@@ -63,6 +63,13 @@ The event bus is in-process. That matches how the app runs (`python app.py`, thr
 ever runs as several worker processes, `events.publish` is the one place to add Redis pub/sub.
 Behind nginx, the stream sends `X-Accel-Buffering: no`; also set `proxy_read_timeout` above 15s.
 
+**How many at once.** Each open stream holds one of the server's threads until its tab closes. So
+that pages always load, Floorbit takes streams only up to three quarters of the threads (48 of the
+image's 64; `gunicorn.conf.py` tells it the count), and readers who aren't signed in, such as
+attendees on the status page, get at most half of those. One more is refused with `503`
+`{"code": "live_full"}`: the page works but doesn't update by itself, and asks again after 20 to
+40 seconds. More threads (`GUNICORN_CMD_ARGS=--threads 200`) mean more streams.
+
 ## Switch status monitor
 
 A background thread polls the monitoring plugin (LibreNMS: `/api/v0/devices`, one request for all devices) every
