@@ -169,6 +169,20 @@ def test_cluster_mode_is_off_unless_set(monkeypatch):
         cluster.init()
 
 
+@pytest.mark.parametrize("mode", ["redis", "valkey", "Valkey"])
+def test_cluster_mode_takes_redis_or_valkey(monkeypatch, mode):
+    class Joined(Exception):
+        pass
+
+    def bus(**_kwargs):
+        raise Joined   # got past the mode check; stop before anything connects
+
+    monkeypatch.setenv("FLOORBIT_CLUSTER", mode)
+    monkeypatch.setattr(cluster, "RedisBus", bus)
+    with pytest.raises(Joined):
+        cluster.init()
+
+
 # ── RedisBus against a fake redis-py client ─────────────────────────────────────
 
 class FakeRedisClient:
