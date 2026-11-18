@@ -1144,9 +1144,9 @@
  "Copy with replace or merge.": "Kopiere mit «Ersetzen» oder «Zusammenführen».",
  "Pick what to copy: {}.": "Wähle, was kopiert wird: {}.",
  "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {}).",
- "A tenant name is lower-case letters, digits and -, at most 40.": "Ein Tenant-Name besteht aus Kleinbuchstaben, Ziffern und -, höchstens 40.",
+ "A tenant name is lower-case letters, digits and -, at most 40.": "Ein Mandanten-Name besteht aus Kleinbuchstaben, Ziffern und -, höchstens 40.",
  "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
- "There already is a tenant called {}.": "Es gibt schon einen Tenant namens {}.",
+ "There already is a tenant called {}.": "Es gibt schon einen Mandanten namens {}.",
  "{} is a number from {} to {}": "{} ist eine Zahl von {} bis {}",
  "frame is {x, y, w, h} in % of the plan": "frame ist {x, y, w, h} in % des Plans",
  "Nothing can look up switch ports: turn on SSH port actions, telemetry or LibreNMS, or connect a local agent.": "Nichts kann Switch-Ports nachschlagen: Schalte SSH-Port-Aktionen, Telemetrie oder LibreNMS ein oder verbinde einen lokalen Agent.",
@@ -1216,5 +1216,9 @@
  "This backup is encrypted: set the passphrase it was made with.": "Diese Sicherung ist verschlüsselt: die Passphrase setzen, mit der sie gemacht wurde.",
  "This backup is larger than a backup can be.": "Diese Sicherung ist grösser, als eine Sicherung sein darf.",
  "This file in the bucket is not a Floorbit backup.": "Diese Datei im Bucket ist keine Floorbit-Sicherung.",
- "The S3 endpoint sent an answer Floorbit does not read.": "Der S3-Endpunkt hat eine Antwort geschickt, die Floorbit nicht liest."
+ "The S3 endpoint sent an answer Floorbit does not read.": "Der S3-Endpunkt hat eine Antwort geschickt, die Floorbit nicht liest.",
+ "This club is suspended on this Floorbit platform. Ask the platform admin.": "Dieser Club ist auf dieser Floorbit-Plattform gesperrt. Frag die Plattform-Admins.",
+ "There is no such tenant.": "Diesen Mandanten gibt es nicht.",
+ "A tenant is active or suspended.": "Ein Mandant ist aktiv oder gesperrt.",
+ "The default tenant runs the platform and can't be suspended.": "Der Standard-Mandant betreibt die Plattform und kann nicht gesperrt werden."
 }

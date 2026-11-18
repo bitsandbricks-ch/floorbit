@@ -57,6 +57,7 @@ const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Checkins = lazy(() => import('@/pages/Checkins'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
+const Tenants = lazy(() => import('@/pages/Tenants'))
 const Audit = lazy(() => import('@/pages/Audit'))
 const Users = lazy(() => import('@/pages/Users'))
 const Login = lazy(() => import('@/pages/Login'))
@@ -166,6 +167,7 @@ export default function App() {
             <Route path="/settings/features" element={<Features />} />
             <Route path="/settings/sidebar" element={<SidebarSections />} />
             <Route path="/settings/api" element={<ApiTokens />} />
+            <Route path="/settings/tenants" element={<Tenants />} />
             <Route path="/settings/audit" element={<Audit />} />
             <Route path="/settings/users" element={<Users />} />
             <Route path="/settings/agents" element={<Agents />} />

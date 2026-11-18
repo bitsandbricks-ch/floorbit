@@ -3,7 +3,7 @@ import {
   IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
-  IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
+  IconBuildingCommunity, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
   IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
   IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTournament, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWalk, IconWall, IconWebhook, IconWifi, IconWorldWww,
@@ -35,7 +35,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   },
   { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'seatWalk', 'preflight', 'templates'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'brackets', 'schedule', 'timeline', 'replay', 'report', 'events'] },
-  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'sidebarSections', 'apiTokens', 'agents', 'telemetry', 'webhooks', 'users', 'teams', 'signIn', 'audit'] },
+  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'sidebarSections', 'apiTokens', 'tenants', 'agents', 'telemetry', 'webhooks', 'users', 'teams', 'signIn', 'audit'] },
 ]
 
 const ICONS: Record<string, Icon> = {
@@ -47,7 +47,7 @@ const ICONS: Record<string, Icon> = {
   preflight: IconChecklist, templates: IconTemplate,
   tournament: IconTrophy, brackets: IconTournament, schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
-  apiTokens: IconKey, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
+  apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
 export function pageIcon(id: string, icon?: string): Icon {

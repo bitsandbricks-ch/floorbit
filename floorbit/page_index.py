@@ -8,7 +8,7 @@ The server still checks every page; this only keeps the list honest.
 import re
 from urllib.parse import quote
 
-from . import incidents, inventory
+from . import incidents, inventory, store
 from .store import load_data
 
 # (href, id, English label, needs): ``needs`` maps the page's template context and a ``can``
@@ -65,6 +65,8 @@ PAGES = (
     ('/settings/features', 'features', 'Features', lambda c, can: can('settings.manage')),
     ('/settings/sidebar', 'sidebarSections', 'Sidebar sections', lambda c, can: can('settings.manage')),
     ('/settings/api', 'apiTokens', 'API tokens', lambda c, can: can('settings.manage')),
+    ('/settings/tenants', 'tenants', 'Tenants',
+     lambda c, can: can('settings.manage') and store.current_tenant() == store.DEFAULT_TENANT),
     ('/settings/agents', 'agents', 'Local agents', lambda c, can: can('settings.manage')),
     ('/settings/telemetry', 'telemetry', 'Telemetry', lambda c, can: can('settings.manage')),
     ('/settings/webhooks', 'webhooks', 'Webhooks', lambda c, can: can('settings.manage')),
