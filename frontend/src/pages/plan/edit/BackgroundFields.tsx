@@ -17,7 +17,7 @@ export function BackgroundFields({ opacity, placing, seatM, onOpacity, onPlacing
       <div>
         <Text size="sm" fw={500} mb={4}>{t('plan.edit.background.opacity')}</Text>
         <Slider min={5} max={100} step={5} value={shown} onChange={setShown} onChangeEnd={(v) => onOpacity(v / 100)}
-          label={(v) => `${v} %`} aria-label={t('plan.edit.background.opacity')} />
+          label={(v) => `${v} %`} thumbLabel={t('plan.edit.background.opacity')} />
       </div>
       <Group gap="xs">
         <Button size="xs" variant={placing ? 'filled' : 'default'} leftSection={<IconArrowsMove size={14} />} aria-pressed={placing}

@@ -388,10 +388,13 @@ function Account(props: PanelProps) {
       <button
         type="button" className="fb-nav-row fb-nav-me" aria-expanded={open} aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)} title={props.rail ? name : undefined}
-        aria-label={user ? t('common.signedInAs', { username: user.username }) : t('nav.account')}
+        // In the rail only the avatar shows, so the button needs a label. Expanded, the button reads
+        // its name from its text, not from an aria-label that hides the name on screen.
+        aria-label={props.rail ? (user ? t('common.signedInAs', { username: user.username }) : t('nav.account')) : undefined}
       >
         <span className="fb-nav-avatar" aria-hidden="true">{user ? initials(name) : <IconDots size={16} />}</span>
-        <span className="fb-nav-text">{name}</span>
+        {user && !props.rail && <span className="fb-sr-only">{t('common.signedInAs', { username: user.username })}</span>}
+        <span className="fb-nav-text" aria-hidden={user && !props.rail ? true : undefined}>{name}</span>
       </button>
       {open && (
         <div className="fb-nav-menu" role="menu" data-sheet={props.sheet || undefined}>
