@@ -69,6 +69,7 @@ AREAS = {
     'brackets': 'tournament brackets from a tournament tool, shown read-only on the bracket view',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
     'panels':    'a box in the side panel of a seat, a switch or an inventory device',
+    'layers':    'a layer on the floor plan that colours the seats (one plugin layer at a time)',
     'agent': 'runs a part of it on the local agent, in the hall (agent.py; docs/agent-plugins.md)',
 }
 # Device credential kinds an agent part may ask for (floorbit/plugins/agent.py, CREDENTIAL_KINDS).
@@ -79,6 +80,11 @@ MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
 PANEL_TARGETS = ('seat', 'switch', 'device')
 PANEL_TARGET_MAX = 128
 PANEL_KEYS = ('id', 'for', 'label', 'permission', 'role', 'refresh')
+# A plan layer: layer_<id>() colours seats with one of these tones, explained by its legend.
+LAYER_KEYS = ('id', 'label', 'permission', 'role', 'refresh')
+LAYER_TONES = ('ok', 'warn', 'err', 'info')
+LAYER_SEATS_MAX = 5000
+LAYER_LEGEND_MAX = 8
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -114,10 +120,10 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 # feature this Floorbit doesn't have fails at load, not quietly at run time.
 MANIFEST_KEYS = frozenset({
     'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
-    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'schema',
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'layers', 'schema',
     *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
-MANIFEST_NEXT = ('layers', 'pages')
+MANIFEST_NEXT = ('pages',)
 # ``schema:``: the version of the data the plugin keeps; ``migrate`` moves older data up to it.
 SCHEMA_MAX = 10_000
 MIGRATE_SECONDS = 60
@@ -265,7 +271,8 @@ def validate(m):
     if unknown:
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
-             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu', 'panels': 'panels'}
+             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu', 'panels': 'panels',
+             'layers': 'layers'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
@@ -274,7 +281,7 @@ def validate(m):
     err = _check_fields(m.get('settings'), 'settings')
     if err:
         return err
-    for kind in ('actions', 'widgets', 'endpoints', 'panels'):
+    for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers'):
         ids = set()
         for item in m.get(kind) or []:
             if not isinstance(item, dict) or not NAME_RE.match(str(item.get('id', ''))):
@@ -307,6 +314,11 @@ def validate(m):
                 if item.get('for') not in PANEL_TARGETS:
                     return f"panels.{item['id']}: for must be one of {', '.join(PANEL_TARGETS)}"
                 item['refresh'] = max(10, int(item.get('refresh') or 60))
+            if kind == 'layers':
+                extra = sorted(str(k) for k in item if k not in LAYER_KEYS)
+                if extra:
+                    return f"layers.{item['id']}: unknown key(s) {', '.join(extra)}"
+                item['refresh'] = max(10, int(item.get('refresh') or 60))
             if kind == 'widgets':
                 if item.get('size', 'small') not in ('small', 'wide'):
                     return f"widgets.{item['id']}: size must be small or wide"
@@ -328,11 +340,30 @@ def validate(m):
     return ''
 
 
+def check_layer(raw):
+    """What ``layer_<id>()`` returned, cut to what the plan draws; WidgetError when it isn't that."""
+    if not isinstance(raw, dict) or not isinstance(raw.get('seats', {}), dict):
+        raise WidgetError('a layer is {"seats": {seat: {"tone", "label"}}, "legend": [...]}')
+    seats = {}
+    for key, value in list(raw.get('seats', {}).items())[:LAYER_SEATS_MAX]:
+        if not isinstance(key, str) or not 1 <= len(key) <= PANEL_TARGET_MAX or not key.isprintable():
+            raise WidgetError(f'a seat id is 1 to {PANEL_TARGET_MAX} printable characters')
+        if not isinstance(value, dict) or value.get('tone') not in LAYER_TONES:
+            raise WidgetError(f"seat {key}: tone must be one of {', '.join(LAYER_TONES)}")
+        seats[key] = {'tone': value['tone'], 'label': str(value.get('label') or '')[:60]}
+    legend = []
+    for item in (raw.get('legend') or [])[:LAYER_LEGEND_MAX]:
+        if not isinstance(item, dict) or item.get('tone') not in LAYER_TONES:
+            raise WidgetError(f"legend: tone must be one of {', '.join(LAYER_TONES)}")
+        legend.append({'tone': item['tone'], 'label': str(item.get('label') or '')[:60]})
+    return {'seats': seats, 'legend': legend}
+
+
 def touches(m):
     """What a plugin may touch, from its (validated) manifest: what the Marketplace shows before it
     is installed (docs/plugin-spec.md, "Permissions it asks for")."""
     agent = m.get('agent') if 'agent' in (m.get('uses') or []) and isinstance(m.get('agent'), dict) else {}
-    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints', 'panels')
+    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers')
                    for i in m.get(kind) or [] if isinstance(i, dict) and i.get('permission')}
     targets = agent.get('targets') if isinstance(agent.get('targets'), dict) else None
     return {
@@ -399,6 +430,7 @@ def _check_methods(spec):
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
     allowed |= {f"panel_{p['id']}" for p in spec.items('panels')}
+    allowed |= {f"layer_{p['id']}" for p in spec.items('layers')}
     allowed |= {'test'}
     optional = set()
     for table in (AREA_METHODS, OPTIONAL_METHODS):
@@ -423,7 +455,7 @@ def _check_methods(spec):
                 return f'plugin.py: {name}() answers the agent, but agent.fetches has no {name[10:]}'
         elif name[6:] not in kinds:
             return f'plugin.py: {name}() takes what the agent sends, but agent.sends has no {name[6:]}'
-        if name.startswith(('run_', 'widget_', 'endpoint_', 'panel_')) and name not in allowed:
+        if name.startswith(('run_', 'widget_', 'endpoint_', 'panel_', 'layer_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
     for name in sorted(allowed - {'test'}):
         if not callable(getattr(cls, name, None)):
@@ -898,6 +930,14 @@ class Registry:
             self.log(spec.id, f'panel {panel_id}: {exc}')
             raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
 
+    def layer(self, spec, layer_id):
+        """The layer's seats and legend, checked: ``{seats: {id: {tone, label}}, legend: [{tone, label}]}``."""
+        try:
+            return check_layer(self.timed(spec, f'layer_{layer_id}'))
+        except WidgetError as exc:
+            self.log(spec.id, f'layer {layer_id}: {exc}')
+            raise PluginError(f'{spec.name} returned a layer Floorbit can\'t draw') from None
+
     def feeders(self, area):
         """The plugins that are on and feed this area (``inventory``), in id order."""
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
@@ -1016,6 +1056,8 @@ class Registry:
                             for w in spec.items('widgets')],
                 'panels': [{'id': p['id'], 'for': p['for'], 'label': t(p.get('label')), 'permission': p['permission']}
                            for p in spec.items('panels')],
+                'layers': [{'id': p['id'], 'label': t(p.get('label')), 'permission': p['permission']}
+                           for p in spec.items('layers')],
                 'endpoints': [{'id': e['id'], 'label': t(e.get('label')),
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}
                               for e in spec.items('endpoints')],

@@ -53,6 +53,25 @@ export interface PluginPanelInfo {
   url: string
 }
 
+/** A plugin's floor plan layer (GET /api/plugins/layers). */
+export interface PluginLayerInfo {
+  plugin: string
+  plugin_name: string
+  icon: string
+  id: string
+  label: string
+  refresh: number
+  url: string
+}
+
+export type PluginLayerTone = 'ok' | 'warn' | 'err' | 'info'
+
+/** What one plugin layer draws (GET /api/plugins/<id>/layers/<layer>). */
+export interface PluginLayerData {
+  seats: Record<string, { tone: PluginLayerTone; label: string }>
+  legend: { tone: PluginLayerTone; label: string }[]
+}
+
 export interface WidgetTile {
   kind?: undefined
   plugin: string

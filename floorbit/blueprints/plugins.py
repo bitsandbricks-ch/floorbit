@@ -249,6 +249,45 @@ def panel(plugin_id, panel_id):
     return jsonify(german_widget(body, _language(), spec))
 
 
+@bp.route('/api/plugins/layers', methods=['GET'])
+def layers():
+    """The plugins' floor plan layers this account may see."""
+    refused = _allowed('floorplan.view')
+    if refused:
+        return refused
+    granted, registry, lang = _granted(), _registry(), _language()
+    out = []
+    for spec in registry.specs.values():
+        if not registry.enabled(spec):
+            continue
+        for item in spec.items('layers'):
+            if item['permission'] in granted:
+                out.append({'plugin': spec.id, 'plugin_name': registry.text(spec, spec.name, lang),
+                            'icon': spec.manifest.get('icon') or '', 'id': item['id'],
+                            'label': registry.text(spec, item['label'], lang), 'refresh': item['refresh'],
+                            'url': f"/api/plugins/{spec.id}/layers/{item['id']}"})
+    return jsonify({'layers': out})
+
+
+@bp.route('/api/plugins/<plugin_id>/layers/<layer_id>', methods=['GET'])
+def layer(plugin_id, layer_id):
+    spec = _registry().active(plugin_id)
+    item = spec.item('layers', layer_id) if spec else None
+    if item is None:
+        return _error('No such layer', 404)
+    refused = _allowed(item['permission'])
+    if refused:
+        return refused
+    registry, lang = _registry(), _language()
+    try:
+        body = registry.layer(spec, layer_id)
+    except PluginError as exc:
+        return _error(registry.text(spec, str(exc), lang), 502)
+    for entry in (*body['seats'].values(), *body['legend']):
+        entry['label'] = registry.text(spec, entry['label'], lang)
+    return jsonify(body)
+
+
 def german_widget(body, lang, spec=None):
     """A plugin widget's own texts in ``lang``: from the plugin's locales/de-CH.json, else where
     Floorbit's catalog knows them, like the Health page does for the same checks ("GET … failed:

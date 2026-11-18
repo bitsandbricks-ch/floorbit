@@ -1143,6 +1143,12 @@
  "{} waits for Floorbit's database to move its data": "{} wartet auf die Datenbank von Floorbit, um seine Daten umzustellen",
  "{} {} can't read the data {} moved to schema {}": "{} {} kann die Daten nicht lesen, die {} auf Schema {} umgestellt hat",
  "{} {} knows its data up to schema {}, but the data here is at schema {}: install a newer version": "{} {} kennt seine Daten bis Schema {}, die Daten hier sind aber auf Schema {}: Installiere eine neuere Version",
+ "No such layer": "Diese Ebene gibt es nicht",
+ "{} returned a layer Floorbit can't draw": "{} hat eine Ebene geliefert, die Floorbit nicht zeichnen kann",
+ "a layer is {\"seats\": {seat: {\"tone\", \"label\"}}, \"legend\": [...]}": "eine Ebene ist {\"seats\": {Platz: {\"tone\", \"label\"}}, \"legend\": [...]}",
+ "a seat id is 1 to {} printable characters": "eine Platz-ID hat 1 bis {} druckbare Zeichen",
+ "legend: tone must be one of {}": "legend: tone muss eines von {} sein",
+ "seat {}: tone must be one of {}": "Platz {}: tone muss eines von {} sein",
  "{} runs on the local agent: Floorbit reaches the event network only through it.": "{} läuft auf dem lokalen Agenten: Floorbit erreicht das Event-Netz nur über ihn.",
  "Syslog comes in through the local agent (FLOORBIT_AGENT_SYSLOG_PORT on the agent); this server does not listen itself.": "Syslog kommt über den lokalen Agenten (FLOORBIT_AGENT_SYSLOG_PORT auf dem Agenten); dieser Server hört nicht selbst zu."
 }

@@ -82,7 +82,7 @@ and dark, on phones and big screens.
 | Its page under Settings > Plugins | Ships | Floorbit builds it: what it may touch, settings, Test, actions, log, the agents that run it. |
 | An icon (`icon:`) | Ships | A name from Floorbit's icon set (the sidebar's and the inventory's icons), shown in the plugin list and the Marketplace. A name Floorbit doesn't know is refused at load. No SVG or image files: a plugin never ships something the browser draws as is. |
 | Side panel boxes (`panels:` for a `seat`, `switch` or `device`) | Ships | A widget in the side panel when that thing is open: the plan's seat and switch panels, the inventory's device panel. `panel_<id>(target)` gets `{kind, id}` and returns a widget, within the same time budget as a tile. Each entry names its permission; unknown keys in an entry are refused. |
-| Floor plan layers (`layers:`) | **Next** | `layer_<id>()` returns `{seat or switch: {value, tone, label}}` plus a legend; drawn like the heatmap, one layer at a time, under the plan's own filters. |
+| Floor plan layers (`layers:`) | Ships | `layer_<id>()` returns `{"seats": {seat: {"tone", "label"}}, "legend": [{"tone", "label"}]}`; tones are `ok`, `warn`, `err` and `info`, drawn as a ring around the seat in Floorbit's own colours. Up to 5,000 seats and 8 legend entries; labels up to 60 characters. One plugin layer at a time, picked under Layers on the plan, on top of the plan's own layers and filters; reloaded every `refresh` seconds (at least 10). Switches are not coloured yet. |
 | Pages in the sidebar (`pages:`) | **Next** | A page made of the plugin's own widgets, in the sidebar's *Plugins* group, for accounts with the permission it names. |
 
 ### Data Floorbit uses
