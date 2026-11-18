@@ -17,7 +17,7 @@ def test_kiosk_opens_the_kiosk_dashboard(client):
     assert heat == "/plan?screen=1&layers=marks%2Cstatus&hall=hall-2"
 
 
-def test_config_without_integrations(client):
+def test_config_without_integrations(lan_here, client):
     resp = client.get("/api/config")
     assert resp.status_code == 200
     body = resp.get_json()

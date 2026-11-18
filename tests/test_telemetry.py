@@ -12,6 +12,9 @@ import pytest
 from floorbit.plugins.agent import MemoryContext
 from floorbit.telemetry import lineproto, pollers, state, storage, telegraf
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 SW = "device=sw-a-01,address=192.0.2.21,driver=snmp"
 CORE = "device=core-01,address=192.0.2.1,driver=snmp"
 

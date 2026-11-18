@@ -4,6 +4,12 @@
 #   kubectl -n floorbit create secret generic floorbit --from-literal=SECRET_KEY="$(openssl rand -hex 32)"
 #   kubectl -n floorbit apply -f deploy/kubernetes/floorbit.yaml
 #
+# The pod runs Floorbit and its local agent side by side: Floorbit reaches the event network
+# (switches, LibreNMS, NetBox, game servers, ...) only through the agent, as a hosted one does
+# (docs/agent.md). Floorbit writes the agent's key into a volume only the two share and enrols it
+# as "Local agent". Run the cluster where the event network is reachable, or use a hosted Floorbit
+# with an agent in the hall instead.
+#
 # Everything Floorbit keeps (data.json, accounts, the audit log, plugin state, check-ins) is in
 # /app/state. Without the volume below, every new pod (an update, a restart, a moved node) starts
 # empty: that's the claim `floorbit-state`, so keep it.
@@ -55,8 +61,10 @@ spec:
             - {name: CHECKIN_TRUST_PROXY, value: "true"}
             - name: SECRET_KEY
               valueFrom: {secretKeyRef: {name: floorbit, key: SECRET_KEY}}
+            - {name: FLOORBIT_LOCAL_AGENT_KEY_FILE, value: /app/agent-key/local-agent.key}
           volumeMounts:
             - {name: state, mountPath: /app/state}
+            - {name: agent-key, mountPath: /app/agent-key}
           readinessProbe:
             httpGet: {path: /healthz, port: http}
             periodSeconds: 10
@@ -67,9 +75,40 @@ spec:
           resources:
             requests: {cpu: 100m, memory: 256Mi}
             limits: {memory: 1Gi}
+        - name: agent
+          image: ghcr.io/bitsandbricks-ch/floorbit-agent:latest   # pin a version for events too
+          env:
+            # The same pod: the link never leaves it, so plain HTTP is fine.
+            - {name: FLOORBIT_URL, value: "http://localhost:5000"}
+            - {name: FLOORBIT_AGENT_INSECURE, value: "1"}
+            - {name: FLOORBIT_AGENT_KEY_FILE, value: /run/floorbit-agent/local-agent.key}
+            - {name: FLOORBIT_DATA_FILE, value: /agent-state/agent-data.json}
+            - {name: FLOORBIT_AGENT_SYSLOG_PORT, value: "5514"}
+            - {name: FLOORBIT_AGENT_FLOWS_PORT, value: "2055"}
+            - {name: TZ, value: "UTC"}
+            # LibreNMS, NetBox and the other sources are set in Floorbit (Settings > Plugins); the
+            # agent takes them from there. Env-only ones go here, e.g. LIBRENMS_URL.
+          ports:
+            - {name: syslog, containerPort: 5514, protocol: UDP}
+            - {name: flows, containerPort: 2055, protocol: UDP}
+          volumeMounts:
+            - {name: agent-key, mountPath: /run/floorbit-agent, readOnly: true}
+            - {name: agent-state, mountPath: /agent-state}
+          livenessProbe:
+            exec: {command: ["python", "-m", "floorbit_agent", "health"]}
+            initialDelaySeconds: 90
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
       volumes:
         - name: state
           persistentVolumeClaim: {claimName: floorbit-state}
+        # Floorbit writes a new key at each start, so neither needs keeping.
+        - name: agent-key
+          emptyDir: {medium: Memory, sizeLimit: 1Mi}
+        - name: agent-state
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -79,6 +118,19 @@ spec:
   selector: {app: floorbit}
   ports:
     - {name: http, port: 80, targetPort: http}
+---
+# Syslog (docs/syslog.md) and NetFlow/IPFIX (docs/flows.md) from the event's devices, to the agent.
+# k3s's ServiceLB opens these on the nodes: point the devices at a node's address.
+apiVersion: v1
+kind: Service
+metadata:
+  name: floorbit-agent
+spec:
+  type: LoadBalancer
+  selector: {app: floorbit}
+  ports:
+    - {name: syslog, port: 514, targetPort: syslog, protocol: UDP}
+    - {name: flows, port: 2055, targetPort: flows, protocol: UDP}
 ---
 # The cache for LibreNMS answers. Nothing in it needs keeping, so no volume.
 apiVersion: apps/v1

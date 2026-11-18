@@ -4,6 +4,9 @@ import pytest
 from floorbit import firewalls, sources
 from integrations import seat_sources
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 class Source:
     name, label = "nms", "Monitoring"

@@ -87,6 +87,13 @@ AREA_METHODS = {
     'wifi': ('wifi_aps',),
     'brackets': ('brackets',),
 }
+# The methods that talk to the event network. On the Floorbit server they run only through the local
+# agent (floorbit/agent_link.py, agent_only): ``call`` refuses them here, so no feature can reach the
+# LAN around it. ``configured`` and ``port_login`` only read settings and stay.
+LAN_METHODS = frozenset({
+    'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp', 'device_ports', 'port_clients', 'neighbours',
+    'inventory', 'entries', 'cables', 'firewall_ranges', 'health_checks', 'security_findings', 'seat_mapping',
+    'bounce_port', 'set_port', 'send_commands', 'open_shell', 'power_readings', 'dns_queries', 'wifi_aps'})
 # Methods a plugin of the area may have but doesn't need: without them the feature says the plugin
 # can't do it (switch commands, issue #94; the browser terminal, issue #95).
 OPTIONAL_METHODS = {
@@ -733,6 +740,11 @@ class Registry:
         cls = spec.plugin_class()
         if cls is None:
             raise PluginError(f'{spec.name} has no code for this')
+        if method in LAN_METHODS:
+            from .. import agent_link
+            if not agent_link.may_call_here(spec):
+                raise PluginError(f'{spec.name} runs on the local agent: Floorbit reaches the event network '
+                                  'only through it.')
         try:
             return getattr(cls(Context(spec, self)), method)(*args)
         except PluginError:

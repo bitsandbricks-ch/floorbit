@@ -655,8 +655,11 @@ class Plugin(Plugin):
             port = words[-1] if words and '/' in words[-1] else None
             if words[:1] == ['clear']:
                 parts.append('')
+            elif words[:3] == ['show', 'ip', 'arp']:
+                parts.append(self._demo_arp(name, words[3] if len(words) > 3 else None))
             elif 'mac' in command:
-                parts.append(self._demo_macs(name, port))
+                address = words[words.index('address') + 1] if 'address' in words[:-1] else None
+                parts.append(self._demo_macs(name, port, address))
             elif words[:2] == ['show', 'interfaces'] and 'status' in words:
                 parts.append(self._demo_status(name))
             elif 'errors' in words:
@@ -708,12 +711,25 @@ class Plugin(Plugin):
                         f"{'a-full' if up else 'auto':<7} {'a-1000' if up else 'auto':<5} 10/100/1000BaseTX")
         return '\n'.join(rows)
 
-    def _demo_macs(self, name, port):
+    def _demo_arp(self, name, ip):
+        """The core holds the hall's ARP table (seat walk-through, floorbit/seat_walk.py)."""
+        rows = ['Protocol  Address          Age (min)  Hardware Addr   Type   Interface']
+        if name == 'core-01':
+            for _seat, _b, _n, i in _seats():
+                if _taken(i) and (not ip or _ip(i) == ip):
+                    mac = _mac(i).replace(':', '')
+                    rows.append(f'Internet  {_ip(i):<16} 0          {mac[0:4]}.{mac[4:8]}.{mac[8:12]}  ARPA   Vlan100')
+        return '\n'.join(rows)
+
+    def _demo_macs(self, name, port, address=None):
         rows = ['          Mac Address Table', '-------------------------------------------',
                 'Vlan    Mac Address       Type        Ports', '----    -----------       --------    -----']
+        want = address.replace('.', '').lower() if address else None
         for _seat, _b, _n, i, p in self._demo_ports(name):
             if _taken(i) and (not port or p.lower() == port.lower()):
                 mac = _mac(i).replace(':', '')
+                if want and mac != want:
+                    continue
                 rows.append(f' 100    {mac[0:4]}.{mac[4:8]}.{mac[8:12]}    DYNAMIC     {p}')
         rows.append(f'Total Mac Addresses for this criterion: {len(rows) - 4}')
         return '\n'.join(rows)
