@@ -123,7 +123,14 @@
 
 /* Schedule rows: the time column lines up across days on wide screens and shrinks on a phone. */
 .fb-schedule-time { width: 190px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-@media (max-width: 48em) { .fb-schedule-time { width: auto; } }
+/* On a phone the end time goes under the start time and the edit and delete buttons stack, so the
+   title keeps the room. */
+.fb-schedule-actions { width: 80px; }
+@media (max-width: 48em) {
+  .fb-schedule-time { width: 1%; white-space: normal; }
+  .fb-schedule-actions { width: 1%; }
+  .fb-schedule-actions > .mantine-Group-root { flex-direction: column; }
+}
 
 /* A table that turns into one block per row on a phone, instead of scrolling sideways: each cell
    on its own line, header hidden. A cell that needs its heading gets data-label={...};

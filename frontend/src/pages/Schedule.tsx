@@ -162,7 +162,7 @@ export default function Schedule() {
                   <Table.Tbody>
                     {items.map((i) => (
                       <Table.Tr key={i.id}>
-                        <Table.Td className="fb-schedule-time">{clock(i.start)}{i.end ? `–${clock(i.end)}` : ''}</Table.Td>
+                        <Table.Td className="fb-schedule-time">{clock(i.start)}{i.end && <>–<wbr />{clock(i.end)}</>}</Table.Td>
                         <Table.Td>
                           {/* The kind sits next to the title, so a row fits a phone without scrolling sideways. */}
                           <Group gap={6} wrap="wrap" align="center">
@@ -172,7 +172,7 @@ export default function Schedule() {
                           {(i.where || i.note) && <Text size="xs" c="dimmed">{[i.where, i.note].filter(Boolean).join(' · ')}</Text>}
                         </Table.Td>
                         {canEdit && (
-                          <Table.Td w={80}>
+                          <Table.Td className="fb-schedule-actions">
                             <Group gap={4} wrap="nowrap">
                               <ActionIcon variant="subtle" aria-label={t('schedule.editNamed', { title: i.title })} onClick={() => setEditing(i.id)}><IconPencil size={16} /></ActionIcon>
                               <ConfirmIcon label={t('schedule.deleteNamed', { title: i.title })} onConfirm={() => remove.mutate(i.id)}><IconTrash size={16} /></ConfirmIcon>
