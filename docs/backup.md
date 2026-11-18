@@ -21,7 +21,8 @@ Pick a backup file. Settings shows what it holds and asks once. Restoring:
   seat blocks); a part the backup doesn't have ends up empty, and a backup from before halls gives one hall;
 - saves the backup's settings over the current ones; settings the backup doesn't name, and all
   secrets, keep their current value; settings this version doesn't know are skipped and listed;
-- checks the whole file first: if anything is wrong, nothing changes.
+- checks the whole file first, every seat block and plan mark with the same rules as the editor: if
+  anything is wrong, nothing changes, and the error names the entry.
 
 Open editors and kiosk screens pick up the restored floor plan through live updates.
 
