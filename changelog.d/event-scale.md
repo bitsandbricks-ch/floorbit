@@ -9,3 +9,10 @@
   memory is kept compact and bounded, and written to a database in batches.
 - Syslog keeps up on SQLite and Postgres: log sizes are counted as lines arrive, the timeline is
   written in batches, and settings and document times are checked once a second.
+
+### Fixed
+
+- With two local agents, a seat lookup no longer waits for one that was just stopped, and the
+  Local agents page shows a stopped agent as gone at once.
+- While the local agent or LibreNMS is away, seat lookups say "try again shortly" instead of
+  "could not resolve", and check-in tries again as soon as it is back.
