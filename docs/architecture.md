@@ -79,7 +79,7 @@ to make one.
 Plain JavaScript and CSS, no build step.
 
 - The floor plan editor moved to React (`frontend/src/pages/plan/edit/`); `/editor/classic` redirects there.
-- Other pages have their own script and stylesheet (`screen.js`, ...).
+- The help page has its own script (`speedtest.js`); `notify.js` and `theme.js` are shared.
 - `templates/_attribution.html` and `static/css/attribution.css` are the "Buy me a coffee" and
   "Powered by bitsandbricks.ch" links every page includes.
 
