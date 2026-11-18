@@ -23,7 +23,7 @@ services:
       # Floorbit writes the agent's key here and enrols it as "Local agent".
       FLOORBIT_LOCAL_AGENT_KEY_FILE: /app/agent-key/local-agent.key
     volumes:
-      # data.json, accounts, the audit log, plugin state and check-ins: back this up.
+      # The database (floorbit.db: floor plan, accounts, the audit log, plugin state, check-ins): back this up.
       - floorbit_state:/app/state
       - agent_key:/app/agent-key
     depends_on:

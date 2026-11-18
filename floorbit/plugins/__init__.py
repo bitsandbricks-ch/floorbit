@@ -25,7 +25,6 @@ switched off; an admin turns it on under Settings > Plugins. See docs/plugins.md
 """
 from __future__ import annotations
 
-import contextlib
 import contextvars
 import os
 import re
@@ -795,31 +794,16 @@ class Registry:
 
     def _update_locked(self, plugin_id, **changes):
         import json
-        import tempfile
         path = self.path()   # once: read and write the same file
         data = self._all(path, strict=True)
         data = json.loads(json.dumps(data, default=str))   # a copy: the cached one stays as read
         data.setdefault(plugin_id, {}).update(json.loads(json.dumps(changes, default=str)))
-        from .. import database, store
+        from .. import store
         self._writes += 1
         self._cache = None
-        if database.backend().kind != 'files':
-            store.write_json(path, data)
-            self._writes += 1      # again: a read that began after the first bump may hold the old file
-            self._cache = (time.monotonic(), path, data)
-            return
-        folder = os.path.dirname(path) or '.'
-        fd, tmp = tempfile.mkstemp(dir=folder, prefix='.plugins-', suffix='.json')
-        try:
-            with os.fdopen(fd, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, default=str)
-            os.replace(tmp, path)
-            self._writes += 1
-            self._cache = (time.monotonic(), path, data)
-        except BaseException:
-            with contextlib.suppress(OSError):
-                os.unlink(tmp)
-            raise
+        store.write_json(path, data)
+        self._writes += 1      # again: a read that began after the first bump may hold the old copy
+        self._cache = (time.monotonic(), path, data)
 
     def enabled(self, spec):
         if spec.error:

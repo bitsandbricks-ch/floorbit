@@ -1,17 +1,14 @@
-"""Append-only logs, in files or in the database (issue #464).
+"""Append-only logs in the database (issue #464).
 
 The audit log, the event timeline, the check-in history and the event recording are logs: lines
-added at the end, read whole, now and then cut to their newest part. Without ``FLOORBIT_DATABASE_URL``
-they are ``.jsonl`` files next to data.json, as always. With a database they are rows in
-``floorbit_log``, keyed by the file's path under the state folder like documents are, so several
-Floorbit pods share them and nothing is lost when a container is replaced.
+added at the end, read whole, now and then cut to their newest part. They are rows in
+``floorbit_log``, keyed by the path their ``.jsonl`` file had under the state folder, like documents
+are, so several Floorbit processes share them and nothing is lost when a container is replaced.
 
 A log the database doesn't have yet is imported from its file the first time it is used, once
 (``journal-imported/<key>`` marks it); after that the file is left alone, as a backup of the moment
 of the switch.
 """
-import contextlib
-import os
 import threading
 import time
 
@@ -24,19 +21,15 @@ _sizes = {}          # key -> [bytes, monotonic time it was counted]
 SIZE_RECOUNT = 30    # seconds: then the database is asked again (other pods add lines too)
 
 
-def _db():
+def _key(path):
     db = database.backend()
-    return None if db.kind == 'files' else db
-
-
-def _key(db, path):
     key = database.key_for(path, db.root)
     checked = db.__dict__.setdefault('journal_checked', set())   # keys whose import was looked at here
     if key in checked:
-        return key
+        return db, key
     with _lock:
         if key in checked:
-            return key
+            return db, key
         marker = f'journal-imported/{key}'
         if db.get(marker) is database._MISSING:
             try:
@@ -48,79 +41,50 @@ def _key(db, path):
                 db.log_replace(key, old)
             db.put(marker, '{"imported": true}')
         checked.add(key)
-    return key
+    return db, key
 
 
 def append(path, line):
-    """Add one line (no newline in it). Raises OSError or DatabaseError, like a write would."""
-    db = _db()
-    if db is not None:
-        key = _key(db, path)
-        db.log_append(key, line)
-        known = _sizes.get(key)
-        if known is not None:
-            known[0] += len(line)
-        return
-    with open(path, 'a', encoding='utf-8') as f:
-        f.write(line + '\n')
+    """Add one line (no newline in it). Raises DatabaseError when it can't be saved."""
+    db, key = _key(path)
+    db.log_append(key, line)
+    known = _sizes.get(key)
+    if known is not None:
+        known[0] += len(line)
 
 
 def append_many(path, rows):
-    """Add several lines at once: one transaction on a database, one write to a file."""
+    """Add several lines at once, in one transaction."""
     rows = list(rows)
     if not rows:
         return
-    db = _db()
-    if db is not None:
-        key = _key(db, path)
-        db.run_many('INSERT INTO floorbit_log (log_key, line) VALUES (?, ?)', [(key, line) for line in rows])
-        known = _sizes.get(key)
-        if known is not None:
-            known[0] += sum(len(line) for line in rows)
-        return
-    with open(path, 'a', encoding='utf-8') as f:
-        f.write(''.join(line + '\n' for line in rows))
+    db, key = _key(path)
+    db.run_many('INSERT INTO floorbit_log (log_key, line) VALUES (?, ?)', [(key, line) for line in rows])
+    known = _sizes.get(key)
+    if known is not None:
+        known[0] += sum(len(line) for line in rows)
 
 
 def lines(path):
     """Every line, oldest first, without newlines. [] when there is no log yet."""
-    db = _db()
-    if db is not None:
-        return db.log_lines(_key(db, path))
-    try:
-        with open(path, encoding='utf-8') as f:
-            return [line.rstrip('\n') for line in f]
-    except FileNotFoundError:
-        return []
+    db, key = _key(path)
+    return db.log_lines(key)
 
 
 def size(path):
     """About how many bytes the log holds."""
-    db = _db()
-    if db is not None:
-        key = _key(db, path)
-        known = _sizes.get(key)
-        if known is None or time.monotonic() - known[1] > SIZE_RECOUNT:
-            known = _sizes[key] = [db.log_size(key), time.monotonic()]
-        return known[0]
-    try:
-        return os.path.getsize(path)
-    except OSError:
-        return 0
+    db, key = _key(path)
+    known = _sizes.get(key)
+    if known is None or time.monotonic() - known[1] > SIZE_RECOUNT:
+        known = _sizes[key] = [db.log_size(key), time.monotonic()]
+    return known[0]
 
 
 def replace(path, new_lines):
     """The log becomes ``new_lines`` (cutting it down, compacting it). All or nothing."""
-    db = _db()
-    if db is not None:
-        key = _key(db, path)
-        db.log_replace(key, list(new_lines))
-        _sizes.pop(key, None)
-        return
-    tmp = path + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as f:
-        f.writelines(line + '\n' for line in new_lines)
-    os.replace(tmp, path)
+    db, key = _key(path)
+    db.log_replace(key, list(new_lines))
+    _sizes.pop(key, None)
 
 
 def keep_newest_half_over(path, max_bytes):
@@ -132,11 +96,4 @@ def keep_newest_half_over(path, max_bytes):
 
 
 def remove(path):
-    db = _db()
-    if db is not None:
-        key = _key(db, path)
-        db.log_replace(key, [])
-        _sizes.pop(key, None)
-        return
-    with contextlib.suppress(FileNotFoundError):
-        os.remove(path)
+    replace(path, [])

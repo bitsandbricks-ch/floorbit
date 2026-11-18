@@ -125,8 +125,7 @@ Neither does model-driven streaming. What comes closest:
 ## Storage
 
 - **Lite** (the default): Floorbit's own database keeps a normalised series per device and port:
-  a point a minute for 6 hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS` (2 days). With
-  plain files and no database, the last six hours stay in memory only.
+  a point a minute for 6 hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS` (2 days).
 - **VictoriaMetrics**: `docker compose --profile metrics up -d` and
   `FLOORBIT_VICTORIAMETRICS_URL=http://victoriametrics:8428`. Every point that came in is kept, plus
   the normalised series (`fb_port_in_bps_value{device,port}`, `fb_port_out_bps_value`,

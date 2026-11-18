@@ -1,17 +1,21 @@
-# Database: files, SQLite or Postgres
+# Database: SQLite or Postgres
 
 Floorbit keeps its state as a set of documents: `data.json` (the floor plan, accounts and
 settings), saved floor plan templates, past events, plugin state, check-ins and the last good
-monitoring data. Where they live is one setting, `FLOORBIT_DATABASE_URL`:
+monitoring data. They always live in a database, chosen by one setting, `FLOORBIT_DATABASE_URL`:
 
 | `FLOORBIT_DATABASE_URL` | Where documents live | For |
 | --- | --- | --- |
-| *(not set)* | JSON files in the state folder (`/app/state` in Docker) | the default; small self-hosted setups |
-| `sqlite:////app/state/floorbit.db` | one SQLite file | one server; the flow collector and the web app can share it safely |
-| `postgresql://floorbit:password@db.example.com/floorbit` | a Postgres database | hosted Floorbit, a managed database, backups by your DBA |
+| *(not set)* | `floorbit.db`, one SQLite file in the state folder (`/app/state` in Docker) | the default; self-hosted setups on one server |
+| `sqlite:////somewhere/else.db` | that SQLite file | the same, in another place |
+| `postgresql://floorbit:password@db.example.com/floorbit` | a Postgres database | hosted Floorbit, several replicas, a managed database, backups by your DBA |
 
-Note the four slashes for an absolute SQLite path (`sqlite:///` + `/app/state/floorbit.db`).
+Note the four slashes for an absolute SQLite path (`sqlite:///` + `/somewhere/else.db`).
 Postgres needs the `psycopg` package, which the Docker image has.
+
+Earlier versions kept every document as a JSON file in the state folder when
+`FLOORBIT_DATABASE_URL` wasn't set. That third way is gone, so every install runs the same code; the
+files move into the database by themselves (below).
 
 ## Connections
 
@@ -24,17 +28,19 @@ That keeps Floorbit small on a shared Postgres: with the flow collector running 
 process. Raise it for a busy event with many open screens; 1 works but makes every page wait for
 every background job.
 
-## Switching from files
+## Moving from the JSON files
 
-Set `FLOORBIT_DATABASE_URL` and restart. Nothing else is needed:
+An install that kept its documents as JSON files (every one without `FLOORBIT_DATABASE_URL`, before
+the files were retired) needs nothing: update and restart.
 
 - The first time Floorbit reads a document the database doesn't have yet, it **imports it from its
-  file**, once. Your floor plan, accounts and settings are all there after the restart.
-- After that the file is no longer read or written. It stays where it was, so it doubles as a
-  backup of the moment you switched. Delete it when you're happy.
-- Going back to files: unset the variable. Floorbit uses the files again, as they were when you
-  switched; changes made while on the database stay in the database. To take them along, make a
-  backup under **Settings > Backup and restore** first and restore it afterwards.
+  file**, once. Your floor plan, accounts and settings are all there after the restart. A file cut
+  short by a full disk is imported from the last complete copy beside it (`data.json.next`).
+- After that the file is no longer read or written: **editing `data.json` by hand no longer does
+  anything**. It stays where it was, so it doubles as a backup of the moment of the move. Delete it
+  when you're happy.
+- To go to Postgres later, make a backup under **Settings > Backup and restore**, set
+  `FLOORBIT_DATABASE_URL` and restore it.
 
 ## What stays in the state folder
 
@@ -49,8 +55,7 @@ volume on it** even with a database ([kubernetes.md](kubernetes.md#keep-the-volu
 The audit log, the event timeline, the check-in history and the event recording are in the
 database too, in the table `floorbit_log`, so every Floorbit pod writes the same log and a replaced
 container loses nothing. Like documents, each log is imported from its `.jsonl` file the first
-time it is used, once; the file then stays as a backup. Without a database they are `.jsonl`
-files in the state folder, as before.
+time it is used, once; the file then stays as a backup.
 
 ## Schema and migrations
 
@@ -73,7 +78,8 @@ moment both keep theirs. Two saves that change the same value keep the last one.
 
 With several replicas on one database, a save is written only if the row is still the version it
 merged with; otherwise it merges again with the newer one (up to 8 times, then the save is refused
-with an error instead of being lost). Plain files have no such check: run one replica on files.
+with an error instead of being lost). SQLite is one file on one server: for several replicas on
+several nodes, use Postgres.
 
 ## When the database is away
 
@@ -122,6 +128,6 @@ message and saves again.
 
 ## Tests
 
-The suite runs on files by default. `FLOORBIT_TEST_DATABASE=sqlite pytest` runs it on a fresh
-SQLite file per test, and `FLOORBIT_TEST_DATABASE=postgres` on the database in
-`FLOORBIT_TEST_POSTGRES_URL` (emptied before each test). CI runs all three.
+The suite runs on a fresh SQLite file per test, as Floorbit does by default.
+`FLOORBIT_TEST_DATABASE=postgres pytest` runs it on the database in `FLOORBIT_TEST_POSTGRES_URL`
+(emptied before each test). CI runs both.

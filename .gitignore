@@ -42,6 +42,10 @@ env/
 
 # Project specific
 data.json
+# The database a local run keeps next to it (floorbit/database.py)
+floorbit.db
+floorbit.db-wal
+floorbit.db-shm
 checkins.json
 audit.jsonl
 timeline.jsonl

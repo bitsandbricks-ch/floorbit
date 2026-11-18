@@ -23,7 +23,7 @@ Discord state, and the event list, `tenant.json`.
 learned seat ports, the timeline, the whole-event recording, syslog, flow, DNS and LANcache figures,
 config backups and the last good monitoring data.
 
-In a database (`FLOORBIT_DATABASE_URL`), the folder is the start of the document's key, so
+In the database ([database.md](database.md)), the folder is the start of the document's key, so
 `event-data/lan-2027/data.json` is a row of its own next to `data.json`.
 
 ## The event list

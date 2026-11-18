@@ -37,9 +37,8 @@ line per run, by "nightly backup". Switches without a stored login are left out;
 - **Noise is left out.** "Last configuration change at", "Current configuration : n bytes", the
   NTP clock period and lines like them change without anyone changing anything.
 - **Only changes are kept.** A backup that matches the switch's last copy only updates "Last backup".
-- At most `CONFIG_KEEP` (50) copies per switch, in the database when there is one
-  ([database.md](database.md)), else in `configs/` next to `data.json`; the oldest go
-  first, but never the baseline.
+- At most `CONFIG_KEEP` (50) copies per switch, in the database ([database.md](database.md));
+  the oldest go first, but never the baseline.
 
 ## Baseline and diff
 

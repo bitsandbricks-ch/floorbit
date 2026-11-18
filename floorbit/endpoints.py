@@ -6,7 +6,7 @@ open while it keeps being seen and gets a new one when the machine moves, change
 for ``GAP``. So the crew can search an IP or a MAC fast, and see a port's or a seat's history.
 
 Kept in the database (table ``floorbit_endpoints``, SQLite or Postgres) for ``keep_days()``
-(``FLOORBIT_ENDPOINT_DAYS``, 7 by default); with plain files, the last day in memory only. Shown
+(``FLOORBIT_ENDPOINT_DAYS``, 7 by default). Shown
 only to roles with ``seats.view``, like everything else that names the machines at the seats.
 """
 import ipaddress
@@ -16,7 +16,6 @@ import threading
 import time
 
 GAP = 15 * 60                 # gone longer than this: the next sighting is a new row
-MEMORY_HOURS = 24
 CHUNK = 200                   # rows per INSERT
 LIMIT = 200
 COLUMNS = ('mac', 'ip', 'device', 'port_key', 'first_seen', 'port', 'seat', 'vlan', 'last_seen')
@@ -61,11 +60,10 @@ def _seats():
 
 
 class History:
-    def __init__(self, db=None):
-        self.db = db
+    def __init__(self, db):
+        self.db = db                  # floorbit.database.Sql
         self._lock = threading.Lock()
         self.open = None              # (mac, ip, device, port_key) -> row, the rows still being seen
-        self.memory = []              # without a database
         self.written = 0
         self.error = None
         self._pruned = 0.0
@@ -73,8 +71,6 @@ class History:
     # ── writing ──
     def _load_open(self, now):
         self.open = {}
-        if self.db is None:
-            return
         rows = self.db.run(f'SELECT {", ".join(COLUMNS)} FROM floorbit_endpoints WHERE last_seen >= ?',
                            (int(now - GAP),), fetch=True) or []
         for r in rows:
@@ -117,8 +113,6 @@ class History:
                         'mac': mac, 'ip': ip, 'device': device, 'port_key': key[3], 'first_seen': now,
                         'port': port, 'seat': seats.get((device.lower(), key[3]), '') if port else '',
                         'vlan': int(vlan) if str(vlan or '').isdigit() else None, 'last_seen': now}
-                    if self.db is None:
-                        self.memory.append(row)
                 elif now > row['last_seen']:
                     row['last_seen'] = now
                 else:
@@ -127,9 +121,7 @@ class History:
             # Rows not seen for a while are closed: forget them here, they stay in the table.
             latest = max([now, *(r['last_seen'] for r in self.open.values())])
             self.open = {k: r for k, r in self.open.items() if latest - r['last_seen'] <= GAP}
-            if self.db is None:
-                self.memory = [r for r in self.memory if r['last_seen'] >= now - MEMORY_HOURS * 3600]
-        if self.db is not None and changed:
+        if changed:
             try:
                 self._write(changed)
             except DatabaseError as exc:      # the database is away: skip this round, never stop
@@ -155,8 +147,6 @@ class History:
         from .database import DatabaseError
         now = time.time() if now is None else now
         self._pruned = now
-        if self.db is None:
-            return
         try:
             self.db.run('DELETE FROM floorbit_endpoints WHERE last_seen < ?', (int(now - keep_days() * 86400),))
         except DatabaseError as exc:
@@ -164,16 +154,9 @@ class History:
 
     # ── reading ──
     def _select(self, where, args, limit):
-        if self.db is None:
-            return None
         rows = self.db.run(f'SELECT {", ".join(COLUMNS)} FROM floorbit_endpoints WHERE {where} '
                            f'ORDER BY last_seen DESC LIMIT {int(limit)}', args, fetch=True) or []
         return [dict(zip(COLUMNS, r, strict=True)) for r in rows]
-
-    def _memory(self, test, limit):
-        with self._lock:
-            found = [dict(r) for r in self.memory if test(r)]
-        return sorted(found, key=lambda r: r['last_seen'], reverse=True)[:limit]
 
     def search(self, query, limit=LIMIT):
         """Rows whose IP starts with ``query`` or whose MAC holds it (any notation), newest first."""
@@ -193,8 +176,6 @@ class History:
             clauses.append('mac LIKE ?')
             args.append(f'%{digits}%')
         rows = self._select(' OR '.join(clauses), args, limit)
-        if rows is None:
-            rows = self._memory(lambda r: (as_ip and r['ip'].startswith(q)) or (as_mac and digits in r['mac']), limit)
         # The exact IP or MAC first, then the newest: "192.0.2.2" before 192.0.2.254.
         rows.sort(key=lambda r: (r['ip'] != q and r['mac'] != digits, -r['last_seen']))
         return [_public(r) for r in rows]
@@ -202,8 +183,6 @@ class History:
     def at_port(self, device, port, limit=LIMIT):
         device, key = str(device or ''), _port_key(port)
         rows = self._select('LOWER(device) = ? AND port_key = ?', (device.lower(), key), limit)
-        if rows is None:
-            rows = self._memory(lambda r: r['device'].lower() == device.lower() and r['port_key'] == key, limit)
         return [_public(r) for r in rows]
 
     def at_seat(self, seat, limit=LIMIT):
@@ -216,14 +195,11 @@ class History:
             where.append('(LOWER(device) = ? AND port_key = ?)')
             args += [device, key]
         rows = self._select(' OR '.join(where), args, limit)
-        if rows is None:
-            rows = self._memory(lambda r: r['seat'] == seat or (r['device'].lower(), r['port_key']) in ports, limit)
         return [_public(r) for r in rows]
 
     def status(self):
-        return {'store': 'database' if self.db is not None else 'memory', 'written': self.written,
-                'open': len(self.open or {}), 'keep_days': keep_days() if self.db is not None else 1,
-                'error': self.error}
+        return {'store': 'database', 'written': self.written, 'open': len(self.open or {}),
+                'keep_days': keep_days(), 'error': self.error}
 
 
 def _public(r):
@@ -254,8 +230,7 @@ def history():
     global _history
     if _history is None:
         from . import database
-        backend = database.backend()
-        _history = History(backend if hasattr(backend, 'run') else None)
+        _history = History(database.backend())
     return _history
 
 

@@ -66,10 +66,10 @@ def test_old_rows_are_pruned(db, monkeypatch):
     assert h.search("020000000007") == []
 
 
-def test_without_a_database_the_last_day_stays_in_memory():
-    h = endpoints.History(None)
+def test_the_history_is_on_floorbits_own_database_by_default():
+    h = endpoints.history()
     h.record([{"mac": "02:00:00:00:00:07", "ip": "192.0.2.40", "device": "sw-a-01", "port": "Gi1/0/1"}], NOW)
-    assert h.search("192.0.2.40")[0]["seat"] == "A-1" and h.status()["store"] == "memory"
+    assert h.search("192.0.2.40")[0]["seat"] == "A-1" and h.status()["store"] == "database"
 
 
 @pytest.mark.parametrize(("query", "address"), [
@@ -157,10 +157,10 @@ def test_the_agents_time_is_kept_within_its_spool():
     assert abs(plugin._when({"at": True}) - now) < 5
 
 
-def test_a_nul_byte_from_the_network_is_dropped_not_stored():
+def test_a_nul_byte_from_the_network_is_dropped_not_stored(db):
     """Postgres refuses NUL in text; one such name used to fail its whole batch on every report."""
-    h = endpoints.History()
+    h = endpoints.History(db)
     seen = {"mac": "00:11:22:33:44:55", "ip": "192.0.2.5\x00", "device": "sw\x001", "port": "Gi1/0/1\x00"}
     h.record([seen], now=1000)
-    [row] = h.memory
+    [row] = h.search("00:11:22:33:44:55")
     assert (row["ip"], row["device"], row["port"]) == ("192.0.2.5", "sw1", "Gi1/0/1")

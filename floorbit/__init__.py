@@ -47,6 +47,11 @@ def create_app(start_background=True):
     app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 
     from . import database
+    # Before waiting for it: SQLite in a folder this process can't write never comes up.
+    stuck = store.unwritable() if database.backend().kind == 'sqlite' else []
+    if stuck:
+        print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
+              "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
     where = database.wait_until_ready()
     print(f"[store] Keeping documents in {where['where']}")
     if not where['ok']:
@@ -54,10 +59,6 @@ def create_app(start_background=True):
               "off, and Floorbit keeps trying in the background (docs/database.md).", flush=True)
     if start_background:
         database.watch()
-    stuck = store.unwritable() if where['kind'] == 'files' else []
-    if stuck:
-        print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
-              "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
 
     # Stored data from an older Floorbit moves to the current shape, once (floorbit/upgrades.py).
     from . import upgrades

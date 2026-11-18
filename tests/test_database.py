@@ -1,4 +1,4 @@
-"""Where documents live (issue #464): files, SQLite or Postgres, and the one-time import."""
+"""Where documents live (issue #464): SQLite or Postgres, and the one-time import of the old files."""
 import json
 import os
 import threading
@@ -17,12 +17,14 @@ def sqlite_db(tmp_path, monkeypatch):
     database.backend().close()
 
 
-def test_files_by_default(tmp_path, monkeypatch):
+def test_sqlite_in_the_state_folder_by_default(tmp_path, monkeypatch):
     monkeypatch.delenv(database.ENV, raising=False)
     monkeypatch.setattr(store, "DATA_FILE", str(tmp_path / "data.json"))
-    assert database.status() == {"kind": "files", "where": f"files in {tmp_path}", "ok": True}
+    where = f"sqlite (sqlite:///{tmp_path / database.DEFAULT_FILE})"
+    assert database.status() == {"kind": "sqlite", "where": where, "ok": True}
     store.write_json(str(tmp_path / "data.json"), {"a": 1})
-    assert json.loads((tmp_path / "data.json").read_text()) == {"a": 1}
+    assert store.read_json(str(tmp_path / "data.json")) == {"a": 1}
+    assert (tmp_path / database.DEFAULT_FILE).exists() and not (tmp_path / "data.json").exists()
 
 
 def test_a_file_is_imported_once_and_then_left_alone(sqlite_db):

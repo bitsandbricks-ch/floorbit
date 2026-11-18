@@ -8,8 +8,8 @@ It times the parts that grow with the seat count:
 - the patch plan check (``patch_check.check``),
 - every seat checking in once (``checkin.check_in``) and reading the check-in history back.
 
-    python scripts/load_test.py                       # 4000 seats, files
-    python scripts/load_test.py --seats 4000 --database sqlite --fdb-ms 1000
+    python scripts/load_test.py                       # 4000 seats
+    python scripts/load_test.py --seats 4000 --fdb-ms 1000
 
 The numbers in docs/sizing.md come from this script.
 """
@@ -77,17 +77,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     ap.add_argument('--seats', type=int, default=4000)
     ap.add_argument('--ports', type=int, default=48, help='seat ports per access switch')
-    ap.add_argument('--database', choices=('files', 'sqlite'), default='files')
     ap.add_argument('--fdb-ms', type=float, default=0, help='pretend LibreNMS time per MAC table read')
     args = ap.parse_args(argv)
 
     tmp = tempfile.mkdtemp(prefix='floorbit-load-')
     os.environ['CHECKIN_FILE'] = os.path.join(tmp, 'checkins.json')
     os.environ.pop('CHECKIN_ALLOWED_NETWORKS', None)
-    if args.database == 'sqlite':
-        os.environ['FLOORBIT_DATABASE_URL'] = f'sqlite:///{tmp}/floorbit.db'
-    else:
-        os.environ.pop('FLOORBIT_DATABASE_URL', None)
+    os.environ['FLOORBIT_DATABASE_URL'] = f'sqlite:///{tmp}/floorbit.db'     # never the real one
 
     from floorbit import cables as cables_mod
     from floorbit import patch_check, port_clients, store
@@ -118,7 +114,7 @@ def main(argv=None):
     rows = timed('Check-in history: read back', history.read_all, results)
     assert len(rows) == args.seats, len(rows)
 
-    print(f'{args.seats} seats, {len(switches)} switches, {args.database}, '
+    print(f'{args.seats} seats, {len(switches)} switches, SQLite, '
           f'{args.fdb_ms:g} ms per MAC table read')
     for label, took, per in results:
         each = f'  ({took / per * 1000:.1f} ms each)' if per else ''

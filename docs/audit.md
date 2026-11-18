@@ -21,9 +21,9 @@ Filter by area, account or any text, and download what you see as CSV.
 
 ## Where it is kept
 
-One JSON line per entry in `audit.jsonl`, next to `data.json`, or at `AUDIT_FILE`. With a [database](database.md#logs) the entries are rows there instead. The Compose
-file puts it in the `state` volume (`/app/state/audit.jsonl`) so it survives a new container.
-When the file passes 2 MB the oldest half is dropped, which keeps tens of thousands of entries.
+One row per entry in the [database](database.md#logs), in the log named after `audit.jsonl` (next to
+`data.json`, or `AUDIT_FILE`); an `audit.jsonl` from before the database is imported once. When the
+log passes 2 MB the oldest half is dropped, which keeps tens of thousands of entries.
 
 It is not in a backup (see [backup.md](backup.md)): it records what happened on this server.
 
