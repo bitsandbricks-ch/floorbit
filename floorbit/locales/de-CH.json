@@ -555,6 +555,8 @@
  "The server query failed: {}": "Die Serverabfrage ist fehlgeschlagen: {}",
  "The server refused the RCON password.": "Der Server hat das RCON-Passwort abgelehnt.",
  "The server sent an RCON packet Floorbit cannot read.": "Der Server hat ein RCON-Paket geschickt, das Floorbit nicht lesen kann.",
+ "The server never answered the RCON login.": "Der Server hat nie auf die RCON-Anmeldung geantwortet.",
+ "The server answered something Floorbit cannot read.": "Der Server hat etwas geantwortet, das Floorbit nicht lesen kann.",
  "The port is a number from 1 to 65535.": "Der Port ist eine Zahl von 1 bis 65535.",
  "The RCON port is a number from 1 to 65535.": "Der RCON-Port ist eine Zahl von 1 bis 65535.",
  "There is already a game server called {}.": "Es gibt schon einen Gameserver namens {}.",

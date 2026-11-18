@@ -35,6 +35,7 @@ DESTRUCTIVE = frozenset((
     'kill-all', 'reload', 'sv_password', 'rcon_password', 'removeid', 'writeid',
 ))
 MAX_COMMAND = 500
+UNREADABLE = 'The server answered something Floorbit cannot read.'
 _lock = threading.Lock()
 
 
@@ -248,6 +249,9 @@ class Poller:
             info, error, status = _info(_ask('game_query', server['query'], server['host'], server['port'])), '', 'up'
         except game_query.QueryError as exc:
             info, error, status = None, str(exc), 'down'
+        except Exception as exc:  # noqa: BLE001  # one odd server must not stop the others' poll
+            print(f"[game-servers] {server.get('name')}: {type(exc).__name__}: {exc}")
+            info, error, status = None, UNREADABLE, 'down'
         with self._lock:
             old = self._state.get(server['id']) or {}
             history = [*(old.get('history') or [])[-(HISTORY - 1):], [round(now), info['players'] if info else None]]
