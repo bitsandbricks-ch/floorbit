@@ -115,8 +115,6 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `ATTENTION_INTERVAL` | `120` | seconds between reads of every port for the needs-attention list (at least 30; [alerts.md](alerts.md#needs-attention)) |
 | `ATTENTION_FLAPS` | `3` | link changes within ten minutes that count as flapping |
 | `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
-| `SEAT_FINDER` | `true` | the public "find your seat" page `/find` ([kiosk.md](kiosk.md#find-your-seat)) |
-| `SEAT_FINDER_NICKS` | `false` | let `/find` also find a seat by the exact nick |
 | `CABLE_AUTO` | `true` | draw a cable to every seat whose switch port is known ([cables.md](cables.md#cables-drawn-on-the-floor-plan)); also under Settings > Cabling |
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
 | `METRICS_ENABLED` | `false` | Prometheus metrics at `/api/metrics` ([metrics.md](metrics.md)); also under Settings > Prometheus metrics |
@@ -178,7 +176,7 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 |---|---|---|
 | `CHECKIN_ENABLED` | `false` | |
 | `CHECKIN_ALLOWED_NETWORKS` | | CIDRs, e.g. `10.0.0.0/16`. Rejects check-ins from elsewhere (VPN, NAT, guest Wi-Fi) |
-| `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, seat finder, sign-in lockout); only behind a proxy you control |
+| `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
 | `SEAT_WALK_AGENT_URL` | | where laptops in the hall reach the local agent's captive port, for the [seat walk-through](seat-walk.md); empty takes what the agent reports (`FLOORBIT_AGENT_LAN_URL`) |

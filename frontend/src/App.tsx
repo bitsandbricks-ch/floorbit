@@ -68,7 +68,6 @@ const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const PublicWall = lazy(() => import('@/pages/public/PublicWall'))
 const PublicAgenda = lazy(() => import('@/pages/public/PublicAgenda'))
-const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
 const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
 const Forbidden = lazy(() => import('@/pages/Forbidden'))
 const SeatHelp = lazy(() => import('@/pages/public/SeatHelp'))
@@ -103,7 +102,6 @@ export default function App() {
           <Route path="/status" element={<PublicStatus />} />
           <Route path="/wall" element={<PublicWall />} />
           <Route path="/agenda" element={<PublicAgenda />} />
-          <Route path="/find" element={<PublicFind />} />
           <Route path="/help/:seat" element={<SeatHelp />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />

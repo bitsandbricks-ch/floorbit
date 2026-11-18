@@ -112,8 +112,8 @@ each seat is plugged into.
 - **Logs:** a syslog receiver for the switches, firewalls and DHCP servers: search by device, seat,
   port and level, and follow along live. Off until turned on, allow-listed and capped. See
   [docs/syslog.md](docs/syslog.md).
-- **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer,
-  with a QR code to a "find your seat" page for players' phones. See [docs/kiosk.md](docs/kiosk.md).
+- **Big screens:** `/screen` rotates the floor plan, a traffic heat view and the stats on a timer.
+  See [docs/kiosk.md](docs/kiosk.md).
 - **Network status page:** `/status` tells attendees whether the network is running, which halls,
   blocks and rows an outage hits, and the crew's updates. No switch names or IPs. See [docs/status-page.md](docs/status-page.md).
 - **Schedule and countdown:** leads plan talks, tournaments, meals and quiet hours on `/schedule`

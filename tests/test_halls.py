@@ -127,14 +127,6 @@ def test_backup_with_a_bad_hall_is_refused(client):
     assert client.post("/api/settings/backup", json=backup).status_code == 400
 
 
-def test_seat_finder_names_the_hall(client, anon_client, two_halls):
-    h2 = two_halls["hall2"]["id"]
-    client.post("/api/seat-blocks", json={"name": "B", "x": 50, "y": 50, "cols": 2, "rows": 1, "hall_id": h2})
-    body = anon_client.get("/api/seat-finder?q=B-1").get_json()
-    assert body["found"]["seat"] == "B-1" and body["found"]["hall"] == "Hall 2"
-    assert [c["seat"] for b in body["drawing"]["shapes"] for c in b["cells"]] == ["B-1", "B-2"]   # only hall 2
-
-
 def test_screen_passes_the_hall_on(client, two_halls):
     h2 = two_halls["hall2"]["id"]
     views = client.get(f"/api/screen?views=floor,stats&hall={h2}").get_json()["views"]

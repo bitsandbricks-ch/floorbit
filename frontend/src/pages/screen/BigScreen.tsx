@@ -14,7 +14,6 @@ import './screen.css'
 export interface ScreenSetup {
   views: { id: string; url: string }[]
   every: number
-  qr: { url: string; image: string } | null
 }
 
 interface Turn { at: number; reached: number; paused: boolean }
@@ -40,11 +39,11 @@ function turn(state: Turn, step: Step): Turn {
   return { ...state, at, reached: Math.max(state.reached, at) }
 }
 
-/** ``/screen``: the big screen in the hall, one view at a time with a QR code to the seat finder
+/** ``/screen``: the big screen in the hall, one view at a time
  *  (docs/kiosk.md). A view loads one turn before it is shown and stays loaded afterwards, so it
  *  keeps its live updates. Moving the mouse shows which view is on, with buttons to step through. */
 export default function BigScreen() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { search } = useLocation()
   const q = useQuery({ queryKey: qk.screen(search), queryFn: () => get<ScreenSetup>(`/api/screen${search}`) })
   const views = q.data?.views ?? []
@@ -72,8 +71,6 @@ export default function BigScreen() {
   }, [onKey])
 
   if (q.error) return <div className="fb-screen fb-screen--error"><ErrorBanner error={q.error} onRetry={() => q.refetch()} /></div>
-  // The QR card says it in the screen's language and the other one: a hall full of guests reads both.
-  const other = i18n.getFixedT(i18n.language.startsWith('de') ? 'en' : 'de-CH')
   const name = (id: string) => t(`screen.views.${id}`, { defaultValue: id })
   return (
     <div className={`fb-screen${idle ? ' fb-screen--idle' : ''}`}>
@@ -83,12 +80,6 @@ export default function BigScreen() {
                 aria-hidden={i !== state.at} tabIndex={i === state.at ? 0 : -1}
                 onLoad={(e) => passOn(e.currentTarget)} />
       ))}
-      {q.data?.qr && (
-        <aside className="fb-screen-qr" aria-label={t('screen.find')}>
-          <img src={q.data.qr.image} alt={t('screen.qrAlt', { url: q.data.qr.url })} />
-          <div>{t('screen.find')}<small>{other('screen.find')}</small><small>{q.data.qr.url}</small></div>
-        </aside>
-      )}
       {count > 1 && (
         <Group className="fb-screen-controls" gap={6} wrap="nowrap">
           <Tooltip label={t('screen.prev')}><ActionIcon variant="default" size="lg" aria-label={t('screen.prev')}

@@ -20,7 +20,7 @@ you add a second one.
 
 A switch is placed in the hall shown when you place it; unplaced switches show in every hall's list.
 Block names stay unique across halls, so seat numbers do too, and everything that works with seats
-(seat mapping, stats, incidents, power, the seat finder) works the same with more than one hall.
+(seat mapping, stats, incidents, power) works the same with more than one hall.
 
 ## Background image
 
@@ -213,8 +213,7 @@ bookmark or a big screen (`&screen=1`) shows the same. Old links with `?traffic=
 
 Safety and services are marks: in the editor, pick the **Layer** of a label, wall, zone or icon. New
 extinguisher, escape route and assembly point icons land on Safety, a server on Services, a router or access
-point on Network, a power or socket icon on Electrical. Attendee pages (`/find`) show the Overview
-and Safety marks only.
+point on Network, a power or socket icon on Electrical.
 
 In the editor, the **Layers** panel on the right (<kbd>L</kbd>) has the same five mark layers (Overview, Safety, Network,
 Electrical, Services). Switching one off hides its marks while you edit, so a busy plan can be worked on one
@@ -225,7 +224,6 @@ on. **Open these layers on the Seats view** opens this hall there with the same 
 
 - `/kiosk?hall=<id>` (or `/dashboards/<id>?hall=<id>`) shows another hall than the first; `/screen?hall=<id>` passes it on to its
   floor plan views. With more than one hall, the kiosk heading names the hall.
-- The seat finder (`/find`) draws the hall the seat is in and names it.
 
 ## API
 

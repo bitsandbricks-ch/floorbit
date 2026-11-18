@@ -3,8 +3,7 @@ import { blockTop } from '@/pages/plan/blockTop'
 import { PlanMarks } from '@/pages/plan/PlanMarks'
 
 /** A hall's seat blocks with its walls, zones, labels and icons, as the public pages draw it from
- *  ``floorbit/blueprints/screen.py`` ``plan()``: the attendee view colours the online seats, the
- *  seat finder rings the one seat found. */
+ *  ``floorbit/blueprints/screen.py`` ``plan()``: the attendee view colours the online seats. */
 export function HallSketch({ drawing, label, cellClass, ring }: {
   drawing: PlanDrawing; label: string
   cellClass: (c: PlanCell) => string
