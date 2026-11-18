@@ -139,3 +139,17 @@ Never build a path from `store.DATA_FILE`. Use:
 - `store.load_data()` and `store.save_data()` for the current event's `data.json`.
 
 Code runs for the live event unless it picks another one with `tenancy.using_event(event)`.
+
+## What keeps tenants apart
+
+Tenants on one platform share the database, Redis and often the S3 bucket and `SECRET_KEY`.
+`tests/test_tenant_isolation.py` plays several tenants in one process and tries to cross over:
+
+| What | How it stays the tenant's own |
+| --- | --- |
+| Documents | Every path comes from `store.tenant_path`/`event_path`, so from the tenant's folder; a configured file (`MONITORING_CACHE_FILE`, `AUDIT_FILE`, ...) goes into it too |
+| Sign-in | The session cookie names the tenant that signed it in; another tenant drops it, even with the same `SECRET_KEY` and username |
+| API tokens, agent keys | Kept in the tenant's accounts and agent list, so another tenant doesn't know them |
+| Redis keys and live updates | Prefixed with the tenant's name; the live-update channel too |
+| S3 backups | Each tenant lists, prunes and restores only its own folder |
+| Seat help links | Signed with the tenant's name (the default tenant's as before, so printed cards keep working) |
