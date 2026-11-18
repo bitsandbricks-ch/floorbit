@@ -108,7 +108,6 @@ nav:
       - Network status page: status-page.md
       - Stats wall: stats-wall.md
       - Schedule and countdown: schedule.md
-      - Runbooks: runbooks.md
       - Past events: events.md
   - Extend:
       - Plugins: plugins.md

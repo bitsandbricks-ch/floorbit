@@ -56,7 +56,6 @@ from . import (
                problems,
                replay,
                report,
-               runbooks,
                s3_backup,
                schedule,
                screen,
@@ -95,5 +94,5 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        features.bp, firewalls.bp, api_tokens.bp, agent.bp, agent_plugins.bp, telemetry.bp, endpoints.bp, webhooks.bp,
        wifi.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
-       runbooks.bp, stats_wall.bp, schedule.bp, plan.bp, metrics.bp, notice.bp, options.bp,
+       stats_wall.bp, schedule.bp, plan.bp, metrics.bp, notice.bp, options.bp,
        lancache.bp, marketplace.bp, dashboards.bp, nav_sections.bp]

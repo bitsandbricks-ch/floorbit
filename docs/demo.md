@@ -98,7 +98,7 @@ Check-in is turned on as well, unless a setting already says otherwise.
 
 ## Language
 
-Hall names, plan labels, incidents, status updates, the runbook and the schedule are written in English.
+Hall names, plan labels, incidents, status updates and the schedule are written in English.
 Set `FLOORBIT_DEMO_LANGUAGE=de` before the demo is laid out to get them in Swiss German. What the demo
 reports live (health tiles, findings) follows each viewer's language anyway.
 

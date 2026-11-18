@@ -41,7 +41,6 @@ export const qk = {
   speedtests: ['speedtests'] as const,
   timeline: (query: string) => ['timeline', query] as const,
   statusPage: ['status-page'] as const,
-  runbooks: ['runbooks'] as const,
   schedule: ['schedule'] as const,
   events: ['events'] as const,
   features: ['features'] as const,
