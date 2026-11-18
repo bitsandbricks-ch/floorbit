@@ -53,7 +53,7 @@ export function EntitySelect({ kind, value, onChange, switchName, panelName, sho
     <Select searchable clearable={!rest.required} allowDeselect={false} data={data} value={value || null}
       onChange={(v) => onChange(v ?? '')}
       disabled={rest.disabled || (needsSwitch && !parent?.name)}
-      placeholder={needsSwitch && !parent?.name ? t(kind === 'ports' ? 'ui.pickSwitchFirst' : 'ui.pickPanelFirst') : rest.placeholder}
+      placeholder={needsSwitch && !parent?.name ? t(kind === 'ports' ? 'ui.pickSwitchFirst' : 'ui.pickPanelFirst') : (rest.placeholder ?? t('ui.pickFromList'))}
       nothingFoundMessage={query.isPending ? t('common.loading') : t('ui.nothingFound')}
       renderOption={({ option, checked }) => {
         const o = byValue.get(option.value)

@@ -320,7 +320,7 @@
     },
     "integrations_checkin_validate_seats": {
       "label": "Nur Plätze vom Plan annehmen",
-      "help": "Platznummern abweisen, die in keinem Platzblock sind."
+      "help": "Platznummern abweisen, die in keinem Sitzblock sind."
     },
     "integrations_captive_enabled": {
       "label": "Captive Portal (DHCP-Option 114)",
@@ -768,7 +768,7 @@
   "plugins": {
     "librenms": "Live-Status der Switches, Port-Details und Verkehr, und an welchem Switch-Port eine IP oder MAC hängt (ARP- und MAC-Tabellen). Speist den Hallenplan, die Platz-Heatmap, die Statusüberwachung und die Check-in-Seite.",
     "netbox": "Übernimmt die Geräte mit den eingestellten Rollen aus NetBox ins Inventar (Name, Rolle, Modell, Seriennummer, Management-IP, Standort und Status). Felder, die in Floorbit von Hand geändert wurden, bleiben, wie sie sind.",
-    "demo": "Eine erfundene Halle: Switches, Platzblöcke, Spieler auf Dokumentations-IPs, Ports, die aus- und angehen, und Verkehr, der sich bewegt. Nichts davon ist echt: Beispielnamen, 192.0.2.0/24 und 198.51.100.0/24. Solange es an ist, ersetzt es die Live-Überwachungsquelle und füllt die Health-Wall.",
+    "demo": "Eine erfundene Halle: Switches, Sitzblöcke, Spieler auf Dokumentations-IPs, Ports, die aus- und angehen, und Verkehr, der sich bewegt. Nichts davon ist echt: Beispielnamen, 192.0.2.0/24 und 198.51.100.0/24. Solange es an ist, ersetzt es die Live-Überwachungsquelle und füllt die Health-Wall.",
     "lancache": "Was der LAN-Cache ausgeliefert hat (pro Dienst, von der Disk oder aus dem Internet), die Downloads, die genug Spieler geholt haben, Abfragen bei lancache-dns, seine Disk und ob er antwortet. Gelesen vom lokalen Agenten in der Halle; nur Zahlen für die ganze Halle.",
     "syslog-relay": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten.",
     "netflow-relay": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten.",

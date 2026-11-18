@@ -109,7 +109,7 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
           }} />
       </div>
       {pane.area.kind === 'block' && (
-        <Select label={t('dashboards.area.block')} allowDeselect={false} searchable value={pane.area.id || null}
+        <Select label={t('dashboards.area.block')} allowDeselect={false} searchable placeholder={t('ui.pickBlock')} value={pane.area.id || null}
           data={blocks.map((b) => b.name)} nothingFoundMessage={t('dashboards.form.noBlocks')}
           onChange={(v) => v && setArea({ kind: 'block', id: v })} />
       )}

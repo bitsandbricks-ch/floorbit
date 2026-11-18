@@ -346,7 +346,7 @@ export default function SeatWalk() {
           <Paper withBorder radius="lg" p="lg">
             <Stack gap="sm">
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                <Select label={t('seatWalk.block')} required searchable value={block || null} onChange={(v) => setBlock(v ?? '')}
+                <Select label={t('seatWalk.block')} required searchable placeholder={t('ui.pickBlock')} value={block || null} onChange={(v) => setBlock(v ?? '')}
                   data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.name || '–'} (${b.cols * b.rows})` }))} />
                 <Select label={t('seatWalk.order')} allowDeselect={false} value={order} onChange={(v) => setOrder(v ?? 'rows')}
                   data={[{ value: 'rows', label: t('seatWalk.orderRows') }, { value: 'snake', label: t('seatWalk.orderSnake') }]} />

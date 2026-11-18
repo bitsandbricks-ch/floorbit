@@ -16,5 +16,7 @@
     "pdu": "PDUs"
   },
   "noPanelPorts": "This patch panel has no port count yet: type the port, or place the panel on the plan.",
-  "pickPanelFirst": "Pick the patch panel first"
+  "pickPanelFirst": "Pick the patch panel first",
+  "pickBlock": "Pick a seat block",
+  "pickFromList": "Pick from the list"
 }

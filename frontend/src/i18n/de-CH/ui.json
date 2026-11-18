@@ -16,5 +16,7 @@
     "pdu": "PDUs"
   },
   "noPanelPorts": "Für dieses Patchpanel ist keine Portzahl hinterlegt: Port eintippen oder das Panel auf dem Plan platzieren.",
-  "pickPanelFirst": "Zuerst das Patchpanel wählen"
+  "pickPanelFirst": "Zuerst das Patchpanel wählen",
+  "pickBlock": "Sitzblock wählen",
+  "pickFromList": "Aus der Liste wählen"
 }
