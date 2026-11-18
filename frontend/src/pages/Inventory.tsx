@@ -20,7 +20,7 @@ import { EntryPanel } from './inventory/EntryPanel'
 import { IconLibrary } from './inventory/IconLibrary'
 import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
-import { effectiveLook, matches, roleIcon, typeName, type Draft } from './inventory/model'
+import { effectiveLook, matches, roleIcon, statusLabel, typeName, type Draft } from './inventory/model'
 import { groupAndBelow, useInventoryGroups, useInventoryTypes } from './inventory/scope'
 import { LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
@@ -299,7 +299,7 @@ export default function Inventory() {
                         <Table.Td>{groupName(d.group_id)}</Table.Td>
                         <Table.Td>{d.model}</Table.Td>
                         <Table.Td ff="monospace">{d.mgmt_ip}</Table.Td>
-                        <Table.Td>{d.status}</Table.Td>
+                        <Table.Td>{statusLabel(t, d.status)}</Table.Td>
                         <Table.Td>{d.interface_count || ''}</Table.Td>
                         <Table.Td>
                           <Group gap={4}>

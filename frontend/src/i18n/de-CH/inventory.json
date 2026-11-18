@@ -364,5 +364,15 @@
     "vm": "VM",
     "game": "Gameserver",
     "via": "auf {{name}}"
+  },
+  "statusName": {
+    "active": "Aktiv",
+    "planned": "Geplant",
+    "staged": "Vorbereitet",
+    "offline": "Offline",
+    "failed": "Defekt",
+    "decommissioning": "Wird ausgemustert",
+    "inventory": "Im Lager",
+    "none": "Kein Status"
   }
 }

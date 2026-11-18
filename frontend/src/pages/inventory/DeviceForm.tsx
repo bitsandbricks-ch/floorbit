@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { INVENTORY_FIELDS, SPEC_FIELDS, type Device, type InventoryField, type InventoryOverview } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { FieldInputs } from './FieldInputs'
-import { draftOf, fedValue, SPEC_ROLES, type Draft } from './model'
+import { DEVICE_STATUSES, draftOf, fedValue, SPEC_ROLES, statusLabel, type Draft } from './model'
 import { groupTree, useInventoryTypes } from './scope'
 import { LookFields, TagPicker } from './ScopeEditors'
 
@@ -129,7 +129,19 @@ export function DeviceForm({
             {field('mgmt_ip', { mono: true, placeholder: '192.0.2.10' })}
             {field('hall')}
           </Group>
-          {field('status', { placeholder: 'active' })}
+          <Select
+            label={t('inventory.field.status')}
+            data={[
+              { value: '', label: t('inventory.statusName.none') },
+              ...[...DEVICE_STATUSES, ...(draft.status && !(DEVICE_STATUSES as readonly string[]).includes(draft.status) ? [draft.status] : [])]
+                .map((s) => ({ value: s, label: statusLabel(t, s) })),
+            ]}
+            value={draft.status}
+            onChange={(v) => set('status')(v ?? '')}
+            allowDeselect={false}
+            description={hint('status')}
+            rightSection={lockFor('status')}
+          />
           <Button variant="subtle" size="compact-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setSpecsOpen((o) => !o)}
             rightSection={<IconChevronDown size={14} style={{ transform: showSpecs ? 'rotate(180deg)' : undefined }} />}
             disabled={SPEC_ROLES.includes(draft.role)}>

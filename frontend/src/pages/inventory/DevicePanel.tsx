@@ -11,7 +11,7 @@ import { Field, LoadingState, PanelSection, SidePanel } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { DeviceIcon } from './icons'
 import { InterfacesPanel } from './InterfacesPanel'
-import { credentialBody, roleIcon, speedLabel, typeName } from './model'
+import { credentialBody, roleIcon, speedLabel, statusLabel, typeName } from './model'
 import { useCustomIcons, useDeviceDetail, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
@@ -104,7 +104,7 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
               <PanelSection label={t('inventory.tabs.overview')}>
                 <SimpleGrid cols={2} spacing="sm">
                   {(['model', 'serial', 'mgmt_ip', 'hall', 'status'] as const).filter((f) => dev[f]).map((f) => (
-                    <Field key={f} label={t(`inventory.field.${f}`)}>{dev[f]}</Field>
+                    <Field key={f} label={t(`inventory.field.${f}`)}>{f === 'status' ? statusLabel(t, dev[f]) : dev[f]}</Field>
                   ))}
                   <Field label={t('inventory.placedLabel')}>{dev.placed ? t('inventory.placed') : t('inventory.notPlaced')}</Field>
                 </SimpleGrid>

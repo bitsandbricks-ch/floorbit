@@ -75,3 +75,11 @@ export function credentialBody(ownerType: string, ownerId: string, d: { kind: st
 export function typeName(t: (k: string, o?: Record<string, unknown>) => string, type: InventoryType) {
   return type.builtin ? t(`inventory.types.name.${type.id}`, { defaultValue: type.name }) : type.name
 }
+
+/** The statuses the server keeps (floorbit/inventory.py STATUSES); NetBox uses the same words. */
+export const DEVICE_STATUSES = ['active', 'planned', 'staged', 'offline', 'failed', 'decommissioning', 'inventory'] as const
+
+/** A status in the reader's language; one we don't know (from an older import) stays as it came. */
+export function statusLabel(t: (k: string, o?: Record<string, unknown>) => string, status: string) {
+  return status ? t(`inventory.statusName.${status}`, { defaultValue: status }) : ''
+}
