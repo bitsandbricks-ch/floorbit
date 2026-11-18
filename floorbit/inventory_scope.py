@@ -16,8 +16,8 @@ What a device ends up with is looked up from the most specific place to the leas
     > its tags > ... > the defaults
 
 A feature switch or credential takes the first place that sets it; properties are merged, the
-most specific value winning. For SSH, the stored switch logins (floorbit/credentials.py, by name
-pattern) come last, so they keep working.
+most specific value winning. (The older Settings > Switch logins, by name pattern, became
+credentials here: floorbit/upgrades.py.)
 
 **Features** are Floorbit's per-device features (port actions, switch commands, the terminal,
 config backups; on unless switched off) and plugins (off unless switched on somewhere): an agent
@@ -48,7 +48,7 @@ MAX_DEPTH = 8
 MAX_PROPERTIES = 50
 PROP_KEY_RE = re.compile(r'^[a-z][a-z0-9_.-]{0,39}$')
 NAME_RE = re.compile(r'^[^\x00-\x1f]{1,60}$')
-USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}$')
+USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 
 # Floorbit's own per-device features: on unless switched off. Anything else named is a plugin id,
 # off unless switched on.
@@ -588,19 +588,24 @@ def delete_credential(data, cred_id):
         return _cred_public(cred)
 
 
+def rotate():
+    """Seal every stored credential again with the current key. Returns how many secrets."""
+    from .store import load_data, save_data
+    with _lock:
+        data = load_data()
+        done = 0
+        for cred in _creds(data):
+            for name, sealed in (cred.get('secrets') or {}).items():
+                if vault.needs_rotation(sealed):
+                    cred['secrets'][name] = vault.seal(_slot(cred, name), vault.open_(_slot(cred, name), sealed))
+                    done += 1
+        if done:
+            save_data(data)
+    return done
+
+
 def _drop_creds(data, owner_type, owner_id):
     data[CREDS] = [c for c in _creds(data) if not (c['owner_type'] == owner_type and c['owner_id'] == owner_id)]
-
-
-def _legacy_ssh(dev):
-    """A stored switch login (Settings > Switch logins) for the device, as a credential."""
-    from . import credentials
-    entry = credentials._match(credentials._all(), dev.get('name'))
-    if entry is None:
-        return None
-    return {'id': f"ssh:{entry['id']}", 'kind': 'ssh', 'owner_type': 'switch-logins', 'owner_id': entry['scope'],
-            'username': entry['username'], 'rev': str(entry.get('set_at') or ''), 'set_at': entry.get('set_at'),
-            'set_by': entry.get('set_by'), 'secrets': {'secret': entry['password']}, 'legacy': entry}
 
 
 def _credential_for(data, dev, kind, stack=None):
@@ -612,10 +617,6 @@ def _credential_for(data, dev, kind, stack=None):
                      and c['owner_id'] == owner_id), None)
         if cred is not None:
             return cred, _origin(layer_kind, holder)
-    if kind == 'ssh':
-        cred = _legacy_ssh(dev)
-        if cred is not None:
-            return cred, {'type': 'switch-logins', 'id': cred['owner_id'], 'name': cred['owner_id']}
     return None, None
 
 
@@ -626,8 +627,7 @@ def _open(cred):
         if cred.get(key):
             out[key] = cred[key]
     for name, sealed in (cred.get('secrets') or {}).items():
-        slot = f"ssh:{cred['legacy']['id']}" if cred.get('legacy') else _slot(cred, name)
-        out[name] = vault.open_(slot, sealed)
+        out[name] = vault.open_(_slot(cred, name), sealed)
     return out
 
 
@@ -654,10 +654,7 @@ def login_for(data, dev, kind='ssh', user=None, purpose=''):
         audit.record('credentials', f"Stored {kind} login for {dev['name']} did not open", user=user,
                      target=dev['name'], ok=False)
         raise ScopeError(str(exc), 500) from None
-    if origin['type'] == 'switch-logins':      # Settings > Switch logins, by name pattern
-        what = f"Used the stored login for {origin['name']}"
-    else:
-        what = f"Used the stored {kind} login set on {origin['type']} {origin['name']}"
+    what = f"Used the stored {kind} login set on {origin['type']} {origin['name']}"
     audit.record('credentials', what + (f' ({purpose})' if purpose else ''), user=user, target=dev['name'])
     return opened
 
@@ -680,9 +677,6 @@ def block(data, device_id, credential_id, rev, plugin, message, agent=None):
         if dev is None:
             return None
         cred = next((c for c in _creds(data) if c['id'] == credential_id), None)
-        if cred is None and str(credential_id).startswith('ssh:'):
-            legacy = _legacy_ssh(dev)
-            cred = legacy if legacy and legacy['id'] == credential_id else None
         if cred is None or str(rev or '') != str(cred.get('rev') or ''):
             return None
         entry = {'credential_id': credential_id, 'rev': str(rev or ''), 'kind': cred['kind'],

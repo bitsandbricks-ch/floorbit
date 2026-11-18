@@ -112,8 +112,7 @@ def test_plan_shapes_name_their_block():
     from floorbit.blueprints.screen import plan
     data = {'seat_blocks': [{'id': 'b1', 'name': 'A', 'x': 30, 'y': 30, 'cols': 2, 'rows': 1}]}
     assert plan(data)[0]['shapes'][0]['id'] == 'b1'
-    data['seat_blocks'][0]['group'] = 'g-1'
-    assert plan(data)[0]['shapes'][0]['group'] == 'g-1'
+    assert 'group' not in plan(data)[0]['shapes'][0]      # groups are plan groups (floorbit/plan_groups.py)
 
 
 def test_plan_box_takes_in_every_block():

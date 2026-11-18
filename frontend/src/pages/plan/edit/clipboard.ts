@@ -6,7 +6,7 @@ export interface Raw { kind: ItemRef['kind']; body: Record<string, unknown> }
 
 // What a block needs to come back as it was.
 export const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y', 'rotation',
-  'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'group', 'z']
+  'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'z']
 // What a cable needs to be made again (floorbit/cables.py FIELDS).
 export const CABLE_FIELDS = ['label', 'switch', 'port', 'panel', 'panel_port', 'seat', 'color', 'length_m', 'type', 'speed', 'note']
 const MARK_SKIP = new Set(['id', 'hall_id'])

@@ -800,7 +800,6 @@
  "Seat blocks with seats placed freely cannot be merged": "Sitzblöcke mit frei gestellten Plätzen lassen sich nicht zusammenführen",
  "Each gap has \"after\" (a column or row number) and \"size\" (in seats)": "Jede Lücke hat \"after\" (eine Spalten- oder Reihennummer) und \"size\" (in Plätzen)",
  "A gap is {} to {} seats wide": "Eine Lücke ist {} bis {} Plätze breit",
- "A group id is at most 64 characters": "Eine Gruppen-ID hat höchstens 64 Zeichen",
  "Select two or more seat blocks to merge": "Wähle zwei oder mehr Sitzblöcke zum Zusammenführen",
  "Seat blocks that are turned differently cannot be merged": "Unterschiedlich gedrehte Sitzblöcke lassen sich nicht zusammenführen",
  "Seat blocks that name their seats differently cannot be merged": "Sitzblöcke mit unterschiedlicher Platzbenennung lassen sich nicht zusammenführen",

@@ -6,7 +6,8 @@ the editor's item references (frontend/src/pages/plan/edit/geometry.ts ``ItemRef
 id is its name. An item is in at most one group: joining a new group takes it out of the old one.
 
 Members whose item is gone are left in place and skipped by the editor, so a delete that is undone
-doesn't break the group. Seat blocks still read their older ``group`` field (the classic editor's).
+doesn't break the group. The classic editor's seat block ``group`` field became plan groups
+(floorbit/upgrades.py).
 """
 import uuid
 

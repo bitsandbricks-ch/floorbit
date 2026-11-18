@@ -41,7 +41,7 @@
     "agents": "Local agents",
     "commands": "Switch commands",
     "configs": "Switch configs",
-    "credentials": "Switch logins",
+    "credentials": "Credentials",
     "report": "Report",
     "terminal": "Terminal",
     "telemetry": "Telemetry",

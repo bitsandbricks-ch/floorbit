@@ -57,7 +57,7 @@ def now():
     return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
 
-def _blank(**kw):
+def blank(**kw):
     dev = {'id': str(uuid.uuid4()), **dict.fromkeys(FIELDS, ''), 'role': 'switch',
            'x': None, 'y': None, 'origin': 'manual', 'refs': {}, 'fed': {}, 'locked': [],
            'gone': [], 'hidden': False, 'updated_at': now(),
@@ -68,38 +68,11 @@ def _blank(**kw):
     return dev
 
 
-# ── Reading, with the move from the old layout ────────────────────────────────────────────
-
-def migrate(data):
-    """Build ``inventory`` from the pre-inventory keys, once. Changes ``data`` in place."""
-    if isinstance(data.get('inventory'), list):
-        return False
-    devices = []
-    for s in data.get('switches') or []:
-        if not isinstance(s, dict) or not s.get('id'):
-            continue
-        placed = s.get('placed', True) and s.get('x') is not None
-        devices.append(_blank(id=str(s['id']), name=str(s.get('name') or 'Switch')[:80],
-                              x=s.get('x') if placed else None, y=s.get('y') if placed else None))
-    positions = data.get('positions') or {}
-    for d in data.get('cached_devices') or []:
-        if not isinstance(d, dict) or not d.get('id'):
-            continue
-        did = str(d['id'])
-        pos = positions.get(did) or {}
-        status = str(d.get('netbox_status') or '')
-        devices.append(_blank(id=did, name=str(d.get('name') or did)[:80], status=status,
-                              x=pos.get('x'), y=pos.get('y'), origin='netbox', refs={'netbox': did},
-                              fed={'netbox': {'name': d.get('name') or did, 'status': status}}))
-    data['inventory'] = devices
-    for key in ('switches', 'cached_devices', 'positions'):
-        data.pop(key, None)
-    return True
-
+# ── Reading ──────────────────────────────────────────────────────────────────────────────
 
 def normalize(raw):
     """A stored device (from a backup) checked and filled in, so later code can trust its shape."""
-    dev = _blank(id=str(raw['id'])[:80])
+    dev = blank(id=str(raw['id'])[:80])
     for f in FIELDS:
         if f in raw:
             dev[f] = clean_field(f, raw[f] if f != 'role' else (raw[f] or 'other'))
@@ -134,13 +107,11 @@ def normalize(raw):
 
 
 def devices(data, include_hidden=False):
-    migrate(data)
-    return [d for d in data['inventory'] if include_hidden or not d.get('hidden')]
+    return [d for d in data.get('inventory') or [] if include_hidden or not d.get('hidden')]
 
 
 def find(data, device_id):
-    migrate(data)
-    return next((d for d in data['inventory'] if d['id'] == device_id), None)
+    return next((d for d in data.get('inventory') or [] if d['id'] == device_id), None)
 
 
 def public(dev):
@@ -266,10 +237,10 @@ def _position(body):
 
 def create(data, body):
     with _lock:
-        migrate(data)
+        data.setdefault('inventory', [])
         fields = {f: clean_field(f, body.get(f, 'switch' if f == 'role' else '')) for f in FIELDS}
         x, y = _position(body)
-        dev = _blank(**fields, x=x, y=y)
+        dev = blank(**fields, x=x, y=y)
         if body.get('hall_id'):
             dev['hall_id'] = str(body['hall_id'])[:40]
         from . import inventory_scope
@@ -361,8 +332,7 @@ def unplace(data, device_id):
 def sync(data, plugin_id, items, skipped=0):
     """Merge one plugin's devices into the inventory. Returns the report (also logged)."""
     with _lock:
-        migrate(data)
-        inv = data['inventory']
+        inv = data.setdefault('inventory', [])
         by_ref = {d['refs'][plugin_id]: d for d in inv if plugin_id in (d.get('refs') or {})}
         by_name = {}
         for d in inv:
@@ -388,7 +358,7 @@ def sync(data, plugin_id, items, skipped=0):
                             dev['locked'].append(f)
                     kind = 'joined'
                 else:
-                    dev = _blank(id=_new_id(inv, plugin_id, ref), origin=plugin_id, refs={plugin_id: ref})
+                    dev = blank(id=_new_id(inv, plugin_id, ref), origin=plugin_id, refs={plugin_id: ref})
                     inv.append(dev)
                     kind = 'added'
             dev['fed'][plugin_id] = values

@@ -67,16 +67,15 @@
     "services": "Dienste",
     "topology": "Topologie",
     "gameServers": "Gameserver",
-    "switchLogins": "Switch-Logins",
     "telemetry": "Telemetrie",
     "endpoints": "IP- und MAC-Verlauf"
   },
   "endpoint": "Gesehen",
   "also": {
+    "inventory": "Geräte, Switches, Passwörter, SSH, Zugangsdaten, Switch-Logins",
     "power": "Strom, Stromverteiler, PDU, Stromkreise, Shelly",
     "schedule": "Zeitplan, Agenda, Ablauf, Kalender",
     "security": "DHCP, ARP, Spoofing, MAC-Flapping, Loop, Broadcast-Sturm",
-    "switchLogins": "Passwörter, SSH, Zugangsdaten",
     "endpoints": "ARP, FDB, Gerät finden, wer hatte diese IP",
     "seatMapping": "Switch-Port, Port pro Platz",
     "incidents": "Tickets, Helpdesk, Probleme am Platz",

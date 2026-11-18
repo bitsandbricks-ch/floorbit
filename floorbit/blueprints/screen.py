@@ -101,7 +101,7 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
         reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]
         ys += [cy - reach - 40, cy + reach]   # room for the block's name above it
-        shapes.append({'id': block.get('id'), 'group': block.get('group') or None,
+        shapes.append({'id': block.get('id'),
                        'cx': cx, 'cy': cy, 'rotation': int(block.get('rotation') or 0) % 360, 'w': w, 'h': h,
                        'name': block.get('name') or '', 'cells': cells,
                        # Row letters belong to rows; seats placed freely have none to stand by.

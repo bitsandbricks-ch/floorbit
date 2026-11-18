@@ -23,19 +23,12 @@ function union(boxes: Box[]): Box | null {
   return { x: l, y: t, w: r - l, h: b - t }
 }
 
-const groupOfBlock = (data: SeatViewData, ref: ItemRef) =>
-  ref.kind === 'block' ? data.drawing?.shapes.find((s) => s.id === ref.id)?.group ?? null : null
-
-/** ``refs`` with everything in their groups added: a group is picked as one. Groups are the
- *  plan's (``groups``, any items) and the older seat block ``group`` field. */
-export function withGroups(data: SeatViewData, refs: ItemRef[], groups: PlanGroup[] = []): ItemRef[] {
+/** ``refs`` with everything in their groups added: a group is picked as one. */
+export function withGroups(refs: ItemRef[], groups: PlanGroup[] = []): ItemRef[] {
   let out = refs
   for (;;) {
-    const blockGroups = new Set(out.map((r) => groupOfBlock(data, r)).filter(Boolean))
-    const more: ItemRef[] = [
-      ...(data.drawing?.shapes ?? []).filter((s) => s.id && s.group && blockGroups.has(s.group)).map((s) => ({ kind: 'block' as const, id: s.id! })),
-      ...groups.filter((g) => g.members.some((m) => out.some((r) => sameRef(r, m)))).flatMap((g) => g.members),
-    ].filter((m) => !out.some((r) => sameRef(r, m)))
+    const more: ItemRef[] = groups.filter((g) => g.members.some((m) => out.some((r) => sameRef(r, m)))).flatMap((g) => g.members)
+      .filter((m) => !out.some((r) => sameRef(r, m)))
     if (!more.length) return out
     // Each added item can bring its own group along (a block in an old block group and a plan group).
     out = [...out, ...more.filter((m, i) => more.findIndex((x) => sameRef(x, m)) === i)]

@@ -43,7 +43,7 @@ The password is kept like the [switch logins](credentials.md): encrypted with AE
 in `FLOORBIT_SECRET_KEY_FILE`, never sent back to the browser, and opened only for the one command.
 When editing a server, leave the field empty to keep the password, or switch on **Remove the RCON
 password**. `python -m floorbit.vault rotate` moves the RCON passwords to a new key along with the
-switch logins.
+inventory's credentials.
 
 ## API
 

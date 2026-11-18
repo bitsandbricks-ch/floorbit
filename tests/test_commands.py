@@ -179,7 +179,6 @@ def test_ssh_refused_command_and_wrong_login(client, ssh):
 
 
 def test_switch_names_and_logins_with_a_final_newline_are_refused():
-    from floorbit import credentials, ports
-    for pattern, good in ((ports.PORT_RE, "Gi1/0/1"), (ports.USER_RE, "ops"), (credentials.USER_RE, "ops"),
-                          (credentials.SCOPE_RE, "sw-a-*")):
+    from floorbit import inventory_scope, ports
+    for pattern, good in ((ports.PORT_RE, "Gi1/0/1"), (ports.USER_RE, "ops"), (inventory_scope.USER_RE, "ops")):
         assert pattern.match(good) and not pattern.match(good + "\n")

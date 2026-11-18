@@ -1,5 +1,5 @@
-"""Secrets kept by Floorbit, encrypted (issue #474): switch logins, game servers' RCON passwords (#472)
-and secret settings (API tokens, plugins' passwords).
+"""Secrets kept by Floorbit, encrypted (issue #474): device credentials (floorbit/inventory_scope.py),
+game servers' RCON passwords (#472) and secret settings (API tokens, plugins' passwords).
 
 - **AES-256-GCM** (``cryptography``, already here for paramiko). Each value has its own nonce and is
   bound to its slot (the slot's name is the associated data), so a value copied into another slot
@@ -122,8 +122,8 @@ def main(argv):
     if argv[1:] != ['rotate']:
         print('usage: python -m floorbit.vault rotate')
         return 2
-    from . import credentials, game_servers, settings
-    done = credentials.rotate() + game_servers.rotate() + settings.rotate()
+    from . import game_servers, inventory_scope, settings
+    done = inventory_scope.rotate() + game_servers.rotate() + settings.rotate()
     print(f'Wrote {done} secret(s) again with the current key.')
     return 0
 

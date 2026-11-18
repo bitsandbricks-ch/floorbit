@@ -17,8 +17,10 @@ def sign_in_as(app_module, username, role, password="role-password-1"):
 # ── Roles ──────────────────────────────────────────────────────────────────────
 
 def test_old_editor_accounts_are_leads_and_accounts_without_a_role_are_admins():
-    assert roles.of({"role": "editor"}) == "lead"
-    assert roles.of({}) == "admin"
+    from floorbit import upgrades
+    data = {"auth_users": {"a": {"role": "editor"}, "b": {}}}
+    upgrades.apply(data)                                  # moved once, at start (floorbit/upgrades.py)
+    assert [roles.of(u) for u in data["auth_users"].values()] == ["lead", "admin"]
     assert roles.of({"role": "gone-role"}) == "viewer"    # a deleted custom role grants least
     assert roles.validate("Editor") == "lead"
 

@@ -4,8 +4,8 @@ Every request needs one permission (``needed_for``), and an account's role says 
 has. Built-in roles can't be changed; admins add their own under Settings > Roles and teams.
 Team roles (auth/teams.py) add permissions inside a team only.
 
-Accounts from before roles existed have no role stored and count as admin, so nobody is locked
-out by an upgrade; the old "editor" role is now "lead".
+Accounts from before roles existed got ``admin`` and the old "editor" role became "lead" when
+their data was moved up (floorbit/upgrades.py). An account without a known role is a viewer.
 """
 import re
 import threading
@@ -47,10 +47,9 @@ BUILTIN = {
     'kiosk': {'label': 'Kiosk', 'description': 'A read-only account for a big screen. Remove it to revoke it.',
               'permissions': ['floorplan.view']},
 }
-# Old role names still stored in data.json.
+# Old role names a caller may still send; stored ones were renamed by floorbit/upgrades.py.
 ALIASES = {'editor': 'lead'}
 DEFAULT_ROLE = 'lead'
-LEGACY_ROLE = 'admin'
 ROLE_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,31}$')
 KEY = 'auth_roles'
 
@@ -142,13 +141,12 @@ def validate(role):
 
 def of(user):
     """The role of a user record (stored or public)."""
-    role = (user or {}).get('role') or LEGACY_ROLE
-    role = ALIASES.get(role, role)
+    role = (user or {}).get('role')
     return role if role in all_roles() else 'viewer'
 
 
 def permissions_of(role):
-    return set(all_roles().get(ALIASES.get(role, role), {}).get('permissions') or [])
+    return set(all_roles().get(role, {}).get('permissions') or [])
 
 
 def can(user, permission):
@@ -160,12 +158,11 @@ def can(user, permission):
 def _managers(data, roles_override):
     """How many accounts could still manage accounts with these role definitions."""
     def perms(role):
-        role = ALIASES.get(role, role)
         if role in BUILTIN:
             return set(BUILTIN[role]['permissions'])
         return set((roles_override.get(role) or {}).get('permissions') or [])
     users = (data.get('auth_users') or {}).values()
-    return sum(1 for u in users if 'accounts.manage' in perms(u.get('role') or LEGACY_ROLE))
+    return sum(1 for u in users if 'accounts.manage' in perms(u.get('role')))
 
 
 def save(role_id, label_text, description='', permissions=()):

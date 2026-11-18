@@ -2,24 +2,26 @@ import { describe, expect, it } from 'vitest'
 import type { PlanGroup, SeatViewData } from '@/api/types'
 import { alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
 
-const shape = (id: string, cx: number, cy: number, group: string | null = null) =>
-  ({ id, group, cx, cy, rotation: 0, w: 100, h: 40, name: id, cells: [] })
+const shape = (id: string, cx: number, cy: number) =>
+  ({ id, cx, cy, rotation: 0, w: 100, h: 40, name: id, cells: [] })
 const data = {
   size: { w: 1600, h: 1000, cell: 32 }, switches: [], seats: {}, blocks: [], halls: [], hall: 'main', background: null,
   monitoring: false, checkin: false, last_read: null,
-  drawing: { shapes: [shape('a', 100, 100, 'g'), shape('b', 300, 120, 'g'), shape('c', 600, 200)], marks: [], box: { x: 0, y: 0, w: 1600, h: 1000 }, cell: 32 },
+  drawing: { shapes: [shape('a', 100, 100), shape('b', 300, 120), shape('c', 600, 200)], marks: [], box: { x: 0, y: 0, w: 1600, h: 1000 }, cell: 32 },
 } as unknown as SeatViewData
 const r = (id: string) => ({ kind: 'block' as const, id })
 
 describe('arranging items', () => {
   it('picks and drops groups whole', () => {
-    expect(withGroups(data, [r('a')]).map((x) => x.id)).toEqual(['a', 'b'])
-    expect(withGroups(data, [r('c')]).map((x) => x.id)).toEqual(['c'])
+    const groups: PlanGroup[] = [{ id: 'g', name: 'G', members: [r('a'), r('b')] }]
+    expect(withGroups([r('a')], groups).map((x) => x.id)).toEqual(['a', 'b'])
+    expect(withGroups([r('c')], groups).map((x) => x.id)).toEqual(['c'])
   })
 
-  it('picks plan groups of any items, and the block groups they reach', () => {
-    const groups: PlanGroup[] = [{ id: 'p', name: 'P', members: [{ kind: 'mark', id: 'm' }, { kind: 'block', id: 'b' }] }]
-    const got = withGroups(data, [{ kind: 'mark', id: 'm' }], groups).map((x) => `${x.kind}:${x.id}`)
+  it('picks plan groups of any items, and the groups their members reach', () => {
+    const groups: PlanGroup[] = [{ id: 'p', name: 'P', members: [{ kind: 'mark', id: 'm' }, { kind: 'block', id: 'b' }] },
+      { id: 'q', name: 'Q', members: [r('b'), r('a')] }]
+    const got = withGroups([{ kind: 'mark', id: 'm' }], groups).map((x) => `${x.kind}:${x.id}`)
     expect(got.sort()).toEqual(['block:a', 'block:b', 'mark:m'])
   })
 

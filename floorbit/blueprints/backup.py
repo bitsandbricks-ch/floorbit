@@ -14,7 +14,7 @@ import time
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from .. import cable_plan, cables, halls, inventory, links, plan_marks, port_areas, power, runtime, store
+from .. import cable_plan, cables, halls, inventory, links, plan_marks, port_areas, power, runtime, store, upgrades
 from ..settings import FIELDS_BY_KEY, check_changes
 from . import seat_blocks
 
@@ -30,7 +30,7 @@ PLAN_KEYS = ('patch_panels', 'links', 'cables', 'cable_routes', 'power', 'port_a
 PLAN_EMPTY = {'patch_panels': list, 'links': list, 'cables': list, 'cable_routes': dict,
               'power': lambda: {'boards': [], 'circuits': []}, 'port_areas': list}
 ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$')
-# Backups from before the inventory: still restored, moved over like data.json is.
+# Backups from before the inventory: still restored, moved over like data.json is (upgrades.py).
 OLD_LAYOUT_KEYS = ('switches', 'cached_devices', 'positions')
 MAX_BYTES = 64 * 1024 * 1024   # background images travel inline, up to 5 MB each
 
@@ -45,7 +45,6 @@ def _secret_keys():
 
 
 def make_backup(data):
-    inventory.migrate(data)
     secrets = _secret_keys()
     settings = {k: v for k, v in (data.get('app_settings') or {}).items()
                 if k in FIELDS_BY_KEY and k not in secrets}
@@ -138,6 +137,10 @@ def validate(backup):
     for key in ('switches', 'cached_devices', 'seat_blocks', 'plan_marks', 'plan_groups'):
         if key in layout:
             _check_list(key, layout[key])
+    if 'positions' in layout and not isinstance(layout['positions'], dict):
+        raise BackupError('"positions" must be an object')
+    # An older backup's parts move to the current shape like data.json does (floorbit/upgrades.py).
+    upgrades.upgrade_layout(layout)
     if 'inventory' in layout:
         _check_list('inventory', layout['inventory'], required=('id', 'name'))
         try:
@@ -152,8 +155,6 @@ def validate(backup):
         _check_list('seats', layout['seats'], required=())
     if 'halls' in layout:
         layout['halls'] = _check_halls(layout['halls'])
-    if 'positions' in layout and not isinstance(layout['positions'], dict):
-        raise BackupError('"positions" must be an object')
     for key, limit in (('patch_panels', cable_plan.MAX_PANELS), ('links', links.MAX_LINKS),
                        ('cables', cables.MAX_CABLES), ('port_areas', port_areas.MAX_AREAS)):
         if key in layout:
@@ -347,11 +348,7 @@ def restore(data, backup, settings_store):
     skipped = sorted(k for k in backup['settings'] if k not in settings)
     check_changes(settings)   # a bad value stops the restore before anything is written
 
-    parts = {k: layout[k] for k in (*OLD_LAYOUT_KEYS, 'inventory') if k in layout}
-    if 'inventory' in parts:
-        for key in OLD_LAYOUT_KEYS:
-            parts.pop(key, None)
-    inventory.migrate(parts)
+    parts = {'inventory': layout['inventory']} if 'inventory' in layout else {'inventory': []}
     hall_rows = [hall for hall, _, _ in layout.get('halls') or []]
     view = {'inventory': parts['inventory'], 'seat_blocks': layout.get('seat_blocks', []), 'halls': hall_rows}
     plan = check_plan(layout, view, cable_plan.panels(data))   # before anything below changes data or removes an image

@@ -40,6 +40,7 @@ class Doc(dict):
     which parts the caller changed and keep what was written in the meantime (see ``_merge``)."""
     _base = None      # (path, the text the caller's copy came from)
     _tenant = None    # the tenant's parts as loaded, in a later event (see load_data)
+    _upgraded = False  # load_data moved it to the current shape (floorbit/upgrades.py)
 
 
 def _doc(found, path, text):
@@ -509,10 +510,13 @@ def _empty():
 def load_shared():
     """``load_data()`` for hot read-only paths (an event handler per syslog alert), parsed once per
     change of the file (``read_shared``). Shared: never change it."""
+    from . import upgrades
     path, tenant_path_ = _files()
     found = read_shared(path)
     if not isinstance(found, dict):
         return _empty()
+    if not upgrades.current(found):     # not moved yet (Floorbit moves it at start): never change a shared copy
+        return load_data()
     if not tenant_path_:
         return found
     tenant = read_shared(tenant_path_, {})
@@ -538,6 +542,11 @@ def load_data():
         # What the tenant's parts were, so save_data writes back only the ones the caller changed.
         # A copy: callers change what they got in place.
         found._tenant = json.loads(json.dumps({k: tenant[k] for k in TENANT_KEYS if k in tenant}))
+    # After the tenant's parts are noted, so save_data writes back what the steps moved there.
+    from . import upgrades
+    upgraded = upgrades.apply(found)
+    if isinstance(found, Doc):
+        found._upgraded = upgraded
     return found
 
 

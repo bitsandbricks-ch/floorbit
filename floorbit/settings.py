@@ -355,12 +355,6 @@ class SettingsStore:
     @staticmethod
     def _overrides_from(data):
         overrides = dict(data.get('app_settings') or {})
-        # Migrate the old /api/settings shape ({hide_labels, exclude_heatmap}).
-        legacy = data.get('default_settings') or {}
-        for old, new in (('hide_labels', 'display.hide_labels'),
-                         ('exclude_heatmap', 'display.exclude_heatmap')):
-            if old in legacy and new not in overrides:
-                overrides[new] = bool(legacy[old])
         return {k: v for k, v in overrides.items() if k in FIELDS_BY_KEY}
 
     def reload(self):

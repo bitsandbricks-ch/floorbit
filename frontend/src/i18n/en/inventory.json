@@ -126,8 +126,7 @@
       "type": "from type {{name}}",
       "tag": "from tag {{name}}",
       "group": "from group {{name}}",
-      "defaults": "from {{name}}",
-      "switch-logins": "from switch logins ({{name}})"
+      "defaults": "from {{name}}"
     }
   },
   "types": {

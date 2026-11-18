@@ -57,7 +57,6 @@ export const qk = {
   audit: ['audit'] as const,
   agents: ['agents'] as const,
   webhooks: ['webhooks'] as const,
-  credentials: ['credentials'] as const,
   gameServers: ['game-servers'] as const,
   firewalls: ['firewalls'] as const,
   services: ['services'] as const,

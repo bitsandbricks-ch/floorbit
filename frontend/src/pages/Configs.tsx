@@ -107,7 +107,7 @@ function Nightly({ n }: { n: ConfigNightly }) {
   if (!n.covered) {
     return (
       <Text size="sm" c="dimmed">
-        {t('configs.nightlyNoLogin')} <Anchor href="/settings/credentials">{t('configs.nightlyStoreLogin')}</Anchor>
+        {t('configs.nightlyNoLogin')} <Anchor href="/inventory">{t('configs.nightlyStoreLogin')}</Anchor>
       </Text>
     )
   }

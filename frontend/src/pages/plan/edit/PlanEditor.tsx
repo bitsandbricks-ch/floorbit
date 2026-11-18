@@ -229,33 +229,26 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }, [data, send, history, t, refresh, fail, isLocked])
   const moveBy = useCallback((items: ItemRef[], d: Point) => moveEach(items.map((r) => [r, d] as [ItemRef, Point])), [moveEach])
 
-  /** Puts the selected items in one new group (``join``) or takes them out of theirs. Seat blocks
-   *  in an older block group move over to the plan's groups. */
+  /** Puts the selected items in one new group (``join``) or takes them out of theirs. */
   const regroup = useCallback(async (items: ItemRef[], join: boolean) => {
-    const all = withGroups(data, items, groups).filter((r) => r.kind !== 'cable')
-    const old = all.filter((r) => r.kind === 'block')
-      .map((r) => [r, data.drawing?.shapes.find((x) => x.id === r.id)?.group ?? null] as const).filter(([, g]) => g)
-    if (join ? all.length < 2 : !old.length && !groupsOf(groups, all).length) return
+    const all = withGroups(items, groups).filter((r) => r.kind !== 'cable')
+    if (join ? all.length < 2 : !groupsOf(groups, all).length) return
     let n = groups.length + 1
     while (groups.some((g) => g.name === t('plan.edit.groups.name', { n }))) n++
     const made = join ? { id: `g-${Math.random().toString(36).slice(2, 10)}`, name: t('plan.edit.groups.name', { n }) } : undefined
     const before = groups, after = regrouped(groups, all, made)
-    const apply = async (list: PlanGroup[], undo: boolean) => {
-      await Promise.all(old.map(([r, g]) => send(r, { group: undo ? g : null })))
-      await saveGroups(list)
-    }
     try {
-      await apply(after, false)
+      await saveGroups(after)
       history.push({
         label: t(join ? 'plan.edit.step.group' : 'plan.edit.step.ungroup'),
-        undo: () => apply(before, true).then(refresh),
-        redo: () => apply(after, false).then(refresh),
+        undo: () => saveGroups(before).then(refresh),
+        redo: () => saveGroups(after).then(refresh),
       })
     } catch (err) {
       fail(err)
     }
     await refresh()
-  }, [data, groups, send, saveGroups, history, t, refresh, fail])
+  }, [groups, saveGroups, history, t, refresh, fail])
 
   const renameGroup = useCallback(async (group: PlanGroup, name: string) => {
     const before = groups, after = groups.map((g) => (g.id === group.id ? { ...g, name } : g))
@@ -753,7 +746,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const on = (axis: 'x' | 'y') => g.guides.some((x) => x.axis === axis)
     return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
   }
-  const pick = (next: ItemRef[]) => setSelection(withGroups(data, next, groups))
+  const pick = (next: ItemRef[]) => setSelection(withGroups(next, groups))
   /** Moves the view so ``ref`` is on screen (keyboard users can't see what they picked otherwise). */
   /** F: the view closes in on the selection. */
   const frame = (refs: ItemRef[]) => { const v = frameOf(data, refs, view); if (v) setView(v) }
@@ -765,7 +758,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       setView({ ...view, x: c.x - view.w / 2, y: c.y - view.h / 2 })
     }
   }
-  const grouped = groupsOf(groups, selected).length > 0 || selected.some((r) => r.kind === 'block' && data.drawing?.shapes.find((x) => x.id === r.id)?.group)
+  const grouped = groupsOf(groups, selected).length > 0
   const movable = selected.filter((r) => r.kind !== 'cable')
   // Inventory switches only leave the plan (they stay in the inventory): say so on the button.
   const onlyUnplace = selected.length > 0 && selected.every((r) => r.kind === 'switch' && !data.switches.find((w) => w.id === r.id)?.manual)
@@ -803,7 +796,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <ToolRail tool={tool} onTool={setTool} onView={onDone} />
       <SeatMap data={shown} view={view} setView={setView} filter={filter} selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power} {...live}
         overlay={(ctx) => (<>
-          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups(data, [r], groups)} space={space} tool={tool} snapping={snapping}
+          <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups([r], groups)} space={space} tool={tool} snapping={snapping}
             lines={followPlan(cables, shown).map((c) => ({ ref: { kind: 'cable', id: c.ref.cable! }, d: cablePath(c.points, data.size, c.corners) }))}
             onPlace={(at, raw) => {
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
