@@ -1,0 +1,23 @@
+{
+  "title": "Schedule",
+  "off": "This page is switched off.",
+  "startsIn": "The event starts in",
+  "days": "d",
+  "now": "On now",
+  "next": "Up next · {{time}}",
+  "nothingNow": "Nothing on the programme right now.",
+  "quiet": "Quiet hours until {{time}}. Please keep it down.",
+  "over": "The event is over. Thanks for coming!",
+  "programme": "Programme",
+  "empty": "The programme is not out yet.",
+  "until": "until {{time}}",
+  "kind": {
+    "talk": "Talk",
+    "tournament": "Tournament",
+    "meal": "Food",
+    "quiet": "Quiet hours",
+    "other": "Event"
+  },
+  "updated": "Updated {{time}}. This page updates every minute.",
+  "subscribe": "Add the programme to your calendar"
+}
