@@ -754,15 +754,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-agenda--screen .fb-agenda-programme { max-height: 62vh; overflow: hidden; }
 .fb-agenda--screen .fb-agenda-programme li.fb-agenda-day { font-size: 1.3vw; }
 .fb-agenda--screen .fb-agenda-programme .fb-agenda-item b { font-size: 1.7vw; }
-  margin: 0 0 8px; font-size: 13px; color: var(--color-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
-}
-  background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; position: relative;
-}
-  position: absolute; top: -1px; left: 12px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 0 0 6px 6px;
-  background: var(--color-warn); color: var(--color-ink);
-}
-  align-self: center; text-align: center; background: var(--color-surface); border: 2px solid var(--color-up); border-radius: 14px; padding: 18px;
-}
 /* The hall drawn for the public pages (components/HallSketch.tsx): attendee view and seat finder. */
 .fb-hall-sketch { display: block; width: 100%; height: auto; max-height: 75vh; background: var(--color-raised); border-radius: 10px; }
 .fb-hall-sketch .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
