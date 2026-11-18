@@ -78,6 +78,9 @@ frontend/node_modules/
 # hold live cache data, so it never goes into git.
 dump.rdb
 *.rdb
+# Check-in state a local run (FLOORBIT_DEMO=1) writes next to app.py.
+/checkins-history.jsonl
+/seat_ports.json
 agent.env
 *.json.next
 
