@@ -80,6 +80,7 @@
    cut off ("An deinem Platz ein…" on a small phone). */
 .mantine-Button-root[data-block] { height: auto; min-height: var(--button-height); padding-block: 6px; display: flex; align-items: center; }
 .mantine-Button-root[data-block] .mantine-Button-label { white-space: normal; text-align: center; line-height: 1.25; }
+.mantine-Button-root[data-block][style*="--button-justify: flex-start"] .mantine-Button-label { text-align: start; }
 .mantine-Button-root[data-block] .mantine-Button-inner { height: auto; flex: 1; }
 .mantine-Button-root:focus-visible,
 .mantine-ActionIcon-root:focus-visible,
