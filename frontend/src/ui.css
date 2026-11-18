@@ -76,6 +76,11 @@
 
 /* ── Buttons, badges, tooltips, modals, tables ─────────────────────────── */
 .mantine-Button-root { font-weight: 600; }
+/* A full-width button is the one big action on a narrow screen: its text wraps rather than being
+   cut off ("An deinem Platz ein…" on a small phone). */
+.mantine-Button-root[data-block] { height: auto; min-height: var(--button-height); padding-block: 6px; display: flex; align-items: center; }
+.mantine-Button-root[data-block] .mantine-Button-label { white-space: normal; text-align: center; line-height: 1.25; }
+.mantine-Button-root[data-block] .mantine-Button-inner { height: auto; flex: 1; }
 .mantine-Button-root:focus-visible,
 .mantine-ActionIcon-root:focus-visible,
 .mantine-Anchor-root:focus-visible { box-shadow: var(--ui-focus); outline: none; }
