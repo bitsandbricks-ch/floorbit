@@ -180,7 +180,10 @@ def app_module(tmp_path, monkeypatch):
     from integrations.monitor import StatusMonitor
     StatusMonitor.latest.update(polled=None, at=None, devices=None)   # one that ran between tests
     app.app.config["TESTING"] = True
-    return app
+    yield app
+    # Its thread outlives the test and polls for real once the patch above is undone; an agent
+    # coming back in a later test wakes every monitor (sources.status_wake), so stop this one.
+    monitor.stop()
 
 
 @pytest.fixture
