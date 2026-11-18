@@ -59,6 +59,10 @@ def down(seat):
         size = max(1, min(int(request.args.get('bytes') or 0), speedtest.MAX_DOWN))
     except ValueError:
         return _error(speedtest.SpeedtestError('bytes is a number.'))
+    if request.method == 'HEAD':   # Flask answers HEAD here too: no bytes go out, so book no stream
+        resp = Response(b'', mimetype='application/octet-stream')
+        resp.headers['Content-Length'] = str(size)
+        return _no_store(resp)
     try:
         speedtest.take(_client(), size)
     except speedtest.SpeedtestError as exc:
