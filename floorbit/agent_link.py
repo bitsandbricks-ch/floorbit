@@ -507,8 +507,9 @@ def set_halls(agent_id, hall_ids):
     return found['name'], wanted
 
 
-def check(key, version=None, address=None, now=None, protocol=None):
-    """The agent a key belongs to, or None. Notes when it was last seen (now and then)."""
+def check(key, version=None, address=None, now=None, protocol=None, reachable=True):
+    """The agent a key belongs to, or None. Notes when it was last seen (now and then), and, when
+    the request shows calls can reach it (``reachable``), that it is connected."""
     m = KEY_RE.match(str(key or '').strip())
     if not m:
         return None
@@ -531,7 +532,8 @@ def check(key, version=None, address=None, now=None, protocol=None):
     elif not (found.get('prev_hash') and (found.get('prev_until') or 0) > now
               and hmac.compare_digest(found['prev_hash'], _hash(secret))):
         return None
-    tunnel.seen(now, agent_id)
+    if reachable:
+        tunnel.seen(now, agent_id)
     try:
         protocol = int(protocol) if protocol is not None else None
     except (TypeError, ValueError):

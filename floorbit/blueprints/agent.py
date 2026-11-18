@@ -159,9 +159,13 @@ def _same_protocol():
     return None
 
 
-def _agent():
+def _agent(reachable=True):
+    """``reachable``: this request shows calls can reach the agent (its link, or the long poll).
+    Its syslog, flows and reports don't: a stopping agent posts its backlog after its link closed,
+    and counting that kept it "connected" for a minute while calls to it waited and failed."""
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
-                            request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip())
+                            request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip(),
+                            reachable=reachable)
 
 
 MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more
@@ -231,7 +235,7 @@ SYSLOG_BATCH = 2000
 
 @bp.route('/api/agent/v1/syslog', methods=['POST'])
 def syslog():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     receiver = current_app.extensions.get('floorbit_syslog')
@@ -259,7 +263,7 @@ def _traffic_off():
 
 @bp.route('/api/agent/v1/seats', methods=['GET'])
 def flow_seats():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     if not features.on('traffic'):
@@ -271,7 +275,7 @@ def flow_seats():
 
 @bp.route('/api/agent/v1/captive', methods=['GET'])
 def captive():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     from integrations import config
@@ -287,7 +291,7 @@ def captive():
 @bp.route('/api/agent/v1/seat-walk', methods=['POST'])
 def seat_walk_hello():
     """The agent saw the crew's laptop with a walk-through code: ``{"token", "ip"}`` (seat_walk.py)."""
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     from .. import seat_walk
@@ -301,7 +305,7 @@ def seat_walk_hello():
 def report():
     """The agent's own numbers, from an agent on the long poll (on the link they come as a
     ``{"type": "report"}`` message). Shown on the Local agents page."""
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     agent_link.tunnel.report(agent['id'], _agent_body().get('report'))
@@ -310,7 +314,7 @@ def report():
 
 @bp.route('/api/agent/v1/flows', methods=['POST'])
 def flows():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     if not features.on('traffic'):

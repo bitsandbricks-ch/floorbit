@@ -16,7 +16,8 @@
 ### Fixed
 
 - With two local agents, a seat lookup no longer waits for one that was just stopped, and the
-  Local agents page shows a stopped agent as gone at once.
+  Local agents page shows a stopped agent as gone at once, also when it was busy and sent its
+  last syslog on the way out.
 - While the local agent or LibreNMS is away, seat lookups say "try again shortly" instead of
   "could not resolve", and check-in tries again as soon as it is back.
 - With two local agents polling the same switches, port traffic no longer jumps between zero and

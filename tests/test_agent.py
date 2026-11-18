@@ -436,6 +436,12 @@ def test_a_killed_agent_shows_as_gone_at_once_not_a_minute_later(client):
     assert client.get("/api/agents").get_json()["agents"][0]["connected"]
     agent_link.tunnel.unlinked(a["id"])                    # its link closed: killed
     assert not client.get("/api/agents").get_json()["agents"][0]["connected"]
+    # On its way out it posts the syslog it still held: that doesn't make it reachable again.
+    anon = client.application.test_client()
+    for path, body in (("/api/agent/v1/syslog", {"lines": []}), ("/api/agent/v1/report", {"report": {}})):
+        assert anon.post(path, json=body, headers={"Floorbit-Agent-Key": a["key"]}).status_code < 400
+    assert not client.get("/api/agents").get_json()["agents"][0]["connected"]
+    assert a["id"] not in agent_link.tunnel.connected_agents()
 
 
 def test_a_lookup_takes_the_first_agent_that_knows_and_does_not_wait_for_the_other(monkeypatch):
