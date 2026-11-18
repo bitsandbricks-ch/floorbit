@@ -1897,6 +1897,8 @@ export interface TopologyUplink {
 export interface Topology {
   nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
   counts: { links: number; down: number; slow: number; miswired?: number }; types: LinkType[]; speeds: number[]
+  /** Where the crew dragged the boxes, by switch name in lower case; missing or empty: the automatic layout. */
+  layout?: Record<string, { x: number; y: number }>
 }
 /** One kept switch config (floorbit/config_backup.py, issue #96). */
 export interface ConfigCopy {

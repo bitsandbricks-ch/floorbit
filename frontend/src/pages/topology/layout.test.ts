@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SwitchLink, TopologyNode, TopologyUplink } from '@/api/types'
-import { NODE_W, gbit, layout, placeUplinks } from './layout'
+import { NODE_H, NODE_W, arranged, gbit, layout, placeUplinks } from './layout'
 
 const node = (name: string, role = 'switch'): TopologyNode => ({ id: name, name, role, hall: '', unread: false, status: 'online' })
 const link = (a: string, b: string): SwitchLink => ({
@@ -38,5 +38,17 @@ describe('topology layout', () => {
     expect(got.dy).toBeGreaterThan(0)
     expect(got.height).toBe(laid.height + got.dy)
     expect(placeUplinks(laid, [])).toEqual({ boxes: [], dx: 0, dy: 0, width: laid.width, height: laid.height })
+  })
+
+  it('puts the boxes where the crew dragged them and starts the picture at 0,0', () => {
+    const laid = layout([node('core-01', 'router'), node('sw-1'), node('sw-2')], [link('core-01', 'sw-1'), link('core-01', 'sw-2')])
+    expect(arranged(laid, {})).toBe(laid)
+    const got = arranged(laid, { 'sw-1': { x: -200, y: 500 }, nope: { x: 1, y: 1 } })
+    const sw1 = got.placed.get('sw-1')!, core = got.placed.get('core-01')!
+    expect(sw1.x).toBe(0)                                                    // moved right by 200 with everything else
+    expect(core.x).toBe(laid.placed.get('core-01')!.x + 200)
+    expect(core.y).toBe(0)
+    expect(got.height).toBe(500 + NODE_H)
+    expect(laid.placed.get('sw-1')!.x).not.toBe(-200)                        // the automatic layout is left as it was
   })
 })

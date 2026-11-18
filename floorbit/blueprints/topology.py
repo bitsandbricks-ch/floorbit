@@ -3,6 +3,8 @@
 - ``GET /topology``: the page.
 - ``GET /api/links``: the switches, every link with its live state, and LLDP neighbours no link explains.
 - ``POST /api/links``, ``PUT /api/links/<id>``, ``DELETE /api/links/<id>``: ``floorplan.edit``.
+- ``PUT /api/links/layout`` ``{positions, replace}``, ``DELETE /api/links/layout``: where the boxes sit on
+  the diagram, shared by everyone (``floorplan.edit``).
 """
 from flask import Blueprint, g, jsonify, request
 
@@ -19,6 +21,22 @@ def topology_page():
 @bp.route('/api/links', methods=['GET'])
 def get_links():
     return jsonify(links.topology())
+
+
+@bp.route('/api/links/layout', methods=['PUT'])
+def save_layout():
+    try:
+        places = links.save_layout(request.get_json(silent=True) or {})
+    except links.LinkError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    return jsonify({'layout': places})
+
+
+@bp.route('/api/links/layout', methods=['DELETE'])
+def reset_layout():
+    links.reset_layout()
+    audit.record('floor plan', 'Arranged the topology again', g.get('audit_user'), '')
+    return jsonify({'ok': True})
 
 
 @bp.route('/api/links', methods=['POST'])

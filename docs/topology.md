@@ -38,6 +38,17 @@ A port belongs to one link at most; `Te1/1/1` and `TenGigabitEthernet1/1/1` coun
 The state comes from the monitoring source's port list (`device_ports`, the same as the needs-attention
 watch), read at most every 30 seconds per switch. A link whose switches can't be read is *not read*.
 
+## Moving around
+
+Scroll (or the **+** and **−** buttons) to zoom, and drag the background to move around; **Show
+everything** fits the whole diagram again. **Export** saves the whole diagram as a PNG picture or an
+SVG drawing.
+
+Leads and admins (`floorplan.edit`) drag a box to put it where it belongs: the places are kept for
+everyone, and boxes nobody moved keep their automatic place. **Arrange again** forgets the places and
+lays the diagram out on its own. **Draw a link** is the quick way to add one: pick the switch it
+starts at, then the one at the other end, and the link form opens with both filled in.
+
 ## On the floor plan
 
 Links between two switches that are both placed on a hall's plan are drawn there as lines between them,
@@ -76,3 +87,6 @@ A plugin offers this with an optional `neighbours(hostname)` returning
   `a`, `a_port`, `b`, `b_port`, `type`, `speed`, `note`, `media`, and its live `state` (`up`, `down`, `unknown`),
   `speed_bps` and `issue` (`down`, `slow` or empty).
 - `POST /api/links`, `PUT /api/links/<id>`, `DELETE /api/links/<id>` (`floorplan.edit`), audit-logged.
+- `GET /api/links` also has `layout`: `{switch name in lower case: {x, y}}`, where the crew dragged the boxes.
+  `PUT /api/links/layout` `{"positions": {...}, "replace": false}` keeps places (unknown switches are dropped),
+  `DELETE /api/links/layout` goes back to the automatic layout (`floorplan.edit`).

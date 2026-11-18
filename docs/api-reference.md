@@ -1087,6 +1087,8 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/links` | `floorplan.edit` |  |
 | DELETE | `/api/links/<link_id>` | `floorplan.edit` |  |
 | PUT | `/api/links/<link_id>` | `floorplan.edit` |  |
+| DELETE | `/api/links/layout` | `floorplan.edit` |  |
+| PUT | `/api/links/layout` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.tournament
 

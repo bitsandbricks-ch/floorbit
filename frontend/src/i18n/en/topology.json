@@ -51,5 +51,21 @@
   "uplinkUsed": "In use",
   "openServices": "Open Services",
   "uplinkStatus": { "up": "Fine", "warn": "Needs a look", "down": "Down", "unknown": "Not checked" },
-  "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" }
+  "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" },
+  "pickHintEdit": "Pick a switch or a link to see it here. Drag a box to move it.",
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "fit": "Show everything",
+  "draw": "Draw a link",
+  "drawCancel": "Cancel drawing",
+  "drawFirst": "Pick the switch the link starts at (Esc cancels).",
+  "drawSecond": "From {{a}}: now pick the switch at the other end.",
+  "arrange": "Arrange again",
+  "arrangeQuestion": "Forget where the boxes were dragged and lay the diagram out on its own again, for everyone?",
+  "export": "Export",
+  "exportPng": "Picture (PNG)",
+  "exportSvg": "Drawing (SVG)",
+  "exportFailed": "The picture couldn't be made.",
+  "how": "Scroll or pinch to zoom, drag the background to move around.",
+  "howEdit": "Scroll to zoom, drag the background to move around. Drag a box to put it where it belongs: everyone sees it there."
 }

@@ -22,6 +22,8 @@ from . import inventory, sources
 from .store import load_data, save_data
 
 KEY = 'links'
+LAYOUT_KEY = 'topology_layout'           # where the crew dragged the boxes: {switch name, lower case: {x, y}}
+MAX_PLACES = 2000
 MAX_LINKS = 2000
 TYPES = ('cat5e', 'cat6', 'cat6a', 'fiber-sm', 'fiber-mm', 'dac')
 MEDIA = {'cat5e': 'copper', 'cat6': 'copper', 'cat6a': 'copper', 'fiber-sm': 'fiber', 'fiber-mm': 'fiber',
@@ -124,6 +126,48 @@ def delete(link_id):
         data[KEY] = [x for x in rows if x is not gone]
         save_data(data)
     return gone
+
+
+# ── where the boxes sit ─────────────────────────────────────────────────────
+def layout(data=None):
+    data = load_data() if data is None else data
+    return {k: v for k, v in (data.get(LAYOUT_KEY) or {}).items() if isinstance(v, dict)}
+
+
+def _spot(value):
+    try:
+        x, y = float(value['x']), float(value['y'])
+    except (KeyError, TypeError, ValueError):
+        raise LinkError('A place is {"x": number, "y": number}.') from None
+    if not (abs(x) < 1e6 and abs(y) < 1e6):  # also rules out NaN and infinity
+        raise LinkError('A place is {"x": number, "y": number}.')
+    return {'x': round(x, 1), 'y': round(y, 1)}
+
+
+def save_layout(body):
+    """``{"positions": {name: {x, y}}, "replace": false}``: shared by everyone, so the crew arranges it once.
+    Names that aren't in the inventory are dropped; ``replace`` starts over with just these."""
+    positions = body.get('positions')
+    if not isinstance(positions, dict):
+        raise LinkError('Send the places as {"positions": {switch: {"x", "y"}}}.')
+    with _lock:
+        data = load_data()
+        names = _switch_names(data)
+        fresh = {k.lower(): _spot(v) for k, v in positions.items() if isinstance(k, str) and k.lower() in names}
+        kept = {} if body.get('replace') else layout(data)
+        merged = {k: v for k, v in {**kept, **fresh}.items() if k in names}
+        if len(merged) > MAX_PLACES:
+            raise LinkError(f'Floorbit keeps at most {MAX_PLACES} places.')
+        data[LAYOUT_KEY] = merged
+        save_data(data)
+    return merged
+
+
+def reset_layout():
+    with _lock:
+        data = load_data()
+        data.pop(LAYOUT_KEY, None)
+        save_data(data)
 
 
 # ── live ────────────────────────────────────────────────────────────────────
@@ -402,6 +446,7 @@ def topology(now=None, suggest=True):
               'unread': ports.get(str(d['name']).lower()) is None, 'status': health.status(d['name'], now)}
              for d in devices]
     return {'nodes': sorted(nodes, key=lambda n: n['name'].lower()), 'links': rows, 'uplinks': _uplinks(data, names),
+            'layout': {k: v for k, v in layout(data).items() if k in names},
             'suggestions': sorted(suggestions, key=lambda s: (s['a'].lower(), s['a_port'])),
             'counts': {'links': len(rows), 'down': sum(r['issue'] == 'down' for r in rows),
                        'slow': sum(r['issue'] == 'slow' for r in rows),
