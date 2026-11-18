@@ -33,5 +33,8 @@
   "installedTitle": "Installed",
   "schemaOk": "Its data: schema {{n}}",
   "schemaBehind": "Its data is at schema {{have}} and moves to {{want}} when the plugin next runs.",
-  "schemaNewer": "Its data is at schema {{have}}, newer than this version knows ({{want}}). Install a newer version."
+  "schemaNewer": "Its data is at schema {{have}}, newer than this version knows ({{want}}). Install a newer version.",
+  "pageTitle": "Plugin page",
+  "pageFrom": "From {{plugin}}",
+  "pageEmpty": "Nothing on this page for your account."
 }

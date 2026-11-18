@@ -249,6 +249,56 @@ def panel(plugin_id, panel_id):
     return jsonify(german_widget(body, _language(), spec))
 
 
+@bp.route('/plugins/<plugin_id>/<page_id>')
+def plugin_own_page(plugin_id, page_id):
+    return spa.render('Plugin')
+
+
+def plugin_pages(lang):
+    """The plugins' sidebar pages this account may open, as /api/pages lists pages."""
+    granted, registry, out = _granted(), _registry(), []
+    for spec in registry.specs.values():
+        if not registry.enabled(spec):
+            continue
+        for item in spec.items('pages'):
+            if item['permission'] in granted:
+                out.append({'href': f"/plugins/{spec.id}/{item['id']}", 'id': f"plugin:{spec.id}:{item['id']}",
+                            'label': registry.text(spec, item['label'], lang), 'icon': spec.manifest.get('icon') or '',
+                            'plugin': registry.text(spec, spec.name, lang)})
+    return out
+
+
+@bp.route('/api/plugins/<plugin_id>/pages/<page_id>', methods=['GET'])
+def plugin_page_tiles(plugin_id, page_id):
+    """One plugin page: its widgets and actions this account may see, in the manifest's order."""
+    spec = _registry().active(plugin_id)
+    item = spec.item('pages', page_id) if spec else None
+    if item is None:
+        return _error('No such page', 404)
+    refused = _allowed(item['permission'])
+    if refused:
+        return refused
+    granted, registry, lang = _granted(), _registry(), _language()
+    name = registry.text(spec, spec.name, lang)
+    tiles = []
+    for wid in item.get('widgets') or []:
+        w = spec.item('widgets', wid)
+        if w['permission'] in granted:
+            tiles.append({'plugin': spec.id, 'plugin_name': name, 'id': wid,
+                          'label': registry.text(spec, w['label'], lang),
+                          'size': w.get('size', 'small'), 'refresh': w['refresh'],
+                          'url': f'/api/plugins/{spec.id}/widgets/{wid}'})
+    for aid in item.get('actions') or []:
+        a = spec.item('actions', aid)
+        if a['permission'] in granted:
+            tiles.append({'plugin': spec.id, 'plugin_name': name, 'id': aid,
+                          'label': registry.text(spec, a['label'], lang),
+                          'kind': 'action', 'danger': bool(a.get('danger')),
+                          'url': f'/api/plugins/{spec.id}/actions/{aid}'})
+    return jsonify({'plugin': spec.id, 'plugin_name': name, 'icon': spec.manifest.get('icon') or '', 'id': page_id,
+                    'label': registry.text(spec, item['label'], lang), 'columns': item['columns'], 'tiles': tiles})
+
+
 @bp.route('/api/plugins/layers', methods=['GET'])
 def layers():
     """The plugins' floor plan layers this account may see."""

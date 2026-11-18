@@ -15,9 +15,10 @@ def test_an_unknown_manifest_key_is_refused():
     assert 'unknown key(s) setings' in validate({**BASE, 'setings': []})
 
 
-@pytest.mark.parametrize('key', MANIFEST_NEXT)
-def test_keys_the_spec_marks_next_are_refused_until_built(key):
-    assert 'not supported by this Floorbit yet' in validate({**BASE, key: 'x'})
+def test_keys_the_spec_marks_next_are_refused_until_built():
+    # Empty once everything in the spec ships; the check stays for the next key it lists.
+    for key in MANIFEST_NEXT:
+        assert 'not supported by this Floorbit yet' in validate({**BASE, key: 'x'})
 
 
 def test_the_known_keys_still_load():
@@ -47,7 +48,7 @@ def test_every_data_area_is_in_the_spec():
     text = SPEC.read_text(encoding='utf-8')
     listed = set(re.findall(r'^\| `([a-z_]+)` \|', text, re.M))
     data_areas = set(AREAS) - {'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'http', 'storage',
-                               'documents', 'context_menu', 'agent', 'panels', 'layers'}
+                               'documents', 'context_menu', 'agent', 'panels', 'layers', 'pages'}
     assert data_areas <= listed, f'docs/plugin-spec.md misses {sorted(data_areas - listed)}'
 
 

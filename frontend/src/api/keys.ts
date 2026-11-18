@@ -112,6 +112,7 @@ export const qk = {
   pluginPanels: (on: string) => ['plugins', 'panels', on] as const,
   pluginPanel: (url: string, target: string) => ['plugins', 'panel', url, target] as const,
   pluginLayers: ['plugins', 'layers'] as const,
+  pluginPage: (url: string) => ['plugins', 'page', url] as const,
   pluginLayer: (url: string) => ['plugins', 'layer', url] as const,
   planAll: ['plan'] as const,
   appConfig: ['app-config'] as const,

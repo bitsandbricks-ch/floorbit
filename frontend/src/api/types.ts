@@ -64,6 +64,17 @@ export interface PluginLayerInfo {
   url: string
 }
 
+/** One plugin page (GET /api/plugins/<id>/pages/<page>): its tiles this account may see. */
+export interface PluginPageData {
+  plugin: string
+  plugin_name: string
+  icon: string
+  id: string
+  label: string
+  columns: number
+  tiles: Tile[]
+}
+
 export type PluginLayerTone = 'ok' | 'warn' | 'err' | 'info'
 
 /** What one plugin layer draws (GET /api/plugins/<id>/layers/<layer>). */

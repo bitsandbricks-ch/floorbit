@@ -70,6 +70,7 @@
     "context_menu": "right-click entries on the floor plan",
     "agent": "runs a part on the local agent",
     "panels": "boxes in the side panels of seats, switches and devices",
-    "layers": "a layer on the floor plan"
+    "layers": "a layer on the floor plan",
+    "pages": "pages of its own in the sidebar"
   }
 }

@@ -70,6 +70,7 @@ AREAS = {
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
     'panels':    'a box in the side panel of a seat, a switch or an inventory device',
     'layers':    'a layer on the floor plan that colours the seats (one plugin layer at a time)',
+    'pages':     'pages of its own tiles in the sidebar\'s Plugins group',
     'agent': 'runs a part of it on the local agent, in the hall (agent.py; docs/agent-plugins.md)',
 }
 # Device credential kinds an agent part may ask for (floorbit/plugins/agent.py, CREDENTIAL_KINDS).
@@ -85,6 +86,9 @@ LAYER_KEYS = ('id', 'label', 'permission', 'role', 'refresh')
 LAYER_TONES = ('ok', 'warn', 'err', 'info')
 LAYER_SEATS_MAX = 5000
 LAYER_LEGEND_MAX = 8
+# A sidebar page: the plugin's own widgets and actions, laid out like a dashboard.
+PAGE_KEYS = ('id', 'label', 'permission', 'role', 'widgets', 'actions', 'columns')
+PAGE_TILES_MAX = 24
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -120,10 +124,11 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 # feature this Floorbit doesn't have fails at load, not quietly at run time.
 MANIFEST_KEYS = frozenset({
     'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
-    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'layers', 'schema',
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'layers', 'pages',
+    'schema',
     *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
-MANIFEST_NEXT = ('pages',)
+MANIFEST_NEXT = ()
 # ``schema:``: the version of the data the plugin keeps; ``migrate`` moves older data up to it.
 SCHEMA_MAX = 10_000
 MIGRATE_SECONDS = 60
@@ -272,7 +277,7 @@ def validate(m):
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
              'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu', 'panels': 'panels',
-             'layers': 'layers'}
+             'layers': 'layers', 'pages': 'pages'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
@@ -281,7 +286,7 @@ def validate(m):
     err = _check_fields(m.get('settings'), 'settings')
     if err:
         return err
-    for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers'):
+    for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers', 'pages'):
         ids = set()
         for item in m.get(kind) or []:
             if not isinstance(item, dict) or not NAME_RE.match(str(item.get('id', ''))):
@@ -314,6 +319,23 @@ def validate(m):
                 if item.get('for') not in PANEL_TARGETS:
                     return f"panels.{item['id']}: for must be one of {', '.join(PANEL_TARGETS)}"
                 item['refresh'] = max(10, int(item.get('refresh') or 60))
+            if kind == 'pages':
+                extra = sorted(str(k) for k in item if k not in PAGE_KEYS)
+                if extra:
+                    return f"pages.{item['id']}: unknown key(s) {', '.join(extra)}"
+                tiles = 0
+                for listed, known in (('widgets', m.get('widgets')), ('actions', m.get('actions'))):
+                    names = item.get(listed) or []
+                    have = {w.get('id') for w in known or [] if isinstance(w, dict)}
+                    if not isinstance(names, list) or any(n not in have for n in names):
+                        return f"pages.{item['id']}.{listed}: only ids from the plugin's own {listed}:"
+                    tiles += len(names)
+                if not 1 <= tiles <= PAGE_TILES_MAX:
+                    return f"pages.{item['id']}: 1 to {PAGE_TILES_MAX} widgets and actions"
+                columns = item.get('columns', 2)
+                if isinstance(columns, bool) or columns not in (1, 2, 3):
+                    return f"pages.{item['id']}: columns is 1, 2 or 3"
+                item['columns'] = columns
             if kind == 'layers':
                 extra = sorted(str(k) for k in item if k not in LAYER_KEYS)
                 if extra:
@@ -363,7 +385,7 @@ def touches(m):
     """What a plugin may touch, from its (validated) manifest: what the Marketplace shows before it
     is installed (docs/plugin-spec.md, "Permissions it asks for")."""
     agent = m.get('agent') if 'agent' in (m.get('uses') or []) and isinstance(m.get('agent'), dict) else {}
-    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers')
+    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers', 'pages')
                    for i in m.get(kind) or [] if isinstance(i, dict) and i.get('permission')}
     targets = agent.get('targets') if isinstance(agent.get('targets'), dict) else None
     return {
@@ -1058,6 +1080,9 @@ class Registry:
                            for p in spec.items('panels')],
                 'layers': [{'id': p['id'], 'label': t(p.get('label')), 'permission': p['permission']}
                            for p in spec.items('layers')],
+                'pages': [{'id': p['id'], 'label': t(p.get('label')), 'permission': p['permission'],
+                           'href': f"/plugins/{spec.id}/{p['id']}"}
+                          for p in spec.items('pages')],
                 'endpoints': [{'id': e['id'], 'label': t(e.get('label')),
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}
                               for e in spec.items('endpoints')],

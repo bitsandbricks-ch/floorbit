@@ -1149,6 +1149,7 @@
  "a seat id is 1 to {} printable characters": "eine Platz-ID hat 1 bis {} druckbare Zeichen",
  "legend: tone must be one of {}": "legend: tone muss eines von {} sein",
  "seat {}: tone must be one of {}": "Platz {}: tone muss eines von {} sein",
+ "No such page": "Diese Seite gibt es nicht",
  "{} runs on the local agent: Floorbit reaches the event network only through it.": "{} läuft auf dem lokalen Agenten: Floorbit erreicht das Event-Netz nur über ihn.",
  "Syslog comes in through the local agent (FLOORBIT_AGENT_SYSLOG_PORT on the agent); this server does not listen itself.": "Syslog kommt über den lokalen Agenten (FLOORBIT_AGENT_SYSLOG_PORT auf dem Agenten); dieser Server hört nicht selbst zu."
 }

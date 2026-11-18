@@ -744,6 +744,7 @@ Source: [`floorbit/blueprints/plugins.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/plugins/<plugin_id>/actions/<action_id>` | `floorplan.view` |  |
 | GET | `/api/plugins/<plugin_id>/endpoints/<endpoint_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/<plugin_id>/layers/<layer_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/<plugin_id>/pages/<page_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/<plugin_id>/panels/<panel_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/<plugin_id>/widgets/<widget_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/layers` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
