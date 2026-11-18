@@ -17,7 +17,7 @@ from . import store, tenancy
 PARTS = {
     'halls': ('halls',),
     'seats': ('seat_blocks', 'seats'),
-    'inventory': ('inventory', 'switches', 'plan_groups', 'plan_marks', 'port_areas', 'links'),
+    'inventory': ('inventory', 'plan_groups', 'plan_marks', 'port_areas', 'links'),
     'cables': ('cables', 'cable_routes', 'patch_panels'),
     'power': ('power',),
     'services': ('firewalls', 'services', 'game_servers'),

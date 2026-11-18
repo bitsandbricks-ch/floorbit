@@ -1,4 +1,4 @@
-"""Merging seat blocks (floorbit/block_merge.py) and block groups."""
+"""Merging seat blocks (floorbit/block_merge.py)."""
 import pytest
 
 from floorbit.store import load_data
@@ -80,8 +80,8 @@ def test_merge_needs_known_blocks(client):
     assert client.post("/api/seat-blocks/merge", json={"ids": [a["id"], "nope"]}).status_code == 404
 
 
-def test_blocks_keep_their_group(client):
+def test_blocks_have_no_group_field(client):
+    # Groups are plan groups (floorbit/plan_groups.py); the old field is moved there once.
     a = _make(client, **{**A, "group": "g1"})
-    assert a["group"] == "g1"
-    assert client.put(f"/api/seat-blocks/{a['id']}", json={"group": ""}).get_json()["group"] is None
-    assert client.put(f"/api/seat-blocks/{a['id']}", json={"group": "x" * 65}).status_code == 400
+    assert "group" not in a
+    assert "group" not in client.put(f"/api/seat-blocks/{a['id']}", json={"group": "g2"}).get_json()

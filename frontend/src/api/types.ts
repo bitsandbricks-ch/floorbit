@@ -276,7 +276,7 @@ export interface DeviceInterface {
 }
 
 export interface Origin {
-  type: 'device' | 'tag' | 'group' | 'type' | 'defaults' | 'switch-logins'
+  type: 'device' | 'tag' | 'group' | 'type' | 'defaults'
   id: string
   name: string
 }
@@ -862,8 +862,6 @@ export interface PlanCell {
 export interface PlanShape {
   /** The seat block's id, for the editor; missing on older answers. */
   id?: string
-  /** Blocks with the same group are selected, moved and copied together in the editor. */
-  group?: string | null
   cx: number
   cy: number
   rotation: number
@@ -1415,7 +1413,6 @@ export interface SeatLocated {
 }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
-export interface StoredLogin { id: string; kind: 'ssh'; scope: string; username: string; set_at: number; set_by: string | null }
 export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */

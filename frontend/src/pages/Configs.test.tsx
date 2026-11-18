@@ -64,6 +64,6 @@ describe('Configs', () => {
   it('points to the switch logins when none is stored', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/configs': overview() }).fn)
     renderWithApp(<Configs />, '/configs')
-    expect(await screen.findByRole('link', { name: 'Store a switch login' })).toHaveAttribute('href', '/settings/credentials')
+    expect(await screen.findByRole('link', { name: 'Store a switch login' })).toHaveAttribute('href', '/inventory')
   })
 })

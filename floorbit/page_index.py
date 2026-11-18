@@ -68,7 +68,6 @@ PAGES = (
     ('/settings/agents', 'agents', 'Local agents', lambda c, can: can('settings.manage')),
     ('/settings/telemetry', 'telemetry', 'Telemetry', lambda c, can: can('settings.manage')),
     ('/settings/webhooks', 'webhooks', 'Webhooks', lambda c, can: can('settings.manage')),
-    ('/settings/credentials', 'switchLogins', 'Switch logins', lambda c, can: can('settings.manage')),
     ('/settings/users', 'users', 'Users', lambda c, can: can('accounts.manage')),
     ('/settings/teams', 'teams', 'Roles and teams', lambda c, can: can('accounts.manage')),
     ('/settings/sign-in', 'signIn', 'Sign-in providers', lambda c, can: can('settings.manage')),

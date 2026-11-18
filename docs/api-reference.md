@@ -236,18 +236,6 @@ Source: [`floorbit/blueprints/configs.py`](https://github.com/bitsandbricks-ch/f
 | GET | `/api/configs/<switch>/diff` | `configs.read` | `configs` |
 | POST | `/api/configs/backup` | `configs.read` | `configs` |
 
-## floorbit.blueprints.credentials
-
-Stored switch logins (issue #474). Rules in floorbit/credentials.py, docs in docs/credentials.md.
-
-Source: [`floorbit/blueprints/credentials.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/credentials.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/settings/credentials` | `settings.manage` |  |
-| DELETE | `/api/settings/credentials/<cred_id>` | `settings.manage` |  |
-| PUT | `/api/settings/credentials/ssh` | `settings.manage` |  |
-
 ## floorbit.blueprints.crew
 
 Buttons in the crew's Discord channel (issue #32). The bridge itself is integrations/crew.py.

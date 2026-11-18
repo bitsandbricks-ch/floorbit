@@ -86,8 +86,8 @@ SSH logins, SNMP v2c communities, SNMP v3 users, API tokens and HTTP logins can 
 device, a tag, a group or All devices: the nearest one wins, so a group's login is overridden by
 the device's own. They are kept like [stored switch logins](credentials.md): encrypted at rest,
 write-only (the API says which are set and by whom, never the secret), opened only at the moment
-of use, and every use is in the audit log. For SSH, the switch logins under **Settings > Switch
-logins** still count, after everything in the inventory.
+of use, and every use is in the audit log. The older **Settings > Switch logins** (by name pattern)
+moved in here once: see [credentials.md](credentials.md).
 
 Only admins set and remove credentials; editors see which are set.
 

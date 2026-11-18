@@ -100,10 +100,13 @@ def test_grid_sections(client):
 
 
 def test_old_layouts_read_as_one_panel(app_module, client):
-    from floorbit import dashboards, store
+    """Moved once by floorbit/upgrades.py, like every older shape."""
+    from floorbit import dashboards, store, upgrades
     data = store.load_data()
     data["dashboards"] = [{"id": "old", "name": "Old", "root": {"pane": {"kind": "empty"}}}]
-    store.save_data(data)
+    data[upgrades.KEY] = upgrades.STEPS.index(upgrades._dashboards)    # saved before the grid
+    store.write_json(store.DATA_FILE, dict(data))
+    upgrades.run_at_start(log=lambda *_: None)
     old = client.get("/api/dashboards/old").get_json()
     assert old["fit"] is True and "root" not in old
     assert old["sections"][0]["panels"][0]["node"] == {"pane": {"kind": "empty"}}

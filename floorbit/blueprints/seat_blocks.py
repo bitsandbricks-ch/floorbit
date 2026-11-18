@@ -17,7 +17,7 @@ bp = Blueprint('seat_blocks', __name__)
 # The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
 KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
         'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'seat_at',
-        'group', 'z')
+        'z')
 MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
 MAX_MANY = 30       # blocks in one "add several"
 # (field, smallest, default): the same bounds as the CSV import and layout templates.
@@ -99,11 +99,6 @@ def _clean(block):
     except seat_layout.LayoutError as exc:
         raise BlockError(str(exc)) from None
     seat_layout.settle(block)
-    # Blocks with the same group move, turn and copy together in the editor.
-    group = str(block.get('group') or '').strip()
-    if len(group) > 64:
-        raise BlockError('A group id is at most 64 characters')
-    block['group'] = group or None
     try:
         block['z'] = stacking.z_of(block.get('z'))
     except stacking.StackError as exc:
@@ -170,7 +165,6 @@ def make_block(body, hall_id):
         'col_gaps': body.get('col_gaps'),
         'row_gaps': body.get('row_gaps'),
         'seat_at': body.get('seat_at'),
-        'group': body.get('group'),
         'z': body.get('z'),
         'hall_id': hall_id,
     })

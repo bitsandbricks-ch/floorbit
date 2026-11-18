@@ -21,8 +21,8 @@ the tech's own username and password, used for that run and never stored. The co
 Every night at 04:00 server time Floorbit backs up each switch a stored switch login covers, so the
 copies are there even when nobody pressed the button. A read-only switch account is enough. The
 page says how many switches the run covers and how the last one went, and the audit log has one
-line per run, by "nightly backup". Switches without a stored login are left out; store one under
-Settings > Switch logins.
+line per run, by "nightly backup". Switches without a stored login are left out; store one in the
+[inventory](inventory.md#credentials) (an SSH credential on All devices, a group, a tag or the switch).
 
 - `CONFIG_BACKUP_HOUR`: the hour (0 to 23, server time) it runs, `4` by default. `off` turns the
   nightly run off.

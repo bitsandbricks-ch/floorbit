@@ -1,5 +1,5 @@
-"""The inventory: hand edits, plugin syncs that never undo them, the move from the old layout,
-the NetBox plugin and the API."""
+"""The inventory: hand edits, plugin syncs that never undo them, the NetBox plugin and the API.
+The move from the old layout is in tests/test_upgrades.py."""
 import pytest
 from conftest import TEST_PASSWORD
 
@@ -16,21 +16,6 @@ def feed(*items):
     cleaned, skipped = inventory.clean_feed(list(items))
     assert skipped == 0
     return cleaned
-
-
-def test_old_layout_moves_over_once_keeping_ids_and_positions():
-    data = {'switches': [{'id': 'm1', 'name': 'sw-hand-01', 'x': 1, 'y': 2, 'placed': True}],
-            'cached_devices': [{'id': '7', 'name': 'sw-nb-07', 'netbox_status': 'active'},
-                               {'id': '8', 'name': 'sw-nb-08'}],
-            'positions': {'7': {'x': 30, 'y': 40}}}
-    assert inventory.migrate(data) is True
-    assert not {'switches', 'cached_devices', 'positions'} & set(data)
-    by_id = {d['id']: d for d in data['inventory']}
-    assert by_id['m1']['origin'] == 'manual' and (by_id['m1']['x'], by_id['m1']['y']) == (1, 2)
-    assert by_id['7']['refs'] == {'netbox': '7'} and by_id['7']['status'] == 'active'
-    assert (by_id['7']['x'], by_id['7']['y']) == (30, 40)
-    assert by_id['8']['x'] is None
-    assert inventory.migrate(data) is False
 
 
 def test_sync_adds_updates_and_flags_gone_but_never_deletes():

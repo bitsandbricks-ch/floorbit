@@ -1,19 +1,22 @@
 # Switch logins
 
-**Settings > Switch logins** (`/settings/credentials`) keeps the switch logins that port actions
-([ports.md](ports.md)), switch commands ([commands.md](commands.md)) and the terminal
-([terminal.md](terminal.md)) use, so the crew doesn't type one for every action. Issue #474.
+The switch logins that port actions ([ports.md](ports.md)), switch commands ([commands.md](commands.md)),
+the terminal ([terminal.md](terminal.md)) and config backups ([configs.md](configs.md)) use are the
+**inventory's SSH credentials** ([inventory.md](inventory.md#groups-and-tags)), so the crew doesn't type
+one for every action. Issue #474.
 
-| Field | |
-| --- | --- |
-| For | `*` for every switch, a name pattern (`sw-a-*`, `core-?`) or one switch name. |
-| Username | Shown in the list, so the crew can tell which login is set. |
-| Password | Write-only: set or replace it, it never comes back out. |
+Set one on **All devices** (every switch), on a group or a tag, or on one device. The most specific
+one wins: the device's own, then its tags, its group and the group's parents, then All devices. With
+an SSH credential on All devices, the pages stop asking for a login. A tech who types a login
+(through the API) still uses their own. Without one there, the pages keep asking, and a switch
+command run uses the stored logins only when every switch in it has one. A switch that isn't in the
+inventory has no stored login.
 
-The most specific login wins: the switch's own, then the longest pattern, then `*`. With a login for
-`*`, the pages stop asking for one. A tech who types a login (through the API) still uses their own.
-Without a login for `*`, the pages keep asking, and a switch command run uses the stored logins only
-when every switch in it has one.
+**Settings > Switch logins**, the older page with logins by name pattern, is gone: Floorbit moved its
+logins into the inventory once (`floorbit/upgrades.py`). A login for `*` went on All devices, one for
+a single switch name on that device, and a pattern such as `sw-a-*` on a tag of that name, given to
+every device it matched then. A switch added later gets the tag in the inventory, not by its name.
+Old links to `/settings/credentials` open the inventory.
 
 ## How it is kept
 
@@ -25,9 +28,9 @@ when every switch in it has one.
   setting, Floorbit makes `secret.key` next to its data on first use (mode 0600). That still keeps the
   passwords out of backups and database dumps, but whoever has the whole state folder has the key too.
 - **Opened only to use.** The password is decrypted for one SSH connection and dropped when it closes,
-  like a typed one. Each use is in the audit log (**credentials**: "Used the stored login for sw-a-*",
-  with the switch). So are setting and removing.
-- **Who.** Setting and removing need `settings.manage` (admins). Using one needs what the action needs
+  like a typed one. Each use is in the audit log (**credentials**: "Used the stored ssh login set on
+  tag sw-a-*", with the switch). So are setting and removing.
+- **Who.** Setting and removing are for admins. Using one needs what the action needs
   (`ports.act`, techs and up). A wrong stored password doesn't count toward a tech's login pause.
 
 ## A new key
@@ -42,9 +45,9 @@ it again.
 
 ## API
 
-- `GET /api/settings/credentials`: `{"credentials": [{"id", "kind", "scope", "username", "set_at", "set_by"}]}`.
-- `PUT /api/settings/credentials/ssh`: `{"scope", "username", "password"}` sets or replaces the login for that scope.
-- `DELETE /api/settings/credentials/<id>`.
+- `GET /api/inventory/credentials`, `PUT /api/inventory/credentials`
+  (`{"owner_type": "defaults" | "group" | "tag" | "device", "owner_id", "kind": "ssh", "username", "secret"}`)
+  and `DELETE /api/inventory/credentials/<id>`: see [inventory.md](inventory.md).
 - `GET /api/ports` says `stored_login` when any login is stored, and `needs_login` is false once one covers every switch.
 
 RCON passwords for [game servers](game-servers.md) are kept the same way, and `rotate` moves them too.

@@ -35,6 +35,13 @@ def classic_editor():
     return redirect('/plan?' + urlencode({'edit': '1', **({'hall': hall} if hall else {})}))
 
 
+@bp.route('/settings/credentials')
+def switch_logins():
+    """Settings > Switch logins became the inventory's credentials (floorbit/upgrades.py): old links
+    open the inventory, where logins are set on a device, a tag, a group or All devices."""
+    return redirect('/inventory')
+
+
 @bp.route('/kiosk')
 def kiosk():
     """The old big-screen page is the ready-made Kiosk dashboard now (docs/kiosk.md). Screens that

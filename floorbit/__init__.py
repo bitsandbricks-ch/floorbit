@@ -59,6 +59,13 @@ def create_app(start_background=True):
         print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
               "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
 
+    # Stored data from an older Floorbit moves to the current shape, once (floorbit/upgrades.py).
+    from . import upgrades
+    try:
+        upgrades.run_at_start()
+    except Exception as exc:  # noqa: BLE001  # the database may be away: load_data moves it when read
+        print(f"[upgrades] Could not move the stored data yet: {exc}", flush=True)
+
     # Self-hosted: the agent next to this server gets its key from a shared file (docs/install.md).
     from . import agent_link
     try:

@@ -5,7 +5,8 @@ A dashboard is a list of ``sections``, each with an optional ``title`` (a named,
 every section after the first draws a divider) and its ``panels``. A panel sits on a grid of
 :data:`COLS` columns (``x``, ``w``) and rows (``y``, ``h``) and holds a ``node``. ``fit`` stretches the
 rows so the whole dashboard fills the screen, for a wall; otherwise rows have a fixed height and the
-page scrolls. Older layouts with one ``root`` node are read as one panel filling the first section.
+page scrolls. Older layouts with one ``root`` node became one panel filling the first section when
+their data was moved up (``upgrade``, floorbit/upgrades.py).
 
 A node is a tree: a node is either a split (``split`` "row" puts its children side by side,
 "column" stacks them; ``sizes`` are their shares in percent) or one pane. A pane is
@@ -98,7 +99,7 @@ def _whole(node):
     return {'x': 0, 'y': 0, 'w': COLS, 'h': 12, 'node': node}
 
 
-def _upgrade(layout):
+def upgrade(layout):
     """A layout saved as one split tree, read as a grid with that tree filling the screen."""
     if 'root' not in layout or 'sections' in layout:
         return layout
@@ -109,7 +110,7 @@ def _upgrade(layout):
 def _saved(data=None):
     data = load_data() if data is None else data
     raw = data.get(KEY)
-    return [_upgrade(x) for x in raw if isinstance(x, dict)] if isinstance(raw, list) else []
+    return [x for x in raw if isinstance(x, dict)] if isinstance(raw, list) else []
 
 
 def all_layouts(data=None):

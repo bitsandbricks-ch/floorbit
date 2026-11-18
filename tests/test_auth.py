@@ -358,12 +358,22 @@ def test_admin_can_do_everything(signed_in_as, tmp_path, monkeypatch):
     assert admin.get("/api/users").status_code == 200
 
 
-def test_accounts_from_before_roles_count_as_admin(auth, anon_client):
+def test_accounts_from_before_roles_become_admins_when_floorbit_starts(auth, anon_client):
+    from floorbit import store, upgrades
     auth.users.add("old-account", TEST_PASSWORD)
     users = auth.users._users()
     del users["old-account"]["role"]
     auth.users._write_users(users)
+    data = store.read_json(store.DATA_FILE)
+    data.pop(upgrades.KEY, None)          # written by a Floorbit from before roles
+    store.write_json(store.DATA_FILE, data)
+    upgrades.run_at_start(log=lambda *_: None)
     assert auth.users.get("old-account") and auth.users.list()[0]["role"] == "admin"
+
+
+def test_an_account_without_a_known_role_is_a_viewer():
+    from auth import roles
+    assert roles.of({"username": "x"}) == "viewer" and roles.of({"role": "nonsense"}) == "viewer"
 
 
 def test_role_change_applies_to_open_sessions(signed_in_as, auth):

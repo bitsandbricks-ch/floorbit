@@ -66,16 +66,15 @@
     "services": "Services",
     "topology": "Topology",
     "gameServers": "Game servers",
-    "switchLogins": "Switch logins",
     "telemetry": "Telemetry",
     "endpoints": "IP and MAC history"
   },
   "endpoint": "Seen",
   "also": {
+    "inventory": "devices, switches, passwords, SSH, credentials, switch logins",
     "power": "power, electricity, PDU, power boards, circuits, Shelly",
     "schedule": "agenda, programme, timetable, calendar",
     "security": "DHCP, ARP, spoofing, MAC flapping, loop, broadcast storm",
-    "switchLogins": "passwords, SSH, credentials",
     "endpoints": "ARP, FDB, find device, who had this IP",
     "seatMapping": "switch port, port per seat",
     "incidents": "tickets, helpdesk, problems at seats",

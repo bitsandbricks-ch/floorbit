@@ -44,7 +44,6 @@ const Preflight = lazy(() => import('@/pages/Preflight'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
 const SeatWalk = lazy(() => import('@/pages/SeatWalk'))
-const SwitchLogins = lazy(() => import('@/pages/SwitchLogins'))
 const Telemetry = lazy(() => import('@/pages/Telemetry'))
 const Endpoints = lazy(() => import('@/pages/Endpoints'))
 const Wifi = lazy(() => import('@/pages/Wifi'))
@@ -171,7 +170,6 @@ export default function App() {
             <Route path="/settings/users" element={<Users />} />
             <Route path="/settings/agents" element={<Agents />} />
             <Route path="/settings/webhooks" element={<Webhooks />} />
-            <Route path="/settings/credentials" element={<SwitchLogins />} />
             <Route path="/settings/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />
             <Route path="*" element={<NotFound />} />
