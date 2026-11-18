@@ -216,3 +216,51 @@ def _feed_and_read(client, anon_client, key):
 def test_the_page_is_for_the_crew(anon_client, client):
     assert client.get("/api/lancache").status_code == 200
     assert anon_client.get("/api/lancache").status_code in (302, 401)
+
+
+def test_a_round_that_breaks_does_not_stop_the_reading(tmp_path, monkeypatch):
+    # Something that isn't a web server on the cache port (BadStatusLine), or any other surprise.
+    ctx, plugin = make(tmp_path, cache_host='192.0.2.1')
+    rounds = []
+
+    def tick(everything=False):
+        rounds.append(everything)
+        if len(rounds) == 1:
+            raise KeyError('surprise')
+        ctx.stopping.set()
+
+    monkeypatch.setattr(plugin, 'tick', tick)
+    plugin.interval = 0
+    plugin.loop()
+    assert rounds == [True, True]          # the failed first round is tried again in full
+    assert any('a round failed' in e['error'] for e in ctx.health_.report()['errors'])
+
+
+def test_a_heartbeat_from_something_that_is_no_web_server(tmp_path):
+    import socket
+    server = socket.socket()
+    server.bind(('127.0.0.1', 0))
+    server.listen()
+
+    def answer():
+        conn, _ = server.accept()
+        conn.recv(1000)
+        conn.sendall(b'SSH-2.0-OpenSSH_9.6\r\n')
+        conn.close()
+    threading.Thread(target=answer, daemon=True).start()
+    _ctx, plugin = make(tmp_path)
+    beat = plugin.heartbeat(f'127.0.0.1:{server.getsockname()[1]}')
+    server.close()
+    assert beat['ok'] is False and 'did not answer' in beat['error']
+
+
+def test_a_log_without_line_ends_or_an_odd_position_is_read_on(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs.Tail, 'CHUNK', 1024)
+    log = tmp_path / 'access.log'
+    log.write_bytes(b'\0' * 5000 + b'\n' + b'after\n')
+    tail = logs.Tail(str(log))
+    assert tail.read()[-1] == 'after'
+    for odd in ('12', -5, True, None, [1]):
+        tail = logs.Tail(str(log), {'inode': log.stat().st_ino, 'offset': odd})
+        tail.read()
+        assert tail.error is None and isinstance(tail.state['offset'], int)
