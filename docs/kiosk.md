@@ -47,9 +47,12 @@ corner that opens the seat finder on a phone. Sign the screen in with a `kiosk` 
 | `every` | `30`               | Seconds per view (10 to 600). |
 | `qr`    | `1`                | `0` hides the QR code. |
 | `theme` |                    | Theme preset for every view ([themes.md](themes.md)). |
+| `hall`  | the first hall     | Which hall `floor` and `heat` show. |
 
 Each view stays loaded after its first turn, so it keeps its live updates, and the next one loads
-before it fades in. The QR code points at `PUBLIC_URL/find`, so set `PUBLIC_URL`
+before it fades in. Moving the mouse shows the cursor and the view's name, with buttons to go back and
+on; the arrow keys do the same. `GET /api/screen` with the same options answers what the screen shows.
+The QR code points at `PUBLIC_URL/find`, so set `PUBLIC_URL`
 ([install.md](install.md)) to an address players' phones can reach.
 
 ## Find your seat
@@ -77,7 +80,8 @@ away. Switch it on under **Settings > Attendee pages** (or `ATTENDEE_VIEW=true`)
 
 - The status comes from the same port reads as the stats page (every `ATTENTION_INTERVAL`, 120 s),
   so no extra requests go to the switches.
-- The page reloads the status every minute from `GET /api/public/seats`
+- The page reloads the hall and its status every minute from `GET /api/public/hall` (`?hall=<id>`).
+  For the event website, `GET /api/public/seats` gives the status alone
   (`{"seats": {"D-6": true, ...}, "online": 1, "total": 8, "updated": <unix time>}`).
 - After three missed reads the page says the status isn't available instead of showing old dots, and
   the API answers `null` for every seat.

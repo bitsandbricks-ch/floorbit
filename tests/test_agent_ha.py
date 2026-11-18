@@ -148,3 +148,15 @@ def test_the_split_reaches_the_agents_with_their_plugin_config(client, anon_clie
     assert split.get_json()["ha"] == {"stand_by_for": low["id"]}
     assert split.get_json()["etag"] != cfg["etag"]
     assert anon_client.get("/api/agent/v1/plugins", headers=head(low["key"])).get_json()["ha"] == {}
+
+
+def test_a_plugin_action_goes_to_one_agent_per_hall(monkeypatch):
+    agents = [agent("a", halls=["h1"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]}),
+              agent("b", halls=["h1"], vrrp={"primary": False, "holds": []}),
+              agent("c", halls=["h2"]),                                   # another hall, alone
+              agent("d", halls=["h3"]), agent("e", halls=["h3"]),         # no VRRP: both stay
+              agent("f", halls=["h4"], vrrp={"primary": True}), agent("g", halls=["h4"], vrrp={"primary": True})]
+    monkeypatch.setattr("floorbit.agent_link.all_agents", lambda now=None: agents)
+    assert agent_ha.action_targets([a["id"] for a in agents]) == ["a", "c", "d", "e", "f", "g"]
+    # The primary away: its standby takes the action.
+    assert agent_ha.action_targets(["b", "c"]) == ["b", "c"]

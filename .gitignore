@@ -74,8 +74,13 @@ frontend/node_modules/
 # The documentation site (mkdocs build)
 /site/
 
-# A local redis-server started inside the repo writes its snapshot here.
+# A local valkey-server or redis-server started inside the repo writes its snapshot here. It can
+# hold live cache data, so it never goes into git.
 dump.rdb
+*.rdb
+# Check-in state a local run (FLOORBIT_DEMO=1) writes next to app.py.
+/checkins-history.jsonl
+/seat_ports.json
 agent.env
 *.json.next
 
