@@ -12,6 +12,7 @@ import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
 import { type Area, MARKS_MODES, type MarksMode, PAGES, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
+import { pluginName } from '@/lib/pluginName'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
@@ -173,7 +174,7 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
   return (
     <Select label={t('dashboards.form.tile')} allowDeselect={false} searchable value={pane.tile || null}
       nothingFoundMessage={t('dashboards.form.noTiles')}
-      data={tiles.map((x) => ({ value: `${x.plugin}/w/${x.id}`, label: `${x.label} · ${x.plugin_name}` }))}
+      data={tiles.map((x) => ({ value: `${x.plugin}/w/${x.id}`, label: `${x.label} · ${pluginName(t, x.plugin, x.plugin_name)}` }))}
       onChange={(v) => v && onChange({ ...pane, tile: v })} />
   )
 }

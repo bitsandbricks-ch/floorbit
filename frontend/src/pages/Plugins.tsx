@@ -13,6 +13,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
 import Marketplace from './plugins/Marketplace'
+import { pluginName } from '@/lib/pluginName'
 
 type Result = { ok: boolean; text: string } | null
 
@@ -32,7 +33,7 @@ function useToggle(plugin: PluginInfo, done: (ok: boolean, text: string) => void
     onSuccess: (data, enabled) => {
       client.setQueryData(qk.plugins, { plugins: data.plugins })
       void client.invalidateQueries({ queryKey: qk.dashboard })
-      done(true, t(enabled ? 'plugins.turnedOn' : 'plugins.turnedOff', { name: plugin.name }))
+      done(true, t(enabled ? 'plugins.turnedOn' : 'plugins.turnedOff', { name: pluginName(t, plugin.id, plugin.name) }))
     },
     onError: (e) => done(false, e.message),
   })
@@ -47,7 +48,7 @@ function OnOff({ plugin, toggle }: { plugin: PluginInfo; toggle: ReturnType<type
       disabled={!!plugin.error || toggle.isPending}
       onChange={(e) => toggle.mutate(e.currentTarget.checked)}
       label={plugin.enabled ? t('plugins.on') : t('plugins.off')}
-      aria-label={`${plugin.name}: ${plugin.enabled ? t('plugins.on') : t('plugins.off')}`}
+      aria-label={`${pluginName(t, plugin.id, plugin.name)}: ${plugin.enabled ? t('plugins.on') : t('plugins.off')}`}
     />
   )
 }
@@ -93,7 +94,7 @@ export function PluginCard({ plugin, titled = true }: { plugin: PluginInfo; titl
     <Paper withBorder radius="lg" p="lg" component="section" id={`pl-${plugin.id}`}>
       <Stack gap="sm">
         <Group gap="sm" wrap="wrap">
-          {titled && <Title order={3} fz="lg">{plugin.name}</Title>}
+          {titled && <Title order={3} fz="lg">{pluginName(t, plugin.id, plugin.name)}</Title>}
           <Badges plugin={plugin} />
           <OnOff plugin={plugin} toggle={toggle} />
         </Group>
@@ -143,7 +144,7 @@ function PluginRow({ plugin }: { plugin: PluginInfo }) {
     <Paper withBorder radius="lg" p="md" component="li" id={`pl-${plugin.id}`}>
       <Stack gap={6}>
         <Group gap="sm" wrap="wrap">
-          <Title order={2} fz="md"><Anchor href={href} inherit>{plugin.name}</Anchor></Title>
+          <Title order={2} fz="md"><Anchor href={href} inherit>{pluginName(t, plugin.id, plugin.name)}</Anchor></Title>
           <Badges plugin={plugin} />
           <OnOff plugin={plugin} toggle={toggle} />
         </Group>
@@ -176,7 +177,7 @@ export default function Plugins() {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   const shown = (data?.plugins ?? []).filter((p) => {
     if (show === 'on' ? !p.enabled : show === 'off' ? p.enabled : false) return false
-    const text = `${p.name} ${p.id} ${describe(p, t)}`.toLowerCase()
+    const text = `${p.name} ${pluginName(t, p.id, p.name)} ${p.id} ${describe(p, t)}`.toLowerCase()
     return words.every((w) => text.includes(w))
   })
   return (

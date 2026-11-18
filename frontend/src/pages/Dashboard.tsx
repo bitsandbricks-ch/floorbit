@@ -15,6 +15,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { WidgetBody } from '@/widgets/WidgetBody'
 import { LoadingState } from '@/components/ui'
+import { pluginName } from '@/lib/pluginName'
 
 function TileFrame({ title, from, wide, children }: { title: string; from: string; wide?: boolean; children: React.ReactNode }) {
   const { t } = useTranslation()
@@ -39,7 +40,7 @@ export function WidgetCard({ tile }: { tile: WidgetTile }) {
   const { t } = useTranslation()
   const { data, error, isPending } = useWidget(tile)
   return (
-    <TileFrame title={tile.label} from={tile.plugin_name} wide={tile.size === 'wide'}>
+    <TileFrame title={tile.label} from={pluginName(t, tile.plugin, tile.plugin_name)} wide={tile.size === 'wide'}>
       {isPending ? (
         <Loader size="sm" aria-label={t('common.loading')} />
       ) : error && !data ? (
@@ -74,7 +75,7 @@ function ActionCard({ tile }: { tile: ActionTile }) {
     onError: (e) => setResult({ ok: false, text: e.message }),
   })
   return (
-    <TileFrame title={tile.label} from={tile.plugin_name}>
+    <TileFrame title={tile.label} from={pluginName(t, tile.plugin, tile.plugin_name)}>
       <ConfirmButton label={tile.label} danger={tile.danger} loading={run.isPending} onConfirm={() => run.mutate()} />
       <Text size="sm" role="status" className={result ? (result.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
         {run.isPending ? t('common.working') : result ? `${result.ok ? '✓' : '✕'} ${result.text}` : ''}
@@ -112,7 +113,7 @@ function LayoutEditor({ tiles, layout, onDone }: { tiles: Tile[]; layout: Dashbo
   const order = [...picked, ...known.filter((k) => !picked.includes(k))]
   const label = (k: string) => {
     const tile = tiles.find((x) => keyOf(x) === k)
-    return tile ? `${tile.label} · ${tile.plugin_name}` : k
+    return tile ? `${tile.label} · ${pluginName(t, tile.plugin, tile.plugin_name)}` : k
   }
   const move = (k: string, step: number) => setPicked((p) => {
     const i = p.indexOf(k), j = i + step

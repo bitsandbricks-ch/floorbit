@@ -13,6 +13,7 @@ import { PageHead } from '@/components/PageHead'
 import { PortDialog, type PortRequest } from './security/PortDialog'
 import { ErrorBanner } from '@/components/ui'
 import { ago } from '@/lib/time'
+import { pluginName } from '@/lib/pluginName'
 
 const TONE: Record<Severity, string> = { high: 'down', medium: 'warn', low: 'gray' }
 
@@ -48,7 +49,7 @@ function FindingCard({ f, list, busy, onShut, onAck }: {
             </ul>
           )}
           <Text size="xs" c="dimmed">
-            {t('security.seen', { first: ago(f.first_seen), plugin: f.plugin_name })}
+            {t('security.seen', { first: ago(f.first_seen), plugin: pluginName(t, f.plugin, f.plugin_name) })}
           </Text>
         </Stack>
         <Stack gap="xs" style={{ flexShrink: 0 }}>

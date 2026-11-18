@@ -8,6 +8,7 @@ import { LoadingState } from '@/components/ui'
 import { PluginCard } from './Plugins'
 import { SectionPanel, SettingsForm } from './settings/editor'
 import { useSettingsEditor } from './settings/model'
+import { pluginName } from '@/lib/pluginName'
 
 /** One plugin's page: on/off, test, actions and log, and its settings (moved here from the
  *  Settings page so that one doesn't grow with every plugin). */
@@ -21,8 +22,8 @@ export default function PluginSettings() {
   const error = plugins.error ?? ed.query.error
 
   return (
-    <Layout title={plugin?.name ?? t('plugins.title')} back={{ href: '/settings/plugins', label: t('plugins.title') }}>
-      <PageHead title={plugin?.name ?? t('plugins.title')} />
+    <Layout title={plugin ? pluginName(t, plugin.id, plugin.name) : t('plugins.title')} back={{ href: '/settings/plugins', label: t('plugins.title') }}>
+      <PageHead title={plugin ? pluginName(t, plugin.id, plugin.name) : t('plugins.title')} />
       {(plugins.isPending || ed.query.isPending) && <LoadingState rows={3} />}
       {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
       {plugins.data && !plugin && <Text>{t('plugins.notFound', { id })}</Text>}
