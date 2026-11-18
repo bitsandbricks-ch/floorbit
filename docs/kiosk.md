@@ -47,9 +47,12 @@ corner that opens the seat finder on a phone. Sign the screen in with a `kiosk` 
 | `every` | `30`               | Seconds per view (10 to 600). |
 | `qr`    | `1`                | `0` hides the QR code. |
 | `theme` |                    | Theme preset for every view ([themes.md](themes.md)). |
+| `hall`  | the first hall     | Which hall `floor` and `heat` show. |
 
 Each view stays loaded after its first turn, so it keeps its live updates, and the next one loads
-before it fades in. The QR code points at `PUBLIC_URL/find`, so set `PUBLIC_URL`
+before it fades in. Moving the mouse shows the cursor and the view's name, with buttons to go back and
+on; the arrow keys do the same. `GET /api/screen` with the same options answers what the screen shows.
+The QR code points at `PUBLIC_URL/find`, so set `PUBLIC_URL`
 ([install.md](install.md)) to an address players' phones can reach.
 
 ## Find your seat
