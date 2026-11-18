@@ -3,12 +3,14 @@
 // a rebuild. Built after Hubra's (by Mike) packages/ui/src/theme.ts.
 import {
   Autocomplete,
+  Checkbox,
   Chip,
   Combobox,
   createTheme,
   Menu,
   MultiSelect,
   Popover,
+  Radio,
   Select,
   TableScrollContainer,
   Tooltip,
@@ -85,6 +87,13 @@ export const theme = createTheme({
         if (color === 'bit') return { root: { '--chip-color': 'var(--color-on-bit)' } }
         return { root: TOKENS.includes(color) ? { '--chip-color': 'var(--color-ink)' } : {} }
       },
+    }),
+    // The tick and the radio dot are white by default: barely visible on Bit Green in the dark theme.
+    Checkbox: Checkbox.extend({
+      vars: (_theme, props) => ({ root: !props.color || props.color === 'bit' ? { '--checkbox-icon-color': 'var(--color-on-bit)' } : {} }),
+    }),
+    Radio: Radio.extend({
+      vars: (_theme, props) => ({ root: !props.color || props.color === 'bit' ? { '--radio-icon-color': 'var(--color-on-bit)' } : {} }),
     }),
     // A wide table scrolls sideways on a phone; without focus a keyboard can't scroll it (issue #286).
     TableScrollContainer: TableScrollContainer.extend({
