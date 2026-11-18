@@ -55,7 +55,7 @@ ENV FLASK_APP=app.py \
 
 USER floorbit
 EXPOSE 5000
-# The optional flow collector (python -m floorbit.flows, docs/flows.md).
+# NetFlow and IPFIX for the local agent built on this image (FLOORBIT_AGENT_FLOWS_PORT, docs/flows.md).
 EXPOSE 2055/udp
 # The syslog receiver, when SYSLOG_ENABLED is on (docs/syslog.md). Not 514, so no root is needed.
 EXPOSE 5514/udp 5514/tcp
