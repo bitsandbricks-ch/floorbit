@@ -59,6 +59,10 @@ def resolve_ip(ip_address):
     result = sources.monitoring().resolve_ip(ip_address, search_device)
     if result:
         return jsonify(result)
+    if sources.offline():
+        # Not "unknown": nobody could ask (the agent or LibreNMS is away). Worth trying again.
+        return jsonify({'ip': ip_address, 'error': 'The monitoring source is not answering; try again shortly.',
+                        'offline_since': sources.health()['offline_since']}), 503
     else:
         return jsonify({
             'ip': ip_address,

@@ -1,4 +1,5 @@
 {
+ "The monitoring source is not answering; try again shortly.": "Die Monitoring-Quelle antwortet nicht; bitte gleich nochmals versuchen.",
  "// how": "English text as in the code -> Swiss German (no ß). {} marks a value; {1}, {2} put values in another order. See floorbit/i18n.py.",
  "Sign in required": "Bitte zuerst anmelden",
  "The API token is wrong, expired or revoked.": "Der API-Token ist falsch, abgelaufen oder widerrufen.",
