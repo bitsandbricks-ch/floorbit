@@ -33,8 +33,9 @@ class MemoryBus:
         for handler in list(self.listeners):
             handler(message)
 
-    def listen(self, channel, handler, stop):
+    def listen(self, channel, handler, stop, on_resume=None):
         self.listeners.append(handler)
+        self.on_resume = on_resume
 
     def push(self, key, message, ttl=None):
         with self.cond:
@@ -298,3 +299,43 @@ def test_pods_say_who_leads_for_the_agents_page():
     bus.hashes[cluster.PODS_KEY]["pod-old"] = json.dumps({"at": time.time() - 3600, "leader": False})
     bus.hashes[cluster.PODS_KEY]["junk"] = "not json"
     assert {p["pod"] for p in a.pods()} == {"pod-a", "pod-b"}
+
+
+def test_a_pod_tells_its_browsers_to_fetch_again_when_redis_is_back(monkeypatch):
+    """Changes on other pods while Redis was away never reached this pod's browsers: they refetch."""
+    class Error(Exception):
+        pass
+
+    class FakeRedis:
+        RedisError = Error
+
+    class PubSub:
+        calls = 0
+
+        def subscribe(self, channel):
+            PubSub.calls += 1
+            if PubSub.calls == 1:
+                raise Error("connection refused")
+
+        def get_message(self, timeout):
+            stop.set()
+
+    class Blocking:
+        def pubsub(self, ignore_subscribe_messages):
+            return PubSub()
+
+    bus = cluster.RedisBus.__new__(cluster.RedisBus)
+    bus._redis, bus.prefix, bus.blocking = FakeRedis, "", Blocking()
+    stop = threading.Event()
+    monkeypatch.setattr(stop, "wait", lambda seconds: None)
+    resumed = []
+    bus.listen("ch", lambda raw: None, stop, on_resume=lambda: resumed.append(1))
+    assert PubSub.calls == 2 and resumed == [1]
+
+
+def test_resumed_sends_a_resync_to_this_pods_browsers(monkeypatch):
+    sent = []
+    monkeypatch.setattr(events, "deliver_local", sent.append)
+    pod = cluster.Cluster(MemoryBus(), pod="a", deliver=lambda e: None, log=lambda *_: None)
+    pod._resumed()
+    assert [e["type"] for e in sent] == ["resync"]

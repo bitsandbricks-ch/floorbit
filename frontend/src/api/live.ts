@@ -1,11 +1,27 @@
 import { useEffect, useRef } from 'react'
+import { queryClient } from '../queryClient'
 
 // One EventSource for the whole page, shared by every hook: browsers allow only six connections
 // per host, and a page with a stream per hook ran out of them, so its other requests stalled.
 let shared: { source: EventSource; users: number } | null = null
 
+function open(): EventSource {
+  const source = new EventSource('/api/events')
+  // While the stream was down (Wi-Fi blip, pod restart) or the server dropped events for us,
+  // changes went by unseen: fetch everything again instead of showing a stale board.
+  let dropped = false
+  const refetch = () => void queryClient.invalidateQueries()
+  source.addEventListener('error', () => { dropped = true })
+  source.addEventListener('hello', () => {
+    if (dropped) refetch()
+    dropped = false
+  })
+  source.addEventListener('resync', refetch)
+  return source
+}
+
 function acquire(): EventSource {
-  if (!shared) shared = { source: new EventSource('/api/events'), users: 0 }
+  if (!shared) shared = { source: open(), users: 0 }
   shared.users++
   return shared.source
 }

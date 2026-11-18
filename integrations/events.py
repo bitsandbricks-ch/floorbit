@@ -79,9 +79,20 @@ def deliver_local(event):
     with _lock:
         clients = list(_clients)
     for q in clients:
-        # a stuck browser loses events; it resyncs on reconnect
-        with contextlib.suppress(queue.Full):
+        try:
             q.put_nowait(event)
+        except queue.Full:
+            q.missed = True     # a stuck browser: told to fetch everything again once it reads on
+
+
+def resync_all():
+    """Tell every browser here to fetch everything again: events may have been missed (another
+    pod's changes while Redis was away)."""
+    deliver_local(_resync_event())
+
+
+def _resync_event():
+    return {'id': 0, 'type': 'resync', 'ts': time.time(), 'origin': None, 'data': {}}
 
 
 def close_all():
@@ -160,6 +171,9 @@ def stream(hello=None, private=True):
                 continue
             if event is _CLOSE:
                 return
+            if getattr(q, 'missed', False):
+                q.missed = False
+                yield _format(_resync_event())
             yield _format(event if private else {**event, 'data': scrub(event.get('data'))})
     finally:
         with _lock:
