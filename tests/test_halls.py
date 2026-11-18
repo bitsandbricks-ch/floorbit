@@ -130,26 +130,27 @@ def test_backup_with_a_bad_hall_is_refused(client):
 def test_seat_finder_names_the_hall(client, anon_client, two_halls):
     h2 = two_halls["hall2"]["id"]
     client.post("/api/seat-blocks", json={"name": "B", "x": 50, "y": 50, "cols": 2, "rows": 1, "hall_id": h2})
-    page = anon_client.get("/find?q=B-1").get_data(as_text=True)
-    assert "Seat B-1" in page and "<strong>Hall 2</strong>" in page
-    assert page.count('class="cell') == 2   # only hall 2 is drawn
+    body = anon_client.get("/api/seat-finder?q=B-1").get_json()
+    assert body["found"]["seat"] == "B-1" and body["found"]["hall"] == "Hall 2"
+    assert [c["seat"] for b in body["drawing"]["shapes"] for c in b["cells"]] == ["B-1", "B-2"]   # only hall 2
 
 
 def test_attendee_view_per_hall(client, anon_client, two_halls):
     h2 = two_halls["hall2"]["id"]
     client.put("/api/settings", json={"public.attendee_view": True})
     client.post("/api/seat-blocks", json={"name": "B", "x": 50, "y": 50, "cols": 3, "rows": 1, "hall_id": h2})
-    page = anon_client.get(f"/hall?hall={h2}").get_data(as_text=True)
-    assert 'aria-current="page">Hall 2' in page and page.count('data-seat="B-') == 3 and 'data-seat="A-' not in page
+    body = anon_client.get(f"/api/public/hall?hall={h2}").get_json()
+    assert body["hall"] == h2 and "Hall 2" in [h["name"] for h in body["halls"]]
+    assert [c["seat"] for b in body["drawing"]["shapes"] for c in b["cells"]] == ["B-1", "B-2", "B-3"]
     assert anon_client.get(f"/api/public/seats?hall={h2}").get_json()["total"] == 3
     assert anon_client.get("/api/public/seats").get_json()["total"] == 5
 
 
 def test_screen_passes_the_hall_on(client, two_halls):
     h2 = two_halls["hall2"]["id"]
-    page = client.get(f"/screen?views=floor,stats&hall={h2}").get_data(as_text=True)
-    assert f'data-src="/dashboards/kiosk?hall={h2}"' in page and 'data-src="/stats?screen=1"' in page
-    assert "hall=" not in client.get("/screen?hall=../x").get_data(as_text=True)
+    views = client.get(f"/api/screen?views=floor,stats&hall={h2}").get_json()["views"]
+    assert [v["url"] for v in views] == [f"/dashboards/kiosk?hall={h2}", "/stats?screen=1"]
+    assert "hall=" not in str(client.get("/api/screen?hall=../x").get_json()["views"])
 
 
 PNG = ('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA'
