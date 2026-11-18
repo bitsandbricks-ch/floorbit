@@ -21,7 +21,8 @@ const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }
 
 
-const off = (e: unknown) => e instanceof ApiError && e.data.code === 'checkin_disabled'
+// Switched off answers 404 with code checkin_disabled; older servers send the 404 without the code.
+const off = (e: unknown) => e instanceof ApiError && (e.status === 404 || e.data?.code === 'checkin_disabled')
 
 const portText = (p: { switch: string; port: string } | null) => (p ? `${p.switch} ${p.port}` : '–')
 

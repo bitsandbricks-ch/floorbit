@@ -104,7 +104,7 @@ describe('Checkins', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/checkins/overview': off }).fn)
     renderWithApp(<Checkins />)
     expect(await screen.findByText('Check-in is off')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open the settings' })).toHaveAttribute('href', '/settings/sources')
+    expect(screen.getByRole('link', { name: 'Check-in settings' })).toHaveAttribute('href', '/settings/checkin')
     expect(screen.queryByRole('button', { name: /Try again/ })).not.toBeInTheDocument()
   })
 })
