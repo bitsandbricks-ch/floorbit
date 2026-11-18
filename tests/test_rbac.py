@@ -130,6 +130,7 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/report/new-event",   # starting the report's history again
                         "/api/past-events/",       # closing, renaming or deleting a past event
                         "/api/tenant/events",      # adding events, making one live
+                        "/api/platform/",          # adding and suspending tenants (default tenant only)
                         "/api/commands/templates/",   # which commands the crew may send to switches
                         "/api/game-servers",        # setting up game servers and their RCON passwords
                         "/api/inventory/credentials",   # passwords and keys stored on devices, groups and tags
