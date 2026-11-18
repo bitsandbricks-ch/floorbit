@@ -125,6 +125,32 @@ def test_lines_survive_a_restart_and_age_out(receiver, tmp_path, monkeypatch):
     assert len(os.listdir(folder)) == 1
 
 
+
+def test_a_restart_reads_only_the_newest_lines_from_the_ends_of_the_files(tmp_path, monkeypatch):
+    # After a big event's night the files hold millions of lines; parsing them all held the first
+    # page for a minute. Only the newest SYSLOG_MAX_LINES are read, oldest first in memory.
+    monkeypatch.setenv("SYSLOG_MAX_LINES", "100")
+    folder = tmp_path / "syslog"
+    folder.mkdir()
+    now, n = time.time(), 0
+    for hour in range(3):
+        rows = []
+        for _ in range(80):
+            n += 1
+            rows.append(json.dumps({"id": n, "ts": now - (3 - hour) * 60 + n / 1000, "message": f"line {n}"}))
+        if hour == 2:
+            rows.insert(10, "{broken")
+        name = time.strftime("%Y-%m-%d-%H", time.gmtime(now - (3 - hour) * 3600))
+        (folder / f"{name}.jsonl").write_text("\n".join(rows) + "\n")
+    monkeypatch.setattr(syslog, "_tail", lambda path, count, block=64: real_tail(path, count, block))
+    again = syslog.SyslogReceiver(path=str(folder))
+    assert [ln["id"] for ln in again.lines] == list(range(141, 241))
+    assert again.next_id == 241
+
+
+real_tail = syslog._tail
+
+
 def test_memory_and_disk_are_capped(receiver, tmp_path, monkeypatch):
     monkeypatch.setenv("SYSLOG_MAX_LINES", "100")
     for i in range(150):

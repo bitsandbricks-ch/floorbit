@@ -144,6 +144,26 @@ def parse(raw, now=None):
 
 
 
+
+def _tail(path, count, block=1 << 20):
+    """The last ``count`` lines of a file (bytes, oldest first), read backwards in blocks."""
+    if count <= 0:
+        return []
+    with open(path, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        end = f.tell()
+        data = b''
+        while end > 0 and data.count(b'\n') <= count:
+            start = max(0, end - block)
+            f.seek(start)
+            data = f.read(end - start) + data
+            end = start
+    rows = data.split(b'\n')
+    if end > 0:
+        rows = rows[1:]          # cut mid-line at the block's start
+    return [r for r in rows if r.strip()][-count:]
+
+
 RCVBUF = 8 * 1024 * 1024      # a burst waits in the kernel while one line is handled
 MAX_TCP = 256                 # senders at once; more are closed (a switch reconnects)
 
@@ -208,24 +228,31 @@ class SyslogReceiver:
         return self.path or store.event_path('syslog')
 
     def _load(self):
+        """The newest lines back into memory, newest file first, read from its end: only the last
+        ``max_lines`` are kept, and parsing every stored line made a restart after a big event's
+        night (7.6 million lines) take a minute before the first page answered."""
         folder = self.folder()
         if not os.path.isdir(folder):
             return
-        cutoff = time.time() - settings()['retention_hours'] * 3600
-        for name in sorted(os.listdir(folder)):
-            if not name.endswith('.jsonl'):
-                continue
+        s = settings()
+        cutoff = time.time() - s['retention_hours'] * 3600
+        want = s['max_lines']
+        newest_first = []
+        for name in sorted((n for n in os.listdir(folder) if n.endswith('.jsonl')), reverse=True):
             try:
-                with open(os.path.join(folder, name), encoding='utf-8') as f:
-                    for row in f:
-                        try:
-                            line = json.loads(row)
-                        except ValueError:
-                            continue
-                        if isinstance(line, dict) and (line.get('ts') or 0) >= cutoff:
-                            self.lines.append(line)
+                rows = _tail(os.path.join(folder, name), want - len(newest_first))
             except OSError:
                 continue
+            for row in reversed(rows):
+                try:
+                    line = json.loads(row)
+                except ValueError:
+                    continue
+                if isinstance(line, dict) and (line.get('ts') or 0) >= cutoff:
+                    newest_first.append(line)
+            if len(newest_first) >= want:
+                break
+        self.lines.extend(reversed(newest_first))
         if self.lines:
             self.next_id = max(line.get('id', 0) for line in self.lines) + 1
         self._trim()

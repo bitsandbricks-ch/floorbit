@@ -30,3 +30,5 @@
   read as empty, so its lines are no longer lost without a word.
 - Floorbit's own syslog listener (when it runs next to the switches) reads UDP with one thread
   and a bigger receive buffer instead of a thread per line, and takes at most 256 TCP senders.
+- Floorbit starts in about a second after a big event's night instead of a minute: it reads back
+  only the newest syslog lines it keeps in memory, not every stored line.
