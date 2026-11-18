@@ -203,3 +203,14 @@ def test_a_meter_address_that_is_no_web_server():
     readings, failed = plugin.tick()
     server.close()
     assert readings == [] and failed[0].startswith("db1-1: ")
+
+
+def test_odd_agent_readings_keep_only_numbers():
+    kept = power.keep_agent_readings("odd-test", [
+        {"meter": "db1-1", "amps": 1, "watts": "5"},           # text is left out
+        {"meter": "db1-2", "watts": 10 ** 400},                # used to raise OverflowError
+        {"meter": "db1-3", "amps": 2, "watts": [1]},
+        {"meter": "db1-4", "watts": 230}])
+    assert kept == 3
+    assert power.agent_readings("odd-test") == [{"meter": "db1-1", "amps": 1}, {"meter": "db1-3", "amps": 2},
+                                                {"meter": "db1-4", "watts": 230}]

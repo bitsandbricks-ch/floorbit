@@ -820,6 +820,7 @@
  "Numbers must be finite (no NaN or Infinity).": "Zahlen müssen endlich sein (kein NaN und kein Infinity).",
  "Home Assistant answered something other than a list of states": "Home Assistant hat etwas anderes als eine Liste von Zuständen geantwortet",
  "no answer to our question": "keine Antwort auf unsere Anfrage",
+ "Numbers can have at most 30 digits.": "Zahlen können höchstens 30 Stellen haben.",
  "Send the block as a JSON object.": "Sende den Block als JSON-Objekt.",
  "No such port area.": "Diesen Port-Bereich gibt es nicht.",
  "Batch size, first port and seats per batch are numbers.": "Ports pro Gruppe, erster Port und Plätze pro Gruppe sind Zahlen.",

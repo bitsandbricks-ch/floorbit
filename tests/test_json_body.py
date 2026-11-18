@@ -61,6 +61,14 @@ def test_nan_and_infinity_are_refused_before_a_handler_reads_them(client, method
     assert r.status_code == 400 and "finite" in r.get_json()["error"]
 
 
+
+@pytest.mark.parametrize("number", ["1" + "0" * 400, "-" + "9" * 31])
+def test_whole_numbers_of_hundreds_of_digits_are_refused(client, number):
+    # float() of one raised OverflowError (a 500), as on a power reading typed in by hand.
+    r = client.post("/api/seat-blocks", data=f'{{"x": 1, "y": {number}}}', content_type="application/json")
+    assert r.status_code == 400 and "30 digits" in r.get_json()["error"]
+    assert client.post("/api/teams", json={"name": "Big", "order": 10 ** 29}).status_code == 201
+
 def test_ordinary_numbers_still_get_through(client):
     assert client.post("/api/teams", json={"name": "Network", "order": 1.5e3}).status_code == 201
 

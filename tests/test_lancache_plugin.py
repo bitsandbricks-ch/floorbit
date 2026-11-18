@@ -213,6 +213,43 @@ def _feed_and_read(client, anon_client, key):
                             headers=head(key)).status_code == 422
 
 
+ODD = [None, 5, "x", [], {}, [1], {"a": 1}, True, -1, 10 ** 30, "9" * 400]
+
+
+def test_odd_agent_payloads_never_break_the_page(client, anon_client, app_module):
+    # Another agent version, or a broken one: whatever it sends, the page and widgets still answer.
+    key = enrol(client)["key"]
+    client.put("/api/settings/plugins/lancache", json={"enabled": True})
+    stats = app_module.app.extensions["floorbit_lancache"]
+    kept = dict(stats.hours)
+    hour = str(int(time.time() // 3600 * 3600))
+    good = {"hours": {hour: {"steam": [1, 2, 3]}}, "lines": 5, "min_clients": 5, "window_hours": 24,
+            "downloads": [{"cache": "steam", "item": "depot 1", "hit_bytes": 5, "miss_bytes": 1,
+                           "requests": 2, "clients": 6}],
+            "other_downloads": {"hit_bytes": 1, "miss_bytes": 1, "requests": 1, "items": 1},
+            "suspects": [{"cache": "steam", "item": "x", "files": 1, "misses": 3}],
+            "dns": {"services": {"steam": 4}, "hours": {}}, "clients": {hour: 7}}
+    status = {"at": 1, "disk": {"used": 1, "total": 2, "free": 1}, "heartbeat": {"ok": True, "ms": 3},
+              "dns_check": {"ok": True}, "clearing": {"running": False, "removed": 3, "finished": 5}}
+    try:
+        for field in good:
+            for odd in ODD + [[odd] for odd in ODD] + [{hour: odd} for odd in ODD]:
+                anon_client.post("/api/agent/v1/plugins/lancache/stats", headers=head(key),
+                                 json={"payload": {**good, field: odd}})
+                for name in status:
+                    anon_client.post("/api/agent/v1/plugins/lancache/status", headers=head(key),
+                                     json={"payload": {**status, name: odd}})
+                res = client.get("/api/lancache")
+                assert res.status_code == 200, (field, odd, res.data[:200])
+        for w in ("hit_ratio", "served", "machine", "downloads"):
+            assert client.get(f"/api/plugins/lancache/widgets/{w}").status_code == 200
+    finally:
+        stats.remote.clear()
+        stats.hours.clear()
+        stats.hours.update(kept)
+        client.put("/api/settings/plugins/lancache", json={"enabled": False})
+
+
 def test_the_page_is_for_the_crew(anon_client, client):
     assert client.get("/api/lancache").status_code == 200
     assert anon_client.get("/api/lancache").status_code in (302, 401)

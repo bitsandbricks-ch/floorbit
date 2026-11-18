@@ -24,6 +24,7 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
   over one open connection. The agent falls back to the long poll when it can't be opened.
 """
 import json
+import math
 import threading
 import time
 import zlib
@@ -252,6 +253,13 @@ FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 
              'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
              'templates_missing': None, 'errors': None}
 
+# What each row of a list needs before a page reads it (the rest is checked by type in _flow_value).
+_NUM = (int, float)
+FLOW_ROWS = {'services': {'name': str, 'bytes': _NUM, 'seats': _NUM}, 'anomalies': {'title': str, 'detail': str},
+             'areas': {'area': str, 'bytes': _NUM}, 'seats': {'seat': str, 'bytes': _NUM}, 'series': {'t': _NUM},
+             'exporters': {'address': str}}
+FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}
+
 
 def _traffic_off():
     return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Features).'}), 409
@@ -321,6 +329,35 @@ def flows():
     return jsonify({'ok': True})
 
 
+def _flow_scalar(value):
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, (int, float)):
+        return value if math.isfinite(value) and abs(value) < 2 ** 63 else None
+    if isinstance(value, str):
+        return value[:300]
+    return None
+
+
+def _flow_value(value, depth=0):
+    """A summary value in the shapes the Traffic, Games and wall pages read: numbers, short texts,
+    rows of those, and one level of maps inside a row (a seat's ``mix``). An agent of another
+    version, or a broken one, must not leave a list where a page adds up numbers."""
+    if isinstance(value, list):
+        if depth:
+            return None
+        return [row for row in (_flow_value(v, 1) for v in value[:5000]) if isinstance(row, dict)]
+    if isinstance(value, dict):
+        if depth > 1:
+            return None
+        out = {}
+        for k, v in list(value.items())[:500]:
+            v = _flow_value(v, depth + 1) if isinstance(v, dict) else _flow_scalar(v)
+            if v is not None:
+                out[str(k)[:120]] = v
+        return out
+    return _flow_scalar(value)
+
 def take_flow_summary(agent, snap):
     """Keep an agent's traffic summary (also the Traffic from the hall plugin's). False: not one."""
     if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
@@ -328,7 +365,16 @@ def take_flow_summary(agent, snap):
     clean = {}
     for key, most in FLOW_KEYS.items():
         if key in snap:
-            value = snap[key]
+            value = _flow_value(snap[key])
+            if key in FLOW_ROWS:
+                needs = FLOW_ROWS[key]
+                value = value if isinstance(value, list) else []
+                value = [r for r in value if all(isinstance(r.get(k), kind) and not isinstance(r.get(k), bool)
+                                                 for k, kind in needs.items())]
+            elif key in FLOW_MAPS and not isinstance(value, dict):
+                value = {}
+            elif key not in FLOW_MAPS and isinstance(value, (list, dict)):
+                value = None
             clean[key] = value[:most] if most and isinstance(value, list) else value
     from .. import agent_ha
     if agent_ha.standby_with_primary(agent['id'], time.time()):

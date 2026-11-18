@@ -170,13 +170,13 @@ class DnsStats:
         now = time.time() if now is None else now
         floor = settings()['min_clients']
         with self._lock:
-            for key, h in (hours or {}).items():
+            for key, h in (hours.items() if isinstance(hours, dict) else ()):
                 try:
                     hour = int(key)
                     clean = {'lookups': int(h['lookups']), 'blocked': int(h.get('blocked') or 0),
                              'sites': {site(s) or '': [int(v[0]), int(v[1]), int(v[2])]
                                        for s, v in (h.get('sites') or {}).items() if int(v[2]) >= floor}}
-                except (KeyError, TypeError, ValueError, IndexError, AttributeError):
+                except (KeyError, TypeError, ValueError, IndexError, AttributeError, OverflowError):
                     continue
                 clean['sites'].pop('', None)
                 if hour <= now + 3600:

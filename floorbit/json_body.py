@@ -8,7 +8,8 @@ Answers go the other way through FiniteJSONProvider: NaN and infinity become nul
 
 Python's JSON reader also takes ``NaN``, ``Infinity`` and ``1e999``, which no browser sends: as a
 whole number they raised OverflowError (a 500) in many handlers, and stored as a position they
-would make every later answer JSON the browser can't read.
+would make every later answer JSON the browser can't read. A whole number of hundreds of digits
+(no browser sends one either) raised OverflowError the same way wherever it became a float.
 """
 import json
 import math
@@ -18,6 +19,12 @@ from flask.json.provider import DefaultJSONProvider
 
 MESSAGE = 'Send a JSON object.'
 NOT_FINITE = 'Numbers must be finite (no NaN or Infinity).'
+TOO_LONG = 'Numbers can have at most 30 digits.'
+MAX_DIGITS = 30        # far past any count or id here; a float holds about 300
+
+
+class _TooLong(ValueError):
+    pass
 
 
 class _NotFinite(ValueError):
@@ -33,6 +40,12 @@ def _float(text):
     if not math.isfinite(value):
         raise _NotFinite(text)
     return value
+
+
+def _int(text):
+    if len(text.lstrip('-')) > MAX_DIGITS:
+        raise _TooLong(text[:40])
+    return int(text)
 
 
 def _finite(value):
@@ -68,9 +81,12 @@ def init_json_body(app):
             return jsonify({'error': MESSAGE}), 400
         if body:
             try:
-                json.loads(request.get_data(cache=True), parse_constant=_constant, parse_float=_float)
+                json.loads(request.get_data(cache=True), parse_constant=_constant, parse_float=_float,
+                           parse_int=_int)
             except _NotFinite:
                 return jsonify({'error': NOT_FINITE}), 400
+            except _TooLong:
+                return jsonify({'error': TOO_LONG}), 400
             except ValueError:
                 pass
         return None
