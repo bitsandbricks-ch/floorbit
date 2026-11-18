@@ -31,7 +31,7 @@ export function Connections({ status, test }: { status: SettingsAnswer['status']
   const items: [string, boolean, string][] = [
     ['NetBox', status.netbox_enabled, t(status.netbox_enabled ? 'settings.configured' : 'settings.netboxOff')],
     ['LibreNMS', status.librenms_enabled, t(status.librenms_enabled ? 'settings.configured' : 'settings.librenmsOff')],
-    ['Redis', redis.connected, redis.connected ? where : t('settings.redisOff', { where })],
+    ['Valkey', redis.connected, redis.connected ? where : t('settings.redisOff', { where })],
   ]
   return (
     <Panel title={t('settings.connections')}>
