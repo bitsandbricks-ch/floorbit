@@ -23,6 +23,9 @@ PATTERNS = (
     ('stp', re.compile(r'SPANTREE|TOPOLOGY_?CHANGE|topology change|\bTCN\b', re.I), 'Spanning tree topology change'),
 )
 TITLES = {pid: title for pid, _rx, title in PATTERNS}
+# A storm on every port of a big hall (a loop, a TCN flood) must not grow the list without end:
+# past this many items new ones fold into one per switch, past twice it into one per pattern.
+MAX_ITEMS = 5000
 
 
 def quiet_seconds():
@@ -50,22 +53,29 @@ class LogAlerts:
             return None
         now = time.time() if now is None else now
         device = str(line.get('device') or '')
-        key = f"log:{pid}:{device.lower()}:{line.get('port') or ''}"
+        port, seat = line.get('port') or '', line.get('seat')
+        key = f"log:{pid}:{device.lower()}:{port}"
         with self._lock:
             # Once a second, not per line: with every port of 400 switches flapping the list is
             # tens of thousands long, and a scan per line held a 500-lines-a-second hall back.
             if now - self._pruned >= 1 or now < self._pruned:
                 self._prune(now)
                 self._pruned = now
+            if key not in self.items and len(self.items) >= MAX_ITEMS:
+                port, seat = '', None
+                key = f"log:{pid}:{device.lower()}:"
+                if key not in self.items and len(self.items) >= 2 * MAX_ITEMS:
+                    device = ''
+                    key = f"log:{pid}::"
             item = self.items.get(key)
             if item:
                 item['count'] += 1
                 item['last'] = now
-                item['seat'] = item['seat'] or line.get('seat')
+                item['seat'] = item['seat'] or seat
                 return None
             item = self.items[key] = {
                 'id': key, 'kind': 'log', 'pattern': pid, 'title': TITLES[pid], 'device': device,
-                'port': line.get('port'), 'seat': line.get('seat'), 'since': now, 'last': now, 'count': 1,
+                'port': port or None, 'seat': seat, 'since': now, 'last': now, 'count': 1,
                 'line_id': line.get('id'),
             }
         events.publish('logs.alert', {k: item[k] for k in ('id', 'pattern', 'title', 'device', 'port', 'seat')})

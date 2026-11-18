@@ -21,3 +21,5 @@
   "could not resolve", and check-in tries again as soon as it is back.
 - With two local agents polling the same switches, port traffic no longer jumps between zero and
   many times the real rate.
+- A syslog storm on every port of a big hall no longer grows the Problems list without end: past
+  5,000 items, new ones are counted per switch, then per pattern.

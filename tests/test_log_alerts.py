@@ -103,3 +103,21 @@ def test_webhook_payload_leaves_the_line_out():
         "port": "gi1/0/3", "seat": "B-3", "message": "MAC 0200.0000.0007"}})
     assert out == [("logs.alert", {"id": "log:err_disable:sw-b-01:gi1/0/3", "pattern": "err_disable", "title": "t",
                                    "device": "sw-b-01", "port": "gi1/0/3", "seat": "B-3"})]
+
+
+def test_a_storm_on_every_port_keeps_the_list_bounded(monkeypatch):
+    # A loop in a 2,000-switch hall: every port of every switch reports. The list folds into one
+    # item per switch, then one per pattern, instead of growing with every port.
+    monkeypatch.setattr(events, "publish", lambda kind, data: None)
+    monkeypatch.setattr(log_alerts, "MAX_ITEMS", 50)
+    alerts = log_alerts.LogAlerts()
+    line = {"message": "%SPANTREE-5-TOPOTRAP: Topology Change Trap", "seat": "A-1"}
+    for sw in range(60):
+        for port in range(10):
+            alerts.observe(dict(line, device=f"sw-{sw}", port=f"Gi1/0/{port}"), now=NOW)
+    items = alerts.snapshot(now=NOW)
+    assert len(items) <= 2 * 50 + 1
+    assert sum(i["count"] for i in items) == 600
+    folded = [i for i in items if i["port"] is None]
+    assert folded and all(i["seat"] is None for i in folded)
+    assert any(i["device"] == "" for i in folded)
