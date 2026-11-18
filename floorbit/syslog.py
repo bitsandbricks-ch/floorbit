@@ -17,10 +17,12 @@ Lines are kept as received with what Floorbit worked out: the device (by sender 
 severity, the program and the switch port and seat, when a port is named. Logs can name MACs and
 IPs, so reading them needs ``seats.view``.
 """
+import contextlib
 import ipaddress
 import json
 import os
 import re
+import socket
 import socketserver
 import threading
 import time
@@ -139,6 +141,44 @@ def parse(raw, now=None):
         ts = now   # a switch with a wrong clock: when it arrived is better
     return {'ts': ts, 'facility': pri // 8, 'severity': SEVERITIES[pri % 8], 'host': host, 'program': program,
             'message': message.strip()[:MAX_LINE]}
+
+
+
+RCVBUF = 8 * 1024 * 1024      # a burst waits in the kernel while one line is handled
+MAX_TCP = 256                 # senders at once; more are closed (a switch reconnects)
+
+
+class UdpServer(socketserver.UDPServer):
+    def server_bind(self):
+        with contextlib.suppress(OSError):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RCVBUF)
+        super().server_bind()
+
+
+class TcpServer(socketserver.ThreadingTCPServer):
+    """A thread per sender, at most MAX_TCP of them."""
+    allow_reuse_address = True
+    daemon_threads = True
+
+    def __init__(self, *a, **kw):
+        self._slots = threading.BoundedSemaphore(MAX_TCP)
+        super().__init__(*a, **kw)
+
+    def process_request(self, request, client_address):
+        if not self._slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
 
 
 class SyslogReceiver:
@@ -513,12 +553,12 @@ class SyslogReceiver:
                     receiver.receive(raw, self.client_address[0])
 
         try:
-            udp = socketserver.ThreadingUDPServer((s['bind'], s['port']), Udp)
+            # One thread reads the port: a thread per datagram fell over in a burst (the local
+            # agent's relay learned the same, floorbit-agent's syslog_relay.py).
+            udp = UdpServer((s['bind'], s['port']), Udp)
             self._servers.append(udp)
             if s['tcp']:
-                socketserver.ThreadingTCPServer.allow_reuse_address = True
-                tcp = socketserver.ThreadingTCPServer((s['bind'], s['port']), Tcp)
-                tcp.daemon_threads = True
+                tcp = TcpServer((s['bind'], s['port']), Tcp)
                 self._servers.append(tcp)
         except OSError as exc:
             self.error = f"Can't listen on port {s['port']}: {exc.strerror or exc}"

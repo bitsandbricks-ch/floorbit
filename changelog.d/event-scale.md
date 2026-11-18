@@ -28,3 +28,5 @@
   the first doesn't know or doesn't answer within 3 seconds, so LibreNMS isn't asked twice.
 - A local agent's post that is too big or broken is refused with a clear error instead of being
   read as empty, so its lines are no longer lost without a word.
+- Floorbit's own syslog listener (when it runs next to the switches) reads UDP with one thread
+  and a bigger receive buffer instead of a thread per line, and takes at most 256 TCP senders.

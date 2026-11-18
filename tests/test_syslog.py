@@ -2,6 +2,7 @@
 import json
 import os
 import socket
+import threading
 import time
 
 import pytest
@@ -158,6 +159,40 @@ def test_udp_round_trip(tmp_path, monkeypatch, lan_here):
     finally:
         r.stop()
     assert r.listening is None
+
+
+
+def test_a_udp_burst_is_read_by_one_thread_and_tcp_senders_are_capped(tmp_path, monkeypatch, lan_here):
+    monkeypatch.setenv("SYSLOG_ENABLED", "1")
+    monkeypatch.setenv("SYSLOG_TCP", "1")
+    monkeypatch.setenv("SYSLOG_PORT", str(_free_port()))
+    monkeypatch.setenv("SYSLOG_BIND", "127.0.0.1")
+    monkeypatch.setenv("SYSLOG_ALLOW", "127.0.0.1")
+    monkeypatch.setattr(syslog, "MAX_TCP", 2)
+    r = syslog.SyslogReceiver(path=str(tmp_path / "syslog"))
+    r._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("127.0.0.1/32")], {})
+    r.start()
+    try:
+        port = r.listening["port"]
+        threads = threading.active_count()
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            for i in range(2000):
+                s.sendto(b"<14>burst %d" % i, ("127.0.0.1", port))
+        assert threading.active_count() <= threads + 1       # not a thread per datagram
+        for _ in range(200):
+            if r.status()["counts"]["received"] >= 2000:
+                break
+            time.sleep(0.02)
+        assert r.status()["counts"]["received"] == 2000         # every one read (the rate limit is apart)
+        if r.listening.get("tcp"):
+            held = [socket.create_connection(("127.0.0.1", port)) for _ in range(2)]
+            extra = socket.create_connection(("127.0.0.1", port))
+            extra.settimeout(2)
+            assert extra.recv(1) == b""                            # the third sender is closed
+            for c in held + [extra]:
+                c.close()
+    finally:
+        r.stop()
 
 
 def test_off_by_default(tmp_path):
