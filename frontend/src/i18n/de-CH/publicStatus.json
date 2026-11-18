@@ -1,0 +1,36 @@
+{
+  "title": "Netzwerkstatus",
+  "off": "Diese Seite ist ausgeschaltet.",
+  "state": {
+    "operational": "Alles läuft",
+    "degraded": "Ein Teil des Netzwerks ist ausgefallen",
+    "outage": "Netzwerkausfall",
+    "maintenance": "Wartung",
+    "unknown": "Status gerade nicht verfügbar"
+  },
+  "detail": {
+    "operational": "Das Netzwerk läuft normal.",
+    "degraded": "Einige Plätze haben kein Netzwerk. Die Crew ist dran.",
+    "outage": "Grosse Teile des Netzwerks sind ausgefallen. Die Crew ist dran.",
+    "maintenance": "Die Crew arbeitet am Netzwerk.",
+    "unknown": "Floorbit erreicht sein Monitoring gerade nicht und weiss es darum nicht."
+  },
+  "since": "Seit {{time}}",
+  "areas": "Betroffene Bereiche",
+  "rows": "Reihen {{rows}}",
+  "seats_one": "{{count}} Platz",
+  "seats_other": "{{count}} Plätze",
+  "switches": "Switches: {{names}}",
+  "block": "Platzblock {{name}}",
+  "hallWide": "Halle {{name}}",
+  "somewhere": "Irgendwo in der Halle",
+  "planned": "Geplante Wartung",
+  "until": "bis {{time}}",
+  "now": "Jetzt",
+  "recovered": "Wieder da",
+  "recoveredAt": "Das Netzwerk hier läuft seit {{time}} wieder.",
+  "updates": "Updates der Crew",
+  "none": "Noch keine Updates.",
+  "feed": "Updates im Feedreader folgen (Atom)",
+  "updated": "Stand {{time}}. Die Seite aktualisiert sich jede Minute."
+}

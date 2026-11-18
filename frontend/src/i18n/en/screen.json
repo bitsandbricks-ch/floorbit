@@ -1,0 +1,15 @@
+{
+  "find": "Find your seat",
+  "qrAlt": "QR code for {{url}}",
+  "prev": "Previous view",
+  "next": "Next view",
+  "pause": "Pause",
+  "play": "Play",
+  "position": "{{name}} \u00b7 {{n}} of {{count}}",
+  "views": {
+    "floor": "Floor plan",
+    "heat": "Seat traffic",
+    "stats": "Stats",
+    "health": "Service health"
+  }
+}

@@ -18,13 +18,16 @@ export function EventBrand() {
   )
 }
 
-/** The frame of the pages people see before they sign in (sign-in, seat check-in): the event's
- *  brand on top, one column in the middle, the language picker and the attribution below. */
-export function PublicPage({ title, children }: { title: string; children: ReactNode }) {
+/** The frame of the pages people see without an account (sign-in, seat check-in, the status page,
+ *  ...): the event's brand on top, one column in the middle, the language picker and the
+ *  attribution below. ``size``: ``form`` (sign-in, check-in), ``page`` for pages that read top to
+ *  bottom (status, schedule), ``board`` for grids of numbers (stats wall), ``wide`` for what needs
+ *  the whole width (brackets). */
+export function PublicPage({ title, children, size = 'form' }: { title: string; children: ReactNode; size?: 'form' | 'page' | 'board' | 'wide' }) {
   const { t, i18n } = useTranslation()
   useEffect(() => { document.title = `${title} · Floorbit` }, [title])
   return (
-    <main className="fb-public">
+    <main className={size === 'form' ? 'fb-public' : `fb-public fb-public--${size}`}>
       <div className="fb-public-col">
         <div className="fb-public-head"><EventBrand /></div>
         <Stack gap="md">{children}</Stack>
