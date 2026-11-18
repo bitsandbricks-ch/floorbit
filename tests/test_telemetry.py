@@ -622,3 +622,19 @@ def test_memory_history_is_compact_bounded_and_in_order(monkeypatch):
     assert st.series("sw", "Gi1/0/2", "in_bps", now=t0 + 300) == [] and "memory" in st.errors
     st.sample({"sw|Gi1/0/1|in_bps": 7.0}, t0 + 7 * 3600)   # seven hours later: the old ones are gone
     assert st.series("sw", "Gi1/0/1", "in_bps", hours=6, now=t0 + 7 * 3600) == [[t0 + 7 * 3600, 7.0]]
+
+
+def test_two_agents_polling_the_same_switch_give_steady_rates(plugin):
+    # No VRRP (or a split): both agents poll, and their readings land a moment apart, sometimes
+    # out of order. The rate must stay the real one, not jump to many times it or to zero.
+    import time
+    now = time.time()
+    state.state.apply_text(snmp_poll(now - 60, 1000), now)
+    state.state.apply_text(snmp_poll(now - 59.7, 1000), now)               # the second agent
+    state.state.apply_text(snmp_poll(now - 30, 1000 + 30 * 125_000), now)
+    assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)
+    state.state.apply_text(snmp_poll(now - 29.6, 1000 + 30 * 125_000), now)   # its copy, unchanged
+    assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)
+    state.state.apply_text(snmp_poll(now - 60, 1000), now)                 # late and older
+    state.state.apply_text(snmp_poll(now, 1000 + 60 * 125_000), now)
+    assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)

@@ -19,3 +19,5 @@
   Local agents page shows a stopped agent as gone at once.
 - While the local agent or LibreNMS is away, seat lookups say "try again shortly" instead of
   "could not resolve", and check-in tries again as soon as it is back.
+- With two local agents polling the same switches, port traffic no longer jumps between zero and
+  many times the real rate.
