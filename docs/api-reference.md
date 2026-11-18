@@ -802,13 +802,12 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 
 ## floorbit.blueprints.replay
 
-Event timeline replay (issue #21): the event on the floor plan, with a time slider. See docs/replay.md.
+Event replay (issues #21, #104): the whole event on the floor plan, with a time slider. See docs/replay.md.
 
 Source: [`floorbit/blueprints/replay.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/replay.py)
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
-| GET | `/api/replay` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 | GET | `/api/replay/event` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 | GET | `/api/replay/event.json` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `replay` |
 

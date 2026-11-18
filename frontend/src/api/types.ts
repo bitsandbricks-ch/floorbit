@@ -923,34 +923,6 @@ export interface PlanDrawing {
   custom_icons?: Record<string, string>
 }
 
-/** [time, seat, 1 online / 0 offline] */
-export type SeatChange = [number, string, 0 | 1]
-
-export interface ReplayIncident {
-  id: string
-  title: string
-  seat: string | null
-  switch: string | null
-  start: number
-  end: number | null
-}
-
-export interface ReplayData {
-  halls: { id: string; name: string }[]
-  hall: string
-  drawing: PlanDrawing | null
-  start: number | null
-  end: number | null
-  interval: number
-  samples: { t: number; down: number; up: number; online: number }[]
-  peak: { bps: number; at: number } | null
-  seat_base: { t: number | null; online: string[] }
-  seat_events: SeatChange[]
-  checkins: SeatChange[]
-  incidents: ReplayIncident[]
-  last_poll: number | null
-}
-
 /** GET /api/report: the post-event report (issue #22). Nicks and IPs only when an admin asked. */
 export interface ReportHour { t: number; online_max: number; checked_in: number; peak_bps: number; avg_bps: number; incidents?: number }
 export interface ReportOutage { switch: string; times: number; down_s: number; longest_s: number; still_down: boolean }

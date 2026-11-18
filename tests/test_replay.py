@@ -1,9 +1,5 @@
-"""Event timeline replay (issue #21)."""
-import time
-
+"""The seat changes the stats keep (issue #21; "watch this seat", issue #178), and the replay page."""
 import pytest
-
-from integrations import history
 
 
 @pytest.fixture
@@ -28,10 +24,9 @@ def test_seat_changes_are_recorded_on_change_only(hall):
     _read(hall, {"D-1"}, t0 + 120)
     _read(hall, {"D-1", "D-2"}, t0 + 240)
     _read(hall, {"D-2"}, t0 + 360)
-    tl = hall.timeline()
-    assert tl["seat_events"] == [[t0, "D-1", 1], [t0 + 240, "D-2", 1], [t0 + 360, "D-1", 0]]
-    assert tl["seat_base"] == {"t": t0, "online": []}
-    assert [s["online"] for s in tl["samples"]] == [1, 1, 2, 1]
+    assert list(hall.seat_events) == [[t0, "D-1", 1], [t0 + 240, "D-2", 1], [t0 + 360, "D-1", 0]]
+    assert hall.seat_base == {"t": t0, "online": []}
+    assert [s["online"] for s in hall.samples] == [1, 1, 2, 1]
 
 
 def test_old_changes_fold_into_the_start(hall):
@@ -39,33 +34,18 @@ def test_old_changes_fold_into_the_start(hall):
     _read(hall, {"D-1"}, t0)
     _read(hall, {"D-1", "D-3"}, t0 + 3600)
     _read(hall, {"D-1", "D-3"}, t0 + 25 * 3600)   # a day later: the first change is out of the window
-    tl = hall.timeline()
-    assert tl["seat_base"] == {"t": t0, "online": ["D-1"]}
-    assert tl["seat_events"] == [[t0 + 3600, "D-3", 1]]
-
-
-def test_replay_api(client, hall):
-    now = time.time()
-    _read(hall, {"D-1", "D-2"}, now - 600)
-    _read(hall, {"D-2"}, now - 300)
-    row = {"seat": "D-3", "username": "player-three", "ip": "198.51.100.3", "mac": "02:00:00:00:00:03"}
-    history.record("checkin", row, ts=now - 500)
-    history.record("moved", {"seat": "D-3", "username": "player-three"}, ts=now - 100, to_seat="D-4")
-    client.post("/api/incidents", json={"seat": "D-2", "title": "Port flapping"})
-    data = client.get("/api/replay").get_json()
-    assert [c["seat"] for b in data["drawing"]["shapes"] for c in b["cells"]] == ["D-1", "D-2", "D-3", "D-4"]
-    assert data["seat_events"] == [[now - 600, "D-1", 1], [now - 600, "D-2", 1], [now - 300, "D-1", 0]]
-    assert data["checkins"] == [[now - 500, "D-3", 1], [now - 100, "D-3", 0]]
-    assert data["incidents"][0]["seat"] == "D-2" and data["incidents"][0]["end"] is None
-    assert data["start"] == now - 600 and data["end"] >= now - 100
-    body = client.get("/api/replay").get_data(as_text=True)
-    for secret in ("player-three", "198.51.100.3", "02:00:00:00:00:03"):
-        assert secret not in body
+    assert hall.seat_base == {"t": t0, "online": ["D-1"]}
+    assert list(hall.seat_events) == [[t0 + 3600, "D-3", 1]]
 
 
 def test_replay_needs_floor_plan_access(anon_client, app_module, monkeypatch):
     monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
-    assert anon_client.get("/api/replay").status_code in (302, 401)
+    assert anon_client.get("/api/replay/event").status_code in (302, 401)
+
+
+def test_only_the_whole_event_is_left(client, hall):
+    assert client.get("/api/replay").status_code == 404
+    assert client.get("/api/replay/event").status_code == 200
 
 
 def test_demo_day_fills_up(app_module):
