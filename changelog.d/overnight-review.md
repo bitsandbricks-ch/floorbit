@@ -16,3 +16,5 @@
   query error) now show in German too.
 - Logs page: the syslog receiver's warning no longer shows on the Loki, VictoriaLogs, Floorbit and
   audit log tabs.
+- Names, hosts, ports and ids with a newline at the end are refused everywhere they are checked,
+  not only in the plugin checks (#769).

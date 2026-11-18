@@ -35,8 +35,8 @@ from .store import load_data, load_shared, save_data
 KEY = 'agents'
 PREFIX = 'fba_'
 MAX_AGENTS = 10
-NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}$')
-KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})$')
+NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}\Z')
+KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})\Z')
 CONNECTED_FOR = 60       # an agent that asked for work this recently counts as connected
 ROTATE_GRACE = 24 * 3600  # after a new key, the old one still works this long, or until the new one is used
 CALL_TIMEOUT = 8         # seconds a page waits for the agent's answer
@@ -58,7 +58,7 @@ METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats'
            'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
            'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
            'switch_call', 'shell_open', 'shell_io', 'shell_close', 'plugin_test')
-PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
+PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}\Z')
 
 _lock = threading.Lock()
 _active = None            # ((data file, mtime), is an agent enrolled?)

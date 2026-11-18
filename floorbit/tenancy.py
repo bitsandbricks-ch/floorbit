@@ -19,7 +19,7 @@ TENANT_FILE = 'tenant.json'
 EVENT_FOLDER = 'event-data'
 FIRST_EVENT = 'main'
 STATUSES = ('planning', 'live', 'closed')
-ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}$')
+ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}\Z')
 # How long the live event's folder is trusted before tenant.json is looked at again. Workers and
 # requests ask on every path they build; this keeps that from being a read each time.
 RECHECK = 2.0

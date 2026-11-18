@@ -36,8 +36,8 @@ MAX_CHOICES = 50
 MAX_TYPES = 40
 MAX_ENTRIES = 5000
 NOTES_MAX = 1000
-KEY_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
-ID_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}$')
+KEY_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
+ID_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}\Z')
 
 _lock = threading.RLock()
 

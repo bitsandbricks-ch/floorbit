@@ -25,7 +25,7 @@ MAX_LINKS = 20
 NAME_MAX = 40
 LABEL_MAX = 60
 URL_MAX = 500
-ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}$')
+ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
 KINDS = ('dashboard', 'page', 'url')
 # The icons a section can have; the same names as CUSTOM_ICONS in frontend/src/nav/sections.ts.
 ICONS = ('dashboard', 'star', 'bolt', 'network', 'server', 'chart', 'heart', 'users', 'trophy', 'calendar',

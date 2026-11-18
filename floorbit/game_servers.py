@@ -25,8 +25,8 @@ from .store import load_data, save_data
 KEY = 'game_servers'
 MAX = 60
 HISTORY = 60                       # player counts kept per server (30 minutes at the default interval)
-NAME_RE = re.compile(r'^[^\x00-\x1f]{1,60}$')
-HOST_RE = re.compile(r'^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}|[0-9a-fA-F:.]{0,44})$')
+NAME_RE = re.compile(r'^[^\x00-\x1f]{1,60}\Z')
+HOST_RE = re.compile(r'^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}|[0-9a-fA-F:.]{0,44})\Z')
 # First words of commands that stop the server, change the map or throw players out.
 DESTRUCTIVE = frozenset((
     'quit', 'exit', 'stop', 'shutdown', 'restart', '_restart', 'killserver', 'kill', 'ban', 'banid', 'banip',

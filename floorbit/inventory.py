@@ -41,7 +41,7 @@ LIMITS = {'name': 80, 'role': 40, 'model': 80, 'serial': 80, 'mgmt_ip': 45, 'hal
 ICONS = ('switch', 'router', 'firewall', 'server', 'vm', 'access-point', 'pdu', 'ups', 'storage', 'camera',
          'printer', 'screen', 'phone', 'cloud', 'cpu', 'antenna', 'cable', 'circuit', 'power-board', 'patch-panel',
          'rack', 'transceiver', 'vlan', 'other')
-COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}\Z')
 LOG_KEEP = 50
 MAX_TAGS = 20
 MAX_FEED = 5000

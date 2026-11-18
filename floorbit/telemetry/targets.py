@@ -30,9 +30,9 @@ KINDS = ('switch', 'router', 'firewall')
 PLATFORMS = ('nxos', 'iosxe', 'ios', 'opnsense', 'pfsense', 'other')
 FDB_MODES = ('qbridge', 'cisco_vlans', 'bridge', 'off')
 SECRETS = ('community', 'auth_password', 'priv_password', 'password', 'api_secret')
-NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$')
-HOST_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}$')
-USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}$')
+NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\Z')
+HOST_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}\Z')
+USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 _lock = threading.Lock()
 
 

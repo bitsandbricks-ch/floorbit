@@ -46,8 +46,8 @@ MAX_TAGS = 200
 MAX_CREDS = 2000
 MAX_DEPTH = 8
 MAX_PROPERTIES = 50
-PROP_KEY_RE = re.compile(r'^[a-z][a-z0-9_.-]{0,39}$')
-NAME_RE = re.compile(r'^[^\x00-\x1f]{1,60}$')
+PROP_KEY_RE = re.compile(r'^[a-z][a-z0-9_.-]{0,39}\Z')
+NAME_RE = re.compile(r'^[^\x00-\x1f]{1,60}\Z')
 USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 
 # Floorbit's own per-device features: on unless switched off. Anything else named is a plugin id,

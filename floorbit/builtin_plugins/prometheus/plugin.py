@@ -11,9 +11,9 @@ from floorbit.builtin_plugins.librenms.ports import summarize_port
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
 
-NAME_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
-JOB_RE = re.compile(r'^[\w.:/-]{1,100}$')
-WINDOW_RE = re.compile(r'^\d{1,4}[smh]$')
+NAME_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*\Z')
+JOB_RE = re.compile(r'^[\w.:/-]{1,100}\Z')
+WINDOW_RE = re.compile(r'^\d{1,4}[smh]\Z')
 # IF-MIB ifOperStatus / ifAdminStatus values as numbers, as the exporter sends them.
 OPER = {1: 'up', 2: 'down', 3: 'testing', 4: 'unknown', 5: 'dormant', 6: 'notPresent', 7: 'lowerLayerDown'}
 

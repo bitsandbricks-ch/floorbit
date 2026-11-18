@@ -26,7 +26,7 @@ from . import commands, store
 
 FOLDER = 'configs'
 MAX_BYTES = 2 * 1024 * 1024        # per config
-NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$')
+NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\Z')
 SHOW_RUN = {'juniper_junos': ['show configuration | display set'], '*': ['show running-config']}
 # Lines whose value is a secret. Group 1 is what stays; the rest becomes <removed>.
 SECRETS = (

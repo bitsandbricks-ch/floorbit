@@ -21,7 +21,7 @@ from .. import inventory_scope
 from .agent import _agent, _agent_body, _refused
 
 bp = Blueprint('inventory_agent', __name__)
-PLUGIN_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
+PLUGIN_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}\Z')
 
 
 @bp.route('/api/agent/v1/inventory/<plugin_id>', methods=['GET'])

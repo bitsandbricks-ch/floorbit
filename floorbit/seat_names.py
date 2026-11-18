@@ -17,7 +17,7 @@ import re
 
 NAMINGS = ('block', 'rows')
 ROW_LABELS = ('start', 'end', 'both', 'none')
-LETTERS_RE = re.compile(r'^[A-Z]{1,2}$')
+LETTERS_RE = re.compile(r'^[A-Z]{1,2}\Z')
 
 
 def row_letter(index):

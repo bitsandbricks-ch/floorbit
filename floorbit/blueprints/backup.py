@@ -29,7 +29,7 @@ LAYOUT_KEYS = ('halls', 'inventory', 'seats', 'seat_blocks', 'plan_marks', 'plan
 PLAN_KEYS = ('patch_panels', 'links', 'cables', 'cable_routes', 'power', 'port_areas')
 PLAN_EMPTY = {'patch_panels': list, 'links': list, 'cables': list, 'cable_routes': dict,
               'power': lambda: {'boards': [], 'circuits': []}, 'port_areas': list}
-ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$')
+ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}\Z')
 # Backups from before the inventory: still restored, moved over like data.json is (upgrades.py).
 OLD_LAYOUT_KEYS = ('switches', 'cached_devices', 'positions')
 MAX_BYTES = 64 * 1024 * 1024   # background images travel inline, up to 5 MB each

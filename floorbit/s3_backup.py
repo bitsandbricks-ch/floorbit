@@ -31,10 +31,10 @@ from integrations import config
 
 from . import store
 
-NAME_RE = re.compile(r'^floorbit-backup-(\d{8})-(\d{6})Z\.json\.gz(\.enc)?$')
-PREFIX_RE = re.compile(r'^[A-Za-z0-9._/-]{0,200}$')
-BUCKET_RE = re.compile(r'^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$')
-REGION_RE = re.compile(r'^[a-z0-9-]{1,40}$')
+NAME_RE = re.compile(r'^floorbit-backup-(\d{8})-(\d{6})Z\.json\.gz(\.enc)?\Z')
+PREFIX_RE = re.compile(r'^[A-Za-z0-9._/-]{0,200}\Z')
+BUCKET_RE = re.compile(r'^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\Z')
+REGION_RE = re.compile(r'^[a-z0-9-]{1,40}\Z')
 MAGIC = b'FLOORBIT-ENC1\n'          # an encrypted file starts with this, then salt and nonce
 SCRYPT = {'n': 2 ** 15, 'r': 8, 'p': 1, 'maxmem': 64 * 1024 * 1024, 'dklen': 32}
 TIMEOUT = 60

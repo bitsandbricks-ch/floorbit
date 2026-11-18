@@ -18,8 +18,8 @@ import re
 import threading
 import time
 
-SEAT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 _\-]{0,15}$')
-MAC_RE = re.compile(r'^[0-9a-f]{12}$')
+SEAT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 _\-]{0,15}\Z')
+MAC_RE = re.compile(r'^[0-9a-f]{12}\Z')
 # Field names as the seat sources use them (check-in, seats.json, HTTP).
 FIELDS = {'switch': 'switch', 'port': 'port', 'ip_address': 'ip', 'mac_address': 'mac',
           'username': 'nick', 'note': 'note'}
