@@ -46,6 +46,7 @@ PAGES = (
     ('/seat-mapping', 'seatMapping', 'Seat mapping', lambda c, can: can('seats.view')),
     ('/cables', 'cables', 'Cables', lambda c, can: c['feature_on']('cables')),
     ('/checkins', 'checkins', 'Check-in', lambda c, can: can('seats.view') and _checkin_on()),
+    ('/seat-walk', 'seatWalk', 'Seat walk-through', lambda c, can: can('seats.edit')),
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/preflight', 'preflight', 'Pre-flight check', lambda c, can: c['feature_on']('preflight')),

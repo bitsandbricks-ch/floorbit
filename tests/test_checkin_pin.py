@@ -246,7 +246,7 @@ def test_crew_overview_counts_states_and_lists_the_portal_fetches(hall):
     assert body["verifier"] == {"last_error": None}
 
 
-def test_crew_can_look_for_a_port_again(hall, monkeypatch):
+def test_crew_can_look_for_a_port_again(lan_here, hall, monkeypatch):
     check_in(hall, "192.0.2.24", pin=pins(hall)["A-3"], username="nova")
     monkeypatch.setattr(checkin, "VERIFY_GIVE_UP", -1)          # the lookup gave up
     checkin.verify_pending()
@@ -290,7 +290,7 @@ def test_seat_inspector_says_where_the_port_lookup_stands(hall):
     assert "checkin_wired" not in hall.get("/api/plan/seats/A-1").get_json()
 
 
-def test_a_burst_at_doors_open_is_looked_up_at_the_set_rate_and_drains(hall, monkeypatch):
+def test_a_burst_at_doors_open_is_looked_up_at_the_set_rate_and_drains(lan_here, hall, monkeypatch):
     # 2 lookups a second, saved up for one round (20): 30 check-ins take two rounds, oldest first.
     monkeypatch.setenv("CHECKIN_VERIFY_RATE", "2")
     monkeypatch.setattr(checkin, "_bucket", {"tokens": None, "at": None})

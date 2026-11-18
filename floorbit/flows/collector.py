@@ -97,7 +97,11 @@ class Collector:
 
 
 def main():
-    from .. import cache, create_app
+    from .. import agent_link, cache, create_app
+    if not agent_link.lan_here():
+        print('[flows] Flows come in through the local agent (FLOORBIT_AGENT_FLOWS_PORT on the agent); '
+              'this collector does not listen itself. LAN_ACCESS=direct lets it (docs/flows.md).', flush=True)
+        raise SystemExit(2)
     app = create_app(start_background=False)
     with app.app_context():
         cache.connect()

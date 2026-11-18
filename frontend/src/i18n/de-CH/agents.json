@@ -1,10 +1,10 @@
 {
   "title": "Lokale Agents",
   "settings": "Einstellungen",
-  "intro": "Ein gehostetes Floorbit erreicht LibreNMS im Eventnetz nicht. Dort läuft stattdessen ein lokaler Agent, verbindet sich nach aussen mit diesem Floorbit und beantwortet seine Fragen. Im Eventnetz muss nichts von aussen erreichbar sein.",
+  "intro": "Floorbit erreicht das Eventnetz nur über einen lokalen Agent, ob gehostet oder in der Halle betrieben. Der Agent läuft dort, verbindet sich nach aussen mit diesem Floorbit und beantwortet seine Fragen: Switches, LibreNMS, NetBox und den Rest. Im Eventnetz muss nichts von aussen erreichbar sein.",
   "agents": "Agents",
   "none": "Noch kein Agent. Floorbit fragt sein eigenes Monitoring-Plugin.",
-  "inUse": "Solange ein Agent eingetragen ist, fragt Floorbit den Agent statt des eigenen Monitoring-Plugins. Alle Agents widerrufen, um zurückzuwechseln.",
+  "inUse": "Ohne verbundenen Agent zeigen die Seiten den letzten bekannten Stand und sagen das. Der «Local agent» neben einem selbst betriebenen Floorbit trägt sich selbst ein.",
   "connected": "Verbunden",
   "notConnected": "Nicht verbunden",
   "neverSeen": "noch nie verbunden",

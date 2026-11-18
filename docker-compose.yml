@@ -1,26 +1,31 @@
-# Floorbit and Redis. Setup guide: docs/install.md.
+# Floorbit, its local agent and Redis. Setup guide: docs/install.md.
 #
 #   cp .env.example .env      # optional: NetBox, LibreNMS, first account, ...
 #   docker compose up -d
 #
 # Then open http://localhost:8080 (FLOORBIT_PORT). Settings come from .env; most can also be
 # changed later under Settings, and values saved there win over .env.
+#
+# Floorbit reaches the event network (switches, LibreNMS, NetBox, game servers, ...) only through
+# the agent, the same way as a hosted Floorbit does (docs/agent.md). Here it runs next to it and
+# enrols itself: nothing to copy from Settings.
 
 services:
   floorbit:
     image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
     ports:
       - "${FLOORBIT_PORT:-8080}:5000"
-      # Syslog from switches, firewalls and DHCP servers, only used with SYSLOG_ENABLED (docs/syslog.md).
-      - "${SYSLOG_PUBLISH_PORT:-514}:5514/udp"
     env_file:
       - path: .env
         required: false
     environment:
       REDIS_HOST: redis
+      # Floorbit writes the agent's key here and enrols it as "Local agent".
+      FLOORBIT_LOCAL_AGENT_KEY_FILE: /app/agent-key/local-agent.key
     volumes:
       # data.json, accounts, the audit log, plugin state and check-ins: back this up.
       - floorbit_state:/app/state
+      - agent_key:/app/agent-key
     depends_on:
       redis:
         condition: service_healthy
@@ -32,46 +37,55 @@ services:
       retries: 3
       start_period: 15s
 
-  # Optional: the NetFlow/IPFIX collector for the Traffic page (docs/flows.md). Start it with
-  #   docker compose --profile flows up -d
-  # and point the switches or the router at this host, udp/2055 (FLOWS_PORT).
-  flows:
-    image: ghcr.io/bitsandbricks-ch/floorbit:${FLOORBIT_VERSION:-latest}
-    profiles: ["flows"]
-    command: ["python", "-m", "floorbit.flows"]
-    ports:
-      - "${FLOWS_PORT:-2055}:2055/udp"
+  # The local agent: answers Floorbit's calls on the event network and takes the event's syslog
+  # and flows (docs/agent.md). It talks to Floorbit inside this Compose network only.
+  agent:
+    # The agent has its own image and releases: bitsandbricks-ch/floorbit-agent.
+    image: ghcr.io/bitsandbricks-ch/floorbit-agent:${FLOORBIT_AGENT_VERSION:-latest}
     env_file:
       - path: .env
         required: false
     environment:
-      REDIS_HOST: redis
-      FLOWS_PORT: "2055"
+      FLOORBIT_URL: http://floorbit:5000
+      # Plain HTTP is fine here: the link never leaves this host's Compose network.
+      FLOORBIT_AGENT_INSECURE: "1"
+      FLOORBIT_AGENT_KEY_FILE: /run/floorbit-agent/local-agent.key
+      # Its own small settings file; it keeps no floor plan.
+      FLOORBIT_DATA_FILE: /app/state/agent-data.json
+      FLOORBIT_AGENT_SYSLOG_PORT: "5514"
+      FLOORBIT_AGENT_FLOWS_PORT: "2055"
     volumes:
-      # Reads the seat addresses from the same state; keeps raw flows under /app/state/flows.
-      - floorbit_state:/app/state
+      - agent_state:/app/state
+      - agent_key:/run/floorbit-agent:ro
+    ports:
+      # Syslog from switches, firewalls and DHCP servers (docs/syslog.md), and NetFlow/IPFIX for the
+      # Traffic page (docs/flows.md). Point the devices at this host.
+      - "${SYSLOG_PUBLISH_PORT:-514}:5514/udp"
+      - "${FLOWS_PORT:-2055}:2055/udp"
+      # The attendee front door (FLOORBIT_AGENT_FRONT_DOOR=0.0.0.0:8443 in .env), docs/agent.md:
+      # - "443:8443"
     depends_on:
-      redis:
+      floorbit:
         condition: service_healthy
     restart: unless-stopped
 
   # Optional: Telegraf collects device telemetry (SNMP, traps, gNMI, Cisco MDT) for Floorbit
-  # (docs/telemetry.md). Floorbit writes its config from Settings > Telemetry; Telegraf reloads it.
+  # (docs/telemetry.md). The agent writes its config from Settings > Telemetry and takes what it
+  # collects; Telegraf reloads the config when it changes.
   #   docker compose --profile telemetry up -d
-  # With a local agent (hosted Floorbit), Telegraf runs next to the agent instead.
   telegraf:
     image: telegraf:1.40.3
     profiles: ["telemetry"]
-    # The same user as Floorbit, so it can read the config Floorbit wrote (mode 600, secrets in it).
+    # The agent's user, so it can read the config the agent wrote (mode 600, secrets in it).
     user: "10001"
-    entrypoint: ["sh", "-c", "until [ -f /app/state/telegraf/telegraf.conf ]; do sleep 5; done; exec telegraf --config /app/state/telegraf/telegraf.conf --watch-config notify"]
+    entrypoint: ["sh", "-c", "until [ -f /app/state/plugins/telemetry/telegraf.conf ]; do sleep 5; done; exec telegraf --config /app/state/plugins/telemetry/telegraf.conf --watch-config notify"]
     ports:
       - "${TRAP_PUBLISH_PORT:-162}:1162/udp"   # SNMP traps
       - "${MDT_PUBLISH_PORT:-57000}:57000"     # Cisco model-driven telemetry, dial-out
     volumes:
-      - floorbit_state:/app/state:ro
+      - agent_state:/app/state:ro
     depends_on:
-      - floorbit
+      - agent
     restart: unless-stopped
 
   # Optional: keep telemetry history in VictoriaMetrics instead of Floorbit's own database
@@ -107,8 +121,8 @@ services:
       - grafana_data:/var/lib/grafana
     restart: unless-stopped
 
-  # The cache for LibreNMS answers, and the hand-over from the flow collector. Only Floorbit talks
-  # to it, so no port is published.
+  # The cache for LibreNMS answers and live updates. Only Floorbit talks to it, so no port is
+  # published.
   redis:
     image: redis:7-alpine
     volumes:
@@ -123,6 +137,8 @@ services:
 
 volumes:
   floorbit_state:
+  agent_state:
+  agent_key:
   redis_data:
   victoriametrics_data:
   victorialogs_data:

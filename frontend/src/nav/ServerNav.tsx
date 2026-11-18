@@ -30,7 +30,7 @@ function useDown(): number | null {
   return down
 }
 
-/** The sidebar on a page Flask draws: plain links, and the page's own Go to (static/js/goto.js). */
+/** The sidebar on a page Flask draws: plain links. */
 export function ServerNav() {
   const boot = readBoot()
   const down = useDown()

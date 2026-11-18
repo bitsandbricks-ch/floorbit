@@ -41,8 +41,9 @@ COPY integrations/ ./integrations/
 
 # Everything Floorbit writes (data.json, audit log, plugin state, check-ins) goes to /app/state.
 # Owned by an unprivileged user, so a new named volume starts out writable (docs/install.md).
+# /app/agent-key: the key of the agent next to it, shared with that container only (docker-compose.yml).
 RUN useradd --system --uid 10001 --create-home --home-dir /home/floorbit --shell /usr/sbin/nologin floorbit \
-    && mkdir -p /app/state && chown floorbit:floorbit /app/state
+    && mkdir -p /app/state /app/agent-key && chown floorbit:floorbit /app/state /app/agent-key
 VOLUME /app/state
 
 ENV FLASK_APP=app.py \
