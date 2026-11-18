@@ -28,6 +28,7 @@ from . import state as state_mod
 SAMPLE = 30
 FINE, COARSE = 60, 900
 FINE_HOURS = 6
+CHUNK = 200                      # rows per INSERT (4 values each, well under SQLite's limit)
 SERIES_MAX = 300                 # floorbit_telemetry.series is VARCHAR(300)
 TIMEOUT = 5
 PORT_METRICS = ('in_bps', 'out_bps', 'errors', 'up')
@@ -141,10 +142,14 @@ class Storage:
         if self.db is not None:
             from ..database import DatabaseError
             try:
-                for key, step, bucket, value in rows:
-                    self.db.run('INSERT INTO floorbit_telemetry (series, step, bucket, value) VALUES (?, ?, ?, ?) '
-                                'ON CONFLICT (series, step, bucket) DO UPDATE SET value = excluded.value',
-                                (key, step, bucket, value))
+                # Many rows per statement: one round trip per row took 5 s for 10,000 numbers on
+                # a local Postgres, longer than SAMPLE at a bigger event over a real network.
+                for i in range(0, len(rows), CHUNK):
+                    part = rows[i:i + CHUNK]
+                    self.db.run('INSERT INTO floorbit_telemetry (series, step, bucket, value) VALUES '
+                                + ', '.join(['(?, ?, ?, ?)'] * len(part))
+                                + ' ON CONFLICT (series, step, bucket) DO UPDATE SET value = excluded.value',
+                                [x for row in part for x in row])
             except DatabaseError as exc:      # the database is away: skip this sample, never stop
                 self.errors['database'] = str(exc)[:200]
                 return
