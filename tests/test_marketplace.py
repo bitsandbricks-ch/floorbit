@@ -22,6 +22,21 @@ class Answer:
     def json(self):
         return json.loads(self.content)
 
+    # what a streamed get uses (marketplace._get_capped)
+    @property
+    def headers(self):
+        return {}
+
+    def iter_content(self, size):
+        for i in range(0, len(self.content), size):
+            yield self.content[i:i + size]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
 
 @pytest.fixture
 def market(tmp_path, monkeypatch, app_module):
@@ -68,7 +83,7 @@ def market(tmp_path, monkeypatch, app_module):
             files[url] = json.dumps(signed).encode()
         marketplace._cache.clear()
 
-    def get(url, timeout=None):
+    def get(url, timeout=None, **kw):
         return Answer(files[url]) if url in files else Answer(b"", 404)
 
     monkeypatch.setattr(requests, "get", get)
