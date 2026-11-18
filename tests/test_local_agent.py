@@ -45,13 +45,10 @@ def test_renewing_the_local_key_writes_the_file(client, tmp_path, monkeypatch):
     assert agent_link.check(old)            # until the agent restarts with the new one
 
 
-def test_not_without_the_file_setting_nor_in_the_agent_nor_with_direct_access(client, tmp_path, monkeypatch):
+def test_not_without_the_file_setting_nor_in_the_agent(client, tmp_path, monkeypatch):
     path = tmp_path / "local-agent.key"
     assert agent_link.bootstrap_local() is None
     monkeypatch.setenv("FLOORBIT_LOCAL_AGENT_KEY_FILE", str(path))
     monkeypatch.setenv("FLOORBIT_AGENT_KEY", "fba_00000000_" + "x" * 30)
-    assert agent_link.bootstrap_local() is None
-    monkeypatch.delenv("FLOORBIT_AGENT_KEY")
-    monkeypatch.setenv("LAN_ACCESS", "direct")
     assert agent_link.bootstrap_local() is None
     assert not path.exists() and agent_link.all_agents() == []

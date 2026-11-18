@@ -108,17 +108,11 @@ def all_agents(data=None, now=None):
     return out
 
 
-def agent_only():
-    """Does Floorbit reach the event network only through local agents? Yes, also self-hosted
-    (Mike, 2026-11-17: one way for hosted and self-hosted alike, tested the same). ``LAN_ACCESS=direct``
-    lets this server call the plugins itself again: for development and tests, not for an event."""
-    return (os.environ.get('LAN_ACCESS') or 'agent').strip().lower() != 'direct'
-
-
 def lan_here():
-    """May this process talk to the event network itself? The agent (it has an agent key) may; the
-    Floorbit server only with ``LAN_ACCESS=direct``."""
-    return not agent_only() or bool(os.environ.get('FLOORBIT_AGENT_KEY'))
+    """May this process talk to the event network itself? Only the local agent (it has an agent
+    key). The Floorbit server never does, hosted or self-hosted (Mike, 2026-11-17: one way for
+    both, tested the same); there is no switch to turn that back on."""
+    return bool(os.environ.get('FLOORBIT_AGENT_KEY'))
 
 
 def may_call_here(spec):
@@ -128,10 +122,10 @@ def may_call_here(spec):
 
 
 def active():
-    """Does this server ask the event network's questions through the agent? Always, unless
-    ``LAN_ACCESS=direct`` or the demo data stands in for the hall; with direct access, once an agent
-    is enrolled. Every monitoring call asks, so the enrolment is kept until data.json changes."""
-    if agent_only() and not lan_here() and not _demo_on():
+    """Does this server ask the event network's questions through the agent? Always, unless the
+    demo data stands in for the hall and no agent is enrolled (or this is the agent itself). Every
+    monitoring call asks, so the enrolment is kept until data.json changes."""
+    if not lan_here() and not _demo_on():
         return True
     return _enrolled()
 
@@ -372,7 +366,7 @@ def bootstrap_local(path=None, now=None):
     agent ("Local agent"), so nobody has to copy a key from Settings. The file is the truth: a key
     written by hand is taken over. Returns the agent id, or None when not set up this way."""
     path = path or _local_key_file()
-    if not path or not agent_only() or os.environ.get('FLOORBIT_AGENT_KEY'):
+    if not path or lan_here():
         return None
     now = time.time() if now is None else now
     try:

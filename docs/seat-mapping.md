@@ -103,9 +103,18 @@ A PC has no camera, so nobody has to scan the QR code. With check-in on (`CHECKI
 seat card on the printed sheet (Incidents, then Seat QR codes) also carries:
 
 - the **short address** to type, `CHECKIN_ADDRESS` (for example `checkin.example.com`). Point that
-  name at Floorbit in the event DNS; opening it lands on `/checkin`. It also shows on the sign-in page.
+  name at the local agent's **front door** in the event DNS (the compose file and the Kubernetes
+  manifest open it on port 80, [agent.md](agent.md)); opening it lands on `/checkin`. It also shows
+  on the sign-in page.
 - the seat's **PIN**: five characters, unique per seat, without look-alikes (no 0/O, 1/I/L, 5/S, 8/B).
   PINs are made the first time the sheet is opened and kept, so a reprint gives the same cards.
+
+The PC's address comes **only from the front door**, the same way whether Floorbit is hosted or
+runs in the hall: the agent passes on the address it saw, with its key. Floorbit never takes a
+request's own address or `X-Forwarded-For` as the seat PC's. A check-in that didn't come through the
+front door (someone opened Floorbit's own address) still keeps the seat and the nick, but no address
+and no port (`not_wired`), and the page says to type the short address on the seat PC. With
+`CHECKIN_ALLOWED_NETWORKS` set, such a check-in is refused instead.
 
 The attendee types the PIN and their nick, never the seat: the PIN names it. The page answers at
 once: the request stores only the seat, the nick, the IP and the time. Everything slow happens in

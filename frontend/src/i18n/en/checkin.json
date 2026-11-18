@@ -23,6 +23,8 @@
   "knownSeat": "This PC is at seat {{seat}}.",
   "noPin": "No card at your seat? Type the seat number instead",
   "usePin": "Use the PIN from the seat card instead",
+  "outside": "This page wasn't opened on the event network, so the crew can't learn your seat's network port from it. Your seat and nick still count.",
+  "outsideAt": "Type {{address}} on the PC at your seat to check in there: that is how the crew learns your seat's network port. Your seat and nick count from here too.",
   "onPc": "Open this page on the PC plugged in at your seat: that is how the crew learns which network port your seat is on. Your nick counts from here too.",
   "wired": {
     "pending": "Finding your seat's network port…",

@@ -1,5 +1,5 @@
 """The local agent is the only way Floorbit reaches the event network, also self-hosted (Mike,
-2026-11-17): floorbit/agent_link.py agent_only, and the guard in floorbit/plugins Registry.call."""
+2026-11-17): floorbit/agent_link.py lan_here, and the guard in floorbit/plugins Registry.call."""
 import pytest
 
 from floorbit import agent_link, sources, syslog
@@ -13,7 +13,7 @@ def registry(app_module):
 
 
 def test_by_default_every_lan_question_goes_to_the_agent(client):
-    assert agent_link.agent_only() and not agent_link.lan_here() and agent_link.active()
+    assert not agent_link.lan_here() and agent_link.active()
     assert sources.monitoring().name == "agent"
 
 
@@ -60,14 +60,14 @@ def test_without_an_agent_pages_say_so_instead_of_failing(client):
     assert details["status"] == "unknown"
 
 
-def test_direct_access_is_a_development_switch(client, monkeypatch):
-    monkeypatch.setenv("LAN_ACCESS", "direct")
-    assert agent_link.lan_here() and not agent_link.active()
+def test_there_is_no_switch_for_direct_access(client, monkeypatch):
+    monkeypatch.setenv("LAN_ACCESS", "direct")     # the old development switch is gone
+    assert not agent_link.lan_here() and agent_link.active()
+    assert sources.monitoring().name == "agent"
 
 
 def test_the_flows_collector_does_not_listen_on_the_server(monkeypatch):
     from floorbit.flows import collector
-    monkeypatch.delenv("LAN_ACCESS", raising=False)
     monkeypatch.delenv("FLOORBIT_AGENT_KEY", raising=False)
     with pytest.raises(SystemExit) as stop:
         collector.main()

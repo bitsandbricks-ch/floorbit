@@ -2038,6 +2038,8 @@ export interface CheckinInfo {
   pin_required?: boolean
   /** The short address to type on a PC (CHECKIN_ADDRESS), e.g. checkin.lan. */
   address?: string | null
+  /** True: not through the local agent's front door, so the seat's port can't be learned from here. */
+  outside?: boolean
 }
 
 export type WiredState = 'pending' | 'verified' | 'not_wired' | 'unverified'

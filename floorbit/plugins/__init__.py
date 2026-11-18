@@ -104,7 +104,7 @@ AREA_METHODS = {
     'brackets': ('brackets',),
 }
 # The methods that talk to the event network. On the Floorbit server they run only through the local
-# agent (floorbit/agent_link.py, agent_only): ``call`` refuses them here, so no feature can reach the
+# agent (floorbit/agent_link.py, lan_here): ``call`` refuses them here, so no feature can reach the
 # LAN around it. ``configured`` and ``port_login`` only read settings and stay.
 LAN_METHODS = frozenset({
     'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp', 'device_ports', 'port_clients', 'neighbours',

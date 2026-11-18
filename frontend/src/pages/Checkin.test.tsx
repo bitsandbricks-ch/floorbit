@@ -46,6 +46,14 @@ describe('Checkin', () => {
     expect(fake.calls.find((c) => c.method === 'POST')?.body).toEqual({ seat: 'd-22', username: 'Frag0r', device: expect.any(String) })
   })
 
+  it('asks for the check-in address on the seat PC when the page came from outside the front door', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ ip: null, outside: true, address: 'checkin.lan' }) }).fn)
+    renderWithApp(<Checkin />, '/checkin')
+    expect(await screen.findByText(/Type checkin.lan on the PC at your seat/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/PIN from your seat card/)).toBeInTheDocument()     // the seat and nick still count
+    expect(screen.queryByText(/Your IP/)).not.toBeInTheDocument()
+  })
+
   it('offers only the PIN when the server asks for it', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ pin_required: true }) }).fn)
     renderWithApp(<Checkin />, '/checkin')

@@ -118,6 +118,9 @@ export default function Checkin() {
             </div>
             {send.error && <Alert color="down" role="alert">{send.error.message}</Alert>}
             {notPc && <Alert color="warn">{t('checkin.onPc')}</Alert>}
+            {!notPc && info.data?.outside && (
+              <Alert color="warn">{info.data.address ? t('checkin.outsideAt', { address: info.data.address }) : t('checkin.outside')}</Alert>
+            )}
             {info.data?.suggested_seat && <Text size="sm">{t('checkin.knownSeat', { seat: info.data.suggested_seat })}</Text>}
             {withSeat ? (
               <TextInput label={t('checkin.seat')} placeholder={t('checkin.seatPlaceholder')} size="md" required maxLength={16}
