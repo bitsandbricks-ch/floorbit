@@ -13,6 +13,7 @@ reads what was added since the last time, every ``LANCACHE_INTERVAL`` seconds, a
 and per cache only the bytes served from disk and from the internet. The client address on each
 line is never kept: the numbers are hall-wide.
 """
+import math
 import os
 import re
 import threading
@@ -52,6 +53,58 @@ def parse(line):
     return int(ts // 3600 * 3600), m['cache'].strip().lower(), int(m['bytes']), m['result'].upper() in HITS
 
 
+# What a local agent sends, kept in the shapes the LAN cache page adds up and draws. An agent of
+# another version (or a broken one) must not leave a value there that breaks the page for everyone.
+def _count(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and 0 <= value < 2 ** 63 else 0
+
+
+def _rows(raw, text, counts, limit):
+    rows = []
+    for r in (raw if isinstance(raw, list) else [])[:limit]:
+        if isinstance(r, dict):
+            rows.append({**{k: str(r.get(k) or '')[:120] for k in text}, **{k: _count(r.get(k)) for k in counts}})
+    return rows
+
+
+def _tally(raw, limit=200):
+    return {str(k)[:120]: _count(v) for k, v in list(raw.items())[:limit]} if isinstance(raw, dict) else {}
+
+
+def _number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and abs(v) < 2 ** 63
+
+
+def _check(raw, keys):
+    if not isinstance(raw, dict):
+        return None
+    out = {}
+    for k, kind in keys.items():
+        v = raw.get(k)
+        if (kind is bool and isinstance(v, bool)) or (kind is int and _number(v)):
+            out[k] = v
+        elif kind is str and v is not None and not isinstance(v, (dict, list)):
+            out[k] = str(v)[:300]
+    return out
+
+
+def clean_status(status):
+    """The cache machine as an agent saw it, in the shape the page draws."""
+    status = status if isinstance(status, dict) else {}
+    out = {'at': status['at'] if _number(status.get('at')) else None}
+    for key, keys in (('disk', {'used': int, 'total': int, 'free': int, 'error': str}),
+                      ('heartbeat', {'ok': bool, 'ms': int, 'error': str, 'processed_by': str}),
+                      ('dns_check', {'ok': bool, 'error': str}),
+                      ('clearing', {'running': bool, 'started': int, 'finished': int, 'removed': int, 'errors': int})):
+        if key in status:
+            out[key] = _check(status.get(key), keys)
+    return out
+
+
+def _small(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and 0 <= value < 10 ** 9 else None
+
+
 class LancacheStats:
     def __init__(self, path=None):
         self.path = path
@@ -88,7 +141,7 @@ class LancacheStats:
         for key, caches in (raw.get('hours') or {}).items():
             try:
                 self.hours[int(key)] = {str(c): [int(v[0]), int(v[1]), int(v[2])] for c, v in caches.items()}
-            except (TypeError, ValueError, IndexError, AttributeError):
+            except (TypeError, ValueError, IndexError, AttributeError, KeyError, OverflowError):
                 continue
         if isinstance(raw.get('position'), dict):
             self.position = raw['position']
@@ -130,12 +183,13 @@ class LancacheStats:
         whole hours so far: they replace what it sent for them before."""
         now = time.time() if now is None else now
         name = str(agent.get('name') or agent.get('id'))
+        hours = payload.get('hours')
         with self._lock:
-            for key, caches in (payload.get('hours') or {}).items():
+            for key, caches in (hours.items() if isinstance(hours, dict) else ()):
                 try:
                     hour = int(key)
                     rows = {str(c)[:40]: [int(v[0]), int(v[1]), int(v[2])] for c, v in caches.items()}
-                except (TypeError, ValueError, IndexError, AttributeError):
+                except (TypeError, ValueError, IndexError, AttributeError, KeyError, OverflowError):
                     continue
                 if hour > now + 3600:
                     continue
@@ -144,16 +198,21 @@ class LancacheStats:
             for h in [h for h in self.hours if h < now - keep]:
                 del self.hours[h]
             mine = self.remote.setdefault(str(agent.get('id')), {})
-            mine.update(name=name, updated=now, lines=payload.get('lines'),
-                        downloads=list(payload.get('downloads') or [])[:50],
-                        other_downloads=payload.get('other_downloads') or {},
-                        suspects=list(payload.get('suspects') or [])[:20],
-                        min_clients=payload.get('min_clients'), window_hours=payload.get('window_hours'),
-                        dns_services=(payload.get('dns') or {}).get('services') or {})
-            clients = mine.setdefault('clients', {})
-            for key, n in (payload.get('clients') or {}).items():
-                if isinstance(n, int):
-                    clients[str(key)] = n
+            dns = payload.get('dns') if isinstance(payload.get('dns'), dict) else {}
+            mine.update(name=name, updated=now, lines=_small(payload.get('lines')),
+                        downloads=_rows(payload.get('downloads'), ('cache', 'item'),
+                                        ('hit_bytes', 'miss_bytes', 'requests', 'clients'), 50),
+                        other_downloads={k: _count(v) for k, v in _tally(payload.get('other_downloads')).items()
+                                         if k in ('hit_bytes', 'miss_bytes', 'requests', 'items')},
+                        suspects=_rows(payload.get('suspects'), ('cache', 'item'), ('files', 'misses'), 20),
+                        min_clients=_small(payload.get('min_clients')),
+                        window_hours=_small(payload.get('window_hours')),
+                        dns_services=_tally(dns.get('services')))
+            clients = mine.get('clients') if isinstance(mine.get('clients'), dict) else {}
+            mine['clients'] = clients
+            for key, n in _tally(payload.get('clients'), 100).items():
+                if key.isascii() and key.isdigit():          # an hour: the page sorts them as numbers
+                    clients[key] = n
             for key in sorted(clients)[:-48]:
                 del clients[key]
             self.last_read = now
@@ -165,7 +224,8 @@ class LancacheStats:
         now = time.time() if now is None else now
         with self._lock:
             mine = self.remote.setdefault(str(agent.get('id')), {})
-            mine.update(name=str(agent.get('name') or agent.get('id')), status={**status, 'received': now})
+            mine.update(name=str(agent.get('name') or agent.get('id')),
+                        status={**clean_status(status), 'received': now})
         self._save()
 
     def read_log(self, now=None):

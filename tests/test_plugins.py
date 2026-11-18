@@ -184,6 +184,17 @@ def test_plugin_settings_live_on_the_settings_page(client, sample):
     assert "example-plugin-token" not in client.get("/api/settings").get_data(as_text=True)
 
 
+def test_a_plugin_secret_is_sealed_at_rest_and_clear_for_the_plugin(client, sample, registry):
+    from conftest import stored
+
+    from floorbit import store
+    client.put("/api/settings", json={"plugin.sample.api_token": "example-plugin-token"})
+    assert "example-plugin-token" not in stored(store.DATA_FILE)
+    assert registry.settings_of(sample)["api_token"] == "example-plugin-token"
+    turn_on(client)
+    assert client.get("/api/plugins/sample/endpoints/info").get_json()["token_set"] is True
+
+
 def test_a_switched_off_plugin_does_nothing(client, sample):
     assert client.post("/api/plugins/sample/actions/wave", json={}).status_code == 404
     assert client.get("/api/plugins/sample/widgets/count").status_code == 404

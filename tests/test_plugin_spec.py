@@ -15,9 +15,10 @@ def test_an_unknown_manifest_key_is_refused():
     assert 'unknown key(s) setings' in validate({**BASE, 'setings': []})
 
 
-@pytest.mark.parametrize('key', MANIFEST_NEXT)
-def test_keys_the_spec_marks_next_are_refused_until_built(key):
-    assert 'not supported by this Floorbit yet' in validate({**BASE, key: 'x'})
+def test_keys_the_spec_marks_next_are_refused_until_built():
+    # Empty once everything in the spec ships; the check stays for the next key it lists.
+    for key in MANIFEST_NEXT:
+        assert 'not supported by this Floorbit yet' in validate({**BASE, key: 'x'})
 
 
 def test_the_known_keys_still_load():
@@ -47,7 +48,7 @@ def test_every_data_area_is_in_the_spec():
     text = SPEC.read_text(encoding='utf-8')
     listed = set(re.findall(r'^\| `([a-z_]+)` \|', text, re.M))
     data_areas = set(AREAS) - {'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'http', 'storage',
-                               'context_menu', 'agent'}
+                               'documents', 'context_menu', 'agent', 'panels', 'layers', 'pages'}
     assert data_areas <= listed, f'docs/plugin-spec.md misses {sorted(data_areas - listed)}'
 
 
@@ -57,3 +58,11 @@ def test_every_builtin_plugin_fits_the_spec():
         spec = _load(folder, 'builtin', '99.0')
         assert not spec.error or 'needs Floorbit' in spec.error, f'{folder.name}: {spec.error}'
         file_hashes(folder)
+
+
+@pytest.mark.parametrize('lang', ['en', 'de-CH'])
+def test_the_marketplace_names_every_area(lang):
+    import json
+    texts = json.loads((SPEC.parent.parent / 'frontend' / 'src' / 'i18n' / lang / 'marketplace.json').read_text())
+    missing = sorted(set(AREAS) - set(texts['area']))
+    assert not missing, f'marketplace.json ({lang}) has no area.{missing}'

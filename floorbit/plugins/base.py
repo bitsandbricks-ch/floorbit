@@ -122,6 +122,13 @@ class Context:
         self._registry.require(self.spec, 'storage')
         self._registry.set_state_key(self.spec.id, key, value, STATE_MAX_BYTES)
 
+    # its own JSON documents (floorbit/plugins/documents.py) ------------------------
+    def docs(self, collection):
+        """One of its collections: ``get(id)``, ``put(id, doc)``, ``delete(id)``, ``ids()``, ``all()``."""
+        from .documents import Collection
+        self._registry.require(self.spec, 'documents')
+        return Collection(self.spec.id, collection)
+
 
 class Plugin:
     """Base class for ``plugin.py``. ``self.ctx`` is the plugin's Context."""

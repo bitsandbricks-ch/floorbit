@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PluginInfo } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Plugins from './Plugins'
+import Plugins, { PluginCard } from './Plugins'
 
 const plugin: PluginInfo = {
   id: 'http-check',
@@ -43,6 +43,22 @@ describe('Plugins page', () => {
     fireEvent.click(screen.getByRole('switch'))
     expect(await screen.findByText('✓ HTTP check is on.')).toBeInTheDocument()
     expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ enabled: true })
+  })
+
+  it('says where its data stands against the schema it knows', () => {
+    vi.stubGlobal('fetch', fakeFetch({}).fn)
+    const cases: [Partial<PluginInfo>, RegExp][] = [
+      [{ schema: 2, data_schema: 2 }, /^Its data: schema 2$/],
+      [{ schema: 2, data_schema: 1 }, /at schema 1 and moves to 2 when the plugin next runs/],
+      [{ schema: 1, data_schema: 3 }, /at schema 3, newer than this version knows \(1\)/],
+    ]
+    for (const [extra, text] of cases) {
+      const { unmount } = renderWithApp(<PluginCard plugin={{ ...plugin, ...extra }} />)
+      expect(screen.getByText(text)).toBeInTheDocument()
+      unmount()
+    }
+    renderWithApp(<PluginCard plugin={plugin} />)
+    expect(screen.queryByText(/schema/)).toBeNull()
   })
 
   it('filters a long list', async () => {

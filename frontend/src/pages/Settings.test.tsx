@@ -67,6 +67,15 @@ describe('Settings', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 
+  it('says when a saved secret no longer opens, until a new one is typed', async () => {
+    const broken = { ...answer, values: { ...answer.values, 'netbox.token': { source: 'saved' as const, is_set: false, unreadable: true } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': broken }).fn)
+    page('/settings/netbox')
+    expect(await screen.findByText("Saved, but it doesn't open with the current secret key. Enter it again.")).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'token-example' } })
+    await waitFor(() => expect(screen.queryByText(/doesn't open with the current secret key/)).toBeNull())
+  })
+
   it('finds a field by its words or env var, and opens an old #sec- link on its section', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
     page('/settings#sec-netbox')

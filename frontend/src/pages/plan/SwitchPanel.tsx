@@ -7,6 +7,7 @@ import type { SwitchDetails } from '@/api/types'
 import { SeatGlyph } from './SeatMap'
 import { ErrorBanner } from '@/components/ui'
 import { dayClock } from '@/lib/time'
+import { PluginPanels } from '@/pages/plugins/PluginPanels'
 
 const TONE: Record<string, string> = { online: 'up', offline: 'down' }
 
@@ -54,6 +55,7 @@ export function SwitchPanel({ name, onSeat, onClose }: { name: string; onSeat: (
               </Table.Tbody>
             </Table>
           )}
+          <PluginPanels on="switch" target={w.name} />
           {(w.links?.length ?? 0) > 0 && (
             <Table withRowBorders={false} verticalSpacing={2} aria-label={t('plan.switchPanel.links')}>
               <Table.Thead>

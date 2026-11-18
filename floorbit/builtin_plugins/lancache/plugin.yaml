@@ -2,6 +2,7 @@
 # See docs/lancache.md.
 id: lancache
 name: LAN cache
+icon: storage
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only."

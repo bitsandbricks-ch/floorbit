@@ -37,7 +37,7 @@ plugin can't depend on them by accident.
 | `plugin.py` | no | The hosted part: `class Plugin(floorbit.plugins.base.Plugin)`. |
 | `agent.py` | no | The part on the local agent: `class AgentPlugin(floorbit.plugins.agent.AgentPlugin)` (`agent.module` names another file). |
 | more `*.py` | no | Helpers the two import from their own folder (the LAN cache plugin's `logs.py`). |
-| `locales/de-CH.json` | no | **Next.** German for the plugin's own texts (see [Texts and German](#texts-and-german)). |
+| `locales/de-CH.json` | no | German for the plugin's own texts (see [Texts and German](#texts-and-german)). |
 | `README.md`, `CHANGELOG.md`, `LICENSE` | no | Shown on the Marketplace page. |
 | `SIGNATURE.json` | in a bundle | Written by the release workflow: the hash of every other file, signed. |
 
@@ -56,7 +56,7 @@ If a plugin needs a package, it goes into Floorbit's requirements through a pull
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
 | Settings of type `string`, `text`, `url`, `secret`, `bool`, `int`, `select`, `list` | Ships | Keys: lowercase, digits, `_`, up to 40. `int` has `min`/`max`; `select` needs `options`. Each gets a fixed env name, `FLOORBIT_PLUGIN_<ID>_<KEY>`; a plugin can't read any other variable. |
-| Secrets | Ships | Write-only on the page and in the API (reported as set or not set), never in the audit log, sent to an agent over its link only and kept in its memory. **Next:** sealed at rest with the [vault](credentials.md) like switch logins. |
+| Secrets | Ships | Write-only on the page and in the API (reported as set or not set), never in the audit log, sent to an agent over its link only and kept in its memory. Sealed at rest with the [vault](credentials.md#secret-settings) like switch logins. |
 | Device credentials | Ships | A plugin doesn't store logins itself. With `agent.targets.credentials: [ssh, snmp_v2c, snmp_v3, api, http]` it gets the inventory devices it is turned on for, with the credential of a kind it can use, decrypted for that call. |
 | Where it is on | Ships | On or off for the whole Floorbit; an agent part can be limited to inventory groups, tags or devices (`agent.targets`). |
 
@@ -78,12 +78,12 @@ and dark, on phones and big screens.
 
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
-| Dashboard tiles (`widgets:`): `stat`, `status`, `list`, `table`, `sparkline` | Ships | `small` or `wide`, refreshed every 10 s or slower. Up to 50 rows, 12 columns, 500 points; links only to paths on this site. Usable on [dashboards](dashboards.md) and kiosk walls. |
+| Dashboard tiles (`widgets:`): `stat`, `status`, `list`, `table`, `sparkline` | Ships | `small` or `wide`, refreshed every `refresh` seconds: a whole number, kept between 10 and 86,400 (a day). Up to 50 rows, 12 columns, 500 points; links only to paths on this site. Usable on [dashboards](dashboards.md) and kiosk walls. |
 | Its page under Settings > Plugins | Ships | Floorbit builds it: what it may touch, settings, Test, actions, log, the agents that run it. |
-| An icon (`icon:`) | **Next** | A name from Floorbit's icon set, shown in the plugin list, the Marketplace and its tiles. No SVG files: an uploaded icon goes through the [icon library](inventory.md)'s sanitiser instead. |
-| Inspector panels (`panels:` on `seat`, `switch` or `device`) | **Next** | A widget shown in the side panel when that thing is selected; `panel_<id>(target)` returns a widget. |
-| Floor plan layers (`layers:`) | **Next** | `layer_<id>()` returns `{seat or switch: {value, tone, label}}` plus a legend; drawn like the heatmap, one layer at a time, under the plan's own filters. |
-| Pages in the sidebar (`pages:`) | **Next** | A page made of the plugin's own widgets, in the sidebar's *Plugins* group, for accounts with the permission it names. |
+| An icon (`icon:`) | Ships | A name from Floorbit's icon set (the sidebar's and the inventory's icons), shown in the plugin list and the Marketplace. A name Floorbit doesn't know is refused at load. No SVG or image files: a plugin never ships something the browser draws as is. |
+| Side panel boxes (`panels:` for a `seat`, `switch` or `device`) | Ships | A widget in the side panel when that thing is open: the plan's seat and switch panels, the inventory's device panel. `panel_<id>(target)` gets `{kind, id}` and returns a widget, within the same time budget as a tile. Each entry names its permission; unknown keys in an entry are refused. |
+| Floor plan layers (`layers:`) | Ships | `layer_<id>()` returns `{"seats": {seat: {"tone", "label"}}, "legend": [{"tone", "label"}]}`; tones are `ok`, `warn`, `err` and `info`, drawn as a ring around the seat in Floorbit's own colours. Up to 5,000 seats and 8 legend entries; labels up to 60 characters. One plugin layer at a time, picked under Layers on the plan, on top of the plan's own layers and filters; reloaded every `refresh` seconds (10 to 86,400, as for tiles). Switches are not coloured yet. |
+| Pages in the sidebar (`pages:`) | Ships | `pages: [{id, label, widgets: [...], actions: [...], columns}]` lays out 1 to 24 of the plugin's own widgets and actions in 1, 2 or 3 columns (2 by default) at `/plugins/<plugin>/<page>`, listed in the sidebar's *Plugins* group. A page and each tile on it ask for their own `permission`; an account sees only the tiles it may. The page draws nothing of its own: no browser code ships with a plugin. |
 
 ### Data Floorbit uses
 
@@ -125,8 +125,8 @@ The method names and shapes are in [Plugins](plugins.md#areas-uses).
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
 | Small state: `ctx.set_state(key, value)` | Ships | JSON, 64 KB per plugin, per tenant. Kept when the plugin is updated, rolled back or removed. |
-| Documents: its own JSON collections | **Next** | Per tenant, under the plugin's id, 256 KB per document and 5 MB per plugin, in whichever store Floorbit uses (files, SQLite, Postgres). |
-| Migrations | **Next** | `schema: <n>` in the manifest and `migrate(from_n, store)` on the hosted part, run once per tenant before the new version takes over; a failed migration keeps the old version running. |
+| Documents: its own JSON collections (`documents`) | Ships | `ctx.docs('notes')` with `get(id)`, `put(id, doc)`, `delete(id)`, `ids()`, `all()`. Per tenant, under the plugin's id, in whichever store Floorbit uses (files, SQLite, Postgres). Plain JSON only; 256 KB per document, 5 MB and 50 collections per plugin; a collection name is lowercase letters, digits and `_`, a document id 1 to 128 printable characters. Kept when the plugin is updated, rolled back or removed. |
+| Migrations | Ships | `schema: <n>` in the manifest (1 to 10,000) and `migrate(from_schema, store)` on the hosted part (`store.collection(name)`, `store.collections()`, `store.state`, `store.set_state(...)`). It runs once per tenant before any other code of that version, within 60 s; `from_schema` is 0 on a first install. An update from the Marketplace migrates the installing tenant first, and when that fails, the version before is put back. Elsewhere a failed migration leaves the data where it was and the plugin refusing to run there, tried again after a minute: write `migrate` so it can run again from the same schema. A version never gets data at a newer schema than its own, and the Marketplace won't roll back to one. |
 | Its own database tables or SQL | Never | Floorbit runs on files, SQLite and Postgres, with tenants; plugin SQL would tie it to one of them and around the tenant scoping. |
 
 ### Texts and German
@@ -134,7 +134,7 @@ The method names and shapes are in [Plugins](plugins.md#areas-uses).
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
 | English texts in the manifest and in what it returns | Ships | Names, labels, help, widget texts, messages from `PluginError`. |
-| German | Ships, partly | Today a plugin's texts are German only where Floorbit's own catalog has them. **Next:** `locales/de-CH.json` in the bundle, `{"English text": "German text"}`, used for its manifest, widgets, panels, layers and messages; standard German is made from it like everywhere else. Floorbit's own catalog wins for the shared words. |
+| German | Ships | `locales/de-CH.json` in the plugin's folder: `{"English text": "Swiss German text"}`, with `{}` where a value goes (`"Waved {} times": "{} Mal gewunken"`; `{1}`, `{2}` reorder). Used for its name, description, settings (label, help, placeholder), actions, tiles, right-click entries, messages and errors. A text it doesn't list falls back to Floorbit's own catalog, then to English. Standard German (`de`) is made from it like everywhere else ("ss" to "ß"). Up to 2,000 texts and 256 KB; a file with a different number of `{}` on the two sides is refused. |
 
 ### Permissions it asks for
 
@@ -142,7 +142,8 @@ A plugin doesn't add roles or permissions. Each action, endpoint, tile, panel, l
 one of [Floorbit's permissions](auth.md), and Floorbit checks it. What a plugin may touch is the
 sum of its `uses:`, the permissions it names, its agent block (what it sends and how private,
 the actions it can run in the hall) and the device credentials it can use. Settings > Plugins shows
-all of it. **Next:** the Marketplace shows the same summary before you install, from the index.
+all of it, and the Marketplace shows the same summary on each card before you install, from the
+index. The index build refuses a release whose `plugin.yaml` Floorbit's loader would refuse.
 
 ## Limits
 

@@ -11,9 +11,16 @@ import {
 } from '@tabler/icons-react'
 
 /** A page as the server lists it (GET /api/pages, floorbit/page_index.py): only those this account may open. */
-export interface NavPage { href: string; id: string; label: string }
+export interface NavPage {
+  href: string; id: string; label: string
+  /** A plugin's page (id ``plugin:<plugin>:<page>``): the plugin's icon name, and its label as the plugin gives it. */
+  icon?: string
+}
 
-export type SectionId = 'helpdesk' | 'network' | 'build' | 'event' | 'admin' | 'more'
+export type SectionId = 'helpdesk' | 'network' | 'build' | 'event' | 'admin' | 'plugins' | 'more'
+
+/** A plugin's own page (plugin.yaml ``pages:``), which goes into the Plugins section. */
+export const isPluginPage = (id: string) => id.startsWith('plugin:')
 
 /** The pages crews open all the time: always at the top of the sidebar, never folded away. */
 export const PINNED = ['floorPlan', 'seats', 'dashboards', 'problems', 'incidents']
@@ -43,11 +50,13 @@ const ICONS: Record<string, Icon> = {
   apiTokens: IconKey, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, switchLogins: IconLock, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
-export function pageIcon(id: string): Icon {
+export function pageIcon(id: string, icon?: string): Icon {
+  if (isPluginPage(id)) return (icon && Object.hasOwn(CUSTOM_ICONS, icon) ? CUSTOM_ICONS[icon] : undefined) ?? IconPuzzle
   return ICONS[id] ?? IconApps
 }
 
 export function sectionIcon(id: SectionId): Icon {
+  if (id === 'plugins') return IconPuzzle
   return SECTIONS.find((s) => s.id === id)?.icon ?? IconApps
 }
 
@@ -94,7 +103,8 @@ export function group(pages: NavPage[]): Grouped {
   const pick = (ids: string[]) => ids.flatMap((id) => byId.get(id) ?? [])
   const known = new Set([...PINNED, ...SECTIONS.flatMap((s) => s.pages)])
   const sections = SECTIONS.map((s) => ({ id: s.id, pages: pick(s.pages) }))
-  sections.push({ id: 'more', pages: pages.filter((p) => !known.has(p.id)) })
+  sections.push({ id: 'plugins', pages: pages.filter((p) => isPluginPage(p.id)) })
+  sections.push({ id: 'more', pages: pages.filter((p) => !known.has(p.id) && !isPluginPage(p.id)) })
   return { pinned: pick(PINNED), sections: sections.filter((s) => s.pages.length > 0) }
 }
 
