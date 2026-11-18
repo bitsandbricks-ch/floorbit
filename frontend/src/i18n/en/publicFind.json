@@ -1,0 +1,14 @@
+{
+  "title": "Find your seat",
+  "intro": "Type the seat number from your ticket, for example D-17.",
+  "introNick": "Type your seat number (for example D-17) or your nick.",
+  "label": "Seat",
+  "labelNick": "Seat or nick",
+  "go": "Find",
+  "found": "Seat {{seat}}",
+  "where": "Block {{block}}, row {{row}} of {{rows}}, seat {{col}} from the left as seen on the plan.",
+  "none": "No seat \"{{query}}\" on the floor plan. Check the number on your ticket, or ask at the info desk.",
+  "busy": "Too many searches from here. Please wait a minute.",
+  "off": "The seat finder is switched off.",
+  "map": "Hall plan with seat {{seat}} marked"
+}
