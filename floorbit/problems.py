@@ -30,12 +30,18 @@ SECURITY_KINDS = {'rogue-dhcp': 'Rogue DHCP server', 'arp-spoof': 'ARP spoofing'
 
 def _monitoring():
     health = sources.health()
-    if health.get('offline_since'):
-        return [{'id': 'monitoring', 'kind': 'monitoring', 'level': 'down',
-                 'title': f"{health.get('source') or 'The monitoring source'} is not answering",
-                 'where': 'Switch status is frozen at the last good data', 'since': health['offline_since'],
-                 'link': '/'}]
-    return []
+    if not health.get('offline_since'):
+        return []
+    name = health.get('label') or health.get('source') or 'The monitoring source'
+    agent = health.get('source') == 'agent'
+    if health.get('last_ok') is None:
+        # Never answered since the start: on a fresh install that is setup still to do, not an outage.
+        return [{'id': 'monitoring', 'kind': 'monitoring', 'level': 'down', 'title': f'{name} has not answered yet',
+                 'where': 'No switch status until it does', 'since': health['offline_since'],
+                 'link': '/settings/agents' if agent else '/settings/plugins'}]
+    return [{'id': 'monitoring', 'kind': 'monitoring', 'level': 'down', 'title': f'{name} is not answering',
+             'where': 'Switch status is frozen at the last good data', 'since': health['offline_since'],
+             'link': '/settings/agents' if agent else '/'}]
 
 
 def _on_plan(seat=None, switch=None):
