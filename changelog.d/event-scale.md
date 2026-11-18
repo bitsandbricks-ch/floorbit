@@ -23,3 +23,5 @@
   many times the real rate.
 - A syslog storm on every port of a big hall no longer grows the Problems list without end: past
   5,000 items, new ones are counted per switch, then per pattern.
+- With two local agents for the same halls, a seat lookup asks one of them, and the other only when
+  the first doesn't know or doesn't answer within 3 seconds, so LibreNMS isn't asked twice.

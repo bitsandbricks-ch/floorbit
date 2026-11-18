@@ -450,3 +450,35 @@ def test_a_lookup_takes_the_first_agent_that_knows_and_does_not_wait_for_the_oth
     started = time.time()
     found = agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["dead", "alive"])
     assert found["port"] == "Gi1/0/1" and time.time() - started < 1
+
+
+def test_two_agents_for_one_hall_ask_librenms_once_per_lookup(monkeypatch):
+    asked = []
+
+    def call(method, args=(), timeout=agent_link.CALL_TIMEOUT, targets=None):
+        asked.extend(targets)
+        if targets == {"hung"}:
+            time.sleep(1)
+            raise agent_link.AgentUnavailable("went away before it answered")
+        if targets == {"other-hall"}:
+            return None
+        return {"hostname": "sw-a-01", "port": "Gi1/0/1"}
+    monkeypatch.setattr(agent_link.tunnel, "call", call)
+    monkeypatch.setattr(agent_link, "HEDGE_AFTER", 0.2)
+    monkeypatch.setattr(agent_link, "_last_knew", [None])
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"a", "b"})
+    for _ in range(3):
+        assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["a", "b"])["port"] == "Gi1/0/1"
+    assert asked == ["a", "a", "a"]
+    # One that doesn't know (another hall's agent) hands over at once.
+    asked.clear()
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"other-hall", "b"})
+    monkeypatch.setattr(agent_link, "_last_knew", ["other-hall"])
+    assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["other-hall", "b"])["port"] == "Gi1/0/1"
+    assert asked == ["other-hall", "b"] and agent_link._last_knew == ["b"]
+    # One that hangs is passed over after HEDGE_AFTER, not CALL_TIMEOUT.
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"hung", "b"})
+    monkeypatch.setattr(agent_link, "_last_knew", ["hung"])
+    started = time.time()
+    assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["hung", "b"])["port"] == "Gi1/0/1"
+    assert time.time() - started < 0.8

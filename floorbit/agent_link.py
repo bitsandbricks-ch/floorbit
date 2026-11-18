@@ -28,6 +28,7 @@ import secrets
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FutureTimeout
 
 from .store import load_data, load_shared, save_data
 
@@ -248,6 +249,8 @@ def agent_for(hostname):
     return sorted(connected)[0]
 
 
+HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
+_last_knew = [None]    # the agent that answered the last first-answer call
 FIRST_ANSWER = {'resolve_ip'}   # None when an agent doesn't know: the first real answer is the answer
 
 
@@ -258,9 +261,36 @@ def _ask_all(method, args, everyone):
         raise AgentUnavailable('No local agent is connected.')
     results, errors = [], []
     pool = ThreadPoolExecutor(len(agents))
+    asked = {}     # future -> agent
+
+    def ask_one(agent):
+        fut = pool.submit(tunnel.call, method, args, CALL_TIMEOUT, {agent})
+        asked[fut] = agent
+        return fut
+
     try:
-        futures = [pool.submit(tunnel.call, method, args, CALL_TIMEOUT, {a}) for a in agents]
-        for fut in as_completed(futures):
+        rest = agents
+        if method in FIRST_ANSWER and len(agents) > 1:
+            # Two agents for one hall would each ask LibreNMS about every seat. Ask the one that
+            # knew last; the others only when it doesn't know, fails or hangs past HEDGE_AFTER.
+            first = _last_knew[0] if _last_knew[0] in agents else agents[0]
+            rest = [a for a in agents if a != first]
+            lead = ask_one(first)
+            try:
+                found = lead.result(timeout=HEDGE_AFTER)
+            except FutureTimeout:
+                pass                       # still running: it joins the others below
+            except (AgentUnavailable, AgentError) as exc:
+                errors.append(exc)
+                del asked[lead]
+            else:
+                if found:
+                    return found
+                results.append(found)
+                del asked[lead]
+        for agent in rest:
+            ask_one(agent)
+        for fut in as_completed(list(asked)):
             try:
                 results.append(fut.result())
             except (AgentUnavailable, AgentError) as exc:
@@ -269,6 +299,7 @@ def _ask_all(method, args, everyone):
             if method in FIRST_ANSWER and results[-1]:
                 # The agent that knows it: don't wait for one that was just killed (a check-in
                 # held up to CALL_TIMEOUT during a failover).
+                _last_knew[0] = asked[fut]
                 return results[-1]
     finally:
         pool.shutdown(wait=False)
