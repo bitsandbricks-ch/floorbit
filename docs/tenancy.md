@@ -146,10 +146,31 @@ tenant's settings, so the platform page doesn't touch them.
 A person has one account in each tenant, with that tenant's role, so a lead in one club can be a
 viewer in another. Two accounts are the same person when they are linked to the same outside login:
 the same Discord account, or the same subject at the same OIDC issuer. Usernames and passwords never
-link accounts. Such a person finds their other tenants in the account menu (bottom of the sidebar,
-"Your other clubs", shown once the platform has more than one tenant), which opens the other
-tenant's address; signing in there uses the same login.
-`GET /api/tenant/mine` answers the same list.
+link accounts.
+
+### Switching clubs
+
+When someone can reach another tenant, a club switcher shows at the bottom of the sidebar, above
+the account menu. Nobody on a platform with one tenant (every self-hosted install) ever sees it.
+It lists:
+
+- the tenants where the person has a linked account (above), where they arrive as that account;
+- for admins of the default tenant (the platform admins), every other active tenant, where they
+  arrive as `platform:<their name>`, an admin who has no account there. Each request checks that they
+  are still an admin of the default tenant, and a visit ends after 8 hours. The tenant's audit log
+  shows "Came in from another club" with that name, so its own admins see the visit.
+
+Only tenants with an address (Settings > Tenants) show up: that is where the browser goes.
+
+Switching doesn't ask for the password again. The tenant you leave writes a one-time ticket into
+the tenant you go to (stored under its hash, in `handoffs/`, good for 60 seconds) and sends the
+browser to `<address>/switch/arrive?ticket=...`; that tenant takes the ticket, deletes it, and signs
+the browser in. A ticket works once, only in the tenant it was written for, and only while the
+link or the admin role that made it is still there. API tokens and visitors can't switch on.
+
+- `GET /api/tenant/mine`: the tenants the signed-in person can switch to, with `how`
+  (`account` or `platform`).
+- `POST /api/tenant/switch` `{"tenant": "<id>"}`: `{"url"}`, where to send the browser.
 
 ## For developers
 
@@ -173,6 +194,7 @@ Tenants on one platform share the database, Redis and often the S3 bucket and `S
 | --- | --- |
 | Documents | Every path comes from `store.tenant_path`/`event_path`, so from the tenant's folder; a configured file (`MONITORING_CACHE_FILE`, `AUDIT_FILE`, ...) goes into it too |
 | Sign-in | The session cookie names the tenant that signed it in; another tenant drops it, even with the same `SECRET_KEY` and username |
+| Switching clubs | A hand-off ticket is written into one tenant's folder, works once and only there, and a platform visit is re-checked against the default tenant on every request |
 | API tokens, agent keys | Kept in the tenant's accounts and agent list, so another tenant doesn't know them |
 | Redis keys and live updates | Prefixed with the tenant's name; the live-update channel too |
 | S3 backups | Each tenant lists, prunes and restores only its own folder |

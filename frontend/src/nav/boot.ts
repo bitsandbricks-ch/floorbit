@@ -7,10 +7,11 @@ export interface NavBoot {
   /** The sections admins made, with only the links this account may open (floorbit/nav_sections.py). */
   custom?: CustomSection[]
   brand: { logo: string | null; name: string | null }
-  user: { name: string; username: string } | null
+  /** ``platform``: an admin of the platform visiting this tenant, with no account of their own here. */
+  user: { name: string; username: string; platform?: boolean } | null
   /** Sign-in is on: offer "Sign out". */
   signOut: boolean
-  /** The platform has more than one tenant: the account menu lists the person's other ones. */
+  /** The platform has more than one tenant: the club switcher asks for the person's other ones. */
   tenants?: boolean
   /** The signed-in account's sidebar settings; null without sign-in (the browser keeps them). */
   prefs: NavPrefs | null
@@ -98,10 +99,11 @@ export function saveOpen(ids: string[]) {
   }
 }
 
-/** Another tenant of the platform where the signed-in person has an account too. */
-export interface OtherTenant { id: string; name: string; url: string; username: string }
+/** Another tenant of the platform the signed-in person can switch to: with their linked account
+ *  there, or as a platform admin (floorbit/tenant_switch.py). */
+export interface OtherTenant { id: string; name: string; url: string; how: 'account' | 'platform' }
 
-/** The person's other tenants (floorbit/hosting.py); none when that can't be asked. */
+/** The person's other tenants; none when that can't be asked. */
 export async function fetchOtherTenants(): Promise<OtherTenant[]> {
   try {
     const res = await fetch('/api/tenant/mine', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
@@ -111,4 +113,16 @@ export async function fetchOtherTenants(): Promise<OtherTenant[]> {
   } catch {
     return []
   }
+}
+
+/** Where to send the browser to arrive signed in at that tenant; throws with the server's text. */
+export async function switchTenant(id: string): Promise<string> {
+  const res = await fetch('/api/tenant/switch', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tenant: id }),
+  })
+  const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string }
+  if (!res.ok || !body.url) throw new Error(body.error || res.statusText)
+  return body.url
 }

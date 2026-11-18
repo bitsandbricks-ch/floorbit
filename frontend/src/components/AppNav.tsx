@@ -47,7 +47,7 @@ export function AppNav() {
   const boot = useMemo(() => {
     const b = readBoot()
     // The server's list comes with the page; the API's is the same list, for a page loaded without it.
-    const user = me?.user ? { name: me.user.display_name || me.user.username, username: me.user.username } : b.user
+    const user = me?.user ? { name: me.user.display_name || me.user.username, username: me.user.username, platform: !!me.user.platform } : b.user
     // The API's sections win once it answers: an admin's change shows without a reload.
     return { ...b, pages: b.pages.length ? b.pages : listed, custom: custom ?? b.custom, user, signOut: b.signOut || !!me?.enabled }
   }, [me, listed, custom])

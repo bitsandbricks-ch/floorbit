@@ -1,12 +1,12 @@
 import {
   IconChevronDown, IconDots, IconStar, IconStarFilled, IconLanguage, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconLogout,
-  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSun, IconX, type Icon,
+  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSun, IconX, type Icon,
 } from '@tabler/icons-react'
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n/lang'
-import { fetchOtherTenants, readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
+import { fetchOtherTenants, readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, switchTenant, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
 import './nav.css'
 import { activeHref, customIcon, group, isPluginPage, linkIcon, pageIcon, sectionIcon, type CustomLink, type NavPage } from './sections'
 
@@ -314,6 +314,7 @@ function Panel(props: PanelProps) {
         </div>
       )}
 
+      <Clubs {...props} />
       <div className="fb-nav-foot">
         <Account {...props} />
         {props.onToggleRail && (
@@ -348,24 +349,7 @@ function Brand({ boot, rail }: { boot: NavBoot; rail: boolean }) {
   return <span className="fb-brand"><span className="fb-brand-lockup" role="img" aria-label="Floorbit" /></span>
 }
 
-function Account(props: PanelProps) {
-  const { t, i18n } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
-  const scheme = useScheme()
-  const toggle = toggleScheme()
-  const user = props.boot.user
-  // Asked once, when the menu first opens: it reads every other tenant's accounts.
-  const [others, setOthers] = useState<OtherTenant[] | null>(null)
-  const askOthers = !!props.boot.tenants && !!user && open && others === null
-
-  useEffect(() => {
-    if (!askOthers) return
-    let live = true
-    void fetchOtherTenants().then((list) => { if (live) setOthers(list) })
-    return () => { live = false }
-  }, [askOthers])
-
+function useCloseOutside(open: boolean, setOpen: (o: boolean) => void, box: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (!open) return
     const close = (e: Event) => {
@@ -379,7 +363,71 @@ function Account(props: PanelProps) {
       document.removeEventListener('keydown', close)
       document.removeEventListener('pointerdown', close)
     }
-  }, [open])
+  }, [open, setOpen, box])
+}
+
+/** The club switcher: only there when this person can reach another tenant of the platform. */
+function Clubs(props: PanelProps) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [list, setList] = useState<OtherTenant[] | null>(null)
+  const [going, setGoing] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const box = useRef<HTMLDivElement>(null)
+  const ask = !!props.boot.tenants && !!props.boot.user && !props.boot.user.platform
+  useCloseOutside(open, setOpen, box)
+
+  useEffect(() => {
+    if (!ask) return
+    let live = true
+    void fetchOtherTenants().then((found) => { if (live) setList(found) })
+    return () => { live = false }
+  }, [ask])
+
+  if (!list?.length) return null
+  const here = props.boot.brand.name || t('nav.thisClub')
+  const go = (o: OtherTenant) => {
+    setGoing(o.id)
+    setError('')
+    switchTenant(o.id)
+      .then((url) => { window.location.assign(url) })
+      .catch((e: unknown) => { setGoing(null); setError(e instanceof Error ? e.message : String(e)) })
+  }
+  return (
+    <div className="fb-nav-account fb-nav-clubs" ref={box}>
+      <button
+        type="button" className="fb-nav-row fb-nav-club" aria-expanded={open} aria-haspopup="menu"
+        onClick={() => setOpen((o) => !o)} title={props.rail ? t('nav.switchClub') : undefined}
+        aria-label={props.rail ? t('nav.switchClub') : undefined}
+      >
+        <IconBuildingCommunity size={18} className="fb-nav-icon" aria-hidden="true" />
+        <span className="fb-nav-text">{here}</span>
+        <IconSelector size={14} className="fb-nav-club-mark" aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="fb-nav-menu" role="menu" data-sheet={props.sheet || undefined}>
+          <div className="fb-nav-menu-label">{t('nav.switchClub')}</div>
+          {list.map((o) => (
+            <button key={o.id} type="button" role="menuitem" className="fb-nav-menu-item" disabled={!!going} onClick={() => go(o)}>
+              <span className="fb-nav-club-name">{o.name || o.id}</span>
+              <span className="fb-nav-club-how">{going === o.id ? t('nav.switching') : o.how === 'platform' ? t('nav.asPlatform') : ''}</span>
+            </button>
+          ))}
+          {error && <div className="fb-nav-menu-label" role="alert">{error}</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Account(props: PanelProps) {
+  const { t, i18n } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const scheme = useScheme()
+  const toggle = toggleScheme()
+  const user = props.boot.user
+  useCloseOutside(open, setOpen, box)
 
   const name = user ? user.name || user.username : t('nav.account')
   const run = (f: () => void) => () => { setOpen(false); f() }
@@ -399,17 +447,7 @@ function Account(props: PanelProps) {
       {open && (
         <div className="fb-nav-menu" role="menu" data-sheet={props.sheet || undefined}>
           {user && <div className="fb-nav-menu-label">{t('common.signedInAs', { username: user.username })}</div>}
-          {!!others?.length && (
-            <>
-              <div className="fb-nav-menu-label"><IconBuildingCommunity size={14} aria-hidden="true" /> {t('nav.otherTenants')}</div>
-              {others.map((o) => (
-                <a key={o.id} role="menuitem" className="fb-nav-menu-item" href={o.url}>
-                  {o.name || o.id}
-                </a>
-              ))}
-              <hr />
-            </>
-          )}
+          {user?.platform && <div className="fb-nav-menu-label">{t('nav.platformVisit')}</div>}
           <div className="fb-nav-menu-label"><IconLanguage size={14} aria-hidden="true" /> {t('common.language')}</div>
           {LANGUAGES.map((l) => (
             <button

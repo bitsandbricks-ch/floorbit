@@ -219,6 +219,7 @@ RULES = (
     # Which of the tenant's events this browser works on (floorbit/blueprints/tenant_events.py).
     ('/api/tenant/current', None, 'floorplan.view'),
     ('/api/tenant/mine', None, 'floorplan.view'),
+    ('/api/tenant/switch', None, 'floorplan.view'),
     # The platform's tenants (floorbit/blueprints/platform.py); only the default tenant answers.
     ('/api/platform', None, 'settings.manage'),
     ('/api/settings/audit', READ, 'audit.read'),
