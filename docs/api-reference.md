@@ -449,6 +449,8 @@ Source: [`floorbit/blueprints/incidents.py`](https://github.com/bitsandbricks-ch
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/helpdesk/qr` | `incidents.assign` | `helpdesk` |
+| GET | `/api/helpdesk/seats/<seat>` | anyone | `helpdesk` |
+| POST | `/api/helpdesk/seats/<seat>` | anyone | `helpdesk` |
 | GET | `/api/incidents` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 | POST | `/api/incidents` | `floorplan.view` | `incidents` |
 | GET | `/api/incidents.csv` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |

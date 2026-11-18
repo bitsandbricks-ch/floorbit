@@ -1,0 +1,44 @@
+{
+  "title": "Hilfe an Platz {{seat}}",
+  "intro": "Funktioniert an deinem Platz etwas nicht? Tippe an, was nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.",
+  "problem": {
+    "no-internet": "Kein Internet",
+    "slow": "Langsame oder abbrechende Verbindung",
+    "power": "Kein Strom",
+    "other": "Etwas anderes, bitte vorbeikommen"
+  },
+  "done": {
+    "thanks": "Danke, wir wissen Bescheid. Jemand vom Team kommt zu Platz {{seat}}.",
+    "again": "Das haben wir für Platz {{seat}} schon und vermerkt, dass du nochmals gefragt hast.",
+    "ok": "Danke, wir haben dem Team gesagt, dass es an Platz {{seat}} wieder geht."
+  },
+  "invalid": "Dieser Hilfe-Link ist ungültig. Nutze bitte den QR-Code an deinem Platz oder frag am Infodesk.",
+  "busy": "Zu viele Meldungen von hier. Warte bitte ein paar Minuten oder frag am Infodesk.",
+  "report": {
+    "open": "Deine Meldung ist da. Noch hat sie niemand vom Team übernommen; jemand kommt.",
+    "sent": "Deine Meldung ging an jemanden vom Team in der Nähe. Gleich ist jemand unterwegs.",
+    "taken": "Jemand vom Team hat deine Meldung und ist unterwegs.",
+    "fixed": "Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.",
+    "ok": "Du hast gemeldet, dass es wieder geht. Danke! Wieder kaputt? Tippe unten."
+  },
+  "ahead_one": "Vor deiner ist noch eine Meldung.",
+  "ahead_other": "Vor deiner sind noch {{count}} Meldungen.",
+  "outage_one": "Wir wissen es: Das Netz an deinem Platz ist seit {{count}} Min. ausgefallen. Das Team ist dran, du musst es nicht melden. Etwas anderes? Tippe es unten an.",
+  "outage_other": "Wir wissen es: Das Netz an deinem Platz ist seit {{count}} Min. ausgefallen. Das Team ist dran, du musst es nicht melden. Etwas anderes? Tippe es unten an.",
+  "statusLink": "Neuigkeiten auf der Netzwerk-Statusseite",
+  "backUp_one": "Das Netz an deinem Platz ist seit {{count}} Min. wieder da. Geht es wieder? Dann tippe unten auf «Es geht wieder».",
+  "backUp_other": "Das Netz an deinem Platz ist seit {{count}} Min. wieder da. Geht es wieder? Dann tippe unten auf «Es geht wieder».",
+  "works": "Es geht wieder",
+  "worksHint": "Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.",
+  "speed": {
+    "title": "Verbindung testen",
+    "intro": "Misst die Verbindung von deinem Platz zu unserem Server in der Halle, nicht das Internet. Das dauert etwa 20 Sekunden: halte andere Downloads vorher an.",
+    "run": "Test starten",
+    "again": "Nochmals testen",
+    "down": "Download",
+    "up": "Upload",
+    "ping": "Latenz",
+    "saved": "Für Platz {{seat}} gespeichert. Das Team sieht es bei deiner Meldung.",
+    "failed": "Der Test wurde nicht fertig: {{error}}"
+  }
+}

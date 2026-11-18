@@ -74,6 +74,7 @@ const PublicHall = lazy(() => import('@/pages/public/PublicHall'))
 const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
 const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
 const Forbidden = lazy(() => import('@/pages/Forbidden'))
+const SeatHelp = lazy(() => import('@/pages/public/SeatHelp'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 // Read once: the server's answer for the page that was loaded, not for later client-side moves.
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="/bracket" element={<PublicBracket />} />
           <Route path="/hall" element={<PublicHall />} />
           <Route path="/find" element={<PublicFind />} />
+          <Route path="/help/:seat" element={<SeatHelp />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route path="/screen" element={<BigScreen />} />

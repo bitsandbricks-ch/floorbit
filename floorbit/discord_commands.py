@@ -365,13 +365,13 @@ def _status(user):
 
 # ── /report for attendees (#424) ─────────────────────────────────────────────
 # The seat QR help page in Discord: no account and nothing personal, rate limited per Discord user.
-# Its texts are the help page's, in German when the Discord client is.
+# Its texts match the help page's (frontend/src/i18n/*/seatHelp.json), in German when the Discord client is.
 def _attendee_report(body):
     from . import dispatch, features, incidents, seat_view
     from .blueprints import incidents as page
     from .blueprints.status_page import page_on
     lang = 'de' if str(body.get('locale') or '').startswith('de') else 'en'
-    text = page.TEXTS[lang]
+    text = REPORTED[lang]
     if not features.on('helpdesk'):
         return OFF[lang]
     given, _sub = _options(body)
@@ -397,6 +397,14 @@ def _attendee_report(body):
     return text['thanks' if new else 'again'].format(seat=seat)
 
 
+REPORTED = {
+    'en': {'thanks': 'Thanks, we know. Someone from the team will come to seat {seat}.',
+           'again': 'We already have this one for seat {seat} and noted that you asked again.',
+           'busy': 'Too many reports from here. Please wait a few minutes or ask at the info desk.'},
+    'de': {'thanks': 'Danke, wir wissen Bescheid. Jemand vom Team kommt zu Platz {seat}.',
+           'again': 'Das haben wir für Platz {seat} schon und vermerkt, dass du nochmals gefragt hast.',
+           'busy': 'Zu viele Meldungen von hier. Warte bitte ein paar Minuten oder frag am Infodesk.'},
+}
 OFF = {'en': 'Reporting from Discord is off at this event. Please ask at the info desk.',
        'de': 'Melden über Discord ist an diesem Event aus. Frag bitte am Infodesk.'}
 KNOWN = {'en': 'We know: the network at your seat has been down for {m} min. The team is on it, no need to '
