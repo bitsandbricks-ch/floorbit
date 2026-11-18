@@ -46,6 +46,9 @@ SECTIONS = [
     {'id': 'public', 'title': 'Attendee pages',
      'description': 'Pages for attendees, open without an account. They show seat numbers only: '
                     'no nicks, addresses, switches or ports.'},
+    {'id': 'speedtest', 'title': 'Speed tests',
+     'description': 'The speed test on the seat help page. Every test streams from this server, so these '
+                    'limits keep a hall full of tests from taking its threads and its uplink.'},
     {'id': 'metrics', 'title': 'Prometheus metrics',
      'description': 'GET /api/metrics in the Prometheus text format, for a NOC Grafana: seats online, problems, '
                     'incidents and switches, counted per hall. No seats, nicks or addresses. Scrape it with an '
@@ -142,6 +145,21 @@ FIELDS = [
          help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
               'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
               'Off by default.'),
+    dict(key='speedtest.enabled', section='speedtest', label='Speed test on the help page', type='bool',
+         env='SPEEDTEST', default=True,
+         help='Off hides the button on the seat help page and refuses every test.'),
+    dict(key='speedtest.max_running', section='speedtest', label='Streams at once', type='int',
+         env='SPEEDTEST_MAX_RUNNING', default=3, min=1, max=20,
+         help='Downloads and uploads running at the same time, over all seats. Each holds a server thread.'),
+    dict(key='speedtest.test_mb', section='speedtest', label='Data per test', type='int', unit='MB',
+         env='SPEEDTEST_TEST_MB', default=250, min=20, max=2000,
+         help='What one test may move, download and upload together. Enough for a gigabit seat.'),
+    dict(key='speedtest.seat_minutes', section='speedtest', label='One test per seat every', type='int',
+         unit='minutes', env='SPEEDTEST_SEAT_MINUTES', default=10, min=0, max=240,
+         help='0 lets a seat test as often as it likes.'),
+    dict(key='speedtest.max_mbps', section='speedtest', label='Speed cap per stream', type='int', unit='Mbit/s',
+         env='SPEEDTEST_MAX_MBPS', default=1000, min=0, max=100000,
+         help='0 for no cap. With the default, a gigabit seat still measures in full.'),
     dict(key='metrics.enabled', section='metrics', label='Prometheus metrics', type='bool',
          env='METRICS_ENABLED', default=False,
          help='Serve /api/metrics. Off by default.'),

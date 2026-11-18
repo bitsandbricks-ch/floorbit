@@ -6,7 +6,9 @@ const MB = 1024 * 1024
 const MAX_UP = 24 * MB
 const MAX_DOWN = 200 * MB
 const PHASE_MS = 6000        // time spent on download, then on upload
-const PHASE_BYTES = 400 * MB // or until this much moved: 3 s on gigabit is plenty, and spares the budget
+// Or until half of what one test may move (Settings > Speed tests), a little under so the server's
+// per-seat limit never cuts the last request off.
+const phaseBytes = (testMb: number) => Math.floor(testMb * MB / 2 * 0.95)
 const AIM_MS = 1500          // each request should take about this long
 
 export type Figure = 'down' | 'up' | 'ping'
@@ -29,9 +31,11 @@ function randomBlob(size: number) {
   return new Blob(parts as BlobPart[])
 }
 
-/** Runs the test for ``seat`` with the signed link's ``k`` and saves the result for the seat.
- *  ``show`` gets each figure as it comes in, in Mbit/s or ms. */
-export async function runSpeedtest(seat: string, k: string, show: (what: Figure, value: number) => void): Promise<SpeedResult> {
+/** Runs the test for ``seat`` with the signed link's ``k`` and saves the result for the seat,
+ *  moving at most ``testMb`` MB. ``show`` gets each figure as it comes in, in Mbit/s or ms. */
+export async function runSpeedtest(seat: string, k: string, show: (what: Figure, value: number) => void,
+  testMb = 250): Promise<SpeedResult> {
+  const most = phaseBytes(testMb)
   const base = `/help/${encodeURIComponent(seat)}/speed/`
   const url = (what: string, extra = '') => `${base}${what}?k=${encodeURIComponent(k)}${extra}`
 
@@ -71,14 +75,15 @@ export async function runSpeedtest(seat: string, k: string, show: (what: Figure,
 
   // Requests sized to take about AIM_MS each, for PHASE_MS; the first one only finds the size.
   async function phase(once: (size: number) => Promise<{ bytes: number; ms: number }>, cap: number, what: Figure) {
-    let size = MB, bytes = 0, ms = 0, first = true
+    let size = MB, bytes = 0, ms = 0, moved = 0, first = true
     const start = now()
-    while (now() - start < PHASE_MS && bytes < PHASE_BYTES) {
+    while (now() - start < PHASE_MS && most - moved >= MB) {
       const r = await once(size)
+      moved += r.bytes
       if (!first) { bytes += r.bytes; ms += r.ms; show(what, mbps(bytes, ms)) }
       first = false
       const rate = r.bytes / Math.max(r.ms, 1)
-      size = Math.max(MB, Math.min(cap, PHASE_BYTES - bytes, Math.round(rate * AIM_MS / MB) * MB))
+      size = Math.max(MB, Math.min(cap, most - moved, Math.round(rate * AIM_MS / MB) * MB))
     }
     return ms ? mbps(bytes, ms) : null
   }

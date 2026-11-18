@@ -41,7 +41,8 @@
   "saved": "Gespeichert. Die Änderungen gelten sofort.",
   "savedTheme": "Gespeichert. Lade neu, um das neue Design zu zeigen…",
   "unit": {
-    "seconds": "Sekunden"
+    "seconds": "Sekunden",
+    "minutes": "Minuten"
   },
   "presets": {
     "floorbit": "Floorbit",
@@ -126,6 +127,10 @@
     "public": {
       "title": "Seiten für Teilnehmende",
       "desc": "Seiten für Teilnehmende, offen ohne Konto. Sie zeigen nur Sitznummern: keine Nicks, Adressen, Switches oder Ports."
+    },
+    "speedtest": {
+      "title": "Speedtests",
+      "desc": "Der Speedtest auf der Hilfeseite am Platz. Jeder Test läuft über diesen Server, also verhindern diese Grenzen, dass eine Halle voller Tests seine Threads und seinen Uplink belegt."
     },
     "metrics": {
       "title": "Prometheus-Metriken",
@@ -282,6 +287,26 @@
     "theme_text": {
       "label": "Text",
       "help": "Leer: fast weiss oder fast schwarz, je nach Hintergrund."
+    },
+    "speedtest_enabled": {
+      "label": "Speedtest auf der Hilfeseite",
+      "help": "Aus blendet den Knopf auf der Hilfeseite aus und lehnt jeden Test ab."
+    },
+    "speedtest_max_running": {
+      "label": "Gleichzeitige Streams",
+      "help": "Downloads und Uploads, die gleichzeitig laufen, über alle Plätze. Jeder belegt einen Server-Thread."
+    },
+    "speedtest_test_mb": {
+      "label": "Daten pro Test",
+      "help": "Was ein Test bewegen darf, Download und Upload zusammen. Reicht für einen Gigabit-Platz."
+    },
+    "speedtest_seat_minutes": {
+      "label": "Ein Test pro Platz alle",
+      "help": "0 lässt einen Platz so oft testen, wie er will."
+    },
+    "speedtest_max_mbps": {
+      "label": "Tempolimit pro Stream",
+      "help": "0 für kein Limit. Mit dem Standard misst ein Gigabit-Platz trotzdem voll."
     }
   },
   "pickColour": "Farbe vom Bildschirm wählen",

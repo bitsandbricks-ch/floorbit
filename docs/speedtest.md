@@ -14,7 +14,8 @@ The test runs in the browser, needs no account and takes about 20 seconds:
 
 1. **Latency:** 11 small requests. The first one opens the connection and isn't counted; the
    median of the rest is the latency, and the mean change between them is the jitter.
-2. **Download** for about 6 seconds or 400 MB, whichever comes first. Each request is sized to
+2. **Download** for about 6 seconds or half of **Data per test** (see [Limits](#limits)), whichever
+   comes first. Each request is sized to
    take about 1.5 seconds (1 to 200 MB of random bytes, so nothing on the way can compress them).
    The first request only finds the size.
 3. **Upload** the same way, 1 to 24 MB per request.
@@ -48,11 +49,22 @@ It updates when a new result comes in. `GET /api/speedtests/summary` has the sam
 
 ## Limits
 
-Each test stream holds one of the server's threads, and the live updates need those too, so:
+Every test streams from the Floorbit server, holds one of its threads while it runs (the live
+updates need those too), and moves a lot of data. **Settings > Speed tests** caps it:
 
-- at most 6 downloads or uploads run at once; a seventh seat is asked to try again in a minute;
-- each client IP may move 2 GB in 10 minutes (a test moves at most about 800 MB, plus the first
-  request of each direction);
+| Setting | Environment | Default | What |
+| --- | --- | --- | --- |
+| Speed test on the help page | `SPEEDTEST` | on | Off hides the button on the help page and refuses every test. |
+| Streams at once | `SPEEDTEST_MAX_RUNNING` | 3 | Downloads and uploads running at once, over all seats. One more is asked to try again in a minute. |
+| Data per test | `SPEEDTEST_TEST_MB` | 250 MB | What one test may move, download and upload together. The page stops each direction at about half of it, so a gigabit seat still measures in full. |
+| One test per seat every | `SPEEDTEST_SEAT_MINUTES` | 10 minutes | A seat that tested lately is told how many minutes to wait. 0 for no limit. |
+| Speed cap per stream | `SPEEDTEST_MAX_MBPS` | 1000 Mbit/s | The server never sends or reads one stream faster than this. 0 for no cap. |
+
+With the defaults, the tests together never move more than 3 Gbit/s, and a hall can't keep the
+server busy with tests. On top of that:
+
+- each client IP may move four tests' worth in 10 minutes (for the crew testing seat after seat
+  from one laptop);
 - each client IP may save 10 results in 10 minutes.
 
 The test endpoints need the seat's signed help link, like the help page.
@@ -62,8 +74,12 @@ The test endpoints need the seat's signed help link, like the help page.
 All under the seat's signed link (`?k=<signature>`), without an account:
 
 - `GET /help/<seat>/speed/ping`: an empty answer.
-- `GET /help/<seat>/speed/down?bytes=`: that many random bytes (at most 200 MB).
+- `GET /help/<seat>/speed/down?bytes=`: that many random bytes (at most 200 MB, and at most half of
+  **Data per test**).
 - `POST /help/<seat>/speed/up`: the body is read and dropped (at most 24 MB).
+
+They answer 404 while speed tests are off. The help page's `GET /api/helpdesk/seats/<seat>` says
+`"speedtest": {"test_mb": 250}`, or `null` while they are off.
 - `POST /help/<seat>/speed/result`: `{"down_mbps", "up_mbps", "ping_ms", "jitter_ms"}`.
 
 The speed test is part of the **helpdesk** feature (Settings > Features).

@@ -22,7 +22,7 @@ from flask import Blueprint, Response, abort, current_app, jsonify, request, url
 from auth import roles, teams
 from integrations import checkin, events
 
-from .. import audit, dispatch, incidents, runbooks, seat_notes, spa
+from .. import audit, dispatch, incidents, runbooks, seat_notes, spa, speedtest
 from ..store import load_data
 
 bp = Blueprint('incidents', __name__)
@@ -352,12 +352,15 @@ def help_state(seat):
     filed = None if outage else incidents.seat_open_since(seat)
     back = seat_view.back_up(seat, filed) if filed else None
     report = incidents.seat_report_state(seat)
+    lim = speedtest.limits()
     return jsonify({
         'seat': seat, 'problems': list(incidents.PROBLEMS), 'outage': outage,
         # Point at the public status page for updates, when there is one (issue #388).
         'status_url': url_for('status_page.status_public') if outage and page_on() else None,
         'back_up': max(1, round((time.time() - back[1]) / 60)) if back else None,
         'report': report, 'ahead': incidents.seat_queue_ahead(seat) if report == 'open' else 0,
+        # What one speed test may move, so the page stops in time; null while speed tests are off.
+        'speedtest': {'test_mb': lim['test_mb']} if lim['on'] else None,
     })
 
 

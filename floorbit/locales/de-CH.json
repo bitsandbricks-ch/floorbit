@@ -73,6 +73,7 @@
  "Send {\"csv\": \"<file contents>\"}": "Schick {\"csv\": \"<Dateiinhalt>\"}",
  "{} line(s) have problems; nothing was imported": "{} Zeile(n) haben Probleme; nichts wurde importiert",
  "This seat has no hand entry": "Dieser Platz hat keinen Eintrag von Hand",
+ "This seat was tested a moment ago. Try again in {} minutes.": "Dieser Platz wurde gerade getestet. Versuche es in {} Minuten nochmals.",
  "That finding is not active any more.": "Dieser Befund ist nicht mehr aktiv.",
  "There is an account already. Sign in instead.": "Es gibt schon ein Konto. Melde dich stattdessen an.",
  "That setup code isn't right. It is in Floorbit's log (docker compose logs floorbit).": "Dieser Einrichtungscode stimmt nicht. Er steht im Log von Floorbit (docker compose logs floorbit).",

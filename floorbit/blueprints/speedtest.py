@@ -8,6 +8,8 @@ signed link and no account:
 - ``POST /help/<seat>/speed/up``: bytes to upload, read and dropped.
 - ``POST /help/<seat>/speed/result``: ``{down_mbps, up_mbps, ping_ms, jitter_ms}``, kept for the seat.
 
+All four answer 404 while Settings > Speed tests is off.
+
 ``GET /api/speedtests?seat=``: the latest results per seat, for the crew (``incidents.work``).
 ``GET /speedtests`` and ``GET /api/speedtests/summary``: the crew's page, the results side by side per
 switch (issue #434).
@@ -25,6 +27,8 @@ bp = Blueprint('speedtest', __name__)
 def _seat(seat):
     """The seat, when the link is signed for it and it is on the floor plan; else 404."""
     seat = seat.strip().upper()
+    if not speedtest.limits()['on']:
+        abort(404)
     if not (incidents.signed(seat, request.args.get('k')) and seat in incidents.seat_numbers(load_data())):
         abort(404)
     return seat
@@ -54,9 +58,10 @@ def ping(seat):
 @bp.route('/help/<seat>/speed/down', methods=['GET'])
 @_public
 def down(seat):
-    _seat(seat)
+    seat = _seat(seat)
+    lim = speedtest.limits()
     try:
-        size = max(1, min(int(request.args.get('bytes') or 0), speedtest.MAX_DOWN))
+        size = max(1, min(int(request.args.get('bytes') or 0), speedtest.request_cap(lim, speedtest.MAX_DOWN)))
     except ValueError:
         return _error(speedtest.SpeedtestError('bytes is a number.'))
     if request.method == 'HEAD':   # Flask answers HEAD here too: no bytes go out, so book no stream
@@ -64,10 +69,11 @@ def down(seat):
         resp.headers['Content-Length'] = str(size)
         return _no_store(resp)
     try:
-        speedtest.take(_client(), size)
+        speedtest.take(_client(), seat, size, lim)
     except speedtest.SpeedtestError as exc:
         return _error(exc)
-    resp = Response(speedtest.download(size), mimetype='application/octet-stream', direct_passthrough=True)
+    resp = Response(speedtest.download(size, lim['max_mbps']), mimetype='application/octet-stream',
+                    direct_passthrough=True)
     resp.headers['Content-Length'] = str(size)
     resp.headers['X-Accel-Buffering'] = 'no'   # nginx in front: send it as it comes
     return _no_store(resp)
@@ -76,15 +82,16 @@ def down(seat):
 @bp.route('/help/<seat>/speed/up', methods=['POST'])
 @_public
 def up(seat):
-    _seat(seat)
-    size = min(request.content_length or 0, speedtest.MAX_UP)
+    seat = _seat(seat)
+    lim = speedtest.limits()
+    size = min(request.content_length or 0, speedtest.request_cap(lim, speedtest.MAX_UP))
     if size <= 0:
         return _error(speedtest.SpeedtestError('Send the bytes to upload.', 411))
     try:
-        speedtest.take(_client(), size)
+        speedtest.take(_client(), seat, size, lim)
     except speedtest.SpeedtestError as exc:
         return _error(exc)
-    got = speedtest.swallow(request.stream, size)
+    got = speedtest.swallow(request.stream, size, lim['max_mbps'])
     return _no_store(jsonify({'bytes': got}))
 
 
