@@ -104,7 +104,7 @@ describe('Agents', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Agents />)
     expect(await screen.findByText('This Floorbit')).toBeInTheDocument()
-    expect(screen.getByText('2 instances share the work over Redis.')).toBeInTheDocument()
+    expect(screen.getByText('2 instances share the work over Valkey.')).toBeInTheDocument()
     expect(screen.getByText(/floorbit-0 · leader · this page/)).toBeInTheDocument()
     expect(screen.getByText('Database (postgres) answers.')).toBeInTheDocument()
     expect(screen.getByText('Backup missing')).toBeInTheDocument()

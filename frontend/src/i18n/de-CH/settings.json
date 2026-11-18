@@ -7,8 +7,8 @@
   "netboxOff": "Nicht eingerichtet, nur manuelle Switches",
   "librenmsOff": "Nicht eingerichtet, kein Live-Status",
   "redisOff": "Nicht verbunden ({{where}})",
-  "testRedis": "Redis testen",
-  "redisHelp": "Redis wird über die Umgebungsvariablen REDIS_* eingerichtet.",
+  "testRedis": "Valkey testen",
+  "redisHelp": "Valkey (oder Redis, das dasselbe Protokoll spricht) wird über die Umgebungsvariablen REDIS_* eingerichtet.",
   "test": "Verbindung testen",
   "testing": "Teste…",
   "source": {
@@ -86,7 +86,7 @@
     },
     "cache": {
       "title": "Zwischenspeicher",
-      "desc": "Wie lange LibreNMS-Abfragen in Redis bleiben, bevor sie neu geholt werden."
+      "desc": "Wie lange LibreNMS-Abfragen in Valkey bleiben, bevor sie neu geholt werden."
     },
     "display": {
       "title": "Anzeige-Standards",
@@ -271,7 +271,7 @@
     "results_zero": "Keine Einstellung passt.",
     "results_one": "{{count}} Einstellung passt",
     "results_other": "{{count}} Einstellungen passen",
-    "whereFrom": "Ein hier gespeicherter Wert geht seiner Umgebungsvariable vor; leeren führt zurück zur Umgebung oder zum Standard. Datenbank, Redis, Schlüssel und Zeitzone legt nur die Umgebung fest.",
+    "whereFrom": "Ein hier gespeicherter Wert geht seiner Umgebungsvariable vor; leeren führt zurück zur Umgebung oder zum Standard. Datenbank, Valkey, Schlüssel und Zeitzone legt nur die Umgebung fest.",
     "groups": {
       "event": "Event und Aussehen",
       "sources": "Quellen",
