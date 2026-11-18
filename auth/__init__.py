@@ -26,6 +26,7 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, request, session, url_for
 
+from floorbit import store
 from floorbit.env import number
 
 from . import oidc, roles, teams, tokens
@@ -107,6 +108,12 @@ def _load_session_user():
         return tokens.as_user(record) if record else None
     username = session.get('user')
     if not username:
+        return None
+    # Tenants on one platform may share SECRET_KEY, so a cookie signed for one tenant would check out
+    # at another: it only counts in the tenant that signed it in. Sessions from before tenants carry
+    # no tenant and belong to the default one, where they were made.
+    if session.get('tenant', '') != store.tenant_dir():
+        session.clear()
         return None
     user = auth.users.get(username)
     # A password change bumps session_version, which signs out old sessions.
@@ -342,6 +349,7 @@ class Auth:
         session.clear()
         session.permanent = True
         session['user'] = user['username']
+        session['tenant'] = store.tenant_dir()
         session['ver'] = user.get('session_version', 1)
         session['provider'] = provider_id
         g.auth_user = public(user)

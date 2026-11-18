@@ -52,6 +52,9 @@ environment variables (a value saved on the page wins over the variable):
 
 - **What goes up** is the backup described above (floor plan, cabling, power, settings; no secrets,
   accounts or check-ins), gzipped, as `floorbit-backup-<date>-<time>Z.json.gz` in the folder.
+- **Tenants.** On a platform with several tenants sharing one bucket, each keeps its backups in
+  its own folder below the one set here (`<folder>tenants/<id>/`); the default tenant uses the
+  folder itself. None lists, prunes or restores another's (docs/tenancy.md).
 - **Encryption.** With a passphrase, each file is encrypted on the Floorbit server before it is
   uploaded (AES-256-GCM, the key made from the passphrase with scrypt) and ends in `.enc`. Whoever
   owns the bucket can't read it. Keep the passphrase somewhere else too: without it nobody can

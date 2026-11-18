@@ -22,6 +22,7 @@ from flask import current_app
 
 from auth import roles, teams
 
+from . import store
 from .store import load_data, save_data
 
 KEY = 'incidents'
@@ -69,7 +70,11 @@ def signature(seat):
     """The part of a seat's help link that proves it was printed here."""
     secret = current_app.config['SECRET_KEY']
     secret = secret.encode() if isinstance(secret, str) else secret
-    return hmac.new(secret, f'helpdesk:{seat}'.encode(), hashlib.sha256).hexdigest()[:SIGNATURE_LENGTH]
+    # Tenants may share SECRET_KEY: another tenant's printed link must not check out here. The
+    # default tenant ('') signs as it always did, so cards printed before tenants keep working.
+    tenant = store.tenant_dir()
+    text = f'helpdesk:{tenant}:{seat}' if tenant else f'helpdesk:{seat}'
+    return hmac.new(secret, text.encode(), hashlib.sha256).hexdigest()[:SIGNATURE_LENGTH]
 
 
 def signed(seat, given):

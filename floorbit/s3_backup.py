@@ -68,6 +68,13 @@ def settings():
         raise S3Error('The folder in the bucket may only hold letters, digits, ., _, - and /.')
     if s['prefix'] and not s['prefix'].endswith('/'):
         s['prefix'] += '/'
+    # Tenants on one platform may share a bucket (the same S3_BACKUP_* settings): each keeps its
+    # backups in its own folder, so none lists, prunes or restores another's. The default tenant
+    # keeps the folder as set, where its backups always were; the listing never reaches into
+    # tenants/ below it (backup names hold no /).
+    from . import store
+    if store.tenant_dir():
+        s['prefix'] += store.tenant_dir().rstrip('/') + '/'
     if s['endpoint']:
         parts = urlsplit(s['endpoint'])
         if parts.scheme not in ('http', 'https') or not parts.netloc or parts.query or parts.fragment:
