@@ -172,23 +172,39 @@ def _agent(reachable=True):
 MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more
 
 
+class BodyRefused(Exception):
+    def __init__(self, message, status):
+        super().__init__(message)
+        self.status = status
+
+
 def _agent_body():
-    """The JSON an agent posted, gzipped or not ({} when it isn't JSON). Gzip saves the event's
-    uplink most on syslog batches and inventories; agents use it once hello says it's understood."""
+    """The JSON an agent posted, gzipped or not. Gzip saves the event's uplink most on syslog
+    batches and inventories; agents use it once hello says it's understood. A body that unpacks
+    past MAX_UNZIPPED or isn't JSON is refused out loud: read as empty, the agent took the answer
+    as done and its lines were lost without a word on either side."""
     raw = request.get_data(cache=False)
     if (request.headers.get('Content-Encoding') or '').lower() == 'gzip':
         unzip = zlib.decompressobj(wbits=31)
         try:
             raw = unzip.decompress(raw, MAX_UNZIPPED)
         except zlib.error:
-            return {}
+            raise BodyRefused('The agent sent a broken gzip body.', 400) from None
         if unzip.unconsumed_tail:
-            return {}
+            raise BodyRefused('The agent sent more than 32 MB at once; send it in parts.', 413)
     try:
         body = json.loads(raw or b'{}')
     except ValueError:
-        return {}
-    return body if isinstance(body, dict) else {}
+        raise BodyRefused('The agent sent a body that is not JSON.', 400) from None
+    if not isinstance(body, dict):
+        raise BodyRefused('The agent sent a body that is not JSON.', 400)
+    return body
+
+
+@bp.errorhandler(BodyRefused)
+def _body_refused(exc):
+    print(f'[agent] refused a post to {request.path}: {exc}')
+    return jsonify({'error': str(exc)}), exc.status
 
 
 def _refused():

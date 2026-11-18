@@ -1,4 +1,7 @@
 {
+ "The agent sent a broken gzip body.": "Der Agent hat einen kaputten gzip-Inhalt geschickt.",
+ "The agent sent more than 32 MB at once; send it in parts.": "Der Agent hat mehr als 32 MB auf einmal geschickt; bitte in Teilen schicken.",
+ "The agent sent a body that is not JSON.": "Der Agent hat einen Inhalt geschickt, der kein JSON ist.",
  "The monitoring source is not answering; try again shortly.": "Die Monitoring-Quelle antwortet nicht; bitte gleich nochmals versuchen.",
  "// how": "English text as in the code -> Swiss German (no ß). {} marks a value; {1}, {2} put values in another order. See floorbit/i18n.py.",
  "Sign in required": "Bitte zuerst anmelden",

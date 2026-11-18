@@ -26,3 +26,5 @@
   5,000 items, new ones are counted per switch, then per pattern.
 - With two local agents for the same halls, a seat lookup asks one of them, and the other only when
   the first doesn't know or doesn't answer within 3 seconds, so LibreNMS isn't asked twice.
+- A local agent's post that is too big or broken is refused with a clear error instead of being
+  read as empty, so its lines are no longer lost without a word.

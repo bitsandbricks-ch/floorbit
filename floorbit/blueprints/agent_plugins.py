@@ -22,9 +22,10 @@ For the agent:
 from flask import Blueprint, jsonify, request, send_file
 
 from .. import agent_plugins
-from .agent import _agent, _agent_body, _refused
+from .agent import BodyRefused, _agent, _agent_body, _body_refused, _refused
 
 bp = Blueprint('agent_plugins', __name__)
+bp.register_error_handler(BodyRefused, _body_refused)
 
 
 @bp.route('/api/agent/v1/plugins', methods=['GET'])

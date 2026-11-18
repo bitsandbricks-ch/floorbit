@@ -938,10 +938,16 @@ def test_broken_or_huge_gzip_is_refused(client, app_module, monkeypatch):
     key = enrol(client)["key"]
     h = {"Floorbit-Agent-Key": key, "Content-Encoding": "gzip", "Content-Type": "application/json"}
     post = app_module.app.test_client().post
-    assert post("/api/agent/v1/syslog", data=b"not gzip", headers=h).get_json() == {"taken": 0, "received": 0}
+    # Refused out loud, not read as an empty batch the agent then counts as delivered.
+    res = post("/api/agent/v1/syslog", data=b"not gzip", headers=h)
+    assert res.status_code == 400 and "gzip" in res.get_json()["error"]
     monkeypatch.setattr(agent_bp, "MAX_UNZIPPED", 1000)
     bomb = gz.compress(b'{"lines": [' + b" " * 5000 + b"]}")
-    assert post("/api/agent/v1/syslog", data=bomb, headers=h).get_json()["received"] == 0
+    res = post("/api/agent/v1/syslog", data=bomb, headers=h)
+    assert res.status_code == 413 and "in parts" in res.get_json()["error"]
+    plain = {"Floorbit-Agent-Key": key, "Content-Type": "application/json"}
+    assert post("/api/agent/v1/syslog", data=b"{not json", headers=plain).status_code == 400
+    assert post("/api/agent/v1/plugins/telemetry/points", data=b"[1]", headers=plain).status_code == 400
     fine = gz.compress(b'{"lines": [{"raw": "<14>hi", "from": "192.0.2.9"}]}')
     assert post("/api/agent/v1/syslog", data=fine, headers=h).get_json() == {"taken": 1, "received": 1}
 
