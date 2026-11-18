@@ -63,5 +63,7 @@
   "storeSent": "{{name}}: {{n}} lines sent",
   "storeError": "{{name}} couldn't take the lines: {{error}}",
   "relayed": "Through the local agent {{agent}}",
-  "relayDropped": "{{n}} dropped on the agent"
+  "relayDropped": "{{n}} dropped on the agent",
+  "leases_one": "{{n}} DHCP lease read for IP to MAC",
+  "leases_other": "{{n}} DHCP leases read for IP to MAC"
 }

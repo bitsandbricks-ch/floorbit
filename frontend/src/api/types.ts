@@ -1265,6 +1265,8 @@ export interface LogStatus {
   source: LogSource
   /** Logs plugins (Loki) that get every line, and how sending them goes. */
   stores?: { id: string; name: string; at?: number | null; sent?: number; error?: string | null }[]
+  /** DHCP lease lines read from the syslog: a fresh IP to MAC source (docs/syslog.md). */
+  leases?: { granted: number; released: number; last_at: number | null }
   query?: string
   query_error?: string
 }

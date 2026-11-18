@@ -126,6 +126,8 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     checkin._bucket.update(tokens=None, at=None)
     checkin._warm.clear()
     checkin._port_cache.clear()
+    from floorbit.dhcp_leases import leases  # leases learned from syslog lines, in memory without Valkey
+    leases.reset()
 
 
 @pytest.fixture

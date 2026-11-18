@@ -40,6 +40,13 @@ describe('Logs', () => {
     expect(screen.queryByText(/The syslog receiver is off/)).not.toBeInTheDocument()
   })
 
+  it('says how many DHCP leases the syslog gave', async () => {
+    const leases = { granted: 1200, released: 3, last_at: now }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': logs([line(1)], { leases }) }).fn)
+    renderWithApp(<Logs />)
+    expect(await screen.findByText(/1,200 DHCP leases read for IP to MAC/)).toBeInTheDocument()
+  })
+
   it('filters by device when one is clicked', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': me,

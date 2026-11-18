@@ -68,6 +68,9 @@ function StatusLine({ status }: { status: LogStatus }) {
       {(status.stores ?? []).map((st) => st.error
         ? <Badge key={st.id} color="warn" variant="light" tt="none">{t('logs.storeError', { name: st.name, error: st.error })}</Badge>
         : <Text key={st.id} size="xs" c="dimmed">· {t('logs.storeSent', { name: st.name, n: num(st.sent ?? 0) })}</Text>)}
+      {!!status.leases?.granted && (
+        <Text size="xs" c="dimmed">· {t('logs.leases', { count: status.leases.granted, n: num(status.leases.granted) })}</Text>
+      )}
     </Group>
   )
 }

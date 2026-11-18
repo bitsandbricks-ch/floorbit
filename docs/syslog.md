@@ -115,6 +115,26 @@ Floorbit sent. The line above the syslog shows how many lines went out, or why t
 
 `FLOORBIT_VICTORIALOGS_URL` is no longer read: it never sent anything. Use the plugin instead.
 
+## DHCP leases: IP to MAC as it happens
+
+Point the DHCP server's syslog at Floorbit too (or at the local agent, which relays it) and its
+lease lines become an IP to MAC source. ARP from the monitoring source only knows a new laptop after
+the next poll; the lease line comes the moment the address is handed out. Check-in, the seat walk and
+the IP and MAC search ask the leases first and ARP after. Read from:
+
+| Server | Lines |
+| --- | --- |
+| ISC dhcpd (also pfSense and OPNsense with it) | `DHCPACK on 192.0.2.40 to 02:00:..`, `DHCPRELEASE of ..` |
+| Kea (also OPNsense with it) | `DHCP4_LEASE_ALLOC [hwtype=1 02:00:..] .. lease 192.0.2.40 has been allocated`, `DHCP4_RELEASE` |
+| dnsmasq (also Pi-hole) | `DHCPACK(eth0) 192.0.2.40 02:00:..`, `DHCPRELEASE(..)` |
+| MikroTik | `dhcp1 assigned 192.0.2.40 to 02:00:..`, `deassigned` |
+
+The server has to be on the allow-list like the switches. A lease is kept until it runs out (Kea's
+lease time, else 12 hours) or is released, in Valkey so every pod sees it (in memory without one).
+Only the address pair is kept, not the host name in the line. Lines a local agent kept while the
+uplink was down are not used: a lease from hours ago could undo a newer one. The line above the
+syslog says how many leases were read.
+
 ## Log alerts
 
 Some lines mean a seat or a switch needs a look. Floorbit knows these patterns, from Cisco IOS and

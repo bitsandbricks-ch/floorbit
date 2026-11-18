@@ -63,5 +63,7 @@
   "storeSent": "{{name}}: {{n}} Zeilen geschickt",
   "storeError": "{{name}} hat die Zeilen nicht angenommen: {{error}}",
   "relayed": "Über den lokalen Agenten {{agent}}",
-  "relayDropped": "{{n}} auf dem Agenten verworfen"
+  "relayDropped": "{{n}} auf dem Agenten verworfen",
+  "leases_one": "{{n}} DHCP-Lease für IP zu MAC gelesen",
+  "leases_other": "{{n}} DHCP-Leases für IP zu MAC gelesen"
 }
