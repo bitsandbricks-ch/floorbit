@@ -18,3 +18,5 @@
   audit log tabs.
 - Names, hosts, ports and ids with a newline at the end are refused everywhere they are checked,
   not only in the plugin checks (#769).
+- Phones: the Electrics page's circuit buttons and the seat mapping list no longer push the page
+  sideways.
