@@ -41,6 +41,11 @@ ROTATE_GRACE = 24 * 3600  # after a new key, the old one still works this long, 
 CALL_TIMEOUT = 8         # seconds a page waits for the agent's answer
 MAX_WAIT = 25            # longest long poll, under the usual 30 s proxy timeouts
 MAX_PENDING = 200        # calls queued for the agent; more fail at once
+# A live agent is always asking for work (a long poll, or its link's loop), so it takes a call within
+# moments. One nobody took for TAKE_GRACE, while no agent for it asked in ASKED_RECENTLY, has nobody
+# to go to: the agent died without a word (a long-poll agent has no link whose close says so).
+TAKE_GRACE = 5
+ASKED_RECENTLY = 10
 TOUCH_EVERY = 30         # seconds between "last seen" writes to data.json
 INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it longer, under proxy timeouts
 # What the agent may be asked: the monitoring source's methods (floorbit/sources), the feeds of
@@ -51,7 +56,7 @@ METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats'
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
            'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
            'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
-           'switch_call', 'shell_open', 'shell_io', 'shell_close')
+           'switch_call', 'shell_open', 'shell_io', 'shell_close', 'plugin_test')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}$')
 
 _lock = threading.Lock()
@@ -529,7 +534,8 @@ STATS_KEEP = 5000        # answers kept per agent for that, at most
 
 
 class _Call:
-    __slots__ = ('agent', 'args', 'done', 'error', 'id', 'method', 'ok', 'result', 'taken', 'taken_at', 'targets')
+    __slots__ = ('agent', 'args', 'done', 'error', 'id', 'method', 'ok', 'result', 'taken', 'taken_at', 'targets',
+                 'unavailable')
 
     def __init__(self, call_id, method, args, targets=None):
         self.id, self.method, self.args = call_id, method, args
@@ -537,6 +543,7 @@ class _Call:
         self.done = threading.Event()
         self.ok, self.result, self.error, self.taken = False, None, None, False
         self.agent, self.taken_at = None, None
+        self.unavailable = False
 
 
 class Tunnel:
@@ -549,6 +556,8 @@ class Tunnel:
         self._seen = {}           # agent id -> when it last asked for work
         self._relayed = {}        # agent id -> {"syslog" | "flows": {"at", "count"}}
         self._reports = {}        # agent id -> the agent's own numbers, as it last sent them
+        self._links = {}          # agent id -> WebSocket links open to this pod
+        self._asking = {}         # agent id -> None while in take(), else when it last left it
         self.last_seen = None
 
     def reset(self):
@@ -557,6 +566,8 @@ class Tunnel:
             self._calls.clear()
             self._stats.clear()
             self._seen.clear()
+            self._links.clear()
+            self._asking.clear()
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
@@ -582,6 +593,65 @@ class Tunnel:
             from . import cluster
             if cluster.current is not None:
                 cluster.current.agent_seen(agent, self.last_seen)
+
+    def waiting_on(self, agent, older_than, now=None):
+        """Has the agent held a call for longer than ``older_than`` seconds without answering?"""
+        now = time.monotonic() if now is None else now
+        with self._cond:
+            return any(c.agent == agent and c.taken_at is not None and not c.done.is_set()
+                       and now - c.taken_at > older_than for c in self._calls.values())
+
+    def seen_on_link(self, agent, now=None):
+        """seen() from a WebSocket link, only while it is open: the link's loop may still be in its
+        last turn when the reader found it closed, and must not bring the agent back."""
+        now = time.time() if now is None else now
+        with self._cond:
+            if not self._links.get(agent):
+                return False
+            self.last_seen = self._seen[agent] = now
+        from . import cluster
+        if cluster.current is not None:
+            cluster.current.agent_seen(agent, now)
+        return True
+
+    def linked(self, agent):
+        with self._cond:
+            self._links[agent] = self._links.get(agent, 0) + 1
+
+    def unlinked(self, agent, now=None):
+        """An agent's WebSocket link closed. When it was its last one, the agent is gone now, not
+        CONNECTED_FOR later: a killed agent or a dropped line would otherwise hold every page for
+        CALL_TIMEOUT. Calls only it could take fail at once (pages answer from their last good
+        data), and so do the ones it had taken: their answers can't come back on a closed link."""
+        now = time.time() if now is None else now
+        with self._cond:
+            left = self._links.get(agent, 0) - 1
+            if left > 0:
+                self._links[agent] = left
+                return False
+            self._links.pop(agent, None)
+            self._seen.pop(agent, None)
+            self.last_seen = max(self._seen.values(), default=None)
+            alive = {a for a, seen in self._seen.items() if now - seen < CONNECTED_FOR}
+            for call in list(self._calls.values()):
+                if call.done.is_set():
+                    continue
+                if call.taken:
+                    lost = call.agent == agent
+                    reason = (f'The local agent went away before it answered {call.method}; '
+                              'it may have run. Look before trying again.')
+                else:
+                    lost = not (alive if call.targets is None else call.targets & alive)
+                    reason = 'The local agent is not connected.'
+                if lost:
+                    if call in self._pending:
+                        self._pending.remove(call)
+                    call.ok, call.error, call.unavailable = False, reason, True
+                    call.done.set()
+        from . import cluster
+        if cluster.current is not None:
+            cluster.current.agent_left(agent)
+        return True
 
     def _here(self, now, agent=None):
         seen = self.last_seen if agent is None else self._seen.get(agent)
@@ -646,15 +716,25 @@ class Tunnel:
             self._pending.append(call)
             self._cond.notify_all()
         try:
-            if not call.done.wait(timeout):
-                raise AgentUnavailable(f'The local agent did not answer {method} within {timeout} s.')
+            grace = min(timeout, TAKE_GRACE)
+            if not call.done.wait(grace):
+                with self._cond:
+                    gone = [] if call.taken else self._nobody_asking(targets, time.monotonic())
+                    for agent in gone:
+                        self._seen.pop(agent, None)      # the next calls fail at once, not after the grace
+                    if gone:
+                        self.last_seen = max(self._seen.values(), default=None)
+                if gone:
+                    raise AgentUnavailable('The local agent is not connected.')
+                if not call.done.wait(timeout - grace):
+                    raise AgentUnavailable(f'The local agent did not answer {method} within {timeout} s.')
         finally:
             with self._cond:
                 self._calls.pop(call.id, None)
                 if call in self._pending:
                     self._pending.remove(call)
         if not call.ok:
-            raise AgentError(call.error or f'{method} failed on the agent.')
+            raise (AgentUnavailable if call.unavailable else AgentError)(call.error or f'{method} failed on the agent.')
         return call.result
 
     def take(self, wait=MAX_WAIT, limit=20, agent=None):
@@ -665,20 +745,32 @@ class Tunnel:
             return call.targets is None or agent in call.targets
 
         with self._cond:
-            while not any(mine(c) for c in self._pending):
-                left = deadline - time.monotonic()
-                if left <= 0:
-                    return []
-                self._cond.wait(left)
-            out = []
-            for call in list(self._pending):
-                if len(out) >= limit:
-                    break
-                if mine(call):
-                    self._pending.remove(call)
-                    call.taken, call.agent, call.taken_at = True, agent, time.monotonic()
-                    out.append({'id': call.id, 'method': call.method, 'args': call.args})
-            return out
+            self._asking[agent] = None
+            try:
+                while not any(mine(c) for c in self._pending):
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        return []
+                    self._cond.wait(left)
+                out = []
+                for call in list(self._pending):
+                    if len(out) >= limit:
+                        break
+                    if mine(call):
+                        self._pending.remove(call)
+                        call.taken, call.agent, call.taken_at = True, agent, time.monotonic()
+                        out.append({'id': call.id, 'method': call.method, 'args': call.args})
+                return out
+            finally:
+                self._asking[agent] = time.monotonic()
+
+    def _nobody_asking(self, targets, now):
+        """The agents (of ``targets``) that should have taken a call but didn't ask lately; empty
+        when one of them is asking. Called under the lock."""
+        mine = [a for a in self._seen if targets is None or a in targets]
+        quiet = [a for a in mine if self._asking.get(a, 0) is not None
+                 and now - (self._asking.get(a) or 0) > ASKED_RECENTLY]
+        return quiet if len(quiet) == len(mine) else []
 
     def give_back(self, taken):
         """Calls an agent took but can't deliver (its link closed meanwhile): another agent, or
