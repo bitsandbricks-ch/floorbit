@@ -1216,5 +1216,6 @@
  "This backup does not open with the passphrase set now.": "Diese Sicherung lässt sich mit der jetzt gesetzten Passphrase nicht öffnen.",
  "This backup is encrypted: set the passphrase it was made with.": "Diese Sicherung ist verschlüsselt: die Passphrase setzen, mit der sie gemacht wurde.",
  "This backup is larger than a backup can be.": "Diese Sicherung ist grösser, als eine Sicherung sein darf.",
- "This file in the bucket is not a Floorbit backup.": "Diese Datei im Bucket ist keine Floorbit-Sicherung."
+ "This file in the bucket is not a Floorbit backup.": "Diese Datei im Bucket ist keine Floorbit-Sicherung.",
+ "The S3 endpoint sent an answer Floorbit does not read.": "Der S3-Endpunkt hat eine Antwort geschickt, die Floorbit nicht liest."
 }

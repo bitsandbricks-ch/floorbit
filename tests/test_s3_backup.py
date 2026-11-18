@@ -232,3 +232,21 @@ def test_decrypt_command(tmp_path, monkeypatch):
     monkeypatch.setenv("S3_BACKUP_PASSPHRASE", "pw")
     assert s3_backup.main(["decrypt", str(path)]) == 0
     assert (tmp_path / "floorbit-backup-20261118-070000Z.json").read_text().startswith("{")
+
+
+def test_answers_with_entities_are_refused(bucket, monkeypatch):
+    bomb = (b'<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "aaaa">]>'
+            b'<ListBucketResult><Contents><Key>&a;</Key></Contents></ListBucketResult>')
+    bucket_call = bucket.__call__
+
+    def answer(method, url, **kwargs):
+        bucket_call(method, url, **kwargs)
+        return Answer(200, bomb)
+    monkeypatch.setattr(s3_backup.requests, "request", answer)
+    with pytest.raises(s3_backup.S3Error, match="does not read"):
+        s3_backup.listing()
+
+
+def test_error_code_only_passes_plain_codes():
+    assert s3_backup._error_code(Answer(403, b"<Error><Code>AccessDenied</Code></Error>")) == "AccessDenied"
+    assert s3_backup._error_code(Answer(403, b"<Error><Code>Go to evil.example now!</Code></Error>")) == "fake"

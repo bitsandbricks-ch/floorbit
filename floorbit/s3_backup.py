@@ -15,6 +15,7 @@ URL an admin sets.
 import gzip
 import hashlib
 import hmac
+import html
 import io
 import json
 import os
@@ -22,7 +23,6 @@ import re
 import secrets
 import threading
 import time
-import xml.etree.ElementTree as ET
 from urllib.parse import quote, urlsplit
 
 import requests
@@ -155,12 +155,26 @@ def _request(s, method, key='', query=None, body=b'', stream=False):
 
 
 def _error_code(resp):
-    try:
-        root = ET.fromstring(resp.content[:16384])
-        code = root.findtext('Code') or root.findtext('{*}Code')
-        return (code or resp.reason or 'error')[:80]
-    except ET.ParseError:
-        return (resp.reason or 'error')[:80]
+    code = _tag(resp.content[:16384].decode('utf-8', 'replace'), 'Code')
+    return code if code and re.fullmatch(r'[A-Za-z0-9.]{1,80}', code) else (resp.reason or 'error')[:80]
+
+
+# S3's answers are small and flat. They are read with a few patterns instead of an XML parser, so a
+# hostile endpoint has no entities to expand: a document that declares any is refused outright.
+def _tags(text, name):
+    return [html.unescape(v) for v in re.findall(rf'<{name}>([^<]*)</{name}>', text)]
+
+
+def _tag(text, name):
+    found = _tags(text, name)
+    return found[0] if found else None
+
+
+def _answer(content):
+    text = content.decode('utf-8', 'replace')
+    if '<!' in text:
+        raise S3Error('The S3 endpoint sent an answer Floorbit does not read.')
+    return text
 
 
 # ── Files ─────────────────────────────────────────────────────────────────────
@@ -218,18 +232,18 @@ def listing(s=None):
         query = {'list-type': '2', 'prefix': s['prefix']}
         if token:
             query['continuation-token'] = token
-        root = ET.fromstring(_request(s, 'GET', query=query).content)
-        ns = root.tag.split('}')[0] + '}' if root.tag.startswith('{') else ''
-        for item in root.iter(f'{ns}Contents'):
-            key = item.findtext(f'{ns}Key') or ''
+        text = _answer(_request(s, 'GET', query=query).content)
+        for item in re.findall(r'<Contents>(.*?)</Contents>', text, re.S):
+            key = _tag(item, 'Key') or ''
             name = key[len(s['prefix']):]
-            m = NAME_RE.match(name)
+            m = NAME_RE.match(name) if key.startswith(s['prefix']) else None
             if not m:
                 continue
-            out.append({'key': key, 'name': name, 'size': int(item.findtext(f'{ns}Size') or 0),
+            size = _tag(item, 'Size') or '0'
+            out.append({'key': key, 'name': name, 'size': int(size) if size.isdigit() else 0,
                         'made': _made(m), 'encrypted': bool(m.group(3))})
-        token = root.findtext(f'{ns}NextContinuationToken')
-        if (root.findtext(f'{ns}IsTruncated') or '').lower() != 'true' or not token:
+        token = _tag(text, 'NextContinuationToken')
+        if (_tag(text, 'IsTruncated') or '').lower() != 'true' or not token:
             break
     return sorted(out, key=lambda b: b['name'], reverse=True)
 
