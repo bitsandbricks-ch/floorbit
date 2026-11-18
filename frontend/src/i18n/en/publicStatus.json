@@ -1,0 +1,36 @@
+{
+  "title": "Network status",
+  "off": "This page is switched off.",
+  "state": {
+    "operational": "All systems running",
+    "degraded": "Part of the network is down",
+    "outage": "Network outage",
+    "maintenance": "Maintenance",
+    "unknown": "Status not available right now"
+  },
+  "detail": {
+    "operational": "The network is working normally.",
+    "degraded": "Some seats have no network. The crew is on it.",
+    "outage": "Large parts of the network are down. The crew is on it.",
+    "maintenance": "The crew is working on the network.",
+    "unknown": "Floorbit cannot reach its monitoring right now, so it does not know."
+  },
+  "since": "Since {{time}}",
+  "areas": "Affected areas",
+  "rows": "rows {{rows}}",
+  "seats_one": "{{count}} seat",
+  "seats_other": "{{count}} seats",
+  "switches": "Switches: {{names}}",
+  "block": "Seat block {{name}}",
+  "hallWide": "Hall {{name}}",
+  "somewhere": "Somewhere in the hall",
+  "planned": "Planned maintenance",
+  "until": "until {{time}}",
+  "now": "Now",
+  "recovered": "Back up recently",
+  "recoveredAt": "The network here has been back since {{time}}.",
+  "updates": "Updates from the crew",
+  "none": "No updates yet.",
+  "feed": "Follow the updates in a feed reader (Atom)",
+  "updated": "Updated {{time}}. This page updates every minute."
+}
