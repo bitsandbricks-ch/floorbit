@@ -30,6 +30,9 @@ def hall(client, tmp_path, monkeypatch):
     monkeypatch.setenv("CHECKIN_FILE", str(tmp_path / "checkins.json"))
     monkeypatch.setattr(checkin, "lookup_mac", lambda ip: None)
     monkeypatch.setattr(checkin, "port_of", lambda ip: PORTS.get(ip))
+    # The app's verifier thread (from this or an earlier test) wakes on every check-in and would
+    # race the test's own verify_pending(): it only runs while monitoring answers, so keep it quiet.
+    monkeypatch.setattr(checkin, "_monitoring", sources.NoMonitoring)
     monkeypatch.setattr(events, "publish", lambda kind, data=None, origin=None: None)
     client.post("/api/seat-blocks", json={"name": "A", "x": 10, "y": 10, "cols": 4, "rows": 1})
     return client
