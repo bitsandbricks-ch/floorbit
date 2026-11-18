@@ -100,3 +100,18 @@ def test_a_bad_german_file_is_refused(tmp_path, content, error):
     (folder / "locales").mkdir()
     (folder / "locales" / "de-CH.json").write_text(content, encoding="utf-8")
     assert error in _load(folder, "development", "1.0").error
+
+
+def test_texts_with_holes_match_in_linear_time():
+    # Lazy (.+?) groups took polynomial time on a long text that doesn't match: one request could hang.
+    import time
+
+    from floorbit import i18n
+    compiled = i18n.compile_texts({"{} {} {} {} {} {}!": "x", "{}: {}": "{}: {} (de)",
+                                   "Link {} to {}": "Link {} zu {}"})
+    started = time.monotonic()
+    assert i18n.translate_in("a " * 5000, "de-CH", compiled, fallback=False) is None
+    assert time.monotonic() - started < 1
+    assert i18n.translate_in("a: b: c", "de-CH", compiled) == "a: b: c (de)"   # leftmost, as before
+    assert i18n.translate_in("Link sw-1 to sw-2", "de-CH", compiled) == "Link sw-1 zu sw-2"
+    assert i18n.translate_in("Link  to sw-2", "de-CH", compiled) == "Link  to sw-2"   # a hole is never empty

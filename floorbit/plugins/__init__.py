@@ -41,8 +41,8 @@ from .widgets import WidgetError, check_widget
 
 __all__ = ['Plugin', 'PluginError', 'Registry', 'Spec', 'init_plugins']
 
-ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
-NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
+ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}\Z')
+NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
 BUILTIN_DIR = Path(__file__).resolve().parent.parent / 'builtin_plugins'
 DEV_ENV = 'FLOORBIT_DEV_PLUGINS'
 
@@ -236,10 +236,12 @@ def compatible(requirement, current):
 
 def _check_fields(fields, where):
     keys = set()
+    if fields is not None and not isinstance(fields, list):
+        return f'{where}: a list of fields'
     for f in fields or []:
-        if not isinstance(f, dict) or not NAME_RE.match(str(f.get('key', ''))):
+        if not isinstance(f, dict) or not _name(f.get('key')):
             return f'{where}: bad key {f!r}'
-        if f.get('type', 'string') not in SETTING_TYPES:
+        if not isinstance(f.get('type', 'string'), str) or f.get('type', 'string') not in SETTING_TYPES:
             return f"{where}.{f['key']}: type must be one of {', '.join(SETTING_TYPES)}"
         if f.get('type') == 'select' and not f.get('options'):
             return f"{where}.{f['key']}: a select needs options"
@@ -249,8 +251,21 @@ def _check_fields(fields, where):
     return ''
 
 
+def _name(value):
+    return isinstance(value, str) and bool(NAME_RE.match(value))
+
+
 def validate(m):
     """An error message, or '' when the manifest is fine. No plugin code runs here."""
+    try:
+        return _validate(m)
+    except (TypeError, ValueError, AttributeError, KeyError) as exc:
+        # A value of a type no check above expected (YAML gives lists, maps, floats anywhere): the
+        # plugin's own error, never an exception while Floorbit loads its plugins.
+        return f'plugin.yaml: a value has the wrong type ({type(exc).__name__}: {exc})'
+
+
+def _validate(m):
     if not isinstance(m, dict):
         return 'plugin.yaml must be a mapping'
     if not ID_RE.match(str(m.get('id', ''))):
@@ -272,7 +287,7 @@ def validate(m):
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"
-    unknown = [u for u in uses if u not in AREAS]
+    unknown = [u for u in uses if not isinstance(u, str) or u not in AREAS]
     if unknown:
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
@@ -288,24 +303,31 @@ def validate(m):
         return err
     for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers', 'pages'):
         ids = set()
-        for item in m.get(kind) or []:
-            if not isinstance(item, dict) or not NAME_RE.match(str(item.get('id', ''))):
+        items = m.get(kind) or []
+        if not isinstance(items, list):
+            return f'{kind}: a list of entries'
+        for item in items:
+            if not isinstance(item, dict) or not _name(item.get('id')):
                 return f'{kind}: bad id {item!r}'
             if item['id'] in ids:
                 return f"{kind}.{item['id']}: duplicate"
             ids.add(item['id'])
             role = item.get('role', 'admin' if kind == 'actions' else 'viewer')
-            if role not in ROLES or (kind == 'actions' and role == 'viewer'):
+            if not isinstance(role, str) or role not in ROLES or (kind == 'actions' and role == 'viewer'):
                 return f"{kind}.{item['id']}: role must be " + ('editor or admin' if kind == 'actions'
                                                                else 'viewer, editor or admin')
             item['role'] = role
             # The permission it needs (auth/roles.py). Older manifests name a role; it maps across.
             permission = item.get('permission') or ROLE_PERMISSION[role]
             from auth.roles import PERMISSIONS
-            if permission not in PERMISSIONS:
+            if not isinstance(permission, str) or permission not in PERMISSIONS:
                 return f"{kind}.{item['id']}: unknown permission {permission!r}"
             item['permission'] = permission
-            item.setdefault('label', item['id'].replace('_', ' ').capitalize())
+            if item.get('label') is None:     # missing, or "label:" left empty
+                item['label'] = item['id'].replace('_', ' ').capitalize()
+            # Drawn as text on every page that lists it: a list or a map would break the page.
+            if not isinstance(item['label'], str) or not 1 <= len(item['label']) <= 80:
+                return f"{kind}.{item['id']}: label is text, 1 to 80 characters"
             if kind == 'actions':
                 err = _check_fields(item.get('params'), f"actions.{item['id']}.params")
                 if err:
@@ -318,7 +340,10 @@ def validate(m):
                 # Not "on:": YAML reads that key as true.
                 if item.get('for') not in PANEL_TARGETS:
                     return f"panels.{item['id']}: for must be one of {', '.join(PANEL_TARGETS)}"
-                item['refresh'] = max(10, int(item.get('refresh') or 60))
+                refresh = _refresh(item.get('refresh'))
+                if refresh is None:
+                    return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
+                item['refresh'] = refresh
             if kind == 'pages':
                 extra = sorted(str(k) for k in item if k not in PAGE_KEYS)
                 if extra:
@@ -327,7 +352,7 @@ def validate(m):
                 for listed, known in (('widgets', m.get('widgets')), ('actions', m.get('actions'))):
                     names = item.get(listed) or []
                     have = {w.get('id') for w in known or [] if isinstance(w, dict)}
-                    if not isinstance(names, list) or any(n not in have for n in names):
+                    if not isinstance(names, list) or any(not isinstance(n, str) or n not in have for n in names):
                         return f"pages.{item['id']}.{listed}: only ids from the plugin's own {listed}:"
                     tiles += len(names)
                 if not 1 <= tiles <= PAGE_TILES_MAX:
@@ -340,11 +365,17 @@ def validate(m):
                 extra = sorted(str(k) for k in item if k not in LAYER_KEYS)
                 if extra:
                     return f"layers.{item['id']}: unknown key(s) {', '.join(extra)}"
-                item['refresh'] = max(10, int(item.get('refresh') or 60))
+                refresh = _refresh(item.get('refresh'))
+                if refresh is None:
+                    return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
+                item['refresh'] = refresh
             if kind == 'widgets':
                 if item.get('size', 'small') not in ('small', 'wide'):
                     return f"widgets.{item['id']}: size must be small or wide"
-                item['refresh'] = max(10, int(item.get('refresh') or 60))
+                refresh = _refresh(item.get('refresh'))
+                if refresh is None:
+                    return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
+                item['refresh'] = refresh
     actions = {a['id'] for a in m.get('actions') or []}
     from .agent import check_agent_block
     err = check_agent_block(m)
@@ -364,17 +395,21 @@ def validate(m):
 
 def check_layer(raw):
     """What ``layer_<id>()`` returned, cut to what the plan draws; WidgetError when it isn't that."""
-    if not isinstance(raw, dict) or not isinstance(raw.get('seats', {}), dict):
+    if not isinstance(raw, dict):
+        raise WidgetError('a layer is {"seats": {seat: {"tone", "label"}}, "legend": [...]}')
+    given = {} if raw.get('seats') is None else raw['seats']
+    shown = [] if raw.get('legend') is None else raw['legend']
+    if not isinstance(given, dict) or not isinstance(shown, list):
         raise WidgetError('a layer is {"seats": {seat: {"tone", "label"}}, "legend": [...]}')
     seats = {}
-    for key, value in list(raw.get('seats', {}).items())[:LAYER_SEATS_MAX]:
+    for key, value in list(given.items())[:LAYER_SEATS_MAX]:
         if not isinstance(key, str) or not 1 <= len(key) <= PANEL_TARGET_MAX or not key.isprintable():
             raise WidgetError(f'a seat id is 1 to {PANEL_TARGET_MAX} printable characters')
         if not isinstance(value, dict) or value.get('tone') not in LAYER_TONES:
             raise WidgetError(f"seat {key}: tone must be one of {', '.join(LAYER_TONES)}")
         seats[key] = {'tone': value['tone'], 'label': str(value.get('label') or '')[:60]}
     legend = []
-    for item in (raw.get('legend') or [])[:LAYER_LEGEND_MAX]:
+    for item in shown[:LAYER_LEGEND_MAX]:
         if not isinstance(item, dict) or item.get('tone') not in LAYER_TONES:
             raise WidgetError(f"legend: tone must be one of {', '.join(LAYER_TONES)}")
         legend.append({'tone': item['tone'], 'label': str(item.get('label') or '')[:60]})
@@ -398,11 +433,29 @@ def touches(m):
     }
 
 
+REFRESH_MAX = 24 * 3600
+
+
+def _refresh(value):
+    """A tile's, panel's or layer's ``refresh``: seconds, at least 10 and at most a day; None when
+    it is no whole number. Read from plugin.yaml, so anything can be there ("fast", 1e999)."""
+    if value is None:
+        return 60
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return min(max(10, value), REFRESH_MAX)
+
+
+def _count(value, most):
+    """A small count from an index: 0 to ``most``; 0 for anything that isn't a whole number."""
+    return min(max(0, value), most) if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
 def clean_touches(raw):
     """``touches`` as an index lists it, cut to what Floorbit shows; None when there is none."""
     if not isinstance(raw, dict):
         return None
-    names = re.compile(r'^[a-z][a-z0-9_.]{0,59}$')
+    names = re.compile(r'^[a-z][a-z0-9_.]{0,59}\Z')
 
     def listed(key, allowed=None):
         items = raw.get(key) if isinstance(raw.get(key), list) else []
@@ -410,7 +463,7 @@ def clean_touches(raw):
     from auth.roles import PERMISSIONS
     sends = raw.get('sends') if isinstance(raw.get('sends'), dict) else {}
     return {'uses': listed('uses', AREAS), 'permissions': listed('permissions', PERMISSIONS),
-            'secrets': max(0, min(int(raw.get('secrets') or 0), 99)) if str(raw.get('secrets') or 0).isdigit() else 0,
+            'secrets': _count(raw.get('secrets'), 99),
             'sends': {str(k): v for k, v in list(sends.items())[:40]
                       if names.match(str(k)) and v in ('aggregate', 'device')},
             'hall_actions': listed('hall_actions'),
@@ -594,6 +647,7 @@ class Registry:
         self.logs = LogBuffer()
         self._lock = threading.Lock()
         self._cache = None             # (read at, path, data) of plugins.json
+        self._writes = 0               # bumped by every change: a read that overlapped one isn't kept
         self._hooks = deque()
         self._hooks_cv = threading.Condition()
         self._hook_threads = 0
@@ -705,10 +759,14 @@ class Registry:
         cached = self._cache
         if not strict and cached and cached[1] == path and time.monotonic() - cached[0] < STATE_TTL:
             return cached[2]
+        writes = self._writes
         try:
             data = store.read_json(path, {})
             data = data if isinstance(data, dict) else {}
-            self._cache = (time.monotonic(), path, data)
+            # A change saved while this read was on its way would be hidden for STATE_TTL by the
+            # older copy: a plugin just turned on read as off ("No port actions plugin is on").
+            if self._writes == writes:
+                self._cache = (time.monotonic(), path, data)
             return data
         except database.DatabaseUnavailable:
             if strict:
@@ -733,9 +791,11 @@ class Registry:
         data = json.loads(json.dumps(data, default=str))   # a copy: the cached one stays as read
         data.setdefault(plugin_id, {}).update(json.loads(json.dumps(changes, default=str)))
         from .. import database, store
+        self._writes += 1
         self._cache = None
         if database.backend().kind != 'files':
             store.write_json(path, data)
+            self._writes += 1      # again: a read that began after the first bump may hold the old file
             self._cache = (time.monotonic(), path, data)
             return
         folder = os.path.dirname(path) or '.'
@@ -744,6 +804,7 @@ class Registry:
             with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, default=str)
             os.replace(tmp, path)
+            self._writes += 1
             self._cache = (time.monotonic(), path, data)
         except BaseException:
             with contextlib.suppress(OSError):

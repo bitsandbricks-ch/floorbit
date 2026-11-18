@@ -49,3 +49,28 @@ def test_an_account_field_of_the_wrong_type_is_a_400(client, field, value):
 @pytest.mark.parametrize("value", [{"a": 1}, [1], 5])
 def test_an_api_token_role_of_the_wrong_type_is_a_400(client, value):
     assert client.post("/api/settings/api-tokens", json={"name": "Bot", "role": value}).status_code == 400
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e999"])
+@pytest.mark.parametrize(("method", "path"), [("post", "/api/seat-blocks"), ("post", "/api/cables"),
+                                              ("put", "/api/settings")])
+def test_nan_and_infinity_are_refused_before_a_handler_reads_them(client, method, path, number):
+    # Python's JSON reader takes these; as a whole number they raised OverflowError (a 500).
+    r = getattr(client, method)(path, data=f'{{"x": 1, "y": 1, "cache.ttl_arp": {number}}}',
+                                content_type="application/json")
+    assert r.status_code == 400 and "finite" in r.get_json()["error"]
+
+
+def test_ordinary_numbers_still_get_through(client):
+    assert client.post("/api/teams", json={"name": "Network", "order": 1.5e3}).status_code == 201
+
+
+def test_answers_never_hold_nan_or_infinity(app_module):
+    # A monitoring source's "NaN" (Prometheus, for a rate over nothing) made the whole answer unreadable.
+    import json
+
+    from flask import jsonify
+    with app_module.app.test_request_context():
+        body = jsonify({"rate": float("nan"), "series": [1.5, float("inf")], "nested": {"x": -float("inf")}}).data
+    assert json.loads(body) == {"rate": None, "series": [1.5, None], "nested": {"x": None}}
+    assert b"NaN" not in body and b"Infinity" not in body

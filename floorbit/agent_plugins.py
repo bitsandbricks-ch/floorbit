@@ -21,8 +21,8 @@ from .plugins.agent import STATUSES, check_payload
 
 CALL_TIMEOUT = 15
 ACTION_TIMEOUT = 120
-PLUGIN_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
-NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
+PLUGIN_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}\Z')
+NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
 MAX_PLUGINS_REPORTED = 40
 # Plugins the agent also turns on in its own copy of Floorbit when they are on here: with them it
 # answers the hosted side's monitoring, inventory, health, DNS, Wi-Fi and port calls.
@@ -91,7 +91,7 @@ def config(registry=None, agent_id=None):
 # Signed plugin bundles (floorbit/plugins/bundles.py): the release workflow signs them and puts them
 # with their index.json in the image (or FLOORBIT_AGENT_BUNDLES). This side only hands them on; it
 # holds no key and can't make one an agent would take.
-BUNDLE_NAME_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}-\d+(\.\d+){0,2}\.tar\.gz$')
+BUNDLE_NAME_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}-\d+(\.\d+){0,2}\.tar\.gz\Z')
 
 
 def bundles_dir():
@@ -353,7 +353,7 @@ def clean_health(raw):
 
 
 UPDATE_EVENTS = ('installed', 'kept', 'rolled back', 'refused', 'waiting', 'dropped')
-VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}$')
+VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}\Z')
 
 
 def _ver(v):

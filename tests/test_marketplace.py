@@ -1,5 +1,6 @@
 """The plugin Marketplace (floorbit/marketplace.py): signed index and bundles, trust levels, install,
 update, rollback, withdrawn versions, removal, other instances catching up, and the agents' share."""
+import base64
 import json
 
 import pytest
@@ -57,16 +58,23 @@ def market(tmp_path, monkeypatch, app_module):
     files, entries = {}, {}
 
     def publish(pid, version, pem=plugin_pem, withdrawn="", floorbit="", body="x = 1\n", base=URL, index=None,
-                icon=None, uses="widgets", extra=""):
+                icon=None, uses="widgets", extra="", holds=None):
         src = tmp_path / "src" / f"{pid}-{version}"
         src.mkdir(parents=True)
         (src / "plugin.yaml").write_text(
-            f"id: {pid}\nname: Hall thing\nversion: '{version}'\nuses: [{uses}]\n"
+            f"id: {holds or pid}\nname: Hall thing\nversion: '{version}'\nuses: [{uses}]\n"
             "widgets: [{id: load, label: Load}]\n" + extra)
         (src / "plugin.py").write_text(
             "from floorbit.plugins import Plugin\n\n\nclass Plugin(Plugin):\n"
             f"    def widget_load(self):\n        return {{'type': 'stat', 'value': '{version}'}}\n" + body)
         bundles.sign(src, pem, version, 1)
+        if holds:   # signed for pid, but its plugin.yaml names another plugin: only a hand-made bundle does
+            doc = json.loads((src / bundles.SIGFILE).read_text())
+            ser, _, _ = bundles._crypto()
+            key = ser.load_pem_private_key(pem, password=None)
+            signature = key.sign(bundles._payload(pid, version, 1, doc["files"]))
+            doc.update(id=pid, signature=base64.b64encode(signature).decode())
+            (src / bundles.SIGFILE).write_text(json.dumps(doc))
         data = bundles.pack(src)
         name = f"{pid}-{version}.tar.gz"
         files[base.rsplit("/", 1)[0] + "/" + name] = data
@@ -169,6 +177,17 @@ def test_builtin_plugins_are_not_replaced(client, market):
     res = client.post("/api/settings/marketplace/lancache", json={})
     assert res.status_code == 400 and "ships with this Floorbit" in res.get_json()["error"]
     assert market.registry.specs["lancache"].trust == "builtin"
+
+
+def test_a_bundle_naming_another_plugin_leaves_that_one_alone(client, market):
+    market.publish("hallthing", "1.0.0")
+    client.post("/api/settings/marketplace/hallthing", json={})
+    market.publish("sneaky", "1.0.0", holds="hallthing")
+    res = client.post("/api/settings/marketplace/sneaky", json={})
+    assert res.status_code == 400 and "holds plugin hallthing" in res.get_json()["error"]
+    spec = market.registry.specs["hallthing"]
+    assert spec.path.name == "1.0.0" and spec.path.parent.name == "hallthing" and not spec.error
+    assert "sneaky" not in market.registry.specs and "sneaky" not in marketplace.installed()
 
 
 def test_a_plugin_that_fails_to_load_leaves_the_old_one_running(client, market):
@@ -284,3 +303,40 @@ def test_only_admins(client, app_module):
     other.post("/login", data={"username": "viewer1", "password": "pw-viewer-1"})
     assert other.get("/api/settings/marketplace").status_code == 403
     assert other.post("/api/settings/marketplace/hallthing", json={}).status_code == 403
+
+
+def test_two_pods_fetching_the_same_version_dont_undo_each_other(client, market, monkeypatch):
+    # Pods sharing one plugin folder: the other pod's unpack in progress is left alone, and a
+    # version it put in place first is used as it is.
+    market.publish("hallthing", "1.0.0")
+    folder = market.tmp / "installed" / "hallthing"
+    busy = folder / ".1.0.0.4242.1.part"
+    busy.mkdir(parents=True)
+    real_rename = type(busy).rename
+
+    def other_pod_first(self, target):
+        real_rename(self, target)                    # what the other pod did a moment earlier...
+        raise OSError(39, "Directory not empty")     # ...so this pod's own rename finds it there
+
+    monkeypatch.setattr(type(busy), "rename", other_pod_first)
+    res = client.post("/api/settings/marketplace/hallthing", json={})
+    assert res.status_code == 200, res.get_json()
+    assert busy.is_dir()                             # still there for the other pod
+    assert market.registry.specs["hallthing"].path.name == "1.0.0"
+
+
+def test_a_source_that_drips_its_answer_is_given_up_on(monkeypatch):
+    # Each piece arrives within the read timeout, but the whole answer never ends.
+    now = [0.0]
+
+    class Drip(Answer):
+        def iter_content(self, size):
+            while True:
+                now[0] += 10
+                yield b" "
+
+    monkeypatch.setattr(marketplace.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(requests, "get", lambda url, **kw: Drip(b""))
+    with pytest.raises(requests.Timeout):
+        marketplace._get_capped("https://market.example.com/index.json", 2 * 1024 * 1024, 15)
+    assert now[0] <= 15 * 4 + 10

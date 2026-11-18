@@ -211,7 +211,7 @@ def _coerce(field, raw):
     if t == 'int':
         try:
             val = int(raw)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):   # Overflow: JSON allows Infinity
             raise SettingsError(f"{field['label']} must be a whole number") from None
         lo, hi = field.get('min'), field.get('max')
         if (lo is not None and val < lo) or (hi is not None and val > hi):

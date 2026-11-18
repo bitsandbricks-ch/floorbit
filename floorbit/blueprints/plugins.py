@@ -12,6 +12,8 @@ Who may do what:
 - Widgets, panels and endpoints: a signed-in account with the permission they name (floorplan.view by
   default). They are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
 """
+import json
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import audit, i18n, spa
@@ -71,7 +73,7 @@ def _params(action, body):
         elif kind == 'int':
             try:
                 out[key] = int(raw)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):   # Overflow: JSON allows Infinity
                 raise PluginError(f"{f.get('label') or key} must be a whole number") from None
             if not f.get('min', -10 ** 12) <= out[key] <= f.get('max', 10 ** 12):
                 raise PluginError(f"{f.get('label') or key} is out of range")
@@ -162,6 +164,8 @@ def run_action(plugin_id, action_id):
     if refused:
         return refused
     body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return _error('Expected a JSON object')
     user = (_user() or {}).get('username')
     try:
         params = _params(action, body)
@@ -176,8 +180,13 @@ def run_action(plugin_id, action_id):
     audit.record('plugins', f"Ran {spec.name}: {action['label']}", user=user, target=spec.id, fields=list(params))
     result = result if isinstance(result, dict) else {'message': str(result or 'Done')}
     message = registry.text(spec, str(result.get('message') or 'Done'), _language())
-    return jsonify({'ok': True, 'message': message[:500],
-                    'data': {k: v for k, v in result.items() if k != 'message'}})
+    try:
+        data = json.loads(json.dumps({k: v for k, v in result.items() if k != 'message'}, allow_nan=False))
+    except (TypeError, ValueError, RecursionError):
+        # It ran, so the answer is still "done"; only the extra data the browser couldn't read is dropped.
+        registry.log(spec.id, f'action {action_id}: the data it returned is not JSON and was left out')
+        data = {}
+    return jsonify({'ok': True, 'message': message[:500], 'data': data})
 
 
 @bp.route('/api/plugins/<plugin_id>/widgets/<widget_id>', methods=['GET'])
@@ -367,11 +376,15 @@ def endpoint(plugin_id, endpoint_id):
         return refused
     args = {k: v[:200] for k, v in list(request.args.items())[:20]}
     try:
-        return jsonify(_registry().timed(spec, f'endpoint_{endpoint_id}', args))
+        value = _registry().timed(spec, f'endpoint_{endpoint_id}', args)
+        # allow_nan=False: NaN or infinity would make an answer no browser can read.
+        body = json.dumps(value, allow_nan=False, separators=(',', ':'))
     except PluginError as exc:
         return _error(str(exc), 502)
-    except TypeError:
+    except (TypeError, ValueError, RecursionError):
+        _registry().log(spec.id, f'endpoint {endpoint_id}: the answer is not JSON')
         return _error('The plugin returned something that is not JSON', 502)
+    return current_app.response_class(body + '\n', mimetype='application/json')
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────────────────

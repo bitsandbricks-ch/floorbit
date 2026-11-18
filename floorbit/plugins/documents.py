@@ -16,7 +16,7 @@ from .base import STATE_MAX_BYTES, PluginError
 DOC_MAX_BYTES = 256 * 1024
 PLUGIN_MAX_BYTES = 5 * 1024 * 1024
 MAX_COLLECTIONS = 50
-COLLECTION_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
+COLLECTION_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
 DOC_ID_MAX = 128
 
 _locks = {}
