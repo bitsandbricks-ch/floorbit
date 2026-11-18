@@ -17,6 +17,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { fromInput, toInput } from './schedule/time'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
@@ -48,7 +49,7 @@ function ItemForm({ item, kinds, onDone }: { item: ScheduleItem | null; kinds: S
     onSuccess: onDone,
   })
   return (
-    <Paper withBorder radius="lg" p="md">
+    <Paper ref={revealForm} withBorder radius="lg" p="md" className="fb-reveal">
       <Stack gap="sm">
         <Title order={2} size="h4">{item ? t('schedule.editItem') : t('schedule.addItem')}</Title>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>

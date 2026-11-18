@@ -16,6 +16,7 @@ import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { dateTime } from '@/lib/time'
+import { useReveal } from '@/lib/revealForm'
 import { runbookText } from '@/lib/runbookText'
 
 type Draft = { title: string; kinds: RunbookKind[]; body: string }
@@ -74,13 +75,16 @@ export default function Runbooks() {
   const d = query.data
   const books = (d?.runbooks ?? []).map((b) => runbookText(b, t))
   const open = books.find((b) => b.id === params.get('open')) ?? books[0]
-  const pick = (id: string) => { setEditing(null); setParams({ open: id }, { replace: true }) }
+  // On a phone the open runbook sits under the list: a tap on a row or "New" scrolls down to it.
+  const [panel, reveal] = useReveal(`${editing}|${open?.id}`)
+  const pick = (id: string) => { reveal(); setEditing(null); setParams({ open: id }, { replace: true }) }
+  const edit = (id: 'new' | string) => { reveal(); setEditing(id) }
   const first = (k: RunbookKind) => books.find((b) => b.kinds.includes(k))?.id
 
   return (
     <Layout title={t('runbooks.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
       <PageHead title={t('runbooks.title')} desc={t('runbooks.intro')}
-        actions={canEdit ? <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing('new')}>{t('runbooks.add')}</Button> : undefined} />
+        actions={canEdit ? <Button leftSection={<IconPlus size={16} />} onClick={() => edit('new')}>{t('runbooks.add')}</Button> : undefined} />
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {(remove.error || move.error) && <Alert color="down" role="alert">{(remove.error || move.error)!.message}</Alert>}
       {query.isPending || !d ? <LoadingState /> : (
@@ -100,7 +104,7 @@ export default function Runbooks() {
             ))}
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 8 }}>
-            <Paper withBorder radius="lg" p="md">
+            <Paper ref={panel} withBorder radius="lg" p="md" className="fb-reveal">
               {editing ? (
                 <Editor key={editing} book={editing === 'new' ? null : open ?? null} kinds={d.kinds} onCancel={() => setEditing(null)}
                   onSaved={(id) => { refresh(); pick(id) }} />
@@ -134,7 +138,7 @@ export default function Runbooks() {
                   )}
                   {canEdit && (
                     <Group gap="xs">
-                      <Button variant="default" onClick={() => setEditing(open.id)}>{t('runbooks.edit')}</Button>
+                      <Button variant="default" onClick={() => edit(open.id)}>{t('runbooks.edit')}</Button>
                       <Button variant="subtle" color="down" loading={remove.isPending} onClick={() => remove.mutate(open.id)}>{t('runbooks.delete')}</Button>
                     </Group>
                   )}
