@@ -1135,5 +1135,6 @@
  "Seat block \"{}\": its position or size is not a number": "Sitzblock «{}»: Position oder Grösse ist keine Zahl",
  "Plan mark \"{}\": {}": "Markierung «{}»: {}",
  "The database is busy with another program right now, so this was not saved. Try again in a moment.": "Die Datenbank ist gerade mit einem anderen Programm beschäftigt, darum wurde das nicht gespeichert. Versuche es gleich nochmals.",
- "Too many open pages are getting live updates right now. This one will update again in a moment.": "Gerade bekommen zu viele offene Seiten Live-Updates. Diese Seite aktualisiert sich gleich wieder."
+ "Too many open pages are getting live updates right now. This one will update again in a moment.": "Gerade bekommen zu viele offene Seiten Live-Updates. Diese Seite aktualisiert sich gleich wieder.",
+ "cut short: {}": "abgeschnitten: {}"
 }
