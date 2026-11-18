@@ -158,11 +158,34 @@ def test_memory_and_disk_are_capped(receiver, tmp_path, monkeypatch):
     assert len(receiver.lines) == 100 and receiver.lines[0]["message"] == "line 50"
     folder = tmp_path / "syslog"
     for hour in range(3):
-        (folder / f"2026-11-14-0{hour}.jsonl").write_text("x" * 700_000)
+        (folder / f"2026-11-14-0{hour}-00.jsonl").write_text("x" * 700_000)
     monkeypatch.setenv("SYSLOG_MAX_MB", "1")
     receiver.prune_files(now=NOW)
     left = sorted(os.listdir(folder))
-    assert "2026-11-14-00.jsonl" not in left and "2026-11-14-10.jsonl" in left
+    assert "2026-11-14-00-00.jsonl" not in left and "2026-11-14-10-00.jsonl" in left   # a file a minute
+
+
+
+def test_the_folder_is_pruned_when_lines_come_only_through_the_agent(receiver, tmp_path, monkeypatch):
+    # Nothing listens here (lines come through the local agent): pruning used to start with the
+    # listener only, and the folder grew past SYSLOG_MAX_MB without end.
+    folder = tmp_path / "syslog"
+    folder.mkdir(exist_ok=True)
+    names = [time.strftime("%Y-%m-%d-%H-%M", time.gmtime(time.time() - (3 - m) * 60)) + ".jsonl" for m in range(3)]
+    for name in names:
+        (folder / name).write_text("x" * 700_000)
+    monkeypatch.setenv("SYSLOG_MAX_MB", "1")
+    assert not receiver._servers
+
+    class Done(Exception):
+        pass
+
+    def stop(_seconds):
+        raise Done
+    monkeypatch.setattr(syslog.time, "sleep", stop)
+    with pytest.raises(Done):
+        receiver._housekeeping()
+    assert sorted(os.listdir(folder)) == names[-1:]
 
 
 def test_udp_round_trip(tmp_path, monkeypatch, lan_here):

@@ -32,3 +32,5 @@
   and a bigger receive buffer instead of a thread per line, and takes at most 256 TCP senders.
 - Floorbit starts in about a second after a big event's night instead of a minute: it reads back
   only the newest syslog lines it keeps in memory, not every stored line.
+- The syslog folder keeps to `SYSLOG_MAX_MB` also when lines come only through the local agent (it
+  grew to 2 GB in a test night), and is written a file per minute so a busy hall can keep to it.

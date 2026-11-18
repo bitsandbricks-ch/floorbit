@@ -164,6 +164,7 @@ def _tail(path, count, block=1 << 20):
     return [r for r in rows if r.strip()][-count:]
 
 
+PRUNE_EVERY = 60              # seconds; a busy hall fills SYSLOG_MAX_MB in minutes
 RCVBUF = 8 * 1024 * 1024      # a burst waits in the kernel while one line is handled
 MAX_TCP = 256                 # senders at once; more are closed (a switch reconnects)
 
@@ -223,7 +224,7 @@ class SyslogReceiver:
         self.relayed = {}       # agent name -> {'at', 'lines', 'dropped'}: lines a local agent sent
         self._load()
 
-    # ── storage: one JSON line per log line, a file per hour ────────────────────────────
+    # ── storage: one JSON line per log line, a file per minute ──────────────────────────
     def folder(self):
         return self.path or store.event_path('syslog')
 
@@ -261,7 +262,9 @@ class SyslogReceiver:
         folder = self.folder()
         try:
             os.makedirs(folder, exist_ok=True)
-            name = time.strftime('%Y-%m-%d-%H', time.gmtime(line['ts'])) + '.jsonl'
+            # A file per minute, not per hour: SYSLOG_MAX_MB is kept by dropping whole files, and a
+            # busy hall writes about 2 GB an hour.
+            name = time.strftime('%Y-%m-%d-%H-%M', time.gmtime(line['ts'])) + '.jsonl'
             with open(os.path.join(folder, name), 'a', encoding='utf-8') as f:
                 f.write(json.dumps(line, separators=(',', ':')) + '\n')
         except OSError as exc:
@@ -275,7 +278,7 @@ class SyslogReceiver:
             return
         s = settings()
         files = sorted(f for f in os.listdir(folder) if f.endswith('.jsonl'))
-        cutoff = time.strftime('%Y-%m-%d-%H', time.gmtime(now - s['retention_hours'] * 3600))
+        cutoff = time.strftime('%Y-%m-%d-%H-%M', time.gmtime(now - s['retention_hours'] * 3600))
         sizes = {}
         for name in files:
             path = os.path.join(folder, name)
@@ -594,15 +597,16 @@ class SyslogReceiver:
         for server in self._servers:
             threading.Thread(target=server.serve_forever, name='syslog', daemon=True).start()
         self.listening = {'port': self._servers[0].server_address[1], 'tcp': s['tcp'], 'bind': s['bind']}
-        threading.Thread(target=self._housekeeping, name='syslog-prune', daemon=True).start()
 
     def _housekeeping(self):
-        while self._servers:
+        # Also when lines come only through the local agent and nothing listens here: tied to the
+        # listener, the folder grew past SYSLOG_MAX_MB without end (2 GB in a test night).
+        while True:
             try:
                 self.prune_files()
             except OSError as exc:
                 print(f'[syslog] could not prune: {exc}')
-            time.sleep(300)
+            time.sleep(PRUNE_EVERY)
 
     def stop(self):
         servers, self._servers = self._servers, []
@@ -659,6 +663,7 @@ def init_syslog(app, registry=None, start_background=True):
             if features.on('syslog'):
                 receiver.start()
             threading.Thread(target=receiver._forwarding, name='syslog-forward', daemon=True).start()
+            threading.Thread(target=receiver._housekeeping, name='syslog-prune', daemon=True).start()
 
     return receiver
 

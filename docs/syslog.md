@@ -56,8 +56,9 @@ Logs name MACs and IPs and a syslog port is open to the network, so:
   counted. A switch stuck in a loop can't flood the app.
 - **Size caps.** A line is cut at 2 KB. At most `SYSLOG_MAX_LINES` lines are kept in memory (50,000)
   and `SYSLOG_MAX_MB` on disk (100); the oldest go first.
-- **Short retention.** Lines are kept `SYSLOG_RETENTION_HOURS` (24), in one file per hour under
-  `syslog/` next to `data.json` (`/app/state/syslog` in Docker), and read back after a restart.
+- **Short retention.** Lines are kept `SYSLOG_RETENTION_HOURS` (24), in one file per minute under
+  `syslog/` next to `data.json` (`/app/state/syslog` in Docker), and the newest are read back after
+  a restart. The folder is checked every minute, also when lines come only through the local agent.
 - **Who can read them.** The page and the API need `seats.view` (admin, lead and tech by default),
   like the seat mapping.
 
