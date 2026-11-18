@@ -29,7 +29,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from .store import load_data, save_data
+from .store import load_data, load_shared, save_data
 
 KEY = 'agents'
 PREFIX = 'fba_'
@@ -465,7 +465,7 @@ def check(key, version=None, address=None, now=None, protocol=None):
         return None
     now = time.time() if now is None else now
     agent_id, secret = m.groups()
-    data = load_data()
+    data = load_shared()     # every agent request asks: don't parse data.json each time
     found = next((a for a in data.get(KEY) or [] if a['id'] == agent_id), None)
     if not found:
         return None

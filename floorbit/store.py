@@ -189,6 +189,7 @@ def write_json(path, data):
 
 
 _shared = {}            # path -> (stamp, generation, document)
+SHARED_RECHECK = 1.0    # seconds: another pod's change shows up this late at most
 _generation = [0]       # bumped by every write here: a write within one mtime tick still counts
 
 
@@ -197,18 +198,27 @@ def read_shared(path, default=None):
     on): parsed once per change, not on every call. Every request asked these several times, and
     each time parsed the whole data.json; at a 400-switch event that was 86% of the server's CPU.
     The document is shared: never change it, copy what you hand on."""
+    hit = _shared.get(path)
+    now = time.monotonic()
+    if hit and hit[1] == _generation[0] and now - hit[3] < SHARED_RECHECK and _remote_backend():
+        return hit[2]     # on a database, asking for the row's stamp is a query: once a second
     mark = _mark(path)
     if mark is None:
         return read_json(path, default)
-    hit = _shared.get(path)
     if hit and hit[0] == mark and hit[1] == _generation[0]:
+        _shared[path] = (mark, hit[1], hit[2], now)
         return hit[2]
     generation = _generation[0]
     doc = read_json(path, default)
     if len(_shared) > 256:
         _shared.clear()
-    _shared[path] = (mark, generation, doc)
+    _shared[path] = (mark, generation, doc, now)
     return doc
+
+
+def _remote_backend():
+    from . import database
+    return database.backend().kind != 'files'
 
 
 def _mark(path):

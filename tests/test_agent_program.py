@@ -746,7 +746,7 @@ def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app
     relay.tick(now=NOW)                                      # the seats come from the hosted Floorbit
     assert collector.agg.seat_of == {"192.0.2.10": "A-1"}
     collector.receive(v5([STEAM]), "198.51.100.1", now=NOW + 1)
-    collector._next["publish"] = 0
+    collector._next["publish"] = collector._next["raw"] = 0
     relay.tick(now=NOW + 2)
     assert relay.sent == 2 and sent[-1]["mix_hour"] == {"gaming": 5_000_000}
     body = client.get("/api/flows").get_json()
