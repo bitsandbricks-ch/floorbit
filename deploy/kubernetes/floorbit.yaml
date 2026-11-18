@@ -53,7 +53,7 @@ spec:
           ports:
             - {name: http, containerPort: 5000}
           env:
-            - {name: REDIS_HOST, value: floorbit-redis}
+            - {name: REDIS_HOST, value: floorbit-valkey}
             - {name: PUBLIC_URL, value: "https://floor.example.com"}
             - {name: TZ, value: "UTC"}                      # the event's time zone, e.g. Europe/Zurich
             # Only the Ingress reaches the pod, so its X-Forwarded-For names the real client
@@ -136,23 +136,23 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: floorbit-redis
+  name: floorbit-valkey
 spec:
   replicas: 1
   selector:
-    matchLabels: {app: floorbit-redis}
+    matchLabels: {app: floorbit-valkey}
   template:
     metadata:
-      labels: {app: floorbit-redis}
+      labels: {app: floorbit-valkey}
     spec:
       containers:
-        - name: redis
-          image: redis:7.4-alpine
+        - name: valkey
+          image: valkey/valkey:8.1-alpine
           args: ["--save", "", "--appendonly", "no"]
           ports:
-            - {name: redis, containerPort: 6379}
+            - {name: valkey, containerPort: 6379}
           readinessProbe:
-            exec: {command: ["redis-cli", "ping"]}
+            exec: {command: ["valkey-cli", "ping"]}
             periodSeconds: 10
           resources:
             requests: {cpu: 50m, memory: 64Mi}
@@ -161,11 +161,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: floorbit-redis
+  name: floorbit-valkey
 spec:
-  selector: {app: floorbit-redis}
+  selector: {app: floorbit-valkey}
   ports:
-    - {name: redis, port: 6379, targetPort: redis}
+    - {name: valkey, port: 6379, targetPort: valkey}
 ---
 # k3s ships Traefik: this routes floor.example.com to Floorbit. It passes WebSockets (the local
 # agent's link) and Server-Sent Events (live updates) as they are.

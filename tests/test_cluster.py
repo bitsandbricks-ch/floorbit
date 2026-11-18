@@ -169,6 +169,20 @@ def test_cluster_mode_is_off_unless_set(monkeypatch):
         cluster.init()
 
 
+@pytest.mark.parametrize("mode", ["redis", "valkey", "Valkey"])
+def test_cluster_mode_takes_redis_or_valkey(monkeypatch, mode):
+    class Joined(Exception):
+        pass
+
+    def bus(**_kwargs):
+        raise Joined   # got past the mode check; stop before anything connects
+
+    monkeypatch.setenv("FLOORBIT_CLUSTER", mode)
+    monkeypatch.setattr(cluster, "RedisBus", bus)
+    with pytest.raises(Joined):
+        cluster.init()
+
+
 # ── RedisBus against a fake redis-py client ─────────────────────────────────────
 
 class FakeRedisClient:
@@ -298,3 +312,24 @@ def test_pods_say_who_leads_for_the_agents_page():
     bus.hashes[cluster.PODS_KEY]["pod-old"] = json.dumps({"at": time.time() - 3600, "leader": False})
     bus.hashes[cluster.PODS_KEY]["junk"] = "not json"
     assert {p["pod"] for p in a.pods()} == {"pod-a", "pod-b"}
+
+
+def test_a_switch_login_crosses_redis_sealed():
+    """Calls and answers between pods go through Redis: a switch call carries its login, so both are
+    sealed with the vault key every pod has."""
+    bus = MemoryBus()
+    pushed = []
+    push = bus.push
+
+    def spy(key, value, ttl=None):
+        pushed.append(value)
+        return push(key, value, ttl=ttl)
+    bus.push = spy
+    login = {"username": "tech", "password": "example-switch-pass"}
+    a = cluster.Cluster(bus, "pod-a", run_call=lambda m, args, t, timeout: {"echo": args[2]["login"]}, log=quiet)
+    b = cluster.Cluster(bus, "pod-b", log=quiet)
+    threading.Thread(target=lambda: a._serve_call(bus.pop(cluster.CALLS_KEY + "pod-a", 5)), daemon=True).start()
+    answer = b.forward("pod-a", "switch_call", ["ssh-ports", "bounce_port", {"switch": "sw-a-01", "login": login}],
+                       None, 5)
+    assert answer == {"ok": True, "result": {"echo": login}}
+    assert len(pushed) == 2 and not any("example-switch-pass" in p for p in pushed)
