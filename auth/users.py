@@ -151,8 +151,9 @@ class UserStore:
             user['session_version'] = int(user.get('session_version', 1)) + 1
             self._write_users(users)
 
-    def update(self, username, role=None, display_name=None):
-        """Change role and/or display name. Refuses to demote the last admin."""
+    def update(self, username, role=None, display_name=None, dashboards=None):
+        """Change role, display name and/or the dashboards a screen account is limited to (an empty
+        list lifts the limit). Refuses to demote the last admin."""
         with self._lock:
             users = self._users()
             user = users.get((username or '').lower())
@@ -167,6 +168,11 @@ class UserStore:
                 user['role'] = role
             if isinstance(display_name, str):
                 user['display_name'] = display_name.strip()[:64] or user['username']
+            if dashboards is not None:
+                if dashboards:
+                    user['dashboards'] = list(dashboards)
+                else:
+                    user.pop('dashboards', None)
             self._write_users(users)
             return dict(user)
 
@@ -248,4 +254,5 @@ def public(user):
         'identities': sorted((user.get('identities') or {}).keys()),
         'discord_id': (user.get('identities') or {}).get('discord', ''),
         'created_by': user.get('created_by'),
+        'dashboards': list(user.get('dashboards') or []),
     }

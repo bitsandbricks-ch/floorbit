@@ -35,6 +35,8 @@ def dashboard_screen(layout_id):
             return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
         if not roles.can(user, 'floorplan.view'):
             abort(403)
+        if not dashboards.may_open(user, layout_id):
+            return redirect(f"/dashboards/{user['dashboards'][0]}")
     return spa.render('Dashboard')
 
 
@@ -91,13 +93,16 @@ def public_tile(layout_id, tile):
 
 @bp.route('/api/dashboards', methods=['GET'])
 def list_layouts():
-    return jsonify({'layouts': dashboards.all_layouts(), 'pages': list(dashboards.PAGES)})
+    # A screen account limited to some dashboards (Settings > Users) sees only those.
+    allowed = dashboards.allowed_for(current_user())
+    layouts = [x for x in dashboards.all_layouts() if allowed is None or x['id'] in allowed]
+    return jsonify({'layouts': layouts, 'pages': list(dashboards.PAGES), 'limited': allowed is not None})
 
 
 @bp.route('/api/dashboards/<layout_id>', methods=['GET'])
 def get_layout(layout_id):
     layout = dashboards.get(layout_id)
-    if not layout:
+    if not layout or not dashboards.may_open(current_user(), layout_id):
         return _error('No such dashboard.', 404)
     return jsonify(layout)
 

@@ -32,5 +32,11 @@
   "optional": "Optional",
   "password": "Password",
   "addButton": "Add account",
-  "added": "Added {{name}}."
+  "added": "Added {{name}}.",
+  "dashboards": "Dashboards",
+  "dashboardsHelp": "A wall screen's account: it lists and opens only these, and starts on the first. Empty: every dashboard.",
+  "allDashboards": "Every dashboard",
+  "limitDashboards": "Limit dashboards",
+  "onlyDashboards_one": "Only {{count}} dashboard",
+  "onlyDashboards_other": "Only {{count}} dashboards"
 }

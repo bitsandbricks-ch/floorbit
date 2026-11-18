@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, MultiSelect, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,12 +10,14 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner } from '@/components/ui'
 
-type Open = 'password' | 'discord' | 'sign-in' | null
+type Open = 'password' | 'discord' | 'sign-in' | 'dashboards' | null
 
 const path = (username: string) => `/api/users/${encodeURIComponent(username)}`
 
 /** One account: its role, and the password reset and sign-in links behind buttons. */
-function AccountRow({ user, list, onSaved }: { user: Account; list: AccountsList; onSaved: (l: AccountsList) => void }) {
+function AccountRow({ user, list, boards, onSaved }: {
+  user: Account; list: AccountsList; boards: { id: string; name: string }[]; onSaved: (l: AccountsList) => void
+}) {
   const { t } = useTranslation()
   const isMe = user.username === list.me
   const [open, setOpen] = useState<Open>(null)
@@ -24,6 +26,7 @@ function AccountRow({ user, list, onSaved }: { user: Account; list: AccountsList
   const [discordId, setDiscordId] = useState(user.discord_id)
   const [provider, setProvider] = useState<string | null>(list.oidc[0]?.id ?? null)
   const [subject, setSubject] = useState('')
+  const [limit, setLimit] = useState<string[]>(user.dashboards ?? [])
   const change = useMutation({
     mutationFn: (body: Record<string, unknown>) => patch<AccountsList>(path(user.username), body),
     onSuccess: (l, body) => {
@@ -56,6 +59,15 @@ function AccountRow({ user, list, onSaved }: { user: Account; list: AccountsList
         <TextInput label={t('users.discordId')} placeholder={t('users.discordHint')} inputMode="numeric" autoComplete="off"
           style={{ flex: 1, minWidth: 200 }} value={discordId} onChange={(e) => setDiscordId(e.currentTarget.value)} />
         <Button loading={change.isPending} onClick={() => change.mutate({ discord_id: discordId.trim() })}>{t('users.save')}</Button>
+      </Group>
+    )
+  } else if (open === 'dashboards') {
+    form = (
+      <Group align="flex-end" gap="xs">
+        <MultiSelect label={t('users.dashboards')} description={t('users.dashboardsHelp')} placeholder={t('users.allDashboards')}
+          data={boards.map((b) => ({ value: b.id, label: b.name }))} value={limit} onChange={setLimit} clearable searchable
+          maxValues={20} style={{ flex: 1, minWidth: 220 }} />
+        <Button loading={change.isPending} onClick={() => change.mutate({ dashboards: limit })}>{t('users.save')}</Button>
       </Group>
     )
   } else if (open === 'sign-in') {
@@ -100,6 +112,11 @@ function AccountRow({ user, list, onSaved }: { user: Account; list: AccountsList
         )}
         {list.oidc.length > 0 && (
           <Button size="compact-sm" variant="default" onClick={() => toggle('sign-in')}>{t('users.linkSignIn')}</Button>
+        )}
+        {boards.length > 0 && (
+          <Button size="compact-sm" variant="default" onClick={() => toggle('dashboards')}>
+            {user.dashboards?.length ? t('users.onlyDashboards', { count: user.dashboards.length }) : t('users.limitDashboards')}
+          </Button>
         )}
         <ConfirmButton size="compact-sm" variant="light" danger label={t('users.remove')} disabled={isMe}
           title={isMe ? t('users.ownAccount') : undefined} question={t('users.removeQuestion', { name: user.display_name })}
@@ -157,6 +174,8 @@ export default function Users() {
   const query = useQuery({ queryKey: qk.users, queryFn: () => get<AccountsList>('/api/users') })
   const saved = (l: AccountsList) => qc.setQueryData(qk.users, l)
   const list = query.data
+  // Only to name them in the dashboard limit; a page that can't read them just leaves that out.
+  const boards = useQuery({ queryKey: qk.boards, queryFn: () => get<{ layouts: { id: string; name: string }[] }>('/api/dashboards') })
 
   return (
     <Layout title={t('users.title')} back={{ href: '/settings', label: t('users.settings') }}>
@@ -175,7 +194,7 @@ export default function Users() {
               <Title order={2} size="h4">{t('users.accounts')}</Title>
               <Text size="sm" c="dimmed" mb="xs">{t('users.accountsHelp')}</Text>
               <div aria-live="polite">
-                {list.users.map((u) => <AccountRow key={u.username} user={u} list={list} onSaved={saved} />)}
+                {list.users.map((u) => <AccountRow key={u.username} user={u} list={list} boards={boards.data?.layouts ?? []} onSaved={saved} />)}
               </div>
             </Paper>
             <AddAccount list={list} onSaved={saved} />

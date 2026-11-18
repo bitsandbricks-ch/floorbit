@@ -9,7 +9,7 @@ afterEach(() => vi.unstubAllGlobals())
 const admin = { enabled: true, user: { username: 'ada', display_name: 'Ada', role: 'admin', permissions: ['floorplan.view', 'settings.manage'] } }
 const account = (username: string, extra: Partial<Account> = {}): Account => ({
   username, display_name: username.toUpperCase(), role: 'tech', role_label: 'Tech', has_password: true,
-  identities: [], discord_id: '', created_by: null, ...extra,
+  identities: [], discord_id: '', created_by: null, dashboards: [], ...extra,
 })
 const roles = [
   { id: 'admin', label: 'Admin', description: 'Everything.' },
@@ -76,5 +76,30 @@ describe('Users', () => {
     expect(screen.getByText('HELPER2')).toBeInTheDocument()
     const sent = api.calls.filter((c) => c.method === 'POST').pop()?.body as Record<string, string>
     expect(sent).toMatchObject({ username: 'helper2', role: 'lead', password: 'long-enough-1' })
+  })
+
+  it('limits a wall screen account to some dashboards', async () => {
+    const screenAccount = account('screen-1', { role: 'kiosk', role_label: 'Kiosk' })
+    let sent: unknown = null
+    const api = fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/users': list([account('ada', { role: 'admin' }), screenAccount]),
+      'GET /api/dashboards': { layouts: [{ id: 'hall-b', name: 'Hall B wall' }, { id: 'kiosk', name: 'Kiosk' }], pages: [] },
+      'PATCH /api/users/screen-1': (init: RequestInit | undefined) => {
+        sent = JSON.parse(String(init?.body))
+        return { body: list([account('ada', { role: 'admin' }), { ...screenAccount, dashboards: ['hall-b'] }]) }
+      },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Users />)
+    const [, theirs] = await screen.findAllByRole('button', { name: 'Limit dashboards' })
+    fireEvent.click(theirs)
+    const picker = screen.getByPlaceholderText('Every dashboard')
+    fireEvent.click(picker)
+    fireEvent.focus(picker)
+    fireEvent.click(await screen.findByText('Hall B wall'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(sent).toEqual({ dashboards: ['hall-b'] }))
+    expect(await screen.findByRole('button', { name: 'Only 1 dashboard' })).toBeInTheDocument()
   })
 })

@@ -48,9 +48,9 @@ MAX_SECTIONS = 12
 MAX_PANELS = 24
 MAX_PANES = 40
 MAX_DEPTH = 4
-ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}$')
-TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}$')
-REF_RE = re.compile(r'^[\w .:-]{1,120}$')
+ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
+TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}\Z')
+REF_RE = re.compile(r'^[\w .:-]{1,120}\Z')
 KINDS = ('plan', 'tile', 'dashboard', 'page', 'view', 'text', 'empty')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
@@ -122,6 +122,38 @@ def all_layouts(data=None):
 
 def get(layout_id, data=None):
     return next((x for x in all_layouts(data) if x.get('id') == layout_id), None)
+
+
+MAX_LIMITED = 20   # dashboards one screen account may be limited to
+
+
+def allowed_for(user):
+    """The dashboard ids ``user`` is limited to (issue #702), or None when it may open every one."""
+    ids = (user or {}).get('dashboards')
+    return set(ids) if ids else None
+
+
+def may_open(user, layout_id):
+    allowed = allowed_for(user)
+    return allowed is None or layout_id in allowed
+
+
+def clean_limit(raw, data=None):
+    """A screen account's dashboard list as sent from Settings > Users: known ids only, in order."""
+    if raw is None or raw == []:
+        return []
+    if not isinstance(raw, list) or not all(isinstance(i, str) for i in raw):
+        raise LayoutError('Send the dashboards as a list of their ids.')
+    known = {layout['id'] for layout in all_layouts(data)}
+    out = []
+    for layout_id in raw:
+        if layout_id not in known:
+            raise LayoutError(f'There is no dashboard "{layout_id[:40]}".')
+        if layout_id not in out:
+            out.append(layout_id)
+    if len(out) > MAX_LIMITED:
+        raise LayoutError(f'An account can be limited to at most {MAX_LIMITED} dashboards.')
+    return out
 
 
 def _text(value, limit):

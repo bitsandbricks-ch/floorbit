@@ -457,6 +457,8 @@ export interface Account extends AccountSummary {
   identities: string[]
   discord_id: string
   created_by: string | null
+  /** The dashboards this account is limited to (a wall screen, #702); empty: every one. */
+  dashboards: string[]
 }
 
 export interface AccountsList {

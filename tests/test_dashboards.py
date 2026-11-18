@@ -213,3 +213,32 @@ def test_the_ready_made_kiosk_is_public(anon_client):
     assert anon_client.get("/api/dashboards/kiosk/public/plan").status_code == 200
     seats = anon_client.get("/api/dashboards/kiosk/public/tiles/seats").get_json()
     assert seats["type"] == "stat" and seats["link"] == ""   # its page needs an account
+
+
+def test_a_screen_account_limited_to_some_dashboards(client, kiosk_client):
+    """Settings > Users can limit an account to some dashboards (#702): it lists and opens only those
+    and starts on the first; without a list it opens every one, as before."""
+    client.put("/api/dashboards/hall-b", json={**MIXED, "name": "Hall B wall"})
+    client.put("/api/dashboards/noc", json={**MIXED, "name": "NOC"})
+    assert len(kiosk_client.get("/api/dashboards").get_json()["layouts"]) == 3
+    r = client.patch("/api/users/screen-1", json={"dashboards": ["hall-b", "hall-b"]})
+    assert r.status_code == 200, r.get_json()
+    assert next(u for u in r.get_json()["users"] if u["username"] == "screen-1")["dashboards"] == ["hall-b"]
+    listed = kiosk_client.get("/api/dashboards").get_json()
+    assert [x["id"] for x in listed["layouts"]] == ["hall-b"] and listed["limited"] is True
+    assert kiosk_client.get("/api/dashboards/hall-b").status_code == 200
+    assert kiosk_client.get("/api/dashboards/noc").status_code == 404
+    assert kiosk_client.get("/").headers["Location"].endswith("/dashboards/hall-b")
+    r = kiosk_client.get("/dashboards/noc")
+    assert r.status_code == 302 and r.headers["Location"].endswith("/dashboards/hall-b")
+    # The ready-made Kiosk dashboard is public: a screen may still open it.
+    assert kiosk_client.get("/dashboards/kiosk").status_code in (200, 503)
+    # Other accounts aren't touched.
+    assert len(client.get("/api/dashboards").get_json()["layouts"]) == 3
+    # Unknown ids are refused, in German too; an empty list lifts the limit.
+    bad = client.patch("/api/users/screen-1", json={"dashboards": ["nope"]}, headers={"Accept-Language": "de-CH"})
+    assert bad.status_code == 400 and bad.get_json()["error"] == 'Es gibt kein Dashboard «nope».'
+    assert client.patch("/api/users/screen-1", json={"dashboards": "noc"}).status_code == 400
+    assert client.patch("/api/users/screen-1", json={"dashboards": []}).status_code == 200
+    assert len(kiosk_client.get("/api/dashboards").get_json()["layouts"]) == 3
+    assert kiosk_client.get("/").headers["Location"].endswith("/plan")
