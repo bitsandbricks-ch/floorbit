@@ -132,3 +132,20 @@ def test_a_cable_walk_since_nan_still_answers_json_a_browser_reads(client, since
     r = client.get(f"/api/cables/walk?switch=sw-1&since={since}")
     assert r.status_code == 200
     json.loads(r.get_data(as_text=True), parse_constant=_refuse)
+
+
+def test_a_nan_saved_before_the_checks_goes_out_as_null(client):
+    """A position saved as NaN by an older version broke /api/plan for everyone (JSON.parse
+    refuses a bare NaN). Answers now carry null there, so the page loads and the switch can be moved."""
+    from floorbit import store
+    made = client.post("/api/inventory", json={"name": "sw-old", "x": 5, "y": 5}).get_json()
+    data = store.load_data()
+    for dev in data["inventory"]:
+        if dev.get("id") == made["id"]:
+            dev["x"], dev["y"] = float("nan"), float("inf")
+    store.save_data(data)
+    for path in ("/api/plan", "/api/switches", "/api/inventory"):
+        body = json.loads(client.get(path).get_data(as_text=True), parse_constant=_refuse)
+        assert "sw-old" in json.dumps(body)
+    dev = next(d for d in client.get("/api/inventory").get_json()["devices"] if d.get("id") == made["id"])
+    assert dev["x"] is None and dev["y"] is None

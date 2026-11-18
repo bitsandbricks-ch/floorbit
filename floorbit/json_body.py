@@ -17,6 +17,7 @@ decides what to keep.
 import math
 
 from flask import jsonify, request
+from flask.json.provider import DefaultJSONProvider
 
 MESSAGE = 'Send a JSON object.'
 TOO_DEEP = 'The JSON is nested too deeply.'
@@ -54,7 +55,32 @@ def not_finite(value):
     return False
 
 
+def finite(value):
+    """The value with every NaN and infinite float as None."""
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: finite(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [finite(v) for v in value]
+    return value
+
+
+class FiniteJSONProvider(DefaultJSONProvider):
+    """Answers never hold a bare NaN or Infinity: JSON.parse refuses them, so one saved before the
+    checks above (or read from a device) would stop a whole page from loading. They go out as null
+    instead, and the walk only runs when there is one."""
+
+    def dumps(self, obj, **kwargs):
+        try:
+            return super().dumps(obj, allow_nan=False, **kwargs)
+        except ValueError:
+            return super().dumps(finite(obj), **kwargs)
+
+
 def init_json_body(app):
+    app.json = FiniteJSONProvider(app)
+
     @app.before_request
     def refuse_bare_json_values():
         # DELETE too: a handler, or the audit log after it, may read its body (DELETE /api/notice
