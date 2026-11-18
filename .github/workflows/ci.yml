@@ -124,10 +124,10 @@ jobs:
     timeout-minutes: 15
     container: mcr.microsoft.com/playwright/python:v1.49.0-noble
     services:
-      redis:
-        image: redis:7-alpine
+      valkey:
+        image: valkey/valkey:8.1-alpine
     env:
-      REDIS_HOST: redis
+      REDIS_HOST: valkey
       APP_URL: http://127.0.0.1:5000
       # Throwaway demo account for this job's empty app; the script signs in with it.
       AUTH_ADMIN_USER: demo
