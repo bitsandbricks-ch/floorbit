@@ -13,28 +13,15 @@
 
 Changing brackets needs ``floorplan.edit``, like the match zones (auth/roles.py).
 """
-import time
 
-from flask import Blueprint, current_app, g, jsonify, render_template, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
 from .. import audit, brackets, spa, tournament
 from ..store import load_data
-from .status_page import _stamp
 
 bp = Blueprint('brackets', __name__)
-
-TEXTS = {
-    'en': {'title': 'Brackets', 'off': 'This page is switched off.', 'empty': 'No brackets yet.',
-           'round': 'Round {n}', 'final': 'Final', 'semi': 'Semi-finals', 'quarter': 'Quarter-finals',
-           'live': 'Live', 'tbd': 'to be decided', 'champion': 'Champion', 'bye': 'bye',
-           'updated': 'Updated {time}. This page updates every 30 seconds.'},
-    'de': {'title': 'Turnierbäume', 'off': 'Diese Seite ist ausgeschaltet.', 'empty': 'Noch keine Turnierbäume.',
-           'round': 'Runde {n}', 'final': 'Final', 'semi': 'Halbfinals', 'quarter': 'Viertelfinals',
-           'live': 'Live', 'tbd': 'offen', 'champion': 'Sieger', 'bye': 'Freilos',
-           'updated': 'Stand {time}. Die Seite aktualisiert sich alle 30 Sekunden.'},
-}
 
 
 def page_on():
@@ -141,15 +128,10 @@ def _public():
 
 @bp.route('/bracket')
 def bracket_page():
-    lang = request.accept_languages.best_match(['en', 'de'], default='en')
-    text = TEXTS[lang]
-    if not page_on():
-        return render_template('bracket.html', lang=lang, t=text, off=True), 404
-    shown = _public()
-    wanted = request.args.get('id')
-    current = next((b for b in shown if b['id'] == wanted), shown[0] if shown else None)
-    return render_template('bracket.html', lang=lang, t=text, off=False, all=shown, b=current, now=time.time(),
-                           stamp=_stamp, screen=request.args.get('screen') == '1')
+    """The page is React (frontend/src/pages/public/PublicBracket.tsx), reading /bracket.json; 404
+    while it is switched off."""
+    html, status = spa.render('Brackets')
+    return html, status if page_on() else 404
 
 
 @bp.route('/bracket.json')
