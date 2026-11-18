@@ -88,6 +88,9 @@ def sources():
 
 _cache: dict = {}
 _cache_lock = threading.Lock()
+STALE_FOR = 24 * 3600    # while a source is away, its last good index is used this long
+_stale: dict = {}        # url -> why the last read failed, while the cached copy is used
+_newest: dict = {}       # url -> the newest ``generated`` seen: an older signed index is a replay
 
 
 def fetch_index(source, force=False):
@@ -100,18 +103,48 @@ def fetch_index(source, force=False):
     if hit and not force and time.time() - hit[0] < INDEX_TTL:
         return hit[1]
     try:
-        res = requests.get(url, timeout=15)
-        res.raise_for_status()
-        if len(res.content) > MAX_INDEX:
-            raise MarketError('the index is too large')
-        doc = res.json()
-    except (requests.RequestException, ValueError) as exc:
-        raise MarketError(f'could not read the index: {type(exc).__name__}') from None
-    keys = bundles.pinned_keys(bundles.INDEX_KEYS_DIR) if source['official'] else community_keys()
-    bundles.verify_index(doc, keys)
+        try:
+            doc = json.loads(_get_capped(url, MAX_INDEX, 15))
+        except MarketError:
+            raise MarketError('the index is too large') from None
+        except (requests.RequestException, ValueError) as exc:
+            raise MarketError(f'could not read the index: {type(exc).__name__}') from None
+        keys = bundles.pinned_keys(bundles.INDEX_KEYS_DIR) if source['official'] else community_keys()
+        bundles.verify_index(doc, keys)
+        generated = str(doc.get('generated') or '')
+        if generated and generated < _newest.get(url, ''):
+            # Signed, but older than one already seen: someone serving an old index keeps a pulled
+            # version looking fine (a freeze or replay). Keep the newer one.
+            raise MarketError(f'the index is older ({generated}) than one already seen ({_newest[url]})')
+    except PluginError as exc:
+        # The source is away or answered wrong: keep using its last good index for a while, so a
+        # GitHub outage doesn't empty the Marketplace or stop a new pod from getting its plugins.
+        if hit and time.time() - hit[0] < STALE_FOR:
+            _stale[url] = f'{exc}; showing the copy from {time.strftime("%H:%M", time.localtime(hit[0]))}'
+            return hit[1]
+        raise
+    _newest[url] = max(_newest.get(url, ''), str(doc.get('generated') or ''))
+    _stale.pop(url, None)
     with _cache_lock:
         _cache[url] = (time.time(), doc)
     return doc
+
+
+def _get_capped(url, limit, timeout):
+    """The body of a GET, read in pieces and refused past ``limit`` bytes, so a source that
+    answers with something huge can't fill this server's memory first."""
+    import requests
+    with requests.get(url, timeout=timeout, stream=True, allow_redirects=True) as res:
+        res.raise_for_status()
+        if int(res.headers.get('Content-Length') or 0) > limit:
+            raise MarketError('the answer is too large')
+        chunks, size = [], 0
+        for chunk in res.iter_content(64 * 1024):
+            size += len(chunk)
+            if size > limit:
+                raise MarketError('the answer is too large')
+            chunks.append(chunk)
+        return b''.join(chunks)
 
 
 def _text(v, n):
@@ -143,7 +176,7 @@ def _offers(force=False):
         try:
             doc = fetch_index(src, force)
             status.append({'url': src['url'], 'official': src['official'], 'name': _text(doc.get('name'), 80),
-                           'generated': _text(doc.get('generated'), 40), 'error': ''})
+                           'generated': _text(doc.get('generated'), 40), 'error': _stale.get(src['url'], '')})
         except PluginError as exc:
             status.append({'url': src['url'], 'official': src['official'], 'name': '', 'generated': '',
                            'error': str(exc)})
@@ -204,11 +237,9 @@ def _download(src, entry, ver):
     if not url.startswith('https://'):
         raise MarketError(f'{pid}: the index points outside HTTPS')
     try:
-        res = requests.get(url, timeout=60)
-        res.raise_for_status()
+        data = _get_capped(url, bundles.MAX_BUNDLE, 60)
     except requests.RequestException as exc:
         raise MarketError(f'could not download {pid} {ver["version"]}: {type(exc).__name__}') from None
-    data = res.content
     if not ver['sha256'] or bundles.sha256(data) != ver['sha256']:
         raise MarketError(f'{pid} {ver["version"]}: the download does not match the index')
     dest = _folder(pid, ver['version'])
@@ -228,7 +259,9 @@ def _download(src, entry, ver):
     tmp.rename(dest)
     archive = _archive(pid, ver['version'])
     archive.parent.mkdir(parents=True, exist_ok=True)
-    archive.write_bytes(data)
+    part = archive.with_name(f'.{archive.name}.part')
+    part.write_bytes(data)
+    part.replace(archive)   # an agent fetching it never gets half a file
     return doc
 
 
@@ -402,12 +435,14 @@ def _tell_agents():
 # every instance runs what marketplace.json says ------------------------------------------------
 def sync(registry):
     """Load what is installed, fetching versions this instance doesn't have yet. Never fails:
-    a plugin that can't be had is left out and logged."""
+    a plugin that can't be had is left out and logged. Returns how many couldn't be loaded, so
+    the background loop tries those again."""
     from . import database
+    failed = 0
     try:
         have = installed()
     except database.DatabaseUnavailable:
-        return
+        return 1
     with _lock:
         for pid in [s.id for s in registry.specs.values() if s.trust in TRUST_RANK and s.id not in have]:
             registry.drop(pid)
@@ -425,7 +460,9 @@ def sync(registry):
                     _download(src, {**entry, 'id': pid}, ver)
                 _load(registry, pid, mine['version'])
             except (PluginError, KeyError, StopIteration, OSError) as exc:
+                failed += 1
                 registry.log(pid, f'could not load {pid} {mine["version"]}: {exc or type(exc).__name__}')
+    return failed
 
 
 def agent_bundles():
@@ -465,16 +502,26 @@ def init_marketplace(app, registry, start_background=True):
 
     def loop():
         from . import store
-        seen = None
+        seen, retry, backoff = None, 0.0, SYNC_EVERY
         while True:
             time.sleep(SYNC_EVERY)
             try:
                 now = store.stamp(_state_path())
             except Exception:  # noqa: BLE001  # the database being away is not this loop's problem
                 continue
-            if now != seen:
+            # Again when something changed, and also when the last try left a plugin out (the
+            # index or GitHub was away): every minute at first, then up to every half hour.
+            if now != seen or (retry and time.monotonic() >= retry):
                 seen = now
-                sync(registry)
+                try:
+                    failed = sync(registry)
+                except Exception as exc:  # noqa: BLE001  # the loop must keep running
+                    print(f'[marketplace] sync failed: {type(exc).__name__}: {exc}')
+                    failed = 1
+                if failed:
+                    retry, backoff = time.monotonic() + backoff, min(backoff * 2, 1800)
+                else:
+                    retry, backoff = 0.0, SYNC_EVERY
 
     @app.before_request
     def start_marketplace_once():
