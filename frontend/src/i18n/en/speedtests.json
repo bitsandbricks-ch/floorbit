@@ -14,6 +14,5 @@
   "slow": "Slow",
   "slowHint": "Slow: under half the hall's median download, with at least 2 seats tested.",
   "unknown": "Seats with no known switch",
-  "seatResult": "{{seat}}: {{down}} down",
   "noSwitches": "No tested seat has a known switch yet: the port reads haven't found them."
 }
