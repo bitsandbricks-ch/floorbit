@@ -8,6 +8,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { BackupPanel, Connections, SectionPanel, SettingsForm } from './settings/editor'
+import { S3BackupPanel } from './settings/S3Backups'
 import { k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type SettingsEditor } from './settings/model'
 
 export type { SettingsAnswer }
@@ -15,7 +16,7 @@ export type { SettingsAnswer }
 const OVERVIEW = 'overview'
 // Which group each section is listed under. A section not named here (a new one) goes under Other.
 const GROUPS: [string, string[]][] = [
-  ['event', [OVERVIEW, 'appearance', 'display', 'floorplan', 'cabling', 'public', 'general']],
+  ['event', [OVERVIEW, 'appearance', 'display', 'floorplan', 'cabling', 'public', 'general', 'backup']],
   ['sources', ['netbox', 'librenms', 'seats', 'checkin', 'cache']],
   ['monitoring', ['monitor', 'live', 'attention', 'health', 'power', 'insights', 'syslog', 'metrics']],
   ['alerts', ['discord', 'crew']],
@@ -142,10 +143,14 @@ export default function Settings() {
                   {wall && <Text size="sm" c="dimmed">{t('settings.wall')} <Anchor href="/wall">/wall</Anchor></Text>}
                   <Connections status={d.status} test={ed.test} />
                   <BackupPanel />
+                  <S3BackupPanel />
                   <Text size="sm" c="dimmed">{t('settings.nav.whereFrom')}</Text>
                 </>
               ) : (
-                <SectionPanel ed={ed} section={nav.byId.get(active) as Section} />
+                <>
+                  <SectionPanel ed={ed} section={nav.byId.get(active) as Section} />
+                  {active === 'backup' && <S3BackupPanel />}
+                </>
               )}
             </SettingsForm>
           </Grid.Col>

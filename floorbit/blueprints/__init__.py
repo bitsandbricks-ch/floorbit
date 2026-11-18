@@ -58,6 +58,7 @@ from . import (
                replay,
                report,
                runbooks,
+               s3_backup,
                schedule,
                screen,
                seat_blocks,
@@ -82,7 +83,7 @@ from . import (
 )
 
 ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_groups.bp, plan_locks.bp,
-       cache.bp, network.bp, backup.bp, audit.bp, plugins.bp,
+       cache.bp, network.bp, backup.bp, s3_backup.bp, audit.bp, plugins.bp,
        inventory.bp, inventory_groups.bp, inventory_interfaces.bp, inventory_agent.bp, icons.bp,
        inventory_types.bp,
        seat_map.bp, demo.bp, incidents.bp,

@@ -346,6 +346,31 @@ SCHEMA = [
      'label': 'Longest terminal session (minutes)',
      'help': 'A switch terminal is closed after this long in any case.'},
 
+    # Backups to an S3 bucket (floorbit/s3_backup.py)
+    {'key': 'S3_BACKUP_ENDPOINT', 'group': 'backup', 'type': 'string', 'default': '',
+     'label': 'S3 endpoint',
+     'help': 'The S3 address of MinIO, Garage, Backblaze B2 or another store, like https://s3.example.com. Empty: '
+             'Amazon S3.'},
+    {'key': 'S3_BACKUP_REGION', 'group': 'backup', 'type': 'string', 'default': 'us-east-1',
+     'label': 'Region', 'help': "The bucket's region, like eu-central-1. Most other stores take us-east-1."},
+    {'key': 'S3_BACKUP_BUCKET', 'group': 'backup', 'type': 'string', 'default': '',
+     'label': 'Bucket', 'help': 'Empty turns S3 backups off.'},
+    {'key': 'S3_BACKUP_PREFIX', 'group': 'backup', 'type': 'string', 'default': 'floorbit/',
+     'label': 'Folder in the bucket',
+     'help': 'Backups go here. Only files Floorbit made here are listed and deleted.'},
+    {'key': 'S3_BACKUP_ACCESS_KEY', 'group': 'backup', 'type': 'string', 'default': '', 'secret': True,
+     'label': 'Access key ID', 'help': 'Give the key only list, read, write and delete in this bucket.'},
+    {'key': 'S3_BACKUP_SECRET_KEY', 'group': 'backup', 'type': 'string', 'default': '', 'secret': True,
+     'label': 'Secret access key', 'help': 'Stored encrypted and never shown again.'},
+    {'key': 'S3_BACKUP_PASSPHRASE', 'group': 'backup', 'type': 'string', 'default': '', 'secret': True,
+     'label': 'Encryption passphrase',
+     'help': 'Set it to encrypt each backup before it leaves, so the bucket only holds what nobody can read. '
+             'Keep a copy elsewhere: without it, encrypted backups cannot be restored.'},
+    {'key': 'S3_BACKUP_INTERVAL_HOURS', 'group': 'backup', 'type': 'int', 'default': 24,
+     'label': 'Back up every (hours)', 'help': '0: only when someone presses Back up now.'},
+    {'key': 'S3_BACKUP_KEEP', 'group': 'backup', 'type': 'int', 'default': 30,
+     'label': 'Backups kept', 'help': 'After each upload, older backups in the folder are deleted.'},
+
     # Check-in
     {'key': 'CHECKIN_PIN_TRIES', 'group': 'checkin', 'type': 'int', 'default': 10,
      'label': 'Wrong PINs before a pause',
