@@ -132,10 +132,11 @@
   .fb-table-stack tbody td.fb-stack-actions { position: absolute; top: var(--mantine-spacing-xs); right: 0; }
   .fb-table-stack tbody td.fb-stack-actions .mantine-Group-root { justify-content: flex-end; }
   /* A cell that needs its heading carries it as data-label, shown to its left. */
-  .fb-table-stack tbody td[data-label] { position: relative; padding-left: 7.5em; }
+  .fb-table-stack tbody td[data-label]:empty { display: none; }
+  .fb-table-stack tbody td[data-label] { position: relative; padding-left: 8.5em; }
   .fb-table-stack tbody td[data-label]::before {
     content: attr(data-label);
-    position: absolute; left: 0; width: 7em;
+    position: absolute; left: 0; width: 8em; font-family: var(--mantine-font-family);
     color: var(--mantine-color-dimmed); font-size: var(--mantine-font-size-xs); line-height: 1.8;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
