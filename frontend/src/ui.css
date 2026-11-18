@@ -123,7 +123,7 @@
 @media (max-width: 48em) {
   .fb-table-stack thead { display: none; }
   .fb-table-stack tbody tr { display: block; padding: var(--mantine-spacing-xs) 0; }
-  .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; }
+  .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; text-align: left !important; }
   .fb-table-stack tbody td .mantine-Group-root[style*="flex-end"] { justify-content: flex-start; }
   /* Short cells (seat, name, state) share the row's first line. */
   .fb-table-stack tbody td.fb-stack-inline { display: inline-block; margin-right: var(--mantine-spacing-sm); }
