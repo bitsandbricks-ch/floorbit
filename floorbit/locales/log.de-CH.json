@@ -236,6 +236,7 @@
   "MAC address moving between ports": "MAC-Adresse wechselt zwischen Ports",
   "Loop detected": "Schleife erkannt",
   "Storm control": "Storm-Control",
+  "DHCP server out of addresses": "DHCP-Server hat keine freien Adressen mehr",
   "Spanning tree topology change": "Spanning-Tree-Topologiewechsel",
   "rogue-dhcp": "Fremder DHCP",
   "arp-spoof": "ARP-Spoofing",
