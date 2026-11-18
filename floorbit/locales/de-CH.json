@@ -818,6 +818,7 @@
  "Too many wrong PINs. Try again in {} min or ask the crew.": "Zu viele falsche PINs. Versuche es in {} Min. nochmals oder frag die Crew.",
  "Send a JSON object.": "Sende ein JSON-Objekt.",
  "The JSON is nested too deeply.": "Das JSON ist zu tief verschachtelt.",
+ "Numbers must be finite: no NaN or Infinity.": "Zahlen müssen endlich sein: kein NaN und kein Infinity.",
  "Send the block as a JSON object.": "Sende den Block als JSON-Objekt.",
  "No such port area.": "Diesen Port-Bereich gibt es nicht.",
  "Batch size, first port and seats per batch are numbers.": "Ports pro Gruppe, erster Port und Plätze pro Gruppe sind Zahlen.",

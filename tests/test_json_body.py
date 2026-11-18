@@ -81,3 +81,27 @@ def test_a_delete_with_a_deep_body_gets_400_and_others_keep_their_shape(client):
     assert r.status_code == 400 and r.get_json()["error"] == "The JSON is nested too deeply."
     assert client.delete("/api/notice", json=[1, 2]).status_code < 500       # no new shape rule for DELETE
     assert client.delete("/api/notice").status_code < 500
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e999"])
+@pytest.mark.parametrize(("method", "path", "body"), [
+    ("post", "/api/seat-blocks/many", '{"hall_id": "main", "count": %s}'),
+    ("patch", "/api/alerts/mutes/sw-1", '{"minutes": %s}'),
+    ("post", "/api/links", '{"a": "sw-1", "b": "sw-2", "speed": %s}'),
+    ("post", "/api/halls", '{"name": "Hall", "background_opacity": [1, {"deep": %s}]}'),
+])
+def test_nan_and_infinity_get_400_not_500(client, method, path, body, number):
+    """Python's parser takes NaN, Infinity and 1e999, and int() of them raised OverflowError (a 500)."""
+    r = client.open(path, method=method, data=body % number, content_type="application/json")
+    assert r.status_code == 400 and r.get_json()["error"] == "Numbers must be finite: no NaN or Infinity."
+    r = client.open(path, method=method, data=body % number, content_type="application/json",
+                    headers={"Accept-Language": "de-CH"})
+    assert r.get_json()["error"].startswith("Zahlen müssen endlich sein")
+
+
+def test_ordinary_numbers_and_the_agent_link_are_left_alone(client):
+    assert client.post("/api/teams", data='{"name": "Network", "order": 1.5e3}',
+                       content_type="application/json").status_code == 201
+    # The agent's calls carry what devices said; its own handlers judge them (no 400 from the guard).
+    r = client.post("/api/agent/v1/report", data='{"value": NaN}', content_type="application/json")
+    assert r.get_json(silent=True) is None or r.get_json().get("error") != "Numbers must be finite: no NaN or Infinity."

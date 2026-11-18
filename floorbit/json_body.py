@@ -7,11 +7,20 @@ handlers take one) and ``null`` pass through as before.
 A body nested deeper than MAX_DEPTH is refused too: ``[[[[...`` a megabyte deep made the parser
 raise RecursionError (a 500), and a value a few hundred levels deep that got saved could make
 every later save of the document fail.
+
+So are NaN and Infinity (and 1e999, which reads as Infinity). Python's parser takes them, and
+handlers that check with int() failed with OverflowError (a 500). Browsers never send them
+(JSON.stringify writes null), and one that got saved would come back out as a bare NaN no browser
+parses. The local agent's calls are left alone: its numbers come from devices and its own code
+decides what to keep.
 """
+import math
+
 from flask import jsonify, request
 
 MESSAGE = 'Send a JSON object.'
 TOO_DEEP = 'The JSON is nested too deeply.'
+NOT_FINITE = 'Numbers must be finite: no NaN or Infinity.'
 MAX_DEPTH = 64
 
 
@@ -30,6 +39,21 @@ def too_deep(value, limit=MAX_DEPTH):
     return False
 
 
+def not_finite(value):
+    """True when a number anywhere in the value is NaN or infinite. Walks without recursion."""
+    stack = [value]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, float):
+            if not math.isfinite(value):
+                return True
+        elif isinstance(value, dict):
+            stack.extend(value.values())
+        elif isinstance(value, list):
+            stack.extend(value)
+    return False
+
+
 def init_json_body(app):
     @app.before_request
     def refuse_bare_json_values():
@@ -45,6 +69,8 @@ def init_json_body(app):
             return jsonify({'error': TOO_DEEP}), 400
         if request.method == 'DELETE':      # its body was never checked for shape: keep it that way
             return None
+        if not request.path.startswith('/api/agent/') and not_finite(body):
+            return jsonify({'error': NOT_FINITE}), 400
         if body is not None and not isinstance(body, dict):
             return jsonify({'error': MESSAGE}), 400
         return None
