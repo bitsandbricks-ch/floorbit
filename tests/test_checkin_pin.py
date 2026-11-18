@@ -367,3 +367,11 @@ def test_outside_the_event_network_a_pin_is_not_even_looked_at(hall, monkeypatch
     assert wrong.status_code == right.status_code == 403
     assert wrong.get_json()["error"] == right.get_json()["error"]
     assert checkin._wrong_pins == {}
+
+
+@pytest.mark.parametrize("body", [{"seat": "A-1", "username": 7}, {"pin": ["x"], "username": "pixel"},
+                                  {"seat": {"a": 1}, "username": "pixel"},
+                                  {"seat": "A-1", "username": "pixel", "device": 3}])
+def test_values_of_the_wrong_type_are_a_clear_no_not_a_crash(hall, body):
+    r = hall.post("/api/checkin", json=body, environ_base={"REMOTE_ADDR": "192.0.2.21"})
+    assert r.status_code < 500 and r.is_json

@@ -10,6 +10,7 @@
   keeps serving and a restart wouldn't bring the database back; ``?strict=1`` answers 503 then,
   for a load balancer with another instance to send people to (docs/database.md).
 """
+import errno
 import time
 
 from flask import Blueprint, current_app, jsonify, request
@@ -59,6 +60,29 @@ def database_unavailable(exc):
             retry=i18n.translate('Trying again by itself…', lang)))
     resp.status_code = 503
     resp.headers['Retry-After'] = '10'
+    return resp
+
+
+DISK_FULL = ("Floorbit's disk is full, so this change was not saved. What was saved before is safe. "
+             'Free some space on the server (or give the volume more), then try again.')
+DISK_READ_ONLY = ("Floorbit's state folder is read-only, so this change was not saved. "
+                  'Mount it writable (docs/install.md), then try again.')
+_DISK_ERRORS = {errno.ENOSPC: DISK_FULL, errno.EDQUOT: DISK_FULL, errno.EROFS: DISK_READ_ONLY}
+_disk_logged = set()
+
+
+def disk_unwritable(exc):
+    """A save that hit a full or read-only disk: a clear 507 instead of an HTML 500 and a traceback
+    per click. The store never leaves half a file (floorbit/store.py), so nothing earlier is lost."""
+    text = _DISK_ERRORS.get(getattr(exc, 'errno', None))
+    if text is None:
+        raise exc   # any other OSError stays a bug to see
+    if exc.errno not in _disk_logged:   # once per kind, not on every click while it lasts
+        _disk_logged.add(exc.errno)
+        print(f'[store] Saving failed: {exc.strerror} ({getattr(exc, "filename", None) or "state folder"}). '
+              'Pages still show what was saved; changes fail until there is space again.', flush=True)
+    resp = jsonify({'error': text, 'code': 'disk_full' if text is DISK_FULL else 'disk_read_only'})
+    resp.status_code = 507
     return resp
 
 

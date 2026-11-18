@@ -189,3 +189,7 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
   off: quiet hours, the bandwidth forecast's hours, times on the public status page and agenda,
   and imported schedule times that carry no zone. The crew pages show times in each browser's
   own time zone either way.
+- A full disk (or a state folder mounted read-only) doesn't lose what was saved: each file is
+  written whole beside the old one first. Until there is space again, pages keep showing the last
+  saved state and every change answers "Floorbit's disk is full, so this change was not saved".
+  The log says it once: `[store] Saving failed: No space left on device`.
