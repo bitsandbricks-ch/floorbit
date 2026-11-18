@@ -10,7 +10,7 @@ floorbit/services.py, docs in docs/services.md.
 """
 from flask import Blueprint, abort, g, jsonify, request
 
-from .. import audit, services, spa
+from .. import audit, i18n, services, spa
 
 bp = Blueprint('services', __name__)
 WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver', 'sites': 'internet site'}
@@ -23,13 +23,17 @@ def services_page():
 
 @bp.route('/api/services', methods=['GET'])
 def get_services():
-    return jsonify(services.overview())
+    # The pollers keep their messages in English; a German page gets them in German.
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    return jsonify(i18n.translate_fields(services.overview(), lang))
 
 
 @bp.route('/api/services/check', methods=['POST'])
 def check_services():
     services.poller.poll_once()
-    return jsonify(services.overview())
+    # The pollers keep their messages in English; a German page gets them in German.
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    return jsonify(i18n.translate_fields(services.overview(), lang))
 
 
 @bp.route('/api/services/sites/common', methods=['POST'])
