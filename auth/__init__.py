@@ -51,6 +51,9 @@ PUBLIC_READ_EXACT = ('/api/seats',)    # not /api/seats/info and the rest below 
 PUBLIC_JSON_MAX = 1024 * 1024
 MAX_FAILURES = 5                 # per address and username ...
 FAILURE_WINDOW = 300             # ... within this many seconds
+# Failures from one address across all usernames: each made-up name used to get its own five
+# tries, so one machine could keep the password hashing busy and slow every page for the crew.
+MAX_ADDRESS_FAILURES = 50
 MAX_FAILURE_KEYS = 10000         # address/username pairs remembered before stale ones are dropped
 
 
@@ -304,17 +307,22 @@ class Auth:
         from integrations import checkin
         return (checkin.client_ip() or '?', (username or '').strip().lower()[:200])
 
+    def _address_key(self):
+        return (self._failure_key('')[0], None)     # None: never a username
+
     def locked_for(self, username):
         now = time.time()
-        recent = [t for t in self._failures.get(self._failure_key(username), []) if now - t < FAILURE_WINDOW]
-        if len(recent) < MAX_FAILURES:
-            return 0
-        return int(FAILURE_WINDOW - (now - recent[0])) + 1
+        wait = 0
+        for key, most in ((self._failure_key(username), MAX_FAILURES), (self._address_key(), MAX_ADDRESS_FAILURES)):
+            recent = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW]
+            if len(recent) >= most:
+                wait = max(wait, int(FAILURE_WINDOW - (now - recent[-most])) + 1)
+        return wait
 
     def record_failure(self, username):
-        key = self._failure_key(username)
         now = time.time()
-        self._failures[key] = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW] + [now]
+        for key in (self._failure_key(username), self._address_key()):
+            self._failures[key] = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW] + [now]
         if len(self._failures) > MAX_FAILURE_KEYS:
             # Every made-up username is a new key: forget the stale ones so guessing can't fill memory.
             for stale in [k for k, v in self._failures.items() if now - v[-1] >= FAILURE_WINDOW]:

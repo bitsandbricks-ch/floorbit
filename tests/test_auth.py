@@ -163,8 +163,25 @@ def test_failed_sign_ins_dont_pile_up_forever(app_module, monkeypatch):
         for key in guard._failures:            # all of them long ago
             guard._failures[key] = [t - auth_pkg.FAILURE_WINDOW for t in guard._failures[key]]
         guard.record_failure("x" * 5000)
-        [(_, name)] = guard._failures
-        assert name == "x" * 200
+        # The new name, plus this address's own count across names (MAX_ADDRESS_FAILURES).
+        assert {name for _, name in guard._failures} == {"x" * 200, None}
+
+
+def test_one_address_trying_many_names_is_slowed_down_too(anon_client, app_module, user, monkeypatch):
+    # Each made-up name had its own five tries, so one machine could keep the password hashing busy:
+    # 48 threads of it took the crew's pages from 6 ms to 600 ms.
+    import auth as auth_pkg
+    monkeypatch.setattr(auth_pkg, "MAX_ADDRESS_FAILURES", 8)
+    guesser = {"environ_base": {"REMOTE_ADDR": "192.0.2.66"}}
+    for n in range(8):
+        assert anon_client.post("/login", data={"username": f"made-up-{n}", "password": "x"},
+                                **guesser).status_code == 401
+    assert anon_client.post("/login", data={"username": "another-one", "password": "x"},
+                            **guesser).status_code == 429
+    crew = app_module.app.test_client()
+    resp = crew.post("/login", data={"username": TEST_USER, "password": TEST_PASSWORD},
+                     environ_base={"REMOTE_ADDR": "192.0.2.7"})
+    assert resp.status_code == 302
 
 
 def test_password_change_signs_out_existing_sessions(client, auth):
