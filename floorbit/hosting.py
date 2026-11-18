@@ -55,7 +55,8 @@ def _listed():
 
 def tenants():
     """The platform's tenants, in the order they were added: ``[{id, name, url}]``. The default
-    tenant is always first, written down or not (an install from before tenants has no platform.json)."""
+    tenant is always first, written down or not: platform.json only appears with a second tenant,
+    so an install that never adds one (and every install from before tenants) needs no file at all."""
     out, seen = [], set()
     listed = _listed()
     if not any(isinstance(t, dict) and t.get('id') == store.DEFAULT_TENANT for t in listed):
@@ -73,23 +74,6 @@ def several():
     """Whether the platform has more than the default tenant: only then is there anything about
     tenants to show."""
     return len(tenants()) > 1
-
-
-def ensure_default():
-    """Write the default tenant into platform.json once, so the file says what the platform runs.
-    Floorbit runs the same without it (``tenants`` adds it), so a database that is away at start
-    only means it's written on a later start."""
-    from .database import DatabaseUnavailable
-    try:
-        with _lock:
-            listed = _listed()
-            if any(isinstance(t, dict) and t.get('id') == store.DEFAULT_TENANT for t in listed):
-                return False
-            store.write_json(path(), {'tenants': [_default(), *listed]})
-            return True
-    except (DatabaseUnavailable, OSError) as exc:
-        print(f'[tenants] Could not note the default tenant in {PLATFORM_FILE} yet: {exc}', flush=True)
-        return False
 
 
 def add(tenant_id, name='', url=''):

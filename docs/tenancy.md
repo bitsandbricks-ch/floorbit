@@ -128,8 +128,8 @@ flask --app app tenants add club-b --name "Club B" --url https://club-b.floor.ex
 flask --app app tenants list
 ```
 
-The list of tenants is `platform.json`, beside `tenants/`. Floorbit writes it with the default
-tenant on its first start; the default tenant is on the list even before that. `--admin` adds the tenant's first admin
+The list of tenants is `platform.json`, beside `tenants/`. The default tenant is always on it,
+first; the file itself appears when the second tenant is added. `--admin` adds the tenant's first admin
 account (the password is asked for); without it the new tenant opens on its first-run setup.
 
 ### People in several tenants

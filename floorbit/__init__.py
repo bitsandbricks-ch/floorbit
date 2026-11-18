@@ -59,13 +59,6 @@ def create_app(start_background=True):
         print(f"[store] Can't write {', '.join(stuck)}: saving will fail. In Docker, run "
               "`docker compose exec -u root floorbit chown -R floorbit: /app/state` (docs/install.md).")
 
-    # Every install is a platform with a default tenant, self-hosted ones too (docs/tenancy.md).
-    if where['ok'] and start_background:
-        from . import hosting
-        if hosting.ensure_default():
-            print(f"[tenants] This Floorbit serves the tenant {store.current_tenant()}; "
-                  "the platform's list starts with the default tenant.", flush=True)
-
     # Self-hosted: the agent next to this server gets its key from a shared file (docs/install.md).
     from . import agent_link
     try:

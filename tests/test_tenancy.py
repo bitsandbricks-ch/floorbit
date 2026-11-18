@@ -308,12 +308,10 @@ def _account(tenant, username, **identities):
 def test_every_platform_starts_with_the_default_tenant(state):
     from floorbit import hosting
     default = {"id": "default", "name": "", "url": ""}
-    assert hosting.tenants() == [default] and not hosting.several()   # an install from before tenants
-    assert hosting.ensure_default() is True
-    assert store.read_json(hosting.path(), {}) == {"tenants": [default]}
-    assert hosting.ensure_default() is False                          # once
+    assert hosting.tenants() == [default] and not hosting.several()   # no platform.json needed
     hosting.add("club-a")
     assert hosting.several()
+    assert store.read_json(hosting.path(), {})["tenants"][0] == default   # written down with the second
 
 
 def test_a_platform_admin_adds_tenants(state):
