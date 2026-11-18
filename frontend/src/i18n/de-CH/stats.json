@@ -73,7 +73,7 @@
       "avg_bps": "Durchschnittliche Bandbreite",
       "bytes_moved": "Übertragene Daten",
       "online_max": "Meiste Plätze online",
-      "incidents": "Incidents",
+      "incidents": "Störungen",
       "outages": "Switch-Ausfälle"
     }
   },

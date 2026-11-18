@@ -37,6 +37,9 @@ describe('Roles and teams page', () => {
     expect(within(helpdesk).getByRole('button', { name: 'Change' })).toBeInTheDocument()
     const tech = within(table).getByText('Tech').closest('tr')!
     expect(within(tech).queryByRole('button', { name: 'Change' })).toBeNull()
+    // Permissions by a short name, not their id (seats.view).
+    expect(within(helpdesk).getByText('View seats')).toBeInTheDocument()
+    expect(within(table).queryByText('seats.view')).toBeNull()
     expect(await screen.findByText('ana · Lead')).toBeInTheDocument()
     expect(screen.getByText('Nobody in this team yet.')).toBeInTheDocument()
   })

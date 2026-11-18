@@ -114,9 +114,11 @@ export default function Teams() {
                   <Table.Td>
                     <Group gap={4}>
                       {r.permissions.map((p) => (
-                        <Badge key={p} size="sm" variant="outline" color="gray" tt="none">
-                          {p}
-                        </Badge>
+                        <Tooltip key={p} label={t(`teams.permission.${p.replace('.', '_')}`, { defaultValue: p })}>
+                          <Badge size="sm" variant="outline" color="gray" tt="none">
+                            {t(`teams.permissionShort.${p.replace('.', '_')}`, { defaultValue: p })}
+                          </Badge>
+                        </Tooltip>
                       ))}
                     </Group>
                   </Table.Td>
