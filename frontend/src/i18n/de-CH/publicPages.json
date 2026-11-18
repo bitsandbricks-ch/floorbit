@@ -1,0 +1,5 @@
+{
+  "stale": "Keine Verbindung. Daten von {{time}}.",
+  "unreachable": "Floorbit ist gerade nicht erreichbar. Versuch es gleich nochmals.",
+  "retry": "Nochmals versuchen"
+}

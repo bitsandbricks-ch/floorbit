@@ -1,0 +1,15 @@
+{
+  "title": "Hallenübersicht",
+  "intro": "Welche Plätze gerade online sind.",
+  "online": "online",
+  "offline": "offline",
+  "count": "{{online}} von {{total}} Plätzen online",
+  "updated": "Stand {{time}}",
+  "unknown": "Der Netzwerkstatus ist gerade nicht verfügbar.",
+  "off": "Diese Seite ist ausgeschaltet.",
+  "empty": "Es gibt noch keinen Hallenplan.",
+  "map": "Hallenplan, Plätze online markiert",
+  "find": "Finde deinen Platz",
+  "halls": "Hallen",
+  "agenda": "Programm"
+}
