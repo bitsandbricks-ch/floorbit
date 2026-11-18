@@ -10,9 +10,11 @@
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from .plugins.agent import STATUSES, check_payload
@@ -245,6 +247,9 @@ def ask(spec, way, op, args=None, agent=None):
         raise PluginError(f'{spec.name} has no agent {way} {op}')
     names = {a['id']: a['name'] for a in agent_link.load_data().get(agent_link.KEY) or []}
     targets = [agent] if agent else sorted(agent_link.tunnel.connected_agents() & set(names))
+    if way == 'action' and not agent and len(targets) > 1:
+        from . import agent_ha
+        targets = agent_ha.action_targets(targets)   # one per hall: its primary
     if not targets:
         raise PluginError('No local agent is connected.')
     timeout = CALL_TIMEOUT if way == 'call' else ACTION_TIMEOUT
@@ -261,15 +266,57 @@ def ask(spec, way, op, args=None, agent=None):
         return list(pool.map(one, targets))
 
 
+_reload_lock = threading.Lock()
+_reload_wanted = threading.Event()
+_reload_running = False
+RELOAD_TIMEOUT = 5
+
+
 def reload_agents():
     """Tell the connected agents the plugin config changed (settings saved, a plugin turned on or
-    off), so they don't wait for their next minute. Never fails: they pull it anyway."""
+    off), so they don't wait for their next minute. Never fails: they pull it anyway.
+
+    Returns at once: the save that called it used to wait up to 5 s for every connected agent in
+    turn, so one agent on a slow link made every inventory or settings save hang. Saves that
+    come in while a reload runs are folded into one more round.
+    """
+    global _reload_running
+    _reload_wanted.set()
+    with _reload_lock:
+        if _reload_running:
+            return
+        _reload_running = True
+    threading.Thread(target=_reload_loop, daemon=True, name='agent-plugins-reload').start()
+
+
+def _reload_loop():
+    global _reload_running
+    try:
+        while True:
+            with _reload_lock:
+                if not _reload_wanted.is_set():
+                    _reload_running = False
+                    return
+                _reload_wanted.clear()
+            reload_agents_now()
+    except BaseException:
+        with _reload_lock:
+            _reload_running = False
+        raise
+
+
+def reload_agents_now():
+    """``reload_agents``, waiting for the answers: all agents at once, up to RELOAD_TIMEOUT each."""
     from . import agent_link
-    for agent_id in sorted(agent_link.tunnel.connected_agents()):
-        try:
-            agent_link.tunnel.call('plugins_reload', [], 5, {agent_id})
-        except (agent_link.AgentUnavailable, agent_link.AgentError):
-            continue
+    agents = sorted(agent_link.tunnel.connected_agents())
+
+    def one(agent_id):
+        with contextlib.suppress(agent_link.AgentUnavailable, agent_link.AgentError):
+            agent_link.tunnel.call('plugins_reload', [], RELOAD_TIMEOUT, {agent_id})
+
+    if agents:
+        with ThreadPoolExecutor(min(len(agents), 8)) as pool:
+            list(pool.map(one, agents))
 
 
 def _number(v):

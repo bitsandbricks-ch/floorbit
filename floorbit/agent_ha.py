@@ -87,3 +87,21 @@ def standby_with_primary(agent_id, now):
             if flows and now - flows['at'] < FLOWS_FRESH:
                 return True
     return False
+
+
+def action_targets(agent_ids, now=None):
+    """Which of ``agent_ids`` (connected agents) a plugin action that changes something in the hall
+    goes to: one per group, its primary. Two agents of one hall sharing the work must not both
+    clear the cache or bounce the port. A group without a single primary (no VRRP: each agent is
+    its own primary; or a split) keeps every member, as before."""
+    import time
+
+    from . import agent_link
+    wanted = set(agent_ids)
+    agents = [a for a in agent_link.all_agents(now=now or time.time()) if a['id'] in wanted]
+    out = set(wanted - {a['id'] for a in agents})      # not in the list: nothing to judge by
+    for group in groups([{**a, 'connected': True} for a in agents]):
+        members = [m['id'] for m in group['agents']]
+        out |= {group['primary']} if group['primary'] and group['state'] in ('ok', 'degraded') else set(members)
+    return sorted(out)
+

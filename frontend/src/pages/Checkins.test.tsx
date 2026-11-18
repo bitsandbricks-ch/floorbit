@@ -25,6 +25,28 @@ const data: CheckinOverview = {
 }
 
 describe('Checkins', () => {
+  it('says check-in is off and links admins to its settings instead of an error', async () => {
+    const admin = { enabled: true, user: { username: 'ada', display_name: 'Ada', role: 'admin', permissions: ['floorplan.view', 'settings.manage'] } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/checkins/overview': () => ({ status: 404, body: { error: 'Check-in is disabled' } }),
+    }).fn)
+    renderWithApp(<Checkins />, '/checkins')
+    expect(await screen.findByText('Check-in is off')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Check-in settings' })).toHaveAttribute('href', '/settings/checkin')
+    expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument()
+  })
+
+  it('tells others to ask an admin when check-in is off', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: true, user: { username: 'tess', display_name: 'Tess', role: 'tech', permissions: ['floorplan.view'] } },
+      'GET /api/checkins/overview': () => ({ status: 404, body: { error: 'Check-in is disabled' } }),
+    }).fn)
+    renderWithApp(<Checkins />, '/checkins')
+    expect(await screen.findByText(/An admin can turn on seat check-in/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Check-in settings' })).not.toBeInTheDocument()
+  })
+
   it('counts the states, lists every check-in and filters by state', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/checkins/overview': data }).fn)
     renderWithApp(<Checkins />, '/checkins')

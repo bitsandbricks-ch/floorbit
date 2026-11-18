@@ -14,6 +14,7 @@ import contextlib
 import itertools
 import json
 import queue
+import signal
 import threading
 import time
 
@@ -26,6 +27,8 @@ _ids = itertools.count(1)
 
 CLIENT_QUEUE_SIZE = 200
 KEEPALIVE_SECONDS = 15
+_CLOSE = object()          # put in a client queue: end that stream
+_closing = threading.Event()
 
 
 def subscribe(event_type, callback, leader_only=False):
@@ -81,6 +84,42 @@ def deliver_local(event):
             q.put_nowait(event)
 
 
+def close_all():
+    """End every open stream. The browsers reconnect after ``retry`` (to the next pod, in an update).
+
+    Without it an open tab kept its request running, so a stopping worker waited out gunicorn's whole
+    graceful timeout (30 s) on every restart and was then killed.
+    """
+    _closing.set()
+    with _lock:
+        clients = list(_clients)
+    for q in clients:
+        # Wakes a stream waiting on an empty queue; one with a full queue sees _closing next round.
+        with contextlib.suppress(queue.Full):
+            q.put_nowait(_CLOSE)
+
+
+def close_streams_on_sigterm():
+    """Run ``close_all`` before the server's own SIGTERM handler (gunicorn's worker sets one).
+
+    Only from the main thread, and only on top of a handler that is a function: with no server
+    handler (tests, ``flask run``) SIGTERM keeps its default.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        return False
+    previous = signal.getsignal(signal.SIGTERM)
+    if not callable(previous) or getattr(previous, 'closes_streams', False):
+        return False
+
+    def on_sigterm(signum, frame):
+        close_all()
+        previous(signum, frame)
+
+    on_sigterm.closes_streams = True
+    signal.signal(signal.SIGTERM, on_sigterm)
+    return True
+
+
 def client_count():
     with _lock:
         return len(_clients)
@@ -113,12 +152,14 @@ def stream(hello=None, private=True):
         yield 'retry: 5000\n\n'
         yield _format({'id': 0, 'type': 'hello', 'ts': time.time(), 'origin': None,
                        'data': hello or {}})
-        while True:
+        while not _closing.is_set():
             try:
                 event = q.get(timeout=KEEPALIVE_SECONDS)
             except queue.Empty:
                 yield ': keepalive\n\n'
                 continue
+            if event is _CLOSE:
+                return
             yield _format(event if private else {**event, 'data': scrub(event.get('data'))})
     finally:
         with _lock:

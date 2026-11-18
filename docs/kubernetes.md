@@ -79,7 +79,9 @@ With `FLOORBIT_CLUSTER=redis` the pods share three things through Redis:
 
 - **Live updates.** A change made on one pod shows up in the browsers connected to the others.
 - **Agent calls.** A [local agent](agent.md) holds its link to one pod. The other pods send its
-  calls there and get the answers back, so it doesn't matter which pod a browser reaches.
+  calls there and get the answers back, so it doesn't matter which pod a browser reaches. Calls
+  and answers cross Redis sealed with the vault key every pod shares (a switch call carries its
+  login), so the pods need the same `FLOORBIT_SECRET_KEY_FILE`.
 - **One leader.** Every pod polls the switches and runs its checks, so every page is current on
   every pod. Only the pod holding the leader lease sends what those checks find: Discord alerts,
   webhooks, the event timeline, plugin hooks, replay frames and the nightly config backup. When it

@@ -115,10 +115,8 @@ def update_plugin(plugin_id):
     spec = _registry().specs[plugin_id]
     if spec.agent:
         # The agents pull it within a minute anyway; this only saves the wait.
-        import threading
-
         from .. import agent_plugins
-        threading.Thread(target=agent_plugins.reload_agents, daemon=True, name='agent-plugins-reload').start()
+        agent_plugins.reload_agents()
     return jsonify({'plugins': _registry().as_list(), 'name': spec.name})
 
 
@@ -127,9 +125,14 @@ def test_plugin(plugin_id):
     spec = _registry().active(plugin_id)
     if spec is None:
         return _error('Turn the plugin on first', 404)
+    from .. import agent_link
     try:
-        message = _registry().call(spec, 'test')
-    except PluginError as exc:
+        if _registry().reaches_lan(spec) and not agent_link.may_call_here(spec):
+            # It runs on the agent, so that is where its test has to run: this server can't reach it.
+            message = agent_link.tunnel.call('plugin_test', [spec.id], timeout=20)
+        else:
+            message = _registry().call(spec, 'test')
+    except (PluginError, agent_link.AgentError, agent_link.AgentUnavailable) as exc:
         return jsonify({'ok': False, 'message': str(exc)})
     return jsonify({'ok': True, 'message': str(message or 'OK')[:500]})
 
@@ -217,7 +220,7 @@ def endpoint(plugin_id, endpoint_id):
         return refused
     args = {k: v[:200] for k, v in list(request.args.items())[:20]}
     try:
-        return jsonify(_registry().call(spec, f'endpoint_{endpoint_id}', args))
+        return jsonify(_registry().timed(spec, f'endpoint_{endpoint_id}', args))
     except PluginError as exc:
         return _error(str(exc), 502)
     except TypeError:

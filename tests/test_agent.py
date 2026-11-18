@@ -295,3 +295,135 @@ def test_calls_an_agent_could_not_deliver_go_back():
     assert agent_link.tunnel.answer(again[0]["id"], True, ["sw-1"], agent="a2")
     caller.join(5)
     assert got["r"] == ["sw-1"]
+
+
+def test_a_dropped_link_ends_the_wait_at_once(client, live_server):
+    """A killed agent (or a cut line) must not hold every page for CALL_TIMEOUT until CONNECTED_FOR
+    runs out: once its link closes, it counts as gone and its calls fail straight away."""
+    import json
+
+    made = enrol(client)
+    ws = link_to(live_server, made["key"])
+    assert json.loads(ws.receive(timeout=5))["type"] == "hello"
+    got = {}
+
+    def ask():
+        try:
+            agent_link.tunnel.call("devices", timeout=30)
+        except agent_link.AgentUnavailable as exc:
+            got["error"] = str(exc)
+    asker = threading.Thread(target=ask)
+    asker.start()
+    assert json.loads(ws.receive(timeout=5))["type"] == "calls"     # taken, then the agent dies
+    started = time.time()
+    import socket
+    ws.sock.shutdown(socket.SHUT_RDWR)                                # no close frame, like kill -9
+    ws.sock.close()
+    asker.join(10)
+    assert "went away" in got["error"] and time.time() - started < 5     # not CALL_TIMEOUT per page
+    deadline = time.time() + 3
+    while agent_link.tunnel.connected(agent=made["id"]) and time.time() < deadline:
+        time.sleep(0.05)
+    assert not agent_link.tunnel.connected(agent=made["id"])
+    started = time.time()
+    with pytest.raises(agent_link.AgentUnavailable):
+        agent_link.tunnel.call("devices", timeout=30)
+    assert time.time() - started < 1
+
+
+def test_a_second_link_keeps_the_agent_when_the_first_drops():
+    tunnel = agent_link.Tunnel()
+    tunnel.linked("a1")
+    tunnel.seen(agent="a1")
+    tunnel.linked("a1")                  # it reconnected before the old link noticed
+    assert tunnel.unlinked("a1") is False and tunnel.connected(agent="a1")
+    assert tunnel.unlinked("a1") is True and not tunnel.connected(agent="a1")
+
+
+def test_a_frozen_agent_is_given_up_within_seconds(client, live_server):
+    """A cut line or a frozen agent sends no close. Holding a call without a word, it is asked;
+    no answer, and the link is closed, so pages stop waiting on it."""
+    import json
+
+    made = enrol(client)
+    ws = link_to(live_server, made["key"])
+    assert json.loads(ws.receive(timeout=5))["type"] == "hello"
+    got = {}
+
+    def ask():
+        try:
+            agent_link.tunnel.call("devices", timeout=60)
+        except agent_link.AgentUnavailable as exc:
+            got["error"] = str(exc)
+    started = time.time()
+    asker = threading.Thread(target=ask)
+    asker.start()
+    assert json.loads(ws.receive(timeout=5))["type"] == "calls"     # and then nothing, ever
+    asker.join(20)
+    assert "went away" in got["error"] and time.time() - started < 15
+    assert not agent_link.tunnel.connected(agent=made["id"])
+    with contextlib.suppress(Exception):
+        ws.close()
+
+
+def test_a_slow_answer_on_a_live_link_is_waited_for(client, live_server):
+    import json
+
+    made = enrol(client)
+    ws = link_to(live_server, made["key"])
+    assert json.loads(ws.receive(timeout=5))["type"] == "hello"
+    got = {}
+    asker = threading.Thread(target=lambda: got.update(r=agent_link.tunnel.call("devices", timeout=30)))
+    asker.start()
+    call_id = json.loads(ws.receive(timeout=5))["calls"][0]["id"]
+    deadline = time.time() + 12               # a 12 s call: the agent answers the probe meanwhile
+    while time.time() < deadline:
+        try:
+            message = json.loads(ws.receive(timeout=0.5) or "null")
+        except Exception:  # noqa: BLE001
+            message = None
+        if message and message.get("type") == "ping":
+            ws.send(json.dumps({"type": "ping"}))
+    ws.send(json.dumps({"type": "answers", "answers": [{"id": call_id, "ok": True, "result": ["sw-1"]}]}))
+    asker.join(5)
+    assert got["r"] == ["sw-1"]
+    ws.close()
+
+
+def test_a_long_poll_agent_that_stopped_asking_is_given_up(client, anon_client, monkeypatch):
+    """The HTTPS long poll has no link to close: an agent that died between two polls is noticed
+    because nobody takes its calls, and the calls after that fail at once."""
+    monkeypatch.setattr(agent_link, "TAKE_GRACE", 0.5)
+    monkeypatch.setattr(agent_link, "ASKED_RECENTLY", 1)
+    made = enrol(client)
+    assert anon_client.get("/api/agent/v1/calls?wait=0", headers=head(made["key"])).status_code == 200
+    time.sleep(1.2)                                   # it never asks again
+    started = time.time()
+    with pytest.raises(agent_link.AgentUnavailable, match="not connected"):
+        agent_link.tunnel.call("devices", timeout=8)
+    assert time.time() - started < 2
+    started = time.time()
+    with pytest.raises(agent_link.AgentUnavailable):
+        agent_link.tunnel.call("devices", timeout=8)
+    assert time.time() - started < 0.2
+    # Back with its next poll.
+    assert anon_client.get("/api/agent/v1/calls?wait=0", headers=head(made["key"])).status_code == 200
+    assert agent_link.tunnel.connected(agent=made["id"])
+
+
+def test_an_agent_busy_between_polls_is_waited_for(client, anon_client, monkeypatch):
+    monkeypatch.setattr(agent_link, "TAKE_GRACE", 0.3)
+    made = enrol(client)
+    anon_client.get("/api/agent/v1/calls?wait=0", headers=head(made["key"]))    # asked just now
+    got = {}
+
+    def agent():
+        time.sleep(0.8)                               # posting a big answer, then polls again
+        calls = anon_client.get("/api/agent/v1/calls?wait=2", headers=head(made["key"])).get_json()["calls"]
+        anon_client.post("/api/agent/v1/answers", headers=head(made["key"]),
+                         json={"answers": [{"id": calls[0]["id"], "ok": True, "result": ["sw-1"]}]})
+    t = threading.Thread(target=agent)
+    t.start()
+    got["r"] = agent_link.tunnel.call("devices", timeout=8)
+    t.join(5)
+    assert got["r"] == ["sw-1"]

@@ -112,6 +112,7 @@ nav:
       - Past events: events.md
   - Extend:
       - Plugins: plugins.md
+      - What a plugin can ship: plugin-spec.md
       - Marketplace: marketplace.md
       - Integrations: integrations.md
       - Local agent (hosted): agent.md
