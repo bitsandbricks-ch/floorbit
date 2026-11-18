@@ -189,7 +189,7 @@ def test_a_udp_burst_is_read_by_one_thread_and_tcp_senders_are_capped(tmp_path, 
             extra = socket.create_connection(("127.0.0.1", port))
             extra.settimeout(2)
             assert extra.recv(1) == b""                            # the third sender is closed
-            for c in held + [extra]:
+            for c in [*held, extra]:
                 c.close()
     finally:
         r.stop()
