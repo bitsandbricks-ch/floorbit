@@ -25,7 +25,7 @@
   "copyTo": "Into",
   "copyToNew": "A new event",
   "copyParts": "What to copy",
-  "copyNever": "Check-ins, incidents, handover, logs and history are never copied. Dashboards, runbooks and settings are shared by every event anyway.",
+  "copyNever": "Check-ins, incidents, handover, logs and history are never copied. Dashboards and settings are shared by every event anyway.",
   "part": {
     "halls": "Halls and their pictures",
     "seats": "Seat blocks and seats",

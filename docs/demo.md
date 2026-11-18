@@ -89,7 +89,6 @@ only added while its page has nothing yet:
   the check-ins taught Floorbit most seats' ports (two are still unknown), and one PIN card was swapped,
   so the review tab has a port clash to look at. Two players moved seats during the night.
 - **Status page:** two updates and a planned maintenance, with the public status page turned on.
-- **Runbooks:** the starters plus one of the event's own.
 - **Dashboards:** a "NOC wall" and an "Ops desk" layout.
 - **Schedule:** the event from yesterday to tonight, with talks, meals, a tournament and quiet hours,
   shown on the public schedule.
@@ -98,7 +97,7 @@ Check-in is turned on as well, unless a setting already says otherwise.
 
 ## Language
 
-Hall names, plan labels, incidents, status updates, the runbook and the schedule are written in English.
+Hall names, plan labels, incidents, status updates and the schedule are written in English.
 Set `FLOORBIT_DEMO_LANGUAGE=de` before the demo is laid out to get them in Swiss German. What the demo
 reports live (health tiles, findings) follows each viewer's language anyway.
 

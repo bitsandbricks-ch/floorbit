@@ -5,7 +5,8 @@
   looking into an incident after the fact.
 - ``hourly.jsonl``: one line per hour with the hall, area and service totals (services only when
   enough seats used them, see aggregate.py). No seats, no addresses: kept until deleted by hand.
-- Redis ``floorbit:flows``: the collector's latest summary, which the app shows.
+- The event's ``flows-summary.json`` document in Floorbit's database: the latest summary the agent
+  sent, which the Traffic page shows (every worker and pod reads the same one).
 """
 import calendar
 import contextlib
@@ -16,10 +17,8 @@ import time
 
 from integrations import config
 
-from .. import cache
-
-REDIS_KEY = 'floorbit:flows'
-SNAPSHOT_TTL = 300   # a summary older than this means the collector stopped
+SUMMARY_FILE = 'flows-summary.json'
+SNAPSHOT_TTL = 300   # a summary older than this means the agent stopped sending
 
 
 def flows_dir():
@@ -96,34 +95,25 @@ class RawStore:
                 f.write(json.dumps({'hour': start, **hour}, separators=(',', ':')) + '\n')
 
 
-# A local agent's summary when there is no Redis: one process, so memory will do (issue #2).
-_local = {'at': 0, 'snapshot': None}
-
-
-def publish(snapshot, keep_locally=False):
-    if not keep_locally:
-        cache.connect()   # the collector has no requests to (re)connect it: Redis may start after it
-    client = cache.get_redis_client()
-    if client:
-        try:
-            client.setex(REDIS_KEY, SNAPSHOT_TTL, json.dumps(snapshot, separators=(',', ':')))
-            return True
-        except Exception as exc:  # noqa: BLE001  # a Redis gone for a moment must not stop the collector
-            print(f'[flows] could not hand the summary to Redis: {exc}')
-    if keep_locally:
-        _local.update(at=time.time(), snapshot=snapshot)
+def publish(snapshot):
+    """Keep the agent's latest summary. False when the database could not take it."""
+    from .. import database, store
+    try:
+        store.write_json(store.event_path(SUMMARY_FILE), {'at': time.time(), 'snapshot': snapshot})
         return True
-    return False
+    except (OSError, database.DatabaseError) as exc:   # the next summary comes in 10 seconds
+        print(f'[flows] could not keep the traffic summary: {exc}')
+        return False
 
 
 def latest():
-    client = cache.get_redis_client()
-    if not client:
-        fresh = _local['snapshot'] is not None and 0 <= time.time() - _local['at'] < SNAPSHOT_TTL
-        return _local['snapshot'] if fresh else None
+    """The latest summary, or None when there is none from the last 5 minutes."""
+    from .. import database, store
     try:
-        raw = client.get(REDIS_KEY)
-        return json.loads(raw) if raw else None
-    except Exception as exc:  # noqa: BLE001  # a broken summary reads as no collector
-        print(f'[flows] could not read the collector summary: {exc}')
+        saved = store.read_json(store.event_path(SUMMARY_FILE), {})
+    except (OSError, ValueError, database.DatabaseError) as exc:   # reads as no collector
+        print(f'[flows] could not read the traffic summary: {exc}')
         return None
+    at, snap = (saved.get('at'), saved.get('snapshot')) if isinstance(saved, dict) else (None, None)
+    fresh = isinstance(at, (int, float)) and 0 <= time.time() - at < SNAPSHOT_TTL
+    return snap if fresh and isinstance(snap, dict) else None

@@ -142,6 +142,32 @@ def test_counters_wait_for_their_counts_instead_of_overwriting_them(db, tmp_path
     assert stats.ready() is True and stats.hours[3600]["lookups"] == 7
 
 
+def test_the_traffic_summary_waits_for_the_database(db):
+    from floorbit.flows import store as flows
+    assert flows.publish({"updated": 1}) is True and flows.latest() == {"updated": 1}
+    cut(db)
+    assert flows.publish({"updated": 2}) is False        # refused, logged, the next one comes soon
+    assert flows.latest() == {"updated": 1}               # the last copy read
+    restore(db)
+    assert flows.publish({"updated": 3}) is True and flows.latest() == {"updated": 3}
+
+
+def test_the_stats_survive_a_restart_and_wait_while_the_database_is_away(db):
+    from floorbit.stats import Stats
+    dev = {"id": "s1", "name": "sw-a-01"}
+    port = {"name": "Gi1/0/1", "state": "up", "download_bps": 900, "upload_bps": 100}
+    Stats().record([(dev, port, "A-1")], ["sw-a-01"], now=1000)
+    after_restart = Stats()
+    assert after_restart.snapshot(now=1000)["peak"] == {"bps": 1000, "at": 1000}
+    db._docs.clear()                          # as after a restart: nothing read yet
+    cut(db)
+    blind = Stats()
+    blind.record([(dev, dict(port, download_bps=0, upload_bps=0), "A-1")], ["sw-a-01"], now=1100)
+    blind.reset_peak()                        # nothing written over the stored day
+    restore(db)
+    assert Stats().snapshot(now=1100)["peak"] == {"bps": 1000, "at": 1000}
+
+
 # ── the app ──────────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture

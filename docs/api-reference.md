@@ -823,20 +823,6 @@ Source: [`floorbit/blueprints/report.py`](https://github.com/bitsandbricks-ch/fl
 | GET | `/api/report.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `report` |
 | POST | `/api/report/new-event` | `settings.manage` | `report` |
 
-## floorbit.blueprints.runbooks
-
-Runbooks (issue #102). The rules live in floorbit/runbooks.py.
-
-Source: [`floorbit/blueprints/runbooks.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/runbooks.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/runbooks` | `incidents.work` | `runbooks` |
-| POST | `/api/runbooks` | `incidents.assign` | `runbooks` |
-| DELETE | `/api/runbooks/<book_id>` | `incidents.assign` | `runbooks` |
-| PATCH | `/api/runbooks/<book_id>` | `incidents.assign` | `runbooks` |
-| POST | `/api/runbooks/<book_id>/move` | `incidents.assign` | `runbooks` |
-
 ## floorbit.blueprints.s3_backup
 
 Backups in an S3 bucket (Settings > Backup and restore). See floorbit/s3_backup.py, docs/backup.md.

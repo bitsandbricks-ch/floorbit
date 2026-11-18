@@ -240,7 +240,7 @@ def _seed_game_servers(layout):
             print(f"[demo] could not add {server['name']}: {exc}")
 
 
-# ── The event so far: crew, incidents, check-ins, status page, runbook, dashboards, schedule ──────
+# ── The event so far: crew, incidents, check-ins, status page, dashboards, schedule ──────
 CREW = (('alex', 'Alex', 'tech', 'access'), ('sam', 'Sam', 'tech', 'operations'),
         ('robin', 'Robin', 'lead', 'electrics'))
 
@@ -252,7 +252,7 @@ def _seed_event(now=None):
     now = time.time() if now is None else now
     from ..builtin_plugins.demo.texts import text
     words = text()
-    for part in (_seed_crew, _seed_incidents, _seed_checkins, _seed_status, _seed_runbook, _seed_dashboards,
+    for part in (_seed_crew, _seed_incidents, _seed_checkins, _seed_status, _seed_dashboards,
                  _seed_schedule, _seed_settings):
         try:
             part(words, now)
@@ -364,15 +364,6 @@ def _backdate(key, part, item_id, at):
             if item.get('id') == item_id:
                 item['at'] = at
         save_data(data)
-
-
-def _seed_runbook(words, _now):
-    """The starters plus one of the event's own, as a crew would write it."""
-    from .. import runbooks
-    if isinstance(load_data().get(runbooks.KEY), list):
-        return
-    title, kinds, body = words['runbook']
-    runbooks.add({'title': title, 'kinds': kinds, 'body': body}, 'demo')
 
 
 def _seed_dashboards(words, _now):

@@ -1,11 +1,10 @@
-"""The flow collector: a UDP listener for NetFlow v5/v9 and IPFIX.
+"""The flow collector: NetFlow v5/v9 and IPFIX, counted on the local agent.
 
-Run as ``python -m floorbit.flows`` (the ``flows`` service in docker-compose.yml). It reads the
-same state volume as the app for the seat addresses, keeps raw flows for ``FLOWS_RETENTION_DAYS``
-and publishes a summary to Redis every few seconds.
+The agent (floorbit_agent/flows_relay.py) feeds it the packets it receives on
+``FLOORBIT_AGENT_FLOWS_PORT``, gives it the seat addresses and sends the summary it makes every
+few seconds to Floorbit. The raw flows stay on the agent for ``FLOWS_RETENTION_DAYS``.
 """
 import ipaddress
-import socket
 import threading
 import time
 
@@ -38,7 +37,7 @@ class Collector:
         self._lock = threading.Lock()   # receive() and housekeeping() may run in two threads
         self.raw_skipped = 0
         self._on = True
-        self.publish = store.publish   # the local agent sends the summary to the hosted Floorbit instead
+        self.publish = lambda snap: False   # the agent sets where the summary goes
 
     def _due(self, name, now, every):
         """Time for this chore again? Also when the clock was set back past its schedule, else
@@ -141,31 +140,3 @@ class Collector:
             snap['refused'] = self.refused
             snap['raw_skipped'] = self.raw_skipped
             self.publish(snap)
-
-    def serve(self, host='0.0.0.0', port=2055):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind((host, port))
-        sock.settimeout(1.0)
-        self.log(f'[flows] listening for NetFlow and IPFIX on udp/{port}')
-        while True:
-            try:
-                data, (addr, _p) = sock.recvfrom(65535)
-                if self.enabled():   # switched off: packets are read and dropped, nothing is kept
-                    self.receive(data, addr)
-            except TimeoutError:
-                pass
-            self.housekeeping()
-
-
-def main():
-    from .. import agent_link, cache, create_app
-    if not agent_link.lan_here():
-        print('[flows] Flows come in through the local agent (FLOORBIT_AGENT_FLOWS_PORT on the agent); '
-              'this server does not listen itself (docs/flows.md).', flush=True)
-        raise SystemExit(2)
-    app = create_app(start_background=False)
-    with app.app_context():
-        cache.connect()
-        if not cache.get_redis_client():
-            print('[flows] needs Redis (REDIS_HOST) to hand the numbers to Floorbit')
-        Collector().serve(port=config.get_int('FLOWS_PORT', 2055, minimum=1))

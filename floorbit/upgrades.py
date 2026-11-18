@@ -183,6 +183,14 @@ def _no_brackets(data):
         data['app_settings'].pop('public.brackets', None)
 
 
+def _no_runbooks(data):
+    """Runbooks were removed (fix guides live with the crew's own notes): their data and their
+    feature switch go."""
+    data.pop('runbooks', None)
+    if isinstance(data.get('features'), dict):
+        data['features'].pop('runbooks', None)
+
+
 def _no_seat_finder(data):
     """The "find your seat" page was removed: its saved switches go."""
     if isinstance(data.get('app_settings'), dict):
@@ -191,7 +199,7 @@ def _no_seat_finder(data):
 
 
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
-         _no_seat_finder)
+         _no_runbooks, _no_seat_finder)
 CURRENT = len(STEPS)
 
 

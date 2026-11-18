@@ -43,7 +43,7 @@ live and kept in the tenant's folder.
   agent and live monitoring serve it. With none or several, the first live one (or the first event)
   wins.
 
-Data in `data.json` that belongs to the tenant (accounts, settings, agents, dashboards, runbooks;
+Data in `data.json` that belongs to the tenant (accounts, settings, agents, dashboards;
 `store.TENANT_KEYS`) stays in the tenant's `data.json`. A later event's `data.json` holds only the
 event's parts, and Floorbit reads and saves the two together.
 
@@ -99,7 +99,7 @@ database (`FLOORBIT_DATABASE_URL`, Postgres) and one Redis, and keep apart by na
 | --- | --- | --- |
 | Tenant documents | `data.json`, `tenant.json`, ... | `tenants/tenant-a/data.json`, `tenants/tenant-a/tenant.json`, ... |
 | Event documents | `event-data/<id>/...` | `tenants/tenant-a/event-data/<id>/...` |
-| Redis keys and channels | `default:arp:...`, `default:floorbit:stats` | `tenant-a:arp:...`, `tenant-a:floorbit:stats` |
+| Redis keys and channels | `default:arp:...`, `default:floorbit:events` | `tenant-a:arp:...`, `tenant-a:floorbit:events` |
 
 The default tenant's folder is the state folder itself, so the other tenants' folders sit inside
 it. Its code never reaches into them: document listings read one folder level, and every document

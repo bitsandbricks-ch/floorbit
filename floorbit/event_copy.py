@@ -1,8 +1,8 @@
 """Copying one event's floor plan into a new or an existing event (issue #466, docs/tenancy.md).
 
 Only what is planned is copied, in parts the crew picks. What happened at an event (check-ins,
-incidents, handover, logs, history) never is. Tenant-wide parts (accounts, settings, dashboards,
-runbooks) aren't either: every event already shares them.
+incidents, handover, logs, history) never is. Tenant-wide parts (accounts, settings, dashboards)
+aren't either: every event already shares them.
 
 Into an existing event, each part is either replaced or merged: lists of things with an ``id``
 are joined by id (the copied one wins), other values are taken from the source when the target has

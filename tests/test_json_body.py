@@ -6,7 +6,7 @@ import json
 import pytest
 
 WRITES = [("post", "/api/cables"), ("post", "/api/halls"), ("post", "/api/teams"), ("put", "/api/notice"),
-          ("post", "/api/runbooks"), ("post", "/api/seat-blocks"), ("post", "/api/users")]
+          ("post", "/api/seat-blocks"), ("post", "/api/users")]
 
 
 @pytest.mark.parametrize("body", ["x", 5, True, [1], [{"a": 1}]])

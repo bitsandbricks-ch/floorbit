@@ -25,7 +25,7 @@
   "copyTo": "Nach",
   "copyToNew": "Ein neues Event",
   "copyParts": "Was kopiert wird",
-  "copyNever": "Check-ins, Störungen, Übergaben, Logs und Verlauf werden nie kopiert. Dashboards, Runbooks und Einstellungen teilen sich alle Events sowieso.",
+  "copyNever": "Check-ins, Störungen, Übergaben, Logs und Verlauf werden nie kopiert. Dashboards und Einstellungen teilen sich alle Events sowieso.",
   "part": {
     "halls": "Hallen und ihre Bilder",
     "seats": "Sitzblöcke und Plätze",

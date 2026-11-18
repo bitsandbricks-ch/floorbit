@@ -66,12 +66,11 @@ def test_there_is_no_switch_for_direct_access(client, monkeypatch):
     assert sources.monitoring().name == "agent"
 
 
-def test_the_flows_collector_does_not_listen_on_the_server(monkeypatch):
+def test_the_server_has_no_flows_collector_of_its_own():
+    import importlib.util
+
     from floorbit.flows import collector
-    monkeypatch.delenv("FLOORBIT_AGENT_KEY", raising=False)
-    with pytest.raises(SystemExit) as stop:
-        collector.main()
-    assert stop.value.code == 2
+    assert not hasattr(collector, "main") and importlib.util.find_spec("floorbit.flows.__main__") is None
 
 
 def test_the_test_button_of_a_lan_plugin_runs_on_the_agent(client, registry, monkeypatch):
