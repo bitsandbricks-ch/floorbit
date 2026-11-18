@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,18 +29,16 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
     <Paper withBorder radius="lg" p="md">
       <Title order={2} size="h4" mb="xs">{t('tenants.new')}</Title>
       <Stack gap="sm">
-        <Group grow align="flex-start" wrap="wrap">
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <TextInput label={t('tenants.id')} description={t('tenants.idHelp')} value={id} maxLength={40} required
             onChange={(e) => setId(e.currentTarget.value.toLowerCase())} />
           <TextInput label={t('tenants.name')} description={t('tenants.nameHelp')} value={name} maxLength={80}
             onChange={(e) => setName(e.currentTarget.value)} />
-        </Group>
-        <Group grow align="flex-start" wrap="wrap">
           <TextInput label={t('tenants.url')} description={t('tenants.urlHelp')} value={url} placeholder="https://club.example.com"
             onChange={(e) => setUrl(e.currentTarget.value)} />
           <TextInput label={t('tenants.admin')} description={t('tenants.adminHelp')} value={admin} maxLength={40}
             onChange={(e) => setAdmin(e.currentTarget.value)} />
-        </Group>
+        </SimpleGrid>
         {make.error && <Alert color="down" role="alert">{make.error.message}</Alert>}
         <Group justify="flex-end">
           <Button loading={make.isPending} disabled={!id.trim()} onClick={() => make.mutate()}>{t('tenants.add')}</Button>
