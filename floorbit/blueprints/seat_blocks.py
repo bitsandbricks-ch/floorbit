@@ -20,6 +20,8 @@ KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_
         'group', 'z')
 MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
 MAX_MANY = 30       # blocks in one "add several"
+# (field, smallest, default): the same bounds as the CSV import and layout templates.
+SIZES = (('seat_width', 0.1, 3), ('seat_height', 0.1, 3), ('spacing_x', 0, 0.5), ('spacing_y', 0, 1))
 
 
 class BlockError(ValueError):
@@ -59,6 +61,17 @@ def _clean(block):
     """Checks and tidies the naming fields in place; raises BlockError (ValueError for a position
     that isn't a number on the plan)."""
     block['x'], block['y'] = on_plan(block['x']), on_plan(block['y'])
+    block['name'] = str(block.get('name') or '')
+    # Every page draws with these: one that isn't a number would break the plan for everybody.
+    for key, low, default in SIZES:
+        n = float(block.get(key, default))
+        if not low <= n <= 50:      # also false for NaN
+            raise BlockError(f'{key} is a number from {low} to 50')
+        block[key] = n
+    try:
+        block['rotation'] = int(block.get('rotation') or 0)
+    except (OverflowError, TypeError, ValueError):
+        raise BlockError('rotation is a whole number of degrees') from None
     for side in ('cols', 'rows'):
         if not 1 <= int(block[side]) <= MAX_SIDE:
             raise BlockError(f'A block has 1 to {MAX_SIDE} rows and columns')
@@ -96,6 +109,12 @@ def _clean(block):
     except stacking.StackError as exc:
         raise BlockError(str(exc)) from None
     return block
+
+
+def check(raw):
+    """A stored block (a backup's, say) checked like an edit: a copy, with its id, hall and any
+    fields from later versions kept. Raises BlockError, or KeyError, TypeError or ValueError."""
+    return _clean({**raw, 'id': str(raw['id'])})
 
 
 def _clash(new_blocks, data, skip=(), had=()):

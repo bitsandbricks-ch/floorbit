@@ -77,6 +77,40 @@ def test_bad_backups_change_nothing(client):
     assert [s["id"] for s in client.get("/api/switches").get_json()] == [sw["id"]]
 
 
+def test_a_backup_with_broken_seat_blocks_or_marks_is_refused(client):
+    # Restored as they were, these turned the plan, incidents and problems into 500s for everybody.
+    _, block = place_things(client)
+    good = client.get("/api/settings/backup").get_json()
+    broken = [
+        ("seat_blocks", [{"id": "b1"}]),
+        ("seat_blocks", [{"id": "b2", "name": 3, "x": "a", "y": 1, "cols": -1, "rows": "x"}]),
+        ("seat_blocks", [{"id": "b3", "x": 1, "y": 1, "cols": 2, "rows": 2, "seat_width": "wide"}]),
+        ("seat_blocks", [{"id": "b4", "x": 1, "y": 1, "cols": 2, "rows": 2, "rotation": "left"}]),
+        ("plan_marks", [{"id": "m1", "kind": 9}]),
+        ("plan_marks", [{"id": "m2", "kind": "text", "x": 1, "y": 1}]),
+    ]
+    for part, value in broken:
+        backup = {**good, "layout": {**good["layout"], part: value}}
+        resp = client.post("/api/settings/backup", json=backup)
+        assert resp.status_code == 400, value
+        assert value[0]["id"] in resp.get_json()["error"]
+    assert [b["id"] for b in client.get("/api/seat-blocks").get_json()] == [block["id"]]
+    assert client.get("/api/plan").status_code == 200
+
+
+def test_a_good_backup_keeps_its_blocks_and_marks_as_they_were(client):
+    place_things(client)
+    hall = client.get("/api/halls").get_json()["halls"][0]["id"]
+    assert client.post("/api/plan-marks", json={"kind": "text", "text": "Stage", "x": 5, "y": 5,
+                                                "hall_id": hall}).status_code in (200, 201)
+    before = client.get("/api/settings/backup").get_json()["layout"]
+    resp = client.post("/api/settings/backup", json=client.get("/api/settings/backup").get_json())
+    assert resp.status_code == 200, resp.data
+    after = client.get("/api/settings/backup").get_json()["layout"]
+    assert after["seat_blocks"] == before["seat_blocks"]
+    assert after["plan_marks"] == before["plan_marks"]
+
+
 def test_backup_is_admin_only(anon_client, client, app_module):
     assert anon_client.get("/api/settings/backup").status_code == 401
     assert anon_client.post("/api/settings/backup", json={}).status_code == 401

@@ -11,8 +11,9 @@ import time
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from .. import halls, inventory, runtime, store
+from .. import halls, inventory, plan_marks, runtime, store
 from ..settings import FIELDS_BY_KEY, check_changes
+from . import seat_blocks
 
 bp = Blueprint('backup', __name__)
 
@@ -90,6 +91,27 @@ def _check_halls(value):
     return out
 
 
+# Seat blocks and marks are drawn by nearly every page: one bad entry restored as it is would turn
+# the plan, the incidents and the problems into errors for everybody. They get the editor's checks.
+def _seat_block(raw):
+    try:
+        return seat_blocks.check(raw)
+    except seat_blocks.BlockError as exc:
+        raise BackupError(f'Seat block "{raw["id"]}": {exc}') from None
+    except (KeyError, TypeError, ValueError):
+        raise BackupError(f'Seat block "{raw["id"]}": its position or size is not a number') from None
+
+
+def _plan_mark(raw):
+    try:
+        mark = plan_marks.clean(raw, old={'id': str(raw['id'])})
+    except plan_marks.MarkError as exc:
+        raise BackupError(f'Plan mark "{raw["id"]}": {exc}') from None
+    if 'hall_id' in raw:
+        mark['hall_id'] = raw['hall_id']
+    return mark
+
+
 def validate(backup):
     """Check a backup's shape before anything is written. Returns (layout, settings)."""
     if not isinstance(backup, dict) or backup.get('format') != FORMAT:
@@ -111,6 +133,10 @@ def validate(backup):
             layout['inventory'] = [inventory.normalize(d) for d in layout['inventory']]
         except inventory.InventoryError as exc:
             raise BackupError(f'An inventory entry is not valid: {exc}') from None
+    if 'seat_blocks' in layout:
+        layout['seat_blocks'] = [_seat_block(b) for b in layout['seat_blocks']]
+    if 'plan_marks' in layout:
+        layout['plan_marks'] = [_plan_mark(m) for m in layout['plan_marks']]
     if 'seats' in layout:
         _check_list('seats', layout['seats'], required=())
     if 'halls' in layout:
