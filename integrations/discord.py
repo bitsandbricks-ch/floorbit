@@ -233,7 +233,7 @@ class DiscordNotifier:
             if key in muted:
                 continue  # someone is on it (issue #256)
             last = self._last_alert.get(key)
-            if down and last is not None and now - last < cooldown:
+            if down and last is not None and 0 <= now - last < cooldown:
                 continue
             self._last_alert[key] = now
             selected.append(c)
@@ -278,7 +278,7 @@ class DiscordNotifier:
         now = now or time.time()
         key = 'security:' + str(finding.get('id'))
         last = self._last_alert.get(key)
-        if last is not None and now - last < config.get_int('DISCORD_COOLDOWN', 300, minimum=0):
+        if last is not None and 0 <= now - last < config.get_int('DISCORD_COOLDOWN', 300, minimum=0):
             return None
         self._last_alert[key] = now
         where = ' '.join(str(finding.get(k) or '') for k in ('switch', 'port')).strip() or 'unknown port'
@@ -314,7 +314,7 @@ class DiscordNotifier:
         now = now or time.time()
         key = f"power:{alert.get('id')}:{alert.get('state')}"
         last = self._last_alert.get(key)
-        if last is not None and now - last < config.get_int('DISCORD_COOLDOWN', 300, minimum=0):
+        if last is not None and 0 <= now - last < config.get_int('DISCORD_COOLDOWN', 300, minimum=0):
             return None
         self._last_alert[key] = now
         tripped = alert['state'] == 'tripped'
@@ -417,7 +417,7 @@ class DiscordNotifier:
             if c['status'] == 'online' and c.get('previous') == 'unknown':
                 continue  # newly matched, not a recovery
             last = self._last_alert.get(c['id'])
-            if last is not None and now - last < cooldown and c['status'] == 'offline':
+            if last is not None and 0 <= now - last < cooldown and c['status'] == 'offline':
                 continue
             self._last_alert[c['id']] = now
             selected.append(c)

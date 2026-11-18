@@ -194,6 +194,9 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
   off: quiet hours, the bandwidth forecast's hours, times on the public status page and agenda,
   and imported schedule times that carry no zone. The crew pages show times in each browser's
   own time zone either way.
+- Keep the host's clock synced (NTP). If it is set back while Floorbit runs, cooldowns, lockouts and
+  rate limits that started "in the future" end at once instead of lasting until the clock catches
+  up; the replay recorder skips frames until then, so the timeline stays in order.
 - A full disk (or a state folder mounted read-only) doesn't lose what was saved: each file is
   written whole beside the old one first. Until there is space again, pages keep showing the last
   saved state and every change answers "Floorbit's disk is full, so this change was not saved".

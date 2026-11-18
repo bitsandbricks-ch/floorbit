@@ -638,7 +638,7 @@ def _syslog_receiver(app_module, monkeypatch):
     monkeypatch.setattr(receiver, "lines", syslog.deque())
     monkeypatch.setattr(receiver, "relayed", {})
     monkeypatch.setattr(receiver, "_buckets", {})
-    receiver._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {})
+    receiver._allow_cache = (time.monotonic() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {})
     return receiver
 
 
@@ -710,7 +710,7 @@ def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
     import ipaddress
     import socket
     receiver = _syslog_receiver(app_module, monkeypatch)
-    receiver._allow_cache = (time.time() + 3600, [ipaddress.ip_network("127.0.0.1/32")], {})
+    receiver._allow_cache = (time.monotonic() + 3600, [ipaddress.ip_network("127.0.0.1/32")], {})
     a = make(app_module, enrol(client)["key"])
     monkeypatch.setenv("FLOORBIT_AGENT_SYSLOG_BIND", "127.0.0.1")
     assert agent_mod.start_syslog(a, "") is None

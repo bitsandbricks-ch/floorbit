@@ -43,7 +43,7 @@ def take(ip, size):
     """Book ``size`` bytes for one stream. Raises SpeedtestError when busy or over the budget."""
     now = time.time()
     with _lock:
-        used = [(t, n) for t, n in _spent.get(ip, []) if now - t < WINDOW]
+        used = [(t, n) for t, n in _spent.get(ip, []) if 0 <= now - t < WINDOW]
         if sum(n for _t, n in used) + size > BUDGET:
             _spent[ip] = used
             raise SpeedtestError('Too many tests from here. Wait a few minutes.', 429)
@@ -52,7 +52,7 @@ def take(ip, size):
         _running[0] += 1
         _spent[ip] = [*used, (now, size)]
         if len(_spent) > 10000:   # forget idle clients so the dict can't grow without bound
-            for key in [k for k, v in _spent.items() if not v or now - v[-1][0] > WINDOW]:
+            for key in [k for k, v in _spent.items() if not v or not 0 <= now - v[-1][0] <= WINDOW]:
                 _spent.pop(key, None)
 
 
@@ -60,13 +60,13 @@ def allow_result(ip, limit=10):
     """At most ``limit`` results per client IP per window: a result is a write anyone at a seat can do."""
     now = time.time()
     with _lock:
-        recent = [t for t in _saved.get(ip, []) if now - t < WINDOW]
+        recent = [t for t in _saved.get(ip, []) if 0 <= now - t < WINDOW]
         if len(recent) >= limit:
             _saved[ip] = recent
             return False
         _saved[ip] = [*recent, now]
         if len(_saved) > 10000:
-            for key in [k for k, v in _saved.items() if not v or now - v[-1] > WINDOW]:
+            for key in [k for k, v in _saved.items() if not v or not 0 <= now - v[-1] <= WINDOW]:
                 _saved.pop(key, None)
     return True
 

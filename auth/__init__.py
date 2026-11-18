@@ -314,7 +314,7 @@ class Auth:
         now = time.time()
         wait = 0
         for key, most in ((self._failure_key(username), MAX_FAILURES), (self._address_key(), MAX_ADDRESS_FAILURES)):
-            recent = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW]
+            recent = [t for t in self._failures.get(key, []) if 0 <= now - t < FAILURE_WINDOW]
             if len(recent) >= most:
                 wait = max(wait, int(FAILURE_WINDOW - (now - recent[-most])) + 1)
         return wait
@@ -322,10 +322,10 @@ class Auth:
     def record_failure(self, username):
         now = time.time()
         for key in (self._failure_key(username), self._address_key()):
-            self._failures[key] = [t for t in self._failures.get(key, []) if now - t < FAILURE_WINDOW] + [now]
+            self._failures[key] = [t for t in self._failures.get(key, []) if 0 <= now - t < FAILURE_WINDOW] + [now]
         if len(self._failures) > MAX_FAILURE_KEYS:
             # Every made-up username is a new key: forget the stale ones so guessing can't fill memory.
-            for stale in [k for k, v in self._failures.items() if now - v[-1] >= FAILURE_WINDOW]:
+            for stale in [k for k, v in self._failures.items() if not 0 <= now - v[-1] < FAILURE_WINDOW]:
                 self._failures.pop(stale, None)
 
     def sign_in(self, user, provider_id):

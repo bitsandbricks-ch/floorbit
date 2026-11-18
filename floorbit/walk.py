@@ -34,7 +34,7 @@ class Walks:
         key = switch.lower()
         with self._lock:
             hit = self._polled.get(key)
-            if hit and now - hit[0] < POLL_EVERY:
+            if hit and 0 <= now - hit[0] < POLL_EVERY:
                 return hit[1]
         from .syslog import canonical_port
         ports = sources.monitoring().device_ports(switch) or []

@@ -211,7 +211,7 @@ _wrong_pins = {}          # ip -> [times of wrong PINs]
 def _wrong_pin_wait(ip, now):
     """Seconds this PC must wait before it may try a PIN again, 0 when it may."""
     limit = config.get_int('CHECKIN_PIN_TRIES', 10, minimum=1)
-    recent = [t for t in _wrong_pins.get(ip, []) if now - t < WRONG_PIN_WINDOW]
+    recent = [t for t in _wrong_pins.get(ip, []) if 0 <= now - t < WRONG_PIN_WINDOW]
     if recent:
         _wrong_pins[ip] = recent
     else:
@@ -221,7 +221,7 @@ def _wrong_pin_wait(ip, now):
 
 def _wrong_pin(ip, now):
     if len(_wrong_pins) > 10000:   # a flood of addresses must not grow this forever
-        for key in [k for k, v in _wrong_pins.items() if now - v[-1] >= WRONG_PIN_WINDOW]:
+        for key in [k for k, v in _wrong_pins.items() if not 0 <= now - v[-1] < WRONG_PIN_WINDOW]:
             del _wrong_pins[key]
     _wrong_pins.setdefault(ip, []).append(now)
 

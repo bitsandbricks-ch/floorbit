@@ -150,7 +150,7 @@ def _login(body, needs_login, switch=None, account=None):
 
 
 def _check_failures(account, now):
-    recent = [t for t in _failures.get(account, []) if now - t < LOGIN_WINDOW]
+    recent = [t for t in _failures.get(account, []) if 0 <= now - t < LOGIN_WINDOW]
     _failures[account] = recent
     if len(recent) >= LOGIN_FAILURES:
         raise PortError('Too many failed switch logins. Wait a few minutes before trying again.', 429)
@@ -187,7 +187,7 @@ def act(registry, account, body, action):
     now = time.time()
     with _lock:
         _check_failures(account, now)
-        if action == 'bounce' and now - _last.get(key, 0) < COOLDOWN:
+        if action == 'bounce' and 0 <= now - _last.get(key, 0) < COOLDOWN:
             raise PortError(f'{port} on {dev["name"]} was just bounced. Give it {COOLDOWN} seconds.', 429)
         if dev['name'] in _busy:
             raise PortError(f'Another port action on {dev["name"]} is still running.', 409)
