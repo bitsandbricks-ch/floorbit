@@ -264,9 +264,15 @@ def test_odd_fields_in_a_minecraft_status_read_as_nothing(status):
 
 
 def test_a_message_of_the_day_nested_deep_is_cut_not_a_crash():
-    deep = '{"description":' + '{"text":"a","extra":[' * 900 + '"b"' + "]}" * 900 + "}"
+    # Over the wire, as deep as every Python's JSON decoder takes (3.11 stops near 1000 levels).
+    deep = '{"description":' + '{"text":"a","extra":[' * 200 + '"b"' + "]}" * 200 + "}"
     found = game_query.query("minecraft", "127.0.0.1", answering(deep.encode()), timeout=1)
     assert found["name"].startswith("aaa") and len(found["name"]) <= 120
+    # Deeper than the recursion limit: the old recursive walk raised RecursionError here.
+    motd = "b"
+    for _ in range(5000):
+        motd = {"text": "a", "extra": [motd]}
+    assert game_query._motd(motd).startswith("aaa")
     assert game_query._motd({"text": "Crew ", "extra": [{"text": "build", "extra": [" night"]}, "!"]}) \
         == "Crew build night!"
 
