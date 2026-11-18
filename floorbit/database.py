@@ -88,6 +88,12 @@ class DatabaseUnavailable(DatabaseError):
     refuses to save, and keeps trying in the background (``watch``); see docs/database.md."""
 
 
+class DatabaseBusy(DatabaseUnavailable):
+    """The database answers but someone else holds it longer than we wait: another program with
+    the SQLite file open for writing (a backup tool, ``sqlite3`` in a shell), or every pooled
+    connection in use. Not an outage, so nothing is marked down; the request gets a 503 to retry."""
+
+
 # Waits between tries while the database is away: short at first, then every 30 s at most.
 RETRY_FIRST, RETRY_MAX = 1.0, 30.0
 # While it answers, ask this often, so the banner and /healthz notice an outage without a request.
@@ -105,6 +111,20 @@ def _unreachable(exc):
         return True
     text = str(exc).lower()
     return any(m in text for m in ('unable to open', 'disk i/o', 'closed', 'no such file', 'not a database'))
+
+
+def _busy(exc):
+    """SQLite's "database is locked" after its busy timeout, or Postgres giving up on a lock."""
+    if type(exc).__module__ == 'sqlite3':
+        text = str(exc).lower()
+        return type(exc).__name__ == 'OperationalError' and ('locked' in text or 'busy' in text)
+    return type(exc).__name__ == 'LockNotAvailable'
+
+
+def _failed(db, exc):
+    """The error to raise for a statement that failed while the database answered."""
+    kind = DatabaseBusy if _busy(exc) else DatabaseError
+    return kind(f'{db.describe()}: {exc}')
 
 
 def _redact(url):
@@ -150,6 +170,7 @@ class Sql:
 
     def __init__(self, url, root):
         self.url, self.root = url, root
+        self.busy_wait = 10.0     # seconds SQLite waits for another program's write lock
         # A small shared pool instead of a connection per thread: Floorbit runs a few dozen
         # threads (gunicorn's request threads, one per live-update tab, and every background
         # watcher), and a connection each used up the slots of a shared Postgres.
@@ -184,8 +205,8 @@ class Sql:
                 os.makedirs(folder, exist_ok=True)
             # isolation_level=None: we say BEGIN ourselves. A busy timeout instead of "database is
             # locked" when the flow collector and the web app write at the same moment.
-            conn = sqlite3.connect(self.path, timeout=10, isolation_level=None, check_same_thread=False)
-            conn.execute('PRAGMA busy_timeout=10000')
+            conn = sqlite3.connect(self.path, timeout=self.busy_wait, isolation_level=None, check_same_thread=False)
+            conn.execute(f'PRAGMA busy_timeout={int(self.busy_wait * 1000)}')
             _wal(conn)
             return conn
         try:
@@ -236,7 +257,7 @@ class Sql:
                         _close_quietly(c)
                         if _unreachable(exc):
                             raise self._mark_down(exc) from exc
-                        raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                        raise _failed(self, exc) from exc
                     self._ready = True
         return c
 
@@ -250,7 +271,7 @@ class Sql:
         """Borrow a connection from the pool for one statement or one transaction. At most
         ``FLOORBIT_DATABASE_POOL`` are open; a thread that finds them all busy waits for one."""
         if not self._slots.acquire(timeout=POOL_WAIT):
-            raise DatabaseError(f'{self.describe()}: all {self.pool_size} connections busy for {POOL_WAIT:.0f} s')
+            raise DatabaseBusy(f'{self.describe()}: all {self.pool_size} connections busy for {POOL_WAIT:.0f} s')
         c = None
         try:
             with self._lock:
@@ -288,7 +309,7 @@ class Sql:
                 raise
             except Exception as exc:
                 if not _unreachable(exc) and not getattr(c, 'closed', False):
-                    raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                    raise _failed(self, exc) from exc
                 # A dropped connection (a restart, a failover): the pool threw it away, so the
                 # second try opens a new one. Once.
                 if attempt == 1:
@@ -426,7 +447,7 @@ class Sql:
         except Exception as exc:
             if _unreachable(exc):
                 raise self._mark_down(exc) from exc
-            raise DatabaseError(f'{self.describe()}: {exc}') from exc
+            raise _failed(self, exc) from exc
 
     def close(self):
         """Close the idle connections; ones in use are closed when they come back, so none

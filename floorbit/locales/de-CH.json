@@ -1129,5 +1129,6 @@
  "{} is a number from {} to 50": "{} ist eine Zahl von {} bis 50",
  "Seat block \"{}\": {}": "Sitzblock «{}»: {}",
  "Seat block \"{}\": its position or size is not a number": "Sitzblock «{}»: Position oder Grösse ist keine Zahl",
- "Plan mark \"{}\": {}": "Markierung «{}»: {}"
+ "Plan mark \"{}\": {}": "Markierung «{}»: {}",
+ "The database is busy with another program right now, so this was not saved. Try again in a moment.": "Die Datenbank ist gerade mit einem anderen Programm beschäftigt, darum wurde das nicht gespeichert. Versuche es gleich nochmals."
 }

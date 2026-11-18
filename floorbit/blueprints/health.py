@@ -43,6 +43,8 @@ alive._auth_public = True   # what auth.public_endpoint sets
 UNAVAILABLE = ("The database isn't answering right now. Floorbit keeps trying; until it's back, "
                "pages show what was last read and changes can't be saved.")
 
+BUSY = 'The database is busy with another program right now, so this was not saved. Try again in a moment.'
+
 
 def database_unavailable(exc):
     """A request that needed the database while it is away: 503 and a clear word, not a 500. The
@@ -50,6 +52,13 @@ def database_unavailable(exc):
     itself."""
     lang = i18n.language(request.headers.get('Accept-Language'))
     wants_json = request.path.startswith('/api/') or request.accept_mimetypes.best == 'application/json'
+    if isinstance(exc, database.DatabaseBusy):
+        # Not an outage: no banner, no "trying again" page, just this request to repeat.
+        resp = jsonify({'error': BUSY, 'code': 'database_busy'}) if wants_json else \
+            current_app.make_response((i18n.translate(BUSY, lang), 503, {'Content-Type': 'text/plain; charset=utf-8'}))
+        resp.status_code = 503
+        resp.headers['Retry-After'] = '2'
+        return resp
     if wants_json:
         resp = jsonify({'error': UNAVAILABLE, 'code': 'database_unavailable'})
     else:

@@ -187,6 +187,28 @@ def test_the_app_keeps_serving_and_refuses_saves_clearly(app_db, anon_client):
     assert len(client.get("/api/plan-marks").get_json()["marks"]) == 2
 
 
+def test_another_program_holding_the_file_is_busy_not_down(app_db, anon_client, tmp_path):
+    """A backup tool or a ``sqlite3`` shell with the file open for writing: that save gets a 503 to
+    retry, not an HTML 500, and Floorbit doesn't think the database is gone."""
+    client, db = app_db
+    mark = {"kind": "text", "x": 10, "y": 10, "text": "Stage"}
+    assert client.post("/api/plan-marks", json=mark).status_code == 201
+    db.busy_wait = 0.2
+    db.close()                              # the pool's connections were opened with the long wait
+    other = sqlite3.connect(tmp_path / "app.db", isolation_level=None)
+    other.execute("BEGIN EXCLUSIVE")
+    try:
+        saved = client.post("/api/plan-marks", json=mark, headers={"Accept-Language": "de-CH"})
+        assert saved.status_code == 503 and saved.headers["Retry-After"] == "2"
+        assert saved.get_json()["code"] == "database_busy"
+        assert saved.get_json()["error"].startswith("Die Datenbank ist gerade mit einem anderen Programm")
+        assert db.down is None and anon_client.get("/healthz").get_json()["database"] == "up"
+    finally:
+        other.execute("ROLLBACK")
+        other.close()
+    assert client.post("/api/plan-marks", json=mark).status_code == 201
+
+
 def test_a_page_without_any_copy_says_so_instead_of_an_error(app_module):
     from floorbit.blueprints.health import database_unavailable
     app = app_module.app

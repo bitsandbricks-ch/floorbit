@@ -114,6 +114,12 @@ away and comes back:
 
 A dropped connection (a restart, a failover) is reopened once per request before it counts as away.
 
+**Busy is not away.** Another program holding the SQLite file for writing (a backup tool, `sqlite3`
+in a shell) makes a save wait up to 10 seconds, then answer `503` with
+`{"code": "database_busy"}` and `Retry-After: 2`. The same happens when every pooled connection has
+been in use for 30 seconds. Nothing counts as down, so there is no banner: the crew sees the
+message and saves again.
+
 ## Tests
 
 The suite runs on files by default. `FLOORBIT_TEST_DATABASE=sqlite pytest` runs it on a fresh
