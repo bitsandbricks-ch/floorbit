@@ -119,6 +119,10 @@
     "switchtools": {
       "title": "Switch configs and terminal",
       "desc": "Nightly config backups and limits for the switch terminal."
+    },
+    "backup": {
+      "title": "Backups to S3",
+      "desc": "Upload a backup to an S3 bucket on a schedule (Amazon S3, MinIO, Garage, Backblaze B2 and others). The backups are listed, restored and downloaded under Backup and restore."
     }
   },
   "fields": {
@@ -763,6 +767,42 @@
     "integrations_seat_finder_nicks": {
       "label": "Find seats by nick",
       "help": "Also find a seat by a player's nick. Off by default: it tells anyone where a named player sits."
+    },
+    "integrations_s3_backup_endpoint": {
+      "label": "S3 endpoint",
+      "help": "The S3 address of MinIO, Garage, Backblaze B2 or another store, like https://s3.example.com. Empty: Amazon S3."
+    },
+    "integrations_s3_backup_region": {
+      "label": "Region",
+      "help": "The bucket's region, like eu-central-1. Most other stores take us-east-1."
+    },
+    "integrations_s3_backup_bucket": {
+      "label": "Bucket",
+      "help": "Empty turns S3 backups off."
+    },
+    "integrations_s3_backup_prefix": {
+      "label": "Folder in the bucket",
+      "help": "Backups go here. Only files Floorbit made here are listed and deleted."
+    },
+    "integrations_s3_backup_access_key": {
+      "label": "Access key ID",
+      "help": "Give the key only list, read, write and delete in this bucket."
+    },
+    "integrations_s3_backup_secret_key": {
+      "label": "Secret access key",
+      "help": "Stored encrypted and never shown again."
+    },
+    "integrations_s3_backup_passphrase": {
+      "label": "Encryption passphrase",
+      "help": "Set it to encrypt each backup before it leaves, so the bucket only holds what nobody can read. Keep a copy elsewhere: without it, encrypted backups cannot be restored."
+    },
+    "integrations_s3_backup_interval_hours": {
+      "label": "Back up every (hours)",
+      "help": "0: only when someone presses Back up now."
+    },
+    "integrations_s3_backup_keep": {
+      "label": "Backups kept",
+      "help": "After each upload, older backups in the folder are deleted."
     }
   },
   "plugins": {

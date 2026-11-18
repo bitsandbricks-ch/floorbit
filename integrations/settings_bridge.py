@@ -45,12 +45,15 @@ SECTIONS = [
      'description': 'How often the DNS and LAN cache logs are read, what is kept, and the bandwidth forecast.'},
     {'id': 'switchtools', 'title': 'Switch configs and terminal',
      'description': 'Nightly config backups and limits for the switch terminal.'},
+    {'id': 'backup', 'title': 'Backups to S3',
+     'description': ('Upload a backup to an S3 bucket on a schedule (Amazon S3, MinIO, Garage, Backblaze B2 and '
+                     'others). The backups are listed, restored and downloaded under Backup and restore.')},
     {'id': 'general', 'title': 'General', 'description': 'Shared settings for integrations.'},
 ]
 
 # Keys whose comma-separated value is better edited as a list
 LIST_KEYS = {'SEAT_SOURCES', 'CHECKIN_ALLOWED_NETWORKS', 'SYSLOG_ALLOW'}
-URL_KEYS = {'SEAT_SOURCE_HTTP_URL', 'PUBLIC_URL', 'QR_URL'}
+URL_KEYS = {'SEAT_SOURCE_HTTP_URL', 'PUBLIC_URL', 'QR_URL', 'S3_BACKUP_ENDPOINT'}
 INT_LIMITS = {
     'STATUS_MONITOR_INTERVAL': (10, 86400),
     'STATUS_MONITOR_CONFIRM': (1, 20),
@@ -88,6 +91,8 @@ INT_LIMITS = {
     'TERMINAL_IDLE_MINUTES': (1, 1440),
     'TERMINAL_MAX_MINUTES': (1, 1440),
     'CHECKIN_PIN_TRIES': (1, 1000),
+    'S3_BACKUP_INTERVAL_HOURS': (0, 744),
+    'S3_BACKUP_KEEP': (1, 10000),
 }
 
 

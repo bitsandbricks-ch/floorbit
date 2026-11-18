@@ -77,6 +77,31 @@
     "skipped_other": "{{count}} Einstellungen übersprungen, die diese Version nicht kennt.",
     "kept": "Diese Sicherung stammt aus einer älteren Version und hat keine Kabel, Patchpanels, Uplinks, Portbereiche und keinen Strom: diese bleiben, wie sie sind."
   },
+  "s3": {
+    "title": "Sicherungen in S3",
+    "desc": "Dieselbe Sicherung wie oben, regelmässig in einen S3-Bucket hochgeladen. Hier lässt sich jede wiederherstellen oder herunterladen.",
+    "now": "Jetzt sichern",
+    "off": "Noch kein Bucket eingerichtet.",
+    "setUp": "S3-Sicherungen einrichten",
+    "encrypted": "Verschlüsselt",
+    "notEncrypted": "Nicht verschlüsselt",
+    "every_one": "Jede Stunde",
+    "every_other": "Alle {{count}} Stunden",
+    "manual": "Nur von Hand",
+    "keep_one": "behält die neuste",
+    "keep_other": "behält die neusten {{count}}",
+    "lastOk": "Letzte Sicherung {{when}} ({{by}}).",
+    "lastFailed": "Die letzte Sicherung ist {{when}} fehlgeschlagen: {{error}}",
+    "made": "Erstellt",
+    "size": "Grösse",
+    "download": "Herunterladen",
+    "restore": "Wiederherstellen",
+    "none": "Noch keine Sicherungen im Bucket.",
+    "confirm": "Die Sicherung vom {{when}} wiederherstellen? Sie ersetzt den aktuellen Hallenplan und seine Einstellungen für alle.",
+    "uploaded": "Gesichert ({{size}}).",
+    "removed_one": "{{count}} alte Sicherung gelöscht.",
+    "removed_other": "{{count}} alte Sicherungen gelöscht."
+  },
   "sections": {
     "netbox": {
       "title": "NetBox",

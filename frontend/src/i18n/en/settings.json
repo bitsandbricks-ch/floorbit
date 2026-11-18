@@ -77,6 +77,31 @@
     "skipped_other": "Skipped {{count}} settings this version doesn't know.",
     "kept": "This backup is from an older version and has no cables, patch panels, uplinks, port areas or power: those were left as they are."
   },
+  "s3": {
+    "title": "Backups in S3",
+    "desc": "The same backup as above, uploaded to an S3 bucket on a schedule. Restore or download any of them here.",
+    "now": "Back up now",
+    "off": "No bucket is set up yet.",
+    "setUp": "Set up S3 backups",
+    "encrypted": "Encrypted",
+    "notEncrypted": "Not encrypted",
+    "every_one": "Every hour",
+    "every_other": "Every {{count}} hours",
+    "manual": "Only by hand",
+    "keep_one": "keeps the newest",
+    "keep_other": "keeps the newest {{count}}",
+    "lastOk": "Last backup {{when}} ({{by}}).",
+    "lastFailed": "The last backup failed {{when}}: {{error}}",
+    "made": "Made",
+    "size": "Size",
+    "download": "Download",
+    "restore": "Restore",
+    "none": "No backups in the bucket yet.",
+    "confirm": "Restore the backup from {{when}}? It replaces the current floor plan and its settings for everyone.",
+    "uploaded": "Backed up ({{size}}).",
+    "removed_one": "Deleted {{count}} old backup.",
+    "removed_other": "Deleted {{count}} old backups."
+  },
   "sections": {
     "netbox": {
       "title": "NetBox",

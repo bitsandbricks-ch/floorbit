@@ -223,6 +223,9 @@ def create_app(start_background=True):
     init_webhooks(app, start_background=start_background)
     from .config_backup import init_nightly
     init_nightly(app, start_background=start_background)
+    # Scheduled backups to an S3 bucket, off until one is set (docs/backup.md).
+    from . import s3_backup
+    s3_backup.init_app(app, start_background=start_background)
 
     # The event changelog: alerts from the event bus and each start go into its journal (docs/timeline.md).
     from .timeline import init_timeline

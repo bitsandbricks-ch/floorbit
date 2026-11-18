@@ -119,6 +119,10 @@
     "switchtools": {
       "title": "Switch-Konfigurationen und Terminal",
       "desc": "Nächtliche Konfigurationssicherungen und Grenzen für das Switch-Terminal."
+    },
+    "backup": {
+      "title": "Sicherungen nach S3",
+      "desc": "Lädt regelmässig eine Sicherung in einen S3-Bucket (Amazon S3, MinIO, Garage, Backblaze B2 und andere). Die Sicherungen werden unter «Sichern und wiederherstellen» aufgelistet, wiederhergestellt und heruntergeladen."
     }
   },
   "fields": {
@@ -763,6 +767,42 @@
     "integrations_seat_finder_nicks": {
       "label": "Plätze per Nick finden",
       "help": "Einen Platz auch per Nick finden. Standardmässig aus: Es verrät allen, wo ein bestimmter Spieler sitzt."
+    },
+    "integrations_s3_backup_endpoint": {
+      "label": "S3-Endpunkt",
+      "help": "Die S3-Adresse von MinIO, Garage, Backblaze B2 oder einem anderen Speicher, z. B. https://s3.example.com. Leer: Amazon S3."
+    },
+    "integrations_s3_backup_region": {
+      "label": "Region",
+      "help": "Die Region des Buckets, z. B. eu-central-1. Die meisten anderen Speicher nehmen us-east-1."
+    },
+    "integrations_s3_backup_bucket": {
+      "label": "Bucket",
+      "help": "Leer schaltet die S3-Sicherungen aus."
+    },
+    "integrations_s3_backup_prefix": {
+      "label": "Ordner im Bucket",
+      "help": "Hier landen die Sicherungen. Nur Dateien, die Floorbit hier angelegt hat, werden aufgelistet und gelöscht."
+    },
+    "integrations_s3_backup_access_key": {
+      "label": "Access Key ID",
+      "help": "Gib dem Schlüssel nur Auflisten, Lesen, Schreiben und Löschen in diesem Bucket."
+    },
+    "integrations_s3_backup_secret_key": {
+      "label": "Secret Access Key",
+      "help": "Wird verschlüsselt gespeichert und nie wieder angezeigt."
+    },
+    "integrations_s3_backup_passphrase": {
+      "label": "Passphrase für die Verschlüsselung",
+      "help": "Gesetzt wird jede Sicherung verschlüsselt, bevor es hochgeladen wird; im Bucket liegt dann nur, was niemand lesen kann. Bewahre eine Kopie anderswo auf: ohne sie lassen sich verschlüsselte Sicherungen nicht wiederherstellen."
+    },
+    "integrations_s3_backup_interval_hours": {
+      "label": "Sichern alle (Stunden)",
+      "help": "0: nur, wenn jemand «Jetzt sichern» drückt."
+    },
+    "integrations_s3_backup_keep": {
+      "label": "Aufbewahrte Sicherungen",
+      "help": "Nach jedem Upload werden ältere Sicherungen im Ordner gelöscht."
     }
   },
   "plugins": {
