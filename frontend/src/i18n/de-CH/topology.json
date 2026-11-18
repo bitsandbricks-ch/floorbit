@@ -51,5 +51,21 @@
   "uplinkUsed": "Ausgelastet",
   "openServices": "Dienste öffnen",
   "uplinkStatus": { "up": "In Ordnung", "warn": "Braucht einen Blick", "down": "Down", "unknown": "Nicht geprüft" },
-  "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" }
+  "roles": { "switch": "Switch", "router": "Router", "firewall": "Firewall" },
+  "pickHintEdit": "Wähle einen Switch oder einen Link, um ihn hier zu sehen. Zieh eine Box, um sie zu verschieben.",
+  "zoomIn": "Vergrössern",
+  "zoomOut": "Verkleinern",
+  "fit": "Alles zeigen",
+  "draw": "Link zeichnen",
+  "drawCancel": "Zeichnen abbrechen",
+  "drawFirst": "Wähle den Switch, an dem der Link beginnt (Esc bricht ab).",
+  "drawSecond": "Von {{a}}: Wähle jetzt den Switch am anderen Ende.",
+  "arrange": "Neu anordnen",
+  "arrangeQuestion": "Vergessen, wohin die Boxen gezogen wurden, und das Diagramm für alle wieder selbst anordnen?",
+  "export": "Exportieren",
+  "exportPng": "Bild (PNG)",
+  "exportSvg": "Zeichnung (SVG)",
+  "exportFailed": "Das Bild konnte nicht erstellt werden.",
+  "how": "Scrollen oder mit zwei Fingern zoomen, den Hintergrund ziehen, um dich zu bewegen.",
+  "howEdit": "Scrollen zum Zoomen, den Hintergrund ziehen, um dich zu bewegen. Zieh eine Box dorthin, wo sie hingehört: alle sehen sie dort."
 }

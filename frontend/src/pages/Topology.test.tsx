@@ -78,4 +78,58 @@ describe('Topology', () => {
     expect(screen.getByText('core-01 Te1/0/48')).toBeInTheDocument()
     expect(screen.getByText('85 %')).toBeInTheDocument()
   })
+
+  it('zooms with the buttons and back to everything with Show everything', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    renderWithApp(<Topology />)
+    const svg = await screen.findByRole('img', { name: 'Topology with 2 links' })
+    const whole = svg.getAttribute('viewBox')!
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    const closer = svg.getAttribute('viewBox')!.split(' ').map(Number)
+    expect(closer[2]).toBeLessThan(Number(whole.split(' ')[2]))
+    fireEvent.click(screen.getByRole('button', { name: 'Show everything' }))
+    expect(svg.getAttribute('viewBox')).toBe(whole)
+  })
+
+  it('draws a link by picking two switches', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    renderWithApp(<Topology />)
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    fireEvent.click(screen.getByRole('button', { name: 'Draw a link' }))
+    expect(screen.getByText('Pick the switch the link starts at (Esc cancels).')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('sw-c-02', { selector: 'text' }))
+    expect(screen.getByText('From sw-c-02: now pick the switch at the other end.')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('core-01', { selector: 'text' }))
+    expect(await screen.findByRole('dialog', { name: 'Add link' })).toBeInTheDocument()
+    expect(screen.getAllByLabelText('From switch')[0]).toHaveValue('sw-c-02')
+    expect(screen.getAllByLabelText('To switch')[0]).toHaveValue('core-01')
+  })
+
+  it('keeps a dragged box where the crew put it, for everyone', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/links': data,
+      'PUT /api/links/layout': (init?: RequestInit) => ({ status: 200, body: { layout: JSON.parse(String(init?.body)).positions } }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    const { container } = renderWithApp(<Topology />)
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    const box = container.querySelector('g[data-node="sw-c-02"]')!
+    const before = box.getAttribute('transform')
+    fireEvent.pointerDown(box, { button: 0, clientX: 10, clientY: 10, pointerId: 1 })
+    fireEvent.pointerMove(box, { clientX: 30, clientY: 50, pointerId: 1 })
+    fireEvent.pointerUp(box, { clientX: 30, clientY: 50, pointerId: 1 })
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')).toBeDefined())
+    const sent = (api.calls.find((c) => c.method === 'PUT')!.body as { positions: Record<string, unknown> }).positions
+    expect(Object.keys(sent).sort()).toEqual(['core-01', 'dist-01', 'sw-c-02'])   // every box, so the rest stays put
+    await waitFor(() => expect(container.querySelector('g[data-node="sw-c-02"]')!.getAttribute('transform')).not.toBe(before))
+  })
+
+  it('lets viewers look around but not draw or drag', async () => {
+    const viewer = { ...lead, user: { ...lead.user, role: 'viewer', permissions: ['floorplan.view'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/links': data }).fn)
+    renderWithApp(<Topology />)
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    expect(screen.queryByRole('button', { name: 'Draw a link' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
+  })
 })

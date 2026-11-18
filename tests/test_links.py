@@ -214,3 +214,25 @@ def test_the_switch_panel_lists_its_links_and_what_lldp_sees(client, net):
     # From the other end the same link points back.
     [back] = client.get("/api/plan/switches/dist-01").get_json()["links"]
     assert (back["port"], back["to"], back["to_port"]) == ("Te1/0/1", "sw-a-01", "Te1/1/1")
+
+
+def test_the_crew_arranges_the_diagram_once_for_everyone(client, net, app_module):
+    _add(client)
+    places = {"SW-A-01": {"x": 10, "y": 20.04}, "ghost-99": {"x": 1, "y": 1}}
+    r = client.put("/api/links/layout", json={"positions": places})
+    assert r.status_code == 200
+    assert r.get_json()["layout"] == {"sw-a-01": {"x": 10.0, "y": 20.0}}   # unknown names dropped
+    client.put("/api/links/layout", json={"positions": {"dist-01": {"x": 0, "y": 0}}})
+    assert set(client.get("/api/links").get_json()["layout"]) == {"sw-a-01", "dist-01"}          # merged
+    client.put("/api/links/layout", json={"positions": {"core-01": {"x": 5, "y": 5}}, "replace": True})
+    assert set(client.get("/api/links").get_json()["layout"]) == {"core-01"}
+    assert client.put("/api/links/layout", json={"positions": {"core-01": {"x": "far"}}}).status_code == 400
+    far = {"core-01": {"x": float("1e9"), "y": 0}}
+    assert client.put("/api/links/layout", json={"positions": far}).status_code == 400
+    assert client.put("/api/links/layout", json=[]).status_code == 400
+    assert client.delete("/api/links/layout").status_code == 200
+    assert client.get("/api/links").get_json()["layout"] == {}
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi9", "viewer")
+    assert viewer.put("/api/links/layout", json={"positions": {}}).status_code == 403
+    assert viewer.delete("/api/links/layout").status_code == 403

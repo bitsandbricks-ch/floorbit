@@ -98,3 +98,22 @@ export function gbit(bps: number | null) {
   if (bps == null) return ''
   return bps >= 1e9 ? `${+(bps / 1e9).toFixed(1)}G` : `${Math.round(bps / 1e6)}M`
 }
+
+export interface Spot { x: number; y: number }
+
+/** The crew's arrangement over the automatic one (issue: drag and keep it). Boxes without a saved
+ *  place keep theirs; the whole picture is moved back to start at 0,0 so the internet row still fits on top. */
+export function arranged(laid: Layout, saved: Record<string, Spot> | undefined): Layout {
+  if (!saved || !Object.keys(saved).length) return laid
+  const placed = new Map<string, Placed>()
+  for (const [key, p] of laid.placed) {
+    const s = saved[key]
+    placed.set(key, s ? { ...p, x: s.x, y: s.y } : { ...p })
+  }
+  const all = [...placed.values()]
+  if (!all.length) return laid
+  const minX = Math.min(...all.map((p) => p.x)), minY = Math.min(...all.map((p) => p.y))
+  for (const p of all) { p.x -= minX; p.y -= minY }
+  const width = Math.max(...all.map((p) => p.x)) + NODE_W, height = Math.max(...all.map((p) => p.y)) + NODE_H
+  return { placed, width, height, loose: laid.loose }
+}
