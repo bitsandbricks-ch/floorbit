@@ -149,3 +149,10 @@ def test_a_nan_saved_before_the_checks_goes_out_as_null(client):
         assert "sw-old" in json.dumps(body)
     dev = next(d for d in client.get("/api/inventory").get_json()["devices"] if d.get("id") == made["id"])
     assert dev["x"] is None and dev["y"] is None
+
+
+def test_a_live_event_with_nan_reaches_the_page_as_readable_json():
+    from integrations import events
+    line = events._format({"id": "1", "type": "status", "data": {"util": float("nan"), "ok": 1.5}})
+    payload = line.split("data: ", 1)[1].strip()
+    assert json.loads(payload, parse_constant=_refuse)["data"] == {"util": None, "ok": 1.5}
