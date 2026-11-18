@@ -77,7 +77,8 @@ export default function SeatMapping() {
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
-  const label = (s: string) => (s === 'manual' ? t('seatmap.byHand') : (data?.labels[s] ?? s))
+  // Built-in sources by their name in the reader's language; plugins' sources as they call themselves.
+  const label = (s: string) => (s === 'manual' ? t('seatmap.byHand') : t(`seatmap.sourceName.${s}`, { defaultValue: data?.labels[s] ?? s }))
   const refresh = () => client.invalidateQueries({ queryKey: qk.seatMap })
 
   const save = useMutation({

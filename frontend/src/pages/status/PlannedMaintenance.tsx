@@ -3,6 +3,7 @@ import { IconTrash } from '@tabler/icons-react'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DateTimeInput } from '@/components/DateTimeInput'
 import { del, post } from '@/api/client'
 import type { StatusPlanned } from '@/api/types'
 import { fromLocal } from './time'
@@ -31,8 +32,8 @@ export function PlannedMaintenance({ planned, running, canSet, onChange }: {
       {canSet && (
         <Stack gap="xs" mb="md">
           <Group gap="xs" align="flex-end" wrap="wrap">
-            <TextInput type="datetime-local" label={t('status.plannedStart')} value={start} onChange={(e) => setStart(e.currentTarget.value)} />
-            <TextInput type="datetime-local" label={t('status.plannedEnd')} value={end} onChange={(e) => setEnd(e.currentTarget.value)} />
+            <DateTimeInput label={t('status.plannedStart')} value={start} onChange={setStart} />
+            <DateTimeInput label={t('status.plannedEnd')} value={end} onChange={setEnd} />
             <TextInput label={t('status.area')} placeholder={t('status.areaPlaceholder')} value={area} maxLength={80}
               onChange={(e) => setArea(e.currentTarget.value)} style={{ flex: 1, minWidth: 140 }} />
           </Group>

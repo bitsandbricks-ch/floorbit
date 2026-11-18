@@ -61,8 +61,10 @@ describe('NetworkStatus', () => {
     expect(screen.getAllByText('Now')).toHaveLength(1)
     const add = screen.getByRole('button', { name: 'Announce' })
     expect(add).toBeDisabled()
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2030-01-02T10:00' } })
-    fireEvent.change(screen.getByLabelText('Until'), { target: { value: '2030-01-02T10:30' } })
+    for (const [label, typed] of [['From', '02.01.2030 10:00'], ['Until', '02.01.2030 10:30']]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value: typed } })
+      fireEvent.blur(screen.getByLabelText(label))
+    }
     fireEvent.change(screen.getByLabelText('What attendees should know'), { target: { value: 'Core swap' } })
     fireEvent.click(add)
     await waitFor(() => expect(sent).toContainEqual({ method: 'POST', path: '/api/status-page/maintenance', body: {

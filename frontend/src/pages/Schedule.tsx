@@ -6,6 +6,7 @@ import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DateTimeInput } from '@/components/DateTimeInput'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -43,8 +44,8 @@ function ItemForm({ item, kinds, onDone }: { item: ScheduleItem | null; kinds: S
           <TextInput label={t('schedule.itemTitle')} required maxLength={120} value={d.title} onChange={set('title')} />
           <Select label={t('schedule.kindLabel')} value={d.kind} allowDeselect={false}
             data={kinds.map((k) => ({ value: k, label: t(`schedule.kind.${k}`) }))} onChange={(v) => setD((x) => ({ ...x, kind: (v ?? 'other') as ScheduleKind }))} />
-          <TextInput type="datetime-local" label={t('schedule.start')} required value={d.start} onChange={set('start')} />
-          <TextInput type="datetime-local" label={t('schedule.end')} value={d.end} onChange={set('end')} />
+          <DateTimeInput label={t('schedule.start')} required value={d.start} onChange={(v) => setD((x) => ({ ...x, start: v }))} />
+          <DateTimeInput label={t('schedule.end')} value={d.end} onChange={(v) => setD((x) => ({ ...x, end: v }))} />
           <TextInput label={t('schedule.where')} maxLength={120} value={d.where} onChange={set('where')} />
           <TextInput label={t('schedule.note')} maxLength={500} value={d.note} onChange={set('note')} />
         </SimpleGrid>
@@ -72,8 +73,8 @@ function EventTimes({ data, canEdit }: { data: ScheduleData; canEdit: boolean })
       <Text fw={600} mb={4}>{t('schedule.event')}</Text>
       <Text size="sm" c="dimmed" mb="sm">{t('schedule.eventHelp')}</Text>
       <Group align="flex-end" gap="sm">
-        <TextInput type="datetime-local" label={t('schedule.eventStart')} value={start} disabled={!canEdit} onChange={(e) => setStart(e.currentTarget.value)} />
-        <TextInput type="datetime-local" label={t('schedule.eventEnd')} value={end} disabled={!canEdit} onChange={(e) => setEnd(e.currentTarget.value)} />
+        <DateTimeInput label={t('schedule.eventStart')} value={start} disabled={!canEdit} onChange={setStart} />
+        <DateTimeInput label={t('schedule.eventEnd')} value={end} disabled={!canEdit} onChange={setEnd} />
         {canEdit && <Button variant="default" loading={save.isPending} onClick={() => save.mutate()}>{t('schedule.saveEvent')}</Button>}
       </Group>
       {save.error && <Alert mt="sm" color="down" role="alert">{save.error.message}</Alert>}

@@ -35,7 +35,8 @@ describe('Schedule page', () => {
     expect(screen.getByRole('link', { name: 'calendar feed' })).toHaveAttribute('href', '/agenda.ics')
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
     fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: 'Group photo' } })
-    fireEvent.change(screen.getByLabelText(/^Starts/), { target: { value: '2030-03-17T16:00' } })
+    fireEvent.change(screen.getByLabelText(/^Starts/), { target: { value: '17.03.2030 16:00' } })
+    fireEvent.blur(screen.getByLabelText(/^Starts/))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls).toContainEqual({
       method: 'POST', path: '/api/schedule/items',

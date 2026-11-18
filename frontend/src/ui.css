@@ -97,3 +97,16 @@
     min-height: 24px; display: inline-flex; align-items: center;
   }
 }
+
+/* Days in the date-and-time picker (components/DateTimeInput.tsx). */
+.fb-day {
+  height: 32px;
+  border-radius: var(--mantine-radius-sm);
+  text-align: center;
+  font-size: var(--mantine-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+.fb-day:hover { background: var(--mantine-color-default-hover); }
+.fb-day[data-today] { font-weight: 700; color: var(--mantine-primary-color-filled); }
+.fb-day[data-picked] { background: var(--mantine-primary-color-filled); color: var(--mantine-primary-color-contrast); }
+.fb-day:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 1px; }
