@@ -201,8 +201,11 @@ def test_a_closed_event_without_a_schedule_counts_from_closing(hall):
     with tenancy.using_event(later):
         checkin.learn_port("A-1", {"switch": "sw-a-01", "port": "Gi1/0/1"}, "crew", source="walk")
     main = tenancy.find("main")
-    with tenancy.using_event(main):
+    with tenancy.using_event(main), hall.application.app_context():
         checkin.learn_port("A-2", {"switch": "sw-a-01", "port": "Gi1/0/2"}, "crew", source="walk")
+        # The demo layout plans an event around today; this one has no schedule. Without clearing
+        # it, the planned end won over closed_at and the test failed at some times of day.
+        schedule.set_event({})
     tenancy.update("main", status="closed")
     closed_at = tenancy.find("main")["closed_at"]
     with hall.application.app_context():
