@@ -116,9 +116,8 @@ each seat is plugged into.
   See [docs/kiosk.md](docs/kiosk.md).
 - **Network status page:** `/status` tells attendees whether the network is running, which halls,
   blocks and rows an outage hits, and the crew's updates. No switch names or IPs. See [docs/status-page.md](docs/status-page.md).
-- **Schedule and countdown:** leads plan talks, tournaments, meals and quiet hours on `/schedule`
-  or import an iCal file; `/agenda` shows attendees a countdown, what's on now and next and the
-  programme, also as a big-screen layout. See [docs/schedule.md](docs/schedule.md).
+- **Schedule:** leads plan talks, tournaments, meals and quiet hours on `/schedule` or import an
+  iCal file; the shift handover lists what starts during the next shift. See [docs/schedule.md](docs/schedule.md).
 - **Stats wall:** `/wall`, fun facts for a big screen and attendees' phones: data downloaded, the
   bandwidth peak, the busiest hour, top games, seats online and the most loyal seat block. Hall-wide
   only, off until switched on. See [docs/stats-wall.md](docs/stats-wall.md).

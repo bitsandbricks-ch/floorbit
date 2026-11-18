@@ -31,8 +31,6 @@ describe('Schedule page', () => {
     renderWithApp(<Schedule />)
     expect(await screen.findByText('Opening keynote')).toBeInTheDocument()
     expect(screen.getByText('iCal')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '/agenda' })).toHaveAttribute('href', '/agenda')
-    expect(screen.getByRole('link', { name: 'calendar feed' })).toHaveAttribute('href', '/agenda.ics')
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
     fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: 'Group photo' } })
     fireEvent.change(screen.getByLabelText(/^Starts/), { target: { value: '17.03.2030 16:00' } })

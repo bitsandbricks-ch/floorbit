@@ -200,7 +200,7 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 - `docker compose logs -f floorbit` shows what it is doing; `/healthz` answers when it is up.
 - Set `TZ` in `.env` to the event's time zone (for example `TZ=Europe/Zurich`). Without it the
   container runs on UTC, and what the server works out by the clock itself is an hour or two
-  off: quiet hours, the bandwidth forecast's hours, times on the public status page and agenda,
+  off: quiet hours, the bandwidth forecast's hours, times on the public status page,
   and imported schedule times that carry no zone. The crew pages show times in each browser's
   own time zone either way.
 - Keep the host's clock synced (NTP). If it is set back while Floorbit runs, cooldowns, lockouts and

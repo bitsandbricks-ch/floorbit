@@ -1,9 +1,6 @@
-"""Event schedule and countdown (issue #106)."""
+"""Event schedule (issue #106)."""
 import datetime as dt
-import time
 from zoneinfo import ZoneInfo
-
-import pytest
 
 from floorbit import schedule
 
@@ -108,65 +105,14 @@ def test_viewers_read_leads_write(app_module):
     assert viewer_client.put("/api/schedule/event", json={"start": T0}).status_code == 403
 
 
-def test_public_now_next_and_countdown():
-    now = T0
-    items = [
-        {"id": "a", "title": "Doors", "kind": "other", "start": now - 3600, "end": now - 1800},
-        {"id": "b", "title": "Talk", "kind": "talk", "start": now - 600, "end": now + 600},
-        {"id": "c", "title": "Night", "kind": "quiet", "start": now - 60, "end": now + 3600},
-        {"id": "d", "title": "Final", "kind": "tournament", "start": now + 3600, "end": None},
-    ]
-    data = {"schedule": {"event": {"start": now + 90061, "end": None}, "items": items}}
-    s = schedule.public(data, now=now)
-    assert s["phase"] == "before" and s["countdown"] == 90061
-    assert [i["id"] for i in s["now"]] == ["b", "c"] and s["quiet"]["id"] == "c"
-    assert [i["id"] for i in s["next"]] == ["d"]
-    data["schedule"]["event"] = {"start": now - 10, "end": now - 5}
-    assert schedule.public(data, now=now)["phase"] == "after"
+def test_the_programme_leaves_out_who_edited(client):
+    client.post("/api/schedule/items", json={"title": "Opening", "kind": "talk", "start": T0, "where": "Main stage"})
+    (item,) = schedule.programme()
+    assert item["title"] == "Opening" and item["where"] == "Main stage"
+    assert "by" not in item and "updated_at" not in item
 
 
-@pytest.fixture
-def agenda_on(client):
-    assert client.put("/api/settings", json={"public.schedule": True}).status_code == 200
-
-
-def test_agenda_is_off_by_default(anon_client):
-    assert anon_client.get("/agenda").status_code == 404
-    assert anon_client.get("/agenda.json").status_code == 404
-
-
-def test_agenda_page(client, anon_client, agenda_on):
-    now = time.time()
-    client.put("/api/schedule/event", json={"start": now + 2 * 86400 + 3 * 3600})
-    client.post("/api/schedule/items", json={"title": "Opening", "kind": "talk", "start": now + 2 * 86400 + 3 * 3600,
-                                             "where": "Main stage"})
-    # The page is React (PublicAgenda.test.tsx draws it from this JSON).
-    assert anon_client.get("/agenda").status_code in (200, 503)
-    body = anon_client.get("/agenda.json").get_json()
-    assert body["phase"] == "before" and body["next"][0]["title"] == "Opening"
-    assert "by" not in body["items"][0] and "updated_at" not in body["items"][0]
-    assert 2 * 86400 <= body["countdown"] <= 2 * 86400 + 3 * 3600 and body["server_time"]
-
-
-def test_agenda_calendar_feed(client, anon_client, agenda_on):
-    assert client.put("/api/settings", json={"theme.name": "Demo LAN"}).status_code == 200
-    start = 1_800_000_000
-    client.post("/api/schedule/items", json={"title": "Opening; welcome, all", "kind": "talk", "start": start,
-                                             "where": "Main stage", "note": "Doors open, " + "long note " * 20})
-    client.post("/api/schedule/items", json={"title": "Quiet hours", "kind": "quiet", "start": start + 3600,
-                                             "end": start + 7200})
-    res = anon_client.get("/agenda.ics")
-    assert res.status_code == 200 and res.mimetype == "text/calendar"
-    text = res.get_data(as_text=True)
-    assert "X-WR-CALNAME:Demo LAN\r\n" in text and "SUMMARY:Opening\\; welcome\\, all\r\n" in text
-    assert "DTSTART:20270115T080000Z\r\nDTEND:20270115T083000Z" in text   # no end: half an hour
-    assert text.count("BEGIN:VEVENT") == 2 and "TRANSP:TRANSPARENT" in text
-    assert all(len(line.encode()) <= 75 for line in text.split("\r\n"))
-    back = schedule.parse_ics(text)   # what Floorbit itself would import
-    assert [(i["title"], i["kind"], i["start"], i["where"]) for i in back] == [
-        ("Opening; welcome, all", "talk", start, "Main stage"), ("Quiet hours", "quiet", start + 3600, "")]
-    assert back[0]["note"].startswith("Doors open, long note")
-
-
-def test_agenda_calendar_feed_is_off_with_the_page(anon_client):
-    assert anon_client.get("/agenda.ics").status_code == 404
+def test_there_is_no_public_agenda(client, anon_client):
+    assert client.put("/api/settings", json={"public.schedule": True}).status_code == 400
+    for path in ("/agenda", "/agenda.json", "/agenda.ics"):
+        assert anon_client.get(path).status_code in (302, 401, 404), path

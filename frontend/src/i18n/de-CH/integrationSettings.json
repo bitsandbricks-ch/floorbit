@@ -190,18 +190,6 @@
       "label": "Discord-Webhook-URL",
       "help": "Kanaleinstellungen → Integrationen → Webhooks → URL kopieren."
     },
-    "integrations_discord_status_webhook_url": {
-      "label": "Webhook des Status-Kanals für Teilnehmende",
-      "help": "Ein Webhook in einem Kanal, den Teilnehmende lesen. Jedes Update, das die Crew unter Netzwerkstatus postet, geht auch dorthin, solange die öffentliche Statusseite an ist. Leer lassen, um nichts zu posten."
-    },
-    "integrations_discord_schedule_webhook_url": {
-      "label": "Webhook des Programm-Kanals für Teilnehmende",
-      "help": "Ein Webhook in einem Kanal, den Teilnehmende lesen (es kann der des Status-Kanals sein). Kurz bevor ein Vortrag, ein Turnier oder ein Essen beginnt, wird es dort angekündigt, solange die öffentliche Programmseite an ist."
-    },
-    "integrations_schedule_announce_minutes": {
-      "label": "Programm ankündigen (Minuten vorher)",
-      "help": "Wie lange vor dem Beginn ein Programmpunkt im Programm-Kanal angekündigt wird. 0 kündigt nichts an."
-    },
     "integrations_discord_alerts_enabled": {
       "label": "Discord-Meldungen",
       "help": "Eine Nachricht posten, wenn ein platzierter Switch offline geht oder zurückkommt."
@@ -220,7 +208,7 @@
     },
     "integrations_discord_language": {
       "label": "Sprache der Nachrichten",
-      "help": "en (Englisch), de-CH (Schweizer Schreibweise) oder de (Deutsch für Deutschland und Österreich): Meldungen, der Crew-Bot und die Kanäle für Teilnehmende. Antworten auf Slash-Befehle folgen der Discord-Sprache der jeweiligen Person."
+      "help": "en (Englisch), de-CH (Schweizer Schreibweise) oder de (Deutsch für Deutschland und Österreich): Meldungen und der Crew-Bot. Antworten auf Slash-Befehle folgen der Discord-Sprache der jeweiligen Person."
     },
     "integrations_discord_cooldown": {
       "label": "Pause pro Switch (Sekunden)",

@@ -389,11 +389,11 @@ def _seed_schedule(words, now):
 
 
 def _seed_settings(_words, _now):
-    """Check-in, the public status page and the schedule on, so their pages show up."""
+    """Check-in and the public status page on, so their pages show up."""
     store = current_app.extensions.get('floorbit_settings')
     if store is None:
         return
-    for key in ('integrations.checkin_enabled', 'public.status_page', 'public.schedule'):
+    for key in ('integrations.checkin_enabled', 'public.status_page'):
         try:
             if store.source(key) != 'saved':
                 store.update({key: True})

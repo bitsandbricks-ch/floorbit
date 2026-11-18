@@ -313,7 +313,7 @@ RULES = (
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
     # Dashboards (floorbit/dashboards.py): arranged by the floor crew, like the older tile layouts.
     ('/api/dashboards', WRITE, 'floorplan.edit'),
-    # Schedule: everyone reads it, leads plan it; /agenda itself is public (floorbit/schedule.py).
+    # Schedule: everyone reads it, leads plan it (floorbit/schedule.py).
     ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).
     ('/api/status-page', READ, 'incidents.work'),

@@ -55,34 +55,23 @@ bot to your server, give it the **applications.commands** scope as well as **bot
 
 Answers are only shown to the person who asked, and they never ping anyone. A command counts as
 the Floorbit account linked to that Discord user, with that account's permissions, the same as a
-button click. There is no Discord role mapping.
+button click. There is no Discord role mapping. The bot is for the crew: every command needs a
+linked account. Attendees report a problem with the QR code on their seat and read the network
+status on `/status`.
 
 | Command | What it answers |
 | --- | --- |
-| `/status` | how the network is doing: the state and since when, the affected areas, areas back up recently and the latest crew update. Crew with `incidents.work` also see the switch names. Anyone else sees only what the public [status page](status-page.md) shows, and only while that page is on. |
+| `/status` | how the network is doing: the state and since when, the affected areas with their switch names, areas back up recently and the latest crew update. Needs `incidents.work`. |
 | `/seat <seat>` | one seat: online or not and how fast, its switch port, open incidents, needs-attention items and how often it was fixed before, with a link to it on the floor plan. Needs `incidents.work`. |
 | `/switch <name>` | one switch: up or down and since when, its model, how many of its seats are online and which are not (with their ports). Needs `incidents.work`. |
 | `/incident report <seat> <problem>` | files an incident for a seat, like the incident board does. It shows up there marked *From Discord*, and automatic dispatch applies. |
 | `/incident take <incident>` | takes an open incident. Start typing a seat or a few words, and Discord lists the open incidents you may work. |
 | `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
 | `/jobs` | the incidents you have, oldest first. |
-| `/report <seat> <problem>` | for **attendees**, no account needed: reports a problem at a seat to the crew, like the QR code on the seat (see below). |
-| `/statusupdate <text> [area]` | posts an update on the public [status page](status-page.md), as from the Network status page. Needs `incidents.assign` (lead or admin). With an attendee status channel set, it goes there too. |
+| `/statusupdate <text> [area]` | posts an update on the public [status page](status-page.md), as from the Network status page. Needs `incidents.assign` (lead or admin). |
 
 The incident commands follow the account's permissions exactly as on the board, and every change is
 in the [audit log](audit.md).
-
-### For attendees
-
-`/report` is the seat QR help page in Discord, for anyone on the server: pick the seat (Discord
-suggests seat numbers as you type) and what is wrong (no internet, slow, no power, something else).
-It files or counts up exactly like the help page, and automatic dispatch applies. If the seat's switch
-is already known to be down, it says so instead of filing *no internet* or *slow*. It is rate limited
-like the help page (5 reports per 10 minutes, per Discord user), never asks for a name and keeps
-nothing about who reported: the audit log only has the seat. The answer is in German for a German
-Discord client. It is off while the seat helpdesk is off (Settings > Features).
-
-`/status` also answers attendees, while the public status page is on, with what that page shows.
 
 Answers carry buttons for the next step, so you rarely need to type a second command:
 
@@ -102,8 +91,7 @@ show nicks, IPs or MACs: those stay in Floorbit.
 
 ## Language
 
-Alerts, the crew channel's incident messages and the attendee channels (status updates, the
-programme) are in English unless **`DISCORD_LANGUAGE`** says `de-CH` (Swiss spelling) or `de`
+Alerts and the crew channel's incident messages are in English unless **`DISCORD_LANGUAGE`** says `de-CH` (Swiss spelling) or `de`
 (Germany and Austria, with ß). What the crew types, switch names and seat numbers stay as they are.
 Slash command answers and buttons on them follow the language the asker set in Discord: German for
 German, English for anything else. The German texts are in `floorbit/locales/discord.de-CH.json`.

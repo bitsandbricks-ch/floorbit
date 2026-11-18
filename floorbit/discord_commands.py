@@ -1,7 +1,7 @@
 """Slash commands for the Floorbit Discord bot (epic #407).
 
-/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414, buttons on the answers #416,
-/report for attendees #424.
+/status is #408, /seat and /switch #410, /incident and /jobs #412, /statusupdate #414, buttons on the answers #416.
+All of them are for the crew: they need a linked Floorbit account.
 
 The bot answers over the same Interactions Endpoint as the crew channel's buttons
 (floorbit/blueprints/crew.py), so it still needs no gateway connection. integrations/crew.py
@@ -11,7 +11,6 @@ A command acts as the Floorbit account linked to the Discord user (Discord sign-
 account's permissions, like a button click. Answers are ephemeral: only the person who asked sees
 them, so a command in a busy channel adds no noise and shows crew detail to nobody else.
 """
-import time
 
 from flask import current_app
 
@@ -50,19 +49,6 @@ COMMANDS = [
               'required': True, 'autocomplete': True, 'max_length': 100},
              {'type': STRING, 'name': 'note', 'description': 'What you did (optional)', 'max_length': 500}]},
      ]},
-    {'name': 'report', 'type': 1, 'contexts': GUILD_ONLY,
-     'description': 'No network at your seat? Tell the crew, like with the QR code on your seat.',
-     'description_localizations': {'de': 'Kein Netzwerk am Platz? Sag es der Crew, wie mit dem QR-Code am Platz.'},
-     'options': [{'type': STRING, 'name': 'seat', 'description': 'Your seat number, e.g. A-12', 'required': True,
-                  'autocomplete': True, 'max_length': 20},
-                 {'type': STRING, 'name': 'problem', 'description': 'What is wrong', 'required': True,
-                  'choices': [{'name': 'No internet', 'value': 'no-internet',
-                               'name_localizations': {'de': 'Kein Internet'}},
-                              {'name': 'Slow or dropping connection', 'value': 'slow',
-                               'name_localizations': {'de': 'Langsame oder abbrechende Verbindung'}},
-                              {'name': 'No power', 'value': 'power', 'name_localizations': {'de': 'Kein Strom'}},
-                              {'name': 'Something else, please come by', 'value': 'other',
-                               'name_localizations': {'de': 'Etwas anderes, bitte vorbeikommen'}}]}]},
     {'name': 'jobs', 'type': 1, 'contexts': GUILD_ONLY, 'description': 'The incidents you have, oldest first.'},
     {'name': 'statusupdate', 'type': 1, 'contexts': GUILD_ONLY,
      'description': 'Post an update for attendees on the public network status page.',
@@ -90,8 +76,6 @@ DESCRIPTIONS_DE = {
     'Start typing a seat or a few words': 'Platz oder ein paar Wörter tippen',
     'Mark an incident fixed.': 'Eine Störung als behoben markieren.',
     'What you did (optional)': 'Was du gemacht hast (optional)',
-    'Your seat number, e.g. A-12': 'Deine Platznummer, z. B. A-12',
-    'What is wrong': 'Was nicht geht',
     'The incidents you have, oldest first.': 'Deine Störungen, die älteste zuerst.',
     'Post an update for attendees on the public network status page.':
         'Eine Meldung für die Teilnehmenden auf der öffentlichen Netzwerkstatus-Seite.',
@@ -197,8 +181,6 @@ def handle(body):
     name = (body.get('data') or {}).get('name')
     if name == 'status':
         return _status(linked_user(body))
-    if name == 'report':
-        return _attendee_report(body)
     if name in ('seat', 'switch'):
         user = linked_user(body)
         if not user:
@@ -231,8 +213,7 @@ def autocomplete(body):
         opts = opts[0].get('options') or []
     focused = next((o for o in opts if o.get('focused')), None)
     user = linked_user(body)
-    # Seat numbers are on every seat: /report suggests them to anyone (issue #424).
-    if not focused or not (_crew(user) or (data.get('name') == 'report' and focused.get('name') == 'seat')):
+    if not focused or not _crew(user):
         return []
     typed = str(focused.get('value') or '').strip().lower()
     if focused.get('name') == 'incident':
@@ -328,10 +309,10 @@ def _area_name(a):
     return f"Hall {a['hall']}" if a.get('hall') else 'Somewhere in the hall'
 
 
-def _area_line(a, crew):
+def _area_line(a):
     seats = a.get('seats')
     bits = [f"rows {a['rows']}" if a.get('rows') else '', f"{seats} seat{'s' if seats != 1 else ''}" if seats else '']
-    if crew and a.get('switches'):
+    if a.get('switches'):
         bits.append('switches: ' + ', '.join(a['switches']))
     rest = ' · '.join(b for b in bits if b)
     return f"• {_area_name(a)}" + (f" ({rest})" if rest else '')
@@ -339,17 +320,17 @@ def _area_line(a, crew):
 
 def _status(user):
     from .blueprints import status_page as page
-    crew = _crew(user)
-    if not crew and not page.page_on():
-        # Without an account the bot says only what the public status page would.
-        return NOT_LINKED if not user else 'The network status needs a Floorbit account that works incidents.'
-    s = page._now(show_names=crew)
+    if not user:
+        return NOT_LINKED
+    if not _crew(user):
+        return 'The network status needs a Floorbit account that works incidents.'
+    s = page._now(show_names=True)
     lines = [f"{STATE_ICON.get(s['state'], '')} **{STATE_TEXT.get(s['state'], s['state'])}**"]
     if s.get('since'):
         lines[0] += f" since <t:{int(s['since'])}:t>"
     if s['areas']:
         lines.append('Affected:')
-        lines += [_area_line(a, crew) for a in s['areas'][:MAX_AREAS]]
+        lines += [_area_line(a) for a in s['areas'][:MAX_AREAS]]
         if len(s['areas']) > MAX_AREAS:
             lines.append(f"…and {len(s['areas']) - MAX_AREAS} more")
     if s.get('recovered'):
@@ -358,61 +339,9 @@ def _status(user):
         u = s['updates'][0]
         where = f" · {u['area']}" if u.get('area') else ''
         lines.append(f"Latest update (<t:{int(u['at'])}:t>{where}): {u['text']}")
-    if crew and s.get('override'):
+    if s.get('override'):
         lines.append(f"State set by hand by {s['override'].get('by') or 'someone'}.")
     return '\n'.join(lines)
-
-
-# ── /report for attendees (#424) ─────────────────────────────────────────────
-# The seat QR help page in Discord: no account and nothing personal, rate limited per Discord user.
-# Its texts match the help page's (frontend/src/i18n/*/seatHelp.json), in German when the Discord client is.
-def _attendee_report(body):
-    from . import dispatch, features, incidents, seat_view
-    from .blueprints import incidents as page
-    from .blueprints.status_page import page_on
-    lang = 'de' if str(body.get('locale') or '').startswith('de') else 'en'
-    text = REPORTED[lang]
-    if not features.on('helpdesk'):
-        return OFF[lang]
-    given, _sub = _options(body)
-    typed, problem = given.get('seat', ''), given.get('problem')
-    seat = match_typed(typed, incidents.seat_numbers())
-    if not seat or problem not in incidents.PROBLEMS:
-        return NO_SEAT[lang].format(seat=typed.strip().upper() or '?')
-    since = seat_view.outage_since(seat)
-    if since and problem in ('no-internet', 'slow'):
-        # Already known: the crew needs no extra report for every seat on a dead switch.
-        return KNOWN[lang].format(m=max(1, round((time.time() - since) / 60))) \
-            + (_link('/status') if page_on() else '')
-    discord_user = (body.get('member') or {}).get('user') or body.get('user') or {}
-    if page._rate_limited(f"discord:{discord_user.get('id') or '?'}"):
-        return text['busy']
-    incident, new = incidents.report_from_seat(seat, problem, incidents.seat_snapshot(seat))
-    page._changed(incident, 'reported')
-    if new:
-        dispatch.send_new(incident)
-    from . import audit
-    audit.record('incidents', 'Reported from Discord' if new else 'Reported again from Discord', target=seat,
-                 fields=[problem])
-    return text['thanks' if new else 'again'].format(seat=seat)
-
-
-REPORTED = {
-    'en': {'thanks': 'Thanks, we know. Someone from the team will come to seat {seat}.',
-           'again': 'We already have this one for seat {seat} and noted that you asked again.',
-           'busy': 'Too many reports from here. Please wait a few minutes or ask at the info desk.'},
-    'de': {'thanks': 'Danke, wir wissen Bescheid. Jemand vom Team kommt zu Platz {seat}.',
-           'again': 'Das haben wir für Platz {seat} schon und vermerkt, dass du nochmals gefragt hast.',
-           'busy': 'Zu viele Meldungen von hier. Warte bitte ein paar Minuten oder frag am Infodesk.'},
-}
-OFF = {'en': 'Reporting from Discord is off at this event. Please ask at the info desk.',
-       'de': 'Melden über Discord ist an diesem Event aus. Frag bitte am Infodesk.'}
-KNOWN = {'en': 'We know: the network at your seat has been down for {m} min. The team is on it, no need to '
-              'report it.',
-         'de': 'Wir wissen es: Das Netz an deinem Platz ist seit {m} Min. ausgefallen. Das Team ist dran, du '
-               'musst es nicht melden.'}
-NO_SEAT = {'en': 'There is no seat {seat}. The number is on the label on your table, e.g. A-12.',
-           'de': 'Platz {seat} gibt es nicht. Die Nummer steht auf dem Schild an deinem Tisch, z. B. A-12.'}
 
 
 # ── incidents ─────────────────────────────────────────────────────────────────

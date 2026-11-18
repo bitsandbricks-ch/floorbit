@@ -123,7 +123,7 @@ def _coming_up(data, now):
     """Programme items that start within the next shift (issue #432), earliest first."""
     from . import schedule
     until = now + FIRST_SHIFT_HOURS * 3600
-    items = [i for i in schedule.public(data, now)['items'] if now <= i['start'] < until]
+    items = [i for i in schedule.programme(data) if now <= i['start'] < until]
     return [{k: i.get(k) for k in ('id', 'title', 'kind', 'start', 'end', 'where')}
             for i in sorted(items, key=lambda i: i['start'])[:MAX_COMING_UP]]
 

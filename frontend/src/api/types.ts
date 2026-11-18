@@ -1492,7 +1492,6 @@ export interface ScheduleData {
   event: { start: number | null; end: number | null }
   items: ScheduleItem[]
   kinds: ScheduleKind[]
-  public: boolean
 }
 
 /** GET /api/plan (issue #55): every seat with one state, for the floor plan view. No nicks or IPs. */
