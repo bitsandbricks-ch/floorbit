@@ -26,10 +26,13 @@ switched off; an admin turns it on under Settings > Plugins. See docs/plugins.md
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import os
 import re
 import threading
+import time
 import traceback
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -99,6 +102,13 @@ OPTIONAL_METHODS = {
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
 # ``enable_env`` names a variable that forces it on (FLOORBIT_DEMO for the demo data).
 BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
+# Every key plugin.yaml may have (docs/plugin-spec.md). An unknown key is refused, so a typo or a
+# feature this Floorbit doesn't have fails at load, not quietly at run time.
+MANIFEST_KEYS = frozenset({
+    'id', 'name', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', *BUILTIN_ONLY})
+# Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
+MANIFEST_NEXT = ('icon', 'panels', 'layers', 'pages', 'schema')
 TRUE_WORDS = ('1', 'true', 'yes', 'on')
 # Manifest setting types and the settings page type each becomes.
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
@@ -111,6 +121,23 @@ ROLE_PERMISSION = {'viewer': 'floorplan.view', 'editor': 'plugins.run', 'admin':
 # ``security.finding`` a new security finding (floorbit/security.py), ``power.alert`` a circuit
 # turning red or tripping (floorbit/power.py).
 EVENTS = ('change', 'switch.status', 'health.status', 'security.finding', 'power.alert')
+# Hooks run on a few shared threads, not one thread each: a burst of changes (a bulk edit, a
+# switch flapping) must not start hundreds of threads. Past HOOK_QUEUE waiting, the oldest go.
+HOOK_WORKERS = 4
+HOOK_QUEUE = 200
+# A tile or an endpoint answers within this, or the request gets an error and the worker is free;
+# at most CALLS_PER_PLUGIN of one plugin's run at once, so one stuck plugin can't take every worker.
+REQUEST_BUDGET = 10
+CALLS_PER_PLUGIN = 4
+# plugin.yaml is read before anything is checked: a bigger one is refused unread.
+MANIFEST_MAX_BYTES = 256 * 1024
+# plugin.py runs when it is loaded; one that doesn't finish (a loop at import, a network call)
+# is given up on so Floorbit still starts.
+IMPORT_TIMEOUT = 15
+# Tests set this to run hooks in the caller's thread, so no hook outlives its test.
+HOOKS_INLINE = False
+# plugins.json is read for every "is it on?": keep what was read this long (writes refresh it).
+STATE_TTL = 2.0
 
 
 @dataclass
@@ -194,6 +221,12 @@ def validate(m):
         return 'id: 2 to 40 lowercase letters, digits and dashes, starting with a letter'
     if m['id'] == 'floorbit':
         return 'id: "floorbit" is taken by Floorbit\'s own dashboard tiles'
+    extra = sorted(str(k) for k in m if k not in MANIFEST_KEYS)
+    if extra:
+        later = [k for k in extra if k in MANIFEST_NEXT]
+        if later:
+            return f"{', '.join(later)}: not supported by this Floorbit yet (docs/plugin-spec.md)"
+        return f"unknown key(s) {', '.join(extra)} (docs/plugin-spec.md lists what plugin.yaml may have)"
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"
@@ -328,8 +361,11 @@ def _load(path, trust, current_version):
         return None
     spec = Spec(id=path.name, path=path, trust=trust)
     try:
+        if mf.stat().st_size > MANIFEST_MAX_BYTES:
+            spec.error = f'plugin.yaml is larger than {MANIFEST_MAX_BYTES // 1024} KB'
+            return spec
         spec.manifest = yaml.safe_load(mf.read_text(encoding='utf-8')) or {}
-    except yaml.YAMLError as exc:
+    except (yaml.YAMLError, OSError, UnicodeDecodeError) as exc:
         spec.error = f'plugin.yaml: {exc}'
         return spec
     spec.id = str(spec.manifest.get('id', path.name)) if isinstance(spec.manifest, dict) else path.name
@@ -347,15 +383,30 @@ def _load(path, trust, current_version):
     py = path / 'plugin.py'
     if py.is_file():
         modname = f"floorbit_plugin_{spec.id.replace('-', '_')}"
-        try:
-            sp = importlib.util.spec_from_file_location(modname, py)
-            mod = importlib.util.module_from_spec(sp)
-            sys.modules[modname] = mod
-            sp.loader.exec_module(mod)
-            spec.module = mod
-        except Exception as exc:  # noqa: BLE001  # a broken plugin must not take Floorbit down
+        box = {}
+
+        def run():
+            try:
+                sp = importlib.util.spec_from_file_location(modname, py)
+                mod = importlib.util.module_from_spec(sp)
+                sys.modules[modname] = mod
+                sp.loader.exec_module(mod)
+                box['module'] = mod
+            # BaseException too: a sys.exit() at import must not stop Floorbit.
+            except BaseException as exc:  # noqa: BLE001  # a broken plugin must not take Floorbit down
+                box['error'] = exc
+        loader = threading.Thread(target=run, daemon=True, name=f'plugin-{spec.id}-import')
+        loader.start()
+        loader.join(IMPORT_TIMEOUT)
+        if loader.is_alive():
+            spec.error = f'plugin.py did not finish loading within {IMPORT_TIMEOUT} s'
+            return spec
+        if 'error' in box:
+            exc = box['error']
+            sys.modules.pop(modname, None)
             spec.error = f'plugin.py: {type(exc).__name__}: {exc}'
             return spec
+        spec.module = box['module']
     agent = spec.agent
     if agent and not (path / agent['module']).is_file():
         spec.error = f"agent.module: {agent['module']} is missing"
@@ -375,6 +426,13 @@ class Registry:
         self.specs = {}
         self.logs = LogBuffer()
         self._lock = threading.Lock()
+        self._cache = None             # (read at, path, data) of plugins.json
+        self._hooks = deque()
+        self._hooks_cv = threading.Condition()
+        self._hook_threads = 0
+        self.hooks_dropped = 0
+        self._busy = {}                # plugin id -> calls running within REQUEST_BUDGET
+        self._busy_lock = threading.Lock()
         if dirs is None:
             dirs = [(BUILTIN_DIR, 'builtin')]
             dev = os.environ.get(DEV_ENV, '').strip()
@@ -404,7 +462,8 @@ class Registry:
         if cur is not None and cur.trust in ('builtin', 'development'):
             spec.error = f'a plugin with id {spec.id} ships with this Floorbit'
             return spec
-        self.specs[spec.id] = spec
+        # A new dict, never a change to the one in use: requests and hooks iterate it meanwhile.
+        self.specs = {**self.specs, spec.id: spec}
         self._register_settings()
         return spec
 
@@ -412,7 +471,7 @@ class Registry:
         """Forget an installed plugin (its settings and state stay, for a later install)."""
         spec = self.specs.get(plugin_id)
         if spec is not None and spec.trust not in ('builtin', 'development'):
-            del self.specs[plugin_id]
+            self.specs = {k: v for k, v in self.specs.items() if k != plugin_id}
 
     # settings ------------------------------------------------------------------------------
     def _register_settings(self):
@@ -474,9 +533,14 @@ class Registry:
         which must never start from that."""
         from .. import database, store
         path = path or self.path()
+        cached = self._cache
+        if not strict and cached and cached[1] == path and time.monotonic() - cached[0] < STATE_TTL:
+            return cached[2]
         try:
             data = store.read_json(path, {})
-            return data if isinstance(data, dict) else {}
+            data = data if isinstance(data, dict) else {}
+            self._cache = (time.monotonic(), path, data)
+            return data
         except database.DatabaseUnavailable:
             if strict:
                 raise
@@ -489,26 +553,33 @@ class Registry:
         return self._all().get(plugin_id) or {}
 
     def _update(self, plugin_id, **changes):
+        with self._lock:
+            self._update_locked(plugin_id, **changes)
+
+    def _update_locked(self, plugin_id, **changes):
         import json
         import tempfile
-        with self._lock:
-            path = self.path()   # once: read and write the same file
-            data = self._all(path, strict=True)
-            data.setdefault(plugin_id, {}).update(changes)
-            from .. import database, store
-            if database.backend().kind != 'files':
-                store.write_json(path, json.loads(json.dumps(data, default=str)))
-                return
-            folder = os.path.dirname(path) or '.'
-            fd, tmp = tempfile.mkstemp(dir=folder, prefix='.plugins-', suffix='.json')
-            try:
-                with os.fdopen(fd, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, default=str)
-                os.replace(tmp, path)
-            except BaseException:
-                with contextlib.suppress(OSError):
-                    os.unlink(tmp)
-                raise
+        path = self.path()   # once: read and write the same file
+        data = self._all(path, strict=True)
+        data = json.loads(json.dumps(data, default=str))   # a copy: the cached one stays as read
+        data.setdefault(plugin_id, {}).update(json.loads(json.dumps(changes, default=str)))
+        from .. import database, store
+        self._cache = None
+        if database.backend().kind != 'files':
+            store.write_json(path, data)
+            self._cache = (time.monotonic(), path, data)
+            return
+        folder = os.path.dirname(path) or '.'
+        fd, tmp = tempfile.mkstemp(dir=folder, prefix='.plugins-', suffix='.json')
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, default=str)
+            os.replace(tmp, path)
+            self._cache = (time.monotonic(), path, data)
+        except BaseException:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp)
+            raise
 
     def enabled(self, spec):
         if spec.error:
@@ -535,6 +606,17 @@ class Registry:
     def save_state(self, plugin_id, state):
         self._update(plugin_id, state=state)
 
+    def set_state_key(self, plugin_id, key, value, limit):
+        """One key of the plugin's state, read and written under the lock from a fresh read, so
+        two hooks setting different keys at once don't undo each other."""
+        import json
+        with self._lock:
+            state = dict((self._all(strict=True).get(plugin_id) or {}).get('state') or {})
+            state[str(key)] = value
+            if len(json.dumps(state, default=str)) > limit:
+                raise PluginError(f'Plugin state is limited to {limit // 1024} KB')
+            self._update_locked(plugin_id, state=state)
+
     def log(self, plugin_id, line):
         self.logs.add(plugin_id, line)
 
@@ -546,6 +628,11 @@ class Registry:
     def active(self, plugin_id):
         spec = self.specs.get(plugin_id)
         return spec if spec and self.enabled(spec) else None
+
+    def reaches_lan(self, spec):
+        """Does the plugin talk to the event network (has any of LAN_METHODS)?"""
+        cls = spec.plugin_class()
+        return cls is not None and any(callable(getattr(cls, m, None)) for m in LAN_METHODS)
 
     def call(self, spec, method, *args):
         """Run one plugin method. PluginError messages are shown; anything else is logged."""
@@ -561,14 +648,49 @@ class Registry:
             return getattr(cls(Context(spec, self)), method)(*args)
         except PluginError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        # BaseException too: a plugin's sys.exit() would otherwise end the worker serving the request.
+        except BaseException as exc:
+            if isinstance(exc, GeneratorExit):
+                raise
             self.log(spec.id, f'{method} failed: ' + ''.join(traceback.format_exception_only(exc)).strip())
             raise PluginError(f'{spec.name} failed ({type(exc).__name__}); details are in its log') from None
+
+    def timed(self, spec, method, *args, timeout=None):
+        """``call`` for a request that waits on it: an answer within ``timeout`` or a PluginError.
+
+        The call runs on its own thread with the request's context (tenant, event, app), so a
+        plugin that hangs costs one thread, not the request's worker; past CALLS_PER_PLUGIN of the
+        same plugin, the next is refused at once instead of piling up."""
+        timeout = REQUEST_BUDGET if timeout is None else timeout
+        with self._busy_lock:
+            if self._busy.get(spec.id, 0) >= CALLS_PER_PLUGIN:
+                raise PluginError(f'{spec.name} is still busy with earlier requests; try again shortly')
+            self._busy[spec.id] = self._busy.get(spec.id, 0) + 1
+        done = threading.Event()
+        box = {}
+        ctx = contextvars.copy_context()
+
+        def run():
+            try:
+                box['value'] = ctx.run(self.call, spec, method, *args)
+            except BaseException as exc:  # noqa: BLE001  # handed to the waiting request
+                box['error'] = exc
+            finally:
+                with self._busy_lock:
+                    self._busy[spec.id] = max(0, self._busy.get(spec.id, 1) - 1)
+                done.set()
+        threading.Thread(target=run, daemon=True, name=f'plugin-{spec.id}-call').start()
+        if not done.wait(timeout):
+            self.log(spec.id, f'{method} took longer than {timeout} s; the request gave up on it')
+            raise PluginError(f'{spec.name} did not answer within {timeout} s')
+        if 'error' in box:
+            raise box['error']
+        return box.get('value')
 
     def widget(self, spec, widget_id):
         item = spec.item('widgets', widget_id)
         try:
-            return check_widget(self.call(spec, f'widget_{widget_id}'), item)
+            return check_widget(self.timed(spec, f'widget_{widget_id}'), item)
         except WidgetError as exc:
             self.log(spec.id, f'widget {widget_id}: {exc}')
             raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
@@ -620,19 +742,51 @@ class Registry:
     # hooks ---------------------------------------------------------------------------------
     def emit(self, event, data):
         """Run hooked actions in the background, so a slow plugin never slows a request."""
+        jobs = []
         for spec in list(self.specs.values()):
-            if spec.error or not self.enabled(spec):
+            hooks = [h for h in spec.items('hooks') if event in h.get('events', [])]
+            if not hooks or spec.error or not self.enabled(spec):
                 continue
-            for hook in spec.items('hooks'):
-                if event in hook.get('events', []):
-                    threading.Thread(target=self._run_hook, args=(spec, hook['action'], event, data),
-                                     daemon=True, name=f'plugin-{spec.id}').start()
+            jobs += [(spec, h['action']) for h in hooks]
+        if not jobs:
+            return
+        if HOOKS_INLINE:
+            for spec, action in jobs:
+                self._run_hook(spec, action, event, data)
+            return
+        ctx = contextvars.copy_context()   # the tenant and event the change happened in
+        with self._hooks_cv:
+            for spec, action in jobs:
+                if len(self._hooks) >= HOOK_QUEUE:
+                    old = self._hooks.popleft()
+                    self.hooks_dropped += 1
+                    self.log(old[1].id, f'hook {old[3]} -> {old[2]} dropped: too many waiting ({HOOK_QUEUE})')
+                self._hooks.append((ctx, spec, action, event, data))
+            if self._hook_threads < HOOK_WORKERS:
+                self._hook_threads += 1
+                threading.Thread(target=self._hook_worker, daemon=True, name='plugin-hooks').start()
+            self._hooks_cv.notify()
+
+    def _hook_worker(self):
+        while True:
+            with self._hooks_cv:
+                if not self._hooks and not self._hooks_cv.wait_for(lambda: self._hooks, timeout=30):
+                    self._hook_threads -= 1    # idle: the next burst starts a new one
+                    return
+                ctx, spec, action, event, data = self._hooks.popleft()
+            ctx.run(self._run_hook, spec, action, event, data)
+
+    def hooks_waiting(self):
+        with self._hooks_cv:
+            return len(self._hooks)
 
     def _run_hook(self, spec, action, event, data):
         try:
             self.call(spec, f'run_{action}', {'event': event, 'data': data})
         except PluginError as exc:
             self.log(spec.id, f'hook {event} -> {action}: {exc}')
+        except Exception as exc:  # noqa: BLE001  # a worker must outlive any hook
+            self.log(spec.id, f'hook {event} -> {action} failed: {type(exc).__name__}')
 
     def as_list(self):
         out = []
