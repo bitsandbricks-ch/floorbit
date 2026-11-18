@@ -12,7 +12,7 @@
   "lastDay": "Letzte 24 Stunden: {{volume}}",
   "nothing": "kein Verkehr",
   "areas": "Pro Bereich, letzte Stunde",
-  "areasText": "Bereiche sind die Platzblöcke auf dem Hallenplan.",
+  "areasText": "Bereiche sind die Sitzblöcke auf dem Hallenplan.",
   "services": "Häufigste Dienste, 24 Stunden",
   "seatCount_one": "{{count}} Platz",
   "seatCount_other": "{{count}} Plätze",

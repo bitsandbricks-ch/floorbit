@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from '@/components/Layout'
 import { PageError } from '@/components/PageError'
+import { readServerPage } from '@/lib/serverPage'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -73,10 +74,29 @@ const PublicBracket = lazy(() => import('@/pages/public/PublicBracket'))
 const PublicHall = lazy(() => import('@/pages/public/PublicHall'))
 const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
 const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
+const Forbidden = lazy(() => import('@/pages/Forbidden'))
+const SeatHelp = lazy(() => import('@/pages/public/SeatHelp'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
+
+// Read once: the server's answer for the page that was loaded, not for later client-side moves.
+const serverPage = readServerPage()
+// A 404 holds for the address it came with; a link from its sidebar moves on to a real page.
+const firstPath = typeof window === 'undefined' ? '' : window.location.pathname
 
 export default function App() {
   const { pathname } = useLocation()
+  if (serverPage?.kind === 'forbidden') {
+    return <PageError resetKey={pathname}><Suspense fallback={null}><Forbidden page={serverPage} /></Suspense></PageError>
+  }
+  if (serverPage?.kind === 'not-found' && pathname === firstPath) {
+    return (
+      <PageError resetKey={pathname}>
+        <Suspense fallback={null}>
+          <Routes><Route element={<AppShell />}><Route path="*" element={<NotFound />} /></Route></Routes>
+        </Suspense>
+      </PageError>
+    )
+  }
   return (
     // Outside the shell too (sign-in, check-in): an error there shows a way out, not a blank window.
     <PageError resetKey={pathname}>
@@ -90,6 +110,7 @@ export default function App() {
           <Route path="/bracket" element={<PublicBracket />} />
           <Route path="/hall" element={<PublicHall />} />
           <Route path="/find" element={<PublicFind />} />
+          <Route path="/help/:seat" element={<SeatHelp />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route path="/screen" element={<BigScreen />} />

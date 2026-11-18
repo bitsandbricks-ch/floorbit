@@ -75,11 +75,14 @@ function Palette({ onDone, onOpen }: { onDone: () => void; onOpen: (o: Opens) =>
     const recent = recentPages().filter((href) => href !== here && pages.some((p) => p.href === href)).slice(0, RECENT_MAX)
     // The server's English label stands in for a page this version has no translation for yet.
     const named = pages.map((p) => ({ ...p, label: isPluginPage(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label }), recent: recent.includes(p.href) }))
+    // Other words people type for a page ("Strom" for Electrics, "DHCP" for Security), in both
+    // languages, so the English word works in German too.
+    const also = (id: string) => fold(`${t(`goto.also.${id}`, { defaultValue: '' })} ${t(`goto.also.${id}`, { lng: 'en', defaultValue: '' })}`)
     // Nothing typed yet: the pages opened last come first, newest on top (issue #244).
     if (!q) return [...named.filter((p) => p.recent).sort((a, b) => recent.indexOf(a.href) - recent.indexOf(b.href)), ...named.filter((p) => !p.recent)]
     // Label first, then the path, so "set" finds Settings before /settings/... pages named otherwise.
     const found = named
-      .filter((p) => fold(p.label).includes(q) || p.href.includes(q))
+      .filter((p) => fold(p.label).includes(q) || p.href.includes(q) || also(p.id).includes(q))
       .sort((a, b) => Number(!fold(a.label).includes(q)) - Number(!fold(b.label).includes(q)))
     // Then the seats and switches the server found (issue #252), once it answered for this text.
     const spots = asked === query ? places.map((p) => ({ href: p.href, id: p.kind, label: `${t(`goto.${p.kind}`)} ${p.name}`, recent: false })) : []

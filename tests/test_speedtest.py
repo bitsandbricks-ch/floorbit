@@ -3,7 +3,7 @@ import pytest
 
 from floorbit import incidents, speedtest
 from floorbit.blueprints import incidents as incidents_bp
-from tests.test_incidents import help_url, sign_in_as
+from tests.test_incidents import api_url, sign_in_as
 
 RESULT = {"down_mbps": 912.44, "up_mbps": 455, "ping_ms": 1.234, "jitter_ms": 0.2}
 
@@ -63,7 +63,7 @@ def test_result_goes_with_the_report(anon_client, client, app_module, floor):
     saved = anon_client.post(speed_url(app_module, "A-1", "result"), json=RESULT).get_json()
     assert (saved["down_mbps"], saved["up_mbps"], saved["ping_ms"]) == (912.4, 455.0, 1.2)
     assert set(saved) == {"down_mbps", "up_mbps", "ping_ms", "jitter_ms", "at"}   # nothing personal
-    anon_client.post(help_url(app_module, "A-1"), data={"problem": "slow"})
+    anon_client.post(api_url(app_module, "A-1"), json={"problem": "slow"})
     [incident] = client.get("/api/incidents").get_json()["incidents"]
     assert incident["speedtest"]["down_mbps"] == 912.4
     # A test after the report lands on the open incident too.
@@ -93,13 +93,6 @@ def test_budget_is_per_client_behind_a_trusted_proxy(anon_client, app_module, fl
     assert anon_client.get(url, headers=first).status_code == 200
     assert anon_client.get(url, headers=first).status_code == 429
     assert anon_client.get(url, headers=other).status_code == 200
-
-
-def test_help_page_has_the_test(anon_client, app_module, floor):
-    page = anon_client.get(help_url(app_module, "A-1")).data.decode()
-    assert "Test your connection" in page and 'data-base="/help/A-1/speed/"' in page
-    thanks = anon_client.post(help_url(app_module, "A-1"), data={"problem": "slow"}).data.decode()
-    assert "speedtest.js" in thanks
 
 
 def test_results_are_for_the_crew(app_module, floor):

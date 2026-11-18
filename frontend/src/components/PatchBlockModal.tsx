@@ -49,7 +49,7 @@ export function PatchBlockModal({ onClose, onDone }: {
       <Stack gap="sm">
         <Text size="sm" c="dimmed">{t('cables.patchIntro')}</Text>
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-          <Select label={t('cables.block')} required searchable value={form.block || null}
+          <Select label={t('cables.block')} required searchable placeholder={t('ui.pickBlock')} value={form.block || null}
             data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.name || '–'} (${b.cols * b.rows})` }))}
             onChange={(v) => set('block')(v ?? '')} />
           <EntitySelect kind="switches" label={t('cables.switch')} required value={form.switch} onChange={set('switch')} />

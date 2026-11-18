@@ -75,7 +75,8 @@ export default function Topology() {
         )}
         {data && placed && lines && data.links.length > 0 && (
           <Box style={{ display: 'grid', gap: 16, gridTemplateColumns: phone ? '1fr' : 'minmax(0, 1fr) 300px' }}>
-            <Paper withBorder radius="lg" p="sm" style={{ overflowX: 'auto' }}>
+            {/* Wider than a phone: focusable so a keyboard can scroll it too. */}
+            <Paper withBorder radius="lg" p="sm" style={{ overflowX: 'auto' }} tabIndex={0}>
               <svg role="img" aria-label={t('topology.diagram', { count: data.links.length })}
                 viewBox={`-10 -10 ${lines.width + 20} ${lines.height + 20}`}
                 style={{ display: 'block', width: '100%', minWidth: phone ? Math.min(lines.width, 720) : undefined, height: 'auto' }}>

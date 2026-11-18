@@ -23,7 +23,7 @@ _override = None
 
 # Is the monitoring source answering? Set by the status monitor's polls and by failed calls.
 _health_lock = threading.Lock()
-_health = {'source': None, 'ok': True, 'offline_since': None, 'last_ok': None, 'error': None}
+_health = {'source': None, 'label': None, 'ok': True, 'offline_since': None, 'last_ok': None, 'error': None}
 
 
 # Set when the source may answer again (an agent connected): the status monitor polls at once.
@@ -39,19 +39,20 @@ def health():
         return dict(_health)
 
 
-def mark_ok(source):
+def mark_ok(source, label=None):
     """Returns how long the source was down (seconds), or None if it wasn't."""
     with _health_lock:
         was_down = _health['offline_since']
-        _health.update(source=source, ok=True, offline_since=None, last_ok=time.time(), error=None)
+        _health.update(source=source, label=label or source, ok=True, offline_since=None, last_ok=time.time(),
+                       error=None)
     return time.time() - was_down if was_down else None
 
 
-def mark_failed(source, error):
+def mark_failed(source, error, label=None):
     """Returns True when this is the start of an outage."""
     with _health_lock:
         starting = _health['offline_since'] is None
-        _health.update(source=source, ok=False, error=str(error)[:300],
+        _health.update(source=source, label=label or source, ok=False, error=str(error)[:300],
                        offline_since=_health['offline_since'] or time.time())
     return starting
 
@@ -154,7 +155,7 @@ class PluginMonitoring(NoMonitoring):
             result = self._call(method, *args)
         except PluginError as exc:
             print(f'[sources] {self.name} {method} failed: {exc}')
-            mark_failed(self.name, exc)
+            mark_failed(self.name, exc, self.label)
             cached = lastgood.get(key)
             return _stale(cached) if cached else None
         if good(result):

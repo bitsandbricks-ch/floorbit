@@ -3,6 +3,7 @@ import { IconDownload } from '@tabler/icons-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DateTimeInput } from '@/components/DateTimeInput'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { EntitySelect } from '@/components/EntitySelect'
@@ -68,8 +69,8 @@ export function History() {
             onChange={(e) => set({ user: e.currentTarget.value })} />
           <TextInput label="IP" placeholder="192.0.2." ff="monospace" value={filters.ip} onChange={(e) => set({ ip: e.currentTarget.value })} />
           <TextInput label="MAC" placeholder="02:00:00" value={filters.mac} onChange={(e) => set({ mac: e.currentTarget.value })} />
-          <TextInput type="datetime-local" label={t('crewCheckin.history.from')} value={filters.since} onChange={(e) => set({ since: e.currentTarget.value })} />
-          <TextInput type="datetime-local" label={t('crewCheckin.history.to')} value={filters.until} onChange={(e) => set({ until: e.currentTarget.value })} />
+          <DateTimeInput label={t('crewCheckin.history.from')} value={filters.since} onChange={(v) => set({ since: v })} />
+          <DateTimeInput label={t('crewCheckin.history.to')} value={filters.until} onChange={(v) => set({ until: v })} />
           {view === 'events' && (
             <Select label={t('crewCheckin.history.event.label')} placeholder={t('crewCheckin.history.any')} clearable value={filters.event || null}
               data={EVENTS.map((e) => ({ value: e, label: label(e) }))} onChange={(v) => set({ event: v ?? '' })} />

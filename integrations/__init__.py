@@ -162,7 +162,8 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
     # ── Seat check-in ───────────────────────────────────────────────────────
     def checkin_disabled():
         if not config.get_bool('CHECKIN_ENABLED', False):
-            return jsonify({'error': 'Check-in is disabled'}), 404
+            # The code lets the crew page say how to turn it on, not show a failure.
+            return jsonify({'error': 'Check-in is disabled', 'code': 'checkin_disabled'}), 404
         return None
 
     def admin_denied():

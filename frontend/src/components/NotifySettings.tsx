@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Group, Modal, Stack, Switch, Text, TextInput } from '@mantine/core'
+import { Alert, Button, Checkbox, Group, Modal, Select, Stack, Switch, Text } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,6 +8,10 @@ export interface NotifyPrefs {
   /** Seats to notify about when their link changes (issue #178). */
   watch?: string[]
 }
+
+// Quiet hours in 24-hour time: the browser's time input shows AM/PM to English browsers.
+const HALF_HOURS = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
+const halfHours = (current: string) => (HALF_HOURS.includes(current) ? HALF_HOURS : [...HALF_HOURS, current].sort())
 
 declare global {
   interface Window {
@@ -50,10 +54,10 @@ export function NotifySettings({ opened, onClose }: { opened: boolean; onClose: 
           {prefs.on && prefs.quiet && (
             <Stack gap="xs" pl="xl">
               <Group gap="sm" wrap="nowrap">
-                <TextInput type="time" w={130} label={t('common.notify.quietFrom')} value={prefs.quietFrom ?? '22:00'}
-                  onChange={(e) => { const v = e.currentTarget.value; if (v) void change({ quietFrom: v }) }} />
-                <TextInput type="time" w={130} label={t('common.notify.quietTo')} value={prefs.quietTo ?? '08:00'}
-                  onChange={(e) => { const v = e.currentTarget.value; if (v) void change({ quietTo: v }) }} />
+                <Select w={130} label={t('common.notify.quietFrom')} value={prefs.quietFrom ?? '22:00'} allowDeselect={false}
+                  data={halfHours(prefs.quietFrom ?? '22:00')} onChange={(v) => { if (v) void change({ quietFrom: v }) }} />
+                <Select w={130} label={t('common.notify.quietTo')} value={prefs.quietTo ?? '08:00'} allowDeselect={false}
+                  data={halfHours(prefs.quietTo ?? '08:00')} onChange={(v) => { if (v) void change({ quietTo: v }) }} />
               </Group>
               <Checkbox label={t('common.notify.jobsInQuiet')} checked={prefs.jobsInQuiet !== false} onChange={(e) => void change({ jobsInQuiet: e.currentTarget.checked })} />
               {api.quietNow?.() && (

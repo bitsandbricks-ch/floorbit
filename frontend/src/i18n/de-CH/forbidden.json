@@ -1,0 +1,7 @@
+{
+  "title": "Nicht erlaubt",
+  "needs": "Deine Rolle kann diese Seite nicht öffnen. Sie braucht:",
+  "signedInAs": "Du bist angemeldet als {{name}} ({{role}}).",
+  "ask": "Ein Admin kann deiner Rolle diese Berechtigung unter «Rollen und Teams» geben.",
+  "switch": "Als jemand anderes anmelden"
+}

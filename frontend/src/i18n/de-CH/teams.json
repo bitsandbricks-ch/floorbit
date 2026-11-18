@@ -36,8 +36,8 @@
   "membersSaved": "Teammitglieder gespeichert.",
   "roleText": {
     "admin": "Alles, auch Einstellungen, Konten, Plugins und Rollen.",
-    "lead": "Alles, was ein Tech darf, dazu den Hallenplan, Incidents jedem Team zuweisen und das Audit-Log lesen.",
-    "tech": "Bearbeitet Incidents seiner Teams, führt Port-Aktionen aus, sieht Sitz- und Netzwerkdaten.",
+    "lead": "Alles, was ein Tech darf, dazu den Hallenplan, Störungen jedem Team zuweisen und das Audit-Log lesen.",
+    "tech": "Bearbeitet Störungen seiner Teams, führt Port-Aktionen aus, sieht Sitz- und Netzwerkdaten.",
     "viewer": "Schaut sich Hallenplan und Dashboards an, ändert nichts.",
     "kiosk": "Ein Nur-Lesen-Konto für einen grossen Bildschirm. Entfernen, um es zu sperren."
   },
@@ -46,8 +46,8 @@
     "floorplan_edit": "Hallenplan und Inventar ändern, Abgleiche starten",
     "seats_view": "Sehen, wer wo sitzt: Nicks, IPs, MACs und Check-ins",
     "seats_edit": "Sitzzuordnung und Check-ins ändern",
-    "incidents_work": "Incidents der eigenen Teams bearbeiten",
-    "incidents_assign": "Incidents jedem Team zuweisen",
+    "incidents_work": "Störungen der eigenen Teams bearbeiten",
+    "incidents_assign": "Störungen jedem Team zuweisen",
     "ports_act": "Port-Aktionen und Show-Befehle auf Switches ausführen",
     "commands_change": "Switch-Befehle ausführen, die etwas ändern, zum Beispiel Zähler zurücksetzen",
     "configs_read": "Switch-Konfigurationen sichern und sie samt Änderungen lesen",
@@ -58,5 +58,23 @@
     "audit_read": "Das Audit-Log lesen",
     "settings_manage": "Einstellungen, Plugins und Backups ändern",
     "accounts_manage": "Konten, Rollen und Teams verwalten"
+  },
+  "permissionShort": {
+    "floorplan_view": "Hallenplan ansehen",
+    "floorplan_edit": "Hallenplan ändern",
+    "seats_view": "Plätze ansehen",
+    "seats_edit": "Plätze ändern",
+    "incidents_work": "Störungen bearbeiten",
+    "incidents_assign": "Störungen zuweisen",
+    "ports_act": "Port-Aktionen",
+    "commands_change": "Ändernde Befehle",
+    "configs_read": "Configs lesen",
+    "terminal_open": "Terminal",
+    "power_edit": "Strom ändern",
+    "games_rcon": "RCON",
+    "plugins_run": "Plugins ausführen",
+    "audit_read": "Audit-Log",
+    "settings_manage": "Einstellungen",
+    "accounts_manage": "Konten"
   }
 }

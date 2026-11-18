@@ -58,5 +58,23 @@
     "audit_read": "Read the audit log",
     "settings_manage": "Change settings, plugins and backups",
     "accounts_manage": "Manage accounts, roles and teams"
+  },
+  "permissionShort": {
+    "floorplan_view": "View floor plan",
+    "floorplan_edit": "Edit floor plan",
+    "seats_view": "View seats",
+    "seats_edit": "Edit seats",
+    "incidents_work": "Work incidents",
+    "incidents_assign": "Assign incidents",
+    "ports_act": "Port actions",
+    "commands_change": "Changing commands",
+    "configs_read": "Read configs",
+    "terminal_open": "Terminal",
+    "power_edit": "Edit power",
+    "games_rcon": "RCON",
+    "plugins_run": "Run plugins",
+    "audit_read": "Audit log",
+    "settings_manage": "Settings",
+    "accounts_manage": "Accounts"
   }
 }

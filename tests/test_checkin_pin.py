@@ -373,6 +373,13 @@ def test_outside_the_event_network_a_pin_is_not_even_looked_at(hall, monkeypatch
     assert checkin._wrong_pins == {}
 
 
+def test_switched_off_check_in_says_so_with_a_code(client, monkeypatch):
+    monkeypatch.setenv("CHECKIN_ENABLED", "false")
+    r = client.get("/api/checkins/overview")
+    assert r.status_code == 404
+    assert r.get_json()["code"] == "checkin_disabled"
+
+
 @pytest.mark.parametrize("body", [{"seat": "A-1", "username": 7}, {"pin": ["x"], "username": "pixel"},
                                   {"seat": {"a": 1}, "username": "pixel"},
                                   {"seat": "A-1", "username": "pixel", "device": 3}])

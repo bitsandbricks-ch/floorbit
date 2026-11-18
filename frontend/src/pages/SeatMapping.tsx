@@ -25,14 +25,14 @@ function Cell({ value, source, label, mono }: { value: string; source?: string; 
       </Text>
       {source === 'manual' && (
         <Tooltip label={label('manual')}>
-          <Badge size="xs" variant="filled" color="bit" aria-label={label('manual')}>
+          <Badge size="xs" variant="filled" color="bit" aria-label={label('manual')} style={{ flexShrink: 0 }}>
             ✎
           </Badge>
         </Tooltip>
       )}
       {source === 'network' && (
         <Tooltip label={label('network')}>
-          <Badge size="xs" variant="light" color="trace" aria-label={label('network')}>
+          <Badge size="xs" variant="light" color="trace" aria-label={label('network')} style={{ flexShrink: 0 }}>
             ⇄
           </Badge>
         </Tooltip>
@@ -53,7 +53,7 @@ function PortCell({ row }: { row: SeatRow }) {
       </Text>
       {origin && (
         <Tooltip label={t(`seatmap.originLong.${row.port_origin}`)}>
-          <Badge size="xs" variant={row.port_origin === 'manual' ? 'filled' : 'light'} color={row.port_origin === 'manual' ? 'bit' : 'trace'} tt="none">
+          <Badge size="xs" variant={row.port_origin === 'manual' ? 'filled' : 'light'} color={row.port_origin === 'manual' ? 'bit' : 'trace'} tt="none" style={{ flexShrink: 0 }}>
             {origin}
           </Badge>
         </Tooltip>
@@ -77,7 +77,8 @@ export default function SeatMapping() {
   const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
-  const label = (s: string) => (s === 'manual' ? t('seatmap.byHand') : (data?.labels[s] ?? s))
+  // Built-in sources by their name in the reader's language; plugins' sources as they call themselves.
+  const label = (s: string) => (s === 'manual' ? t('seatmap.byHand') : t(`seatmap.sourceName.${s}`, { defaultValue: data?.labels[s] ?? s }))
   const refresh = () => client.invalidateQueries({ queryKey: qk.seatMap })
 
   const save = useMutation({
@@ -182,9 +183,8 @@ export default function SeatMapping() {
           {rows.length === 0 ? (
             <Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>
           ) : (
-            <Paper withBorder radius="lg">
-              <Table.ScrollContainer minWidth={860}>
-                <Table highlightOnHover verticalSpacing="xs" fz="sm">
+            <Paper withBorder radius="lg" px={{ base: 'sm', sm: 0 }}>
+                <Table highlightOnHover verticalSpacing="xs" fz="sm" className="fb-table-stack">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>{t('seatmap.seat')}</Table.Th>
@@ -210,19 +210,19 @@ export default function SeatMapping() {
                             </Text>
                           )}
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td data-label={t('seatmap.port')}>
                           <PortCell row={r} />
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td data-label={t('seatmap.nick')} style={{ whiteSpace: 'nowrap' }}>
                           <Cell value={r.nick} source={r.from.nick} label={label} />
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td data-label={t('seatmap.ip')}>
                           <Cell value={r.ip} source={r.from.ip} label={label} mono />
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td data-label={t('seatmap.mac')}>
                           <Cell value={r.mac} source={r.from.mac} label={label} mono />
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td data-label={t('seatmap.from')}>
                           <Group gap={4}>
                             {r.sources.map((s) => (
                               <Badge key={s} size="sm" tt="none" variant={s === 'manual' ? 'filled' : 'light'} color={s === 'manual' ? 'bit' : 'trace'}>
@@ -236,7 +236,7 @@ export default function SeatMapping() {
                             </Text>
                           )}
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td className="fb-stack-actions">
                           {canEdit && r.manual && (
                             <ConfirmButton
                               size="xs"
@@ -252,7 +252,6 @@ export default function SeatMapping() {
                     ))}
                   </Table.Tbody>
                 </Table>
-              </Table.ScrollContainer>
             </Paper>
           )}
         </>

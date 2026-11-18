@@ -149,8 +149,7 @@ export default function Wifi() {
             )}
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('wifi.list')}</Title>
-              <Table.ScrollContainer minWidth={620}>
-                <Table striped>
+              <Table striped className="fb-table-stack">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>{t('wifi.ap')}</Table.Th><Table.Th>{t('wifi.clients')}</Table.Th>
@@ -161,7 +160,7 @@ export default function Wifi() {
                     {d.aps.map((ap) => (
                       <Table.Tr key={ap.name}>
                         <Table.Td>
-                          <Group gap={6} wrap="nowrap">
+                          <Group gap={6} wrap="wrap">
                             <Text fw={600} size="sm">{ap.name}</Text>
                             {ap.status === 'down' && <Badge color="down" variant="light" tt="none">{t('wifi.offline')}</Badge>}
                             {ap.busy && <Badge color="warn" variant="light" tt="none">{t('wifi.busyBadge')}</Badge>}
@@ -169,11 +168,11 @@ export default function Wifi() {
                           </Group>
                           {ap.model && <Text size="xs" c="dimmed">{ap.model}</Text>}
                         </Table.Td>
-                        <Table.Td>{ap.status === 'up' ? num(ap.clients) : '–'}</Table.Td>
+                        <Table.Td data-label={t('wifi.clients')}>{ap.status === 'up' ? num(ap.clients) : '–'}</Table.Td>
                         {bands.map((b) => {
                           const r = radioOn(ap, b)
                           return (
-                            <Table.Td key={b}>
+                            <Table.Td key={b} data-label={`${b} GHz`}>
                               {r ? (
                                 <Text size="sm">
                                   {t('wifi.radio', { channel: r.channel ?? '?', width: r.width ?? '?', count: r.clients })}{' '}
@@ -186,8 +185,7 @@ export default function Wifi() {
                       </Table.Tr>
                     ))}
                   </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
+              </Table>
               {unplaced > 0 && <Text size="xs" c="dimmed" mt="xs">{t('wifi.unplacedHint', { count: unplaced })}</Text>}
             </Paper>
             <Text size="xs" c="dimmed">{t('wifi.privacy', { sources: d.sources.join(', ') })}</Text>

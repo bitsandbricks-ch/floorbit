@@ -61,5 +61,11 @@
     "cable": "Aus einem Kabel",
     "checkin": "Beim Check-in gefunden"
   },
-  "fromOrigin": "Ohne Eintrag von Hand: {{value}} ({{origin}})"
+  "fromOrigin": "Ohne Eintrag von Hand: {{value}} ({{origin}})",
+  "sourceName": {
+    "json": "Datei seats.json",
+    "http": "HTTP-JSON-Endpunkt",
+    "ports": "Kabel und Check-ins",
+    "network": "MAC-Tabellen der Switches"
+  }
 }

@@ -98,4 +98,13 @@ describe('Checkins', () => {
     await waitFor(() => expect(f.calls.some((c) => c.path.includes('mac=02%3A00'))).toBe(true))
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', expect.stringContaining('mac=02%3A00'))
   })
+
+  it('says how to turn check-in on instead of failing when it is off', async () => {
+    const off = () => ({ status: 404, body: { error: 'Check-in is disabled', code: 'checkin_disabled' } })
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/checkins/overview': off }).fn)
+    renderWithApp(<Checkins />)
+    expect(await screen.findByText('Check-in is off')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Check-in settings' })).toHaveAttribute('href', '/settings/checkin')
+    expect(screen.queryByRole('button', { name: /Try again/ })).not.toBeInTheDocument()
+  })
 })

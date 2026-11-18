@@ -19,6 +19,7 @@
 <body class="fb-has-nav">
   {#- The React app draws the sidebar itself; it needs only the data. #}
   {% with include_slot=False %}{% include "_nav.html" %}{% endwith %}
+  {% if page %}<script type="application/json" id="fb-page">{{ page | tojson }}</script>{% endif %}
   <div id="root">
     {% if not assets %}
     <main style="max-width:640px;margin:48px auto;padding:0 16px;font-family:var(--font-sans);color:var(--color-fg)">

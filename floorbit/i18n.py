@@ -202,6 +202,19 @@ def translate_payload(payload, lang):
     return walk(payload)
 
 
+def translate_fields(value, lang, keys=('error',)):
+    """``value`` with the strings under ``keys`` in ``lang``, at any depth: status messages the
+    pollers stored in English («No answer to the server query.») for a German page."""
+    if not lang or not lang.lower().startswith('de'):
+        return value
+    if isinstance(value, dict):
+        return {k: (translate(v, lang) if k in keys and isinstance(v, str) else translate_fields(v, lang, keys))
+                for k, v in value.items()}
+    if isinstance(value, list):
+        return [translate_fields(v, lang, keys) for v in value]
+    return value
+
+
 def language(accept):
     """The language to answer in from an Accept-Language header: 'de-CH', 'de' or 'en'."""
     for part in (accept or '').split(','):

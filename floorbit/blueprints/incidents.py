@@ -17,7 +17,7 @@ import threading
 import time
 
 import segno
-from flask import Blueprint, Response, abort, current_app, jsonify, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, jsonify, request, url_for
 
 from auth import roles, teams
 from integrations import checkin, events
@@ -293,70 +293,8 @@ def qr_codes():
 
 
 # ── The attendee's page ────────────────────────────────────────────────────────
-TEXTS = {
-    'en': {'title': 'Help at seat {seat}', 'intro': 'Something not working at your seat? Tap what is wrong and '
-           'the network team will come to you. We don\'t need your name.',
-           'no-internet': 'No internet', 'slow': 'Slow or dropping connection', 'power': 'No power',
-           'other': 'Something else, please come by',
-           'thanks': 'Thanks, we know. Someone from the team will come to seat {seat}.',
-           'again': 'We already have this one for seat {seat} and noted that you asked again.',
-           'invalid': 'This help link is not valid. Please use the QR code on your seat, or ask at the info desk.',
-           'busy': 'Too many reports from here. Please wait a few minutes or ask at the info desk.',
-           'speed_title': 'Test your connection',
-           'speed_intro': 'Measures the connection from your seat to our server in the hall, not the internet. '
-           'It takes about 20 seconds: pause other downloads first.',
-           'speed_run': 'Start the test', 'speed_again': 'Test again', 'speed_running': 'Testing…',
-           'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latency',
-           'speed_saved': 'Saved for seat {seat}. The team sees it with your report.',
-           'speed_failed': 'The test did not finish: {error}',
-           'state_open': 'Your report is in. Nobody from the team has taken it yet; someone will come.',
-           'state_sent': 'Your report was sent to a tech nearby. They will be on their way shortly.',
-           'state_taken': 'Someone from the team has your report and is on the way.',
-           'state_fixed': 'Your report was marked fixed. Still not working? Tap it again below.',
-           'state_ok': 'You told us it works again. Thanks! Broken again? Tap it below.',
-           'ahead_one': 'One report is ahead of yours.', 'ahead_other': '{n} reports are ahead of yours.',
-           'outage': 'We know: the network at your seat has been down for {m} min. The team is on it, '
-           'no need to report it. Something else? Tap it below.',
-           'status_link': 'Updates on the network status page',
-           'works': 'It works again', 'works_hint': 'Fixed itself? Tell the team so nobody walks over for nothing.',
-           'ok_thanks': 'Thanks, we told the team it works again at seat {seat}.',
-           'back_up': 'The network at your seat has been back for {m} min. Does it work again? Then tap '
-           '"It works again" below.'},
-    'de': {'title': 'Hilfe an Platz {seat}', 'intro': 'Funktioniert an deinem Platz etwas nicht? Tippe an, was '
-           'nicht geht, und das Netzwerk-Team kommt zu dir. Deinen Namen brauchen wir nicht.',
-           'no-internet': 'Kein Internet', 'slow': 'Langsame oder abbrechende Verbindung', 'power': 'Kein Strom',
-           'other': 'Etwas anderes, bitte vorbeikommen',
-           'thanks': 'Danke, wir wissen Bescheid. Jemand vom Team kommt zu Platz {seat}.',
-           'again': 'Das haben wir für Platz {seat} schon und vermerkt, dass du nochmals gefragt hast.',
-           'invalid': 'Dieser Hilfe-Link ist ungültig. Nutze bitte den QR-Code an deinem Platz oder frag am Infodesk.',
-           'busy': 'Zu viele Meldungen von hier. Warte bitte ein paar Minuten oder frag am Infodesk.',
-           'speed_title': 'Verbindung testen',
-           'speed_intro': 'Misst die Verbindung von deinem Platz zu unserem Server in der Halle, nicht das Internet. '
-           'Das dauert etwa 20 Sekunden: halte andere Downloads vorher an.',
-           'speed_run': 'Test starten', 'speed_again': 'Nochmals testen', 'speed_running': 'Teste…',
-           'speed_down': 'Download', 'speed_up': 'Upload', 'speed_ping': 'Latenz',
-           'speed_saved': 'Für Platz {seat} gespeichert. Das Team sieht es bei deiner Meldung.',
-           'speed_failed': 'Der Test wurde nicht fertig: {error}',
-           'state_open': 'Deine Meldung ist da. Noch hat sie niemand vom Team übernommen; jemand kommt.',
-           'state_sent': 'Deine Meldung ging an jemanden vom Team in der Nähe. Gleich ist jemand unterwegs.',
-           'state_taken': 'Jemand vom Team hat deine Meldung und ist unterwegs.',
-           'state_fixed': 'Deine Meldung wurde als erledigt markiert. Geht es immer noch nicht? Tippe unten nochmals.',
-           'state_ok': 'Du hast gemeldet, dass es wieder geht. Danke! Wieder kaputt? Tippe unten.',
-           'ahead_one': 'Vor deiner ist noch eine Meldung.', 'ahead_other': 'Vor deiner sind noch {n} Meldungen.',
-           'outage': 'Wir wissen es: Das Netz an deinem Platz ist seit {m} Min. ausgefallen. Das Team ist dran, '
-           'du musst es nicht melden. Etwas anderes? Tippe es unten an.',
-           'status_link': 'Neuigkeiten auf der Netzwerk-Statusseite',
-           'works': 'Es geht wieder',
-           'works_hint': 'Hat es sich selbst gelöst? Sag es dem Team, damit niemand umsonst vorbeikommt.',
-           'ok_thanks': 'Danke, wir haben dem Team gesagt, dass es an Platz {seat} wieder geht.',
-           'back_up': 'Das Netz an deinem Platz ist seit {m} Min. wieder da. Geht es wieder? Dann tippe unten '
-           'auf «Es geht wieder».'},
-}
-
-
-def _texts():
-    lang = request.accept_languages.best_match(['en', 'de'], default='en')
-    return lang, TEXTS[lang]
+# ``/help/<seat>?k=<signature>`` is React (frontend/src/pages/public/SeatHelp.tsx). It asks and
+# reports through ``/api/helpdesk/seats/<seat>?k=`` with the same signed link, and needs no account.
 
 
 def _rate_limited(key=None):
@@ -376,57 +314,84 @@ def _rate_limited(key=None):
     return False
 
 
-@bp.route('/help/<seat>', methods=['GET', 'POST'])
-def help_page(seat):
-    lang, text = _texts()
+def _signed_seat(seat):
+    """The seat, when the link is signed for it and it is on the floor plan; else None."""
     seat = seat.strip().upper()
-    valid = incidents.signed(seat, request.args.get('k')) and seat in incidents.seat_numbers(load_data())
-    if not valid:
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='invalid'), 404
-    if request.method == 'GET':
-        from .. import seat_view
-        # A known outage at this seat (issue #384): say so before people report it one by one.
-        since = seat_view.outage_since(seat)
-        outage = max(1, round((time.time() - since) / 60)) if since else None
-        from .status_page import page_on
+    ok = incidents.signed(seat, request.args.get('k')) and seat in incidents.seat_numbers(load_data())
+    return seat if ok else None
+
+
+def _invalid():
+    return jsonify({'error': 'This help link is not valid.', 'code': 'invalid'}), 404
+
+
+def _busy():
+    return jsonify({'error': 'Too many reports from here. Please wait a few minutes.', 'code': 'busy'}), 429
+
+
+@bp.route('/help/<seat>')
+def help_page(seat):
+    """The page is React; 404 for a link that isn't signed for a seat on the plan."""
+    html, status = spa.render('Help')
+    return html, status if _signed_seat(seat) else 404
+
+
+@bp.route('/api/helpdesk/seats/<seat>', methods=['GET'])
+def help_state(seat):
+    """What the seat's help page shows: a known outage (minutes), the network back up since a
+    report (minutes), this seat's open report and how many are ahead of it."""
+    seat = _signed_seat(seat)
+    if not seat:
+        return _invalid()
+    from .. import seat_view
+    from .status_page import page_on
+    # A known outage at this seat (issue #384): say so before people report it one by one.
+    since = seat_view.outage_since(seat)
+    outage = max(1, round((time.time() - since) / 60)) if since else None
+    # The switch came back after they reported (issue #392): ask them to check before a tech walks over.
+    filed = None if outage else incidents.seat_open_since(seat)
+    back = seat_view.back_up(seat, filed) if filed else None
+    report = incidents.seat_report_state(seat)
+    return jsonify({
+        'seat': seat, 'problems': list(incidents.PROBLEMS), 'outage': outage,
         # Point at the public status page for updates, when there is one (issue #388).
-        status_url = url_for('status_page.status_public') if outage and page_on() else None
-        # The switch came back after they reported (issue #392): ask them to check before a tech walks over.
-        filed = None if outage else incidents.seat_open_since(seat)
-        back = seat_view.back_up(seat, filed) if filed else None
-        back_up = max(1, round((time.time() - back[1]) / 60)) if back else None
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='ask', outage=outage,
-                               status_url=status_url, back_up=back_up,
-                               problems=list(incidents.PROBLEMS), k=request.args.get('k'),
-                               report=incidents.seat_report_state(seat), ahead=incidents.seat_queue_ahead(seat))
-    if request.form.get('works'):
-        return _works_again(lang, text, seat)
-    problem = request.form.get('problem')
+        'status_url': url_for('status_page.status_public') if outage and page_on() else None,
+        'back_up': max(1, round((time.time() - back[1]) / 60)) if back else None,
+        'report': report, 'ahead': incidents.seat_queue_ahead(seat) if report == 'open' else 0,
+    })
+
+
+@bp.route('/api/helpdesk/seats/<seat>', methods=['POST'])
+def help_report(seat):
+    """``{"problem": "slow"}`` reports a problem (``state`` ``thanks``, or ``again`` when the seat
+    already has it); ``{"works": true}`` says it works again (``ok``)."""
+    seat = _signed_seat(seat)
+    if not seat:
+        return _invalid()
+    body = request.get_json(silent=True) or {}
+    if body.get('works'):
+        # Rate limited like reports: it only tags the incidents, but it still writes to the board.
+        if _rate_limited():
+            return _busy()
+        marked = incidents.seat_says_ok(seat)
+        for incident in marked:
+            _changed(incident, 'seat-ok')
+        if marked:
+            audit.record('incidents', 'Seat says it works again', target=seat)
+        return jsonify({'state': 'ok'})
+    problem = body.get('problem')
     if problem not in incidents.PROBLEMS:
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='ask',
-                               problems=list(incidents.PROBLEMS), k=request.args.get('k')), 400
+        return jsonify({'error': 'Pick one of the problems on the page.', 'code': 'problem'}), 400
     if _rate_limited():
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='busy'), 429
+        return _busy()
     incident, new = incidents.report_from_seat(seat, problem, incidents.seat_snapshot(seat))
     _changed(incident, 'reported')
     if new:
         dispatch.send_new(incident)
     audit.record('incidents', 'Reported from seat' if new else 'Reported again from seat', target=seat,
                  fields=[problem])
-    return render_template('help.html', lang=lang, t=text, seat=seat, state='thanks' if new else 'again',
-                           k=request.args.get('k'))
+    return jsonify({'state': 'thanks' if new else 'again'})
 
 
-def _works_again(lang, text, seat):
-    # Rate limited like reports: it only tags the incidents, but it still writes to the board.
-    if _rate_limited():
-        return render_template('help.html', lang=lang, t=text, seat=seat, state='busy'), 429
-    marked = incidents.seat_says_ok(seat)
-    for incident in marked:
-        _changed(incident, 'seat-ok')
-    if marked:
-        audit.record('incidents', 'Seat says it works again', target=seat)
-    return render_template('help.html', lang=lang, t=text, seat=seat, state='ok', k=request.args.get('k'))
-
-
-help_page._auth_public = True   # what auth.public_endpoint sets; open to attendees without an account
+for _public in (help_page, help_state, help_report):
+    _public._auth_public = True   # what auth.public_endpoint sets; open to attendees without an account

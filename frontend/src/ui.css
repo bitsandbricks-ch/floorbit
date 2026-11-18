@@ -76,10 +76,20 @@
 
 /* ── Buttons, badges, tooltips, modals, tables ─────────────────────────── */
 .mantine-Button-root { font-weight: 600; }
+/* A full-width button is the one big action on a narrow screen: its text wraps rather than being
+   cut off ("An deinem Platz ein…" on a small phone). */
+.mantine-Button-root[data-block] { height: auto; min-height: var(--button-height); padding-block: 6px; display: flex; align-items: center; }
+.mantine-Button-root[data-block] .mantine-Button-label { white-space: normal; text-align: center; line-height: 1.25; }
+.mantine-Button-root[data-block][style*="--button-justify: flex-start"] .mantine-Button-label { text-align: start; }
+.mantine-Button-root[data-block] .mantine-Button-inner { height: auto; flex: 1; }
 .mantine-Button-root:focus-visible,
 .mantine-ActionIcon-root:focus-visible,
 .mantine-Anchor-root:focus-visible { box-shadow: var(--ui-focus); outline: none; }
 .mantine-Badge-root { font-size: var(--fs-sm); letter-spacing: 0.02em; }
+/* A badge that gets squeezed ("Wartet seit 4 Std. 6 Min." next to a title on a phone) breaks
+   between its words instead of being cut to "Wartet sei…". */
+.mantine-Badge-root { height: auto; min-height: var(--badge-height); max-width: 100%; }
+.mantine-Badge-label { white-space: normal; line-height: 1.2; padding-block: 2px; min-width: min-content; }
 .mantine-Tooltip-tooltip { font-size: var(--fs-sm); background: var(--color-fg); color: var(--color-ink); border-radius: var(--ui-option-radius); padding: 5px 8px; }
 .mantine-Modal-content, .mantine-Drawer-content { background: var(--color-surface); border: var(--ui-pop-border); }
 .mantine-Modal-content { border-radius: var(--radius-card); box-shadow: var(--ui-pop-shadow); }
@@ -88,3 +98,68 @@
 .mantine-Table-th { font-size: var(--ui-font); color: var(--color-muted); font-weight: 600; }
 .mantine-Table-td { font-size: var(--ui-font); }
 .mantine-Checkbox-label, .mantine-Switch-label, .mantine-Radio-label { font-size: var(--ui-font); }
+
+/* Touch screens: links that stand alone in a table cell, a row of items or a list (a switch, a seat,
+   a runbook) get at least 24px to hit (WCAG 2.5.8). Links inside running text keep their size. */
+@media (pointer: coarse) {
+  :is(td, li, .mantine-Group-root, .mantine-Stack-root) > :is(a, button).mantine-Anchor-root,
+  :is(td, li, .mantine-Group-root, .mantine-Stack-root) > a.mantine-Badge-root {
+    min-height: 24px; display: inline-flex; align-items: center;
+  }
+}
+
+/* Days in the date-and-time picker (components/DateTimeInput.tsx). */
+.fb-day {
+  height: 32px;
+  border-radius: var(--mantine-radius-sm);
+  text-align: center;
+  font-size: var(--mantine-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+.fb-day:hover { background: var(--mantine-color-default-hover); }
+.fb-day[data-today] { font-weight: 700; color: var(--mantine-primary-color-filled); }
+/* --mantine-primary-color-contrast is white with autoContrast off: 1.6:1 on Bit Green in the dark theme. */
+.fb-day[data-picked] { background: var(--color-bit); color: var(--color-on-bit); }
+.fb-day:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 1px; }
+
+/* Schedule rows: the time column lines up across days on wide screens and shrinks on a phone. */
+.fb-schedule-time { width: 190px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* On a phone the end time goes under the start time and the edit and delete buttons stack, so the
+   title keeps the room. */
+.fb-schedule-actions { width: 80px; }
+@media (max-width: 48em) {
+  .fb-schedule-time { width: 1%; white-space: normal; }
+  .fb-schedule-actions { width: 1%; }
+  .fb-schedule-actions > .mantine-Group-root { flex-direction: column; }
+}
+
+/* A table that turns into one block per row on a phone, instead of scrolling sideways: each cell
+   on its own line, header hidden. A cell that needs its heading gets data-label={...};
+   short cells can share the first line with className="fb-stack-inline", and a cell of icon
+   buttons can sit in the top right corner with className="fb-stack-actions".
+   */
+@media (max-width: 48em) {
+  .fb-table-stack thead { display: none; }
+  .fb-table-stack tbody tr { display: block; padding: var(--mantine-spacing-xs) 0; }
+  .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; text-align: left !important; }
+  .fb-table-stack tbody td .mantine-Group-root[style*="flex-end"] { justify-content: flex-start; }
+  /* Short cells (seat, name, state) share the row's first line. */
+  .fb-table-stack tbody td.fb-stack-inline { display: inline-block; margin-right: var(--mantine-spacing-sm); }
+  /* A few icon buttons go to the row's top right corner instead of a line of their own. */
+  .fb-table-stack tbody tr:has(> td.fb-stack-actions) { position: relative; padding-right: 5em; }
+  .fb-table-stack tbody td.fb-stack-actions { position: absolute; top: var(--mantine-spacing-xs); right: 0; }
+  .fb-table-stack tbody td.fb-stack-actions .mantine-Group-root { justify-content: flex-end; }
+  /* Striped tables: the row's shade gets a margin, so text doesn't touch its edge. */
+  .fb-table-stack tbody tr[data-striped] { padding-left: var(--mantine-spacing-xs); padding-right: var(--mantine-spacing-xs); }
+  .fb-table-stack tbody tr[data-striped]:has(> td.fb-stack-actions) { padding-right: 5em; }
+  .fb-table-stack tbody tr[data-striped] > td.fb-stack-actions { right: var(--mantine-spacing-xs); }
+  /* A cell that needs its heading carries it as data-label, shown to its left. */
+  .fb-table-stack tbody td[data-label]:empty { display: none; }
+  .fb-table-stack tbody td[data-label] { position: relative; padding-left: 8.5em; }
+  .fb-table-stack tbody td[data-label]::before {
+    content: attr(data-label);
+    position: absolute; left: 0; width: 8em; font-family: var(--mantine-font-family);
+    color: var(--mantine-color-dimmed); font-size: var(--mantine-font-size-xs); line-height: 1.8;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+}

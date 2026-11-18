@@ -15,7 +15,7 @@
   "noAreas": "Kein Switch ist ausgefallen.",
   "namesShown": "Die öffentliche Seite nennt die Switches (Einstellungen > Attendee pages).",
   "namesHidden": "Die öffentliche Seite zeigt nur Hallen, Blöcke und Reihen, keine Switch-Namen.",
-  "block": "Platzblock {{name}}",
+  "block": "Sitzblock {{name}}",
   "hall": "Halle {{name}}",
   "somewhere": "Irgendwo in der Halle",
   "rows": "Reihen {{rows}}",

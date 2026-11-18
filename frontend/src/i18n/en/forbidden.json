@@ -1,0 +1,7 @@
+{
+  "title": "Not allowed",
+  "needs": "Your role can't open this page. It needs:",
+  "signedInAs": "You are signed in as {{name}} ({{role}}).",
+  "ask": "An admin can give your role this permission under “Roles and teams”.",
+  "switch": "Sign in as someone else"
+}

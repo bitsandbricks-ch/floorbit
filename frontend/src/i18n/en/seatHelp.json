@@ -1,0 +1,44 @@
+{
+  "title": "Help at seat {{seat}}",
+  "intro": "Something not working at your seat? Tap what is wrong and the network team will come to you. We don't need your name.",
+  "problem": {
+    "no-internet": "No internet",
+    "slow": "Slow or dropping connection",
+    "power": "No power",
+    "other": "Something else, please come by"
+  },
+  "done": {
+    "thanks": "Thanks, we know. Someone from the team will come to seat {{seat}}.",
+    "again": "We already have this one for seat {{seat}} and noted that you asked again.",
+    "ok": "Thanks, we told the team it works again at seat {{seat}}."
+  },
+  "invalid": "This help link is not valid. Please use the QR code on your seat, or ask at the info desk.",
+  "busy": "Too many reports from here. Please wait a few minutes or ask at the info desk.",
+  "report": {
+    "open": "Your report is in. Nobody from the team has taken it yet; someone will come.",
+    "sent": "Your report was sent to a tech nearby. They will be on their way shortly.",
+    "taken": "Someone from the team has your report and is on the way.",
+    "fixed": "Your report was marked fixed. Still not working? Tap it again below.",
+    "ok": "You told us it works again. Thanks! Broken again? Tap it below."
+  },
+  "ahead_one": "One report is ahead of yours.",
+  "ahead_other": "{{count}} reports are ahead of yours.",
+  "outage_one": "We know: the network at your seat has been down for {{count}} min. The team is on it, no need to report it. Something else? Tap it below.",
+  "outage_other": "We know: the network at your seat has been down for {{count}} min. The team is on it, no need to report it. Something else? Tap it below.",
+  "statusLink": "Updates on the network status page",
+  "backUp_one": "The network at your seat has been back for {{count}} min. Does it work again? Then tap “It works again” below.",
+  "backUp_other": "The network at your seat has been back for {{count}} min. Does it work again? Then tap “It works again” below.",
+  "works": "It works again",
+  "worksHint": "Fixed itself? Tell the team so nobody walks over for nothing.",
+  "speed": {
+    "title": "Test your connection",
+    "intro": "Measures the connection from your seat to our server in the hall, not the internet. It takes about 20 seconds: pause other downloads first.",
+    "run": "Start the test",
+    "again": "Test again",
+    "down": "Download",
+    "up": "Upload",
+    "ping": "Latency",
+    "saved": "Saved for seat {{seat}}. The team sees it with your report.",
+    "failed": "The test did not finish: {{error}}"
+  }
+}

@@ -173,11 +173,10 @@ def _audit_rows():
         except (KeyError, ValueError):
             continue
         kind = 'sign-in' if e.get('area') == 'sign-in' else 'change'
-        title = e.get('action') or ''
-        if e.get('fields'):
-            title += f" ({', '.join(e['fields'][:6])})"
-        out.append({'t': t, 'kind': kind, 'title': title, 'target': e.get('target') or '', 'who': e.get('user'),
-                    'area': e.get('area'), 'severity': 'down' if e.get('ok') is False else None})
+        # The fields stay a list: the page names them in the reader's language (settings by their label).
+        out.append({'t': t, 'kind': kind, 'title': e.get('action') or '', 'target': e.get('target') or '',
+                    'who': e.get('user'), 'area': e.get('area'), 'fields': list(e.get('fields') or [])[:6] or None,
+                    'severity': 'down' if e.get('ok') is False else None})
     return out
 
 
@@ -228,6 +227,7 @@ def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_
         if (since is not None and r['t'] < since) or (until is not None and r['t'] >= until):
             continue
         text = ' '.join(str(r.get(k) or '') for k in ('title', 'target', 'who', 'area')).lower()
+        text += ' ' + ' '.join(r.get('fields') or []).lower()
         if words and lang and not all(w in text for w in words):
             text += ' ' + ' '.join(str(log_text(r.get(k), lang) or '') for k in ('title', 'target')).lower()
         if words and not all(w in text for w in words):
@@ -247,8 +247,8 @@ def csv_text(rows):
     lines = ['time,kind,title,target,who']
     for r in rows:
         when = datetime.datetime.fromtimestamp(r['t']).astimezone().isoformat(timespec='seconds')
-        lines.append(','.join(_csv(v) for v in (when, r['kind'], r.get('title', ''), r.get('target', ''),
-                                                 r.get('who', ''))))
+        title = r.get('title', '') + (f" ({', '.join(r['fields'])})" if r.get('fields') else '')
+        lines.append(','.join(_csv(v) for v in (when, r['kind'], title, r.get('target', ''), r.get('who', ''))))
     return '\n'.join(lines) + '\n'
 
 

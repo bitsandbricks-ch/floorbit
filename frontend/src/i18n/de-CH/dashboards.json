@@ -42,7 +42,7 @@
   },
   "area": {
     "hall": "Ganze Halle",
-    "block": "Platzblock",
+    "block": "Sitzblock",
     "zone": "Zone",
     "box": "Meine Ansicht",
     "blockName": "Block {{name}}"
@@ -70,7 +70,7 @@
     "preset": "Ebenen",
     "show": "Plätze",
     "labels": "Platznummern",
-    "noBlocks": "Diese Halle hat keine Platzblöcke.",
+    "noBlocks": "Diese Halle hat keine Sitzblöcke.",
     "noZones": "Diese Halle hat noch keine Zonen. Zeichne eine auf dem Plan (Werkzeug Zone) und gib ihr eine Beschriftung, zum Beispiel VIP.",
     "unnamedZone": "Zone ohne Beschriftung",
     "boxHint": "Verschiebe und zoome den Plan auf den Teil, den dieser Bereich zeigen soll, und übernimm ihn.",

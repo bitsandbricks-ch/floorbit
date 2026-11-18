@@ -37,6 +37,12 @@ def help_url(app_module, seat):
         return f"/help/{seat}?k={incidents.signature(seat)}"
 
 
+def api_url(app_module, seat):
+    """What the help page (React: SeatHelp.tsx) asks and posts to, with the same signed link."""
+    with app_module.app.test_request_context():
+        return f"/api/helpdesk/seats/{seat}?k={incidents.signature(seat)}"
+
+
 # ── Seats and links ────────────────────────────────────────────────────────────
 
 def test_seat_numbers_follow_the_editor(client, floor):
@@ -44,51 +50,51 @@ def test_seat_numbers_follow_the_editor(client, floor):
 
 
 def test_help_link_only_works_signed_and_for_real_seats(anon_client, app_module, floor):
-    assert anon_client.get(help_url(app_module, "A-1")).status_code == 200
+    assert anon_client.get(help_url(app_module, "A-1")).status_code in (200, 503)   # 503: no frontend build
     assert anon_client.get("/help/A-1").status_code == 404
     assert anon_client.get("/help/A-1?k=0000000000000000").status_code == 404
     assert anon_client.get(help_url(app_module, "Z-9")).status_code == 404
+    assert anon_client.get(api_url(app_module, "A-1")).get_json()["problems"] == list(incidents.PROBLEMS)
+    for bad in ("/api/helpdesk/seats/A-1", "/api/helpdesk/seats/A-1?k=0000000000000000", api_url(app_module, "Z-9")):
+        assert anon_client.get(bad).get_json()["code"] == "invalid"
+        assert anon_client.post(bad, json={"problem": "slow"}).status_code == 404
 
 
 def test_attendee_reports_without_an_account(anon_client, client, app_module, floor):
-    url = help_url(app_module, "A-1")
-    resp = anon_client.post(url, data={"problem": "no-internet"})
-    assert resp.status_code == 200 and b"Someone from the team will come" in resp.data
+    url = api_url(app_module, "A-1")
+    resp = anon_client.post(url, json={"problem": "no-internet"})
+    assert resp.status_code == 200 and resp.get_json() == {"state": "thanks"}
     [incident] = client.get("/api/incidents").get_json()["incidents"]
     assert incident["seat"] == "A-1" and incident["team"] == "access" and incident["source"] == "helpdesk"
     assert incident["reported_by"] is None
     assert incident["snapshot"]["known"] is False      # no monitoring in tests: says so, doesn't fail
     # Asking again counts up instead of filing a second one.
-    assert b"asked again" in anon_client.post(url, data={"problem": "no-internet"}).data
+    assert anon_client.post(url, json={"problem": "no-internet"}).get_json() == {"state": "again"}
     [incident] = client.get("/api/incidents").get_json()["incidents"]
     assert incident["reports"] == 2
     rows, _ = audit.read(area="incidents")
     assert [r["action"] for r in rows[:2]] == ["Reported again from seat", "Reported from seat"]
 
 
-def test_help_page_speaks_german(anon_client, app_module, floor):
-    resp = anon_client.get(help_url(app_module, "A-1"), headers={"Accept-Language": "de-CH,de;q=0.9"})
-    assert b"Kein Internet" in resp.data
-
-
 def test_help_page_is_rate_limited_and_takes_only_known_problems(anon_client, app_module, floor):
-    url = help_url(app_module, "A-2")
-    assert anon_client.post(url, data={"problem": "free text <b>"}).status_code == 400
+    url = api_url(app_module, "A-2")
+    assert anon_client.post(url, json={"problem": "free text <b>"}).status_code == 400
     for _ in range(incidents_bp.RATE_LIMIT):
-        assert anon_client.post(url, data={"problem": "slow"}).status_code == 200
-    assert anon_client.post(url, data={"problem": "slow"}).status_code == 429
+        assert anon_client.post(url, json={"problem": "slow"}).status_code == 200
+    resp = anon_client.post(url, json={"problem": "slow"})
+    assert resp.status_code == 429 and resp.get_json()["code"] == "busy"
 
 
 def test_rate_limit_counts_each_client_behind_a_trusted_proxy(anon_client, app_module, floor, monkeypatch):
     monkeypatch.setenv("CHECKIN_TRUST_PROXY", "true")
-    url = help_url(app_module, "A-2")
+    url = api_url(app_module, "A-2")
     first = {"X-Forwarded-For": "192.0.2.10"}
     for _ in range(incidents_bp.RATE_LIMIT):
-        assert anon_client.post(url, data={"problem": "slow"}, headers=first).status_code == 200
-    assert anon_client.post(url, data={"problem": "slow"}, headers=first).status_code == 429
+        assert anon_client.post(url, json={"problem": "slow"}, headers=first).status_code == 200
+    assert anon_client.post(url, json={"problem": "slow"}, headers=first).status_code == 429
     # Another attendee behind the same proxy can still ask for help.
     other = {"X-Forwarded-For": "192.0.2.11"}
-    assert anon_client.post(url, data={"problem": "slow"}, headers=other).status_code == 200
+    assert anon_client.post(url, json={"problem": "slow"}, headers=other).status_code == 200
 
 
 def test_report_holds_no_personal_data(client, anon_client, app_module, floor, monkeypatch):
@@ -103,7 +109,7 @@ def test_report_holds_no_personal_data(client, anon_client, app_module, floor, m
             return None
     from floorbit import sources
     monkeypatch.setattr(sources, "monitoring", lambda: Monitoring())
-    anon_client.post(help_url(app_module, "A-3"), data={"problem": "slow"})
+    anon_client.post(api_url(app_module, "A-3"), json={"problem": "slow"})
     [incident] = client.get("/api/incidents").get_json()["incidents"]
     snap = incident["snapshot"]
     assert snap["known"] and snap["switch"] == "sw-a-01" and snap["port"] == "Gi1/0/3"
@@ -279,27 +285,26 @@ def test_board_shows_the_seat_s_crew_note(client, floor):
 
 def test_attendee_says_it_works_again(anon_client, client, app_module, floor):
     # Issue #372: tags the seat's open reports for the crew; only the crew can mark them fixed.
-    url = help_url(app_module, "A-3")
-    assert b'name="works"' not in anon_client.get(url).data        # nothing reported, nothing to call off
-    anon_client.post(url, data={"problem": "no-internet"})
-    assert b'name="works"' in anon_client.get(url).data
-    resp = anon_client.post(url, data={"works": "1"})
-    assert resp.status_code == 200 and b"we told the team it works again" in resp.data
+    url = api_url(app_module, "A-3")
+    assert anon_client.get(url).get_json()["report"] is None        # nothing reported, nothing to call off
+    anon_client.post(url, json={"problem": "no-internet"})
+    assert anon_client.get(url).get_json()["report"] == "open"      # SeatHelp.tsx offers "It works again"
+    resp = anon_client.post(url, json={"works": True})
+    assert resp.status_code == 200 and resp.get_json() == {"state": "ok"}
     (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-3"]
     assert incident["seat_ok_at"] and incident["status"] == "open"
-    page = anon_client.get(url).data.decode()
-    assert "You told us it works again" in page and 'name="works"' not in page
+    assert anon_client.get(url).get_json()["report"] == "ok"
     rows, _ = audit.read(area="incidents")
     assert rows[0]["action"] == "Seat says it works again" and rows[0]["target"] == "A-3"
     # Broken again: a new report clears it.
-    anon_client.post(url, data={"problem": "no-internet"})
+    anon_client.post(url, json={"problem": "no-internet"})
     (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-3"]
     assert not incident.get("seat_ok_at") and incident["reports"] == 2
 
 
 def test_a_seat_that_works_again_is_not_waiting(anon_client, app_module, floor):
     # Issue #376: the board's "Waiting" rule, also counted by the handover and the dashboard.
-    anon_client.post(help_url(app_module, "A-2"), data={"problem": "slow"})
+    anon_client.post(api_url(app_module, "A-2"), json={"problem": "slow"})
     with app_module.app.app_context():
         (incident,) = incidents.list_all()
         later = incident["created_at"] + 20 * 60
@@ -317,43 +322,41 @@ def test_the_help_page_says_how_many_reports_are_ahead(anon_client, client, app_
     with app_module.app.app_context():
         incidents.stamp(first["id"], created_at=now - 300)
         incidents.stamp(taken["id"], created_at=now - 200)
-    url = help_url(app_module, "A-4")
-    anon_client.post(url, data={"problem": "slow"})
-    page = anon_client.get(url).data.decode()
-    assert "One report is ahead of yours." in page and "Filed first" not in page
+    url = api_url(app_module, "A-4")
+    anon_client.post(url, json={"problem": "slow"})
+    state = anon_client.get(url).get_json()
+    assert state["ahead"] == 1 and "Filed first" not in str(state)
     client.patch(f"/api/incidents/{first['id']}", json={"assignee": TEST_USER})
-    assert "ahead of yours" not in anon_client.get(url).data.decode()
+    assert anon_client.get(url).get_json()["ahead"] == 0
 
 
 def test_works_again_without_a_report_changes_nothing(anon_client, client, app_module, floor):
     client.post("/api/incidents", json={"seat": "A-4", "title": "Filed by the crew"})
-    assert anon_client.post(help_url(app_module, "A-4"), data={"works": "1"}).status_code == 200
+    assert anon_client.post(api_url(app_module, "A-4"), json={"works": True}).status_code == 200
     (incident,) = client.get("/api/incidents").get_json()["incidents"]
     assert not incident.get("seat_ok_at")      # the QR link only speaks for the seat's own reports
     assert not [r for r in audit.read(area="incidents")[0] if r["action"] == "Seat says it works again"]
 
 
 def test_the_help_page_says_where_the_seats_report_stands(anon_client, client, app_module, floor):
-    url = help_url(app_module, "A-2")
-    assert b'class="report' not in anon_client.get(url).data
-    anon_client.post(url, data={"problem": "slow"})
-    assert b"Nobody from the team has taken it yet" in anon_client.get(url).data
+    url = api_url(app_module, "A-2")
+    assert anon_client.get(url).get_json()["report"] is None
+    anon_client.post(url, json={"problem": "slow"})
+    assert anon_client.get(url).get_json()["report"] == "open"
     (incident,) = [i for i in client.get("/api/incidents").get_json()["incidents"] if i["seat"] == "A-2"]
     client.patch(f"/api/incidents/{incident['id']}", json={"assignee": TEST_USER})
-    page = anon_client.get(url).data.decode()
-    assert "Someone from the team has your report" in page and TEST_USER not in page   # no names
+    state = anon_client.get(url).get_json()
+    assert state["report"] == "taken" and TEST_USER not in str(state)   # no names
     # Issue #362: sent by dispatch but not seen yet, the page doesn't promise anyone is on the way.
     with app_module.app.app_context():
         incidents.stamp(incident["id"], dispatched_at=time.time(), taken_at=None)
-    page = anon_client.get(url).data.decode()
-    assert "sent to a tech nearby" in page and "is on the way" not in page and TEST_USER not in page
+    state = anon_client.get(url).get_json()
+    assert state["report"] == "sent" and TEST_USER not in str(state)
     with app_module.app.app_context():
         incidents.stamp(incident["id"], taken_at=time.time())
-    assert "is on the way" in anon_client.get(url).data.decode()
+    assert anon_client.get(url).get_json()["report"] == "taken"
     client.patch(f"/api/incidents/{incident['id']}", json={"status": "fixed"})
-    assert "Jemand" not in anon_client.get(url).data.decode()
-    german = anon_client.get(url, headers={"Accept-Language": "de-CH"}).data.decode()
-    assert "Deine Meldung wurde als erledigt markiert" in german
+    assert anon_client.get(url).get_json()["report"] == "fixed"
     # Half an hour after the fix the page forgets it.
     with app_module.app.app_context():
         assert incidents.seat_report_state("A-2", now=time.time() + 31 * 60) is None
@@ -369,18 +372,20 @@ def test_the_help_page_says_when_the_seat_s_switch_is_down(anon_client, client, 
     monkeypatch.setattr(status_page, "_seats_of", {})
     monkeypatch.setattr(monitor, "last_poll", time.time())
     monkeypatch.setattr(monitor, "statuses", {})
-    assert b"has been down" not in anon_client.get(help_url(app_module, "A-1")).data
+    def state(seat):
+        return anon_client.get(api_url(app_module, seat)).get_json()
+    assert state("A-1")["outage"] is None
     monitor.statuses = {floor["switch_id"]: {"status": "offline", "since": time.time() - 12 * 60}}
-    page = anon_client.get(help_url(app_module, "A-1")).data.decode()
-    assert "has been down for 12 min" in page and "sw-a-01" not in page
-    assert 'href="/status"' not in page            # issue #388: only when the status page is public
+    down = state("A-1")
+    assert down["outage"] == 12 and "sw-a-01" not in str(down)
+    assert down["status_url"] is None            # issue #388: only when the status page is public
     assert client.put("/api/settings", json={"public.status_page": True}).status_code == 200
-    assert 'href="/status"' in anon_client.get(help_url(app_module, "A-1")).data.decode()
-    assert b"has been down" not in anon_client.get(help_url(app_module, "A-2")).data   # its port isn't known
+    assert state("A-1")["status_url"] == "/status"
+    assert state("A-2")["outage"] is None   # its port isn't known
     # Remembered by the status page once the port read no longer has it.
     monkeypatch.setattr(watch, "port_seats", {}, raising=False)
     status_page.learn_seats({("sw-a-01", "Gi1/0/2"): "A-2"})
-    assert b"has been down" in anon_client.get(help_url(app_module, "A-2")).data
+    assert state("A-2")["outage"]
 
 
 def test_the_board_says_when_an_incident_s_seat_is_on_a_down_switch(client, app_module, floor, monkeypatch):
@@ -434,21 +439,20 @@ def test_the_help_page_asks_when_the_switch_came_back(anon_client, app_module, f
     sid = floor["switch_id"]
     back = {sid: {"status": "online", "since": time.time() - 3 * 60, "previous": "offline"}}
     monkeypatch.setattr(monitor, "statuses", back)
-    url = help_url(app_module, "A-1")
-    assert b"has been back" not in anon_client.get(url).data          # nothing reported
+    url = api_url(app_module, "A-1")
+    assert anon_client.get(url).get_json()["back_up"] is None          # nothing reported
     with app_module.app.app_context():
         incident, _ = incidents.report_from_seat("A-1", "no-internet", {})
         incidents.stamp(incident["id"], created_at=time.time() - 10 * 60)
-    page = anon_client.get(url).data.decode()
-    assert "has been back for 3 min" in page and "sw-a-01" not in page and 'name="works"' in page
-    assert "wieder da" in anon_client.get(url, headers={"Accept-Language": "de"}).data.decode()
+    state = anon_client.get(url).get_json()
+    assert state["back_up"] == 3 and "sw-a-01" not in str(state) and state["report"] == "open"
     # Back since before the report: the report is about something else.
     monitor.statuses = {sid: {**back[sid], "since": time.time() - 20 * 60}}
-    assert b"has been back" not in anon_client.get(url).data
+    assert anon_client.get(url).get_json()["back_up"] is None
     # Once the seat said it works again, there is nothing left to ask.
     monitor.statuses = back
-    anon_client.post(url, data={"works": "1"})
-    assert b"has been back" not in anon_client.get(url).data
+    anon_client.post(url, json={"works": True})
+    assert anon_client.get(url).get_json()["back_up"] is None
 
 
 # ── CSV export (issue #418) ────────────────────────────────────────────────────

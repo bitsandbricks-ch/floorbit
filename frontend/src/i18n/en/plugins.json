@@ -36,5 +36,20 @@
   "schemaNewer": "Its data is at schema {{have}}, newer than this version knows ({{want}}). Install a newer version.",
   "pageTitle": "Plugin page",
   "pageFrom": "From {{plugin}}",
-  "pageEmpty": "Nothing on this page for your account."
+  "pageEmpty": "Nothing on this page for your account.",
+  "names": {
+    "captive-note": "Check-in note on phones",
+    "demo": "Demo data",
+    "home-assistant": "Home Assistant meters",
+    "http-check": "HTTP check",
+    "lancache": "LAN cache",
+    "netflow-relay": "Traffic from the hall",
+    "shelly": "Shelly meters",
+    "ssh-ports": "SSH port actions",
+    "syslog-relay": "Syslog from the hall",
+    "telemetry": "Telemetry",
+    "services": "Services",
+    "game-servers": "Game servers",
+    "firewalls": "Firewalls"
+  }
 }

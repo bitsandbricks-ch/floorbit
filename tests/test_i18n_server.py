@@ -128,3 +128,11 @@ def test_api_errors_come_in_the_asked_language(client):
 ])
 def test_health_tiles_built_in_speak_german(english, german):
     assert i18n.translate(english, 'de-CH') == german
+
+
+def test_stored_status_messages_follow_the_page_language():
+    rows = {'servers': [{'name': 'CS2 #1', 'error': 'No answer to the server query.'}, {'name': 'up', 'error': None}]}
+    german = i18n.translate_fields(rows, 'de-CH')
+    assert german['servers'][0] == {'name': 'CS2 #1', 'error': 'Keine Antwort auf die Serverabfrage.'}
+    assert german['servers'][1]['error'] is None
+    assert i18n.translate_fields(rows, 'en') is rows

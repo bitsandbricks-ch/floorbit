@@ -76,8 +76,10 @@ floor plan. To replace a torn sticker or reprint one block, pick a **Block** or 
 **Only these seats** (`D-6, D-7`): **Print** prints only the codes shown. On the [Seats page](seats.md),
 the seat inspector's **QR code** and the block panel's **Print QR codes** open the sheet that way
 (`/incidents/qr?seats=D-6`, `/incidents/qr?block=D`). Scanning one opens `/help/<seat>`: a small page, in English or German after the phone's
-language, with four buttons (no internet, slow connection, no power, something else), and a
-[speed test](speedtest.md) whose result goes with the report.
+language (with a language picker), with four buttons (no internet, slow connection, no power,
+something else), and a [speed test](speedtest.md) whose result goes with the report. Where the
+report stands updates by itself every 30 seconds while the page is open. The page reads and posts
+`/api/helpdesk/seats/<seat>?k=` with the same signed link (see the [API reference](api-reference.md)).
 
 - **No account, nothing personal:** the page asks for no name or text.
 - **Only printed codes work:** each link carries a signature made with the app's `SECRET_KEY`, so

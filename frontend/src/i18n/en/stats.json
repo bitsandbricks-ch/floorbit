@@ -32,6 +32,8 @@
   "onlineRange": "Seats online in this time: {{lo}} to {{hi}}",
   "uplinks": "Uplinks",
   "noUplinks": "No uplinks found: name them in the port description (\"Uplink to dist-01\").",
+  "moreUplinks_one": "and {{count}} more uplink",
+  "moreUplinks_other": "and {{count}} more uplinks",
   "top": "Top talkers",
   "noTop": "No traffic right now.",
   "seat": "Seat {{seat}}",

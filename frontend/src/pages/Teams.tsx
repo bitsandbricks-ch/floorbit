@@ -85,8 +85,9 @@ export default function Teams() {
       {roles.isPending ? (
         <Loader size="sm" />
       ) : (
-        <Paper withBorder radius="lg" style={{ overflowX: 'auto' }}>
-          <Table verticalSpacing="sm">
+        // One card per role on a phone (fb-table-stack) instead of a table to scroll sideways.
+        <Paper withBorder radius="lg" px={{ base: 'sm', sm: 0 }}>
+          <Table verticalSpacing="sm" className="fb-table-stack">
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t('teams.role')}</Table.Th>
@@ -114,14 +115,16 @@ export default function Teams() {
                   <Table.Td>
                     <Group gap={4}>
                       {r.permissions.map((p) => (
-                        <Badge key={p} size="sm" variant="outline" color="gray" tt="none">
-                          {p}
-                        </Badge>
+                        <Tooltip key={p} label={t(`teams.permission.${p.replace('.', '_')}`, { defaultValue: p })}>
+                          <Badge size="sm" variant="outline" color="gray" tt="none">
+                            {t(`teams.permissionShort.${p.replace('.', '_')}`, { defaultValue: p })}
+                          </Badge>
+                        </Tooltip>
                       ))}
                     </Group>
                   </Table.Td>
-                  <Table.Td>{r.users}</Table.Td>
-                  <Table.Td>
+                  <Table.Td data-label={t('teams.accounts')}>{r.users}</Table.Td>
+                  <Table.Td className="fb-stack-actions">
                     {!r.builtin && (
                       <Group gap={4} wrap="nowrap">
                         <Button size="xs" variant="default" onClick={() => { setEditing(r); setFormError(null); form.open() }}>

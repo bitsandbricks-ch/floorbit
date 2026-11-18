@@ -46,6 +46,12 @@ export function initialLang(languages: readonly string[] = navigator.languages ?
   return 'en'
 }
 
+// The app's i18n fetches German on first use; the server pages' sidebar has its few texts already.
+let loadLang: (lang: Lang) => Promise<void> = () => Promise.resolve()
+export function setLangLoader(load: (lang: Lang) => Promise<void>) {
+  loadLang = load
+}
+
 export function setLang(lang: Lang) {
   try {
     localStorage.setItem(STORAGE_KEY, lang)
@@ -54,5 +60,5 @@ export function setLang(lang: Lang) {
   }
   rememberLang(lang)
   document.documentElement.lang = lang
-  void i18n.changeLanguage(lang)
+  void loadLang(lang).then(() => i18n.changeLanguage(lang))
 }

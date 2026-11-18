@@ -61,5 +61,11 @@
     "cable": "From a cable",
     "checkin": "Found at check-in"
   },
-  "fromOrigin": "Without a hand entry: {{value}} ({{origin}})"
+  "fromOrigin": "Without a hand entry: {{value}} ({{origin}})",
+  "sourceName": {
+    "json": "seats.json file",
+    "http": "HTTP JSON endpoint",
+    "ports": "Cables and check-ins",
+    "network": "Switch MAC tables"
+  }
 }

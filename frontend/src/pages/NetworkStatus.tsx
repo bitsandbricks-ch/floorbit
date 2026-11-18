@@ -1,10 +1,11 @@
 import {
-  ActionIcon, Alert, Badge, Button, Group, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
+  Alert, Badge, Button, Group, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconExternalLink, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ConfirmIcon } from '@/components/ConfirmButton'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -173,9 +174,9 @@ export default function NetworkStatus() {
                         <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{u.text}</Text>
                       </div>
                       {canSet && (
-                        <ActionIcon variant="subtle" color="down" aria-label={t('status.remove')} onClick={() => remove.mutate(u.id)}>
+                        <ConfirmIcon label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
                           <IconTrash size={16} />
-                        </ActionIcon>
+                        </ConfirmIcon>
                       )}
                     </Group>
                   ))}

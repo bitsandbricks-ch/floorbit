@@ -94,10 +94,10 @@ def test_the_audit_log_in_german(client):
     client.post('/api/seat-blocks', json={'name': 'A', 'x': 10, 'y': 10, 'cols': 2, 'rows': 2})
     de = {'Accept-Language': 'de-CH'}
     actions = [e['action'] for e in client.get('/api/settings/audit', headers=de).get_json()['entries']]
-    assert 'Platzblock hinzugefügt' in actions
+    assert 'Sitzblock hinzugefügt' in actions
     assert 'Added seat block' in [e['action'] for e in client.get('/api/settings/audit').get_json()['entries']]
-    found = client.get('/api/settings/audit?q=platzblock', headers=de).get_json()
-    assert found['total'] >= 1 and all('Platzblock' in e['action'] for e in found['entries'])
+    found = client.get('/api/settings/audit?q=sitzblock', headers=de).get_json()
+    assert found['total'] >= 1 and all('Sitzblock' in e['action'] for e in found['entries'])
 
 
 def test_the_changelog_and_handover_in_german(client, tmp_path, monkeypatch):
@@ -112,7 +112,7 @@ def test_the_changelog_and_handover_in_german(client, tmp_path, monkeypatch):
     assert titles.get('Lokaler Agent weg') == 'keine Antworten aus dem Eventnetz'
     assert client.get('/api/timeline?q=eröffnet', headers=de).get_json()['total'] >= 1
     changes = client.get('/api/handover', headers=de).get_json()['changes']
-    assert any(c['action'] == 'Platzblock hinzugefügt' for c in changes)
+    assert any(c['action'] == 'Sitzblock hinzugefügt' for c in changes)
 
 
 def test_log_alerts_and_security_kinds_inside_the_titles():

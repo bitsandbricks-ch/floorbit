@@ -49,7 +49,11 @@ function Chart({ series, label }: { series: StatsSample[]; label: string }) {
   )
 }
 
+// A wall screen has nobody to scroll it: the busiest rows only, so the page fits a TV.
+const SCREEN_ROWS = 8
+
 function Board({ data, screen }: { data: StatsData; screen: boolean }) {
+  const rows = screen ? SCREEN_ROWS : Infinity
   const { t } = useTranslation()
   const forecastOn = useFeature('forecast')
   const [range, setRange] = useState<'hour' | 'day'>(screen ? 'hour' : 'day')
@@ -92,7 +96,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
         <h2 id="stats-uplinks">{t('stats.uplinks')}</h2>
         {!data.uplinks.length ? <Text c="dimmed" size="sm">{t('stats.noUplinks')}</Text> : (
           <ul className="fb-stats-bars">
-            {data.uplinks.map((u) => {
+            {data.uplinks.slice(0, rows).map((u) => {
               const pct = Math.round((u.utilization ?? 0) * 100)
               return (
                 <li key={u.switch_id} className={pct >= 80 ? 'down' : pct >= 60 ? 'warn' : ''}>
@@ -105,13 +109,14 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
             })}
           </ul>
         )}
+        {data.uplinks.length > rows && <Text c="dimmed" size="sm" mt={6}>{t('stats.moreUplinks', { count: data.uplinks.length - rows })}</Text>}
       </section>
 
       <section className="fb-stats-panel" aria-labelledby="stats-top">
         <h2 id="stats-top">{t('stats.top')}</h2>
         {!data.top.length ? <Text c="dimmed" size="sm">{t('stats.noTop')}</Text> : (
           <ol className="fb-stats-top">
-            {data.top.map((r) => (
+            {data.top.slice(0, rows).map((r) => (
               <li key={`${r.switch_id}:${r.port}`}>
                 <span className="name">
                   {screen ? (r.seat ? t('stats.seat', { seat: r.seat }) : `${r.switch} ${r.port}`) : (

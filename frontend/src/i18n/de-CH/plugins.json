@@ -36,5 +36,20 @@
   "schemaNewer": "Seine Daten sind auf Schema {{have}}, neuer als diese Version kennt ({{want}}). Installiere eine neuere Version.",
   "pageTitle": "Plugin-Seite",
   "pageFrom": "Von {{plugin}}",
-  "pageEmpty": "Auf dieser Seite ist nichts für dein Konto."
+  "pageEmpty": "Auf dieser Seite ist nichts für dein Konto.",
+  "names": {
+    "captive-note": "Check-in-Hinweis auf Handys",
+    "demo": "Demodaten",
+    "home-assistant": "Home-Assistant-Messgeräte",
+    "http-check": "HTTP-Prüfung",
+    "lancache": "LAN-Cache",
+    "netflow-relay": "Verkehr aus der Halle",
+    "shelly": "Shelly-Messgeräte",
+    "ssh-ports": "Port-Aktionen per SSH",
+    "syslog-relay": "Syslog aus der Halle",
+    "telemetry": "Telemetrie",
+    "services": "Dienste",
+    "game-servers": "Gameserver",
+    "firewalls": "Firewalls"
+  }
 }

@@ -24,7 +24,7 @@ from datetime import timedelta
 from functools import wraps
 from urllib.parse import urlsplit
 
-from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, g, jsonify, redirect, request, session, url_for
 
 from floorbit.env import number
 
@@ -149,7 +149,12 @@ def _forbidden(needed):
     message = f'Your role can\'t do this. It needs the permission: {what[0].lower() + what[1:]}.'
     if _wants_json():
         return jsonify({'error': message, 'permission_needed': needed}), 403
-    return render_template('forbidden.html', message=message, user=current_user()), 403
+    from floorbit import spa  # here: floorbit imports auth while it starts
+    user = current_user()
+    # The React app draws the page (frontend/src/pages/Forbidden.tsx), in the person's language.
+    role = (user.get('role_label') or user.get('role') or '') if user else ''
+    html, _status = spa.render('Not allowed', page={'kind': 'forbidden', 'permission': needed, 'role': role})
+    return html, 403
 
 
 def _same_origin():

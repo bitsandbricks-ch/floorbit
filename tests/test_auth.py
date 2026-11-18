@@ -1,5 +1,7 @@
 """Sign-in: who can see and change what, sessions, and the provider hooks for SSO later."""
 
+import json
+import re
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -342,6 +344,9 @@ def test_editor_can_change_the_floor_plan_but_not_settings(signed_in_as):
     assert editor.get("/api/users").status_code == 403
     page = editor.get("/settings")
     assert page.status_code == 403 and b"Not allowed" in page.data
+    # The React app draws it (Forbidden.tsx) from what the server puts into the page.
+    boot = re.search(r'<script type="application/json" id="fb-page">(.*?)</script>', page.get_data(as_text=True))
+    assert json.loads(boot.group(1)) == {"kind": "forbidden", "permission": "settings.manage", "role": "Lead"}
 
 
 def test_admin_can_do_everything(signed_in_as, tmp_path, monkeypatch):
