@@ -83,19 +83,36 @@ def reset():
         _saved.clear()
 
 
+class Download:
+    """``size`` random bytes in chunks; frees the stream slot once, when done, cut off or closed
+    unread. A plain generator would not: closing one that never started skips its ``finally``,
+    and a HEAD request (or a client gone before the first chunk) never starts it."""
+
+    def __init__(self, size):
+        self.size = size
+        self._freed = False
+
+    def __iter__(self):
+        try:
+            left = self.size
+            while left > 0:
+                for start in range(0, len(PAYLOAD), CHUNK):
+                    if left <= 0:
+                        break
+                    piece = PAYLOAD[start:start + min(CHUNK, left)]
+                    left -= len(piece)
+                    yield piece
+        finally:
+            self.close()
+
+    def close(self):
+        if not self._freed:
+            self._freed = True
+            release()
+
+
 def download(size):
-    """``size`` random bytes in chunks; frees the stream slot when done or cut off."""
-    try:
-        left = size
-        while left > 0:
-            for start in range(0, len(PAYLOAD), CHUNK):
-                if left <= 0:
-                    break
-                piece = PAYLOAD[start:start + min(CHUNK, left)]
-                left -= len(piece)
-                yield piece
-    finally:
-        release()
+    return Download(size)
 
 
 def swallow(stream, limit=MAX_UP):

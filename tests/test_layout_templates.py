@@ -139,3 +139,13 @@ def test_a_version_puts_back_where_the_background_sat_and_the_scale(client, plan
     (hall,) = client.get("/api/halls").get_json()["halls"]
     assert hall["background_frame"] == {"x": 10, "y": 0, "w": 80, "h": 50}
     assert hall["background_opacity"] == 0.3 and hall["seat_m"] == 0.9
+
+
+def test_a_template_named_in_any_script_exports(client, plan):
+    """gunicorn answered 500 for a file name outside Latin-1 in the header."""
+    t = _save(client, name="東京 hall")
+    exported = client.get(f"/api/templates/{t['id']}/export")
+    assert exported.status_code == 200
+    header = exported.headers["Content-Disposition"]
+    header.encode("latin-1")
+    assert "filename*=UTF-8''floorbit-template-%E6%9D%B1%E4%BA%AC-hall-" in header

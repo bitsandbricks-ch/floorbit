@@ -220,3 +220,44 @@ def test_a_page_without_any_copy_says_so_instead_of_an_error(app_module):
     with app.test_request_context("/api/halls"):
         answer = database_unavailable(database.DatabaseUnavailable("gone"))
     assert answer.status_code == 503 and answer.get_json()["code"] == "database_unavailable"
+
+
+class _PgConn:
+    """Enough of a psycopg connection: ``closed`` turns true when the pool closes it after a failed
+    statement, ``broken`` only when the server went away."""
+    def __init__(self, error, broken=False):
+        self.error, self.broken, self.closed = error, broken, False
+
+    def cursor(self):
+        return self
+
+    def execute(self, *args):
+        raise self.error
+
+    def close(self):
+        self.closed = True
+
+
+def _pg_error(name, text):
+    kind = type(name, (Exception,), {"__module__": "psycopg"})
+    return kind(text)
+
+
+def test_a_mistake_in_a_statement_is_no_outage(db, tmp_path):
+    """On Postgres a refused statement (a NUL byte, a duplicate key) used to count as the database
+    being down: saving was off for everyone for the next seconds, again on every such statement."""
+    store.write_json(str(tmp_path / "data.json"), {"a": 1})
+    db.close()
+    db._idle.append(_PgConn(_pg_error("DataError", "PostgreSQL text fields cannot contain NUL (0x00) bytes")))
+    with pytest.raises(database.DatabaseError) as err:
+        db.run("SELECT 1")
+    assert not isinstance(err.value, database.DatabaseUnavailable)
+    assert db.down is None and database.available() is True
+
+
+def test_a_connection_the_server_dropped_is_still_reopened(db, tmp_path):
+    path = str(tmp_path / "data.json")
+    store.write_json(path, {"a": 1})
+    db.close()
+    db._idle.append(_PgConn(_pg_error("AdminShutdown", "terminating connection"), broken=True))
+    assert store.read_json(path) == {"a": 1} and db.down is None

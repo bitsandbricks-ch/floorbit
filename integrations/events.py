@@ -165,7 +165,13 @@ def admit(crew):
 
 
 def _format(event):
-    return f"id: {event['id']}\nevent: {event['type']}\ndata: {json.dumps(event, default=str)}\n\n"
+    try:
+        data = json.dumps(event, default=str, allow_nan=False)
+    except ValueError:
+        # A bare NaN (a device's odd reading) made the page's JSON.parse throw on this event.
+        from floorbit.json_body import finite
+        data = json.dumps(finite(event), default=str)
+    return f"id: {event['id']}\nevent: {event['type']}\ndata: {data}\n\n"
 
 
 # Who did what: nicks and account names, and the IP and MAC a check-in came from. Only readers who may

@@ -25,12 +25,19 @@ def get(url, **kwargs):
     with _lock:
         if _down['base'] == base and now < _down['until']:
             raise requests.ConnectionError(f"LibreNMS did not answer a moment ago ({_down['why']})")
+    # X-Auth-Token is a header of our own, which requests keeps on a redirect to another host (it
+    # drops only Authorization): never follow one, as plugins' HttpClient doesn't either.
+    kwargs.setdefault('allow_redirects', False)
     try:
-        return requests.get(url, **kwargs)
+        resp = requests.get(url, **kwargs)
     except (requests.ConnectionError, requests.Timeout) as exc:
         with _lock:
             _down.update(until=time.monotonic() + BREAK_FOR, base=base, why=type(exc).__name__)
         raise
+    if resp.status_code in (301, 302, 303, 307, 308):   # "ok" to requests, but no answer: say where
+        raise requests.HTTPError(f"LibreNMS redirects to {resp.headers.get('Location', '')}: put that "
+                                 'address in Settings > LibreNMS.', response=resp)
+    return resp
 
 
 def reset():
