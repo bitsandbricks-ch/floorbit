@@ -1485,21 +1485,6 @@ export interface StatusPageData {
   switch_names: boolean
 }
 
-/** A step-by-step fix guide for kinds of incident (issue #102). */
-export type RunbookKind = 'no-internet' | 'slow' | 'power' | 'switch-down' | 'other'
-
-export interface Runbook {
-  id: string
-  title: string
-  kinds: RunbookKind[]
-  /** Markdown. */
-  body: string
-  /** One of the general first steps Floorbit offers until the crew saves its own. */
-  starter: boolean
-  updated_at: number | null
-  by: string | null
-}
-
 /** One frame of the whole-event recording (issue #104). blocks: name -> [seats, online, bps, open incidents]. */
 export interface EventFrame {
   t: number
