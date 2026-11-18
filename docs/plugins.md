@@ -194,6 +194,16 @@ Keeps the [syslog](syslog.md) longer than Floorbit's own 24 hours. Set Loki's UR
 `message`, `port` and `seat`. Lines Loki didn't take are sent again next time. The Logs page then
 gets a **Grafana Loki** source to search it with LogQL, over up to 30 days.
 
+## Built in: VictoriaLogs
+
+Keeps the [syslog](syslog.md) longer than Floorbit's own 24 hours, in the VictoriaLogs that
+`docker compose --profile logs up -d` starts (URL `http://victorialogs:9428`) or your own. Set the
+tenant as `AccountID:ProjectID` when it keeps several, and a username and password when it sits
+behind basic auth. Every 10 seconds Floorbit sends the new lines to `/insert/jsonline`: the message
+is `_msg`, the streams are `job` and `device`, and `severity`, `program`, `port`, `seat`, `source`
+and `event` (when the **Event label** is set) are fields. Lines it didn't take are sent again next
+time. The Logs page then gets a **VictoriaLogs** source to search it with LogsQL, over up to 30 days.
+
 ## Built in: Demo data
 
 A made-up hall for trying Floorbit without a network: inventory, seat mapping and live data (it

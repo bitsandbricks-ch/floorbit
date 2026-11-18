@@ -8,12 +8,11 @@
 - **Lite** (no VictoriaMetrics): the normalised series only, in Floorbit's own database
   (SQLite or Postgres, table ``floorbit_telemetry``): a point a minute for ``FINE_HOURS`` (6), a
   point every 15 minutes for ``FLOORBIT_TELEMETRY_DAYS`` (2).
-- **VictoriaLogs** (``FLOORBIT_VICTORIALOGS_URL``, optional): log events, as JSON lines.
+- Logs are not telemetry: the syslog goes to VictoriaLogs or Loki through their logs plugins.
 
 MAC tables, ARP and neighbours (state.PRIVATE) are never stored: they name the people at the seats.
 Redis is not used for any of it.
 """
-import json
 import os
 import time
 
@@ -34,10 +33,6 @@ DEVICE_METRICS = ('up', 'cpu', 'mem', 'states')
 
 def vm_url():
     return (os.environ.get('FLOORBIT_VICTORIAMETRICS_URL') or '').rstrip('/') or None
-
-
-def vl_url():
-    return (os.environ.get('FLOORBIT_VICTORIALOGS_URL') or '').rstrip('/') or None
 
 
 def keep_days():
@@ -163,24 +158,6 @@ class Storage:
         except DatabaseError as exc:
             self.errors['database'] = str(exc)[:200]
 
-    def send_logs(self, events):
-        """Log events ({time, device, msg, ...}) to VictoriaLogs. Returns how many went."""
-        url = vl_url()
-        if not url or not events:
-            return 0
-        body = '\n'.join(json.dumps(e, separators=(',', ':'), default=str) for e in events).encode()
-        try:
-            resp = requests.post(f'{url}/insert/jsonline', data=body, timeout=TIMEOUT,
-                                 params={'_stream_fields': 'device,kind', '_msg_field': 'msg', '_time_field': 'time'})
-        except requests.RequestException as exc:
-            self.errors['victorialogs'] = type(exc).__name__
-            return 0
-        if resp.status_code >= 300:
-            self.errors['victorialogs'] = f'HTTP {resp.status_code}'
-            return 0
-        self.errors.pop('victorialogs', None)
-        return len(events)
-
     # ── reading ──
     def series(self, device, port, metric, hours=6, now=None):
         """[[unix time, value]] of one series, oldest first."""
@@ -213,7 +190,7 @@ class Storage:
 
     def status(self):
         return {'mode': 'victoriametrics' if vm_url() else 'lite',
-                'logs': 'victorialogs' if vl_url() else None, 'keep_days': keep_days() if not vm_url() else None,
+                'keep_days': keep_days() if not vm_url() else None,
                 'written': self.written, 'errors': dict(self.errors)}
 
 

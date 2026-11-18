@@ -100,14 +100,20 @@ search and level filter:
 
 **Logs** in the sidebar shows for them even while the syslog receiver is off.
 
-## Keeping it longer: Grafana Loki
+## Keeping it longer: VictoriaLogs or Grafana Loki
 
-Floorbit keeps the syslog for a day. To keep it longer, turn on the built-in
-[Grafana Loki plugin](plugins.md#built-in-grafana-loki) under Settings > Plugins: every line goes to
-Loki as well, and the Logs page gets a **Grafana Loki** source to search it with LogQL over the last
-hour to 30 days. Write the query and press Enter, for example
-`{job="floorbit", device="sw-a-01"} |= "err-disable"`; an empty query shows everything Floorbit sent.
-The line above the syslog shows how many lines went to Loki, or why it didn't take them.
+Floorbit keeps the syslog for a day. To keep it longer, turn on one of the built-in logs plugins
+under Settings > Plugins: every line goes there as well, and the Logs page gets a source to search it
+over the last hour to 30 days. Write the query and press Enter; an empty query shows everything
+Floorbit sent. The line above the syslog shows how many lines went out, or why they weren't taken.
+
+- [VictoriaLogs](plugins.md#built-in-victorialogs): `docker compose --profile logs up -d` starts one
+  next to Floorbit; set the plugin's URL to `http://victorialogs:9428`. Search with LogsQL, for
+  example `device:sw-a-01 err-disable` or `severity:warning seat:B-3`.
+- [Grafana Loki](plugins.md#built-in-grafana-loki): search with LogQL, for example
+  `{job="floorbit", device="sw-a-01"} |= "err-disable"`.
+
+`FLOORBIT_VICTORIALOGS_URL` is no longer read: it never sent anything. Use the plugin instead.
 
 ## Log alerts
 

@@ -127,6 +127,10 @@
     "backup": {
       "title": "Backups to S3",
       "desc": "Upload a backup to an S3 bucket on a schedule (Amazon S3, MinIO, Garage, Backblaze B2 and others). The backups are listed, restored and downloaded under Backup and restore."
+    },
+    "plugin-victorialogs": {
+      "title": "Plugin: VictoriaLogs",
+      "desc": "Sends the syslog lines Floorbit receives to VictoriaLogs, to keep them longer than a day, and searches them with LogsQL on the Logs page."
     }
   },
   "fields": {
@@ -807,6 +811,28 @@
     "integrations_s3_backup_keep": {
       "label": "Backups kept",
       "help": "After each upload, older backups in the folder are deleted."
+    },
+    "plugin_victorialogs_url": {
+      "label": "VictoriaLogs URL",
+      "help": "VictoriaLogs' HTTP address, without /insert or /select."
+    },
+    "plugin_victorialogs_account": {
+      "label": "Tenant",
+      "help": "AccountID:ProjectID when VictoriaLogs keeps several tenants. Leave empty otherwise."
+    },
+    "plugin_victorialogs_username": {
+      "label": "Username",
+      "help": "For VictoriaLogs behind basic auth (vmauth or a proxy)."
+    },
+    "plugin_victorialogs_password": {
+      "label": "Password or token"
+    },
+    "plugin_victorialogs_event_label": {
+      "label": "Event label",
+      "help": "Added to every line as event=..., to tell events apart in one VictoriaLogs."
+    },
+    "plugin_victorialogs_verify_ssl": {
+      "label": "Verify TLS certificates"
     }
   },
   "plugins": {

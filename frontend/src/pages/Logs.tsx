@@ -124,6 +124,12 @@ function Compact({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) 
   )
 }
 
+// Each logs plugin's own query language, with an example for the box.
+const QUERY: Record<string, { language: string; example: string }> = {
+  loki: { language: 'LogQL', example: '{job="floorbit"} |= "err-disable"' },
+  victorialogs: { language: 'LogsQL', example: 'device:sw-a-01 err-disable' },
+}
+
 /** Syslog from the event's switches, firewalls and DHCP servers (issue #91): search, filter and
  *  follow along. Lines name MACs and IPs, so the page needs seats.view like the API. With
  *  audit.read, the same viewer also shows Floorbit's own log and the audit log (issue #93). */
@@ -141,7 +147,7 @@ export default function Logs() {
   })
   const syslog = source === 'syslog'
   const store = source.startsWith('plugin:')
-  // A LogQL query runs when it's sent (Enter), not on every key: half a query is an error.
+  // A logs plugin's query runs when it's sent (Enter), not on every key: half a query is an error.
   const [logql, setLogql] = useState('')
   const [draft, setDraft] = useState('')
   const [hours, setHours] = useState('24')
@@ -194,7 +200,8 @@ export default function Logs() {
       )}
       {store ? (
         <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
-          <TextInput label={t('logs.logql')} placeholder='{job="floorbit"} |= "err-disable"' value={draft} styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
+          <TextInput label={QUERY[source.slice('plugin:'.length)] ? t('logs.queryIn', { language: QUERY[source.slice('plugin:'.length)].language }) : t('logs.query')}
+            placeholder={QUERY[source.slice('plugin:'.length)]?.example} value={draft} styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
             style={{ flex: '3 1 320px' }} onChange={(e) => setDraft(e.currentTarget.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') setLogql(draft.trim()) }} />
           <Select label={t('logs.range')} value={hours} onChange={(v) => setHours(v ?? '24')} allowDeselect={false}

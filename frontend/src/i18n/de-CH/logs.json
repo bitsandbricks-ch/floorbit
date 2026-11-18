@@ -50,7 +50,8 @@
     "audit": "Wer was wann geändert hat: jede Änderung in der App und jede Anmeldung.",
     "store": "Was ein Log-Plugin vom Syslog aufbewahrt, durchsucht mit seiner eigenen Abfragesprache. Eine leere Abfrage zeigt alles, was Floorbit geschickt hat."
   },
-  "logql": "LogQL-Abfrage",
+  "query": "Abfrage",
+  "queryIn": "{{language}}-Abfrage",
   "range": "Zeitraum",
   "run": "Suchen",
   "hours": {

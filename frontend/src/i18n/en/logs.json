@@ -50,7 +50,8 @@
     "audit": "Who changed what, and when: every change through the app and every sign-in.",
     "store": "What a logs plugin keeps of the syslog, searched with its own query language. An empty query shows everything Floorbit sent."
   },
-  "logql": "LogQL query",
+  "query": "Query",
+  "queryIn": "{{language}} query",
   "range": "Time range",
   "run": "Search",
   "hours": {

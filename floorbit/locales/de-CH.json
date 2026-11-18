@@ -1203,5 +1203,9 @@
  "There is no such tenant.": "Diesen Mandanten gibt es nicht.",
  "A tenant is active or suspended.": "Ein Mandant ist aktiv oder gesperrt.",
  "The default tenant runs the platform and can't be suspended.": "Der Standard-Mandant betreibt die Plattform und kann nicht gesperrt werden.",
- "You have no way into that tenant.": "Du hast keinen Zugang zu diesem Mandanten."
+ "You have no way into that tenant.": "Du hast keinen Zugang zu diesem Mandanten.",
+ "VictoriaLogs refused the username or password.": "VictoriaLogs hat Benutzername oder Passwort abgelehnt.",
+ "VictoriaLogs' answer isn't JSON lines. Is the URL its HTTP address?": "Die Antwort von VictoriaLogs sind keine JSON-Zeilen. Ist die URL seine HTTP-Adresse?",
+ "Set the VictoriaLogs URL under Settings > Plugins.": "Setze die VictoriaLogs-URL unter Einstellungen > Plugins.",
+ "VictoriaLogs can't read that query.": "VictoriaLogs kann diese Abfrage nicht lesen."
 }
