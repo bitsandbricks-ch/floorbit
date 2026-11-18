@@ -33,7 +33,9 @@ def too_deep(value, limit=MAX_DEPTH):
 def init_json_body(app):
     @app.before_request
     def refuse_bare_json_values():
-        if request.method not in ('POST', 'PUT', 'PATCH') or not request.is_json:
+        # DELETE too: a handler, or the audit log after it, may read its body (DELETE /api/notice
+        # with a deep one answered 500 from the audit log's after_request).
+        if request.method not in ('POST', 'PUT', 'PATCH', 'DELETE') or not request.is_json:
             return None
         try:
             body = request.get_json(silent=True)
@@ -41,6 +43,8 @@ def init_json_body(app):
             return jsonify({'error': TOO_DEEP}), 400
         if too_deep(body):
             return jsonify({'error': TOO_DEEP}), 400
+        if request.method == 'DELETE':      # its body was never checked for shape: keep it that way
+            return None
         if body is not None and not isinstance(body, dict):
             return jsonify({'error': MESSAGE}), 400
         return None

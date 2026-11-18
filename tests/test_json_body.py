@@ -73,3 +73,11 @@ def test_ordinary_nesting_still_gets_through(client):
     nested = {"a": [{"b": [{"c": 1}]}]}
     assert not too_deep(nested) and not too_deep(None) and not too_deep("x")
     assert client.post("/api/teams", json={"name": "Network", "extra": nested}).status_code == 201
+
+
+def test_a_delete_with_a_deep_body_gets_400_and_others_keep_their_shape(client):
+    """DELETE bodies were not checked: the audit log read a deep one after the handler, a 500."""
+    r = client.delete("/api/notice", data='{"a":' * 50000 + "1" + "}" * 50000, content_type="application/json")
+    assert r.status_code == 400 and r.get_json()["error"] == "The JSON is nested too deeply."
+    assert client.delete("/api/notice", json=[1, 2]).status_code < 500       # no new shape rule for DELETE
+    assert client.delete("/api/notice").status_code < 500
