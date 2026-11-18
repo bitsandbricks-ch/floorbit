@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post } from '@/api/client'
+import { PluginIcon } from './icon'
 import { qk } from '@/api/keys'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { LoadingState } from '@/components/ui'
@@ -31,6 +32,7 @@ export type MarketTouches = {
 export type MarketPlugin = {
   id: string
   name: string
+  icon?: string
   description: string
   author: string
   homepage: string
@@ -134,6 +136,7 @@ function Entry({ plugin }: { plugin: MarketPlugin }) {
     <Paper withBorder radius="lg" p="md" component="section" aria-labelledby={`mk-${plugin.id}`}>
       <Stack gap="xs">
         <Group gap="sm" wrap="wrap">
+          <PluginIcon name={plugin.icon} />
           <Title order={3} fz="lg" id={`mk-${plugin.id}`}>
             {plugin.name}
           </Title>

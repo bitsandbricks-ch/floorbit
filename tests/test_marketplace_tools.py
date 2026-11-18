@@ -133,6 +133,7 @@ def test_a_signed_release_floorbit_would_refuse_is_not_listed(tmp_path, keys):
 
 AGENT_YAML = """id: hallthing
 name: Hall thing
+icon: storage
 version: '1.0.0'
 uses: [agent, actions, widgets, settings]
 settings:
@@ -160,6 +161,7 @@ def test_the_index_says_what_each_version_may_touch(tmp_path, keys):
     repo = "bitsandbricks-ch/floorbit-plugin-hallthing"
     doc = tools.build_index({"plugins": [{"repo": repo}]}, tmp_path / "site", keys["index"].read_bytes(),
                             FakeGitHub({repo: [release(signed, "1.0.0")]}), log=lambda *_: None)
+    assert doc["plugins"][0]["icon"] == "storage"
     got = marketplace.versions_of(doc["plugins"][0])[0]["touches"]
     assert got == {"uses": ["agent", "actions", "widgets", "settings"],
                    "permissions": ["seats.view", "settings.manage"],

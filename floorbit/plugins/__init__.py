@@ -107,10 +107,17 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 # Every key plugin.yaml may have (docs/plugin-spec.md). An unknown key is refused, so a typo or a
 # feature this Floorbit doesn't have fails at load, not quietly at run time.
 MANIFEST_KEYS = frozenset({
-    'id', 'name', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
+    'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
     'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
-MANIFEST_NEXT = ('icon', 'panels', 'layers', 'pages', 'schema')
+MANIFEST_NEXT = ('panels', 'layers', 'pages', 'schema')
+
+
+def plugin_icons():
+    """The names a plugin's ``icon:`` may take: the sidebar's and the inventory's icon sets, which the
+    page draws (frontend/src/pages/plugins/icon.ts). Never a file: nothing a plugin ships is drawn as is."""
+    from .. import inventory, nav_sections
+    return tuple(dict.fromkeys((*nav_sections.ICONS, *inventory.ICONS)))
 TRUE_WORDS = ('1', 'true', 'yes', 'on')
 # Manifest setting types and the settings page type each becomes.
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
@@ -234,6 +241,8 @@ def validate(m):
         if later:
             return f"{', '.join(later)}: not supported by this Floorbit yet (docs/plugin-spec.md)"
         return f"unknown key(s) {', '.join(extra)} (docs/plugin-spec.md lists what plugin.yaml may have)"
+    if 'icon' in m and m['icon'] not in plugin_icons():
+        return f"icon: one of {', '.join(plugin_icons())}"
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"
@@ -900,7 +909,8 @@ class Registry:
             def t(text, spec=spec):
                 return self.text(spec, text, lang)
             out.append({
-                'id': spec.id, 'name': t(spec.name), 'version': str(spec.manifest.get('version', '')),
+                'id': spec.id, 'name': t(spec.name), 'icon': spec.manifest.get('icon') or '',
+                'version': str(spec.manifest.get('version', '')),
                 'description': t(spec.manifest.get('description', '')), 'trust': spec.trust,
                 'author': spec.manifest.get('author', ''), 'homepage': spec.manifest.get('homepage', ''),
                 'uses': [{'id': u, 'label': AREAS.get(u, u)} for u in spec.uses if u in AREAS],

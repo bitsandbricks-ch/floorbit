@@ -35,7 +35,7 @@ import threading
 import time
 from pathlib import Path
 
-from .plugins import PluginError, bundles, clean_touches, compatible
+from .plugins import PluginError, bundles, clean_touches, compatible, plugin_icons
 
 DEFAULT_URL = 'https://bitsandbricks-ch.github.io/floorbit-plugins/index.json'  # TODO: Mike: final domain?
 URL_ENV = 'FLOORBIT_MARKETPLACE_URL'
@@ -320,8 +320,10 @@ def catalog(registry, force=False):
         wanted = best if not current or (best and bundles.newer(best, current)) else current
         touches = next((v['touches'] for v in versions_of(entry) if v['version'] == wanted), None)
         name = _text(entry.get('name'), 80) or (spec.name if spec else pid)
+        # Only a name Floorbit draws itself; anything else in the index shows the default icon.
+        icon = entry.get('icon') if entry.get('icon') in plugin_icons() else ''
         plugins.append({
-            'id': pid, 'name': name, 'description': _text(entry.get('description'), 500),
+            'id': pid, 'name': name, 'icon': icon, 'description': _text(entry.get('description'), 500),
             'author': _text(entry.get('author'), 80), 'homepage': _text(entry.get('homepage'), 200),
             'trust': (mine or {}).get('trust') or ('official' if src and src['official'] else 'community'),
             'source': src['url'] if src else (mine or {}).get('source', ''),

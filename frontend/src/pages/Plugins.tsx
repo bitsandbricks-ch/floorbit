@@ -13,6 +13,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
 import Marketplace from './plugins/Marketplace'
+import { PluginIcon } from './plugins/icon'
 
 type Result = { ok: boolean; text: string } | null
 
@@ -93,6 +94,7 @@ export function PluginCard({ plugin, titled = true }: { plugin: PluginInfo; titl
     <Paper withBorder radius="lg" p="lg" component="section" id={`pl-${plugin.id}`}>
       <Stack gap="sm">
         <Group gap="sm" wrap="wrap">
+          {titled && <PluginIcon name={plugin.icon} size={34} />}
           {titled && <Title order={3} fz="lg">{plugin.name}</Title>}
           <Badges plugin={plugin} />
           <OnOff plugin={plugin} toggle={toggle} />
@@ -143,6 +145,7 @@ function PluginRow({ plugin }: { plugin: PluginInfo }) {
     <Paper withBorder radius="lg" p="md" component="li" id={`pl-${plugin.id}`}>
       <Stack gap={6}>
         <Group gap="sm" wrap="wrap">
+          <PluginIcon name={plugin.icon} />
           <Title order={2} fz="md"><Anchor href={href} inherit>{plugin.name}</Anchor></Title>
           <Badges plugin={plugin} />
           <OnOff plugin={plugin} toggle={toggle} />

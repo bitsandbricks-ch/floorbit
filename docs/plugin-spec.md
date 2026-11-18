@@ -80,7 +80,7 @@ and dark, on phones and big screens.
 | --- | --- | --- |
 | Dashboard tiles (`widgets:`): `stat`, `status`, `list`, `table`, `sparkline` | Ships | `small` or `wide`, refreshed every 10 s or slower. Up to 50 rows, 12 columns, 500 points; links only to paths on this site. Usable on [dashboards](dashboards.md) and kiosk walls. |
 | Its page under Settings > Plugins | Ships | Floorbit builds it: what it may touch, settings, Test, actions, log, the agents that run it. |
-| An icon (`icon:`) | **Next** | A name from Floorbit's icon set, shown in the plugin list, the Marketplace and its tiles. No SVG files: an uploaded icon goes through the [icon library](inventory.md)'s sanitiser instead. |
+| An icon (`icon:`) | Ships | A name from Floorbit's icon set (the sidebar's and the inventory's icons), shown in the plugin list and the Marketplace. A name Floorbit doesn't know is refused at load. No SVG or image files: a plugin never ships something the browser draws as is. |
 | Inspector panels (`panels:` on `seat`, `switch` or `device`) | **Next** | A widget shown in the side panel when that thing is selected; `panel_<id>(target)` returns a widget. |
 | Floor plan layers (`layers:`) | **Next** | `layer_<id>()` returns `{seat or switch: {value, tone, label}}` plus a legend; drawn like the heatmap, one layer at a time, under the plan's own filters. |
 | Pages in the sidebar (`pages:`) | **Next** | A page made of the plugin's own widgets, in the sidebar's *Plugins* group, for accounts with the permission it names. |

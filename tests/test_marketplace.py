@@ -56,7 +56,8 @@ def market(tmp_path, monkeypatch, app_module):
     marketplace._cache.clear()
     files, entries = {}, {}
 
-    def publish(pid, version, pem=plugin_pem, withdrawn="", floorbit="", body="x = 1\n", base=URL, index=None):
+    def publish(pid, version, pem=plugin_pem, withdrawn="", floorbit="", body="x = 1\n", base=URL, index=None,
+                icon=None):
         src = tmp_path / "src" / f"{pid}-{version}"
         src.mkdir(parents=True)
         (src / "plugin.yaml").write_text(
@@ -71,6 +72,8 @@ def market(tmp_path, monkeypatch, app_module):
         files[base.rsplit("/", 1)[0] + "/" + name] = data
         doc = entries.setdefault(index or base, {})
         doc.setdefault(pid, {"id": pid, "name": "Hall thing", "description": "Shows the hall", "versions": []})
+        if icon is not None:
+            doc[pid]["icon"] = icon
         doc[pid]["versions"].append({"version": version, "file": name, "sha256": bundles.sha256(data),
                                      "floorbit": floorbit, "agent_api": 1, "withdrawn": withdrawn})
         sign_all()

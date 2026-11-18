@@ -84,6 +84,7 @@ export interface ActionResult {
 export interface PluginInfo {
   id: string
   name: string
+  icon?: string
   version: string
   description: string
   trust: 'builtin' | 'development' | 'official' | 'community' | string

@@ -152,6 +152,7 @@ def build_index(config, out, index_pem, gh, log=print):
                 continue
             if entry is None or bundles.newer(version, entry['_v']):
                 entry = {'id': pid, 'name': str(manifest.get('name') or pid)[:80],
+                         **({'icon': manifest['icon']} if manifest.get('icon') else {}),
                          'description': str(manifest.get('description') or '')[:500],
                          'author': str(manifest.get('author') or '')[:80],
                          'homepage': str(manifest.get('homepage') or f'https://github.com/{repo}')[:200],

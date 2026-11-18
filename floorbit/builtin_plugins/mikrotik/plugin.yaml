@@ -2,6 +2,7 @@
 # the RouterOS v7 REST API. Off until turned on under Settings > Plugins. It only reads.
 id: mikrotik
 name: MikroTik
+icon: router
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Live status, ports and traffic of MikroTik switches (RouterOS 7 REST API), and which switch port an IP or MAC is on (ARP, then the bridge host tables). Feeds the floor plan, the status monitor, the seat inspector and the check-in page. Only reads: use an account in a read-only group."
