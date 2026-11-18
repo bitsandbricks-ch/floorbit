@@ -250,6 +250,29 @@ FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 
              'templates_missing': None, 'errors': None, 'refused': None}
 
 
+# What each part of a summary is, so an agent sending something else can't break the Traffic page
+# (it reads anomalies' ids and kinds without asking).
+FLOW_LISTS = {'exporters', 'series', 'areas', 'services', 'seats', 'anomalies'}
+FLOW_DICTS = {'mix_hour', 'mix_day', 'raw'}
+
+
+def _flow_value(key, value):
+    """The value as the Traffic page expects it, or None to leave it out."""
+    if key in FLOW_LISTS:
+        if not isinstance(value, list):
+            return None
+        rows = [r for r in value if isinstance(r, dict)]
+        if key == 'anomalies':
+            rows = [r for r in rows if isinstance(r.get('id'), str) and isinstance(r.get('kind'), str)
+                    and all(isinstance(r.get(t), (int, float)) and not isinstance(r.get(t), bool)
+                            for t in ('first_seen', 'last_seen'))
+                    and all(isinstance(r.get(t, ''), str) for t in ('title', 'detail'))]
+        return rows
+    if key in FLOW_DICTS:
+        return value if isinstance(value, dict) else None
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
 def _traffic_off():
     return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Features).'}), 409
 
@@ -324,9 +347,10 @@ def take_flow_summary(agent, snap):
         return False
     clean = {}
     for key, most in FLOW_KEYS.items():
-        if key in snap:
-            value = snap[key]
-            clean[key] = value[:most] if most and isinstance(value, list) else value
+        if key in snap and key != 'updated':
+            value = _flow_value(key, snap[key])
+            if value is not None:
+                clean[key] = value[:most] if most and isinstance(value, list) else value
     from .. import agent_ha
     if agent_ha.standby_with_primary(agent['id'], time.time()):
         # Two agents in one hall: the primary's summary stands; a standby's would replace it with part of it.
