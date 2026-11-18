@@ -14,7 +14,7 @@ const drawing: PlanDrawing = {
   marks: [{ kind: 'text', x: 100, y: 20, text: 'Stage', size: 'm' }],
 }
 const hall = (over: Partial<PublicHallData> = {}): PublicHallData => ({
-  hall: 'main', halls: [], drawing, online: 1, total: 2, updated: Date.now() / 1000, finder: true, agenda: true, ...over,
+  hall: 'main', halls: [], drawing, online: 1, total: 2, updated: Date.now() / 1000, agenda: true, ...over,
 })
 
 describe('PublicHall', () => {
@@ -24,7 +24,6 @@ describe('PublicHall', () => {
     expect(await screen.findByText('1 of 2 seats online')).toBeInTheDocument()
     expect([...container.querySelectorAll('.cell.on')].map((c) => c.getAttribute('data-seat'))).toEqual(['D-1'])
     expect(screen.getByText('Stage')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Find your seat' })).toHaveAttribute('href', '/find')
     expect(screen.getByRole('link', { name: 'Schedule' })).toHaveAttribute('href', '/agenda')
   })
 

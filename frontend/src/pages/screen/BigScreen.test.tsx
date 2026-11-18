@@ -8,7 +8,6 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 const setup: ScreenSetup = {
   views: [{ id: 'floor', url: '/dashboards/kiosk' }, { id: 'heat', url: '/plan?screen=1' }, { id: 'stats', url: '/stats?screen=1' }],
   every: 10,
-  qr: { url: 'https://floor.example.com/find', image: 'data:image/svg+xml,<svg/>' },
 }
 
 function frames(container: HTMLElement) {
@@ -44,12 +43,10 @@ describe('BigScreen', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('asks guests in both languages to find their seat', async () => {
+  it('shows no controls for a single view', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/screen': { ...setup, views: setup.views.slice(0, 1) } }).fn)
     renderWithApp(<BigScreen />, '/screen')
-    const qr = await screen.findByRole('complementary', { name: 'Find your seat' })
-    expect(qr).toHaveTextContent('Finde deinen Platz')
-    expect(qr).toHaveTextContent('https://floor.example.com/find')
+    await screen.findByTitle('Floor plan')
     expect(screen.queryByRole('button', { name: 'Next view' })).toBeNull()   // one view: nothing to step
   })
 })

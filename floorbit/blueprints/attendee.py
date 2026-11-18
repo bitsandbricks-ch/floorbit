@@ -16,7 +16,7 @@ from flask import Blueprint, current_app, jsonify, request
 from .. import halls, spa
 from ..seat_names import block_rows
 from ..store import load_data
-from .screen import finder_on, plan
+from .screen import plan
 
 bp = Blueprint('attendee', __name__)
 
@@ -59,7 +59,7 @@ def public_hall():
     settings = current_app.extensions['floorbit_settings']
     tabs = [{'id': h['id'], 'name': h['name']} for h in all_halls] if len(all_halls) > 1 else []
     body = {'hall': hall['id'], 'halls': tabs,
-            'drawing': drawing, 'updated': last, 'finder': finder_on(), 'agenda': bool(settings.get('public.schedule'))}
+            'drawing': drawing, 'updated': last, 'agenda': bool(settings.get('public.schedule'))}
     cells = [c for b in (drawing or {}).get('shapes', []) for c in b['cells']]
     body['total'] = len(cells)
     body['online'] = None if online is None else sum(1 for c in cells if c['on'])

@@ -1,25 +1,16 @@
-"""Big-screen rotation and the "find your seat" page (issue #18). See docs/kiosk.md.
+"""Big-screen rotation (issue #18) and the hall drawing other pages use. See docs/kiosk.md.
 
 - ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``,
-  ``&hall=<id>`` for the floor plan views of another hall than the first),
-  with a QR code to ``/find`` in the corner. Needs ``floorplan.view`` like the Kiosk dashboard.
+  ``&hall=<id>`` for the floor plan views of another hall than the first).
+  Needs ``floorplan.view`` like the Kiosk dashboard.
   The page is React; ``GET /api/screen`` with the same query string says what it shows.
-- ``GET /find``: for players' phones, no account: type a seat number, see where it is in the hall.
-  Finding by nick is off unless ``SEAT_FINDER_NICKS`` is on, and then only an exact nick finds a
-  seat. ``SEAT_FINDER=false`` turns the page off.
 """
 import re
-import time
-from threading import Lock
 
-import segno
-from flask import Blueprint, current_app, jsonify, request, url_for
-
-from integrations import checkin, config, seat_sources
+from flask import Blueprint, jsonify, request
 
 from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, spa, stacking
-from ..seat_names import block_rows, row_letters, seat_one_first, typed_forms
-from ..store import load_data
+from ..seat_names import block_rows, row_letters, seat_one_first
 
 bp = Blueprint('screen', __name__)
 
@@ -27,27 +18,9 @@ bp = Blueprint('screen', __name__)
 VIEWS = {'floor': '/dashboards/kiosk', 'heat': '/plan?screen=1&layers=marks%2Cstatus',
          'stats': '/stats?screen=1', 'health': '/health?screen=1'}
 DEFAULT_VIEWS = ('floor', 'heat', 'stats')
-# Block positions are percentages of the floor plan; the find page draws them on a canvas this big,
-# with seats a bit larger than the editor's so they are easy to tap and see on a phone.
+# Block positions are percentages of the floor plan; the public pages draw them on a canvas this
+# big, with seats a bit larger than the editor's so they are easy to see on a phone.
 PLAN_W, PLAN_H, CELL = 1600, 1000, 32
-RATE_LIMIT, RATE_WINDOW = 30, 60       # lookups per address and minute
-_lookups, _lookups_lock = {}, Lock()
-
-
-def finder_on():
-    return config.get_bool('SEAT_FINDER', True)
-
-
-def _rate_limited():
-    ip = checkin.client_ip() or '?'   # per attendee behind a trusted proxy, not per proxy
-    now = time.time()
-    with _lookups_lock:
-        recent = [t for t in _lookups.get(ip, []) if 0 <= now - t < RATE_WINDOW]
-        _lookups[ip] = [*recent, now]
-        if len(_lookups) > 10000:
-            for key in [k for k, v in _lookups.items() if not v or not 0 <= now - v[-1] <= RATE_WINDOW]:
-                _lookups.pop(key, None)
-        return len(recent) >= RATE_LIMIT
 
 
 def _row_labels(block, w, h, ys):
@@ -145,70 +118,6 @@ def _marks(data, hall_id, xs, ys, public=False):
             icon_library.data_uris(data, used))
 
 
-def _by_nick(query):
-    q = query.strip().lower()
-    for seat, info in (seat_sources.load() or {}).items():
-        if str((info or {}).get('username') or '').strip().lower() == q:
-            return seat
-    return None
-
-
-def _locate(data, seat):
-    """The drawing of the hall the seat is in, and where in it; with more than one hall, its name too."""
-    all_halls = halls.halls(data)
-    for hall in all_halls:
-        drawing, found = plan(data, seat, hall_id=hall['id'], public=True)
-        if found:
-            found['hall'] = hall['name'] if len(all_halls) > 1 else ''
-            return drawing, found
-    return None, None
-
-
-@bp.route('/find')
-def find_page():
-    """The page is React (frontend/src/pages/public/PublicFind.tsx), asking /api/seat-finder; 404
-    while the seat finder is switched off."""
-    html, status = spa.render('Find your seat')
-    return html, status if finder_on() else 404
-
-
-@bp.route('/api/seat-finder')
-def find_seat():
-    """``?q=D-17`` (or a nick, with ``SEAT_FINDER_NICKS``): the seat, where it is and its hall's
-    drawing. Without ``q``: whether nicks are found too. 404 ``none`` for nothing found, 429 when
-    one address asks too often, 404 ``off`` while the finder is switched off."""
-    if not finder_on():
-        return jsonify({'error': 'The seat finder is switched off.', 'code': 'off'}), 404
-    nicks = config.get_bool('SEAT_FINDER_NICKS', False)
-    query = (request.args.get('q') or '').strip()[:60]
-    if not query:
-        return jsonify({'nicks': nicks})
-    if _rate_limited():
-        return jsonify({'error': 'Too many searches from here. Please wait a minute.', 'code': 'busy'}), 429
-    data = load_data()
-    drawing, found = None, None
-    for form in typed_forms(query):     # "a3" and "A 3" find A-3
-        drawing, found = _locate(data, form)
-        if found:
-            break
-    if not found and nicks:
-        by_nick = _by_nick(query)
-        if by_nick:
-            drawing, found = _locate(data, by_nick)
-    if not found:
-        return jsonify({'error': 'No such seat on the floor plan.', 'code': 'none', 'nicks': nicks}), 404
-    return jsonify({'nicks': nicks, 'found': found, 'drawing': drawing})
-
-
-for _view in (find_page, find_seat):
-    _view._auth_public = True   # what auth.public_endpoint sets: players' phones have no account
-
-
-def _find_url():
-    base = (current_app.extensions['auth'].public_url() or '').rstrip('/')
-    return base + url_for('screen.find_page') if base else url_for('screen.find_page', _external=True)
-
-
 @bp.route('/screen')
 def screen_page():
     """The page is React (frontend/src/pages/BigScreen.tsx), asking /api/screen what to show."""
@@ -219,7 +128,7 @@ def screen_page():
 @bp.route('/api/screen')
 def screen_setup():
     """What /screen rotates through, for the same query string: ``views``, ``every`` (seconds, at
-    least 10), ``theme``, ``hall`` and ``qr=0``. Unknown views are dropped; none left means the
+    least 10), ``theme`` and ``hall``. Unknown views are dropped; none left means the
     default views."""
     wanted = [v.strip() for v in (request.args.get('views') or ','.join(DEFAULT_VIEWS)).split(',')]
     views = [v for v in wanted if v in VIEWS] or list(DEFAULT_VIEWS)
@@ -239,8 +148,4 @@ def screen_setup():
         if theme:
             url += ('&' if '?' in url else '?') + 'theme=' + theme
         urls.append({'id': v, 'url': url})
-    qr = None
-    if finder_on() and request.args.get('qr') != '0':
-        link = _find_url()
-        qr = {'url': link, 'image': segno.make(link, error='m').svg_data_uri(scale=6, border=2)}
-    return jsonify({'views': urls, 'every': every, 'qr': qr})
+    return jsonify({'views': urls, 'every': every})

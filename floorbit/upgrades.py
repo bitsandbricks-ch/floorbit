@@ -191,8 +191,15 @@ def _no_runbooks(data):
         data['features'].pop('runbooks', None)
 
 
+def _no_seat_finder(data):
+    """The "find your seat" page was removed: its saved switches go."""
+    if isinstance(data.get('app_settings'), dict):
+        for key in ('integrations.seat_finder', 'integrations.seat_finder_nicks'):
+            data['app_settings'].pop(key, None)
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
-         _no_runbooks)
+         _no_runbooks, _no_seat_finder)
 CURRENT = len(STEPS)
 
 

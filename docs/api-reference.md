@@ -853,14 +853,13 @@ Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/
 
 ## floorbit.blueprints.screen
 
-Big-screen rotation and the "find your seat" page (issue #18). See docs/kiosk.md.
+Big-screen rotation (issue #18) and the hall drawing other pages use. See docs/kiosk.md.
 
 Source: [`floorbit/blueprints/screen.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/screen.py)
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/screen` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
-| GET | `/api/seat-finder` | anyone |  |
 
 ## floorbit.blueprints.seat_blocks
 
