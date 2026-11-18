@@ -132,7 +132,7 @@ def test_next_never_leaves_the_site(anon_client, user):
 
 
 def test_a_next_with_a_line_break_goes_home_instead_of_a_500(anon_client, user):
-    for target in ("/a\nb", "/a\r\nSet-Cookie: x=1", "/plan\x7f"):
+    for target in ("/a\nb", "/a\r\nSet-Cookie: x=1", "/plan\x7f", "/plan?" + "x" * 5000):
         anon_client.post("/logout")
         assert sign_in(anon_client, next=target).headers["Location"] == "/"
         # Signed in already: /login sends on at once, which raised building the header.

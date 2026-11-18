@@ -124,8 +124,9 @@ def _safe_next(target):
     # Browsers read a backslash as a slash, so /\evil.example would leave the site too.
     if parts.scheme or parts.netloc or not target.startswith('/') or target[1:2] in ('/', '\\'):
         return '/'
-    # A newline can't go into the Location header (werkzeug raises: a 500 after signing in).
-    if any(ord(c) < 32 or ord(c) == 127 for c in target):
+    # A newline can't go into the Location header (werkzeug raises: a 500 after signing in), and
+    # a next of many kilobytes, kept in the session for OIDC, makes a cookie browsers drop.
+    if len(target) > 2048 or any(ord(c) < 32 or ord(c) == 127 for c in target):
         return '/'
     return target
 
