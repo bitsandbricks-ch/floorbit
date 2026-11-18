@@ -24,6 +24,11 @@ recognised by their IP address from the [seat sources](seat-mapping.md), so flow
 players' own addresses: export where the seats are not behind NAT yet (the access or distribution
 layer, or the inside interface of the firewall).
 
+Anyone on the event network can send UDP to the collector, and a made-up packet would add made-up
+traffic to a seat. Set `FLOWS_ALLOW` to the exporters' addresses (or their management network) and
+packets from anyone else are dropped and counted (`refused` in the summary). Unset, every sender
+counts, as before. On a local agent the setting goes into the agent's environment.
+
 TODO: ask Mike which devices export flows at the event (switches, router or firewall) and in which
 format, and add a tested example for each here.
 
@@ -89,6 +94,7 @@ An entry stays for ten minutes after it was last seen.
 | Setting | Default | |
 | --- | --- | --- |
 | `FLOWS_PORT` | `2055` | udp port the collector listens on |
+| `FLOWS_ALLOW` | | exporters that may send, addresses and networks, comma-separated; unset: everyone |
 | `FLOWS_SERVICES` | | the event's own service rules, a JSON list (above) |
 | `FLOWS_MIN_SEATS` | `5` | different seats before a service is named (at least 2) |
 | `FLOWS_RETENTION_DAYS` | `7` | days raw flows and per-seat numbers are kept |

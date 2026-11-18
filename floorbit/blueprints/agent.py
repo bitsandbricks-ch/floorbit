@@ -247,7 +247,7 @@ def syslog():
 FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
              'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
              'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
-             'templates_missing': None, 'errors': None}
+             'templates_missing': None, 'errors': None, 'refused': None}
 
 
 def _traffic_off():

@@ -145,6 +145,25 @@ def test_the_collector_keeps_publishing_after_the_clock_goes_back(tmp_path):
     assert len(sent) == 2
 
 
+
+@pytest.mark.parametrize("allow,sent_from,counted", [
+    ("", "198.51.100.66", True),                              # unset: everyone, as before
+    ("198.51.100.1, 192.0.2.0/28", "198.51.100.1", True),
+    ("198.51.100.1, 192.0.2.0/28", "192.0.2.14", True),
+    ("198.51.100.1, 192.0.2.0/28", "198.51.100.66", False),   # a seat PC forging flows
+    ("not-an-address", "198.51.100.1", False),                # only typos: nobody, not everybody
+])
+def test_only_listed_exporters_count(allow, sent_from, counted, tmp_path, monkeypatch):
+    monkeypatch.setenv("FLOWS_ALLOW", allow)
+    col = Collector(Aggregator(Classifier()), store.RawStore(str(tmp_path)), log=lambda *_: None)
+    assert (col.receive(v5([STEAM]), sent_from, now=NOW) == 1) is counted
+    assert col.refused == (0 if counted else 1)
+    sent = []
+    col.publish = sent.append
+    col.housekeeping(now=NOW, refresh_seats=lambda: (SEATS, AREAS))
+    assert sent[0]["refused"] == col.refused
+
+
 # ── classifying ───────────────────────────────────────────────────────────────────────────
 def test_builtin_ports_and_own_rules_first():
     c = Classifier()
