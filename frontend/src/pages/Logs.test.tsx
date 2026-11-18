@@ -123,7 +123,7 @@ describe('Logs', () => {
     const sources = ['syslog', 'plugin:victorialogs'] as const
     const stores = [{ id: 'victorialogs', name: 'VictoriaLogs', sent: 3, error: null }]
     const at = 1_800_000_000_000_000
-    const opts = { sources: [...sources], stores, source: 'plugin:victorialogs' }
+    const opts = { sources: [...sources], stores, source: 'plugin:victorialogs' as const }
     const fake = fakeFetch({
       'GET /api/auth/me': me,
       'GET /api/logs': logs([line(1)], { sources: [...sources], stores }),

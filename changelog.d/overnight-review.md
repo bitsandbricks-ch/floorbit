@@ -12,3 +12,7 @@
 
 - Logs page: searching Loki (or VictoriaLogs) again could keep lines from the previous answer on
   screen when several lines had arrived in the same instant.
+- German: errors inside an answer that otherwise worked (the syslog's status line, a logs plugin's
+  query error) now show in German too.
+- Logs page: the syslog receiver's warning no longer shows on the Loki, VictoriaLogs, Floorbit and
+  audit log tabs.

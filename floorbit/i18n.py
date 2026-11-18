@@ -228,14 +228,58 @@ def language(accept):
     return 'en'
 
 
+NESTED_MAX_BYTES = 256 * 1024   # bigger answers (plan data, exports) aren't walked for errors
+
+
+def _is_error_key(key):
+    return key == 'error' or key.endswith('_error')
+
+
+def german_nested(data, lang, depth=0):
+    """Status answers carry errors deeper down (``status.error``, ``stores[].error``,
+    ``query_error``): put each in ``lang``. Returns whether anything changed."""
+    if depth > 4:
+        return False
+    changed = False
+    items = data.items() if isinstance(data, dict) else enumerate(data) if isinstance(data, list) else ()
+    for key, value in list(items)[:500]:
+        if isinstance(value, str):
+            if isinstance(key, str) and _is_error_key(key):
+                german = translate(value, lang)
+                if german != value:
+                    data[key] = german
+                    changed = True
+        elif isinstance(value, (dict, list)):
+            changed = german_nested(value, lang, depth + 1) or changed
+    return changed
+
+
 def init_app(app):
     """German error texts for German requests, at one place instead of at every ``jsonify``."""
     from flask import request
 
     @app.after_request
     def german_errors(response):
-        if response.status_code < 400 or not response.is_json or response.direct_passthrough:
+        if not response.is_json or response.direct_passthrough:
             return response
+        lang = language(request.headers.get('Accept-Language'))
+        if lang == 'en':
+            return response
+        if response.status_code < 400:
+            # An answer that worked can still report a part that didn't (a status line, a plugin).
+            if (response.content_length or 0) > NESTED_MAX_BYTES or b'error"' not in response.get_data():
+                return response
+            data = response.get_json(silent=True)
+            if isinstance(data, (dict, list)) and german_nested(data, lang):
+                response.set_data(json.dumps(data, ensure_ascii=False))
+            return response
+        data = response.get_json(silent=True)
+        if isinstance(data, dict) and isinstance(data.get('error'), str):
+            german = translate(data['error'], lang)
+            if german != data['error']:
+                data['error'] = german
+                response.set_data(json.dumps(data, ensure_ascii=False))
+        return response
         lang = language(request.headers.get('Accept-Language'))
         if lang == 'en':
             return response

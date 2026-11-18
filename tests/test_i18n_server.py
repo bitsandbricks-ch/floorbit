@@ -136,3 +136,17 @@ def test_stored_status_messages_follow_the_page_language():
     assert german['servers'][0] == {'name': 'CS2 #1', 'error': 'Keine Antwort auf die Serverabfrage.'}
     assert german['servers'][1]['error'] is None
     assert i18n.translate_fields(rows, 'en') is rows
+
+
+def test_errors_inside_a_working_answer_are_german_too(client):
+    """A status answer that worked can name a part that failed (the syslog's status.error)."""
+    from floorbit import i18n
+    app = client.application
+    english = ('Syslog comes in through the local agent (the plugin "Syslog from the hall"); '
+               'this server does not listen itself.')
+    with app.test_request_context(headers={'Accept-Language': 'de-CH'}):
+        body = {'lines': [], 'status': {'error': english, 'stores': [{'id': 'x', 'error': None}]}, 'note': english}
+        assert i18n.german_nested(body, 'de-CH') is True
+        assert body['status']['error'].startswith('Syslog kommt über den lokalen Agenten')
+        assert body['note'] == english   # only error fields
+        assert i18n.german_nested({'error': 'not a known text'}, 'de-CH') is False

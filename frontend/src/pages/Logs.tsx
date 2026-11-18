@@ -194,7 +194,7 @@ export default function Logs() {
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={<Switch label={t('logs.live')} checked={live} onChange={(e) => setLive(e.currentTarget.checked)} />} />
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
-      {data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
+      {syslog && data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
       {sources.length > 1 && (
         <SegmentedControl mb="sm" value={source} onChange={(v) => setSource(v as LogSource)} aria-label={t('logs.source')}
           data={sources.map((s) => ({ value: s, label: s.startsWith('plugin:') ? storeName(s) : t(`logs.sources.${s}`) }))} />
