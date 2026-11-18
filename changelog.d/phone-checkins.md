@@ -1,4 +1,4 @@
 ### Changed
 
-- On a phone, the crew check-in list shows one card per seat (seat, nick and state on top, then
-  port, IP and MAC, device and time) instead of a table to swipe sideways.
+- On a phone, the crew check-in list and the seat mapping show one card per seat (seat on top,
+  then port, nick, IP and MAC and where they came from) instead of a table to swipe sideways.
