@@ -198,3 +198,50 @@ def test_a_connection_that_failed_is_not_handed_out_again(sqlite_db):
     assert used not in db._idle            # it may be mid-transaction or broken: closed instead
     db.run("SELECT 1")                      # and the next caller just opens a fresh one
     assert len(db._idle) == 1 and db._idle[0] is not used
+
+
+def test_a_save_that_meets_another_pods_write_merges_again(sqlite_db, monkeypatch):
+    # Another pod saves between our read of the row and our write: the conditional write misses,
+    # we merge with its version and both additions stay (two pods used to lose a third of them).
+    path = str(sqlite_db / "data.json")
+    store.write_json(path, {"teams": {}})
+    mine = store.read_json(path)
+    db = database.backend()
+    key = database.key_for(path)
+    real = db.get_versioned
+    calls = []
+
+    def other_pod_writes_first(k):
+        found = real(k)
+        if not calls:
+            db.put(key, json.dumps({"teams": {"theirs": {"id": "theirs"}}}))
+        calls.append(k)
+        return found
+
+    monkeypatch.setattr(db, "get_versioned", other_pod_writes_first)
+    mine["teams"]["mine"] = {"id": "mine"}
+    store.write_json(path, mine)
+    assert len(calls) == 2
+    assert set(store.read_json(path)["teams"]) == {"theirs", "mine"}
+
+
+def test_a_save_that_never_gets_through_is_refused_not_lost(sqlite_db, monkeypatch):
+    path = str(sqlite_db / "data.json")
+    store.write_json(path, {"n": 0})
+    mine = store.read_json(path)
+    db = database.backend()
+    monkeypatch.setattr(db, "put_if", lambda *a: False)
+    mine["n"] = 1
+    with pytest.raises(database.DatabaseError):
+        store.write_json(path, mine)
+
+
+def test_put_if_only_writes_the_version_it_read(sqlite_db):
+    db = database.backend()
+    assert db.put_if("doc", "1", None) is True
+    assert db.put_if("doc", "2", None) is False          # already there
+    text, version = db.get_versioned("doc")
+    assert text == "1"
+    assert db.put_if("doc", "2", version) is True
+    assert db.put_if("doc", "3", version) is False       # someone (we) wrote since
+    assert db.get_versioned("doc")[0] == "2"

@@ -2,6 +2,7 @@
 # is on by default; it does nothing until NetBox's URL and token are set (Settings > NetBox).
 id: netbox
 name: NetBox
+icon: rack
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Adds the devices with the configured roles from NetBox to the inventory (name, role, model, serial, management IP, site and status). Fields changed by hand in Floorbit stay as they are."

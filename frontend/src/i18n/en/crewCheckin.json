@@ -118,5 +118,11 @@
   "portalEmpty": "No agent has asked yet",
   "portalEmptyDesc": "With DHCP option 114 pointing at a local agent, its fetches show up here.",
   "portalLast": "Last fetch {{when}}, {{count}} clients checked in.",
-  "footer": "How the seat to port mapping works:"
+  "footer": "How the seat to port mapping works:",
+  "off": {
+    "title": "Check-in is off",
+    "desc": "Turn on seat check-in in the settings to see who checked in at which seat. Past events' check-ins are below.",
+    "askAdmin": "An admin can turn on seat check-in in the settings. Past events' check-ins are below.",
+    "turnOn": "Check-in settings"
+  }
 }

@@ -2,6 +2,7 @@
 # SNMP exporter instead of running LibreNMS. Off until turned on under Settings > Plugins.
 id: prometheus
 name: Prometheus
+icon: chart
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Live switch status and port state, traffic and errors from Prometheus (SNMP exporter, if_mib). Feeds the floor plan, the status monitor and the seat inspector. Prometheus has no ARP or MAC tables, so finding a seat's port by IP still needs LibreNMS or a seat source."

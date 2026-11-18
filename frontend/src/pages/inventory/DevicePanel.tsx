@@ -14,6 +14,7 @@ import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, roleIcon, speedLabel, typeName } from './model'
 import { useCustomIcons, useDeviceDetail, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
+import { PluginPanels } from '@/pages/plugins/PluginPanels'
 
 
 export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
@@ -193,6 +194,7 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
                 </PanelSection>
               )}
               {dev.notes && <PanelSection label={t('inventory.field.notes')}><Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{dev.notes}</Text></PanelSection>}
+              <PluginPanels on="device" target={id} frame={(c) => <PanelSection>{c}</PanelSection>} />
             </Tabs.Panel>
 
             <Tabs.Panel value="interfaces" pt="md">

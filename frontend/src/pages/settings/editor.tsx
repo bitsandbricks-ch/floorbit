@@ -31,7 +31,7 @@ export function Connections({ status, test }: { status: SettingsAnswer['status']
   const items: [string, boolean, string][] = [
     ['NetBox', status.netbox_enabled, t(status.netbox_enabled ? 'settings.configured' : 'settings.netboxOff')],
     ['LibreNMS', status.librenms_enabled, t(status.librenms_enabled ? 'settings.configured' : 'settings.librenmsOff')],
-    ['Redis', redis.connected, redis.connected ? where : t('settings.redisOff', { where })],
+    ['Valkey', redis.connected, redis.connected ? where : t('settings.redisOff', { where })],
   ]
   return (
     <Panel title={t('settings.connections')}>
@@ -62,13 +62,15 @@ export function BackupPanel() {
   const [pending, setPending] = useState<{ name: string; backup: Backup } | null>(null)
   const [result, setResult] = useState<TestResult | null>(null)
   const restore = useMutation({
-    mutationFn: (b: Backup) => post<{ skipped_settings?: string[] }>('/api/settings/backup', b),
+    mutationFn: (b: Backup) => post<{ skipped_settings?: string[]; kept?: string[] }>('/api/settings/backup', b),
     onSuccess: (r) => {
       setPending(null)
       const skipped = r.skipped_settings?.length ? ' ' + t('settings.backup.skipped', { count: r.skipped_settings.length }) : ''
-      setResult({ ok: true, message: t('settings.backup.restored') + skipped })
+      // A backup from before cabling and power were in it leaves them as they are: say so.
+      const kept = r.kept?.length ? ' ' + t('settings.backup.kept') : ''
+      setResult({ ok: true, message: t('settings.backup.restored') + skipped + kept })
       // Settings and the theme come from the server with the page, so load it again.
-      setTimeout(() => window.location.reload(), 1200)
+      setTimeout(() => window.location.reload(), kept ? 6000 : 1200)
     },
     onError: (e) => setResult({ ok: false, message: (e as Error).message }),
   })
@@ -140,7 +142,9 @@ export function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
       input = <Switch {...common} error={undefined} checked={!!value} onChange={(e) => onChange(e.currentTarget.checked)} />
       break
     case 'secret':
+      // Saved, but the vault can't open it (the key changed): say so instead of just "not set".
       input = <PasswordInput {...common} {...wide} autoComplete="new-password" value={typeof change === 'string' ? change : ''}
+        error={error ?? (info.unreadable && !dirty ? t('settings.secretUnreadable') : undefined)}
         placeholder={info.is_set ? t('settings.secretSet') : t('settings.secretUnset')} onChange={(e) => onChange(e.currentTarget.value)} />
       break
     case 'int':

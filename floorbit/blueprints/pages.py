@@ -61,6 +61,9 @@ def page_list():
     # The same context the floor plan's top bar is drawn with: features, permissions, set-up flags.
     current_app.update_template_context(ctx)
     pages = page_index.for_context(ctx)
+    # Plugin pages (plugin.yaml ``pages:``) go into the sidebar's Plugins group.
+    from .plugins import _language, plugin_pages
+    pages += plugin_pages(_language())
     # The sections admins made (floorbit/nav_sections.py), with only the links this account may open.
     return jsonify({'pages': pages, 'custom': nav_sections.for_pages(pages)})
 

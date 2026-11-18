@@ -373,7 +373,9 @@ def place_panel(name, body, create=False):
         if panel is None or panel.get('x') is None or has_xy:
             try:
                 x, y = round(float(body.get('x')), 2), round(float(body.get('y')), 2)
-            except (TypeError, ValueError):
+                if not (math.isfinite(x) and math.isfinite(y)):     # the text "nan" or "inf"
+                    raise ValueError
+            except (TypeError, ValueError, OverflowError):
                 raise RouteError('A patch panel position is a point on the plan in percent.') from None
         else:
             x, y = panel['x'], panel['y']

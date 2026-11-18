@@ -155,3 +155,12 @@ def test_the_agents_time_is_kept_within_its_spool():
     assert abs(plugin._when({"at": now + 3600}) - now) < 5           # from the future: this clock
     assert abs(plugin._when({"at": now - 2 * plugin.REPLAY}) - now) < 5
     assert abs(plugin._when({"at": True}) - now) < 5
+
+
+def test_a_nul_byte_from_the_network_is_dropped_not_stored():
+    """Postgres refuses NUL in text; one such name used to fail its whole batch on every report."""
+    h = endpoints.History()
+    seen = {"mac": "00:11:22:33:44:55", "ip": "192.0.2.5\x00", "device": "sw\x001", "port": "Gi1/0/1\x00"}
+    h.record([seen], now=1000)
+    [row] = h.memory
+    assert (row["ip"], row["device"], row["port"]) == ("192.0.2.5", "sw1", "Gi1/0/1")

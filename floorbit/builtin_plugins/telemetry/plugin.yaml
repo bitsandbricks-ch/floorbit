@@ -3,6 +3,7 @@
 # LibreNMS needed. Off until turned on under Settings > Plugins.
 id: telemetry
 name: Telemetry
+icon: cpu
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Live switch status, ports, traffic and errors, MAC tables, ARP and LLDP/CDP neighbours from the devices themselves (SNMP, traps, gNMI, Cisco MDT, NX-API, OPNsense), collected by Telegraf on the local agent or next to Floorbit. Feeds the floor plan, the status monitor, the seat inspector, the topology and the check-in page, without LibreNMS."

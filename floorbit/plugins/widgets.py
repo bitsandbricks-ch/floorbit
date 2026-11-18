@@ -9,6 +9,8 @@ Shapes (each may also have ``sub``, a short line under it, and ``link``, a path 
     {"type": "table", "columns": [{"key": "name", "label": "Name"}], "rows": [{"name": "..."}]}
     {"type": "sparkline", "points": [1, 3, 2], "value": 2, "unit": "%", "min": 0, "max": 100}
 """
+import math
+
 TONES = ('', 'ok', 'warn', 'err')
 STATES = ('up', 'down', 'warn', 'unknown')
 MAX_ITEMS = 50
@@ -36,9 +38,22 @@ def _link(value):
     return value if value.startswith('/') and not value.startswith('//') else ''
 
 
+def _finite(value):
+    # NaN and infinity aren't JSON: the browser couldn't read the answer at all.
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and (isinstance(value, int) or math.isfinite(value)))
+
+
 def _number(value):
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise WidgetError('numbers must be numbers')
+    if not _finite(value):
+        raise WidgetError('numbers must be finite numbers')
+    return value
+
+
+def _list(raw, key):
+    value = raw.get(key) or []
+    if not isinstance(value, list):
+        raise WidgetError(f'{key} must be a list')
     return value
 
 
@@ -51,11 +66,11 @@ def check_widget(raw, item):
            'refresh': item.get('refresh', 60), 'sub': _text(raw.get('sub')), 'link': _link(raw.get('link'))}
     if kind == 'stat':
         value = raw.get('value')
-        out.update(value=value if isinstance(value, (int, float)) and not isinstance(value, bool) else _text(value, 40),
+        out.update(value=value if _finite(value) else _text(value, 40),
                    unit=_text(raw.get('unit'), 20), tone=_tone(raw.get('tone')))
     elif kind == 'status':
         items = []
-        for i in (raw.get('items') or [])[:MAX_ITEMS]:
+        for i in _list(raw, 'items')[:MAX_ITEMS]:
             state = i.get('state', 'unknown') if isinstance(i, dict) else None
             if state not in STATES:
                 raise WidgetError(f'state must be one of {STATES}')
@@ -64,17 +79,17 @@ def check_widget(raw, item):
     elif kind == 'list':
         out['items'] = [{'label': _text(i.get('label'), 80), 'value': _text(i.get('value'), 80),
                          'tone': _tone(i.get('tone'))}
-                        for i in (raw.get('items') or [])[:MAX_ITEMS] if isinstance(i, dict)]
+                        for i in _list(raw, 'items')[:MAX_ITEMS] if isinstance(i, dict)]
     elif kind == 'table':
         cols = [{'key': _text(c.get('key'), 40), 'label': _text(c.get('label') or c.get('key'), 40)}
-                for c in (raw.get('columns') or [])[:12] if isinstance(c, dict) and c.get('key')]
+                for c in _list(raw, 'columns')[:12] if isinstance(c, dict) and c.get('key')]
         if not cols:
             raise WidgetError('a table needs columns')
         out['columns'] = cols
         out['rows'] = [{c['key']: _text(r.get(c['key']), 120) for c in cols}
-                       for r in (raw.get('rows') or [])[:MAX_ITEMS] if isinstance(r, dict)]
+                       for r in _list(raw, 'rows')[:MAX_ITEMS] if isinstance(r, dict)]
     elif kind == 'sparkline':
-        out['points'] = [_number(p) for p in (raw.get('points') or [])[-MAX_POINTS:]]
+        out['points'] = [_number(p) for p in _list(raw, 'points')[-MAX_POINTS:]]
         for key in ('value', 'min', 'max'):
             if raw.get(key) is not None:
                 out[key] = _number(raw[key])

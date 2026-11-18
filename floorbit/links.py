@@ -143,7 +143,7 @@ class Reader:
     def _kept(self, store, key, every, now):
         with self._lock:
             hit = store.get(key)
-            return hit[1] if hit and now - hit[0] < every else False
+            return hit[1] if hit and 0 <= now - hit[0] < every else False
 
     def ports(self, switch, now):
         hit = self._kept(self._ports, switch.lower(), READ_EVERY, now)

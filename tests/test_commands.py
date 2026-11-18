@@ -97,7 +97,8 @@ def test_custom_templates(app_module, client, switches):
                                                               "commands": ["configure terminal"]})
     assert bad.status_code == 400 and "change template" in bad.get_json()["error"]
     for cmd in ("show running-config | redirect flash:copy.txt", "show version | tee usb0:v.txt",
-                "show configuration | save /var/tmp/c", "show log | append flash:l"):
+                "show configuration | save /var/tmp/c", "show log | append flash:l",
+                "show clock ; reload", "show version;write erase"):     # NX-OS runs each part
         resp = client.put("/api/commands/templates/writes", json={"label": "x", "kind": "show", "commands": [cmd]})
         assert resp.status_code == 400 and "only read" in resp.get_json()["error"], cmd
     assert client.put("/api/commands/templates/incl", json={"label": "x", "kind": "show",
@@ -175,3 +176,10 @@ def test_ssh_refused_command_and_wrong_login(client, ssh):
     resp = client.post("/api/commands/run", json={"template": "version", "switches": ["sw-a-01"],
                                                   "username": "kim", "password": FakeSwitch.password})
     assert resp.status_code == 429
+
+
+def test_switch_names_and_logins_with_a_final_newline_are_refused():
+    from floorbit import credentials, ports
+    for pattern, good in ((ports.PORT_RE, "Gi1/0/1"), (ports.USER_RE, "ops"), (credentials.USER_RE, "ops"),
+                          (credentials.SCOPE_RE, "sw-a-*")):
+        assert pattern.match(good) and not pattern.match(good + "\n")

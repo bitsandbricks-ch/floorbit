@@ -2,6 +2,7 @@
 # It is also the example for writing your own; see docs/plugins.md.
 id: http-check
 name: HTTP check
+icon: link
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Checks that web services (the cache, the ticket shop, a game server's web panel) answer, and shows them on the dashboard and the health wall."

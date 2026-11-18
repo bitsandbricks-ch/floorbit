@@ -18,6 +18,7 @@ Stored in data.json under ``inventory``; data from before (``switches``, ``cache
 from __future__ import annotations
 
 import ipaddress
+import math
 import re
 import threading
 import time
@@ -254,9 +255,13 @@ def _position(body):
     if body.get('x') is None and body.get('y') is None:
         return None, None
     try:
-        return float(body['x']), float(body['y'])
+        x, y = float(body['x']), float(body['y'])
     except (KeyError, TypeError, ValueError):
         raise InventoryError('Valid numeric x and y coordinates are required') from None
+    # float("nan") takes the text "nan": saved, it made /api/plan answer a bare NaN no browser reads.
+    if not (math.isfinite(x) and math.isfinite(y)):
+        raise InventoryError('Valid numeric x and y coordinates are required')
+    return x, y
 
 
 def create(data, body):

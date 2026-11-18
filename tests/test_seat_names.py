@@ -116,3 +116,14 @@ def test_a_typed_seat_means_the_plan_seat():
     assert seat_names.match_typed("a 3", known) == "A-3"
     assert seat_names.match_typed("17", known) == "17"
     assert seat_names.match_typed("B-3", known) is None and seat_names.match_typed(None, known) is None
+
+
+def test_a_block_edit_with_a_size_or_turn_that_isnt_a_number_is_refused(client):
+    # Stored as they came, these broke every page that draws the plan.
+    block = client.post("/api/seat-blocks", json={"x": 10, "y": 10, "cols": 2, "rows": 2}).get_json()
+    for body in ({"rotation": "left"}, {"seat_width": "wide"}, {"spacing_y": -1}, {"seat_height": 999}):
+        resp = client.put(f"/api/seat-blocks/{block['id']}", json=body)
+        assert resp.status_code == 400, body
+    assert client.post("/api/seat-blocks", json={"x": 1, "y": 1, "rotation": [90]}).status_code == 400
+    assert client.put(f"/api/seat-blocks/{block['id']}", json={"rotation": 90, "name": 7}).status_code == 200
+    assert client.get("/api/plan").status_code == 200

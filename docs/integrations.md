@@ -58,15 +58,17 @@ listen on their own:
 | Variable | Default | |
 |---|---|---|
 | `LIVE_UPDATES_ENABLED` | `true` | |
-| `LIVE_MAX_STREAMS` | gunicorn's threads less 16 (48 when unknown) | open streams at once; streams without a sign-in get half |
-
-Each open stream holds one of gunicorn's threads while the tab is open. Past `LIVE_MAX_STREAMS`, a
-browser is asked to try again in 20 to 40 seconds (its pages still load and refresh, without live
-updates until then), so 16 threads stay free for page loads and the agent.
 
 The event bus is in-process. That matches how the app runs (`python app.py`, threaded). If it
 ever runs as several worker processes, `events.publish` is the one place to add Redis pub/sub.
 Behind nginx, the stream sends `X-Accel-Buffering: no`; also set `proxy_read_timeout` above 15s.
+
+**How many at once.** Each open stream holds one of the server's threads until its tab closes. So
+that pages always load, Floorbit takes streams only up to three quarters of the threads (48 of the
+image's 64; `gunicorn.conf.py` tells it the count), and readers who aren't signed in, such as
+attendees on the status page, get at most half of those. One more is refused with `503`
+`{"code": "live_full"}`: the page works but doesn't update by itself, and asks again after 20 to
+40 seconds. More threads (`GUNICORN_CMD_ARGS=--threads 200`) mean more streams.
 
 ## Switch status monitor
 

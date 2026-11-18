@@ -119,7 +119,7 @@ def publish(snapshot, keep_locally=False):
 def latest():
     client = cache.get_redis_client()
     if not client:
-        fresh = _local['snapshot'] is not None and time.time() - _local['at'] < SNAPSHOT_TTL
+        fresh = _local['snapshot'] is not None and 0 <= time.time() - _local['at'] < SNAPSHOT_TTL
         return _local['snapshot'] if fresh else None
     try:
         raw = client.get(REDIS_KEY)

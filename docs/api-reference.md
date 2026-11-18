@@ -106,6 +106,7 @@ Source: [`floorbit/blueprints/attendee.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/public/hall` | anyone | `public_hall` |
 | GET | `/api/public/seats` | anyone | `public_hall` |
 
 ## floorbit.blueprints.audit
@@ -742,8 +743,13 @@ Source: [`floorbit/blueprints/plugins.py`](https://github.com/bitsandbricks-ch/f
 | PUT | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |
 | POST | `/api/plugins/<plugin_id>/actions/<action_id>` | `floorplan.view` |  |
 | GET | `/api/plugins/<plugin_id>/endpoints/<endpoint_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/<plugin_id>/layers/<layer_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/<plugin_id>/pages/<page_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/<plugin_id>/panels/<panel_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/<plugin_id>/widgets/<widget_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/layers` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/menu` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/plugins/panels` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/settings/plugins` | `settings.manage` |  |
 | PUT | `/api/settings/plugins/<plugin_id>` | `settings.manage` |  |
 | GET | `/api/settings/plugins/<plugin_id>/log` | `settings.manage` |  |
@@ -858,6 +864,17 @@ Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/schedule/items` | `floorplan.edit` | `schedule` |
 | DELETE | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
 | PATCH | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
+
+## floorbit.blueprints.screen
+
+Big-screen rotation and the "find your seat" page (issue #18). See docs/kiosk.md.
+
+Source: [`floorbit/blueprints/screen.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/screen.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/screen` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/seat-finder` | anyone |  |
 
 ## floorbit.blueprints.seat_blocks
 

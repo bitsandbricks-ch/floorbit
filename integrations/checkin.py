@@ -211,7 +211,7 @@ _wrong_pins = {}          # ip -> [times of wrong PINs]
 def _wrong_pin_wait(ip, now):
     """Seconds this PC must wait before it may try a PIN again, 0 when it may."""
     limit = config.get_int('CHECKIN_PIN_TRIES', 10, minimum=1)
-    recent = [t for t in _wrong_pins.get(ip, []) if now - t < WRONG_PIN_WINDOW]
+    recent = [t for t in _wrong_pins.get(ip, []) if 0 <= now - t < WRONG_PIN_WINDOW]
     if recent:
         _wrong_pins[ip] = recent
     else:
@@ -221,7 +221,7 @@ def _wrong_pin_wait(ip, now):
 
 def _wrong_pin(ip, now):
     if len(_wrong_pins) > 10000:   # a flood of addresses must not grow this forever
-        for key in [k for k, v in _wrong_pins.items() if now - v[-1] >= WRONG_PIN_WINDOW]:
+        for key in [k for k, v in _wrong_pins.items() if not 0 <= now - v[-1] < WRONG_PIN_WINDOW]:
             del _wrong_pins[key]
     _wrong_pins.setdefault(ip, []).append(now)
 
@@ -573,6 +573,14 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     now = time.time()
     with _lock:
         rows = load_all()
+        held = rows.get(seat)
+        # Again under the lock: PCs typing the same card at the same moment all passed the check
+        # above, and the last one took the seat from the others.
+        if held and held.get('pin_ok') and held.get('ip') != ip:
+            if pin:
+                raise CheckinError('That PIN was already used. Ask the crew if this is your seat.', 409)
+            raise CheckinError(f'Seat {seat} was already checked in with its seat card. '
+                               'Ask the crew if this is your seat.', 409)
         # One machine holds one seat: drop other seats with this IP or MAC
         moved_from = [s for s, r in rows.items()
                       if s != seat and (r.get('ip') == ip or (mac and r.get('mac') == mac))]

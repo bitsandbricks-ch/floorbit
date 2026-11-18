@@ -16,6 +16,7 @@ import { SeatGlyph } from './SeatMap'
 import { ErrorBanner } from '@/components/ui'
 import { clock, dayClock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
+import { PluginPanels } from '@/pages/plugins/PluginPanels'
 
 const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown: 'gray' }
 
@@ -80,6 +81,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           {d.speedtests && d.speedtests.length > 0 && (
             <SeatSpeedTests tests={d.speedtests} lastChange={d.history?.changes.at(-1)?.[0] ?? null} />
           )}
+          <PluginPanels on="seat" target={seat} />
           {!d.people && <Text size="sm" c="dimmed">{t('plan.noPeople')}</Text>}
           {d.crew && <SeatNoteBox key={seat} seat={seat} note={d.note} />}
           {(d.incidents.length > 0 || d.attention.length > 0 || !!d.fixed_before?.count) && (

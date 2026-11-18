@@ -23,6 +23,9 @@ if (_AGENT_SRC / "floorbit_agent" / "__init__.py").is_file():
 # then writes Telegraf's config into the checkout: give the whole run a folder of its own too.
 _TELEGRAF_DIR = tempfile.mkdtemp(prefix="floorbit-telegraf-")
 os.environ.setdefault("FLOORBIT_TELEGRAF_CONF", os.path.join(_TELEGRAF_DIR, "telegraf.conf"))
+# Same for the check-in verifier: caught between a test's teardown steps it learned a seat's port
+# into seat_ports.json in the checkout (and a run once committed that file).
+os.environ.setdefault("CHECKIN_FILE", os.path.join(tempfile.mkdtemp(prefix="floorbit-checkins-"), "checkins.json"))
 
 
 def login_page(client):

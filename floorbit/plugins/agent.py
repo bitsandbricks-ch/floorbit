@@ -63,7 +63,7 @@ AGENT_API = 1
 
 PRIVACY = ('aggregate', 'device')
 CREDENTIAL_KINDS = ('ssh', 'snmp_v2c', 'snmp_v3', 'api', 'http')
-KIND_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
+KIND_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
 STATUSES = ('ok', 'warning', 'error', 'off')
 SEND_MAX_BYTES = 4 * 1024 * 1024      # one payload, as JSON
 ERRORS_KEPT = 10

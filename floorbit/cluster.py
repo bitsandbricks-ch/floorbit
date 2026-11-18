@@ -70,17 +70,25 @@ class RedisBus:
     def publish(self, channel, message):
         self.short.publish(self.prefix + channel, message)
 
-    def listen(self, channel, handler, stop):
+    def listen(self, channel, handler, stop, on_resume=None):
+        paused = False
         while not stop.is_set():
             try:
                 pubsub = self.blocking.pubsub(ignore_subscribe_messages=True)
                 pubsub.subscribe(self.prefix + channel)
+                if paused:
+                    paused = False
+                    print('[cluster] live updates from other pods flow again')
+                    if on_resume:
+                        on_resume()
                 while not stop.is_set():
                     msg = pubsub.get_message(timeout=1.0)
                     if msg and msg.get('type') == 'message':
                         handler(msg['data'])
             except self._redis.RedisError as exc:
-                print(f'[cluster] live updates from other pods paused: {exc}')
+                if not paused:
+                    print(f'[cluster] live updates from other pods paused: {exc}')
+                paused = True
                 stop.wait(2)
 
     def push(self, key, message, ttl=None):
@@ -167,6 +175,11 @@ class Cluster:
             return
         if msg.get('pod') != self.pod and isinstance(msg.get('event'), dict) and self.deliver:
             self.deliver(msg['event'])
+
+    def _resumed(self):
+        # Other pods' changes while Redis was away never reached this pod's browsers.
+        from integrations import events
+        events.resync_all()
 
     # ── agent calls ──
 
@@ -270,7 +283,8 @@ class Cluster:
 
     def start(self):
         for target, name in ((self._renew_loop, 'cluster-leader'),
-                             (lambda: self.bus.listen(CHANNEL, self._heard, self._stop), 'cluster-events'),
+                             (lambda: self.bus.listen(CHANNEL, self._heard, self._stop, self._resumed),
+                              'cluster-events'),
                              (self._take_calls, 'cluster-calls')):
             t = threading.Thread(target=target, name=name, daemon=True)
             t.start()
@@ -310,13 +324,14 @@ def leading():
 
 
 def init(log=print):
-    """Join the cluster when FLOORBIT_CLUSTER=redis. Returns the Cluster or None."""
+    """Join the cluster when FLOORBIT_CLUSTER=redis (or valkey). Returns the Cluster or None."""
     global current
     mode = (os.environ.get('FLOORBIT_CLUSTER') or '').strip().lower()
     if mode in ('', 'off', 'none'):
         return None
-    if mode != 'redis':
-        raise ValueError(f'FLOORBIT_CLUSTER must be "redis" or empty, not "{mode}".')
+    # Valkey speaks the Redis protocol, so both names mean the same shared cache.
+    if mode not in ('redis', 'valkey'):
+        raise ValueError(f'FLOORBIT_CLUSTER must be "redis", "valkey" or empty, not "{mode}".')
     from integrations import events
 
     from . import agent_link, cache

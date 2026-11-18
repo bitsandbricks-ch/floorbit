@@ -302,10 +302,21 @@ def parse_blocks_csv(text):
     except csv.Error:
         dialect = csv.excel
     reader = csv.DictReader(io.StringIO(text), dialect=dialect)
+    try:
+        return _parse_block_rows(reader)
+    except csv.Error:     # a field past csv's 128 KB limit, a stray line break in a field
+        line = reader.line_num + 1     # the line it was reading
+        return [], [{'line': line, 'error': f'Line {line} cannot be read as CSV.'}]
+
+
+def _parse_block_rows(reader):
     header = [h.strip().lower() for h in reader.fieldnames or []]
     missing = [c for c in ('name', 'x', 'y', 'cols', 'rows') if c not in header]
     if missing:
         return [], [{'line': 1, 'error': f'The header row has no {", ".join(missing)} column'}]
+    twice = sorted({h for h in header if h and header.count(h) > 1})
+    if twice:     # else the last one quietly wins
+        return [], [{'line': 1, 'error': f'Column(s) in the file twice: {", ".join(twice)}'}]
     reader.fieldnames = header
     blocks, errors, names = [], [], set()
     for row in reader:

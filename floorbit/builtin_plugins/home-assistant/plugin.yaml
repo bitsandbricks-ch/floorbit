@@ -2,6 +2,7 @@
 # See docs/power.md, "Shelly and Home Assistant".
 id: home-assistant
 name: Home Assistant meters
+icon: power-board
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."

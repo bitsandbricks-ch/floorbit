@@ -10,17 +10,19 @@
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from .plugins.agent import STATUSES, check_payload
 
 CALL_TIMEOUT = 15
 ACTION_TIMEOUT = 120
-PLUGIN_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
-NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
+PLUGIN_ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}\Z')
+NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
 MAX_PLUGINS_REPORTED = 40
 # Plugins the agent also turns on in its own copy of Floorbit when they are on here: with them it
 # answers the hosted side's monitoring, inventory, health, DNS, Wi-Fi and port calls.
@@ -81,15 +83,22 @@ def config(registry=None, agent_id=None):
         }
     local = {k: v for k, v in local_config(registry).items() if k not in off}
     offered = bundles_offer(set(plugins) | set(local))
-    raw = json.dumps([plugins, local, offered], sort_keys=True, default=str).encode()
-    return {'plugins': plugins, 'local': local, 'bundles': offered,
+    # Split brain (agent_ha.py): tell the agent which other one keeps polling and logging in.
+    ha = {}
+    if agent_id is not None:
+        from .agent_ha import stand_by_for
+        other = stand_by_for(agent_id)
+        if other:
+            ha['stand_by_for'] = other
+    raw = json.dumps([plugins, local, offered, ha], sort_keys=True, default=str).encode()
+    return {'plugins': plugins, 'local': local, 'bundles': offered, 'ha': ha,
             'etag': hashlib.sha256(raw).hexdigest()[:32]}
 
 
 # Signed plugin bundles (floorbit/plugins/bundles.py): the release workflow signs them and puts them
 # with their index.json in the image (or FLOORBIT_AGENT_BUNDLES). This side only hands them on; it
 # holds no key and can't make one an agent would take.
-BUNDLE_NAME_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}-\d+(\.\d+){0,2}\.tar\.gz$')
+BUNDLE_NAME_RE = re.compile(r'^[a-z][a-z0-9-]{0,39}-\d+(\.\d+){0,2}\.tar\.gz\Z')
 
 
 def bundles_dir():
@@ -245,6 +254,9 @@ def ask(spec, way, op, args=None, agent=None):
         raise PluginError(f'{spec.name} has no agent {way} {op}')
     names = {a['id']: a['name'] for a in agent_link.load_data().get(agent_link.KEY) or []}
     targets = [agent] if agent else sorted(agent_link.tunnel.connected_agents() & set(names))
+    if way == 'action' and not agent and len(targets) > 1:
+        from . import agent_ha
+        targets = agent_ha.action_targets(targets)   # one per hall: its primary
     if not targets:
         raise PluginError('No local agent is connected.')
     timeout = CALL_TIMEOUT if way == 'call' else ACTION_TIMEOUT
@@ -261,15 +273,62 @@ def ask(spec, way, op, args=None, agent=None):
         return list(pool.map(one, targets))
 
 
+_reload_lock = threading.Lock()
+_reload_wanted = threading.Event()
+_reload_running = False
+RELOAD_TIMEOUT = 5
+
+
 def reload_agents():
     """Tell the connected agents the plugin config changed (settings saved, a plugin turned on or
-    off), so they don't wait for their next minute. Never fails: they pull it anyway."""
+    off), so they don't wait for their next minute. Never fails: they pull it anyway.
+
+    Returns at once: the save that called it used to wait up to 5 s for every connected agent in
+    turn, so one agent on a slow link made every inventory or settings save hang. Saves that
+    come in while a reload runs are folded into one more round.
+    """
+    global _reload_running
+    _reload_wanted.set()
+    with _reload_lock:
+        if _reload_running:
+            return
+        _reload_running = True
+    threading.Thread(target=_reload_loop, daemon=True, name='agent-plugins-reload').start()
+
+
+def _reload_loop():
+    global _reload_running
+    try:
+        while True:
+            with _reload_lock:
+                if not _reload_wanted.is_set():
+                    _reload_running = False
+                    return
+                _reload_wanted.clear()
+            reload_agents_now()
+    except Exception as exc:  # noqa: BLE001  # a background nudge: the agents still pull within a minute
+        with _reload_lock:
+            _reload_running = False
+        with contextlib.suppress(Exception):    # the interpreter may be shutting down
+            print(f'[agent] telling the agents to reload failed: {exc}', flush=True)
+    except BaseException:
+        with _reload_lock:
+            _reload_running = False
+        raise
+
+
+def reload_agents_now():
+    """``reload_agents``, waiting for the answers: all agents at once, up to RELOAD_TIMEOUT each."""
     from . import agent_link
-    for agent_id in sorted(agent_link.tunnel.connected_agents()):
-        try:
-            agent_link.tunnel.call('plugins_reload', [], 5, {agent_id})
-        except (agent_link.AgentUnavailable, agent_link.AgentError):
-            continue
+    agents = sorted(agent_link.tunnel.connected_agents())
+
+    def one(agent_id):
+        with contextlib.suppress(agent_link.AgentUnavailable, agent_link.AgentError):
+            agent_link.tunnel.call('plugins_reload', [], RELOAD_TIMEOUT, {agent_id})
+
+    if agents:
+        with ThreadPoolExecutor(min(len(agents), 8)) as pool:
+            list(pool.map(one, agents))
 
 
 def _number(v):
@@ -306,7 +365,7 @@ def clean_health(raw):
 
 
 UPDATE_EVENTS = ('installed', 'kept', 'rolled back', 'refused', 'waiting', 'dropped')
-VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}$')
+VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}\Z')
 
 
 def _ver(v):

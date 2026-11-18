@@ -2,7 +2,7 @@
 
 On Kubernetes or k3s, see [kubernetes.md](kubernetes.md) instead.
 
-Floorbit, its local agent and Redis in three containers, on any machine with Docker. It works
+Floorbit, its local agent and Valkey (the cache) in three containers, on any machine with Docker. It works
 without NetBox or LibreNMS: you place switches by hand and connect those later.
 
 Floorbit itself never talks to the event network: the switches, LibreNMS, NetBox, game servers and
@@ -91,7 +91,9 @@ over `.env`. All variables: the table in the [README](../README.md#configuration
 ## 5. Behind a reverse proxy
 
 Floorbit answers plain HTTP on the port above. Put a reverse proxy with TLS in front for anything
-beyond a test, then set in `.env`:
+beyond a test. The proxy also reads each request whole before passing it on: without one, a hundred
+connections from the event network that send their request a byte at a time hold all of gunicorn's
+threads, and Floorbit stops answering until they give up. Then set in `.env`:
 
 ```sh
 PUBLIC_URL=https://floor.example.com   # links in Discord messages, QR codes and sign-in providers
@@ -118,9 +120,11 @@ firewalls and the router at this host.
 ## Backups
 
 Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): `data.json` (floor plan,
-accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Redis holds only a cache.
+accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Valkey holds only a cache.
 Each `.json` file has a `.json.next` twin: the last complete write. If a write is cut short (a full disk, a
 killed pod), Floorbit starts from the twin and says so in its log, and the next save mends the file.
+The same goes for a file edited by hand into something that isn't an object (a list, a number): it
+reads the twin, and keeps what was in the file as `.json.wrong-shape` before the next save writes over it.
 
 - **In the app:** **Settings > Backup and restore** downloads the floor plan and settings as one file, without
   accounts or tokens, and restores it on any Floorbit ([backup.md](backup.md)).
@@ -150,6 +154,10 @@ docker compose up -d
 
 `FLOORBIT_VERSION` in `.env` pins a release (`1.4.0`) instead of `latest` (the newest `master` that passed CI: the image is pushed only once CI is green on that commit).
 Read the [changelog](../CHANGELOG.md) before a big jump. Your data stays in the volume.
+
+The cache moved from Redis to Valkey, so the service is called `valkey` now. Run
+`docker compose up -d --remove-orphans` once to stop the old `redis` container, and
+`docker volume rm <project>_redis_data` if you like: it held only a cache, which Valkey fills again.
 
 ### From an older compose file
 
@@ -181,12 +189,19 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ## Good to know
 
 - One process serves everything: the status monitor and the watchers live in it, so don't scale
-  the `floorbit` service. Each open browser tab holds one of 64 threads for live updates (at most 48
-  at once, 16 stay free for everything else); for more screens, add `GUNICORN_CMD_ARGS=--threads 200`
-  to `.env`.
+  the `floorbit` service. Each open browser tab holds one of 64 threads for live updates, and 48 of
+  them at most (24 for attendees who aren't signed in), so pages keep loading. For more screens,
+  add `GUNICORN_CMD_ARGS=--threads 200` to `.env` (150 live tabs).
 - `docker compose logs -f floorbit` shows what it is doing; `/healthz` answers when it is up.
 - Set `TZ` in `.env` to the event's time zone (for example `TZ=Europe/Zurich`). Without it the
   container runs on UTC, and what the server works out by the clock itself is an hour or two
   off: quiet hours, the bandwidth forecast's hours, times on the public status page and agenda,
   and imported schedule times that carry no zone. The crew pages show times in each browser's
   own time zone either way.
+- Keep the host's clock synced (NTP). If it is set back while Floorbit runs, cooldowns, lockouts and
+  rate limits that started "in the future" end at once instead of lasting until the clock catches
+  up; the replay recorder skips frames until then, so the timeline stays in order.
+- A full disk (or a state folder mounted read-only) doesn't lose what was saved: each file is
+  written whole beside the old one first. Until there is space again, pages keep showing the last
+  saved state and every change answers "Floorbit's disk is full, so this change was not saved".
+  The log says it once: `[store] Saving failed: No space left on device`.

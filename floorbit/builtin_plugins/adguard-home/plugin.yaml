@@ -2,6 +2,7 @@
 # Off until turned on under Settings > Plugins. It only reads.
 id: adguard-home
 name: AdGuard Home
+icon: shield
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Reads AdGuard Home's query log for DNS analytics: what the hall looks up and what AdGuard blocks. Floorbit keeps hall-wide counts only, never who looked up what."

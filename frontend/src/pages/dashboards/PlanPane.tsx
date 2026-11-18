@@ -119,7 +119,7 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
 
   let body: React.ReactNode
   if (q.isPending) body = null
-  else if (q.error) body = <Text c="down" className="fb-pane-note">{t('dashboards.pane.failed')}</Text>
+  else if (q.error && !data) body = <Text c="down" className="fb-pane-note">{t('dashboards.pane.failed')}</Text>
   else if (!drawing) body = <Text c="dimmed" className="fb-pane-note">{t('dashboards.pane.noPlan')}</Text>
   else if (!home) body = <Text c="dimmed" className="fb-pane-note">{t('dashboards.pane.areaGone')}</Text>
   else {

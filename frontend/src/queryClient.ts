@@ -6,8 +6,8 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 10_000,
       refetchOnWindowFocus: true,
-      // A refusal (401, 403, 404) won't change by asking again.
-      retry: (count, error) => !(error instanceof ApiError && error.status < 500) && count < 2,
+      // A refusal (401, 403, 404) won't change by asking again; no connection (status 0) may.
+      retry: (count, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && count < 2,
     },
   },
 })

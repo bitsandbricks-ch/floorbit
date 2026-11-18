@@ -6,8 +6,14 @@ and logs in to them (``ctx.primary()``); the others listen and take over when it
 addresses on one agent is active/passive; spreading them (FLOORBIT_AGENT_VRRP_PREFER) is
 active/active: both receive syslog, NetFlow and traps, and both answer the hosted side's calls.
 
-This module only reads what the agents report and says how each group stands, for the Local agents
-page, and lets the Traffic intake keep the primary's summary (``standby_with_primary``).
+This module reads what the agents report and says how each group stands, for the Local agents page,
+and lets the Traffic intake keep the primary's summary (``standby_with_primary``).
+
+Split brain: when the agents of a group can't hear each other's VRRP (a switch drops it, a cable
+between them), each takes every address and calls itself primary, so both poll the devices and both
+try the logins, which is what locks accounts. The hosted side hears both, so it settles it: the
+agent with the smallest id stays primary and the others are told to stand by (``stand_by_for``, sent
+with the plugin config they pull). Without the hosted side (uplink down too) VRRP alone decides.
 """
 from __future__ import annotations
 
@@ -71,6 +77,26 @@ def groups(agents, hall_names=None):
     return out
 
 
+def _claims_primary(agent):
+    return bool(agent.get('connected') and (_vrrp(agent) or {}).get('primary'))
+
+
+def stand_by_for(agent_id, agents=None, now=None):
+    """The agent that ``agent_id`` should leave polling and logins to while its group is split (both
+    claim primary), or None. The smallest id wins: every pod and every pull agree without asking."""
+    if agents is None:
+        from . import agent_link
+        agents = agent_link.all_agents(now=now)
+    me = next((a for a in agents if a['id'] == agent_id), None)
+    if me is None or not _claims_primary(me):
+        return None
+    mine = sorted(me.get('halls') or ())
+    rivals = [a['id'] for a in agents
+              if a['id'] != agent_id and _claims_primary(a) and sorted(a.get('halls') or ()) == mine]
+    winner = min([agent_id, *rivals])
+    return winner if winner != agent_id else None
+
+
 def standby_with_primary(agent_id, now):
     """True when this agent is a VRRP standby and its group's primary sent a traffic summary within
     FLOWS_FRESH: then the standby's summary would only replace the primary's with a part of it."""
@@ -87,3 +113,21 @@ def standby_with_primary(agent_id, now):
             if flows and now - flows['at'] < FLOWS_FRESH:
                 return True
     return False
+
+
+def action_targets(agent_ids, now=None):
+    """Which of ``agent_ids`` (connected agents) a plugin action that changes something in the hall
+    goes to: one per group, its primary. Two agents of one hall sharing the work must not both
+    clear the cache or bounce the port. A group without a single primary (no VRRP: each agent is
+    its own primary; or a split) keeps every member, as before."""
+    import time
+
+    from . import agent_link
+    wanted = set(agent_ids)
+    agents = [a for a in agent_link.all_agents(now=now or time.time()) if a['id'] in wanted]
+    out = set(wanted - {a['id'] for a in agents})      # not in the list: nothing to judge by
+    for group in groups([{**a, 'connected': True} for a in agents]):
+        members = [m['id'] for m in group['agents']]
+        out |= {group['primary']} if group['primary'] and group['state'] in ('ok', 'degraded') else set(members)
+    return sorted(out)
+

@@ -15,7 +15,7 @@ import paramiko
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
 
-PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}$')
+PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}\Z')   # \Z: $ lets a final newline through
 PROMPT_RE = re.compile(r'[>#%$\]]\s*$')
 ERROR_RE = re.compile(r'%\s*(invalid|incomplete|ambiguous)|invalid input|syntax error|unknown command|^error:',
                       re.IGNORECASE | re.MULTILINE)

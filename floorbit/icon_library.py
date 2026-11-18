@@ -22,6 +22,7 @@ MAX_BYTES = 64 * 1024        # what may be uploaded
 MAX_CLEAN = 48 * 1024        # what is kept after cleaning
 MAX_ICONS = 300
 MAX_ELEMENTS = 2000
+MAX_DEPTH = 32             # groups in groups: real icons stay under ten
 NAME_MAX = 40
 ID_RE = re.compile(r'^custom-[0-9a-f]{12}$')
 # What a floor plan icon shows once its uploaded icon is removed (floorbit/plan_icons.py).
@@ -89,13 +90,15 @@ def _attr_ok(name, value, root):
     return False
 
 
-def _copy(src, root=False, budget=None):
+def _copy(src, root=False, budget=None, depth=0):
     name = _local(src.tag) if isinstance(src.tag, str) else None
     if name not in ELEMENTS or (name == 'svg' and not root):
         return None
     budget[0] -= 1
     if budget[0] < 0:
         raise IconError('The SVG has too many parts for an icon.')
+    if depth > MAX_DEPTH:      # else <g><g><g>... ran out of stack: a 500
+        raise IconError('The SVG is nested too deeply for an icon.')
     out = ET.Element(name)
     for key, value in src.attrib.items():
         attr = _local(key)
@@ -109,7 +112,7 @@ def _copy(src, root=False, budget=None):
         out.text = (src.text or '')[:200]
         return out
     for child in src:
-        copied = _copy(child, budget=budget)
+        copied = _copy(child, budget=budget, depth=depth + 1)
         if copied is not None:
             out.append(copied)
     return out

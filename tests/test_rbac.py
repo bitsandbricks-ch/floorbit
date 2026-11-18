@@ -210,3 +210,21 @@ def test_role_and_team_changes_are_audited(client, app_module):
     rows, _ = audit.read(area="accounts")
     assert [(r["action"], r["target"]) for r in rows][:3] == [
         ("Changed team member", "ana in core"), ("Added team", "Stage"), ("Saved role", "Helpdesk")]
+
+
+def test_roles_are_read_once_per_request_and_again_after_a_change(app_module, monkeypatch):
+    # The incident board checks permissions per incident: 300 incidents took 1.8 s parsing data.json.
+    sign_in_as(app_module, "boss", "admin")      # someone must keep managing accounts
+    reads = []
+    real = roles._read_shared     # read from data.json once per change (store.read_shared)
+    monkeypatch.setattr(roles, "_read_shared", lambda: reads.append(1) or real())
+    with app_module.app.test_request_context("/"):
+        for _ in range(50):
+            roles.can({"role": "tech"}, "incidents.work")
+        assert len(reads) == 1
+        mine = roles.all_roles()
+        mine["tech"]["permissions"].clear()                  # a caller's copy, not the cache
+        assert roles.can({"role": "tech"}, "incidents.work")
+        roles.save("night-crew", "Night crew", permissions=["floorplan.view"])
+        assert "night-crew" in roles.all_roles()
+    assert "night-crew" in roles.all_roles()                    # outside a request: read as before

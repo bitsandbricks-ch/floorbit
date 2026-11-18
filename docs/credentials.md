@@ -48,3 +48,16 @@ it again.
 - `GET /api/ports` says `stored_login` when any login is stored, and `needs_login` is false once one covers every switch.
 
 RCON passwords for [game servers](game-servers.md) are kept the same way, and `rotate` moves them too.
+
+## Secret settings
+
+Every setting of the secret kind is kept the same way: the NetBox and LibreNMS API tokens, sign-in
+client secrets, and every plugin's secret settings. Each one is sealed for its own setting, so a
+sealed token copied into another setting doesn't open there. A value saved before this release
+keeps working, and it is sealed the next time any setting is saved. `rotate` moves these values to
+the new key too.
+
+When a saved secret doesn't open (for example, the key file changed), Floorbit treats it as not
+set. The settings page says *Saved, but it doesn't open with the current secret key* until someone
+enters the value again. A value set through an environment variable is never stored, so none of
+this applies to it.

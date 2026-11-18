@@ -1,5 +1,6 @@
 """The plugin Marketplace (floorbit/marketplace.py): signed index and bundles, trust levels, install,
 update, rollback, withdrawn versions, removal, other instances catching up, and the agents' share."""
+import base64
 import json
 
 import pytest
@@ -22,6 +23,21 @@ class Answer:
     def json(self):
         return json.loads(self.content)
 
+    # what a streamed get uses (marketplace._get_capped)
+    @property
+    def headers(self):
+        return {}
+
+    def iter_content(self, size):
+        for i in range(0, len(self.content), size):
+            yield self.content[i:i + size]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
 
 @pytest.fixture
 def market(tmp_path, monkeypatch, app_module):
@@ -41,21 +57,31 @@ def market(tmp_path, monkeypatch, app_module):
     marketplace._cache.clear()
     files, entries = {}, {}
 
-    def publish(pid, version, pem=plugin_pem, withdrawn="", floorbit="", body="x = 1\n", base=URL, index=None):
+    def publish(pid, version, pem=plugin_pem, withdrawn="", floorbit="", body="x = 1\n", base=URL, index=None,
+                icon=None, uses="widgets", extra="", holds=None):
         src = tmp_path / "src" / f"{pid}-{version}"
         src.mkdir(parents=True)
         (src / "plugin.yaml").write_text(
-            f"id: {pid}\nname: Hall thing\nversion: '{version}'\nuses: [widgets]\n"
-            "widgets: [{id: load, label: Load}]\n")
+            f"id: {holds or pid}\nname: Hall thing\nversion: '{version}'\nuses: [{uses}]\n"
+            "widgets: [{id: load, label: Load}]\n" + extra)
         (src / "plugin.py").write_text(
             "from floorbit.plugins import Plugin\n\n\nclass Plugin(Plugin):\n"
             f"    def widget_load(self):\n        return {{'type': 'stat', 'value': '{version}'}}\n" + body)
         bundles.sign(src, pem, version, 1)
+        if holds:   # signed for pid, but its plugin.yaml names another plugin: only a hand-made bundle does
+            doc = json.loads((src / bundles.SIGFILE).read_text())
+            ser, _, _ = bundles._crypto()
+            key = ser.load_pem_private_key(pem, password=None)
+            signature = key.sign(bundles._payload(pid, version, 1, doc["files"]))
+            doc.update(id=pid, signature=base64.b64encode(signature).decode())
+            (src / bundles.SIGFILE).write_text(json.dumps(doc))
         data = bundles.pack(src)
         name = f"{pid}-{version}.tar.gz"
         files[base.rsplit("/", 1)[0] + "/" + name] = data
         doc = entries.setdefault(index or base, {})
         doc.setdefault(pid, {"id": pid, "name": "Hall thing", "description": "Shows the hall", "versions": []})
+        if icon is not None:
+            doc[pid]["icon"] = icon
         doc[pid]["versions"].append({"version": version, "file": name, "sha256": bundles.sha256(data),
                                      "floorbit": floorbit, "agent_api": 1, "withdrawn": withdrawn})
         sign_all()
@@ -68,7 +94,7 @@ def market(tmp_path, monkeypatch, app_module):
             files[url] = json.dumps(signed).encode()
         marketplace._cache.clear()
 
-    def get(url, timeout=None):
+    def get(url, timeout=None, **kw):
         return Answer(files[url]) if url in files else Answer(b"", 404)
 
     monkeypatch.setattr(requests, "get", get)
@@ -153,6 +179,17 @@ def test_builtin_plugins_are_not_replaced(client, market):
     assert market.registry.specs["lancache"].trust == "builtin"
 
 
+def test_a_bundle_naming_another_plugin_leaves_that_one_alone(client, market):
+    market.publish("hallthing", "1.0.0")
+    client.post("/api/settings/marketplace/hallthing", json={})
+    market.publish("sneaky", "1.0.0", holds="hallthing")
+    res = client.post("/api/settings/marketplace/sneaky", json={})
+    assert res.status_code == 400 and "holds plugin hallthing" in res.get_json()["error"]
+    spec = market.registry.specs["hallthing"]
+    assert spec.path.name == "1.0.0" and spec.path.parent.name == "hallthing" and not spec.error
+    assert "sneaky" not in market.registry.specs and "sneaky" not in marketplace.installed()
+
+
 def test_a_plugin_that_fails_to_load_leaves_the_old_one_running(client, market):
     market.publish("hallthing", "1.0.0")
     client.post("/api/settings/marketplace/hallthing", json={})
@@ -161,6 +198,41 @@ def test_a_plugin_that_fails_to_load_leaves_the_old_one_running(client, market):
     assert res.status_code == 400 and "does not load" in res.get_json()["error"]
     assert market.registry.specs["hallthing"].path.name == "1.0.0"
     assert marketplace.installed()["hallthing"]["version"] == "1.0.0"
+
+
+MIGRATE = """
+    def migrate(self, from_schema, store):
+        if {fail}:
+            raise RuntimeError('no')
+        store.collection('notes').put('n', {{'schema': {schema}, 'from': from_schema}})
+"""
+
+
+def test_an_update_whose_migration_fails_leaves_the_old_one_running(client, market):
+    market.publish("hallthing", "1.0.0", uses="widgets, documents", extra="schema: 1\n",
+                   body=MIGRATE.format(fail=False, schema=1))
+    client.post("/api/settings/marketplace/hallthing", json={})
+    assert market.registry.schema_of("hallthing") == 1            # moved on install
+    market.publish("hallthing", "1.1.0", uses="widgets, documents", extra="schema: 2\n",
+                   body=MIGRATE.format(fail=True, schema=2))
+    res = client.post("/api/settings/marketplace/hallthing", json={})
+    assert res.status_code == 400 and "could not move its data from schema 1 to 2" in res.get_json()["error"]
+    assert market.registry.specs["hallthing"].path.name == "1.0.0"
+    assert marketplace.installed()["hallthing"]["version"] == "1.0.0"
+    assert market.registry.schema_of("hallthing") == 1
+
+
+def test_no_rollback_to_a_version_that_cant_read_the_data(client, market):
+    market.publish("hallthing", "1.0.0", uses="widgets, documents", extra="schema: 1\n",
+                   body=MIGRATE.format(fail=False, schema=1))
+    client.post("/api/settings/marketplace/hallthing", json={})
+    market.publish("hallthing", "1.1.0", uses="widgets, documents", extra="schema: 2\n",
+                   body=MIGRATE.format(fail=False, schema=2))
+    assert client.post("/api/settings/marketplace/hallthing", json={}).status_code == 200
+    assert market.registry.schema_of("hallthing") == 2
+    res = client.post("/api/settings/marketplace/hallthing/rollback")
+    assert res.status_code == 400 and "can't read the data 1.1.0 moved to schema 2" in res.get_json()["error"]
+    assert market.registry.specs["hallthing"].path.name == "1.1.0"
 
 
 def test_community_sources_need_the_operators_key(client, market, monkeypatch):
@@ -231,3 +303,40 @@ def test_only_admins(client, app_module):
     other.post("/login", data={"username": "viewer1", "password": "pw-viewer-1"})
     assert other.get("/api/settings/marketplace").status_code == 403
     assert other.post("/api/settings/marketplace/hallthing", json={}).status_code == 403
+
+
+def test_two_pods_fetching_the_same_version_dont_undo_each_other(client, market, monkeypatch):
+    # Pods sharing one plugin folder: the other pod's unpack in progress is left alone, and a
+    # version it put in place first is used as it is.
+    market.publish("hallthing", "1.0.0")
+    folder = market.tmp / "installed" / "hallthing"
+    busy = folder / ".1.0.0.4242.1.part"
+    busy.mkdir(parents=True)
+    real_rename = type(busy).rename
+
+    def other_pod_first(self, target):
+        real_rename(self, target)                    # what the other pod did a moment earlier...
+        raise OSError(39, "Directory not empty")     # ...so this pod's own rename finds it there
+
+    monkeypatch.setattr(type(busy), "rename", other_pod_first)
+    res = client.post("/api/settings/marketplace/hallthing", json={})
+    assert res.status_code == 200, res.get_json()
+    assert busy.is_dir()                             # still there for the other pod
+    assert market.registry.specs["hallthing"].path.name == "1.0.0"
+
+
+def test_a_source_that_drips_its_answer_is_given_up_on(monkeypatch):
+    # Each piece arrives within the read timeout, but the whole answer never ends.
+    now = [0.0]
+
+    class Drip(Answer):
+        def iter_content(self, size):
+            while True:
+                now[0] += 10
+                yield b" "
+
+    monkeypatch.setattr(marketplace.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(requests, "get", lambda url, **kw: Drip(b""))
+    with pytest.raises(requests.Timeout):
+        marketplace._get_capped("https://market.example.com/index.json", 2 * 1024 * 1024, 15)
+    assert now[0] <= 15 * 4 + 10

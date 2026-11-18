@@ -36,6 +36,3 @@
   grew to 2 GB in a test night), and is written a file per minute so a busy hall can keep to it.
 - Raw flow records keep to `FLOWS_RAW_MAX_MB` (10 GB) on the local agent's disk, oldest hours
   first: a busy hall's week was over 50 GB.
-- Many open browser tabs (or a script opening live-update streams, which needs no sign-in) no
-  longer stop Floorbit from answering: past `LIVE_MAX_STREAMS` (gunicorn's threads less 16) a tab
-  tries live updates again a little later, and tabs without a sign-in get at most half of them.

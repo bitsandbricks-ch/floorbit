@@ -365,13 +365,13 @@ def _rate_limited(key=None):
     ip = key or checkin.client_ip() or '?'
     now = time.time()
     with _reports_lock:
-        recent = [t for t in _reports.get(ip, []) if now - t < RATE_WINDOW]
+        recent = [t for t in _reports.get(ip, []) if 0 <= now - t < RATE_WINDOW]
         if len(recent) >= RATE_LIMIT:
             _reports[ip] = recent
             return True
         _reports[ip] = [*recent, now]
         if len(_reports) > 10000:   # forget idle clients so the dict can't grow without bound
-            for key in [k for k, v in _reports.items() if not v or now - v[-1] > RATE_WINDOW]:
+            for key in [k for k, v in _reports.items() if not v or not 0 <= now - v[-1] <= RATE_WINDOW]:
                 _reports.pop(key, None)
     return False
 

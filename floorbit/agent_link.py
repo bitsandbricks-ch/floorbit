@@ -898,6 +898,11 @@ class Tunnel:
         if clean.get('updates'):
             from .agent_plugins import note_updates
             note_updates(agent, before, clean, now=clean['at'])
+        if ((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary'):
+            # An agent became primary or stopped being it: a split (two primaries) or its end must reach
+            # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
+            from .agent_plugins import reload_agents
+            reload_agents()
 
     def reported(self, agent, now=None):
         """What the agent last reported, or None when it never did or it's older than REPORT_FRESH."""

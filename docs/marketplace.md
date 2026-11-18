@@ -25,6 +25,12 @@ The index lists every version with its checksum, the Floorbit versions it works 
 (`floorbit: ">=1.4"`) and, for a version that was pulled, why (`withdrawn:`). A withdrawn version is
 never installed; where one runs, the page says so and offers the way out.
 
+Each version in the index also says what it may touch, worked out from its `plugin.yaml` when the
+index is built: the [areas](plugin-spec.md#data-floorbit-uses) it uses, the permissions its actions
+and pages ask for, what its agent part sends and how private that is, the actions it can run in
+the hall, and the device logins and secrets it uses. The Marketplace card shows that list before
+you install. The build refuses a release whose `plugin.yaml` Floorbit would refuse.
+
 ## What is trusted, and who decides
 
 | Trust | Signed with | Set by |
@@ -54,7 +60,14 @@ never installed; where one runs, the page says so and offers the way out.
 
 Which version of each plugin runs is kept in `marketplace.json` with the rest of the data (or in
 the database). With several instances, each one checks it every minute and downloads what it lacks,
-so a pod that starts on an empty disk ends up with the same plugins.
+so a pod that starts on an empty disk ends up with the same plugins. When a download fails (the
+index or GitHub is away), it tries again after a minute, then less often, up to every half hour,
+until it has them. Indexes and bundles are read with a size cap, so a source can't fill the
+server's memory.
+
+While a source is away, its last good index is used for up to a day, and the page says which copy
+it shows. An index older than one this server already read is refused even when its signature is
+fine: someone serving an old copy can't hide that a version was withdrawn since.
 
 ## Updates and rollback
 

@@ -3,7 +3,8 @@
 Plugins add things to Floorbit without changing its core: buttons that run code (actions), tiles on
 the dashboard (widgets), read-only JSON (endpoints) and code that runs when something changes
 (hooks). The design is borrowed from labdex (manifest, `Plugin` class, widgets as data) and Hubra
-(`uses:`: a plugin can touch only the areas it lists).
+(`uses:`: a plugin can touch only the areas it lists). [What a plugin can ship](plugin-spec.md) is
+the contract: every part a plugin may bring, where it runs, and the limits.
 
 ## Turning plugins on
 
@@ -274,8 +275,12 @@ class Plugin(Base):
 | `endpoints` | serve JSON at `GET /api/plugins/<id>/endpoints/<endpoint>` |
 | `hooks` | run an action on `change` (any audited change: area, action, target, fields, user) `switch.status` (a switch went offline or came back) `health.status` (a service on the health wall changed colour: id, name, kind, status, previous, summary) `security.finding` (a new security finding: id, kind, severity, switch, port, seat) or `power.alert` (a circuit turned red or tripped: id, name, board, phase, state, pct, seats, switches) |
 | `context_menu` | add entries to the floor plan's [right-click menu](context-menu.md) that run one of its actions on a seat or switch: `context_menu: [{action: lookup, targets: [seat], label: "Look up ticket"}]`. The action gets the seat number as its `seat` parameter, or the switch name as `switch`, so it must declare that parameter. An entry shows only to accounts that may run the action; `danger: true` on the action asks first |
+| `panels` | add a box to the side panel of a seat or a switch on the floor plan, or of a device in the inventory: `panels: [{id: load, for: seat, label: "Seat load"}]` (`for:` is `seat`, `switch` or `device`; not `on:`, which YAML reads as true). `panel_<id>(target)` gets `{"kind": "seat", "id": "A-12"}` and returns a [widget](#widgets). Optional: `permission:` (floorplan.view by default) and `refresh:` in seconds (a whole number, 10 to 86,400, 60 by default). Each box loads on its own, so a slow or broken plugin shows only its own error |
 | `http` | make outgoing requests with `self.ctx.http(...)` |
 | `storage` | keep up to 64 KB of state with `self.ctx.set_state(key, value)` |
+| `documents` | keep its own JSON documents: `self.ctx.docs('notes').put('a', {...})`, up to 5 MB; with `schema:` and `migrate(from_schema, store)` when their shape changes ([plugin-spec.md](plugin-spec.md#storage)) |
+| `layers` | a layer on the floor plan: `layer_<id>()` gives seats a tone (`ok`, `warn`, `err`, `info`) and a legend; picked under Layers on the plan ([plugin-spec.md](plugin-spec.md#screens)) |
+| `pages` | pages of its own in the sidebar's Plugins group, laid out from its widgets and actions (`pages:`); see [plugin-spec.md](plugin-spec.md#screens) |
 | `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device. Optional: `cables()` returns `[{"switch", "port", "panel", "panel_port", "seat", "label", "color", "length_m", "note"}]` for the [cables page](cables.md) |
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
 | `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`; optionally `device_ports(hostname)` (every port, for the needs-attention list) `port_clients(hostname)` (the MAC table as `[{port, mac, vlan}]`, for the clients the patch plan does not explain) and `neighbours(hostname)` (LLDP or CDP as `[{port, remote, remote_port, protocol}]`, for the [topology](topology.md)). See the built-in LibreNMS plugin |
@@ -328,6 +333,8 @@ this site.
 | `sparkline` | `points`, `value`, `unit`, `min`, `max` |
 
 Every widget can also have `sub` (a line under it) and `link`.
+
+The same widgets fill the boxes a plugin adds to side panels (`panels:`).
 
 ### Developing
 

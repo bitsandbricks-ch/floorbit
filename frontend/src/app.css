@@ -469,6 +469,16 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .fwr { fill: none; stroke-width: 3; }
 .fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
 .fb-plan .fwr.fw-down { stroke: var(--color-down); }
+.fb-plan .pl { fill: none; stroke-width: 3; }
+.fb-plan .pl.pl-ok { stroke: var(--color-up); }
+.fb-plan .pl.pl-warn { stroke: var(--color-warn); }
+.fb-plan .pl.pl-err { stroke: var(--color-down); }
+.fb-plan .pl.pl-info { stroke: var(--color-trace); }
+.fb-pl-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 3px solid; vertical-align: -1px; }
+.fb-pl-swatch.pl-ok { border-color: var(--color-up); }
+.fb-pl-swatch.pl-warn { border-color: var(--color-warn); }
+.fb-pl-swatch.pl-err { border-color: var(--color-down); }
+.fb-pl-swatch.pl-info { border-color: var(--color-trace); }
 .fb-plan .num { fill: var(--color-fg); font: 700 var(--seat-num, 11px) var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
 /* Zoomed out (pages/plan/labels.ts): only the row ends keep a number, larger than the seat, with a halo
@@ -666,6 +676,159 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   padding: 32px 16px 16px; gap: 16px;
 }
 .fb-public-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
+/* Pages that read top to bottom (status, schedule) start at the top and are wider; boards wider still. */
+.fb-public--page, .fb-public--board, .fb-public--wide { justify-content: flex-start; }
+.fb-public--wide .fb-public-col { max-width: 1400px; }
+.fb-public--page .fb-public-col { max-width: 760px; }
+.fb-public--board .fb-public-col { max-width: 1100px; }
+/* The public status page (pages/public/PublicStatus.tsx): one colour per state, as a dot and as
+   the line beside each item. */
+.fb-status-k-operational { --k: var(--color-up); }
+.fb-status-k-degraded, .fb-status-k-maintenance { --k: var(--color-warn); }
+.fb-status-k-outage { --k: var(--color-down); }
+.fb-status-k-unknown { --k: var(--color-muted); }
+.fb-status-dot {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: var(--k);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--k) 25%, transparent);
+}
+.fb-status-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fb-status-list li { border-left: 3px solid var(--k, var(--color-line)); padding: 2px 0 2px 12px; }
+/* The public stats wall (pages/public/PublicWall.tsx); ?screen=1 sizes everything to the screen. */
+.fb-wall { display: grid; gap: 16px; }
+.fb-wall-title { font-size: clamp(24px, 4vw, 40px); line-height: 1.15; }
+.fb-wall-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.fb-wall-fact { padding: 18px 20px; border-top: 4px solid var(--k) !important; }
+.fb-wall-k-up { --k: var(--color-up); }
+.fb-wall-k-warn { --k: var(--color-warn); }
+.fb-wall-k-trace { --k: var(--color-trace, var(--color-bit)); }
+.fb-wall-k-bit { --k: var(--color-bit); }
+.fb-wall-label { font-size: 14px; color: var(--color-muted); font-weight: 600; }
+.fb-wall-big {
+  display: block; margin-top: 6px; font-size: clamp(30px, 4.4vw, 52px); font-weight: 800; line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.fb-wall-big small { font-size: .45em; font-weight: 700; margin-left: .15em; color: var(--color-muted); }
+.fb-wall-fact .fb-wall-note { margin-top: 6px; font-size: 14px; }
+.fb-wall-games { grid-column: 1 / -1; }
+.fb-wall-games ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.fb-wall-games li {
+  display: grid; grid-template-columns: 2em minmax(8em, 14em) 1fr; gap: 12px; align-items: center;
+  font-weight: 700; font-size: 18px;
+}
+.fb-wall-n { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.fb-wall-bar { height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--color-bit) 18%, transparent); overflow: hidden; }
+.fb-wall-bar span { display: block; height: 100%; background: var(--color-bit); border-radius: 6px; }
+@media (max-width: 600px) {
+  .fb-wall-games li { grid-template-columns: 2em 1fr; row-gap: 4px; font-size: 16px; }
+  .fb-wall-bar { grid-column: 2; }
+}
+.fb-wall--screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; gap: 1.4vw; align-content: start; }
+.fb-wall--screen .fb-wall-title { font-size: 2.6vw; }
+.fb-wall--screen .fb-wall-grid { grid-template-columns: repeat(4, 1fr); gap: 1.4vw; }
+.fb-wall--screen .fb-wall-fact { padding: 1.2vw 1.4vw; }
+.fb-wall--screen .fb-wall-label { font-size: 1.05vw; }
+.fb-wall--screen .fb-wall-big { font-size: 3.6vw; white-space: nowrap; }
+.fb-wall--screen .fb-wall-games ol { gap: .6vw; }
+.fb-wall--screen .fb-wall-games li { font-size: 1.5vw; }
+.fb-wall--screen .fb-wall-bar { height: .7vw; }
+.fb-wall--screen .fb-wall-note { font-size: 1vw !important; }
+/* The public schedule (pages/public/PublicAgenda.tsx); ?screen=1 is two columns sized to the screen. */
+.fb-agenda { display: grid; gap: 16px; }
+.fb-agenda-card { padding: 18px 20px; }
+.fb-agenda-card .fb-wall-label { margin-bottom: 10px; }
+.fb-agenda-countdown { display: flex; gap: 0 clamp(18px, 3vw, 56px); flex-wrap: wrap; margin: 4px 0 6px; }
+.fb-agenda-countdown div { text-align: center; }
+.fb-agenda-countdown b { display: block; font-size: clamp(40px, 9vw, 96px); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fb-agenda-countdown span { color: var(--color-muted); font-size: 14px; }
+.fb-agenda-item { border-left: 4px solid var(--k, var(--color-line)); padding: 4px 0 4px 12px; }
+.fb-agenda-item b { display: block; font-size: 18px; }
+.fb-agenda-item + .fb-agenda-item { margin-top: 10px; }
+.fb-agenda-big .fb-agenda-item b { font-size: clamp(20px, 3vw, 30px); }
+.fb-agenda-k-talk { --k: var(--color-bit); }
+.fb-agenda-k-tournament { --k: var(--color-warn); }
+.fb-agenda-k-meal { --k: var(--color-up); }
+.fb-agenda-k-quiet { --k: var(--color-trace); }
+.fb-agenda-k-other { --k: var(--color-muted); }
+.fb-agenda-quiet {
+  background: color-mix(in srgb, var(--color-trace) 18%, var(--color-surface)) !important;
+  border-color: var(--color-trace) !important;
+}
+.fb-agenda-programme ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fb-agenda-programme li { display: grid; grid-template-columns: 4.5em 1fr; gap: 12px; align-items: start; }
+/* Past items in the muted text colour rather than faded: faded text fell to 2.3:1 (issue #232). */
+.fb-agenda-programme li.fb-agenda-past, .fb-agenda-programme li.fb-agenda-past * { color: var(--color-muted); }
+.fb-agenda-programme li.fb-agenda-on b { font-weight: 800; }
+.fb-agenda-when { color: var(--color-muted); font-variant-numeric: tabular-nums; padding-top: 4px; }
+.fb-agenda-programme li.fb-agenda-day { display: block; margin: 14px 0 2px; font-size: 15px; font-weight: 700; }
+.fb-agenda-programme li.fb-agenda-day:first-child { margin-top: 0; }
+.fb-agenda--screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; grid-template-columns: 1fr 1fr; align-items: start; align-content: start; }
+.fb-agenda--screen .fb-agenda-wide { grid-column: 1 / -1; }
+.fb-agenda--screen .fb-wall-title { font-size: 2.6vw; }
+.fb-agenda--screen .fb-agenda-countdown b { font-size: 7vw; }
+.fb-agenda--screen .fb-agenda-countdown span { font-size: 1.3vw; }
+.fb-agenda--screen .fb-agenda-big .fb-agenda-item b { font-size: 2.2vw; }
+.fb-agenda--screen .fb-wall-label { font-size: 1.1vw; }
+.fb-agenda--screen .mantine-Text-root, .fb-agenda--screen .fb-agenda-programme ol { font-size: 1.2vw; }
+.fb-agenda--screen .fb-agenda-programme { max-height: 62vh; overflow: hidden; }
+.fb-agenda--screen .fb-agenda-programme li.fb-agenda-day { font-size: 1.3vw; }
+.fb-agenda--screen .fb-agenda-programme .fb-agenda-item b { font-size: 1.7vw; }
+/* Public tournament brackets (pages/public/PublicBracket.tsx): rounds side by side, scrolling sideways on phones. */
+.fb-pbr-page { display: grid; gap: 16px; min-width: 0; }
+.fb-pbr-scroll { overflow-x: auto; padding-bottom: 6px; }
+.fb-pbr { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 28px; min-width: min-content; }
+.fb-pbr-round { display: flex; flex-direction: column; }
+.fb-pbr-round h2 {
+  margin: 0 0 8px; font-size: 13px; color: var(--color-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+}
+.fb-pbr-matches { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
+.fb-pbr-match {
+  background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; position: relative;
+}
+.fb-pbr-live { border-color: var(--color-warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warn) 35%, transparent); padding-top: 16px; }
+.fb-pbr-team { display: flex; justify-content: space-between; gap: 10px; padding: 7px 12px; }
+.fb-pbr-team + .fb-pbr-team { border-top: 1px solid var(--color-line); }
+.fb-pbr-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 3px; }
+.fb-pbr-score { font-weight: 800; font-variant-numeric: tabular-nums; }
+.fb-pbr-team.won { font-weight: 800; background: color-mix(in srgb, var(--color-up) 14%, transparent); }
+.fb-pbr-team.lost { color: var(--color-muted); }
+.fb-pbr-team.tbd .fb-pbr-name { color: var(--color-muted); font-style: italic; }
+.fb-pbr-tag {
+  position: absolute; top: -1px; left: 12px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 0 0 6px 6px;
+  background: var(--color-warn); color: var(--color-ink);
+}
+.fb-pbr-station { font-size: 12px; color: var(--color-muted); padding: 0 12px 6px; }
+.fb-pbr-champion {
+  align-self: center; text-align: center; background: var(--color-surface); border: 2px solid var(--color-up); border-radius: 14px; padding: 18px;
+}
+.fb-pbr-champion b { display: block; font-size: clamp(20px, 2.4vw, 34px); }
+.fb-pbr-page--screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; align-content: start; }
+.fb-pbr-page--screen .fb-wall-title { font-size: 2.6vw; }
+.fb-pbr-page--screen .fb-pbr-scroll { height: 78vh; overflow: hidden; }
+.fb-pbr-page--screen .fb-pbr { height: 100%; }
+.fb-pbr-page--screen .fb-pbr-team { font-size: 1.25vw; padding: .5vw .8vw; }
+.fb-pbr-page--screen .fb-pbr-round h2 { font-size: .9vw; }
+.fb-pbr-page--screen .fb-pbr-station { font-size: .9vw; padding: 0 .8vw .4vw; }
+.fb-pbr-page--screen .fb-wall-note { font-size: 1vw !important; }
+/* The hall drawn for the public pages (components/HallSketch.tsx): attendee view and seat finder. */
+.fb-hall-sketch { display: block; width: 100%; height: auto; max-height: 75vh; background: var(--color-raised); border-radius: 10px; }
+.fb-hall-sketch .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
+.fb-hall-sketch .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-hall-sketch .cell.on { fill: var(--color-up); stroke: var(--color-up); }
+.fb-hall-sketch .cell.hit { fill: var(--color-bit); stroke: var(--color-bit); }
+.fb-hall-sketch .ring { fill: none; stroke: var(--color-bit); stroke-width: 4; }
+.fb-hall-sketch .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-hall-sketch .rowlbl { fill: var(--color-fg); font: 800 15px var(--font-sans); text-anchor: middle; }
+.fb-hall-legend { display: flex; gap: 16px; font-size: 14px; color: var(--color-muted); }
+.fb-hall-legend span::before {
+  content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px;
+  vertical-align: -1px; background: var(--k); border: 1px solid var(--color-line);
+}
+/* A public page showing old data because the server can't be reached (lib/publicFeed.ts). */
+.fb-stale-note {
+  position: fixed; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 14px; z-index: 300;
+  border-radius: 999px; border: 1px solid var(--color-warn); background: var(--color-surface); color: var(--color-fg);
+  font: 600 14px/1.4 var(--font-sans); max-width: calc(100vw - 32px); text-align: center;
+}
 .fb-public-head { display: flex; justify-content: center; margin-bottom: 20px; }
 .fb-public-brand { --fb-brand-h: 30px; }
 .fb-public-logo { max-height: 56px; max-width: 220px; object-fit: contain; }

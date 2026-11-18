@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useCan, useMe, usePageList, usePlaces } from '@/api/queries'
 import { toggleScheme, useScheme } from '@/colorScheme'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { isServerPage } from '@/nav/sections'
+import { isPluginPage, isServerPage } from '@/nav/sections'
 import { CrewNoticeEditor } from './CrewNotice'
 import { NotifySettings } from './NotifySettings'
 import { fold, RECENT_MAX, recentPages } from './pages'
@@ -74,7 +74,7 @@ function Palette({ onDone, onOpen }: { onDone: () => void; onOpen: (o: Opens) =>
     const q = fold(query.trim())
     const recent = recentPages().filter((href) => href !== here && pages.some((p) => p.href === href)).slice(0, RECENT_MAX)
     // The server's English label stands in for a page this version has no translation for yet.
-    const named = pages.map((p) => ({ ...p, label: t(`goto.pages.${p.id}`, { defaultValue: p.label }), recent: recent.includes(p.href) }))
+    const named = pages.map((p) => ({ ...p, label: isPluginPage(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label }), recent: recent.includes(p.href) }))
     // Nothing typed yet: the pages opened last come first, newest on top (issue #244).
     if (!q) return [...named.filter((p) => p.recent).sort((a, b) => recent.indexOf(a.href) - recent.indexOf(b.href)), ...named.filter((p) => !p.recent)]
     // Label first, then the path, so "set" finds Settings before /settings/... pages named otherwise.

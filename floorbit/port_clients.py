@@ -188,7 +188,7 @@ class Finder:
     def request(self):
         """Start a read in the background unless one is running or the last is fresh."""
         with self._lock:
-            if self._running or (self.as_of and time.time() - self.as_of < MIN_AGE):
+            if self._running or (self.as_of and 0 <= time.time() - self.as_of < MIN_AGE):
                 return False
             self._running = True
 

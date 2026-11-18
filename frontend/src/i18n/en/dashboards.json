@@ -18,6 +18,7 @@
   "cancel": "Cancel",
   "delete": "Delete",
   "clock": "Time",
+  "stale": "No connection to the server: showing what was last read.",
   "canvasHint": "Drag a widget by its handle, resize it by its corner (with the keyboard: arrows, Shift+arrows). Click it to set it up or split it. At most {{max}} widgets on {{cols}} columns.",
   "edit": {
     "pick": "Set up this pane",

@@ -9,6 +9,7 @@ const Dashboards = lazy(() => import('@/pages/Dashboards'))
 const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
 const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
+const PluginPage = lazy(() => import('@/pages/PluginPage'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Teams = lazy(() => import('@/pages/Teams'))
@@ -65,6 +66,13 @@ const Webhooks = lazy(() => import('@/pages/Webhooks'))
 const Features = lazy(() => import('@/pages/Features'))
 const SidebarSections = lazy(() => import('@/pages/SidebarSections'))
 const Settings = lazy(() => import('@/pages/Settings'))
+const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
+const PublicWall = lazy(() => import('@/pages/public/PublicWall'))
+const PublicAgenda = lazy(() => import('@/pages/public/PublicAgenda'))
+const PublicBracket = lazy(() => import('@/pages/public/PublicBracket'))
+const PublicHall = lazy(() => import('@/pages/public/PublicHall'))
+const PublicFind = lazy(() => import('@/pages/public/PublicFind'))
+const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 export default function App() {
@@ -76,13 +84,21 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/checkin" element={<Checkin />} />
+          <Route path="/status" element={<PublicStatus />} />
+          <Route path="/wall" element={<PublicWall />} />
+          <Route path="/agenda" element={<PublicAgenda />} />
+          <Route path="/bracket" element={<PublicBracket />} />
+          <Route path="/hall" element={<PublicHall />} />
+          <Route path="/find" element={<PublicFind />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
+          <Route path="/screen" element={<BigScreen />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboards" element={<Dashboards />} />
             <Route path="/settings/plugins" element={<Plugins />} />
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />
+            <Route path="/plugins/:plugin/:page" element={<PluginPage />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/settings/teams" element={<Teams />} />

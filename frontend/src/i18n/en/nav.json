@@ -15,6 +15,7 @@
     "build": "Build",
     "event": "Event",
     "admin": "Settings",
+    "plugins": "Plugins",
     "more": "More"
   },
   "search": "Search pages, seats and switches",

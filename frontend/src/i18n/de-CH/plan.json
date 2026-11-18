@@ -317,7 +317,10 @@
       "checkin": "Check-in",
       "services": "Dienste: Server, LANcache, DNS"
     },
-    "hint": "Sicherheit und Dienste sind Markierungen, die du im Editor auf ihrer Ebene zeichnest."
+    "hint": "Sicherheit und Dienste sind Markierungen, die du im Editor auf ihrer Ebene zeichnest.",
+    "plugin": "Plugin-Ebene",
+    "pluginNone": "Keine",
+    "pluginLegend": "Was die Plugin-Ebene zeigt"
   },
   "modes": {
     "kiosk": "Kiosk",

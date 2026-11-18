@@ -186,6 +186,14 @@ def test_assigning_to_others_and_moving_teams_needs_assign(client, app_module, f
     assert lead.patch(f"/api/incidents/{i['id']}", json={"assignee": "te2"}).status_code == 400
 
 
+def test_a_team_or_assignee_that_isnt_text_is_refused(client, floor):
+    i = client.post("/api/incidents", json={"seat": "A-1", "title": "Cable cut", "team": "core"}).get_json()
+    for body in ({"assignee": 5}, {"assignee": ["x"]}, {"team": ["core"]}, {"team": {"id": "core"}}):
+        assert client.patch(f"/api/incidents/{i['id']}", json=body).status_code == 400, body
+    assert client.post("/api/incidents", json={"seat": "A-1", "title": "x", "team": ["core"]}).status_code == 400
+    assert [x["team"] for x in client.get("/api/incidents").get_json()["incidents"]] == ["core"]
+
+
 def test_work_flow_with_notes(client, floor):
     i = client.post("/api/incidents", json={"switch_id": floor["switch_id"], "title": "Switch beeps",
                                             "team": "core", "note": "Fan noise"}).get_json()

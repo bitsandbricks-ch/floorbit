@@ -1,8 +1,8 @@
 # Install on Kubernetes or k3s
 
 [`deploy/kubernetes/floorbit.yaml`](https://github.com/bitsandbricks-ch/floorbit/blob/master/deploy/kubernetes/floorbit.yaml)
-runs Floorbit with Redis on any Kubernetes cluster, k3s included. It has one Floorbit pod with a
-persistent volume, a Redis pod, three Services and an Ingress for k3s's Traefik.
+runs Floorbit with Valkey on any Kubernetes cluster, k3s included. It has one Floorbit pod with a
+persistent volume, a Valkey pod (the cache), three Services and an Ingress for k3s's Traefik.
 
 The Floorbit pod has two containers: Floorbit and its [local agent](agent.md). Floorbit reaches the
 event network (switches, LibreNMS, NetBox, game servers) only through the agent, the same way as a
@@ -53,6 +53,13 @@ kubectl -n floorbit rollout restart deploy/floorbit
 The Deployment uses `strategy: Recreate`. The old pod stops and lets go of the volume before the new
 one starts, so a `ReadWriteOnce` volume never has two pods. Expect a few seconds without Floorbit.
 
+The cache moved from Redis to Valkey: the file now has `floorbit-valkey` instead of `floorbit-redis`.
+After applying it, remove the old one, which held only a cache:
+
+```sh
+kubectl -n floorbit delete deployment,service floorbit-redis
+```
+
 ## Backups
 
 **Settings > Backup and restore** downloads the floor plan and settings ([backup.md](backup.md)). To
@@ -70,14 +77,17 @@ it's the default. Several pods behind one Service work when all of these are tru
 
 - **Postgres** for the documents and logs: `FLOORBIT_DATABASE_URL=postgresql://…` on every pod
   ([database.md](database.md)). SQLite and files stay with one pod.
-- **Redis** shared by every pod (`REDIS_HOST`), and `FLOORBIT_CLUSTER=redis` on every pod.
+- **Valkey or Redis** shared by every pod (`REDIS_HOST`), and `FLOORBIT_CLUSTER=valkey` (or `redis`, the same) on every pod.
 - **A `ReadWriteMany` volume** on `/app/state` for what is still files there: hall background
   images, syslog and flow statistics. Without one, each pod has its own copy of those.
 - `strategy: RollingUpdate` instead of `Recreate`, once the volume is `ReadWriteMany`.
 
-With `FLOORBIT_CLUSTER=redis` the pods share three things through Redis:
+With `FLOORBIT_CLUSTER` set the pods share three things through Valkey:
 
 - **Live updates.** A change made on one pod shows up in the browsers connected to the others.
+  While Redis is away, other pods' changes don't reach these browsers; when it is back, each pod
+  tells its open pages to fetch everything again. A page whose own stream dropped (Wi-Fi, a
+  restart) does the same when it reconnects.
 - **Agent calls.** A [local agent](agent.md) holds its link to one pod. The other pods send its
   calls there and get the answers back, so it doesn't matter which pod a browser reaches. Calls
   and answers cross Redis sealed with the vault key every pod shares (a switch call carries its
@@ -87,7 +97,7 @@ With `FLOORBIT_CLUSTER=redis` the pods share three things through Redis:
   webhooks, the event timeline, plugin hooks, replay frames and the nightly config backup. When it
   stops, another pod takes the lease within about 20 seconds. What a crew member does (an
   incident, a notice, a handover) is
-  sent by the pod that took the request. If Redis can't be reached, every pod acts as the leader,
+  sent by the pod that took the request. If Valkey can't be reached, every pod acts as the leader,
   because a duplicate alert is better than a missing one.
 
 Each pod logs `[cluster] pod … joined (Redis)` at start, and the leader logs `… is now the leader`.

@@ -27,6 +27,7 @@ def boot(ctx):
     if user:
         account = {'name': user.get('display_name') or user.get('username'), 'username': user.get('username')}
     pages = page_index.for_context(ctx)
+    pages += _plugin_pages()
     return {
         'pages': pages,
         'custom': nav_sections.for_pages(pages),
@@ -38,6 +39,14 @@ def boot(ctx):
         # Saved with the account; None without sign-in, where the browser keeps them instead.
         'prefs': _prefs(user),
     }
+
+
+def _plugin_pages():
+    """The plugins' own pages (plugin.yaml ``pages:``) this account may open, for the Plugins section."""
+    if 'floorbit_plugins' not in current_app.extensions:
+        return []
+    from .blueprints.plugins import _language, plugin_pages  # late: the blueprint imports this module's app
+    return plugin_pages(_language())
 
 
 def _prefs(user):
@@ -135,14 +144,16 @@ def markup(boot):
     known = set(shell['pinned']) | {i for s in shell['sections'] for i in s['pages']}
     pinned = [by_id[i] for i in shell['pinned'] if i in by_id]
     sections = [(s['id'], [by_id[i] for i in s['pages'] if i in by_id]) for s in shell['sections']]
-    sections.append(('more', [p for p in pages if p['id'] not in known]))
+    plugin_rows = [p for p in pages if p['id'].startswith('plugin:')]
+    sections.append(('plugins', plugin_rows))
+    sections.append(('more', [p for p in pages if p['id'] not in known and not p['id'].startswith('plugin:')]))
     sections = [(sid, ps) for sid, ps in sections if ps]
     lit_section = next((f"c:{c['id']}" for c in custom if any(x['href'] == lit for x in c['links'])), None) \
         or next((sid for sid, ps in sections if any(p['href'] == lit for p in ps)), None)
     e = escape
 
     def label(p):
-        return page_t.get(p['id']) or p['label']
+        return p['label'] if p['id'].startswith('plugin:') else page_t.get(p['id']) or p['label']
 
     prefs = boot.get('prefs') or {}
     favs = [by_id[i] for i in prefs.get('favourites') or [] if i in by_id]
@@ -158,7 +169,10 @@ def markup(boot):
     def row(p):
         cur = ' aria-current="page"' if p['href'] == lit else ''
         title = f' title="{e(label(p))}"' if rail else ''
-        icon = icons['page'].get(p['id']) or icons['page']['*']
+        if p['id'].startswith('plugin:'):
+            icon = icons['custom'].get(p.get('icon') or '') or icons['section'].get('plugins') or icons['page']['*']
+        else:
+            icon = icons['page'].get(p['id']) or icons['page']['*']
         return (f'<li class="fb-nav-item"><a href="{e(p["href"])}" class="fb-nav-row"{title}{cur}>{icon}'
                 f'<span class="fb-nav-text">{e(label(p))}</span></a>{star(p)}</li>')
 

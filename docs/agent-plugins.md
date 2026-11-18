@@ -70,6 +70,10 @@ first VIP. Only the primary should poll devices and log in to them, so no device
 no login is tried twice; a standby keeps its listeners up and takes over when it becomes primary.
 Without VRRP every agent is its own primary.
 
+A plugin action (`ctx.agent_action` without naming an agent) goes to one agent per hall: its
+group's primary, so two agents in one hall never both clear the cache or bounce a port. Without
+VRRP, or while a group has no single primary, it goes to every connected agent as before.
+
 ### Actions need the hall's yes
 
 Some plugins can change things in the hall (the LAN cache plugin can clear the cache). The hosted
@@ -209,6 +213,7 @@ after they change.
 | Health | the agent's report every half minute, under `plugins`; plugin versions under `updates` |
 | Bundles | listed under `bundles` in the settings, fetched from `GET /api/agent/v1/bundles/<file>` |
 
-All of it goes over the agent's TLS connection with its key ([agent.md](agent.md)). Only plugins
-that ship with Floorbit run on an agent: the ones in its image, or newer versions of them signed by
-Floorbit's release.
+All of it goes over the agent's TLS connection with its key ([agent.md](agent.md)). Only official
+plugins run on an agent: the ones in its image, newer versions of them signed by Floorbit's
+release, and official [Marketplace](marketplace.md) plugins. Community plugins stay on the hosted
+side ([What a plugin can ship](plugin-spec.md)).

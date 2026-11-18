@@ -130,3 +130,87 @@ def test_home_assistant_reads_and_stops_on_a_refused_token(fake):
     assert not ctx.may_login(settings["url"], "home-assistant", "r1")
     ctx.settings["token"] = "good-token"
     assert plugin.tick() == ([], ["token refused"])          # not tried again until cleared
+
+
+def test_shelly_odd_answers_are_no_reading(fake):
+    m = _agent_module("shelly")
+    for odd in ([], 5, "x", None, {"meters": 5}, {"emeters": "ab"}, {"meters": [{"power": float("nan")}]},
+                {"meters": [{"power": True}]}):
+        assert m.watts_from_status(odd) is None and m.watts_from_rpc(odd) is None
+    assert m.watts_from_rpc({"switch:0": {"apower": float("inf")}}) is None
+    assert m.watts_from_status({"meters": [{"power": 1}]}, "-1") is None
+    # A device that answers NaN, or a list: a failed meter, not a stopped round.
+    Fake.routes = {"/rpc/Shelly.GetStatus": (200, {"switch:0": {"apower": float("nan")}})}
+    ctx = MemoryContext("shelly", {}, {"sends": {"readings": {"privacy": "device", "latest": True}}})
+    plugin = m.AgentPlugin(ctx)
+    plugin.devices, plugin.rev = m.parse_devices(f"db1-1 = {fake}"), "r1"
+    assert plugin.tick() == ([], [f"db1-1: {fake} has no power reading"])
+    Fake.routes = {"/rpc/Shelly.GetStatus": (200, [])}
+    assert plugin.tick()[0] == []
+
+
+def test_home_assistant_odd_answers_are_no_reading(fake):
+    m = _agent_module("home-assistant")
+    for odd in ({"state": "nan", "attributes": {"unit_of_measurement": "W"}},
+                {"state": "inf", "attributes": {"unit_of_measurement": "W"}},
+                {"state": "5", "attributes": ["W"]}, {"state": "5"}, [], None):
+        assert m.reading(odd) is None
+    settings = {"url": f"http://{fake}", "token": "t", "sensors": "db1-1 = sensor.a"}
+    ctx = MemoryContext("home-assistant", settings, {"sends": {"readings": {"privacy": "device", "latest": True}}})
+    plugin = m.AgentPlugin(ctx)
+    plugin.sensors, plugin.url, plugin.rev = m.parse_sensors(settings["sensors"]), settings["url"], "r1"
+    for body in ({"entity_id": "sensor.a"}, 5, [{"entity_id": ["sensor.a"]}, "x"]):
+        Fake.routes = {"/api/states": (200, body)}
+        assert plugin.tick()[0] == []
+
+
+@pytest.mark.parametrize("plugin", ["shelly", "home-assistant"])
+def test_a_round_that_breaks_does_not_stop_the_readings(plugin, monkeypatch):
+    m = _agent_module(plugin)
+    ctx = MemoryContext(plugin, {}, {"sends": {}})
+    agent = m.AgentPlugin(ctx)
+    agent.interval = 0
+    rounds = []
+
+    def tick():
+        rounds.append(1)
+        if len(rounds) == 1:
+            raise KeyError("surprise")
+        ctx.stopping.set()
+
+    monkeypatch.setattr(agent, "tick", tick)
+    agent.loop()
+    assert len(rounds) == 2
+    assert any("a round failed" in e["error"] for e in ctx.health_.report()["errors"])
+
+
+def test_a_meter_address_that_is_no_web_server():
+    import socket
+    m = _agent_module("shelly")
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen()
+
+    def answer():
+        conn, _addr = server.accept()
+        conn.recv(1000)
+        conn.sendall(b"SSH-2.0-OpenSSH_9.6\r\n")
+        conn.close()
+    threading.Thread(target=answer, daemon=True).start()
+    ctx = MemoryContext("shelly", {}, {"sends": {}})
+    plugin = m.AgentPlugin(ctx)
+    plugin.devices, plugin.rev = [("db1-1", f"127.0.0.1:{server.getsockname()[1]}", None)], "r1"
+    readings, failed = plugin.tick()
+    server.close()
+    assert readings == [] and failed[0].startswith("db1-1: ")
+
+
+def test_odd_agent_readings_keep_only_numbers():
+    kept = power.keep_agent_readings("odd-test", [
+        {"meter": "db1-1", "amps": 1, "watts": "5"},           # text is left out
+        {"meter": "db1-2", "watts": 10 ** 400},                # used to raise OverflowError
+        {"meter": "db1-3", "amps": 2, "watts": [1]},
+        {"meter": "db1-4", "watts": 230}])
+    assert kept == 3
+    assert power.agent_readings("odd-test") == [{"meter": "db1-1", "amps": 1}, {"meter": "db1-3", "amps": 2},
+                                                {"meter": "db1-4", "watts": 230}]
