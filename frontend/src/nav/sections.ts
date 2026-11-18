@@ -28,7 +28,7 @@ export const PINNED = ['floorPlan', 'seats', 'dashboards', 'problems', 'incident
 /** The rest, folded into sections. A page the server lists that isn't here lands in "more",
  *  so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
-  { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'runbooks', 'checkins', 'speedtests', 'networkStatus'] },
+  { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'checkins', 'speedtests', 'networkStatus'] },
   {
     id: 'network', icon: IconNetwork,
     pages: ['dashboard', 'health', 'topology', 'endpoints', 'firewalls', 'services', 'stats', 'traffic', 'dns', 'games', 'gameServers', 'logs', 'security', 'wifi', 'power', 'commands', 'terminal'],
@@ -40,7 +40,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
 
 const ICONS: Record<string, Icon> = {
   floorPlan: IconLayoutGrid, seats: IconArmchair, dashboards: IconLayoutDashboard, dashboard: IconLayoutCards, problems: IconAlertTriangle,
-  incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange, runbooks: IconBook,
+  incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk,

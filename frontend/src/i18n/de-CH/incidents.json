@@ -87,8 +87,6 @@
   "crewFree": "frei",
   "match": "Match-Platz · {{zone}}",
   "handover": "Schichtübergabe",
-  "runbook": "Anleitung: {{title}}",
-  "runbooks": "Anleitungen",
   "takeNext": "Nächste übernehmen",
   "tookNext": "Du hast sie: {{title}}",
   "nothingNext": "Nichts offen, das du bearbeiten kannst",

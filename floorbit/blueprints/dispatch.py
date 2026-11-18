@@ -18,7 +18,7 @@ from flask import Blueprint, jsonify, request
 from auth import roles
 from integrations import events
 
-from .. import dispatch, halls, incidents, runbooks, spa
+from .. import dispatch, halls, incidents, spa
 from ..store import load_data
 from .incidents import _board_user
 from .screen import plan
@@ -34,14 +34,12 @@ def _changed(incident):
     events.publish('incident.changed', {'id': incident['id'], 'status': incident['status']})
 
 
-def _job(incident, data, seats, switches, me_at, books=()):
+def _job(incident, data, seats, switches, me_at):
     target = dispatch.where_is(incident, seats, switches)
     out = {k: incident.get(k) for k in ('id', 'title', 'seat', 'switch_id', 'switch_name', 'circuit_id',
                                         'circuit_name', 'status', 'team', 'source', 'reports', 'created_at',
                                         'dispatched_at', 'taken_at', 'notes', 'seat_ok_at')}
     out['drawing'] = out['target'] = out['from'] = out['hall'] = None
-    book = runbooks.for_incident(incident, books)
-    out['runbook'] = {k: book.get(k) for k in ('id', 'title', 'body', 'starter')} if book else None
     if target:
         hall_id = target[0]
         drawing, _found = plan(data, highlight=incident.get('seat'), hall_id=hall_id)
@@ -75,7 +73,7 @@ def my_jobs():
         'me': me,
         'done': done,
         'seats': sorted(seats),
-        'jobs': [_job(i, data, seats, switches, me_at, runbooks.all_runbooks(data)) for i in mine],
+        'jobs': [_job(i, data, seats, switches, me_at) for i in mine],
         'can_dispatch': can_dispatch,
         'auto': dispatch.auto_on(data),
     })

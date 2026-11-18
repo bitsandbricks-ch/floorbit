@@ -271,11 +271,8 @@ def test_ddos_like_burst(agg, monkeypatch):
 
 # ── collector and storage ─────────────────────────────────────────────────────────────────
 def test_collector_reads_writes_raw_and_publishes(tmp_path, monkeypatch, app_module):
-    from conftest import FakeRedis
-
-    from floorbit import cache
-    monkeypatch.setattr(cache, "redis_client", FakeRedis())
     col = Collector(Aggregator(Classifier()), store.RawStore(str(tmp_path)), log=lambda *_: None)
+    col.publish = store.publish   # what Floorbit does with the summary the agent sends
     assert col.receive(v5([STEAM]), "198.51.100.1", now=NOW) == 1
     assert col.receive(b"nonsense", "198.51.100.1", now=NOW) == 0 and col.errors == 1
     col.housekeeping(now=NOW + 1, refresh_seats=lambda: (SEATS, AREAS))   # seats come after the first packet
@@ -327,10 +324,6 @@ def test_api_without_a_collector(client):
 
 
 def test_api_hides_seats_without_seats_view(client, kiosk_client, anon_client, monkeypatch, agg):
-    from conftest import FakeRedis
-
-    from floorbit import cache
-    monkeypatch.setattr(cache, "redis_client", FakeRedis())
     agg.add([STEAM, rec("192.0.2.17", "255.255.255.255", 67, 68)], now=NOW)
     agg.tick(now=NOW + 60)
     store.publish(agg.snapshot(now=NOW + 61))
@@ -344,10 +337,6 @@ def test_api_hides_seats_without_seats_view(client, kiosk_client, anon_client, m
 
 
 def test_api_anomalies_in_german(client, monkeypatch, agg):
-    from conftest import FakeRedis
-
-    from floorbit import cache
-    monkeypatch.setattr(cache, "redis_client", FakeRedis())
     agg.add([STEAM, rec("192.0.2.17", "255.255.255.255", 67, 68)], now=NOW)
     agg.tick(now=NOW + 60)
     store.publish(agg.snapshot(now=NOW + 61))

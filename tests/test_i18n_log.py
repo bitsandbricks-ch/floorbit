@@ -77,7 +77,7 @@ def test_every_audit_action_has_german(action):
 
 def test_found_the_actions():
     found = actions_in_code()
-    assert {'Bounced port', 'Signed in', 'Added runbook', 'Muted switch alerts from Discord',
+    assert {'Bounced port', 'Signed in', 'Muted switch alerts from Discord',
             'Ran {}: failed', 'Seat {} found on its port (swapped with {})'} <= found
 
 

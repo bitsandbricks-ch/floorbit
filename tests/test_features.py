@@ -67,8 +67,8 @@ def test_the_netflow_collector_keeps_nothing_while_traffic_is_off(app_module, mo
 def test_settings_pages_and_tools_are_in_the_sidebar_only_when_on(client):
     # Issue #236 put the links in a card; now the sidebar lists them, like on every crew page.
     hrefs = {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
-    assert {"/settings/users", "/runbooks"} <= hrefs
+    assert {"/settings/users", "/handover"} <= hrefs
 
-    client.put("/api/settings/features", json={"runbooks": False})
-    assert "/runbooks" not in {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
-    client.put("/api/settings/features", json={"runbooks": True})
+    client.put("/api/settings/features", json={"handover": False})
+    assert "/handover" not in {p["href"] for p in client.get("/api/pages").get_json()["pages"]}
+    client.put("/api/settings/features", json={"handover": True})

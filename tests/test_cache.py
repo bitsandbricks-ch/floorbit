@@ -108,18 +108,3 @@ def test_cache_stats_count_the_tables(client, cached):
     got = client.get("/api/cache/stats").get_json()
     assert got["arp_cache_entries"] == 1 and got["mac_cache_entries"] == 2 and got["total_keys"] == 6
 
-
-def test_the_flow_collector_survives_redis_going_away_and_finds_it_again(monkeypatch):
-    from floorbit.flows import store
-
-    class Broken(FakeRedis):
-        def setex(self, *args):
-            raise redis.ConnectionError("gone")
-    monkeypatch.setattr(cache, "redis_client", Broken())
-    monkeypatch.setattr(cache, "_checked_at", 10**12)   # still counts as checked: setex is what fails
-    assert store.publish({"mix_hour": {}}) is False
-
-    monkeypatch.setattr(cache, "redis_client", None)
-    monkeypatch.setattr(cache, "_next_try", 0.0)
-    monkeypatch.setattr(cache.redis, "Redis", FakeRedis)
-    assert store.publish({"mix_hour": {}}) is True and store.latest() == {"mix_hour": {}}

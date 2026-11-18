@@ -49,7 +49,6 @@ const Endpoints = lazy(() => import('@/pages/Endpoints'))
 const Wifi = lazy(() => import('@/pages/Wifi'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
-const Runbooks = lazy(() => import('@/pages/Runbooks'))
 const Schedule = lazy(() => import('@/pages/Schedule'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
 const Speedtests = lazy(() => import('@/pages/Speedtests'))
@@ -153,7 +152,6 @@ export default function App() {
             <Route path="/wifi" element={<Wifi />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/network-status" element={<NetworkStatus />} />
-            <Route path="/runbooks" element={<Runbooks />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/plan" element={<FloorPlan />} />
             <Route path="/checkins" element={<Checkins />} />

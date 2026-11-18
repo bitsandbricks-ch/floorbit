@@ -32,9 +32,9 @@ counts, as before. On a local agent the setting goes into the agent's environmen
 TODO: ask Mike which devices export flows at the event (switches, router or firewall) and in which
 format, and add a tested example for each here.
 
-The collector hands its numbers to Floorbit through Redis (`floorbit:flows`), so it needs the same
-Redis as the app. The page says when no collector has sent anything, and when the last summary is
-more than a minute old.
+The agent sends its summary every 10 seconds, and Floorbit keeps the latest one in its database
+(`flows-summary.json` of the event), where every worker and pod reads it. The page says when no
+agent has sent anything for 5 minutes, and when the last summary is more than a minute old.
 
 ## What it shows
 

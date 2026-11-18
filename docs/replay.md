@@ -18,7 +18,7 @@ All of it is history Floorbit keeps anyway:
 | Incidents, from filed to fixed, as rings on their seats | the incident board | as long as the board keeps them |
 
 The seat changes are new with the replay: the stats reads already saw every seat port, and now
-keep the moments a seat changed (in Redis with the other stats, at most 100,000 changes).
+keep the moments a seat changed (in the database with the other stats, at most 100,000 changes).
 
 With check-ins in use, the replay can show "checked in" instead of "online".
 

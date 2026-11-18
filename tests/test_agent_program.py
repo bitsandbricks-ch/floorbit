@@ -817,14 +817,16 @@ def test_the_agent_starts_its_flow_collector(client, app_module, monkeypatch):
     assert relay._sock is None
 
 
-def test_without_redis_the_agents_summary_is_kept_in_memory(monkeypatch):
+def test_the_agents_summary_is_kept_in_the_database_without_redis(monkeypatch):
     from floorbit import cache
+    from floorbit import store as docs
     from floorbit.flows import store
     monkeypatch.setattr(cache, "get_redis_client", lambda: None)
-    monkeypatch.setattr(store, "_local", {"at": 0, "snapshot": None})
-    assert store.publish({"updated": 1}) is False and store.latest() is None   # the collector needs Redis
-    assert store.publish({"updated": 1}, keep_locally=True) and store.latest() == {"updated": 1}
-    store._local["at"] -= store.SNAPSHOT_TTL + 1
+    assert store.latest() is None
+    assert store.publish({"updated": 1}) and store.latest() == {"updated": 1}
+    path = docs.event_path(store.SUMMARY_FILE)
+    saved = docs.read_json(path, {})
+    docs.write_json(path, {**saved, "at": saved["at"] - store.SNAPSHOT_TTL - 1})
     assert store.latest() is None
 
 

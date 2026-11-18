@@ -1,5 +1,5 @@
 """The words the demo writes into the floor plan and the event: hall and range names, plan labels,
-incidents, status updates, a runbook and the schedule. English, or Swiss German with
+incidents, status updates and the schedule. English, or Swiss German with
 ``FLOORBIT_DEMO_LANGUAGE=de`` ("ss", never "ß"). What the demo plugin reports live (health tiles,
 findings) is translated per viewer like any other server text (floorbit/locales/de-CH.json).
 """
@@ -32,12 +32,6 @@ TEXTS = {
         ],
         'maintenance': (120, 15, 'Core', 'We replace firewall 3. Seats in range 3 may lose the internet for a '
                                          'minute.'),
-        'runbook': ('Spare switch', ['switch-down'], """\
-1. Spare access switches are in the crew room, shelf 2, already configured as `sw-spare-1` and `-2`.
-2. Take the uplink optic from the broken switch: the spares have none.
-3. Move the seat cables port by port, then the uplink.
-4. Rename the spare in the inventory so the floor plan shows it in the broken one's place.
-"""),
         'schedule': [
             # (hour of the day, counted from today's midnight: -8 is 16:00 yesterday; length in hours or None,
             #  kind, title, where)
@@ -77,12 +71,6 @@ TEXTS = {
         ],
         'maintenance': (120, 15, 'Core', 'Wir ersetzen Firewall 3. Plätze in Bereich 3 können für eine Minute '
                                          'kein Internet haben.'),
-        'runbook': ('Ersatz-Switch', ['switch-down'], """\
-1. Ersatz-Access-Switches liegen im Crew-Raum, Regal 2, schon konfiguriert als `sw-spare-1` und `-2`.
-2. Das Uplink-Modul aus dem defekten Switch nehmen: die Ersatzgeräte haben keins.
-3. Die Platzkabel Port für Port umstecken, dann den Uplink.
-4. Den Ersatz im Inventar umbenennen, damit der Hallenplan ihn am Platz des defekten zeigt.
-"""),
         'schedule': [
             (-8, None, 'other', 'Türöffnung', 'Eingang'),
             (-6, 1, 'talk', 'Begrüssung und Hausregeln', 'Hauptbühne'),

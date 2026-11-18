@@ -96,7 +96,7 @@ def test_a_standby_keeps_out_of_the_traffic_page_while_the_primary_reports(clien
         report(anon_client, made["key"], {"primary": primary, "holds": ["192.0.2.10/24"] if primary else []})
     published = []
     monkeypatch.setattr("floorbit.flows.store.publish",
-                        lambda snap, keep_locally=False: published.append(snap["agent"]))
+                        lambda snap: published.append(snap["agent"]))
     assert agent_bp.take_flow_summary({"id": second["id"], "name": "Standby"}, {"updated": 1})
     assert published == ["Standby"]          # no primary summary yet: the standby's is better than none
     assert agent_bp.take_flow_summary({"id": first["id"], "name": "Primary"}, {"updated": 1})

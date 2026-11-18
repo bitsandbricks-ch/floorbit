@@ -34,9 +34,9 @@ The status monitor marks the outage as soon as a poll fails.
 
 ## Where the last good data is kept
 
-- **With Redis:** in Redis, shared by every worker, for 7 days.
-- **Without Redis:** in memory, and written to `monitoring-cache.json` next to `data.json` (or
-  `MONITORING_CACHE_FILE`) at most once a minute, so a restart during an outage still has data to
-  show.
+In memory, and in the event's `monitoring-cache.json` document in Floorbit's database (or
+`MONITORING_CACHE_FILE`), saved at most once a minute and kept for 7 days. Another worker or pod
+that has no answer of its own reads it from there, and a restart during an outage still has data
+to show. Valkey (or Redis) is not needed for it.
 
 This works for any monitoring plugin, not only LibreNMS.
