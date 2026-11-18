@@ -38,9 +38,11 @@ class RawStore:
         os.makedirs(self.raw, exist_ok=True)
         name = time.strftime('%Y-%m-%d-%H', time.gmtime(now)) + '.jsonl.gz'
         # Appending makes a new gzip member each time; gzip readers read them as one stream.
-        with gzip.open(os.path.join(self.raw, name), 'at', encoding='utf-8') as f:
-            for flow in flows:
-                f.write(json.dumps(flow, separators=(',', ':')) + '\n')
+        # Level 1: at 20,000 flows a second the default (9) took most of the agent's CPU, for
+        # files only about a fifth smaller.
+        text = ''.join(json.dumps(flow, separators=(',', ':')) + '\n' for flow in flows)
+        with gzip.open(os.path.join(self.raw, name), 'at', encoding='utf-8', compresslevel=1) as f:
+            f.write(text)
 
     def prune(self, now=None):
         now = time.time() if now is None else now

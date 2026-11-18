@@ -183,6 +183,7 @@ def write_json(path, data):
                 f.write(text)
             _warned.discard(path)
     _generation[0] += 1
+    _written[path] = _written.get(path, 0) + 1
     if isinstance(data, Doc):
         # What the caller's copy now stands for: a second save from it changes only what it changes.
         data._base = (path, text if out is data else json.dumps(data, indent=None if db.kind != 'files' else 2))
@@ -191,6 +192,12 @@ def write_json(path, data):
 _shared = {}            # path -> (stamp, generation, document)
 SHARED_RECHECK = 1.0    # seconds: another pod's change shows up this late at most
 _generation = [0]       # bumped by every write here: a write within one mtime tick still counts
+_written = {}           # path -> writes here: the LAN cache stats saving must not re-read data.json
+
+
+def generation(path):
+    """Changes whenever this process writes ``path``."""
+    return _written.get(path, 0)
 
 
 def read_shared(path, default=None):
@@ -200,19 +207,19 @@ def read_shared(path, default=None):
     The document is shared: never change it, copy what you hand on."""
     hit = _shared.get(path)
     now = time.monotonic()
-    if hit and hit[1] == _generation[0] and now - hit[3] < SHARED_RECHECK and _remote_backend():
+    if hit and hit[1] == generation(path) and now - hit[3] < SHARED_RECHECK and _remote_backend():
         return hit[2]     # on a database, asking for the row's stamp is a query: once a second
     mark = _mark(path)
     if mark is None:
         return read_json(path, default)
-    if hit and hit[0] == mark and hit[1] == _generation[0]:
+    if hit and hit[0] == mark and hit[1] == generation(path):
         _shared[path] = (mark, hit[1], hit[2], now)
         return hit[2]
-    generation = _generation[0]
+    written = generation(path)
     doc = read_json(path, default)
     if len(_shared) > 256:
         _shared.clear()
-    _shared[path] = (mark, generation, doc, now)
+    _shared[path] = (mark, written, doc, now)
     return doc
 
 

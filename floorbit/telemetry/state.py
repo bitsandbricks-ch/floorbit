@@ -25,6 +25,7 @@ import time
 
 from . import lineproto
 
+EXPIRE_EVERY = 10       # seconds between passes that drop rows past TABLE_TTL
 TABLE_TTL = 600        # seconds a MAC, ARP or neighbour row lives without being seen again
 STALE = 180            # a device that sent nothing for this long reads as offline
 OPER = {1: 'up', 2: 'down', 3: 'testing', 4: 'unknown', 5: 'dormant', 6: 'notPresent', 7: 'lowerLayerDown'}
@@ -207,6 +208,7 @@ class State:
         self.collecting = True
         self.points = 0
         self.unknown = 0               # points no driver here understands (kept in storage only)
+        self._expired = 0.0
 
     def reset(self):
         with self._lock:
@@ -289,7 +291,11 @@ class State:
                     used += 1
                 else:
                     self.unknown += 1
-            self._expire(now)
+            if now - self._expired >= EXPIRE_EVERY or now < self._expired:
+                # Not per post: a 2,000-switch hall posts 200 times a second, and each pass walks
+                # every device's tables.
+                self._expire(now)
+                self._expired = now
         return used
 
     def apply_text(self, text, now=None):
