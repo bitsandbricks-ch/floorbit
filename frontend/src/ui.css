@@ -116,11 +116,27 @@
 @media (max-width: 48em) { .fb-schedule-time { width: auto; } }
 
 /* A table that turns into one block per row on a phone, instead of scrolling sideways: each cell
-   on its own line, header hidden (the cells say what they are). Put it on tables whose cells
-   read fine without their column heading. */
+   on its own line, header hidden. A cell that needs its heading gets data-label={...};
+   short cells can share the first line with className="fb-stack-inline", and a cell of icon
+   buttons can sit in the top right corner with className="fb-stack-actions".
+   */
 @media (max-width: 48em) {
   .fb-table-stack thead { display: none; }
   .fb-table-stack tbody tr { display: block; padding: var(--mantine-spacing-xs) 0; }
   .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; }
   .fb-table-stack tbody td .mantine-Group-root[style*="flex-end"] { justify-content: flex-start; }
+  /* Short cells (seat, name, state) share the row's first line. */
+  .fb-table-stack tbody td.fb-stack-inline { display: inline-block; margin-right: var(--mantine-spacing-sm); }
+  /* A few icon buttons go to the row's top right corner instead of a line of their own. */
+  .fb-table-stack tbody tr:has(> td.fb-stack-actions) { position: relative; padding-right: 5em; }
+  .fb-table-stack tbody td.fb-stack-actions { position: absolute; top: var(--mantine-spacing-xs); right: 0; }
+  .fb-table-stack tbody td.fb-stack-actions .mantine-Group-root { justify-content: flex-end; }
+  /* A cell that needs its heading carries it as data-label, shown to its left. */
+  .fb-table-stack tbody td[data-label] { position: relative; padding-left: 7.5em; }
+  .fb-table-stack tbody td[data-label]::before {
+    content: attr(data-label);
+    position: absolute; left: 0; width: 7em;
+    color: var(--mantine-color-dimmed); font-size: var(--mantine-font-size-xs); line-height: 1.8;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 }

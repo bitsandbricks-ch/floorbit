@@ -110,8 +110,7 @@ export default function Checkins() {
                 {d.rows.length === 0 ? (
                   <EmptyState title={t('crewCheckin.empty')} desc={t('crewCheckin.emptyDesc')} />
                 ) : (
-                  <Table.ScrollContainer minWidth={820}>
-                    <Table striped highlightOnHover>
+                    <Table striped highlightOnHover className="fb-table-stack">
                       <Table.Thead>
                         <Table.Tr>
                           <Table.Th>{t('crewCheckin.col.seat')}</Table.Th>
@@ -127,20 +126,20 @@ export default function Checkins() {
                       <Table.Tbody>
                         {rows.map((r) => (
                           <Table.Tr key={r.seat} data-seat={r.seat}>
-                            <Table.Td><Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor></Table.Td>
-                            <Table.Td>{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</Table.Td>
-                            <Table.Td><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge></Table.Td>
-                            <Table.Td>
+                            <Table.Td className="fb-stack-inline"><Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor></Table.Td>
+                            <Table.Td className="fb-stack-inline">{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</Table.Td>
+                            <Table.Td className="fb-stack-inline"><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge></Table.Td>
+                            <Table.Td data-label={t('crewCheckin.col.port')}>
                               <Text size="sm" ff="monospace">{portText(r.port ?? r.learned)}</Text>
                               {r.learned && <Text size="xs" c="dimmed">{t('crewCheckin.learned')}</Text>}
                               {r.area && <Text size="xs" c="dimmed">{t('cables.areaHint', { label: r.area.label })}</Text>}
                             </Table.Td>
-                            <Table.Td><Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
+                            <Table.Td data-label={t('crewCheckin.col.ip')}><Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
                               {r.mac && <Text size="xs" c="dimmed" ff="monospace">{r.mac}</Text>}</Table.Td>
-                            <Table.Td>{t(`crewCheckin.device.${r.device}`)}</Table.Td>
-                            <Table.Td><Text size="sm">{ago(r.checked_in_at, lang)}</Text></Table.Td>
+                            <Table.Td data-label={t('crewCheckin.col.device')}>{t(`crewCheckin.device.${r.device}`)}</Table.Td>
+                            <Table.Td data-label={t('crewCheckin.col.when')}><Text size="sm">{ago(r.checked_in_at, lang)}</Text></Table.Td>
                             {canEdit && (
-                              <Table.Td>
+                              <Table.Td className="fb-stack-actions">
                                 <Group gap={4} wrap="nowrap" justify="flex-end">
                                   {(r.wired === 'unverified' || r.wired === 'pending') && (
                                     <Tooltip label={t('crewCheckin.retry')}>
@@ -157,7 +156,6 @@ export default function Checkins() {
                         ))}
                       </Table.Tbody>
                     </Table>
-                  </Table.ScrollContainer>
                 )}
               </Tabs.Panel>
               <Tabs.Panel value="review" pt="md">
