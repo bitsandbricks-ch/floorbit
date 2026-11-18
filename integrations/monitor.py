@@ -111,7 +111,7 @@ class StatusMonitor:
         except Exception as exc:
             StatusMonitor.latest['polled'] = time.time()
             # One message per outage, and no "switch down" flood: nothing is compared while it's down.
-            if sources.mark_failed(source.name, exc):
+            if sources.mark_failed(source.name, exc, source.label):
                 data = {'source': source.label, 'error': str(exc)[:300], 'since': sources.health()['offline_since']}
                 if source.name == 'agent':
                     # A hosted Floorbit: the agent, not LibreNMS, is what's gone. Say when it was last heard.
@@ -119,7 +119,7 @@ class StatusMonitor:
                     data.update(agent=True, last_seen=agent_link.tunnel.last_seen)
                 events.publish('monitoring.offline', data)
             raise
-        down_for = sources.mark_ok(source.name)
+        down_for = sources.mark_ok(source.name, source.label)
         if down_for is not None:
             # Switches may have changed while the source was down: start over from a fresh baseline
             # instead of announcing every difference at once.

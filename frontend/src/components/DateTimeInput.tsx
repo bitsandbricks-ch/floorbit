@@ -74,6 +74,8 @@ export function DateTimeInput({ label, value, onChange, required, disabled, w }:
       <Popover.Target>
         <TextInput label={label} required={required} disabled={disabled} w={w} value={text}
           placeholder={t('dateTime.placeholder')} autoComplete="off"
+          // A text field that opens a calendar: the role that allows the popover's aria-expanded.
+          role="combobox"
           error={bad ? t('dateTime.invalid') : undefined}
           onChange={(e) => { setTyping(true); setText(e.currentTarget.value) }}
           onBlur={commit}

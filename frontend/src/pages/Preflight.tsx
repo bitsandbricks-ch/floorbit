@@ -69,7 +69,7 @@ export default function Preflight() {
                     <Group justify="space-between" mb={4} wrap="nowrap">
                       <Title order={2} size="h4">{t(`preflight.group.${g}`)}</Title>
                       {canRun && (
-                        <Button size="xs" variant="default" loading={busy(g)} onClick={() => run.mutate(g)}>
+                        <Button size="xs" variant="default" loading={busy(g)} onClick={() => run.mutate(g)} style={{ flexShrink: 0 }}>
                           {group ? t('preflight.runAgain') : t('preflight.run')}
                         </Button>
                       )}
@@ -80,7 +80,7 @@ export default function Preflight() {
                     <Stack gap={8}>
                       {group?.items.map((i) => (
                         <Group key={i.id} gap="sm" wrap="nowrap" align="flex-start">
-                          <Badge variant="filled" color={COLOR[i.status]} w={64} tt="none" style={{ flexShrink: 0 }}>{t(`preflight.status.${i.status}`)}</Badge>
+                          <Badge variant="filled" color={COLOR[i.status]} miw={64} tt="none" style={{ flexShrink: 0 }}>{t(`preflight.status.${i.status}`)}</Badge>
                           <Stack gap={0} style={{ minWidth: 0 }}>
                             <Text size="sm" fw={600} style={{ overflowWrap: 'anywhere' }}>{i.name}</Text>
                             {i.detail && <Text size="xs" c="dimmed">{i.detail}</Text>}

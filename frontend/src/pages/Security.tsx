@@ -33,8 +33,9 @@ function FindingCard({ f, list, busy, onShut, onAck }: {
   const { t } = useTranslation()
   return (
     <Paper withBorder radius="lg" p="md" className={`fb-finding ${f.severity}`} aria-label={f.title} component="article">
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Stack gap={4} style={{ minWidth: 0 }}>
+      {/* On a phone the buttons go under the finding instead of squeezing it to a narrow column. */}
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={4} style={{ minWidth: 0, flex: '1 1 16em' }}>
           <Group gap="xs">
             <Badge color={TONE[f.severity]} variant="filled">{t(`security.severity.${f.severity}`)}</Badge>
             <Badge variant="light" color="gray">{t(`security.kind.${f.kind}`)}</Badge>

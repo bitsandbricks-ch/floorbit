@@ -9,7 +9,7 @@
 """
 from flask import Blueprint, g, jsonify, request
 
-from .. import audit, game_servers, spa, vault
+from .. import audit, game_servers, i18n, spa, vault
 
 bp = Blueprint('game_servers', __name__)
 
@@ -25,7 +25,9 @@ def game_servers_page():
 
 @bp.route('/api/game-servers', methods=['GET'])
 def list_servers():
-    return jsonify(game_servers.overview())
+    # The pollers keep their messages in English; a German page gets them in German.
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    return jsonify(i18n.translate_fields(game_servers.overview(), lang))
 
 
 @bp.route('/api/game-servers', methods=['POST'])

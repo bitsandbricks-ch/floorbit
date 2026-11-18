@@ -64,7 +64,7 @@ export function LayersBody({ state, onChange, available, legends = {} }: {
               label={t(`plan.layers.item.${id}`)} description={available[id] ? undefined : t('plan.layers.off')} />
             {on ? (
               <Slider size="xs" min={10} max={100} step={10} value={Math.round(opacity(state, id) * 100)} label={(v) => `${v} %`}
-                onChange={(v) => fade(id, v)} thumbProps={{ 'aria-label': t('plan.layers.opacity', { layer: t(`plan.layers.item.${id}`) }) }} />
+                onChange={(v) => fade(id, v)} thumbLabel={t('plan.layers.opacity', { layer: t(`plan.layers.item.${id}`) })} />
             ) : <span />}
             {on && legends[id] && <div className="fb-layer-legend">{legends[id]}</div>}
           </div>

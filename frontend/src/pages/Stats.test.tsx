@@ -92,4 +92,14 @@ describe('Stats', () => {
     expect(screen.queryByRole('button', { name: 'Reset peak' })).not.toBeInTheDocument()
     window.history.pushState({}, '', '/')
   })
+
+  it('keeps the screen version to the busiest rows, so it fits a TV without scrolling', async () => {
+    window.history.pushState({}, '', '/stats?screen=1')
+    const uplinks = Array.from({ length: 11 }, (_, i) => ({ ...stats().uplinks[0], switch_id: `s${i}`, switch: `sw-${i}`, utilization: 0.5 - i * 0.01 }))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/stats?screen=1': stats({ uplinks }) }).fn)
+    renderWithApp(<Stats />)
+    expect(await screen.findByText('and 3 more uplinks')).toBeInTheDocument()
+    expect(screen.getAllByRole('meter')).toHaveLength(8)
+    window.history.pushState({}, '', '/')
+  })
 })

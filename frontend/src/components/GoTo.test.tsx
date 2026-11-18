@@ -71,6 +71,16 @@ describe('Go to', () => {
     expect(assign).not.toHaveBeenCalled()
   })
 
+  it('finds a page by other words for it too', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
+    page()
+    fireEvent.click(await screen.findByRole('button', { name: /Go to/ }))
+    const box = await screen.findByRole('combobox')
+    fireEvent.change(box, { target: { value: 'uptime' } })
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option')
+    expect(options.map((o) => o.textContent)).toEqual(['Service health/health'])
+  })
+
   it('loads the floor plan, a page the server draws, in full', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     const assign = vi.fn()

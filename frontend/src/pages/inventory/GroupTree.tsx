@@ -14,7 +14,7 @@ function Row({ active, depth = 0, icon, label, count, onSelect, onEdit, editLabe
 }) {
   return (
     <Group gap={4} wrap="nowrap" pl={depth * 14} className={active ? 'fb-tree-row fb-tree-row-active' : 'fb-tree-row'}
-      style={{ borderRadius: 6, background: active ? 'var(--mantine-primary-color-light)' : undefined }}>
+      style={{ borderRadius: 6 }}>
       <UnstyledButton onClick={onSelect} aria-pressed={active} style={{ flex: 1, minWidth: 0, padding: '4px 6px' }}>
         <Group gap={6} wrap="nowrap">
           {icon}

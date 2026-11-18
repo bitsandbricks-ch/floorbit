@@ -56,7 +56,8 @@ body {
 .fb-header-brand .fb-brand { --fb-brand-h: 26px; }
 @media (min-width: 768px) {
   /* Keyboard focus must never land on something hidden: the sidebar has both. */
-  .fb-header-brand, .fb-header-search { display: none; }
+  /* Doubled class: nav.css loads later and would show the button again. */
+  .fb-header .fb-header-brand, .fb-header .fb-header-search { display: none; }
   .fb-header {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap; border: 0;
@@ -71,6 +72,8 @@ body {
   box-sizing: border-box;
 }
 .fb-main-wide { max-width: none; }
+/* What revealForm scrolls to stops clear of the phone's sticky header and bottom tab bar. */
+.fb-reveal { scroll-margin-top: 64px; scroll-margin-bottom: calc(var(--fb-tabbar-h, 0px) + 12px); }
 @media (max-width: 767.98px) {
   .fb-main { padding: 16px 16px 32px; }
 }
@@ -880,6 +883,9 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
 }
 .fb-tree-row:hover { background: var(--mantine-color-default-hover); }
+/* The brand tint, like the sidebar: Mantine's primary "light" colour is a solid green with this
+   theme, which hid the dark text and the count of the picked group. */
+.fb-tree-row-active, .fb-tree-row-active:hover { background: var(--color-bit-soft); }
 /* The floor plan as a full-screen workspace (Layout full), like a map editor: one slim bar on top,
    the plan from edge to edge below it, panels docked to the sides. Nothing on the page scrolls;
    the plan pans and zooms, the panels scroll on their own. */
@@ -896,18 +902,17 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   padding: 8px 12px; min-height: 52px; box-sizing: border-box;
   background: var(--color-surface); border-bottom: 1px solid var(--color-line);
 }
-.fb-ws-bar > .fb-filter-scroll { min-width: 0; flex: 0 1 auto; }
-/* Wide screens keep it to one row: the filter chips scroll sideways rather than push the tools down. */
-@media (min-width: 1100px) {
-  .fb-ws-bar { flex-wrap: nowrap; }
-  .fb-ws-bar > *:not(.fb-filter-scroll) { flex-shrink: 0; }
-  .fb-ws-bar-end { flex-wrap: nowrap; }
-}
+.fb-ws-bar > .fb-filter-scroll { flex: 1 1 140px; min-width: 140px; }
+/* The long note about other halls stays short; its whole text is in the tooltip. */
+.fb-ws-elsewhere { max-width: 14em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fb-ws-bar .fb-filter-scroll .mantine-SegmentedControl-root { width: max-content; flex-wrap: nowrap; }
 @media (max-width: 1499.98px) { .fb-ws-read { display: none; } }
 .fb-ws-bar-end { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
 .fb-ws-online { white-space: nowrap; }
 .fb-ws-read { white-space: nowrap; }
+/* The tools at the right end move to a second row as one group when the row is full, rather than
+   slide out of sight; the filter chips take what is left of the first row and scroll sideways. */
+@media (min-width: 768px) { .fb-ws-bar-end { flex-wrap: nowrap; } }
 .fb-ws-strip { padding: 6px 12px; border-bottom: 1px solid var(--color-line); }
 .fb-ws-body { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
 .fb-ws-body > * { flex: 1; min-height: 0; }
@@ -958,6 +963,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-ws-bar { padding: 6px 8px; gap: 6px 8px; }
   .fb-ws-bar-end { margin-left: 0; width: 100%; }
   .fb-ws-bar-end form { flex: 1; }
+  .fb-ws-bar-end > .fb-ws-elsewhere { max-width: none; flex-basis: 100%; white-space: normal; }
   .fb-ws-bar-end form .mantine-TextInput-root { width: 100% !important; }
   .fb-ws-read { display: none; }
   .fb-ws-corner { max-width: calc(100% - 24px); }

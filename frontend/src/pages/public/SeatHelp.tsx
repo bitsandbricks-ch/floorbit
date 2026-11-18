@@ -69,7 +69,7 @@ export default function SeatHelp() {
               <Text c="dimmed">{t('seatHelp.intro')}</Text>
               <Stack gap="xs">
                 {s.problems.map((p) => (
-                  <Button key={p} size="lg" variant="default" justify="flex-start" loading={send.isPending && send.variables && 'problem' in send.variables && send.variables.problem === p}
+                  <Button key={p} size="lg" variant="default" justify="flex-start" fullWidth loading={send.isPending && send.variables && 'problem' in send.variables && send.variables.problem === p}
                     disabled={send.isPending} onClick={() => send.mutate({ problem: p })}>
                     {t(`seatHelp.problem.${p}`, { defaultValue: p })}
                   </Button>
@@ -78,7 +78,7 @@ export default function SeatHelp() {
               {s.report && ['open', 'sent', 'taken'].includes(s.report) && (
                 <Stack gap="xs" pt="sm" style={{ borderTop: '1px solid var(--color-line)' }}>
                   <Text c="dimmed" size="sm">{t('seatHelp.worksHint')}</Text>
-                  <Button variant="light" color="up" disabled={send.isPending} onClick={() => send.mutate({ works: true })}>{t('seatHelp.works')}</Button>
+                  <Button variant="light" color="up" fullWidth disabled={send.isPending} onClick={() => send.mutate({ works: true })}>{t('seatHelp.works')}</Button>
                 </Stack>
               )}
             </>

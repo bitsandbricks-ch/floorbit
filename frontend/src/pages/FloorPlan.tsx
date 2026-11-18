@@ -405,7 +405,7 @@ export default function FloorPlan() {
             {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
-              {elsewhere > 0 && <Text size="sm" c="down" fw={600}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
+              {elsewhere > 0 && <Text size="sm" c="down" fw={600} className="fb-ws-elsewhere" title={t('plan.elsewhere', { count: elsewhere })}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
               <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />
               <form onSubmit={go} role="search">

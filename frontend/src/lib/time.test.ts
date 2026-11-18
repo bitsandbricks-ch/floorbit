@@ -31,6 +31,12 @@ describe('time', () => {
   it('leaves dates without a time alone', () => {
     const d = new Date(2026, 10, 16, 23, 16)
     expect(dateOnly(d, 'de-CH')).toBe('16.11.26')
-    expect(dateOnly(d, 'en', { weekday: 'long', day: 'numeric', month: 'long' })).toBe('Monday, November 16')
+    expect(dateOnly(d, 'en', { weekday: 'long', day: 'numeric', month: 'long' })).toBe('Monday, 16 November')
+  })
+  it('puts the day first in English too', () => {
+    const d = new Date(2026, 10, 18, 14, 5)
+    expect(dateOnly(d, 'en')).toBe('18.11.2026')
+    expect(dateTime(d, 'en')).toBe('18.11.2026, 14:05')
+    expect(dateOnly(d, 'en-US')).toBe('11/18/26')   // only the app's own English changes
   })
 })

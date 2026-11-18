@@ -29,13 +29,14 @@ function dayOf(t: number, lang: string) {
 function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
   const { t } = useTranslation()
   return (
-    <Group gap="sm" wrap="nowrap" align="flex-start" py={6} className="fb-timeline-row" data-kind={e.kind}>
+    // On a phone the text goes under the time and kind instead of into a column one word wide.
+    <Group gap="sm" align="flex-start" py={6} className="fb-timeline-row" data-kind={e.kind}>
       <Text size="sm" c="dimmed" ff="monospace" style={{ whiteSpace: 'nowrap' }}>
         {clockSeconds(e.t, lang)}
       </Text>
       <span className="fb-timeline-dot" style={{ background: e.severity ? SEVERITY_COLOR[e.severity] : 'var(--color-line)' }} />
-      <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" w={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>
-      <div style={{ minWidth: 0 }}>
+      <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" miw={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>
+      <div style={{ minWidth: 0, flex: '1 1 14em' }}>
         <Text size="sm" fw={500} style={{ overflowWrap: 'anywhere' }}>
           {e.title}{e.fields?.length ? ` (${fieldsText(t, e.area, e.fields)})` : ''}
         </Text>

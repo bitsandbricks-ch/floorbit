@@ -1,10 +1,10 @@
 import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
-import { IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
+import { IconPlugOff, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmIcon } from '@/components/ConfirmButton'
-import { del, get, post } from '@/api/client'
+import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
@@ -20,6 +20,8 @@ import { History } from './checkins/History'
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat-mapping.md'
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }
 
+
+const off = (e: unknown) => e instanceof ApiError && e.data.code === 'checkin_disabled'
 
 const portText = (p: { switch: string; port: string } | null) => (p ? `${p.switch} ${p.port}` : '–')
 
@@ -37,11 +39,14 @@ export default function Checkins() {
   const lang = i18n.language
   const qc = useQueryClient()
   const canEdit = useCan('seats.edit')
+  const canSettings = useCan('settings.manage')
   const [q, setQ] = useState('')
   const [state, setState] = useState<WiredState | null>(null)
   const query = useQuery({
     queryKey: qk.checkinOverview,
     queryFn: () => get<CheckinOverview>('/api/checkins/overview'),
+    // Switched off is an answer, not a failure worth asking again.
+    retry: (n, e) => !off(e) && n < 3,
     // A pending row turns verified within seconds; poll a little while any wait.
     refetchInterval: (qr) => (qr.state.data?.counts.pending ? 5_000 : 30_000),
   })
@@ -60,21 +65,28 @@ export default function Checkins() {
   })
 
   const d = query.data
+  const disabled = off(query.error)
   const rows = (d?.rows ?? []).filter((r) => (!state || r.wired === state) && matches(r, q))
   const pick = (s: WiredState) => () => setState((cur) => (cur === s ? null : s))
   const num = (n: number) => n.toLocaleString(lang)
 
   return (
-    <Layout title={t('crewCheckin.title')} back={{ href: '/seats', label: t('crewCheckin.seats') }}>
+    <Layout title={t('crewCheckin.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')}
         actions={<Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
       <Stack gap="md">
-        <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
+        {!disabled && <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />}
         <ErrorBanner error={act.error} />
         {d?.verifier.last_error && (
           <Alert color="warn" role="alert">{t('crewCheckin.verifierError', { error: d.verifier.last_error })}</Alert>
         )}
-        {query.isPending || !d ? <LoadingState /> : (
+        {disabled ? (
+          <Panel>
+            <EmptyState icon={<IconPlugOff size={24} />} title={t('crewCheckin.off.title')}
+              desc={canSettings ? t('crewCheckin.off.desc') : t('crewCheckin.off.askAdmin')}
+              action={canSettings && <Button component={Link} to="/settings/sources" variant="default">{t('crewCheckin.off.open')}</Button>} />
+          </Panel>
+        ) : query.isPending || !d ? <LoadingState /> : (
           <>
             <div className="fb-stat-row">
               <StatCard label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}

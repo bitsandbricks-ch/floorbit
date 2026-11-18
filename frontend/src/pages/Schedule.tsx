@@ -17,6 +17,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { fromInput, toInput } from './schedule/time'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
@@ -48,7 +49,7 @@ function ItemForm({ item, kinds, onDone }: { item: ScheduleItem | null; kinds: S
     onSuccess: onDone,
   })
   return (
-    <Paper withBorder radius="lg" p="md">
+    <Paper ref={revealForm} withBorder radius="lg" p="md" className="fb-reveal">
       <Stack gap="sm">
         <Title order={2} size="h4">{item ? t('schedule.editItem') : t('schedule.addItem')}</Title>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -161,7 +162,7 @@ export default function Schedule() {
                   <Table.Tbody>
                     {items.map((i) => (
                       <Table.Tr key={i.id}>
-                        <Table.Td className="fb-schedule-time">{clock(i.start)}{i.end ? `–${clock(i.end)}` : ''}</Table.Td>
+                        <Table.Td className="fb-schedule-time">{clock(i.start)}{i.end && <>–<wbr />{clock(i.end)}</>}</Table.Td>
                         <Table.Td>
                           {/* The kind sits next to the title, so a row fits a phone without scrolling sideways. */}
                           <Group gap={6} wrap="wrap" align="center">
@@ -171,7 +172,7 @@ export default function Schedule() {
                           {(i.where || i.note) && <Text size="xs" c="dimmed">{[i.where, i.note].filter(Boolean).join(' · ')}</Text>}
                         </Table.Td>
                         {canEdit && (
-                          <Table.Td w={80}>
+                          <Table.Td className="fb-schedule-actions">
                             <Group gap={4} wrap="nowrap">
                               <ActionIcon variant="subtle" aria-label={t('schedule.editNamed', { title: i.title })} onClick={() => setEditing(i.id)}><IconPencil size={16} /></ActionIcon>
                               <ConfirmIcon label={t('schedule.deleteNamed', { title: i.title })} onConfirm={() => remove.mutate(i.id)}><IconTrash size={16} /></ConfirmIcon>

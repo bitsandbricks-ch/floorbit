@@ -18,5 +18,14 @@
   "noPanelPorts": "This patch panel has no port count yet: type the port, or place the panel on the plan.",
   "pickPanelFirst": "Pick the patch panel first",
   "pickBlock": "Pick a seat block",
-  "pickFromList": "Pick from the list"
+  "pickFromList": "Pick from the list",
+  "validity": {
+    "required": "Fill in this field.",
+    "email": "Enter an email address, like name@example.com.",
+    "url": "Enter a full address, starting with https://.",
+    "tooShort_one": "Use at least {{count}} character.",
+    "tooShort_other": "Use at least {{count}} characters.",
+    "min": "Enter {{min}} or more.",
+    "max": "Enter {{max}} or less."
+  }
 }
