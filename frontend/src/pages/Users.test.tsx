@@ -92,8 +92,10 @@ describe('Users', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Users />)
-    const [, theirs] = await screen.findAllByRole('button', { name: 'Limit dashboards' })
-    fireEvent.click(theirs)
+    // Only the screen's row offers it: the crew's own accounts aren't limited.
+    const buttons = await screen.findAllByRole('button', { name: 'Limit dashboards' })
+    expect(buttons).toHaveLength(1)
+    fireEvent.click(buttons[0])
     const picker = screen.getByPlaceholderText('Every dashboard')
     fireEvent.click(picker)
     fireEvent.focus(picker)

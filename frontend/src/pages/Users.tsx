@@ -10,6 +10,8 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner } from '@/components/ui'
 
+const CREW_ROLES = ['admin', 'lead', 'tech']
+
 type Open = 'password' | 'discord' | 'sign-in' | 'dashboards' | null
 
 const path = (username: string) => `/api/users/${encodeURIComponent(username)}`
@@ -64,7 +66,7 @@ function AccountRow({ user, list, boards, onSaved }: {
   } else if (open === 'dashboards') {
     form = (
       <Group align="flex-end" gap="xs">
-        <MultiSelect label={t('users.dashboards')} description={t('users.dashboardsHelp')} placeholder={t('users.allDashboards')}
+        <MultiSelect label={t('users.dashboards')} description={t('users.dashboardsHelp')} placeholder={limit.length ? undefined : t('users.allDashboards')}
           data={boards.map((b) => ({ value: b.id, label: b.name }))} value={limit} onChange={setLimit} clearable searchable
           maxValues={20} style={{ flex: 1, minWidth: 220 }} />
         <Button loading={change.isPending} onClick={() => change.mutate({ dashboards: limit })}>{t('users.save')}</Button>
@@ -113,7 +115,8 @@ function AccountRow({ user, list, boards, onSaved }: {
         {list.oidc.length > 0 && (
           <Button size="compact-sm" variant="default" onClick={() => toggle('sign-in')}>{t('users.linkSignIn')}</Button>
         )}
-        {boards.length > 0 && (
+        {/* Only for screens (kiosk, viewer or a custom role): the crew's own accounts aren't limited. */}
+        {boards.length > 0 && (user.dashboards?.length || !CREW_ROLES.includes(user.role)) && (
           <Button size="compact-sm" variant="default" onClick={() => toggle('dashboards')}>
             {user.dashboards?.length ? t('users.onlyDashboards', { count: user.dashboards.length }) : t('users.limitDashboards')}
           </Button>
