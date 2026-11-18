@@ -125,3 +125,10 @@ def test_nan_as_text_never_lands_on_the_plan(client, text):
 
 def _refuse(constant):
     raise AssertionError(f"{constant} in an answer")
+
+
+@pytest.mark.parametrize("since", ["nan", "inf", "-inf", "1e999"])
+def test_a_cable_walk_since_nan_still_answers_json_a_browser_reads(client, since):
+    r = client.get(f"/api/cables/walk?switch=sw-1&since={since}")
+    assert r.status_code == 200
+    json.loads(r.get_data(as_text=True), parse_constant=_refuse)

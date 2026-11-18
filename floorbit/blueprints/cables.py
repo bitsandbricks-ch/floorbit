@@ -17,6 +17,7 @@
 
 Reading needs ``floorplan.view``, changing ``floorplan.edit`` (auth/roles.py).
 """
+import math
 import time
 
 from flask import Blueprint, Response, current_app, g, jsonify, request
@@ -148,6 +149,8 @@ def walk_ups():
     try:
         since = float(request.args.get('since') or 0) or time.time()
     except ValueError:
+        since = time.time()
+    if not math.isfinite(since):      # "nan" came back as a bare NaN no browser parses
         since = time.time()
     listening = syslog.settings()['enabled'] or agent_link.active()
     receiver = current_app.extensions.get('floorbit_syslog') if listening else None

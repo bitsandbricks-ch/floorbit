@@ -5,3 +5,4 @@
   API clients notice.
 - A switch or patch panel can no longer be placed at "nan" or "inf". Such a position was saved, and
   the floor plan, the switch list and the cable plan then failed to load for everyone.
+- The port walk-through asked with `since=nan` no longer answers with a value the page can't read.
