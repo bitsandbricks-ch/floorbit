@@ -16,7 +16,7 @@ def state(tmp_path, monkeypatch):
 
 
 def _events(tmp_path, events):
-    (tmp_path / "tenant.json").write_text(json.dumps({"events": events}))
+    store.write_json(str(tmp_path / "tenant.json"), {"events": events})
     tenancy.forget()
 
 
@@ -42,9 +42,9 @@ def test_a_later_live_event_gets_its_own_folder(state):
 
     assert store.load_data()["seat_blocks"] == []      # the new event starts empty
     store.save_data({"seat_blocks": [{"id": "B"}]})
-    assert json.loads((state / "event-data" / "lan-2027" / "data.json").read_text()) == {"seat_blocks": [{"id": "B"}]}
+    assert store.read_json(str(state / "event-data" / "lan-2027" / "data.json")) == {"seat_blocks": [{"id": "B"}]}
     # The first event's plan (and the accounts beside it) are untouched.
-    assert json.loads((state / "data.json").read_text())["seat_blocks"] == [{"id": "A"}]
+    assert store.read_json(str(state / "data.json"))["seat_blocks"] == [{"id": "A"}]
 
 
 def test_using_picks_an_event_for_a_block(state):

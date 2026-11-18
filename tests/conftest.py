@@ -92,12 +92,11 @@ class FakeRedis:
 
 @pytest.fixture(autouse=True)
 def database_under_test(tmp_path, monkeypatch):
-    """The whole suite runs on files by default. FLOORBIT_TEST_DATABASE=sqlite runs it on a fresh
-    SQLite file per test, =postgres on FLOORBIT_TEST_POSTGRES_URL emptied per test (CI does both)."""
+    """The whole suite runs on SQLite by default, as Floorbit does: a fresh floorbit.db next to each
+    test's data.json. FLOORBIT_TEST_DATABASE=postgres runs it on FLOORBIT_TEST_POSTGRES_URL, emptied
+    per test (CI does both)."""
     kind = os.environ.get("FLOORBIT_TEST_DATABASE", "")
-    if kind == "sqlite":
-        monkeypatch.setenv("FLOORBIT_DATABASE_URL", f"sqlite:///{tmp_path / 'floorbit.db'}")
-    elif kind == "postgres":
+    if kind == "postgres":
         monkeypatch.setenv("FLOORBIT_DATABASE_URL", os.environ["FLOORBIT_TEST_POSTGRES_URL"])
         from floorbit import database
         db = database.Sql(os.environ["FLOORBIT_TEST_POSTGRES_URL"], str(tmp_path))
@@ -105,7 +104,7 @@ def database_under_test(tmp_path, monkeypatch):
         db.run("DELETE FROM floorbit_log")
         db.close()
     else:
-        monkeypatch.delenv("FLOORBIT_DATABASE_URL", raising=False)
+        monkeypatch.delenv("FLOORBIT_DATABASE_URL", raising=False)     # the default: SQLite in the state folder
     yield
 
 

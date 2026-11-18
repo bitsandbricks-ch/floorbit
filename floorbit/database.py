@@ -1,21 +1,24 @@
-"""Where Floorbit keeps its documents: files, SQLite or Postgres (issue #464).
+"""Where Floorbit keeps its documents: SQLite or Postgres (issue #464).
 
 Floorbit's state is a set of JSON documents: data.json (the floor plan, accounts, settings), the
 saved floor plan templates, archived events, plugin state and so on. Each is read and written whole
 through ``store.read_json`` and ``store.write_json``, keyed by its path. This module decides where
 those documents live:
 
-- **files** (no ``FLOORBIT_DATABASE_URL``): JSON files under the state folder, as always.
-- **SQLite** (``sqlite:////app/state/floorbit.db``): one file, safe to share between processes.
+- **SQLite** (the default, ``floorbit.db`` in the state folder): one file, safe to share between
+  processes. ``FLOORBIT_DATABASE_URL=sqlite:////somewhere/else.db`` puts it elsewhere.
 - **Postgres** (``postgresql://user:password@host/floorbit``): for hosted and larger setups.
 
-In a database, a document's key is its path relative to the state folder (``data.json``,
-``templates/abc.json``). A document the database doesn't have yet is imported from its file on first
-read, once; after that the file is no longer read or written (docs/database.md).
+There is no third way: an install without a database setting runs the same code as one with it.
+A document's key is its path relative to the state folder (``data.json``, ``templates/abc.json``).
+A document the database doesn't have yet is imported from its JSON file (where Floorbit kept
+everything before) on first read, once; after that the file is no longer read or written
+(docs/database.md).
 
 The schema is versioned: ``MIGRATIONS`` runs in order, each once, recorded in ``floorbit_schema``.
 The same statements run on SQLite and Postgres, so they stay plain SQL.
 """
+import errno
 import json
 import os
 import threading
@@ -122,8 +125,27 @@ def _busy(exc):
     return type(exc).__name__ == 'LockNotAvailable'
 
 
+class DiskUnwritable(OSError, DatabaseError):
+    """SQLite's file can't grow (a full disk) or be written (a read-only one). An OSError with its
+    errno, so a save answers the same clear 507 as any full disk (blueprints/health.py)."""
+
+
+def _disk_errno(exc):
+    if type(exc).__module__ != 'sqlite3':
+        return None
+    text = str(exc).lower()
+    if 'disk is full' in text:
+        return errno.ENOSPC
+    if 'readonly database' in text or 'read-only' in text:
+        return errno.EROFS
+    return None
+
+
 def _failed(db, exc):
     """The error to raise for a statement that failed while the database answered."""
+    code = _disk_errno(exc)
+    if code is not None:
+        return DiskUnwritable(code, os.strerror(code), getattr(db, 'path', None))
     kind = DatabaseBusy if _busy(exc) else DatabaseError
     return kind(f'{db.describe()}: {exc}')
 
@@ -136,17 +158,6 @@ def _redact(url):
     creds, host = rest.rsplit('@', 1)
     user = creds.split(':', 1)[0]
     return f'{scheme}://{user}:***@{host}' if ':' in creds else f'{scheme}://{user}@{host}'
-
-
-class Files:
-    """The JSON files themselves (the default)."""
-    kind = 'files'
-
-    def __init__(self, root):
-        self.root = root
-
-    def describe(self):
-        return f'files in {self.root}'
 
 
 def _wal(conn, tries=50):
@@ -553,17 +564,25 @@ def state_root():
     return os.path.dirname(os.path.abspath(DATA_FILE))
 
 
+DEFAULT_FILE = 'floorbit.db'
+
+
+def url_of(root):
+    """``FLOORBIT_DATABASE_URL``, else SQLite in the state folder."""
+    return (os.environ.get(ENV) or '').strip() or 'sqlite:///' + os.path.join(root, DEFAULT_FILE)
+
+
 def backend():
-    """Files, or the database ``FLOORBIT_DATABASE_URL`` names (made once per URL)."""
+    """The database ``FLOORBIT_DATABASE_URL`` names, else SQLite in the state folder (made once per URL)."""
     global _backend, _backend_for
-    url = (os.environ.get(ENV) or '').strip()
     root = state_root()
+    url = url_of(root)
     if _backend is None or _backend_for != (url, root):
         with _backend_lock:
             if _backend is None or _backend_for != (url, root):
                 if _backend is not None and hasattr(_backend, 'close'):
                     _backend.close()
-                _backend = Sql(url, root) if url else Files(root)
+                _backend = Sql(url, root)
                 _backend_for = (url, root)
     return _backend
 
@@ -598,8 +617,6 @@ def status():
     since when it doesn't."""
     b = backend()
     out = {'kind': b.kind, 'where': b.describe(), 'ok': True}
-    if b.kind == 'files':
-        return out
     try:
         b.run('SELECT 1', fetch=True)
     except DatabaseError as exc:
@@ -614,7 +631,7 @@ def status():
 def available():
     """False while the database doesn't answer, without asking it (cheap, for every request)."""
     b = backend()
-    return b.kind == 'files' or b.down is None
+    return b.down is None
 
 
 _watch_started = False
@@ -625,14 +642,14 @@ def watch():
     waits each time, ``RETRY_*``), every ``PROBE_EVERY`` seconds while it answers. So Floorbit
     notices both on its own, without waiting for someone to load a page."""
     global _watch_started
-    if _watch_started or backend().kind == 'files':
+    if _watch_started:
         return
     _watch_started = True
 
     def loop():
         while True:
             b = backend()
-            down = getattr(b, 'down', None)    # None too when the store moved to files
+            down = b.down
             time.sleep(max(0.2, down['next_try'] - time.monotonic()) if down else PROBE_EVERY)
             try:
                 status()

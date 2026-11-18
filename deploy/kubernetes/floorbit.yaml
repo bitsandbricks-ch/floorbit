@@ -10,8 +10,8 @@
 # as "Local agent". Run the cluster where the event network is reachable, or use a hosted Floorbit
 # with an agent in the hall instead.
 #
-# Everything Floorbit keeps (data.json, accounts, the audit log, plugin state, check-ins) is in
-# /app/state. Without the volume below, every new pod (an update, a restart, a moved node) starts
+# Everything Floorbit keeps (the database floorbit.db: floor plan, accounts, the audit log, plugin
+# state, check-ins) is in /app/state. Without the volume below, every new pod (an update, a restart, a moved node) starts
 # empty: that's the claim `floorbit-state`, so keep it.
 ---
 apiVersion: v1

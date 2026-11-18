@@ -4,7 +4,7 @@
   "collector": "Collected by",
   "collectorIs": { "here": "This Floorbit", "agent": "The local agent" },
   "storage": "Kept in",
-  "storageIs": { "victoriametrics": "VictoriaMetrics", "lite": "Floorbit's database, {{days}} days", "memory": "Memory, 6 hours" },
+  "storageIs": { "victoriametrics": "VictoriaMetrics", "lite": "Floorbit's database, {{days}} days" },
   "devices": "Devices heard",
   "points": "Points received",
   "empty": "No devices yet. Add the core, the switches and the firewalls below.",

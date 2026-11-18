@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import os
-import tempfile
 import threading
 import time
 
@@ -58,20 +57,10 @@ def _write():
     _last_write = now
     target = path()
     from .. import database
-    if database.backend().kind != 'files':
-        try:
-            store.write_json(target, _memory)
-        except database.DatabaseError as exc:
-            print(f'[sources] could not save the last good data: {exc}')
-        return
     try:
-        directory = os.path.dirname(target) or '.'
-        fd, tmp = tempfile.mkstemp(dir=directory, prefix='.monitoring-cache-')
-        with os.fdopen(fd, 'w') as f:
-            json.dump(_memory, f)
-        os.replace(tmp, target)
-    except OSError as exc:
-        print(f'[sources] could not write {target}: {exc}')
+        store.write_json(target, _memory)
+    except database.DatabaseError as exc:
+        print(f'[sources] could not save the last good data: {exc}')
 
 
 def put(key, value):

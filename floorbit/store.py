@@ -1,17 +1,10 @@
-"""The floor plan's data file (inventory, seat blocks, settings, accounts).
+"""The floor plan's document (inventory, seat blocks, settings, accounts) and the others beside it.
 
-Everything lives in one JSON file, ``DATA_FILE``, read and written whole.
-
-It is written in place, not swapped in by a rename, because older compose files bind-mount the single
-file and a rename onto a bind mount fails. So a reader can catch it between the truncate and the
-write. ``read_json`` and ``write_json`` close that gap: inside one process a lock keeps them apart,
-and a reader in another process (more than one worker) that finds half a file waits and reads again.
-Every reader and writer of data.json (here, auth/ and the settings store) goes through them.
-
-A write that dies halfway (a full disk, the pod killed) would leave half a file, and Floorbit would
-not start again. So each document is first written whole to ``<file>.next`` beside it: if that
-fails, the file itself is never touched; if the write in place fails, ``.next`` holds the complete
-document and a read that finds the file broken takes it from there.
+Every document is JSON, read and written whole, and named by the path its file had before Floorbit
+kept them in a database: ``DATA_FILE`` (data.json) and the others in its folder. They live in the
+database (floorbit/database.py: SQLite in the state folder, or Postgres); a JSON file still found
+there is imported once, on first read. Every reader and writer (here, auth/ and the settings
+store) goes through ``read_json`` and ``write_json``.
 
 Many parts of Floorbit (requests, background monitors) load the whole document, change their own
 part and save it whole. ``write_json`` keeps the top-level parts a saver did not change as they are
@@ -28,7 +21,7 @@ from contextlib import contextmanager
 
 # Compose keeps it in the state folder with everything else (docs/install.md).
 DATA_FILE = os.environ.get('FLOORBIT_DATA_FILE') or 'data.json'
-NEXT = '.next'           # the last complete write, beside the file (see above)
+NEXT = '.next'           # the last complete write beside a file, from before the database
 READ_TRIES = 6            # about 0.3 s in all before a half-written file counts as broken
 
 _lock = threading.RLock()
@@ -114,33 +107,16 @@ def _merge(data, base_text, current_text):
 
 
 def read_json(path, default=None):
-    """The document's JSON, or ``default`` when it doesn't exist. From the database when
-    FLOORBIT_DATABASE_URL names one (floorbit/database.py), else from the file. A caller whose
-    default is an object (``{}``) always gets an object back."""
+    """The document's JSON, or ``default`` when it doesn't exist (floorbit/database.py). A caller
+    whose default is an object (``{}``) always gets an object back."""
     found = _read_json(path, default)
     if isinstance(default, dict) and not isinstance(found, dict):
-        last = _last_object(path)
-        _not_an_object(path, found, last is not None)
-        return default if last is None else last
+        _not_an_object(path, found)
+        return default
     return found
 
 
-def _last_object(path):
-    """The last complete write beside a file that holds JSON of the wrong shape (a list, a number),
-    so the accounts and the plan in it aren't replaced by an empty document. Files only."""
-    from . import database
-    if database.backend().kind != 'files':
-        return None
-    try:
-        with open(path + NEXT) as f:
-            text = f.read()
-        last = json.loads(text)
-    except (OSError, ValueError):
-        return None
-    return _doc(last, path, text) if isinstance(last, dict) else None
-
-
-def _not_an_object(path, found, recovered):
+def _not_an_object(path, found):
     if path in _warned:
         return
     _warned.add(path)
@@ -151,34 +127,32 @@ def _not_an_object(path, found, recovered):
             shutil.copyfile(path, kept)
     except OSError:
         pass
-    then = f'using the last complete copy, {path}{NEXT}' if recovered else 'starting from empty until the next save'
-    print(f'[store] {path} holds {type(found).__name__}, not an object (edited by hand?); {then}. '
-          f'Its content is kept in {kept}.')
+    print(f'[store] {path} holds {type(found).__name__}, not an object (edited by hand?); starting from '
+          f'empty until the next save. Its content is kept in {kept}.')
 
 
 def _read_json(path, default):
     from . import database
     db = database.backend()
-    if db.kind != 'files':
-        key = database.key_for(path, db.root)
-        text = db.get_text(key)
-        if text is not database._MISSING:
-            return _doc(json.loads(text), path, text)
-        # Not in the database yet: take the file's content over, once (docs/database.md).
-        found = _read_file(path, database._MISSING)
-        if found is database._MISSING:
-            return default
-        text = json.dumps(found[0])
-        with _lock:
-            if db.get(key) is database._MISSING:
-                db.put(key, text)
-        return _doc(found[0], path, text)
-    found = _read_file(path, None)
-    return default if found is None else _doc(found[0], path, found[1])
+    key = database.key_for(path, db.root)
+    text = db.get_text(key)
+    if text is not database._MISSING:
+        return _doc(json.loads(text), path, text)
+    # Not in the database yet: take the file's content over, once (docs/database.md).
+    found = _read_file(path, database._MISSING)
+    if found is database._MISSING:
+        return default
+    text = json.dumps(found[0])
+    with _lock:
+        if db.get(key) is database._MISSING:
+            db.put(key, text)
+            print(f'[store] Moved {path} into the database; the file is no longer read and stays as a backup.',
+                  flush=True)
+    return _doc(found[0], path, text)
 
 
 def _read_file(path, default):
-    """(document, its text), or ``default`` when there is no file."""
+    """A file from before the database: (document, its text), or ``default`` when there is none."""
     for attempt in range(READ_TRIES):
         try:
             with _lock, open(path) as f:
@@ -208,59 +182,33 @@ def _read_next(path):
     return found, text
 
 
-def _current_text(path):
-    """The file's text as it is now, or None when it is missing or half-written."""
-    try:
-        with open(path) as f:
-            text = f.read()
-        json.loads(text)
-        return text
-    except (OSError, ValueError):
-        return None
-
-
 def write_json(path, data):
-    # Serialised first and written in one go, so the file is empty or half-written for as short
-    # a time as possible; a failure to serialise leaves the old file untouched.
     from . import database
     db = database.backend()
     base = getattr(data, '_base', None)
     base_text = base[1] if base and base[0] == path else None
     with _lock:
-        if db.kind != 'files':
-            key = database.key_for(path, db.root)
-            if base_text is None:
-                out = data
-                text = json.dumps(out)
-                db.put(key, text)
-            else:
-                # Other pods write the same document: merge with what is there now and store it only
-                # if nobody wrote in between, else merge again (compare and swap on updated_at).
-                for _ in range(WRITE_TRIES):
-                    current, version = db.get_versioned(key)
-                    out = _merge(data, base_text, None if current is database._MISSING else current)
-                    text = json.dumps(out)
-                    if db.put_if(key, text, version):
-                        break
-                else:
-                    raise database.DatabaseError(f'{key}: other writers kept saving it; not saved')
+        key = database.key_for(path, db.root)
+        if base_text is None:
+            out = data
+            text = json.dumps(out)
+            db.put(key, text)
         else:
-            out = _merge(data, base_text, _current_text(path)) if base_text is not None else data
-            text = json.dumps(out, indent=2)
-            # An event's or tenant's folder exists once something is saved in it.
-            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-            with open(path + NEXT, 'w') as f:
-                f.write(text)
-                f.flush()
-                os.fsync(f.fileno())
-            with open(path, 'w') as f:
-                f.write(text)
-            _warned.discard(path)
+            # Other processes write the same document: merge with what is there now and store it only
+            # if nobody wrote in between, else merge again (compare and swap on updated_at).
+            for _ in range(WRITE_TRIES):
+                current, version = db.get_versioned(key)
+                out = _merge(data, base_text, None if current is database._MISSING else current)
+                text = json.dumps(out)
+                if db.put_if(key, text, version):
+                    break
+            else:
+                raise database.DatabaseError(f'{key}: other writers kept saving it; not saved')
     _generation[0] += 1
     _written[path] = _written.get(path, 0) + 1
     if isinstance(data, Doc):
         # What the caller's copy now stands for: a second save from it changes only what it changes.
-        data._base = (path, text if out is data else json.dumps(data, indent=None if db.kind != 'files' else 2))
+        data._base = (path, text if out is data else json.dumps(data))
 
 
 _shared = {}            # path -> (stamp, generation, document)
@@ -281,9 +229,9 @@ def read_shared(path, default=None):
     The document is shared: never change it, copy what you hand on."""
     hit = _shared.get(path)
     now = time.monotonic()
-    if hit and hit[1] == generation(path) and now - hit[3] < SHARED_RECHECK and _remote_backend():
-        return hit[2]     # on a database, asking for the row's stamp is a query: once a second
-    mark = _mark(path)
+    if hit and hit[1] == generation(path) and now - hit[3] < SHARED_RECHECK:
+        return hit[2]     # asking for the row's stamp is a query: once a second
+    mark = stamp(path)
     if mark is None:
         return read_json(path, default)
     if hit and hit[0] == mark and hit[1] == generation(path):
@@ -297,48 +245,27 @@ def read_shared(path, default=None):
     return doc
 
 
-def _remote_backend():
-    from . import database
-    return database.backend().kind != 'files'
-
-
-def _mark(path):
-    """``stamp`` plus, for a file, its size and inode: a rewrite by rename, or two writes inside
-    one mtime tick, still reads as a change."""
-    from . import database
-    if database.backend().kind != 'files':
-        return stamp(path)
-    try:
-        st = os.stat(path)
-    except OSError:
-        return None
-    return (st.st_mtime_ns, st.st_size, st.st_ino)
-
-
 def stamp(path):
     """Something that changes whenever the document does (for caches that re-read on change):
-    the file's mtime, or the row's update time in a database. None when there is no document."""
+    the row's update time. None when there is no document."""
     from . import database
     db = database.backend()
-    if db.kind != 'files':
-        return db.updated_at(database.key_for(path, db.root))
-    try:
-        return os.stat(path).st_mtime_ns
-    except OSError:
-        return None
+    key = database.key_for(path, db.root)
+    found = db.updated_at(key)
+    if found is None and os.path.isfile(path):
+        read_json(path)         # a file from before the database: taken over now, as a read would
+        found = db.updated_at(key)
+    return found
 
 
 def list_json(folder):
-    """The ``*.json`` names in a folder of documents (templates, archived events), from the
-    database or the folder."""
+    """The ``*.json`` names in a folder of documents (templates, archived events)."""
     from . import database
     db = database.backend()
-    names = set()
-    if db.kind != 'files':
-        prefix = database.key_for(folder, db.root).rstrip('/') + '/'
-        names |= {k[len(prefix):] for k in db.keys(prefix) if '/' not in k[len(prefix):]}
+    prefix = database.key_for(folder, db.root).rstrip('/') + '/'
+    names = {k[len(prefix):] for k in db.keys(prefix) if '/' not in k[len(prefix):]}
     if os.path.isdir(folder):
-        # In a database too: files not imported yet still count (they're taken over when read).
+        # Files from before the database that weren't read yet still count (they're taken over when read).
         names |= {n for n in os.listdir(folder) if os.path.isfile(os.path.join(folder, n))}
     return sorted(n for n in names if n.endswith('.json'))
 
@@ -347,9 +274,7 @@ def delete_json(path):
     """Remove a document. True when there was one."""
     from . import database
     db = database.backend()
-    gone = False
-    if db.kind != 'files':
-        gone = db.delete(database.key_for(path, db.root))
+    gone = db.delete(database.key_for(path, db.root))
     with _lock:
         if os.path.isfile(path):
             os.remove(path)          # an old file would otherwise come back on the next read
@@ -361,7 +286,8 @@ def delete_json(path):
 
 def unwritable(path=None):
     """Files next to the data file (and its folder) this process can't write, so a save won't 500
-    by surprise. Files copied into the Docker volume with ``docker compose cp`` arrive owned by root."""
+    by surprise: the SQLite database and its journal live there too. Files copied into the Docker
+    volume with ``docker compose cp`` arrive owned by root."""
     folder = os.path.dirname(os.path.abspath(path or DATA_FILE))
     if not os.path.isdir(folder):
         return []
@@ -529,10 +455,9 @@ def load_data():
     path, tenant_path_ = _files()
     found = read_json(path)
     if not isinstance(found, dict):
-        last = _last_object(path) if found is not None else None
         if found is not None:
-            _not_an_object(path, found, last is not None)
-        found = _empty() if last is None else last
+            _not_an_object(path, found)
+        found = _empty()
     if tenant_path_:
         tenant = read_json(tenant_path_, {})
         for key in TENANT_KEYS:

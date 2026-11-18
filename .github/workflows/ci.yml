@@ -76,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: [files, sqlite, postgres]
+        database: [sqlite, postgres]
     name: pytest (${{ matrix.database }})
     runs-on: ubuntu-24.04
     timeout-minutes: 12

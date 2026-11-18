@@ -7,19 +7,15 @@
   ``fb_device_states``, with ``device`` and ``port`` labels, the same whichever driver sent them.
 - **Lite** (no VictoriaMetrics): the normalised series only, in Floorbit's own database
   (SQLite or Postgres, table ``floorbit_telemetry``): a point a minute for ``FINE_HOURS`` (6), a
-  point every 15 minutes for ``FLOORBIT_TELEMETRY_DAYS`` (2). With plain files, the last six hours
-  stay in memory only.
+  point every 15 minutes for ``FLOORBIT_TELEMETRY_DAYS`` (2).
 - **VictoriaLogs** (``FLOORBIT_VICTORIALOGS_URL``, optional): log events, as JSON lines.
 
 MAC tables, ARP and neighbours (state.PRIVATE) are never stored: they name the people at the seats.
 Redis is not used for any of it.
 """
 import json
-import math
 import os
-import threading
 import time
-from array import array
 
 import requests
 
@@ -34,48 +30,6 @@ SERIES_MAX = 300                 # floorbit_telemetry.series is VARCHAR(300)
 TIMEOUT = 5
 PORT_METRICS = ('in_bps', 'out_bps', 'errors', 'up')
 DEVICE_METRICS = ('up', 'cpu', 'mem', 'states')
-# Without a database the last FINE_HOURS stay in memory: a ring of 4-byte values per series
-# (1.4 KB for six hours), at most MEMORY_SERIES of them. A tuple per point took about 5 GB for a
-# 1,000-switch hall; this is 70 MB at most. Bigger halls want a database or VictoriaMetrics.
-MEMORY_SERIES = 50_000
-SLOTS = FINE_HOURS * 3600 // FINE
-
-
-class _Ring:
-    __slots__ = ('last', 'values')
-
-    def __init__(self):
-        self.last = None                       # newest bucket
-        self.values = array('f', [math.nan]) * SLOTS
-
-    def put(self, bucket, value):
-        if self.last is not None and bucket < self.last:
-            if bucket <= self.last - SLOTS * FINE:
-                return False                   # older than the ring
-            self.values[(bucket // FINE) % SLOTS] = value
-            return True
-        if self.last is not None:
-            gap = (bucket - self.last) // FINE
-            if gap >= SLOTS:                   # all of it is older than the ring now
-                self.values = array('f', [math.nan]) * SLOTS
-            for k in range(1, min(gap, SLOTS)):   # the minutes nothing came in stay empty
-                self.values[((self.last // FINE) + k) % SLOTS] = math.nan
-        self.last = bucket
-        self.values[(bucket // FINE) % SLOTS] = value
-        return True
-
-    def points(self, since):
-        if self.last is None:
-            return []
-        out = []
-        for k in range(SLOTS - 1, -1, -1):
-            bucket = self.last - k * FINE
-            if bucket < since:
-                continue
-            value = self.values[(bucket // FINE) % SLOTS]
-            if not math.isnan(value):
-                out.append([bucket, float(value)])
-        return out
 
 
 def vm_url():
@@ -137,10 +91,8 @@ def _vm_line(key, value, at):
 
 
 class Storage:
-    def __init__(self, db=None):
-        self.db = db                      # floorbit.database.Sql, or None for memory only
-        self.memory = {}                  # series -> _Ring when there is no database
-        self._lock = threading.Lock()
+    def __init__(self, db):
+        self.db = db                      # floorbit.database.Sql
         self.errors = {}                  # sink -> last error
         self.written = 0
         self._pruned = 0
@@ -182,34 +134,20 @@ class Storage:
             # whole sample at that row: leave just that series out.
             rows += [(k, step, bucket, float(v)) for k, v in values.items()
                      if len(k) <= SERIES_MAX and '\x00' not in k]
-        if self.db is not None:
-            from ..database import DatabaseError
-            try:
-                # Many rows per statement: one round trip per row took 5 s for 10,000 numbers on
-                # a local Postgres, longer than SAMPLE at a bigger event over a real network.
-                for i in range(0, len(rows), CHUNK):
-                    part = rows[i:i + CHUNK]
-                    self.db.run('INSERT INTO floorbit_telemetry (series, step, bucket, value) VALUES '
-                                + ', '.join(['(?, ?, ?, ?)'] * len(part))
-                                + ' ON CONFLICT (series, step, bucket) DO UPDATE SET value = excluded.value',
-                                [x for row in part for x in row])
-            except DatabaseError as exc:      # the database is away: skip this sample, never stop
-                self.errors['database'] = str(exc)[:200]
-                return
-            self.errors.pop('database', None)
-        else:
-            with self._lock:
-                for key, step, bucket, value in rows:
-                    if step != FINE:
-                        continue
-                    ring = self.memory.get(key)
-                    if ring is None:
-                        if len(self.memory) >= MEMORY_SERIES:
-                            self.errors['memory'] = (f'More than {MEMORY_SERIES} series: the rest are not kept. '
-                                                     'Use a database or VictoriaMetrics.')
-                            continue
-                        ring = self.memory[key] = _Ring()
-                    ring.put(bucket, value)
+        from ..database import DatabaseError
+        try:
+            # Many rows per statement: one round trip per row took 5 s for 10,000 numbers on
+            # a local Postgres, longer than SAMPLE at a bigger event over a real network.
+            for i in range(0, len(rows), CHUNK):
+                part = rows[i:i + CHUNK]
+                self.db.run('INSERT INTO floorbit_telemetry (series, step, bucket, value) VALUES '
+                            + ', '.join(['(?, ?, ?, ?)'] * len(part))
+                            + ' ON CONFLICT (series, step, bucket) DO UPDATE SET value = excluded.value',
+                            [x for row in part for x in row])
+        except DatabaseError as exc:      # the database is away: skip this sample, never stop
+            self.errors['database'] = str(exc)[:200]
+            return
+        self.errors.pop('database', None)
         self.written += len(values)
         if now - self._pruned > 3600:
             self.prune(now)
@@ -217,8 +155,6 @@ class Storage:
     def prune(self, now=None):
         now = time.time() if now is None else now
         self._pruned = now
-        if self.db is None:
-            return
         from ..database import DatabaseError
         try:
             sql = 'DELETE FROM floorbit_telemetry WHERE step = ? AND bucket < ?'
@@ -255,10 +191,6 @@ class Storage:
         if url:
             return self._vm_series(url, device, port, metric, since, now)
         key = series_key(device, port, metric)
-        if self.db is None:
-            with self._lock:
-                ring = self.memory.get(key)
-                return ring.points(since) if ring is not None else []
         step = FINE if hours <= FINE_HOURS else COARSE
         rows = self.db.run('SELECT bucket, value FROM floorbit_telemetry WHERE series = ? AND step = ? AND bucket >= ? '
                            'ORDER BY bucket', (key, step, int(since)), fetch=True) or []
@@ -280,7 +212,7 @@ class Storage:
         return [[int(float(t)), float(v)] for t, v in (result[0].get('values') if result else [])]
 
     def status(self):
-        return {'mode': 'victoriametrics' if vm_url() else ('lite' if self.db is not None else 'memory'),
+        return {'mode': 'victoriametrics' if vm_url() else 'lite',
                 'logs': 'victorialogs' if vl_url() else None, 'keep_days': keep_days() if not vm_url() else None,
                 'written': self.written, 'errors': dict(self.errors)}
 
@@ -289,12 +221,11 @@ _storage = None
 
 
 def storage():
-    """The process's storage, on the database when there is one."""
+    """The process's storage, on Floorbit's database."""
     global _storage
     if _storage is None:
         from .. import database
-        backend = database.backend()
-        _storage = Storage(backend if hasattr(backend, 'run') else None)
+        _storage = Storage(database.backend())
     return _storage
 
 

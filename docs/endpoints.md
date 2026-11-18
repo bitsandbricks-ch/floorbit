@@ -26,5 +26,4 @@ on its port before the seat was known.
 ## Storage
 
 In Floorbit's database (SQLite or Postgres, table `floorbit_endpoints`), kept for 7 days
-(`FLOORBIT_ENDPOINT_DAYS`, 1 to 365). Without a database (plain files), the last day is kept in
-memory only and is gone after a restart.
+(`FLOORBIT_ENDPOINT_DAYS`, 1 to 365).

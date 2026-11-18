@@ -76,7 +76,7 @@ One pod that restarts in seconds and keeps its volume is the dependable setup fo
 it's the default. Several pods behind one Service work when all of these are true:
 
 - **Postgres** for the documents and logs: `FLOORBIT_DATABASE_URL=postgresql://…` on every pod
-  ([database.md](database.md)). SQLite and files stay with one pod.
+  ([database.md](database.md)). SQLite, the default, stays with one pod.
 - **Valkey or Redis** shared by every pod (`REDIS_HOST`), and `FLOORBIT_CLUSTER=valkey` (or `redis`, the same) on every pod.
 - **A `ReadWriteMany` volume** on `/app/state` for what is still files there: hall background
   images, syslog and flow statistics. Without one, each pod has its own copy of those.

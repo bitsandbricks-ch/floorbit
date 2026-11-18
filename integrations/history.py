@@ -73,8 +73,6 @@ def record(event, row, ts=None, **extra):
     target = path()
     try:
         with _lock:
-            if database.backend().kind == 'files':
-                os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
             journal.append(target, line)
     except (OSError, database.DatabaseError) as exc:
         print(f"[integrations] could not write check-in history: {exc}")

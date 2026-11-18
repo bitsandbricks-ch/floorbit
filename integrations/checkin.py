@@ -36,7 +36,6 @@ import json
 import os
 import re
 import secrets
-import tempfile
 import threading
 import time
 
@@ -64,20 +63,8 @@ def load_all():
 
 
 def _save_all(rows):
-    from floorbit import database, store
-    path = _path()
-    if database.backend().kind != 'files':
-        store.write_json(path, rows)
-        return
-    directory = os.path.dirname(os.path.abspath(path))
-    os.makedirs(directory, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=directory, prefix='.checkins-')
-    # One line, written whole: json.dump with indent encodes in pure Python, 30 ms a save at
-    # 4000 seats (scripts/load_test.py), and every check-in saves.
-    text = json.dumps(rows, separators=(',', ':'))
-    with os.fdopen(fd, 'w') as f:
-        f.write(text)
-    os.replace(tmp, path)   # atomic: a crash never leaves half a file
+    from floorbit import store
+    store.write_json(_path(), rows)
 
 
 # ── ARP lookups (through the monitoring plugin, e.g. LibreNMS) ──────────────

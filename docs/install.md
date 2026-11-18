@@ -120,19 +120,21 @@ firewalls and the router at this host.
 
 ## Backups
 
-Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): `data.json` (floor plan,
-accounts, settings), `audit.jsonl`, `events/` (past events), plugin state and check-ins. Valkey holds only a cache.
-Each `.json` file has a `.json.next` twin: the last complete write. If a write is cut short (a full disk, a
-killed pod), Floorbit starts from the twin and says so in its log, and the next save mends the file.
-The same goes for a file edited by hand into something that isn't an object (a list, a number): it
-reads the twin, and keeps what was in the file as `.json.wrong-shape` before the next save writes over it.
+Everything Floorbit keeps is in the `floorbit_state` volume (`/app/state`): the database
+`floorbit.db` (floor plan, accounts, settings, the audit log, past events, plugin state and
+check-ins), hall images, syslog and flow statistics ([database.md](database.md)). Valkey holds only a cache.
+Older installs also have the JSON files Floorbit moved into the database on its first start after
+the update; they are no longer read.
 
 - **In the app:** **Settings > Backup and restore** downloads the floor plan and settings as one file, without
   accounts or tokens, and restores it on any Floorbit ([backup.md](backup.md)).
-- **Everything:** copy the volume out:
+- **Everything:** copy the volume out. Stop Floorbit first, so the database file isn't copied
+  halfway through a write:
 
   ```sh
+  docker compose stop floorbit
   docker compose cp floorbit:/app/state ./floorbit-backup-$(date +%F)
+  docker compose start floorbit
   ```
 
   To restore, copy it back, give the files to the app's user (`docker compose cp` makes them

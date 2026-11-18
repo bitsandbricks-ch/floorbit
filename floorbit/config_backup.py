@@ -87,9 +87,6 @@ def _index():
 
 
 def _write(path, body):
-    from . import database
-    if database.backend().kind == 'files':
-        os.makedirs(os.path.dirname(path), exist_ok=True)
     store.write_json(path, body)
 
 

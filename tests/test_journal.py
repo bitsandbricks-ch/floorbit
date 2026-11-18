@@ -1,4 +1,4 @@
-"""Append-only logs in files or in the database (issue #464)."""
+"""Append-only logs in the database (issue #464)."""
 import json
 
 import pytest
@@ -12,13 +12,10 @@ def state(tmp_path, monkeypatch):
     return tmp_path
 
 
-@pytest.fixture(params=["files", "sqlite"])
-def kind(request, state, monkeypatch):
-    if request.param == "sqlite":
-        monkeypatch.setenv("FLOORBIT_DATABASE_URL", f"sqlite:///{state / 'floorbit.db'}")
-    else:
-        monkeypatch.delenv("FLOORBIT_DATABASE_URL", raising=False)
-    return request.param
+@pytest.fixture
+def kind(state, monkeypatch):
+    monkeypatch.delenv("FLOORBIT_DATABASE_URL", raising=False)     # SQLite in the state folder
+    return "sqlite"
 
 
 def test_append_read_trim_and_remove(kind, state):

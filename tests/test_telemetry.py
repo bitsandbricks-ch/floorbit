@@ -348,7 +348,7 @@ def test_victoriametrics_gets_points_but_never_the_private_tables(monkeypatch):
         return FakeResp({}, 204)
     monkeypatch.setattr(storage.requests, "post", fake_post)
     points, _ = lineproto.parse(snmp_poll(1000, 1) + "\n" + mac_tables(1000))
-    store = storage.Storage()
+    store = storage.Storage(None)       # VictoriaMetrics only: the database is never asked
     store.forward_raw(points)
     url, body = sent[0]
     assert url == "http://vm.example:8428/write" and "fb_if" in body
@@ -607,23 +607,6 @@ def test_a_refused_inventory_login_blocks_the_stored_credential():
     assert seen == [("may", "dev-1", "cred-1", "r1"), ("failed", "dev-1", "cred-1", "r1")]
 
 
-def test_memory_history_is_compact_bounded_and_in_order(monkeypatch):
-    from floorbit.telemetry import storage as storage_mod
-    monkeypatch.setattr(storage_mod, "MEMORY_SERIES", 2)
-    st = storage_mod.Storage(db=None)
-    t0 = 1_800_000_000 // 60 * 60
-    st.sample({"sw|Gi1/0/1|in_bps": 1.0, "sw||cpu": 5.0}, t0)
-    st.sample({"sw|Gi1/0/1|in_bps": 2.0}, t0 + 60)
-    st.sample({"sw|Gi1/0/1|in_bps": 4.0}, t0 + 240)        # two minutes with nothing in between
-    st.sample({"sw|Gi1/0/1|in_bps": 3.0}, t0 + 180)        # late, but within the six hours
-    st.sample({"sw|Gi1/0/2|in_bps": 9.0}, t0 + 240)        # a third series: past the cap
-    got = st.series("sw", "Gi1/0/1", "in_bps", hours=6, now=t0 + 300)
-    assert got == [[t0, 1.0], [t0 + 60, 2.0], [t0 + 180, 3.0], [t0 + 240, 4.0]]
-    assert st.series("sw", "Gi1/0/2", "in_bps", now=t0 + 300) == [] and "memory" in st.errors
-    st.sample({"sw|Gi1/0/1|in_bps": 7.0}, t0 + 7 * 3600)   # seven hours later: the old ones are gone
-    assert st.series("sw", "Gi1/0/1", "in_bps", hours=6, now=t0 + 7 * 3600) == [[t0 + 7 * 3600, 7.0]]
-
-
 def test_two_agents_polling_the_same_switch_give_steady_rates(plugin):
     # No VRRP (or a split): both agents poll, and their readings land a moment apart, sometimes
     # out of order. The rate must stay the real one, not jump to many times it or to zero.
@@ -640,11 +623,15 @@ def test_two_agents_polling_the_same_switch_give_steady_rates(plugin):
     assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)
 
 
-def test_a_series_name_the_table_cannot_hold_is_left_out_alone():
+def test_a_series_name_the_table_cannot_hold_is_left_out_alone(tmp_path):
     """A NUL byte or an over-long name stopped the whole sample at that row on Postgres."""
-    s = storage.Storage()
+    from floorbit import database
+    db = database.Sql(f"sqlite:///{tmp_path / 'tele.db'}", str(tmp_path))
+    s = storage.Storage(db)
     s.sample({"sw1|Gi1/0/1|up": 1, "sw\x001||up": 1, "x" * 400 + "||up": 1}, now=3600)
-    assert set(s.memory) == {"sw1|Gi1/0/1|up"}
+    rows = db.run("SELECT DISTINCT series FROM floorbit_telemetry", fetch=True)
+    assert [r[0] for r in rows] == ["sw1|Gi1/0/1|up"] and "database" not in s.errors
+    db.close()
 
 
 def test_a_big_sample_goes_in_few_statements_and_every_number_lands(tmp_path):

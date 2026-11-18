@@ -2096,5 +2096,5 @@ export interface EndpointRow {
 
 export interface EndpointAnswer {
   rows: EndpointRow[]
-  status: { store: 'database' | 'memory'; written: number; open: number; keep_days: number; error: string | null }
+  status: { store: 'database'; written: number; open: number; keep_days: number; error: string | null }
 }
