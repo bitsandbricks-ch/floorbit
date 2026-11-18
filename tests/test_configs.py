@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytest
 
-from floorbit import audit, config_backup, credentials, ports
+from floorbit import audit, config_backup, inventory, ports, store
 
 SWITCHES = [{"name": "sw-a-01", "mgmt_ip": "198.51.100.4", "role": "switch"},
             {"name": "sw-a-02", "mgmt_ip": "198.51.100.5", "role": "switch"}]
@@ -136,7 +136,10 @@ def test_nightly_needs_a_stored_login(app_module, client, demo):
 
 def test_nightly_backs_up_the_switches_a_stored_login_covers(app_module, client, demo):
     registry = app_module.app.extensions["floorbit_plugins"]
-    credentials.set_ssh({"scope": "sw-a-01", "username": "backup", "password": "example-only"}, "admin")
+    dev = next(d for d in inventory.devices(store.load_data()) if d["name"] == "sw-a-01")
+    r = client.put("/api/inventory/credentials", json={"owner_type": "device", "owner_id": dev["id"], "kind": "ssh",
+                                                       "username": "backup", "secret": "example-only"})
+    assert r.status_code == 200, r.get_json()
     try:
         summary = config_backup.run_nightly(registry, now=at(4))
         assert (summary["switches"], summary["ok"], summary["changed"], summary["failed"]) == (1, 1, ["sw-a-01"], [])
@@ -148,7 +151,7 @@ def test_nightly_backs_up_the_switches_a_stored_login_covers(app_module, client,
         # Unchanged the next night: nothing new kept.
         assert config_backup.run_nightly(registry, now=at(4, day=17))["changed"] == []
     finally:
-        credentials.delete(credentials.listing()[0]["id"])
+        client.delete(f"/api/inventory/credentials/{r.get_json()['id']}")
 
 
 def test_switch_names_are_checked(client):

@@ -171,8 +171,9 @@ def test_seat_sources_merge(tmp_path, monkeypatch):
 # ── HTTP wiring ──────────────────────────────────────────────────────────────────────────
 @pytest.fixture
 def app():
-    data = {'switches': [{'id': 's1', 'name': 'sw-a1', 'placed': True, 'x': 5, 'y': 5}],
-            'cached_devices': [{'id': '9', 'name': 'nb-1'}], 'positions': {'9': {'x': 1, 'y': 1}},
+    from floorbit import inventory
+    data = {'inventory': [inventory.blank(id='s1', name='sw-a1', x=5, y=5),
+                          inventory.blank(id='9', name='nb-1', x=1, y=1, origin='netbox', refs={'netbox': '9'})],
             'seat_blocks': [{'name': 'd', 'cols': 4, 'rows': 6}]}
     a = Flask(__name__, template_folder=os.path.join(ROOT, 'templates'))
 
