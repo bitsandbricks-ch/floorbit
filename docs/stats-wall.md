@@ -8,7 +8,7 @@ What it shows, each only once there is something to show:
 | Fact | From |
 | --- | --- |
 | Seats online now, of all seats | the latest switch port read (unknown after three missed reads) |
-| Most seats online at once | the report's hourly history and the [whole-event recording](replay.md#the-whole-event) |
+| Most seats online at once | the report's hourly history and the [whole-event recording](replay.md#the-recording) |
 | Downloaded so far | the whole-event recording (download bandwidth over time); without one, the report's hourly averages |
 | Bandwidth peak and when | the [stats](stats.md) peak since the last new event |
 | Busiest hour | the report's hourly averages |
