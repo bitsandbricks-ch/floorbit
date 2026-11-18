@@ -5,7 +5,7 @@ import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 import './ui.css'
 import './app.css'
-import i18n from './i18n'
+import i18n, { i18nReady } from './i18n'
 import { installValidityText } from './lib/validityText'
 import App from './App'
 import { Providers } from './Providers'
@@ -13,7 +13,8 @@ import { queryClient } from './queryClient'
 
 installValidityText(i18n)
 
-createRoot(document.getElementById('root')!).render(
+// German comes in its own file: wait for it (a few ms) rather than paint English first.
+void i18nReady.finally(() => createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Providers client={queryClient}>
       <BrowserRouter>
@@ -21,4 +22,4 @@ createRoot(document.getElementById('root')!).render(
       </BrowserRouter>
     </Providers>
   </StrictMode>,
-)
+))
