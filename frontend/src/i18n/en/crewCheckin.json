@@ -120,8 +120,8 @@
   "footer": "How the seat to port mapping works:",
   "off": {
     "title": "Check-in is off",
-    "desc": "Turn on the seat check-in page under Settings > Sources. Attendees then check in with their seat card's PIN, and this page shows who sits where.",
-    "askAdmin": "An admin turns on the seat check-in page under Settings > Sources. Attendees then check in with their seat card's PIN, and this page shows who sits where.",
-    "open": "Open the settings"
+    "desc": "Turn on seat check-in in the settings to see who checked in at which seat. Past events' check-ins are below.",
+    "askAdmin": "An admin can turn on seat check-in in the settings. Past events' check-ins are below.",
+    "turnOn": "Check-in settings"
   }
 }

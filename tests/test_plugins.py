@@ -77,19 +77,9 @@ def registry(app_module):
     return app_module.app.extensions["floorbit_plugins"]
 
 
-class InlineThread:
-    """Runs hooks in the test's own thread, so no hook outlives its test."""
-
-    def __init__(self, target, args, **kwargs):
-        self.target, self.args = target, args
-
-    def start(self):
-        self.target(*self.args)
-
-
 @pytest.fixture
 def sample(tmp_path, registry, monkeypatch):
-    monkeypatch.setattr("floorbit.plugins.threading.Thread", InlineThread)
+    monkeypatch.setattr("floorbit.plugins.HOOKS_INLINE", True)   # no hook outlives its test
     spec = _load(write_plugin(tmp_path, "sample", GOOD_YAML, GOOD_PY), "development", registry.version)
     assert spec.error == ""
     registry.specs[spec.id] = spec
@@ -194,6 +184,17 @@ def test_plugin_settings_live_on_the_settings_page(client, sample):
     assert "example-plugin-token" not in client.get("/api/settings").get_data(as_text=True)
 
 
+def test_a_plugin_secret_is_sealed_at_rest_and_clear_for_the_plugin(client, sample, registry):
+    from conftest import stored
+
+    from floorbit import store
+    client.put("/api/settings", json={"plugin.sample.api_token": "example-plugin-token"})
+    assert "example-plugin-token" not in stored(store.DATA_FILE)
+    assert registry.settings_of(sample)["api_token"] == "example-plugin-token"
+    turn_on(client)
+    assert client.get("/api/plugins/sample/endpoints/info").get_json()["token_set"] is True
+
+
 def test_a_switched_off_plugin_does_nothing(client, sample):
     assert client.post("/api/plugins/sample/actions/wave", json={}).status_code == 404
     assert client.get("/api/plugins/sample/widgets/count").status_code == 404
@@ -293,16 +294,9 @@ def test_widget_shapes():
 def test_hooks_run_on_audited_changes(client, registry, sample, monkeypatch):
     turn_on(client)
     ran = []
-
-    class Inline:   # run the hook in this thread, so the test doesn't race it
-        def __init__(self, target, args, **kwargs):
-            self.target, self.args = target, args
-
-        def start(self):
-            ran.append(self.args[2])
-            self.target(*self.args)
-
-    monkeypatch.setattr("floorbit.plugins.threading.Thread", Inline)
+    run_hook = registry._run_hook
+    monkeypatch.setattr(registry, "_run_hook", lambda spec, action, event, data: (ran.append(event),
+                                                                                   run_hook(spec, action, event, data)))
     client.post("/api/switches", json={"name": "sw-demo-01", "x": 1, "y": 1})
     assert ran == ["change"]
     last = registry.state_of("sample")["last_event"]

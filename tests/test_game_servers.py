@@ -5,6 +5,7 @@ import os
 import socket
 import struct
 import threading
+import time
 
 import pytest
 from conftest import stored
@@ -234,3 +235,85 @@ def test_rotation_seals_rcon_passwords_again(client, tmp_path, monkeypatch):
     monkeypatch.delenv("FLOORBIT_SECRET_OLD_KEY_FILES")
     r = client.post(f"/api/game-servers/rcon/{server['id']}", json={"command": "status"})
     assert r.status_code == 200
+
+
+def answering(text):
+    """A Minecraft port that answers the status ping with ``text`` as its JSON."""
+    def handle(conn):
+        with conn:
+            conn.recv(1024)
+            body = b"\x00" + game_query._varint(len(text)) + text
+            conn.sendall(game_query._varint(len(body)) + body)
+    return tcp_server(handle)
+
+
+@pytest.mark.parametrize("text", [
+    b"[1, 2]", b'"hi"', b"[" * 100000 + b"]" * 100000, b"\xff\xfe",
+])
+def test_a_minecraft_answer_that_is_not_a_status_is_down_not_an_error(text):
+    with pytest.raises(game_query.QueryError, match="not a Minecraft status"):
+        game_query.query("minecraft", "127.0.0.1", answering(text), timeout=1)
+
+
+@pytest.mark.parametrize("status", [
+    {"players": [1]}, {"players": {"online": "many", "max": 20}}, {"players": {"online": 1e300}},
+    {"version": "x"}, {"description": {"text": "a", "extra": 5}}, {"description": {"text": 5}},
+])
+def test_odd_fields_in_a_minecraft_status_read_as_nothing(status):
+    # Each of these raised AttributeError, ValueError, OverflowError or TypeError, and took the
+    # whole poll down with it: every other server kept its old state.
+    found = game_query.query("minecraft", "127.0.0.1", answering(json.dumps(status).encode()), timeout=1)
+    assert 0 <= found["players"] <= 1_000_000 and isinstance(found["name"], str)
+
+
+def test_a_message_of_the_day_nested_deep_is_cut_not_a_crash():
+    # Over the wire, as deep as every Python's JSON decoder takes (3.11 stops near 1000 levels).
+    deep = '{"description":' + '{"text":"a","extra":[' * 200 + '"b"' + "]}" * 200 + "}"
+    found = game_query.query("minecraft", "127.0.0.1", answering(deep.encode()), timeout=1)
+    assert found["name"].startswith("aaa") and len(found["name"]) <= 120
+    # Deeper than the recursion limit: the old recursive walk raised RecursionError here.
+    motd = "b"
+    for _ in range(5000):
+        motd = {"text": "a", "extra": [motd]}
+    assert game_query._motd(motd).startswith("aaa")
+    assert game_query._motd({"text": "Crew ", "extra": [{"text": "build", "extra": [" night"]}, "!"]}) \
+        == "Crew build night!"
+
+
+def test_a_varint_that_runs_off_the_packet_is_refused():
+    with pytest.raises(game_query.QueryError):
+        game_query.parse_minecraft_status(b"\x00\xff\xff")
+
+
+def test_an_rcon_server_that_never_stops_sending_lets_go():
+    def chatter(conn, after_login):
+        try:
+            conn.recv(1024)
+            if after_login:
+                conn.sendall(game_query._packet(1, 2, ""))
+                conn.recv(1024)
+            while True:
+                conn.sendall(game_query._packet(7, 0, "noise"))
+                time.sleep(0.01)
+        except OSError:
+            pass
+
+    start = time.monotonic()
+    with pytest.raises(game_query.QueryError, match="never answered the RCON login"):
+        game_query.rcon("127.0.0.1", tcp_server(lambda c: chatter(c, False)), "pw", "status", timeout=1)
+    game_query.rcon("127.0.0.1", tcp_server(lambda c: chatter(c, True)), "pw", "status", timeout=1)
+    assert time.monotonic() - start < 5       # before: both held the thread for as long as the server sent
+
+
+def test_one_odd_server_does_not_stop_the_poll(client, monkeypatch):
+    for name in ("Hall A", "Hall B"):
+        assert client.post("/api/game-servers", json={"name": name, "query": "minecraft", "host": "192.0.2.5",
+                                                      "port": 25565}).status_code == 201
+
+    def ask(method, protocol, host, port):
+        raise KeyError("something nobody thought of")
+    monkeypatch.setattr(game_servers, "_ask", ask)
+    game_servers.poller.poll_once()
+    states = [game_servers.poller.state(s["id"]) for s in game_servers._all()]
+    assert [s["status"] for s in states] == ["down", "down"]
+    assert states[0]["error"] == game_servers.UNREADABLE and game_servers.poller.last_poll

@@ -219,7 +219,7 @@ def _amps(raw):
             continue
         try:
             amps = float(value) * factor
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):     # OverflowError: a 400-digit whole number
             return None
         return round(amps, 2) if 0 <= amps <= 10 * MAX_RATING else None
     return None
@@ -241,7 +241,9 @@ def keep_agent_readings(plugin_id, readings, now=None):
             continue
         meter = _text(item.get('meter'), 60)
         if meter and METER_RE.match(meter) and _amps(item) is not None:
-            kept[meter] = ({k: item[k] for k in ('amps', 'watts') if k in item}, now)
+            # Only numbers go on: the Electrics page adds them up.
+            kept[meter] = ({k: item[k] for k in ('amps', 'watts')
+                            if not isinstance(item.get(k), str) and _amps({k: item.get(k)}) is not None}, now)
     with _from_agents_lock:
         _from_agents.setdefault(plugin_id, {}).update(kept)
     return len(kept)

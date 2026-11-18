@@ -18,6 +18,8 @@ import { SwitchPanel } from './plan/SwitchPanel'
 import { Inspector, Legend } from './plan/Inspector'
 import { type LayerId, type LayerState, PRESET_KEYS, applyPreset, readLayers, writeLayers } from './plan/layers'
 import { LayersPanel, type LayerLegends } from './plan/LayersPanel'
+import { PluginLayerPicker } from './plan/PluginLayer'
+import { PLUGIN_LAYER_PARAM, usePluginLayer } from './plan/pluginLayerQuery'
 import { SidePanel } from './plan/SidePanel'
 import { SIDE_TABS, type SideTab } from './plan/side'
 import { type Filter, type View, around, findSeat, matches, parseBox, seatCenter, widen } from './plan/model'
@@ -73,6 +75,8 @@ export default function FloorPlan() {
   const paramText = params.toString()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const layers = useMemo(() => readLayers(params), [paramText])
+  // A plugin's layer (./plan/PluginLayer.tsx), one at a time on top of the plan's own.
+  const pluginLayer = usePluginLayer(params.get(PLUGIN_LAYER_PARAM))
   // Links from when the plan had modes (``/plan?mode=network``) open on what that mode showed.
   useEffect(() => {
     const next = fromOldMode(params, layers)
@@ -295,7 +299,7 @@ export default function FloorPlan() {
 
   const map = data?.drawing && view && (
     <SeatMap data={data} view={view} setView={setView} filter={filter} selected={selected} traffic={traffic} power={power} firewalls={firewalls}
-      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables} focus={planFocus}
+      layers={layers} wifi={wifi} incidents={incidents} cables={cablePlan?.cables} focus={planFocus} pluginSeats={pluginLayer.data?.seats}
       onClear={() => set('seat', null)}
       onSelect={(s) => { if (!screen) set('seat', s === selected ? null : s) }}
       onBlock={screen ? undefined : (b) => set('block', b)} onSwitch={screen ? undefined : (w) => set('switch', w)} />
@@ -364,6 +368,10 @@ export default function FloorPlan() {
   const tabsShown = side.open && !phone && !panel
   // Each layer's key sits under its switch in Layers; the floating key repeats them while Layers isn't in view.
   const legendOf = (layer: string) => t('plan.layers.legendOf', { layer })
+  const pluginPicker = (
+    <PluginLayerPicker layers={pluginLayer.layers} value={params.get(PLUGIN_LAYER_PARAM)} onChange={(v) => set(PLUGIN_LAYER_PARAM, v)}
+      data={pluginLayer.data} error={pluginLayer.error} />
+  )
   const legends: LayerLegends = data ? {
     seats: <Legend checkin={false} label={legendOf(t('plan.layers.seatStates'))} />,
     electrical: power && <Legend checkin={false} seats={false} power label={legendOf(t('plan.layers.item.electrical'))} />,
@@ -402,7 +410,7 @@ export default function FloorPlan() {
                 }))} /></div>
             {!editing && <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />}
-            {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} />}
+            {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} extra={pluginPicker} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
               {elsewhere > 0 && <Text size="sm" c="down" fw={600} className="fb-ws-elsewhere" title={t('plan.elsewhere', { count: elsewhere })}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
@@ -468,7 +476,7 @@ export default function FloorPlan() {
               </div>
               {(panel || side.open) && !phone && (
                 <SidePanel data={data} tab={side.tab} onTab={(tab) => setSide({ tab })} layers={layers} onLayers={setLayers} available={available}
-                  inspector={inspector} legends={legends} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)} />
+                  inspector={inspector} legends={legends} extraLayers={pluginPicker} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)} />
               )}
             </div>}
           </div>

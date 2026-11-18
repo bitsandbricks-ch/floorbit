@@ -169,12 +169,22 @@ def parse_csv(text):
         raise MappingError('The file is larger than 1 MB')
     text = text.lstrip('﻿')
     reader = csv.DictReader(io.StringIO(text))
+    try:
+        return _parse_rows(reader)
+    except csv.Error as exc:     # a field past csv's 128 KB limit, a stray line break in a field
+        raise MappingError(f'Line {reader.line_num + 1} cannot be read as CSV.') from exc
+
+
+def _parse_rows(reader):
     header = [h.strip().lower() for h in (reader.fieldnames or [])]
     if 'seat' not in header:
         raise MappingError('The first line must name the columns: seat, switch, port, ip, mac, nick, note')
     unknown = [h for h in header if h and h not in CSV_COLUMNS]
     if unknown:
         raise MappingError(f"Unknown column(s): {', '.join(unknown)}")
+    twice = sorted({h for h in header if h and header.count(h) > 1})
+    if twice:     # else the last one quietly wins
+        raise MappingError(f"Column(s) in the file twice: {', '.join(twice)}")
     reader.fieldnames = header
     rows, errors, ports = {}, [], {}
     for n, raw in enumerate(reader, start=2):

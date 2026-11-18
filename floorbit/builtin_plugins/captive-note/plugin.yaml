@@ -1,6 +1,7 @@
 # The Captive Portal API (RFC 8908) in the hall, through the local agent. See docs/integrations.md.
 id: captive-note
 name: Check-in note on phones
+icon: phone
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."

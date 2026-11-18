@@ -22,7 +22,6 @@ from flask import Flask
 
 from . import cache, runtime, store
 from .audit import init_audit
-from .blueprints import ALL as BLUEPRINTS
 from .plugins import init_plugins
 from .settings import SettingsStore, create_settings_blueprint
 from .theme import init_theme
@@ -69,8 +68,11 @@ def create_app(start_background=True):
         print(f"[agent] Could not enrol the local agent: {exc}", flush=True)
 
     # Without the database: a clear 503 instead of a 500, in the reader's language (docs/database.md).
-    from .blueprints.health import database_unavailable
+    from .blueprints.health import database_unavailable, disk_unwritable, too_large
     app.register_error_handler(database.DatabaseUnavailable, database_unavailable)
+    # A full or read-only disk: a clear 507 instead of a 500 (docs/install.md).
+    app.register_error_handler(OSError, disk_unwritable)
+    app.register_error_handler(413, too_large)
 
     # Sign-in first, so its check runs before the other before_request hooks and a
     # refused request never touches Redis.
@@ -112,8 +114,16 @@ def create_app(start_background=True):
     from .app_log import init_app_log
     init_app_log(app, start_background=start_background)
 
+    # Imported here, not at the top: blueprints import auth, and auth imports floorbit.env, so a
+    # top-level import made `import auth` (or any test importing it first) fail half-initialised.
+    from .blueprints import ALL as BLUEPRINTS
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
+
+    # A stopping gunicorn worker ends the live-update streams first, so it exits at once.
+    if start_background:
+        from integrations import events
+        events.close_streams_on_sigterm()
 
     # Features an admin turned off answer 404 and leave the navigation (docs/features.md).
     from .features import init_features

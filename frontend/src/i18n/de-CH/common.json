@@ -17,6 +17,7 @@
   "notFound": "Diese Seite gibt es nicht.",
   "backToPlan": "Zurück zum Hallenplan",
   "error": "Etwas ist schiefgelaufen: {{message}}",
+  "offline": "Floorbit ist nicht erreichbar: Die Verbindung zum Server ist unterbrochen. Prüfe das Netzwerk und versuche es nochmals.",
   "coffee": "Spendier mir einen Kaffee",
   "poweredBy": "Betrieben von",
   "inventory": "Inventar",

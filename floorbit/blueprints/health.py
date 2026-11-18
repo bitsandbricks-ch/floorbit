@@ -10,6 +10,7 @@
   keeps serving and a restart wouldn't bring the database back; ``?strict=1`` answers 503 then,
   for a load balancer with another instance to send people to (docs/database.md).
 """
+import errno
 import time
 
 from flask import Blueprint, current_app, jsonify, request
@@ -42,6 +43,8 @@ alive._auth_public = True   # what auth.public_endpoint sets
 UNAVAILABLE = ("The database isn't answering right now. Floorbit keeps trying; until it's back, "
                "pages show what was last read and changes can't be saved.")
 
+BUSY = 'The database is busy with another program right now, so this was not saved. Try again in a moment.'
+
 
 def database_unavailable(exc):
     """A request that needed the database while it is away: 503 and a clear word, not a 500. The
@@ -49,6 +52,13 @@ def database_unavailable(exc):
     itself."""
     lang = i18n.language(request.headers.get('Accept-Language'))
     wants_json = request.path.startswith('/api/') or request.accept_mimetypes.best == 'application/json'
+    if isinstance(exc, database.DatabaseBusy):
+        # Not an outage: no banner, no "trying again" page, just this request to repeat.
+        resp = jsonify({'error': BUSY, 'code': 'database_busy'}) if wants_json else \
+            current_app.make_response((i18n.translate(BUSY, lang), 503, {'Content-Type': 'text/plain; charset=utf-8'}))
+        resp.status_code = 503
+        resp.headers['Retry-After'] = '2'
+        return resp
     if wants_json:
         resp = jsonify({'error': UNAVAILABLE, 'code': 'database_unavailable'})
     else:
@@ -59,6 +69,29 @@ def database_unavailable(exc):
             retry=i18n.translate('Trying again by itself…', lang)))
     resp.status_code = 503
     resp.headers['Retry-After'] = '10'
+    return resp
+
+
+DISK_FULL = ("Floorbit's disk is full, so this change was not saved. What was saved before is safe. "
+             'Free some space on the server (or give the volume more), then try again.')
+DISK_READ_ONLY = ("Floorbit's state folder is read-only, so this change was not saved. "
+                  'Mount it writable (docs/install.md), then try again.')
+_DISK_ERRORS = {errno.ENOSPC: DISK_FULL, errno.EDQUOT: DISK_FULL, errno.EROFS: DISK_READ_ONLY}
+_disk_logged = set()
+
+
+def disk_unwritable(exc):
+    """A save that hit a full or read-only disk: a clear 507 instead of an HTML 500 and a traceback
+    per click. The store never leaves half a file (floorbit/store.py), so nothing earlier is lost."""
+    text = _DISK_ERRORS.get(getattr(exc, 'errno', None))
+    if text is None:
+        raise exc   # any other OSError stays a bug to see
+    if exc.errno not in _disk_logged:   # once per kind, not on every click while it lasts
+        _disk_logged.add(exc.errno)
+        print(f'[store] Saving failed: {exc.strerror} ({getattr(exc, "filename", None) or "state folder"}). '
+              'Pages still show what was saved; changes fail until there is space again.', flush=True)
+    resp = jsonify({'error': text, 'code': 'disk_full' if text is DISK_FULL else 'disk_read_only'})
+    resp.status_code = 507
     return resp
 
 
@@ -88,3 +121,13 @@ def health():
 def check_now():
     _wall().poll_once()
     return jsonify(_with_mutes(_wall().snapshot()))
+
+
+TOO_LARGE = 'That is too much data for one request.'
+
+
+def too_large(exc):
+    """413 as JSON on the API, so the pages can show it; elsewhere the plain error page."""
+    if not request.path.startswith('/api/'):
+        return exc
+    return jsonify({'error': TOO_LARGE, 'code': 'too_large'}), 413

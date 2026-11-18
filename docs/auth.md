@@ -143,6 +143,9 @@ points back into this site.
 - Five failed attempts for one username from one address lock that pair for five minutes. Behind a
   reverse proxy, turn on `CHECKIN_TRUST_PROXY` so the address is the client's, not the proxy's
   (otherwise one guesser locks the name for everyone).
+- Fifty failed attempts from one address, whatever the usernames, pause sign-in from that address
+  for five minutes too, so one machine trying made-up names can't keep the server busy. Behind a
+  proxy without `CHECKIN_TRUST_PROXY`, every client is that one address, one more reason to turn it on.
 - The session cookie is `HttpOnly` and `SameSite=Lax`. Changes sent with an `Origin` header from
   another site are refused (403).
 - A password change bumps the account's `session_version`, which signs out its other sessions.

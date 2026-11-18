@@ -18,6 +18,7 @@
   "cancel": "Abbrechen",
   "delete": "Löschen",
   "clock": "Uhrzeit",
+  "stale": "Keine Verbindung zum Server: Angezeigt wird der letzte Stand.",
   "canvasHint": "Zieh ein Widget am Griff, ändere die Grösse an der Ecke (mit der Tastatur: Pfeile, Shift+Pfeile). Klick es an, um es einzurichten oder zu teilen. Höchstens {{max}} Widgets auf {{cols}} Spalten.",
   "edit": {
     "pick": "Diesen Bereich einrichten",

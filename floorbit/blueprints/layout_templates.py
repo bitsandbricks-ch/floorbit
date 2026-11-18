@@ -13,8 +13,8 @@ import time
 
 from flask import Blueprint, Response, jsonify, request
 
+from .. import downloads, spa
 from .. import layout_templates as lib
-from .. import spa
 from ..store import load_data, save_data
 from .inventory import data_lock
 
@@ -105,7 +105,7 @@ def export_template(template_id):
     slug = ''.join(c if c.isalnum() else '-' for c in out['name'].lower()).strip('-')[:40] or 'template'
     filename = f"floorbit-template-{slug}-{time.strftime('%Y%m%d')}.json"
     return Response(json.dumps(out, indent=2) + '\n', mimetype='application/json',
-                    headers={'Content-Disposition': f'attachment; filename="{filename}"', 'Cache-Control': 'no-store'})
+                    headers={'Content-Disposition': downloads.disposition(filename), 'Cache-Control': 'no-store'})
 
 
 @bp.route('/api/templates/import', methods=['POST'])

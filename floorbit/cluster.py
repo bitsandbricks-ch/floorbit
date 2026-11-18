@@ -25,6 +25,8 @@ import threading
 import time
 import uuid
 
+from .vault import VaultError
+
 CHANNEL = 'floorbit:events'
 LEADER_KEY = 'floorbit:leader'
 AGENTS_KEY = 'floorbit:agents'           # hash: agent id -> {"pod", "at"}
@@ -68,17 +70,25 @@ class RedisBus:
     def publish(self, channel, message):
         self.short.publish(self.prefix + channel, message)
 
-    def listen(self, channel, handler, stop):
+    def listen(self, channel, handler, stop, on_resume=None):
+        paused = False
         while not stop.is_set():
             try:
                 pubsub = self.blocking.pubsub(ignore_subscribe_messages=True)
                 pubsub.subscribe(self.prefix + channel)
+                if paused:
+                    paused = False
+                    print('[cluster] live updates from other pods flow again')
+                    if on_resume:
+                        on_resume()
                 while not stop.is_set():
                     msg = pubsub.get_message(timeout=1.0)
                     if msg and msg.get('type') == 'message':
                         handler(msg['data'])
             except self._redis.RedisError as exc:
-                print(f'[cluster] live updates from other pods paused: {exc}')
+                if not paused:
+                    print(f'[cluster] live updates from other pods paused: {exc}')
+                paused = True
                 stop.wait(2)
 
     def push(self, key, message, ttl=None):
@@ -166,6 +176,11 @@ class Cluster:
         if msg.get('pod') != self.pod and isinstance(msg.get('event'), dict) and self.deliver:
             self.deliver(msg['event'])
 
+    def _resumed(self):
+        # Other pods' changes while Redis was away never reached this pod's browsers.
+        from integrations import events
+        events.resync_all()
+
     # ── agent calls ──
 
     def agent_seen(self, agent_id, now=None):
@@ -176,6 +191,14 @@ class Cluster:
         self._seen_sent[agent_id] = now
         with contextlib.suppress(Exception):
             self.bus.hset(AGENTS_KEY, agent_id, json.dumps({'pod': self.pod, 'at': now}))
+
+    def agent_left(self, agent_id):
+        """An agent's link to this pod closed: the other pods stop sending its calls here."""
+        self._seen_sent.pop(agent_id, None)
+        with contextlib.suppress(Exception):
+            row = json.loads(self.bus.hget(AGENTS_KEY, agent_id) or 'null')
+            if isinstance(row, dict) and row.get('pod') == self.pod:
+                self.bus.hdel(AGENTS_KEY, agent_id)
 
     def agents_elsewhere(self, now=None):
         """{agent id: pod} for agents connected to other pods."""
@@ -198,12 +221,19 @@ class Cluster:
     def forward(self, pod, method, args, targets, timeout):
         """Ask ``pod`` to run a call on its agent; returns {"ok", "result", "error"} or None on timeout."""
         call_id = uuid.uuid4().hex
-        self.bus.push(CALLS_KEY + pod, json.dumps({'id': call_id, 'method': method, 'args': list(args),
-                                                   'targets': sorted(targets) if targets else None,
-                                                   'timeout': timeout, 'deadline': time.time() + timeout}),
+        # Sealed: a switch call carries its login, and Redis is no place for it in the clear.
+        body = _seal('cluster-call:' + call_id, {'method': method, 'args': list(args),
+                                                 'targets': sorted(targets) if targets else None})
+        self.bus.push(CALLS_KEY + pod, json.dumps({'id': call_id, 'sealed': body, 'timeout': timeout,
+                                                   'deadline': time.time() + timeout}),
                       ttl=int(timeout) + 30)
         raw = self.bus.pop(REPLY_KEY + call_id, timeout + 2)
-        return json.loads(raw) if raw else None
+        if not raw:
+            return None
+        reply = json.loads(raw)
+        if isinstance(reply, dict) and 'sealed' in reply:
+            reply = _open('cluster-reply:' + call_id, reply['sealed'])
+        return reply
 
     def _serve_call(self, raw):
         try:
@@ -212,9 +242,13 @@ class Cluster:
             return
         try:
             left = float(call.get('deadline') or 0) - time.time()
-            call_id, method, timeout = call['id'], call['method'], float(call['timeout'])
-        except (TypeError, ValueError, KeyError, AttributeError):
-            return                       # not a call this version understands; its caller times out
+            call_id, timeout = call['id'], float(call['timeout'])
+            sealed = 'sealed' in call
+            if sealed:
+                call.update(_open('cluster-call:' + call_id, call['sealed']))
+            method = call['method']
+        except (TypeError, ValueError, KeyError, AttributeError, VaultError):
+            return                       # not a call this version (or key) understands; its caller times out
         if left <= 0:
             return                       # the caller gave up already
         try:
@@ -223,6 +257,8 @@ class Cluster:
         except Exception as exc:  # noqa: BLE001  # goes back to the caller as the error
             reply = {'ok': False, 'error': str(exc)[:300], 'unavailable': type(exc).__name__ == 'AgentUnavailable'}
         with contextlib.suppress(Exception):
+            if sealed:
+                reply = {'sealed': _seal('cluster-reply:' + call_id, reply)}
             self.bus.push(REPLY_KEY + call_id, json.dumps(reply, default=str), ttl=60)
 
     def _take_calls(self):
@@ -247,7 +283,8 @@ class Cluster:
 
     def start(self):
         for target, name in ((self._renew_loop, 'cluster-leader'),
-                             (lambda: self.bus.listen(CHANNEL, self._heard, self._stop), 'cluster-events'),
+                             (lambda: self.bus.listen(CHANNEL, self._heard, self._stop, self._resumed),
+                              'cluster-events'),
                              (self._take_calls, 'cluster-calls')):
             t = threading.Thread(target=target, name=name, daemon=True)
             t.start()
@@ -287,13 +324,14 @@ def leading():
 
 
 def init(log=print):
-    """Join the cluster when FLOORBIT_CLUSTER=redis. Returns the Cluster or None."""
+    """Join the cluster when FLOORBIT_CLUSTER=redis (or valkey). Returns the Cluster or None."""
     global current
     mode = (os.environ.get('FLOORBIT_CLUSTER') or '').strip().lower()
     if mode in ('', 'off', 'none'):
         return None
-    if mode != 'redis':
-        raise ValueError(f'FLOORBIT_CLUSTER must be "redis" or empty, not "{mode}".')
+    # Valkey speaks the Redis protocol, so both names mean the same shared cache.
+    if mode not in ('redis', 'valkey'):
+        raise ValueError(f'FLOORBIT_CLUSTER must be "redis", "valkey" or empty, not "{mode}".')
     from integrations import events
 
     from . import agent_link, cache
@@ -303,3 +341,13 @@ def init(log=print):
     current.renew()
     current.start()
     return current
+
+
+def _seal(slot, value):
+    from . import vault
+    return vault.seal(slot, json.dumps(value, default=str))
+
+
+def _open(slot, sealed):
+    from . import vault
+    return json.loads(vault.open_(slot, sealed))

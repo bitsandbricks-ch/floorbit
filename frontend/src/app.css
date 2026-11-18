@@ -472,6 +472,16 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .fwr { fill: none; stroke-width: 3; }
 .fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
 .fb-plan .fwr.fw-down { stroke: var(--color-down); }
+.fb-plan .pl { fill: none; stroke-width: 3; }
+.fb-plan .pl.pl-ok { stroke: var(--color-up); }
+.fb-plan .pl.pl-warn { stroke: var(--color-warn); }
+.fb-plan .pl.pl-err { stroke: var(--color-down); }
+.fb-plan .pl.pl-info { stroke: var(--color-trace); }
+.fb-pl-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 3px solid; vertical-align: -1px; }
+.fb-pl-swatch.pl-ok { border-color: var(--color-up); }
+.fb-pl-swatch.pl-warn { border-color: var(--color-warn); }
+.fb-pl-swatch.pl-err { border-color: var(--color-down); }
+.fb-pl-swatch.pl-info { border-color: var(--color-trace); }
 .fb-plan .num { fill: var(--color-fg); font: 700 var(--seat-num, 11px) var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
 /* Zoomed out (pages/plan/labels.ts): only the row ends keep a number, larger than the seat, with a halo

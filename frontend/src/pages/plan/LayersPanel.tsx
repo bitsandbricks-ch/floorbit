@@ -6,8 +6,10 @@ import { LAYERS, type LayerId, type LayerState, PRESETS, type PresetId, applyPre
 
 /** The layer picker over the Seats view: presets, one switch per layer and how strong it is drawn.
  *  ``available`` leaves out what isn't set up (no power boards, no firewall ranges, …). */
-export function LayersPanel({ state, onChange, available, legends }: {
+export function LayersPanel({ state, onChange, available, legends, extra }: {
   state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>; legends?: LayerLegends
+  /** Drawn under the plan's own layers: the plugin layer picker (./PluginLayer.tsx). */
+  extra?: ReactNode
 }) {
   const { t } = useTranslation()
   const shown = LAYERS.filter((l) => state.on.has(l) && available[l]).length
@@ -20,7 +22,7 @@ export function LayersPanel({ state, onChange, available, legends }: {
         </Button>
       </Popover.Target>
       <Popover.Dropdown aria-label={t('plan.layers.title')}>
-        <LayersBody state={state} onChange={onChange} available={available} legends={legends} />
+        <LayersBody state={state} onChange={onChange} available={available} legends={legends} extra={extra} />
       </Popover.Dropdown>
     </Popover>
   )
@@ -30,8 +32,9 @@ export function LayersPanel({ state, onChange, available, legends }: {
 export type LayerLegends = Partial<Record<LayerId | 'seats', ReactNode>>
 
 /** The layer presets and switches themselves: in the Layers popover, or in the plan's side panel. */
-export function LayersBody({ state, onChange, available, legends = {} }: {
+export function LayersBody({ state, onChange, available, legends = {}, extra }: {
   state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>; legends?: LayerLegends
+  extra?: ReactNode
 }) {
   const { t } = useTranslation()
   const preset = presetOf(state.on)
@@ -70,6 +73,7 @@ export function LayersBody({ state, onChange, available, legends = {} }: {
           </div>
         )
       })}
+      {extra}
       <Text size="xs" c="dimmed">{t('plan.layers.hint')}</Text>
     </Stack>
   )

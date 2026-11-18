@@ -1,6 +1,7 @@
 # Syslog from the hall, through the local agent. See docs/syslog.md, "Through the local agent".
 id: syslog-relay
 name: Syslog from the hall
+icon: bell
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached."

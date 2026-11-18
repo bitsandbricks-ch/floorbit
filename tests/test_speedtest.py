@@ -140,3 +140,22 @@ def test_summary_endpoint(client, floor):
     body = client.get("/api/speedtests/summary").get_json()
     assert body["hours"] == 12 and body["hall"]["tests"] == 0 and body["switches"] == []
     assert client.get("/speedtests").status_code in (200, 503)   # 503: no frontend build (CI)
+
+
+def test_streams_that_never_start_free_their_slot(anon_client, app_module, floor):
+    """A HEAD, or a download closed before its first chunk, must not hold a stream slot for good:
+    six of them used to lock the speed test for every seat until a restart."""
+    for _ in range(speedtest.MAX_RUNNING + 2):
+        head = anon_client.head(speed_url(app_module, "A-1", "down", "&bytes=1000"))
+        assert head.status_code == 200
+        assert head.headers["Content-Length"] == "1000"
+    assert speedtest._running[0] == 0
+    for _ in range(speedtest.MAX_RUNNING + 2):
+        unread = anon_client.get(speed_url(app_module, "A-1", "down", "&bytes=1000"), buffered=False)
+        assert unread.status_code == 200
+        unread.close()
+    assert speedtest._running[0] == 0
+    stream = speedtest.download(10)
+    stream.close()
+    stream.close()
+    assert speedtest._running[0] == 0

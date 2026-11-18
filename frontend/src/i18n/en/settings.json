@@ -7,8 +7,8 @@
   "netboxOff": "Not configured, manual switches only",
   "librenmsOff": "Not configured, no live status",
   "redisOff": "Not connected ({{where}})",
-  "testRedis": "Test Redis",
-  "redisHelp": "Redis is configured with the REDIS_* environment variables.",
+  "testRedis": "Test Valkey",
+  "redisHelp": "Valkey (or Redis, which speaks the same protocol) is configured with the REDIS_* environment variables.",
   "test": "Test connection",
   "testing": "Testing…",
   "source": {
@@ -25,6 +25,7 @@
   "invalid": "Not a valid value",
   "secretSet": "•••••••• (set, type to replace)",
   "secretUnset": "Not set",
+  "secretUnreadable": "Saved, but it doesn't open with the current secret key. Enter it again.",
   "derived": "Derived",
   "chooseImage": "Choose image…",
   "removeImage": "Remove",
@@ -57,7 +58,7 @@
   },
   "backup": {
     "title": "Backup and restore",
-    "desc": "The floor plan (switches, positions, seat blocks) and the saved settings, including the theme. API tokens, webhook URLs, accounts and check-ins are never in a backup, and a restore leaves them as they are.",
+    "desc": "The floor plan (switches, positions, seat blocks, cables, patch panels, uplinks, port areas and power) and the saved settings, including the theme. API tokens, webhook URLs, accounts and check-ins are never in a backup, and a restore leaves them as they are.",
     "download": "Download backup",
     "restore": "Restore from file…",
     "go": "Replace floor plan and settings",
@@ -73,7 +74,8 @@
     "settings_other": "{{count}} saved settings",
     "restored": "Restored. Reloading…",
     "skipped_one": "Skipped {{count}} setting this version doesn't know.",
-    "skipped_other": "Skipped {{count}} settings this version doesn't know."
+    "skipped_other": "Skipped {{count}} settings this version doesn't know.",
+    "kept": "This backup is from an older version and has no cables, patch panels, uplinks, port areas or power: those were left as they are."
   },
   "sections": {
     "netbox": {
@@ -86,7 +88,7 @@
     },
     "cache": {
       "title": "Caching",
-      "desc": "How long LibreNMS lookups are kept in Redis before they are fetched again."
+      "desc": "How long LibreNMS lookups are kept in Valkey before they are fetched again."
     },
     "display": {
       "title": "Display defaults",
@@ -271,7 +273,7 @@
     "results_zero": "No setting matches.",
     "results_one": "{{count}} setting matches",
     "results_other": "{{count}} settings match",
-    "whereFrom": "A value saved here wins over its environment variable; clear it to go back to the environment or the default. The database, Redis, keys and time zone are set in the environment only.",
+    "whereFrom": "A value saved here wins over its environment variable; clear it to go back to the environment or the default. The database, Valkey, keys and time zone are set in the environment only.",
     "groups": {
       "event": "Event and look",
       "sources": "Sources",

@@ -250,7 +250,7 @@ class Health:
 
     def devices(self, now):
         with self._lock:
-            if self._at is not None and now - self._at < READ_EVERY:
+            if self._at is not None and 0 <= now - self._at < READ_EVERY:
                 return self._devices
         if StatusMonitor.latest['polled'] is not None:
             # The status monitor is polling: use its list rather than ask a source that may be

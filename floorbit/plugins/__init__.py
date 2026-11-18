@@ -26,10 +26,13 @@ switched off; an admin turns it on under Settings > Plugins. See docs/plugins.md
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import os
 import re
 import threading
+import time
 import traceback
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -38,8 +41,8 @@ from .widgets import WidgetError, check_widget
 
 __all__ = ['Plugin', 'PluginError', 'Registry', 'Spec', 'init_plugins']
 
-ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}$')
-NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}$')
+ID_RE = re.compile(r'^[a-z][a-z0-9-]{1,39}\Z')
+NAME_RE = re.compile(r'^[a-z][a-z0-9_]{0,39}\Z')
 BUILTIN_DIR = Path(__file__).resolve().parent.parent / 'builtin_plugins'
 DEV_ENV = 'FLOORBIT_DEV_PLUGINS'
 
@@ -52,6 +55,7 @@ AREAS = {
     'hooks':     'run an action when something changes in Floorbit',
     'http':      'outgoing HTTP requests',
     'storage':   'a small private state (64 KB)',
+    'documents': 'its own JSON documents (256 KB each, 5 MB in all)',
     'inventory': 'sends devices into the inventory (it never deletes; hand edits win)',
     'mapping':   'sends seat / IP / MAC / nick entries into the seat mapping (hand entries win)',
     'monitoring': 'live switch status, ports and IP to switch port lookups (one plugin at a time)',
@@ -64,10 +68,27 @@ AREAS = {
     'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
     'brackets': 'tournament brackets from a tournament tool, shown read-only on the bracket view',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
+    'panels':    'a box in the side panel of a seat, a switch or an inventory device',
+    'layers':    'a layer on the floor plan that colours the seats (one plugin layer at a time)',
+    'pages':     'pages of its own tiles in the sidebar\'s Plugins group',
     'agent': 'runs a part of it on the local agent, in the hall (agent.py; docs/agent-plugins.md)',
 }
+# Device credential kinds an agent part may ask for (floorbit/plugins/agent.py, CREDENTIAL_KINDS).
+CREDENTIAL_KINDS_ALL = ('ssh', 'snmp_v2c', 'snmp_v3', 'api', 'http')
 # What a context_menu entry can be on, and the action parameter that carries the target.
 MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
+# What a panel can be on: the plan's seat and switch panels, the inventory's device panel.
+PANEL_TARGETS = ('seat', 'switch', 'device')
+PANEL_TARGET_MAX = 128
+PANEL_KEYS = ('id', 'for', 'label', 'permission', 'role', 'refresh')
+# A plan layer: layer_<id>() colours seats with one of these tones, explained by its legend.
+LAYER_KEYS = ('id', 'label', 'permission', 'role', 'refresh')
+LAYER_TONES = ('ok', 'warn', 'err', 'info')
+LAYER_SEATS_MAX = 5000
+LAYER_LEGEND_MAX = 8
+# A sidebar page: the plugin's own widgets and actions, laid out like a dashboard.
+PAGE_KEYS = ('id', 'label', 'permission', 'role', 'widgets', 'actions', 'columns')
+PAGE_TILES_MAX = 24
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -99,6 +120,26 @@ OPTIONAL_METHODS = {
 # (NetBox's ``netbox.*`` keys and NETBOX_* env variables), so an existing install keeps working;
 # ``enable_env`` names a variable that forces it on (FLOORBIT_DEMO for the demo data).
 BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
+# Every key plugin.yaml may have (docs/plugin-spec.md). An unknown key is refused, so a typo or a
+# feature this Floorbit doesn't have fails at load, not quietly at run time.
+MANIFEST_KEYS = frozenset({
+    'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'layers', 'pages',
+    'schema',
+    *BUILTIN_ONLY})
+# Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
+MANIFEST_NEXT = ()
+# ``schema:``: the version of the data the plugin keeps; ``migrate`` moves older data up to it.
+SCHEMA_MAX = 10_000
+MIGRATE_SECONDS = 60
+MIGRATE_RETRY = 60        # seconds before a failed migration is tried again
+
+
+def plugin_icons():
+    """The names a plugin's ``icon:`` may take: the sidebar's and the inventory's icon sets, which the
+    page draws (frontend/src/pages/plugins/icon.ts). Never a file: nothing a plugin ships is drawn as is."""
+    from .. import inventory, nav_sections
+    return tuple(dict.fromkeys((*nav_sections.ICONS, *inventory.ICONS)))
 TRUE_WORDS = ('1', 'true', 'yes', 'on')
 # Manifest setting types and the settings page type each becomes.
 SETTING_TYPES = {'string': 'text', 'text': 'text', 'url': 'url', 'secret': 'secret', 'bool': 'bool',
@@ -111,6 +152,27 @@ ROLE_PERMISSION = {'viewer': 'floorplan.view', 'editor': 'plugins.run', 'admin':
 # ``security.finding`` a new security finding (floorbit/security.py), ``power.alert`` a circuit
 # turning red or tripping (floorbit/power.py).
 EVENTS = ('change', 'switch.status', 'health.status', 'security.finding', 'power.alert')
+# Hooks run on a few shared threads, not one thread each: a burst of changes (a bulk edit, a
+# switch flapping) must not start hundreds of threads. Past HOOK_QUEUE waiting, the oldest go.
+HOOK_WORKERS = 4
+HOOK_QUEUE = 200
+# A tile or an endpoint answers within this, or the request gets an error and the worker is free;
+# at most CALLS_PER_PLUGIN of one plugin's run at once, so one stuck plugin can't take every worker.
+REQUEST_BUDGET = 10
+CALLS_PER_PLUGIN = 4
+# plugin.yaml is read before anything is checked: a bigger one is refused unread.
+MANIFEST_MAX_BYTES = 256 * 1024
+# plugin.py runs when it is loaded; one that doesn't finish (a loop at import, a network call)
+# is given up on so Floorbit still starts.
+IMPORT_TIMEOUT = 15
+# A plugin's own German (locales/de-CH.json): {"English text": "German text"}.
+LOCALE_FILE = ('locales', 'de-CH.json')
+LOCALE_MAX_BYTES = 256 * 1024
+LOCALE_MAX_TEXTS = 2000
+# Tests set this to run hooks in the caller's thread, so no hook outlives its test.
+HOOKS_INLINE = False
+# plugins.json is read for every "is it on?": keep what was read this long (writes refresh it).
+STATE_TTL = 2.0
 
 
 @dataclass
@@ -121,6 +183,7 @@ class Spec:
     manifest: dict = field(default_factory=dict)
     module: object = None
     error: str = ''
+    german: tuple = None     # its locales/de-CH.json, compiled (floorbit.i18n.compile_texts)
 
     @property
     def name(self):
@@ -173,10 +236,12 @@ def compatible(requirement, current):
 
 def _check_fields(fields, where):
     keys = set()
+    if fields is not None and not isinstance(fields, list):
+        return f'{where}: a list of fields'
     for f in fields or []:
-        if not isinstance(f, dict) or not NAME_RE.match(str(f.get('key', ''))):
+        if not isinstance(f, dict) or not _name(f.get('key')):
             return f'{where}: bad key {f!r}'
-        if f.get('type', 'string') not in SETTING_TYPES:
+        if not isinstance(f.get('type', 'string'), str) or f.get('type', 'string') not in SETTING_TYPES:
             return f"{where}.{f['key']}: type must be one of {', '.join(SETTING_TYPES)}"
         if f.get('type') == 'select' and not f.get('options'):
             return f"{where}.{f['key']}: a select needs options"
@@ -186,56 +251,131 @@ def _check_fields(fields, where):
     return ''
 
 
+def _name(value):
+    return isinstance(value, str) and bool(NAME_RE.match(value))
+
+
 def validate(m):
     """An error message, or '' when the manifest is fine. No plugin code runs here."""
+    try:
+        return _validate(m)
+    except (TypeError, ValueError, AttributeError, KeyError) as exc:
+        # A value of a type no check above expected (YAML gives lists, maps, floats anywhere): the
+        # plugin's own error, never an exception while Floorbit loads its plugins.
+        return f'plugin.yaml: a value has the wrong type ({type(exc).__name__}: {exc})'
+
+
+def _validate(m):
     if not isinstance(m, dict):
         return 'plugin.yaml must be a mapping'
     if not ID_RE.match(str(m.get('id', ''))):
         return 'id: 2 to 40 lowercase letters, digits and dashes, starting with a letter'
     if m['id'] == 'floorbit':
         return 'id: "floorbit" is taken by Floorbit\'s own dashboard tiles'
+    extra = sorted(str(k) for k in m if k not in MANIFEST_KEYS)
+    if extra:
+        later = [k for k in extra if k in MANIFEST_NEXT]
+        if later:
+            return f"{', '.join(later)}: not supported by this Floorbit yet (docs/plugin-spec.md)"
+        return f"unknown key(s) {', '.join(extra)} (docs/plugin-spec.md lists what plugin.yaml may have)"
+    if 'icon' in m and m['icon'] not in plugin_icons():
+        return f"icon: one of {', '.join(plugin_icons())}"
+    if 'schema' in m:
+        schema = m['schema']
+        if isinstance(schema, bool) or not isinstance(schema, int) or not 1 <= schema <= SCHEMA_MAX:
+            return f'schema: a whole number from 1 to {SCHEMA_MAX}'
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"
-    unknown = [u for u in uses if u not in AREAS]
+    unknown = [u for u in uses if not isinstance(u, str) or u not in AREAS]
     if unknown:
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
-             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu'}
+             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu', 'panels': 'panels',
+             'layers': 'layers', 'pages': 'pages'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
+    if 'schema' in m and not {'documents', 'storage'} & set(uses):
+        return 'schema: the plugin keeps no data ("documents" or "storage" under uses:)'
     err = _check_fields(m.get('settings'), 'settings')
     if err:
         return err
-    for kind in ('actions', 'widgets', 'endpoints'):
+    for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers', 'pages'):
         ids = set()
-        for item in m.get(kind) or []:
-            if not isinstance(item, dict) or not NAME_RE.match(str(item.get('id', ''))):
+        items = m.get(kind) or []
+        if not isinstance(items, list):
+            return f'{kind}: a list of entries'
+        for item in items:
+            if not isinstance(item, dict) or not _name(item.get('id')):
                 return f'{kind}: bad id {item!r}'
             if item['id'] in ids:
                 return f"{kind}.{item['id']}: duplicate"
             ids.add(item['id'])
             role = item.get('role', 'admin' if kind == 'actions' else 'viewer')
-            if role not in ROLES or (kind == 'actions' and role == 'viewer'):
+            if not isinstance(role, str) or role not in ROLES or (kind == 'actions' and role == 'viewer'):
                 return f"{kind}.{item['id']}: role must be " + ('editor or admin' if kind == 'actions'
                                                                else 'viewer, editor or admin')
             item['role'] = role
             # The permission it needs (auth/roles.py). Older manifests name a role; it maps across.
             permission = item.get('permission') or ROLE_PERMISSION[role]
             from auth.roles import PERMISSIONS
-            if permission not in PERMISSIONS:
+            if not isinstance(permission, str) or permission not in PERMISSIONS:
                 return f"{kind}.{item['id']}: unknown permission {permission!r}"
             item['permission'] = permission
-            item.setdefault('label', item['id'].replace('_', ' ').capitalize())
+            if item.get('label') is None:     # missing, or "label:" left empty
+                item['label'] = item['id'].replace('_', ' ').capitalize()
+            # Drawn as text on every page that lists it: a list or a map would break the page.
+            if not isinstance(item['label'], str) or not 1 <= len(item['label']) <= 80:
+                return f"{kind}.{item['id']}: label is text, 1 to 80 characters"
             if kind == 'actions':
                 err = _check_fields(item.get('params'), f"actions.{item['id']}.params")
                 if err:
                     return err
+            if kind == 'panels':
+                # A new kind, so a typo ("permision:") fails here instead of leaving the panel open.
+                extra = sorted(str(k) for k in item if k not in PANEL_KEYS)
+                if extra:
+                    return f"panels.{item['id']}: unknown key(s) {', '.join(extra)}"
+                # Not "on:": YAML reads that key as true.
+                if item.get('for') not in PANEL_TARGETS:
+                    return f"panels.{item['id']}: for must be one of {', '.join(PANEL_TARGETS)}"
+                refresh = _refresh(item.get('refresh'))
+                if refresh is None:
+                    return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
+                item['refresh'] = refresh
+            if kind == 'pages':
+                extra = sorted(str(k) for k in item if k not in PAGE_KEYS)
+                if extra:
+                    return f"pages.{item['id']}: unknown key(s) {', '.join(extra)}"
+                tiles = 0
+                for listed, known in (('widgets', m.get('widgets')), ('actions', m.get('actions'))):
+                    names = item.get(listed) or []
+                    have = {w.get('id') for w in known or [] if isinstance(w, dict)}
+                    if not isinstance(names, list) or any(not isinstance(n, str) or n not in have for n in names):
+                        return f"pages.{item['id']}.{listed}: only ids from the plugin's own {listed}:"
+                    tiles += len(names)
+                if not 1 <= tiles <= PAGE_TILES_MAX:
+                    return f"pages.{item['id']}: 1 to {PAGE_TILES_MAX} widgets and actions"
+                columns = item.get('columns', 2)
+                if isinstance(columns, bool) or columns not in (1, 2, 3):
+                    return f"pages.{item['id']}: columns is 1, 2 or 3"
+                item['columns'] = columns
+            if kind == 'layers':
+                extra = sorted(str(k) for k in item if k not in LAYER_KEYS)
+                if extra:
+                    return f"layers.{item['id']}: unknown key(s) {', '.join(extra)}"
+                refresh = _refresh(item.get('refresh'))
+                if refresh is None:
+                    return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
+                item['refresh'] = refresh
             if kind == 'widgets':
                 if item.get('size', 'small') not in ('small', 'wide'):
                     return f"widgets.{item['id']}: size must be small or wide"
-                item['refresh'] = max(10, int(item.get('refresh') or 60))
+                refresh = _refresh(item.get('refresh'))
+                if refresh is None:
+                    return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
+                item['refresh'] = refresh
     actions = {a['id'] for a in m.get('actions') or []}
     from .agent import check_agent_block
     err = check_agent_block(m)
@@ -251,6 +391,83 @@ def validate(m):
         if not events or any(e not in EVENTS for e in events):
             return f"hooks: events must be some of {', '.join(EVENTS)}"
     return ''
+
+
+def check_layer(raw):
+    """What ``layer_<id>()`` returned, cut to what the plan draws; WidgetError when it isn't that."""
+    if not isinstance(raw, dict):
+        raise WidgetError('a layer is {"seats": {seat: {"tone", "label"}}, "legend": [...]}')
+    given = {} if raw.get('seats') is None else raw['seats']
+    shown = [] if raw.get('legend') is None else raw['legend']
+    if not isinstance(given, dict) or not isinstance(shown, list):
+        raise WidgetError('a layer is {"seats": {seat: {"tone", "label"}}, "legend": [...]}')
+    seats = {}
+    for key, value in list(given.items())[:LAYER_SEATS_MAX]:
+        if not isinstance(key, str) or not 1 <= len(key) <= PANEL_TARGET_MAX or not key.isprintable():
+            raise WidgetError(f'a seat id is 1 to {PANEL_TARGET_MAX} printable characters')
+        if not isinstance(value, dict) or value.get('tone') not in LAYER_TONES:
+            raise WidgetError(f"seat {key}: tone must be one of {', '.join(LAYER_TONES)}")
+        seats[key] = {'tone': value['tone'], 'label': str(value.get('label') or '')[:60]}
+    legend = []
+    for item in shown[:LAYER_LEGEND_MAX]:
+        if not isinstance(item, dict) or item.get('tone') not in LAYER_TONES:
+            raise WidgetError(f"legend: tone must be one of {', '.join(LAYER_TONES)}")
+        legend.append({'tone': item['tone'], 'label': str(item.get('label') or '')[:60]})
+    return {'seats': seats, 'legend': legend}
+
+
+def touches(m):
+    """What a plugin may touch, from its (validated) manifest: what the Marketplace shows before it
+    is installed (docs/plugin-spec.md, "Permissions it asks for")."""
+    agent = m.get('agent') if 'agent' in (m.get('uses') or []) and isinstance(m.get('agent'), dict) else {}
+    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints', 'panels', 'layers', 'pages')
+                   for i in m.get(kind) or [] if isinstance(i, dict) and i.get('permission')}
+    targets = agent.get('targets') if isinstance(agent.get('targets'), dict) else None
+    return {
+        'uses': [u for u in m.get('uses') or [] if u in AREAS],
+        'permissions': sorted(permissions),
+        'secrets': sum(1 for f in m.get('settings') or [] if isinstance(f, dict) and f.get('type') == 'secret'),
+        'sends': {str(k): (v or {}).get('privacy', 'aggregate') for k, v in (agent.get('sends') or {}).items()},
+        'hall_actions': list(agent.get('actions') or []),
+        'credentials': (list(targets.get('credentials') or ['any']) if targets else []),
+    }
+
+
+REFRESH_MAX = 24 * 3600
+
+
+def _refresh(value):
+    """A tile's, panel's or layer's ``refresh``: seconds, at least 10 and at most a day; None when
+    it is no whole number. Read from plugin.yaml, so anything can be there ("fast", 1e999)."""
+    if value is None:
+        return 60
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return min(max(10, value), REFRESH_MAX)
+
+
+def _count(value, most):
+    """A small count from an index: 0 to ``most``; 0 for anything that isn't a whole number."""
+    return min(max(0, value), most) if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def clean_touches(raw):
+    """``touches`` as an index lists it, cut to what Floorbit shows; None when there is none."""
+    if not isinstance(raw, dict):
+        return None
+    names = re.compile(r'^[a-z][a-z0-9_.]{0,59}\Z')
+
+    def listed(key, allowed=None):
+        items = raw.get(key) if isinstance(raw.get(key), list) else []
+        return [str(i) for i in items[:40] if names.match(str(i)) and (allowed is None or i in allowed)]
+    from auth.roles import PERMISSIONS
+    sends = raw.get('sends') if isinstance(raw.get('sends'), dict) else {}
+    return {'uses': listed('uses', AREAS), 'permissions': listed('permissions', PERMISSIONS),
+            'secrets': _count(raw.get('secrets'), 99),
+            'sends': {str(k): v for k, v in list(sends.items())[:40]
+                      if names.match(str(k)) and v in ('aggregate', 'device')},
+            'hall_actions': listed('hall_actions'),
+            'credentials': listed('credentials', (*CREDENTIAL_KINDS_ALL, 'any'))}
 
 
 def _check_menu(m):
@@ -287,6 +504,8 @@ def _check_methods(spec):
     allowed = {f"run_{a['id']}" for a in spec.items('actions')}
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
+    allowed |= {f"panel_{p['id']}" for p in spec.items('panels')}
+    allowed |= {f"layer_{p['id']}" for p in spec.items('layers')}
     allowed |= {'test'}
     optional = set()
     for table in (AREA_METHODS, OPTIONAL_METHODS):
@@ -296,6 +515,11 @@ def _check_methods(spec):
                     (allowed if table is AREA_METHODS else optional).add(method)
                 elif callable(getattr(cls, method, None)):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
+    has_migrate = callable(getattr(cls, 'migrate', None))
+    if spec.manifest.get('schema') and not has_migrate:
+        return 'plugin.py: plugin.yaml has schema:, but Plugin has no migrate(from_schema, store)'
+    if has_migrate and not spec.manifest.get('schema'):
+        return 'plugin.py: migrate() needs schema: in plugin.yaml'
     kinds = set((spec.agent or {}).get('sends') or {})
     fetches = set((spec.agent or {}).get('fetches') or [])
     for name in dir(cls):
@@ -306,7 +530,7 @@ def _check_methods(spec):
                 return f'plugin.py: {name}() answers the agent, but agent.fetches has no {name[10:]}'
         elif name[6:] not in kinds:
             return f'plugin.py: {name}() takes what the agent sends, but agent.sends has no {name[6:]}'
-        if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
+        if name.startswith(('run_', 'widget_', 'endpoint_', 'panel_', 'layer_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
     for name in sorted(allowed - {'test'}):
         if not callable(getattr(cls, name, None)):
@@ -314,6 +538,32 @@ def _check_methods(spec):
     for kind in sorted(fetches):
         if not callable(getattr(cls, f'agent_get_{kind}', None)):
             return f'plugin.py: agent.fetches lists {kind}, but Plugin has no agent_get_{kind}()'
+    return ''
+
+
+def _load_german(spec, path):
+    """Read and check the plugin's locales/de-CH.json into spec.german. An error message or ''."""
+    import json
+
+    from .. import i18n
+    f = path.joinpath(*LOCALE_FILE)
+    if not f.is_file():
+        return ''
+    where = '/'.join(LOCALE_FILE)
+    try:
+        if f.stat().st_size > LOCALE_MAX_BYTES:
+            return f'{where} is larger than {LOCALE_MAX_BYTES // 1024} KB'
+        texts = json.loads(f.read_text(encoding='utf-8'))
+    except (OSError, ValueError) as exc:
+        return f'{where}: {exc}'
+    if (not isinstance(texts, dict) or len(texts) > LOCALE_MAX_TEXTS
+            or not all(isinstance(k, str) and isinstance(v, str) and len(k) <= 2000 and len(v) <= 2000
+                       for k, v in texts.items())):
+        return f'{where}: an object of up to {LOCALE_MAX_TEXTS} "English": "German" texts'
+    for english, german in texts.items():
+        if english.count('{}') != len(re.findall(r'\{\d*\}', german)):
+            return f'{where}: {english!r} and its German have a different number of {{}}'
+    spec.german = i18n.compile_texts(texts)
     return ''
 
 
@@ -328,8 +578,11 @@ def _load(path, trust, current_version):
         return None
     spec = Spec(id=path.name, path=path, trust=trust)
     try:
+        if mf.stat().st_size > MANIFEST_MAX_BYTES:
+            spec.error = f'plugin.yaml is larger than {MANIFEST_MAX_BYTES // 1024} KB'
+            return spec
         spec.manifest = yaml.safe_load(mf.read_text(encoding='utf-8')) or {}
-    except yaml.YAMLError as exc:
+    except (yaml.YAMLError, OSError, UnicodeDecodeError) as exc:
         spec.error = f'plugin.yaml: {exc}'
         return spec
     spec.id = str(spec.manifest.get('id', path.name)) if isinstance(spec.manifest, dict) else path.name
@@ -344,18 +597,36 @@ def _load(path, trust, current_version):
     if not ok:
         spec.error = why
         return spec
+    spec.error = _load_german(spec, path)
+    if spec.error:
+        return spec
     py = path / 'plugin.py'
     if py.is_file():
         modname = f"floorbit_plugin_{spec.id.replace('-', '_')}"
-        try:
-            sp = importlib.util.spec_from_file_location(modname, py)
-            mod = importlib.util.module_from_spec(sp)
-            sys.modules[modname] = mod
-            sp.loader.exec_module(mod)
-            spec.module = mod
-        except Exception as exc:  # noqa: BLE001  # a broken plugin must not take Floorbit down
+        box = {}
+
+        def run():
+            try:
+                sp = importlib.util.spec_from_file_location(modname, py)
+                mod = importlib.util.module_from_spec(sp)
+                sys.modules[modname] = mod
+                sp.loader.exec_module(mod)
+                box['module'] = mod
+            # BaseException too: a sys.exit() at import must not stop Floorbit.
+            except BaseException as exc:  # noqa: BLE001  # a broken plugin must not take Floorbit down
+                box['error'] = exc
+        loader = threading.Thread(target=run, daemon=True, name=f'plugin-{spec.id}-import')
+        loader.start()
+        loader.join(IMPORT_TIMEOUT)
+        if loader.is_alive():
+            spec.error = f'plugin.py did not finish loading within {IMPORT_TIMEOUT} s'
+            return spec
+        if 'error' in box:
+            exc = box['error']
+            sys.modules.pop(modname, None)
             spec.error = f'plugin.py: {type(exc).__name__}: {exc}'
             return spec
+        spec.module = box['module']
     agent = spec.agent
     if agent and not (path / agent['module']).is_file():
         spec.error = f"agent.module: {agent['module']} is missing"
@@ -375,6 +646,16 @@ class Registry:
         self.specs = {}
         self.logs = LogBuffer()
         self._lock = threading.Lock()
+        self._cache = None             # (read at, path, data) of plugins.json
+        self._writes = 0               # bumped by every change: a read that overlapped one isn't kept
+        self._hooks = deque()
+        self._hooks_cv = threading.Condition()
+        self._hook_threads = 0
+        self.hooks_dropped = 0
+        self._busy = {}                # plugin id -> calls running within REQUEST_BUDGET
+        self._busy_lock = threading.Lock()
+        self._migrating = {}           # plugin id -> lock, one migration at a time
+        self._migrate_failed = {}      # (plugins.json path, id, schema) -> (when, message)
         if dirs is None:
             dirs = [(BUILTIN_DIR, 'builtin')]
             dev = os.environ.get(DEV_ENV, '').strip()
@@ -404,7 +685,8 @@ class Registry:
         if cur is not None and cur.trust in ('builtin', 'development'):
             spec.error = f'a plugin with id {spec.id} ships with this Floorbit'
             return spec
-        self.specs[spec.id] = spec
+        # A new dict, never a change to the one in use: requests and hooks iterate it meanwhile.
+        self.specs = {**self.specs, spec.id: spec}
         self._register_settings()
         return spec
 
@@ -412,7 +694,7 @@ class Registry:
         """Forget an installed plugin (its settings and state stay, for a later install)."""
         spec = self.specs.get(plugin_id)
         if spec is not None and spec.trust not in ('builtin', 'development'):
-            del self.specs[plugin_id]
+            self.specs = {k: v for k, v in self.specs.items() if k != plugin_id}
 
     # settings ------------------------------------------------------------------------------
     def _register_settings(self):
@@ -474,9 +756,18 @@ class Registry:
         which must never start from that."""
         from .. import database, store
         path = path or self.path()
+        cached = self._cache
+        if not strict and cached and cached[1] == path and time.monotonic() - cached[0] < STATE_TTL:
+            return cached[2]
+        writes = self._writes
         try:
             data = store.read_json(path, {})
-            return data if isinstance(data, dict) else {}
+            data = data if isinstance(data, dict) else {}
+            # A change saved while this read was on its way would be hidden for STATE_TTL by the
+            # older copy: a plugin just turned on read as off ("No port actions plugin is on").
+            if self._writes == writes:
+                self._cache = (time.monotonic(), path, data)
+            return data
         except database.DatabaseUnavailable:
             if strict:
                 raise
@@ -489,26 +780,36 @@ class Registry:
         return self._all().get(plugin_id) or {}
 
     def _update(self, plugin_id, **changes):
+        with self._lock:
+            self._update_locked(plugin_id, **changes)
+
+    def _update_locked(self, plugin_id, **changes):
         import json
         import tempfile
-        with self._lock:
-            path = self.path()   # once: read and write the same file
-            data = self._all(path, strict=True)
-            data.setdefault(plugin_id, {}).update(changes)
-            from .. import database, store
-            if database.backend().kind != 'files':
-                store.write_json(path, json.loads(json.dumps(data, default=str)))
-                return
-            folder = os.path.dirname(path) or '.'
-            fd, tmp = tempfile.mkstemp(dir=folder, prefix='.plugins-', suffix='.json')
-            try:
-                with os.fdopen(fd, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, default=str)
-                os.replace(tmp, path)
-            except BaseException:
-                with contextlib.suppress(OSError):
-                    os.unlink(tmp)
-                raise
+        path = self.path()   # once: read and write the same file
+        data = self._all(path, strict=True)
+        data = json.loads(json.dumps(data, default=str))   # a copy: the cached one stays as read
+        data.setdefault(plugin_id, {}).update(json.loads(json.dumps(changes, default=str)))
+        from .. import database, store
+        self._writes += 1
+        self._cache = None
+        if database.backend().kind != 'files':
+            store.write_json(path, data)
+            self._writes += 1      # again: a read that began after the first bump may hold the old file
+            self._cache = (time.monotonic(), path, data)
+            return
+        folder = os.path.dirname(path) or '.'
+        fd, tmp = tempfile.mkstemp(dir=folder, prefix='.plugins-', suffix='.json')
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, default=str)
+            os.replace(tmp, path)
+            self._writes += 1
+            self._cache = (time.monotonic(), path, data)
+        except BaseException:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp)
+            raise
 
     def enabled(self, spec):
         if spec.error:
@@ -535,8 +836,53 @@ class Registry:
     def save_state(self, plugin_id, state):
         self._update(plugin_id, state=state)
 
+    def set_state_key(self, plugin_id, key, value, limit):
+        """One key of the plugin's state, read and written under the lock from a fresh read, so
+        two hooks setting different keys at once don't undo each other."""
+        import json
+        with self._lock:
+            state = dict((self._all(strict=True).get(plugin_id) or {}).get('state') or {})
+            state[str(key)] = value
+            if len(json.dumps(state, default=str)) > limit:
+                raise PluginError(f'Plugin state is limited to {limit // 1024} KB')
+            self._update_locked(plugin_id, state=state)
+
     def log(self, plugin_id, line):
         self.logs.add(plugin_id, line)
+
+    def text(self, spec, text, lang):
+        """One of the plugin's texts in ``lang``: from its own locales/de-CH.json, else from
+        Floorbit's catalog (shared words: "Up", "Down"), else as it is."""
+        from .. import i18n
+        if not isinstance(text, str) or not lang or lang == 'en':
+            return text
+        if spec is not None and spec.german:
+            german = i18n.translate_in(text, lang, spec.german, fallback=False)
+            if german is not None:
+                return german
+        return i18n.translate(text, lang)
+
+    def settings_texts(self, sections, fields, accept_language):
+        """The settings page's sections and fields with the plugins' labels, help and placeholders
+        in the request's language (copies; Floorbit's own ones are left to the page)."""
+        from .. import i18n
+        lang = i18n.language(accept_language)
+        if lang == 'en':
+            return sections, fields
+
+        def spec_of(section_id):
+            return self.specs.get(section_id[7:]) if str(section_id).startswith('plugin-') else None
+        out_sections = [({**s, 'title': f"Plugin: {self.text(spec_of(s['id']), spec_of(s['id']).name, lang)}",
+                          'description': self.text(spec_of(s['id']), s.get('description'), lang)}
+                         if spec_of(s['id']) else s) for s in sections]
+        out_fields = []
+        for f in fields:
+            spec = spec_of(f.get('section', ''))
+            if spec is not None:
+                f = {**f, **{k: self.text(spec, f[k], lang) for k in ('label', 'help', 'placeholder')
+                             if isinstance(f.get(k), str)}}
+            out_fields.append(f)
+        return out_sections, out_fields
 
     def require(self, spec, area):
         if area not in spec.uses:
@@ -546,6 +892,11 @@ class Registry:
     def active(self, plugin_id):
         spec = self.specs.get(plugin_id)
         return spec if spec and self.enabled(spec) else None
+
+    def reaches_lan(self, spec):
+        """Does the plugin talk to the event network (has any of LAN_METHODS)?"""
+        cls = spec.plugin_class()
+        return cls is not None and any(callable(getattr(cls, m, None)) for m in LAN_METHODS)
 
     def call(self, spec, method, *args):
         """Run one plugin method. PluginError messages are shown; anything else is logged."""
@@ -557,21 +908,118 @@ class Registry:
             if not agent_link.may_call_here(spec):
                 raise PluginError(f'{spec.name} runs on the local agent: Floorbit reaches the event network '
                                   'only through it.')
+        if method != 'migrate':
+            self.ensure_schema(spec)
         try:
             return getattr(cls(Context(spec, self)), method)(*args)
         except PluginError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        # BaseException too: a plugin's sys.exit() would otherwise end the worker serving the request.
+        except BaseException as exc:
+            if isinstance(exc, GeneratorExit):
+                raise
             self.log(spec.id, f'{method} failed: ' + ''.join(traceback.format_exception_only(exc)).strip())
             raise PluginError(f'{spec.name} failed ({type(exc).__name__}); details are in its log') from None
+
+    def schema_of(self, plugin_id):
+        """The schema this tenant's data of the plugin is at (0: never migrated)."""
+        value = self._record(plugin_id).get('schema')
+        return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+    def ensure_schema(self, spec):
+        """Move this tenant's data of the plugin up to its ``schema:`` before any other code of it
+        runs: ``migrate(from_schema, store)``, once, within MIGRATE_SECONDS. A failure leaves the
+        data marked at the old schema and the plugin refusing to run here (tried again after
+        MIGRATE_RETRY); data at a newer schema than the plugin knows is never handed to it."""
+        want = spec.manifest.get('schema') or 0
+        if not want or self.schema_of(spec.id) == want:
+            return
+        key = (self.path(), spec.id, want)
+        failed = self._migrate_failed.get(key)
+        if failed and time.monotonic() - failed[0] < MIGRATE_RETRY:
+            raise PluginError(failed[1])
+        with self._busy_lock:
+            lock = self._migrating.setdefault(spec.id, threading.Lock())
+        with lock:
+            from .. import database
+            try:
+                record = self._all(strict=True).get(spec.id) or {}
+            except database.DatabaseUnavailable:
+                raise PluginError(f"{spec.name} waits for Floorbit's database to move its data") from None
+            have = record.get('schema') if isinstance(record.get('schema'), int) else 0
+            if have == want:
+                return
+            if have > want:
+                raise PluginError(f"{spec.name} {spec.manifest.get('version', '')} knows its data up to schema "
+                                  f'{want}, but the data here is at schema {have}: install a newer version')
+            from .documents import Store
+            try:
+                self.timed(spec, 'migrate', have, Store(spec, self), timeout=MIGRATE_SECONDS)
+            except PluginError as exc:
+                message = f'{spec.name} could not move its data from schema {have} to {want}: {exc}'
+                self.log(spec.id, message)
+                self._migrate_failed[key] = (time.monotonic(), message)
+                raise PluginError(message) from None
+            self._update(spec.id, schema=want)
+            self._migrate_failed.pop(key, None)
+            self.log(spec.id, f'moved its data from schema {have} to {want}')
+
+    def timed(self, spec, method, *args, timeout=None):
+        """``call`` for a request that waits on it: an answer within ``timeout`` or a PluginError.
+
+        The call runs on its own thread with the request's context (tenant, event, app), so a
+        plugin that hangs costs one thread, not the request's worker; past CALLS_PER_PLUGIN of the
+        same plugin, the next is refused at once instead of piling up."""
+        timeout = REQUEST_BUDGET if timeout is None else timeout
+        with self._busy_lock:
+            if self._busy.get(spec.id, 0) >= CALLS_PER_PLUGIN:
+                raise PluginError(f'{spec.name} is still busy with earlier requests; try again shortly')
+            self._busy[spec.id] = self._busy.get(spec.id, 0) + 1
+        done = threading.Event()
+        box = {}
+        ctx = contextvars.copy_context()
+
+        def run():
+            try:
+                box['value'] = ctx.run(self.call, spec, method, *args)
+            except BaseException as exc:  # noqa: BLE001  # handed to the waiting request
+                box['error'] = exc
+            finally:
+                with self._busy_lock:
+                    self._busy[spec.id] = max(0, self._busy.get(spec.id, 1) - 1)
+                done.set()
+        threading.Thread(target=run, daemon=True, name=f'plugin-{spec.id}-call').start()
+        if not done.wait(timeout):
+            self.log(spec.id, f'{method} took longer than {timeout} s; the request gave up on it')
+            raise PluginError(f'{spec.name} did not answer within {timeout} s')
+        if 'error' in box:
+            raise box['error']
+        return box.get('value')
 
     def widget(self, spec, widget_id):
         item = spec.item('widgets', widget_id)
         try:
-            return check_widget(self.call(spec, f'widget_{widget_id}'), item)
+            return check_widget(self.timed(spec, f'widget_{widget_id}'), item)
         except WidgetError as exc:
             self.log(spec.id, f'widget {widget_id}: {exc}')
             raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
+
+    def panel(self, spec, panel_id, target):
+        """The panel's widget for one seat, switch or device (``target``: its id). Drawn like a tile."""
+        item = spec.item('panels', panel_id)
+        try:
+            return check_widget(self.timed(spec, f'panel_{panel_id}', {'kind': item['for'], 'id': target}), item)
+        except WidgetError as exc:
+            self.log(spec.id, f'panel {panel_id}: {exc}')
+            raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
+
+    def layer(self, spec, layer_id):
+        """The layer's seats and legend, checked: ``{seats: {id: {tone, label}}, legend: [{tone, label}]}``."""
+        try:
+            return check_layer(self.timed(spec, f'layer_{layer_id}'))
+        except WidgetError as exc:
+            self.log(spec.id, f'layer {layer_id}: {exc}')
+            raise PluginError(f'{spec.name} returned a layer Floorbit can\'t draw') from None
 
     def feeders(self, area):
         """The plugins that are on and feed this area (``inventory``), in id order."""
@@ -620,37 +1068,83 @@ class Registry:
     # hooks ---------------------------------------------------------------------------------
     def emit(self, event, data):
         """Run hooked actions in the background, so a slow plugin never slows a request."""
+        jobs = []
         for spec in list(self.specs.values()):
-            if spec.error or not self.enabled(spec):
+            hooks = [h for h in spec.items('hooks') if event in h.get('events', [])]
+            if not hooks or spec.error or not self.enabled(spec):
                 continue
-            for hook in spec.items('hooks'):
-                if event in hook.get('events', []):
-                    threading.Thread(target=self._run_hook, args=(spec, hook['action'], event, data),
-                                     daemon=True, name=f'plugin-{spec.id}').start()
+            jobs += [(spec, h['action']) for h in hooks]
+        if not jobs:
+            return
+        if HOOKS_INLINE:
+            for spec, action in jobs:
+                self._run_hook(spec, action, event, data)
+            return
+        ctx = contextvars.copy_context()   # the tenant and event the change happened in
+        with self._hooks_cv:
+            for spec, action in jobs:
+                if len(self._hooks) >= HOOK_QUEUE:
+                    old = self._hooks.popleft()
+                    self.hooks_dropped += 1
+                    self.log(old[1].id, f'hook {old[3]} -> {old[2]} dropped: too many waiting ({HOOK_QUEUE})')
+                self._hooks.append((ctx, spec, action, event, data))
+            if self._hook_threads < HOOK_WORKERS:
+                self._hook_threads += 1
+                threading.Thread(target=self._hook_worker, daemon=True, name='plugin-hooks').start()
+            self._hooks_cv.notify()
+
+    def _hook_worker(self):
+        while True:
+            with self._hooks_cv:
+                if not self._hooks and not self._hooks_cv.wait_for(lambda: self._hooks, timeout=30):
+                    self._hook_threads -= 1    # idle: the next burst starts a new one
+                    return
+                ctx, spec, action, event, data = self._hooks.popleft()
+            ctx.run(self._run_hook, spec, action, event, data)
+
+    def hooks_waiting(self):
+        with self._hooks_cv:
+            return len(self._hooks)
 
     def _run_hook(self, spec, action, event, data):
         try:
             self.call(spec, f'run_{action}', {'event': event, 'data': data})
         except PluginError as exc:
             self.log(spec.id, f'hook {event} -> {action}: {exc}')
+        except Exception as exc:  # noqa: BLE001  # a worker must outlive any hook
+            self.log(spec.id, f'hook {event} -> {action} failed: {type(exc).__name__}')
 
-    def as_list(self):
+    def as_list(self, lang='en'):
         out = []
         for spec in self.specs.values():
+            def t(text, spec=spec):
+                return self.text(spec, text, lang)
             out.append({
-                'id': spec.id, 'name': spec.name, 'version': str(spec.manifest.get('version', '')),
-                'description': spec.manifest.get('description', ''), 'trust': spec.trust,
+                'id': spec.id, 'name': t(spec.name), 'icon': spec.manifest.get('icon') or '',
+                'version': str(spec.manifest.get('version', '')),
+                'description': t(spec.manifest.get('description', '')), 'trust': spec.trust,
                 'author': spec.manifest.get('author', ''), 'homepage': spec.manifest.get('homepage', ''),
                 'uses': [{'id': u, 'label': AREAS.get(u, u)} for u in spec.uses if u in AREAS],
                 'enabled': self.enabled(spec), 'error': spec.error,
                 'settings_section': (spec.manifest.get('core_settings') or
                                      (f'plugin-{spec.id}' if spec.items('settings') and not spec.error else None)),
                 'default_enabled': bool(spec.manifest.get('default_enabled')),
-                'actions': [{k: a.get(k) for k in ('id', 'label', 'role', 'permission', 'danger', 'help')}
+                'schema': spec.manifest.get('schema') or 0,
+                'data_schema': self.schema_of(spec.id) if spec.manifest.get('schema') else 0,
+                'actions': [{**{k: a.get(k) for k in ('id', 'role', 'permission', 'danger')},
+                             'label': t(a.get('label')), 'help': t(a.get('help'))}
                             for a in spec.items('actions')],
-                'widgets': [{k: w.get(k) for k in ('id', 'label', 'size', 'refresh', 'role', 'permission')}
+                'widgets': [{**{k: w.get(k) for k in ('id', 'size', 'refresh', 'role', 'permission')},
+                             'label': t(w.get('label'))}
                             for w in spec.items('widgets')],
-                'endpoints': [{'id': e['id'], 'label': e.get('label'),
+                'panels': [{'id': p['id'], 'for': p['for'], 'label': t(p.get('label')), 'permission': p['permission']}
+                           for p in spec.items('panels')],
+                'layers': [{'id': p['id'], 'label': t(p.get('label')), 'permission': p['permission']}
+                           for p in spec.items('layers')],
+                'pages': [{'id': p['id'], 'label': t(p.get('label')), 'permission': p['permission'],
+                           'href': f"/plugins/{spec.id}/{p['id']}"}
+                          for p in spec.items('pages')],
+                'endpoints': [{'id': e['id'], 'label': t(e.get('label')),
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}
                               for e in spec.items('endpoints')],
                 'hooks': [{'events': h['events'], 'action': h['action']} for h in spec.items('hooks')],

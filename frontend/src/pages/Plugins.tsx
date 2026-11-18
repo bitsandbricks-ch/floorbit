@@ -14,8 +14,20 @@ import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
 import Marketplace from './plugins/Marketplace'
 import { pluginName } from '@/lib/pluginName'
+import { PluginIcon } from './plugins/icon'
 
 type Result = { ok: boolean; text: string } | null
+
+
+/** Where the plugin's own documents stand against the ``schema:`` this version knows. */
+function DataSchema({ plugin }: { plugin: PluginInfo }) {
+  const { t } = useTranslation()
+  const want = plugin.schema ?? 0
+  const have = plugin.data_schema ?? 0
+  if (have === want) return <Text size="sm" c="dimmed">{t('plugins.schemaOk', { n: want })}</Text>
+  if (have > want) return <Text size="sm" className="fb-tone-err">{t('plugins.schemaNewer', { have, want })}</Text>
+  return <Text size="sm" className="fb-tone-warn">{t('plugins.schemaBehind', { have, want })}</Text>
+}
 
 function PluginLog({ id }: { id: string }) {
   const { t } = useTranslation()
@@ -94,6 +106,7 @@ export function PluginCard({ plugin, titled = true }: { plugin: PluginInfo; titl
     <Paper withBorder radius="lg" p="lg" component="section" id={`pl-${plugin.id}`}>
       <Stack gap="sm">
         <Group gap="sm" wrap="wrap">
+          {titled && <PluginIcon name={plugin.icon} size={34} />}
           {titled && <Title order={3} fz="lg">{pluginName(t, plugin.id, plugin.name)}</Title>}
           <Badges plugin={plugin} />
           <OnOff plugin={plugin} toggle={toggle} />
@@ -111,6 +124,7 @@ export function PluginCard({ plugin, titled = true }: { plugin: PluginInfo; titl
             </Badge>
           ))}
         </Group>
+        {plugin.schema ? <DataSchema plugin={plugin} /> : null}
         <Group gap="xs" wrap="wrap">
           {plugin.enabled && plugin.has_test && (
             <Button variant="default" disabled={busy} onClick={() => test.mutate()}>
@@ -144,6 +158,7 @@ function PluginRow({ plugin }: { plugin: PluginInfo }) {
     <Paper withBorder radius="lg" p="md" component="li" id={`pl-${plugin.id}`}>
       <Stack gap={6}>
         <Group gap="sm" wrap="wrap">
+          <PluginIcon name={plugin.icon} />
           <Title order={2} fz="md"><Anchor href={href} inherit>{pluginName(t, plugin.id, plugin.name)}</Anchor></Title>
           <Badges plugin={plugin} />
           <OnOff plugin={plugin} toggle={toggle} />

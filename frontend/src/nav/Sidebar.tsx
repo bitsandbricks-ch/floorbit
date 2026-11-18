@@ -8,7 +8,7 @@ import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n/lang'
 import { fetchOtherTenants, readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
 import './nav.css'
-import { activeHref, customIcon, group, linkIcon, pageIcon, sectionIcon, type CustomLink, type NavPage } from './sections'
+import { activeHref, customIcon, group, isPluginPage, linkIcon, pageIcon, sectionIcon, type CustomLink, type NavPage } from './sections'
 
 export interface LinkProps {
   href: string
@@ -189,8 +189,8 @@ function Panel(props: PanelProps) {
   }, [flyout])
 
   const row = (p: NavPage, star = !rail) => {
-    const Icon = pageIcon(p.id)
-    const label = t(`goto.pages.${p.id}`, { defaultValue: p.label })
+    const Icon = pageIcon(p.id, p.icon)
+    const label = isPluginPage(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label })
     const badge = p.id === 'problems' && props.down ? props.down : null
     const fav = isFav(p.id)
     return (

@@ -24,6 +24,7 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
   over one open connection. The agent falls back to the long poll when it can't be opened.
 """
 import json
+import math
 import threading
 import time
 import zlib
@@ -34,7 +35,7 @@ from simple_websocket import ConnectionClosed
 
 from integrations import events
 
-from .. import agent_link, audit, features, spa
+from .. import agent_clock, agent_link, audit, features, spa
 
 bp = Blueprint('agent', __name__)
 sock = Sock()
@@ -44,6 +45,10 @@ LINK_PATH = '/api/agent/v2/link'
 LINK_TAKE = 5            # seconds the link waits for calls before it looks at the connection again
 LINK_PING = 20           # a message at least this often, so proxies keep the connection open
 LINK_IDLE = 60           # an agent silent for this long is gone: close, it reconnects
+# A frozen agent or a cut line sends no close: when the agent sits on a call this long without a
+# word, ask it (a ping it echoes); no word back within LINK_PROBE_WAIT and the link is dead.
+LINK_PROBE = 3
+LINK_PROBE_WAIT = 5
 
 
 @bp.record_once
@@ -236,7 +241,8 @@ def syslog():
     body = _agent_body()
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
-    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped)
+    taken = receiver.relay(agent['name'], lines[:SYSLOG_BATCH], dropped=dropped,
+                          offset=agent_clock.offset(agent))
     if lines:
         agent_link.tunnel.relayed(agent['id'], 'syslog', taken)
     return jsonify({'taken': taken, 'received': min(len(lines), SYSLOG_BATCH)})
@@ -246,7 +252,16 @@ def syslog():
 FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
              'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
              'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
-             'templates_missing': None, 'errors': None}
+             'templates_missing': None, 'errors': None, 'refused': None}
+
+
+# What each row of a list needs before a page reads it (the rest is checked by type in _flow_value).
+_NUM = (int, float)
+FLOW_ROWS = {'services': {'name': str, 'bytes': _NUM, 'seats': _NUM},
+             'anomalies': {'id': str, 'kind': str, 'first_seen': _NUM, 'last_seen': _NUM, 'title': str, 'detail': str},
+             'areas': {'area': str, 'bytes': _NUM}, 'seats': {'seat': str, 'bytes': _NUM}, 'series': {'t': _NUM},
+             'exporters': {'address': str}}
+FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}
 
 
 def _traffic_off():
@@ -317,6 +332,35 @@ def flows():
     return jsonify({'ok': True})
 
 
+def _flow_scalar(value):
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, (int, float)):
+        return value if math.isfinite(value) and abs(value) < 2 ** 63 else None
+    if isinstance(value, str):
+        return value[:300]
+    return None
+
+
+def _flow_value(value, depth=0):
+    """A summary value in the shapes the Traffic, Games and wall pages read: numbers, short texts,
+    rows of those, and one level of maps inside a row (a seat's ``mix``). An agent of another
+    version, or a broken one, must not leave a list where a page adds up numbers."""
+    if isinstance(value, list):
+        if depth:
+            return None
+        return [row for row in (_flow_value(v, 1) for v in value[:5000]) if isinstance(row, dict)]
+    if isinstance(value, dict):
+        if depth > 1:
+            return None
+        out = {}
+        for k, v in list(value.items())[:500]:
+            v = _flow_value(v, depth + 1) if isinstance(v, dict) else _flow_scalar(v)
+            if v is not None:
+                out[str(k)[:120]] = v
+        return out
+    return _flow_scalar(value)
+
 def take_flow_summary(agent, snap):
     """Keep an agent's traffic summary (also the Traffic from the hall plugin's). False: not one."""
     if not isinstance(snap, dict) or not isinstance(snap.get('updated'), (int, float)):
@@ -324,7 +368,16 @@ def take_flow_summary(agent, snap):
     clean = {}
     for key, most in FLOW_KEYS.items():
         if key in snap:
-            value = snap[key]
+            value = _flow_value(snap[key])
+            if key in FLOW_ROWS:
+                needs = FLOW_ROWS[key]
+                value = value if isinstance(value, list) else []
+                value = [r for r in value if all(isinstance(r.get(k), kind) and not isinstance(r.get(k), bool)
+                                                 for k, kind in needs.items())]
+            elif key in FLOW_MAPS and not isinstance(value, dict):
+                value = {}
+            elif key not in FLOW_MAPS and isinstance(value, (list, dict)):
+                value = None
             clean[key] = value[:most] if most and isinstance(value, list) else value
     from .. import agent_ha
     if agent_ha.standby_with_primary(agent['id'], time.time()):
@@ -353,6 +406,18 @@ def link(ws):
     ``{"type": "ping"}`` both ways keeps it alive. Syslog and flows stay on their HTTPS posts."""
     agent = g.link_agent
     gone = threading.Event()
+    released = []
+    heard = [time.monotonic()]       # when the agent last said anything
+    release_lock = threading.Lock()
+
+    def release():
+        # Whichever side sees the link end first: the reader at once, the sender within LINK_TAKE.
+        with release_lock:
+            if released:
+                return
+            released.append(True)
+        if agent_link.tunnel.unlinked(agent['id']):
+            events.publish('agents.changed', {})
 
     def read():
         try:
@@ -360,7 +425,8 @@ def link(ws):
                 raw = ws.receive(timeout=LINK_IDLE)
                 if raw is None:
                     break
-                agent_link.tunnel.seen(agent=agent['id'])
+                heard[0] = time.monotonic()
+                agent_link.tunnel.seen_on_link(agent['id'])
                 try:
                     message = json.loads(raw)
                 except (TypeError, ValueError):
@@ -373,19 +439,34 @@ def link(ws):
             pass
         finally:
             gone.set()
+            release()
 
+    agent_link.tunnel.linked(agent['id'])
     threading.Thread(target=read, name='agent-link-read', daemon=True).start()
     events.publish('agents.changed', {})
     ws.send(json.dumps({'type': 'hello', 'name': agent['name'], 'protocol': agent_link.PROTOCOL}))
     quiet_since = time.monotonic()
+    probed = None
     try:
         while not gone.is_set():
             if not agent_link.enrolled(agent['id']):
                 # Revoked while connected: the key is no good any more, so neither is this link.
                 ws.close(reason=1008, message='The agent key was revoked.')
                 break
-            agent_link.tunnel.seen(agent=agent['id'])
-            calls = agent_link.tunnel.take(LINK_TAKE, agent=agent['id'])
+            now = time.monotonic()
+            if probed is not None and heard[0] >= probed:
+                probed = None
+            if probed is not None and now - probed > LINK_PROBE_WAIT:
+                release()                # pages stop waiting now, whatever the close below does
+                ws.close(reason=1001, message='The agent stopped answering.')
+                break
+            if (probed is None and now - heard[0] > LINK_PROBE
+                    and agent_link.tunnel.waiting_on(agent['id'], LINK_PROBE, now)):
+                ws.send(json.dumps({'type': 'ping'}))
+                probed = quiet_since = now
+            if now - heard[0] < LINK_IDLE:
+                agent_link.tunnel.seen_on_link(agent['id'])
+            calls = agent_link.tunnel.take(1 if probed is not None else LINK_TAKE, agent=agent['id'])
             if calls and gone.is_set():
                 agent_link.tunnel.give_back(calls)
                 break
@@ -401,6 +482,7 @@ def link(ws):
                 quiet_since = time.monotonic()
     finally:
         gone.set()
+        release()
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).

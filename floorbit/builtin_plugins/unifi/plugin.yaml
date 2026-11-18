@@ -2,6 +2,7 @@
 # turned on under Settings > Plugins. It only reads: give it a View Only account.
 id: unifi
 name: UniFi
+icon: access-point
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Live status, ports and traffic of UniFi switches, and which switch port an IP or MAC is on (from the controller's client list). Feeds the floor plan, the status monitor, the seat inspector, the check-in page and the Wi-Fi view (access point load and client counts). Only reads: use a View Only account."

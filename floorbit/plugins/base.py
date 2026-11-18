@@ -14,7 +14,6 @@ Adapted from labdex (labdex/plugins/base.py, AGPL-3.0, by the same author). See 
 """
 from __future__ import annotations
 
-import json
 import threading
 import time
 from collections import deque
@@ -121,11 +120,14 @@ class Context:
 
     def set_state(self, key, value):
         self._registry.require(self.spec, 'storage')
-        state = dict(self._registry.state_of(self.spec.id))
-        state[str(key)] = value
-        if len(json.dumps(state, default=str)) > STATE_MAX_BYTES:
-            raise PluginError(f'Plugin state is limited to {STATE_MAX_BYTES // 1024} KB')
-        self._registry.save_state(self.spec.id, state)
+        self._registry.set_state_key(self.spec.id, key, value, STATE_MAX_BYTES)
+
+    # its own JSON documents (floorbit/plugins/documents.py) ------------------------
+    def docs(self, collection):
+        """One of its collections: ``get(id)``, ``put(id, doc)``, ``delete(id)``, ``ids()``, ``all()``."""
+        from .documents import Collection
+        self._registry.require(self.spec, 'documents')
+        return Collection(self.spec.id, collection)
 
 
 class Plugin:

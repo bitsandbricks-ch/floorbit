@@ -57,6 +57,29 @@ describe('Marketplace', () => {
     await waitFor(() => expect(api.calls.some((c) => c.path.endsWith('/rollback'))).toBe(true))
   })
 
+  it('shows what a plugin may touch before it is installed', async () => {
+    const touching: MarketPlugin = {
+      ...fresh,
+      touches: {
+        uses: ['settings', 'actions'], permissions: ['floorplan.edit'], secrets: 2,
+        sends: { cache_stats: 'aggregate' }, hall_actions: ['purge'], credentials: ['ssh'],
+      },
+    }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: true, user: { username: 'admin', display_name: 'Admin', role: 'admin' } },
+      'GET /api/settings/marketplace': catalog([touching]),
+    }).fn)
+    renderWithApp(<Marketplace />)
+    const card = await screen.findByRole('region', { name: 'Hall thing' })
+    const list = within(card).getByLabelText('What it may touch')
+    expect(list).toHaveTextContent('its own settings, buttons that run its code')
+    expect(list).toHaveTextContent('Change the floor plan and the inventory, run syncs')
+    expect(list).toHaveTextContent('cache_stats (hall-wide numbers)')
+    expect(list).toHaveTextContent('purge')
+    expect(list).toHaveTextContent('SSH')
+    expect(list).toHaveTextContent('2 secret settings (write-only)')
+  })
+
   it('says when the index cannot be trusted', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': { enabled: true, user: { username: 'admin', display_name: 'Admin', role: 'admin' } },

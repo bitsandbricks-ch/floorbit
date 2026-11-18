@@ -41,6 +41,7 @@ _lock = threading.Lock()
 _queue = collections.deque()          # jobs waiting to be sent
 _log = collections.defaultdict(lambda: collections.deque(maxlen=LOG_SIZE))
 _wake = threading.Event()
+_sending = 0                          # jobs taken off the queue and not finished yet
 
 
 class WebhookError(ValueError):
@@ -252,13 +253,33 @@ def _run_job(job):
 def drain(now=None, ignore_due=False):
     """Send every job that is due. The worker calls this; tests call it with ignore_due."""
     now = time.time() if now is None else now
+    global _sending
     with _lock:
         due = [j for j in _queue if ignore_due or j['due'] <= now]
         for j in due:
             _queue.remove(j)
-    for job in due:
-        _run_job(job)
+        _sending += len(due)
+    try:
+        for job in due:
+            _run_job(job)
+    finally:
+        with _lock:
+            _sending -= len(due)
     return len(due)
+
+
+def settle(timeout=5.0):
+    """Drop what is waiting and wait for jobs being sent to finish. A job still running would write
+    its result after everything else stopped (shutdown, or the next test's fresh data)."""
+    with _lock:
+        _queue.clear()
+    end = time.time() + timeout
+    while time.time() < end:
+        with _lock:
+            if not _sending:
+                return True
+        time.sleep(0.01)
+    return False
 
 
 def pending():

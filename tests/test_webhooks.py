@@ -38,7 +38,9 @@ def receiver(monkeypatch):
     events.subscribe_once("*", webhooks.on_event)
     with webhooks._lock:
         webhooks._queue.clear()
-    return sent, answers
+    yield sent, answers
+    # The sender thread may be half way through a job: let it write before the next test's data exists.
+    assert webhooks.settle()
 
 
 def _settle(sent, count, timeout=3):

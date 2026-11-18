@@ -57,8 +57,9 @@ def _next_label(cables):
     return f'C-{n:04d}'
 
 
-def clean(body, cables, current=None):
-    """A cable from the browser or a plugin, checked. Raises CableError."""
+def clean(body, cables, current=None, panels=None):
+    """A cable from the browser or a plugin, checked. Raises CableError. ``panels``: the patch
+    panels to check the panel port against (default: the saved ones; a restore passes its own)."""
     out = {f: _text(body.get(f), LIMITS[f]) for f in LIMITS}
     out['seat'] = out['seat'].upper()
     port = _text(body.get('port'), 48)
@@ -67,7 +68,7 @@ def clean(body, cables, current=None):
     out['port'] = port
     if out['panel_port'] and not out['panel']:
         raise CableError('Name the patch panel for that panel port.')
-    _check_panel_port(out, cables, current)
+    _check_panel_port(out, cables, current, panels)
     length = body.get('length_m')
     if length in (None, ''):
         out['length_m'] = None
@@ -105,12 +106,12 @@ def clean(body, cables, current=None):
     return out
 
 
-def _check_panel_port(out, cables, current):
+def _check_panel_port(out, cables, current, panels=None):
     """A panel placed with its port count takes ports 1 to that, and one cable per panel port."""
     if not out['panel'] or not out['panel_port']:
         return
-    from .cable_plan import find_panel
-    panel = find_panel(load_data(), out['panel'])
+    from .cable_plan import PANELS_KEY, find_panel
+    panel = find_panel(load_data() if panels is None else {PANELS_KEY: panels}, out['panel'])
     ports = int((panel or {}).get('ports') or 0)
     if ports and not (out['panel_port'].isdigit() and 1 <= int(out['panel_port']) <= ports):
         raise CableError(f"{panel['name']} has ports 1 to {ports}.")

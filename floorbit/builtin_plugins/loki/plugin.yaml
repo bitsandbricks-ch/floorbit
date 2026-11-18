@@ -2,6 +2,7 @@
 # Off until turned on under Settings > Plugins.
 id: loki
 name: Grafana Loki
+icon: book
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "Sends the syslog lines Floorbit receives to Grafana Loki, to keep them longer than a day, and searches them with LogQL on the Logs page."

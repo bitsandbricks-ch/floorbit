@@ -2,7 +2,9 @@
 the watts per meter id. Later generations answer /rpc/Shelly.GetStatus (digest auth), the first
 /status (basic auth)."""
 import hashlib
+import http.client
 import json
+import math
 import urllib.error
 import urllib.request
 
@@ -12,6 +14,11 @@ CREDENTIAL = 'shelly'
 TIMEOUT = 4
 # Later generations: where each kind of channel says its power.
 RPC_POWER = {'switch': 'apower', 'pm1': 'apower', 'cover': 'apower', 'em1': 'act_power', 'em': 'total_act_power'}
+
+
+def _watts(value):
+    # A real reading: a finite number, not True (JSON lets a device send NaN, and bool is an int).
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 class Refused(Exception):
@@ -33,25 +40,32 @@ def parse_devices(text):
 def watts_from_rpc(status, channel=None):
     """Watts from a later generation's Shelly.GetStatus: one channel, or all of them added up."""
     total, found = 0.0, False
+    if not isinstance(status, dict):
+        return None
     for key, value in status.items():
         kind = key.split(':')[0]
         if kind not in RPC_POWER or not isinstance(value, dict) or (channel and key != channel):
             continue
         power = value.get(RPC_POWER[kind])
-        if isinstance(power, (int, float)) and not isinstance(power, bool):
+        if _watts(power):
             total, found = total + power, True
     return round(total, 1) if found else None
 
 
 def watts_from_status(status, channel=None):
     """Watts from a first generation's /status: meters (plugs, relays) or emeters (EM, 3EM)."""
-    rows = (status.get('meters') or []) + (status.get('emeters') or [])
+    if not isinstance(status, dict):
+        return None
+    rows = [r for key in ('meters', 'emeters') if isinstance(status.get(key), list) for r in status[key]]
     if channel is not None:
         try:
-            rows = [rows[int(channel)]]
+            index = int(channel)
+            if index < 0:
+                return None
+            rows = [rows[index]]
         except (ValueError, IndexError):
             return None
-    powers = [r.get('power') for r in rows if isinstance(r, dict) and isinstance(r.get('power'), (int, float))]
+    powers = [r.get('power') for r in rows if isinstance(r, dict) and _watts(r.get('power'))]
     return round(sum(powers), 1) if powers else None
 
 
@@ -102,8 +116,9 @@ class AgentPlugin(Base):
                 self.ctx.auth_failed(host, CREDENTIAL, self.rev, f'{host} refused the password (HTTP {exc})')
                 failed.append(f'{meter}: password refused')
                 continue
-            except (OSError, ValueError) as exc:
-                failed.append(f'{meter}: {getattr(exc, "reason", exc)}')
+            except (OSError, ValueError, http.client.HTTPException) as exc:
+                # HTTPException: something that isn't a web server answers at that address.
+                failed.append(f'{meter}: {getattr(exc, "reason", exc) or type(exc).__name__}')
                 continue
             if watts is None:
                 failed.append(f'{meter}: {host} has no power reading{" on " + channel if channel else ""}')
@@ -123,10 +138,14 @@ class AgentPlugin(Base):
     def loop(self):
         while not self.ctx.stopping.is_set():
             # Two agents in one hall (VRRP): only the primary asks, so no device is asked twice.
-            if self.ctx.primary():
-                self.tick()
-            else:
-                self.ctx.health('ok', 'Standby: the primary agent reads the meters')
+            try:
+                if self.ctx.primary():
+                    self.tick()
+                else:
+                    self.ctx.health('ok', 'Standby: the primary agent reads the meters')
+            except Exception as exc:  # noqa: BLE001  # one odd round must not stop the readings for the event
+                self.ctx.health('error', f'a round failed: {type(exc).__name__}: {exc}'[:300])
+                self.ctx.error(f'a round failed: {type(exc).__name__}: {exc}')
             self.ctx.stopping.wait(self.interval)
 
     def check(self):

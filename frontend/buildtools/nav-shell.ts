@@ -33,7 +33,7 @@ export function navShell(i18nDir: string) {
       // Rows: 18 px in the sidebar; the phone bar uses 22 px.
       page: Object.fromEntries([...ids, '*'].map((id) => [id, svg(pageIcon(id), 18, 'fb-nav-icon')])),
       tab: Object.fromEntries([...ids, '*'].map((id) => [id, svg(pageIcon(id), 22)])),
-      section: Object.fromEntries([...SECTIONS.map((s) => s.id), 'more' as const].map((id) => [id, svg(sectionIcon(id), 18, 'fb-nav-icon')])),
+      section: Object.fromEntries([...SECTIONS.map((s) => s.id), 'plugins' as const, 'more' as const].map((id) => [id, svg(sectionIcon(id), 18, 'fb-nav-icon')])),
       // The admins' own sections (floorbit/nav_sections.py) and their dashboard and address rows.
       custom: Object.fromEntries(Object.entries(CUSTOM_ICONS).map(([id, icon]) => [id, svg(icon, 18, 'fb-nav-icon')])),
       link: {

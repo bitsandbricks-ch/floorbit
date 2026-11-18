@@ -4,6 +4,7 @@ Run as ``python -m floorbit.flows`` (the ``flows`` service in docker-compose.yml
 same state volume as the app for the seat addresses, keeps raw flows for ``FLOWS_RETENTION_DAYS``
 and publishes a summary to Redis every few seconds.
 """
+import ipaddress
 import socket
 import time
 
@@ -17,6 +18,7 @@ PUBLISH_EVERY = 10
 SEATS_EVERY = 60
 PRUNE_EVERY = 3600
 FEATURE_EVERY = 30
+ALLOW_EVERY = 30
 
 
 class Collector:
@@ -26,16 +28,25 @@ class Collector:
         self.templates = Templates()
         self.log = log
         self.errors = 0
+        self.refused = 0
+        self._allow = (None, None)     # (monotonic time read, networks or None for everyone)
         self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0}
         self._pending = []
         self._on = True
         self.publish = store.publish   # the local agent sends the summary to the hosted Floorbit instead
 
+    def _due(self, name, now, every):
+        """Time for this chore again? Also when the clock was set back past its schedule, else
+        publishing stopped until the clock caught up."""
+        if now >= self._next[name] or self._next[name] - now > every:
+            self._next[name] = now + every
+            return True
+        return False
+
     def enabled(self, now=None):
         """Is Traffic switched on (Settings > Features)? Asked every half minute, not per packet."""
         now = time.time() if now is None else now
-        if now >= self._next['feature']:
-            self._next['feature'] = now + FEATURE_EVERY
+        if self._due('feature', now, FEATURE_EVERY):
             from .. import features
             try:
                 self._on = features.on('traffic')
@@ -43,8 +54,41 @@ class Collector:
                 self.log(f'[flows] could not read the feature switches: {exc}')
         return self._on
 
+    def _networks(self):
+        """The ``FLOWS_ALLOW`` networks, or None when it is empty (everyone may send, as before)."""
+        at, nets = self._allow
+        if at is not None and time.monotonic() - at < ALLOW_EVERY:
+            return nets
+        entries = [e.strip() for e in (config.get('FLOWS_ALLOW') or '').split(',') if e.strip()]
+        nets = []
+        for entry in entries:
+            try:
+                nets.append(ipaddress.ip_network(entry, strict=False))
+            except ValueError:
+                self.log(f'[flows] FLOWS_ALLOW: {entry!r} is not an address or network, left out')
+        # Only typos: refuse everyone rather than quietly let everyone in.
+        self._allow = (time.monotonic(), nets if entries else None)
+        return self._allow[1]
+
+    def exporter_ok(self, exporter):
+        nets = self._networks()
+        if nets is None:
+            return True
+        try:
+            ip = ipaddress.ip_address(str(exporter).split('%')[0])
+        except ValueError:
+            return False
+        return any(ip in net for net in nets)
+
     def receive(self, data, exporter, now=None):
         now = time.time() if now is None else now
+        # Anyone on the event network can send UDP here; a forged packet would add made-up
+        # traffic to a seat, so with FLOWS_ALLOW set only those exporters count.
+        if not self.exporter_ok(exporter):
+            self.refused += 1
+            if self.refused <= 5 or self.refused % 1000 == 0:
+                self.log(f'[flows] refused a packet from {exporter}: not in FLOWS_ALLOW ({self.refused} so far)')
+            return 0
         try:
             flows = parse(data, exporter, self.templates)
         except (ParseError, ValueError, IndexError) as exc:
@@ -58,8 +102,7 @@ class Collector:
 
     def housekeeping(self, now=None, refresh_seats=None):
         now = time.time() if now is None else now
-        if now >= self._next['seats']:
-            self._next['seats'] = now + SEATS_EVERY
+        if self._due('seats', now, SEATS_EVERY):
             try:
                 self.agg.set_seats(*(refresh_seats or seat_maps)())
             except Exception as exc:  # noqa: BLE001  # keep counting with the old map
@@ -68,17 +111,16 @@ class Collector:
         try:
             self.raw.write(pending, now=now)
             self.raw.append_hours(self.agg.take_closed_hours())
-            if now >= self._next['prune']:
-                self._next['prune'] = now + PRUNE_EVERY
+            if self._due('prune', now, PRUNE_EVERY):
                 self.raw.prune(now=now)
         except OSError as exc:
             self.log(f'[flows] could not write to {self.raw.root}: {exc}')
-        if now >= self._next['publish']:
-            self._next['publish'] = now + PUBLISH_EVERY
+        if self._due('publish', now, PUBLISH_EVERY):
             snap = self.agg.snapshot(now=now)
             snap['raw'] = self.raw.usage()
             snap['templates_missing'] = self.templates.missing
             snap['errors'] = self.errors
+            snap['refused'] = self.refused
             self.publish(snap)
 
     def serve(self, host='0.0.0.0', port=2055):

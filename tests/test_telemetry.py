@@ -584,3 +584,29 @@ def test_a_refused_inventory_login_blocks_the_stored_credential():
     finally:
         pollers.POLLERS["nxapi"] = old
     assert seen == [("may", "dev-1", "cred-1", "r1"), ("failed", "dev-1", "cred-1", "r1")]
+
+
+def test_a_series_name_the_table_cannot_hold_is_left_out_alone():
+    """A NUL byte or an over-long name stopped the whole sample at that row on Postgres."""
+    s = storage.Storage()
+    s.sample({"sw1|Gi1/0/1|up": 1, "sw\x001||up": 1, "x" * 400 + "||up": 1}, now=3600)
+    assert set(s.memory) == {"sw1|Gi1/0/1|up"}
+
+
+def test_a_big_sample_goes_in_few_statements_and_every_number_lands(tmp_path):
+    """One INSERT per number took longer than a sample's interval at a bigger event."""
+    from floorbit import database
+    db = database.Sql(f"sqlite:///{tmp_path / 'tele.db'}", str(tmp_path))
+    statements = []
+    run = db.run
+    db.run = lambda sql, *a, **kw: (statements.append(sql), run(sql, *a, **kw))[1]
+    store = storage.Storage(db)
+    now = 1_800_000_000
+    values = {f"sw-{i // 52}|Gi1/0/{i % 52}|in_bps": float(i) for i in range(1000)}
+    store.sample(values, now)
+    store.sample({**values, "sw-0|Gi1/0/0|in_bps": 7.0}, now)       # same bucket: the new number wins
+    inserts = [s for s in statements if s.startswith("INSERT")]
+    assert len(inserts) == 2 * 2 * 1000 // storage.CHUNK
+    assert store.series("sw-0", "Gi1/0/0", "in_bps", hours=1, now=now) == [[now, 7.0]]
+    assert store.series("sw-19", "Gi1/0/11", "in_bps", hours=1, now=now) == [[now, 999.0]]
+    db.close()

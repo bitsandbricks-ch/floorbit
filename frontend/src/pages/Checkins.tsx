@@ -1,5 +1,5 @@
 import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
-import { IconPlugOff, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
+import { IconPlugConnectedX, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -81,11 +81,16 @@ export default function Checkins() {
           <Alert color="warn" role="alert">{t('crewCheckin.verifierError', { error: d.verifier.last_error })}</Alert>
         )}
         {disabled ? (
-          <Panel>
-            <EmptyState icon={<IconPlugOff size={24} />} title={t('crewCheckin.off.title')}
-              desc={canSettings ? t('crewCheckin.off.desc') : t('crewCheckin.off.askAdmin')}
-              action={canSettings && <Button component={Link} to="/settings/sources" variant="default">{t('crewCheckin.off.open')}</Button>} />
-          </Panel>
+          <>
+            <Panel>
+              <EmptyState icon={<IconPlugConnectedX size={24} />} title={t('crewCheckin.off.title')}
+                desc={t(canSettings ? 'crewCheckin.off.desc' : 'crewCheckin.off.askAdmin')}
+                action={canSettings && (
+                  <Button component={Link} to="/settings/checkin">{t('crewCheckin.off.turnOn')}</Button>
+                )} />
+            </Panel>
+            <History />
+          </>
         ) : query.isPending || !d ? <LoadingState /> : (
           <>
             <div className="fb-stat-row">

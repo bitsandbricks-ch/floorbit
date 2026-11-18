@@ -31,6 +31,12 @@
   "noMatch": "Kein Plugin passt.",
   "notFound": "Es gibt kein Plugin «{{id}}».",
   "installedTitle": "Installiert",
+  "schemaOk": "Seine Daten: Schema {{n}}",
+  "schemaBehind": "Seine Daten sind auf Schema {{have}} und werden beim nächsten Lauf des Plugins auf {{want}} umgestellt.",
+  "schemaNewer": "Seine Daten sind auf Schema {{have}}, neuer als diese Version kennt ({{want}}). Installiere eine neuere Version.",
+  "pageTitle": "Plugin-Seite",
+  "pageFrom": "Von {{plugin}}",
+  "pageEmpty": "Auf dieser Seite ist nichts für dein Konto.",
   "names": {
     "captive-note": "Check-in-Hinweis auf Handys",
     "demo": "Demodaten",

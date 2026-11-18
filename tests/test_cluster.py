@@ -33,8 +33,9 @@ class MemoryBus:
         for handler in list(self.listeners):
             handler(message)
 
-    def listen(self, channel, handler, stop):
+    def listen(self, channel, handler, stop, on_resume=None):
         self.listeners.append(handler)
+        self.on_resume = on_resume
 
     def push(self, key, message, ttl=None):
         with self.cond:
@@ -169,6 +170,20 @@ def test_cluster_mode_is_off_unless_set(monkeypatch):
         cluster.init()
 
 
+@pytest.mark.parametrize("mode", ["redis", "valkey", "Valkey"])
+def test_cluster_mode_takes_redis_or_valkey(monkeypatch, mode):
+    class Joined(Exception):
+        pass
+
+    def bus(**_kwargs):
+        raise Joined   # got past the mode check; stop before anything connects
+
+    monkeypatch.setenv("FLOORBIT_CLUSTER", mode)
+    monkeypatch.setattr(cluster, "RedisBus", bus)
+    with pytest.raises(Joined):
+        cluster.init()
+
+
 # ── RedisBus against a fake redis-py client ─────────────────────────────────────
 
 class FakeRedisClient:
@@ -298,3 +313,64 @@ def test_pods_say_who_leads_for_the_agents_page():
     bus.hashes[cluster.PODS_KEY]["pod-old"] = json.dumps({"at": time.time() - 3600, "leader": False})
     bus.hashes[cluster.PODS_KEY]["junk"] = "not json"
     assert {p["pod"] for p in a.pods()} == {"pod-a", "pod-b"}
+
+
+def test_a_pod_tells_its_browsers_to_fetch_again_when_redis_is_back(monkeypatch):
+    """Changes on other pods while Redis was away never reached this pod's browsers: they refetch."""
+    class Error(Exception):
+        pass
+
+    class FakeRedis:
+        RedisError = Error
+
+    class PubSub:
+        calls = 0
+
+        def subscribe(self, channel):
+            PubSub.calls += 1
+            if PubSub.calls == 1:
+                raise Error("connection refused")
+
+        def get_message(self, timeout):
+            stop.set()
+
+    class Blocking:
+        def pubsub(self, ignore_subscribe_messages):
+            return PubSub()
+
+    bus = cluster.RedisBus.__new__(cluster.RedisBus)
+    bus._redis, bus.prefix, bus.blocking = FakeRedis, "", Blocking()
+    stop = threading.Event()
+    monkeypatch.setattr(stop, "wait", lambda seconds: None)
+    resumed = []
+    bus.listen("ch", lambda raw: None, stop, on_resume=lambda: resumed.append(1))
+    assert PubSub.calls == 2 and resumed == [1]
+
+
+def test_resumed_sends_a_resync_to_this_pods_browsers(monkeypatch):
+    sent = []
+    monkeypatch.setattr(events, "deliver_local", sent.append)
+    pod = cluster.Cluster(MemoryBus(), pod="a", deliver=lambda e: None, log=lambda *_: None)
+    pod._resumed()
+    assert [e["type"] for e in sent] == ["resync"]
+
+
+def test_a_switch_login_crosses_redis_sealed():
+    """Calls and answers between pods go through Redis: a switch call carries its login, so both are
+    sealed with the vault key every pod has."""
+    bus = MemoryBus()
+    pushed = []
+    push = bus.push
+
+    def spy(key, value, ttl=None):
+        pushed.append(value)
+        return push(key, value, ttl=ttl)
+    bus.push = spy
+    login = {"username": "tech", "password": "example-switch-pass"}
+    a = cluster.Cluster(bus, "pod-a", run_call=lambda m, args, t, timeout: {"echo": args[2]["login"]}, log=quiet)
+    b = cluster.Cluster(bus, "pod-b", log=quiet)
+    threading.Thread(target=lambda: a._serve_call(bus.pop(cluster.CALLS_KEY + "pod-a", 5)), daemon=True).start()
+    answer = b.forward("pod-a", "switch_call", ["ssh-ports", "bounce_port", {"switch": "sw-a-01", "login": login}],
+                       None, 5)
+    assert answer == {"ok": True, "result": {"echo": login}}
+    assert len(pushed) == 2 and not any("example-switch-pass" in p for p in pushed)

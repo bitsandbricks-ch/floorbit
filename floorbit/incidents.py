@@ -175,7 +175,7 @@ def _where(data, seat, switch_id, circuit_id=None):
 
 
 def _check_team(team_id):
-    if team_id and team_id not in teams.all_teams():
+    if team_id and (not isinstance(team_id, str) or team_id not in teams.all_teams()):
         raise IncidentError(f'No team called {team_id}.')
     return team_id or None
 
@@ -347,6 +347,8 @@ def update(user, incident_id, body):
                 if incident['status'] == 'assigned':
                     incident['status'] = 'open'
         if 'assignee' in body:
+            if not isinstance(body['assignee'], (str, type(None))):
+                raise IncidentError(f'No user called {body["assignee"]}.')
             who = (body['assignee'] or '').strip().lower() or None
             if who and who != user['username'].lower() and not can_assign(user, incident.get('team')):
                 raise IncidentError('Giving incidents to someone else needs the "assign incidents" permission.', 403)

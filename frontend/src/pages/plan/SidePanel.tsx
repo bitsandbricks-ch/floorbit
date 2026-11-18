@@ -12,12 +12,14 @@ import type { SideTab } from './side'
 
 /** The plan's docked right panel, like a map editor's: Layers, Problems and Items while nothing is
  *  open; the open seat, block or switch (``inspector``) takes its place and closing it comes back. */
-export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspector, onSeat, onBlock, onSwitch, legends }: {
+export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspector, onSeat, onBlock, onSwitch, legends, extraLayers }: {
   data: SeatViewData; tab: SideTab; onTab: (t: SideTab) => void
   layers: LayerState; onLayers: (next: LayerState) => void; available: Record<LayerId, boolean>
   inspector: ReactNode; onSeat: (s: string) => void; onBlock: (b: string) => void; onSwitch: (w: string) => void
   /** What each layer that is on draws, under its switch. */
   legends?: LayerLegends
+  /** Under the layer switches: the plugin layer picker. */
+  extraLayers?: ReactNode
 }) {
   const { t } = useTranslation()
   if (inspector) return <aside className="fb-ws-panel" aria-label={t('plan.side.label')}>{inspector}</aside>
@@ -38,7 +40,7 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
         </Tabs.List>
         <ScrollArea className="fb-side-body" type="auto">
           <Tabs.Panel value="layers" p="md">
-            <LayersBody state={layers} onChange={onLayers} available={available} legends={legends} />
+            <LayersBody state={layers} onChange={onLayers} available={available} legends={legends} extra={extraLayers} />
           </Tabs.Panel>
           <Tabs.Panel value="problems" p="md">
             <Stack gap="md">

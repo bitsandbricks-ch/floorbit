@@ -28,12 +28,20 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
   // The language picked in the sidebar, so the server's error texts come in it too.
   const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': i18next.language || 'en' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  const res = await fetch(path, {
-    method,
-    credentials: 'same-origin',
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await fetch(path, {
+      method,
+      credentials: 'same-origin',
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err
+    // The laptop lost the event Wi-Fi, or the server is restarting: the browser's own text
+    // ("Failed to fetch", "NetworkError when…") said nothing useful and was English only.
+    throw new ApiError(i18next.t('common.offline'), 0, { code: 'offline' })
+  }
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   if (res.status === 401 && !SIGNED_OUT_PAGES.has(window.location.pathname)) {
     // Signed out in another tab, or the session expired. On the sign-in page it's a wrong password.

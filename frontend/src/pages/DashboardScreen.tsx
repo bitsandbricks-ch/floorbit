@@ -26,6 +26,7 @@ export default function DashboardScreen() {
     queryKey: [...qk.board(id), 'public'],
     queryFn: async () => {
       const res = await fetch(publicUrl(id), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .catch(() => { throw new Error(i18n.t('common.offline')) })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return (await res.json()) as { account: boolean; board: Board | null; tiles: Record<string, string>; app: string }
     },
@@ -62,7 +63,10 @@ export default function DashboardScreen() {
   return (
     <main className={`fb-board-show${idle ? ' idle' : ''}${q.data && !q.data.fit ? ' scroll' : ''}`}>
       {(open.isPending || q.isPending) && <LoadingState />}
-      {q.error && <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />}
+      {/* A big screen that read the board once keeps showing it while the server is away (a restart,
+          the Wi-Fi): a small note instead of a banner that pushed the panes aside. */}
+      {q.error && !q.data && <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />}
+      {q.error && q.data && <Text role="status" className="fb-board-stale" fw={700}>{t('dashboards.stale')}</Text>}
       {q.data && (
         <ScreenContext.Provider value={source}>
           <GridView sections={q.data.sections} fit={q.data.fit} cycle={q.data.cycle} />

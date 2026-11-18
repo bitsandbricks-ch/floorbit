@@ -65,7 +65,7 @@ def clean_ap(raw):
 def ask(registry):
     """Every AP the wifi plugins know now: (aps, errors). Cached for CACHE_SECONDS."""
     with _lock:
-        if _cache['value'] is not None and time.time() - _cache['at'] < CACHE_SECONDS:
+        if _cache['value'] is not None and 0 <= time.time() - _cache['at'] < CACHE_SECONDS:
             return _cache['value']
     aps, errors, answered = {}, [], set()
     if agent_active():

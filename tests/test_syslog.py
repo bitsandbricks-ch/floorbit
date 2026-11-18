@@ -15,7 +15,8 @@ NOW = 1_794_650_400.0   # 2026-11-14 10:00 UTC
 def receiver(tmp_path, monkeypatch):
     monkeypatch.setenv("SYSLOG_ALLOW", "192.0.2.0/24")
     r = syslog.SyslogReceiver(path=str(tmp_path / "syslog"))
-    r._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")], {"198.51.100.5": "sw-a-01"})
+    r._allow_cache = (time.monotonic() + 3600, [syslog.ipaddress.ip_network("192.0.2.0/24")],
+                      {"198.51.100.5": "sw-a-01"})
     return r
 
 
@@ -144,7 +145,7 @@ def test_udp_round_trip(tmp_path, monkeypatch, lan_here):
     monkeypatch.setenv("SYSLOG_BIND", "127.0.0.1")
     monkeypatch.setenv("SYSLOG_ALLOW", "127.0.0.1")
     r = syslog.SyslogReceiver(path=str(tmp_path / "syslog"))
-    r._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("127.0.0.1/32")], {})
+    r._allow_cache = (time.monotonic() + 3600, [syslog.ipaddress.ip_network("127.0.0.1/32")], {})
     r.start()
     try:
         assert r.listening and r.listening["port"] == int(os.environ["SYSLOG_PORT"])
@@ -258,3 +259,20 @@ def test_late_lines_raise_no_alert(receiver):
     assert not receiver.alerts.items
     receiver.relay("hall 1", [{"raw": shut, "from": "192.0.2.21", "at": now, "id": "live"}], now=now)
     assert receiver.alerts.items                                   # the same line live does
+
+
+def test_an_agent_clock_behind_ours_is_put_right(receiver, monkeypatch):
+    """An agent box without NTP, 10 minutes behind: its lines are live, not late, and still alert."""
+    seen = []
+    monkeypatch.setattr(receiver.alerts, "observe", lambda line, now=None: seen.append(line))
+    now = time.time()
+    assert receiver.relay("hall 1", [_line(1, now - 600, "c1")], now=now) == 1
+    assert not seen                                            # before: taken for a line kept while offline
+    assert receiver.relay("hall 1", [_line(2, now - 600, "c2")], now=now, offset=600) == 1
+    assert len(seen) == 1 and abs(receiver.lines[-1]["ts"] - now) < 1
+
+
+def test_two_agents_with_different_clocks_still_spot_the_copy(receiver):
+    now = time.time()
+    assert receiver.relay("hall 1", [_line(1, now, "d1")], now=now) == 1
+    assert receiver.relay("hall 2", [_line(1, now - 3600, "d1")], now=now + 0.5, offset=3600) == 0

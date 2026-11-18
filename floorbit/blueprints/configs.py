@@ -12,7 +12,7 @@ All need ``configs.read`` (admin and lead): configs describe the whole network, 
 """
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
-from .. import audit, commands, config_backup, ports, spa
+from .. import audit, commands, config_backup, downloads, ports, spa
 
 bp = Blueprint('configs', __name__)
 
@@ -93,5 +93,5 @@ def copy(switch, cid):
         return jsonify({'error': 'No such copy.'}), 404
     if request.args.get('download'):
         return Response(text, mimetype='text/plain',
-                        headers={'Content-Disposition': f'attachment; filename="{switch}-{cid}.cfg"'})
+                        headers={'Content-Disposition': downloads.disposition(f'{switch}-{cid}.cfg')})
     return jsonify({'switch': switch, 'id': cid, 'text': text})

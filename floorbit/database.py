@@ -88,6 +88,12 @@ class DatabaseUnavailable(DatabaseError):
     refuses to save, and keeps trying in the background (``watch``); see docs/database.md."""
 
 
+class DatabaseBusy(DatabaseUnavailable):
+    """The database answers but someone else holds it longer than we wait: another program with
+    the SQLite file open for writing (a backup tool, ``sqlite3`` in a shell), or every pooled
+    connection in use. Not an outage, so nothing is marked down; the request gets a 503 to retry."""
+
+
 # Waits between tries while the database is away: short at first, then every 30 s at most.
 RETRY_FIRST, RETRY_MAX = 1.0, 30.0
 # While it answers, ask this often, so the banner and /healthz notice an outage without a request.
@@ -105,6 +111,20 @@ def _unreachable(exc):
         return True
     text = str(exc).lower()
     return any(m in text for m in ('unable to open', 'disk i/o', 'closed', 'no such file', 'not a database'))
+
+
+def _busy(exc):
+    """SQLite's "database is locked" after its busy timeout, or Postgres giving up on a lock."""
+    if type(exc).__module__ == 'sqlite3':
+        text = str(exc).lower()
+        return type(exc).__name__ == 'OperationalError' and ('locked' in text or 'busy' in text)
+    return type(exc).__name__ == 'LockNotAvailable'
+
+
+def _failed(db, exc):
+    """The error to raise for a statement that failed while the database answered."""
+    kind = DatabaseBusy if _busy(exc) else DatabaseError
+    return kind(f'{db.describe()}: {exc}')
 
 
 def _redact(url):
@@ -150,6 +170,7 @@ class Sql:
 
     def __init__(self, url, root):
         self.url, self.root = url, root
+        self.busy_wait = 10.0     # seconds SQLite waits for another program's write lock
         # A small shared pool instead of a connection per thread: Floorbit runs a few dozen
         # threads (gunicorn's request threads, one per live-update tab, and every background
         # watcher), and a connection each used up the slots of a shared Postgres.
@@ -184,8 +205,8 @@ class Sql:
                 os.makedirs(folder, exist_ok=True)
             # isolation_level=None: we say BEGIN ourselves. A busy timeout instead of "database is
             # locked" when the flow collector and the web app write at the same moment.
-            conn = sqlite3.connect(self.path, timeout=10, isolation_level=None, check_same_thread=False)
-            conn.execute('PRAGMA busy_timeout=10000')
+            conn = sqlite3.connect(self.path, timeout=self.busy_wait, isolation_level=None, check_same_thread=False)
+            conn.execute(f'PRAGMA busy_timeout={int(self.busy_wait * 1000)}')
             _wal(conn)
             return conn
         try:
@@ -236,7 +257,7 @@ class Sql:
                         _close_quietly(c)
                         if _unreachable(exc):
                             raise self._mark_down(exc) from exc
-                        raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                        raise _failed(self, exc) from exc
                     self._ready = True
         return c
 
@@ -250,7 +271,7 @@ class Sql:
         """Borrow a connection from the pool for one statement or one transaction. At most
         ``FLOORBIT_DATABASE_POOL`` are open; a thread that finds them all busy waits for one."""
         if not self._slots.acquire(timeout=POOL_WAIT):
-            raise DatabaseError(f'{self.describe()}: all {self.pool_size} connections busy for {POOL_WAIT:.0f} s')
+            raise DatabaseBusy(f'{self.describe()}: all {self.pool_size} connections busy for {POOL_WAIT:.0f} s')
         c = None
         try:
             with self._lock:
@@ -287,8 +308,10 @@ class Sql:
             except DatabaseError:
                 raise
             except Exception as exc:
-                if not _unreachable(exc) and not getattr(c, 'closed', False):
-                    raise DatabaseError(f'{self.describe()}: {exc}') from exc
+                # psycopg's ``broken``, not ``closed``: the pool closes every connection a statement
+                # failed on, so a plain mistake (a NUL byte, a duplicate key) looked like an outage.
+                if not _unreachable(exc) and not getattr(c, 'broken', False):
+                    raise _failed(self, exc) from exc
                 # A dropped connection (a restart, a failover): the pool threw it away, so the
                 # second try opens a new one. Once.
                 if attempt == 1:
@@ -344,6 +367,35 @@ class Sql:
             if key.startswith(prefix) and key not in known:
                 known.append(key)
 
+    def get_versioned(self, key):
+        """``(text or _MISSING, updated_at)``, read together, for ``put_if``."""
+        rows = self.run('SELECT body, updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
+        if not rows:
+            self._docs.pop(key, None)
+            return _MISSING, None
+        self._docs[key] = (rows[0][0], rows[0][1])
+        return rows[0][0], rows[0][1]
+
+    def put_if(self, key, body, expected):
+        """``put`` only if the document is still at ``expected`` (its updated_at, None: not there).
+        False when another process wrote it meanwhile: the caller merges again (store.write_json)."""
+        with self._lock:
+            now = self._last_put = max(time.time(), getattr(self, '_last_put', 0) + 1e-6)
+        if expected is None:
+            rows = self.run('INSERT INTO floorbit_documents (doc_key, body, updated_at) VALUES (?, ?, ?) '
+                            'ON CONFLICT (doc_key) DO NOTHING RETURNING doc_key', (key, body, now), fetch=True)
+        else:
+            rows = self.run('UPDATE floorbit_documents SET body = ?, updated_at = ? '
+                            'WHERE doc_key = ? AND updated_at = ? RETURNING doc_key',
+                            (body, now, key, expected), fetch=True)
+        if not rows:
+            return False
+        self._docs[key] = (body, now)
+        for prefix, known in self._keys.items():
+            if key.startswith(prefix) and key not in known:
+                known.append(key)
+        return True
+
     def delete(self, key):
         found = self.run('SELECT 1 FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         self.run('DELETE FROM floorbit_documents WHERE doc_key = ?', (key,))
@@ -397,7 +449,7 @@ class Sql:
         except Exception as exc:
             if _unreachable(exc):
                 raise self._mark_down(exc) from exc
-            raise DatabaseError(f'{self.describe()}: {exc}') from exc
+            raise _failed(self, exc) from exc
 
     def close(self):
         """Close the idle connections; ones in use are closed when they come back, so none

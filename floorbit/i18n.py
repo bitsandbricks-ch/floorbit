@@ -57,19 +57,60 @@ def catalog(files=('de-CH.json',)):
     for name in files:
         with open(os.path.join(HERE, name), encoding='utf-8') as f:
             texts.update(json.load(f))
+    return compile_texts(texts)
+
+
+def compile_texts(texts):
+    """(exact, patterns) for ``{"English": "German"}``, as ``catalog`` builds them: also used for a
+    plugin's own ``locales/de-CH.json`` (floorbit/plugins/__init__.py)."""
     exact, patterns = {}, []
     for english, german in texts.items():
         if english.startswith('//'):
             continue
         if '{}' in english:
-            parts = [re.escape(p) for p in english.split('{}')]
-            patterns.append((len(english) - 2 * english.count('{}'), re.compile('^' + '(.+?)'.join(parts) + '$', re.S),
-                             german))
+            patterns.append((len(english) - 2 * english.count('{}'), _Pattern(english.split('{}')), german))
         else:
             exact[english] = german
     # The most specific text wins: "{}: needs a look" before "{}: {}", whatever order the file has.
     patterns.sort(key=lambda p: -p[0])
     return exact, [(rx, german) for _n, rx, german in patterns]
+
+
+class _Pattern:
+    """``"{} of {}"`` as literal parts with a hole of one or more characters between each two.
+
+    A regex of lazy ``(.+?)`` groups gives the same answer, but takes polynomial time in the
+    number of holes on a long text that doesn't match: with a plugin's own texts (or an error
+    message with someone's input in it) one request could hang. Each part is looked for once,
+    leftmost first; with nothing but "any text" between the parts that finds a match whenever
+    there is one, and the same one the lazy regex finds."""
+
+    __slots__ = ('parts',)
+
+    def __init__(self, parts):
+        self.parts = parts
+
+    def match(self, text):
+        parts = self.parts
+        if not text.startswith(parts[0]) or not text.endswith(parts[-1]):
+            return None
+        pos, end = len(parts[0]), len(text) - len(parts[-1])
+        groups = []
+        for part in parts[1:-1]:
+            at = text.find(part, pos + 1, end) if part else pos + 1
+            if at < 0 or at >= end:
+                return None
+            groups.append(text[pos:at])
+            pos = at + len(part)
+        if end - pos < 1:
+            return None
+        groups.append(text[pos:end])
+        return _Match(groups)
+
+
+class _Match(tuple):
+    def groups(self):
+        return tuple(self)
 
 
 def _fill(german, values):
@@ -88,7 +129,15 @@ def translate(text, lang, files=('de-CH.json',)):
     """``text`` in ``lang`` ('de-CH', 'de', or anything else for English as it is)."""
     if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
         return text
-    exact, patterns = catalog(files)
+    return translate_in(text, lang, catalog(files))
+
+
+def translate_in(text, lang, compiled, fallback=True):
+    """``text`` in ``lang`` from one compiled catalog. ``fallback``: English when it has no German;
+    else None, so the caller can try another catalog."""
+    if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
+        return text
+    exact, patterns = compiled
     german = exact.get(text)
     if german is None:
         for pattern, target in patterns:
@@ -97,7 +146,7 @@ def translate(text, lang, files=('de-CH.json',)):
                 german = _fill(target, m.groups())
                 break
     if german is None:
-        return text
+        return text if fallback else None
     return german if lang.lower() in ('de-ch', 'de-li') else to_germany(german)
 
 

@@ -1,6 +1,7 @@
 """Checking in from a PC (docs/seat-mapping.md): the PIN from the seat card and a nick, never the
 seat. The PIN names the seat, the PC's switch port is learned, and that seat to port pair is what
 the floor plan keeps. Made-up nicks, RFC 5737 addresses."""
+import contextlib
 import threading
 
 import pytest
@@ -29,6 +30,9 @@ def hall(client, tmp_path, monkeypatch):
     monkeypatch.setenv("CHECKIN_FILE", str(tmp_path / "checkins.json"))
     monkeypatch.setattr(checkin, "lookup_mac", lambda ip: None)
     monkeypatch.setattr(checkin, "port_of", lambda ip: PORTS.get(ip))
+    # The app's verifier thread (from this or an earlier test) wakes on every check-in and would
+    # race the test's own verify_pending(): it only runs while monitoring answers, so keep it quiet.
+    monkeypatch.setattr(checkin, "_monitoring", sources.NoMonitoring)
     monkeypatch.setattr(events, "publish", lambda kind, data=None, origin=None: None)
     client.post("/api/seat-blocks", json={"name": "A", "x": 10, "y": 10, "cols": 4, "rows": 1})
     return client
@@ -374,3 +378,41 @@ def test_switched_off_check_in_says_so_with_a_code(client, monkeypatch):
     r = client.get("/api/checkins/overview")
     assert r.status_code == 404
     assert r.get_json()["code"] == "checkin_disabled"
+
+
+@pytest.mark.parametrize("body", [{"seat": "A-1", "username": 7}, {"pin": ["x"], "username": "pixel"},
+                                  {"seat": {"a": 1}, "username": "pixel"},
+                                  {"seat": "A-1", "username": "pixel", "device": 3}])
+def test_values_of_the_wrong_type_are_a_clear_no_not_a_crash(hall, body):
+    r = hall.post("/api/checkin", json=body, environ_base={"REMOTE_ADDR": "192.0.2.21"})
+    assert r.status_code < 500 and r.is_json
+
+
+def test_two_pcs_with_the_same_pin_at_once_only_one_gets_the_seat(hall, app_module, monkeypatch):
+    # The PIN's one-use check read the check-ins before the write lock: PCs typing the same card at
+    # the same moment all passed it, and the last one took the seat from the others.
+    pin = pins(hall)["A-1"]
+    real = checkin.load_all
+    gate = threading.Barrier(8)
+
+    def slow_load():
+        rows = real()
+        with contextlib.suppress(threading.BrokenBarrierError):
+            gate.wait(timeout=1)          # every request has read "nobody holds A-1"
+        return rows
+    monkeypatch.setattr(checkin, "load_all", slow_load)
+    codes = []
+
+    def one(n):
+        c = app_module.app.test_client()
+        r = c.post("/api/checkin", json={"pin": pin, "username": f"pc{n}"},
+                   environ_base={"REMOTE_ADDR": f"192.0.2.{40 + n}"})
+        codes.append(r.status_code)
+    threads = [threading.Thread(target=one, args=(n,)) for n in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(codes) == [200] + [409] * 7
+    monkeypatch.setattr(checkin, "load_all", real)
+    assert len([r for r in checkin.load_all().values() if r["seat"] == "A-1"]) == 1
