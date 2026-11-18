@@ -157,6 +157,10 @@ def create_app(start_background=True):
     from .headers import init_headers
     init_headers(app)
 
+    # Unknown addresses: JSON for the API, the React app's 404 for pages (floorbit/not_found.py).
+    from .not_found import init_not_found
+    init_not_found(app)
+
     # Security findings from security plugins, polled in the background (docs/security.md).
     from .security import init_security
     init_security(app, registry, start_background=start_background)

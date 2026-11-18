@@ -84,6 +84,7 @@
  "No inventory source is on. Turn on NetBox under Settings > Plugins.": "Keine Inventarquelle ist eingeschaltet. Schalte NetBox unter Einstellungen > Plugins ein.",
  "Valid numeric x and y coordinates are required": "Gültige Zahlen für x und y sind nötig",
  "Switch not found": "Switch nicht gefunden",
+ "Not found": "Nicht gefunden",
  "cols and rows are numbers.": "cols und rows sind Zahlen.",
  "No such hall.": "Diese Halle gibt es nicht.",
  "Another action on {} is still running.": "Eine andere Aktion auf {} läuft noch.",
