@@ -64,6 +64,16 @@ PORT_RE = re.compile(r'\b(GigabitEthernet|TenGigabitEthernet|FastEthernet|Twenty
 _receiver = None
 
 
+_batch = threading.local()   # the settings for the batch this thread is taking in
+
+
+def _hot_settings():
+    """``settings()`` for the checks every line passes (allowed, rate, trim): read once per relayed
+    batch, not per line; ten config lookups per line were a third of the server's time at 2,000
+    lines a second."""
+    return getattr(_batch, 'settings', None) or settings()
+
+
 def settings():
     return {
         'enabled': config.get_bool('SYSLOG_ENABLED', False),
@@ -215,7 +225,7 @@ class SyslogReceiver:
 
     def _trim(self, now=None):
         now = time.time() if now is None else now
-        s = settings()
+        s = _hot_settings()
         cutoff = now - s['retention_hours'] * 3600
         while self.lines and (len(self.lines) > s['max_lines'] or self.lines[0]['ts'] < cutoff):
             self.lines.popleft()
@@ -244,7 +254,7 @@ class SyslogReceiver:
 
     def sender_ok(self, address):
         nets, switches = self._allowed()
-        if settings()['allow_switches'] and address in switches:
+        if _hot_settings()['allow_switches'] and address in switches:
             return True
         try:
             ip = ipaddress.ip_address(address)
@@ -253,7 +263,7 @@ class SyslogReceiver:
         return any(ip in net for net in nets)
 
     def _rate_ok(self, sender, now):
-        rate = settings()['rate']
+        rate = _hot_settings()['rate']
         tokens, last = self._buckets.get(sender, (rate, now))
         # max(): relayed lines carry their own times, and two agents' lines can arrive out of order.
         tokens = min(rate, tokens + max(0, now - last) * rate)
@@ -306,6 +316,13 @@ class SyslogReceiver:
         now = time.time() if now is None else now
         if not lines:
             return 0     # the agent's check: nothing to count
+        _batch.settings = settings()
+        try:
+            return self._relay(agent_name, lines, now, dropped)
+        finally:
+            _batch.settings = None
+
+    def _relay(self, agent_name, lines, now, dropped):
         kept = 0
         for item in lines:
             if not isinstance(item, dict) or not isinstance(item.get('raw'), str):
