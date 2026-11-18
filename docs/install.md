@@ -91,7 +91,9 @@ over `.env`. All variables: the table in the [README](../README.md#configuration
 ## 5. Behind a reverse proxy
 
 Floorbit answers plain HTTP on the port above. Put a reverse proxy with TLS in front for anything
-beyond a test, then set in `.env`:
+beyond a test. The proxy also reads each request whole before passing it on: without one, a hundred
+connections from the event network that send their request a byte at a time hold all of gunicorn's
+threads, and Floorbit stops answering until they give up. Then set in `.env`:
 
 ```sh
 PUBLIC_URL=https://floor.example.com   # links in Discord messages, QR codes and sign-in providers
