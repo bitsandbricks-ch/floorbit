@@ -1,0 +1,22 @@
+{
+  "title": "Der Event in Zahlen",
+  "off": "Diese Seite ist ausgeschaltet.",
+  "online": "Plätze jetzt online",
+  "of": "von {{n}}",
+  "unknown": "gerade nicht bekannt",
+  "onlineMax": "Am meisten Plätze gleichzeitig online",
+  "downloaded": "Bisher heruntergeladen",
+  "peak": "Bandbreiten-Spitze",
+  "at": "um {{time}}",
+  "busiest": "Stärkste Stunde",
+  "avg": "{{rate}} im Schnitt",
+  "loyal": "Treuester Platzblock",
+  "loyalDetail": "Block {{name}}: jeder Platz im Schnitt {{hours}} h online",
+  "games": "Was die Halle spielt",
+  "cache": "Aus dem LAN-Cache geliefert",
+  "cacheDetail": "einmal heruntergeladen, nicht nochmals aus dem Internet",
+  "running": "Läuft seit {{n}} h",
+  "nothing": "Noch nichts zu zeigen. Schau wieder rein, sobald der Event läuft.",
+  "privacy": "Zahlen für die ganze Halle und pro Platzblock: keine Namen, Plätze oder Adressen.",
+  "updated": "Stand {{time}}. Die Seite aktualisiert sich jede Minute."
+}

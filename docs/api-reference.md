@@ -106,6 +106,7 @@ Source: [`floorbit/blueprints/attendee.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/public/hall` | anyone | `public_hall` |
 | GET | `/api/public/seats` | anyone | `public_hall` |
 
 ## floorbit.blueprints.audit
@@ -858,6 +859,17 @@ Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/schedule/items` | `floorplan.edit` | `schedule` |
 | DELETE | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
 | PATCH | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
+
+## floorbit.blueprints.screen
+
+Big-screen rotation and the "find your seat" page (issue #18). See docs/kiosk.md.
+
+Source: [`floorbit/blueprints/screen.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/screen.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/screen` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/seat-finder` | anyone |  |
 
 ## floorbit.blueprints.seat_blocks
 

@@ -2,6 +2,7 @@
 
 - ``GET /hall``: the hall plan with every seat shown as online or offline, for attendees' phones and
   the event website. No account.
+- ``GET /api/public/hall``: the hall's drawing for the page, with which seats are online.
 - ``GET /api/public/seats``: the same as JSON, which the page reloads every minute. ``?hall=<id>``
   for one hall; ``/hall?hall=<id>`` shows that hall, with tabs for the others.
 
@@ -10,36 +11,18 @@ Seat numbers and online or not, nothing else: no nicks, IPs, MACs, switches or p
 """
 import time
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, request
 
-from .. import halls
+from .. import halls, spa
 from ..seat_names import block_rows
 from ..store import load_data
 from .screen import finder_on, plan
 
 bp = Blueprint('attendee', __name__)
 
-TEXTS = {
-    'en': {'title': 'Hall overview', 'intro': 'Which seats are online right now.', 'online': 'online',
-           'offline': 'offline', 'count': '{online} of {total} seats online', 'updated': 'Updated {time}',
-           'unknown': 'The network status is not available right now.', 'off': 'This page is switched off.',
-           'empty': 'There is no hall plan yet.', 'map': 'Hall plan, online seats marked',
-           'find': 'Find your seat', 'halls': 'Halls', 'agenda': 'Schedule'},
-    'de': {'title': 'Hallenübersicht', 'intro': 'Welche Plätze gerade online sind.', 'online': 'online',
-           'offline': 'offline', 'count': '{online} von {total} Plätzen online', 'updated': 'Stand {time}',
-           'unknown': 'Der Netzwerkstatus ist gerade nicht verfügbar.', 'off': 'Diese Seite ist ausgeschaltet.',
-           'empty': 'Es gibt noch keinen Hallenplan.', 'map': 'Hallenplan, Plätze online markiert',
-           'find': 'Finde deinen Platz', 'halls': 'Hallen', 'agenda': 'Programm'},
-}
-
 
 def view_on():
     return bool(current_app.extensions['floorbit_settings'].get('public.attendee_view'))
-
-
-def _texts():
-    lang = request.accept_languages.best_match(['en', 'de'], default='en')
-    return lang, TEXTS[lang]
 
 
 def _online(now=None):
@@ -56,23 +39,34 @@ def _online(now=None):
 
 @bp.route('/hall')
 def hall_page():
-    lang, text = _texts()
+    """The page is React (frontend/src/pages/public/PublicHall.tsx), reading /api/public/hall and
+    then /api/public/seats every minute; 404 while it is switched off."""
+    html, status = spa.render('Hall overview')
+    return html, status if view_on() else 404
+
+
+@bp.route('/api/public/hall')
+def public_hall():
+    """One hall's drawing for the page (``?hall=<id>``, else the first), the other halls to switch to,
+    and which seats are online: the same seat numbers and true/false as /api/public/seats."""
     if not view_on():
-        return render_template('hall.html', lang=lang, t=text, state='off'), 404
+        return jsonify({'error': 'The attendee view is switched off.'}), 404
     data = load_data()
     all_halls = halls.halls(data)
     hall = halls.find(data, request.args.get('hall') or '') or all_halls[0]
-    tabs = [{'id': h['id'], 'name': h['name'], 'on': h is hall} for h in all_halls] if len(all_halls) > 1 else []
     online, last = _online()
     drawing, _ = plan(data, online=online if online is not None else set(), hall_id=hall['id'], public=True)
-    if not drawing:
-        return render_template('hall.html', lang=lang, t=text, state='empty', tabs=tabs)
-    total = sum(len(b['cells']) for b in drawing['shapes'])
-    count = sum(1 for b in drawing['shapes'] for c in b['cells'] if c['on'])
-    return render_template('hall.html', lang=lang, t=text, state='ok' if online is not None else 'unknown',
-                           drawing=drawing, total=total, count=count, last=last, finder=finder_on(),
-                           tabs=tabs, hall_id=hall['id'] if tabs else '',
-                           agenda=bool(current_app.extensions['floorbit_settings'].get('public.schedule')))
+    settings = current_app.extensions['floorbit_settings']
+    tabs = [{'id': h['id'], 'name': h['name']} for h in all_halls] if len(all_halls) > 1 else []
+    body = {'hall': hall['id'], 'halls': tabs,
+            'drawing': drawing, 'updated': last, 'finder': finder_on(), 'agenda': bool(settings.get('public.schedule'))}
+    cells = [c for b in (drawing or {}).get('shapes', []) for c in b['cells']]
+    body['total'] = len(cells)
+    body['online'] = None if online is None else sum(1 for c in cells if c['on'])
+    if online is None:
+        for c in cells:
+            c['on'] = None
+    return jsonify(body)
 
 
 @bp.route('/api/public/seats')
@@ -91,5 +85,5 @@ def public_seats():
                     'total': len(seats), 'updated': last})
 
 
-for _view in (hall_page, public_seats):
+for _view in (hall_page, public_hall, public_seats):
     _view._auth_public = True   # what auth.public_endpoint sets: attendees have no account
