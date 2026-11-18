@@ -1055,6 +1055,7 @@
  "signed for {}, not {}": "für {} signiert, nicht {}",
  "signed with key {}, which this agent does not trust": "mit Schlüssel {} signiert, dem dieser Agent nicht vertraut",
  "symlinks are not allowed in a bundle ({})": "symbolische Links sind in einem Paket nicht erlaubt ({})",
+ "a plugin can't ship {}: no browser or native code (docs/plugin-spec.md)": "ein Plugin darf {} nicht mitbringen: kein Code für den Browser und kein nativer Code (docs/plugin-spec.md)",
  "the files differ from what was signed": "die Dateien weichen vom Signierten ab",
  "too many files in the bundle": "zu viele Dateien im Paket",
  "unreadable bundle: {}": "unlesbares Paket: {}",
