@@ -186,7 +186,7 @@ def test_the_stand_in_lets_other_hosts_through_and_stops_with_the_demo(demo, reg
 
 
 def test_the_event_so_far_fills_the_crew_pages(demo, app_module):
-    """Incidents, check-ins, status page, runbook, dashboards and schedule, so no crew page starts empty."""
+    """Incidents, check-ins, status page, dashboards and schedule, so no crew page starts empty."""
     demo.post('/api/demo/layout')
     board = demo.get('/api/incidents').get_json()['incidents']
     assert len(board) == 6 and {i['status'] for i in board} == {'open', 'assigned', 'fixed'}
@@ -201,7 +201,6 @@ def test_the_event_so_far_fills_the_crew_pages(demo, app_module):
     assert not seats['E-7'].get('switch')
     history = demo.get('/api/checkins/history').get_json()
     assert history['total'] > 50 and 'moved' in repr(history['rows'])
-    assert 'Spare switch' in [r['title'] for r in demo.get('/api/runbooks').get_json()['runbooks']]
     layouts = demo.get('/api/dashboard/layouts').get_json()
     assert {'noc-wall', 'ops-desk'} <= {lay['id'] for lay in (layouts.get('layouts') or layouts)}
     items = demo.get('/api/schedule').get_json()['items']

@@ -43,7 +43,7 @@ live and kept in the tenant's folder.
   agent and live monitoring serve it. With none or several, the first live one (or the first event)
   wins.
 
-Data in `data.json` that belongs to the tenant (accounts, settings, agents, dashboards, runbooks;
+Data in `data.json` that belongs to the tenant (accounts, settings, agents, dashboards;
 `store.TENANT_KEYS`) stays in the tenant's `data.json`. A later event's `data.json` holds only the
 event's parts, and Floorbit reads and saves the two together.
 

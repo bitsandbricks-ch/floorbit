@@ -1,4 +1,4 @@
-import { Accordion, Alert, Badge, Button, Group, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,13 +7,11 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { DutyStatus, Job, JobsData } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { Markdown } from '@/components/Markdown'
 import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
-import { runbookText } from '@/lib/runbookText'
 
 function since(ts: number) {
   return clock(ts)
@@ -44,14 +42,6 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
           <Text size="sm" fw={600} c="up" data-seat-ok>{t('jobs.seatOk', { when: since(job.seat_ok_at) })}</Text>
         )}
         {last && <Text size="sm">“{last.text}”</Text>}
-        {job.runbook && (
-          <Accordion variant="contained" radius="md">
-            <Accordion.Item value="runbook">
-              <Accordion.Control>{t('jobs.runbook', { title: runbookText(job.runbook, t).title })}</Accordion.Control>
-              <Accordion.Panel><Markdown source={runbookText(job.runbook, t).body} /></Accordion.Panel>
-            </Accordion.Item>
-          </Accordion>
-        )}
         {job.drawing && job.target ? (
           <>
             <JobPlan job={job} label={t('jobs.planLabel', { where })} you={t('jobs.you')} />

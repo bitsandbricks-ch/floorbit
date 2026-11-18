@@ -1,7 +1,7 @@
 import { Anchor, Code, List, Text, Title } from '@mantine/core'
 import type { ReactNode } from 'react'
 
-/* A small Markdown subset for runbooks: headings, numbered and bullet lists, paragraphs, **bold**,
+/* A small Markdown subset for dashboard text panes: headings, numbered and bullet lists, paragraphs, **bold**,
    `code` and [links](https://...). It builds React elements, never HTML, so nothing typed can run. */
 
 const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g
