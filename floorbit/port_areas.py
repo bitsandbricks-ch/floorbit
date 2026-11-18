@@ -142,7 +142,3 @@ def hint(switch, port, areas=None):
     area = area_for(switch, port, areas)
     return {'label': area['label'], 'seats': area['seats']} if area else None
 
-
-def areas_of_seat(seat, areas=None):
-    seat = str(seat or '').upper()
-    return [a for a in (all_areas() if areas is None else areas) if seat in a['seats']]

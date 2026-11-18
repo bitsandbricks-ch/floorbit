@@ -12,7 +12,7 @@ from urllib.parse import quote
 import redis
 import requests
 
-from floorbit.cache import get_cached_arp, get_cached_mac, get_redis_client, set_cached_arp, set_cached_mac
+from floorbit.cache import get_cached_mac, get_redis_client, set_cached_mac
 from floorbit.runtime import rt
 
 from . import breaker
@@ -83,41 +83,6 @@ def fetch_librenms_arp_by_ip(ip_address):
         print(f"Exception fetching ARP for IP {ip_address}: {e}")
 
     return None
-
-
-def fetch_librenms_arp_table(hostname):
-    """Fetch ARP table for a device from LibreNMS with Redis caching."""
-    # Try to get from cache first
-    cached = get_cached_arp(hostname)
-    if cached is not None:
-        return cached
-
-    headers = {
-        'X-Auth-Token': rt.librenms_token,
-        'Accept': 'application/json',
-    }
-
-    device = fetch_librenms_device_by_hostname(hostname, headers)
-    if not device:
-        return []
-    device_id = _seg(device.get('device_id') or device.get('hostname'))
-
-    # Now fetch the ARP table
-    arp_data = []
-    try:
-        resp = breaker.get(
-            f'{rt.librenms_url}/api/v0/devices/{device_id}/arp',
-            headers=headers,
-            timeout=10, verify=rt.librenms_verify_ssl,
-        )
-        if resp.ok:
-            arp_data = resp.json().get('arp', [])
-            # Cache the result
-            set_cached_arp(hostname, arp_data)
-    except requests.RequestException:
-        pass
-
-    return arp_data
 
 
 def fetch_librenms_mac_table(hostname):

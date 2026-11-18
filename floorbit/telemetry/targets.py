@@ -14,7 +14,6 @@ A target is one device: its floor plan name, its address, and the drivers that c
 - ``push``: the device runs Telegraf itself and sends to the collector (OPNsense os-telegraf, the
   pfSense Telegraf package); nothing to poll.
 """
-import ipaddress
 import re
 import secrets
 import threading
@@ -324,10 +323,3 @@ def token_ok(given):
     want = ingest_token(create=False)
     return bool(want) and secrets.compare_digest(str(given), want)
 
-
-def is_address(text):
-    try:
-        ipaddress.ip_address(str(text))
-        return True
-    except ValueError:
-        return False

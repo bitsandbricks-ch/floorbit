@@ -120,10 +120,6 @@ def current():
     return live()
 
 
-def is_live():
-    return current()['status'] == 'live'
-
-
 def using_event(event):
     """Read and write the documents of this event (a dict from ``events()``) in a ``with`` block."""
     return store.using(event=event['folder'])
