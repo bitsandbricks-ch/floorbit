@@ -730,6 +730,18 @@ Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 | PUT | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 
+## floorbit.blueprints.platform
+
+The platform's tenants, for its admins (issue #466, docs/tenancy.md).
+
+Source: [`floorbit/blueprints/platform.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/platform.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/platform/tenants` | `settings.manage` |  |
+| POST | `/api/platform/tenants` | `settings.manage` |  |
+| PATCH | `/api/platform/tenants/<tenant_id>` | `settings.manage` |  |
+
 ## floorbit.blueprints.plugins
 
 Plugins: Settings > Plugins for admins, the dashboard, and the API plugins add.

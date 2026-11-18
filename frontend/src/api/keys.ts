@@ -53,6 +53,7 @@ export const qk = {
   sidebarSections: ['sidebar-sections'] as const,
   settings: ['settings'] as const,
   apiTokens: ['api-tokens'] as const,
+  tenants: ['platform', 'tenants'] as const,
   audit: ['audit'] as const,
   agents: ['agents'] as const,
   webhooks: ['webhooks'] as const,

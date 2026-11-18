@@ -118,10 +118,16 @@ platform's ingress), and its agent connects there. The flow collector of a tenan
 
 A wrong `FLOORBIT_TENANT` stops Floorbit at start.
 
-### Adding a tenant
+### Adding and suspending tenants
 
-There is no sign-up. Whoever runs the platform adds a tenant from any tenant's container (they all
-share the storage) and then starts its process:
+There is no sign-up. The platform's admins are the admins of the default tenant: they find
+**Settings > Tenants** (`/settings/tenants`) in the sidebar, and no other tenant has that page.
+There they add a tenant (short name, club name, address and optionally a first admin, whose
+password is shown once), rename it, and **suspend** it. A suspended tenant's processes answer 503
+"This club is suspended" to everything within 10 seconds, its login page and its agents included;
+only `/healthz` stays open so Kubernetes doesn't restart it. Its data stays, and **Take back**
+lets it in again. The default tenant can't be suspended. The same works from the command line in
+any tenant's container (they all share the storage):
 
 ```
 flask --app app tenants add club-b --name "Club B" --url https://club-b.floor.example.com --admin boss
@@ -131,6 +137,9 @@ flask --app app tenants list
 The list of tenants is `platform.json`, beside `tenants/`. The default tenant is always on it,
 first; the file itself appears when the second tenant is added. `--admin` adds the tenant's first admin
 account (the password is asked for); without it the new tenant opens on its first-run setup.
+
+Each tenant sets its own look under Settings (name, logo, colours, Discord): they are the
+tenant's settings, so the platform page doesn't touch them.
 
 ### People in several tenants
 

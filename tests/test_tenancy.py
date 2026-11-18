@@ -307,7 +307,7 @@ def _account(tenant, username, **identities):
 
 def test_every_platform_starts_with_the_default_tenant(state):
     from floorbit import hosting
-    default = {"id": "default", "name": "", "url": ""}
+    default = {"id": "default", "name": "", "url": "", "status": "active"}
     assert hosting.tenants() == [default] and not hosting.several()   # no platform.json needed
     hosting.add("club-a")
     assert hosting.several()
@@ -318,9 +318,9 @@ def test_a_platform_admin_adds_tenants(state):
     from floorbit import hosting
     hosting.add("club-a", "Club A", "https://a.example.com/")
     hosting.add("club-b")
-    assert hosting.tenants() == [{"id": "default", "name": "", "url": ""},
-                                 {"id": "club-a", "name": "Club A", "url": "https://a.example.com"},
-                                 {"id": "club-b", "name": "", "url": ""}]
+    assert hosting.tenants() == [{"id": "default", "name": "", "url": "", "status": "active"},
+                                 {"id": "club-a", "name": "Club A", "url": "https://a.example.com", "status": "active"},
+                                 {"id": "club-b", "name": "", "url": "", "status": "active"}]
     for bad in (("club-a",), ("default",), ("../x",), ("club-c", "", "http://c.example.com"),
                 ("club-c", "", "javascript:x")):
         with pytest.raises(hosting.HostingError):
