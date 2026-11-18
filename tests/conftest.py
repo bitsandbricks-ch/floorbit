@@ -183,7 +183,10 @@ def app_module(tmp_path, monkeypatch):
     from integrations.monitor import StatusMonitor
     StatusMonitor.latest.update(polled=None, at=None, devices=None)   # one that ran between tests
     app.app.config["TESTING"] = True
-    return app
+    yield app
+    # Its thread outlives the test and polls for real once the patch above is undone; an agent
+    # coming back in a later test wakes every monitor (sources.status_wake), so stop this one.
+    monitor.stop()
 
 
 @pytest.fixture
@@ -215,12 +218,18 @@ def client(app_module):
 def _librenms_answers_again():
     """A LibreNMS that didn't answer in one test answers in the next (librenms/breaker.py), and no
     status monitor has polled yet."""
-    from floorbit.builtin_plugins.librenms import breaker
+    import requests
+
+    from floorbit.builtin_plugins.librenms import breaker, client
     from integrations.monitor import StatusMonitor
     breaker.reset()
+    client.reset_caches()
+    # Through requests.get, so a test's fake LibreNMS (monkeypatched requests.get) answers.
+    breaker._send = lambda url, **kw: requests.get(url, **kw)
     StatusMonitor.latest.update(polled=None, at=None, devices=None)
     yield
     breaker.reset()
+    client.reset_caches()
 
 
 @pytest.fixture(autouse=True)

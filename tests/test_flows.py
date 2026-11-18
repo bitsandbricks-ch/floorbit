@@ -280,7 +280,7 @@ def test_collector_reads_writes_raw_and_publishes(tmp_path, monkeypatch, app_mod
     assert col.receive(b"nonsense", "198.51.100.1", now=NOW) == 0 and col.errors == 1
     col.housekeeping(now=NOW + 1, refresh_seats=lambda: (SEATS, AREAS))   # seats come after the first packet
     col.receive(v5([STEAM]), "198.51.100.1", now=NOW + 2)
-    col._next["publish"] = 0
+    col._next["publish"] = col._next["raw"] = 0   # both are due (raw is written every RAW_EVERY s)
     col.housekeeping(now=NOW + 3, refresh_seats=lambda: (SEATS, AREAS))
     snap = store.latest()
     assert snap["mix_hour"] == {"gaming": 5_000_000} and snap["raw"]["files"] == 1 and snap["errors"] == 1
@@ -297,6 +297,22 @@ def test_raw_files_go_after_the_retention(tmp_path, monkeypatch):
     assert raw.usage()["files"] == 2
     assert raw.prune(now=NOW) == 1 and raw.usage()["files"] == 1
 
+
+
+def test_raw_files_keep_to_a_size_cap_oldest_first(tmp_path, monkeypatch):
+    # A week of a busy hall's flows is over 50 GB, on the agent's small disk.
+    monkeypatch.setenv("FLOWS_RAW_MAX_MB", "1")
+    raw = store.RawStore(str(tmp_path))
+    for hour in range(4):
+        raw.write([STEAM], now=NOW - (4 - hour) * 3600)
+    names = sorted(os.listdir(tmp_path / "raw"))
+    for name in names:
+        (tmp_path / "raw" / name).write_bytes(os.urandom(400_000))
+    assert raw.prune(now=NOW) == 2
+    assert sorted(os.listdir(tmp_path / "raw")) == names[2:]
+    (tmp_path / "raw" / names[3]).write_bytes(os.urandom(1_500_000))   # the hour being written, alone over
+    raw.prune(now=NOW)
+    assert sorted(os.listdir(tmp_path / "raw")) == names[3:]
 
 def test_no_raw_flows_when_switched_off(tmp_path, monkeypatch):
     monkeypatch.setenv("FLOWS_KEEP_RAW", "false")

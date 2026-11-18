@@ -45,7 +45,9 @@ class StatusMonitor:
             self._thread.start()
 
     def stop(self):
+        from floorbit import sources
         self._stop.set()
+        sources.wake_status_monitor()   # out of its wait
 
     def _run(self):
         while not self._stop.is_set():
@@ -56,7 +58,10 @@ class StatusMonitor:
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 self.last_error = str(exc)
                 print(f"[integrations] status monitor poll failed: {exc}")
-            self._stop.wait(interval)
+            from floorbit import sources
+            if sources.status_wake.wait(interval):
+                sources.status_wake.clear()
+                self._stop.wait(1)      # the agent's first calls go ahead of the device list
 
     # ── config ────────────────────────────────────────────────────────────────────────────
     @staticmethod

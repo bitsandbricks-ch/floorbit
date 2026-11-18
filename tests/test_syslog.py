@@ -2,6 +2,7 @@
 import json
 import os
 import socket
+import threading
 import time
 
 import pytest
@@ -125,6 +126,32 @@ def test_lines_survive_a_restart_and_age_out(receiver, tmp_path, monkeypatch):
     assert len(os.listdir(folder)) == 1
 
 
+
+def test_a_restart_reads_only_the_newest_lines_from_the_ends_of_the_files(tmp_path, monkeypatch):
+    # After a big event's night the files hold millions of lines; parsing them all held the first
+    # page for a minute. Only the newest SYSLOG_MAX_LINES are read, oldest first in memory.
+    monkeypatch.setenv("SYSLOG_MAX_LINES", "100")
+    folder = tmp_path / "syslog"
+    folder.mkdir()
+    now, n = time.time(), 0
+    for hour in range(3):
+        rows = []
+        for _ in range(80):
+            n += 1
+            rows.append(json.dumps({"id": n, "ts": now - (3 - hour) * 60 + n / 1000, "message": f"line {n}"}))
+        if hour == 2:
+            rows.insert(10, "{broken")
+        name = time.strftime("%Y-%m-%d-%H", time.gmtime(now - (3 - hour) * 3600))
+        (folder / f"{name}.jsonl").write_text("\n".join(rows) + "\n")
+    monkeypatch.setattr(syslog, "_tail", lambda path, count, block=64: real_tail(path, count, block))
+    again = syslog.SyslogReceiver(path=str(folder))
+    assert [ln["id"] for ln in again.lines] == list(range(141, 241))
+    assert again.next_id == 241
+
+
+real_tail = syslog._tail
+
+
 def test_memory_and_disk_are_capped(receiver, tmp_path, monkeypatch):
     monkeypatch.setenv("SYSLOG_MAX_LINES", "100")
     for i in range(150):
@@ -132,11 +159,34 @@ def test_memory_and_disk_are_capped(receiver, tmp_path, monkeypatch):
     assert len(receiver.lines) == 100 and receiver.lines[0]["message"] == "line 50"
     folder = tmp_path / "syslog"
     for hour in range(3):
-        (folder / f"2026-11-14-0{hour}.jsonl").write_text("x" * 700_000)
+        (folder / f"2026-11-14-0{hour}-00.jsonl").write_text("x" * 700_000)
     monkeypatch.setenv("SYSLOG_MAX_MB", "1")
     receiver.prune_files(now=NOW)
     left = sorted(os.listdir(folder))
-    assert "2026-11-14-00.jsonl" not in left and "2026-11-14-10.jsonl" in left
+    assert "2026-11-14-00-00.jsonl" not in left and "2026-11-14-10-00.jsonl" in left   # a file a minute
+
+
+
+def test_the_folder_is_pruned_when_lines_come_only_through_the_agent(receiver, tmp_path, monkeypatch):
+    # Nothing listens here (lines come through the local agent): pruning used to start with the
+    # listener only, and the folder grew past SYSLOG_MAX_MB without end.
+    folder = tmp_path / "syslog"
+    folder.mkdir(exist_ok=True)
+    names = [time.strftime("%Y-%m-%d-%H-%M", time.gmtime(time.time() - (3 - m) * 60)) + ".jsonl" for m in range(3)]
+    for name in names:
+        (folder / name).write_text("x" * 700_000)
+    monkeypatch.setenv("SYSLOG_MAX_MB", "1")
+    assert not receiver._servers
+
+    class Done(Exception):
+        pass
+
+    def stop(_seconds):
+        raise Done
+    monkeypatch.setattr(syslog.time, "sleep", stop)
+    with pytest.raises(Done):
+        receiver._housekeeping()
+    assert sorted(os.listdir(folder)) == names[-1:]
 
 
 def test_udp_round_trip(tmp_path, monkeypatch, lan_here):
@@ -159,6 +209,40 @@ def test_udp_round_trip(tmp_path, monkeypatch, lan_here):
     finally:
         r.stop()
     assert r.listening is None
+
+
+
+def test_a_udp_burst_is_read_by_one_thread_and_tcp_senders_are_capped(tmp_path, monkeypatch, lan_here):
+    monkeypatch.setenv("SYSLOG_ENABLED", "1")
+    monkeypatch.setenv("SYSLOG_TCP", "1")
+    monkeypatch.setenv("SYSLOG_PORT", str(_free_port()))
+    monkeypatch.setenv("SYSLOG_BIND", "127.0.0.1")
+    monkeypatch.setenv("SYSLOG_ALLOW", "127.0.0.1")
+    monkeypatch.setattr(syslog, "MAX_TCP", 2)
+    r = syslog.SyslogReceiver(path=str(tmp_path / "syslog"))
+    r._allow_cache = (time.time() + 3600, [syslog.ipaddress.ip_network("127.0.0.1/32")], {})
+    r.start()
+    try:
+        port = r.listening["port"]
+        threads = threading.active_count()
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            for i in range(2000):
+                s.sendto(b"<14>burst %d" % i, ("127.0.0.1", port))
+        assert threading.active_count() <= threads + 1       # not a thread per datagram
+        for _ in range(200):
+            if r.status()["counts"]["received"] >= 2000:
+                break
+            time.sleep(0.02)
+        assert r.status()["counts"]["received"] == 2000         # every one read (the rate limit is apart)
+        if r.listening.get("tcp"):
+            held = [socket.create_connection(("127.0.0.1", port)) for _ in range(2)]
+            extra = socket.create_connection(("127.0.0.1", port))
+            extra.settimeout(2)
+            assert extra.recv(1) == b""                            # the third sender is closed
+            for c in [*held, extra]:
+                c.close()
+    finally:
+        r.stop()
 
 
 def test_off_by_default(tmp_path):

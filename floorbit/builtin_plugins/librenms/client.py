@@ -4,7 +4,9 @@ The LibreNMS plugin's API client (plugin.py wraps it). Nothing else in Floorbit 
 LibreNMS: the core asks ``floorbit.sources.monitoring()``. Answers are cached in Redis (see
 floorbit/cache.py) for the TTLs on the settings page.
 """
+import ipaddress
 import json
+from collections import Counter
 from urllib.parse import quote
 
 import redis
@@ -15,6 +17,31 @@ from floorbit.runtime import rt
 
 from . import breaker
 from . import ports as librenms_ports
+from .memo import Memo
+
+# In front of Redis, and the only cache on the local agent (which has no Redis).
+_devices = Memo()        # switch name -> its LibreNMS device row
+_mac_counts = Memo()     # switch name -> {port_id: MACs learned on it}
+_resolved = Memo()       # IP -> where it sits (switch and port, not the live port numbers)
+_port_rows = Memo(2000)  # switch -> its port rows, for a seat's port numbers
+DEVICE_TTL = 300         # a switch's device_id doesn't change during an event
+UNKNOWN_DEVICE_TTL = 30  # an unknown name is asked again soon, but not on every lookup
+# A seat's port numbers: LibreNMS has new ones once per poll (minutes), and the ten seats on one
+# switch checking in together would otherwise each read all its ports.
+PORT_ROWS_TTL = 15
+
+
+def reset_caches():
+    for memo in (_devices, _mac_counts, _resolved, _port_rows):
+        memo.clear()
+
+
+def _ip(value):
+    """The IP as LibreNMS writes it, or None when it isn't one (nothing else is sent on)."""
+    try:
+        return str(ipaddress.ip_address(str(value).strip()))
+    except ValueError:
+        return None
 
 
 def _seg(value):
@@ -162,8 +189,15 @@ def _macs_on_port(entry):
     hostname = entry.get('hostname')
     if port_id is None or not hostname:
         return None
-    rows = fetch_librenms_mac_table(hostname) or []
-    return sum(1 for r in rows if r.get('port_id') == port_id) or None
+    return mac_counts(hostname).get(port_id) or None
+
+
+def mac_counts(hostname):
+    """{port_id: MACs} of one switch's MAC table. Only the counts are kept: a core's table at a
+    10,000-seat event is 10,000 rows, and the lookup only needs how many sit on each port."""
+    def load():
+        return dict(Counter(r.get('port_id') for r in fetch_librenms_mac_table(hostname) or []))
+    return _mac_counts.load(hostname, load, lambda: rt.cache_ttl_mac, keep=bool)
 
 
 def find_mac_in_all_switches(mac_address):
@@ -210,18 +244,32 @@ def find_mac_in_all_switches(mac_address):
     return data
 
 
+NOT_FOUND_TTL = 10   # an IP LibreNMS doesn't know (yet): not asked again on every page load
+
+
 def resolve_ip_to_switch_port(ip_address, search_device=None):
-    """Resolve an IP address to its switch and port using LibreNMS ARP and MAC tables.
+    """{ip, mac, device_name, hostname, port, vlan, stats, ...} for an IP, or None.
 
-    Uses the efficient /api/v0/resources/ip/arp/{ip_address} endpoint for ARP lookups.
+    Where the IP sits is cached (``cache.ttl_resolve``) and asked for once when many ask at the
+    same time; the port's numbers (``stats``) are always live. Anything that isn't an IP address is
+    None without asking LibreNMS."""
+    ip = _ip(ip_address)
+    if ip is None:
+        return None
+    where = _resolved.load(ip, lambda: _locate(ip), lambda: rt.cache_ttl_resolve, keep=lambda r: bool(r))
+    if not where:
+        if _resolved.get(ip)[0] is False:
+            _resolved.put(ip, None, NOT_FOUND_TTL)
+        return None
+    result = dict(where)
+    result['stats'] = fetch_librenms_device_port_stats_by_interface(result.get('hostname'), result.get('port')) \
+        if result.get('hostname') else {}
+    return result
 
-    Args:
-        ip_address: The IP address to resolve
-        search_device: Optional hostname to limit ARP table search to a specific device
 
-    Returns:
-        Dictionary with ip, mac, device_name, port, vlan, or None if not found
-    """
+def _locate(ip_address):
+    """Where an IP sits, from LibreNMS's ARP (the core) and MAC tables (the access switch), or None.
+    Cached in Redis too, for the other pods."""
     result = {
         'ip': ip_address,
         'mac': None,
@@ -243,9 +291,7 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
         print(f"Redis cache read error (resolve): {e}")
         cached_result = None
     if isinstance(cached_result, dict) and cached_result.get('mac'):
-        # The port's numbers are live; only where the IP sits is cached.
-        cached_result['stats'] = fetch_librenms_device_port_stats_by_interface(
-            cached_result.get('hostname'), cached_result.get('port'))
+        cached_result.pop('stats', None)     # the caller asks for live ones
         return cached_result
 
     if client:
@@ -297,10 +343,6 @@ def resolve_ip_to_switch_port(ip_address, search_device=None):
 
         result.update(switch_info)  # Include all original fields for debugging
 
-        stats = fetch_librenms_device_port_stats_by_interface(switch_info.get('hostname'), switch_info.get('port'))
-
-        result["stats"] = stats
-
     if client:
         try:
             client.setex(resolve_cache_key, rt.cache_ttl_resolve, json.dumps(result))
@@ -329,19 +371,34 @@ def best_device(candidates, hostname):
 
 
 def fetch_librenms_device_by_hostname(hostname, headers):
-    """The LibreNMS device for a switch name from the inventory, or None (see ``best_device``)."""
+    """The LibreNMS device for a switch name from the inventory, or None (see ``best_device``).
+    Kept a few minutes: every port, MAC table and seat lookup starts here."""
+    if not hostname:
+        return None
+    key = (rt.librenms_url, str(hostname).lower())
+    found, device = _devices.get(key)
+    if found:
+        return device
     try:
-        resp = breaker.get(
-            f'{rt.librenms_url}/api/v0/devices',
-            headers=headers,
-            params={'type': 'display', 'query': hostname.split('.')[0]},   # short name: the broader search
-            timeout=10, verify=rt.librenms_verify_ssl,
-        )
-        if resp.ok:
-            return best_device(resp.json().get('devices', []) or [], hostname)
+        device = _devices.load(key, lambda: _search_device(hostname, headers), DEVICE_TTL,
+                               keep=lambda d: d is not None)
     except (requests.RequestException, ValueError):
-        pass
-    return None
+        return None          # LibreNMS didn't answer: ask again next time
+    if device is None:       # LibreNMS answered and doesn't know it
+        _devices.put(key, None, UNKNOWN_DEVICE_TTL)
+    return device
+
+
+def _search_device(hostname, headers):
+    resp = breaker.get(
+        f'{rt.librenms_url}/api/v0/devices',
+        headers=headers,
+        params={'type': 'display', 'query': hostname.split('.')[0]},   # short name: the broader search
+        timeout=10, verify=rt.librenms_verify_ssl,
+    )
+    if not resp.ok:
+        raise requests.HTTPError(f'LibreNMS answered {resp.status_code}')
+    return best_device(resp.json().get('devices', []) or [], hostname)
 
 
 def fetch_librenms_details(hostname):
@@ -469,7 +526,10 @@ def fetch_librenms_device_port_stats_by_interface(hostname, interface):
         if not device:
             return result
         device_id = device.get('device_id') or device.get('hostname')
-        port = librenms_ports.fetch_port(rt.librenms_url, headers, device_id, interface, verify=rt.librenms_verify_ssl)
+        rows = _port_rows.load((rt.librenms_url, device_id), lambda: librenms_ports.fetch_ports(
+            rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl), PORT_ROWS_TTL,
+            keep=lambda r: r is not None)
+        port = next((p for p in rows or [] if p.get('ifName') == interface), None)
         if port:
             result = librenms_ports.summarize_port(port, rt.librenms_url, device.get('device_id'))
     except requests.RequestException:

@@ -13,10 +13,15 @@ of the switch.
 import contextlib
 import os
 import threading
+import time
 
 from . import database
 
 _lock = threading.Lock()
+# About how big each database log is, kept up as lines are added here: asking the database
+# (SUM over every line) on each append held syslog back at a few hundred lines a second.
+_sizes = {}          # key -> [bytes, monotonic time it was counted]
+SIZE_RECOUNT = 30    # seconds: then the database is asked again (other pods add lines too)
 
 
 def _db():
@@ -50,10 +55,31 @@ def append(path, line):
     """Add one line (no newline in it). Raises OSError or DatabaseError, like a write would."""
     db = _db()
     if db is not None:
-        db.log_append(_key(db, path), line)
+        key = _key(db, path)
+        db.log_append(key, line)
+        known = _sizes.get(key)
+        if known is not None:
+            known[0] += len(line)
         return
     with open(path, 'a', encoding='utf-8') as f:
         f.write(line + '\n')
+
+
+def append_many(path, rows):
+    """Add several lines at once: one transaction on a database, one write to a file."""
+    rows = list(rows)
+    if not rows:
+        return
+    db = _db()
+    if db is not None:
+        key = _key(db, path)
+        db.run_many('INSERT INTO floorbit_log (log_key, line) VALUES (?, ?)', [(key, line) for line in rows])
+        known = _sizes.get(key)
+        if known is not None:
+            known[0] += sum(len(line) for line in rows)
+        return
+    with open(path, 'a', encoding='utf-8') as f:
+        f.write(''.join(line + '\n' for line in rows))
 
 
 def lines(path):
@@ -72,7 +98,11 @@ def size(path):
     """About how many bytes the log holds."""
     db = _db()
     if db is not None:
-        return db.log_size(_key(db, path))
+        key = _key(db, path)
+        known = _sizes.get(key)
+        if known is None or time.monotonic() - known[1] > SIZE_RECOUNT:
+            known = _sizes[key] = [db.log_size(key), time.monotonic()]
+        return known[0]
     try:
         return os.path.getsize(path)
     except OSError:
@@ -83,7 +113,9 @@ def replace(path, new_lines):
     """The log becomes ``new_lines`` (cutting it down, compacting it). All or nothing."""
     db = _db()
     if db is not None:
-        db.log_replace(_key(db, path), list(new_lines))
+        key = _key(db, path)
+        db.log_replace(key, list(new_lines))
+        _sizes.pop(key, None)
         return
     tmp = path + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as f:
@@ -102,7 +134,9 @@ def keep_newest_half_over(path, max_bytes):
 def remove(path):
     db = _db()
     if db is not None:
-        db.log_replace(_key(db, path), [])
+        key = _key(db, path)
+        db.log_replace(key, [])
+        _sizes.pop(key, None)
         return
     with contextlib.suppress(FileNotFoundError):
         os.remove(path)

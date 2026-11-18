@@ -427,3 +427,66 @@ def test_an_agent_busy_between_polls_is_waited_for(client, anon_client, monkeypa
     got["r"] = agent_link.tunnel.call("devices", timeout=8)
     t.join(5)
     assert got["r"] == ["sw-1"]
+
+
+def test_a_killed_agent_shows_as_gone_at_once_not_a_minute_later(client):
+    a = enrol(client)
+    agent_link.check(a["key"], version="1.2.3")          # it asked for work: last seen now
+    agent_link.tunnel.linked(a["id"])
+    assert client.get("/api/agents").get_json()["agents"][0]["connected"]
+    agent_link.tunnel.unlinked(a["id"])                    # its link closed: killed
+    assert not client.get("/api/agents").get_json()["agents"][0]["connected"]
+    # On its way out it posts the syslog it still held: that doesn't make it reachable again.
+    anon = client.application.test_client()
+    for path, body in (("/api/agent/v1/syslog", {"lines": []}), ("/api/agent/v1/report", {"report": {}})):
+        assert anon.post(path, json=body, headers={"Floorbit-Agent-Key": a["key"]}).status_code < 400
+    anon.get("/api/agent/v1/plugins", headers={"Floorbit-Agent-Key": a["key"]})      # and its plugins'
+    anon.post("/api/agent/v1/answers", json={"answers": []}, headers={"Floorbit-Agent-Key": a["key"]})
+    assert not client.get("/api/agents").get_json()["agents"][0]["connected"]
+    assert a["id"] not in agent_link.tunnel.connected_agents()
+
+
+def test_a_lookup_takes_the_first_agent_that_knows_and_does_not_wait_for_the_other(monkeypatch):
+    """Two agents for the same halls: one was just killed and holds the call until it times out."""
+    def call(method, args=(), timeout=agent_link.CALL_TIMEOUT, targets=None):
+        if targets == {"dead"}:
+            time.sleep(3)
+            raise agent_link.AgentUnavailable("went away before it answered")
+        return {"hostname": "sw-a-01", "port": "Gi1/0/1"}
+    monkeypatch.setattr(agent_link.tunnel, "call", call)
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"dead", "alive"})
+    started = time.time()
+    found = agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["dead", "alive"])
+    assert found["port"] == "Gi1/0/1" and time.time() - started < 1
+
+
+def test_two_agents_for_one_hall_ask_librenms_once_per_lookup(monkeypatch):
+    asked = []
+
+    def call(method, args=(), timeout=agent_link.CALL_TIMEOUT, targets=None):
+        asked.extend(targets)
+        if targets == {"hung"}:
+            time.sleep(1)
+            raise agent_link.AgentUnavailable("went away before it answered")
+        if targets == {"other-hall"}:
+            return None
+        return {"hostname": "sw-a-01", "port": "Gi1/0/1"}
+    monkeypatch.setattr(agent_link.tunnel, "call", call)
+    monkeypatch.setattr(agent_link, "HEDGE_AFTER", 0.2)
+    monkeypatch.setattr(agent_link, "_last_knew", [None])
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"a", "b"})
+    for _ in range(3):
+        assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["a", "b"])["port"] == "Gi1/0/1"
+    assert asked == ["a", "a", "a"]
+    # One that doesn't know (another hall's agent) hands over at once.
+    asked.clear()
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"other-hall", "b"})
+    monkeypatch.setattr(agent_link, "_last_knew", ["other-hall"])
+    assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["other-hall", "b"])["port"] == "Gi1/0/1"
+    assert asked == ["other-hall", "b"] and agent_link._last_knew == ["b"]
+    # One that hangs is passed over after HEDGE_AFTER, not CALL_TIMEOUT.
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"hung", "b"})
+    monkeypatch.setattr(agent_link, "_last_knew", ["hung"])
+    started = time.time()
+    assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["hung", "b"])["port"] == "Gi1/0/1"
+    assert time.time() - started < 0.8

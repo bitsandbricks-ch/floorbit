@@ -17,10 +17,12 @@ Lines are kept as received with what Floorbit worked out: the device (by sender 
 severity, the program and the switch port and seat, when a port is named. Logs can name MACs and
 IPs, so reading them needs ``seats.view``.
 """
+import contextlib
 import ipaddress
 import json
 import os
 import re
+import socket
 import socketserver
 import threading
 import time
@@ -62,6 +64,16 @@ PORT_RE = re.compile(r'\b(GigabitEthernet|TenGigabitEthernet|FastEthernet|Twenty
                      r'(\d+(?:/\d+){0,3})\b', re.I)
 
 _receiver = None
+
+
+_batch = threading.local()   # the settings for the batch this thread is taking in
+
+
+def _hot_settings():
+    """``settings()`` for the checks every line passes (allowed, rate, trim): read once per relayed
+    batch, not per line; ten config lookups per line were a third of the server's time at 2,000
+    lines a second."""
+    return getattr(_batch, 'settings', None) or settings()
 
 
 def settings():
@@ -131,6 +143,65 @@ def parse(raw, now=None):
             'message': message.strip()[:MAX_LINE]}
 
 
+
+
+def _tail(path, count, block=1 << 20):
+    """The last ``count`` lines of a file (bytes, oldest first), read backwards in blocks."""
+    if count <= 0:
+        return []
+    with open(path, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        end = f.tell()
+        data = b''
+        while end > 0 and data.count(b'\n') <= count:
+            start = max(0, end - block)
+            f.seek(start)
+            data = f.read(end - start) + data
+            end = start
+    rows = data.split(b'\n')
+    if end > 0:
+        rows = rows[1:]          # cut mid-line at the block's start
+    return [r for r in rows if r.strip()][-count:]
+
+
+PRUNE_EVERY = 60              # seconds; a busy hall fills SYSLOG_MAX_MB in minutes
+RCVBUF = 8 * 1024 * 1024      # a burst waits in the kernel while one line is handled
+MAX_TCP = 256                 # senders at once; more are closed (a switch reconnects)
+
+
+class UdpServer(socketserver.UDPServer):
+    def server_bind(self):
+        with contextlib.suppress(OSError):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RCVBUF)
+        super().server_bind()
+
+
+class TcpServer(socketserver.ThreadingTCPServer):
+    """A thread per sender, at most MAX_TCP of them."""
+    allow_reuse_address = True
+    daemon_threads = True
+
+    def __init__(self, *a, **kw):
+        self._slots = threading.BoundedSemaphore(MAX_TCP)
+        super().__init__(*a, **kw)
+
+    def process_request(self, request, client_address):
+        if not self._slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
+
+
 class SyslogReceiver:
     def __init__(self, path=None):
         self.path = path
@@ -153,29 +224,36 @@ class SyslogReceiver:
         self.relayed = {}       # agent name -> {'at', 'lines', 'dropped'}: lines a local agent sent
         self._load()
 
-    # ── storage: one JSON line per log line, a file per hour ────────────────────────────
+    # ── storage: one JSON line per log line, a file per minute ──────────────────────────
     def folder(self):
         return self.path or store.event_path('syslog')
 
     def _load(self):
+        """The newest lines back into memory, newest file first, read from its end: only the last
+        ``max_lines`` are kept, and parsing every stored line made a restart after a big event's
+        night (7.6 million lines) take a minute before the first page answered."""
         folder = self.folder()
         if not os.path.isdir(folder):
             return
-        cutoff = time.time() - settings()['retention_hours'] * 3600
-        for name in sorted(os.listdir(folder)):
-            if not name.endswith('.jsonl'):
-                continue
+        s = settings()
+        cutoff = time.time() - s['retention_hours'] * 3600
+        want = s['max_lines']
+        newest_first = []
+        for name in sorted((n for n in os.listdir(folder) if n.endswith('.jsonl')), reverse=True):
             try:
-                with open(os.path.join(folder, name), encoding='utf-8') as f:
-                    for row in f:
-                        try:
-                            line = json.loads(row)
-                        except ValueError:
-                            continue
-                        if isinstance(line, dict) and (line.get('ts') or 0) >= cutoff:
-                            self.lines.append(line)
+                rows = _tail(os.path.join(folder, name), want - len(newest_first))
             except OSError:
                 continue
+            for row in reversed(rows):
+                try:
+                    line = json.loads(row)
+                except ValueError:
+                    continue
+                if isinstance(line, dict) and (line.get('ts') or 0) >= cutoff:
+                    newest_first.append(line)
+            if len(newest_first) >= want:
+                break
+        self.lines.extend(reversed(newest_first))
         if self.lines:
             self.next_id = max(line.get('id', 0) for line in self.lines) + 1
         self._trim()
@@ -184,7 +262,9 @@ class SyslogReceiver:
         folder = self.folder()
         try:
             os.makedirs(folder, exist_ok=True)
-            name = time.strftime('%Y-%m-%d-%H', time.gmtime(line['ts'])) + '.jsonl'
+            # A file per minute, not per hour: SYSLOG_MAX_MB is kept by dropping whole files, and a
+            # busy hall writes about 2 GB an hour.
+            name = time.strftime('%Y-%m-%d-%H-%M', time.gmtime(line['ts'])) + '.jsonl'
             with open(os.path.join(folder, name), 'a', encoding='utf-8') as f:
                 f.write(json.dumps(line, separators=(',', ':')) + '\n')
         except OSError as exc:
@@ -198,7 +278,7 @@ class SyslogReceiver:
             return
         s = settings()
         files = sorted(f for f in os.listdir(folder) if f.endswith('.jsonl'))
-        cutoff = time.strftime('%Y-%m-%d-%H', time.gmtime(now - s['retention_hours'] * 3600))
+        cutoff = time.strftime('%Y-%m-%d-%H-%M', time.gmtime(now - s['retention_hours'] * 3600))
         sizes = {}
         for name in files:
             path = os.path.join(folder, name)
@@ -215,7 +295,7 @@ class SyslogReceiver:
 
     def _trim(self, now=None):
         now = time.time() if now is None else now
-        s = settings()
+        s = _hot_settings()
         cutoff = now - s['retention_hours'] * 3600
         while self.lines and (len(self.lines) > s['max_lines'] or self.lines[0]['ts'] < cutoff):
             self.lines.popleft()
@@ -244,7 +324,7 @@ class SyslogReceiver:
 
     def sender_ok(self, address):
         nets, switches = self._allowed()
-        if settings()['allow_switches'] and address in switches:
+        if _hot_settings()['allow_switches'] and address in switches:
             return True
         try:
             ip = ipaddress.ip_address(address)
@@ -253,7 +333,7 @@ class SyslogReceiver:
         return any(ip in net for net in nets)
 
     def _rate_ok(self, sender, now):
-        rate = settings()['rate']
+        rate = _hot_settings()['rate']
         tokens, last = self._buckets.get(sender, (rate, now))
         # max(): relayed lines carry their own times, and two agents' lines can arrive out of order.
         tokens = min(rate, tokens + max(0, now - last) * rate)
@@ -307,6 +387,13 @@ class SyslogReceiver:
         now = time.time() if now is None else now
         if not lines:
             return 0     # the agent's check: nothing to count
+        _batch.settings = settings()
+        try:
+            return self._relay(agent_name, lines, now, dropped, offset)
+        finally:
+            _batch.settings = None
+
+    def _relay(self, agent_name, lines, now, dropped, offset):
         kept = 0
         for item in lines:
             if not isinstance(item, dict) or not isinstance(item.get('raw'), str):
@@ -497,12 +584,12 @@ class SyslogReceiver:
                     receiver.receive(raw, self.client_address[0])
 
         try:
-            udp = socketserver.ThreadingUDPServer((s['bind'], s['port']), Udp)
+            # One thread reads the port: a thread per datagram fell over in a burst (the local
+            # agent's relay learned the same, floorbit-agent's syslog_relay.py).
+            udp = UdpServer((s['bind'], s['port']), Udp)
             self._servers.append(udp)
             if s['tcp']:
-                socketserver.ThreadingTCPServer.allow_reuse_address = True
-                tcp = socketserver.ThreadingTCPServer((s['bind'], s['port']), Tcp)
-                tcp.daemon_threads = True
+                tcp = TcpServer((s['bind'], s['port']), Tcp)
                 self._servers.append(tcp)
         except OSError as exc:
             self.error = f"Can't listen on port {s['port']}: {exc.strerror or exc}"
@@ -511,15 +598,16 @@ class SyslogReceiver:
         for server in self._servers:
             threading.Thread(target=server.serve_forever, name='syslog', daemon=True).start()
         self.listening = {'port': self._servers[0].server_address[1], 'tcp': s['tcp'], 'bind': s['bind']}
-        threading.Thread(target=self._housekeeping, name='syslog-prune', daemon=True).start()
 
     def _housekeeping(self):
-        while self._servers:
+        # Also when lines come only through the local agent and nothing listens here: tied to the
+        # listener, the folder grew past SYSLOG_MAX_MB without end (2 GB in a test night).
+        while True:
             try:
                 self.prune_files()
             except OSError as exc:
                 print(f'[syslog] could not prune: {exc}')
-            time.sleep(300)
+            time.sleep(PRUNE_EVERY)
 
     def stop(self):
         servers, self._servers = self._servers, []
@@ -576,6 +664,7 @@ def init_syslog(app, registry=None, start_background=True):
             if features.on('syslog'):
                 receiver.start()
             threading.Thread(target=receiver._forwarding, name='syslog-forward', daemon=True).start()
+            threading.Thread(target=receiver._housekeeping, name='syslog-prune', daemon=True).start()
 
     return receiver
 

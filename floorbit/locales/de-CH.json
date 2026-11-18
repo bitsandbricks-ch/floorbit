@@ -1,4 +1,8 @@
 {
+ "The agent sent a broken gzip body.": "Der Agent hat einen kaputten gzip-Inhalt geschickt.",
+ "The agent sent more than 32 MB at once; send it in parts.": "Der Agent hat mehr als 32 MB auf einmal geschickt; bitte in Teilen schicken.",
+ "The agent sent a body that is not JSON.": "Der Agent hat einen Inhalt geschickt, der kein JSON ist.",
+ "The monitoring source is not answering; try again shortly.": "Die Monitoring-Quelle antwortet nicht; bitte gleich nochmals versuchen.",
  "// how": "English text as in the code -> Swiss German (no ß). {} marks a value; {1}, {2} put values in another order. See floorbit/i18n.py.",
  "Sign in required": "Bitte zuerst anmelden",
  "The API token is wrong, expired or revoked.": "Der API-Token ist falsch, abgelaufen oder widerrufen.",
@@ -109,6 +113,7 @@
  "Some of these ports or seats have cables from NetBox: change them there first.": "Einige dieser Ports oder Plätze haben Kabel aus NetBox: ändere sie zuerst dort.",
  "{} ports or seats already have a cable.": "{} Ports oder Plätze haben schon ein Kabel.",
  "LibreNMS did not list the ports of {}": "LibreNMS hat die Ports von {} nicht aufgelistet",
+ "LibreNMS answered {}": "LibreNMS hat mit {} geantwortet",
  "LibreNMS does not know {}": "LibreNMS kennt {} nicht",
  "LibreNMS redirects to {}: put that address in Settings > LibreNMS.": "LibreNMS leitet weiter nach {}: Trag diese Adresse unter Einstellungen > LibreNMS ein.",
  "No monitoring source is set up": "Es ist keine Monitoring-Quelle eingerichtet",

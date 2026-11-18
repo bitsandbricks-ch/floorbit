@@ -458,6 +458,27 @@ def test_the_agent_part_collects_in_the_hall(tmp_path, monkeypatch):
         ctx.stopping.set()
 
 
+def test_a_big_hall_sends_its_minute_in_parts_under_the_limit(tmp_path, monkeypatch):
+    import importlib
+    import json
+
+    from floorbit.plugins.agent import SEND_MAX_BYTES
+    agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
+    # 1,000 switches, 50 ports, 4 numbers each: one payload of it is past the limit.
+    big = {f"sw-{s:04d}|Gi1/0/{p}|{m}": 123456.7 for s in range(1000) for p in range(1, 51)
+           for m in ("up", "in_bps", "out_bps", "errors")}
+    assert len(json.dumps({"values": big})) > SEND_MAX_BYTES
+    monkeypatch.setattr(agent.storage_mod, "snapshot", lambda *_a, **_k: big)
+    ctx = AgentCtx("telemetry", {"targets": []}, {"sends": {"series": {"privacy": "device"}}},
+                   state_dir=str(tmp_path))
+    plugin = agent.AgentPlugin(ctx)
+    plugin.state = state.state
+    plugin.send_series(1_800_000_000)
+    parts = [payload for kind, payload in ctx.sent if kind == "series"]
+    assert len(parts) > 1 and all(len(json.dumps(p)) < SEND_MAX_BYTES for p in parts)
+    assert sum(len(p["values"]) for p in parts) == len(big)
+
+
 def test_plugins_can_add_measurements_and_drivers(monkeypatch):
     from floorbit.telemetry import targets
     monkeypatch.setattr(state, "_HANDLERS", dict(state._HANDLERS))
@@ -584,6 +605,39 @@ def test_a_refused_inventory_login_blocks_the_stored_credential():
     finally:
         pollers.POLLERS["nxapi"] = old
     assert seen == [("may", "dev-1", "cred-1", "r1"), ("failed", "dev-1", "cred-1", "r1")]
+
+
+def test_memory_history_is_compact_bounded_and_in_order(monkeypatch):
+    from floorbit.telemetry import storage as storage_mod
+    monkeypatch.setattr(storage_mod, "MEMORY_SERIES", 2)
+    st = storage_mod.Storage(db=None)
+    t0 = 1_800_000_000 // 60 * 60
+    st.sample({"sw|Gi1/0/1|in_bps": 1.0, "sw||cpu": 5.0}, t0)
+    st.sample({"sw|Gi1/0/1|in_bps": 2.0}, t0 + 60)
+    st.sample({"sw|Gi1/0/1|in_bps": 4.0}, t0 + 240)        # two minutes with nothing in between
+    st.sample({"sw|Gi1/0/1|in_bps": 3.0}, t0 + 180)        # late, but within the six hours
+    st.sample({"sw|Gi1/0/2|in_bps": 9.0}, t0 + 240)        # a third series: past the cap
+    got = st.series("sw", "Gi1/0/1", "in_bps", hours=6, now=t0 + 300)
+    assert got == [[t0, 1.0], [t0 + 60, 2.0], [t0 + 180, 3.0], [t0 + 240, 4.0]]
+    assert st.series("sw", "Gi1/0/2", "in_bps", now=t0 + 300) == [] and "memory" in st.errors
+    st.sample({"sw|Gi1/0/1|in_bps": 7.0}, t0 + 7 * 3600)   # seven hours later: the old ones are gone
+    assert st.series("sw", "Gi1/0/1", "in_bps", hours=6, now=t0 + 7 * 3600) == [[t0 + 7 * 3600, 7.0]]
+
+
+def test_two_agents_polling_the_same_switch_give_steady_rates(plugin):
+    # No VRRP (or a split): both agents poll, and their readings land a moment apart, sometimes
+    # out of order. The rate must stay the real one, not jump to many times it or to zero.
+    import time
+    now = time.time()
+    state.state.apply_text(snmp_poll(now - 60, 1000), now)
+    state.state.apply_text(snmp_poll(now - 59.7, 1000), now)               # the second agent
+    state.state.apply_text(snmp_poll(now - 30, 1000 + 30 * 125_000), now)
+    assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)
+    state.state.apply_text(snmp_poll(now - 29.6, 1000 + 30 * 125_000), now)   # its copy, unchanged
+    assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)
+    state.state.apply_text(snmp_poll(now - 60, 1000), now)                 # late and older
+    state.state.apply_text(snmp_poll(now, 1000 + 60 * 125_000), now)
+    assert plugin.port_stats("sw-a-01", "gi1/0/1")["upload_bps"] == pytest.approx(1e6)
 
 
 def test_a_series_name_the_table_cannot_hold_is_left_out_alone():

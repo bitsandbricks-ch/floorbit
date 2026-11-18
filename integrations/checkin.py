@@ -343,7 +343,7 @@ def port_of(ip):
     hit = _port_cache.get(ip)
     if hit and time.time() - hit[0] < PORT_CACHE_SECONDS:
         return hit[1]
-    found = None
+    found, sure = None, True
     try:
         monitor = _monitoring()
         port = monitor.resolve_ip(ip) if monitor.enabled() else None
@@ -353,8 +353,12 @@ def port_of(ip):
                      # More MACs than a PC (and its VMs) on the port: an AP, a desk switch, an uplink.
                      'edge': (port.get('macs_on_port') or 0) <= EDGE_PORT_MACS}
     except Exception:  # noqa: BLE001  # a slow or broken monitoring source must not stop a check-in
-        found = None
-    _port_cache[ip] = (time.time(), found)
+        found, sure = None, False
+    from floorbit import sources
+    if found or (sure and not sources.offline()):
+        # Not "don't know" while the agent or LibreNMS is away: a check-in tried during an
+        # outage would keep failing for a minute after it is back.
+        _port_cache[ip] = (time.time(), found)
     return found
 
 

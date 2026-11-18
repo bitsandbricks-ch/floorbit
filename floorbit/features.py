@@ -16,7 +16,7 @@ import os
 import threading
 
 from . import database
-from .store import load_data, save_data
+from .store import load_data, load_shared, save_data
 
 KEY = 'features'
 ENV = 'FLOORBIT_FEATURES_OFF'
@@ -80,7 +80,7 @@ def off(data=None):
     """Every feature that is off: turned off, forced off, or needing one that is."""
     if data is None:
         try:
-            data = load_data()
+            data = load_shared()    # asked on every syslog batch and page: read once per change
         except database.DatabaseUnavailable:
             data = {}       # the database is away and nothing read yet: as set up, all on
     result = set(_saved(data)) | forced_off()

@@ -216,8 +216,8 @@ def test_roles_are_read_once_per_request_and_again_after_a_change(app_module, mo
     # The incident board checks permissions per incident: 300 incidents took 1.8 s parsing data.json.
     sign_in_as(app_module, "boss", "admin")      # someone must keep managing accounts
     reads = []
-    real = roles._read
-    monkeypatch.setattr(roles, "_read", lambda: reads.append(1) or real())
+    real = roles._read_shared     # read from data.json once per change (store.read_shared)
+    monkeypatch.setattr(roles, "_read_shared", lambda: reads.append(1) or real())
     with app_module.app.test_request_context("/"):
         for _ in range(50):
             roles.can({"role": "tech"}, "incidents.work")

@@ -70,7 +70,8 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
 - **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
   problems. Never services, addresses or ports.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)
-  for looking into an incident afterwards, then deleted. `FLOWS_KEEP_RAW=false` keeps none.
+  for looking into an incident afterwards, then deleted; past `FLOWS_RAW_MAX_MB` (10 GB) the oldest
+  hours go first. `FLOWS_KEEP_RAW=false` keeps none.
 - **Per-seat numbers** live only in the collector's memory and are gone after the retention too
   (or when it restarts).
 - **What stays** after that is `FLOWS_DIR/hourly.jsonl`: per hour, the hall, area and service
@@ -99,6 +100,7 @@ An entry stays for ten minutes after it was last seen.
 | `FLOWS_MIN_SEATS` | `5` | different seats before a service is named (at least 2) |
 | `FLOWS_RETENTION_DAYS` | `7` | days raw flows and per-seat numbers are kept |
 | `FLOWS_KEEP_RAW` | `true` | keep raw flows at all |
+| `FLOWS_RAW_MAX_MB` | `10240` | most raw flows kept on disk; the oldest hours go first (a busy hall writes about 300 MB an hour) |
 | `FLOWS_DIR` | next to `data.json` | where raw flows and hourly totals go |
 | `FLOWS_P2P_PEERS` | `300` | peers per minute that count as P2P |
 | `FLOWS_BURST_PPS` | `50000` | packets per second that count as a burst |

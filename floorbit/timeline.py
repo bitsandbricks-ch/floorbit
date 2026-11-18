@@ -10,6 +10,7 @@ Built from what Floorbit keeps anyway, plus a small journal for what it didn't:
   written to ``timeline.jsonl`` as they happen, in the same words webhooks get: no MACs, IPs or nicks.
 - ``deploy``: each start of Floorbit, with its version, and when the version changed.
 """
+import atexit
 import datetime
 import json
 import os
@@ -38,15 +39,60 @@ def write(kind, title, target='', t=None, **extra):
     entry.update({k: v for k, v in extra.items() if v not in (None, '')})
     line = json.dumps(entry, separators=(',', ':'), default=str)
     with _lock:
-        try:
-            journal.append(path(), line)
-            journal.keep_newest_half_over(path(), MAX_BYTES)
-        except (OSError, database.DatabaseError) as exc:   # a full disk must not break what was being logged
-            print(f'[timeline] could not write the journal: {exc}')
+        _pending.append((path(), line))
+        if len(_pending) > MAX_PENDING:
+            del _pending[:len(_pending) - MAX_PENDING]   # the database is away for long: keep the newest
+    _start_writer()
     return entry
 
 
+# Lines are written a batch at a time, not each on its own: a hall where every port flaps starts
+# hundreds of log alerts a second, and an insert and commit each held the syslog it came from back.
+FLUSH_EVERY = 0.5      # seconds
+MAX_PENDING = 20_000
+_pending = []
+_writer = []
+atexit.register(lambda: flush())
+
+
+def flush():
+    """Write what waits. Readers call it first, so they see every line written before."""
+    with _lock:
+        waiting = _pending[:]
+        del _pending[:]
+    by_path = {}
+    for where, line in waiting:
+        by_path.setdefault(where, []).append(line)
+    for where, rows in by_path.items():
+        try:
+            journal.append_many(where, rows)
+            journal.keep_newest_half_over(where, MAX_BYTES)
+        except (OSError, database.DatabaseError) as exc:   # a full disk must not break what was being logged
+            print(f'[timeline] could not write the journal: {exc}')
+
+
+def _start_writer():
+    if _writer:
+        return
+    with _lock:
+        if _writer:
+            return
+        thread = threading.Thread(target=_writing, name='timeline-writer', daemon=True)
+        _writer.append(thread)
+    thread.start()
+
+
+def _writing():
+    while True:
+        time.sleep(FLUSH_EVERY)
+        try:
+            flush()
+        except Exception as exc:  # noqa: BLE001  # the writer must outlive one bad batch
+            print(f'[timeline] writing failed: {exc}')
+
+
 def _journal():
+    flush()
     lines = journal.lines(path())
     out = []
     for line in lines:

@@ -9,10 +9,19 @@ import threading
 import time
 
 import requests
+from requests.adapters import HTTPAdapter
 
 BREAK_FOR = 30   # seconds
 _lock = threading.Lock()
 _down = {'until': 0.0, 'base': None, 'why': ''}
+
+
+# One connection pool: a seat lookup is three or four requests, and opening a new TLS connection
+# for each cost LibreNMS more than answering them.
+_session = requests.Session()
+_session.mount('http://', HTTPAdapter(pool_connections=4, pool_maxsize=64))
+_session.mount('https://', HTTPAdapter(pool_connections=4, pool_maxsize=64))
+_send = _session.get     # the tests send through requests.get, which they replace
 
 
 def _base(url):
@@ -29,7 +38,7 @@ def get(url, **kwargs):
     # drops only Authorization): never follow one, as plugins' HttpClient doesn't either.
     kwargs.setdefault('allow_redirects', False)
     try:
-        resp = requests.get(url, **kwargs)
+        resp = _send(url, **kwargs)
     except (requests.ConnectionError, requests.Timeout) as exc:
         with _lock:
             _down.update(until=time.monotonic() + BREAK_FOR, base=base, why=type(exc).__name__)

@@ -11,6 +11,7 @@ import json
 import os
 import re
 import threading
+import time
 
 import requests
 from flask import Blueprint, current_app, jsonify, request
@@ -385,6 +386,13 @@ class SettingsStore:
 
     def reload_if_changed(self):
         """Re-read the file if it changed on disk. Returns True when it did."""
+        # At most once a second, unless this process wrote a document since: every setting read
+        # asked, a stat or a query per syslog line (at 2,000 lines a second, most of the CPU).
+        from . import store
+        now, generation = time.monotonic(), store.generation(self.data_file)
+        if now - getattr(self, '_checked', -1.0) < 1 and generation == getattr(self, '_checked_gen', None):
+            return False
+        self._checked, self._checked_gen = now, generation
         if self._current_mtime() != self._mtime:
             self.reload()
             return True

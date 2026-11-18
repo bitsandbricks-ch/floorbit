@@ -160,31 +160,52 @@ def _same_protocol():
     return None
 
 
-def _agent():
+def _agent(reachable=True):
+    """``reachable``: this request shows calls can reach the agent (its link, or the long poll).
+    Its answers, syslog, flows and reports don't: a stopping agent posts its last answers and its
+    backlog after its link closed, and counting that kept it "connected" for a minute while calls
+    to it waited and failed. A long-polling agent shows it by asking for calls."""
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
-                            request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip())
+                            request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip(),
+                            reachable=reachable)
 
 
 MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more
 
 
+class BodyRefused(Exception):
+    def __init__(self, message, status):
+        super().__init__(message)
+        self.status = status
+
+
 def _agent_body():
-    """The JSON an agent posted, gzipped or not ({} when it isn't JSON). Gzip saves the event's
-    uplink most on syslog batches and inventories; agents use it once hello says it's understood."""
+    """The JSON an agent posted, gzipped or not. Gzip saves the event's uplink most on syslog
+    batches and inventories; agents use it once hello says it's understood. A body that unpacks
+    past MAX_UNZIPPED or isn't JSON is refused out loud: read as empty, the agent took the answer
+    as done and its lines were lost without a word on either side."""
     raw = request.get_data(cache=False)
     if (request.headers.get('Content-Encoding') or '').lower() == 'gzip':
         unzip = zlib.decompressobj(wbits=31)
         try:
             raw = unzip.decompress(raw, MAX_UNZIPPED)
         except zlib.error:
-            return {}
+            raise BodyRefused('The agent sent a broken gzip body.', 400) from None
         if unzip.unconsumed_tail:
-            return {}
+            raise BodyRefused('The agent sent more than 32 MB at once; send it in parts.', 413)
     try:
         body = json.loads(raw or b'{}')
     except ValueError:
-        return {}
-    return body if isinstance(body, dict) else {}
+        raise BodyRefused('The agent sent a body that is not JSON.', 400) from None
+    if not isinstance(body, dict):
+        raise BodyRefused('The agent sent a body that is not JSON.', 400)
+    return body
+
+
+@bp.errorhandler(BodyRefused)
+def _body_refused(exc):
+    print(f'[agent] refused a post to {request.path}: {exc}')
+    return jsonify({'error': str(exc)}), exc.status
 
 
 def _refused():
@@ -216,7 +237,7 @@ def calls():
 
 @bp.route('/api/agent/v1/answers', methods=['POST'])
 def answers():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     body = _agent_body()
@@ -232,7 +253,7 @@ SYSLOG_BATCH = 2000
 
 @bp.route('/api/agent/v1/syslog', methods=['POST'])
 def syslog():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     receiver = current_app.extensions.get('floorbit_syslog')
@@ -270,7 +291,7 @@ def _traffic_off():
 
 @bp.route('/api/agent/v1/seats', methods=['GET'])
 def flow_seats():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     if not features.on('traffic'):
@@ -282,7 +303,7 @@ def flow_seats():
 
 @bp.route('/api/agent/v1/captive', methods=['GET'])
 def captive():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     from integrations import config
@@ -298,7 +319,7 @@ def captive():
 @bp.route('/api/agent/v1/seat-walk', methods=['POST'])
 def seat_walk_hello():
     """The agent saw the crew's laptop with a walk-through code: ``{"token", "ip"}`` (seat_walk.py)."""
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     from .. import seat_walk
@@ -312,7 +333,7 @@ def seat_walk_hello():
 def report():
     """The agent's own numbers, from an agent on the long poll (on the link they come as a
     ``{"type": "report"}`` message). Shown on the Local agents page."""
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     agent_link.tunnel.report(agent['id'], _agent_body().get('report'))
@@ -321,7 +342,7 @@ def report():
 
 @bp.route('/api/agent/v1/flows', methods=['POST'])
 def flows():
-    agent = _agent()
+    agent = _agent(reachable=False)
     if agent is None:
         return _refused()
     if not features.on('traffic'):

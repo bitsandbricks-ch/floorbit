@@ -26,6 +26,14 @@ _health_lock = threading.Lock()
 _health = {'source': None, 'ok': True, 'offline_since': None, 'last_ok': None, 'error': None}
 
 
+# Set when the source may answer again (an agent connected): the status monitor polls at once.
+status_wake = threading.Event()
+
+
+def wake_status_monitor():
+    status_wake.set()
+
+
 def health():
     with _health_lock:
         return dict(_health)

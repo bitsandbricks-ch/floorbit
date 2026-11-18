@@ -25,6 +25,8 @@ import time
 
 from . import lineproto
 
+EXPIRE_EVERY = 10      # seconds between passes that drop rows past TABLE_TTL
+MIN_RATE_GAP = 2.0     # seconds between two counter readings worth a rate
 TABLE_TTL = 600        # seconds a MAC, ARP or neighbour row lives without being seen again
 STALE = 180            # a device that sent nothing for this long reads as offline
 OPER = {1: 'up', 2: 'down', 3: 'testing', 4: 'unknown', 5: 'dormant', 6: 'notPresent', 7: 'lowerLayerDown'}
@@ -121,8 +123,14 @@ class Interface:
         if value is None:
             return None
         before = self._counted.get(which)
+        if before is not None and at - before[1] < MIN_RATE_GAP:
+            # Two agents polling the same hall (no VRRP, or split): the second copy lands a moment
+            # after the first, or late and older. A rate over a fraction of a second jumps between
+            # 0 and many times the truth (switches refresh counters every few seconds), and an
+            # older reading would become the base; keep the base and wait for a real interval.
+            return None
         self._counted[which] = (value, at)
-        if before is None or at <= before[1]:
+        if before is None:
             return None
         delta = value - before[0]
         # A counter that went backwards was reset (reboot, clear counters): no rate this round.
@@ -207,6 +215,7 @@ class State:
         self.collecting = True
         self.points = 0
         self.unknown = 0               # points no driver here understands (kept in storage only)
+        self._expired = 0.0
 
     def reset(self):
         with self._lock:
@@ -289,7 +298,11 @@ class State:
                     used += 1
                 else:
                     self.unknown += 1
-            self._expire(now)
+            if now - self._expired >= EXPIRE_EVERY or now < self._expired:
+                # Not per post: a 2,000-switch hall posts 200 times a second, and each pass walks
+                # every device's tables.
+                self._expire(now)
+                self._expired = now
         return used
 
     def apply_text(self, text, now=None):

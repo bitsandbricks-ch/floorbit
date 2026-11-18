@@ -746,7 +746,7 @@ def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app
     relay.tick(now=NOW)                                      # the seats come from the hosted Floorbit
     assert collector.agg.seat_of == {"192.0.2.10": "A-1"}
     collector.receive(v5([STEAM]), "198.51.100.1", now=NOW + 1)
-    collector._next["publish"] = 0
+    collector._next["publish"] = collector._next["raw"] = 0
     relay.tick(now=NOW + 2)
     assert relay.sent == 2 and sent[-1]["mix_hour"] == {"gaming": 5_000_000}
     body = client.get("/api/flows").get_json()
@@ -961,10 +961,16 @@ def test_broken_or_huge_gzip_is_refused(client, app_module, monkeypatch):
     key = enrol(client)["key"]
     h = {"Floorbit-Agent-Key": key, "Content-Encoding": "gzip", "Content-Type": "application/json"}
     post = app_module.app.test_client().post
-    assert post("/api/agent/v1/syslog", data=b"not gzip", headers=h).get_json() == {"taken": 0, "received": 0}
+    # Refused out loud, not read as an empty batch the agent then counts as delivered.
+    res = post("/api/agent/v1/syslog", data=b"not gzip", headers=h)
+    assert res.status_code == 400 and "gzip" in res.get_json()["error"]
     monkeypatch.setattr(agent_bp, "MAX_UNZIPPED", 1000)
     bomb = gz.compress(b'{"lines": [' + b" " * 5000 + b"]}")
-    assert post("/api/agent/v1/syslog", data=bomb, headers=h).get_json()["received"] == 0
+    res = post("/api/agent/v1/syslog", data=bomb, headers=h)
+    assert res.status_code == 413 and "in parts" in res.get_json()["error"]
+    plain = {"Floorbit-Agent-Key": key, "Content-Type": "application/json"}
+    assert post("/api/agent/v1/syslog", data=b"{not json", headers=plain).status_code == 400
+    assert post("/api/agent/v1/plugins/telemetry/points", data=b"[1]", headers=plain).status_code == 400
     fine = gz.compress(b'{"lines": [{"raw": "<14>hi", "from": "192.0.2.9"}]}')
     assert post("/api/agent/v1/syslog", data=fine, headers=h).get_json() == {"taken": 1, "received": 1}
 

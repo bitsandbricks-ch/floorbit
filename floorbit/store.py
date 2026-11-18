@@ -255,9 +255,63 @@ def write_json(path, data):
             with open(path, 'w') as f:
                 f.write(text)
             _warned.discard(path)
+    _generation[0] += 1
+    _written[path] = _written.get(path, 0) + 1
     if isinstance(data, Doc):
         # What the caller's copy now stands for: a second save from it changes only what it changes.
         data._base = (path, text if out is data else json.dumps(data, indent=None if db.kind != 'files' else 2))
+
+
+_shared = {}            # path -> (stamp, generation, document)
+SHARED_RECHECK = 1.0    # seconds: another pod's change shows up this late at most
+_generation = [0]       # bumped by every write here: a write within one mtime tick still counts
+_written = {}           # path -> writes here: the LAN cache stats saving must not re-read data.json
+
+
+def generation(path):
+    """Changes whenever this process writes ``path``."""
+    return _written.get(path, 0)
+
+
+def read_shared(path, default=None):
+    """Like ``read_json``, for hot read-only paths (who is signed in, their role, which plugins are
+    on): parsed once per change, not on every call. Every request asked these several times, and
+    each time parsed the whole data.json; at a 400-switch event that was 86% of the server's CPU.
+    The document is shared: never change it, copy what you hand on."""
+    hit = _shared.get(path)
+    now = time.monotonic()
+    if hit and hit[1] == generation(path) and now - hit[3] < SHARED_RECHECK and _remote_backend():
+        return hit[2]     # on a database, asking for the row's stamp is a query: once a second
+    mark = _mark(path)
+    if mark is None:
+        return read_json(path, default)
+    if hit and hit[0] == mark and hit[1] == generation(path):
+        _shared[path] = (mark, hit[1], hit[2], now)
+        return hit[2]
+    written = generation(path)
+    doc = read_json(path, default)
+    if len(_shared) > 256:
+        _shared.clear()
+    _shared[path] = (mark, written, doc, now)
+    return doc
+
+
+def _remote_backend():
+    from . import database
+    return database.backend().kind != 'files'
+
+
+def _mark(path):
+    """``stamp`` plus, for a file, its size and inode: a rewrite by rename, or two writes inside
+    one mtime tick, still reads as a change."""
+    from . import database
+    if database.backend().kind != 'files':
+        return stamp(path)
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (st.st_mtime_ns, st.st_size, st.st_ino)
 
 
 def stamp(path):
@@ -442,6 +496,21 @@ def _empty():
         'seats':          [],   # individual seats
         'seat_blocks':    [],   # seating blocks (rows/sections)
     })
+
+
+def load_shared():
+    """``load_data()`` for hot read-only paths (an event handler per syslog alert), parsed once per
+    change of the file (``read_shared``). Shared: never change it."""
+    path, tenant_path_ = _files()
+    found = read_shared(path)
+    if not isinstance(found, dict):
+        return _empty()
+    if not tenant_path_:
+        return found
+    tenant = read_shared(tenant_path_, {})
+    out = {k: v for k, v in found.items() if k not in TENANT_KEYS}
+    out.update({k: tenant[k] for k in TENANT_KEYS if k in tenant})
+    return out
 
 
 def load_data():

@@ -87,8 +87,16 @@ def _write(data):
     write_json(_path(), data)
 
 
+def _read_shared():
+    path = _path() if _path else None
+    if not path:
+        return {}
+    from floorbit.store import read_shared
+    return read_shared(path, {})
+
+
 def _custom(data=None):
-    raw = (data if data is not None else _read()).get(KEY) or {}
+    raw = (data if data is not None else _read_shared()).get(KEY) or {}
     return {k: v for k, v in raw.items() if isinstance(v, dict) and k not in BUILTIN}
 
 

@@ -6,6 +6,7 @@ and publishes a summary to Redis every few seconds.
 """
 import ipaddress
 import socket
+import threading
 import time
 
 from integrations import config
@@ -19,6 +20,8 @@ SEATS_EVERY = 60
 PRUNE_EVERY = 3600
 FEATURE_EVERY = 30
 ALLOW_EVERY = 30
+RAW_EVERY = 5         # seconds between raw writes: one gzip member per packet cost more than the rest
+MAX_PENDING = 500_000  # raw flows waiting for the disk; past that the oldest go unwritten (counted)
 
 
 class Collector:
@@ -30,8 +33,10 @@ class Collector:
         self.errors = 0
         self.refused = 0
         self._allow = (None, None)     # (monotonic time read, networks or None for everyone)
-        self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0}
+        self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0, 'raw': 0}
         self._pending = []
+        self._lock = threading.Lock()   # receive() and housekeeping() may run in two threads
+        self.raw_skipped = 0
         self._on = True
         self.publish = store.publish   # the local agent sends the summary to the hosted Floorbit instead
 
@@ -96,31 +101,45 @@ class Collector:
             if self.errors <= 5 or self.errors % 1000 == 0:
                 self.log(f'[flows] could not read a packet from {exporter}: {exc}')
             return 0
-        self.agg.add(flows, now=now, exporter=exporter)
-        self._pending += flows
+        with self._lock:
+            self.agg.add(flows, now=now, exporter=exporter)
+            self._pending += flows
+            if len(self._pending) > MAX_PENDING:
+                over = len(self._pending) - MAX_PENDING
+                del self._pending[:over]
+                self.raw_skipped += over
         return len(flows)
 
     def housekeeping(self, now=None, refresh_seats=None):
         now = time.time() if now is None else now
         if self._due('seats', now, SEATS_EVERY):
             try:
-                self.agg.set_seats(*(refresh_seats or seat_maps)())
+                seat_of = (refresh_seats or seat_maps)()
+                with self._lock:
+                    self.agg.set_seats(*seat_of)
             except Exception as exc:  # noqa: BLE001  # keep counting with the old map
                 self.log(f'[flows] could not read the seat addresses: {exc}')
-        pending, self._pending = self._pending, []
+        # Only the hand-over holds the lock: the disk and the network are slow, packets aren't.
+        pending, hours, snap = [], [], None
+        with self._lock:
+            if self._due('raw', now, RAW_EVERY):
+                pending, self._pending = self._pending, []
+                hours = self.agg.take_closed_hours()
+            if self._due('publish', now, PUBLISH_EVERY):
+                snap = self.agg.snapshot(now=now)
         try:
             self.raw.write(pending, now=now)
-            self.raw.append_hours(self.agg.take_closed_hours())
+            self.raw.append_hours(hours)
             if self._due('prune', now, PRUNE_EVERY):
                 self.raw.prune(now=now)
         except OSError as exc:
             self.log(f'[flows] could not write to {self.raw.root}: {exc}')
-        if self._due('publish', now, PUBLISH_EVERY):
-            snap = self.agg.snapshot(now=now)
+        if snap is not None:
             snap['raw'] = self.raw.usage()
             snap['templates_missing'] = self.templates.missing
             snap['errors'] = self.errors
             snap['refused'] = self.refused
+            snap['raw_skipped'] = self.raw_skipped
             self.publish(snap)
 
     def serve(self, host='0.0.0.0', port=2055):

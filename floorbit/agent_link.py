@@ -27,9 +27,10 @@ import re
 import secrets
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FutureTimeout
 
-from .store import load_data, save_data
+from .store import load_data, load_shared, save_data
 
 KEY = 'agents'
 PREFIX = 'fba_'
@@ -96,9 +97,15 @@ def outdated(agent_protocol, server_protocol=None):
 def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now
-    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now),
-             'report': tunnel.reported(a['id'], now)}
-            for a in data.get(KEY) or []]
+    out = []
+    for a in data.get(KEY) or []:
+        row = _public(a, now)
+        # last_seen is written only every TOUCH_EVERY: an agent whose link just closed (killed,
+        # line cut) is gone now, as the tunnel knows, not up to a minute later.
+        row['connected'] = row['connected'] and tunnel.connected(now, a['id'])
+        out.append({**row, 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now),
+                    'report': tunnel.reported(a['id'], now)})
+    return out
 
 
 def agent_only():
@@ -201,6 +208,11 @@ def _hall_of(by_name, hostname):
     return by_name.get(name) or by_name.get(name.split('.')[0])
 
 
+def _agent_back():
+    from . import sources
+    sources.wake_status_monitor()
+
+
 def ask(method, args=()):
     """A monitoring call, sent to the right agent.
 
@@ -237,18 +249,60 @@ def agent_for(hostname):
     return sorted(connected)[0]
 
 
+HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
+_last_knew = [None]    # the agent that answered the last first-answer call
+FIRST_ANSWER = {'resolve_ip'}   # None when an agent doesn't know: the first real answer is the answer
+
+
 def _ask_all(method, args, everyone):
     """Every connected agent, the answers put together."""
     agents = sorted(tunnel.connected_agents() & set(everyone))
     if not agents:
         raise AgentUnavailable('No local agent is connected.')
     results, errors = [], []
-    with ThreadPoolExecutor(len(agents)) as pool:
-        for fut in [pool.submit(tunnel.call, method, args, CALL_TIMEOUT, {a}) for a in agents]:
+    pool = ThreadPoolExecutor(len(agents))
+    asked = {}     # future -> agent
+
+    def ask_one(agent):
+        fut = pool.submit(tunnel.call, method, args, CALL_TIMEOUT, {agent})
+        asked[fut] = agent
+        return fut
+
+    try:
+        rest = agents
+        if method in FIRST_ANSWER and len(agents) > 1:
+            # Two agents for one hall would each ask LibreNMS about every seat. Ask the one that
+            # knew last; the others only when it doesn't know, fails or hangs past HEDGE_AFTER.
+            first = _last_knew[0] if _last_knew[0] in agents else agents[0]
+            rest = [a for a in agents if a != first]
+            lead = ask_one(first)
+            try:
+                found = lead.result(timeout=HEDGE_AFTER)
+            except FutureTimeout:
+                pass                       # still running: it joins the others below
+            except (AgentUnavailable, AgentError) as exc:
+                errors.append(exc)
+                del asked[lead]
+            else:
+                if found:
+                    return found
+                results.append(found)
+                del asked[lead]
+        for agent in rest:
+            ask_one(agent)
+        for fut in as_completed(list(asked)):
             try:
                 results.append(fut.result())
             except (AgentUnavailable, AgentError) as exc:
                 errors.append(exc)
+                continue
+            if method in FIRST_ANSWER and results[-1]:
+                # The agent that knows it: don't wait for one that was just killed (a check-in
+                # held up to CALL_TIMEOUT during a failover).
+                _last_knew[0] = asked[fut]
+                return results[-1]
+    finally:
+        pool.shutdown(wait=False)
     if not results:
         raise errors[0]
     if method == 'devices':
@@ -453,14 +507,15 @@ def set_halls(agent_id, hall_ids):
     return found['name'], wanted
 
 
-def check(key, version=None, address=None, now=None, protocol=None):
-    """The agent a key belongs to, or None. Notes when it was last seen (now and then)."""
+def check(key, version=None, address=None, now=None, protocol=None, reachable=True):
+    """The agent a key belongs to, or None. Notes when it was last seen (now and then), and, when
+    the request shows calls can reach it (``reachable``), that it is connected."""
     m = KEY_RE.match(str(key or '').strip())
     if not m:
         return None
     now = time.time() if now is None else now
     agent_id, secret = m.groups()
-    data = load_data()
+    data = load_shared()     # every agent request asks: don't parse data.json each time
     found = next((a for a in data.get(KEY) or [] if a['id'] == agent_id), None)
     if not found:
         return None
@@ -477,7 +532,8 @@ def check(key, version=None, address=None, now=None, protocol=None):
     elif not (found.get('prev_hash') and (found.get('prev_until') or 0) > now
               and hmac.compare_digest(found['prev_hash'], _hash(secret))):
         return None
-    tunnel.seen(now, agent_id)
+    if reachable:
+        tunnel.seen(now, agent_id)
     try:
         protocol = int(protocol) if protocol is not None else None
     except (TypeError, ValueError):
@@ -586,10 +642,20 @@ class Tunnel:
         with self._cond:
             return {kind: dict(v) for kind, v in self._relayed.get(agent, {}).items() if now - v['at'] < RELAY_RECENT}
 
+    def _back(self, agent, now):
+        """Was the agent away until now? Then the monitoring source answers again: the status
+        monitor checks right away instead of within its interval, during which every lookup was
+        answered from old data (a restart of the agent or of Floorbit cost up to a minute)."""
+        last = self._seen.get(agent)
+        return last is None or now - last > CONNECTED_FOR
+
     def seen(self, now=None, agent=None):
         self.last_seen = time.time() if now is None else now
         if agent is not None:
+            back = self._back(agent, self.last_seen)
             self._seen[agent] = self.last_seen
+            if back:
+                _agent_back()
             from . import cluster
             if cluster.current is not None:
                 cluster.current.agent_seen(agent, self.last_seen)
@@ -608,7 +674,10 @@ class Tunnel:
         with self._cond:
             if not self._links.get(agent):
                 return False
+            back = self._back(agent, now)
             self.last_seen = self._seen[agent] = now
+        if back:
+            _agent_back()
         from . import cluster
         if cluster.current is not None:
             cluster.current.agent_seen(agent, now)

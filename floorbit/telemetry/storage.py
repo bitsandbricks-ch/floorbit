@@ -15,10 +15,11 @@ MAC tables, ARP and neighbours (state.PRIVATE) are never stored: they name the p
 Redis is not used for any of it.
 """
 import json
+import math
 import os
 import threading
 import time
-from collections import defaultdict, deque
+from array import array
 
 import requests
 
@@ -33,6 +34,48 @@ SERIES_MAX = 300                 # floorbit_telemetry.series is VARCHAR(300)
 TIMEOUT = 5
 PORT_METRICS = ('in_bps', 'out_bps', 'errors', 'up')
 DEVICE_METRICS = ('up', 'cpu', 'mem', 'states')
+# Without a database the last FINE_HOURS stay in memory: a ring of 4-byte values per series
+# (1.4 KB for six hours), at most MEMORY_SERIES of them. A tuple per point took about 5 GB for a
+# 1,000-switch hall; this is 70 MB at most. Bigger halls want a database or VictoriaMetrics.
+MEMORY_SERIES = 50_000
+SLOTS = FINE_HOURS * 3600 // FINE
+
+
+class _Ring:
+    __slots__ = ('last', 'values')
+
+    def __init__(self):
+        self.last = None                       # newest bucket
+        self.values = array('f', [math.nan]) * SLOTS
+
+    def put(self, bucket, value):
+        if self.last is not None and bucket < self.last:
+            if bucket <= self.last - SLOTS * FINE:
+                return False                   # older than the ring
+            self.values[(bucket // FINE) % SLOTS] = value
+            return True
+        if self.last is not None:
+            gap = (bucket - self.last) // FINE
+            if gap >= SLOTS:                   # all of it is older than the ring now
+                self.values = array('f', [math.nan]) * SLOTS
+            for k in range(1, min(gap, SLOTS)):   # the minutes nothing came in stay empty
+                self.values[((self.last // FINE) + k) % SLOTS] = math.nan
+        self.last = bucket
+        self.values[(bucket // FINE) % SLOTS] = value
+        return True
+
+    def points(self, since):
+        if self.last is None:
+            return []
+        out = []
+        for k in range(SLOTS - 1, -1, -1):
+            bucket = self.last - k * FINE
+            if bucket < since:
+                continue
+            value = self.values[(bucket // FINE) % SLOTS]
+            if not math.isnan(value):
+                out.append([bucket, float(value)])
+        return out
 
 
 def vm_url():
@@ -96,7 +139,7 @@ def _vm_line(key, value, at):
 class Storage:
     def __init__(self, db=None):
         self.db = db                      # floorbit.database.Sql, or None for memory only
-        self.memory = defaultdict(deque)  # series -> deque[(bucket, value)] when there is no database
+        self.memory = {}                  # series -> _Ring when there is no database
         self._lock = threading.Lock()
         self.errors = {}                  # sink -> last error
         self.written = 0
@@ -159,15 +202,14 @@ class Storage:
                 for key, step, bucket, value in rows:
                     if step != FINE:
                         continue
-                    points = self.memory[key]
-                    if points and points[-1][0] > bucket:
-                        continue        # a late batch: memory keeps only what is in order
-                    if points and points[-1][0] == bucket:
-                        points[-1] = (bucket, value)
-                    else:
-                        points.append((bucket, value))
-                    while points and points[0][0] < now - FINE_HOURS * 3600:
-                        points.popleft()
+                    ring = self.memory.get(key)
+                    if ring is None:
+                        if len(self.memory) >= MEMORY_SERIES:
+                            self.errors['memory'] = (f'More than {MEMORY_SERIES} series: the rest are not kept. '
+                                                     'Use a database or VictoriaMetrics.')
+                            continue
+                        ring = self.memory[key] = _Ring()
+                    ring.put(bucket, value)
         self.written += len(values)
         if now - self._pruned > 3600:
             self.prune(now)
@@ -215,7 +257,8 @@ class Storage:
         key = series_key(device, port, metric)
         if self.db is None:
             with self._lock:
-                return [[b, v] for b, v in self.memory.get(key, ()) if b >= since]
+                ring = self.memory.get(key)
+                return ring.points(since) if ring is not None else []
         step = FINE if hours <= FINE_HOURS else COARSE
         rows = self.db.run('SELECT bucket, value FROM floorbit_telemetry WHERE series = ? AND step = ? AND bucket >= ? '
                            'ORDER BY bucket', (key, step, int(since)), fetch=True) or []
