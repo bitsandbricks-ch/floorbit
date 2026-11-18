@@ -99,8 +99,50 @@ def test_ipfix_with_ipv6_and_variable_length_fields():
 
 @pytest.mark.parametrize("data", [b"", b"\x00\x05", b"\x00\x07" + b"\0" * 30, v9([STEAM]) + b"\x01\x00\x00\xff"])
 def test_garbage_is_refused(data):
-    with pytest.raises((parse.ParseError, struct.error)):
+    with pytest.raises(parse.ParseError):
         parse.parse(data, "198.51.100.1", parse.Templates())
+
+
+def _v9_template(fields, template_id=256):
+    t = struct.pack("!HH", template_id, len(fields)) + b"".join(struct.pack("!HH", f, n) for f, n in fields)
+    return struct.pack("!HH", 0, 4 + len(t)) + t
+
+
+def test_a_template_of_empty_fields_does_not_hang_the_collector():
+    # 40 bytes from anyone on the network: the record loop never moved on, and grew a list until
+    # the process ran out of memory (on the agent, that is the agent).
+    sets = _v9_template([(1, 0)]) + struct.pack("!HH", 256, 8) + b"\0" * 4
+    packet = struct.pack("!HHIIII", 9, 1, 0, NOW, 1, 7) + sets
+    assert parse.parse(packet, "198.51.100.1", parse.Templates()) == []
+
+
+@pytest.mark.parametrize("cut", [30, 34, 42])
+def test_a_template_cut_short_is_a_parse_error(cut):
+    # Before: struct.error, which the collector didn't catch: one packet stopped the listener for good.
+    packet = struct.pack("!HHIIII", 9, 1, 0, NOW, 1, 7) + _v9_template(V9_FIELDS)
+    packet = packet[:20] + struct.pack("!HH", 0, cut - 20) + packet[24:cut]
+    with pytest.raises(parse.ParseError):
+        parse.parse(packet, "198.51.100.1", parse.Templates())
+
+
+def test_made_up_templates_cannot_fill_memory(monkeypatch):
+    monkeypatch.setattr(parse, "MAX_TEMPLATES", 50)
+    templates = parse.Templates()
+    parse.parse(v9([], data=False), "198.51.100.1", templates)        # the real router's
+    for n in range(200):
+        parse.parse(struct.pack("!HHIIII", 9, 1, 0, NOW, 1, n) + _v9_template([(8, 4)]), "192.0.2.99", templates)
+    assert len(templates.known) == 50
+    parse.parse(v9([], data=False), "198.51.100.1", templates)        # sent again, as routers do
+    assert parse.parse(v9([STEAM], template=False), "198.51.100.1", templates)
+
+
+def test_the_collector_keeps_publishing_after_the_clock_goes_back(tmp_path):
+    sent = []
+    col = Collector(Aggregator(Classifier()), store.RawStore(str(tmp_path)), log=lambda *_: None)
+    col.publish = sent.append
+    col.housekeeping(now=NOW, refresh_seats=lambda: (SEATS, AREAS))
+    col.housekeeping(now=NOW - 3600, refresh_seats=lambda: (SEATS, AREAS))   # NTP stepped back an hour
+    assert len(sent) == 2
 
 
 # ── classifying ───────────────────────────────────────────────────────────────────────────
