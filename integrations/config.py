@@ -382,14 +382,6 @@ SCHEMA = [
      'label': "Verify the HTTP source's TLS certificate",
      'help': 'Turn off only for a source with a self-signed certificate on the event network.'},
 
-    # Attendee pages
-    {'key': 'SEAT_FINDER', 'group': 'public', 'type': 'bool', 'default': True,
-     'label': 'Find your seat page',
-     'help': 'The public /find page where attendees look up a seat number.'},
-    {'key': 'SEAT_FINDER_NICKS', 'group': 'public', 'type': 'bool', 'default': False,
-     'label': 'Find seats by nick',
-     'help': "Also find a seat by a player's nick. Off by default: it tells anyone where a named player sits."},
-
     # General
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',
      'label': 'Public URL', 'help': 'Where people open the floor plan; used for links in alerts.'},

@@ -5,7 +5,6 @@ export const qk = {
   version: ['version'] as const,
   checkinInfo: ['checkin', 'info'] as const,
   publicFeed: (url: string) => ['public', url] as const,
-  publicFind: (q: string) => ['public', 'find', q] as const,
   screen: (search: string) => ['screen', search] as const,
   seatHelp: (seat: string, k: string) => ['public', 'help', seat, k] as const,
   dashboard: ['dashboard'] as const,

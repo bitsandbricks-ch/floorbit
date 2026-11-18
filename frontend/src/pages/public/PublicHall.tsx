@@ -10,7 +10,7 @@ import { clock } from '@/lib/time'
 
 export type PublicHallData = {
   hall: string; halls: { id: string; name: string }[]; drawing: PlanDrawing | null
-  online: number | null; total: number; updated: number | null; finder: boolean; agenda: boolean
+  online: number | null; total: number; updated: number | null; agenda: boolean
 }
 
 /** The public attendee view (issue #19, docs/kiosk.md): the hall with every seat online or not, for
@@ -42,8 +42,7 @@ export default function PublicHall() {
             <>
               <Text c="dimmed">
                 {t('publicHall.intro')}
-                {h.finder && <> <Anchor href="/find">{t('publicHall.find')}</Anchor></>}
-                {h.agenda && <> · <Anchor href="/agenda">{t('publicHall.agenda')}</Anchor></>}
+                {h.agenda && <> <Anchor href="/agenda">{t('publicHall.agenda')}</Anchor></>}
               </Text>
               <Group justify="space-between" align="baseline" gap="xs">
                 <Text fz={20} fw={600} aria-live="polite" id="hall-count">

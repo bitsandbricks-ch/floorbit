@@ -760,14 +760,6 @@
       "label": "Verify the HTTP source's TLS certificate",
       "help": "Turn off only for a source with a self-signed certificate on the event network."
     },
-    "integrations_seat_finder": {
-      "label": "Find your seat page",
-      "help": "The public /find page where attendees look up a seat number."
-    },
-    "integrations_seat_finder_nicks": {
-      "label": "Find seats by nick",
-      "help": "Also find a seat by a player's nick. Off by default: it tells anyone where a named player sits."
-    },
     "integrations_s3_backup_endpoint": {
       "label": "S3 endpoint",
       "help": "The S3 address of MinIO, Garage, Backblaze B2 or another store, like https://s3.example.com. Empty: Amazon S3."

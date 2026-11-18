@@ -760,14 +760,6 @@
       "label": "TLS-Zertifikat der HTTP-Quelle prüfen",
       "help": "Nur ausschalten für eine Quelle mit selbstsigniertem Zertifikat im Event-Netz."
     },
-    "integrations_seat_finder": {
-      "label": "Seite «Finde deinen Platz»",
-      "help": "Die öffentliche Seite /find, auf der Teilnehmende eine Platznummer nachschlagen."
-    },
-    "integrations_seat_finder_nicks": {
-      "label": "Plätze per Nick finden",
-      "help": "Einen Platz auch per Nick finden. Standardmässig aus: Es verrät allen, wo ein bestimmter Spieler sitzt."
-    },
     "integrations_s3_backup_endpoint": {
       "label": "S3-Endpunkt",
       "help": "Die S3-Adresse von MinIO, Garage, Backblaze B2 oder einem anderen Speicher, z. B. https://s3.example.com. Leer: Amazon S3."
