@@ -343,8 +343,7 @@ def test_check_says_what_works(client, app_module):
     assert 'OK   HTTP check answers: 1 health checks' in lines
 
 
-def test_check_names_what_fails(client, app_module, monkeypatch):
-    monkeypatch.setenv('LIBRENMS_URL', 'https://librenms.example.com')
+def test_check_names_what_fails(client, app_module):
     made = enrol(client)
     client.delete(f"/api/agents/{made['id']}")
     lines = []
@@ -355,13 +354,9 @@ def test_check_names_what_fails(client, app_module, monkeypatch):
         raise RuntimeError('LibreNMS answered 401')
 
     assert agent_mod.check(make(app_module, made['key']), execute, lines.append) is False
-    assert 'FAIL the monitoring plugin: LibreNMS answered 401' in lines
-    monkeypatch.delenv('LIBRENMS_URL')
-    lines.clear()
-
-    assert agent_mod.check(make(app_module, made['key']), execute, lines.append) is False
+    assert ('FAIL the monitoring plugin: LibreNMS answered 401 (set it up in Settings > Plugins on the hosted '
+            'Floorbit)') in lines
     assert lines[0].startswith('FAIL') and 'refused the key' in lines[0]
-    assert 'FAIL the monitoring plugin: LibreNMS answered 401 (LIBRENMS_URL and LIBRENMS_TOKEN are not set)' in lines
     assert any('no inventory plugin' in x for x in lines) and lines[-1].startswith('Fix')
 
 
@@ -539,15 +534,6 @@ def test_health_checks_run_on_the_agent(client, app_module):
     wall.reset()
 
 
-def test_the_agent_turns_plugins_on(app_module):
-    from floorbit import sources as srcs
-    said = []
-    agent_mod.turn_on(app_module.app, 'http-check, no-such-plugin', said.append)
-    with app_module.app.app_context():
-        assert srcs.registry.enabled(srcs.registry.specs['http-check'])
-    assert len(said) == 1 and 'no-such-plugin' in said[0]
-
-
 def test_dns_lookups_come_through_the_agent_without_addresses(client, app_module, tmp_path):
     """The agent sends lookups with hashed clients and names cut to the site; the hosted stats count them."""
     from floorbit import dns
@@ -632,6 +618,32 @@ def test_wifi_comes_through_the_agent_as_counts_only(client, app_module):
         wifi.reset()
 
 
+class _OldAgent:
+    """An agent from before syslog and flows were plugins: it posts to the hosted side's own
+    endpoints, which stay for it (floorbit/blueprints/agent.py)."""
+
+    def __init__(self, agent):
+        self.a = agent
+
+    def send_syslog(self, lines, dropped=0):
+        from floorbit_agent.syslog_relay import TurnedOff
+        resp = self.a._post('/api/agent/v1/syslog', {'lines': lines, 'dropped': dropped})
+        if resp.status_code == 409:
+            raise TurnedOff(resp.json().get('error'))
+        return self.a._check(resp)
+
+    def _said(self, resp):
+        if resp.status_code == 409:
+            raise RuntimeError(resp.json().get('error'))
+        return self.a._check(resp)
+
+    def flow_seats(self):
+        return self._said(self.a.http.get(f'{self.a.url}/api/agent/v1/seats', headers=self.a._headers()))
+
+    def send_flows(self, snapshot):
+        return self._said(self.a._post('/api/agent/v1/flows', {'snapshot': snapshot}))
+
+
 def _syslog_receiver(app_module, monkeypatch):
     from floorbit import syslog
     receiver = app_module.app.extensions["floorbit_syslog"]
@@ -645,7 +657,7 @@ def _syslog_receiver(app_module, monkeypatch):
 def test_syslog_comes_through_the_agent(client, app_module, monkeypatch):
     from floorbit_agent.syslog_relay import Relay
     receiver = _syslog_receiver(app_module, monkeypatch)
-    a = make(app_module, enrol(client)["key"])
+    a = _OldAgent(make(app_module, enrol(client)["key"]))
     relay = Relay(a.send_syslog, 0, log=lambda *_: None)
     started = time.time() - 120
     relay.receive(b"<187>%LINK-3-UPDOWN: Interface Gi1/0/4, changed state to down\n", "192.0.2.9", now=started)
@@ -683,7 +695,7 @@ def test_the_agent_keeps_syslog_while_the_host_is_away():
 def test_the_host_says_when_syslog_is_off(client, app_module, monkeypatch):
     from floorbit_agent.syslog_relay import Relay, TurnedOff
     _syslog_receiver(app_module, monkeypatch)
-    a = make(app_module, enrol(client)["key"])
+    a = _OldAgent(make(app_module, enrol(client)["key"]))
     assert client.put("/api/settings/features", json={"syslog": False}).status_code == 200
     relay = Relay(a.send_syslog, 0, log=lambda *_: None)
     relay.receive(b"<14>hello", "192.0.2.9")
@@ -706,26 +718,6 @@ def test_odd_relayed_lines_are_skipped(client, app_module, monkeypatch):
     assert all(ln["ts"] <= time.time() for ln in receiver.lines)
 
 
-def test_the_relay_listens_on_udp(client, app_module, monkeypatch):
-    import ipaddress
-    import socket
-    receiver = _syslog_receiver(app_module, monkeypatch)
-    receiver._allow_cache = (time.monotonic() + 3600, [ipaddress.ip_network("127.0.0.1/32")], {})
-    a = make(app_module, enrol(client)["key"])
-    monkeypatch.setenv("FLOORBIT_AGENT_SYSLOG_BIND", "127.0.0.1")
-    assert agent_mod.start_syslog(a, "") is None
-    assert agent_mod.start_syslog(a, "not a port", out=lambda *_: None) is False
-    relay = agent_mod.start_syslog(a, "0", out=lambda *_: None)
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.sendto(b"<14>hello over the agent", ("127.0.0.1", relay._server.getsockname()[1]))
-        deadline = time.time() + 5
-        while not receiver.lines and time.time() < deadline:
-            time.sleep(0.05)
-        assert receiver.lines and receiver.lines[-1]["message"] == "hello over the agent"
-    finally:
-        relay.stop()
-
 
 def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app_module, monkeypatch, tmp_path):
     from floorbit_agent.flows_relay import FlowsRelay
@@ -737,7 +729,7 @@ def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app
     from floorbit.flows.collector import Collector
     from tests.test_flows import NOW, STEAM, v5
     monkeypatch.setattr(flows_pkg, "seat_maps", lambda: ({"192.0.2.10": "A-1"}, {"A-1": "A"}))
-    a = make(app_module, enrol(client)["key"])
+    a = _OldAgent(make(app_module, enrol(client)["key"]))
     sent = []
     collector = Collector(Aggregator(Classifier()), store.RawStore(str(tmp_path)), log=lambda *_: None)
     relay = FlowsRelay(a, 0, collector=collector, log=lambda *_: None)
@@ -804,18 +796,6 @@ def test_a_failing_summary_is_logged_once(app_module):
     assert len(said) == 1 and "no route to host" in said[0]
 
 
-def test_the_agent_starts_its_flow_collector(client, app_module, monkeypatch):
-    a = make(app_module, enrol(client)["key"])
-    monkeypatch.setenv("FLOORBIT_AGENT_FLOWS_BIND", "127.0.0.1")
-    assert agent_mod.start_flows(a, "") is None
-    assert agent_mod.start_flows(a, "x", out=lambda *_: None) is False
-    relay = agent_mod.start_flows(a, "0", out=lambda *_: None)
-    try:
-        assert relay._sock is not None
-    finally:
-        relay.stop()
-    assert relay._sock is None
-
 
 def test_the_agents_summary_is_kept_in_the_database_without_redis(monkeypatch):
     from floorbit import cache
@@ -829,27 +809,6 @@ def test_the_agents_summary_is_kept_in_the_database_without_redis(monkeypatch):
     docs.write_json(path, {**saved, "at": saved["at"] - store.SNAPSHOT_TTL - 1})
     assert store.latest() is None
 
-
-def test_check_tries_syslog_and_flows_when_set(client, app_module, monkeypatch):
-    import floorbit.flows as flows_pkg
-    monkeypatch.setattr(flows_pkg, "seat_maps", lambda: ({"192.0.2.10": "A-1"}, {"A-1": "A"}))
-    monkeypatch.setenv("FLOORBIT_AGENT_SYSLOG_PORT", "5514")
-    monkeypatch.setenv("FLOORBIT_AGENT_FLOWS_PORT", "2055")
-    a = make(app_module, enrol(client)["key"])
-
-    def execute(method, args):
-        return [] if method in ("inventory_feeds", "health_feeds") else fake_execute(method, args)
-
-    lines = []
-    assert agent_mod.check(a, execute, lines.append) is True
-    assert any(x.startswith("OK   the hosted Floorbit takes syslog") and "UDP 5514" in x for x in lines)
-    assert any(x.startswith("OK   the hosted Floorbit takes flows and knows 1 seat") for x in lines)
-    assert client.get("/api/logs").get_json()["status"]["relayed"] == []   # a check isn't an agent sending
-    assert client.put("/api/settings/features", json={"syslog": False, "traffic": False}).status_code == 200
-    lines.clear()
-    assert agent_mod.check(a, execute, lines.append) is False
-    assert any(x.startswith("FAIL syslog: Syslog is turned off") for x in lines)
-    assert any(x.startswith("FAIL flows: Traffic is turned off") for x in lines)
 
 
 def test_stopping_sends_the_syslog_backlog():
@@ -941,17 +900,18 @@ def test_main_health_needs_no_settings(monkeypatch, tmp_path):
 def test_big_bodies_go_gzipped_once_the_host_says_it_takes_them(client, app_module, monkeypatch):
     receiver = _syslog_receiver(app_module, monkeypatch)
     a = make(app_module, enrol(client)["key"])
+    old = _OldAgent(a)
     sent = []
     real_post = a.http.post
     monkeypatch.setattr(a.http, "post", lambda url, data=None, headers=None, timeout=None: (
         sent.append(dict(headers or {})), real_post(url, data=data, headers=headers))[1])
     lines = [{"raw": f"<14>line {n} " + "x" * 40, "from": "192.0.2.9", "at": time.time()} for n in range(100)]
-    a.send_syslog(lines[:1])
+    old.send_syslog(lines[:1])
     assert "Content-Encoding" not in sent[-1]                   # before hello: plain, any host takes that
     assert a.hello() and a.gzip
-    a.send_syslog(lines)
+    old.send_syslog(lines)
     assert sent[-1]["Content-Encoding"] == "gzip" and len(receiver.lines) == 101
-    a.send_syslog(lines[:1])
+    old.send_syslog(lines[:1])
     assert "Content-Encoding" not in sent[-1]                   # too small to be worth it
 
 
