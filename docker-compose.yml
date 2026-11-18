@@ -52,10 +52,8 @@ services:
       FLOORBIT_AGENT_KEY_FILE: /run/floorbit-agent/local-agent.key
       # Its own small settings file; it keeps no floor plan.
       FLOORBIT_DATA_FILE: /app/state/agent-data.json
-      FLOORBIT_AGENT_SYSLOG_PORT: "5514"
-      FLOORBIT_AGENT_FLOWS_PORT: "2055"
-      # The attendee front door (docs/agent.md): check-in learns each seat PC's address only here.
-      FLOORBIT_AGENT_FRONT_DOOR: "0.0.0.0:8443"
+      # Syslog, flows and the attendees' front door are plugins (Settings > Plugins), turned on
+      # on the ports below the first time Floorbit starts with this agent (docs/agent.md).
     volumes:
       - agent_state:/app/state
       - agent_key:/run/floorbit-agent:ro
@@ -65,7 +63,7 @@ services:
       - "${SYSLOG_PUBLISH_PORT:-514}:5514/udp"
       - "${FLOWS_PORT:-2055}:2055/udp"
       # The attendee front door: point CHECKIN_ADDRESS (e.g. checkin.lan) at this host in the
-      # event DNS. Plain HTTP on port 80; set FLOORBIT_AGENT_TLS_CERT/KEY for HTTPS (docs/agent.md).
+      # event DNS. Plain HTTP on port 80; set FLOORBIT_AGENT_TLS_CERT/KEY on the agent for HTTPS (docs/agent.md).
       - "${CHECKIN_PUBLISH_PORT:-80}:8443"
     depends_on:
       floorbit:

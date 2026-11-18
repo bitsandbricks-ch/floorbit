@@ -160,6 +160,16 @@ def create_app(start_background=True):
     # Plugins installed from the Marketplace, signed (floorbit/marketplace.py, docs/marketplace.md).
     from .marketplace import init_marketplace
     init_marketplace(app, registry, start_background=start_background)
+    if agent_link._local_key_file():
+        # The agent next to this server: syslog, flows and the check-in front door on the ports the
+        # compose file and the pod publish, once (docs/install.md).
+        from . import agent_plugins
+        try:
+            with app.app_context():
+                for pid in agent_plugins.local_defaults(registry):
+                    print(f"[agent] Turned on the {pid} plugin for the local agent", flush=True)
+        except Exception as exc:  # noqa: BLE001  # the database may be away: the next start tries again
+            print(f"[agent] Could not set up the local agent's plugins yet: {exc}", flush=True)
 
     # The service health wall: health plugins polled in the background (docs/health.md).
     from .health import init_health

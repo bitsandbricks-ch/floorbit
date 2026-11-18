@@ -96,6 +96,10 @@
       "title": "Plugin: Check-in-Hinweis auf Handys",
       "desc": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten."
     },
+    "plugin-front-door": {
+      "title": "Plugin: Eingang für Teilnehmende",
+      "desc": "Der lokale Agent antwortet im Eventnetz und gibt jede Anfrage mit der Adresse, die er gesehen hat, an Floorbit weiter. So findet der Check-in den Switch-Port des Platz-PCs, der Speedtest am Platz misst die Halle, und jede teilnehmende Person hat ihre eigene Anmeldesperre. Die Check-in-Adresse (CHECKIN_ADDRESS) auf den Agenten zeigen lassen."
+    },
     "plugin-shelly": {
       "title": "Plugin: Shelly-Messgeräte",
       "desc": "Der lokale Agent liest die Last von Shelly-Steckdosen, -Relais und -Energiemessern im Eventnetz (erste und spätere Generationen) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
@@ -328,7 +332,7 @@
     },
     "integrations_captive_enabled": {
       "label": "Captive Portal (DHCP-Option 114)",
-      "help": "Sagt dem lokalen Agent, welche Geräte eingecheckt haben, damit die anderen Handys und Laptops einen leisen Hinweis «Im Netzwerk anmelden» sehen, der die Check-in-Seite öffnet. Braucht die Check-in-Seite, einen Agent mit FLOORBIT_AGENT_CAPTIVE und Option 114 im Event-DHCP. Es wird nie etwas blockiert."
+      "help": "Sagt dem lokalen Agent, welche Geräte eingecheckt haben, damit die anderen Handys und Laptops einen leisen Hinweis «Im Netzwerk anmelden» sehen, der die Check-in-Seite öffnet. Braucht die Check-in-Seite, das Plugin «Check-in-Hinweis auf Handys» und Option 114 im Event-DHCP. Es wird nie etwas blockiert."
     },
     "integrations_seat_walk_agent_url": {
       "label": "Adresse des lokalen Agents für den Platz-Rundgang",
@@ -615,6 +619,14 @@
       "label": "Adressen der Reverse Proxys",
       "help": "Durch Kommas getrennt. Von diesen wird die Adresse des Clients aus X-Forwarded-For genommen."
     },
+    "plugin_front-door_address": {
+      "label": "Adresse auf dem Agenten",
+      "help": "host:port, auf dem der Agent antwortet. HTTPS, wenn der Agent ein Zertifikat hat (FLOORBIT_AGENT_TLS_CERT und _KEY auf dem Agenten). Leer: aus."
+    },
+    "plugin_front-door_proxies": {
+      "label": "Adressen der Reverse Proxys",
+      "help": "Durch Kommas getrennt. Von diesen wird die Adresse des Platz-PCs aus X-Forwarded-For genommen."
+    },
     "plugin_shelly_devices": {
       "label": "Messgeräte",
       "help": "Eines pro Zeile: Messgerät-ID des Stromkreises = Adresse des Shelly, optional der Kanal (switch:0, pm1:0, em:0, em1:1 oder bei der ersten Generation eine Zahl). Ohne Kanal werden alle Kanäle zusammengezählt."
@@ -805,6 +817,7 @@
     "syslog-relay": "Der lokale Agent hört im Eventnetz auf Syslog und schickt die Zeilen über seine HTTPS-Verbindung weiter, auf die Logs-Seite und zu den Alarmen. Solange das gehostete Floorbit nicht erreichbar ist, warten die Zeilen auf der Disk des Agenten.",
     "netflow-relay": "Der lokale Agent sammelt NetFlow und IPFIX im Eventnetz und schickt nur die Zusammenfassung, die die Traffic-Seite zeigt (Summen für Halle, Bereiche und Dienste, Volumen und Mix pro Platz). Die Flow-Datensätze mit Adressen und Ports bleiben auf dem Agenten.",
     "captive-note": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten.",
+    "front-door": "Der lokale Agent antwortet im Eventnetz und gibt jede Anfrage mit der Adresse, die er gesehen hat, an Floorbit weiter. So findet der Check-in den Switch-Port des Platz-PCs, der Speedtest am Platz misst die Halle, und jede teilnehmende Person hat ihre eigene Anmeldesperre. Die Check-in-Adresse (CHECKIN_ADDRESS) auf den Agenten zeigen lassen.",
     "shelly": "Der lokale Agent liest die Last von Shelly-Steckdosen, -Relais und -Energiemessern im Eventnetz (erste und spätere Generationen) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite.",
     "home-assistant": "Der lokale Agent liest Leistungssensoren aus einem Home Assistant im Eventnetz (Watt, Kilowatt oder Ampere) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
   }

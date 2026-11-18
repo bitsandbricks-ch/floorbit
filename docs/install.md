@@ -116,7 +116,9 @@ Live updates are a long-running request (`/api/events`): don't buffer it (Floorb
 
 The agent takes syslog on udp/514 (`SYSLOG_PUBLISH_PORT`, [syslog.md](syslog.md)) and NetFlow/IPFIX
 for the **Traffic** page on udp/2055 (`FLOWS_PORT`, [flows.md](flows.md)). Point the switches,
-firewalls and the router at this host.
+firewalls and the router at this host. Floorbit turns the plugins for both (**Syslog from the
+hall**, **Traffic from the hall**) and the **Front door for attendees** on for its agent the first
+time it starts with it; change or turn them off under Settings > Plugins.
 
 ## Backups
 

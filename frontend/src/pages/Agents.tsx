@@ -165,7 +165,6 @@ export default function Agents() {
     'docker run -d --restart on-failure:3 --name floorbit-agent \\',
     `  -e FLOORBIT_URL=${window.location.origin} \\`,
     `  -e FLOORBIT_AGENT_KEY=${made.key} \\`,
-    '  -e LIBRENMS_URL=https://librenms.example.com -e LIBRENMS_TOKEN=… \\',
     '  ghcr.io/bitsandbricks-ch/floorbit-agent',
   ].join('\n') : ''
 

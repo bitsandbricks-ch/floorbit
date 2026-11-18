@@ -24,9 +24,10 @@ LibreNMS, NetBox, Pi-hole, AdGuard Home, the health checks and the other built-i
 answer for the hall (monitoring, inventory, health, DNS, Wi-Fi, ports) also follow the hosted
 Floorbit: what is on there is turned on in the agent, with the settings saved there. The agent
 does the same for a plugin with an agent part that also answers for the hall (telemetry is the
-agent's monitoring source). It keeps those settings in memory only, so tokens never land on its disk, and its own environment
-(`LIBRENMS_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`, ...) still wins over them. A plugin named in
-`FLOORBIT_AGENT_PLUGINS` stays on whatever the hosted side says.
+agent's monitoring source). It keeps those settings in memory only, so tokens never land on its disk. Its own environment
+(`LIBRENMS_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`, `FLOORBIT_AGENT_PLUGINS`) no longer sets plugins: an
+agent that still has them sends them once and the hosted Floorbit takes them over where nothing is
+set up yet ([agent.md](agent.md#settings-come-from-floorbit)).
 
 ### Updates
 

@@ -65,3 +65,19 @@ def test_the_hosted_part_says_no_while_check_in_is_off(client, anon_client, monk
         assert res.status_code == 409 and "Check-in is turned off" in res.get_json()["error"]
     finally:
         client.put("/api/settings/plugins/captive-note", json={"enabled": False})
+
+
+def test_the_seat_walk_says_hello_through_the_agents_link():
+    from types import SimpleNamespace
+    said = []
+    ctx = MemoryContext("captive-note", {"address": f"127.0.0.1:{_free_port()}"}, BLOCK)
+    ctx.host = SimpleNamespace(agent=SimpleNamespace(url="https://floor.example.com",
+                                                     seat_walk_hello=lambda code, ip: said.append((code, ip))))
+    plugin = _plugin(ctx)
+    plugin.start()
+    try:
+        assert plugin.api.floorbit_url == "https://floor.example.com"
+        plugin.api.say_hello("abc", "192.0.2.7")
+        assert said == [("abc", "192.0.2.7")]
+    finally:
+        ctx.close()

@@ -39,6 +39,7 @@
   "pageEmpty": "Nothing on this page for your account.",
   "names": {
     "captive-note": "Check-in note on phones",
+    "front-door": "Front door for attendees",
     "demo": "Demo data",
     "home-assistant": "Home Assistant meters",
     "http-check": "HTTP check",

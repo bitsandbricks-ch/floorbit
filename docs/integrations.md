@@ -202,8 +202,7 @@ With a [local agent](agent.md), phones and laptops can be reminded to check in w
 anything. It is off until you turn on **Captive portal (DHCP option 114)** in the check-in
 settings (`CAPTIVE_ENABLED`); until then agents asking get a 409 and say nothing. Turn on the
 **Check-in note on phones** plugin under Settings > Plugins with the address the agent answers on
-(`0.0.0.0:8908`), or set `FLOORBIT_AGENT_CAPTIVE=0.0.0.0:8908` on the agent (one or the other), and
-let your DHCP server hand out
+(`0.0.0.0:8908`), and let your DHCP server hand out
 option 114 (RFC 8910) with the URL of the agent's `/.well-known/captive-portal`. Clients that
 support it ask that URL, and until their seat has checked in they show a quiet "sign in to
 network" note that opens the check-in page. Gaming PCs that ignore it lose nothing, because
@@ -218,10 +217,9 @@ traffic is never held back.
   check-in is off, or with no `PUBLIC_URL` set, every answer is `"captive": false`. When the hosted
   side is away, the agent keeps answering from what it heard last.
 - **HTTPS.** RFC 8908 wants HTTPS for this URL, so serve it through the event's reverse proxy with a
-  certificate. Put that proxy's address in `FLOORBIT_AGENT_CAPTIVE_PROXIES` so the client's IP comes
-  from `X-Forwarded-For` (the plugin's *Reverse proxy addresses*).
-- The note opens `PUBLIC_URL/checkin`, or the plugin's *Sign-in page* (`FLOORBIT_AGENT_CAPTIVE_PORTAL_URL`
-  on the agent) when it is set.
+  certificate. Put that proxy's address in the plugin's *Reverse proxy addresses* so the client's
+  IP comes from `X-Forwarded-For`.
+- The note opens `PUBLIC_URL/checkin`, or the plugin's *Sign-in page* when it is set.
 - How well clients follow it varies: phones and Macs do, Windows only partly. Check it on your own
   devices before the event.
 

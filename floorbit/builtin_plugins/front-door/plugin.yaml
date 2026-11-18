@@ -1,0 +1,15 @@
+# The attendees' front door in the hall, through the local agent. See docs/agent.md, "Attendees through the agent".
+id: front-door
+name: Front door for attendees
+icon: link
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent."
+author: Floorbit
+uses: [agent, settings]
+settings:
+  - {key: address, label: Address on the agent, type: string, placeholder: "0.0.0.0:8443",
+     help: "host:port the agent answers on. HTTPS when the agent has a certificate (FLOORBIT_AGENT_TLS_CERT and _KEY on the agent). Empty: off."}
+  - {key: proxies, label: Reverse proxy addresses, type: string, placeholder: "192.0.2.5",
+     help: "Comma-separated. From these, the seat PC's address is taken from X-Forwarded-For."}
+agent: {}
