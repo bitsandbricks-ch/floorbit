@@ -1,6 +1,7 @@
 # NetFlow and IPFIX from the hall, through the local agent. See docs/agent.md, "Traffic".
 id: netflow-relay
 name: Traffic from the hall
+icon: network
 version: "1.0.0"
 floorbit: ">=0.1,<2"
 description: "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."

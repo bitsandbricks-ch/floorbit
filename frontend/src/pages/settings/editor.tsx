@@ -142,7 +142,9 @@ export function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
       input = <Switch {...common} error={undefined} checked={!!value} onChange={(e) => onChange(e.currentTarget.checked)} />
       break
     case 'secret':
+      // Saved, but the vault can't open it (the key changed): say so instead of just "not set".
       input = <PasswordInput {...common} {...wide} autoComplete="new-password" value={typeof change === 'string' ? change : ''}
+        error={error ?? (info.unreadable && !dirty ? t('settings.secretUnreadable') : undefined)}
         placeholder={info.is_set ? t('settings.secretSet') : t('settings.secretUnset')} onChange={(e) => onChange(e.currentTarget.value)} />
       break
     case 'int':

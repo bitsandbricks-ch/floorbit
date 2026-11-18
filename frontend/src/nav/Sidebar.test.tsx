@@ -30,6 +30,12 @@ afterEach(() => {
 })
 
 describe('sections', () => {
+  it('puts plugin pages in their own section, never under "more"', () => {
+    const g = group([...pages, { href: '/plugins/gs/overview', id: 'plugin:gs:overview', label: 'Game servers', icon: 'gamepad' }])
+    expect(g.sections.map((s) => s.id)).toEqual(['network', 'admin', 'plugins', 'more'])
+    expect(g.sections.find((s) => s.id === 'plugins')?.pages.map((p) => p.label)).toEqual(['Game servers'])
+  })
+
   it('pins the everyday pages and folds the rest into sections, a new page into "more"', () => {
     const g = group(pages)
     expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan', 'problems', 'incidents'])

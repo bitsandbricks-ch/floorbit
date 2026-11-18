@@ -213,6 +213,91 @@ def _feed_and_read(client, anon_client, key):
                             headers=head(key)).status_code == 422
 
 
+ODD = [None, 5, "x", [], {}, [1], {"a": 1}, True, -1, 10 ** 30, "9" * 400]
+
+
+def test_odd_agent_payloads_never_break_the_page(client, anon_client, app_module):
+    # Another agent version, or a broken one: whatever it sends, the page and widgets still answer.
+    key = enrol(client)["key"]
+    client.put("/api/settings/plugins/lancache", json={"enabled": True})
+    stats = app_module.app.extensions["floorbit_lancache"]
+    kept = dict(stats.hours)
+    hour = str(int(time.time() // 3600 * 3600))
+    good = {"hours": {hour: {"steam": [1, 2, 3]}}, "lines": 5, "min_clients": 5, "window_hours": 24,
+            "downloads": [{"cache": "steam", "item": "depot 1", "hit_bytes": 5, "miss_bytes": 1,
+                           "requests": 2, "clients": 6}],
+            "other_downloads": {"hit_bytes": 1, "miss_bytes": 1, "requests": 1, "items": 1},
+            "suspects": [{"cache": "steam", "item": "x", "files": 1, "misses": 3}],
+            "dns": {"services": {"steam": 4}, "hours": {}}, "clients": {hour: 7}}
+    status = {"at": 1, "disk": {"used": 1, "total": 2, "free": 1}, "heartbeat": {"ok": True, "ms": 3},
+              "dns_check": {"ok": True}, "clearing": {"running": False, "removed": 3, "finished": 5}}
+    try:
+        for field in good:
+            for odd in ODD + [[odd] for odd in ODD] + [{hour: odd} for odd in ODD]:
+                anon_client.post("/api/agent/v1/plugins/lancache/stats", headers=head(key),
+                                 json={"payload": {**good, field: odd}})
+                for name in status:
+                    anon_client.post("/api/agent/v1/plugins/lancache/status", headers=head(key),
+                                     json={"payload": {**status, name: odd}})
+                res = client.get("/api/lancache")
+                assert res.status_code == 200, (field, odd, res.data[:200])
+        for w in ("hit_ratio", "served", "machine", "downloads"):
+            assert client.get(f"/api/plugins/lancache/widgets/{w}").status_code == 200
+    finally:
+        stats.remote.clear()
+        stats.hours.clear()
+        stats.hours.update(kept)
+        client.put("/api/settings/plugins/lancache", json={"enabled": False})
+
+
 def test_the_page_is_for_the_crew(anon_client, client):
     assert client.get("/api/lancache").status_code == 200
     assert anon_client.get("/api/lancache").status_code in (302, 401)
+
+
+def test_a_round_that_breaks_does_not_stop_the_reading(tmp_path, monkeypatch):
+    # Something that isn't a web server on the cache port (BadStatusLine), or any other surprise.
+    ctx, plugin = make(tmp_path, cache_host='192.0.2.1')
+    rounds = []
+
+    def tick(everything=False):
+        rounds.append(everything)
+        if len(rounds) == 1:
+            raise KeyError('surprise')
+        ctx.stopping.set()
+
+    monkeypatch.setattr(plugin, 'tick', tick)
+    plugin.interval = 0
+    plugin.loop()
+    assert rounds == [True, True]          # the failed first round is tried again in full
+    assert any('a round failed' in e['error'] for e in ctx.health_.report()['errors'])
+
+
+def test_a_heartbeat_from_something_that_is_no_web_server(tmp_path):
+    import socket
+    server = socket.socket()
+    server.bind(('127.0.0.1', 0))
+    server.listen()
+
+    def answer():
+        conn, _ = server.accept()
+        conn.recv(1000)
+        conn.sendall(b'SSH-2.0-OpenSSH_9.6\r\n')
+        conn.close()
+    threading.Thread(target=answer, daemon=True).start()
+    _ctx, plugin = make(tmp_path)
+    beat = plugin.heartbeat(f'127.0.0.1:{server.getsockname()[1]}')
+    server.close()
+    assert beat['ok'] is False and 'did not answer' in beat['error']
+
+
+def test_a_log_without_line_ends_or_an_odd_position_is_read_on(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs.Tail, 'CHUNK', 1024)
+    log = tmp_path / 'access.log'
+    log.write_bytes(b'\0' * 5000 + b'\n' + b'after\n')
+    tail = logs.Tail(str(log))
+    assert tail.read()[-1] == 'after'
+    for odd in ('12', -5, True, None, [1]):
+        tail = logs.Tail(str(log), {'inode': log.stat().st_ino, 'offset': odd})
+        tail.read()
+        assert tail.error is None and isinstance(tail.state['offset'], int)

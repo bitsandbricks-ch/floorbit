@@ -13,7 +13,7 @@ import re
 import threading
 
 import requests
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
@@ -211,7 +211,7 @@ def _coerce(field, raw):
     if t == 'int':
         try:
             val = int(raw)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):   # Overflow: JSON allows Infinity
             raise SettingsError(f"{field['label']} must be a whole number") from None
         lo, hi = field.get('min'), field.get('max')
         if (lo is not None and val < lo) or (hi is not None and val > hi):
@@ -266,6 +266,47 @@ def check_changes(changes):
     return out
 
 
+# ── Secrets at rest ───────────────────────────────────────────────────────────
+# Secret settings (API tokens, plugin passwords) are sealed with the vault like switch logins, so
+# data.json, the database and its backups hold nothing readable (docs/credentials.md).
+
+def secret_slot(key):
+    return f'setting:{key}'
+
+
+def is_sealed(value):
+    return isinstance(value, dict) and isinstance(value.get('sealed'), str)
+
+
+def seal_secrets(stored):
+    """``stored`` with every secret field's clear value sealed (new ones, and ones saved before)."""
+    from . import vault
+    out = dict(stored)
+    for key, value in stored.items():
+        field = FIELDS_BY_KEY.get(key)
+        if field and field['type'] == 'secret' and not is_sealed(value) and value not in (None, ''):
+            out[key] = {'sealed': vault.seal(secret_slot(key), str(value))}
+    return out
+
+
+def rotate():
+    """Seal again with the current key every secret setting made with an older one. Returns how many."""
+    from . import vault
+    from .store import load_data, save_data
+    data = load_data()
+    stored = data.get('app_settings') or {}
+    done = 0
+    for key, value in stored.items():
+        if is_sealed(value) and vault.needs_rotation(value['sealed']):
+            clear = vault.open_(secret_slot(key), value['sealed'])
+            stored[key] = {'sealed': vault.seal(secret_slot(key), clear)}
+            done += 1
+    if done:
+        data['app_settings'] = stored
+        save_data(data)
+    return done
+
+
 # ── Store ──────────────────────────────────────────────────────────────────────
 
 class SettingsStore:
@@ -278,6 +319,7 @@ class SettingsStore:
         # On a local agent: what the hosted Floorbit set (floorbit_agent/plugin_host.py). Kept in
         # memory only, so its secrets never land on the agent's disk; the agent's env still wins.
         self._remote = {}
+        self._opened = {}     # (key, sealed text) -> clear: a secret is decrypted once, not on every read
         self._mtime = None
         self.reload()
 
@@ -322,7 +364,24 @@ class SettingsStore:
 
     def reload(self):
         self._overrides = self._overrides_from(self._read_file())
+        self._opened = {}
         self._mtime = self._current_mtime()
+
+    def _open(self, key, stored):
+        """A saved secret in clear. Sealed ones (``{"sealed": ...}``) open with the vault; one that
+        won't open (key gone, damaged) reads as not set, so the field asks for it again."""
+        if not is_sealed(stored):
+            return stored                                  # saved before secrets were sealed
+        # By slot and text: the same text copied into another slot must not ride on this one's result.
+        found = (key, stored['sealed'])
+        if found not in self._opened:
+            from . import vault
+            try:
+                self._opened[found] = vault.open_(secret_slot(key), stored['sealed'])
+            except vault.VaultError as exc:
+                print(f'[settings] {key}: {exc}')
+                self._opened[found] = None
+        return self._opened[found]
 
     def reload_if_changed(self):
         """Re-read the file if it changed on disk. Returns True when it did."""
@@ -354,7 +413,11 @@ class SettingsStore:
         field = FIELDS_BY_KEY[key]
         try:
             if key in overrides:
-                return _coerce(field, overrides[key])
+                raw = overrides[key]
+                if field['type'] == 'secret':
+                    raw = self._open(key, raw)
+                if raw is not None:
+                    return _coerce(field, raw)
             if field.get('env') and self.environ.get(field['env'], '') != '':
                 return _coerce(field, self.environ[field['env']])
             if key in self._remote:
@@ -372,6 +435,8 @@ class SettingsStore:
             entry = {'source': self.source(key)}
             if f['type'] == 'secret':
                 entry['is_set'] = bool(self.get(key))
+                if key in self._overrides and self._open(key, self._overrides[key]) is None:
+                    entry['unreadable'] = True     # saved, but the vault can't open it: set it again
             else:
                 entry['value'] = self.get(key)
             if f.get('env'):
@@ -416,7 +481,7 @@ class SettingsStore:
                 moved = self._value(stored, url_key) != self._value(before, url_key)
                 if moved and token_key not in staged and self._value(stored, token_key):
                     raise SettingsError(NEW_URL_NEEDS_TOKEN)
-            data['app_settings'] = stored
+            data['app_settings'] = seal_secrets(stored)
             data.pop('default_settings', None)   # migrated into app_settings
             # Write in place: data.json is bind-mounted in docker-compose, so an
             # atomic rename onto it would fail.
@@ -491,9 +556,13 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
     bp = Blueprint('settings', __name__)
 
     def payload():
+        sections, fields = SECTIONS, FIELDS
+        plugins = current_app.extensions.get('floorbit_plugins')
+        if plugins is not None:   # plugin settings in the plugin's own German
+            sections, fields = plugins.settings_texts(sections, fields, request.headers.get('Accept-Language'))
         return {
-            'sections': SECTIONS,
-            'fields': FIELDS,
+            'sections': sections,
+            'fields': fields,
             'values': store.public_values(),
             'status': {
                 'netbox_enabled':   bool(store.get('netbox.url') and store.get('netbox.token')),

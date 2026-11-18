@@ -15,6 +15,7 @@
     "build": "Aufbau",
     "event": "Event",
     "admin": "Einstellungen",
+    "plugins": "Plugins",
     "more": "Weitere"
   },
   "search": "Seiten, Plätze und Switches suchen",

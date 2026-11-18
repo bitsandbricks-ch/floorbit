@@ -269,6 +269,8 @@ class Tail:
         try:
             st = os.stat(self.path)
             offset = self.state.get('offset') if self.state.get('inode') == st.st_ino else None
+            if not isinstance(offset, int) or isinstance(offset, bool) or offset < 0:
+                offset = None             # a positions file someone edited: start as on a new log
             fresh = offset is None
             if offset is None or offset > st.st_size:
                 offset = max(0, st.st_size - self.FIRST_READ) if fresh else 0
@@ -282,6 +284,11 @@ class Tail:
                     if not data:
                         break
                     cut = data.rfind(b'\n') + 1
+                    if not cut and len(data) == self.CHUNK:
+                        # A whole chunk without a line end (a log full of zeros after a crash):
+                        # no line is that long, so skip it, or every round would stop right here.
+                        read += len(data)
+                        continue
                     if not cut:
                         f.seek(f.tell() - len(data))
                         break

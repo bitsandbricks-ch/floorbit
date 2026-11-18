@@ -317,7 +317,10 @@
       "checkin": "Check-in",
       "services": "Services: servers, LANcache, DNS"
     },
-    "hint": "Safety and services are marks you draw in the editor on their layer."
+    "hint": "Safety and services are marks you draw in the editor on their layer.",
+    "plugin": "Plugin layer",
+    "pluginNone": "None",
+    "pluginLegend": "What the plugin layer shows"
   },
   "modes": {
     "kiosk": "Kiosk",

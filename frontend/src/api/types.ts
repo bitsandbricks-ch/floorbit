@@ -42,6 +42,47 @@ export type Widget = WidgetBase &
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
   )
 
+/** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
+export interface PluginPanelInfo {
+  plugin: string
+  plugin_name: string
+  icon: string
+  id: string
+  label: string
+  refresh: number
+  url: string
+}
+
+/** A plugin's floor plan layer (GET /api/plugins/layers). */
+export interface PluginLayerInfo {
+  plugin: string
+  plugin_name: string
+  icon: string
+  id: string
+  label: string
+  refresh: number
+  url: string
+}
+
+/** One plugin page (GET /api/plugins/<id>/pages/<page>): its tiles this account may see. */
+export interface PluginPageData {
+  plugin: string
+  plugin_name: string
+  icon: string
+  id: string
+  label: string
+  columns: number
+  tiles: Tile[]
+}
+
+export type PluginLayerTone = 'ok' | 'warn' | 'err' | 'info'
+
+/** What one plugin layer draws (GET /api/plugins/<id>/layers/<layer>). */
+export interface PluginLayerData {
+  seats: Record<string, { tone: PluginLayerTone; label: string }>
+  legend: { tone: PluginLayerTone; label: string }[]
+}
+
 export interface WidgetTile {
   kind?: undefined
   plugin: string
@@ -84,6 +125,7 @@ export interface ActionResult {
 export interface PluginInfo {
   id: string
   name: string
+  icon?: string
   version: string
   description: string
   trust: 'builtin' | 'development' | 'official' | 'community' | string
@@ -98,6 +140,9 @@ export interface PluginInfo {
   endpoints: { id: string; label: string; url: string }[]
   hooks: { events: string[]; action: string }[]
   has_test: boolean
+  /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
+  schema?: number
+  data_schema?: number
 }
 
 export interface LogLine {

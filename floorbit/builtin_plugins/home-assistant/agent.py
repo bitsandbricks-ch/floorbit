@@ -1,7 +1,9 @@
 """Home Assistant meters, the agent's part: one GET /api/states per round, the listed sensors'
 values sent as watts or amps per meter id."""
 import hashlib
+import http.client
 import json
+import math
 import ssl
 import urllib.error
 import urllib.request
@@ -26,11 +28,16 @@ def parse_sensors(text):
 
 def reading(state):
     """``{"watts" | "amps": value}`` from one entity's state, or None."""
-    unit = UNITS.get(str((state.get('attributes') or {}).get('unit_of_measurement') or ''))
+    attributes = state.get('attributes') if isinstance(state, dict) else None
+    if not isinstance(attributes, dict):
+        return None
+    unit = UNITS.get(str(attributes.get('unit_of_measurement') or ''))
     try:
         value = float(state.get('state'))
     except (TypeError, ValueError):
         return None                    # unavailable, unknown
+    if not math.isfinite(value):
+        return None                    # "nan", "inf": no reading, and JSON can't carry them
     return {unit[0]: round(value * unit[1], 2)} if unit else None
 
 
@@ -52,7 +59,10 @@ class AgentPlugin(Base):
         if self.url.startswith('https://') and self.settings.get('verify_ssl') is False:
             context = ssl._create_unverified_context()   # the hall chose to skip the check
         with urllib.request.urlopen(req, timeout=TIMEOUT, context=context) as resp:
-            return {s.get('entity_id'): s for s in json.loads(resp.read()) if isinstance(s, dict)}
+            found = json.loads(resp.read())
+        if not isinstance(found, list):
+            raise ValueError('Home Assistant answered something other than a list of states')
+        return {s['entity_id']: s for s in found if isinstance(s, dict) and isinstance(s.get('entity_id'), str)}
 
     def tick(self):
         if not self.ctx.may_login(self.url, CREDENTIAL, self.rev):
@@ -68,8 +78,10 @@ class AgentPlugin(Base):
                 return [], ['token refused']
             self.ctx.health('error', f'Home Assistant answered HTTP {exc.code}')
             return [], [f'HTTP {exc.code}']
-        except (OSError, ValueError) as exc:
-            self.ctx.health('error', f'cannot reach Home Assistant: {getattr(exc, "reason", exc)}')
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # HTTPException: something that isn't a web server answers at that address.
+            why = getattr(exc, 'reason', exc) or type(exc).__name__
+            self.ctx.health('error', f'cannot reach Home Assistant: {why}')
             return [], ['unreachable']
         readings, failed = [], []
         for meter, entity in self.sensors:
@@ -93,10 +105,14 @@ class AgentPlugin(Base):
     def loop(self):
         while not self.ctx.stopping.is_set():
             # Two agents in one hall (VRRP): only the primary asks, so no device is asked twice.
-            if self.ctx.primary():
-                self.tick()
-            else:
-                self.ctx.health('ok', 'Standby: the primary agent reads the sensors')
+            try:
+                if self.ctx.primary():
+                    self.tick()
+                else:
+                    self.ctx.health('ok', 'Standby: the primary agent reads the sensors')
+            except Exception as exc:  # noqa: BLE001  # one odd round must not stop the readings for the event
+                self.ctx.health('error', f'a round failed: {type(exc).__name__}: {exc}'[:300])
+                self.ctx.error(f'a round failed: {type(exc).__name__}: {exc}')
             self.ctx.stopping.wait(self.interval)
 
     def check(self):

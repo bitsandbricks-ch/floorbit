@@ -144,8 +144,15 @@ def build_index(config, out, index_pem, gh, log=print):
                     log(f'REFUSED {repo} {version}: {exc}')
                     continue
                 manifest = _manifest(Path(tmp) / pid)
+            # Signed is not enough: a manifest Floorbit would refuse is never listed.
+            from floorbit.plugins import touches, validate
+            problem = validate(manifest) if isinstance(manifest, dict) else 'plugin.yaml must be a mapping'
+            if problem:
+                log(f'REFUSED {repo} {version}: plugin.yaml: {problem}')
+                continue
             if entry is None or bundles.newer(version, entry['_v']):
                 entry = {'id': pid, 'name': str(manifest.get('name') or pid)[:80],
+                         **({'icon': manifest['icon']} if manifest.get('icon') else {}),
                          'description': str(manifest.get('description') or '')[:500],
                          'author': str(manifest.get('author') or '')[:80],
                          'homepage': str(manifest.get('homepage') or f'https://github.com/{repo}')[:200],
@@ -154,7 +161,7 @@ def build_index(config, out, index_pem, gh, log=print):
             versions.append({'version': version, 'file': name, 'sha256': bundles.sha256(data),
                              'floorbit': str(manifest.get('floorbit') or ''), 'agent_api': int(sig['agent_api']),
                              'date': str(rel.get('published_at') or '')[:10],
-                             'changes': str(rel.get('body') or '')[:4000],
+                             'changes': str(rel.get('body') or '')[:4000], 'touches': touches(manifest),
                              **({'withdrawn': withdrawn[version]} if version in withdrawn else {})})
             log(f'ok   {repo} {version}')
         if entry is None:

@@ -1,5 +1,6 @@
 """The LAN cache plugin's part in the hall (docs/lancache.md): reads the cache's access log and
 lancache-dns's query log, checks the cache answers, and sends hall-wide numbers only."""
+import http.client
 import json
 import os
 import random
@@ -48,10 +49,14 @@ def resolve_a(server, name, timeout=3):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.settimeout(timeout)
         sock.sendto(packet, (server, 53))
+        # The timeout counts per packet: a steady stream of other answers must not keep this waiting.
+        deadline = time.monotonic() + timeout
         while True:
             data, _ = sock.recvfrom(4096)
             if len(data) >= 12 and struct.unpack('>H', data[:2])[0] == qid:
                 break
+            if time.monotonic() > deadline:
+                raise TimeoutError('no answer to our question')
     count = struct.unpack('>H', data[6:8])[0]
     pos = 12 + len(qname) + 4
     out = []
@@ -94,9 +99,10 @@ class AgentPlugin(Base):
         path = self._positions_file()
         try:
             with open(path, encoding='utf-8') as f:
-                return json.load(f)
+                found = json.load(f)
         except (OSError, TypeError, ValueError):
             return {}
+        return found if isinstance(found, dict) else {}
 
     def _save_positions(self):
         path = self._positions_file()
@@ -153,6 +159,9 @@ class AgentPlugin(Base):
                 first = False
             except PluginError as exc:
                 self.ctx.error(str(exc))
+            except Exception as exc:  # noqa: BLE001  # one odd round must not stop reading the logs for the event
+                self.ctx.health('warning', f'{type(exc).__name__}: {exc}'[:300])
+                self.ctx.error(f'a round failed: {type(exc).__name__}: {exc}')
             self.ctx.stopping.wait(self.interval)
 
     # ── checks ───────────────────────────────────────────────────────────────────────────
@@ -182,8 +191,10 @@ class AgentPlugin(Base):
                 status, by = resp.status, resp.headers.get('X-LanCache-Processed-By')
         except urllib.error.HTTPError as exc:
             status, by = exc.code, exc.headers.get('X-LanCache-Processed-By')
-        except (OSError, ValueError) as exc:
-            return {'ok': False, 'error': f'the cache did not answer: {getattr(exc, "reason", exc)}'}
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # HTTPException: something that isn't a web server answers on that port.
+            why = getattr(exc, 'reason', exc) or type(exc).__name__
+            return {'ok': False, 'error': f'the cache did not answer: {why}'}
         ms = round((time.monotonic() - start) * 1000)
         if status != 204:
             return {'ok': False, 'ms': ms, 'error': f'the heartbeat answered HTTP {status}, not 204'}

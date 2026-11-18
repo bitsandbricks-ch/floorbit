@@ -35,7 +35,7 @@ import threading
 import time
 from pathlib import Path
 
-from .plugins import PluginError, bundles, compatible
+from .plugins import PluginError, bundles, clean_touches, compatible, plugin_icons
 
 DEFAULT_URL = 'https://bitsandbricks-ch.github.io/floorbit-plugins/index.json'  # TODO: Mike: final domain?
 URL_ENV = 'FLOORBIT_MARKETPLACE_URL'
@@ -45,7 +45,7 @@ DIR_ENV = 'FLOORBIT_PLUGIN_DIR'
 INDEX_TTL = 600          # an index is asked again after ten minutes, or when an admin refreshes
 SYNC_EVERY = 60          # how often an instance checks whether another one installed something
 MAX_INDEX = 2 * 1024 * 1024
-VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}$')
+VERSION_RE = re.compile(r'^[0-9][0-9A-Za-z.+-]{0,39}\Z')
 TRUST_RANK = {'official': 0, 'community': 1}
 
 
@@ -138,11 +138,16 @@ def _get_capped(url, limit, timeout):
         res.raise_for_status()
         if int(res.headers.get('Content-Length') or 0) > limit:
             raise MarketError('the answer is too large')
+        # ``timeout`` counts per read: a source that drips a byte now and then would hold this
+        # worker for hours, so the whole answer gets a deadline too.
+        deadline = time.monotonic() + timeout * 4
         chunks, size = [], 0
         for chunk in res.iter_content(64 * 1024):
             size += len(chunk)
             if size > limit:
                 raise MarketError('the answer is too large')
+            if time.monotonic() > deadline:
+                raise requests.Timeout('the answer took too long')
             chunks.append(chunk)
         return b''.join(chunks)
 
@@ -151,21 +156,30 @@ def _text(v, n):
     return str(v or '')[:n]
 
 
+def _api(value):
+    """The agent API a version needs, from an index: a bad value counts as a newer one than any agent
+    knows, so the version is never sent to an agent that can't run it."""
+    if value is None:
+        return 1
+    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 1000 else 1000
+
+
 def versions_of(entry):
     """The entry's versions, newest first, with only the fields Floorbit uses."""
     out, seen = [], set()
-    for v in entry.get('versions') or []:
-        if not isinstance(v, dict):
+    listed = entry.get('versions')
+    for v in listed if isinstance(listed, list) else []:   # one odd entry never takes the page down
+        if not isinstance(v, dict) or not isinstance(v.get('version'), str) or not isinstance(v.get('file'), str):
             continue
-        ver = str(v.get('version', ''))
-        file = str(v.get('file', ''))
+        ver = v['version']
+        file = v['file']
         if not VERSION_RE.match(ver) or ver in seen or not file:
             continue
         seen.add(ver)
         out.append({'version': ver, 'file': file, 'sha256': _text(v.get('sha256'), 64),
-                    'floorbit': _text(v.get('floorbit'), 60), 'agent_api': int(v.get('agent_api') or 1),
+                    'floorbit': _text(v.get('floorbit'), 60), 'agent_api': _api(v.get('agent_api')),
                     'date': _text(v.get('date'), 30), 'changes': _text(v.get('changes'), 4000),
-                    'withdrawn': _text(v.get('withdrawn'), 300)})
+                    'withdrawn': _text(v.get('withdrawn'), 300), 'touches': clean_touches(v.get('touches'))})
     return sorted(out, key=lambda v: bundles.version_key(v['version']), reverse=True)
 
 
@@ -243,7 +257,8 @@ def _download(src, entry, ver):
     if not ver['sha256'] or bundles.sha256(data) != ver['sha256']:
         raise MarketError(f'{pid} {ver["version"]}: the download does not match the index')
     dest = _folder(pid, ver['version'])
-    tmp = dest.with_name(f'.{ver["version"]}.part')
+    # Pods sharing one plugin folder may fetch the same version at once: each unpacks into its own.
+    tmp = dest.with_name(f'.{ver["version"]}.{os.getpid()}.{threading.get_ident()}.part')
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -256,10 +271,16 @@ def _download(src, entry, ver):
         shutil.rmtree(tmp, ignore_errors=True)
         raise MarketError(f'{pid}: signed with a key this source may not use')
     shutil.rmtree(dest, ignore_errors=True)
-    tmp.rename(dest)
+    try:
+        tmp.rename(dest)
+    except OSError:
+        shutil.rmtree(tmp, ignore_errors=True)
+        if not dest.is_dir():
+            raise MarketError(f'could not put {pid} {ver["version"]} in place') from None
+        # Another pod put the same signed version there meanwhile; loading checks it again.
     archive = _archive(pid, ver['version'])
     archive.parent.mkdir(parents=True, exist_ok=True)
-    part = archive.with_name(f'.{archive.name}.part')
+    part = archive.with_name(f'.{archive.name}.{os.getpid()}.{threading.get_ident()}.part')
     part.write_bytes(data)
     part.replace(archive)   # an agent fetching it never gets half a file
     return doc
@@ -276,19 +297,46 @@ def _check_folder(pid, version):
 
 def _load(registry, pid, version):
     trust = _check_folder(pid, version)
+    # Checked before loading: adding it would replace (and then drop) the plugin it names instead.
+    named = _manifest(pid, version).get('id')
+    if named != pid:
+        raise MarketError(f'the bundle for {pid} holds plugin {str(named)[:40]}')
     spec = registry.add(_folder(pid, version), trust)
-    if spec.id != pid:
-        registry.drop(spec.id)
-        raise MarketError(f'the bundle for {pid} holds plugin {spec.id}')
     if spec.error:
         raise MarketError(f'{pid} {version} does not load: {spec.error}')
     return spec
 
 
+def _manifest(pid, version):
+    """An unpacked version's plugin.yaml, or {} when it can't be read."""
+    import yaml
+    try:
+        manifest = yaml.safe_load((_folder(pid, version) / 'plugin.yaml').read_text(encoding='utf-8')) or {}
+    except (OSError, ValueError, yaml.YAMLError):
+        return {}
+    return manifest if isinstance(manifest, dict) else {}
+
+
+def _schema_of(pid, version):
+    """The ``schema:`` an unpacked version declares (0 for none)."""
+    schema = _manifest(pid, version).get('schema')
+    return schema if isinstance(schema, int) and not isinstance(schema, bool) else 0
+
+
+PART_KEEP = 600   # seconds: an unpack another pod is busy with, not a leftover of a crash
+
+
+def _in_flight(path):
+    try:
+        return path.name.endswith('.part') and time.time() - path.stat().st_mtime < PART_KEEP
+    except OSError:
+        return False
+
+
 def _prune(pid, keep):
     root = plugin_dir() / pid
     for sub in root.iterdir() if root.is_dir() else ():
-        if sub.name not in keep:
+        if sub.name not in keep and not _in_flight(sub):
             shutil.rmtree(sub, ignore_errors=True)
     for f in (plugin_dir() / '.archives').glob(f'{pid}-*.tar.gz'):
         if f.name not in {f'{pid}-{v}.tar.gz' for v in keep}:
@@ -316,9 +364,14 @@ def catalog(registry, force=False):
                             | {'compatible': ok, 'why': why})
         best = next((v['version'] for v in versions if v['compatible'] and not v['withdrawn']), None)
         current = mine['version'] if mine else None
+        # What the version it would install (or update to) may touch: shown before anyone installs it.
+        wanted = best if not current or (best and bundles.newer(best, current)) else current
+        touches = next((v['touches'] for v in versions_of(entry) if v['version'] == wanted), None)
         name = _text(entry.get('name'), 80) or (spec.name if spec else pid)
+        # Only a name Floorbit draws itself; anything else in the index shows the default icon.
+        icon = entry.get('icon') if entry.get('icon') in plugin_icons() else ''
         plugins.append({
-            'id': pid, 'name': name, 'description': _text(entry.get('description'), 500),
+            'id': pid, 'name': name, 'icon': icon, 'description': _text(entry.get('description'), 500),
             'author': _text(entry.get('author'), 80), 'homepage': _text(entry.get('homepage'), 200),
             'trust': (mine or {}).get('trust') or ('official' if src and src['official'] else 'community'),
             'source': src['url'] if src else (mine or {}).get('source', ''),
@@ -328,7 +381,7 @@ def catalog(registry, force=False):
             'enabled': bool(spec and mine and registry.enabled(spec)),
             'withdrawn': next((v['withdrawn'] for v in versions if v['version'] == current), '') if current else '',
             'update': best if current and best and bundles.newer(best, current) else None,
-            'best': best, 'versions': versions, 'listed': src is not None,
+            'best': best, 'versions': versions, 'listed': src is not None, 'touches': touches,
         })
     return {'sources': status, 'plugins': plugins}
 
@@ -367,7 +420,10 @@ def install(registry, pid, version=None, user=None):
             raise MarketError(f'{pid} {ver["version"]} is already installed')
         doc = _download(src, entry, ver)
         try:
-            _load(registry, pid, ver['version'])
+            spec = _load(registry, pid, ver['version'])
+            # Its data moves to the new schema here, before the update counts: when that fails, the
+            # version that ran before is put back and keeps the data it knows.
+            registry.ensure_schema(spec)
         except PluginError:
             if before:   # put back what ran
                 with contextlib.suppress(PluginError):
@@ -397,6 +453,9 @@ def rollback(registry, pid, user=None):
         if not mine or not mine.get('previous'):
             raise MarketError(f'no earlier version of {pid} is kept')
         old, new = mine['previous'], mine['version']
+        older = _schema_of(pid, old)
+        if registry.schema_of(pid) > older:
+            raise MarketError(f'{pid} {old} can\'t read the data {new} moved to schema {registry.schema_of(pid)}')
         try:
             _load(registry, pid, old)
         except PluginError:

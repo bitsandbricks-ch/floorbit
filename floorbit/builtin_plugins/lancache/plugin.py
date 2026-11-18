@@ -30,7 +30,8 @@ class Plugin(Base):
             raise PluginError('The LAN cache counter is not running.')
         stats.merge_agent(agent, payload)
         dns = _dns()
-        hours = (payload.get('dns') or {}).get('hours')
+        dns_part = payload.get('dns')
+        hours = dns_part.get('hours') if isinstance(dns_part, dict) else None
         if dns is not None and hours:
             dns.merge_hours(hours)
         return {'ok': True}

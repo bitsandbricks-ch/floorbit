@@ -1,4 +1,4 @@
-"""Refuse a JSON body that is a bare string, number or boolean.
+"""Refuse a JSON body that is a bare string, number or boolean, or holds NaN or infinity.
 
 Handlers read bodies as ``request.get_json(silent=True) or {}`` and then ``body.get(...)``. A body
 of ``"x"`` or ``5`` is truthy, so it reached ``.get`` and answered 500. Objects, lists (some
@@ -13,7 +13,12 @@ handlers that check with int() failed with OverflowError (a 500). Browsers never
 (JSON.stringify writes null), and one that got saved would come back out as a bare NaN no browser
 parses. The local agent's calls are left alone: its numbers come from devices and its own code
 decides what to keep.
+
+A whole number of hundreds of digits (no browser sends one) raised OverflowError the same way
+wherever it became a float, so numbers have at most MAX_DIGITS digits. Answers go the other way
+through FiniteJSONProvider: NaN and infinity become null.
 """
+import json
 import math
 
 from flask import jsonify, request
@@ -21,8 +26,35 @@ from flask.json.provider import DefaultJSONProvider
 
 MESSAGE = 'Send a JSON object.'
 TOO_DEEP = 'The JSON is nested too deeply.'
-NOT_FINITE = 'Numbers must be finite: no NaN or Infinity.'
+NOT_FINITE = 'Numbers must be finite (no NaN or Infinity).'
 MAX_DEPTH = 64
+TOO_LONG = 'Numbers can have at most 30 digits.'
+MAX_DIGITS = 30        # far past any count or id here; a float holds about 300
+
+
+class _TooLong(ValueError):
+    pass
+
+
+class _NotFinite(ValueError):
+    pass
+
+
+def _constant(name):
+    raise _NotFinite(name)
+
+
+def _float(text):
+    value = float(text)
+    if not math.isfinite(value):
+        raise _NotFinite(text)
+    return value
+
+
+def _int(text):
+    if len(text.lstrip('-')) > MAX_DIGITS:
+        raise _TooLong(text[:40])
+    return int(text)
 
 
 def too_deep(value, limit=MAX_DEPTH):
@@ -66,10 +98,12 @@ def finite(value):
     return value
 
 
+_finite = finite     # the name master's callers use
+
+
 class FiniteJSONProvider(DefaultJSONProvider):
-    """Answers never hold a bare NaN or Infinity: JSON.parse refuses them, so one saved before the
-    checks above (or read from a device) would stop a whole page from loading. They go out as null
-    instead, and the walk only runs when there is one."""
+    """Answers never hold NaN or Infinity: no browser can read them, so one NaN from a monitoring
+    source (Prometheus answers "NaN" for a rate over nothing) broke the whole page. They become null."""
 
     def dumps(self, obj, **kwargs):
         try:
@@ -99,4 +133,14 @@ def init_json_body(app):
             return jsonify({'error': NOT_FINITE}), 400
         if body is not None and not isinstance(body, dict):
             return jsonify({'error': MESSAGE}), 400
+        if body and not request.path.startswith('/api/agent/'):
+            try:
+                json.loads(request.get_data(cache=True), parse_constant=_constant, parse_float=_float,
+                           parse_int=_int)
+            except _NotFinite:
+                return jsonify({'error': NOT_FINITE}), 400
+            except _TooLong:
+                return jsonify({'error': TOO_LONG}), 400
+            except ValueError:
+                pass
         return None

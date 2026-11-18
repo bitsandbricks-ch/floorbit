@@ -9,6 +9,7 @@ const Dashboards = lazy(() => import('@/pages/Dashboards'))
 const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
 const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
+const PluginPage = lazy(() => import('@/pages/PluginPage'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Teams = lazy(() => import('@/pages/Teams'))
@@ -97,6 +98,7 @@ export default function App() {
             <Route path="/dashboards" element={<Dashboards />} />
             <Route path="/settings/plugins" element={<Plugins />} />
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />
+            <Route path="/plugins/:plugin/:page" element={<PluginPage />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/settings/teams" element={<Teams />} />

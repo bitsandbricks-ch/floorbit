@@ -3,7 +3,7 @@ import { ActionIcon, Group, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconFocus2, IconMinus, IconPlus } from '@tabler/icons-react'
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { FirewallSeats, IncidentMarkers, PlanCable, PlanSeat, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
+import type { FirewallSeats, IncidentMarkers, PlanCable, PlanSeat, PluginLayerData, PluginLayerTone, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import {
   type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
   parseBox, rate, reveal, scale, seatCenter, zoom,
@@ -20,8 +20,10 @@ import { type LabelMode, type SeatLabels, labelPlan, labelStyle, rowEnds } from 
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
-export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin = true, incidents = 0 }: {
+export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin = true, incidents = 0, mark }: {
   seat: PlanSeat; size: number; detail: boolean; traffic?: boolean
+  /** A plugin layer's tone for this seat (./PluginLayer.tsx): a coloured ring. */
+  mark?: PluginLayerTone
   /** Draw the check-in corner (the check-in layer). */
   checkin?: boolean
   /** Open incidents at the seat (the crew layer). */
@@ -36,6 +38,7 @@ export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin 
   return (
     <>
       {seat.changed && <rect className="recent" x={i - 5} y={i - 5} width={s + 10} height={s + 10} rx={7} />}
+      {mark && <rect className={`pl pl-${mark}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
       {route && <rect className={`fwr fw-${route}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
       {seat.match && <rect className="match" x={i - 2.5} y={i - 2.5} width={s + 5} height={s + 5} rx={5} />}
       <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
@@ -132,7 +135,7 @@ export interface OverlayContext {
 }
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto' }: {
+  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto', pluginSeats }: {
   /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. An
    *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. An
    *  open block: only ``seats``. */
@@ -158,6 +161,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   overlay?: (ctx: OverlayContext) => React.ReactNode
   /** Seat numbers: follow the zoom (./labels.ts), or always / never, for a big screen. */
   labels?: LabelMode
+  /** The plugin layer that is on: a tone per seat. */
+  pluginSeats?: PluginLayerData['seats']
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -366,7 +371,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
               <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected} only={focus?.seats}
-                cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls}
+                cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
             {b.name && level !== 'far' && (
@@ -434,9 +439,10 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 }
 
 /** One block's seats, in the block's coordinates. Memoised: panning and zooming don't draw them again. */
-const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, checkin, incidents, level, labels, ids, onEnter, onLeave, onClick, describe }: {
+const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, marks, checkin, incidents, level, labels, ids, onEnter, onLeave, onClick, describe }: {
   cells: { seat: string; x: number; y: number }[]; rotation: number; seats: SeatViewData['seats']; cell: number
   filter: Filter; selected: string | null; only?: ReadonlySet<string>; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
+  marks?: PluginLayerData['seats']
   checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; labels: SeatLabels; ids: string
   onEnter: (seat: string, clientX: number, clientY: number) => void; onLeave: () => void; onClick: (seat: string) => void
   describe: (seat: PlanSeat) => string
@@ -457,7 +463,7 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             onClick={() => onClick(c.seat)}>
             <rect className="hit" width={cell} height={cell} />
             <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
-              checkin={checkin} incidents={incidents?.[c.seat]} />
+              checkin={checkin} incidents={incidents?.[c.seat]} mark={marks?.[c.seat]?.tone} />
             {(labels === 'all' || ends?.has(c.seat)) && (
               <text className={labels === 'ends' ? 'num end' : 'num'} x={cell / 2} y={cell / 2} dy="0.35em"
                 transform={rotation ? `rotate(${-rotation} ${cell / 2} ${cell / 2})` : undefined}>

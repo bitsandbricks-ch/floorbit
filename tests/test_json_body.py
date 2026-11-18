@@ -95,7 +95,7 @@ def test_a_delete_with_a_deep_body_gets_400_and_others_keep_their_shape(client):
 def test_nan_and_infinity_get_400_not_500(client, method, path, body, number):
     """Python's parser takes NaN, Infinity and 1e999, and int() of them raised OverflowError (a 500)."""
     r = client.open(path, method=method, data=body % number, content_type="application/json")
-    assert r.status_code == 400 and r.get_json()["error"] == "Numbers must be finite: no NaN or Infinity."
+    assert r.status_code == 400 and r.get_json()["error"] == "Numbers must be finite (no NaN or Infinity)."
     r = client.open(path, method=method, data=body % number, content_type="application/json",
                     headers={"Accept-Language": "de-CH"})
     assert r.get_json()["error"].startswith("Zahlen müssen endlich sein")
@@ -106,7 +106,7 @@ def test_ordinary_numbers_and_the_agent_link_are_left_alone(client):
                        content_type="application/json").status_code == 201
     # The agent's calls carry what devices said; its own handlers judge them (no 400 from the guard).
     r = client.post("/api/agent/v1/report", data='{"value": NaN}', content_type="application/json")
-    assert r.get_json(silent=True) is None or r.get_json().get("error") != "Numbers must be finite: no NaN or Infinity."
+    assert r.get_json(silent=True) is None or "finite" not in r.get_json().get("error", "")
 
 
 @pytest.mark.parametrize("text", ["nan", "inf", "-Infinity"])
@@ -156,3 +156,36 @@ def test_a_live_event_with_nan_reaches_the_page_as_readable_json():
     line = events._format({"id": "1", "type": "status", "data": {"util": float("nan"), "ok": 1.5}})
     payload = line.split("data: ", 1)[1].strip()
     assert json.loads(payload, parse_constant=_refuse)["data"] == {"util": None, "ok": 1.5}
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e999"])
+@pytest.mark.parametrize(("method", "path"), [("post", "/api/seat-blocks"), ("post", "/api/cables"),
+                                              ("put", "/api/settings")])
+def test_nan_and_infinity_are_refused_before_a_handler_reads_them(client, method, path, number):
+    # Python's JSON reader takes these; as a whole number they raised OverflowError (a 500).
+    r = getattr(client, method)(path, data=f'{{"x": 1, "y": 1, "cache.ttl_arp": {number}}}',
+                                content_type="application/json")
+    assert r.status_code == 400 and "finite" in r.get_json()["error"]
+
+
+
+@pytest.mark.parametrize("number", ["1" + "0" * 400, "-" + "9" * 31])
+def test_whole_numbers_of_hundreds_of_digits_are_refused(client, number):
+    # float() of one raised OverflowError (a 500), as on a power reading typed in by hand.
+    r = client.post("/api/seat-blocks", data=f'{{"x": 1, "y": {number}}}', content_type="application/json")
+    assert r.status_code == 400 and "30 digits" in r.get_json()["error"]
+    assert client.post("/api/teams", json={"name": "Big", "order": 10 ** 29}).status_code == 201
+
+def test_ordinary_numbers_still_get_through(client):
+    assert client.post("/api/teams", json={"name": "Network", "order": 1.5e3}).status_code == 201
+
+
+def test_answers_never_hold_nan_or_infinity(app_module):
+    # A monitoring source's "NaN" (Prometheus, for a rate over nothing) made the whole answer unreadable.
+    import json
+
+    from flask import jsonify
+    with app_module.app.test_request_context():
+        body = jsonify({"rate": float("nan"), "series": [1.5, float("inf")], "nested": {"x": -float("inf")}}).data
+    assert json.loads(body) == {"rate": None, "series": [1.5, None], "nested": {"x": None}}
+    assert b"NaN" not in body and b"Infinity" not in body
