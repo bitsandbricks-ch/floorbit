@@ -41,7 +41,8 @@
   "saved": "Saved. Changes apply immediately.",
   "savedTheme": "Saved. Reloading to show the new theme…",
   "unit": {
-    "seconds": "seconds"
+    "seconds": "seconds",
+    "minutes": "minutes"
   },
   "presets": {
     "floorbit": "Floorbit",
@@ -126,6 +127,10 @@
     "public": {
       "title": "Attendee pages",
       "desc": "Pages for attendees, open without an account. They show seat numbers only: no nicks, addresses, switches or ports."
+    },
+    "speedtest": {
+      "title": "Speed tests",
+      "desc": "The speed test on the seat help page. Every test streams from this server, so these limits keep a hall full of tests from taking its threads and its uplink."
     },
     "metrics": {
       "title": "Prometheus metrics",
@@ -282,6 +287,26 @@
     "theme_text": {
       "label": "Text",
       "help": "Empty: near white or near black, by background."
+    },
+    "speedtest_enabled": {
+      "label": "Speed test on the help page",
+      "help": "Off hides the button on the seat help page and refuses every test."
+    },
+    "speedtest_max_running": {
+      "label": "Streams at once",
+      "help": "Downloads and uploads running at the same time, over all seats. Each holds a server thread."
+    },
+    "speedtest_test_mb": {
+      "label": "Data per test",
+      "help": "What one test may move, download and upload together. Enough for a gigabit seat."
+    },
+    "speedtest_seat_minutes": {
+      "label": "One test per seat every",
+      "help": "0 lets a seat test as often as it likes."
+    },
+    "speedtest_max_mbps": {
+      "label": "Speed cap per stream",
+      "help": "0 for no cap. With the default, a gigabit seat still measures in full."
     }
   },
   "pickColour": "Pick a colour from the screen",
