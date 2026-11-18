@@ -149,6 +149,7 @@
   "Reported from seat": "Vom Platz gemeldet",
   "Reset the bandwidth peak": "Bandbreitenspitze zurückgesetzt",
   "Restored a backup": "Backup wiederhergestellt",
+  "Took over plugin settings from an agent": "Plugin-Einstellungen von einem Agenten übernommen",
   "Uploaded a backup to S3": "Backup nach S3 hochgeladen",
   "Restored a backup from S3": "Backup aus S3 wiederhergestellt",
   "Downloaded a backup from S3": "Backup aus S3 heruntergeladen",

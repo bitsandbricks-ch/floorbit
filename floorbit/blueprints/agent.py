@@ -20,6 +20,8 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
 - ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
 - ``GET /api/agent/v1/captive``: ``{"done": [ip], "portal_url"}`` for its Captive Portal API
   (floorbit/captive.py); 409 while check-in or the captive portal (``CAPTIVE_ENABLED``) is off here.
+- ``POST /api/agent/v1/env-settings`` ``{"settings": {key: value}, "plugins": [id]}``: what the
+  agent's environment set for plugins, taken over once where nothing is set up here (agent_plugins.py).
 - ``GET /api/agent/v2/link`` (WebSocket, protocol 2): the same calls and answers as the long poll,
   over one open connection. The agent falls back to the long poll when it can't be opened.
 """
@@ -329,6 +331,18 @@ def seat_walk_hello():
     return jsonify({'ok': True})
 
 
+@bp.route('/api/agent/v1/env-settings', methods=['POST'])
+def env_settings():
+    """What the agent's environment set for plugins before Settings > Plugins decided alone
+    (``{"settings": {key: value}, "plugins": [id]}``), taken over once (agent_plugins.import_env)."""
+    agent = _agent(reachable=False)
+    if agent is None:
+        return _refused()
+    body = _agent_body()
+    from .. import agent_plugins
+    return jsonify(agent_plugins.import_env(agent, body.get('settings'), body.get('plugins')))
+
+
 @bp.route('/api/agent/v1/report', methods=['POST'])
 def report():
     """The agent's own numbers, from an agent on the long poll (on the link they come as a
@@ -507,7 +521,8 @@ def link(ws):
 
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
-for _view in (hello, calls, answers, syslog, flow_seats, captive, seat_walk_hello, flows, link, report):
+for _view in (hello, calls, answers, syslog, flow_seats, captive, seat_walk_hello, flows, link, report,
+              env_settings):
     _view._auth_public = True
 # After _auth_public is set: the route's wrapper copies the attribute.
 sock.route(LINK_PATH, bp=bp)(link)

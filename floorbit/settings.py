@@ -314,8 +314,10 @@ class SettingsStore:
         self._lock = threading.Lock()
         self._overrides = {}
         # On a local agent: what the hosted Floorbit set (floorbit_agent/plugin_host.py). Kept in
-        # memory only, so its secrets never land on the agent's disk; the agent's env still wins.
+        # memory only, so its secrets never land on the agent's disk.
         self._remote = {}
+        # On a local agent: the plugins' settings, which only the hosted Floorbit decides (ignore_env).
+        self._env_off = frozenset()
         self._opened = {}     # (key, sealed text) -> clear: a secret is decrypted once, not on every read
         self._mtime = None
         self.reload()
@@ -393,11 +395,20 @@ class SettingsStore:
         field = FIELDS_BY_KEY[key]
         if key in self._overrides:
             return 'saved'
-        if field.get('env') and self.environ.get(field['env'], '') != '':
+        if self._from_env(field):
             return 'env'
         if key in self._remote:
             return 'hosted'
         return 'default'
+
+    def _from_env(self, field):
+        return bool(field.get('env')) and field['key'] not in self._env_off and \
+            self.environ.get(field['env'], '') != ''
+
+    def ignore_env(self, keys):
+        """Agent only: these settings come from the hosted Floorbit alone, whatever the agent's own
+        environment says (docs/agent.md, "Settings")."""
+        self._env_off = frozenset(keys)
 
     def set_remote(self, values):
         """Replace the hosted Floorbit's values (agent only). Unknown keys are ignored."""
@@ -416,7 +427,7 @@ class SettingsStore:
                     raw = self._open(key, raw)
                 if raw is not None:
                     return _coerce(field, raw)
-            if field.get('env') and self.environ.get(field['env'], '') != '':
+            if self._from_env(field):
                 return _coerce(field, self.environ[field['env']])
             if key in self._remote:
                 return _coerce(field, self._remote[key])

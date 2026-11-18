@@ -1,12 +1,13 @@
 # The local agent for a hosted Floorbit (docs/agent.md). Run it on the event network, next to
 # LibreNMS and NetBox, not on the hosted server:
 #
-#   cp agent.env.example agent.env      # FLOORBIT_URL, FLOORBIT_AGENT_KEY, LibreNMS, NetBox
+#   cp agent.env.example agent.env      # FLOORBIT_URL and FLOORBIT_AGENT_KEY
 #   docker compose -f docker-compose.agent.yml up -d
 #
-# It only connects out, over HTTPS: nothing has to be opened. Only to take the event's syslog
-# (FLOORBIT_AGENT_SYSLOG_PORT=5514 in agent.env) or flows (FLOORBIT_AGENT_FLOWS_PORT=2055),
-# uncomment the matching ports below.
+# It only connects out, over HTTPS: nothing has to be opened. LibreNMS, NetBox and the rest are set
+# up in Floorbit (Settings > Plugins). Only to take the event's syslog or flows, or to answer
+# attendees (the plugins "Syslog from the hall" on port 5514, "Traffic from the hall" on 2055 and
+# "Front door for attendees" on 0.0.0.0:8443), uncomment the matching ports below.
 
 services:
   agent:
@@ -23,6 +24,7 @@ services:
     # ports:
     #   - "514:5514/udp"
     #   - "2055:2055/udp"
+    #   - "80:8443"
     # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
     # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.
     restart: on-failure:3

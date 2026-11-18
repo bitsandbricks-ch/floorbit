@@ -41,7 +41,7 @@ sees the hall's public address, behind a reverse proxy the proxy's. The agent is
 network and sees the laptop as it is. Going through it every time, self-hosted or not, keeps the walk
 the same everywhere. Floorbit never takes the request's own address for the laptop's.
 
-The agent answers on its captive port (`FLOORBIT_AGENT_CAPTIVE`, see the agent's README) at
+The agent answers on its captive port (the **Check-in note on phones** plugin's address) at
 `/floorbit/hello/<code>`. Tell Floorbit where laptops reach it, one of:
 
 - `FLOORBIT_AGENT_LAN_URL` on the agent, for example `http://192.0.2.10:8908`. The agent reports it,

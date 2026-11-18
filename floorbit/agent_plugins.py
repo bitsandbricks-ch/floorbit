@@ -150,8 +150,8 @@ def bundle_file(name):
 def local_config(registry=None):
     """``{id: {"settings": {full settings key: value}}}`` for the built-in plugins that are on here
     and answer for the hall (LOCAL_AREAS), with an agent part or not: telemetry is both, and the
-    agent's own monitoring source. Empty values are left out, so the
-    agent's own environment still fills them."""
+    agent's own monitoring source. Empty values are left out: the
+    plugin's default applies."""
     registry = registry or _registry()
     if registry is None:
         return {}
@@ -512,3 +512,109 @@ def health_of(plugin_id):
         if health is not None:
             out[a['id']] = {'name': a['name'], 'connected': a['connected'], 'health': health}
     return out
+
+
+# ── Settings from an agent's environment, taken over once ─────────────────────────────────────
+# Before, an agent read its plugins' settings (LIBRENMS_URL, FLOORBIT_PLUGIN_*), the plugins to turn
+# on (FLOORBIT_AGENT_PLUGINS) and its relays (FLOORBIT_AGENT_SYSLOG_PORT, ...) from its own
+# environment. Now only Settings > Plugins here decides. So an event keeps running after the update,
+# the agent sends what its environment held once, and it is saved here for each plugin nobody has set
+# up here yet. A plugin already on or with saved settings keeps what it has.
+MAX_IMPORTED = 200
+
+
+def _owner(registry, key):
+    """The plugin a settings key belongs to: ``plugin.<id>.<key>``, or a built-in's core section."""
+    if key.startswith('plugin.'):
+        return key.split('.')[1]
+    for spec in registry.specs.values():
+        if key in registry._core_fields(spec):
+            return spec.id
+    return None
+
+
+def _runs_on_agent(spec):
+    return spec.trust == 'builtin' and spec.id not in NEVER_LOCAL and bool(
+        spec.agent or set(spec.manifest.get('uses') or ()) & set(LOCAL_AREAS))
+
+
+def _set_up_here(registry, spec):
+    store = registry.settings_store
+    keys = registry._core_fields(spec) + [f"plugin.{spec.id}.{f['key']}" for f in spec.items('settings')]
+    return registry.enabled(spec) or any(store.source(k) == 'saved' for k in keys)
+
+
+def import_env(agent, settings, plugins, registry=None):
+    """``settings``: {full settings key: value}; ``plugins``: ids the agent's environment turned on.
+    Returns {"imported": [ids], "skipped": {id: why}}."""
+    from . import audit
+    from .plugins.base import PluginError
+    from .settings import FIELDS_BY_KEY, SettingsError
+    registry = registry or _registry()
+    settings = settings if isinstance(settings, dict) else {}
+    plugins = [p for p in (plugins if isinstance(plugins, list) else []) if isinstance(p, str)]
+    wanted = {}
+    for key, value in list(settings.items())[:MAX_IMPORTED]:
+        owner = _owner(registry, str(key)) if key in FIELDS_BY_KEY else None
+        if owner:
+            wanted.setdefault(owner, {})[key] = value
+    for pid in plugins[:MAX_IMPORTED]:
+        wanted.setdefault(pid, {})
+    imported, skipped = [], {}
+    for pid in sorted(wanted):
+        spec = registry.specs.get(pid) if PLUGIN_ID_RE.match(pid) else None
+        if spec is None or spec.error:
+            skipped[pid[:40]] = 'unknown here'
+            continue
+        if not _runs_on_agent(spec):
+            # An agent's key never sets up a plugin that does nothing on an agent (a webhook, Discord).
+            skipped[pid] = 'not a plugin for the agent'
+            continue
+        if _set_up_here(registry, spec):
+            skipped[pid] = 'already set up here'
+            continue
+        try:
+            if wanted[pid]:
+                registry.settings_store.update(wanted[pid])
+            registry.set_enabled(pid, True)
+        except (SettingsError, PluginError) as exc:
+            skipped[pid] = str(exc)[:200]
+            continue
+        imported.append(pid)
+        audit.record('plugins', 'Took over plugin settings from an agent', user=f"agent {agent.get('name')}",
+                     target=pid, fields=wanted[pid])
+    if imported:
+        reload_agents()
+    return {'imported': imported, 'skipped': skipped}
+
+
+# The ports docker-compose.yml and deploy/kubernetes publish for the agent next to Floorbit.
+LOCAL_DEFAULTS = {
+    'syslog-relay': {'plugin.syslog-relay.port': 5514},
+    'netflow-relay': {'plugin.netflow-relay.port': 2055},
+    'front-door': {'plugin.front-door.address': '0.0.0.0:8443'},
+}
+LOCAL_DEFAULTS_DONE = 'local_agent_plugins'
+
+
+def local_defaults(registry=None):
+    """Self-hosted with the agent next to Floorbit: turn on syslog, flows and the check-in front door
+    on the ports the compose file and the Kubernetes pod publish, once per install. A plugin someone
+    set up already, or turned off after this, is left alone. Returns the ids turned on."""
+    from .store import load_data, save_data
+    registry = registry or _registry()
+    data = load_data()
+    if data.get(LOCAL_DEFAULTS_DONE):
+        return []
+    done = []
+    for pid, values in LOCAL_DEFAULTS.items():
+        spec = registry.specs.get(pid)
+        if spec is None or spec.error or _set_up_here(registry, spec):
+            continue
+        registry.settings_store.update(values)
+        registry.set_enabled(pid, True)
+        done.append(pid)
+    data = load_data()
+    data[LOCAL_DEFAULTS_DONE] = 1
+    save_data(data)
+    return done

@@ -96,6 +96,10 @@
       "title": "Plugin: Check-in note on phones",
       "desc": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."
     },
+    "plugin-front-door": {
+      "title": "Plugin: Front door for attendees",
+      "desc": "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent."
+    },
     "plugin-shelly": {
       "title": "Plugin: Shelly meters",
       "desc": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id."
@@ -328,7 +332,7 @@
     },
     "integrations_captive_enabled": {
       "label": "Captive portal (DHCP option 114)",
-      "help": "Tell the local agent which machines checked in, so phones and laptops that did not see a quiet \"sign in to network\" note that opens the check-in page. Needs the check-in page, an agent with FLOORBIT_AGENT_CAPTIVE and option 114 in the event DHCP. Nothing is ever blocked."
+      "help": "Tell the local agent which machines checked in, so phones and laptops that did not see a quiet \"sign in to network\" note that opens the check-in page. Needs the check-in page, the plugin \"Check-in note on phones\" and option 114 in the event DHCP. Nothing is ever blocked."
     },
     "integrations_seat_walk_agent_url": {
       "label": "Local agent address for the seat walk-through",
@@ -615,6 +619,14 @@
       "label": "Reverse proxy addresses",
       "help": "Comma-separated. From these, the client's address is taken from X-Forwarded-For."
     },
+    "plugin_front-door_address": {
+      "label": "Address on the agent",
+      "help": "host:port the agent answers on. HTTPS when the agent has a certificate (FLOORBIT_AGENT_TLS_CERT and _KEY on the agent). Empty: off."
+    },
+    "plugin_front-door_proxies": {
+      "label": "Reverse proxy addresses",
+      "help": "Comma-separated. From these, the seat PC's address is taken from X-Forwarded-For."
+    },
     "plugin_shelly_devices": {
       "label": "Meters",
       "help": "One per line: the circuit's meter id = the Shelly's address, and optionally which channel (switch:0, pm1:0, em:0, em1:1 or a number on the first generation). Without a channel, all its channels added up."
@@ -813,6 +825,7 @@
     "syslog-relay": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached.",
     "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent.",
     "captive-note": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away.",
+    "front-door": "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent.",
     "shelly": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id.",
     "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
   }
