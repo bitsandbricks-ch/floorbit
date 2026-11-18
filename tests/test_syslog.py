@@ -138,7 +138,7 @@ def test_memory_and_disk_are_capped(receiver, tmp_path, monkeypatch):
     assert "2026-11-14-00.jsonl" not in left and "2026-11-14-10.jsonl" in left
 
 
-def test_udp_round_trip(tmp_path, monkeypatch):
+def test_udp_round_trip(tmp_path, monkeypatch, lan_here):
     monkeypatch.setenv("SYSLOG_ENABLED", "1")
     monkeypatch.setenv("SYSLOG_PORT", str(_free_port()))
     monkeypatch.setenv("SYSLOG_BIND", "127.0.0.1")

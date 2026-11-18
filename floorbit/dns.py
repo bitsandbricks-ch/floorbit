@@ -262,7 +262,7 @@ class DnsStats:
             return
         errors, answered = self._from_agent(now) if agent_link.active() else ([], set())
         for spec in self.registry.feeders('dns') if self.registry else []:
-            if spec.id in answered:     # the agent reads that resolver; this side can't reach it
+            if spec.id in answered or not agent_link.may_call_here(spec):   # the agent reads that resolver
                 continue
             since = self.cursors.get(spec.id, now - 2 * settings()['interval'])
             try:

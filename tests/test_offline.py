@@ -8,6 +8,9 @@ from integrations import events
 from integrations.discord import DiscordNotifier
 from integrations.monitor import StatusMonitor
 
+# These run the plugins the way the local agent does (tests/conftest.py, lan_here).
+pytestmark = pytest.mark.usefixtures("lan_here")
+
 
 @pytest.fixture
 def nms(app_module, monkeypatch):
