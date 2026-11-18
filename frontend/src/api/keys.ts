@@ -109,6 +109,8 @@ export const qk = {
   report: (people: boolean) => ['report', people] as const,
   users: ['users'] as const,
   pluginLog: (id: string) => ['plugins', id, 'log'] as const,
+  pluginPanels: (on: string) => ['plugins', 'panels', on] as const,
+  pluginPanel: (url: string, target: string) => ['plugins', 'panel', url, target] as const,
   planAll: ['plan'] as const,
   appConfig: ['app-config'] as const,
   planIcons: ['plan-marks', 'icons'] as const,

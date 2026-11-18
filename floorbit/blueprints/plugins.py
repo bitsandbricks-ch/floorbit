@@ -9,14 +9,14 @@ Who may do what:
   audit log, with parameter names, never values.
 - ``GET /api/plugins/menu``: the plugins' entries for the floor plan's right-click menu
   (``context_menu:``), only those whose action this account may run.
-- Widgets and endpoints: a signed-in account with the permission they name (floorplan.view by
+- Widgets, panels and endpoints: a signed-in account with the permission they name (floorplan.view by
   default). They are never open to the public, whatever ``AUTH_PUBLIC_READ`` says.
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import audit, i18n, spa
 from .. import dashboard_core as core
-from ..plugins import SETTING_TYPES, PluginError
+from ..plugins import PANEL_TARGET_MAX, PANEL_TARGETS, SETTING_TYPES, PluginError
 from ..plugins.widgets import check_widget
 
 bp = Blueprint('plugins', __name__)
@@ -191,6 +191,59 @@ def widget(plugin_id, widget_id):
         return refused
     try:
         body = _registry().widget(spec, widget_id)
+    except PluginError as exc:
+        return _error(_registry().text(spec, str(exc), _language()), 502)
+    return jsonify(german_widget(body, _language(), spec))
+
+
+def _granted():
+    """The permissions of whoever asks (every one when sign-in is off)."""
+    from auth import roles
+    auth = current_app.extensions.get('auth')
+    if auth is None or not auth.enabled:
+        return set(roles.PERMISSIONS)
+    user = _user()
+    return roles.permissions_of(roles.of(user)) if user else set()
+
+
+@bp.route('/api/plugins/panels', methods=['GET'])
+def panels():
+    """The plugins' boxes for a seat, switch or device side panel that this account may see."""
+    on = request.args.get('on', '')
+    if on not in PANEL_TARGETS:
+        return _error(f"on: one of {', '.join(PANEL_TARGETS)}")
+    refused = _allowed('floorplan.view')
+    if refused:
+        return refused
+    granted, registry, lang = _granted(), _registry(), _language()
+    out = []
+    for spec in registry.specs.values():
+        if not registry.enabled(spec):
+            continue
+        for p in spec.items('panels'):
+            if p['for'] == on and p['permission'] in granted:
+                out.append({'plugin': spec.id, 'plugin_name': registry.text(spec, spec.name, lang),
+                            'icon': spec.manifest.get('icon') or '', 'id': p['id'],
+                            'label': registry.text(spec, p['label'], lang), 'refresh': p['refresh'],
+                            'url': f"/api/plugins/{spec.id}/panels/{p['id']}"})
+    return jsonify({'panels': out})
+
+
+@bp.route('/api/plugins/<plugin_id>/panels/<panel_id>', methods=['GET'])
+def panel(plugin_id, panel_id):
+    spec = _registry().active(plugin_id)
+    item = spec.item('panels', panel_id) if spec else None
+    if item is None:
+        return _error('No such panel', 404)
+    refused = _allowed(item['permission'])
+    if refused:
+        return refused
+    target = request.args.get('target', '')
+    # A seat, switch or device id: short and printable, whatever the plugin then does with it.
+    if not 0 < len(target) <= PANEL_TARGET_MAX or not target.isprintable():
+        return _error('target: the id of the seat, switch or device')
+    try:
+        body = _registry().panel(spec, panel_id, target)
     except PluginError as exc:
         return _error(_registry().text(spec, str(exc), _language()), 502)
     return jsonify(german_widget(body, _language(), spec))

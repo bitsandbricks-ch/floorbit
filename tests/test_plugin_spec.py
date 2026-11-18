@@ -47,7 +47,7 @@ def test_every_data_area_is_in_the_spec():
     text = SPEC.read_text(encoding='utf-8')
     listed = set(re.findall(r'^\| `([a-z_]+)` \|', text, re.M))
     data_areas = set(AREAS) - {'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'http', 'storage',
-                               'context_menu', 'agent'}
+                               'context_menu', 'agent', 'panels'}
     assert data_areas <= listed, f'docs/plugin-spec.md misses {sorted(data_areas - listed)}'
 
 
@@ -57,3 +57,11 @@ def test_every_builtin_plugin_fits_the_spec():
         spec = _load(folder, 'builtin', '99.0')
         assert not spec.error or 'needs Floorbit' in spec.error, f'{folder.name}: {spec.error}'
         file_hashes(folder)
+
+
+@pytest.mark.parametrize('lang', ['en', 'de-CH'])
+def test_the_marketplace_names_every_area(lang):
+    import json
+    texts = json.loads((SPEC.parent.parent / 'frontend' / 'src' / 'i18n' / lang / 'marketplace.json').read_text())
+    missing = sorted(set(AREAS) - set(texts['area']))
+    assert not missing, f'marketplace.json ({lang}) has no area.{missing}'

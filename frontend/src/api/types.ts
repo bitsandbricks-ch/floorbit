@@ -42,6 +42,17 @@ export type Widget = WidgetBase &
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
   )
 
+/** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
+export interface PluginPanelInfo {
+  plugin: string
+  plugin_name: string
+  icon: string
+  id: string
+  label: string
+  refresh: number
+  url: string
+}
+
 export interface WidgetTile {
   kind?: undefined
   plugin: string

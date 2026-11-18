@@ -67,12 +67,17 @@ AREAS = {
     'logs': 'keeps the syslog longer (it gets every line) and searches it on the Logs page',
     'brackets': 'tournament brackets from a tournament tool, shown read-only on the bracket view',
     'context_menu': 'entries in the floor plan\'s right-click menu that run one of its actions on a seat or switch',
+    'panels':    'a box in the side panel of a seat, a switch or an inventory device',
     'agent': 'runs a part of it on the local agent, in the hall (agent.py; docs/agent-plugins.md)',
 }
 # Device credential kinds an agent part may ask for (floorbit/plugins/agent.py, CREDENTIAL_KINDS).
 CREDENTIAL_KINDS_ALL = ('ssh', 'snmp_v2c', 'snmp_v3', 'api', 'http')
 # What a context_menu entry can be on, and the action parameter that carries the target.
 MENU_TARGETS = {'seat': 'seat', 'switch': 'switch'}
+# What a panel can be on: the plan's seat and switch panels, the inventory's device panel.
+PANEL_TARGETS = ('seat', 'switch', 'device')
+PANEL_TARGET_MAX = 128
+PANEL_KEYS = ('id', 'for', 'label', 'permission', 'role', 'refresh')
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -108,9 +113,9 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 # feature this Floorbit doesn't have fails at load, not quietly at run time.
 MANIFEST_KEYS = frozenset({
     'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
-    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', *BUILTIN_ONLY})
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
-MANIFEST_NEXT = ('panels', 'layers', 'pages', 'schema')
+MANIFEST_NEXT = ('layers', 'pages', 'schema')
 
 
 def plugin_icons():
@@ -250,14 +255,14 @@ def validate(m):
     if unknown:
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
-             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu'}
+             'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu', 'panels': 'panels'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
     err = _check_fields(m.get('settings'), 'settings')
     if err:
         return err
-    for kind in ('actions', 'widgets', 'endpoints'):
+    for kind in ('actions', 'widgets', 'endpoints', 'panels'):
         ids = set()
         for item in m.get(kind) or []:
             if not isinstance(item, dict) or not NAME_RE.match(str(item.get('id', ''))):
@@ -281,6 +286,15 @@ def validate(m):
                 err = _check_fields(item.get('params'), f"actions.{item['id']}.params")
                 if err:
                     return err
+            if kind == 'panels':
+                # A new kind, so a typo ("permision:") fails here instead of leaving the panel open.
+                extra = sorted(str(k) for k in item if k not in PANEL_KEYS)
+                if extra:
+                    return f"panels.{item['id']}: unknown key(s) {', '.join(extra)}"
+                # Not "on:": YAML reads that key as true.
+                if item.get('for') not in PANEL_TARGETS:
+                    return f"panels.{item['id']}: for must be one of {', '.join(PANEL_TARGETS)}"
+                item['refresh'] = max(10, int(item.get('refresh') or 60))
             if kind == 'widgets':
                 if item.get('size', 'small') not in ('small', 'wide'):
                     return f"widgets.{item['id']}: size must be small or wide"
@@ -306,7 +320,7 @@ def touches(m):
     """What a plugin may touch, from its (validated) manifest: what the Marketplace shows before it
     is installed (docs/plugin-spec.md, "Permissions it asks for")."""
     agent = m.get('agent') if 'agent' in (m.get('uses') or []) and isinstance(m.get('agent'), dict) else {}
-    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints')
+    permissions = {i.get('permission') for kind in ('actions', 'widgets', 'endpoints', 'panels')
                    for i in m.get(kind) or [] if isinstance(i, dict) and i.get('permission')}
     targets = agent.get('targets') if isinstance(agent.get('targets'), dict) else None
     return {
@@ -372,6 +386,7 @@ def _check_methods(spec):
     allowed = {f"run_{a['id']}" for a in spec.items('actions')}
     allowed |= {f"widget_{w['id']}" for w in spec.items('widgets')}
     allowed |= {f"endpoint_{e['id']}" for e in spec.items('endpoints')}
+    allowed |= {f"panel_{p['id']}" for p in spec.items('panels')}
     allowed |= {'test'}
     optional = set()
     for table in (AREA_METHODS, OPTIONAL_METHODS):
@@ -391,7 +406,7 @@ def _check_methods(spec):
                 return f'plugin.py: {name}() answers the agent, but agent.fetches has no {name[10:]}'
         elif name[6:] not in kinds:
             return f'plugin.py: {name}() takes what the agent sends, but agent.sends has no {name[6:]}'
-        if name.startswith(('run_', 'widget_', 'endpoint_')) and name not in allowed:
+        if name.startswith(('run_', 'widget_', 'endpoint_', 'panel_')) and name not in allowed:
             return f'plugin.py: {name} has no matching entry in plugin.yaml'
     for name in sorted(allowed - {'test'}):
         if not callable(getattr(cls, name, None)):
@@ -810,6 +825,15 @@ class Registry:
             self.log(spec.id, f'widget {widget_id}: {exc}')
             raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
 
+    def panel(self, spec, panel_id, target):
+        """The panel's widget for one seat, switch or device (``target``: its id). Drawn like a tile."""
+        item = spec.item('panels', panel_id)
+        try:
+            return check_widget(self.timed(spec, f'panel_{panel_id}', {'kind': item['for'], 'id': target}), item)
+        except WidgetError as exc:
+            self.log(spec.id, f'panel {panel_id}: {exc}')
+            raise PluginError(f'{spec.name} returned a widget Floorbit can\'t draw') from None
+
     def feeders(self, area):
         """The plugins that are on and feed this area (``inventory``), in id order."""
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
@@ -924,6 +948,8 @@ class Registry:
                 'widgets': [{**{k: w.get(k) for k in ('id', 'size', 'refresh', 'role', 'permission')},
                              'label': t(w.get('label'))}
                             for w in spec.items('widgets')],
+                'panels': [{'id': p['id'], 'for': p['for'], 'label': t(p.get('label')), 'permission': p['permission']}
+                           for p in spec.items('panels')],
                 'endpoints': [{'id': e['id'], 'label': t(e.get('label')),
                                'url': f"/api/plugins/{spec.id}/endpoints/{e['id']}"}
                               for e in spec.items('endpoints')],
