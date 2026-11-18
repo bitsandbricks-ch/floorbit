@@ -427,3 +427,26 @@ def test_an_agent_busy_between_polls_is_waited_for(client, anon_client, monkeypa
     got["r"] = agent_link.tunnel.call("devices", timeout=8)
     t.join(5)
     assert got["r"] == ["sw-1"]
+
+
+def test_a_killed_agent_shows_as_gone_at_once_not_a_minute_later(client):
+    a = enrol(client)
+    agent_link.check(a["key"], version="1.2.3")          # it asked for work: last seen now
+    agent_link.tunnel.linked(a["id"])
+    assert client.get("/api/agents").get_json()["agents"][0]["connected"]
+    agent_link.tunnel.unlinked(a["id"])                    # its link closed: killed
+    assert not client.get("/api/agents").get_json()["agents"][0]["connected"]
+
+
+def test_a_lookup_takes_the_first_agent_that_knows_and_does_not_wait_for_the_other(monkeypatch):
+    """Two agents for the same halls: one was just killed and holds the call until it times out."""
+    def call(method, args=(), timeout=agent_link.CALL_TIMEOUT, targets=None):
+        if targets == {"dead"}:
+            time.sleep(3)
+            raise agent_link.AgentUnavailable("went away before it answered")
+        return {"hostname": "sw-a-01", "port": "Gi1/0/1"}
+    monkeypatch.setattr(agent_link.tunnel, "call", call)
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda now=None: {"dead", "alive"})
+    started = time.time()
+    found = agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["dead", "alive"])
+    assert found["port"] == "Gi1/0/1" and time.time() - started < 1

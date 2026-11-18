@@ -27,7 +27,7 @@ import re
 import secrets
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .store import load_data, load_shared, save_data
 
@@ -96,9 +96,15 @@ def outdated(agent_protocol, server_protocol=None):
 def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now
-    return [{**_public(a, now), 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now),
-             'report': tunnel.reported(a['id'], now)}
-            for a in data.get(KEY) or []]
+    out = []
+    for a in data.get(KEY) or []:
+        row = _public(a, now)
+        # last_seen is written only every TOUCH_EVERY: an agent whose link just closed (killed,
+        # line cut) is gone now, as the tunnel knows, not up to a minute later.
+        row['connected'] = row['connected'] and tunnel.connected(now, a['id'])
+        out.append({**row, 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now),
+                    'report': tunnel.reported(a['id'], now)})
+    return out
 
 
 def agent_only():
@@ -242,18 +248,30 @@ def agent_for(hostname):
     return sorted(connected)[0]
 
 
+FIRST_ANSWER = {'resolve_ip'}   # None when an agent doesn't know: the first real answer is the answer
+
+
 def _ask_all(method, args, everyone):
     """Every connected agent, the answers put together."""
     agents = sorted(tunnel.connected_agents() & set(everyone))
     if not agents:
         raise AgentUnavailable('No local agent is connected.')
     results, errors = [], []
-    with ThreadPoolExecutor(len(agents)) as pool:
-        for fut in [pool.submit(tunnel.call, method, args, CALL_TIMEOUT, {a}) for a in agents]:
+    pool = ThreadPoolExecutor(len(agents))
+    try:
+        futures = [pool.submit(tunnel.call, method, args, CALL_TIMEOUT, {a}) for a in agents]
+        for fut in as_completed(futures):
             try:
                 results.append(fut.result())
             except (AgentUnavailable, AgentError) as exc:
                 errors.append(exc)
+                continue
+            if method in FIRST_ANSWER and results[-1]:
+                # The agent that knows it: don't wait for one that was just killed (a check-in
+                # held up to CALL_TIMEOUT during a failover).
+                return results[-1]
+    finally:
+        pool.shutdown(wait=False)
     if not results:
         raise errors[0]
     if method == 'devices':
