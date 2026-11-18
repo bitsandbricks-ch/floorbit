@@ -185,6 +185,7 @@ export default function Logs() {
   const filtered = store ? logql !== '' : syslog ? Object.values(filters).some((v) => v !== '') : filters.q !== '' || filters.severity !== ''
   const sources = data?.status.sources ?? ['syslog']
   const onDevice = syslog ? set('device') : undefined
+  // A logs plugin's line id is its time in microseconds: lines sent in one go share it, so it can't be the key alone.
   const storeName = (s: string) => data?.status.stores?.find((x) => `plugin:${x.id}` === s)?.name ?? s.slice('plugin:'.length)
   const phone = useMediaQuery('(max-width: 48em)')
 
@@ -240,7 +241,7 @@ export default function Logs() {
             <>
               {phone ? (
                 <ul className="fb-log-lines" aria-label={t('logs.title')}>
-                  {lines.map((l) => <Compact key={l.id} line={l} onDevice={onDevice} />)}
+                  {lines.map((l, i) => <Compact key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
                 </ul>
               ) : (
                 <Table.ScrollContainer minWidth={640}>
@@ -254,7 +255,7 @@ export default function Logs() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {lines.map((l) => <Row key={l.id} line={l} onDevice={onDevice} />)}
+                      {lines.map((l, i) => <Row key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
                     </Table.Tbody>
                   </Table>
                 </Table.ScrollContainer>

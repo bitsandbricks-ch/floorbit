@@ -119,6 +119,30 @@ describe('Logs', () => {
     expect(await screen.findByText(/parse error/)).toBeInTheDocument()
   })
 
+  it('shows only the new answer when lines sent in one go share their time (VictoriaLogs)', async () => {
+    const sources = ['syslog', 'plugin:victorialogs'] as const
+    const stores = [{ id: 'victorialogs', name: 'VictoriaLogs', sent: 3, error: null }]
+    const at = 1_800_000_000_000_000
+    const opts = { sources: [...sources], stores, source: 'plugin:victorialogs' }
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/logs': logs([line(1)], { sources: [...sources], stores }),
+      'GET /api/logs?source=plugin%3Avictorialogs&hours=24': logs([
+        line(at + 1, { device: 'sw-b-01', message: 'from b' }), line(at, { device: 'sw-a-01', message: 'from a' }), line(at, { device: 'sw-c-02', message: 'from c' }),
+      ], opts),
+      'GET /api/logs?q=device%3Asw-c-02&source=plugin%3Avictorialogs&hours=24': logs([line(at, { device: 'sw-c-02', message: 'only c' })], opts),
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Logs />)
+    fireEvent.click(await screen.findByText('VictoriaLogs'))
+    expect(await screen.findByText('from a')).toBeInTheDocument()
+    const box = screen.getByLabelText('LogsQL query')
+    fireEvent.change(box, { target: { value: 'device:sw-c-02' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(await screen.findByText('only c')).toBeInTheDocument()
+    expect(screen.queryByText('from a')).not.toBeInTheDocument()
+  })
+
   it('explains how to turn the receiver on', async () => {
     const off = logs([], { enabled: false, listening: null, lines: 0, devices: [] })
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': off }).fn)
