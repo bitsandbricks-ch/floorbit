@@ -44,6 +44,7 @@
     "credentials": "Switch-Logins",
     "report": "Bericht",
     "terminal": "Terminal",
-    "telemetry": "Telemetrie"
+    "telemetry": "Telemetrie",
+    "platform": "Mandanten"
   }
 }

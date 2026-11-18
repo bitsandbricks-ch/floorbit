@@ -13,6 +13,7 @@ who is behind it. Such a person sees their other tenants in the account menu and
 """
 import os
 import threading
+import time
 from urllib.parse import urlsplit
 
 from . import store
@@ -33,8 +34,11 @@ def _folder(tenant_id):
     return store.tenant_folder(tenant_id)
 
 
+STATUSES = ('active', 'suspended')
+
+
 def _default():
-    return {'id': store.DEFAULT_TENANT, 'name': '', 'url': ''}
+    return {'id': store.DEFAULT_TENANT, 'name': '', 'url': '', 'status': 'active'}
 
 
 def _clean_url(url):
@@ -54,7 +58,7 @@ def _listed():
 
 
 def tenants():
-    """The platform's tenants, in the order they were added: ``[{id, name, url}]``. The default
+    """The platform's tenants, in the order they were added: ``[{id, name, url, status}]``. The default
     tenant is always first, written down or not: platform.json only appears with a second tenant,
     so an install that never adds one (and every install from before tenants) needs no file at all."""
     out, seen = [], set()
@@ -66,8 +70,13 @@ def tenants():
         if not isinstance(tid, str) or not store._TENANT_RE.match(tid) or tid in seen:
             continue
         seen.add(tid)
-        out.append({'id': tid, 'name': str(t.get('name') or ''), 'url': str(t.get('url') or '')})
+        status = t.get('status') if t.get('status') in STATUSES and tid != store.DEFAULT_TENANT else 'active'
+        out.append({'id': tid, 'name': str(t.get('name') or ''), 'url': str(t.get('url') or ''), 'status': status})
     return out
+
+
+def find(tenant_id):
+    return next((t for t in tenants() if t['id'] == tenant_id), None)
 
 
 def several():
@@ -81,13 +90,61 @@ def add(tenant_id, name='', url=''):
     tenant_id = (tenant_id or '').strip()
     if not store._TENANT_RE.match(tenant_id):
         raise HostingError('A tenant name is lower-case letters, digits and -, at most 40.')
-    entry = {'id': tenant_id, 'name': (name or '').strip()[:80], 'url': _clean_url(url)}
+    entry = {'id': tenant_id, 'name': (name or '').strip()[:80], 'url': _clean_url(url), 'status': 'active'}
     with _lock:
         listed = tenants()
         if any(t['id'] == tenant_id for t in listed):
             raise HostingError(f'There already is a tenant called {tenant_id}.')
         store.write_json(path(), {'tenants': [*listed, entry]})
     return entry
+
+
+def update(tenant_id, name=None, url=None, status=None):
+    """Rename a tenant, change its address, or suspend it and take it back. The default tenant is
+    the platform's own: it can't be suspended, or nobody could take a suspension back."""
+    with _lock:
+        listed = tenants()
+        entry = next((t for t in listed if t['id'] == tenant_id), None)
+        if entry is None:
+            raise HostingError('There is no such tenant.')
+        if name is not None:
+            entry['name'] = str(name).strip()[:80]
+        if url is not None:
+            entry['url'] = _clean_url(url)
+        if status is not None:
+            if status not in STATUSES:
+                raise HostingError('A tenant is active or suspended.')
+            if tenant_id == store.DEFAULT_TENANT and status != 'active':
+                raise HostingError("The default tenant runs the platform and can't be suspended.")
+            entry['status'] = status
+        store.write_json(path(), {'tenants': listed})
+    _status_cache.clear()
+    return entry
+
+
+# Every request of a tenant asks whether it is suspended: a short memory keeps that from being a
+# read of platform.json each time. A suspension reaches every process within this many seconds.
+STATUS_RECHECK = 10.0
+_status_cache = {}
+
+
+def suspended(now=None):
+    """Whether the platform suspended the tenant this process serves."""
+    from .database import DatabaseUnavailable
+    tenant = store.current_tenant()
+    if tenant == store.DEFAULT_TENANT:
+        return False
+    now = time.monotonic() if now is None else now
+    hit = _status_cache.get(tenant)
+    if hit and now - hit[0] < STATUS_RECHECK:
+        return hit[1]
+    try:
+        entry = find(tenant)
+        found = bool(entry and entry['status'] == 'suspended')
+    except DatabaseUnavailable:
+        found = hit[1] if hit else False     # the database being away is not a suspension
+    _status_cache[tenant] = (now, found)
+    return found
 
 
 def tenant_data(tenant_id):
@@ -111,14 +168,15 @@ def memberships(user):
     mine = store.read_json(store.tenant_file(), {}) or {}
     out = []
     for tenant in tenants():
-        if tenant['id'] == here:
+        if tenant['id'] == here or tenant['status'] == 'suspended':
             continue
         data = tenant_data(tenant['id'])
         for account in (data.get('auth_users') or {}).values():
             theirs = account.get('identities') or {}
             # An OIDC subject is only unique at its issuer, and each tenant sets up its own.
             if any(theirs.get(p) == s and _issuer(mine, p) == _issuer(data, p) for p, s in links.items()):
-                out.append({**tenant, 'username': account.get('username')})
+                out.append({'id': tenant['id'], 'name': tenant['name'], 'url': tenant['url'],
+                            'username': account.get('username')})
                 break
     return out
 
