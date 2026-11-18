@@ -57,12 +57,12 @@ def market(tmp_path, monkeypatch, app_module):
     files, entries = {}, {}
 
     def publish(pid, version, pem=plugin_pem, withdrawn="", floorbit="", body="x = 1\n", base=URL, index=None,
-                icon=None):
+                icon=None, uses="widgets", extra=""):
         src = tmp_path / "src" / f"{pid}-{version}"
         src.mkdir(parents=True)
         (src / "plugin.yaml").write_text(
-            f"id: {pid}\nname: Hall thing\nversion: '{version}'\nuses: [widgets]\n"
-            "widgets: [{id: load, label: Load}]\n")
+            f"id: {pid}\nname: Hall thing\nversion: '{version}'\nuses: [{uses}]\n"
+            "widgets: [{id: load, label: Load}]\n" + extra)
         (src / "plugin.py").write_text(
             "from floorbit.plugins import Plugin\n\n\nclass Plugin(Plugin):\n"
             f"    def widget_load(self):\n        return {{'type': 'stat', 'value': '{version}'}}\n" + body)
@@ -179,6 +179,41 @@ def test_a_plugin_that_fails_to_load_leaves_the_old_one_running(client, market):
     assert res.status_code == 400 and "does not load" in res.get_json()["error"]
     assert market.registry.specs["hallthing"].path.name == "1.0.0"
     assert marketplace.installed()["hallthing"]["version"] == "1.0.0"
+
+
+MIGRATE = """
+    def migrate(self, from_schema, store):
+        if {fail}:
+            raise RuntimeError('no')
+        store.collection('notes').put('n', {{'schema': {schema}, 'from': from_schema}})
+"""
+
+
+def test_an_update_whose_migration_fails_leaves_the_old_one_running(client, market):
+    market.publish("hallthing", "1.0.0", uses="widgets, documents", extra="schema: 1\n",
+                   body=MIGRATE.format(fail=False, schema=1))
+    client.post("/api/settings/marketplace/hallthing", json={})
+    assert market.registry.schema_of("hallthing") == 1            # moved on install
+    market.publish("hallthing", "1.1.0", uses="widgets, documents", extra="schema: 2\n",
+                   body=MIGRATE.format(fail=True, schema=2))
+    res = client.post("/api/settings/marketplace/hallthing", json={})
+    assert res.status_code == 400 and "could not move its data from schema 1 to 2" in res.get_json()["error"]
+    assert market.registry.specs["hallthing"].path.name == "1.0.0"
+    assert marketplace.installed()["hallthing"]["version"] == "1.0.0"
+    assert market.registry.schema_of("hallthing") == 1
+
+
+def test_no_rollback_to_a_version_that_cant_read_the_data(client, market):
+    market.publish("hallthing", "1.0.0", uses="widgets, documents", extra="schema: 1\n",
+                   body=MIGRATE.format(fail=False, schema=1))
+    client.post("/api/settings/marketplace/hallthing", json={})
+    market.publish("hallthing", "1.1.0", uses="widgets, documents", extra="schema: 2\n",
+                   body=MIGRATE.format(fail=False, schema=2))
+    assert client.post("/api/settings/marketplace/hallthing", json={}).status_code == 200
+    assert market.registry.schema_of("hallthing") == 2
+    res = client.post("/api/settings/marketplace/hallthing/rollback")
+    assert res.status_code == 400 and "can't read the data 1.1.0 moved to schema 2" in res.get_json()["error"]
+    assert market.registry.specs["hallthing"].path.name == "1.1.0"
 
 
 def test_community_sources_need_the_operators_key(client, market, monkeypatch):

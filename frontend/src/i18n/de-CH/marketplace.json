@@ -55,6 +55,7 @@
     "hooks": "läuft, wenn sich etwas ändert",
     "http": "ausgehende Web-Anfragen",
     "storage": "einen kleinen eigenen Speicher",
+    "documents": "eigene Dokumente (bis 5 MB)",
     "inventory": "fügt Geräte zum Inventar hinzu",
     "mapping": "speist die Platzzuordnung",
     "monitoring": "Live-Status der Switches",

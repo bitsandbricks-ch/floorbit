@@ -110,6 +110,9 @@ export interface PluginInfo {
   endpoints: { id: string; label: string; url: string }[]
   hooks: { events: string[]; action: string }[]
   has_test: boolean
+  /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
+  schema?: number
+  data_schema?: number
 }
 
 export interface LogLine {

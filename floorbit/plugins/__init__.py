@@ -55,6 +55,7 @@ AREAS = {
     'hooks':     'run an action when something changes in Floorbit',
     'http':      'outgoing HTTP requests',
     'storage':   'a small private state (64 KB)',
+    'documents': 'its own JSON documents (256 KB each, 5 MB in all)',
     'inventory': 'sends devices into the inventory (it never deletes; hand edits win)',
     'mapping':   'sends seat / IP / MAC / nick entries into the seat mapping (hand entries win)',
     'monitoring': 'live switch status, ports and IP to switch port lookups (one plugin at a time)',
@@ -113,9 +114,14 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 # feature this Floorbit doesn't have fails at load, not quietly at run time.
 MANIFEST_KEYS = frozenset({
     'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
-    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', *BUILTIN_ONLY})
+    'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'schema',
+    *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
-MANIFEST_NEXT = ('layers', 'pages', 'schema')
+MANIFEST_NEXT = ('layers', 'pages')
+# ``schema:``: the version of the data the plugin keeps; ``migrate`` moves older data up to it.
+SCHEMA_MAX = 10_000
+MIGRATE_SECONDS = 60
+MIGRATE_RETRY = 60        # seconds before a failed migration is tried again
 
 
 def plugin_icons():
@@ -248,6 +254,10 @@ def validate(m):
         return f"unknown key(s) {', '.join(extra)} (docs/plugin-spec.md lists what plugin.yaml may have)"
     if 'icon' in m and m['icon'] not in plugin_icons():
         return f"icon: one of {', '.join(plugin_icons())}"
+    if 'schema' in m:
+        schema = m['schema']
+        if isinstance(schema, bool) or not isinstance(schema, int) or not 1 <= schema <= SCHEMA_MAX:
+            return f'schema: a whole number from 1 to {SCHEMA_MAX}'
     uses = m.get('uses')
     if not isinstance(uses, list) or not uses:
         return f"uses: list the areas the plugin extends ({', '.join(AREAS)})"
@@ -259,6 +269,8 @@ def validate(m):
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
+    if 'schema' in m and not {'documents', 'storage'} & set(uses):
+        return 'schema: the plugin keeps no data ("documents" or "storage" under uses:)'
     err = _check_fields(m.get('settings'), 'settings')
     if err:
         return err
@@ -396,6 +408,11 @@ def _check_methods(spec):
                     (allowed if table is AREA_METHODS else optional).add(method)
                 elif callable(getattr(cls, method, None)):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
+    has_migrate = callable(getattr(cls, 'migrate', None))
+    if spec.manifest.get('schema') and not has_migrate:
+        return 'plugin.py: plugin.yaml has schema:, but Plugin has no migrate(from_schema, store)'
+    if has_migrate and not spec.manifest.get('schema'):
+        return 'plugin.py: migrate() needs schema: in plugin.yaml'
     kinds = set((spec.agent or {}).get('sends') or {})
     fetches = set((spec.agent or {}).get('fetches') or [])
     for name in dir(cls):
@@ -529,6 +546,8 @@ class Registry:
         self.hooks_dropped = 0
         self._busy = {}                # plugin id -> calls running within REQUEST_BUDGET
         self._busy_lock = threading.Lock()
+        self._migrating = {}           # plugin id -> lock, one migration at a time
+        self._migrate_failed = {}      # (plugins.json path, id, schema) -> (when, message)
         if dirs is None:
             dirs = [(BUILTIN_DIR, 'builtin')]
             dev = os.environ.get(DEV_ENV, '').strip()
@@ -774,6 +793,8 @@ class Registry:
             if not agent_link.may_call_here(spec):
                 raise PluginError(f'{spec.name} runs on the local agent: Floorbit reaches the event network '
                                   'only through it.')
+        if method != 'migrate':
+            self.ensure_schema(spec)
         try:
             return getattr(cls(Context(spec, self)), method)(*args)
         except PluginError:
@@ -784,6 +805,49 @@ class Registry:
                 raise
             self.log(spec.id, f'{method} failed: ' + ''.join(traceback.format_exception_only(exc)).strip())
             raise PluginError(f'{spec.name} failed ({type(exc).__name__}); details are in its log') from None
+
+    def schema_of(self, plugin_id):
+        """The schema this tenant's data of the plugin is at (0: never migrated)."""
+        value = self._record(plugin_id).get('schema')
+        return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+    def ensure_schema(self, spec):
+        """Move this tenant's data of the plugin up to its ``schema:`` before any other code of it
+        runs: ``migrate(from_schema, store)``, once, within MIGRATE_SECONDS. A failure leaves the
+        data marked at the old schema and the plugin refusing to run here (tried again after
+        MIGRATE_RETRY); data at a newer schema than the plugin knows is never handed to it."""
+        want = spec.manifest.get('schema') or 0
+        if not want or self.schema_of(spec.id) == want:
+            return
+        key = (self.path(), spec.id, want)
+        failed = self._migrate_failed.get(key)
+        if failed and time.monotonic() - failed[0] < MIGRATE_RETRY:
+            raise PluginError(failed[1])
+        with self._busy_lock:
+            lock = self._migrating.setdefault(spec.id, threading.Lock())
+        with lock:
+            from .. import database
+            try:
+                record = self._all(strict=True).get(spec.id) or {}
+            except database.DatabaseUnavailable:
+                raise PluginError(f"{spec.name} waits for Floorbit's database to move its data") from None
+            have = record.get('schema') if isinstance(record.get('schema'), int) else 0
+            if have == want:
+                return
+            if have > want:
+                raise PluginError(f"{spec.name} {spec.manifest.get('version', '')} knows its data up to schema "
+                                  f'{want}, but the data here is at schema {have}: install a newer version')
+            from .documents import Store
+            try:
+                self.timed(spec, 'migrate', have, Store(spec, self), timeout=MIGRATE_SECONDS)
+            except PluginError as exc:
+                message = f'{spec.name} could not move its data from schema {have} to {want}: {exc}'
+                self.log(spec.id, message)
+                self._migrate_failed[key] = (time.monotonic(), message)
+                raise PluginError(message) from None
+            self._update(spec.id, schema=want)
+            self._migrate_failed.pop(key, None)
+            self.log(spec.id, f'moved its data from schema {have} to {want}')
 
     def timed(self, spec, method, *args, timeout=None):
         """``call`` for a request that waits on it: an answer within ``timeout`` or a PluginError.
@@ -942,6 +1006,8 @@ class Registry:
                 'settings_section': (spec.manifest.get('core_settings') or
                                      (f'plugin-{spec.id}' if spec.items('settings') and not spec.error else None)),
                 'default_enabled': bool(spec.manifest.get('default_enabled')),
+                'schema': spec.manifest.get('schema') or 0,
+                'data_schema': self.schema_of(spec.id) if spec.manifest.get('schema') else 0,
                 'actions': [{**{k: a.get(k) for k in ('id', 'role', 'permission', 'danger')},
                              'label': t(a.get('label')), 'help': t(a.get('help'))}
                             for a in spec.items('actions')],

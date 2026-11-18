@@ -1134,6 +1134,15 @@
  "No such panel": "Dieses Panel gibt es nicht",
  "on: one of {}": "on: eines von {}",
  "target: the id of the seat, switch or device": "target: die ID des Platzes, Switches oder Geräts",
+ "A collection name is 1 to 40 lowercase letters, digits and _, starting with a letter": "Ein Sammlungsname hat 1 bis 40 Kleinbuchstaben, Ziffern und _ und beginnt mit einem Buchstaben",
+ "A document id is 1 to {} printable characters": "Eine Dokument-ID hat 1 bis {} druckbare Zeichen",
+ "A document is limited to {} KB ({} KB given)": "Ein Dokument darf höchstens {} KB gross sein ({} KB erhalten)",
+ "A document must be plain JSON (dicts, lists, text, numbers, true/false, null)": "Ein Dokument muss einfaches JSON sein (Objekte, Listen, Text, Zahlen, true/false, null)",
+ "A plugin keeps at most {} collections": "Ein Plugin hat höchstens {} Sammlungen",
+ "A plugin's documents are limited to {} MB": "Die Dokumente eines Plugins dürfen höchstens {} MB gross sein",
+ "{} waits for Floorbit's database to move its data": "{} wartet auf die Datenbank von Floorbit, um seine Daten umzustellen",
+ "{} {} can't read the data {} moved to schema {}": "{} {} kann die Daten nicht lesen, die {} auf Schema {} umgestellt hat",
+ "{} {} knows its data up to schema {}, but the data here is at schema {}: install a newer version": "{} {} kennt seine Daten bis Schema {}, die Daten hier sind aber auf Schema {}: Installiere eine neuere Version",
  "{} runs on the local agent: Floorbit reaches the event network only through it.": "{} läuft auf dem lokalen Agenten: Floorbit erreicht das Event-Netz nur über ihn.",
  "Syslog comes in through the local agent (FLOORBIT_AGENT_SYSLOG_PORT on the agent); this server does not listen itself.": "Syslog kommt über den lokalen Agenten (FLOORBIT_AGENT_SYSLOG_PORT auf dem Agenten); dieser Server hört nicht selbst zu."
 }

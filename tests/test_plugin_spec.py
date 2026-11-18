@@ -47,7 +47,7 @@ def test_every_data_area_is_in_the_spec():
     text = SPEC.read_text(encoding='utf-8')
     listed = set(re.findall(r'^\| `([a-z_]+)` \|', text, re.M))
     data_areas = set(AREAS) - {'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'http', 'storage',
-                               'context_menu', 'agent', 'panels'}
+                               'documents', 'context_menu', 'agent', 'panels'}
     assert data_areas <= listed, f'docs/plugin-spec.md misses {sorted(data_areas - listed)}'
 
 

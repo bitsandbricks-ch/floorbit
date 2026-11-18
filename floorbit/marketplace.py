@@ -285,6 +285,17 @@ def _load(registry, pid, version):
     return spec
 
 
+def _schema_of(pid, version):
+    """The ``schema:`` an unpacked version declares (0 for none)."""
+    import yaml
+    try:
+        manifest = yaml.safe_load((_folder(pid, version) / 'plugin.yaml').read_text(encoding='utf-8')) or {}
+    except (OSError, yaml.YAMLError):
+        return 0
+    schema = manifest.get('schema') if isinstance(manifest, dict) else None
+    return schema if isinstance(schema, int) and not isinstance(schema, bool) else 0
+
+
 def _prune(pid, keep):
     root = plugin_dir() / pid
     for sub in root.iterdir() if root.is_dir() else ():
@@ -372,7 +383,10 @@ def install(registry, pid, version=None, user=None):
             raise MarketError(f'{pid} {ver["version"]} is already installed')
         doc = _download(src, entry, ver)
         try:
-            _load(registry, pid, ver['version'])
+            spec = _load(registry, pid, ver['version'])
+            # Its data moves to the new schema here, before the update counts: when that fails, the
+            # version that ran before is put back and keeps the data it knows.
+            registry.ensure_schema(spec)
         except PluginError:
             if before:   # put back what ran
                 with contextlib.suppress(PluginError):
@@ -402,6 +416,9 @@ def rollback(registry, pid, user=None):
         if not mine or not mine.get('previous'):
             raise MarketError(f'no earlier version of {pid} is kept')
         old, new = mine['previous'], mine['version']
+        older = _schema_of(pid, old)
+        if registry.schema_of(pid) > older:
+            raise MarketError(f'{pid} {old} can\'t read the data {new} moved to schema {registry.schema_of(pid)}')
         try:
             _load(registry, pid, old)
         except PluginError:

@@ -17,6 +17,17 @@ import { PluginIcon } from './plugins/icon'
 
 type Result = { ok: boolean; text: string } | null
 
+
+/** Where the plugin's own documents stand against the ``schema:`` this version knows. */
+function DataSchema({ plugin }: { plugin: PluginInfo }) {
+  const { t } = useTranslation()
+  const want = plugin.schema ?? 0
+  const have = plugin.data_schema ?? 0
+  if (have === want) return <Text size="sm" c="dimmed">{t('plugins.schemaOk', { n: want })}</Text>
+  if (have > want) return <Text size="sm" className="fb-tone-err">{t('plugins.schemaNewer', { have, want })}</Text>
+  return <Text size="sm" className="fb-tone-warn">{t('plugins.schemaBehind', { have, want })}</Text>
+}
+
 function PluginLog({ id }: { id: string }) {
   const { t } = useTranslation()
   const { data, error, isPending } = usePluginLog(id, true)
@@ -112,6 +123,7 @@ export function PluginCard({ plugin, titled = true }: { plugin: PluginInfo; titl
             </Badge>
           ))}
         </Group>
+        {plugin.schema ? <DataSchema plugin={plugin} /> : null}
         <Group gap="xs" wrap="wrap">
           {plugin.enabled && plugin.has_test && (
             <Button variant="default" disabled={busy} onClick={() => test.mutate()}>

@@ -55,6 +55,7 @@
     "hooks": "runs when something changes",
     "http": "outgoing web requests",
     "storage": "a small private store",
+    "documents": "its own documents (up to 5 MB)",
     "inventory": "adds devices to the inventory",
     "mapping": "feeds the seat mapping",
     "monitoring": "live switch status",
