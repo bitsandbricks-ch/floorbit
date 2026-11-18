@@ -89,6 +89,15 @@
 .fb-nav-foot { display: flex; align-items: center; gap: 4px; padding-top: 8px; border-top: 1px solid var(--color-line); }
 .fb-nav-account { position: relative; flex: 1; min-width: 0; }
 .fb-nav-me { padding: 0 6px; min-height: 40px; color: var(--color-fg); }
+/* The club switcher sits above the account, only on platforms where the person reaches another tenant. */
+.fb-nav-clubs { flex: none; padding-top: 8px; border-top: 1px solid var(--color-line); }
+.fb-nav-clubs + .fb-nav-foot { border-top: 0; padding-top: 2px; }
+.fb-nav-club { color: var(--color-fg); }
+.fb-nav-club-mark { flex: none; margin-left: auto; color: var(--color-muted); }
+.fb-nav[data-state="rail"] .fb-nav-club-mark { display: none; }
+.fb-nav-club-name { min-width: 0; overflow-wrap: anywhere; }
+.fb-nav-club-how { margin-left: auto; flex: none; font-size: var(--fs-sm); color: var(--color-muted); }
+.fb-nav-menu-item:disabled { cursor: progress; opacity: 0.7; }
 .fb-nav-avatar {
   flex: none; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
   background: var(--color-bit-soft); color: var(--color-fg); font-size: var(--fs-sm); font-weight: 700;

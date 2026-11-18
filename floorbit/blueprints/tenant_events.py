@@ -12,8 +12,6 @@
 - ``POST /api/tenant/events/<id>/copy`` ``{"to": "<id>", "parts": [...], "mode": "merge", "preview": true}``:
   copy parts of this event's floor plan into another one; with ``preview``, only say what would
   change. Admins only (floorbit/event_copy.py).
-- ``GET /api/tenant/mine``: on a hosted platform, the other tenants where the signed-in person has an
-  account too, linked by the same outside login (floorbit/hosting.py). Empty when self-hosted.
 
 Changing the network from an event that isn't live (port actions, switch commands, the terminal,
 RCON) is refused: those always reach the live event's network.
@@ -22,7 +20,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import audit, event_copy, hosting, store, tenancy
+from .. import audit, event_copy, store, tenancy
 
 bp = Blueprint('tenant_events', __name__)
 
@@ -164,12 +162,3 @@ def copy(event_id):
                  target=f"{event_id} -> {body.get('to')}", fields=list(changes))
     events.publish('tenant_events', {})
     return jsonify({'changes': changes})
-
-
-@bp.route('/api/tenant/mine', methods=['GET'])
-def mine():
-    from auth import current_user  # late: auth imports floorbit while it loads
-    auth = current_app.extensions.get('auth')
-    user = current_user()
-    record = auth.users.get(user['username']) if auth and auth.enabled and user and not user.get('api_token') else None
-    return jsonify({'here': store.current_tenant(), 'tenants': hosting.memberships(record)})

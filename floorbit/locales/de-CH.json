@@ -1221,5 +1221,6 @@
  "This club is suspended on this Floorbit platform. Ask the platform admin.": "Dieser Club ist auf dieser Floorbit-Plattform gesperrt. Frag die Plattform-Admins.",
  "There is no such tenant.": "Diesen Mandanten gibt es nicht.",
  "A tenant is active or suspended.": "Ein Mandant ist aktiv oder gesperrt.",
- "The default tenant runs the platform and can't be suspended.": "Der Standard-Mandant betreibt die Plattform und kann nicht gesperrt werden."
+ "The default tenant runs the platform and can't be suspended.": "Der Standard-Mandant betreibt die Plattform und kann nicht gesperrt werden.",
+ "You have no way into that club.": "Du hast keinen Zugang zu diesem Verein."
 }

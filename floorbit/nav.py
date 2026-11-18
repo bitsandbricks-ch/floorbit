@@ -26,6 +26,8 @@ def boot(ctx):
     account = None
     if user:
         account = {'name': user.get('display_name') or user.get('username'), 'username': user.get('username')}
+        if user.get('platform'):
+            account['platform'] = True   # a platform admin visiting (floorbit/tenant_switch.py)
     pages = page_index.for_context(ctx)
     pages += _plugin_pages()
     return {
@@ -34,7 +36,7 @@ def boot(ctx):
         'brand': {'logo': theme.get('logo_url') or None, 'name': theme.get('name') or None},
         'user': account,
         'signOut': bool(ctx.get('auth_enabled')),
-        # With more than one tenant the account menu lists the person's other ones (/api/tenant/mine).
+        # With more than one tenant the club switcher asks for the person's other ones (/api/tenant/mine).
         'tenants': hosting.several(),
         # Saved with the account; None without sign-in, where the browser keeps them instead.
         'prefs': _prefs(user),

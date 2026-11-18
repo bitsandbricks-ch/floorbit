@@ -376,7 +376,7 @@ def test_tenants_add_on_the_command_line(app_module, monkeypatch):
     assert "club-b" in runner.invoke(args=["tenants", "list"]).output
 
 
-def test_the_account_menu_asks_for_other_tenants(client):
+def test_the_switcher_asks_for_other_tenants(client):
     resp = client.get("/api/tenant/mine")
     assert resp.status_code == 200
     assert resp.get_json() == {"here": "default", "tenants": []}

@@ -26,5 +26,9 @@
   "favRemove": "{{page}} aus den Favoriten entfernen",
   "accordion": "Andere Bereiche zuklappen, wenn einer aufgeht",
   "skip": "Zum Inhalt springen",
-  "otherTenants": "Deine anderen Vereine"
+  "switchClub": "Verein wechseln",
+  "thisClub": "Dieser Verein",
+  "asPlatform": "als Plattform-Admin",
+  "switching": "Wechsle…",
+  "platformVisit": "Zu Besuch als Plattform-Admin"
 }

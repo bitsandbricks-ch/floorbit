@@ -10,6 +10,8 @@ export interface User {
   role: string
   role_label?: string
   permissions: Permission[]
+  /** A platform admin visiting this tenant, with no account here (floorbit/tenant_switch.py). */
+  platform?: boolean
 }
 
 export interface Me {

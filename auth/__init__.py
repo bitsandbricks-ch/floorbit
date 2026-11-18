@@ -115,6 +115,14 @@ def _load_session_user():
     if session.get('tenant', '') != store.tenant_dir():
         session.clear()
         return None
+    if session.get('platform'):
+        # A platform admin visiting from the default tenant: no account here, only this session.
+        from floorbit import tenant_switch
+        visitor = tenant_switch.visit_still_good(session)
+        if not visitor:
+            session.clear()
+            return None
+        return {**public(visitor), 'platform': True}
     user = auth.users.get(username)
     # A password change bumps session_version, which signs out old sessions.
     if not user or user.get('session_version', 1) != session.get('ver'):
@@ -354,6 +362,17 @@ class Auth:
         session['provider'] = provider_id
         g.auth_user = public(user)
 
+    def sign_in_visitor(self, visitor, until):
+        """A platform admin's visit (floorbit/tenant_switch.py): signed in, with no account here."""
+        session.clear()
+        session['user'] = visitor['username']
+        session['platform'] = visitor['username'][len('platform:'):]
+        session['tenant'] = store.tenant_dir()
+        session['ver'] = visitor['session_version']
+        session['until'] = until
+        session['provider'] = 'platform'
+        g.auth_user = {**public(visitor), 'platform': True}
+
     def resolve_identity(self, identity, provider):
         """Map an outside identity to a local user, creating one if the provider allows it."""
         user = self.users.find_by_identity(identity.provider, identity.subject)
@@ -484,7 +503,7 @@ def _blueprint():
         """The sidebar's favourites and fold behaviour for the signed-in account."""
         auth = _auth()
         user = current_user()
-        if not auth.enabled or not user or user.get('api_token'):
+        if not auth.enabled or not user or user.get('api_token') or user.get('platform'):
             return jsonify({'error': 'Only a signed-in account keeps sidebar settings.'}), 400
         if request.method == 'GET':
             return jsonify(clean_nav((auth.users.get(user['username']) or {}).get('nav')))

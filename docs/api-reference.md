@@ -1078,7 +1078,17 @@ Source: [`floorbit/blueprints/tenant_events.py`](https://github.com/bitsandbrick
 | POST | `/api/tenant/events` | `settings.manage` |  |
 | PATCH | `/api/tenant/events/<event_id>` | `settings.manage` |  |
 | POST | `/api/tenant/events/<event_id>/copy` | `settings.manage` |  |
+
+## floorbit.blueprints.tenant_switch
+
+The club switcher: moving to another tenant of the platform (floorbit/tenant_switch.py).
+
+Source: [`floorbit/blueprints/tenant_switch.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/tenant_switch.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
 | GET | `/api/tenant/mine` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/tenant/switch` | `floorplan.view` |  |
 
 ## floorbit.blueprints.terminal
 
