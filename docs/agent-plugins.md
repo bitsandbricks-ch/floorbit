@@ -70,6 +70,10 @@ first VIP. Only the primary should poll devices and log in to them, so no device
 no login is tried twice; a standby keeps its listeners up and takes over when it becomes primary.
 Without VRRP every agent is its own primary.
 
+A plugin action (`ctx.agent_action` without naming an agent) goes to one agent per hall: its
+group's primary, so two agents in one hall never both clear the cache or bounce a port. Without
+VRRP, or while a group has no single primary, it goes to every connected agent as before.
+
 ### Actions need the hall's yes
 
 Some plugins can change things in the hall (the LAN cache plugin can clear the cache). The hosted

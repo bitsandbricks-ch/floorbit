@@ -65,7 +65,7 @@ If a plugin needs a package, it goes into Floorbit's requirements through a pull
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
 | Actions (`run_<id>(params)`) | Ships | Each names a [permission](auth.md) (default `settings.manage`) and may be `danger: true` (asks first). Floorbit checks the permission, the parameters and the CSRF token, and writes the audit log, before the code runs. |
-| Hooks on `change`, `switch.status`, `health.status`, `security.finding`, `power.alert` | Ships | Run one of the plugin's actions in the background. **Next:** a bounded queue, so a burst of changes can't start a thread each (see [Limits](#limits)). |
+| Hooks on `change`, `switch.status`, `health.status`, `security.finding`, `power.alert` | Ships | Run one of the plugin's actions in the background, on a few shared threads with a bounded queue, in the tenant and event the change happened in (see [Limits](#limits)). |
 | Endpoints (`endpoint_<id>(args)`) | Ships | Read-only JSON at `/api/plugins/<id>/endpoints/<endpoint>`, for an account with the permission it names. Never public, even with `AUTH_PUBLIC_READ`. |
 | Right-click entries on the floor plan | Ships | `context_menu:` runs one of its actions on a seat or a switch; shown only to accounts that may run it. |
 | A Test button (`test()`) | Ships | Runs on the agent for a plugin that reaches the event network. |
@@ -150,20 +150,23 @@ all of it. **Next:** the Marketplace shows the same summary before you install, 
 | --- | --- |
 | Plugin id | 2 to 40 characters, lowercase letters, digits and dashes, starting with a letter; `floorbit` is taken |
 | Bundle | 8 MB packed, 32 MB unpacked, 200 files, regular files only |
-| Marketplace index | 2 MB |
+| `plugin.yaml` | 256 KB, refused unread past that |
+| Loading `plugin.py` | 15 s; one that doesn't finish loading (or calls `sys.exit()`) shows an error and Floorbit starts without it |
+| Marketplace index | 2 MB; read with the cap, so a bigger one is never in memory |
 | State | 64 KB per plugin and tenant |
 | Outgoing HTTP (`ctx.http`) | needs `http` in `uses:`; timeout 10 s by default, 60 s at most; no redirects; TLS verified unless its own `verify_ssl` setting is off |
 | Plugin log | the last 200 lines of up to 500 characters, in memory |
 | Widget | 50 rows or items, 12 columns, 500 points, texts cut at 40 to 200 characters |
 | Agent payload | 4 MB per send; 256 MB and 24 h of spool per plugin |
 | Agent call / action | 15 s / 120 s |
-| Hooks | **Next:** at most 4 running at once per Floorbit and 200 waiting; past that the oldest are dropped, counted and logged |
-| Plugin calls in a request | **Next:** a widget, panel or layer that takes longer than 10 s answers with an error and is logged |
+| Hooks | at most 4 running at once per Floorbit and 200 waiting; past that the oldest are dropped and the plugin's log says so |
+| Tiles and endpoints | an answer within 10 s, or the request gets an error and the plugin's log says so; at most 4 of one plugin's at once, past that "still busy" at once |
 
 ## What Floorbit guarantees in return
 
-- A broken plugin never stops Floorbit: a bad manifest, an import error or a method that raises is
-  shown on its page and in its log, and the rest keeps running.
+- A broken plugin never stops Floorbit: a bad manifest, an import error, an import that never
+  finishes, a method that raises or even calls `sys.exit()` is shown on its page and in its log,
+  and the rest keeps running.
 - An update that doesn't load leaves the previous version running; *Back to* undoes an update.
 - A withdrawn version is never installed, and where it runs the page says so.
 - Settings and state survive updates, rollbacks and removal.
