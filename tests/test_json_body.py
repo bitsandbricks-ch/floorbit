@@ -1,6 +1,8 @@
 """A JSON body that isn't an object is refused before a handler reads it (floorbit/json_body.py).
 Handlers do ``body = request.get_json(silent=True) or {}`` and then ``body.get(...)``; a body
 like "x", 5 or [1] used to answer 500 on about 40 write endpoints."""
+import json
+
 import pytest
 
 WRITES = [("post", "/api/cables"), ("post", "/api/halls"), ("post", "/api/teams"), ("put", "/api/notice"),
@@ -105,3 +107,21 @@ def test_ordinary_numbers_and_the_agent_link_are_left_alone(client):
     # The agent's calls carry what devices said; its own handlers judge them (no 400 from the guard).
     r = client.post("/api/agent/v1/report", data='{"value": NaN}', content_type="application/json")
     assert r.get_json(silent=True) is None or r.get_json().get("error") != "Numbers must be finite: no NaN or Infinity."
+
+
+@pytest.mark.parametrize("text", ["nan", "inf", "-Infinity"])
+def test_nan_as_text_never_lands_on_the_plan(client, text):
+    """float() reads the text "nan" too, which the body guard can't see. A switch or patch panel
+    saved at x=NaN made /api/plan and /api/switches answer a bare NaN, which no browser parses."""
+    switch = {"name": "sw-nan", "x": text, "y": 10}
+    assert client.post("/api/inventory", json=switch).status_code == 400
+    made = client.post("/api/inventory", json={"name": "sw-ok", "x": 5, "y": 5})
+    assert made.status_code in (200, 201)
+    assert client.patch(f"/api/inventory/{made.get_json()['id']}", json={"x": text, "y": 1}).status_code == 400
+    assert client.post("/api/cable-plan/panels", json={"name": "PP-1", "x": 1, "y": text}).status_code == 400
+    for path in ("/api/plan", "/api/switches", "/api/inventory", "/api/cable-plan"):
+        json.loads(client.get(path).get_data(as_text=True), parse_constant=_refuse)
+
+
+def _refuse(constant):
+    raise AssertionError(f"{constant} in an answer")
