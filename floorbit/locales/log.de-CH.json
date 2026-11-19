@@ -345,5 +345,6 @@
   "Asked every local agent to fetch a new key": "Alle lokalen Agents gebeten, einen neuen Schlüssel abzuholen",
   "Asked a local agent to fetch a new certificate": "Lokalen Agent gebeten, ein neues Zertifikat abzuholen",
   "A local agent fetched its new key": "Ein lokaler Agent hat seinen neuen Schlüssel abgeholt",
-  "Signed a certificate for a local agent": "Zertifikat für einen lokalen Agent signiert"
+  "Signed a certificate for a local agent": "Zertifikat für einen lokalen Agent signiert",
+  "Swapped switch hardware": "Switch-Hardware getauscht"
 }
