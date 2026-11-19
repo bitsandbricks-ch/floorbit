@@ -192,3 +192,9 @@ def test_a_cable_tells_the_port_watch_its_seat():
     data = {"cables": [{"switch": "SW-A-01", "port": "GigabitEthernet1/0/7", "seat": "A-7"},
                        {"switch": "sw-a-01", "port": "Gi1/0/8", "seat": ""}]}
     assert cables.port_seats(data) == {("sw-a-01", "gi1/0/7"): "A-7"}
+
+
+def test_every_cable_has_its_own_page(client):
+    """A label's QR code opens /cables/<id>; /cables/new adds one (issue #877)."""
+    for path in ("/cables/c1", "/cables/new", "/cables/walk"):
+        assert client.get(path).status_code == 200, path

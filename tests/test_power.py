@@ -192,3 +192,9 @@ def test_placed_boards_are_on_the_plan(client, floor):
     client.post("/api/power/boards", json={"name": "DB-nowhere"})
     names = {b["name"]: b for b in client.get("/api/plan").get_json()["boards"]}
     assert "DB-nowhere" not in names and names["DB-9"]["x"] == 800
+
+
+def test_boards_and_circuits_have_their_own_pages(client):
+    """The React app draws them; the server only has to answer the address (issue #877)."""
+    for path in ("/power/boards/b1", "/power/circuits/c1", "/power/circuits/new"):
+        assert client.get(path).status_code == 200, path
