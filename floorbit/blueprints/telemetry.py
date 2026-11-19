@@ -197,6 +197,16 @@ def devices_view():
     return jsonify({'devices': _devices()})
 
 
+@bp.route('/api/telemetry/devices/<device_id>', methods=['GET'])
+def device_view(device_id):
+    """One inventory device's telemetry for its page: on or off, logins, what is automatic, and what
+    the collector does with it. No secrets."""
+    found = targets.for_device(device_id)
+    if found is None:
+        return jsonify({'error': 'That device is not in the inventory.'}), 404
+    return jsonify(found)
+
+
 def _ask_agents(op, name):
     """Ask the agents' telemetry part ``op`` about one device: the first one that collects from it
     answers. (answer, agent name) or a Flask error reply."""

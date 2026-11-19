@@ -7,10 +7,12 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { CredentialInfo, InventoryGroup, InventoryOverview, InventoryTag } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { PageTabs } from '@/components/PageTabs'
+import { usePageTab } from '@/components/pageTab'
 import { Panel } from '@/components/ui'
 import { credentialBody } from './model'
 import { groupAndBelow, groupTree, useCredentials } from './scope'
-import { TelemetryFields } from './TelemetryFields'
+import { TelemetrySettings } from './TelemetrySettings'
 import { CredentialsEditor, FeaturesEditor, LookFields, PropertiesEditor, TagPicker, type CredentialDraft } from './ScopeEditors'
 
 export type ScopeTarget = { kind: 'group'; item: InventoryGroup | null; parent?: string | null }
@@ -75,6 +77,9 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
   const parents = groupTree(overview.groups).filter(({ group: g }) => !below.has(g.id))
     .map(({ group: g, depth }) => ({ value: g.id, label: `${'  '.repeat(depth)}${g.name}` }))
   const current = target.kind === 'defaults' ? overview.defaults : item
+  // Tabs like a device's page, so telemetry and logins aren't buried under the feature list.
+  const tabIds = [...(target.kind !== 'defaults' ? ['details'] : []), ...(current ? ['telemetry', 'settings', ...(canEdit ? ['credentials'] : [])] : [])]
+  const [tab, setTab] = usePageTab(tabIds)
 
   function basics() {
     const body: Record<string, unknown> = { name, icon, color }
@@ -85,7 +90,10 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
 
   return (
     <Stack gap="md">
-      {target.kind !== 'defaults' && (
+      {tabIds.length > 1 && (
+        <PageTabs label={t('inventory.title')} value={tab} onChange={setTab} tabs={tabIds.map((id) => ({ id, label: t(`inventory.tabs.${id}`) }))} />
+      )}
+      {tab === 'details' && (
         <Panel title={t('inventory.groups.basics')}>
           <form onSubmit={(e) => { e.preventDefault(); basics() }}>
             <Stack gap="sm">
@@ -115,7 +123,13 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
           </form>
         </Panel>
       )}
-      {current && (
+      {current && tab === 'telemetry' && (
+        <Panel title={t('inventory.tabs.telemetry')} desc={t('inventory.telemetry.groupIntro')}>
+          <TelemetrySettings key={JSON.stringify([current.properties, current.features])} own={current.properties}
+            ownFeatures={current.features} canEdit={canEdit} busy={save.isPending} onSave={(body) => save.mutate(body)} />
+        </Panel>
+      )}
+      {current && tab === 'settings' && (
         <>
           <Panel title={t('inventory.props.title')}>
             <PropertiesEditor key={JSON.stringify(current.properties)} value={current.properties} canEdit={canEdit}
@@ -125,17 +139,13 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
             <FeaturesEditor catalog={overview.features} value={current.features} canEdit={canEdit} busy={save.isPending}
               onSave={(features) => save.mutate({ features })} />
           </Panel>
-          <Panel title={t('inventory.telemetry.how')} desc={t('inventory.telemetry.groupIntro')}>
-            <TelemetryFields key={JSON.stringify(current.properties)} own={current.properties} canEdit={canEdit}
-              busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
-          </Panel>
-          {canEdit && (
-            <Panel title={t('inventory.creds.title')} desc={t('inventory.creds.inheritIntro')}>
-              <CredentialsEditor own={own} overview={overview} canSet={canSetCreds} busy={setCred.isPending} error={credError}
-                onSet={(d) => setCred.mutateAsync(d)} onRemove={(c) => removeCred.mutate(c)} />
-            </Panel>
-          )}
         </>
+      )}
+      {current && tab === 'credentials' && canEdit && (
+        <Panel title={t('inventory.creds.title')} desc={t('inventory.creds.inheritIntro')}>
+          <CredentialsEditor own={own} overview={overview} canSet={canSetCreds} busy={setCred.isPending} error={credError}
+            onSet={(d) => setCred.mutateAsync(d)} onRemove={(c) => removeCred.mutate(c)} />
+        </Panel>
       )}
       {!current && <Text size="sm" c="dimmed">{t('inventory.groups.saveFirst')}</Text>}
     </Stack>

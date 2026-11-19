@@ -79,11 +79,10 @@ export function AppShell({ children }: { children?: ReactNode }) {
  *  show the page's PageHead), and a way up for sub pages.
  *  ``back`` names the parent page; the floor plan as parent needs no link, the sidebar has it.
  *  ``count`` goes in front of the tab title, so a background tab shows when something needs a look (issue #208).
- *  ``wide`` drops the reading width, for pages that are one big picture (the seats view).
  *  ``full`` makes the page a workspace like a map editor: no padding and no page scroll, the page
  *  fills every pixel next to the sidebar and sizes its own parts (the floor plan). */
-export function Layout({ title, back, count, wide, full, children }: {
-  title: string; back?: { href: string; label: string }; count?: number; wide?: boolean; full?: boolean; children: ReactNode
+export function Layout({ title, back, count, full, children }: {
+  title: string; back?: { href: string; label: string }; count?: number; full?: boolean; children: ReactNode
 }) {
   const path = useLocation().pathname
   const inPanel = useInPanel()
@@ -96,7 +95,7 @@ export function Layout({ title, back, count, wide, full, children }: {
   if (inPanel) return <>{children}</>
   const up = back && back.href !== '/' ? back : null
   return (
-    <main className={full ? 'fb-main fb-main-full' : wide ? 'fb-main fb-main-wide' : 'fb-main'}>
+    <main className={full ? 'fb-main fb-main-full' : 'fb-main'}>
       <h1 className="fb-sr-only">{title}</h1>
       {up && (
         <nav className="fb-up" aria-label={up.label}>

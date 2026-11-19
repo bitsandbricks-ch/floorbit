@@ -1208,5 +1208,6 @@
  "{}: \"{}\" is not valid.": "{}: «{}» ist nicht gültig.",
  "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein.",
  "{} must be one of {}.": "{} muss eines davon sein: {}.",
- "The agents CA key cannot be opened. The server log says why.": "Der Schlüssel der Agent-CA lässt sich nicht öffnen. Das Server-Log sagt, warum."
+ "The agents CA key cannot be opened. The server log says why.": "Der Schlüssel der Agent-CA lässt sich nicht öffnen. Das Server-Log sagt, warum.",
+ "That device is not in the inventory.": "Dieses Gerät ist nicht im Inventar."
 }

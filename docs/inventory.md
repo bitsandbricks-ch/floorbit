@@ -8,7 +8,8 @@ or by placing switches on the floor plan. Plugins such as NetBox add to it.
 Every device, group and tag has its own page, with no side panel in between: a device opens at
 `/inventory/devices/<id>` with tabs for its overview, interfaces, telemetry, settings and
 credentials; a group at `/inventory/groups/<id>`, a tag at `/inventory/tags/<id>` and the
-defaults for all devices at `/inventory/defaults`. Other entries (cables, transceivers, ...) open at
+defaults for all devices at `/inventory/defaults`, each with tabs for its details, telemetry,
+settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
 
 ## What each device has

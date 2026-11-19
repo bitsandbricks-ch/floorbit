@@ -86,5 +86,7 @@ export function statusLabel(t: (k: string, o?: Record<string, unknown>) => strin
 
 /** The pages of one inventory item (pages/inventory/*Page.tsx). */
 export const devicePath = (id: string) => `/inventory/devices/${encodeURIComponent(id)}`
+/** A device's own telemetry: its page, on the Telemetry tab. */
+export const telemetryPath = (id: string) => `${devicePath(id)}?tab=telemetry`
 export const scopePath = (kind: 'group' | 'tag', id: string) => `/inventory/${kind === 'group' ? 'groups' : 'tags'}/${encodeURIComponent(id)}`
 export const entryPath = (type: string, id: string) => `/inventory/entries/${encodeURIComponent(type)}/${encodeURIComponent(id)}`

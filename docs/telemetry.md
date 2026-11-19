@@ -22,8 +22,10 @@ history (see [Storage](#storage)).
 
 ## Set it up
 
-Devices are set up in the [inventory](inventory.md), nowhere else. The **Telemetry** page under
-Monitoring shows what comes in from each one.
+Devices are set up in the [inventory](inventory.md), nowhere else: the **Telemetry** tab of a
+device, a group, a tag or **All devices**. The **Telemetry** page under Monitoring shows what comes
+in from each device (find and filter by problems or never heard), the collector's state on its
+**Collector** tab and the ingest token on **Senders**; each device opens its own Telemetry tab.
 
 1. **The inventory**: turn the **Telemetry** feature on for a device, a tag, a group or a type, and
    store its logins there: SNMP v3 (or v2c) for polling and traps, and an API login for NX-API
@@ -42,11 +44,12 @@ Monitoring shows what comes in from each one.
     | Own Telegraf | OPNsense, pfSense | The firewall runs Telegraf (OPNsense `os-telegraf`, the pfSense Telegraf package) and sends to the collector. |
 
     A device that only sends by itself (`telemetry_drivers` of `push`, `mdt` or `traps`) needs no
-    login. **Device setup** on the Telemetry page shows what to paste on the device for traps, MDT,
+    login. **Device setup** on the device's Telemetry tab shows what to paste on the device for traps, MDT,
     gNMI, NX-API and RESTCONF.
 
 2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. That is
-   the default on IOS; list the seat VLANs in `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
+   the default on IOS; Floorbit reads the VLANs on the device's interfaces, or the ones listed in
+   `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
    `vlan-<id>` context (v3). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
 3. **Telegraf.** The local agent runs it: it is in the agent image, and the Telemetry plugin starts
@@ -88,27 +91,37 @@ Turn the **Telemetry** feature on for a device, a tag, a group or a type, and st
 there: SNMP v3 (or v2c) for polling and traps, and an API login for NX-API (NX-OS), RESTCONF
 (IOS-XE) or the OPNsense API.
 
-What it does follows the platform and the logins it finds: SNMP polling and traps with an SNMP
-login, plus the platform's API with an API login. Properties on the device (or inherited from its
-tags, group or type) can say more. The **Telemetry** tab of a device or a group sets the agent and
-the ports without typing property names, and shows the device's last word, **Test now** and
-**Raw data**:
+What it does follows the device's software (its platform) and the logins it finds, unless
+something says otherwise:
+
+- **Ways to collect:** SNMP polling and traps with an SNMP login, plus the platform's API with an
+  API login (NX-API on NX-OS, RESTCONF on IOS-XE, the OPNsense API). Cisco MDT, gNMI and a
+  firewall's own Telegraf need setting up on the device first, so they are never on by themselves:
+  choose them.
+- **MAC tables:** per VLAN on Cisco IOS and IOS-XE, the standard Q-BRIDGE table otherwise.
+- **VLANs to read:** the VLANs on the device's interfaces.
+- **MDT node name:** the device's own name.
+
+The **Telemetry** tab of a device, a group, a tag or All devices sets all of it without typing
+property names: on, off or inherit; **Automatic** or **Choose** the ways to collect; MAC tables,
+VLANs, the MDT node, the agent, the address and the ports. An empty field shows what applies and
+where it comes from. A device's tab also shows its last word, **Test now**, **Raw data** and
+**Device setup**. The tab writes these properties, which a type can set too:
 
 | Property | What |
 | --- | --- |
-| `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (overrides the guess) |
+| `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
 | `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
-| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` |
+| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs on its interfaces) |
 | `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
 | `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
 | `telemetry_address` | where the agent reaches the device, when not its management address |
 | `telemetry_url` | the API's full `https://` address |
-| `telemetry_mdt_node` | the node name a device sends model-driven telemetry as |
+| `telemetry_mdt_node` | the node name a device sends model-driven telemetry as (default: its name) |
 | `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
 
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
-tried again until a tech clears it or the password changes. A device set up on Settings >
-Telemetry by the same name wins over the inventory's.
+tried again until a tech clears it or the password changes.
 
 ## Two agents (VRRP)
 

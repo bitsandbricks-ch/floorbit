@@ -76,27 +76,37 @@ function TestView({ r }: { r: TestResult }) {
 }
 
 /** "Test now" and "Raw data" for one device, with their dialogs. */
-export function DeviceTelemetryActions({ name }: { name: string }) {
+export function DeviceTelemetryActions({ name, setup = false }: { name: string; setup?: boolean }) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState<'test' | 'raw' | null>(null)
+  const [open, setOpen] = useState<'test' | 'raw' | 'setup' | null>(null)
   const test = useMutation({ mutationFn: () => post<TestResult>('/api/telemetry/test', { name }) })
   const raw = useQuery({
     queryKey: qk.telemetryRaw(name), enabled: open === 'raw', refetchInterval: open === 'raw' ? 10_000 : false,
     queryFn: () => get<{ lines: string[]; agent: string }>(`/api/telemetry/raw?name=${encodeURIComponent(name)}`),
   })
+  // What to paste on the device so it sends (traps, MDT, its own Telegraf).
+  const config = useQuery({
+    queryKey: qk.telemetryDeviceConfig(name), enabled: open === 'setup',
+    queryFn: () => get<{ config: string }>(`/api/telemetry/device-config?name=${encodeURIComponent(name)}`),
+  })
+  const titles = { test: 'telemetry.test.title', raw: 'telemetry.raw.title', setup: 'telemetry.pasteTitle' } as const
   return (
     <>
       <Button size="compact-sm" variant="default" loading={test.isPending}
         onClick={() => { setOpen('test'); test.mutate() }}>{t('telemetry.test.button')}</Button>
       <Button size="compact-sm" variant="default" onClick={() => setOpen('raw')}>{t('telemetry.raw.button')}</Button>
-      <Modal opened={open !== null} onClose={() => setOpen(null)} size="xl"
-        title={t(open === 'raw' ? 'telemetry.raw.title' : 'telemetry.test.title', { name })}>
+      {setup && <Button size="compact-sm" variant="default" onClick={() => setOpen('setup')}>{t('telemetry.deviceConfig')}</Button>}
+      <Modal opened={open !== null} onClose={() => setOpen(null)} size="xl" title={open ? t(titles[open], { name }) : ''}>
         {open === 'test' && (test.isPending ? <Group gap="xs"><Loader size="sm" /><Text size="sm">{t('telemetry.test.running')}</Text></Group>
           : test.error ? <Alert color="down">{test.error.message}</Alert>
             : test.data ? <TestView r={test.data} /> : null)}
         {open === 'raw' && (raw.isLoading ? <Loader size="sm" />
           : raw.error ? <Alert color="down">{raw.error.message}</Alert>
             : raw.data ? <Stack gap="xs"><Text size="xs" c="dimmed">{t('telemetry.raw.help', { agent: raw.data.agent })}</Text><RawLines lines={raw.data.lines} /></Stack> : null)}
+        {open === 'setup' && (config.isLoading ? <Loader size="sm" />
+          : config.error ? <Alert color="down">{config.error.message}</Alert>
+            : <Stack gap="sm"><Text size="sm">{t('telemetry.pasteIntro')}</Text>
+              {config.data?.config ? <Code block>{config.data.config}</Code> : <Text c="dimmed">{t('telemetry.pasteNothing')}</Text>}</Stack>)}
       </Modal>
     </>
   )

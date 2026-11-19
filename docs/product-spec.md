@@ -20,6 +20,23 @@ tools a tech needs to fix them. The aim is a stable platform that just works dur
 - **Self-hosted first** (Docker Compose, Kubernetes or k3s), hosted with tenants second, with the
   same code.
 
+### Core parts
+
+Floorbit is an operations suite. These parts are its core, decided by Mike on 2026-11-19:
+
+| Core part | What it covers |
+| --- | --- |
+| **Agents** | The local agents, their settings, health and failover |
+| **Telemetry** | Collecting from devices: SNMP, traps, APIs, streaming, logs, flows |
+| **Seating plan and mapping** | The floor plan, seats, and which switch port each seat is on |
+| **Inventory** | Devices, groups, tags, properties, features and logins |
+| **Observability** | Issues, problems, incidents and heatmaps |
+| **Services and monitoring** | Services, their checks and live status |
+
+The core must work without flaws: no design or UX faults, no code smells, no security holes. It
+always comes first, in reviews, issues, plans and fixes. Everything else is optional and waits
+behind it.
+
 ### Scope
 
 | | What | Why |
@@ -138,6 +155,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **No free text for known data.** Switches, ports, seats, blocks, halls, devices, agents, users,
   teams and VLANs are picked from a searchable list (`EntitySelect`). No native `<select>`.
 - **Controls look the same everywhere;** pages never restyle them. Menu text is 14px like page text.
+- **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
+  for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
 - **Deletes ask first** (`ConfirmButton`), never `window.confirm`, `alert` or `prompt`.
 - **Languages:** English and Swiss German everywhere (pages, server errors, Discord, logs); standard
   German is derived. No "ß". Terms: Sitzblock, Störung, Hallenplan, Mandant.

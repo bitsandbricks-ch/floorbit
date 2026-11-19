@@ -29,7 +29,7 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
   const pinned = prefs.favourites.includes(fav)
   const pin = () => setPrefs({ ...prefs, favourites: pinned ? prefs.favourites.filter((x) => x !== fav) : [...prefs.favourites, fav] })
   return (
-    <Layout title={name} wide>
+    <Layout title={name}>
       <PageHead
         title={name} kicker={kicker}
         actions={<>

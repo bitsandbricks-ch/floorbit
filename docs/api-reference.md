@@ -997,6 +997,7 @@ Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/telemetry/api/v2/write` | anyone |  |
 | GET | `/api/telemetry/device-config` | `settings.manage` |  |
 | GET | `/api/telemetry/devices` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/telemetry/devices/<device_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/telemetry/overview` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/telemetry/raw` | `settings.manage` |  |
 | GET | `/api/telemetry/series` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |

@@ -95,5 +95,21 @@
   "heard": "Gehört {{when}}",
   "devicesTitle": "Geräte",
   "agent": "Agent",
-  "anyAgent": "Jeder Agent"
+  "anyAgent": "Jeder Agent",
+  "summary": "Telemetrie auf einen Blick",
+  "heardCard": "Gehört von",
+  "problemsCard": "Mit Problemen",
+  "noProblems": "alles ruhig",
+  "collectorTab": "Sammler",
+  "agentsTitle": "Pro Agent",
+  "emptyTitle": "Noch keine Geräte",
+  "turnOn": "Für alle Geräte einschalten",
+  "search": "Gerät suchen",
+  "show": "Anzeigen",
+  "showAll": "Alle",
+  "showProblems": "Mit Problemen",
+  "showSilent": "Nie gehört",
+  "edit": "Einrichten und testen",
+  "open": "Öffnen",
+  "noMatch": "Kein Gerät passt."
 }

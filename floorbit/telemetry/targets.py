@@ -80,6 +80,23 @@ def _platform(text):
     return 'other'
 
 
+def auto(platform, has_snmp, has_api):
+    """What telemetry does for a device that leaves it open, from its software and its logins:
+    SNMP polling and traps with an SNMP login, the platform's API with an API login, MAC tables per
+    VLAN on Cisco IOS and IOS-XE. MDT, gNMI and a firewall's own Telegraf need setting up on the
+    device first, so they are never on by themselves."""
+    drivers = ['snmp', 'traps'] if has_snmp else []
+    if has_api and platform in API_DRIVER:
+        drivers.append(API_DRIVER[platform])
+    return {'drivers': drivers, 'fdb': 'cisco_vlans' if platform in ('ios', 'iosxe') else 'qbridge'}
+
+
+def iface_vlans(dev):
+    """The VLANs on a device's interfaces: where a Cisco switch keeps a MAC table each."""
+    return sorted({int(i['vlan']) for i in dev.get('interfaces') or []
+                   if not i.get('hidden') and str(i.get('vlan') or '').isdigit() and 1 <= int(i['vlan']) <= 4094})
+
+
 def _words(value):
     if isinstance(value, list):
         return [str(v).strip() for v in value if str(v).strip()]
@@ -87,28 +104,28 @@ def _words(value):
 
 
 def _from_device(dev, snmp, api):
-    """One telemetry target (secrets open) from an inventory device and its opened logins."""
+    """One telemetry target (secrets open) from an inventory device and its opened logins. What its
+    properties leave open comes from auto() and, for the VLANs, from its interfaces."""
     props = dev.get('properties') or {}
     platform = _platform(dev.get('platform'))
     kind = dev.get('role') if dev.get('role') in KINDS else 'switch'
+    given = auto(platform, bool(snmp), bool(api))
     drivers = [d for d in _words(props.get('telemetry_drivers')) if d in DRIVERS]
     if not snmp and not api:
         drivers = [d for d in drivers if d in SENDING]
-    if not drivers:
-        drivers = ['snmp', 'traps'] if snmp else []
-        if api and platform in API_DRIVER:
-            drivers.append(API_DRIVER[platform])
+    drivers = drivers or given['drivers']
     # telemetry_address: where the agent reaches it, when not its management address (a NAT, a lab).
     address = str(props.get('telemetry_address') or '').strip()[:253] or dev['address']
+    vlans = {int(v) for v in _words(props.get('telemetry_vlans')) if v.isdigit() and 1 <= int(v) <= 4094}
     t = {'id': f"inv-{dev['id']}", 'name': dev['name'], 'address': address, 'kind': kind,
          'platform': platform, 'drivers': drivers, 'source': 'inventory', 'inventory_id': dev['id'],
-         'fdb': props.get('telemetry_fdb') if props.get('telemetry_fdb') in FDB_MODES
-         else ('cisco_vlans' if platform in ('ios', 'iosxe') else 'qbridge'),
-         'vlans': sorted({int(v) for v in _words(props.get('telemetry_vlans')) if v.isdigit() and 1 <= int(v) <= 4094}),
+         'fdb': props.get('telemetry_fdb') if props.get('telemetry_fdb') in FDB_MODES else given['fdb'],
+         'vlans': sorted(vlans) or list(dev.get('iface_vlans') or []),
          'ports': _ports({k: props.get(f'telemetry_port_{k}') for k in PORT_KINDS}),
          'agent': _agent(props.get('telemetry_agent')),
          'url': str(props.get('telemetry_url') or '').strip() or None,
-         'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or None,
+         # Cisco names the stream after the switch unless it is set up otherwise.
+         'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
          'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
          'tables': True, 'snmp_version': '2c', 'logins': {}}
     if t['url'] and not t['url'].startswith('https://'):
@@ -154,11 +171,42 @@ def from_inventory(data=None):
     found = {**bare, **api, **snmp}
     out = []
     for dev_id in sorted(found, key=lambda i: found[i]['name'].lower()):
+        found[dev_id]['iface_vlans'] = iface_vlans(inventory.find(data, dev_id) or {})
         t = _from_device(found[dev_id], (snmp.get(dev_id) or {}).get('credential'),
                          (api.get(dev_id) or {}).get('credential'))
         if t:
             out.append(t)
     return out
+
+
+def for_device(device_id, data=None):
+    """One inventory device's telemetry as its page shows it, without opening a login: whether the
+    feature is on, which logins it has, what is automatic, and what the collector would do."""
+    from .. import inventory, inventory_scope
+    data = load_data() if data is None else data
+    dev = inventory.find(data, device_id)
+    if dev is None:
+        return None
+    on = inventory_scope.feature_on(data, dev, FEATURE)
+    stack = inventory_scope.layers(data, dev)
+    logins = {}
+    for name, kinds in (('snmp', ('snmp_v3', 'snmp_v2c')), ('api', ('api', 'http'))):
+        for kind in kinds:
+            cred = inventory_scope._credential_for(data, dev, kind, stack)[0]
+            if cred is not None and inventory_scope._block(dev, cred) is None:
+                logins[name] = {'id': cred['id'], 'kind': kind, 'rev': cred.get('rev') or '', 'username': ''}
+                break
+    platform = _platform(dev.get('platform'))
+    flat = {'id': dev['id'], 'name': dev['name'], 'address': dev.get('mgmt_ip') or dev['name'],
+            'role': dev.get('role') or '', 'platform': dev.get('platform') or '',
+            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev)}
+    target = _from_device(flat, logins.get('snmp'), logins.get('api')) if on else None
+    if target:
+        target = {k: v for k, v in target.items() if k not in SECRETS and k != 'logins'}
+    return {'on': on, 'platform': platform, 'logins': {k: v['kind'] for k, v in logins.items()},
+            'auto': {**auto(platform, 'snmp' in logins, 'api' in logins), 'vlans': flat['iface_vlans'],
+                     'mdt_node': dev['name'], 'address': flat['address']},
+            'target': target}
 
 
 def any_device(data=None):

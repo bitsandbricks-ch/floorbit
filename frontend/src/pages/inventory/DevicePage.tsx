@@ -24,7 +24,8 @@ import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, entryPath, roleIcon, scopePath, speedLabel, statusLabel, typeName, type Draft } from './model'
 import { useCustomIcons, useDeviceDetail, useInventoryGroups, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
-import { TelemetryFields } from './TelemetryFields'
+import { useDeviceTelemetry } from './telemetry'
+import { TelemetrySettings } from './TelemetrySettings'
 
 /** One device's own page (/inventory/devices/<id>): what it is, its ports, telemetry, settings and
  *  logins, each a tab. The inventory list links here; nothing opens a side panel. */
@@ -109,6 +110,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const agentId = dev.resolved.properties.telemetry_agent?.value
   const agentName = agentId ? agents?.find((a) => a.value === agentId)?.label ?? agentId : null
   const telemetryOn = !!dev.resolved.features.telemetry?.on
+  const telemetry = useDeviceTelemetry(dev.id)
   const tabIds = ['overview', 'interfaces', 'telemetry', 'settings', ...(canEdit ? ['credentials'] : [])]
   const [tab, setTab] = usePageTab(tabIds)
   const tabs = [
@@ -309,13 +311,15 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
               {!telemetryOn ? <Text size="sm" c="dimmed">{t('inventory.telemetry.off')}</Text> : canSetCreds ? (
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                   <DeviceTelemetryStatus name={dev.name} />
-                  <Group gap={6}><DeviceTelemetryActions name={dev.name} /></Group>
+                  <Group gap={6}><DeviceTelemetryActions name={dev.name} setup /></Group>
                 </Group>
               ) : <Text size="sm" c="dimmed">{t('inventory.page.telemetryAdmins')}</Text>}
             </Panel>
-            <Panel title={t('inventory.telemetry.how')}>
-              <TelemetryFields key={JSON.stringify(dev.properties)} own={dev.properties ?? {}} inherited={dev.resolved.properties}
-                canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
+            <Panel title={t('inventory.telemetry.setup')}>
+              {telemetry.error && <Alert color="down" mb="sm">{telemetry.error.message}</Alert>}
+              <TelemetrySettings key={JSON.stringify([dev.properties, dev.features])} own={dev.properties ?? {}} ownFeatures={dev.features ?? {}}
+                inherited={dev.resolved.properties} resolvedOn={dev.resolved.features.telemetry} info={telemetry.data}
+                canEdit={canEdit} busy={save.isPending} onSave={(body) => save.mutate(body)} />
             </Panel>
           </Stack>
         )}
