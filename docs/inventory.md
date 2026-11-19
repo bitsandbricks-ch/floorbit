@@ -81,6 +81,19 @@ A device inherits from its tags, its group, the group's tags, the parent group a
 
 The device page shows every inherited value and where it comes from.
 
+### Properties in three levels
+
+A device's page (`GET /api/inventory/<id>`, `property_view`) shows its properties in three levels:
+
+| Level | What | Each value has |
+| --- | --- | --- |
+| `system.*` | The device's own fields: `system.name`, `system.model`, `system.serial`, `system.mgmt_ip`, `system.os`, `system.location`, `system.group`, `system.tags`, ... | `value` (what every view uses), `set_by` (`hand`, `discovery` or the feeding plugin, such as `netbox`) and `sources`: what each source last read for it (`{"telemetry": "FOC0000X0AA", "netbox": "..."}`) |
+| `auto.*` | What discovery found that has no field of its own: `auto.vlans.count`, `auto.networks.count`, `auto.optics.count`, `auto.routes.count`, `auto.routes.default_gateway`, `auto.poe.budget_w`, `auto.poe.used_w`, `auto.interfaces.count`, `auto.snmp.sysdescr` | `value`, `source`, `seen` |
+| no prefix | The properties people set, inherited from tags, groups and the device type | `value`, `from` (where it is set) |
+
+A hand value still wins over discovery (see Discovery below), and the source that disagrees stays
+visible next to it. Custom property names can't start with `system.` or `auto.`.
+
 ### Feature switches
 
 Per device, tag, group or for all devices, Floorbit's own per-device features can be switched off
@@ -262,7 +275,7 @@ audit log (area *inventory*, *credentials* and *icons*), with field names, never
 | `DELETE /api/inventory/<id>` | Delete (made by hand) or hide (fed by a plugin) |
 | `POST /api/inventory/sync` | Run every inventory plugin that's on |
 | `GET /api/inventory/log` | The last 50 syncs (editors and up) |
-| `GET /api/inventory/<id>` | One device with its interfaces, what it inherits and from where, and its blocks |
+| `GET /api/inventory/<id>` | One device with its interfaces, what it inherits and from where, its blocks, and its properties in three levels (`property_view`) |
 | `POST /api/inventory/<id>/interfaces` | Add interfaces: `{"names": "Gi1/0/1-48", "type": "copper"}` |
 | `PATCH` / `DELETE /api/inventory/<id>/interfaces/<iid>` | Change (`unlock: [...]` as for devices) or remove one |
 | `POST /api/inventory/interfaces/sync` | Take the ports from the monitoring source |

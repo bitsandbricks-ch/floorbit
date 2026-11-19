@@ -465,8 +465,8 @@
  "tone must be one of {}": "tone muss eines von diesen sein: {}",
  "too short": "zu kurz",
  "type must be stat, status, list, table, sparkline or series": "type muss stat, status, list, table, sparkline oder series sein",
-  "a series is a dict with label and points": "Eine Reihe ist ein Dict mit label und points",
-  "a series point is [time, value]": "Ein Punkt einer Reihe ist [Zeit, Wert]",
+ "a series is a dict with label and points": "Eine Reihe ist ein Dict mit label und points",
+ "a series point is [time, value]": "Ein Punkt einer Reihe ist [Zeit, Wert]",
  "view must be \"sessions\" or \"events\".": "view muss «sessions» oder «events» sein.",
  "{port} is the only placeholder a command can have.": "{port} ist der einzige Platzhalter, den ein Befehl haben darf.",
  "{} account(s) still have this role: {}. Give them another role first.": "{} Konto/Konten haben noch diese Rolle: {}. Gib ihnen zuerst eine andere Rolle.",
@@ -1228,5 +1228,6 @@
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
  "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
- "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({})."
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
+ "{}: names starting with system. or auto. are Floorbit's own. Pick another name.": "{}: Namen, die mit system. oder auto. beginnen, gehören Floorbit. Wähle einen anderen Namen."
 }
