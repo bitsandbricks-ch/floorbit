@@ -60,7 +60,16 @@
     "tls": "{{driver}}: TLS with {{address}} failed. Check its certificate, or turn off TLS checking for it.",
     "listen": "{{driver}}: Telegraf cannot open its listening port. Is another program using it?",
     "other": "{{driver}}: {{detail}}",
-    "docs": "What to check"
+    "docs": "What to check",
+    "scopeDevice": "whole device",
+    "scopeVlan": "VLAN {{vlan}}",
+    "scopeTable": "table {{table}}",
+    "since": "started {{ago}}",
+    "count_one": "{{count}} time",
+    "count_other": "{{count}} times",
+    "showLine": "Collector's line",
+    "hideLine": "Hide collector's line",
+    "lastAt": "last {{at}}"
   },
   "test": {
     "button": "Test now",
@@ -100,7 +109,7 @@
   "anyAgent": "Any agent",
   "summary": "Telemetry at a glance",
   "heardCard": "Heard from",
-  "problemsCard": "With problems",
+  "problemsCard": "Need a look",
   "noProblems": "all quiet",
   "collectorTab": "Collector",
   "agentsTitle": "Per agent",
@@ -108,9 +117,6 @@
   "turnOn": "Turn it on for all devices",
   "search": "Find a device",
   "show": "Show",
-  "showAll": "All",
-  "showProblems": "With problems",
-  "showSilent": "Never heard",
   "edit": "Set up and test",
   "open": "Open",
   "noMatch": "No device matches.",
@@ -129,5 +135,16 @@
     "up": "Sends",
     "pinned": "Given to this agent",
     "pushed": "Sends by itself"
-  }
+  },
+  "problemKind": {
+    "auth": "Login refused",
+    "tls": "TLS failed",
+    "refused": "Nothing listens",
+    "unreachable": "No route",
+    "timeout": "No answer",
+    "listen": "Cannot listen",
+    "other": "Other"
+  },
+  "allAgents": "Every agent",
+  "allDrivers": "Every collector"
 }

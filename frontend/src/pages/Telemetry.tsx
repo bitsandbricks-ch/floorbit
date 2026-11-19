@@ -1,9 +1,9 @@
-import { ActionIcon, Alert, Badge, Button, Code, Group, SegmentedControl, SimpleGrid, Stack, Table, Text, TextInput, Tooltip } from '@mantine/core'
-import { IconPencil, IconSearch } from '@tabler/icons-react'
+import { ActionIcon, Alert, Button, Code, Group, Select, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
+import { IconPencil } from '@tabler/icons-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
@@ -14,12 +14,12 @@ import { PageHead } from '@/components/PageHead'
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
 import { StatCard } from '@/components/StatCard'
-import { DeviceProblems, DeviceTelemetryActions } from '@/components/telemetry/DeviceTelemetry'
+import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
+import { NEEDS_LOOK, deviceRows } from '@/components/telemetry/state'
 import { Segments } from '@/components/telemetry/Segments'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
 import { EmptyState, Field, Panel } from '@/components/ui'
-import { ago, dateTime } from '@/lib/time'
 import { telemetryPath } from './inventory/model'
 
 /** A device telemetry collects from: an inventory device with the Telemetry feature on. No logins. */
@@ -36,7 +36,6 @@ export interface TelemetryOverview {
 }
 
 const KEY = ['telemetry-overview'] as const
-type Show = 'all' | 'problems' | 'silent'
 
 /** Monitoring > Telemetry: what the collector hears from each device (docs/telemetry.md). Each
  *  device opens its own page (the inventory's Telemetry tab), where it is set up and tested. */
@@ -46,7 +45,8 @@ export default function Telemetry() {
   const data = useQuery({ queryKey: KEY, queryFn: () => get<TelemetryOverview>('/api/telemetry/overview'), refetchInterval: 15_000 })
   const d = data.data
   const [tab, setTab] = usePageTab(['devices', 'collector', ...(isAdmin ? ['segments', 'senders'] : [])])
-  const problems = d ? d.devices.filter((x) => d.seen[x.name]?.problems?.length).length : 0
+  // A device that never reported needs a look as much as one with an error (issue #1014).
+  const problems = d ? deviceRows(d).filter((r) => NEEDS_LOOK.includes(r.state)).length : 0
   const silent = d ? d.devices.filter((x) => !d.seen[x.name]?.seen).length : 0
   const errors = d ? Object.keys({ ...d.status.poll_errors, ...d.status.storage.errors }).length : 0
 
@@ -89,71 +89,49 @@ function Devices({ d, isAdmin }: { d?: TelemetryOverview; isAdmin: boolean }) {
   // The same cached list the inventory's agent field shows: an agent by its name.
   const agents = useQuery({ queryKey: qk.options('agents', ''), queryFn: () => get<{ options: EntityOption[] }>('/api/options/agents') })
   const agentName = (id: string) => agents.data?.options.find((o) => o.value === id)?.label ?? id
-  const [q, setQ] = useState('')
-  const [show, setShow] = useState<Show>('all')
+  const [params, setParams] = useSearchParams()
+  const set = (key: string, value: string | null) => {
+    const next = new URLSearchParams(params)
+    if (value) next.set(key, value)
+    else next.delete(key)
+    setParams(next, { replace: true })
+  }
+  const filter: DeviceFilter = params.get('show') === 'look' ? 'look' : 'all'
+  const agent = params.get('agent'), driver = params.get('driver')
   const label = (ns: string, v: string) => t(`telemetry.${ns}.${v}`, { defaultValue: v })
-  if (d && !d.devices.length) {
+  if (d && !d.devices.length && !Object.keys(d.seen).length) {
     return <Panel><EmptyState title={t('telemetry.emptyTitle')} desc={t('telemetry.empty')}
       action={canEdit ? <Button component={Link} to="/inventory/defaults" variant="default">{t('telemetry.turnOn')}</Button> : undefined} /></Panel>
   }
-  const needle = q.trim().toLowerCase()
-  const rows = (d?.devices ?? []).filter((x) => {
-    const s = d!.seen[x.name]
-    if (show === 'problems' && !s?.problems?.length) return false
-    if (show === 'silent' && s?.seen) return false
-    return !needle || [x.name, x.address, x.platform, agentName(x.agent)].some((v) => v.toLowerCase().includes(needle))
-  })
+  const all = d ? deviceRows(d) : []
+  const agentOf = new Map((d?.devices ?? []).map((x) => [x.name, x.agent]))
+  const rows = all.filter((r) => (!agent || (agent === '-' ? !agentOf.get(r.name) : agentOf.get(r.name) === agent))
+    && (!driver || r.drivers.includes(driver)))
+  const agentIds = [...new Set((d?.devices ?? []).map((x) => x.agent).filter(Boolean))]
+  const drivers = [...new Set(all.flatMap((r) => r.drivers))].sort()
   return (
     <Panel padding={0}>
-      <Group justify="space-between" wrap="wrap" gap="sm" p="md" pb="xs">
-        <TextInput leftSection={<IconSearch size={16} />} placeholder={t('telemetry.search')} aria-label={t('telemetry.search')}
-          value={q} onChange={(e) => setQ(e.currentTarget.value)} w={{ base: '100%', sm: 280 }} />
-        <SegmentedControl size="sm" value={show} onChange={(v) => setShow(v as Show)} aria-label={t('telemetry.show')}
-          data={[{ value: 'all', label: t('telemetry.showAll') }, { value: 'problems', label: t('telemetry.showProblems') },
-            { value: 'silent', label: t('telemetry.showSilent') }]} />
-      </Group>
-      <Table.ScrollContainer minWidth={640}>
-        <Table highlightOnHover verticalSpacing="sm">
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('telemetry.device')}</Table.Th><Table.Th>{t('telemetry.drivers')}</Table.Th>
-              <Table.Th visibleFrom="sm">{t('telemetry.agent')}</Table.Th><Table.Th>{t('telemetry.lastSeen')}</Table.Th>
-              <Table.Th visibleFrom="md">{t('telemetry.what')}</Table.Th><Table.Th />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {rows.map((dev) => {
-              const s = d!.seen[dev.name]
-              return (
-                <Table.Tr key={dev.id}>
-                  <Table.Td>
-                    <Text component={Link} to={telemetryPath(dev.inventory_id)} ff="monospace" size="sm" fw={600} c="inherit">{dev.name}</Text>
-                    <Text size="xs" c="dimmed">{dev.address} · {label('platform', dev.platform)}</Text>
-                    <DeviceProblems problems={s?.problems} />
-                  </Table.Td>
-                  <Table.Td><Group gap={4}>{dev.drivers.map((x) => <Badge key={x} variant="light" size="sm" tt="none">{label('driver', x)}</Badge>)}</Group></Table.Td>
-                  <Table.Td visibleFrom="sm"><Text size="sm" c={dev.agent ? undefined : 'dimmed'}>{dev.agent ? agentName(dev.agent) : t('telemetry.anyAgent')}</Text></Table.Td>
-                  <Table.Td>
-                    {s?.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" miw="max-content" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
-                      : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>}
-                  </Table.Td>
-                  <Table.Td visibleFrom="md"><Text size="sm">{s?.ports !== undefined ? t('telemetry.counts', { ...s }) : '–'}</Text></Table.Td>
-                  <Table.Td>
-                    <Group gap={6} justify="flex-end" wrap="nowrap">
-                      {isAdmin && d!.status.collector === 'agent' && <DeviceTelemetryActions name={dev.name} />}
-                      <Tooltip label={canEdit ? t('telemetry.edit') : t('telemetry.open')}>
-                        <ActionIcon component={Link} to={telemetryPath(dev.inventory_id)} variant="default"
-                          aria-label={`${canEdit ? t('telemetry.edit') : t('telemetry.open')}: ${dev.name}`}><IconPencil size={16} /></ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              )
-            })}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
-      {d && !rows.length && <Text size="sm" c="dimmed" p="md">{t('telemetry.noMatch')}</Text>}
+      <DeviceStateTable rows={rows} filter={filter} onFilter={(f) => set('show', f === 'look' ? 'look' : null)}
+        actions={isAdmin && d?.status.collector === 'agent'}
+        agentOf={(r) => r.pushed ? <Text span size="sm" c="dimmed">–</Text>
+          : agentOf.get(r.name) ? agentName(agentOf.get(r.name)!) : <Text span size="sm" c="dimmed">{t('telemetry.anyAgent')}</Text>}
+        toolbar={<>
+          {agentIds.length > 0 && (
+            <Select size="sm" w={180} clearable placeholder={t('telemetry.allAgents')} aria-label={t('telemetry.agent')} value={agent}
+              onChange={(v) => set('agent', v)}
+              data={[...agentIds.map((id) => ({ value: id, label: agentName(id) })), { value: '-', label: t('telemetry.anyAgent') }]} />
+          )}
+          {drivers.length > 1 && (
+            <Select size="sm" w={180} clearable placeholder={t('telemetry.allDrivers')} aria-label={t('telemetry.drivers')} value={driver}
+              onChange={(v) => set('driver', v)} data={drivers.map((x) => ({ value: x, label: label('driver', x) }))} />
+          )}
+        </>}
+        rowEnd={(r) => r.inventory_id && (
+          <Tooltip label={canEdit ? t('telemetry.edit') : t('telemetry.open')}>
+            <ActionIcon component={Link} to={telemetryPath(r.inventory_id)} variant="default"
+              aria-label={`${canEdit ? t('telemetry.edit') : t('telemetry.open')}: ${r.name}`}><IconPencil size={16} /></ActionIcon>
+          </Tooltip>
+        )} />
     </Panel>
   )
 }

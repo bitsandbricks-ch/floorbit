@@ -115,6 +115,13 @@ VLAN's or one table's problem only goes away by not coming back, since the devic
 coming in. Such a device doesn't count as failing: the agent's health says "answer only in part"
 instead. A device that only sends traps isn't listed as silent when a minute passes without one.
 
+The Telemetry page and an agent's **Devices** tab show the same thing in the same way: one row per
+device with its state (**Sends nothing**, **Never heard**, **Partly**, **Waits for traps**, **Sends**),
+what needs a look first. Each problem sits in its device's row: the kind, where (the whole device, one
+VLAN or one table), when it started and how often, then what to check. **Collector's line** opens the
+line the collector printed. The Telemetry page filters by agent and by collector, and its
+**Need a look** card counts devices that never reported as well as those with an error.
+
 **Test now** collects from one device once, through the agent, and shows what came back or the exact
 error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,
 `docker compose exec agent telegraf --config /app/state/plugins/telemetry/own-telegraf/telegraf.conf --test`

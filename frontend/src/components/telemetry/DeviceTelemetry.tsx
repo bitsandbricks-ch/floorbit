@@ -13,17 +13,42 @@ import { useTelemetryDevices, type DeviceProblem, type TestResult } from './api'
 
 const PROBLEM_DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/telemetry.md#when-a-device-sends-nothing'
 
-/** One problem in words: the kind translated, the collector's own line as the tooltip. */
+/** One problem, laid out the same way everywhere: what kind, where (the whole device, one VLAN or
+ *  one table), since when, then the hint. The collector's own line opens on demand (issue #1014). */
 export function ProblemLine({ p }: { p: DeviceProblem }) {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
   const driver = t(`telemetry.driver.${p.driver}`, { defaultValue: p.driver })
   const snmpTimeout = p.kind === 'timeout' && p.driver === 'snmp'
   const key = snmpTimeout ? (p.vlan ? 'timeout_vlan' : p.table ? 'timeout_table' : 'timeout_snmp') : p.kind
   const text = t(`telemetry.problem.${key}`, { driver, address: p.address || '–', detail: p.detail, vlan: p.vlan, table: p.table, defaultValue: p.hint || p.detail })
+  // The hint sentences start with "<driver>: "; the line above already names the driver.
+  const rest = text.replace(/^[^:]{1,24}: /, '')
+  const hint = rest.charAt(0).toUpperCase() + rest.slice(1)
+  const scope = p.vlan ? t('telemetry.problem.scopeVlan', { vlan: p.vlan })
+    : p.table ? t('telemetry.problem.scopeTable', { table: p.table }) : t('telemetry.problem.scopeDevice')
+  const color = p.kind === 'other' ? 'warn' : 'down'
   return (
-    <Text size="xs" c={p.kind === 'other' ? 'warn' : 'down'} title={p.at ? `${p.detail} (${dateTime(p.at)})` : p.detail} style={{ overflowWrap: 'anywhere' }}>
-      {text} <Anchor href={PROBLEM_DOCS} target="_blank" rel="noreferrer" size="xs">{t('telemetry.problem.docs')}</Anchor>
-    </Text>
+    <Stack gap={2} mt={6} pl="xs" style={{ borderLeft: `2px solid var(--mantine-color-${color}-filled)` }}>
+      <Group gap={6} wrap="wrap">
+        <Badge size="xs" color={color} variant="light" tt="none">{t(`telemetry.problemKind.${p.kind}`, { defaultValue: p.kind })}</Badge>
+        <Text size="xs" fw={600}>{driver} · {scope}</Text>
+        {p.since ? <Text size="xs" c="dimmed" title={dateTime(p.since)}>{t('telemetry.problem.since', { ago: ago(p.since) })}</Text> : null}
+        {(p.count ?? 0) > 1 && <Text size="xs" c="dimmed">{t('telemetry.problem.count', { count: p.count })}</Text>}
+      </Group>
+      <Text size="xs" style={{ overflowWrap: 'anywhere' }}>{hint}</Text>
+      <Group gap="sm">
+        <Anchor component="button" type="button" size="xs" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          {open ? t('telemetry.problem.hideLine') : t('telemetry.problem.showLine')}
+        </Anchor>
+        <Anchor href={PROBLEM_DOCS} target="_blank" rel="noreferrer" size="xs">{t('telemetry.problem.docs')}</Anchor>
+      </Group>
+      {open && (
+        <Code block style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: 11 }}>
+          {[p.address && `${p.address}`, p.detail, p.at && t('telemetry.problem.lastAt', { at: dateTime(p.at) })].filter(Boolean).join('\n')}
+        </Code>
+      )}
+    </Stack>
   )
 }
 
