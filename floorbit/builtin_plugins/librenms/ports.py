@@ -20,6 +20,8 @@ DETAIL_COLUMNS = [
 
 # For the needs-attention watch: when a port last went up or down. Older LibreNMS may refuse it.
 WATCH_COLUMNS = [*DETAIL_COLUMNS, 'ifLastChange']
+# And what discovery takes as the interface's (mac, vlan, mode): facts.port_facts().
+FACT_COLUMNS = [*WATCH_COLUMNS, 'ifIndex', 'ifPhysAddress', 'ifVlan', 'ifTrunk']
 
 DUPLEX = {'fullDuplex': 'full', 'halfDuplex': 'half'}
 
