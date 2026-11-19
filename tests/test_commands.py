@@ -178,6 +178,41 @@ def test_ssh_refused_command_and_wrong_login(client, ssh):
     assert resp.status_code == 429
 
 
+class AskingShell(FakeShell):
+    """IOS's "clear counters <port>": it asks [confirm] and clears only when that is answered."""
+
+    def send(self, text):
+        command = text.strip()
+        self.switch.sent.append(command)
+        if command.startswith("clear counters"):
+            self.pending = f"{command}\r\nClear \"show interface\" counters on this interface [confirm]"
+        elif command == "" and self.switch.sent[-2].startswith("clear counters"):
+            self.switch.cleared = True
+            self.pending = "\r\nsw-a-01#"
+        else:
+            self.pending = f"{command}\r\nsw-a-01#"
+
+
+class AskingSwitch(FakeSwitch):
+    cleared = False
+
+    def invoke_shell(self, **kw):
+        return AskingShell(self)
+
+
+def test_a_change_the_switch_asks_to_confirm_is_confirmed(client, ssh, monkeypatch):
+    import sys
+    module = sys.modules[ssh.specs["ssh-ports"].plugin_class().__module__]
+    monkeypatch.setattr(module.paramiko, "SSHClient", AskingSwitch)
+    resp = client.post("/api/commands/run", json={"template": "clear_counters", "switches": ["sw-a-01"],
+                                                  "port": "Gi1/0/3", "confirm": True,
+                                                  "username": "kim", "password": FakeSwitch.password})
+    body = resp.get_json()
+    assert resp.status_code == 200 and body["results"][0]["ok"], body
+    assert AskingSwitch.last.sent == ["terminal length 0", "clear counters Gi1/0/3", ""]
+    assert AskingSwitch.last.cleared
+
+
 def test_switch_names_and_logins_with_a_final_newline_are_refused():
     from floorbit import inventory_scope, ports
     for pattern, good in ((ports.PORT_RE, "Gi1/0/1"), (ports.USER_RE, "ops"), (inventory_scope.USER_RE, "ops")):

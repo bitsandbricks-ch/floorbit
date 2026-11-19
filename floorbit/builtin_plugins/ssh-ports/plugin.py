@@ -17,6 +17,9 @@ from floorbit.plugins.base import PluginError
 
 PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}\Z')   # \Z: $ lets a final newline through
 PROMPT_RE = re.compile(r'[>#%$\]]\s*$')
+# A command that asks before it acts ("clear counters Gi1/0/3" on IOS: "... [confirm]", or a default
+# in brackets: "Destination filename [startup-config]?"). The tech confirmed the template already.
+ASK_RE = re.compile(r'(\[confirm\]|\[[^\]\n]*\]\?)\s*$', re.IGNORECASE)
 ERROR_RE = re.compile(r'%\s*(invalid|incomplete|ambiguous)|invalid input|syntax error|unknown command|^error:',
                       re.IGNORECASE | re.MULTILINE)
 PLATFORMS = {
@@ -156,6 +159,11 @@ class Plugin(Base):
             for command in commands:
                 shell.send(command + '\n')
                 out = self._read(shell, timeout, settle=0.3)
+                for _ in range(3):
+                    if not ASK_RE.search(out):
+                        break
+                    shell.send('\n')
+                    out += self._read(shell, timeout, settle=0.3)
                 parts.append(clean_output(out, command))
                 if ERROR_RE.search(out):
                     result['refused'] = command
