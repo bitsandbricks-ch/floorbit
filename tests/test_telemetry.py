@@ -217,10 +217,10 @@ def test_a_firewall_that_sends_its_full_host_name(plugin):
     state.state.apply_text("cpu,host=fw-01.example.org,cpu=cpu-total usage_idle=75\n"
                            "pf,host=fw-01.example.org entries=12345i", now)
     assert plugin.device_details("fw-01")["states"] == 12345
-    assert "fw-01.example.org" not in state.state.devices
+    assert sorted(state.state.devices) == ["fw-01"]
     # A host nobody set up keeps its own name.
     state.state.apply_text("pf,host=fw-09.example.org entries=1i", now)
-    assert "fw-09.example.org" in state.state.devices
+    assert sorted(state.state.devices) == ["fw-01", "fw-09.example.org"]
 
 
 # ── Telegraf's config ──────────────────────────────────────────────────────────────────────────
